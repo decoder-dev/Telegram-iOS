@@ -1,4 +1,8 @@
+#ifdef BUCK
+#import <MTProtoKit/MTProtoKit.h>
+#else
 #import <MTProtoKitDynamic/MTProtoKitDynamic.h>
+#endif
 
 @interface TGShareLocationResult : NSObject
 

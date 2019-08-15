@@ -8,29 +8,29 @@ import MtProtoKit
 import MtProtoKitDynamic
 #endif
 import Display
-import TelegramUIPrivateModule
 import AccountContext
-import LegacyComponents
 import Pdf
 import LocalMediaResources
+import AVFoundation
+import LegacyComponents
 
-enum UnpreparedShareItemContent {
+public enum UnpreparedShareItemContent {
     case contact(DeviceContactExtendedData)
 }
 
-enum PreparedShareItemContent {
+public enum PreparedShareItemContent {
     case text(String)
     case media(StandaloneUploadMediaResult)
 }
 
-enum PreparedShareItem {
+public enum PreparedShareItem {
     case preparing
     case progress(Float)
     case userInteractionRequired(UnpreparedShareItemContent)
     case done(PreparedShareItemContent)
 }
 
-enum PreparedShareItems {
+public enum PreparedShareItems {
     case preparing
     case progress(Float)
     case userInteractionRequired([UnpreparedShareItemContent])
@@ -255,7 +255,7 @@ private func preparedShareItem(account: Account, to peerId: PeerId, value: [Stri
     }
 }
 
-func preparedShareItems(account: Account, to peerId: PeerId, dataItems: [MTSignal], additionalText: String) -> Signal<PreparedShareItems, Void> {
+public func preparedShareItems(account: Account, to peerId: PeerId, dataItems: [MTSignal], additionalText: String) -> Signal<PreparedShareItems, Void> {
     var dataSignals: Signal<[String: Any], Void> = .complete()
     for dataItem in dataItems {
         let wrappedSignal: Signal<[String: Any], NoError> = Signal { subscriber in
@@ -324,7 +324,7 @@ func preparedShareItems(account: Account, to peerId: PeerId, dataItems: [MTSigna
     })
 }
 
-func sentShareItems(account: Account, to peerIds: [PeerId], items: [PreparedShareItemContent]) -> Signal<Float, Void> {
+public func sentShareItems(account: Account, to peerIds: [PeerId], items: [PreparedShareItemContent]) -> Signal<Float, Void> {
     var messages: [EnqueueMessage] = []
     for item in items {
         switch item {

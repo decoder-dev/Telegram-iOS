@@ -5,7 +5,7 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "NBPhoneNumberDefines.h"
+#import <libphonenumber/NBPhoneNumberDefines.h>
 
 
 @interface NBPhoneNumber : NSObject <NSCopying, NSCoding>

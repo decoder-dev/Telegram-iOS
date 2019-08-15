@@ -6,7 +6,6 @@
 #import <AVFoundation/AVFoundation.h>
 #import <PassKit/PassKit.h>
 
-#import <LegacyComponents/TGPhoneUtils.h>
 #import <MimeTypes/MimeTypes.h>
 
 #import "TGContactModel.h"

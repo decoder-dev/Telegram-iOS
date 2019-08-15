@@ -1,6 +1,6 @@
 #import "TGContactModel.h"
 
-#import <LegacyComponents/TGPhoneUtils.h>
+#import <TelegramCore/TelegramCore.h>
 
 @implementation TGPhoneNumberModel
 
@@ -9,8 +9,8 @@
     self = [super init];
     if (self != nil)
     {
-        _phoneNumber = [TGPhoneUtils cleanInternationalPhone:phoneNumber forceInternational:false];
-        _displayPhoneNumber = [TGPhoneUtils formatPhone:_phoneNumber forceInternational:false];
+        _phoneNumber = [FormatPhoneNumber cleanInternationalPhone:phoneNumber forceInternational:false];
+        _displayPhoneNumber = [FormatPhoneNumber formatPhoneNumber:_phoneNumber];
         _label = label;
     }
     return self;
