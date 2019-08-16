@@ -17,8 +17,11 @@
 ** language. The code for the "sqlite3" command-line shell is also in a
 ** separate file. This file contains only code for the core SQLite library.
 */
+#if TARGET_OS_IOS
 #include <sqlcipher/sqlcipher_config.h>
-
+#else
+#include <sqlciphermac/sqlcipher_config.h>
+#endif
 #define SQLITE_CORE 1
 #define SQLITE_AMALGAMATION 1
 #ifndef SQLITE_PRIVATE
