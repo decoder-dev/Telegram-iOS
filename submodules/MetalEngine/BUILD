@@ -10,7 +10,7 @@ load("//build-system/bazel-utils:plist_fragment.bzl",
 )
 
 filegroup(
-    name = "CallScreenMetalSources",
+    name = "MetalSources",
     srcs = glob([
         "Metal/**/*.metal",
     ]),
@@ -18,38 +18,32 @@ filegroup(
 )
 
 plist_fragment(
-    name = "CallScreenMetalSourcesBundleInfoPlist",
+    name = "MetalEngineMetalSourcesBundleInfoPlist",
     extension = "plist",
     template =
     """
     <key>CFBundleIdentifier</key>
-    <string>org.telegram.CallScreenMetalSources</string>
+    <string>org.telegram.MetalEngineMetalSources</string>
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleName</key>
-    <string>CallScreen</string>
+    <string>MetalEngine</string>
     """
 )
 
 apple_resource_bundle(
-    name = "CallScreenMetalSourcesBundle",
+    name = "MetalEngineMetalSourcesBundle",
     infoplists = [
-        ":CallScreenMetalSourcesBundleInfoPlist",
+        ":MetalEngineMetalSourcesBundleInfoPlist",
     ],
     resources = [
-        ":CallScreenMetalSources",
+        ":MetalSources",
     ],
-)
-
-filegroup(
-    name = "Assets",
-    srcs = glob(["CallScreenAssets.xcassets/**"]),
-    visibility = ["//visibility:public"],
 )
 
 swift_library(
-    name = "CallScreen",
-    module_name = "CallScreen",
+    name = "MetalEngine",
+    module_name = "MetalEngine",
     srcs = glob([
         "Sources/**/*.swift",
     ]),
@@ -57,14 +51,11 @@ swift_library(
         "-warnings-as-errors",
     ],
     data = [
-        ":CallScreenMetalSourcesBundle",
-        ":Assets",
+        ":MetalEngineMetalSourcesBundle",
     ],
     deps = [
         "//submodules/Display",
-        "//submodules/MetalEngine",
-        "//submodules/ComponentFlow",
-        "//submodules/TelegramUI/Components/AnimatedTextComponent",
+        "//submodules/Utils/ShelfPack",
     ],
     visibility = [
         "//visibility:public",
