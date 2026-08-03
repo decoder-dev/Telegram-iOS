@@ -185,7 +185,7 @@ jobs:
           ls -lh "$OUTPUT_PATH"
 
       - name: Upload unsigned IPA
-        if: success() || failure()
+        if: success()
         uses: actions/upload-artifact@v5
         with:
           name: Telegram-iOS-${{ env.APP_VERSION }}-${{ env.BUILD_NUMBER }}-unsigned
