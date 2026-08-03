@@ -1183,16 +1183,27 @@ private final class NotificationServiceHandler {
                             
                             var isReaction = false
                             if let category = aps["category"] as? String {
-                                // Fork extras: drop mention / pinned notifications when enabled.
-                                if category == "m" && ForkExtrasNotificationBridge.hideMentionNotifications {
+                                // Fork extras: drop mention / pinned notification noise when enabled.
+                                // Mentions are identified by loc-key / payload flags — APS category "m"
+                                // is repliable-media, not mention.
+                                let locKey = ((payloadJson["loc-key"] as? String) ?? "").uppercased()
+                                let alertTitle = ((aps["alert"] as? [String: Any])?["title"] as? String)?.uppercased() ?? ""
+                                let alertBody = ((aps["alert"] as? [String: Any])?["body"] as? String)?.uppercased()
+                                    ?? (aps["alert"] as? String)?.uppercased()
+                                    ?? ""
+                                let looksMention = locKey.contains("MENTION")
+                                    || payloadJson["mention"] != nil
+                                    || payloadJson["mentioned"] as? Bool == true
+                                let looksPinned = locKey.contains("PINNED") || locKey.contains("PIN_")
+                                    || category.lowercased().contains("pin")
+                                    || alertTitle.contains("PINNED")
+                                    || alertBody.contains("PINNED")
+                                    || alertTitle.contains("ЗАКРЕП")
+                                    || alertBody.contains("ЗАКРЕП")
+                                if looksMention && ForkExtrasNotificationBridge.hideMentionNotifications {
                                     completed()
                                     return
                                 }
-                                let locKey = (payloadJson["loc-key"] as? String) ?? ""
-                                let looksPinned = category.lowercased().contains("pin")
-                                    || locKey.uppercased().contains("PINNED")
-                                    || (content.body?.uppercased().contains("PINNED") == true)
-                                    || (content.title?.uppercased().contains("PINNED") == true)
                                 if looksPinned && ForkExtrasNotificationBridge.hidePinnedNotifications {
                                     completed()
                                     return
