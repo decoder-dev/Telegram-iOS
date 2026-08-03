@@ -188,7 +188,6 @@ jobs:
             --disableExtensions \
             --skipDsym \
             --ciFast \
-            --enableParallelSwiftmoduleGeneration \
             --outputBuildArtifactsPath=build/artifacts
 
       - name: Collect artifacts

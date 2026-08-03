@@ -155,12 +155,8 @@ class BazelCommandLine:
 
     def set_configuration(self, configuration):
         cpus = os.cpu_count() or 4
-        # CI: use every core. Local debug builds leave two cores free for the IDE.
-        debug_swift_threads = cpus if self.ci_fast else max(cpus - 2, 2)
-        debug_parallel = [
-            '--@build_bazel_rules_swift//swift:copt="-j"',
-            f'--@build_bazel_rules_swift//swift:copt="{debug_swift_threads}"',
-        ]
+        # Bazel action parallelism. Do NOT pass swiftc -j via rules_swift copts when
+        # using split_derived_files_generation — SwiftDeriveFiles treats "-j" as an input file.
         ci_jobs = [
             f'--jobs={cpus}',
             f'--local_cpu_resources={cpus}',
@@ -176,7 +172,7 @@ class BazelCommandLine:
 
                 # Always build universal Watch binaries.
                 '--watchos_cpus=arm64_32'
-            ] + debug_parallel + ci_jobs
+            ] + self.common_debug_args + ci_jobs
         elif configuration == 'debug_sim_arm64':
             self.configuration_args = [
                 # bazel debug build configuration
@@ -187,7 +183,7 @@ class BazelCommandLine:
 
                 # Always build universal Watch binaries.
                 '--watchos_cpus=arm64_32'
-            ] + debug_parallel + ci_jobs
+            ] + self.common_debug_args + ci_jobs
         elif configuration == 'release_sim_arm64':
             self.configuration_args = [
                 # bazel optimized build configuration
@@ -198,14 +194,13 @@ class BazelCommandLine:
 
                 # Always build universal Watch binaries.
                 '--watchos_cpus=arm64_32'
-            ] + debug_parallel + ci_jobs
+            ] + self.common_debug_args + ci_jobs
         elif configuration == 'ci_arm64':
-            # Fastest device IPA for GitHub Actions: dbg, no WMO/dSYM, max parallelism.
+            # Fastest device IPA for GitHub Actions: dbg, no WMO/dSYM, max Bazel jobs.
             self.configuration_args = [
                 '-c', 'dbg',
                 '--ios_multi_cpus=arm64',
                 '--watchos_cpus=arm64_32',
-            ] + debug_parallel + [
                 f'--jobs={cpus}',
                 f'--local_cpu_resources={cpus}',
             ]
@@ -230,7 +225,7 @@ class BazelCommandLine:
                 ]
             if self.ci_fast:
                 # Skip WMO / -Osize / strip — biggest compile-time wins after dbg.
-                self.configuration_args += debug_parallel + ci_jobs
+                self.configuration_args += ci_jobs
             else:
                 self.configuration_args += self.common_release_args
         else:
