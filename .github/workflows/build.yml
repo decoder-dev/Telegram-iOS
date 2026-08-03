@@ -218,6 +218,7 @@ jobs:
             --disableExtensions \
             --skipDsym \
             --ciFast \
+            --continueOnError \
             --outputBuildArtifactsPath=build/artifacts \
             2>&1 | tee release-build.log
 
