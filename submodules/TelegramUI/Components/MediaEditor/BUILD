@@ -48,6 +48,9 @@ swift_library(
     ]),
     copts = [
         "-warnings-as-errors",
+        # Xcode 27: keep new diagnostic groups as warnings (SE-0443 last-wins)
+        "-Wwarning", "ImplicitStrongCapture",
+        "-Wwarning", "DeprecatedDeclaration",
     ],
     data = [
         ":MediaEditorBundle",
