@@ -1,20 +1,21 @@
-# Build unsigned Telegram IPA on GitHub Actions — PrivateMusic-shaped workflow.
+# Build a sideload-oriented Telegram IPA on GitHub Actions.
 #
-# Speed model (what you asked for — “not a brand-new full build every time”):
-#   1. Do NOT rebuild on every master push. IPA is built only when YOU ask:
-#        • Actions → Build unsigned IPA → Run workflow
-#        • or push a version tag: git tag vX.Y.Z && git push --tags
-#   2. Bazel disk + repository caches are restored between runs, so the 2nd+
-#      build mostly recompiles what changed (first cold build is still ~1h).
-#   3. Ready IPA stays on the GitHub Release — download that instead of rebuilding.
+# Research (upstream #1120/#1136 + ad/Telegram-iOS fake-codesigning docs):
+#   • Build release_arm64 (not ci_arm64 dbg) with bundled fake-codesigning.
+#   • Keep bundle_id/team_id matching fake profiles (ph.telegra.Telegraph / C67CF9S4VU).
+#   • Disable extensions + Siri/iCloud for personal-Apple-ID re-sign.
+#   • Publish the Make.py IPA (embedded.mobileprovision + _CodeSignature intact).
+#   • Final device install still requires Sideloadly/AltStore re-sign — see docs/SIDELOAD.md.
 #
-# Telegram still compiles via Make.py/Bazel (not plain xcodebuild like PrivateMusic).
-# Optional secrets: TELEGRAM_API_ID / TELEGRAM_API_HASH / TELEGRAM_BUNDLE_ID / TELEGRAM_TEAM_ID
+# Triggers (on-demand only — not every master push):
+#   • Actions → Build sideload IPA → Run workflow
+#   • or push a version tag: git tag vX.Y.Z && git push --tags
+#
+# Optional secrets: TELEGRAM_API_ID / TELEGRAM_API_HASH
 
-name: Build unsigned IPA
+name: Build sideload IPA
 
 on:
-  # No automatic build on every master commit — that was burning ~1h each time.
   push:
     tags: ['v*']
   workflow_dispatch:
@@ -38,7 +39,7 @@ jobs:
     timeout-minutes: 240
 
     env:
-      BUILD_CONFIGURATION: ci_arm64
+      BUILD_CONFIGURATION: release_arm64
       BAZEL_USER_ROOT: /private/var/tmp/_bazel_telegram_ios
       BAZEL_CACHE_DIR: ${{ github.workspace }}/.telegram-bazel-cache
       BAZEL_REPO_CACHE: ${{ github.workspace }}/.telegram-bazel-repo-cache
@@ -100,45 +101,52 @@ jobs:
             /Users/runner/Library/Android || true
           df -h /
 
-      - name: Cache Bazel
+      - name: Cache Bazel (warm incremental compiles)
         uses: actions/cache@v4
         with:
           path: |
             ${{ env.BAZEL_CACHE_DIR }}
             ${{ env.BAZEL_REPO_CACHE }}
-          key: bazel-pm-${{ runner.os }}-${{ env.BUILD_CONFIGURATION }}-${{ hashFiles('versions.json', 'MODULE.bazel', 'MODULE.bazel.lock') }}
+          # release_arm64 cache separate from older ci_arm64 dbg caches.
+          key: bazel-warm-release_arm64-${{ hashFiles('versions.json', 'MODULE.bazel', 'MODULE.bazel.lock') }}
           restore-keys: |
-            bazel-pm-${{ runner.os }}-${{ env.BUILD_CONFIGURATION }}-
-            bazel-turbo-${{ runner.os }}-${{ env.BUILD_CONFIGURATION }}-
-            bazel-turbo-${{ runner.os }}-
-            bazel-${{ runner.os }}-
+            bazel-warm-release_arm64-
+            bazel-warm-ci_arm64-
+            bazel-pm-macOS-ci_arm64-
+            bazel-turbo-macOS-ci_arm64-
+            bazel-pm-
+            bazel-turbo-
+            bazel-
 
-      - name: Write build configuration
+      - name: Write sideload configuration
         env:
           TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
           TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
-          TELEGRAM_BUNDLE_ID: ${{ secrets.TELEGRAM_BUNDLE_ID }}
-          TELEGRAM_TEAM_ID: ${{ secrets.TELEGRAM_TEAM_ID }}
         run: |
           set -euo pipefail
           python3 <<'PY'
           import json, os
           path = "build-system/ci-configuration.json"
-          with open("build-system/appstore-configuration.json") as f:
+          with open("build-system/sideload-configuration.json") as f:
               cfg = json.load(f)
+          # Bundle/team MUST match build-system/fake-codesigning profiles.
+          # Do not override from secrets unless real Apple profiles are also provided.
+          cfg["bundle_id"] = "ph.telegra.Telegraph"
+          cfg["team_id"] = "C67CF9S4VU"
+          cfg["enable_siri"] = False
+          cfg["enable_icloud"] = False
           api_id = os.environ.get("TELEGRAM_API_ID") or ""
           api_hash = os.environ.get("TELEGRAM_API_HASH") or ""
           if api_id and api_hash:
               cfg["api_id"] = api_id
               cfg["api_hash"] = api_hash
-          if os.environ.get("TELEGRAM_BUNDLE_ID"):
-              cfg["bundle_id"] = os.environ["TELEGRAM_BUNDLE_ID"]
-          if os.environ.get("TELEGRAM_TEAM_ID"):
-              cfg["team_id"] = os.environ["TELEGRAM_TEAM_ID"]
           with open(path, "w") as f:
               json.dump(cfg, f, indent="\t")
               f.write("\n")
-          print(f"api_id={cfg['api_id']} bundle_id={cfg['bundle_id']}")
+          print(
+              f"api_id={cfg['api_id']} bundle_id={cfg['bundle_id']} "
+              f"team_id={cfg['team_id']} siri={cfg['enable_siri']} icloud={cfg['enable_icloud']}"
+          )
           PY
 
       - name: Compute build number
@@ -150,11 +158,11 @@ jobs:
           {
             echo "APP_VERSION=$APP_VERSION"
             echo "BUILD_NUMBER=$BUILD_NUMBER"
-            echo "IPA_NAME=Telegram-${APP_VERSION}-${BUILD_NUMBER}-unsigned.ipa"
+            echo "IPA_NAME=Telegram-${APP_VERSION}-${BUILD_NUMBER}-sideload.ipa"
           } >> "$GITHUB_ENV"
           echo "Telegram ${APP_VERSION} (${BUILD_NUMBER})"
 
-      - name: Archive unsigned iPhone application
+      - name: Archive sideload iPhone application
         run: |
           set -euo pipefail
           mkdir -p "$BAZEL_CACHE_DIR" "$BAZEL_REPO_CACHE" artifacts build/artifacts
@@ -162,7 +170,6 @@ jobs:
           python3 build-system/Make/ImportCertificates.py \
             --path build-system/fake-codesigning/certs
 
-          # Make.py + Bazel is Telegram's build system (PrivateMusic uses xcodebuild).
           set -o pipefail
           python3 -u build-system/Make/Make.py \
             --overrideXcodeVersion \
@@ -191,26 +198,30 @@ jobs:
                 echo "::error title=Telegram compiler::$safe"
               done
 
-      - name: Package unsigned IPA
+      - name: Collect Make.py IPA (keep fake signature)
         run: |
           set -euo pipefail
-          chmod +x scripts/package_unsigned_ipa.sh
+          # Prefer the Bazel/Make.py IPA — keeps embedded.mobileprovision + _CodeSignature.
+          # Do NOT re-package in a way that drops signing metadata.
+          SRC="$(find build/artifacts bazel-bin/Telegram bazel-out \
+            -name 'Telegram.ipa' -type f 2>/dev/null | head -1 || true)"
+          [ -n "$SRC" ] || { echo "::error::no Telegram.ipa from Make.py"; exit 1; }
 
-          # Prefer .app from bazel-bin; fall back to unzipping Make.py IPA.
-          APP="$(find -L bazel-bin/Telegram bazel-out -path '*/Telegram.app' -type d 2>/dev/null | head -1 || true)"
-          if [ -z "$APP" ] || [ ! -d "$APP" ]; then
-            RAW_IPA="$(find build/artifacts bazel-bin/Telegram bazel-out -name 'Telegram.ipa' -type f 2>/dev/null | head -1 || true)"
-            [ -n "$RAW_IPA" ] || { echo "::error::no Telegram.app / Telegram.ipa"; exit 1; }
-            STAGE="$(mktemp -d)"
-            unzip -q "$RAW_IPA" -d "$STAGE"
-            APP="$(find "$STAGE" -name 'Telegram.app' -type d | head -1)"
-            [ -d "$APP" ] || { echo "::error::IPA missing Telegram.app"; exit 1; }
-          fi
-
-          bash ./scripts/package_unsigned_ipa.sh \
-            "$APP" \
-            "$PWD/artifacts/${IPA_NAME}"
+          cp -f "$SRC" "artifacts/${IPA_NAME}"
           ls -lh "artifacts/${IPA_NAME}"
+
+          # Sanity: fake-signed IPA should contain provisioning + code signature.
+          python3 - <<'PY'
+          import os, sys, zipfile
+          path = os.path.join("artifacts", os.environ["IPA_NAME"])
+          with zipfile.ZipFile(path) as z:
+              names = z.namelist()
+          has_prov = any(n.endswith("embedded.mobileprovision") for n in names)
+          has_sig = any("/_CodeSignature/" in n for n in names)
+          print(f"entries={len(names)} embedded.mobileprovision={has_prov} _CodeSignature={has_sig}")
+          if not has_prov or not has_sig:
+              print("::warning::IPA missing expected fake-signing artifacts; Sideloadly may still re-sign")
+          PY
 
       - name: Publish GitHub release
         if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.create_release == true)
@@ -227,27 +238,38 @@ jobs:
           fi
           NOTES="$(mktemp)"
           cat > "$NOTES" <<EOF
-          Telegram iOS ${APP_VERSION} (${BUILD_NUMBER})
+          Telegram iOS ${APP_VERSION} (${BUILD_NUMBER}) — sideload IPA
 
-          Unsigned IPA (PrivateMusic-style packaging). Resign before install.
+          Fake-signed \`release_arm64\` build for re-signing with Sideloadly / AltStore.
+          This is **not** App Store–installable as-is.
 
-          Build: \`ci_arm64\` via Make.py/Bazel (Telegram cannot use plain xcodebuild).
-          Commit: \`${GITHUB_SHA}\`
+          ### Install (Sideloadly)
+          1. Prefer **Change Bundle ID** in Sideloadly Advanced Options (avoids clashing with App Store Telegram).
+          2. Sign with your Apple ID and install.
+          3. Trust the developer certificate on the device (Settings → General → VPN & Device Management).
+
+          See \`docs/SIDELOAD.md\` in the repo for details.
+
+          ### Build
+          - Configuration: \`release_arm64\` + \`build-system/fake-codesigning\`
+          - Bundle / team (build-time): \`ph.telegra.Telegraph\` / \`C67CF9S4VU\`
+          - Extensions / Siri / iCloud: disabled
+          - Commit: \`${GITHUB_SHA}\`
           EOF
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$IPA" --clobber
-            gh release edit "$TAG" --title "Telegram ${APP_VERSION} (${BUILD_NUMBER})" --notes-file "$NOTES"
+            gh release edit "$TAG" --title "Telegram ${APP_VERSION} (${BUILD_NUMBER}) sideload" --notes-file "$NOTES"
           else
             gh release create "$TAG" "$IPA" \
-              --title "Telegram ${APP_VERSION} (${BUILD_NUMBER})" \
+              --title "Telegram ${APP_VERSION} (${BUILD_NUMBER}) sideload" \
               --notes-file "$NOTES"
           fi
 
-      - name: Upload unsigned IPA
+      - name: Upload sideload IPA artifact
         if: success() || failure()
         uses: actions/upload-artifact@v5
         with:
-          name: Telegram-${{ env.APP_VERSION }}-${{ env.BUILD_NUMBER }}-unsigned
+          name: Telegram-${{ env.APP_VERSION }}-${{ env.BUILD_NUMBER }}-sideload
           path: artifacts/${{ env.IPA_NAME }}
           if-no-files-found: ignore
           retention-days: 14
