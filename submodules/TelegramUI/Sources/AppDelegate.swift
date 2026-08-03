@@ -290,7 +290,12 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         let appGroupName = "group.\(baseAppBundleId)"
 
         let configuration = URLSessionConfiguration.background(withIdentifier: identifier)
-        configuration.sharedContainerIdentifier = appGroupName
+        // Only attach an App Group when the entitlement actually resolves.
+        // Free / E-Sign re-signs often drop App Groups; setting a dead identifier
+        // breaks background URLSession creation.
+        if FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupName) != nil {
+            configuration.sharedContainerIdentifier = appGroupName
+        }
         configuration.isDiscretionary = false
         let session = URLSession(configuration: configuration, delegate: self, delegateQueue: .main)
         self.urlSessions.append(session)
@@ -641,9 +646,19 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             isICloudEnabled: buildConfig.isICloudEnabled
         )
         
-        guard let appGroupUrl = maybeAppGroupUrl else {
-            self.mainWindow?.presentNative(UIAlertController(title: nil, message: "Error 2", preferredStyle: .alert))
-            return true
+        // App Groups require a paid Apple Developer App Group entitlement.
+        // E-Sign / free-certificate re-signs usually strip or never grant
+        // `group.<bundleId>`, so containerURL returns nil and the stock build
+        // stops at a black screen ("Error 2"). Fall back to Documents so the
+        // main app can still boot (extensions / Share / NSE stay limited).
+        let appGroupUrl: URL
+        if let existing = maybeAppGroupUrl {
+            appGroupUrl = existing
+        } else {
+            let documentsUrl = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            let fallbackUrl = documentsUrl.appendingPathComponent("telegram-shared", isDirectory: true)
+            try? FileManager.default.createDirectory(at: fallbackUrl, withIntermediateDirectories: true, attributes: nil)
+            appGroupUrl = fallbackUrl
         }
         
         var isDebugConfiguration = false
@@ -659,6 +674,10 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             LoggingSettings.defaultSettings = LoggingSettings(logToFile: true, logToConsole: false, redactSensitiveData: true)
         } else {
             LoggingSettings.defaultSettings = LoggingSettings(logToFile: false, logToConsole: false, redactSensitiveData: true)
+        }
+        
+        if maybeAppGroupUrl == nil {
+            Logger.shared.log("App \(self.episodeId)", "App Group \(appGroupName) unavailable — using Documents fallback for sideload/E-Sign")
         }
         
         let isUITest = CommandLine.arguments.contains("--ui-test")
