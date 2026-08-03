@@ -160,7 +160,8 @@ genrule(
     ],
 )
 
-minimum_os_version = "13.0"
+# Xcode 27 / iOS 27 SDK libc++ rejects deployment targets below iOS 15.
+minimum_os_version = "15.0"
 
 notificationServiceExtensionVersion = "v1"
 
