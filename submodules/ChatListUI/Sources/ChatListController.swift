@@ -260,17 +260,6 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
         self.animationCache = context.animationCache
         self.animationRenderer = context.animationRenderer
         
-        if case .chatList(groupId: .archive) = location {
-            ArchiveLockSession.shared.bindBackgroundRelock(applicationIsActive: context.sharedContext.applicationBindings.applicationIsActive)
-            self.archiveLockDisposable.set((ArchiveLockSession.shared.relockedSignal
-            |> deliverOnMainQueue).startStrict(next: { [weak self] _ in
-                guard let self else {
-                    return
-                }
-                dismissOpenArchiveControllers(from: self.navigationController)
-            }))
-        }
-        
         var groupCallPanelSource: EnginePeer.Id?
         var chatListNotices = false
         switch self.location {
@@ -293,6 +282,17 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
         )
                 
         super.init(context: context, navigationBarPresentationData: nil)
+
+        if case .chatList(groupId: .archive) = location {
+            ArchiveLockSession.shared.bindBackgroundRelock(applicationIsActive: context.sharedContext.applicationBindings.applicationIsActive)
+            self.archiveLockDisposable.set((ArchiveLockSession.shared.relockedSignal
+            |> deliverOnMainQueue).startStrict(next: { [weak self] _ in
+                guard let self else {
+                    return
+                }
+                dismissOpenArchiveControllers(from: self.navigationController)
+            }))
+        }
         
         self.accessoryPanelContainer = ASDisplayNode()
         
