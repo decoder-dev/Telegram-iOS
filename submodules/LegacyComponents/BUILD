@@ -30,6 +30,9 @@ objc_library(
     ]),
     copts = [
         "-Werror",
+        # Xcode 27 / iOS 15+: MobileCoreServices UTType* APIs are deprecated;
+        # migrating every call site is separate from the toolchain bump.
+        "-Wno-deprecated-declarations",
     ],
     includes = [
         "PublicHeaders",
