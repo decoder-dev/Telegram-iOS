@@ -1327,8 +1327,15 @@ public extension TelegramEngine {
         
         public func updatePeersGroupIdInteractively(peerIds: [EnginePeer.Id], groupId: EngineChatList.Group) -> Signal<Never, NoError> {
             return self.account.postbox.transaction { transaction -> Void in
+                let targetGroupId = groupId._asGroup()
                 for peerId in peerIds {
-                    _internal_updatePeerGroupIdInteractively(transaction: transaction, peerId: peerId, groupId: groupId._asGroup())
+                    let previousGroupId = transaction.getPeerChatListInclusion(peerId).groupId
+                    _internal_updatePeerGroupIdInteractively(transaction: transaction, peerId: peerId, groupId: targetGroupId)
+                    // Archived chats are always muted when entering the archive.
+                    // Leaving the archive does not auto-unmute (preserves intentional mutes).
+                    if targetGroupId == Namespaces.PeerGroup.archive, previousGroupId != Namespaces.PeerGroup.archive {
+                        _internal_updatePeerMuteSetting(account: self.account, transaction: transaction, peerId: peerId, threadId: nil, muteInterval: Int32.max)
+                    }
                 }
             }
             |> ignoreValues

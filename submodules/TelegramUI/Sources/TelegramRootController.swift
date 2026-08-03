@@ -645,15 +645,54 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
             var chatListController: ChatListControllerImpl?
             
             if externalState.isPeerArchived {
-                var viewControllers = self.viewControllers
-                
-                let archiveController = ChatListControllerImpl(context: context, location: .chatList(groupId: .archive), controlsHistoryPreload: false, hideNetworkActivityStatus: false, previewing: false, enableDebugActions: false)
-                if !externalState.isForcedTarget {
-                    externalState.transitionOut = archiveController.storyCameraTransitionOut()
+                let proceedWithArchive: () -> Void = {
+                    var viewControllers = self.viewControllers
+                    
+                    let archiveController = ChatListControllerImpl(context: context, location: .chatList(groupId: .archive), controlsHistoryPreload: false, hideNetworkActivityStatus: false, previewing: false, enableDebugActions: false)
+                    if !externalState.isForcedTarget {
+                        externalState.transitionOut = archiveController.storyCameraTransitionOut()
+                    }
+                    chatListController = archiveController
+                    viewControllers.insert(archiveController, at: 1)
+                    self.setViewControllers(viewControllers, animated: false)
+                    
+                    if let chatListController {
+                        let _ = (chatListController.hasPendingStories
+                        |> filter { $0 }
+                        |> take(1)
+                        |> timeout(0.5, queue: .mainQueue(), alternate: .single(true))
+                        |> deliverOnMainQueue).startStandalone(completed: { [weak chatListController] in
+                            guard let chatListController else {
+                                return
+                            }
+                            
+                            if let targetPeerId {
+                                chatListController.scrollToStories(peerId: targetPeerId)
+                            }
+                            Queue.mainQueue().justDispatch {
+                                commit({})
+                            }
+                        })
+                    } else {
+                        Queue.mainQueue().justDispatch {
+                            commit({})
+                        }
+                    }
                 }
-                chatListController = archiveController
-                viewControllers.insert(archiveController, at: 1)
-                self.setViewControllers(viewControllers, animated: false)
+                
+                ensureArchiveUnlocked(context: context, present: { [weak self] controller in
+                    (self?.viewControllers.last as? ViewController)?.present(controller, in: .window(.root))
+                }, completion: { result in
+                    switch result {
+                    case .cancelled:
+                        Queue.mainQueue().justDispatch {
+                            commit({})
+                        }
+                    case .unlocked, .notProtected:
+                        proceedWithArchive()
+                    }
+                })
+                return
             } else {
                 chatListController = self.chatListController as? ChatListControllerImpl
                 if !externalState.isForcedTarget {
@@ -665,7 +704,7 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
                 let _ = (chatListController.hasPendingStories
                 |> filter { $0 }
                 |> take(1)
-                |> timeout(externalState.isPeerArchived ? 0.5 : 0.25, queue: .mainQueue(), alternate: .single(true))
+                |> timeout(0.25, queue: .mainQueue(), alternate: .single(true))
                 |> deliverOnMainQueue).startStandalone(completed: { [weak chatListController] in
                     guard let chatListController else {
                         return

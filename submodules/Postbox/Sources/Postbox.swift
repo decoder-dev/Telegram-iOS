@@ -938,6 +938,10 @@ public final class Transaction {
         }
         for (peerId, included) in includedPeerIds {
             if !included {
+                // Skip archived peers so folder counts match the visible list.
+                if postbox.getPeerChatListInclusion(peerId).groupId?.rawValue == 1 {
+                    continue
+                }
                 if postbox.chatListTable.getPeerChatListIndex(peerId: peerId) != nil {
                     count += 1
                 }
@@ -3851,6 +3855,13 @@ final class PostboxImpl {
             chatPeerIds = chatPeerIds.filter(filterImpl)
             contactPeerIds = contactPeerIds.filter(filterImpl)
         }
+        
+        // Always hide archived chats from peer search (folders / frequent / search consistency).
+        let notArchived: (PeerId) -> Bool = { peerId in
+            return self.chatListIndexTable.get(peerId: peerId).inclusion.groupId?.rawValue != 1
+        }
+        chatPeerIds = chatPeerIds.filter(notArchived)
+        contactPeerIds = contactPeerIds.filter(notArchived)
         
         for peerId in chatPeerIds {
             if let peer = self.peerTable.get(peerId) {

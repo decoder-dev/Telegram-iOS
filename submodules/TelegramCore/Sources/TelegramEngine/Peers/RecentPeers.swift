@@ -22,15 +22,29 @@ public func _internal_recentPeers(accountPeerId: EnginePeer.Id, postbox: Postbox
     |> mapToSignal { views -> Signal<RecentPeers, NoError> in
         if let value = (views.views[key] as? CachedItemView)?.value?.get(CachedRecentPeers.self) {
             if value.enabled {
-                return postbox.multiplePeersView(value.ids)
-                |> map { view -> RecentPeers in
-                    var peers: [Peer] = []
-                    for id in value.ids {
-                        if let peer = view.peers[id], id != accountPeerId {
-                            peers.append(peer)
+                return postbox.transaction { transaction -> [PeerId] in
+                    return value.ids.filter { id in
+                        if id == accountPeerId {
+                            return false
                         }
+                        // Hide archived chats from frequent / top peers.
+                        return transaction.getPeerChatListInclusion(id).groupId != Namespaces.PeerGroup.archive
                     }
-                    return .peers(peers)
+                }
+                |> mapToSignal { filteredIds -> Signal<RecentPeers, NoError> in
+                    if filteredIds.isEmpty {
+                        return .single(.peers([]))
+                    }
+                    return postbox.multiplePeersView(filteredIds)
+                    |> map { view -> RecentPeers in
+                        var peers: [Peer] = []
+                        for id in filteredIds {
+                            if let peer = view.peers[id] {
+                                peers.append(peer)
+                            }
+                        }
+                        return .peers(peers)
+                    }
                 }
             } else {
                 return .single(.disabled)
