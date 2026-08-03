@@ -83,3 +83,7 @@ features (stored in AccountManager + App Group UserDefaults for NSE):
 - Produce a universally installable IPA
 - Keep push / iCloud / Siri / Associated Domains working under a personal free ID
 - Sign for arbitrary users’ devices — final signing is always local
+
+## Toolchain note (Xcode / iOS)
+
+CI stays on **Xcode 26.2** (`versions.json`) — Xcode 27 runners previously failed Metal toolchain setup. Bumping to iOS 27 / Swift beta is a separate, full-toolchain migration (Bazel rules, Metal, simulators), not a drop-in toggle.
