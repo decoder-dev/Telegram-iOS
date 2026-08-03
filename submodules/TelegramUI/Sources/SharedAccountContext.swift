@@ -285,6 +285,12 @@ public final class SharedAccountContextImpl: SharedAccountContext {
     }
     private var experimentalUISettingsDisposable: Disposable?
     
+    private var immediateForkExtrasSettingsValue = Atomic<ForkExtrasSettings>(value: ForkExtrasSettings.defaultSettings)
+    public var immediateForkExtrasSettings: ForkExtrasSettings {
+        return self.immediateForkExtrasSettingsValue.with { $0 }
+    }
+    private var forkExtrasSettingsDisposable: Disposable?
+    
     public var presentGlobalController: (ViewController, Any?) -> Void = { _, _ in }
     public var presentCrossfadeController: () -> Void = {}
     
@@ -528,6 +534,14 @@ public final class SharedAccountContextImpl: SharedAccountContext {
                 flatBuffers_checkedGet = settings.checkSerializedData
                 GlassBackgroundView.useCustomGlassImpl = settings.fakeGlass
             }
+        })
+        
+        let immediateForkExtrasSettingsValue = self.immediateForkExtrasSettingsValue
+        self.forkExtrasSettingsDisposable = (self.accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.forkExtrasSettings])
+        |> deliverOnMainQueue).start(next: { sharedData in
+            let settings = sharedData.entries[ApplicationSpecificSharedDataKeys.forkExtrasSettings]?.get(ForkExtrasSettings.self) ?? .defaultSettings
+            let _ = immediateForkExtrasSettingsValue.swap(settings)
+            ForkExtrasNotificationBridge.sync(settings)
         })
         
         let _ = self.contactDataManager?.personNameDisplayOrder().start(next: { order in
@@ -1110,6 +1124,8 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         self.mediaDisplaySettingsDisposable?.dispose()
         self.chatSettingsDisposable?.dispose()
         self.stickerSettingsDisposable?.dispose()
+        self.experimentalUISettingsDisposable?.dispose()
+        self.forkExtrasSettingsDisposable?.dispose()
         self.callDisposable?.dispose()
         self.groupCallDisposable?.dispose()
         self.callStateDisposable?.dispose()
@@ -1169,6 +1185,10 @@ public final class SharedAccountContextImpl: SharedAccountContext {
                     attributes.append(.backupData(AccountBackupDataAttribute(data: backupData)))
                     return AccountRecord(id: record.id, attributes: attributes, temporarySessionId: record.temporarySessionId)
                 })
+                let forkExtras = transaction.getSharedData(ApplicationSpecificSharedDataKeys.forkExtrasSettings)?.get(ForkExtrasSettings.self) ?? .defaultSettings
+                if forkExtras.sessionKeychainBackup {
+                    try? SessionKeychainBackup.save(accountId: String(account.id.int64), data: backupData)
+                }
             }
             |> ignoreValues
         }

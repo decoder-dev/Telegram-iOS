@@ -1183,6 +1183,21 @@ private final class NotificationServiceHandler {
                             
                             var isReaction = false
                             if let category = aps["category"] as? String {
+                                // Fork extras: drop mention / pinned notifications when enabled.
+                                if category == "m" && ForkExtrasNotificationBridge.hideMentionNotifications {
+                                    completed()
+                                    return
+                                }
+                                let locKey = (payloadJson["loc-key"] as? String) ?? ""
+                                let looksPinned = category.lowercased().contains("pin")
+                                    || locKey.uppercased().contains("PINNED")
+                                    || (content.body?.uppercased().contains("PINNED") == true)
+                                    || (content.title?.uppercased().contains("PINNED") == true)
+                                if looksPinned && ForkExtrasNotificationBridge.hidePinnedNotifications {
+                                    completed()
+                                    return
+                                }
+                                
                                 if peerId.isGroupOrChannel && ["r", "m"].contains(category) {
                                     content.category = "g\(category)"
                                 } else {

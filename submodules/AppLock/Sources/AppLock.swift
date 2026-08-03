@@ -117,7 +117,7 @@ public final class AppLockContextImpl: AppLockContext {
         
         self.disposable = (combineLatest(queue: .mainQueue(),
             accountManager.accessChallengeData(),
-            accountManager.sharedData(keys: Set([ApplicationSpecificSharedDataKeys.presentationPasscodeSettings])),
+            accountManager.sharedData(keys: Set([ApplicationSpecificSharedDataKeys.presentationPasscodeSettings, ApplicationSpecificSharedDataKeys.forkExtrasSettings])),
             presentationDataSignal,
             applicationBindings.applicationIsActive,
             self.currentState.get()
@@ -128,6 +128,7 @@ public final class AppLockContextImpl: AppLockContext {
             }
             
             let passcodeSettings: PresentationPasscodeSettings = sharedData.entries[ApplicationSpecificSharedDataKeys.presentationPasscodeSettings]?.get(PresentationPasscodeSettings.self) ?? .defaultSettings
+            let forkExtras: ForkExtrasSettings = sharedData.entries[ApplicationSpecificSharedDataKeys.forkExtrasSettings]?.get(ForkExtrasSettings.self) ?? .defaultSettings
             
             let timestamp = CFAbsoluteTimeGetCurrent()
             var becameActiveRecently = false
@@ -163,6 +164,11 @@ public final class AppLockContextImpl: AppLockContext {
                 strongSelf.autolockReportTimeout.set(nil)
             } else {
                 if let _ = passcodeSettings.autolockTimeout, !appInForeground {
+                    shouldDisplayCoveringView = true
+                }
+                
+                if !appInForeground && forkExtras.instantPasscodeLock {
+                    strongSelf.lock()
                     shouldDisplayCoveringView = true
                 }
                 
