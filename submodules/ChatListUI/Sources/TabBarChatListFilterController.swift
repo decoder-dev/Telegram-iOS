@@ -15,7 +15,7 @@ public func chatListFilterItems(context: AccountContext) -> Signal<(Int, [(ChatL
         var unreadCountItems: [EngineRawUnreadMessageCountsItem] = []
         unreadCountItems.append(.totalInGroup(.root))
         var additionalPeerIds = Set<EnginePeer.Id>()
-        var additionalGroupIds = Set<EnginePeerGroupId>()
+        let additionalGroupIds = Set<EnginePeerGroupId>()
         for case let .filter(_, _, _, data) in filters {
             additionalPeerIds.formUnion(data.includePeers.peers)
             additionalPeerIds.formUnion(data.excludePeers)
@@ -172,6 +172,12 @@ public func chatListFilterItems(context: AccountContext) -> Signal<(Int, [(ChatL
                                 case .group:
                                     // Archived peers never contribute to folder badges.
                                     matchesGroup = false
+                                }
+                                if matchesGroup && peerCount != 0 {
+                                    count += 1
+                                    if hasUnmuted {
+                                        unmutedUnreadCount += 1
+                                    }
                                 }
                             }
                         }
