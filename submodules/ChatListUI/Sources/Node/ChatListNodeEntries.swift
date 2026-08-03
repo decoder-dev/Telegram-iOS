@@ -604,9 +604,12 @@ struct ChatListContactPeer {
     }
 }
 
-func chatListNodeEntriesForView(view: EngineChatList, state: ChatListNodeState, savedMessagesPeer: EnginePeer?, foundPeers: [(EnginePeer, EnginePeer?)], hideArchivedFolderByDefault: Bool, displayArchiveIntro: Bool, mode: ChatListNodeMode, chatListLocation: ChatListControllerLocation, contacts: [ChatListContactPeer], accountPeerId: EnginePeer.Id, isMainTab: Bool) -> (entries: [ChatListNodeEntry], loading: Bool) {
+func chatListNodeEntriesForView(view: EngineChatList, state: ChatListNodeState, savedMessagesPeer: EnginePeer?, foundPeers: [(EnginePeer, EnginePeer?)], hideArchivedFolderByDefault: Bool, displayArchiveIntro: Bool, mode: ChatListNodeMode, chatListLocation: ChatListControllerLocation, contacts: [ChatListContactPeer], accountPeerId: EnginePeer.Id, isMainTab: Bool, omitArchiveFolder: Bool = false) -> (entries: [ChatListNodeEntry], loading: Bool) {
     var groupItems = view.groupItems
-    if isMainTab && state.archiveStoryState != nil && groupItems.isEmpty {
+    // Secret archive: until Settings is tapped 10×, the folder does not exist.
+    if omitArchiveFolder {
+        groupItems = []
+    } else if isMainTab && state.archiveStoryState != nil && groupItems.isEmpty {
         groupItems.append(EngineChatList.GroupItem(
             id: .archive,
             topMessage: nil,

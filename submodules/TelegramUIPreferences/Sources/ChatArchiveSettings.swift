@@ -51,16 +51,21 @@ public struct ChatArchiveSettings: Equatable, Codable {
     }
 }
 
-/// In-memory session unlock for the Archive folder password.
+/// In-memory session state for the secret Archive:
+/// - `isRevealed`: folder row visible (10 taps on Settings).
+/// - `isUnlocked`: password accepted for this process.
+/// Both clear on background / Lock Now / after unarchiving a chat.
 public final class ArchiveLockSession {
     public static let shared = ArchiveLockSession()
     
     private let lock = NSLock()
     private var unlocked = false
+    private var revealed = false
     private var didMuteSweep = false
     private var didAlignKeepArchived = false
     private var backgroundDisposable: Disposable?
     private let relockedPipe = ValuePipe<Void>()
+    private let revealedPromise = ValuePromise<Bool>(false, ignoreRepeated: true)
     
     private init() {}
     
@@ -70,9 +75,21 @@ public final class ArchiveLockSession {
         return self.unlocked
     }
     
-    /// Fires whenever the session is re-locked (Lock Now / background).
+    /// Whether the Archive folder may appear in the main chat list.
+    public var isRevealed: Bool {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        return self.revealed
+    }
+    
+    /// Fires whenever the session is re-locked (Lock Now / background / unarchive).
     public var relockedSignal: Signal<Void, NoError> {
         return self.relockedPipe.signal()
+    }
+    
+    /// Current reveal flag (updates when Settings 10-tap reveals or when relocked).
+    public var revealedSignal: Signal<Bool, NoError> {
+        return self.revealedPromise.get()
     }
     
     public func unlock() {
@@ -81,15 +98,37 @@ public final class ArchiveLockSession {
         self.lock.unlock()
     }
     
+    /// Show the Archive folder (Settings tab × 10). Does not skip the password.
+    public func reveal() {
+        var changed = false
+        self.lock.lock()
+        if !self.revealed {
+            self.revealed = true
+            changed = true
+        }
+        self.lock.unlock()
+        if changed {
+            self.revealedPromise.set(true)
+        }
+    }
+    
     public func relock() {
-        var shouldNotify = false
+        var shouldNotifyRelock = false
+        var shouldNotifyReveal = false
         self.lock.lock()
         if self.unlocked {
             self.unlocked = false
-            shouldNotify = true
+            shouldNotifyRelock = true
+        }
+        if self.revealed {
+            self.revealed = false
+            shouldNotifyReveal = true
         }
         self.lock.unlock()
-        if shouldNotify {
+        if shouldNotifyReveal {
+            self.revealedPromise.set(false)
+        }
+        if shouldNotifyRelock || shouldNotifyReveal {
             self.relockedPipe.putNext(Void())
         }
     }

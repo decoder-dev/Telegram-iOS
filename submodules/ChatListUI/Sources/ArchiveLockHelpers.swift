@@ -307,3 +307,11 @@ public func dismissOpenArchiveControllers(from navigationController: UINavigatio
         navigationController.setViewControllers(filtered, animated: true)
     }
 }
+
+/// After moving a chat out of Archive: hide the folder again, clear the
+/// password session, and leave the Archive screen. Unarchived peers become
+/// searchable again automatically (search filters on live group membership).
+public func lockArchiveAfterUnarchive(navigationController: UINavigationController?) {
+    ArchiveLockSession.shared.relock()
+    dismissOpenArchiveControllers(from: navigationController)
+}

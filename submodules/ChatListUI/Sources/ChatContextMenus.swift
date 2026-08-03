@@ -419,6 +419,7 @@ func chatContextMenuItems(context: AccountContext, peerId: EnginePeer.Id, promoI
                                     if isArchived {
                                         let _ = (context.engine.peers.updatePeersGroupIdInteractively(peerIds: [peerId], groupId: .root)
                                                  |> deliverOnMainQueue).startStandalone(completed: {
+                                            lockArchiveAfterUnarchive(navigationController: chatListController?.navigationController)
                                             f(.default)
                                         })
                                     } else {

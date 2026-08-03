@@ -1,16 +1,85 @@
 import Foundation
 import AppBundle
 
-/// Localized Archive-lock copy. Keys live in Localizable.strings (`ArchiveLock.*`)
-/// and are also picked up by PresentationStrings on the next GenerateStrings pass.
+/// Localized Archive-lock copy.
+///
+/// Telegram's in-app language often differs from the main bundle locale
+/// (`NSLocalizedString` stays on English). Prefer an explicit RU/EN table keyed
+/// by the device preferred language, then fall back to `en.lproj`.
 public enum ArchiveLockLocalizedString {
+    private static let translations: [String: [String: String]] = [
+        "en": [
+            "ArchiveLock.PasswordSection": "PASSWORD",
+            "ArchiveLock.LockArchive": "Lock Archive",
+            "ArchiveLock.LockNow": "Lock Now",
+            "ArchiveLock.Footer": "When enabled, opening Archive requires a password. Archived chats are muted and hidden from folders, search, and frequent contacts.",
+            "ArchiveLock.EnterTitle": "Archive Password",
+            "ArchiveLock.EnterText": "Enter the password to open Archive",
+            "ArchiveLock.Unlock": "Unlock",
+            "ArchiveLock.PasswordPlaceholder": "Password",
+            "ArchiveLock.SetTitle": "Set Archive Password",
+            "ArchiveLock.SetText": "Archived chats stay muted and hidden from folders",
+            "ArchiveLock.Continue": "Continue",
+            "ArchiveLock.ConfirmTitle": "Confirm Password",
+            "ArchiveLock.ConfirmText": "Re-enter the Archive password",
+            "ArchiveLock.RemoveTitle": "Remove Archive Password",
+            "ArchiveLock.RemoveText": "Enter the current password to disable the lock",
+            "ArchiveLock.Remove": "Remove",
+            "ArchiveLock.IncorrectPassword": "Incorrect password. %d attempts left.",
+            "ArchiveLock.PasswordsDoNotMatch": "Passwords did not match. Try again.",
+            "ArchiveLock.SetPassword": "Set Archive Password",
+            "ArchiveLock.RemovePassword": "Remove Archive Password",
+            "ArchiveLock.LockArchiveAction": "Lock Archive",
+        ],
+        "ru": [
+            "ArchiveLock.PasswordSection": "ПАРОЛЬ",
+            "ArchiveLock.LockArchive": "Блокировать архив",
+            "ArchiveLock.LockNow": "Заблокировать сейчас",
+            "ArchiveLock.Footer": "При включении для открытия архива нужен пароль. Архивированные чаты без звука и скрыты из папок, поиска и частых контактов.",
+            "ArchiveLock.EnterTitle": "Пароль архива",
+            "ArchiveLock.EnterText": "Введите пароль, чтобы открыть архив",
+            "ArchiveLock.Unlock": "Разблокировать",
+            "ArchiveLock.PasswordPlaceholder": "Пароль",
+            "ArchiveLock.SetTitle": "Задать пароль архива",
+            "ArchiveLock.SetText": "Архивированные чаты остаются без звука и скрыты из папок",
+            "ArchiveLock.Continue": "Продолжить",
+            "ArchiveLock.ConfirmTitle": "Подтвердите пароль",
+            "ArchiveLock.ConfirmText": "Введите пароль архива ещё раз",
+            "ArchiveLock.RemoveTitle": "Удалить пароль архива",
+            "ArchiveLock.RemoveText": "Введите текущий пароль, чтобы отключить блокировку",
+            "ArchiveLock.Remove": "Удалить",
+            "ArchiveLock.IncorrectPassword": "Неверный пароль. Осталось попыток: %d.",
+            "ArchiveLock.PasswordsDoNotMatch": "Пароли не совпадают. Попробуйте снова.",
+            "ArchiveLock.SetPassword": "Задать пароль архива",
+            "ArchiveLock.RemovePassword": "Удалить пароль архива",
+            "ArchiveLock.LockArchiveAction": "Заблокировать архив",
+        ],
+    ]
+    
+    private static func languageCode() -> String {
+        let candidates = Locale.preferredLanguages + Bundle.main.preferredLocalizations
+        for candidate in candidates {
+            let code = String(candidate.prefix(2)).lowercased()
+            if translations[code] != nil {
+                return code
+            }
+        }
+        return "en"
+    }
+    
     public static func string(forKey key: String) -> String {
+        let code = languageCode()
+        if let value = translations[code]?[key] {
+            return value
+        }
+        if let value = translations["en"]?[key] {
+            return value
+        }
         let bundle = getAppBundle()
         let value = NSLocalizedString(key, tableName: "Localizable", bundle: bundle, value: "", comment: "")
         if !value.isEmpty && value != key {
             return value
         }
-        // Fallback for simulator / incomplete localization bundles.
         if let path = bundle.path(forResource: "Localizable", ofType: "strings", inDirectory: nil, forLocalization: "en"),
            let dict = NSDictionary(contentsOfFile: path) as? [String: String],
            let english = dict[key] {
