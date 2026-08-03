@@ -16,6 +16,7 @@ swift_library(
         "//submodules/DeviceLocationManager:DeviceLocationManager",
         "//submodules/MediaPlayer:UniversalMediaPlayer",
         "//submodules/TelegramPresentationData:TelegramPresentationData",
+        "//submodules/TelegramUIPreferences:TelegramUIPreferences",
         "//submodules/SSignalKit/SwiftSignalKit:SwiftSignalKit",
         "//submodules/Postbox:Postbox",
         "//submodules/TelegramCore:TelegramCore",

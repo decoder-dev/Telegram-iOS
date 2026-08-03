@@ -64,6 +64,20 @@ Same IPA works. Prefer builds with extensions disabled (this CI already does).
 If an installer complains about PlugIns, strip `Payload/*.app/PlugIns` before
 signing — not needed for this workflow’s artifact.
 
+## Fork extras
+
+Settings → Privacy and Security → **Extras / Дополнительно** toggles fork-only
+features (stored in AccountManager + App Group UserDefaults for NSE):
+
+| Feature | Effect |
+|--------|--------|
+| Ghost Mode | Skips marking chats/messages as read while browsing |
+| Instant Passcode Lock | Locks as soon as the app backgrounds (passcode must be set) |
+| Hide Mention Notifications | Drops APS category `"m"` in Notification Service |
+| Hide Pinned Notifications | Drops payloads that look like pinned-message alerts |
+| Formatting Panel | Bold / Italic / Monospace / Link toolbar above the keyboard |
+| Keychain Session Backup | Mirrors `AccountBackupData` into the device Keychain for same-bundle E-Sign reinstalls |
+
 ## What CI cannot do without your Apple certs
 
 - Produce a universally installable IPA
