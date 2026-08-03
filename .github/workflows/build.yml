@@ -89,22 +89,44 @@ jobs:
       - name: Prepare Metal toolchain
         run: |
           set -euo pipefail
-          # Xcode 27 beta images omit MetalToolchain; Bazel MetalCompile needs `metal`.
-          if xcrun -f metal >/dev/null 2>&1; then
-            echo "metal already available: $(xcrun -f metal)"
+          # Xcode 27 betas omit the Metal component. Do NOT trust `xcrun -f metal`:
+          # it can resolve the stub under XcodeDefault.xctoolchain while the real
+          # MetalToolchain cryptex is still missing (`xcrun metal` then fails).
+          # Download as the runner user (not only root) so
+          # ~/Library/.../XcodeToMetalToolchainIndexMapping.plist is written.
+          clear_xcrun() {
+            rm -f "$(getconf DARWIN_USER_TEMP_DIR)/xcrun_db" || true
+            sudo rm -f "$(sudo getconf DARWIN_USER_TEMP_DIR)/xcrun_db" || true
+          }
+          metal_ok() {
+            clear_xcrun
+            xcrun metal -v >/dev/null 2>&1
+          }
+
+          echo "=== before MetalToolchain ==="
+          xcodebuild -showComponent MetalToolchain 2>&1 || true
+          xcrun -f metal 2>&1 || true
+
+          if metal_ok; then
+            echo "metal already executable"
           else
-            echo "Metal missing — downloading MetalToolchain…"
-            sudo xcodebuild -downloadComponent MetalToolchain
-            rm -f "$(getconf DARWIN_USER_TEMP_DIR)/xcrun_db" || true
+            echo "Downloading MetalToolchain as runner…"
+            xcodebuild -downloadComponent MetalToolchain
+            clear_xcrun
+            if ! metal_ok; then
+              echo "Retry with sudo…"
+              sudo xcodebuild -downloadComponent MetalToolchain
+              clear_xcrun
+            fi
           fi
-          # Second chance after download / cache clear (xcrun can stay stale).
-          if ! xcrun -f metal >/dev/null 2>&1; then
-            echo "metal still missing — re-download + clear xcrun_db"
-            sudo xcodebuild -downloadComponent MetalToolchain
-            rm -f "$(getconf DARWIN_USER_TEMP_DIR)/xcrun_db" || true
-          fi
+
+          echo "=== after MetalToolchain ==="
+          xcodebuild -showComponent MetalToolchain 2>&1 || true
           xcrun -f metal
+          # Prefer the SDK-scoped lookup (points at the cryptex when installed).
+          xcrun --sdk macosx -f metal 2>&1 || true
           xcrun metal -v
+          xcrun --sdk macosx metal -v
 
       - name: Free disk space
         run: |
