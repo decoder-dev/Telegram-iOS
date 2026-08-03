@@ -81,6 +81,10 @@ jobs:
           fi
           xcodebuild -version
 
+      # Same as decoder-dev/PrivateMusic2 — Xcode 27 runners ship without Metal by default.
+      - name: Prepare Metal toolchain
+        run: sudo xcodebuild -downloadComponent MetalToolchain || true
+
       - name: Free disk space
         run: |
           set -euo pipefail
