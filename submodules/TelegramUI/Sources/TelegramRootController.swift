@@ -28,6 +28,7 @@ import TextFormat
 import MediaEditor
 import PeerInfoScreen
 import PeerInfoStoryGridScreen
+import TelegramUIPreferences
 import ShareWithPeersScreen
 import ChatEmptyNode
 
@@ -230,11 +231,12 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
         }
         
         let accountSettingsController = PeerInfoScreenImpl(context: self.context, updatedPresentationData: nil, peerId: self.context.account.peerId, avatarInitiallyExpanded: false, isOpenedFromChat: false, reactionSourceMessageId: nil, callMessages: [], isSettings: true)
-        accountSettingsController.tabBarItemDebugTapAction = { [weak self] in
-            guard let strongSelf = self else {
-                return
-            }
-            strongSelf.pushViewController(debugController(sharedContext: strongSelf.context.sharedContext, context: strongSelf.context))
+        accountSettingsController.tabBarItemDebugTapAction = {
+            // 10 rapid taps on Settings → reveal the secret Archive folder.
+            // Password (if set) is still required to open it.
+            ArchiveLockSession.shared.reveal()
+            let generator = UIImpactFeedbackGenerator(style: .medium)
+            generator.impactOccurred()
         }
         accountSettingsController.parentController = self
         controllers.append(accountSettingsController)
@@ -678,6 +680,14 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
                             commit({})
                         }
                     }
+                }
+                
+                // Secret archive must be revealed (Settings × 10) before opening the folder for stories.
+                guard ArchiveLockSession.shared.isRevealed else {
+                    Queue.mainQueue().justDispatch {
+                        commit({})
+                    }
+                    return
                 }
                 
                 ensureArchiveUnlocked(context: context, present: { [weak self] controller in

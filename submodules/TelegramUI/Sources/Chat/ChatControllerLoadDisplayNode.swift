@@ -3822,7 +3822,9 @@ extension ChatControllerImpl {
                 return
             }
             let _ = (strongSelf.context.engine.peers.updatePeersGroupIdInteractively(peerIds: [peerId], groupId: .root)
-            |> deliverOnMainQueue).startStandalone()
+            |> deliverOnMainQueue).startStandalone(completed: {
+                lockArchiveAfterUnarchive(navigationController: strongSelf.navigationController)
+            })
         }, openLinkEditing: { [weak self] in
             if let strongSelf = self {
                 // New rich-text editor backend: the editor owns the document, so read/apply the link through its

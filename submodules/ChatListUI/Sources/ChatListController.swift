@@ -283,8 +283,11 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                 
         super.init(context: context, navigationBarPresentationData: nil)
 
-        if case .chatList(groupId: .archive) = location {
+        // Bind early on root too so Settings×10 reveal clears when the app backgrounds.
+        if case .chatList = location {
             ArchiveLockSession.shared.bindBackgroundRelock(applicationIsActive: context.sharedContext.applicationBindings.applicationIsActive)
+        }
+        if case .chatList(groupId: .archive) = location {
             self.archiveLockDisposable.set((ArchiveLockSession.shared.relockedSignal
             |> deliverOnMainQueue).startStrict(next: { [weak self] _ in
                 guard let self else {
@@ -1623,6 +1626,11 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
             }
             
             if case .archive = groupId {
+                // Folder is omitted until Settings × 10; refuse stray opens.
+                guard ArchiveLockSession.shared.isRevealed else {
+                    self.chatListDisplayNode.mainContainerNode.currentItemNode.clearHighlightAnimated(true)
+                    return
+                }
                 ensureArchiveUnlocked(context: self.context, present: { [weak self] controller in
                     self?.present(controller, in: .window(.root))
                 }, completion: { result in
@@ -1651,6 +1659,8 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                         return
                     }
                     strongSelf.chatListDisplayNode.mainContainerNode.currentItemNode.setCurrentRemovingItemId(nil)
+                    // Unarchive → chat returns to search; secret folder locks again.
+                    lockArchiveAfterUnarchive(navigationController: strongSelf.navigationController)
                 })
             }
         }
@@ -1954,6 +1964,10 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                     strongSelf.presentInGlobalOverlay(contextController)
                 }
                 if case .archive = groupReference.groupId {
+                    guard ArchiveLockSession.shared.isRevealed else {
+                        gesture?.cancel()
+                        return
+                    }
                     ensureArchiveUnlocked(context: strongSelf.context, present: { controller in
                         strongSelf.present(controller, in: .window(.root))
                     }, completion: { result in
@@ -5288,6 +5302,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                                 }
                                 strongSelf.chatListDisplayNode.effectiveContainerNode.currentItemNode.setCurrentRemovingItemId(nil)
                                 strongSelf.donePressed()
+                                lockArchiveAfterUnarchive(navigationController: strongSelf.navigationController)
                             })
                         }
                     }
@@ -6163,6 +6178,8 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                                 return
                             }
                             strongSelf.chatListDisplayNode.effectiveContainerNode.currentItemNode.setCurrentRemovingItemId(nil)
+                            // Undo archive = unarchive → restore search + re-lock secret folder.
+                            lockArchiveAfterUnarchive(navigationController: strongSelf.navigationController)
                         })
                         return true
                     } else {
