@@ -1,25 +1,28 @@
-# Build unsigned Telegram IPA on GitHub Actions — same *shape* as
-# decoder-dev/PrivateMusic2 (.github/workflows/ios-build.yml):
-#   checkout → Xcode → Metal → unsigned build → package IPA → artifact/release
+# Build unsigned Telegram IPA on GitHub Actions — PrivateMusic-shaped workflow.
 #
-# Telegram-iOS cannot use plain `xcodebuild` the way PrivateMusic does: the
-# official build graph is Bazel via Make.py. The CI surface matches PrivateMusic;
-# the compile engine is Make.py `ci_arm64` (dbg, no extensions/dSYM, max jobs).
+# Speed model (what you asked for — “not a brand-new full build every time”):
+#   1. Do NOT rebuild on every master push. IPA is built only when YOU ask:
+#        • Actions → Build unsigned IPA → Run workflow
+#        • or push a version tag: git tag vX.Y.Z && git push --tags
+#   2. Bazel disk + repository caches are restored between runs, so the 2nd+
+#      build mostly recompiles what changed (first cold build is still ~1h).
+#   3. Ready IPA stays on the GitHub Release — download that instead of rebuilding.
 #
+# Telegram still compiles via Make.py/Bazel (not plain xcodebuild like PrivateMusic).
 # Optional secrets: TELEGRAM_API_ID / TELEGRAM_API_HASH / TELEGRAM_BUNDLE_ID / TELEGRAM_TEAM_ID
 
 name: Build unsigned IPA
 
 on:
+  # No automatic build on every master commit — that was burning ~1h each time.
   push:
-    branches: [master]
     tags: ['v*']
   workflow_dispatch:
     inputs:
       create_release:
-        description: Publish a GitHub Release with the IPA
+        description: Publish / update a GitHub Release with the IPA
         type: boolean
-        default: false
+        default: true
 
 concurrency:
   group: telegram-ios-ipa
