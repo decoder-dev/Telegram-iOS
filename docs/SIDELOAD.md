@@ -27,7 +27,28 @@ also supply real Apple profiles):
 - `TELEGRAM_API_ID`
 - `TELEGRAM_API_HASH`
 
-## Install with Sideloadly (recommended)
+## Why E-Sign / free certs used to black-screen
+
+Telegram stores its database under an **App Group** (`group.<bundleId>`).
+Free Apple IDs and many E-Sign certificates **do not grant App Groups**, so
+`containerURL(...)` returns `nil` and stock Telegram stops at **Error 2**
+(often looks like a blank/black screen).
+
+This fork falls back to the app’s Documents directory when the App Group is
+missing, so the **main app can boot after E-Sign**. Share extension / NSE /
+widgets still need a real App Group (paid developer) if you enable them later.
+
+## Install with E-Sign
+
+1. Download `Telegram-*-sideload.ipa` from Releases (not an App Store IPA).
+2. In E-Sign: import the IPA → set a **new Bundle ID** (e.g. `com.you.telegram`)
+   so it doesn’t clash with App Store Telegram.
+3. Prefer removing / skipping entitlements your cert can’t carry (Push, Associated
+   Domains, Apple Pay, etc.). App Groups are optional with this fork’s fallback.
+4. Sign → install → trust the certificate on the device.
+5. Delete any previous install with the same Bundle ID before retrying.
+
+## Install with Sideloadly (also fine)
 
 1. Uninstall App Store Telegram if you keep the default bundle ID, **or** use
    Sideloadly → Advanced Options → **Change Bundle ID** to something unique
@@ -36,11 +57,6 @@ also supply real Apple profiles):
 3. On the iPhone: Settings → General → VPN & Device Management → trust your
    developer certificate.
 4. Free Apple IDs expire ~7 days; refresh via Sideloadly / AltStore.
-
-If the app opens to a **black screen**, the usual causes are: wrong/re-signed
-official release IPA, conflicting App Store install with the same bundle ID,
-or missing trust for the signing certificate. Rebuild from this workflow and
-re-sign with a changed bundle ID.
 
 ## AltStore / SideStore
 
