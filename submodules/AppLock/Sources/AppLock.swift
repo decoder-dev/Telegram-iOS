@@ -132,6 +132,7 @@ public final class AppLockContextImpl: AppLockContext {
             
             let timestamp = CFAbsoluteTimeGetCurrent()
             var becameActiveRecently = false
+            var justEnteredBackground = false
             if appInForeground {
                 if !strongSelf.lastActiveValue {
                     strongSelf.lastActiveValue = true
@@ -148,6 +149,9 @@ public final class AppLockContextImpl: AppLockContext {
                     }
                 }
             } else {
+                if strongSelf.lastActiveValue {
+                    justEnteredBackground = true
+                }
                 strongSelf.lastActiveValue = false
             }
             
@@ -167,8 +171,13 @@ public final class AppLockContextImpl: AppLockContext {
                     shouldDisplayCoveringView = true
                 }
                 
-                if !appInForeground && forkExtras.instantPasscodeLock {
+                // Instant lock only on the active→background edge.
+                // Calling lock() on every combineLatest tick while backgrounded
+                // re-enters this pipeline and burns CPU (device heat).
+                if justEnteredBackground && forkExtras.instantPasscodeLock {
                     strongSelf.lock()
+                    shouldDisplayCoveringView = true
+                } else if !appInForeground && state.isManuallyLocked {
                     shouldDisplayCoveringView = true
                 }
                 
@@ -241,7 +250,13 @@ public final class AppLockContextImpl: AppLockContext {
             if shouldDisplayCoveringView {
                 if strongSelf.coveringView == nil, let window = strongSelf.window {
                     let coveringView = LockedWindowCoveringView(theme: presentationData.theme)
-                    coveringView.updateSnapshot(getCoveringViewSnaphot(window: window))
+                    // Skip drawHierarchy snapshot on instant-lock path — it is expensive
+                    // and was contributing to thermal pressure on backgrounding.
+                    if justEnteredBackground && forkExtras.instantPasscodeLock && passcodeSettings.autolockTimeout == nil {
+                        coveringView.updateSnapshot(nil)
+                    } else {
+                        coveringView.updateSnapshot(getCoveringViewSnaphot(window: window))
+                    }
                     strongSelf.coveringView = coveringView
                     window.coveringView = coveringView
                     
