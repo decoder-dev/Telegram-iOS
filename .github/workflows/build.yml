@@ -243,10 +243,10 @@ jobs:
           Fake-signed \`release_arm64\` build for re-signing with Sideloadly / AltStore.
           This is **not** App Store–installable as-is.
 
-          ### Install (Sideloadly)
-          1. Prefer **Change Bundle ID** in Sideloadly Advanced Options (avoids clashing with App Store Telegram).
-          2. Sign with your Apple ID and install.
-          3. Trust the developer certificate on the device (Settings → General → VPN & Device Management).
+          ### Install (E-Sign / Sideloadly)
+          1. Change the Bundle ID when signing (avoids clashing with App Store Telegram).
+          2. Sign + install, then trust the certificate on the device.
+          3. This build falls back to Documents if App Groups are missing (fixes classic E-Sign black screen / Error 2).
 
           See \`docs/SIDELOAD.md\` in the repo for details.
 
