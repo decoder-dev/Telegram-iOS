@@ -86,4 +86,4 @@ features (stored in AccountManager + App Group UserDefaults for NSE):
 
 ## Toolchain note (Xcode / iOS)
 
-CI stays on **Xcode 26.2** (`versions.json`) — Xcode 27 runners previously failed Metal toolchain setup. Bumping to iOS 27 / Swift beta is a separate, full-toolchain migration (Bazel rules, Metal, simulators), not a drop-in toggle.
+CI targets **Xcode 27 / iOS 27 SDK** via the GitHub `xcode-27` runner image (`versions.json` → `"xcode": "27.0"`). The preview image omits Metal by default; the workflow runs `xcodebuild -downloadComponent MetalToolchain` and verifies `xcrun metal` before the Bazel build. Make.py always uses `--overrideXcodeVersion` so beta Xcode version strings are accepted.
