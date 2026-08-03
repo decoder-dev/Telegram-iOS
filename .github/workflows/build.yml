@@ -34,8 +34,10 @@ permissions:
 
 jobs:
   build:
-    name: Build IPA (macos-26)
-    runs-on: macos-26
+    # Xcode 27 public-preview image (arm64). Do not fall back to macos-26 /
+    # Xcode 26 — that silently defeats the toolchain bump.
+    name: Build IPA (xcode-27)
+    runs-on: xcode-27
     timeout-minutes: 240
 
     env:
@@ -67,21 +69,37 @@ jobs:
           XCODE_VERSION="$(python3 -c 'import json; print(json.load(open("versions.json"))["xcode"])')"
           DEVELOPER_DIR="/Applications/Xcode_${XCODE_VERSION}.app/Contents/Developer"
           if [ ! -d "$DEVELOPER_DIR" ]; then
-            CANDIDATE="$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1 || true)"
-            [ -n "$CANDIDATE" ] || { echo "::error::No Xcode 26.x found"; exit 1; }
+            # Preview images ship betas as Xcode_27_beta_N.app (+ optional
+            # Xcode_27.0.app / Xcode.app symlinks). Never accept Xcode 26 here.
+            CANDIDATE="$(ls -d /Applications/Xcode_27*.app 2>/dev/null | sort -V | tail -1 || true)"
+            [ -n "$CANDIDATE" ] || {
+              echo "::error::No Xcode 27.x found under /Applications (wanted ${XCODE_VERSION})"
+              ls -d /Applications/Xcode*.app 2>/dev/null || true
+              exit 1
+            }
             DEVELOPER_DIR="${CANDIDATE}/Contents/Developer"
-            echo "::warning::using $(basename "$CANDIDATE") instead of ${XCODE_VERSION}"
+            echo "::warning::using $(basename "$CANDIDATE") instead of Xcode_${XCODE_VERSION}.app"
           fi
           sudo xcode-select -s "$DEVELOPER_DIR"
           xcodebuild -version
+          echo "DEVELOPER_DIR=$DEVELOPER_DIR"
           echo "CPUS=$(sysctl -n hw.ncpu)"
+          ls -d /Applications/Xcode*.app 2>/dev/null || true
 
       - name: Prepare Metal toolchain
         run: |
           set -euo pipefail
+          # Xcode 27 beta images omit MetalToolchain; Bazel MetalCompile needs `metal`.
           if xcrun -f metal >/dev/null 2>&1; then
             echo "metal already available: $(xcrun -f metal)"
           else
+            echo "Metal missing — downloading MetalToolchain…"
+            sudo xcodebuild -downloadComponent MetalToolchain
+            rm -f "$(getconf DARWIN_USER_TEMP_DIR)/xcrun_db" || true
+          fi
+          # Second chance after download / cache clear (xcrun can stay stale).
+          if ! xcrun -f metal >/dev/null 2>&1; then
+            echo "metal still missing — re-download + clear xcrun_db"
             sudo xcodebuild -downloadComponent MetalToolchain
             rm -f "$(getconf DARWIN_USER_TEMP_DIR)/xcrun_db" || true
           fi
@@ -107,16 +125,12 @@ jobs:
           path: |
             ${{ env.BAZEL_CACHE_DIR }}
             ${{ env.BAZEL_REPO_CACHE }}
-          # release_arm64 cache separate from older ci_arm64 dbg caches.
-          key: bazel-warm-release_arm64-${{ hashFiles('versions.json', 'MODULE.bazel', 'MODULE.bazel.lock') }}
+          # Bust when Xcode/SDK major changes (versions.json). Prefer xcode-27
+          # caches; do not restore older macos-26 / Xcode 26 warm caches.
+          key: bazel-warm-xcode27-release_arm64-${{ hashFiles('versions.json', 'MODULE.bazel', 'MODULE.bazel.lock') }}
           restore-keys: |
-            bazel-warm-release_arm64-
-            bazel-warm-ci_arm64-
-            bazel-pm-macOS-ci_arm64-
-            bazel-turbo-macOS-ci_arm64-
-            bazel-pm-
-            bazel-turbo-
-            bazel-
+            bazel-warm-xcode27-release_arm64-
+
 
       - name: Write sideload configuration
         env:
@@ -252,6 +266,7 @@ jobs:
 
           ### Build
           - Configuration: \`release_arm64\` + \`build-system/fake-codesigning\`
+          - Toolchain: Xcode 27 / iOS 27 SDK (\`runs-on: xcode-27\`)
           - Bundle / team (build-time): \`ph.telegra.Telegraph\` / \`C67CF9S4VU\`
           - Extensions / Siri / iCloud: disabled
           - Commit: \`${GITHUB_SHA}\`
