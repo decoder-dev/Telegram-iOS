@@ -15,9 +15,7 @@ swift_library(
         "//submodules/SSignalKit/SwiftSignalKit:SwiftSignalKit",
         "//submodules/CryptoUtils:CryptoUtils",
     ],
-    sdk_frameworks = [
-        "Security",
-    ],
+    # Security is linked via `import Security` (swift_library has no sdk_frameworks).
     visibility = [
         "//visibility:public",
     ],
