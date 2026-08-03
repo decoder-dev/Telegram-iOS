@@ -1,17 +1,15 @@
-# Build Telegram-iOS (Bazel) on GitHub-hosted macOS runners.
+# Build unsigned Telegram-iOS IPA (Bazel), styled after decoder-dev/PrivateMusic2 CI:
+# fast runner, unsigned artifact, tag → GitHub Release.
 #
-# Optional repository secrets (override the committed appstore-configuration.json):
-#   TELEGRAM_API_ID / TELEGRAM_API_HASH – from https://my.telegram.org
-#   TELEGRAM_BUNDLE_ID / TELEGRAM_TEAM_ID
-#
-# If secrets are unset, CI uses build-system/appstore-configuration.json (same as
-# the previous open-source workflow). Artifacts: Telegram.ipa + Telegram.DSYMs.zip.
+# Optional secrets TELEGRAM_API_ID / TELEGRAM_API_HASH / TELEGRAM_BUNDLE_ID / TELEGRAM_TEAM_ID
+# override build-system/appstore-configuration.json when set.
 
 name: Build iOS
 
 on:
   push:
     branches: [master]
+    tags: ['v*']
   pull_request:
   workflow_dispatch:
     inputs:
@@ -36,25 +34,22 @@ permissions:
 
 jobs:
   build:
-    name: Build (${{ github.event.inputs.configuration || 'release_arm64' }})
-    runs-on: macos-26
-    timeout-minutes: 480
+    name: Build IPA (xcode-27)
+    runs-on: xcode-27
+    timeout-minutes: 360
 
     env:
       BUILD_CONFIGURATION: ${{ github.event.inputs.configuration || 'release_arm64' }}
-      SOURCE_DIR: /Users/Shared/telegram-ios
       BAZEL_USER_ROOT: /private/var/tmp/_bazel_telegram_ios
-      BAZEL_CACHE_DIR: /Users/Shared/telegram-bazel-cache
+      BAZEL_CACHE_DIR: ${{ github.workspace }}/.telegram-bazel-cache
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
           submodules: false
 
-      # Relative submodule URLs (../rlottie.git, ../tgcalls.git) resolve under the
-      # fork owner and 404. Point them at the upstream TelegramMessenger repos.
       - name: Fix submodule URLs for forks
         run: |
           git config --file=.gitmodules submodule.submodules/rlottie/rlottie.url \
@@ -70,29 +65,26 @@ jobs:
       - name: Select Xcode
         run: |
           set -euo pipefail
-          XCODE_VERSION="$(python3 -c 'import json; print(json.load(open("versions.json"))["xcode"])')"
-          DEVELOPER_DIR="/Applications/Xcode_${XCODE_VERSION}.app/Contents/Developer"
-          if [ ! -d "$DEVELOPER_DIR" ]; then
-            echo "Xcode ${XCODE_VERSION} not found. Installed:"
-            ls /Applications | grep -i Xcode || true
-            # Prefer an exact match; otherwise use the newest installed 26.x.
-            CANDIDATE="$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1 || true)"
-            if [ -z "$CANDIDATE" ]; then
-              echo "::error::No Xcode 26.x installation found on the runner."
-              exit 1
+          if [ -d /Applications/Xcode_27.0.app ]; then
+            sudo xcode-select -s /Applications/Xcode_27.0.app
+          elif [ -d /Applications/Xcode.app ]; then
+            sudo xcode-select -s /Applications/Xcode.app
+          else
+            XCODE_VERSION="$(python3 -c 'import json; print(json.load(open("versions.json"))["xcode"])')"
+            DEVELOPER_DIR="/Applications/Xcode_${XCODE_VERSION}.app/Contents/Developer"
+            if [ ! -d "$DEVELOPER_DIR" ]; then
+              CANDIDATE="$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1 || true)"
+              [ -n "$CANDIDATE" ] || { echo "::error::No Xcode found"; exit 1; }
+              DEVELOPER_DIR="${CANDIDATE}/Contents/Developer"
             fi
-            DEVELOPER_DIR="${CANDIDATE}/Contents/Developer"
-            echo "::warning::versions.json requests Xcode ${XCODE_VERSION}; using $(basename "$CANDIDATE") instead."
+            sudo xcode-select -s "$DEVELOPER_DIR"
           fi
-          sudo xcode-select -s "$DEVELOPER_DIR"
           xcodebuild -version
-          echo "DEVELOPER_DIR=$DEVELOPER_DIR" >> "$GITHUB_ENV"
 
       - name: Free disk space
         run: |
           set -euo pipefail
           df -h /
-          # Drop unused simulator runtimes / large caches that Bazel does not need.
           sudo rm -rf \
             /Users/runner/Library/Developer/CoreSimulator/Caches \
             /Library/Developer/CoreSimulator/Profiles/Runtimes/* \
@@ -102,17 +94,16 @@ jobs:
             /Users/runner/Library/Android || true
           df -h /
 
-      - name: Create canonical source directory
-        run: |
-          set -euo pipefail
-          # Source paths are embedded in the binary; keep them stable across CI runs.
-          sudo mkdir -p /Users/Shared
-          sudo rm -rf "$SOURCE_DIR"
-          sudo cp -R "$GITHUB_WORKSPACE" "$SOURCE_DIR"
-          sudo chown -R "$(whoami)" "$SOURCE_DIR"
+      - name: Cache Bazel
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.BAZEL_CACHE_DIR }}
+          key: bazel-${{ runner.os }}-${{ env.BUILD_CONFIGURATION }}-${{ hashFiles('versions.json', 'MODULE.bazel', 'MODULE.bazel.lock') }}
+          restore-keys: |
+            bazel-${{ runner.os }}-${{ env.BUILD_CONFIGURATION }}-
+            bazel-${{ runner.os }}-
 
       - name: Write build configuration
-        working-directory: ${{ env.SOURCE_DIR }}
         env:
           TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
           TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
@@ -122,12 +113,9 @@ jobs:
           set -euo pipefail
           python3 <<'PY'
           import json, os
-
           path = "build-system/ci-configuration.json"
-          base_path = "build-system/appstore-configuration.json"
-          with open(base_path) as f:
+          with open("build-system/appstore-configuration.json") as f:
               cfg = json.load(f)
-
           api_id = os.environ.get("TELEGRAM_API_ID") or ""
           api_hash = os.environ.get("TELEGRAM_API_HASH") or ""
           if api_id and api_hash:
@@ -135,13 +123,11 @@ jobs:
               cfg["api_hash"] = api_hash
               print("Using TELEGRAM_API_* repository secrets")
           else:
-              print(f"Secrets unset — using {base_path} (api_id={cfg.get('api_id')})")
-
+              print(f"Secrets unset — using appstore-configuration.json (api_id={cfg.get('api_id')})")
           if os.environ.get("TELEGRAM_BUNDLE_ID"):
               cfg["bundle_id"] = os.environ["TELEGRAM_BUNDLE_ID"]
-          if "TELEGRAM_TEAM_ID" in os.environ and os.environ["TELEGRAM_TEAM_ID"] != "":
+          if os.environ.get("TELEGRAM_TEAM_ID"):
               cfg["team_id"] = os.environ["TELEGRAM_TEAM_ID"]
-
           with open(path, "w") as f:
               json.dump(cfg, f, indent="\t")
               f.write("\n")
@@ -149,7 +135,6 @@ jobs:
           PY
 
       - name: Compute build number
-        working-directory: ${{ env.SOURCE_DIR }}
         run: |
           set -euo pipefail
           BUILD_NUMBER_OFFSET="$(cat build_number_offset)"
@@ -163,7 +148,6 @@ jobs:
           echo "Telegram ${APP_VERSION} (${BUILD_NUMBER})"
 
       - name: Build IPA
-        working-directory: ${{ env.SOURCE_DIR }}
         run: |
           set -euo pipefail
           mkdir -p "$BAZEL_CACHE_DIR"
@@ -171,6 +155,7 @@ jobs:
           python3 build-system/Make/ImportCertificates.py \
             --path build-system/fake-codesigning/certs
 
+          # PrivateMusic-style fast path: unsigned/fake-signed IPA, no extensions, no dSYM.
           python3 -u build-system/Make/Make.py \
             --overrideXcodeVersion \
             --bazelUserRoot="$BAZEL_USER_ROOT" \
@@ -179,59 +164,63 @@ jobs:
             --configurationPath=build-system/ci-configuration.json \
             --codesigningInformationPath=build-system/fake-codesigning \
             --configuration="$BUILD_CONFIGURATION" \
-            --buildNumber="$BUILD_NUMBER"
+            --buildNumber="$BUILD_NUMBER" \
+            --disableExtensions \
+            --skipDsym \
+            --enableParallelSwiftmoduleGeneration \
+            --outputBuildArtifactsPath=build/artifacts
 
       - name: Collect artifacts
-        working-directory: ${{ env.SOURCE_DIR }}
         run: |
           set -euo pipefail
           OUTPUT_PATH="build/artifacts"
-          rm -rf "$OUTPUT_PATH"
           mkdir -p "$OUTPUT_PATH"
-
-          IPA="$(find -L bazel-out -path '*/Telegram/Telegram.ipa' -type f 2>/dev/null | head -1 || true)"
-          if [ -z "$IPA" ]; then
-            echo "::error::Telegram.ipa not found under bazel-out"
-            find -L bazel-out -name '*.ipa' 2>/dev/null | head -50 || true
-            exit 1
+          if [ ! -f "$OUTPUT_PATH/Telegram.ipa" ]; then
+            IPA="$(find -L bazel-out -path '*/Telegram/Telegram.ipa' -type f 2>/dev/null | head -1 || true)"
+            [ -n "$IPA" ] || { echo "::error::Telegram.ipa not found"; exit 1; }
+            cp "$IPA" "$OUTPUT_PATH/Telegram.ipa"
           fi
-          cp "$IPA" "$OUTPUT_PATH/Telegram.ipa"
-          echo "IPA=$IPA"
-
-          mkdir -p build/DSYMs
-          while IFS= read -r dsym; do
-            cp -R "$dsym" build/DSYMs/
-          done < <(find -L bazel-out -path '*/Telegram/*.dSYM' -type d 2>/dev/null || true)
-          if [ -n "$(ls -A build/DSYMs 2>/dev/null || true)" ]; then
-            zip -r "$OUTPUT_PATH/Telegram.DSYMs.zip" build/DSYMs >/dev/null
-          else
-            echo "::warning::No dSYM bundles found"
-          fi
-
+          mv "$OUTPUT_PATH/Telegram.ipa" \
+            "$OUTPUT_PATH/Telegram-${APP_VERSION}-${BUILD_NUMBER}-unsigned.ipa"
           ls -lh "$OUTPUT_PATH"
 
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+      - name: Upload unsigned IPA
+        if: success() || failure()
+        uses: actions/upload-artifact@v5
         with:
-          name: Telegram-iOS-${{ env.APP_VERSION }}-${{ env.BUILD_NUMBER }}
-          path: |
-            ${{ env.SOURCE_DIR }}/build/artifacts/Telegram.ipa
-            ${{ env.SOURCE_DIR }}/build/artifacts/Telegram.DSYMs.zip
+          name: Telegram-iOS-${{ env.APP_VERSION }}-${{ env.BUILD_NUMBER }}-unsigned
+          path: build/artifacts/*.ipa
           if-no-files-found: error
           retention-days: 14
 
-      - name: Create GitHub Release
-        if: github.event_name == 'workflow_dispatch' && inputs.create_release == true
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: build-${{ env.BUILD_NUMBER }}
-          name: Telegram ${{ env.APP_VERSION }} (${{ env.BUILD_NUMBER }})
-          body: |
-            Unsigned (fake-codesigned) Telegram iOS build **${{ env.APP_VERSION }}** (${{ env.BUILD_NUMBER }}).
-            Configuration: `${{ env.BUILD_CONFIGURATION }}`.
-            Commit: `${{ github.sha }}`.
-          files: |
-            ${{ env.SOURCE_DIR }}/build/artifacts/Telegram.ipa
-            ${{ env.SOURCE_DIR }}/build/artifacts/Telegram.DSYMs.zip
-          fail_on_unmatched_files: false
-          generate_release_notes: true
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.create_release == true)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          IPA="build/artifacts/Telegram-${APP_VERSION}-${BUILD_NUMBER}-unsigned.ipa"
+          test -f "$IPA"
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            TAG="${GITHUB_REF_NAME}"
+          else
+            TAG="v${APP_VERSION}-${BUILD_NUMBER}"
+          fi
+          NOTES="$(mktemp)"
+          cat > "$NOTES" <<EOF
+          Telegram iOS ${APP_VERSION} (${BUILD_NUMBER})
+
+          Unsigned (fake-codesigned) IPA — extensions and dSYMs skipped for CI speed.
+          Sign with your own certificate before installing on a device.
+
+          Configuration: \`${BUILD_CONFIGURATION}\`
+          Commit: \`${GITHUB_SHA}\`
+          EOF
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$IPA" --clobber
+            gh release edit "$TAG" --title "Telegram ${APP_VERSION} (${BUILD_NUMBER})" --notes-file "$NOTES"
+          else
+            gh release create "$TAG" "$IPA" \
+              --title "Telegram ${APP_VERSION} (${BUILD_NUMBER})" \
+              --notes-file "$NOTES"
+          fi
