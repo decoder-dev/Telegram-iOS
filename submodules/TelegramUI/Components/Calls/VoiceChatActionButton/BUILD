@@ -58,6 +58,7 @@ swift_library(
         # Xcode 27: keep new diagnostic groups as warnings (SE-0443 last-wins)
         "-Wwarning", "ImplicitStrongCapture",
         "-Wwarning", "DeprecatedDeclaration",
+        "-Wwarning", "NoUseUnstructuredThrowingTask",
     ],
     data = [
         ":VoiceChatActionButtonMetalSourcesBundle",
