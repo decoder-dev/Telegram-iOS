@@ -77,17 +77,6 @@ class BazelCommandLine:
 
             # Asynchronously upload cache artifacts
             '--remote_cache_async',
-
-            # Xcode 27 / newer Swift: keep these diagnostic groups as warnings.
-            # Hundreds of modules use -warnings-as-errors; ImplicitStrongCapture
-            # (nested [weak self] under an implicit strong capture) and
-            # DeprecatedDeclaration (iOS 15+ SDK) would otherwise hard-fail the
-            # toolchain bump. Command-line --swiftcopt is applied after target
-            # copts so these win over -warnings-as-errors (SE-0443 last-wins).
-            '--swiftcopt=-Wwarning',
-            '--swiftcopt=ImplicitStrongCapture',
-            '--swiftcopt=-Wwarning',
-            '--swiftcopt=DeprecatedDeclaration',
         ]
 
         self.common_build_args = [

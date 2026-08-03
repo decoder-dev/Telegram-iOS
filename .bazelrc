@@ -24,13 +24,6 @@ build --spawn_strategy=standalone
 
 build:macos --strategy=SwiftCompile=worker
 
-# Xcode 27: downgrade new Swift diagnostic groups under -warnings-as-errors.
-# Must follow target copts (last-wins). See Make.py BazelCommandLine common_args.
-build:macos --swiftcopt=-Wwarning
-build:macos --swiftcopt=ImplicitStrongCapture
-build:macos --swiftcopt=-Wwarning
-build:macos --swiftcopt=DeprecatedDeclaration
-
 # SourceKit BSP: Swift indexing features (macOS only)
 common:macos --features=swift.index_while_building
 common:macos --features=swift.use_global_index_store

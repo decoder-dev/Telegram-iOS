@@ -90,4 +90,4 @@ CI targets **Xcode 27 / iOS 27 SDK** via the GitHub `xcode-27` runner image (`ve
 
 **Minimum iOS: 15.0** — Xcode 27’s libc++ rejects deployment targets below iOS 15 (`The selected platform is no longer supported by libc++`). The app `minimum_os_version` in `Telegram/BUILD` was raised from 13.0 accordingly.
 
-Swift modules keep `-warnings-as-errors`, but CI passes `-Wwarning ImplicitStrongCapture` and `-Wwarning DeprecatedDeclaration` (SE-0443) so the Xcode 27 diagnostic noise does not block the sideload IPA. Migrating call sites is follow-up work.
+Swift modules keep `-warnings-as-errors`, but each such target appends `-Wwarning ImplicitStrongCapture` and `-Wwarning DeprecatedDeclaration` (SE-0443 last-wins) so Xcode 27 diagnostic noise does not block the sideload IPA. Migrating call sites is follow-up work.
