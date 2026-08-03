@@ -2,7 +2,6 @@ import Foundation
 import UIKit
 import Display
 import SwiftSignalKit
-import Postbox
 import TelegramCore
 import TelegramPresentationData
 import TelegramUIPreferences
@@ -46,6 +45,20 @@ enum SaveIncomingMediaSection: ItemListSectionId {
     case videoSize
     case exceptions
     case deleteAllExceptions
+}
+
+public enum SaveIncomingMediaEntryTag: ItemListItemTag, Equatable {
+    case maxVideoSize
+    case addException
+    case deleteExceptions
+    
+    public func isEqual(to other: ItemListItemTag) -> Bool {
+        if let other = other as? SaveIncomingMediaEntryTag, self == other {
+            return true
+        } else {
+            return false
+        }
+    }
 }
 
 private enum SaveIncomingMediaEntry: ItemListNodeEntry {
@@ -186,11 +199,11 @@ private enum SaveIncomingMediaEntry: ItemListNodeEntry {
         case let .typesHeader(text):
             return ItemListSectionHeaderItem(presentationData: presentationData, text: text, sectionId: self.section)
         case let .typePhotos(title, value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, icon: UIImage(bundleImageName: "Settings/Menu/DataPhotos"), title: title, value: value, sectionId: self.section, style: .blocks, updated: { _ in
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.photosLightBlue, title: title, value: value, sectionId: self.section, style: .blocks, updated: { _ in
                 arguments.toggle(.photo)
             })
         case let .typeVideos(title, value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, icon: UIImage(bundleImageName: "Settings/Menu/DataVideo"), title: title, value: value, sectionId: self.section, style: .blocks, updated: { _ in
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.videosBlue, title: title, value: value, sectionId: self.section, style: .blocks, updated: { _ in
                 arguments.toggle(.video)
             })
         case let .typesInfo(text):
@@ -200,7 +213,7 @@ private enum SaveIncomingMediaEntry: ItemListNodeEntry {
         case let .videoSize(decimalSeparator, text, size):
             return AutodownloadSizeLimitItem(theme: presentationData.theme, strings: presentationData.strings, systemStyle: .glass, decimalSeparator: decimalSeparator, text: text, value: size, range: nil/*2 * 1024 * 1024 ..< (4 * 1024 * 1024 * 1024)*/, sectionId: self.section, updated: { value in
                 arguments.updateMaximumVideoSize(value)
-            })
+            }, tag: SaveIncomingMediaEntryTag.maxVideoSize)
         case let .videoInfo(text):
             return ItemListTextItem(presentationData: presentationData, text: .markdown(text), sectionId: self.section)
         case let .exceptionsHeader(title):
@@ -209,7 +222,7 @@ private enum SaveIncomingMediaEntry: ItemListNodeEntry {
             let icon: UIImage? = PresentationResourcesItemList.createGroupIcon(presentationData.theme)
             return ItemListPeerActionItem(presentationData: presentationData, systemStyle: .glass, icon: icon, title: title, alwaysPlain: false, sectionId: self.section, height: .generic, editing: false, action: {
                 arguments.openAddException()
-            })
+            }, tag: SaveIncomingMediaEntryTag.addException)
         case let .exceptionItem(_, peer, label):
             return ItemListPeerItem(
                 presentationData: presentationData,
@@ -248,7 +261,7 @@ private enum SaveIncomingMediaEntry: ItemListNodeEntry {
         case let .deleteAllExceptions(title):
             return ItemListActionItem(presentationData: presentationData, systemStyle: .glass, title: title, kind: .destructive, alignment: .center, sectionId: self.section, style: .blocks, action: {
                 arguments.deleteAllExceptions()
-            })
+            }, tag: SaveIncomingMediaEntryTag.deleteExceptions)
         }
     }
 }
@@ -299,6 +312,8 @@ private func saveIncomingMediaControllerEntries(presentationData: PresentationDa
                 } else {
                     peerTypeValue = .groups
                 }
+            case .community:
+                continue
             }
             
             if peerTypeValue == peerType {
@@ -352,7 +367,7 @@ private func saveIncomingMediaControllerEntries(presentationData: PresentationDa
     return entries
 }
 
-enum SaveIncomingMediaScope {
+public enum SaveIncomingMediaScope {
     case peer(EnginePeer.Id)
     case addPeer(id: EnginePeer.Id, completion: (MediaAutoSaveConfiguration) -> Void)
     case peerType(AutomaticSaveIncomingPeerType)
@@ -363,7 +378,7 @@ private struct SaveIncomingMediaControllerState: Equatable {
     var peerIdWithOptions: EnginePeer.Id?
 }
 
-func saveIncomingMediaController(context: AccountContext, scope: SaveIncomingMediaScope) -> ViewController {
+public func saveIncomingMediaController(context: AccountContext, scope: SaveIncomingMediaScope, focusOnItemTag: SaveIncomingMediaEntryTag? = nil) -> ViewController {
     let stateValue = Atomic(value: SaveIncomingMediaControllerState())
     let statePromise = ValuePromise<SaveIncomingMediaControllerState>(stateValue.with { $0 })
     let updateState: ((SaveIncomingMediaControllerState) -> SaveIncomingMediaControllerState) -> Void = { f in
@@ -501,13 +516,9 @@ func saveIncomingMediaController(context: AccountContext, scope: SaveIncomingMed
             controller.peerSelected = { [weak controller] peer, _ in
                 let peerId = peer.id
                 
-                let preferencesKey: PostboxViewKey = .preferences(keys: Set([ApplicationSpecificPreferencesKeys.mediaAutoSaveSettings]))
-                let preferences = context.account.postbox.combinedView(keys: [preferencesKey])
-                |> map { views -> MediaAutoSaveSettings in
-                    guard let view = views.views[preferencesKey] as? PreferencesView else {
-                        return .default
-                    }
-                    return view.values[ApplicationSpecificPreferencesKeys.mediaAutoSaveSettings]?.get(MediaAutoSaveSettings.self) ?? MediaAutoSaveSettings.default
+                let preferences = context.engine.data.subscribe(TelegramEngine.EngineData.Item.Configuration.ApplicationSpecificPreference(key: ApplicationSpecificPreferencesKeys.mediaAutoSaveSettings))
+                |> map { entry -> MediaAutoSaveSettings in
+                    return entry?.get(MediaAutoSaveSettings.self) ?? MediaAutoSaveSettings.default
                 }
                 
                 let _ = (preferences
@@ -608,13 +619,9 @@ func saveIncomingMediaController(context: AccountContext, scope: SaveIncomingMed
         }
     )
     
-    let preferencesKey: PostboxViewKey = .preferences(keys: Set([ApplicationSpecificPreferencesKeys.mediaAutoSaveSettings]))
-    let preferences = context.account.postbox.combinedView(keys: [preferencesKey])
-    |> map { views -> MediaAutoSaveSettings in
-        guard let view = views.views[preferencesKey] as? PreferencesView else {
-            return .default
-        }
-        return view.values[ApplicationSpecificPreferencesKeys.mediaAutoSaveSettings]?.get(MediaAutoSaveSettings.self) ?? MediaAutoSaveSettings.default
+    let preferences = context.engine.data.subscribe(TelegramEngine.EngineData.Item.Configuration.ApplicationSpecificPreference(key: ApplicationSpecificPreferencesKeys.mediaAutoSaveSettings))
+    |> map { entry -> MediaAutoSaveSettings in
+        return entry?.get(MediaAutoSaveSettings.self) ?? MediaAutoSaveSettings.default
     }
     
     let peer: Signal<(EnginePeer?, EnginePeer.Presence?), NoError>
@@ -655,7 +662,7 @@ func saveIncomingMediaController(context: AccountContext, scope: SaveIncomingMed
         
         switch scope {
         case .peer, .addPeer:
-            rightButton = ItemListNavigationButton(content: .text(presentationData.strings.Common_Done), style: .bold, enabled: true, action: {
+            rightButton = ItemListNavigationButton(content: .icon(.done), style: .bold, enabled: true, action: {
                 switch scope {
                 case let .addPeer(_, completion):
                     let configuration = stateValue.with({ $0 }).pendingConfiguration
@@ -719,7 +726,7 @@ func saveIncomingMediaController(context: AccountContext, scope: SaveIncomingMed
         
         let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .text(title), leftNavigationButton: nil, rightNavigationButton: rightButton, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back), animateChanges: false)
         
-        let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: entries, style: .blocks, emptyStateItem: nil, animateChanges: animateChanges)
+        let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: entries, style: .blocks, ensureVisibleItemTag: focusOnItemTag, emptyStateItem: nil, animateChanges: animateChanges)
         
         return (controllerState, (listState, arguments))
     }
@@ -741,6 +748,20 @@ func saveIncomingMediaController(context: AccountContext, scope: SaveIncomingMed
     }
     dismiss = { [weak controller] in
         controller?.dismiss()
+    }
+    
+    if let focusOnItemTag {
+        var didFocusOnItem = false
+        controller.afterTransactionCompleted = { [weak controller] in
+            if !didFocusOnItem, let controller {
+                controller.forEachItemNode { itemNode in
+                    if let itemNode = itemNode as? ItemListItemNode, let tag = itemNode.tag, tag.isEqual(to: focusOnItemTag) {
+                        didFocusOnItem = true
+                        itemNode.displayHighlight()
+                    }
+                }
+            }
+        }
     }
     
     return controller

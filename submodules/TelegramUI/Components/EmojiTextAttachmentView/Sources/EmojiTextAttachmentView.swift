@@ -13,6 +13,7 @@ import AnimationCache
 import LottieAnimationCache
 import VideoAnimationCache
 import MultiAnimationRenderer
+import DCTMultiAnimationRendererImpl
 import ShimmerEffect
 import TextFormat
 import TelegramUIPreferences
@@ -817,7 +818,7 @@ public final class InlineStickerItemLayer: MultiAnimationRenderTarget {
             let isThumbnailCancelled = Atomic<Bool>(value: false)
             self.loadDisposable = arguments.renderer.loadFirstFrame(target: self, cache: arguments.cache, itemId: file.resource.id.stringRepresentation, size: arguments.pixelSize, fetch: animationCacheFetchFile(postbox: arguments.context.postbox, userLocation: arguments.userLocation, userContentType: .sticker, resource: .media(media: .standalone(media: file), resource: file.resource), type: AnimationCacheAnimationType(file: file), keyframeOnly: true, customColor: isTemplate ? .white : nil), completion: { [weak self] result, isFinal in
                 if !result {
-                    MultiAnimationRendererImpl.firstFrameQueue.async {
+                    DCTMultiAnimationRendererImpl.firstFrameQueue.async {
                         let image = generateStickerPlaceholderImage(data: file.immediateThumbnailData, size: pointSize, scale: min(2.0, UIScreenScale), imageSize: file.dimensions?.cgSize ?? CGSize(width: 512.0, height: 512.0), backgroundColor: nil, foregroundColor: placeholderColor)
                         
                         DispatchQueue.main.async {
@@ -989,6 +990,14 @@ public final class EmojiTextAttachmentView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
     
+    /// The template-emoji tint, forwarded to the backing `InlineStickerItemLayer`. Lets a host that
+    /// only has this view (e.g. the rich-text editor's emoji provider) keep the tint synced to the text
+    /// color without knowing the layer. Equivalent to `updateTextColor(_:)`.
+    public var dynamicColor: UIColor? {
+        get { return self.contentLayer.dynamicColor }
+        set { self.contentLayer.dynamicColor = newValue }
+    }
+
     public func updateTextColor(_ textColor: UIColor) {
         self.contentLayer.dynamicColor = textColor
     }
@@ -1094,7 +1103,7 @@ private let tonImage: UIImage? = {
     generateImage(CGSize(width: 32.0, height: 32.0), contextGenerator: { size, context in
         context.clear(CGRect(origin: .zero, size: size))
         
-        if let image = generateTintedImage(image: UIImage(bundleImageName: "Ads/TonBig"), color: UIColor(rgb: 0x0088ff)), let cgImage = image.cgImage {
+        if let image = generateTintedImage(image: UIImage(bundleImageName: "Ads/TonBig"), color: UIColor(rgb: 0x30A1F5)), let cgImage = image.cgImage {
             context.draw(cgImage, in: CGRect(origin: .zero, size: size).insetBy(dx: 4.0, dy: 4.0), byTiling: false)
         }
     })?.withRenderingMode(.alwaysTemplate)

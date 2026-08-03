@@ -14,7 +14,7 @@
 
 @property (nonatomic, copy) void (^captionSet)(id<TGModernGalleryItem>, NSAttributedString *);
 @property (nonatomic, copy) void (^donePressed)(id<TGModernGalleryItem>);
-@property (nonatomic, copy) void (^doneLongPressed)(id<TGModernGalleryItem>);
+@property (nonatomic, copy) void (^doneLongPressed)(id<TGModernGalleryItem>, UIView *);
 
 @property (nonatomic, copy) void (^photoStripItemSelected)(NSInteger index);
 
@@ -55,6 +55,10 @@
 - (void)immediateEditorTransitionIn;
 - (void)editorTransitionIn;
 - (void)editorTransitionOut;
+
+- (bool)canBeginEditingCaption;
+- (void)beginEditingCaption;
+- (void)setupGifEditing;
 
 - (void)onDismiss;
 

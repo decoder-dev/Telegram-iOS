@@ -55,6 +55,8 @@ public final class VoiceBlobView: UIView, TGModernConversationInputMicButtonDeco
     
     private(set) var isAnimating = false
     
+    public var hitTestSize: CGFloat?
+    
     public typealias BlobRange = (min: CGFloat, max: CGFloat)
     
     public init(
@@ -223,6 +225,15 @@ public final class VoiceBlobView: UIView, TGModernConversationInputMicButtonDeco
         self.bigBlob.frame = bounds
         
         self.updateBlobsState()
+    }
+    
+    override public func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        if let hitTestSize = self.hitTestSize {
+            if !CGSize(width: hitTestSize, height: hitTestSize).centered(in: self.bounds).contains(point) {
+                return nil
+            }
+        }
+        return super.hitTest(point, with: event)
     }
 }
 
@@ -461,7 +472,7 @@ final class BlobNode: ASDisplayNode {
         
         if let backgroundView = self.backgroundView, let color = self.color {
             let halfWidth = floor(self.bounds.width * self.minScale)
-            backgroundView.update(size: CGSize(width: halfWidth, height: halfWidth), cornerRadius: halfWidth * 0.5, isDark: false, tintColor: .init(kind: .custom, color: color), transition: .immediate)
+            backgroundView.update(size: CGSize(width: halfWidth, height: halfWidth), cornerRadius: halfWidth * 0.5, isDark: false, tintColor: .init(kind: .custom(style: .default, color: color)), transition: .immediate)
             backgroundView.frame = CGRect(origin: CGPoint(x: (self.bounds.width - halfWidth) * 0.5, y: (self.bounds.height - halfWidth) * 0.5), size: CGSize(width: halfWidth, height: halfWidth))
         }
     }

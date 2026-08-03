@@ -2,7 +2,6 @@ import Foundation
 import UIKit
 import Display
 import SwiftSignalKit
-import Postbox
 import TelegramCore
 import TelegramPresentationData
 import TelegramUIPreferences
@@ -24,7 +23,7 @@ private struct CounterTagSettings: OptionSet {
         self.rawValue = rawValue
     }
     
-    init(summaryTags: PeerSummaryCounterTags) {
+    init(summaryTags: EnginePeerSummaryCounterTags) {
         var result = CounterTagSettings()
         if summaryTags.contains(.contact) {
             result.insert(.regularChatsAndGroups)
@@ -35,8 +34,8 @@ private struct CounterTagSettings: OptionSet {
         self = result
     }
     
-    func toSumaryTags() -> PeerSummaryCounterTags {
-        var result = PeerSummaryCounterTags()
+    func toSumaryTags() -> EnginePeerSummaryCounterTags {
+        var result = EnginePeerSummaryCounterTags()
         if self.contains(.regularChatsAndGroups) {
             result.insert(.contact)
             result.insert(.nonContact)
@@ -450,15 +449,15 @@ private enum NotificationsAndSoundsEntry: ItemListNodeEntry {
             case let .categoriesHeader(_, text):
                 return ItemListSectionHeaderItem(presentationData: presentationData, text: text, sectionId: self.section)
             case let .privateChats(_, title, subtitle, label):
-                return NotificationsCategoryItemListItem(presentationData: presentationData, systemStyle: .glass, icon: UIImage(bundleImageName: "Settings/Menu/EditProfile"), title: title, subtitle: subtitle, label: label, sectionId: self.section, style: .blocks, action: {
+                return NotificationsCategoryItemListItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.privateChats, title: title, subtitle: subtitle, label: label, sectionId: self.section, style: .blocks, action: {
                     arguments.openPeerCategory(.privateChat)
                 })
             case let .groupChats(_, title, subtitle, label):
-                return NotificationsCategoryItemListItem(presentationData: presentationData, systemStyle: .glass, icon: UIImage(bundleImageName: "Settings/Menu/GroupChats"), title: title, subtitle: subtitle, label: label, sectionId: self.section, style: .blocks, action: {
+                return NotificationsCategoryItemListItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.groups, title: title, subtitle: subtitle, label: label, sectionId: self.section, style: .blocks, action: {
                     arguments.openPeerCategory(.group)
                 })
             case let .channels(_, title, subtitle, label):
-                return NotificationsCategoryItemListItem(presentationData: presentationData, systemStyle: .glass, icon: UIImage(bundleImageName: "Settings/Menu/Channels"), title: title, subtitle: subtitle, label: label, sectionId: self.section, style: .blocks, action: {
+                return NotificationsCategoryItemListItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.channels, title: title, subtitle: subtitle, label: label, sectionId: self.section, style: .blocks, action: {
                     arguments.openPeerCategory(.channel)
                 })
             case let .stories(_, title, subtitle, label):
@@ -779,22 +778,22 @@ public func notificationsAndSoundsController(context: AccountContext, exceptions
     })
     
     let sharedData = context.sharedContext.accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.inAppNotificationSettings])
-    let preferences = context.account.postbox.preferencesView(keys: [PreferencesKeys.globalNotifications])
+    let preferences = context.engine.data.subscribe(TelegramEngine.EngineData.Item.Configuration.ApplicationSpecificPreference(key: PreferencesKeys.globalNotifications))
     
     let exceptionsSignal = Signal<NotificationExceptionsList?, NoError>.single(exceptionsList) |> then(context.engine.peers.notificationExceptionsList() |> map(Optional.init))
     
     let defaultStorySettings = PeerStoryNotificationSettings.default
     
     notificationExceptions.set(exceptionsSignal |> map { list -> (NotificationExceptionMode, NotificationExceptionMode, NotificationExceptionMode, NotificationExceptionMode) in
-        var users:[PeerId : NotificationExceptionWrapper] = [:]
-        var groups: [PeerId : NotificationExceptionWrapper] = [:]
-        var channels: [PeerId : NotificationExceptionWrapper] = [:]
-        var stories: [PeerId : NotificationExceptionWrapper] = [:]
+        var users:[EnginePeer.Id : NotificationExceptionWrapper] = [:]
+        var groups: [EnginePeer.Id : NotificationExceptionWrapper] = [:]
+        var channels: [EnginePeer.Id : NotificationExceptionWrapper] = [:]
+        var stories: [EnginePeer.Id : NotificationExceptionWrapper] = [:]
         if let list = list {
             for (key, value) in list.settings {
                 if let peer = list.peers[key], !peer.debugDisplayTitle.isEmpty, peer.id != context.account.peerId {
                     if value.storySettings != defaultStorySettings {
-                        stories[key] = NotificationExceptionWrapper(settings: value, peer: EnginePeer(peer))
+                        stories[key] = NotificationExceptionWrapper(settings: value, peer: peer)
                     }
                     
                     switch value.muteState {
@@ -805,24 +804,24 @@ public func notificationsAndSoundsController(context: AccountContext, exceptions
                         default:
                             switch key.namespace {
                             case Namespaces.Peer.CloudUser:
-                                users[key] = NotificationExceptionWrapper(settings: value, peer: EnginePeer(peer))
+                                users[key] = NotificationExceptionWrapper(settings: value, peer: peer)
                             default:
-                                if let peer = peer as? TelegramChannel, case .broadcast = peer.info {
+                                if case let .channel(peer) = peer, case .broadcast = peer.info {
                                     channels[key] = NotificationExceptionWrapper(settings: value, peer: .channel(peer))
                                 } else {
-                                    groups[key] = NotificationExceptionWrapper(settings: value, peer: EnginePeer(peer))
+                                    groups[key] = NotificationExceptionWrapper(settings: value, peer: peer)
                                 }
                             }
                         }
                     default:
                         switch key.namespace {
                         case Namespaces.Peer.CloudUser:
-                            users[key] = NotificationExceptionWrapper(settings: value, peer: EnginePeer(peer))
+                            users[key] = NotificationExceptionWrapper(settings: value, peer: peer)
                         default:
-                            if let peer = peer as? TelegramChannel, case .broadcast = peer.info {
+                            if case let .channel(peer) = peer, case .broadcast = peer.info {
                                 channels[key] = NotificationExceptionWrapper(settings: value, peer: .channel(peer))
                             } else {
-                                groups[key] = NotificationExceptionWrapper(settings: value, peer: EnginePeer(peer))
+                                groups[key] = NotificationExceptionWrapper(settings: value, peer: peer)
                             }
                         }
                     }
@@ -858,7 +857,7 @@ public func notificationsAndSoundsController(context: AccountContext, exceptions
         |> map { presentationData, sharedData, view, exceptions, authorizationStatus, warningSuppressed, hasMoreThanOneAccount -> (ItemListControllerState, (ItemListNodeState, Any)) in
             
             let viewSettings: GlobalNotificationSettingsSet
-            if let settings = view.values[PreferencesKeys.globalNotifications]?.get(GlobalNotificationSettings.self) {
+            if let settings = view?.get(GlobalNotificationSettings.self) {
                 viewSettings = settings.effective
             } else {
                 viewSettings = GlobalNotificationSettingsSet.defaultSettings
@@ -897,5 +896,20 @@ public func notificationsAndSoundsController(context: AccountContext, exceptions
     pushControllerImpl = { [weak controller] c in
         (controller?.navigationController as? NavigationController)?.pushViewController(c)
     }
+    
+    if let focusOnItemTag {
+        var didFocusOnItem = false
+        controller.afterTransactionCompleted = { [weak controller] in
+            if !didFocusOnItem, let controller {
+                controller.forEachItemNode { itemNode in
+                    if let itemNode = itemNode as? ItemListItemNode, let tag = itemNode.tag, tag.isEqual(to: focusOnItemTag) {
+                        didFocusOnItem = true
+                        itemNode.displayHighlight()
+                    }
+                }
+            }
+        }
+    }
+    
     return controller
 }

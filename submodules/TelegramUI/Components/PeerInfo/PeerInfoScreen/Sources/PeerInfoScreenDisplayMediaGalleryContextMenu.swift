@@ -3,7 +3,6 @@ import UIKit
 import Display
 import AccountContext
 import SwiftSignalKit
-import Postbox
 import TelegramCore
 import ContextUI
 import PeerInfoVisualMediaPaneNode
@@ -30,7 +29,7 @@ extension PeerInfoScreenNode {
             }
             
             if case .botPreview = pane.scope {
-                guard let data = self.data, let user = data.peer as? TelegramUser, let botInfo = user.botInfo, botInfo.flags.contains(.canEdit) else {
+                guard let data = self.data, case let .user(user) = data.peer, let botInfo = user.botInfo, botInfo.flags.contains(.canEdit) else {
                     return
                 }
                 
@@ -102,7 +101,7 @@ extension PeerInfoScreenNode {
                     })))
                 }
                 
-                let contextController = ContextController(presentationData: self.presentationData, source: .reference(PeerInfoContextReferenceContentSource(controller: controller, sourceNode: source)), items: .single(ContextController.Items(content: .list(items))), gesture: gesture)
+                let contextController = makeContextController(presentationData: self.presentationData, source: .reference(PeerInfoContextReferenceContentSource(controller: controller, sourceNode: source)), items: .single(ContextController.Items(content: .list(items))), gesture: gesture)
                 contextController.passthroughTouchEvent = { [weak self] sourceView, point in
                     guard let strongSelf = self else {
                         return .ignore
@@ -141,7 +140,7 @@ extension PeerInfoScreenNode {
                 self.mediaGalleryContextMenu = contextController
                 controller.presentInGlobalOverlay(contextController)
             } else if case .peer = pane.scope {
-                guard let data = self.data, let user = data.peer as? TelegramUser else {
+                guard let data = self.data, case let .user(user) = data.peer else {
                     return
                 }
                 let _ = user
@@ -232,7 +231,7 @@ extension PeerInfoScreenNode {
                     })))
                 }
                 
-                let contextController = ContextController(presentationData: self.presentationData, source: .reference(PeerInfoContextReferenceContentSource(controller: controller, sourceNode: source)), items: .single(ContextController.Items(content: .list(items))), gesture: gesture)
+                let contextController = makeContextController(presentationData: self.presentationData, source: .reference(PeerInfoContextReferenceContentSource(controller: controller, sourceNode: source)), items: .single(ContextController.Items(content: .list(items))), gesture: gesture)
                 contextController.passthroughTouchEvent = { [weak self] sourceView, point in
                     guard let strongSelf = self else {
                         return .ignore
@@ -281,7 +280,7 @@ extension PeerInfoScreenNode {
                     return
                 }
                 
-                var mediaCount: [MessageTags: Int32] = [:]
+                var mediaCount: [EngineMessage.Tags: Int32] = [:]
                 for (key, count) in messageCounts {
                     mediaCount[key.tag] = count.flatMap(Int32.init) ?? 0
                 }
@@ -360,7 +359,7 @@ extension PeerInfoScreenNode {
                     
                     items.append(.action(ContextMenuActionItem(text: strings.SharedMedia_ShowPhotos, icon: { theme in
                         if !showPhotos {
-                            return nil
+                            return UIImage()
                         }
                         return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Check"), color: theme.contextMenu.primaryColor)
                     }, action: { [weak pane] _, a in
@@ -384,7 +383,7 @@ extension PeerInfoScreenNode {
                     })))
                     items.append(.action(ContextMenuActionItem(text: strings.SharedMedia_ShowVideos, icon: { theme in
                         if !showVideos {
-                            return nil
+                            return UIImage()
                         }
                         return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Check"), color: theme.contextMenu.primaryColor)
                     }, action: { [weak pane] _, a in
@@ -408,7 +407,14 @@ extension PeerInfoScreenNode {
                     })))
                 }
                 
-                let contextController = ContextController(presentationData: strongSelf.presentationData, source: .reference(PeerInfoContextReferenceContentSource(controller: controller, sourceNode: source)), items: .single(ContextController.Items(content: .list(items))), gesture: gesture)
+                var sourceView: UIView = source.view
+                if sourceView.isDescendant(of: strongSelf.headerNode.navigationButtonContainer.rightButtonsBackground) {
+                    sourceView = strongSelf.headerNode.navigationButtonContainer.rightButtonsBackground
+                } else if sourceView.isDescendant(of: strongSelf.headerNode.navigationButtonContainer.leftButtonsBackground) {
+                    sourceView = strongSelf.headerNode.navigationButtonContainer.leftButtonsBackground
+                }
+                
+                let contextController = makeContextController(presentationData: strongSelf.presentationData, source: .reference(PeerInfoContextReferenceContentSource(controller: controller, sourceView: sourceView)), items: .single(ContextController.Items(content: .list(items))), gesture: gesture)
                 contextController.passthroughTouchEvent = { sourceView, point in
                     guard let strongSelf = self else {
                         return .ignore

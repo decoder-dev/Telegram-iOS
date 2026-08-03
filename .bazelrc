@@ -1,41 +1,41 @@
 build --action_env=ZERO_AR_DATE=1
 
-build --apple_platform_type=ios
 build --enable_platform_specific_config
-build --apple_crosstool_top=@local_config_apple_cc//:toolchain
-build --crosstool_top=@local_config_apple_cc//:toolchain
-build --host_crosstool_top=@local_config_apple_cc//:toolchain
 
-#build --swiftcopt=-whole-module-optimization
+# macOS-specific settings (auto-applied on macOS via --enable_platform_specific_config)
+build:macos --apple_platform_type=ios
+build:macos --apple_crosstool_top=@local_config_apple_cc//:toolchain
+build:macos --crosstool_top=@local_config_apple_cc//:toolchain
+build:macos --host_crosstool_top=@local_config_apple_cc//:toolchain
+build:macos --per_file_copt=".*\.m$","@-fno-objc-msgsend-selector-stubs"
+build:macos --per_file_copt=".*\.mm$","@-fno-objc-msgsend-selector-stubs"
+build:macos --features=debug_prefix_map_pwd_is_dot
+build:macos --features=swift.cacheable_swiftmodules
+build:macos --features=swift.debug_prefix_map
+build:macos --features=swift.enable_vfsoverlays
+build:dbg --features=swift.emit_swiftsourceinfo
 
-build --per_file_copt=".*\.m$","@-fno-objc-msgsend-selector-stubs"
-build --per_file_copt=".*\.mm$","@-fno-objc-msgsend-selector-stubs"
-
-build --features=debug_prefix_map_pwd_is_dot
-build --features=swift.cacheable_swiftmodules
-build --features=swift.debug_prefix_map
-build --features=swift.enable_vfsoverlays
+# Linux-specific settings (auto-applied on Linux via --enable_platform_specific_config)
+build:linux --action_env=CC
+build:linux --action_env=CXX
 
 build --strategy=Genrule=standalone
 build --spawn_strategy=standalone
 
-build --strategy=SwiftCompile=standalone
-build --define RULES_SWIFT_BUILD_DUMMY_WORKER=1
+build:macos --strategy=SwiftCompile=worker
 
-build:swift_profile --jobs=1
-build:swift_profile --local_cpu_resources=1
-build:swift_profile --features=-swift.enable_batch_mode
-build:swift_profile --experimental_ui_max_stdouterr_bytes=104857600
-build:swift_profile --@build_bazel_rules_swift//swift:copt=-Xfrontend
-build:swift_profile --@build_bazel_rules_swift//swift:copt=-warn-long-function-bodies=350
-build:swift_profile --@build_bazel_rules_swift//swift:copt=-Xfrontend
-build:swift_profile --@build_bazel_rules_swift//swift:copt=-warn-long-expression-type-checking=350
+# SourceKit BSP: Swift indexing features (macOS only)
+common:macos --features=swift.index_while_building
+common:macos --features=swift.use_global_index_store
+common:macos --features=swift.use_global_module_cache
+common:macos --features=oso_prefix_is_pwd
 
+# SourceKit BSP: Index build config (used for background indexing)
 common:index_build --experimental_convenience_symlinks=ignore
-common:index_build --bes_backend= --bes_results_url=
-common:index_build --nolegacy_important_outputs
 common:index_build --show_result=0
-common:index_build --define=buildNumber=10000
-common:index_build --define=telegramVersion=12.2.2
-
-common --registry=https://raw.githubusercontent.com/bazelbuild/bazel-central-registry/main/
+common:index_build --noshow_loading_progress
+common:index_build --noshow_progress
+common:index_build --noannounce_rc
+common:index_build --noshow_timestamps
+common:index_build --curses=no
+common:index_build --color=no

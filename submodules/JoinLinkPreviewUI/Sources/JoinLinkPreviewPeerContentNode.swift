@@ -7,11 +7,11 @@ import TelegramPresentationData
 import AvatarNode
 import AccountContext
 import SelectablePeerNode
-import ShareController
 import SolidRoundedButtonNode
 import ActivityIndicator
 import ComponentFlow
 import EmojiStatusComponent
+import ShareController
 
 private let avatarFont = avatarPlaceholderFont(size: 42.0)
 
@@ -133,6 +133,7 @@ final class JoinLinkPreviewPeerContentNode: ASDisplayNode, ShareContentContainer
         self.descriptionNode.textAlignment = .center
         self.peersScrollNode = ASScrollNode()
         self.peersScrollNode.view.showsHorizontalScrollIndicator = false
+        self.peersScrollNode.view.scrollsToTop = false
         
         self.actionButtonNode = SolidRoundedButtonNode(theme: SolidRoundedButtonTheme(theme: theme), height: 52.0, cornerRadius: 11.0)
         

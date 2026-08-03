@@ -26,7 +26,6 @@ swift_library(
         "//submodules/DirectionalPanGesture:DirectionalPanGesture",
         "//submodules/AttachmentTextInputPanelNode:AttachmentTextInputPanelNode",
         "//submodules/ChatSendMessageActionUI:ChatSendMessageActionUI",
-        "//submodules/ChatTextLinkEditUI:ChatTextLinkEditUI",
         "//submodules/ContextUI:ContextUI",
         "//submodules/ManagedAnimationNode:ManagedAnimationNode",
         "//submodules/PhotoResources:PhotoResources",
@@ -46,6 +45,7 @@ swift_library(
         "//submodules/TelegramUI/Components/EdgeEffect",
         "//submodules/TelegramUI/Components/LiquidLens",
         "//submodules/TelegramUI/Components/TabSelectionRecognizer",
+        "//submodules/TelegramBaseController",
     ],
     visibility = [
         "//visibility:public",

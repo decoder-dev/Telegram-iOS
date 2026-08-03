@@ -1054,7 +1054,7 @@ public final class ChatMessageAvatarHeaderNodeImpl: ListViewItemHeaderNode, Chat
     }
     
     public func updatePeer(peer: Peer) {
-        if let previousPeer = self.peer, previousPeer.nameColor != peer.nameColor {
+        if let previousPeer = self.peer, previousPeer.nameColor != peer.nameColor || previousPeer.smallProfileImage != peer.smallProfileImage || previousPeer.displayLetters != peer.displayLetters {
             self.peer = peer
             if peer.smallProfileImage != nil {
                 self.avatarNode.setPeerV2(context: self.context, theme: self.presentationData.theme.theme, peer: EnginePeer(peer), authorOfMessage: self.messageReference, overrideImage: nil, emptyColor: .black, synchronousLoad: false, displayDimensions: CGSize(width: avatarHeaderSize(), height: avatarHeaderSize()))
@@ -1082,13 +1082,13 @@ public final class ChatMessageAvatarHeaderNodeImpl: ListViewItemHeaderNode, Chat
         }
         
         if peer.isPremium && context.sharedContext.energyUsageSettings.autoplayVideo {
-            self.cachedDataDisposable.set((context.account.postbox.peerView(id: peer.id)
-            |> deliverOnMainQueue).startStrict(next: { [weak self] peerView in
+            self.cachedDataDisposable.set((context.engine.data.subscribe(TelegramEngine.EngineData.Item.Peer.CachedData(id: peer.id))
+            |> deliverOnMainQueue).startStrict(next: { [weak self] cachedData in
                 guard let strongSelf = self else {
                     return
                 }
-                
-                let cachedPeerData = peerView.cachedData as? CachedUserData
+
+                let cachedPeerData = cachedData as? CachedUserData
                 var personalPhoto: TelegramMediaImage?
                 var profilePhoto: TelegramMediaImage?
                 var isKnown = false
@@ -1099,6 +1099,10 @@ public final class ChatMessageAvatarHeaderNodeImpl: ListViewItemHeaderNode, Chat
                         isKnown = true
                     }
                     if case let .known(maybePhoto) = cachedPeerData.photo {
+                        profilePhoto = maybePhoto
+                        isKnown = true
+                    }
+                    if profilePhoto == nil, case let .known(maybePhoto) = cachedPeerData.fallbackPhoto {
                         profilePhoto = maybePhoto
                         isKnown = true
                     }

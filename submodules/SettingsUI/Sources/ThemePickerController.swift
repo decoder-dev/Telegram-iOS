@@ -3,7 +3,6 @@ import UIKit
 import AsyncDisplayKit
 import Display
 import SwiftSignalKit
-import Postbox
 import TelegramCore
 import TelegramPresentationData
 import TelegramUIPreferences
@@ -13,7 +12,7 @@ import AlertUI
 import PresentationDataUtils
 import MediaResources
 import WallpaperResources
-import ShareController
+
 import AccountContext
 import ContextUI
 import UndoUI
@@ -275,7 +274,7 @@ private enum ThemePickerControllerEntry: ItemListNodeEntry {
             case let .editTheme(theme, text):
                 return ItemListPeerActionItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesItemList.editThemeIcon(theme), title: text, sectionId: self.section, height: .generic, editing: false, action: {
                     arguments.editCurrentTheme()
-                })
+                }, tag: ThemeSettingsEntryTag.edit)
             case let .createTheme(theme, text):
                 return ItemListPeerActionItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesItemList.plusIconImage(theme), title: text, sectionId: self.section, height: .generic, editing: false, action: {
                     arguments.createNewTheme()
@@ -350,7 +349,7 @@ private final class ThemePickerControllerImpl: ItemListController, ThemePickerCo
 
 public func themePickerController(context: AccountContext, focusOnItemTag: ThemeSettingsEntryTag? = nil) -> ViewController {
     #if DEBUG
-    BuiltinWallpaperData.generate(account: context.account)
+    BuiltinWallpaperData.generate(network: context.account.network)
     #endif
 
     var pushControllerImpl: ((ViewController) -> Void)?
@@ -364,10 +363,10 @@ public func themePickerController(context: AccountContext, focusOnItemTag: Theme
     var selectAccentColorImpl: ((TelegramBaseTheme?, PresentationThemeAccentColor?) -> Void)?
     var openAccentColorPickerImpl: ((PresentationThemeReference, Bool) -> Void)?
     
-    let _ = telegramWallpapers(postbox: context.account.postbox, network: context.account.network).start()
+    let _ = context.engine.themes.wallpapers().start()
     
     let cloudThemes = Promise<[TelegramTheme]>()
-    let updatedCloudThemes = telegramThemes(postbox: context.account.postbox, network: context.account.network, accountManager: context.sharedContext.accountManager)
+    let updatedCloudThemes = context.engine.themes.themes(accountManager: context.sharedContext.accountManager)
     cloudThemes.set(updatedCloudThemes)
     
     let removedThemeIndexesPromise = Promise<Set<Int64>>(Set())
@@ -518,7 +517,7 @@ public func themePickerController(context: AccountContext, focusOnItemTag: Theme
         }
         |> mapToSignal { accentColor, wallpaper -> Signal<(PresentationThemeAccentColor?, TelegramWallpaper), NoError> in
             if case let .file(file) = wallpaper, file.id == 0 {
-                return cachedWallpaper(account: context.account, slug: file.slug, settings: file.settings)
+                return cachedWallpaper(engine: context.engine, network: context.account.network, slug: file.slug, settings: file.settings)
                 |> map { cachedWallpaper in
                     if let wallpaper = cachedWallpaper?.wallpaper, case .file = wallpaper {
                         return (accentColor, wallpaper)
@@ -579,7 +578,7 @@ public func themePickerController(context: AccountContext, focusOnItemTag: Theme
                         
                         let resolvedWallpaper: Signal<TelegramWallpaper, NoError>
                         if case let .file(file) = theme.chat.defaultWallpaper, file.id == 0 {
-                            resolvedWallpaper = cachedWallpaper(account: context.account, slug: file.slug, settings: file.settings)
+                            resolvedWallpaper = cachedWallpaper(engine: context.engine, network: context.account.network, slug: file.slug, settings: file.settings)
                             |> map { cachedWallpaper -> TelegramWallpaper in
                                 return cachedWallpaper?.wallpaper ?? theme.chat.defaultWallpaper
                             }
@@ -623,11 +622,10 @@ public func themePickerController(context: AccountContext, focusOnItemTag: Theme
                 }
                 items.append(.action(ContextMenuActionItem(text: presentationData.strings.Appearance_ShareTheme, icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Share"), color: theme.contextMenu.primaryColor) }, action: { c, f in
                     c?.dismiss(completion: {
-                        let shareController = ShareController(context: context, subject: .url("https://t.me/addtheme/\(theme.theme.slug)"), preferredAction: .default)
-                        shareController.actionCompleted = {
+                        let shareController = context.sharedContext.makeShareController(context: context, params: ShareControllerParams(subject: .url("https://t.me/addtheme/\(theme.theme.slug)"), preferredAction: .default, actionCompleted: {
                             let presentationData = context.sharedContext.currentPresentationData.with { $0 }
                             presentControllerImpl?(UndoOverlayController(presentationData: presentationData, content: .linkCopied(title: nil, text: presentationData.strings.Conversation_LinkCopied), elevatedLayout: false, animateInAsReplacement: false, action: { _ in return false }), nil)
-                        }
+                        }))
                         presentControllerImpl?(shareController, nil)
                     })
                 })))
@@ -689,7 +687,7 @@ public func themePickerController(context: AccountContext, focusOnItemTag: Theme
                 })))
             }
             
-            let contextController = ContextController(presentationData: presentationData, source: .controller(ContextControllerContentSourceImpl(controller: themeController, sourceNode: node)), items: .single(ContextController.Items(content: .list(items))), gesture: gesture)
+            let contextController = makeContextController(presentationData: presentationData, source: .controller(ContextControllerContentSourceImpl(controller: themeController, sourceNode: node)), items: .single(ContextController.Items(content: .list(items))), gesture: gesture)
             presentInGlobalOverlayImpl?(contextController, nil)
         })
     }, colorContextAction: { isCurrent, reference, accentColor, node, gesture in
@@ -747,7 +745,7 @@ public func themePickerController(context: AccountContext, focusOnItemTag: Theme
             
             let wallpaperSignal: Signal<TelegramWallpaper, NoError>
             if case let .file(file) = effectiveWallpaper, file.id == 0 {
-                wallpaperSignal = cachedWallpaper(account: context.account, slug: file.slug, settings: file.settings)
+                wallpaperSignal = cachedWallpaper(engine: context.engine, network: context.account.network, slug: file.slug, settings: file.settings)
                 |> map { cachedWallpaper in
                     return cachedWallpaper?.wallpaper ?? effectiveWallpaper
                 }
@@ -827,7 +825,7 @@ public func themePickerController(context: AccountContext, focusOnItemTag: Theme
                             
                             let resolvedWallpaper: Signal<TelegramWallpaper, NoError>
                             if case let .file(file) = theme.chat.defaultWallpaper, file.id == 0 {
-                                resolvedWallpaper = cachedWallpaper(account: context.account, slug: file.slug, settings: file.settings)
+                                resolvedWallpaper = cachedWallpaper(engine: context.engine, network: context.account.network, slug: file.slug, settings: file.settings)
                                 |> map { cachedWallpaper -> TelegramWallpaper in
                                     return cachedWallpaper?.wallpaper ?? theme.chat.defaultWallpaper
                                 }
@@ -876,11 +874,10 @@ public func themePickerController(context: AccountContext, focusOnItemTag: Theme
                     }
                     items.append(.action(ContextMenuActionItem(text: presentationData.strings.Appearance_ShareTheme, icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Share"), color: theme.contextMenu.primaryColor) }, action: { c, f in
                         c?.dismiss(completion: {
-                            let shareController = ShareController(context: context, subject: .url("https://t.me/addtheme/\(cloudTheme.theme.slug)"), preferredAction: .default)
-                            shareController.actionCompleted = {
+                            let shareController = context.sharedContext.makeShareController(context: context, params: ShareControllerParams(subject: .url("https://t.me/addtheme/\(cloudTheme.theme.slug)"), preferredAction: .default, actionCompleted: {
                                 let presentationData = context.sharedContext.currentPresentationData.with { $0 }
                                 presentControllerImpl?(UndoOverlayController(presentationData: presentationData, content: .linkCopied(title: nil, text: presentationData.strings.Conversation_LinkCopied), elevatedLayout: false, animateInAsReplacement: false, action: { _ in return false }), nil)
-                            }
+                            }))
                             presentControllerImpl?(shareController, nil)
                         })
                     })))
@@ -938,7 +935,7 @@ public func themePickerController(context: AccountContext, focusOnItemTag: Theme
                     }
                 }
             }
-            let contextController = ContextController(presentationData: presentationData, source: .controller(ContextControllerContentSourceImpl(controller: themeController, sourceNode: node)), items: .single(ContextController.Items(content: .list(items))), gesture: gesture)
+            let contextController = makeContextController(presentationData: presentationData, source: .controller(ContextControllerContentSourceImpl(controller: themeController, sourceNode: node)), items: .single(ContextController.Items(content: .list(items))), gesture: gesture)
             presentInGlobalOverlayImpl?(contextController, nil)
         })
     })
@@ -1132,7 +1129,7 @@ public func themePickerController(context: AccountContext, focusOnItemTag: Theme
         
         let resolvedWallpaper: Signal<TelegramWallpaper?, NoError>
         if case let .file(file) = presentationTheme.chat.defaultWallpaper, file.id == 0 {
-            resolvedWallpaper = cachedWallpaper(account: context.account, slug: file.slug, settings: file.settings)
+            resolvedWallpaper = cachedWallpaper(engine: context.engine, network: context.account.network, slug: file.slug, settings: file.settings)
             |> map { wallpaper -> TelegramWallpaper? in
                 return wallpaper?.wallpaper
             }
@@ -1229,10 +1226,10 @@ public func themePickerController(context: AccountContext, focusOnItemTag: Theme
     selectAccentColorImpl = { currentBaseTheme, accentColor in
         var wallpaperSignal: Signal<TelegramWallpaper?, NoError> = .single(nil)
         if let colorWallpaper = accentColor?.wallpaper, case let .file(file) = colorWallpaper {
-            wallpaperSignal = cachedWallpaper(account: context.account, slug: file.slug, settings: colorWallpaper.settings)
+            wallpaperSignal = cachedWallpaper(engine: context.engine, network: context.account.network, slug: file.slug, settings: colorWallpaper.settings)
             |> mapToSignal { cachedWallpaper in
                 if let wallpaper = cachedWallpaper?.wallpaper, case let .file(file) = wallpaper {
-                    let _ = fetchedMediaResource(mediaBox: context.account.postbox.mediaBox, userLocation: .other, userContentType: .other, reference: .wallpaper(wallpaper: .slug(file.slug), resource: file.file.resource)).start()
+                    let _ = context.engine.resources.fetch(reference: .wallpaper(wallpaper: .slug(file.slug), resource: file.file.resource), userLocation: .other, userContentType: .other).start()
 
                     return .single(wallpaper)
     
@@ -1294,6 +1291,21 @@ public func themePickerController(context: AccountContext, focusOnItemTag: Theme
             presentCrossfadeControllerImpl?(true)
         })
     }
+    
+    if let focusOnItemTag {
+        var didFocusOnItem = false
+        controller.afterTransactionCompleted = { [weak controller] in
+            if !didFocusOnItem, let controller {
+                controller.forEachItemNode { itemNode in
+                    if let itemNode = itemNode as? ItemListItemNode, let tag = itemNode.tag, tag.isEqual(to: focusOnItemTag) {
+                        didFocusOnItem = true
+                        itemNode.displayHighlight()
+                    }
+                }
+            }
+        }
+    }
+    
     return controller
 }
 
@@ -1326,7 +1338,7 @@ private final class ContextControllerContentSourceImpl: ContextControllerContent
 }
 
 private func iconColors(theme: PresentationTheme) -> [String: UIColor] {
-    let accentColor = theme.actionSheet.controlAccentColor
+    let accentColor = theme.chat.inputPanel.panelControlColor
     var colors: [String: UIColor] = [:]
     colors["Sunny.Path 14.Path.Stroke 1"] = accentColor
     colors["Sunny.Path 15.Path.Stroke 1"] = accentColor

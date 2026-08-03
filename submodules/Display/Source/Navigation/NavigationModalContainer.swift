@@ -91,6 +91,7 @@ final class NavigationModalContainer: ASDisplayNode, ASScrollViewDelegate, ASGes
         self.scrollNode.view.clipsToBounds = false
         self.scrollNode.view.delegate = self.wrappedScrollViewDelegate
         self.scrollNode.view.tag = 0x5C4011
+        self.scrollNode.view.scrollsToTop = false
         
         let panRecognizer = InteractiveTransitionGestureRecognizer(target: self, action: #selector(self.panGesture(_:)), allowedDirections: { [weak self] _ in
             guard let strongSelf = self, !strongSelf.isDismissed else {
@@ -452,7 +453,7 @@ final class NavigationModalContainer: ASDisplayNode, ASScrollViewDelegate, ASGes
             } else {
                 self.dim.backgroundColor = UIColor(white: 0.0, alpha: 0.4)
                 self.container.clipsToBounds = true
-                self.container.cornerRadius = 10.0
+                self.container.cornerRadius = 38.0
                 if #available(iOS 11.0, *) {
                     self.container.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner, .layerMinXMaxYCorner, .layerMaxXMaxYCorner]
                 }

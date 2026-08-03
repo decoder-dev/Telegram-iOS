@@ -3,7 +3,6 @@ import UIKit
 import Display
 import AccountContext
 import SwiftSignalKit
-import Postbox
 import TelegramCore
 import ContextUI
 import PeerInfoVisualMediaPaneNode
@@ -26,7 +25,7 @@ extension PeerInfoScreenNode {
         let giftsContext = pane.giftsContext
         
         var hasVisibility = false
-        if let channel = data.peer as? TelegramChannel, channel.hasPermission(.sendSomething) {
+        if case let .channel(channel) = data.peer, channel.hasPermission(.sendSomething) {
             hasVisibility = true
         } else if data.peer?.id == self.context.account.peerId {
             hasVisibility = true
@@ -172,28 +171,28 @@ extension PeerInfoScreenNode {
             }
             
             items.append(.action(ContextMenuActionItem(text: strings.PeerInfo_Gifts_Unlimited, icon: { theme in
-                return filter.contains(.unlimited) ? generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Check"), color: theme.contextMenu.primaryColor) : nil
+                return filter.contains(.unlimited) ? generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Check"), color: theme.contextMenu.primaryColor) : UIImage()
             }, action: { _, f in
                 toggleFilter(.unlimited)
             }, longPressAction: { _, f in
                 switchToFilter(.unlimited)
             })))
             items.append(.action(ContextMenuActionItem(text: strings.PeerInfo_Gifts_Limited, icon: { theme in
-                return filter.contains(.limitedNonUpgradable) ? generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Check"), color: theme.contextMenu.primaryColor) : nil
+                return filter.contains(.limitedNonUpgradable) ? generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Check"), color: theme.contextMenu.primaryColor) : UIImage()
             }, action: { _, f in
                 toggleFilter(.limitedNonUpgradable)
             }, longPressAction: { _, f in
                 switchToFilter(.limitedNonUpgradable)
             })))
             items.append(.action(ContextMenuActionItem(text: strings.PeerInfo_Gifts_Upgradable, icon: { theme in
-                return filter.contains(.limitedUpgradable) ? generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Check"), color: theme.contextMenu.primaryColor) : nil
+                return filter.contains(.limitedUpgradable) ? generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Check"), color: theme.contextMenu.primaryColor) : UIImage()
             }, action: { _, f in
                 toggleFilter(.limitedUpgradable)
             }, longPressAction: { _, f in
                 switchToFilter(.limitedUpgradable)
             })))
             items.append(.action(ContextMenuActionItem(text: strings.PeerInfo_Gifts_Unique, icon: { theme in
-                return filter.contains(.unique) ? generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Check"), color: theme.contextMenu.primaryColor) : nil
+                return filter.contains(.unique) ? generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Check"), color: theme.contextMenu.primaryColor) : UIImage()
             }, action: { _, f in
                 toggleFilter(.unique)
             }, longPressAction: { _, f in
@@ -204,14 +203,14 @@ extension PeerInfoScreenNode {
                 items.append(.separator)
                 
                 items.append(.action(ContextMenuActionItem(text: strings.PeerInfo_Gifts_Displayed, icon: { theme in
-                    return filter.contains(.displayed) ? generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Check"), color: theme.contextMenu.primaryColor) : nil
+                    return filter.contains(.displayed) ? generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Check"), color: theme.contextMenu.primaryColor) : UIImage()
                 }, action: { _, f in
                     toggleFilter(.displayed)
                 }, longPressAction: { _, f in
                     switchToVisiblityFilter(.displayed)
                 })))
                 items.append(.action(ContextMenuActionItem(text: strings.PeerInfo_Gifts_Hidden, icon: { theme in
-                    return filter.contains(.hidden) ? generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Check"), color: theme.contextMenu.primaryColor) : nil
+                    return filter.contains(.hidden) ? generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Check"), color: theme.contextMenu.primaryColor) : UIImage()
                 }, action: { _, f in
                     toggleFilter(.hidden)
                 }, longPressAction: { _, f in
@@ -222,7 +221,14 @@ extension PeerInfoScreenNode {
             return ContextController.Items(content: .list(items))
         }
         
-        let contextController = ContextController(presentationData: self.presentationData, source: .reference(PeerInfoContextReferenceContentSource(controller: controller, sourceNode: source)), items: items, gesture: gesture)
+        var sourceView: UIView = source.view
+        if sourceView.isDescendant(of: self.headerNode.navigationButtonContainer.rightButtonsBackground) {
+            sourceView = self.headerNode.navigationButtonContainer.rightButtonsBackground
+        } else if sourceView.isDescendant(of: self.headerNode.navigationButtonContainer.leftButtonsBackground) {
+            sourceView = self.headerNode.navigationButtonContainer.leftButtonsBackground
+        }
+        
+        let contextController = makeContextController(presentationData: self.presentationData, source: .reference(PeerInfoContextReferenceContentSource(controller: controller, sourceView: sourceView)), items: items, gesture: gesture)
         contextController.passthroughTouchEvent = { [weak self] sourceView, point in
             guard let strongSelf = self else {
                 return .ignore

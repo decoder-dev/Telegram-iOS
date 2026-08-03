@@ -14,7 +14,6 @@ import LegacyInstantVideoController
 import UndoUI
 import ContextUI
 import TelegramCore
-import Postbox
 import AvatarNode
 import MediaEditorScreen
 import ImageCompression
@@ -80,7 +79,7 @@ public final class StoryItemSetContainerComponent: Component {
     public enum NavigationDirection {
         case previous
         case next
-        case id(StoryId)
+        case id(EngineStoryId)
     }
     
     public struct PinchState: Equatable {
@@ -122,7 +121,7 @@ public final class StoryItemSetContainerComponent: Component {
     public let close: () -> Void
     public let navigate: (NavigationDirection) -> Void
     public let delete: () -> Void
-    public let markAsSeen: (StoryId) -> Void
+    public let markAsSeen: (EngineStoryId) -> Void
     public let reorder: () -> Void
     public let createToFolder: (String, [EngineStoryItem]) -> Void
     public let addToFolder: (Int64) -> Void
@@ -163,7 +162,7 @@ public final class StoryItemSetContainerComponent: Component {
         close: @escaping () -> Void,
         navigate: @escaping (NavigationDirection) -> Void,
         delete: @escaping () -> Void,
-        markAsSeen: @escaping (StoryId) -> Void,
+        markAsSeen: @escaping (EngineStoryId) -> Void,
         reorder: @escaping () -> Void,
         createToFolder: @escaping (String, [EngineStoryItem]) -> Void,
         addToFolder: @escaping (Int64) -> Void,
@@ -363,11 +362,11 @@ public final class StoryItemSetContainerComponent: Component {
     }
     
     final class CaptionItem {
-        let itemId: StoryId
+        let itemId: EngineStoryId
         let externalState = StoryContentCaptionComponent.ExternalState()
         let view = ComponentView<Empty>()
         
-        init(itemId: StoryId) {
+        init(itemId: EngineStoryId) {
             self.itemId = itemId
         }
     }
@@ -471,7 +470,7 @@ public final class StoryItemSetContainerComponent: Component {
         
         var isSearchActive: Bool = false
         
-        var viewLists: [StoryId: ViewList] = [:]
+        var viewLists: [EngineStoryId: ViewList] = [:]
         let viewListsContainer: UIView
         
         var isEditingStory: Bool = false
@@ -479,8 +478,8 @@ public final class StoryItemSetContainerComponent: Component {
         var itemLayout: ItemLayout?
         var ignoreScrolling: Bool = false
         
-        var visibleItems: [StoryId: VisibleItem] = [:]
-        var trulyValidIds: [StoryId] = []
+        var visibleItems: [EngineStoryId: VisibleItem] = [:]
+        var trulyValidIds: [EngineStoryId] = []
         
         var reactionContextNode: ReactionContextNode?
         weak var disappearingReactionContextNode: ReactionContextNode?
@@ -506,8 +505,8 @@ public final class StoryItemSetContainerComponent: Component {
         
         let transitionCloneContainerView: UIView
         
-        private var awaitingSwitchToId: (from: StoryId, to: StoryId)?
-        private var animateNextNavigationId: StoryId?
+        private var awaitingSwitchToId: (from: EngineStoryId, to: EngineStoryId)?
+        private var animateNextNavigationId: EngineStoryId?
         private var initializedOffset: Bool = false
         
         private var viewListPanState: PanState?
@@ -1498,8 +1497,8 @@ public final class StoryItemSetContainerComponent: Component {
                 hintAllowSynchronousLoads = hint.allowSynchronousLoads
             }
             
-            var validIds: [StoryId] = []
-            var trulyValidIds: [StoryId] = []
+            var validIds: [EngineStoryId] = []
+            var trulyValidIds: [EngineStoryId] = []
             
             let centralItemX = itemLayout.contentFrame.center.x
             
@@ -1980,7 +1979,7 @@ public final class StoryItemSetContainerComponent: Component {
             
             self.trulyValidIds = trulyValidIds
             
-            var removeIds: [StoryId] = []
+            var removeIds: [EngineStoryId] = []
             for (id, visibleItem) in self.visibleItems {
                 if !validIds.contains(id) {
                     removeIds.append(id)
@@ -2001,7 +2000,7 @@ public final class StoryItemSetContainerComponent: Component {
                 return
             }
             let progressMode = self.itemProgressMode()
-            var centralId: StoryId?
+            var centralId: EngineStoryId?
             if let component = self.component {
                 centralId = component.slice.item.id
             }
@@ -3066,7 +3065,7 @@ public final class StoryItemSetContainerComponent: Component {
                         
                         sendAsConfiguration = sendAsPeer.flatMap { value in
                             return MessageInputPanelComponent.SendAsConfiguration(
-                                currentPeer: EnginePeer(value.peer),
+                                currentPeer: value.peer,
                                 subscriberCount: value.subscribers.flatMap(Int.init),
                                 isPremiumLocked: value.isPremiumRequired,
                                 isSelecting: self.sendMessageContext.isSelectingSendAsPeer,
@@ -3442,7 +3441,7 @@ public final class StoryItemSetContainerComponent: Component {
             let minimizedHeight = max(100.0, availableSize.height - (325.0 + 12.0))
             let defaultHeight = 60.0 + component.safeInsets.bottom + 1.0
             
-            var validViewListIds: [StoryId] = []
+            var validViewListIds: [EngineStoryId] = []
             
             var displayViewLists = false
             if case .liveStream = component.slice.item.storyItem.media {
@@ -3455,7 +3454,7 @@ public final class StoryItemSetContainerComponent: Component {
             
             var viewListHeightMidFraction: CGFloat = 0.0
             if displayViewLists, let currentIndex = component.slice.allItems.firstIndex(where: { $0.id == component.slice.item.id }) {
-                var visibleViewListIds: [StoryId] = [component.slice.item.id]
+                var visibleViewListIds: [EngineStoryId] = [component.slice.item.id]
                 if self.viewListDisplayState != .hidden, let viewListPanState = self.viewListPanState {
                     if currentIndex != 0 {
                         if viewListPanState.fraction > 0.0 {
@@ -3469,7 +3468,7 @@ public final class StoryItemSetContainerComponent: Component {
                     }
                 }
                 
-                var preloadViewListIds: [(StoryId, EngineStoryItem.Views)] = []
+                var preloadViewListIds: [(EngineStoryId, EngineStoryItem.Views)] = []
                 if let views = component.slice.item.storyItem.views {
                     preloadViewListIds.append((component.slice.item.id, views))
                 }
@@ -3507,7 +3506,7 @@ public final class StoryItemSetContainerComponent: Component {
                 }
                 
                 var fixedAnimationOffset: CGFloat = 0.0
-                var applyFixedAnimationOffsetIds: [StoryId] = []
+                var applyFixedAnimationOffsetIds: [EngineStoryId] = []
                 
                 let normalCollapsedContentAreaHeight: CGFloat = availableSize.height - minimizedHeight
                 
@@ -3826,7 +3825,7 @@ public final class StoryItemSetContainerComponent: Component {
                                     
                                     let items = ContextController.Items(content: .list(itemList))
                                     
-                                    let controller = ContextController(
+                                    let controller = makeContextController(
                                         presentationData: presentationData,
                                         source: .extracted(ListContextExtractedContentSource(contentView: sourceView)),
                                         items: .single(items),
@@ -3929,7 +3928,7 @@ public final class StoryItemSetContainerComponent: Component {
             } else {
                 self.viewListMetrics = nil
             }
-            var removeViewListIds: [StoryId] = []
+            var removeViewListIds: [EngineStoryId] = []
             for (id, viewList) in self.viewLists {
                 if !validViewListIds.contains(id) {
                     removeViewListIds.append(id)
@@ -4523,7 +4522,7 @@ public final class StoryItemSetContainerComponent: Component {
                 }
             }
             
-            if !isUnsupported, !component.slice.item.storyItem.text.isEmpty || component.slice.item.storyItem.forwardInfo != nil {
+            if !isUnsupported, !component.slice.item.storyItem.text.isEmpty || component.slice.item.storyItem.forwardInfo != nil || component.slice.item.storyItem.music != nil {
                 var captionItemTransition = transition
                 let captionItem: CaptionItem
                 if let current = self.captionItem {
@@ -4544,7 +4543,7 @@ public final class StoryItemSetContainerComponent: Component {
                 }
                 var forwardInfoStory: Signal<EngineStoryItem?, NoError>? = nil
                 if let forwardInfo = component.slice.item.storyItem.forwardInfo, case let .known(peer, id, _) = forwardInfo {
-                    forwardInfoStory = component.slice.forwardInfoStories[StoryId(peerId: peer.id, id: id)]?.get()
+                    forwardInfoStory = component.slice.forwardInfoStories[EngineStoryId(peerId: peer.id, id: id)]?.get()
                 }
                 let captionSize = captionItem.view.update(
                     transition: captionItemTransition,
@@ -4557,6 +4556,7 @@ public final class StoryItemSetContainerComponent: Component {
                         author: component.slice.effectivePeer,
                         forwardInfo: component.slice.item.storyItem.forwardInfo,
                         forwardInfoStory: forwardInfoStory,
+                        music: component.slice.item.storyItem.music,
                         entities: enableEntities ? component.slice.item.storyItem.entities : [],
                         entityFiles: component.slice.item.entityFiles,
                         action: { [weak self] action in
@@ -4565,7 +4565,7 @@ public final class StoryItemSetContainerComponent: Component {
                             }
                             switch action {
                             case let .url(url, concealed):
-                                let _ = openUserGeneratedUrl(context: component.context, peerId: component.slice.effectivePeer.id, url: url, concealed: concealed, skipUrlAuth: false, skipConcealedAlert: false, forceDark: true, present: { [weak self] c in
+                                let _ = component.context.sharedContext.openUserGeneratedUrl(context: component.context, peerId: component.slice.effectivePeer.id, url: url, webpage: nil, concealed: concealed, forceConcealed: false, skipUrlAuth: false, skipConcealedAlert: false, forceDark: true, present: { [weak self] c in
                                     guard let self, let component = self.component, let controller = component.controller() else {
                                         return
                                     }
@@ -4575,13 +4575,13 @@ public final class StoryItemSetContainerComponent: Component {
                                         return
                                     }
                                     self.sendMessageContext.openResolved(view: self, result: resolved, forceExternal: false, concealed: concealed)
-                                }, alertDisplayUpdated: { [weak self] alertController in
+                                }, progress: nil, alertDisplayUpdated: { [weak self] alertController in
                                     guard let self else {
                                         return
                                     }
                                     self.sendMessageContext.statusController = alertController
                                     self.updateIsProgressPaused()
-                                })
+                                }, concealedAlertOption: nil)
                             case let .textMention(value):
                                 self.sendMessageContext.openPeerMention(view: self, name: value)
                             case let .peerMention(peerId, _):
@@ -4599,7 +4599,7 @@ public final class StoryItemSetContainerComponent: Component {
                                 return
                             }
                             self.sendMessageContext.presentTextEntityActions(view: self, action: action, openUrl: { [weak self] url, concealed in
-                                let _ = openUserGeneratedUrl(context: component.context, peerId: component.slice.effectivePeer.id, url: url, concealed: concealed, skipUrlAuth: false, skipConcealedAlert: false, present: { [weak self] c in
+                                let _ = component.context.sharedContext.openUserGeneratedUrl(context: component.context, peerId: component.slice.effectivePeer.id, url: url, webpage: nil, concealed: concealed, forceConcealed: false, skipUrlAuth: false, skipConcealedAlert: false, forceDark: false, present: { [weak self] c in
                                     guard let self, let component = self.component, let controller = component.controller() else {
                                         return
                                     }
@@ -4609,7 +4609,7 @@ public final class StoryItemSetContainerComponent: Component {
                                         return
                                     }
                                     self.sendMessageContext.openResolved(view: self, result: resolved, forceExternal: false, concealed: concealed)
-                                })
+                                }, progress: nil, alertDisplayUpdated: nil, concealedAlertOption: nil)
                             })
                         },
                         textSelectionAction: { [weak self] text, action in
@@ -4708,6 +4708,12 @@ public final class StoryItemSetContainerComponent: Component {
                                     }
                                 }
                             }
+                        },
+                        openMusic: { [weak self] file, sourceView in
+                            guard let self else {
+                                return
+                            }
+                            self.performMusicAction(file: file, sourceView: sourceView, gesture: nil)
                         }
                     )),
                     environment: {},
@@ -4823,7 +4829,7 @@ public final class StoryItemSetContainerComponent: Component {
                                         }
                                     }
                                 case let .custom(fileId):
-                                    selectedItems.insert(AnyHashable(MediaId(namespace: Namespaces.Media.CloudFile, id: fileId)))
+                                    selectedItems.insert(AnyHashable(EngineMedia.Id(namespace: Namespaces.Media.CloudFile, id: fileId)))
                                 }
                             }
                             
@@ -4962,8 +4968,8 @@ public final class StoryItemSetContainerComponent: Component {
                                     self.state?.updated(transition: ComponentTransition(animation: .curve(duration: 0.25, curve: .easeInOut)))
                                                                 
                                     var text = ""
-                                    var messageAttributes: [MessageAttribute] = []
-                                    var inlineStickers: [MediaId : Media] = [:]
+                                    var messageAttributes: [EngineMessage.Attribute] = []
+                                    var inlineStickers: [EngineMedia.Id : EngineRawMedia] = [:]
                                     switch updateReaction {
                                     case let .builtin(textValue):
                                         text = textValue
@@ -5619,7 +5625,7 @@ public final class StoryItemSetContainerComponent: Component {
                     }
                     navigationController.setViewControllers(currentViewControllers, animated: true)
                 } else {
-                    guard let chatController = component.context.sharedContext.makePeerInfoController(context: component.context, updatedPresentationData: nil, peer: peer._asPeer(), mode: .generic, avatarInitiallyExpanded: false, fromChat: false, requestsContext: nil) else {
+                    guard let chatController = component.context.sharedContext.makePeerInfoController(context: component.context, updatedPresentationData: nil, peer: peer, mode: .generic, avatarInitiallyExpanded: false, fromChat: false, requestsContext: nil) else {
                         return
                     }
                     
@@ -5647,7 +5653,7 @@ public final class StoryItemSetContainerComponent: Component {
                 return
             }
             
-            let storyId = StoryId(peerId: peer.id, id: id)
+            let storyId = EngineStoryId(peerId: peer.id, id: id)
             
             guard let viewList = self.viewLists[component.slice.item.id], let viewListView = viewList.view.view as? StoryItemSetViewListComponent.View, let viewListContext = viewListView.currentViewList else {
                 return
@@ -5674,7 +5680,7 @@ public final class StoryItemSetContainerComponent: Component {
                     transitionIn: transitionIn,
                     transitionOut: { [weak sourceView, weak viewListView] peerId, storyIdValue in
                         var destinationView: UIView?
-                        if let view = viewListView?.sourceView(storyId: StoryId(peerId: peerId, id: storyIdValue as? Int32 ?? 0)) {
+                        if let view = viewListView?.sourceView(storyId: EngineStoryId(peerId: peerId, id: storyIdValue as? Int32 ?? 0)) {
                             destinationView = view
                         } else {
                             destinationView = sourceView
@@ -5960,7 +5966,7 @@ public final class StoryItemSetContainerComponent: Component {
         }
         
         private func requestSave() {
-            guard let component = self.component, let peerReference = PeerReference(component.slice.effectivePeer._asPeer()) else {
+            guard let component = self.component, let peerReference = PeerReference(component.slice.effectivePeer) else {
                 return
             }
             
@@ -5970,7 +5976,7 @@ public final class StoryItemSetContainerComponent: Component {
             let stringSaving = component.strings.Story_TooltipSaving
             let stringSaved = component.strings.Story_TooltipSaved
             
-            let disposable = (saveToCameraRoll(context: component.context, postbox: component.context.account.postbox, userLocation: .peer(peerReference.id), customUserContentType: .story, mediaReference: .story(peer: peerReference, id: component.slice.item.storyItem.id, media: component.slice.item.storyItem.media._asMedia()))
+            let disposable = (saveToCameraRoll(context: component.context, userLocation: .peer(peerReference.id), customUserContentType: .story, mediaReference: .story(peer: peerReference, id: component.slice.item.storyItem.id, media: component.slice.item.storyItem.media._asMedia()))
             |> deliverOnMainQueue).start(next: { [weak saveScreen] progress in
                 guard let saveScreen else {
                     return
@@ -6236,7 +6242,7 @@ public final class StoryItemSetContainerComponent: Component {
                 }
             }
             
-            if !emojiFileIds.isEmpty || hasLinkedStickers, let peerReference = PeerReference(component.slice.effectivePeer._asPeer()) {
+            if !emojiFileIds.isEmpty || hasLinkedStickers, let peerReference = PeerReference(component.slice.effectivePeer) {
                 let context = component.context
                 
                 tip = .animatedEmoji(text: nil, arguments: nil, file: nil, action: nil)
@@ -6388,7 +6394,7 @@ public final class StoryItemSetContainerComponent: Component {
                     if isSelected && value == nil {
                         return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Check"), color: .white)
                     } else {
-                        return nil
+                        return UIImage()
                     }
                 }), action: { [weak self] _, f in
                     f(.default)
@@ -6471,7 +6477,7 @@ public final class StoryItemSetContainerComponent: Component {
                                 if let story = folderPreview.item {
                                     var imageSignal: Signal<UIImage?, NoError>?
                                     
-                                    var selectedMedia: Media?
+                                    var selectedMedia: EngineRawMedia?
                                     if let image = story.media._asMedia() as? TelegramMediaImage {
                                         selectedMedia = image
                                     } else if let file = story.media._asMedia() as? TelegramMediaFile {
@@ -6690,7 +6696,7 @@ public final class StoryItemSetContainerComponent: Component {
                     }
                 }
                 
-                if component.slice.item.storyItem.isPublic && (component.slice.effectivePeer.addressName != nil || !component.slice.effectivePeer._asPeer().usernames.isEmpty) && (component.slice.item.storyItem.expirationTimestamp > Int32(Date().timeIntervalSince1970) || component.slice.item.storyItem.isPinned) {
+                if component.slice.item.storyItem.isPublic && (component.slice.effectivePeer.addressName != nil || !component.slice.effectivePeer.usernames.isEmpty) && (component.slice.item.storyItem.expirationTimestamp > Int32(Date().timeIntervalSince1970) || component.slice.item.storyItem.isPinned) {
                     items.append(.action(ContextMenuActionItem(text: component.strings.Story_Context_CopyLink, icon: { theme in
                         return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Link"), color: theme.contextMenu.primaryColor)
                     }, action: { [weak self] _, a in
@@ -6761,7 +6767,7 @@ public final class StoryItemSetContainerComponent: Component {
                 return .single(ContextController.Items(id: 0, content: .list(items), tip: tip, tipSignal: tipSignal))
             }
             
-            let contextController = ContextController(presentationData: presentationData, source: .reference(HeaderContextReferenceContentSource(controller: controller, sourceView: sourceView, position: .bottom)), items: contextItems, gesture: gesture)
+            let contextController = makeContextController(presentationData: presentationData, source: .reference(HeaderContextReferenceContentSource(controller: controller, sourceView: sourceView, position: .bottom)), items: contextItems, gesture: gesture)
             contextController.dismissed = { [weak self] in
                 guard let self else {
                     return
@@ -6946,7 +6952,7 @@ public final class StoryItemSetContainerComponent: Component {
                     })))
                 }
                 
-                if component.slice.item.storyItem.isPublic && (component.slice.effectivePeer.addressName != nil || !component.slice.effectivePeer._asPeer().usernames.isEmpty) && (component.slice.item.storyItem.expirationTimestamp > Int32(Date().timeIntervalSince1970) || component.slice.item.storyItem.isPinned) {
+                if component.slice.item.storyItem.isPublic && (component.slice.effectivePeer.addressName != nil || !component.slice.effectivePeer.usernames.isEmpty) && (component.slice.item.storyItem.expirationTimestamp > Int32(Date().timeIntervalSince1970) || component.slice.item.storyItem.isPinned) {
                     items.append(.action(ContextMenuActionItem(text: component.strings.Story_Context_CopyLink, icon: { theme in
                         return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Link"), color: theme.contextMenu.primaryColor)
                     }, action: { [weak self] _, a in
@@ -7095,7 +7101,7 @@ public final class StoryItemSetContainerComponent: Component {
                 return .single(ContextController.Items(id: 0, content: .list(items), tip: tip, tipSignal: tipSignal))
             }
             
-            let contextController = ContextController(presentationData: presentationData, source: .reference(HeaderContextReferenceContentSource(controller: controller, sourceView: sourceView, position: .bottom)), items: contextItems, gesture: gesture)
+            let contextController = makeContextController(presentationData: presentationData, source: .reference(HeaderContextReferenceContentSource(controller: controller, sourceView: sourceView, position: .bottom)), items: contextItems, gesture: gesture)
             contextController.dismissed = { [weak self] in
                 guard let self else {
                     return
@@ -7214,7 +7220,7 @@ public final class StoryItemSetContainerComponent: Component {
                         items.append(.separator)
                     }
                     
-                    let isMuted = resolvedAreStoriesMuted(globalSettings: globalSettings._asGlobalNotificationSettings(), peer: component.slice.effectivePeer._asPeer(), peerSettings: settings._asNotificationSettings(), topSearchPeers: topSearchPeers)
+                    let isMuted = resolvedAreStoriesMuted(globalSettings: globalSettings._asGlobalNotificationSettings(), peer: component.slice.effectivePeer, peerSettings: settings._asNotificationSettings(), topSearchPeers: topSearchPeers)
                     
                     if !component.slice.effectivePeer.isService && isContact {
                         items.append(.action(ContextMenuActionItem(text: isMuted ? component.strings.StoryFeed_ContextNotifyOn : component.strings.StoryFeed_ContextNotifyOff, icon: { theme in
@@ -7264,7 +7270,7 @@ public final class StoryItemSetContainerComponent: Component {
                         })))
                     }
                     
-                    if !component.slice.effectivePeer.isService && component.slice.item.storyItem.isPublic && (component.slice.effectivePeer.addressName != nil || !component.slice.effectivePeer._asPeer().usernames.isEmpty) {
+                    if !component.slice.effectivePeer.isService && component.slice.item.storyItem.isPublic && (component.slice.effectivePeer.addressName != nil || !component.slice.effectivePeer.usernames.isEmpty) {
                         items.append(.action(ContextMenuActionItem(text: component.strings.Story_Context_CopyLink, icon: { theme in
                             return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Link"), color: theme.contextMenu.primaryColor)
                         }, action: { [weak self] _, a in
@@ -7526,7 +7532,7 @@ public final class StoryItemSetContainerComponent: Component {
                 
                 let contextItems = ContextController.Items(id: 0, content: .list(items), tip: tip, tipSignal: tipSignal)
                                 
-                let contextController = ContextController(presentationData: presentationData, source: .reference(HeaderContextReferenceContentSource(controller: controller, sourceView: sourceView, position: .bottom)), items: .single(contextItems), gesture: gesture)
+                let contextController = makeContextController(presentationData: presentationData, source: .reference(HeaderContextReferenceContentSource(controller: controller, sourceView: sourceView, position: .bottom)), items: .single(contextItems), gesture: gesture)
                 contextController.dismissed = { [weak self] in
                     guard let self else {
                         return
@@ -7538,6 +7544,146 @@ public final class StoryItemSetContainerComponent: Component {
                 self.updateIsProgressPaused()
                 controller.present(contextController, in: .window(.root))
             })
+        }
+        
+        private func performMusicAction(file: TelegramMediaFile, sourceView: UIView, gesture: ContextGesture?) {
+            guard let component = self.component, let controller = component.controller(), let peer = PeerReference(component.slice.peer) else {
+                return
+            }
+            
+            self.dismissAllTooltips()
+            
+            let presentationData = component.context.sharedContext.currentPresentationData.with({ $0 }).withUpdated(theme: component.theme)
+            
+            let fileReference: FileMediaReference = .story(peer: peer, id: component.slice.item.storyItem.id, media: file)
+
+            let items = component.context.engine.peers.savedMusicIds()
+            |> take(1)
+            |> map { [weak self] savedIds -> ContextController.Items in
+                var items: [ContextMenuItem] = []
+                                    
+                items.append(
+                    .action(ContextMenuActionItem(text: presentationData.strings.MediaPlayer_ContextMenu_SaveTo, icon: { theme in return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/DownloadTone"), color: theme.contextMenu.primaryColor) }, action: { [weak self] c, _ in
+                        if let self {
+                            var subActions: [ContextMenuItem] = []
+//                            subActions.append(
+//                                .action(ContextMenuActionItem(text: presentationData.strings.Common_Back, icon: { theme in return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Back"), color: theme.contextMenu.primaryColor) }, iconPosition: .left, action: { c, _ in
+//                                    c?.popItems()
+//                                }))
+//                            )
+//                            subActions.append(.separator)
+                            
+                            subActions.append(
+                                .action(ContextMenuActionItem(text: presentationData.strings.MediaPlayer_ContextMenu_SaveTo_Profile, icon: { theme in return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/User"), color: theme.contextMenu.primaryColor) }, action: { [weak self] _, f in
+                                    f(.default)
+                                    
+                                    guard let self, let component = self.component else {
+                                        return
+                                    }
+                                                        
+                                    let _ = component.context.engine.peers.addSavedMusic(file: fileReference).start()
+                                    
+                                    guard let controller = component.controller() as? StoryContainerScreen else {
+                                        return
+                                    }
+                                    
+                                    let overlayController = UndoOverlayController(
+                                        presentationData: presentationData,
+                                        content: .universalImage(
+                                            image: generateTintedImage(image: UIImage(bundleImageName: "Peer Info/SavedMusic"), color: .white)!,
+                                            size: nil,
+                                            title: nil,
+                                            text: presentationData.strings.MediaPlayer_SavedMusic_AddedToProfile,
+                                            customUndoText: presentationData.strings.MediaPlayer_SavedMusic_AddedToProfile_View,
+                                            timeout: 3.0
+                                        ),
+                                        action: { [weak self] action in
+                                            guard let self, let component = self.component, case .undo = action else {
+                                                return false
+                                            }
+                                            let _ = (component.context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: component.context.account.peerId))
+                                            |> deliverOnMainQueue).start(next: { [weak self] peer in
+                                                guard let self, let component = self.component, let peer else {
+                                                    return
+                                                }
+                                                guard let controller = component.controller() as? StoryContainerScreen else {
+                                                    return
+                                                }
+                                                guard let navigationController = controller.navigationController as? NavigationController else {
+                                                    return
+                                                }
+                                                if let controller = component.context.sharedContext.makePeerInfoController(
+                                                    context: component.context,
+                                                    updatedPresentationData: nil,
+                                                    peer: peer,
+                                                    mode: .myProfile,
+                                                    avatarInitiallyExpanded: false,
+                                                    fromChat: false,
+                                                    requestsContext: nil
+                                                ) {
+                                                    navigationController.pushViewController(controller)
+                                                }
+                                            })
+                                            return true
+                                        }
+                                    )
+                                    controller.present(overlayController, in: .current)
+                                }))
+                            )
+                            
+                            subActions.append(
+                                .action(ContextMenuActionItem(text: presentationData.strings.MediaPlayer_ContextMenu_SaveTo_SavedMessages, icon: { theme in return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Fave"), color: theme.contextMenu.primaryColor) }, action: { [weak self] _, f in
+                                    f(.default)
+                                    
+                                    guard let self, let component = self.component else {
+                                        return
+                                    }
+                                    
+                                    let _ = component.context.engine.messages.enqueueOutgoingMessage(to: component.context.account.peerId, replyTo: nil, content: .file(fileReference)).start()
+                                    
+                                    guard let controller = component.controller() as? StoryContainerScreen else {
+                                        return
+                                    }
+                                    
+                                    let overlayController = UndoOverlayController(
+                                        presentationData: presentationData,
+                                        content: .forward(savedMessages: true, text: presentationData.strings.MediaPlayer_AudioForwardedToSavedMesagesTooltip),
+                                        action: { _ in
+                                            return true
+                                        }
+                                    )
+                                    controller.present(overlayController, in: .current)
+                                }))
+                            )
+                            
+                            let noAction: ((ContextMenuActionItem.Action) -> Void)? = nil
+                            subActions.append(
+                                .action(ContextMenuActionItem(text: presentationData.strings.MediaPlayer_ContextMenu_SaveTo_Info, textLayout: .multiline, textFont: .small, icon: { _ in return nil }, action: noAction))
+                            )
+
+                            c?.pushItems(items: .single(ContextController.Items(content: .list(subActions))))
+                        }
+                    }))
+                )
+                return ContextController.Items(content: .list(items))
+            }
+            
+            let contextController = makeContextController(
+                presentationData: presentationData,
+                source: .reference(HeaderContextReferenceContentSource(controller: controller, sourceView: sourceView, position: .top)),
+                items: items,
+                gesture: gesture
+            )
+            contextController.dismissed = { [weak self] in
+                guard let self else {
+                    return
+                }
+                self.contextController = nil
+                self.updateIsProgressPaused()
+            }
+            self.contextController = contextController
+            self.updateIsProgressPaused()
+            controller.present(contextController, in: .window(.root))
         }
         
         private func beginPictureInPicture() {

@@ -111,6 +111,7 @@ final class ChatIntroItemComponent: Component {
             let interfaceState = ChatPresentationInterfaceState(
                 chatWallpaper: presentationData.chatWallpaper,
                 theme: component.theme,
+                preferredGlassType: .default,
                 strings: component.strings,
                 dateTimeFormat: presentationData.dateTimeFormat,
                 nameDisplayOrder: presentationData.nameDisplayOrder,
@@ -121,7 +122,6 @@ final class ChatIntroItemComponent: Component {
                 mode: .standard(.default),
                 chatLocation: .peer(id: component.context.account.peerId),
                 subject: nil,
-                peerNearbyData: nil,
                 greetingData: nil,
                 pendingUnpinnedAllMessages: false,
                 activeGroupCallInfo: nil,

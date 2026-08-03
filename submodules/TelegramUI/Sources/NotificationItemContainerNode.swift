@@ -97,7 +97,7 @@ final class NotificationItemContainerNode: ASDisplayNode {
         if let contentNode = self.contentNode {
             let inset: CGFloat = 8.0
             
-            var contentInsets = UIEdgeInsets(top: inset, left: inset + layout.safeInsets.left, bottom: inset, right: inset + layout.safeInsets.right)
+            var contentInsets = UIEdgeInsets(top: inset + layout.safeInsets.left, left: inset, bottom: inset, right: inset + layout.safeInsets.right)
             
             if let statusBarHeight = layout.statusBarHeight, statusBarHeight >= 39.0 {
                 if layout.deviceMetrics.hasDynamicIsland {
@@ -109,14 +109,14 @@ final class NotificationItemContainerNode: ASDisplayNode {
                 }
             }
             
-            let containerWidth = horizontalContainerFillingSizeForLayout(layout: layout, sideInset: layout.safeInsets.left)
+            let containerWidth = horizontalContainerFillingSizeForLayout(layout: layout, sideInset: 0.0)
             
             let contentWidth = containerWidth - contentInsets.left - contentInsets.right
             let contentHeight = contentNode.updateLayout(width: contentWidth, transition: transition)
             
             let backgroundInset: CGFloat = 8.0
             let backgroundSize = CGSize(width: containerWidth - backgroundInset * 2.0, height: contentHeight)
-            self.backgroundView.update(size: backgroundSize, cornerRadius: 24.0, isDark: self.theme.overallDarkAppearance, tintColor: .init(kind: .panel, color: UIColor(white: self.theme.overallDarkAppearance ? 0.0 : 1.0, alpha: 0.6)), transition: ComponentTransition(transition))
+            self.backgroundView.update(size: backgroundSize, cornerRadius: 24.0, isDark: self.theme.overallDarkAppearance, tintColor: .init(kind: .panel), transition: ComponentTransition(transition))
             transition.updateFrame(view: self.backgroundView, frame: CGRect(origin: CGPoint(x: floor((layout.size.width - backgroundSize.width) / 2.0), y: contentInsets.top), size: backgroundSize))
             
             transition.updateFrame(node: contentNode, frame: CGRect(origin: CGPoint(x: floor((layout.size.width - contentWidth) / 2.0), y: contentInsets.top), size: CGSize(width: contentWidth, height: contentHeight)))

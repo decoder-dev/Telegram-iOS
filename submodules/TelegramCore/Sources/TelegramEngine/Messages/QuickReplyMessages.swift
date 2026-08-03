@@ -152,7 +152,8 @@ func _internal_keepShortcutMessagesUpdated(account: Account) -> Signal<Never, No
             return account.postbox.transaction { transaction in
                 var state = transaction.getPreferencesEntry(key: PreferencesKeys.shortcutMessages())?.get(QuickReplyMessageShortcutsState.self) ?? QuickReplyMessageShortcutsState(shortcuts: [])
                 switch result {
-                case let .quickReplies(quickReplies, messages, chats, users):
+                case let .quickReplies(quickRepliesData):
+                    let (quickReplies, messages, chats, users) = (quickRepliesData.quickReplies, quickRepliesData.messages, quickRepliesData.chats, quickRepliesData.users)
                     let previousShortcuts = state.shortcuts
                     state.shortcuts.removeAll()
                     
@@ -171,7 +172,8 @@ func _internal_keepShortcutMessagesUpdated(account: Account) -> Signal<Never, No
                     
                     for quickReply in quickReplies {
                         switch quickReply {
-                        case let .quickReply(shortcutId, shortcut, topMessage, _):
+                        case let .quickReply(quickReplyData):
+                            let (shortcutId, shortcut, topMessage, _) = (quickReplyData.shortcutId, quickReplyData.shortcut, quickReplyData.topMessage, quickReplyData.count)
                             state.shortcuts.append(QuickReplyMessageShortcut(
                                 id: shortcutId,
                                 shortcut: shortcut
@@ -543,7 +545,8 @@ public final class TelegramBusinessGreetingMessage: Codable, Equatable {
 extension TelegramBusinessGreetingMessage {
     convenience init(apiGreetingMessage: Api.BusinessGreetingMessage) {
         switch apiGreetingMessage {
-        case let .businessGreetingMessage(shortcutId, recipients, noActivityDays):
+        case let .businessGreetingMessage(businessGreetingMessageData):
+            let (shortcutId, recipients, noActivityDays) = (businessGreetingMessageData.shortcutId, businessGreetingMessageData.recipients, businessGreetingMessageData.noActivityDays)
             self.init(
                 shortcutId: shortcutId,
                 recipients: TelegramBusinessRecipients(apiValue: recipients),
@@ -715,14 +718,16 @@ public final class TelegramBusinessIntro: Codable, Equatable {
 extension TelegramBusinessAwayMessage {
     convenience init(apiAwayMessage: Api.BusinessAwayMessage) {
         switch apiAwayMessage {
-        case let .businessAwayMessage(flags, shortcutId, schedule, recipients):
+        case let .businessAwayMessage(businessAwayMessageData):
+            let (flags, shortcutId, schedule, recipients) = (businessAwayMessageData.flags, businessAwayMessageData.shortcutId, businessAwayMessageData.schedule, businessAwayMessageData.recipients)
             let mappedSchedule: Schedule
             switch schedule {
             case .businessAwayMessageScheduleAlways:
                 mappedSchedule = .always
             case .businessAwayMessageScheduleOutsideWorkHours:
                 mappedSchedule = .outsideWorkingHours
-            case let .businessAwayMessageScheduleCustom(startDate, endDate):
+            case let .businessAwayMessageScheduleCustom(businessAwayMessageScheduleCustomData):
+                let (startDate, endDate) = (businessAwayMessageScheduleCustomData.startDate, businessAwayMessageScheduleCustomData.endDate)
                 mappedSchedule = .custom(beginTimestamp: startDate, endTimestamp: endDate)
             }
             
@@ -741,7 +746,9 @@ extension TelegramBusinessAwayMessage {
 extension TelegramBusinessIntro {
     convenience init(apiBusinessIntro: Api.BusinessIntro) {
         switch apiBusinessIntro {
-        case let .businessIntro(_, title, description, sticker):
+        case let .businessIntro(businessIntroData):
+            let (flags, title, description, sticker) = (businessIntroData.flags, businessIntroData.title, businessIntroData.description, businessIntroData.sticker)
+            let _ = flags
             self.init(title: title, text: description, stickerFile: sticker.flatMap { telegramMediaFileFromApiDocument($0, altDocuments: []) })
         }
     }
@@ -752,15 +759,15 @@ extension TelegramBusinessIntro {
         if let stickerFile = self.stickerFile {
             if let fileResource = stickerFile.resource as? CloudDocumentMediaResource, let resource = stickerFile.resource as? TelegramCloudMediaResourceWithFileReference, let reference = resource.fileReference {
                 flags |= 1 << 0
-                sticker = .inputDocument(id: fileResource.fileId, accessHash: fileResource.accessHash, fileReference: Buffer(data: reference))
+                sticker = .inputDocument(.init(id: fileResource.fileId, accessHash: fileResource.accessHash, fileReference: Buffer(data: reference)))
             }
         }
-        return .inputBusinessIntro(
+        return .inputBusinessIntro(.init(
             flags: flags,
             title: self.title,
             description: self.text,
             sticker: sticker
-        )
+        ))
     }
 }
 
@@ -768,7 +775,8 @@ extension TelegramBusinessBotRights {
     init(apiValue: Api.BusinessBotRights) {
         var value: TelegramBusinessBotRights = []
         switch apiValue {
-        case let .businessBotRights(flags):
+        case let .businessBotRights(businessBotRightsData):
+            let flags = businessBotRightsData.flags
             if (flags & (1 << 0)) != 0 {
                 value.insert(.reply)
             }
@@ -820,7 +828,8 @@ extension TelegramBusinessBotRights {
 extension TelegramBusinessRecipients {
     convenience init(apiValue: Api.BusinessRecipients) {
         switch apiValue {
-        case let .businessRecipients(flags, users):
+        case let .businessRecipients(businessRecipientsData):
+            let (flags, users) = (businessRecipientsData.flags, businessRecipientsData.users)
             var categories: Categories = []
             if (flags & (1 << 0)) != 0 {
                 categories.insert(.existingChats)
@@ -846,7 +855,8 @@ extension TelegramBusinessRecipients {
     
     convenience init(apiValue: Api.BusinessBotRecipients) {
         switch apiValue {
-        case let .businessBotRecipients(flags, users, excludeUsers):
+        case let .businessBotRecipients(businessBotRecipientsData):
+            let (flags, users, excludeUsers) = (businessBotRecipientsData.flags, businessBotRecipientsData.users, businessBotRecipientsData.excludeUsers)
             var categories: Categories = []
             if (flags & (1 << 0)) != 0 {
                 categories.insert(.existingChats)
@@ -897,7 +907,7 @@ extension TelegramBusinessRecipients {
             flags |= 1 << 4
         }
         
-        return .inputBusinessRecipients(flags: flags, users: users)
+        return .inputBusinessRecipients(.init(flags: flags, users: users))
     }
     
     func apiInputBotValue(additionalPeers: [Peer], excludePeers: [Peer]) -> Api.InputBusinessBotRecipients {
@@ -934,7 +944,7 @@ extension TelegramBusinessRecipients {
             flags |= 1 << 6
         }
         
-        return .inputBusinessBotRecipients(flags: flags, users: users, excludeUsers: excludeUsers)
+        return .inputBusinessBotRecipients(.init(flags: flags, users: users, excludeUsers: excludeUsers))
     }
 }
 
@@ -948,11 +958,11 @@ func _internal_updateBusinessGreetingMessage(account: Account, greetingMessage: 
     |> mapToSignal { additionalPeers in
         var mappedMessage: Api.InputBusinessGreetingMessage?
         if let greetingMessage {
-            mappedMessage = .inputBusinessGreetingMessage(
+            mappedMessage = .inputBusinessGreetingMessage(.init(
                 shortcutId: greetingMessage.shortcutId,
                 recipients: greetingMessage.recipients.apiInputValue(additionalPeers: additionalPeers),
                 noActivityDays: Int32(clamping: greetingMessage.inactivityDays)
-            )
+            ))
         }
         
         var flags: Int32 = 0
@@ -997,7 +1007,7 @@ func _internal_updateBusinessAwayMessage(account: Account, awayMessage: Telegram
             case .outsideWorkingHours:
                 mappedSchedule = .businessAwayMessageScheduleOutsideWorkHours
             case let .custom(beginTimestamp, endTimestamp):
-                mappedSchedule = .businessAwayMessageScheduleCustom(startDate: beginTimestamp, endDate: endTimestamp)
+                mappedSchedule = .businessAwayMessageScheduleCustom(Api.BusinessAwayMessageSchedule.Cons_businessAwayMessageScheduleCustom(startDate: beginTimestamp, endDate: endTimestamp))
             }
             
             var flags: Int32 = 0
@@ -1005,12 +1015,12 @@ func _internal_updateBusinessAwayMessage(account: Account, awayMessage: Telegram
                 flags |= 1 << 0
             }
             
-            mappedMessage = .inputBusinessAwayMessage(
+            mappedMessage = .inputBusinessAwayMessage(.init(
                 flags: flags,
                 shortcutId: awayMessage.shortcutId,
                 schedule: mappedSchedule,
                 recipients: awayMessage.recipients.apiInputValue(additionalPeers: additionalPeers)
-            )
+            ))
         }
         
         var flags: Int32 = 0
@@ -1075,11 +1085,17 @@ public final class TelegramAccountConnectedBot: Codable, Equatable {
     public let id: PeerId
     public let recipients: TelegramBusinessRecipients
     public let rights: TelegramBusinessBotRights
+    public let device: String?
+    public let date: Int32?
+    public let location: String?
     
-    public init(id: PeerId, recipients: TelegramBusinessRecipients, rights: TelegramBusinessBotRights) {
+    public init(id: PeerId, recipients: TelegramBusinessRecipients, rights: TelegramBusinessBotRights, device: String? = nil, date: Int32? = nil, location: String? = nil) {
         self.id = id
         self.recipients = recipients
         self.rights = rights
+        self.device = device
+        self.date = date
+        self.location = location
     }
     
     public static func ==(lhs: TelegramAccountConnectedBot, rhs: TelegramAccountConnectedBot) -> Bool {
@@ -1095,7 +1111,33 @@ public final class TelegramAccountConnectedBot: Codable, Equatable {
         if lhs.rights != rhs.rights {
             return false
         }
+        if lhs.device != rhs.device {
+            return false
+        }
+        if lhs.date != rhs.date {
+            return false
+        }
+        if lhs.location != rhs.location {
+            return false
+        }
         return true
+    }
+    
+    fileprivate func preservingConnectionMetadata(from current: TelegramAccountConnectedBot?) -> TelegramAccountConnectedBot {
+        guard let current, current.id == self.id else {
+            return self
+        }
+        if self.device != nil || self.date != nil || self.location != nil {
+            return self
+        }
+        return TelegramAccountConnectedBot(
+            id: self.id,
+            recipients: self.recipients,
+            rights: self.rights,
+            device: current.device,
+            date: current.date,
+            location: current.location
+        )
     }
 }
 
@@ -1169,7 +1211,7 @@ public func _internal_setAccountConnectedBot(account: Account, bot: TelegramAcco
         var flags: Int32 = 0
         var mappedRights: Api.BusinessBotRights?
         var mappedBot: Api.InputUser = .inputUserEmpty
-        var mappedRecipients: Api.InputBusinessBotRecipients = .inputBusinessBotRecipients(flags: 0, users: nil, excludeUsers: nil)
+        var mappedRecipients: Api.InputBusinessBotRecipients = .inputBusinessBotRecipients(.init(flags: 0, users: nil, excludeUsers: nil))
         
         if let bot, let inputBotUser = botUser.flatMap(apiInputUser) {
             mappedBot = inputBotUser
@@ -1219,7 +1261,7 @@ public func _internal_setAccountConnectedBot(account: Account, bot: TelegramAcco
             if bot.rights.contains(.manageStories) {
                 rightsFlags |= (1 << 13)
             }
-            mappedRights = .businessBotRights(flags: rightsFlags)
+            mappedRights = .businessBotRights(Api.BusinessBotRights.Cons_businessBotRights(flags: rightsFlags))
             mappedRecipients = bot.recipients.apiInputBotValue(additionalPeers: additionalPeers, excludePeers: excludePeers)
         } else {
             flags |= 1 << 1
@@ -1241,7 +1283,7 @@ public func _internal_setAccountConnectedBot(account: Account, bot: TelegramAcco
     return account.postbox.transaction { transaction in
         transaction.updatePeerCachedData(peerIds: Set([account.peerId]), update: { _, current in
             var current = (current as? CachedUserData) ?? CachedUserData()
-            current = current.withUpdatedConnectedBot(bot)
+            current = current.withUpdatedConnectedBot(bot?.preservingConnectionMetadata(from: current.connectedBot))
             return current
         })
     }

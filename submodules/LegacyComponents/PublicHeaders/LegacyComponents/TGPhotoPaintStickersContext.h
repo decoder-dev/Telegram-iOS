@@ -1,6 +1,7 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 #import <CoreMedia/CoreMedia.h>
+#import <LegacyComponents/TGPhotoToolbarViewProtocol.h>
 
 @class TGPaintingData;
 @class TGStickerMaskDescription;
@@ -24,15 +25,26 @@
 
 @end
 
+@protocol TGLivePhotoButton <NSObject>
+
+@property (nonatomic, readonly) UIView * _Nonnull view;
+
+@property (nonatomic, copy) void(^ _Nullable modeUpdated)(TGMediaLivePhotoMode mode);
+
+- (void)setLivePhotoMode:(TGMediaLivePhotoMode)mode;
+
+@end
 
 @protocol TGCaptionPanelView <NSObject>
 
 @property (nonatomic, readonly) UIView * _Nonnull view;
+@property (nonatomic, readonly) CGFloat additionalInputHeight;
 
 - (void)setTimeout:(int32_t)timeout isVideo:(bool)isVideo isCaptionAbove:(bool)isCaptionAbove;
 
 - (NSAttributedString * _Nonnull)caption;
 - (void)setCaption:(NSAttributedString * _Nullable)caption;
+- (void)activateInput;
 - (bool)dismissInput;
 
 - (void)animateView:(UIView * _Nonnull)view frame:(CGRect)frame;
@@ -45,6 +57,10 @@
 @property (nonatomic, copy) void(^ _Nullable timerUpdated)(NSNumber * _Nullable value);
 @property (nonatomic, copy) void(^ _Nullable captionIsAboveUpdated)(BOOL value);
 
+@optional
+- (CGFloat)updateContainerLayoutSize:(CGSize)size safeAreaInset:(UIEdgeInsets)safeAreaInset bottomInset:(CGFloat)bottomInset keyboardHeight:(CGFloat)keyboardHeight animated:(bool)animated;
+
+@required
 - (CGFloat)updateLayoutSize:(CGSize)size keyboardHeight:(CGFloat)keyboardHeight sideInset:(CGFloat)sideInset animated:(bool)animated;
 - (CGFloat)baseHeight;
 
@@ -126,6 +142,9 @@
 @protocol TGPhotoPaintStickersContext <NSObject>
 
 @property (nonatomic, copy) id<TGCaptionPanelView> _Nullable(^ _Nullable captionPanelView)(void);
+@property (nonatomic, copy) id<TGLivePhotoButton> _Nullable(^ _Nullable livePhotoButton)(void);
+@property (nonatomic, copy) UIView<TGPhotoToolbarViewProtocol> *_Nullable(^ _Nullable photoToolbarView)(TGPhotoEditorBackButton backButton, TGPhotoEditorDoneButton doneButton, bool solidBackground, bool hasSendStarsButton);
+@property (nonatomic, copy) bool (^ _Nullable presentMediaPickerSendActionMenu)(UIView * _Nonnull sourceView, bool canSendSilently, bool canSendWhenOnline, bool canSchedule, bool reminder, bool hasTimer, void (^ _Nonnull sendSilently)(void), void (^ _Nonnull sendWhenOnline)(void), void (^ _Nonnull schedule)(void), void (^ _Nonnull sendWithTimer)(void));
 
 @property (nonatomic, copy) void (^ _Nullable editCover)(CGSize dimensions, void(^_Nonnull completion)(UIImage * _Nonnull));
 

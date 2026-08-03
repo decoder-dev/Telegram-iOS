@@ -13,7 +13,7 @@ func _internal_enqueueOutgoingMessageWithChatContextResult(account: Account, to 
 func _internal_outgoingMessageWithChatContextResult(to peerId: PeerId, threadId: Int64?, botId: PeerId, result: ChatContextResult, replyToMessageId: EngineMessageReplySubject?, replyToStoryId: StoryId?, hideVia: Bool, silentPosting: Bool, scheduleTime: Int32?, sendPaidMessageStars: StarsAmount?, postpone: Bool, correlationId: Int64?) -> EnqueueMessage? {
     var replyToMessageId = replyToMessageId
     if replyToMessageId == nil, let threadId = threadId {
-        replyToMessageId = EngineMessageReplySubject(messageId: MessageId(peerId: peerId, namespace: Namespaces.Message.Cloud, id: MessageId.Id(clamping: threadId)), quote: nil, todoItemId: nil)
+        replyToMessageId = EngineMessageReplySubject(messageId: MessageId(peerId: peerId, namespace: Namespaces.Message.Cloud, id: MessageId.Id(clamping: threadId)), quote: nil, innerSubject: nil)
     }
     
     var webpageUrl: String?
@@ -145,9 +145,13 @@ func _internal_outgoingMessageWithChatContextResult(to peerId: PeerId, threadId:
                 return .message(text: caption, attributes: attributes, inlineStickers: [:], mediaReference: nil, threadId: threadId, replyToMessageId: replyToMessageId, replyToStoryId: replyToStoryId, localGroupingKey: nil, correlationId: correlationId, bubbleUpEmojiOrStickersets: [])
             }
         }
-    case let .text(text, entities, disableUrlPreview, previewParameters, replyMarkup):
-        if let entities = entities {
-            attributes.append(entities)
+    case let .text(text, entities, richText, disableUrlPreview, previewParameters, replyMarkup):
+        if let richText {
+            attributes.append(richText)
+        } else {
+            if let entities = entities {
+                attributes.append(entities)
+            }
         }
         if let replyMarkup = replyMarkup {
             attributes.append(replyMarkup)

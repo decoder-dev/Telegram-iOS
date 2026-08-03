@@ -2,7 +2,6 @@ import Foundation
 import UIKit
 import Display
 import AsyncDisplayKit
-import Postbox
 import SwiftSignalKit
 import TelegramCore
 import TelegramPresentationData
@@ -107,7 +106,7 @@ public class TimezoneSelectionScreen: ViewController {
             self?.push(c)
         })
         
-        self.controllerNode.listNode.visibleContentOffsetChanged = { [weak self] offset in
+        self.controllerNode.listNode.visibleContentOffsetChanged = { [weak self] offset, _ in
             if let strongSelf = self {
                 if let searchContentNode = strongSelf.searchContentNode {
                     searchContentNode.updateListVisibleContentOffset(offset)

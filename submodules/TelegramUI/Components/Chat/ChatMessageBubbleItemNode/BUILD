@@ -74,6 +74,7 @@ swift_library(
         "//submodules/TelegramUI/Components/Chat/ChatMessageMapBubbleContentNode",
         "//submodules/TelegramUI/Components/Chat/ChatMessageMediaBubbleContentNode",
         "//submodules/TelegramUI/Components/Chat/ChatMessageProfilePhotoSuggestionContentNode",
+        "//submodules/TelegramUI/Components/Chat/ChatMessageCommunityChangedBubbleContentNode",
         "//submodules/TelegramUI/Components/Chat/ChatMessageBirthdateSuggestionContentNode",
         "//submodules/TelegramUI/Components/Chat/ChatMessageRestrictedBubbleContentNode",
         "//submodules/TelegramUI/Components/Chat/ChatMessageStoryMentionContentNode",
@@ -81,6 +82,7 @@ swift_library(
         "//submodules/TelegramUI/Components/Chat/ChatMessageWallpaperBubbleContentNode",
         "//submodules/TelegramUI/Components/Chat/ChatMessageGiftBubbleContentNode",
         "//submodules/TelegramUI/Components/Chat/ChatMessageGiftOfferBubbleContentNode",
+        "//submodules/TelegramUI/Components/Chat/ChatMessageDisableCopyProtectionBubbleContentNode",
         "//submodules/TelegramUI/Components/Chat/ChatMessageGiveawayBubbleContentNode",
         "//submodules/TelegramUI/Components/Chat/ChatMessageJoinedChannelBubbleContentNode",
         "//submodules/TelegramUI/Components/Chat/ChatMessageFactCheckBubbleContentNode",
@@ -95,6 +97,7 @@ swift_library(
         "//submodules/AvatarNode",
         "//submodules/TelegramUI/Components/Chat/ChatMessageSuggestedPostInfoNode",
         "//submodules/TelegramUI/Components/PremiumAlertController",
+        "//submodules/TelegramUI/Components/Chat/ChatMessageRichDataBubbleContentNode",
     ],
     visibility = [
         "//visibility:public",

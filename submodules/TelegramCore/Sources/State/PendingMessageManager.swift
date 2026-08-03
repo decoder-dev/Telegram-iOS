@@ -4,7 +4,6 @@ import SwiftSignalKit
 import TelegramApi
 import MtProtoKit
 
-
 public struct PendingMessageStatus: Equatable {
     public struct Progress: Equatable {
         public let progress: Float
@@ -31,6 +30,8 @@ private enum PendingMessageState {
     case waitingForUploadToStart(groupId: Int64?, upload: Signal<PendingMessageUploadedContentResult, PendingMessageUploadError>)
     case uploading(groupId: Int64?)
     case waitingToBeSent(groupId: Int64?, content: PendingMessageUploadedContentAndReuploadInfo)
+    case waitingForSendGate(groupId: Int64?, content: PendingMessageUploadedContentAndReuploadInfo)
+    case waitingForForwardSendGate
     case sending(groupId: Int64?)
     case waitingForNewTopic(message: Message)
     
@@ -46,6 +47,10 @@ private enum PendingMessageState {
             return groupId
         case let .waitingToBeSent(groupId, _):
             return groupId
+        case let .waitingForSendGate(groupId, _):
+            return groupId
+        case .waitingForForwardSendGate:
+            return nil
         case let .sending(groupId):
             return groupId
         case let .waitingForNewTopic(message):
@@ -117,7 +122,7 @@ public struct PeerPendingMessageDelivered {
 
 private final class PeerPendingMessagesSummaryContext {
     var messageDeliveredSubscribers = Bag<([PeerPendingMessageDelivered]) -> Void>()
-    var messageFailedSubscribers = Bag<(PendingMessageFailureReason) -> Void>()
+    var messageFailedSubscribers = Bag<(MessageId.Namespace, PendingMessageFailureReason) -> Void>()
     var newTopicEvents = Bag<(PendingMessageManager.NewTopicEvent) -> Void>()
     
     var isEmpty: Bool {
@@ -219,13 +224,20 @@ public final class PendingMessageManager {
     
     private let queue = Queue()
     
-    private let _hasPendingMessages = ValuePromise<Set<PeerId>>(Set(), ignoreRepeated: true)
-    public var hasPendingMessages: Signal<Set<PeerId>, NoError> {
-        return self._hasPendingMessages.get()
+    private let _pendingMessageCount = ValuePromise<[PeerId: Int]>([:], ignoreRepeated: true)
+    public var pendingMessageCount: Signal<[PeerId: Int], NoError> {
+        return self._pendingMessageCount.get()
+    }
+    private let _pendingMediaUploads = ValuePromise<[MessageId: Float]>([:], ignoreRepeated: true)
+    public var pendingMediaUploads: Signal<[MessageId: Float], NoError> {
+        return self._pendingMediaUploads.get()
     }
     
     private var messageContexts: [MessageId: PendingMessageContext] = [:]
     private var pendingMessageIds = Set<MessageId>()
+    private var liveTypingDraftKeys: Set<PeerAndThreadId> = []
+    private let allTypingDraftsDisposable = MetaDisposable()
+    private var forwardSendGateGroups: [PeerAndThreadId: [[(PendingMessageContext, Message, ForwardSourceInfoAttribute)]]] = [:]
     private let beginSendingMessagesDisposables = DisposableSet()
     
     private var newTopicDisposables: [PeerId: Disposable] = [:]
@@ -246,6 +258,14 @@ public final class PendingMessageManager {
         self.localInputActivityManager = localInputActivityManager
         self.messageMediaPreuploadManager = messageMediaPreuploadManager
         self.revalidationContext = revalidationContext
+
+        let queue = self.queue
+        self.allTypingDraftsDisposable.set(
+            (postbox.combinedView(keys: [.allTypingDrafts])
+            |> deliverOn(queue)).start(next: { [weak self] view in
+                self?.handleLiveTypingDraftsUpdate(view)
+            })
+        )
     }
     
     deinit {
@@ -253,6 +273,137 @@ public final class PendingMessageManager {
         for (_, disposable) in self.newTopicDisposables {
             disposable.dispose()
         }
+        self.allTypingDraftsDisposable.dispose()
+    }
+    
+    private func handleLiveTypingDraftsUpdate(_ combined: CombinedView) {
+        assert(self.queue.isCurrent())
+
+        let new: Set<PeerAndThreadId>
+        if let view = combined.views[.allTypingDrafts] as? AllTypingDraftsView {
+            new = view.keys
+        } else {
+            new = []
+        }
+        let cleared = self.liveTypingDraftKeys.subtracting(new)
+        self.liveTypingDraftKeys = new
+        for key in cleared {
+            self.drainSendGate(key: key)
+        }
+    }
+
+    private func shouldGateSend(messageId: MessageId, threadId: Int64?) -> Bool {
+        if messageId.namespace == Namespaces.Message.ScheduledCloud {
+            return false
+        }
+        if messageId.peerId.namespace == Namespaces.Peer.SecretChat {
+            return false
+        }
+        if messageId.peerId == self.accountPeerId {
+            return false
+        }
+        if threadId == Message.newTopicThreadId {
+            return false
+        }
+        return true
+    }
+
+    private func isSendGateOpen(for key: PeerAndThreadId) -> Bool {
+        return !self.liveTypingDraftKeys.contains(key)
+    }
+
+    private func drainSendGate(key: PeerAndThreadId) {
+        assert(self.queue.isCurrent())
+
+        // (1) Single-message drain: snapshot then commit in messageId.id order.
+        var singleDrains: [(context: PendingMessageContext, messageId: MessageId, content: PendingMessageUploadedContentAndReuploadInfo)] = []
+        for (id, context) in self.messageContexts {
+            if id.peerId != key.peerId {
+                continue
+            }
+            if context.threadId != key.threadId {
+                continue
+            }
+            if case let .waitingForSendGate(groupId, content) = context.state, groupId == nil {
+                singleDrains.append((context, id, content))
+            }
+        }
+        singleDrains.sort(by: { $0.messageId.id < $1.messageId.id })
+        for entry in singleDrains {
+            self.commitSendingSingleMessage(messageContext: entry.context, messageId: entry.messageId, content: entry.content)
+        }
+
+        // (2) Grouped-album drain: collect distinct groupIds whose members match the key,
+        // iterate ascending by min messageId.id, fire commitSendingMessageGroup.
+        var groupKeys: [(groupId: Int64, minMessageId: Int32)] = []
+        var seenGroupIds = Set<Int64>()
+        for (id, context) in self.messageContexts {
+            if id.peerId != key.peerId {
+                continue
+            }
+            if context.threadId != key.threadId {
+                continue
+            }
+            if case let .waitingForSendGate(groupId, _) = context.state, let groupId = groupId {
+                if !seenGroupIds.contains(groupId) {
+                    seenGroupIds.insert(groupId)
+                    groupKeys.append((groupId, id.id))
+                } else {
+                    if let index = groupKeys.firstIndex(where: { $0.groupId == groupId }), id.id < groupKeys[index].minMessageId {
+                        groupKeys[index].minMessageId = id.id
+                    }
+                }
+            }
+        }
+        groupKeys.sort(by: { $0.minMessageId < $1.minMessageId })
+        for (groupId, _) in groupKeys {
+            if let data = self.dataForPendingMessageGroup(groupId) {
+                self.commitSendingMessageGroup(groupId: groupId, messages: data)
+            }
+        }
+
+        // (3) Forward drain: pop parked groups for this key in FIFO order; fire each.
+        if let parkedGroups = self.forwardSendGateGroups.removeValue(forKey: key) {
+            for messages in parkedGroups {
+                for (context, _, _) in messages {
+                    context.state = .sending(groupId: nil)
+                }
+                let sendMessage: Signal<PendingMessageResult, NoError> = self.sendGroupMessagesContent(network: self.network, postbox: self.postbox, stateManager: self.stateManager, accountPeerId: self.accountPeerId, group: messages.map { data in
+                    let (_, message, forwardInfo) = data
+                    return (message.id, PendingMessageUploadedContentAndReuploadInfo(content: .forward(forwardInfo), reuploadInfo: nil, cacheReferenceKey: nil))
+                })
+                |> map { _ -> PendingMessageResult in
+                    return .progress(1.0)
+                }
+                messages[0].0.sendDisposable.set((sendMessage
+                |> deliverOn(self.queue)).start())
+            }
+        }
+
+        self.updateWaitingUploads(peerId: key.peerId)
+        self.updatePendingMediaUploads()
+    }
+
+    private func updatePendingMediaUploads() {
+        assert(self.queue.isCurrent())
+        
+        var pendingMediaUploads: [MessageId: Float] = [:]
+        for (id, context) in self.messageContexts {
+            guard case .media? = context.contentType else {
+                continue
+            }
+            
+            switch context.state {
+            case .waitingForUploadToStart:
+                pendingMediaUploads[id] = context.status?.progress.progress ?? 0.0
+            case .uploading:
+                pendingMediaUploads[id] = context.status?.progress.progress ?? 0.0
+            default:
+                break
+            }
+        }
+        
+        self._pendingMediaUploads.set(pendingMediaUploads)
     }
     
     func updatePendingMessageIds(_ messageIds: Set<MessageId>) {
@@ -295,7 +446,29 @@ public final class PendingMessageManager {
                     }
                 }
             }
-            
+
+            if !removedMessageIds.isEmpty && !self.forwardSendGateGroups.isEmpty {
+                for key in Array(self.forwardSendGateGroups.keys) {
+                    guard let parkedGroups = self.forwardSendGateGroups[key] else {
+                        continue
+                    }
+                    var rebuilt: [[(PendingMessageContext, Message, ForwardSourceInfoAttribute)]] = []
+                    for group in parkedGroups {
+                        let filtered = group.filter { entry in
+                            return !removedMessageIds.contains(entry.1.id)
+                        }
+                        if !filtered.isEmpty {
+                            rebuilt.append(filtered)
+                        }
+                    }
+                    if rebuilt.isEmpty {
+                        self.forwardSendGateGroups.removeValue(forKey: key)
+                    } else {
+                        self.forwardSendGateGroups[key] = rebuilt
+                    }
+                }
+            }
+
             if !addedMessageIds.isEmpty {
                 Logger.shared.log("PendingMessageManager", "added messages: \(addedMessageIds)")
                 self.beginSendingMessages(Array(addedMessageIds).sorted())
@@ -344,14 +517,19 @@ public final class PendingMessageManager {
                 })
             }
             
-            var peersWithPendingMessages = Set<PeerId>()
+            var pendingMessageCount: [PeerId: Int] = [:]
             for id in self.pendingMessageIds {
-                peersWithPendingMessages.insert(id.peerId)
+                if let current = pendingMessageCount[id.peerId] {
+                    pendingMessageCount[id.peerId] = current + 1
+                } else {
+                    pendingMessageCount[id.peerId] = 1
+                }
             }
             
             Logger.shared.log("PendingMessageManager", "pending messages: \(self.pendingMessageIds)")
             
-            self._hasPendingMessages.set(peersWithPendingMessages)
+            self._pendingMessageCount.set(pendingMessageCount)
+            self.updatePendingMediaUploads()
         }
     }
     
@@ -532,7 +710,7 @@ public final class PendingMessageManager {
                                                 }
                                                 var attributes = currentMessage.attributes
                                                 if !attributes.contains(where: { $0 is ReplyMessageAttribute }) {
-                                                    attributes.append(ReplyMessageAttribute(messageId: MessageId(peerId: id.peerId, namespace: Namespaces.Message.Cloud, id: Int32(clamping: topicId)), threadMessageId: nil, quote: nil, isQuote: false, todoItemId: nil))
+                                                    attributes.append(ReplyMessageAttribute(messageId: MessageId(peerId: id.peerId, namespace: Namespaces.Message.Cloud, id: Int32(clamping: topicId)), threadMessageId: nil, quote: nil, isQuote: false, innerSubject: nil))
                                                 }
                                                 return .update(StoreMessage(id: id, customStableId: nil, globallyUniqueId: currentMessage.globallyUniqueId, groupingKey: currentMessage.groupingKey, threadId: topicId, timestamp: currentMessage.timestamp, flags: StoreMessageFlags(currentMessage.flags), tags: currentMessage.tags, globalTags: currentMessage.globalTags, localTags: currentMessage.localTags, forwardInfo: storeForwardInfo, authorId: currentMessage.author?.id, text: currentMessage.text, attributes: attributes, media: currentMessage.media))
                                             })
@@ -624,6 +802,7 @@ public final class PendingMessageManager {
                         messageContext.state = .waitingForUploadToStart(groupId: message.groupingKey, upload: contentUploadSignal)
                     }
                 }
+                strongSelf.updatePendingMediaUploads()
                 
                 Logger.shared.log("PendingMessageManager", "beginSendingMessages messagesToForward.count: \(messagesToForward.count)")
                 
@@ -683,11 +862,24 @@ public final class PendingMessageManager {
                         if messages.isEmpty {
                             continue
                         }
-                        
+
+                        let firstMessage = messages[0].1
+                        let key = PeerAndThreadId(peerId: firstMessage.id.peerId, threadId: firstMessage.threadId)
+                        if strongSelf.shouldGateSend(messageId: firstMessage.id, threadId: firstMessage.threadId) && !strongSelf.isSendGateOpen(for: key) {
+                            for (context, _, _) in messages {
+                                context.state = .waitingForForwardSendGate
+                            }
+                            if strongSelf.forwardSendGateGroups[key] == nil {
+                                strongSelf.forwardSendGateGroups[key] = []
+                            }
+                            strongSelf.forwardSendGateGroups[key]!.append(messages)
+                            continue
+                        }
+
                         for (context, _, _) in messages {
                             context.state = .sending(groupId: nil)
                         }
-                        
+
                         let sendMessage: Signal<PendingMessageResult, NoError> = strongSelf.sendGroupMessagesContent(network: strongSelf.network, postbox: strongSelf.postbox, stateManager: strongSelf.stateManager, accountPeerId: strongSelf.accountPeerId, group: messages.map { data in
                             let (_, message, forwardInfo) = data
                             return (message.id, PendingMessageUploadedContentAndReuploadInfo(content: .forward(forwardInfo), reuploadInfo: nil, cacheReferenceKey: nil))
@@ -707,8 +899,14 @@ public final class PendingMessageManager {
         if let groupId = groupId {
             messageContext.state = .waitingToBeSent(groupId: groupId, content: content)
         } else {
-            self.commitSendingSingleMessage(messageContext: messageContext, messageId: messageId, content: content)
+            let key = PeerAndThreadId(peerId: messageId.peerId, threadId: messageContext.threadId)
+            if self.shouldGateSend(messageId: messageId, threadId: messageContext.threadId) && !self.isSendGateOpen(for: key) {
+                messageContext.state = .waitingForSendGate(groupId: nil, content: content)
+            } else {
+                self.commitSendingSingleMessage(messageContext: messageContext, messageId: messageId, content: content)
+            }
         }
+        self.updatePendingMediaUploads()
     }
     
     private func beginSendingGroupIfPossible(groupId: Int64) {
@@ -724,6 +922,8 @@ public final class PendingMessageManager {
             switch context.state {
             case .none:
                 continue loop
+            case .waitingForForwardSendGate:
+                continue loop
             case let .collectingInfo(message):
                 if message.groupingKey == groupId {
                     return nil
@@ -737,6 +937,10 @@ public final class PendingMessageManager {
                     return nil
                 }
             case let .waitingToBeSent(contextGroupId, content):
+                if contextGroupId == groupId {
+                    result.append((context, id, content))
+                }
+            case let .waitingForSendGate(contextGroupId, content):
                 if contextGroupId == groupId {
                     result.append((context, id, content))
                 }
@@ -759,6 +963,16 @@ public final class PendingMessageManager {
     }
     
     private func commitSendingMessageGroup(groupId: Int64, messages: [(messageContext: PendingMessageContext, messageId: MessageId, content: PendingMessageUploadedContentAndReuploadInfo)]) {
+        let firstMessageId = messages[0].messageId
+        let firstThreadId = messages[0].messageContext.threadId
+        let key = PeerAndThreadId(peerId: firstMessageId.peerId, threadId: firstThreadId)
+        if self.shouldGateSend(messageId: firstMessageId, threadId: firstThreadId) && !self.isSendGateOpen(for: key) {
+            for entry in messages {
+                entry.messageContext.state = .waitingForSendGate(groupId: groupId, content: entry.content)
+            }
+            return
+        }
+
         for (context, _, _) in messages {
             context.state = .sending(groupId: groupId)
         }
@@ -845,6 +1059,7 @@ public final class PendingMessageManager {
             activityCategory = .global
         }
         self.addContextActivityIfNeeded(messageContext, peerId: PeerActivitySpace(peerId: id.peerId, category: activityCategory))
+        self.updatePendingMediaUploads()
         
         let queue = self.queue
         
@@ -880,6 +1095,7 @@ public final class PendingMessageManager {
                             for subscriber in current.statusSubscribers.copyItems() {
                                 subscriber(current.status, current.error)
                             }
+                            strongSelf.updatePendingMediaUploads()
                         }
                     case let .content(content):
                         if let current = strongSelf.messageContexts[id] {
@@ -923,6 +1139,7 @@ public final class PendingMessageManager {
                     }
                     
                     self.addContextActivityIfNeeded(context, peerId: PeerActivitySpace(peerId: peerId, category: activityCategory))
+                    self.updatePendingMediaUploads()
                     context.uploadDisposable.set((uploadSignal
                     |> deliverOn(self.queue)).start(next: { [weak self] next in
                         if let strongSelf = self {
@@ -936,6 +1153,7 @@ public final class PendingMessageManager {
                                         for subscriber in current.statusSubscribers.copyItems() {
                                             subscriber(context.status, context.error)
                                         }
+                                        strongSelf.updatePendingMediaUploads()
                                     }
                                 case let .content(content):
                                     if let current = strongSelf.messageContexts[contextId] {
@@ -989,6 +1207,7 @@ public final class PendingMessageManager {
                 var replyQuote: EngineMessageReplyQuote?
                 var replyToStoryId: StoryId?
                 var replyTodoItemId: Int32?
+                var replyPollOption: Buffer?
                 var scheduleTime: Int32?
                 var scheduleRepeatPeriod: Int32?
                 var videoTimestamp: Int32?
@@ -1009,7 +1228,14 @@ public final class PendingMessageManager {
                         if replyAttribute.isQuote {
                             replyQuote = replyAttribute.quote
                         }
-                        replyTodoItemId = replyAttribute.todoItemId
+                        switch replyAttribute.innerSubject {
+                        case let .todoItem(todoItemId):
+                            replyTodoItemId = todoItemId
+                        case let .pollOption(pollOption):
+                            replyPollOption = Buffer(data: pollOption)
+                        default:
+                            break
+                        }
                     } else if let attribute = attribute as? ReplyStoryAttribute {
                         replyToStoryId = attribute.storyId
                     } else if let _ = attribute as? ForwardSourceInfoAttribute {
@@ -1105,9 +1331,9 @@ public final class PendingMessageManager {
                     var quickReplyShortcut: Api.InputQuickReplyShortcut?
                     if let quickReply {
                         if let threadId = messages[0].0.threadId {
-                            quickReplyShortcut = .inputQuickReplyShortcutId(shortcutId: Int32(clamping: threadId))
+                            quickReplyShortcut = .inputQuickReplyShortcutId(.init(shortcutId: Int32(clamping: threadId)))
                         } else {
-                            quickReplyShortcut = .inputQuickReplyShortcut(shortcut: quickReply.shortcut)
+                            quickReplyShortcut = .inputQuickReplyShortcut(.init(shortcut: quickReply.shortcut))
                         }
                         flags |= 1 << 17
                     }
@@ -1118,7 +1344,7 @@ public final class PendingMessageManager {
                     
                     var replyTo: Api.InputReplyTo?
                     if let monoforumPeerId {
-                        replyTo = .inputReplyToMonoForum(monoforumPeerId: monoforumPeerId)
+                        replyTo = .inputReplyToMonoForum(.init(monoforumPeerId: monoforumPeerId))
                         flags |= 1 << 22
                     }
                     
@@ -1176,7 +1402,7 @@ public final class PendingMessageManager {
                                         singleFlags |= 1 << 0
                                     }
                                     
-                                    singleMedias.append(.inputSingleMedia(flags: singleFlags, media: inputMedia, randomId: uniqueId, message: text, entities: messageEntities))
+                                    singleMedias.append(.inputSingleMedia(.init(flags: singleFlags, media: inputMedia, randomId: uniqueId, message: text, entities: messageEntities)))
                                 default:
                                     return failMessages(postbox: postbox, ids: group.map { $0.0 })
                             }
@@ -1252,24 +1478,27 @@ public final class PendingMessageManager {
                         if let _ = replyTodoItemId {
                             replyFlags |= 1 << 6
                         }
+                        if let _ = replyPollOption {
+                            replyFlags |= 1 << 7
+                        }
                         
-                        replyTo = .inputReplyToMessage(flags: replyFlags, replyToMsgId: replyMessageId, topMsgId: topMsgId, replyToPeerId: replyToPeerId, quoteText: quoteText, quoteEntities: quoteEntities, quoteOffset: quoteOffset, monoforumPeerId: monoforumPeerId, todoItemId: replyTodoItemId)
+                        replyTo = .inputReplyToMessage(.init(flags: replyFlags, replyToMsgId: replyMessageId, topMsgId: topMsgId, replyToPeerId: replyToPeerId, quoteText: quoteText, quoteEntities: quoteEntities, quoteOffset: quoteOffset, monoforumPeerId: monoforumPeerId, todoItemId: replyTodoItemId, pollOption: replyPollOption))
                     } else if let replyToStoryId {
                         if let inputPeer = transaction.getPeer(replyToStoryId.peerId).flatMap(apiInputPeer) {
                             flags |= 1 << 0
-                            replyTo = .inputReplyToStory(peer: inputPeer, storyId: replyToStoryId.id)
+                            replyTo = .inputReplyToStory(.init(peer: inputPeer, storyId: replyToStoryId.id))
                         }
                     } else if let monoforumPeerId {
                         flags |= 1 << 0
-                        replyTo = .inputReplyToMonoForum(monoforumPeerId: monoforumPeerId)
+                        replyTo = .inputReplyToMonoForum(.init(monoforumPeerId: monoforumPeerId))
                     }
                     
                     var quickReplyShortcut: Api.InputQuickReplyShortcut?
                     if let quickReply {
                         if let threadId = messages[0].0.threadId {
-                            quickReplyShortcut = .inputQuickReplyShortcutId(shortcutId: Int32(clamping: threadId))
+                            quickReplyShortcut = .inputQuickReplyShortcutId(.init(shortcutId: Int32(clamping: threadId)))
                         } else {
-                            quickReplyShortcut = .inputQuickReplyShortcut(shortcut: quickReply.shortcut)
+                            quickReplyShortcut = .inputQuickReplyShortcut(.init(shortcut: quickReply.shortcut))
                         }
                         flags |= 1 << 17
                     }
@@ -1375,7 +1604,7 @@ public final class PendingMessageManager {
                                 
                                 if let context = strongSelf.peerSummaryContexts[message.id.peerId] {
                                     for subscriber in context.messageFailedSubscribers.copyItems() {
-                                        subscriber(failureReason)
+                                        subscriber(message.id.namespace, failureReason)
                                     }
                                 }
                             }
@@ -1490,11 +1719,13 @@ public final class PendingMessageManager {
                 var uniqueId: Int64 = 0
                 var forwardSourceInfoAttribute: ForwardSourceInfoAttribute?
                 var messageEntities: [Api.MessageEntity]?
+                var apiRichMessage: Api.InputRichMessage?
                 var replyMessageId: Int32?
                 var replyPeerId: PeerId?
                 var replyQuote: EngineMessageReplyQuote?
                 var replyToStoryId: StoryId?
                 var replyTodoItemId: Int32?
+                var replyPollOption: Buffer?
                 var scheduleTime: Int32?
                 var scheduleRepeatPeriod: Int32?
                 var videoTimestamp: Int32?
@@ -1528,7 +1759,14 @@ public final class PendingMessageManager {
                         if replyAttribute.isQuote {
                             replyQuote = replyAttribute.quote
                         }
-                        replyTodoItemId = replyAttribute.todoItemId
+                        switch replyAttribute.innerSubject {
+                        case let .todoItem(todoItemId):
+                            replyTodoItemId = todoItemId
+                        case let .pollOption(pollOption):
+                            replyPollOption = Buffer(data: pollOption)
+                        default:
+                            break
+                        }
                     } else if let attribute = attribute as? ReplyStoryAttribute {
                         replyToStoryId = attribute.storyId
                     } else if let outgoingInfo = attribute as? OutgoingMessageInfoAttribute {
@@ -1565,6 +1803,9 @@ public final class PendingMessageManager {
                         allowPaidStars = attribute.stars.value
                     } else if let attribute = attribute as? SuggestedPostMessageAttribute {
                         suggestedPost = attribute.apiSuggestedPost(fixMinTime: Int32(Date().timeIntervalSince1970 + 10))
+                    } else if let attribute = attribute as? RichTextMessageAttribute {
+                        apiRichMessage = attribute.apiInputRichMessage()
+                        flags |= Int32(1 << 23)
                     }
                 }
                 
@@ -1590,6 +1831,10 @@ public final class PendingMessageManager {
                 
                 let sendMessageRequest: Signal<NetworkRequestResult<Api.Updates>, MTRpcError>
                 switch content.content {
+                    case let .richMessage(assembledRichMessage):
+                        apiRichMessage = assembledRichMessage
+                        flags |= Int32(1 << 23)
+                        fallthrough
                     case .text:
                         if bubbleUpEmojiOrStickersets {
                             flags |= Int32(1 << 15)
@@ -1645,15 +1890,18 @@ public final class PendingMessageManager {
                             if let _ = replyTodoItemId {
                                 replyFlags |= 1 << 6
                             }
-                            replyTo = .inputReplyToMessage(flags: replyFlags, replyToMsgId: replyMessageId, topMsgId: topMsgId, replyToPeerId: replyToPeerId, quoteText: quoteText, quoteEntities: quoteEntities, quoteOffset: quoteOffset, monoforumPeerId: monoforumPeerId, todoItemId: replyTodoItemId)
+                            if let _ = replyPollOption {
+                                replyFlags |= 1 << 7
+                            }
+                            replyTo = .inputReplyToMessage(.init(flags: replyFlags, replyToMsgId: replyMessageId, topMsgId: topMsgId, replyToPeerId: replyToPeerId, quoteText: quoteText, quoteEntities: quoteEntities, quoteOffset: quoteOffset, monoforumPeerId: monoforumPeerId, todoItemId: replyTodoItemId, pollOption: replyPollOption))
                         } else if let replyToStoryId = replyToStoryId {
                             if let inputPeer = transaction.getPeer(replyToStoryId.peerId).flatMap(apiInputPeer) {
                                 flags |= 1 << 0
-                                replyTo = .inputReplyToStory(peer: inputPeer, storyId: replyToStoryId.id)
+                                replyTo = .inputReplyToStory(.init(peer: inputPeer, storyId: replyToStoryId.id))
                             }
                         } else if let monoforumPeerId {
                             flags |= 1 << 0
-                            replyTo = .inputReplyToMonoForum(monoforumPeerId: monoforumPeerId)
+                            replyTo = .inputReplyToMonoForum(.init(monoforumPeerId: monoforumPeerId))
                         }
                         if let attribute = message.webpagePreviewAttribute {
                             if attribute.leadingPreview {
@@ -1667,9 +1915,9 @@ public final class PendingMessageManager {
                         var quickReplyShortcut: Api.InputQuickReplyShortcut?
                         if let quickReply {
                             if let threadId = message.threadId {
-                                quickReplyShortcut = .inputQuickReplyShortcutId(shortcutId: Int32(clamping: threadId))
+                                quickReplyShortcut = .inputQuickReplyShortcutId(.init(shortcutId: Int32(clamping: threadId)))
                             } else {
-                                quickReplyShortcut = .inputQuickReplyShortcut(shortcut: quickReply.shortcut)
+                                quickReplyShortcut = .inputQuickReplyShortcut(.init(shortcut: quickReply.shortcut))
                             }
                             flags |= 1 << 17
                         }
@@ -1687,7 +1935,7 @@ public final class PendingMessageManager {
                             flags |= 1 << 22
                         }
                     
-                        sendMessageRequest = network.requestWithAdditionalInfo(Api.functions.messages.sendMessage(flags: flags, peer: inputPeer, replyTo: replyTo, message: message.text, randomId: uniqueId, replyMarkup: nil, entities: messageEntities, scheduleDate: scheduleTime, scheduleRepeatPeriod: scheduleRepeatPeriod, sendAs: sendAsInputPeer, quickReplyShortcut: quickReplyShortcut, effect: messageEffectId, allowPaidStars: allowPaidStars, suggestedPost: suggestedPost), info: .acknowledgement, tag: dependencyTag)
+                        sendMessageRequest = network.requestWithAdditionalInfo(Api.functions.messages.sendMessage(flags: flags, peer: inputPeer, replyTo: replyTo, message: message.text, randomId: uniqueId, replyMarkup: nil, entities: messageEntities, scheduleDate: scheduleTime, scheduleRepeatPeriod: scheduleRepeatPeriod, sendAs: sendAsInputPeer, quickReplyShortcut: quickReplyShortcut, effect: messageEffectId, allowPaidStars: allowPaidStars, suggestedPost: suggestedPost, richMessage: apiRichMessage), info: .acknowledgement, tag: dependencyTag)
                     case let .media(inputMedia, text):
                         if bubbleUpEmojiOrStickersets {
                             flags |= Int32(1 << 15)
@@ -1743,17 +1991,20 @@ public final class PendingMessageManager {
                             if let _ = replyTodoItemId {
                                 replyFlags |= 1 << 6
                             }
-                            replyTo = .inputReplyToMessage(flags: replyFlags, replyToMsgId: replyMessageId, topMsgId: topMsgId, replyToPeerId: replyToPeerId, quoteText: quoteText, quoteEntities: quoteEntities, quoteOffset: quoteOffset, monoforumPeerId: monoforumPeerId, todoItemId: replyTodoItemId)
+                            if let _ = replyPollOption {
+                                replyFlags |= 1 << 7
+                            }
+                            replyTo = .inputReplyToMessage(.init(flags: replyFlags, replyToMsgId: replyMessageId, topMsgId: topMsgId, replyToPeerId: replyToPeerId, quoteText: quoteText, quoteEntities: quoteEntities, quoteOffset: quoteOffset, monoforumPeerId: monoforumPeerId, todoItemId: replyTodoItemId, pollOption: replyPollOption))
                         } else if let replyToStoryId = replyToStoryId {
                             if let inputPeer = transaction.getPeer(replyToStoryId.peerId).flatMap(apiInputPeer) {
                                 flags |= 1 << 0
-                                replyTo = .inputReplyToStory(peer: inputPeer, storyId: replyToStoryId.id)
+                                replyTo = .inputReplyToStory(.init(peer: inputPeer, storyId: replyToStoryId.id))
                             }
                         } else if let monoforumPeerId {
                             flags |= 1 << 0
-                            replyTo = .inputReplyToMonoForum(monoforumPeerId: monoforumPeerId)
+                            replyTo = .inputReplyToMonoForum(.init(monoforumPeerId: monoforumPeerId))
                         }
-                    
+
                         if let attribute = message.webpagePreviewAttribute {
                             if attribute.leadingPreview {
                                 flags |= 1 << 16
@@ -1766,9 +2017,9 @@ public final class PendingMessageManager {
                         var quickReplyShortcut: Api.InputQuickReplyShortcut?
                         if let quickReply {
                             if let threadId = message.threadId {
-                                quickReplyShortcut = .inputQuickReplyShortcutId(shortcutId: Int32(clamping: threadId))
+                                quickReplyShortcut = .inputQuickReplyShortcutId(.init(shortcutId: Int32(clamping: threadId)))
                             } else {
-                                quickReplyShortcut = .inputQuickReplyShortcut(shortcut: quickReply.shortcut)
+                                quickReplyShortcut = .inputQuickReplyShortcut(.init(shortcut: quickReply.shortcut))
                             }
                             flags |= 1 << 17
                         }
@@ -1805,9 +2056,9 @@ public final class PendingMessageManager {
                         var quickReplyShortcut: Api.InputQuickReplyShortcut?
                         if let quickReply {
                             if let threadId = message.threadId {
-                                quickReplyShortcut = .inputQuickReplyShortcutId(shortcutId: Int32(clamping: threadId))
+                                quickReplyShortcut = .inputQuickReplyShortcutId(.init(shortcutId: Int32(clamping: threadId)))
                             } else {
-                                quickReplyShortcut = .inputQuickReplyShortcut(shortcut: quickReply.shortcut)
+                                quickReplyShortcut = .inputQuickReplyShortcut(.init(shortcut: quickReply.shortcut))
                             }
                             flags |= 1 << 17
                         }
@@ -1822,7 +2073,7 @@ public final class PendingMessageManager {
                     
                         var replyTo: Api.InputReplyTo?
                         if let monoforumPeerId {
-                            replyTo = .inputReplyToMonoForum(monoforumPeerId: monoforumPeerId)
+                            replyTo = .inputReplyToMonoForum(.init(monoforumPeerId: monoforumPeerId))
                             flags |= 1 << 22
                         }
                     
@@ -1891,23 +2142,26 @@ public final class PendingMessageManager {
                             if let _ = replyTodoItemId {
                                 replyFlags |= 1 << 6
                             }
-                            replyTo = .inputReplyToMessage(flags: replyFlags, replyToMsgId: replyMessageId, topMsgId: message.threadId.flatMap(Int32.init(clamping:)), replyToPeerId: replyToPeerId, quoteText: quoteText, quoteEntities: quoteEntities, quoteOffset: quoteOffset, monoforumPeerId: monoforumPeerId, todoItemId: replyTodoItemId)
+                            if let _ = replyPollOption {
+                                replyFlags |= 1 << 7
+                            }
+                            replyTo = .inputReplyToMessage(.init(flags: replyFlags, replyToMsgId: replyMessageId, topMsgId: message.threadId.flatMap(Int32.init(clamping:)), replyToPeerId: replyToPeerId, quoteText: quoteText, quoteEntities: quoteEntities, quoteOffset: quoteOffset, monoforumPeerId: monoforumPeerId, todoItemId: replyTodoItemId, pollOption: replyPollOption))
                         } else if let replyToStoryId = replyToStoryId {
                             if let inputPeer = transaction.getPeer(replyToStoryId.peerId).flatMap(apiInputPeer) {
                                 flags |= 1 << 0
-                                replyTo = .inputReplyToStory(peer: inputPeer, storyId: replyToStoryId.id)
+                                replyTo = .inputReplyToStory(.init(peer: inputPeer, storyId: replyToStoryId.id))
                             }
                         } else if let monoforumPeerId {
                             flags |= 1 << 0
-                            replyTo = .inputReplyToMonoForum(monoforumPeerId: monoforumPeerId)
+                            replyTo = .inputReplyToMonoForum(.init(monoforumPeerId: monoforumPeerId))
                         }
                     
                         var quickReplyShortcut: Api.InputQuickReplyShortcut?
                         if let quickReply {
                             if let threadId = message.threadId {
-                                quickReplyShortcut = .inputQuickReplyShortcutId(shortcutId: Int32(clamping: threadId))
+                                quickReplyShortcut = .inputQuickReplyShortcutId(.init(shortcutId: Int32(clamping: threadId)))
                             } else {
-                                quickReplyShortcut = .inputQuickReplyShortcut(shortcut: quickReply.shortcut)
+                                quickReplyShortcut = .inputQuickReplyShortcut(.init(shortcut: quickReply.shortcut))
                             }
                             flags |= 1 << 17
                         }
@@ -1923,18 +2177,18 @@ public final class PendingMessageManager {
                     
                         if let replyMessageId = replyMessageId {
                             let replyFlags: Int32 = 0
-                            replyTo = .inputReplyToMessage(flags: replyFlags, replyToMsgId: replyMessageId, topMsgId: nil, replyToPeerId: nil, quoteText: nil, quoteEntities: nil, quoteOffset: nil, monoforumPeerId: nil, todoItemId: nil)
+                            replyTo = .inputReplyToMessage(.init(flags: replyFlags, replyToMsgId: replyMessageId, topMsgId: nil, replyToPeerId: nil, quoteText: nil, quoteEntities: nil, quoteOffset: nil, monoforumPeerId: nil, todoItemId: nil, pollOption: nil))
                         } else if let replyToStoryId = replyToStoryId {
                             if let inputPeer = transaction.getPeer(replyToStoryId.peerId).flatMap(apiInputPeer) {
                                 flags |= 1 << 0
-                                replyTo = .inputReplyToStory(peer: inputPeer, storyId: replyToStoryId.id)
+                                replyTo = .inputReplyToStory(.init(peer: inputPeer, storyId: replyToStoryId.id))
                             } else {
                                 let replyFlags: Int32 = 0
-                                replyTo = .inputReplyToMessage(flags: replyFlags, replyToMsgId: 0, topMsgId: nil, replyToPeerId: nil, quoteText: nil, quoteEntities: nil, quoteOffset: nil, monoforumPeerId: monoforumPeerId, todoItemId: nil)
+                                replyTo = .inputReplyToMessage(.init(flags: replyFlags, replyToMsgId: 0, topMsgId: nil, replyToPeerId: nil, quoteText: nil, quoteEntities: nil, quoteOffset: nil, monoforumPeerId: monoforumPeerId, todoItemId: nil, pollOption: nil))
                             }
                         } else {
                             let replyFlags: Int32 = 0
-                            replyTo = .inputReplyToMessage(flags: replyFlags, replyToMsgId: 0, topMsgId: nil, replyToPeerId: nil, quoteText: nil, quoteEntities: nil, quoteOffset: nil, monoforumPeerId: monoforumPeerId, todoItemId: nil)
+                            replyTo = .inputReplyToMessage(.init(flags: replyFlags, replyToMsgId: 0, topMsgId: nil, replyToPeerId: nil, quoteText: nil, quoteEntities: nil, quoteOffset: nil, monoforumPeerId: monoforumPeerId, todoItemId: nil, pollOption: nil))
                         }
                     
                         sendMessageRequest = network.request(Api.functions.messages.sendScreenshotNotification(peer: inputPeer, replyTo: replyTo, randomId: uniqueId))
@@ -1984,7 +2238,7 @@ public final class PendingMessageManager {
                             
                             if let context = strongSelf.peerSummaryContexts[message.id.peerId] {
                                 for subscriber in context.messageFailedSubscribers.copyItems() {
-                                    subscriber(failureReason)
+                                    subscriber(message.id.namespace, failureReason)
                                 }
                             }
                         }
@@ -2042,7 +2296,7 @@ public final class PendingMessageManager {
     }
     
     private func applySentMessage(postbox: Postbox, stateManager: AccountStateManager, message: Message, content: PendingMessageUploadedContentAndReuploadInfo, result: Api.Updates) -> Signal<Void, NoError> {
-        if let channel = message.peers[message.id.peerId] as? TelegramChannel, channel.isMonoForum {
+        if let _ = message.peers[message.id.peerId] as? TelegramChannel {
             for attribute in message.attributes {
                 if let attribute = attribute as? PaidStarsMessageAttribute {
                     stateManager.starsContext?.add(balance: StarsAmount(value: -attribute.stars.value, nanos: (attribute.stars.value == 0 && attribute.stars.nanos != 0 ? -1 : 1) * attribute.stars.nanos))
@@ -2076,7 +2330,8 @@ public final class PendingMessageManager {
             if message.scheduleTime != nil && message.scheduleTime == apiMessage.timestamp {
                 isScheduled = true
             }
-            if case let .message(_, flags2, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _) = apiMessage {
+            if case let .message(messageData) = apiMessage {
+                let flags2 = messageData.flags2
                 if (flags2 & (1 << 4)) != 0 {
                     isScheduled = true
                 }
@@ -2120,7 +2375,7 @@ public final class PendingMessageManager {
                 namespace = Namespaces.Message.QuickReplyCloud
             } else if let apiMessage = result.messages.first, message.scheduleTime != nil && message.scheduleTime == apiMessage.timestamp {
                 namespace = Namespaces.Message.ScheduledCloud
-            } else if let apiMessage = result.messages.first, case let .message(_, flags2, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _) = apiMessage, (flags2 & (1 << 4)) != 0 {
+            } else if let apiMessage = result.messages.first, case let .message(messageData) = apiMessage, (messageData.flags2 & (1 << 4)) != 0 {
                 namespace = Namespaces.Message.ScheduledCloud
             }
         }
@@ -2186,7 +2441,7 @@ public final class PendingMessageManager {
         }
     }
     
-    public func failedMessageEvents(peerId: PeerId) -> Signal<PendingMessageFailureReason, NoError> {
+    public func failedMessageEvents(peerId: PeerId, isScheduled: Bool) -> Signal<PendingMessageFailureReason, NoError> {
         return Signal { subscriber in
             let disposable = MetaDisposable()
             
@@ -2199,8 +2454,16 @@ public final class PendingMessageManager {
                     self.peerSummaryContexts[peerId] = summaryContext
                 }
                 
-                let index = summaryContext.messageFailedSubscribers.add({ reason in
-                    subscriber.putNext(reason)
+                let index = summaryContext.messageFailedSubscribers.add({ namespace, reason in
+                    if isScheduled {
+                        if Namespaces.Message.allScheduled.contains(namespace) {
+                            subscriber.putNext(reason)
+                        }
+                    } else {
+                        if !Namespaces.Message.allScheduled.contains(namespace) {
+                            subscriber.putNext(reason)
+                        }
+                    }
                 })
                 
                 disposable.set(ActionDisposable {

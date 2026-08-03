@@ -2,7 +2,6 @@ import Foundation
 import UIKit
 import Display
 import AsyncDisplayKit
-import Postbox
 import TelegramCore
 import SwiftSignalKit
 import AccountContext
@@ -164,7 +163,7 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
                         }).shuffled().prefix(5))
                         self.previewSymbols = randomSymbols
                                 
-                        for case let .model(_, file, _) in self.previewModels where !self.fetchedFiles.contains(file.fileId.id) {
+                        for case let .model(_, file, _, _) in self.previewModels where !self.fetchedFiles.contains(file.fileId.id) {
                             self.disposables.add(freeMediaFileResourceInteractiveFetched(account: context.account, userLocation: .other, fileReference: .standalone(media: file), resource: file.resource).start())
                             self.fetchedFiles.insert(file.fileId.id)
                         }
@@ -332,73 +331,74 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
             
             let shareController = self.context.sharedContext.makeShareController(
                 context: self.context,
-                subject: .url(link),
-                forceExternal: false,
-                shareStory: nil,
-                enqueued: { [weak self, weak controller] peerIds, _ in
-                    guard let self else {
-                        return
-                    }
-                    let _ = (self.context.engine.data.get(
-                        EngineDataList(
-                            peerIds.map(TelegramEngine.EngineData.Item.Peer.Peer.init)
-                        )
-                    )
-                    |> deliverOnMainQueue).startStandalone(next: { [weak self, weak controller] peerList in
+                params: ShareControllerParams(
+                    subject: .url(link),
+                    externalShare: false,
+                    actionCompleted: { [weak controller] in
+                        controller?.present(UndoOverlayController(presentationData: presentationData, content: .linkCopied(title: nil, text: presentationData.strings.Conversation_LinkCopied), elevatedLayout: false, animateInAsReplacement: false, action: { _ in return false }), in: .current)
+                    },
+                    enqueued: { [weak self, weak controller] peerIds, _ in
                         guard let self else {
                             return
                         }
-                        let peers = peerList.compactMap { $0 }
-                        let presentationData = self.context.sharedContext.currentPresentationData.with { $0 }
-                        let text: String
-                        var savedMessages = false
-                        if peerIds.count == 1, let peerId = peerIds.first, peerId == context.account.peerId {
-                            text = presentationData.strings.Conversation_ForwardTooltip_SavedMessages_One
-                            savedMessages = true
-                        } else {
-                            if peers.count == 1, let peer = peers.first {
-                                var peerName = peer.id == context.account.peerId ? presentationData.strings.DialogList_SavedMessages : peer.displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder)
-                                peerName = peerName.replacingOccurrences(of: "**", with: "")
-                                text = presentationData.strings.Conversation_ForwardTooltip_Chat_One(peerName).string
-                            } else if peers.count == 2, let firstPeer = peers.first, let secondPeer = peers.last {
-                                var firstPeerName = firstPeer.id == context.account.peerId ? presentationData.strings.DialogList_SavedMessages : firstPeer.displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder)
-                                firstPeerName = firstPeerName.replacingOccurrences(of: "**", with: "")
-                                var secondPeerName = secondPeer.id == context.account.peerId ? presentationData.strings.DialogList_SavedMessages : secondPeer.displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder)
-                                secondPeerName = secondPeerName.replacingOccurrences(of: "**", with: "")
-                                text = presentationData.strings.Conversation_ForwardTooltip_TwoChats_One(firstPeerName, secondPeerName).string
-                            } else if let peer = peers.first {
-                                var peerName = peer.displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder)
-                                peerName = peerName.replacingOccurrences(of: "**", with: "")
-                                text = presentationData.strings.Conversation_ForwardTooltip_ManyChats_One(peerName, "\(peers.count - 1)").string
+                        let _ = (self.context.engine.data.get(
+                            EngineDataList(
+                                peerIds.map(TelegramEngine.EngineData.Item.Peer.Peer.init)
+                            )
+                        )
+                        |> deliverOnMainQueue).startStandalone(next: { [weak self, weak controller] peerList in
+                            guard let self else {
+                                return
+                            }
+                            let peers = peerList.compactMap { $0 }
+                            let presentationData = self.context.sharedContext.currentPresentationData.with { $0 }
+                            let text: String
+                            var savedMessages = false
+                            if peerIds.count == 1, let peerId = peerIds.first, peerId == context.account.peerId {
+                                text = presentationData.strings.Conversation_ForwardTooltip_SavedMessages_One
+                                savedMessages = true
                             } else {
-                                text = ""
+                                if peers.count == 1, let peer = peers.first {
+                                    var peerName = peer.id == context.account.peerId ? presentationData.strings.DialogList_SavedMessages : peer.displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder)
+                                    peerName = peerName.replacingOccurrences(of: "**", with: "")
+                                    text = presentationData.strings.Conversation_ForwardTooltip_Chat_One(peerName).string
+                                } else if peers.count == 2, let firstPeer = peers.first, let secondPeer = peers.last {
+                                    var firstPeerName = firstPeer.id == context.account.peerId ? presentationData.strings.DialogList_SavedMessages : firstPeer.displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder)
+                                    firstPeerName = firstPeerName.replacingOccurrences(of: "**", with: "")
+                                    var secondPeerName = secondPeer.id == context.account.peerId ? presentationData.strings.DialogList_SavedMessages : secondPeer.displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder)
+                                    secondPeerName = secondPeerName.replacingOccurrences(of: "**", with: "")
+                                    text = presentationData.strings.Conversation_ForwardTooltip_TwoChats_One(firstPeerName, secondPeerName).string
+                                } else if let peer = peers.first {
+                                    var peerName = peer.displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder)
+                                    peerName = peerName.replacingOccurrences(of: "**", with: "")
+                                    text = presentationData.strings.Conversation_ForwardTooltip_ManyChats_One(peerName, "\(peers.count - 1)").string
+                                } else {
+                                    text = ""
+                                }
                             }
-                        }
-                        
-                        controller?.present(UndoOverlayController(presentationData: presentationData, content: .forward(savedMessages: savedMessages, text: text), elevatedLayout: false, animateInAsReplacement: false, action: { [weak self, weak controller] action in
-                            if let self, savedMessages, action == .info {
-                                let _ = (self.context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: self.context.account.peerId))
-                                |> deliverOnMainQueue).start(next: { [weak self, weak controller] peer in
-                                    guard let peer else {
-                                        return
-                                    }
-                                    self?.openPeer(peer)
-                                    Queue.mainQueue().after(0.6) {
-                                        controller?.dismiss(animated: false, completion: nil)
-                                    }
-                                })
-                            }
-                            return false
-                        }, additionalView: nil), in: .current)
-                    })
-                },
-                actionCompleted: { [weak controller] in
-                    controller?.present(UndoOverlayController(presentationData: presentationData, content: .linkCopied(title: nil, text: presentationData.strings.Conversation_LinkCopied), elevatedLayout: false, animateInAsReplacement: false, action: { _ in return false }), in: .current)
-                }
+
+                            controller?.present(UndoOverlayController(presentationData: presentationData, content: .forward(savedMessages: savedMessages, text: text), elevatedLayout: false, animateInAsReplacement: false, action: { [weak self, weak controller] action in
+                                if let self, savedMessages, action == .info {
+                                    let _ = (self.context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: self.context.account.peerId))
+                                    |> deliverOnMainQueue).start(next: { [weak self, weak controller] peer in
+                                        guard let peer else {
+                                            return
+                                        }
+                                        self?.openPeer(peer)
+                                        Queue.mainQueue().after(0.6) {
+                                            controller?.dismiss(animated: false, completion: nil)
+                                        }
+                                    })
+                                }
+                                return false
+                            }, additionalView: nil), in: .current)
+                        })
+                    }
+                )
             )
             controller.present(shareController, in: .window(.root))
         }
-        
+
         func openGiftResale() {
             guard let controller = self.getController() as? GiftAuctionViewScreen, let gift = self.giftAuctionState?.gift, case let .generic(gift) = gift else {
                 return
@@ -459,7 +459,7 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
                 self?.share()
             })))
 
-            let contextController = ContextController(presentationData: presentationData, source: .reference(GiftViewContextReferenceContentSource(controller: controller, sourceView: view)), items: .single(ContextController.Items(content: .list(items))), gesture: gesture)
+            let contextController = makeContextController(presentationData: presentationData, source: .reference(GiftViewContextReferenceContentSource(controller: controller, sourceView: view)), items: .single(ContextController.Items(content: .list(items))), gesture: gesture)
             controller.presentInGlobalOverlay(contextController)
         }
         
@@ -544,6 +544,7 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
             var isUpcoming = false
             var isEnded = false
             var tableItems: [TableComponent.Item] = []
+            
             if let auctionState = state.giftAuctionState, case let .generic(gift) = component.auctionContext.gift {
                 startTime = auctionState.startDate
                 endTime = auctionState.endDate
@@ -725,9 +726,9 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
             if let genericGift {
                 var attributes: [StarGift.UniqueGift.Attribute] = []
                 if state.previewModelIndex == -1 {
-                    attributes.append(.model(name: "", file: genericGift.file, rarity: 0))
+                    attributes.append(.model(name: "", file: genericGift.file, rarity: .rare, crafted: false))
                     if let background = genericGift.background {
-                        attributes.append(.backdrop(name: "", id: 0, innerColor: background.centerColor, outerColor: background.edgeColor, patternColor: 0, textColor: 0, rarity: 0))
+                        attributes.append(.backdrop(name: "", id: 0, innerColor: background.centerColor, outerColor: background.edgeColor, patternColor: 0, textColor: 0, rarity: .rare))
                     }
                 } else if !state.previewModels.isEmpty {
                     attributes.append(state.previewModels[state.previewModelIndex])
@@ -745,8 +746,8 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
                     } else {
                         return false
                     }
-                }), case let .backdrop(_, _, innerColor, _, _, _, _) = backdropAttribute {
-                    buttonColor = UIColor(rgb: UInt32(bitPattern: innerColor)).withMultipliedBrightnessBy(1.05)
+                }), case let .backdrop(_, _, innerColor, outerColor, _, _, _) = backdropAttribute {
+                    buttonColor = UIColor(rgb: UInt32(bitPattern: outerColor)).mixedWith(.white, alpha: 0.2)
                     secondaryTextColor = UIColor(rgb: UInt32(bitPattern: innerColor)).withMultiplied(hue: 1.0, saturation: 1.02, brightness: 1.25).mixedWith(UIColor.white, alpha: 0.3)
                 }
                 
@@ -1019,13 +1020,13 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
                 var variant3: GiftItemComponent.Subject = .starGift(gift: gift, price: "")
                 if !state.previewModels.isEmpty {
                     if state.previewModels.count > 0 {
-                        variant1 = .preview(attributes: [state.previewModels[0]], rarity: 0)
+                        variant1 = .preview(attributes: [state.previewModels[0]], rarity: nil)
                     }
                     if state.previewModels.count > 1 {
-                        variant2 = .preview(attributes: [state.previewModels[1]], rarity: 0)
+                        variant2 = .preview(attributes: [state.previewModels[1]], rarity: nil)
                     }
                     if state.previewModels.count > 2 {
-                        variant3 = .preview(attributes: [state.previewModels[2]], rarity: 0)
+                        variant3 = .preview(attributes: [state.previewModels[2]], rarity: nil)
                     }
                 }
                 
@@ -1082,7 +1083,7 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
                         guard let state, let attributes = state.giftUpgradeAttributes else {
                             return
                         }
-                        let variantsController = component.context.sharedContext.makeGiftUpgradeVariantsScreen(context: component.context, gift: .generic(gift), attributes: attributes, selectedAttributes: nil, focusedAttribute: nil)
+                        let variantsController = component.context.sharedContext.makeGiftUpgradeVariantsScreen(context: component.context, gift: .generic(gift), crafted: false, attributes: attributes, selectedAttributes: nil, focusedAttribute: nil)
                         environment.controller()?.push(variantsController)
                     }, animateScale: false),
                     availableSize: CGSize(width: context.availableSize.width - 64.0, height: context.availableSize.height),
@@ -1218,7 +1219,7 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
             
             let closeButton = closeButton.update(
                 component: GlassBarButtonComponent(
-                    size: CGSize(width: 40.0, height: 40.0),
+                    size: CGSize(width: 44.0, height: 44.0),
                     backgroundColor: buttonColor,
                     isDark: false,
                     state: .tintedGlass,
@@ -1235,7 +1236,7 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
                         state.dismiss(animated: true)
                     }
                 ),
-                availableSize: CGSize(width: 40.0, height: 40.0),
+                availableSize: CGSize(width: 44.0, height: 44.0),
                 transition: context.transition
             )
             context.add(closeButton
@@ -1244,7 +1245,7 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
             
             let moreButton = moreButton.update(
                 component: GlassBarButtonComponent(
-                    size: CGSize(width: 40.0, height: 40.0),
+                    size: CGSize(width: 44.0, height: 44.0),
                     backgroundColor: buttonColor,
                     isDark: false,
                     state: .tintedGlass,
@@ -1266,7 +1267,7 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
                         moreButtonPlayOnce.invoke(Void())
                     }
                 ),
-                availableSize: CGSize(width: 40.0, height: 40.0),
+                availableSize: CGSize(width: 44.0, height: 44.0),
                 transition: context.transition
             )
             context.add(moreButton
@@ -1339,6 +1340,8 @@ final class GiftAuctionViewSheetComponent: CombinedComponent {
                 environment: {
                     environment
                     SheetComponentEnvironment(
+                        metrics: environment.metrics,
+                        deviceMetrics: environment.deviceMetrics,
                         isDisplaying: environment.value.isVisible,
                         isCentered: environment.metrics.widthClass == .regular,
                         hasInputHeight: !environment.inputHeight.isZero,

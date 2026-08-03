@@ -3,7 +3,6 @@ import UIKit
 import AsyncDisplayKit
 import Display
 import TelegramCore
-import Postbox
 import SwiftSignalKit
 import TelegramStringFormatting
 import ChatPresentationInterfaceState
@@ -81,7 +80,7 @@ final class ChatRestrictedInputPanelNode: ChatInputPanelNode {
         self.interfaceInteraction?.openBoostToUnrestrict()
     }
     
-    override func updateLayout(width: CGFloat, leftInset: CGFloat, rightInset: CGFloat, bottomInset: CGFloat, additionalSideInsets: UIEdgeInsets, maxHeight: CGFloat, maxOverlayHeight: CGFloat, isSecondary: Bool, transition: ContainedViewLayoutTransition, interfaceState: ChatPresentationInterfaceState, metrics: LayoutMetrics, isMediaInputExpanded: Bool) -> CGFloat {
+    override func updateLayout(width: CGFloat, leftInset: CGFloat, rightInset: CGFloat, bottomInset: CGFloat, additionalSideInsets: UIEdgeInsets, maxHeight: CGFloat, maxOverlayHeight: CGFloat, isSecondary: Bool, transition: ContainedViewLayoutTransition, interfaceState: ChatPresentationInterfaceState, metrics: LayoutMetrics, deviceMetrics: DeviceMetrics, isMediaInputExpanded: Bool) -> CGFloat {
         if self.presentationInterfaceState != interfaceState {
             self.presentationInterfaceState = interfaceState
         }
@@ -206,7 +205,7 @@ final class ChatRestrictedInputPanelNode: ChatInputPanelNode {
         self.tintSubtitleNode.frame = self.subtitleNode.frame
         
         self.backgroundView.frame = combinedFrame
-        self.backgroundView.update(size: combinedFrame.size, cornerRadius: combinedFrame.height * 0.5, isDark: interfaceState.theme.overallDarkAppearance, tintColor: .init(kind: .panel, color: interfaceState.theme.chat.inputPanel.inputBackgroundColor.withMultipliedAlpha(0.7)), transition: ComponentTransition(transition))
+        self.backgroundView.update(size: combinedFrame.size, cornerRadius: combinedFrame.height * 0.5, isDark: interfaceState.theme.overallDarkAppearance, tintColor: .init(kind: .panel), transition: ComponentTransition(transition))
         
         self.buttonNode.frame = combinedFrame
         

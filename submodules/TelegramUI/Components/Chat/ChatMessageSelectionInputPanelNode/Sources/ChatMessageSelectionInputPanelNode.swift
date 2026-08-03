@@ -2,7 +2,6 @@ import Foundation
 import UIKit
 import AsyncDisplayKit
 import Display
-import Postbox
 import TelegramCore
 import SwiftSignalKit
 import TelegramPresentationData
@@ -67,15 +66,20 @@ private final class ChatMessageSelectionInputPanelNodeViewForOverlayContent: UIV
 private final class GlassButtonView: UIView {
     private struct Params: Equatable {
         let theme: PresentationTheme
+        let preferClearGlass: Bool
         let size: CGSize
         
-        init(theme: PresentationTheme, size: CGSize) {
+        init(theme: PresentationTheme, preferClearGlass: Bool, size: CGSize) {
             self.theme = theme
+            self.preferClearGlass = preferClearGlass
             self.size = size
         }
         
         static func ==(lhs: Params, rhs: Params) -> Bool {
             if lhs.theme !== rhs.theme {
+                return false
+            }
+            if lhs.preferClearGlass != rhs.preferClearGlass {
                 return false
             }
             if lhs.size != rhs.size {
@@ -131,29 +135,14 @@ private final class GlassButtonView: UIView {
         super.init(frame: frame)
         
         self.addSubview(self.backgroundView)
-        
-        if #available(iOS 26.0, *) {
-        } else {
-            self.button.highligthedChanged = { [weak self] highlighted in
-                guard let self else {
-                    return
-                }
-                if highlighted && self.isEnabled && !self.isImplicitlyDisabled {
-                    self.backgroundView.contentView.alpha = 0.6
-                } else {
-                    self.backgroundView.contentView.alpha = 1.0
-                    self.backgroundView.contentView.layer.animateAlpha(from: 0.6, to: 1.0, duration: 0.2)
-                }
-            }
-        }
     }
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
     
-    func update(theme: PresentationTheme, size: CGSize, transition: ComponentTransition) {
-        let params = Params(theme: theme, size: size)
+    func update(theme: PresentationTheme, preferClearGlass: Bool, size: CGSize, transition: ComponentTransition) {
+        let params = Params(theme: theme, preferClearGlass: preferClearGlass, size: size)
         if self.params != params {
             self.iconView.tintColor = params.theme.chat.inputPanel.panelControlColor
             self.params = params
@@ -172,7 +161,8 @@ private final class GlassButtonView: UIView {
         transition.setFrame(view: self.button, frame: CGRect(origin: CGPoint(), size: params.size))
         
         transition.setFrame(view: self.backgroundView, frame: CGRect(origin: CGPoint(), size: params.size))
-        self.backgroundView.update(size: params.size, cornerRadius: min(params.size.width, params.size.height) * 0.5, isDark: params.theme.overallDarkAppearance, tintColor: .init(kind: .panel, color: params.theme.chat.inputPanel.inputBackgroundColor.withMultipliedAlpha(0.7)), isInteractive: isEnabled, transition: transition)
+        self.backgroundView.update(size: params.size, cornerRadius: min(params.size.width, params.size.height) * 0.5, isDark: params.theme.overallDarkAppearance, tintColor: .init(kind: params.preferClearGlass ? .clear : .panel), isInteractive: true, transition: transition)
+        self.backgroundView.isUserInteractionEnabled = isEnabled
         
         self.iconView.alpha = isEnabled ? 1.0 : 0.5
         self.iconView.tintMask.alpha = self.iconView.alpha
@@ -197,7 +187,7 @@ public final class ChatMessageSelectionInputPanelNode: ChatInputPanelNode {
     
     private let reactionOverlayContainer: ChatMessageSelectionInputPanelNodeViewForOverlayContent
     
-    private var validLayout: (width: CGFloat, leftInset: CGFloat, rightInset: CGFloat, bottomInset: CGFloat, additionalSideInsets: UIEdgeInsets, maxHeight: CGFloat, maxOverlayHeight: CGFloat, metrics: LayoutMetrics, isSecondary: Bool, isMediaInputExpanded: Bool)?
+    private var validLayout: (width: CGFloat, leftInset: CGFloat, rightInset: CGFloat, bottomInset: CGFloat, additionalSideInsets: UIEdgeInsets, maxHeight: CGFloat, maxOverlayHeight: CGFloat, metrics: LayoutMetrics, isSecondary: Bool, isMediaInputExpanded: Bool, deviceMetrics: DeviceMetrics)?
     private var presentationInterfaceState: ChatPresentationInterfaceState?
     private var actions: ChatAvailableMessageActions?
     
@@ -206,7 +196,7 @@ public final class ChatMessageSelectionInputPanelNode: ChatInputPanelNode {
     
     private let canDeleteMessagesDisposable = MetaDisposable()
     
-    public var selectedMessages = Set<MessageId>() {
+    public var selectedMessages = Set<EngineMessage.Id>() {
         didSet {
             if oldValue != self.selectedMessages {
                 self.updateActions()
@@ -283,8 +273,8 @@ public final class ChatMessageSelectionInputPanelNode: ChatInputPanelNode {
         
         if self.selectedMessages.isEmpty {
             self.actions = nil
-            if let (width, leftInset, rightInset, bottomInset, additionalSideInsets, maxHeight, maxOverlayHeight, metrics, isSecondary, isMediaInputExpanded) = self.validLayout, let interfaceState = self.presentationInterfaceState {
-                let _ = self.updateLayout(width: width, leftInset: leftInset, rightInset: rightInset, bottomInset: bottomInset, additionalSideInsets: additionalSideInsets, maxHeight: maxHeight, maxOverlayHeight: maxOverlayHeight, isSecondary: isSecondary, transition: .immediate, interfaceState: interfaceState, metrics: metrics, isMediaInputExpanded: isMediaInputExpanded)
+            if let (width, leftInset, rightInset, bottomInset, additionalSideInsets, maxHeight, maxOverlayHeight, metrics, isSecondary, isMediaInputExpanded, deviceMetrics) = self.validLayout, let interfaceState = self.presentationInterfaceState {
+                let _ = self.updateLayout(width: width, leftInset: leftInset, rightInset: rightInset, bottomInset: bottomInset, additionalSideInsets: additionalSideInsets, maxHeight: maxHeight, maxOverlayHeight: maxOverlayHeight, isSecondary: isSecondary, transition: .immediate, interfaceState: interfaceState, metrics: metrics, deviceMetrics: deviceMetrics, isMediaInputExpanded: isMediaInputExpanded)
             }
             self.canDeleteMessagesDisposable.set(nil)
         } else if let context = self.context {
@@ -292,8 +282,8 @@ public final class ChatMessageSelectionInputPanelNode: ChatInputPanelNode {
             |> deliverOnMainQueue).startStrict(next: { [weak self] actions in
                 if let strongSelf = self {
                     strongSelf.actions = actions
-                    if let (width, leftInset, rightInset, bottomInset, additionalSideInsets, maxHeight, maxOverlayHeight: maxOverlayHeight, metrics, isSecondary, isMediaInputExpanded) = strongSelf.validLayout, let interfaceState = strongSelf.presentationInterfaceState {
-                        let _ = strongSelf.updateLayout(width: width, leftInset: leftInset, rightInset: rightInset, bottomInset: bottomInset, additionalSideInsets: additionalSideInsets, maxHeight: maxHeight, maxOverlayHeight: maxOverlayHeight, isSecondary: isSecondary, transition: .immediate, interfaceState: interfaceState, metrics: metrics, isMediaInputExpanded: isMediaInputExpanded)
+                    if let (width, leftInset, rightInset, bottomInset, additionalSideInsets, maxHeight, maxOverlayHeight: maxOverlayHeight, metrics, isSecondary, isMediaInputExpanded, deviceMetrics) = strongSelf.validLayout, let interfaceState = strongSelf.presentationInterfaceState {
+                        let _ = strongSelf.updateLayout(width: width, leftInset: leftInset, rightInset: rightInset, bottomInset: bottomInset, additionalSideInsets: additionalSideInsets, maxHeight: maxHeight, maxOverlayHeight: maxOverlayHeight, isSecondary: isSecondary, transition: .immediate, interfaceState: interfaceState, metrics: metrics, deviceMetrics: deviceMetrics, isMediaInputExpanded: isMediaInputExpanded)
                     }
                 }
             }))
@@ -307,7 +297,7 @@ public final class ChatMessageSelectionInputPanelNode: ChatInputPanelNode {
     }
     
     @objc private func deleteButtonPressed() {
-        self.interfaceInteraction?.deleteSelectedMessages()
+        self.interfaceInteraction?.deleteSelectedMessages(self.deleteButton)
     }
     
     @objc private func reportButtonPressed() {
@@ -451,21 +441,20 @@ public final class ChatMessageSelectionInputPanelNode: ChatInputPanelNode {
     }
     
     private func update(transition: ContainedViewLayoutTransition) {
-        if let (width, leftInset, rightInset, bottomInset, additionalSideInsets, maxHeight, maxOverlayHeight, metrics, isSecondary, isMediaInputExpanded) = self.validLayout, let interfaceState = self.presentationInterfaceState {
-            let _ = self.updateLayout(width: width, leftInset: leftInset, rightInset: rightInset, bottomInset: bottomInset, additionalSideInsets: additionalSideInsets, maxHeight: maxHeight, maxOverlayHeight: maxOverlayHeight, isSecondary: isSecondary, transition: transition, interfaceState: interfaceState, metrics: metrics, isMediaInputExpanded: isMediaInputExpanded)
+        if let (width, leftInset, rightInset, bottomInset, additionalSideInsets, maxHeight, maxOverlayHeight, metrics, isSecondary, isMediaInputExpanded, deviceMetrics) = self.validLayout, let interfaceState = self.presentationInterfaceState {
+            let _ = self.updateLayout(width: width, leftInset: leftInset, rightInset: rightInset, bottomInset: bottomInset, additionalSideInsets: additionalSideInsets, maxHeight: maxHeight, maxOverlayHeight: maxOverlayHeight, isSecondary: isSecondary, transition: transition, interfaceState: interfaceState, metrics: metrics, deviceMetrics: deviceMetrics, isMediaInputExpanded: isMediaInputExpanded)
         }
     }
     
-    override public func updateLayout(width: CGFloat, leftInset: CGFloat, rightInset: CGFloat, bottomInset: CGFloat, additionalSideInsets: UIEdgeInsets, maxHeight: CGFloat, maxOverlayHeight: CGFloat, isSecondary: Bool, transition: ContainedViewLayoutTransition, interfaceState: ChatPresentationInterfaceState, metrics: LayoutMetrics, isMediaInputExpanded: Bool) -> CGFloat {
-        self.validLayout = (width, leftInset, rightInset, bottomInset, additionalSideInsets, maxHeight, maxOverlayHeight, metrics, isSecondary, isMediaInputExpanded)
+    override public func updateLayout(width: CGFloat, leftInset: CGFloat, rightInset: CGFloat, bottomInset: CGFloat, additionalSideInsets: UIEdgeInsets, maxHeight: CGFloat, maxOverlayHeight: CGFloat, isSecondary: Bool, transition: ContainedViewLayoutTransition, interfaceState: ChatPresentationInterfaceState, metrics: LayoutMetrics, deviceMetrics: DeviceMetrics, isMediaInputExpanded: Bool) -> CGFloat {
+        self.validLayout = (width, leftInset, rightInset, bottomInset, additionalSideInsets, maxHeight, maxOverlayHeight, metrics, isSecondary, isMediaInputExpanded, deviceMetrics)
         
         var leftInset = leftInset + 8.0
         var rightInset = rightInset + 8.0
         
-        if bottomInset <= 32.0 {
-            leftInset += 18.0
-            rightInset += 18.0
-        }
+        let compactBottomSideInset = self.compactBottomSideInset(bottomInset: bottomInset, deviceMetrics: deviceMetrics)
+        leftInset += compactBottomSideInset
+        rightInset += compactBottomSideInset
         
         let panelHeight = defaultHeight(metrics: metrics)
         
@@ -603,7 +592,7 @@ public final class ChatMessageSelectionInputPanelNode: ChatInputPanelNode {
                 buttonFrame = CGRect(origin: CGPoint(x: offset, y: 0.0), size: buttonSize)
             }
             transition.updateFrame(view: button, frame: buttonFrame)
-            button.update(theme: interfaceState.theme, size: buttonFrame.size, transition: ComponentTransition(transition))
+            button.update(theme: interfaceState.theme, preferClearGlass: interfaceState.preferredGlassType == .clear, size: buttonFrame.size, transition: ComponentTransition(transition))
             
             offset += buttonSize.width + spacing
         }

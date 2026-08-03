@@ -1,7 +1,6 @@
 import Foundation
 import UIKit
 import SwiftSignalKit
-import Postbox
 import TelegramCore
 import Display
 import AsyncDisplayKit
@@ -44,12 +43,13 @@ public final class ChatSideTopicsPanel: Component {
     public enum Location {
         case side
         case top
+        case bottom
     }
     
-    public enum Kind {
+    public enum Kind: Equatable {
         case forum
         case monoforum
-        case botForum
+        case botForum(forumManagedByUser: Bool)
     }
     
     let context: AccountContext
@@ -940,8 +940,8 @@ public final class ChatSideTopicsPanel: Component {
                 }
                 let size = CGSize(width: contentSize, height: availableSize.height)
                 
-                let iconFrame = CGRect(origin: CGPoint(x: leftInset, y: floor((size.height - iconSize.height) * 0.5)), size: iconSize)
-                let titleFrame = CGRect(origin: CGPoint(x: iconFrame.maxX + spacing, y: floor((size.height - titleSize.height) * 0.5)), size: titleSize)
+                let iconFrame = CGRect(origin: CGPoint(x: leftInset, y: floor((size.height - iconSize.height) * 0.5) - 1.0), size: iconSize)
+                let titleFrame = CGRect(origin: CGPoint(x: iconFrame.maxX + spacing, y: floor((size.height - titleSize.height) * 0.5) - 1.0), size: titleSize)
                 
                 if let icon = self.icon {
                     if let avatarNode = self.avatarNode {
@@ -1105,11 +1105,20 @@ public final class ChatSideTopicsPanel: Component {
                 }
             }
             
+            let normalIconName: String
+            switch location {
+            case .top:
+                normalIconName = "Chat/Title Panels/SidebarIcon"
+            case .side:
+                normalIconName = "Chat/Title Panels/SidebarBottomIcon"
+            case .bottom:
+                normalIconName = "Chat/Title Panels/SidebarTopIcon"
+            }
             let iconSize = self.icon.update(
                 transition: .immediate,
                 component: AnyComponent(BundleIconComponent(
-                    name: isReordering ? "Media Editor/Done" : "Chat/Title Panels/SidebarIcon",
-                    tintColor: location == .side ? theme.rootController.navigationBar.accentTextColor : theme.chat.inputPanel.panelControlColor,
+                    name: isReordering ? "Media Editor/Done" : normalIconName,
+                    tintColor: theme.chat.inputPanel.panelControlColor,
                     maxSize: CGSize(width: 24.0, height: 24.0),
                     scaleFactor: 1.0
                 )),
@@ -1249,8 +1258,12 @@ public final class ChatSideTopicsPanel: Component {
                 )
                 
                 let titleText: String
-                if case .botForum = component.kind {
-                    titleText = component.strings.Chat_InlineTopicMenu_NewForumThreadTab
+                if case let .botForum(forumManagedByUser) = component.kind {
+                    if forumManagedByUser {
+                        titleText = component.strings.Chat_InlineTopicMenu_NewForumThreadTab
+                    } else {
+                        titleText = component.strings.Chat_InlineTopicMenu_TabAll
+                    }
                 } else {
                     titleText = component.strings.Chat_InlineTopicMenu_AllTab
                 }
@@ -1386,8 +1399,12 @@ public final class ChatSideTopicsPanel: Component {
                 let rightInset: CGFloat = 12.0
                 
                 let titleText: String
-                if case .botForum = component.kind {
-                    titleText = component.strings.Chat_InlineTopicMenu_NewForumThreadTab
+                if case let .botForum(forumManagedByUser) = component.kind {
+                    if forumManagedByUser {
+                        titleText = component.strings.Chat_InlineTopicMenu_NewForumThreadTab
+                    } else {
+                        titleText = component.strings.Chat_InlineTopicMenu_TabAll
+                    }
                 } else {
                     titleText = component.strings.Chat_InlineTopicMenu_AllTab
                 }
@@ -1404,7 +1421,7 @@ public final class ChatSideTopicsPanel: Component {
                 let contentSize: CGFloat = leftInset + rightInset + titleSize.width
                 let size = CGSize(width: contentSize, height: availableSize.height)
                 
-                let titleFrame = CGRect(origin: CGPoint(x: leftInset, y: floor((size.height - titleSize.height) * 0.5)), size: titleSize)
+                let titleFrame = CGRect(origin: CGPoint(x: leftInset, y: floor((size.height - titleSize.height) * 0.5) - 1.0), size: titleSize)
                 
                 if let titleView = self.title.view {
                     if titleView.superview == nil {
@@ -1484,7 +1501,6 @@ public final class ChatSideTopicsPanel: Component {
             self.scrollContainerView = UIView()
             self.scrollViewMask = UIImageView()
             self.scrollContainerView.mask = self.scrollViewMask
-            //self.scrollContainerView.addSubview(self.scrollViewMask)
             
             super.init(frame: frame)
             
@@ -1509,7 +1525,7 @@ public final class ChatSideTopicsPanel: Component {
                 switch component.location {
                 case .side:
                     transition.setTransform(view: tabItemView, transform: CATransform3DMakeTranslation(-globalOffset, 0.0, 0.0))
-                case .top:
+                case .top, .bottom:
                     transition.setTransform(view: tabItemView, transform: CATransform3DMakeTranslation(0.0, -globalOffset, 0.0))
                 }
             }
@@ -1518,7 +1534,7 @@ public final class ChatSideTopicsPanel: Component {
         public func topicIndex(threadId: Int64?) -> Int? {
             if let threadId {
                 if let value = self.rawItems.firstIndex(where: { item in
-                    if item.id == .chatList(PeerId(threadId)) {
+                    if item.id == .chatList(EnginePeer.Id(threadId)) {
                         return true
                     } else if item.id == .forum(threadId) {
                         return true
@@ -1550,7 +1566,7 @@ public final class ChatSideTopicsPanel: Component {
                         switch component.location {
                         case .side:
                             selectedItemFrame = item.frame
-                        case .top:
+                        case .top, .bottom:
                             selectedItemFrame = CGRect(origin: CGPoint(x: item.frame.minX + 5.0, y: item.frame.minY), size: CGSize(width: item.frame.width - 4.0 - 11.0, height: item.frame.height))
                         }
                     }
@@ -1558,7 +1574,7 @@ public final class ChatSideTopicsPanel: Component {
                         switch component.location {
                         case .side:
                             beforePinnedItemsPosition = item.frame.maxY
-                        case .top:
+                        case .top, .bottom:
                             beforePinnedItemsPosition = item.frame.maxX
                         }
                     }
@@ -1581,13 +1597,27 @@ public final class ChatSideTopicsPanel: Component {
                         }
                     }
                     if isPinned {
+                        if !seenPinnedItems {
+                            switch component.location {
+                            case .side:
+                                beforePinnedItemsPosition = item.frame.minY
+                            case .top, .bottom:
+                                beforePinnedItemsPosition = item.frame.minX
+                            }
+                            switch component.location {
+                            case .side:
+                                afterPinnedItemsPosition = item.frame.maxY
+                            case .top, .bottom:
+                                afterPinnedItemsPosition = item.frame.maxX
+                            }
+                        }
                         seenPinnedItems = true
                     } else {
                         if !seenPinnedItems {
                             switch component.location {
                             case .side:
                                 beforePinnedItemsPosition = item.frame.maxY
-                            case .top:
+                            case .top, .bottom:
                                 beforePinnedItemsPosition = item.frame.maxX
                             }
                         } else {
@@ -1595,7 +1625,7 @@ public final class ChatSideTopicsPanel: Component {
                                 switch component.location {
                                 case .side:
                                     afterPinnedItemsPosition = item.frame.minY
-                                case .top:
+                                case .top, .bottom:
                                     afterPinnedItemsPosition = item.frame.minX
                                 }
                             }
@@ -1612,7 +1642,7 @@ public final class ChatSideTopicsPanel: Component {
                     switch component.location {
                     case .side:
                         afterPinnedItemsPosition = listView.bounds.height + 500.0
-                    case .top:
+                    case .top, .bottom:
                         afterPinnedItemsPosition = listView.bounds.width + 500.0
                     }
                 }
@@ -1628,7 +1658,7 @@ public final class ChatSideTopicsPanel: Component {
                 switch component.location {
                 case .side:
                     selectedLineFrame = CGRect(origin: CGPoint(x: 0.0, y: selectedItemFrame.minY), size: CGSize(width: 4.0, height: selectedItemFrame.height))
-                case .top:
+                case .top, .bottom:
                     selectedLineFrame = CGRect(origin: CGPoint(x: selectedItemFrame.minX, y: listView.frame.maxY - 3.0), size: CGSize(width: selectedItemFrame.width, height: 3.0))
                 }
                 
@@ -1648,7 +1678,7 @@ public final class ChatSideTopicsPanel: Component {
                 switch component.location {
                 case .side:
                     pinnedItemsBackgroundFrame = CGRect(origin: CGPoint(x: 5.0, y: beforePinnedItemsPosition), size: CGSize(width: listView.bounds.width - 5.0 - 4.0, height: afterPinnedItemsPosition - beforePinnedItemsPosition))
-                case .top:
+                case .top, .bottom:
                     pinnedItemsBackgroundFrame = CGRect(origin: CGPoint(x: beforePinnedItemsPosition, y: 4.0), size: CGSize(width: afterPinnedItemsPosition - beforePinnedItemsPosition, height: listView.bounds.height - 5.0 - 4.0))
                 }
                 self.pinnedBackgroundContainer.updatePosition(position: pinnedItemsBackgroundFrame.origin, transition: pinnedItemsTransition)
@@ -1744,23 +1774,16 @@ public final class ChatSideTopicsPanel: Component {
                             image.draw(in: CGRect(origin: CGPoint(), size: CGSize(width: size.width, height: image.size.width)), blendMode: .destinationOut, alpha: 1.0)
                         }
                     })?.stretchableImage(withLeftCapWidth: Int(cornerRadius) + 1, topCapHeight: Int(cornerRadius) + 1)
-                case .top:
-                    let cornerRadius: CGFloat = 20.0
-                    self.scrollViewMask.image = generateImage(CGSize(width: 8.0 + 1.0 + cornerRadius * 2.0, height: 1.0 + cornerRadius * 2.0), rotatedContext: { size, context in
+                case .top, .bottom:
+                    self.scrollViewMask.image = generateImage(CGSize(width: 8.0 + 1.0, height: 1.0), rotatedContext: { size, context in
                         UIGraphicsPushContext(context)
                         defer {
                             UIGraphicsPopContext()
                         }
                         
                         context.clear(CGRect(origin: CGPoint(), size: size))
-                        
-                        let spreadPath = UIBezierPath(
-                            roundedRect: CGRect(origin: CGPoint(x: -cornerRadius, y: 0.0), size: CGSize(width: size.width + cornerRadius, height: size.height)),
-                            cornerRadius: cornerRadius
-                        ).cgPath
                         context.setFillColor(UIColor.black.cgColor)
-                        context.addPath(spreadPath)
-                        context.fillPath()
+                        context.fill(CGRect(origin: CGPoint(), size: size))
                         
                         if let image = generateGradientImage(size: CGSize(width: 8.0, height: 8.0), colors: [
                             UIColor(white: 1.0, alpha: 1.0),
@@ -1768,7 +1791,7 @@ public final class ChatSideTopicsPanel: Component {
                         ], locations: [0.0, 1.0], direction: .horizontal) {
                             image.draw(in: CGRect(origin: CGPoint(), size: CGSize(width: image.size.width, height: size.height)), blendMode: .destinationOut, alpha: 1.0)
                         }
-                    })?.stretchableImage(withLeftCapWidth: Int(cornerRadius) + 1, topCapHeight: Int(cornerRadius) + 1)
+                    })?.stretchableImage(withLeftCapWidth: 8, topCapHeight: 0)
                 }
             }
             let themeUpdated = self.component?.theme !== component.theme
@@ -1782,7 +1805,7 @@ public final class ChatSideTopicsPanel: Component {
                         context.setFillColor(component.theme.rootController.navigationBar.accentTextColor.cgColor)
                         context.fillEllipse(in: CGRect(origin: CGPoint(x: size.width - size.height, y: 0.0), size: CGSize(width: size.height, height: size.height)))
                     })?.stretchableImage(withLeftCapWidth: 1, topCapHeight: 4)
-                case .top:
+                case .top, .bottom:
                     self.selectedLineView.image = generateImage(CGSize(width: 4.0, height: 3.0), rotatedContext: { size, context in
                         context.clear(CGRect(origin: CGPoint(), size: size))
                         context.setFillColor(component.theme.rootController.navigationBar.accentTextColor.cgColor)
@@ -1814,7 +1837,7 @@ public final class ChatSideTopicsPanel: Component {
             switch component.location {
             case .side:
                 directionContainerInset = containerInsets.top
-            case .top:
+            case .top, .bottom:
                 directionContainerInset = containerInsets.left
             }
             
@@ -1873,9 +1896,9 @@ public final class ChatSideTopicsPanel: Component {
                 case .side:
                     itemFrame = CGRect(origin: CGPoint(x: 8.0 + 4.0, y: directionContainerInset + 6.0), size: itemSize)
                     directionContainerInset += itemSize.height
-                case .top:
-                    itemFrame = CGRect(origin: CGPoint(x: 12.0, y: 6.0), size: itemSize)
-                    directionContainerInset += itemSize.width - 8.0
+                case .top, .bottom:
+                    itemFrame = CGRect(origin: CGPoint(x: 12.0, y: 5.0), size: itemSize)
+                    directionContainerInset += itemSize.width - 20.0
                 }
                 
                 itemTransition.setPosition(layer: itemView.layer, position: itemFrame.center)
@@ -1897,68 +1920,12 @@ public final class ChatSideTopicsPanel: Component {
                 scrollSize = CGSize(width: availableSize.width, height: availableSize.height - directionContainerInset - environment.insets.top - containerInsets.bottom - additionalInsets.top - additionalInsets.bottom)
                 scrollFrame = CGRect(origin: CGPoint(x: additionalInsets.left, y: directionContainerInset + environment.insets.top + additionalInsets.top), size: scrollSize)
                 listContentInsets = UIEdgeInsets(top: 8.0, left: 0.0, bottom: 8.0, right: 0.0)
-            case .top:
+            case .top, .bottom:
                 additionalInsets = UIEdgeInsets(top: 8.0, left: 8.0, bottom: 0.0, right: 8.0)
                 scrollSize = CGSize(width: availableSize.width - additionalInsets.left - additionalInsets.right - directionContainerInset, height: availableSize.height - additionalInsets.top)
                 scrollFrame = CGRect(origin: CGPoint(x: additionalInsets.left + directionContainerInset, y: additionalInsets.top), size: scrollSize)
                 listContentInsets = UIEdgeInsets(top: 0.0, left: 8.0, bottom: 0.0, right: 8.0)
             }
-            
-            /*if case .side = component.location {
-                let background: ComponentView<Empty>
-                if let current = self.background {
-                    background = current
-                } else {
-                    background = ComponentView()
-                    self.background = background
-                }
-                let backgroundFrame = CGRect(origin: CGPoint(x: scrollFrame.minX, y: environment.insets.top + additionalInsets.top), size: CGSize(width: scrollFrame.width, height: scrollFrame.height + directionContainerInset))
-                let _ = background.update(
-                    transition: transition,
-                    component: AnyComponent(GlassBackgroundComponent(
-                        size: backgroundFrame.size,
-                        cornerRadius: 20.0,
-                        isDark: component.theme.overallDarkAppearance,
-                        tintColor: .init(kind: .panel, color: component.theme.chat.inputPanel.inputBackgroundColor.withMultipliedAlpha(0.7))
-                    )),
-                    environment: {},
-                    containerSize: backgroundFrame.size
-                )
-                
-                if let backgroundView = background.view {
-                    if backgroundView.superview == nil {
-                        self.insertSubview(backgroundView, at: 0)
-                    }
-                    transition.setFrame(view: backgroundView, frame: backgroundFrame)
-                }
-            } else {
-                let background: ComponentView<Empty>
-                if let current = self.background {
-                    background = current
-                } else {
-                    background = ComponentView()
-                    self.background = background
-                }
-                let backgroundFrame = CGRect(origin: CGPoint(x: additionalInsets.left, y: environment.insets.top + additionalInsets.top), size: CGSize(width: scrollFrame.width + directionContainerInset, height: scrollFrame.height))
-                let _ = background.update(
-                    transition: transition,
-                    component: AnyComponent(GlassBackgroundComponent(
-                        size: backgroundFrame.size,
-                        cornerRadius: 20.0,
-                        isDark: component.theme.overallDarkAppearance,
-                        tintColor: .init(kind: .panel, color: component.theme.chat.inputPanel.inputBackgroundColor.withMultipliedAlpha(0.7))
-                    )),
-                    environment: {},
-                    containerSize: backgroundFrame.size
-                )
-                
-                if let backgroundView = background.view {
-                    if backgroundView.superview == nil {
-                        self.insertSubview(backgroundView, at: 0)
-                    }
-                    transition.setFrame(view: backgroundView, frame: backgroundFrame)
-                }
-            }*/
             
             self.scrollContainerView.frame = scrollFrame
             
@@ -1993,7 +1960,7 @@ public final class ChatSideTopicsPanel: Component {
                         }
                     )))
                 )
-            case .top:
+            case .top, .bottom:
                 listItems.append(AnyComponentWithIdentity(
                     id: ScrollId.all,
                     component: AnyComponent(HorizontalAllItemComponent(
@@ -2099,7 +2066,7 @@ public final class ChatSideTopicsPanel: Component {
                                 })
                             })))
                             
-                            let contextController = ContextController(
+                            let contextController = makeContextController(
                                 presentationData: presentationData,
                                 source: .extracted(ItemExtractedContentSource(
                                     sourceNode: sourceNode,
@@ -2179,20 +2146,24 @@ public final class ChatSideTopicsPanel: Component {
                                 self.dismissContextControllerOnNextUpdate = contextController
                                 
                                 let _ = (component.context.engine.peers.toggleForumChannelTopicPinned(id: peerId, threadId: topicId)
-                                         |> deliverOnMainQueue).startStandalone(error: { [weak self, weak contextController] error in
-                                    guard let self, let component = self.component else {
+                                |> deliverOnMainQueue).startStandalone(error: { [weak self, weak contextController] error in
+                                    guard let self else {
                                         contextController?.dismiss(completion: {})
                                         return
                                     }
                                     
                                     switch error {
                                     case let .limitReached(count):
-                                        contextController?.dismiss(completion: {})
-                                        if let controller = component.controller() {
-                                            let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
-                                            let text = presentationData.strings.ChatList_MaxThreadPinsFinalText(Int32(count))
-                                            controller.present(textAlertController(context: component.context, title: presentationData.strings.Premium_LimitReached, text: text, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})], parseMarkdown: true), in: .window(.root))
-                                        }
+                                        contextController?.dismiss(completion: { [weak self] in
+                                            guard let self, let component = self.component else {
+                                                return
+                                            }
+                                            if let controller = component.controller() {
+                                                let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
+                                                let text = presentationData.strings.ChatList_MaxThreadPinsFinalText(Int32(count))
+                                                controller.present(textAlertController(context: component.context, title: presentationData.strings.Premium_LimitReached, text: text, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})], parseMarkdown: true), in: .window(.root))
+                                            }
+                                        })
                                     default:
                                         break
                                     }
@@ -2223,7 +2194,7 @@ public final class ChatSideTopicsPanel: Component {
                                 return
                             }
                             
-                            let contextController = ContextController(
+                            let contextController = makeContextController(
                                 presentationData: presentationData,
                                 source: .extracted(ItemExtractedContentSource(
                                     sourceNode: sourceNode,
@@ -2254,7 +2225,7 @@ public final class ChatSideTopicsPanel: Component {
                             contextGesture: itemContextGesture
                         )))
                     )
-                case .top:
+                case .top, .bottom:
                     listItems.append(AnyComponentWithIdentity(
                         id: scrollId,
                         component: AnyComponent(HorizontalItemComponent(

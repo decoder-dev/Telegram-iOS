@@ -20,28 +20,33 @@ public struct EmojiInteraction: Equatable {
     }
     
     public init?(apiDataJson: Api.DataJSON) {
-        if case let .dataJSON(string) = apiDataJson, let data = string.data(using: .utf8) {
-            do {
-                let decodedData = try JSONSerialization.jsonObject(with: data, options: [])
-                guard let item = decodedData as? [String: Any] else {
-                    return nil
-                }
-                guard let version = item["v"] as? Int, version == 1 else {
-                    return nil
-                }
-                guard let animationsArray = item["a"] as? [Any] else {
-                    return nil
-                }
-                var animations: [EmojiInteraction.Animation] = []
-                for animationDict in animationsArray {
-                    if let animationDict = animationDict as? [String: Any] {
-                        if let index = animationDict["i"] as? Int, let timeOffset = animationDict["t"] as? Double {
-                            animations.append(EmojiInteraction.Animation(index: index, timeOffset: Float(timeOffset)))
+        if case let .dataJSON(dataJSONData) = apiDataJson {
+            let string = dataJSONData.data
+            if let data = string.data(using: .utf8) {
+                do {
+                    let decodedData = try JSONSerialization.jsonObject(with: data, options: [])
+                    guard let item = decodedData as? [String: Any] else {
+                        return nil
+                    }
+                    guard let version = item["v"] as? Int, version == 1 else {
+                        return nil
+                    }
+                    guard let animationsArray = item["a"] as? [Any] else {
+                        return nil
+                    }
+                    var animations: [EmojiInteraction.Animation] = []
+                    for animationDict in animationsArray {
+                        if let animationDict = animationDict as? [String: Any] {
+                            if let index = animationDict["i"] as? Int, let timeOffset = animationDict["t"] as? Double {
+                                animations.append(EmojiInteraction.Animation(index: index, timeOffset: Float(timeOffset)))
+                            }
                         }
                     }
+                    self.animations = animations
+                } catch {
+                    return nil
                 }
-                self.animations = animations
-            } catch {
+            } else {
                 return nil
             }
         } else {
@@ -54,9 +59,9 @@ public struct EmojiInteraction: Equatable {
     public var apiDataJson: Api.DataJSON {
         let dict = ["v": 1, "a": self.animations.map({ ["i": $0.index, "t": NSDecimalNumber(value: $0.timeOffset).rounding(accordingToBehavior: roundingBehavior)] as [String : Any] })] as [String : Any]
         if let data = try? JSONSerialization.data(withJSONObject: dict, options: []), let dataString = String(data: data, encoding: .utf8) {
-            return .dataJSON(data: dataString)
+            return .dataJSON(.init(data: dataString))
         } else {
-            return .dataJSON(data: "")
+            return .dataJSON(.init(data: ""))
         }
     }
 }
@@ -112,40 +117,50 @@ public enum PeerInputActivity: Comparable {
 extension PeerInputActivity {
     init?(apiType: Api.SendMessageAction, peerId: PeerId?, timestamp: Int32) {
         switch apiType {
-            case .sendMessageCancelAction, .sendMessageChooseContactAction, .sendMessageGeoLocationAction, .sendMessageRecordVideoAction:
+        case .sendMessageCancelAction, .sendMessageChooseContactAction, .sendMessageGeoLocationAction, .sendMessageRecordVideoAction:
+            return nil
+        case .sendMessageGamePlayAction:
+            self = .playingGame
+        case .sendMessageRecordAudioAction, .sendMessageUploadAudioAction:
+            self = .recordingVoice
+        case .sendMessageTypingAction:
+            self = .typingText
+        case let .sendMessageUploadDocumentAction(sendMessageUploadDocumentActionData):
+            let progress = sendMessageUploadDocumentActionData.progress
+            self = .uploadingFile(progress: progress)
+        case let .sendMessageUploadPhotoAction(sendMessageUploadPhotoActionData):
+            let progress = sendMessageUploadPhotoActionData.progress
+            self = .uploadingPhoto(progress: progress)
+        case let .sendMessageUploadVideoAction(sendMessageUploadVideoActionData):
+            let progress = sendMessageUploadVideoActionData.progress
+            self = .uploadingVideo(progress: progress)
+        case .sendMessageRecordRoundAction:
+            self = .recordingInstantVideo
+        case let .sendMessageUploadRoundAction(sendMessageUploadRoundActionData):
+            let progress = sendMessageUploadRoundActionData.progress
+            self = .uploadingInstantVideo(progress: progress)
+        case .speakingInGroupCallAction:
+            self = .speakingInGroupCall(timestamp: timestamp)
+        case .sendMessageChooseStickerAction:
+            self = .choosingSticker
+        case .sendMessageHistoryImportAction:
+            return nil
+        case let .sendMessageEmojiInteraction(sendMessageEmojiInteractionData):
+            let (emoticon, messageId, interaction) = (sendMessageEmojiInteractionData.emoticon, sendMessageEmojiInteractionData.msgId, sendMessageEmojiInteractionData.interaction)
+            if let peerId = peerId {
+                self = .interactingWithEmoji(emoticon: emoticon, messageId: MessageId(peerId: peerId, namespace: Namespaces.Message.Cloud, id: messageId), interaction: EmojiInteraction(apiDataJson: interaction))
+            } else {
                 return nil
-            case .sendMessageGamePlayAction:
-                self = .playingGame
-            case .sendMessageRecordAudioAction, .sendMessageUploadAudioAction:
-                self = .recordingVoice
-            case .sendMessageTypingAction:
-                self = .typingText
-            case let .sendMessageUploadDocumentAction(progress):
-                self = .uploadingFile(progress: progress)
-            case let .sendMessageUploadPhotoAction(progress):
-                self = .uploadingPhoto(progress: progress)
-            case let .sendMessageUploadVideoAction(progress):
-                self = .uploadingVideo(progress: progress)
-            case .sendMessageRecordRoundAction:
-                self = .recordingInstantVideo
-            case let .sendMessageUploadRoundAction(progress):
-                self = .uploadingInstantVideo(progress: progress)
-            case .speakingInGroupCallAction:
-                self = .speakingInGroupCall(timestamp: timestamp)
-            case .sendMessageChooseStickerAction:
-                self = .choosingSticker
-            case .sendMessageHistoryImportAction:
-                return nil
-            case let .sendMessageEmojiInteraction(emoticon, messageId, interaction):
-                if let peerId = peerId {
-                    self = .interactingWithEmoji(emoticon: emoticon, messageId: MessageId(peerId: peerId, namespace: Namespaces.Message.Cloud, id: messageId), interaction: EmojiInteraction(apiDataJson: interaction))
-                } else {
-                    return nil
-                }
-            case let .sendMessageEmojiInteractionSeen(emoticon):
-                self = .seeingEmojiInteraction(emoticon: emoticon)
-            case .sendMessageTextDraftAction:
-                return nil
+            }
+        case let .sendMessageEmojiInteractionSeen(sendMessageEmojiInteractionSeenData):
+            let emoticon = sendMessageEmojiInteractionSeenData.emoticon
+            self = .seeingEmojiInteraction(emoticon: emoticon)
+        case .sendMessageTextDraftAction:
+            return nil
+        case .sendMessageRichMessageDraftAction:
+            return nil
+        case .inputSendMessageRichMessageDraftAction:
+            return nil
         }
     }
 }

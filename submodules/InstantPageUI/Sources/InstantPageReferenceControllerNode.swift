@@ -6,7 +6,6 @@ import TelegramCore
 import SafariServices
 import TelegramPresentationData
 import AccountContext
-import ShareController
 import OpenInExternalAppUI
 import TelegramUIPreferences
 
@@ -53,6 +52,7 @@ class InstantPageReferenceControllerNode: ViewControllerTracingNode, ASScrollVie
         self.wrappingScrollNode.view.alwaysBounceVertical = true
         self.wrappingScrollNode.view.delaysContentTouches = false
         self.wrappingScrollNode.view.canCancelContentTouches = true
+        self.wrappingScrollNode.view.scrollsToTop = false
         
         self.dimNode = ASDisplayNode()
         self.dimNode.backgroundColor = UIColor(white: 0.0, alpha: 0.5)
@@ -414,7 +414,7 @@ class InstantPageReferenceControllerNode: ViewControllerTracingNode, ASScrollVie
                 UIPasteboard.general.string = text
             }), ContextMenuAction(content: .text(title: self.presentationData.strings.Conversation_ContextMenuShare, accessibilityLabel: self.presentationData.strings.Conversation_ContextMenuShare), action: { [weak self] in
                 if let strongSelf = self, case let .Loaded(content) = strongSelf.webPage.webPage.content {
-                    strongSelf.present(ShareController(context: strongSelf.context, subject: .quote(text: text, url: content.url)), nil)
+                    strongSelf.present(strongSelf.context.sharedContext.makeShareController(context: strongSelf.context, params: ShareControllerParams(subject: .quote(text: text, url: content.url))), nil)
                 }
             })])
             controller.dismissed = { [weak self] in

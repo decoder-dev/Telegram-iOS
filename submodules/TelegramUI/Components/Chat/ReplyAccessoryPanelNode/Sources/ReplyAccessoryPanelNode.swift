@@ -2,7 +2,6 @@ import Foundation
 import UIKit
 import AsyncDisplayKit
 import TelegramCore
-import Postbox
 import SwiftSignalKit
 import Display
 import TelegramPresentationData
@@ -24,9 +23,9 @@ import CompositeTextNode
 public final class ReplyAccessoryPanelNode: AccessoryPanelNode {
     private let messageDisposable = MetaDisposable()
     public let chatPeerId: EnginePeer.Id
-    public let messageId: MessageId
+    public let messageId: EngineMessage.Id
     public let quote: EngineMessageReplyQuote?
-    public let todoItemId: Int32?
+    public let innerSubject: EngineMessageReplyInnerSubject?
     
     private var previousMediaReference: AnyMediaReference?
     
@@ -47,11 +46,11 @@ public final class ReplyAccessoryPanelNode: AccessoryPanelNode {
     
     private var validLayout: (size: CGSize, inset: CGFloat, interfaceState: ChatPresentationInterfaceState)?
     
-    public init(context: AccountContext, chatPeerId: EnginePeer.Id, messageId: MessageId, quote: EngineMessageReplyQuote?, todoItemId: Int32?, theme: PresentationTheme, strings: PresentationStrings, nameDisplayOrder: PresentationPersonNameOrder, dateTimeFormat: PresentationDateTimeFormat, animationCache: AnimationCache?, animationRenderer: MultiAnimationRenderer?) {
+    public init(context: AccountContext, chatPeerId: EnginePeer.Id, messageId: EngineMessage.Id, quote: EngineMessageReplyQuote?, innerSubject: EngineMessageReplyInnerSubject?, theme: PresentationTheme, strings: PresentationStrings, nameDisplayOrder: PresentationPersonNameOrder, dateTimeFormat: PresentationDateTimeFormat, animationCache: AnimationCache?, animationRenderer: MultiAnimationRenderer?) {
         self.chatPeerId = chatPeerId
         self.messageId = messageId
         self.quote = quote
-        self.todoItemId = todoItemId
+        self.innerSubject = innerSubject
         
         self.context = context
         self.theme = theme
@@ -127,6 +126,7 @@ public final class ReplyAccessoryPanelNode: AccessoryPanelNode {
 
                 var authorName = ""
                 var text = ""
+                var previewText = NSAttributedString()
                 var isText = true
                 if let forwardInfo = message?.forwardInfo, forwardInfo.flags.contains(.isImported) {
                     if let author = forwardInfo.author {
@@ -148,6 +148,7 @@ public final class ReplyAccessoryPanelNode: AccessoryPanelNode {
                     }
                     let (attributedText, _, isTextValue) = descriptionStringForMessage(contentSettings: context.currentContentSettings.with { $0 }, message: EngineMessage(message), strings: strings, nameDisplayOrder: nameDisplayOrder, dateTimeFormat: dateTimeFormat, accountPeerId: context.account.peerId)
                     text = attributedText.string
+                    previewText = attributedText
                     isText = isTextValue
                 } else {
                     isMedia = false
@@ -173,7 +174,13 @@ public final class ReplyAccessoryPanelNode: AccessoryPanelNode {
                         messageText = NSAttributedString(string: text, font: textFont, textColor: isMedia ? strongSelf.theme.chat.inputPanel.secondaryTextColor : strongSelf.theme.chat.inputPanel.primaryTextColor)
                     }
                 } else {
-                    messageText = NSAttributedString(string: text, font: textFont, textColor: isMedia ? strongSelf.theme.chat.inputPanel.secondaryTextColor : strongSelf.theme.chat.inputPanel.primaryTextColor)
+                    let textColor = isMedia ? strongSelf.theme.chat.inputPanel.secondaryTextColor : strongSelf.theme.chat.inputPanel.primaryTextColor
+                    let mutablePreviewText = NSMutableAttributedString(attributedString: previewText)
+                    mutablePreviewText.addAttributes([
+                        .font: textFont,
+                        .foregroundColor: textColor
+                    ], range: NSRange(location: 0, length: mutablePreviewText.length))
+                    messageText = renderInstantPagePreviewIcons(mutablePreviewText, font: textFont, textColor: textColor)
                 }
                 
                 var updatedMediaReference: AnyMediaReference?
@@ -258,7 +265,7 @@ public final class ReplyAccessoryPanelNode: AccessoryPanelNode {
                             if nameRange.range.lowerBound != 0 {
                                 titleText.append(.text(NSAttributedString(string: rawNsString.substring(with: NSRange(location: 0, length: nameRange.range.lowerBound)), font: Font.medium(15.0), textColor: strongSelf.theme.chat.inputPanel.panelControlAccentColor)))
                             }
-                            titleText.append(.icon(icon))
+                            titleText.append(.icon(icon, .zero))
                             titleText.append(.text(NSAttributedString(string: peer.debugDisplayTitle, font: Font.medium(15.0), textColor: strongSelf.theme.chat.inputPanel.panelControlAccentColor)))
                             
                             if nameRange.range.upperBound != rawNsString.length {
@@ -269,8 +276,11 @@ public final class ReplyAccessoryPanelNode: AccessoryPanelNode {
                         }
                     }
                 } else {
-                    if let _ = strongSelf.todoItemId {
+                    if case .todoItem = strongSelf.innerSubject {
                         let string = strongSelf.strings.Chat_ReplyPanel_ReplyToTodoItem
+                        titleText = [.text(NSAttributedString(string: string, font: Font.medium(15.0), textColor: strongSelf.theme.chat.inputPanel.panelControlAccentColor))]
+                    } else if case .pollOption = strongSelf.innerSubject {
+                        let string = strongSelf.strings.Chat_ReplyPanel_ReplyToPollOption
                         titleText = [.text(NSAttributedString(string: string, font: Font.medium(15.0), textColor: strongSelf.theme.chat.inputPanel.panelControlAccentColor))]
                     } else if let _ = strongSelf.quote {
                         let string = strongSelf.strings.Chat_ReplyPanel_ReplyToQuoteBy(authorName).string
@@ -289,7 +299,7 @@ public final class ReplyAccessoryPanelNode: AccessoryPanelNode {
                                 icon = UIImage(bundleImageName: "Chat/Input/Accessory Panels/PanelTextGroupIcon")
                             }
                             if let iconImage = generateTintedImage(image: icon, color: strongSelf.theme.chat.inputPanel.panelControlAccentColor) {
-                                titleText.append(.icon(iconImage))
+                                titleText.append(.icon(iconImage, .zero))
                                 titleText.append(.text(NSAttributedString(string: peer.debugDisplayTitle, font: Font.medium(15.0), textColor: theme.chat.inputPanel.panelControlAccentColor)))
                             }
                         }
@@ -303,9 +313,13 @@ public final class ReplyAccessoryPanelNode: AccessoryPanelNode {
                     let quoteText = stringWithAppliedEntities(trimToLineCount(quote.text, lineCount: 1), entities: quote.entities, baseColor: textColor, linkColor: textColor, baseFont: textFont, linkFont: textFont, boldFont: textFont, italicFont: textFont, boldItalicFont: textFont, fixedFont: textFont, blockQuoteFont: textFont, underlineLinks: false, message: message)
                     
                     strongSelf.textNode.attributedText = quoteText
-                } else if let todoItemId = strongSelf.todoItemId, let todo = message?.media.first(where: { $0 is TelegramMediaTodo }) as? TelegramMediaTodo, let todoItem = todo.items.first(where: { $0.id == todoItemId }) {
+                } else if case let .todoItem(todoItemId) = strongSelf.innerSubject, let todo = message?.media.first(where: { $0 is TelegramMediaTodo }) as? TelegramMediaTodo, let todoItem = todo.items.first(where: { $0.id == todoItemId }) {
                     let textColor = strongSelf.theme.chat.inputPanel.primaryTextColor
                     let itemText = stringWithAppliedEntities(trimToLineCount(todoItem.text, lineCount: 1), entities: todoItem.entities, baseColor: textColor, linkColor: textColor, baseFont: textFont, linkFont: textFont, boldFont: textFont, italicFont: textFont, boldItalicFont: textFont, fixedFont: textFont, blockQuoteFont: textFont, underlineLinks: false, message: message)
+                    strongSelf.textNode.attributedText = itemText
+                } else if case let .pollOption(pollOptionId) = strongSelf.innerSubject, let poll = message?.media.first(where: { $0 is TelegramMediaPoll }) as? TelegramMediaPoll, let pollOption = poll.options.first(where: { $0.opaqueIdentifier == pollOptionId }) {
+                    let textColor = strongSelf.theme.chat.inputPanel.primaryTextColor
+                    let itemText = stringWithAppliedEntities(trimToLineCount(pollOption.text, lineCount: 1), entities: pollOption.entities, baseColor: textColor, linkColor: textColor, baseFont: textFont, linkFont: textFont, boldFont: textFont, italicFont: textFont, boldItalicFont: textFont, fixedFont: textFont, blockQuoteFont: textFont, underlineLinks: false, message: message)
                     strongSelf.textNode.attributedText = itemText
                 }
                 
@@ -409,11 +423,11 @@ public final class ReplyAccessoryPanelNode: AccessoryPanelNode {
                     let updatedText = NSMutableAttributedString(attributedString: text)
                     updatedText.addAttribute(.foregroundColor, value: theme.chat.inputPanel.panelControlAccentColor, range: NSRange(location: 0, length: updatedText.length))
                     return .text(updatedText)
-                case let .icon(icon):
+                case let .icon(icon, offset):
                     if let iconImage = generateTintedImage(image: icon, color: theme.chat.inputPanel.panelControlAccentColor) {
-                        return .icon(iconImage)
+                        return .icon(iconImage, offset)
                     } else {
-                        return .icon(icon)
+                        return .icon(icon, offset)
                     }
                 }
             }

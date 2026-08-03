@@ -10,7 +10,6 @@ swift_library(
         "-warnings-as-errors",
     ],
     deps = [
-        "//submodules/Postbox",
         "//submodules/Display",
         "//submodules/AsyncDisplayKit",
         "//submodules/SSignalKit/SwiftSignalKit",
@@ -38,7 +37,6 @@ swift_library(
         "//submodules/TelegramUI/Components/Chat/ChatMessageInteractiveMediaNode",
         "//submodules/TelegramUI/Components/WallpaperPreviewMedia",
         "//submodules/TelegramUI/Components/Chat/ChatMessageAttachedContentButtonNode",
-        "//submodules/TelegramUI/Components/Chat/ChatMessagePollBubbleContentNode",
         "//submodules/TelegramUI/Components/Chat/MessageInlineBlockBackgroundView",
         "//submodules/ComponentFlow",
         "//submodules/TelegramUI/Components/PlainButtonComponent",

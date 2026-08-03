@@ -4,7 +4,6 @@ import AsyncDisplayKit
 import Display
 import SwiftSignalKit
 import TelegramPresentationData
-import Postbox
 import TelegramCore
 import AccountContext
 import ContextUI
@@ -129,7 +128,7 @@ private final class GiftsTabItemComponent: Component {
                             file = gift.file
                         case let .unique(gift):
                             for attribute in gift.attributes {
-                                if case let .model(_, fileValue, _) = attribute {
+                                if case let .model(_, fileValue, _, _) = attribute {
                                     file = fileValue
                                 }
                             }
@@ -270,7 +269,7 @@ final class PeerInfoPaneTabsContainerPaneNode: ASDisplayNode {
                         file = gift.file
                     case let .unique(gift):
                         for attribute in gift.attributes {
-                            if case let .model(_, fileValue, _) = attribute {
+                            if case let .model(_, fileValue, _, _) = attribute {
                                 file = fileValue
                             }
                         }
@@ -408,15 +407,16 @@ private final class PeerInfoPendingPane {
         updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>)?,
         chatControllerInteraction: ChatControllerInteraction,
         data: PeerInfoScreenData,
-        openPeerContextAction: @escaping (Bool, Peer, ASDisplayNode, ContextGesture?) -> Void,
+        openPeerContextAction: @escaping (Bool, EnginePeer, ASDisplayNode, ContextGesture?) -> Void,
         openAddMemberAction: @escaping () -> Void,
         requestPerformPeerMemberAction: @escaping (PeerInfoMember, PeerMembersListAction) -> Void,
-        peerId: PeerId,
+        peerId: EnginePeer.Id,
         chatLocation: ChatLocation,
         chatLocationContextHolder: Atomic<ChatLocationContextHolder?>,
         sharedMediaFromForumTopic: (EnginePeer.Id, Int64)?,
         initialStoryFolderId: Int64?,
         initialGiftCollectionId: Int64?,
+        switchToMediaTarget: PeerInfoSwitchToMediaTarget?,
         key: PeerInfoPaneKey,
         hasBecomeReady: @escaping (PeerInfoPaneKey) -> Void,
         parentController: ViewController?,
@@ -451,7 +451,7 @@ private final class PeerInfoPendingPane {
             chatLocationContextHolder = Atomic(value: nil)
         }
         
-        var captureProtected = data.peer?.isCopyProtectionEnabled ?? false
+        var captureProtected = peerInfoIsCopyProtected(data: data)
         let paneNode: PeerInfoPaneNode
         switch key {
         case .gifts:
@@ -461,7 +461,7 @@ private final class PeerInfoPendingPane {
                 if let cachedUserData = data.cachedData as? CachedUserData, cachedUserData.disallowedGifts == .All {
                     canGift = false
                 }
-                if let channel = peer as? TelegramChannel, case .broadcast = channel.info {
+                if case let .channel(channel) = peer, case .broadcast = channel.info {
                     if channel.hasPermission(.sendSomething) {
                         canManage = true
                     }
@@ -475,7 +475,7 @@ private final class PeerInfoPendingPane {
             if let peer = data.peer {
                 if peer.id == context.account.peerId {
                     canManage = true
-                } else if let channel = peer as? TelegramChannel {
+                } else if case let .channel(channel) = peer {
                     if channel.hasPermission(.editStories) {
                         canManage = true
                     }
@@ -492,7 +492,7 @@ private final class PeerInfoPendingPane {
                 scope = .botPreview(id: peerId)
                 
                 if let peer = data.peer {
-                    if let user = peer as? TelegramUser, let botInfo = user.botInfo, botInfo.flags.contains(.canEdit) {
+                    if case let .user(user) = peer, let botInfo = user.botInfo, botInfo.flags.contains(.canEdit) {
                         canManage = true
                     }
                 }
@@ -520,7 +520,7 @@ private final class PeerInfoPendingPane {
                 openAddStory()
             }
         case .media:
-            let visualPaneNode = PeerInfoVisualMediaPaneNode(context: context, chatControllerInteraction: chatControllerInteraction, peerId: chatLocationPeerId, chatLocation: chatLocation, chatLocationContextHolder: chatLocationContextHolder, contentType: .photoOrVideo, captureProtected: captureProtected)
+            let visualPaneNode = PeerInfoVisualMediaPaneNode(context: context, chatControllerInteraction: chatControllerInteraction, peerId: chatLocationPeerId, chatLocation: chatLocation, chatLocationContextHolder: chatLocationContextHolder, contentType: .photoOrVideo, captureProtected: captureProtected, initialFocusMessageIndex: switchToMediaTarget?.kind == .photoVideo ? switchToMediaTarget?.messageIndex : nil)
             paneNode = visualPaneNode
             visualPaneNode.openCurrentDate = {
                 openMediaCalendar()
@@ -529,15 +529,15 @@ private final class PeerInfoPendingPane {
                 paneDidScroll()
             }
         case .files:
-            let visualPaneNode = PeerInfoVisualMediaPaneNode(context: context, chatControllerInteraction: chatControllerInteraction, peerId: chatLocationPeerId, chatLocation: chatLocation, chatLocationContextHolder: chatLocationContextHolder, contentType: .files, captureProtected: captureProtected)
+            let visualPaneNode = PeerInfoVisualMediaPaneNode(context: context, chatControllerInteraction: chatControllerInteraction, peerId: chatLocationPeerId, chatLocation: chatLocation, chatLocationContextHolder: chatLocationContextHolder, contentType: .files, captureProtected: captureProtected, initialFocusMessageIndex: switchToMediaTarget?.kind == .photoVideo ? switchToMediaTarget?.messageIndex : nil)
             paneNode = visualPaneNode
         case .links:
             paneNode = PeerInfoListPaneNode(context: context, updatedPresentationData: updatedPresentationData, chatControllerInteraction: chatControllerInteraction, peerId: chatLocationPeerId, chatLocation: chatLocation, chatLocationContextHolder: chatLocationContextHolder, tagMask: .webPage)
         case .voice:
-            let visualPaneNode = PeerInfoVisualMediaPaneNode(context: context, chatControllerInteraction: chatControllerInteraction, peerId: chatLocationPeerId, chatLocation: chatLocation, chatLocationContextHolder: chatLocationContextHolder, contentType: .voiceAndVideoMessages, captureProtected: captureProtected)
+            let visualPaneNode = PeerInfoVisualMediaPaneNode(context: context, chatControllerInteraction: chatControllerInteraction, peerId: chatLocationPeerId, chatLocation: chatLocation, chatLocationContextHolder: chatLocationContextHolder, contentType: .voiceAndVideoMessages, captureProtected: captureProtected, initialFocusMessageIndex: nil)
             paneNode = visualPaneNode
         case .music:
-            let visualPaneNode = PeerInfoVisualMediaPaneNode(context: context, chatControllerInteraction: chatControllerInteraction, peerId: chatLocationPeerId, chatLocation: chatLocation, chatLocationContextHolder: chatLocationContextHolder, contentType: .music, captureProtected: captureProtected)
+            let visualPaneNode = PeerInfoVisualMediaPaneNode(context: context, chatControllerInteraction: chatControllerInteraction, peerId: chatLocationPeerId, chatLocation: chatLocation, chatLocationContextHolder: chatLocationContextHolder, contentType: .music, captureProtected: captureProtected, initialFocusMessageIndex: nil)
             paneNode = visualPaneNode
         case .gifs:
             let visualPaneNode = PeerInfoGifPaneNode(context: context, chatControllerInteraction: chatControllerInteraction, peerId: chatLocationPeerId, chatLocation: chatLocation, chatLocationContextHolder: chatLocationContextHolder, contentType: .gifs)
@@ -559,7 +559,9 @@ private final class PeerInfoPendingPane {
         case .savedMessagesChats:
             paneNode = PeerInfoChatListPaneNode(context: context, navigationController: chatControllerInteraction.navigationController)
         case .savedMessages:
-            paneNode = PeerInfoChatPaneNode(context: context, peerId: peerId, navigationController: chatControllerInteraction.navigationController)
+            paneNode = PeerInfoChatPaneNode(context: context, chatLocation: .replyThread(message: ChatReplyThreadMessage(peerId: context.account.peerId, threadId: peerId.toInt64(), channelMessageId: nil, isChannelPost: false, isForumPost: false, isMonoforumPost: false, maxMessage: nil, maxReadIncomingMessageId: nil, maxReadOutgoingMessageId: nil, unreadCount: 0, initialFilledHoles: IndexSet(), initialAnchor: .automatic, isNotAvailable: false)), tag: nil, hideTopPanels: true, navigationController: chatControllerInteraction.navigationController)
+        case .polls:
+            paneNode = PeerInfoChatPaneNode(context: context, chatLocation: .peer(id: peerId), tag: .polls, navigationController: chatControllerInteraction.navigationController)
         }
         paneNode.externalDataUpdated = externalDataUpdated
         paneNode.parentController = parentController
@@ -579,7 +581,7 @@ private final class PeerInfoPendingPane {
 
 final class PeerInfoPaneContainerNode: ASDisplayNode, ASGestureRecognizerDelegate {
     private let context: AccountContext
-    private let peerId: PeerId
+    private let peerId: EnginePeer.Id
     private let chatLocation: ChatLocation
     private let chatLocationContextHolder: Atomic<ChatLocationContextHolder?>
     private let isMediaOnly: Bool
@@ -626,6 +628,7 @@ final class PeerInfoPaneContainerNode: ASDisplayNode, ASGestureRecognizerDelegat
     private var shouldFadeIn = false
     private var initialStoryFolderId: Int64?
     private var initialGiftCollectionId: Int64?
+    private var switchToMediaTarget: PeerInfoSwitchToMediaTarget?
     
     private var isDraggingTabs: Bool = false
     private var transitionFraction: CGFloat = 0.0
@@ -633,7 +636,7 @@ final class PeerInfoPaneContainerNode: ASDisplayNode, ASGestureRecognizerDelegat
     var selectionPanelNode: PeerInfoSelectionPanelNode?
     
     var chatControllerInteraction: ChatControllerInteraction?
-    var openPeerContextAction: ((Bool, Peer, ASDisplayNode, ContextGesture?) -> Void)?
+    var openPeerContextAction: ((Bool, EnginePeer, ASDisplayNode, ContextGesture?) -> Void)?
     var openAddMemberAction: (() -> Void)?
     var requestPerformPeerMemberAction: ((PeerInfoMember, PeerMembersListAction) -> Void)?
     
@@ -653,7 +656,7 @@ final class PeerInfoPaneContainerNode: ASDisplayNode, ASGestureRecognizerDelegat
     
     private let initialPaneKey: PeerInfoPaneKey?
     
-    init(context: AccountContext, updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>)?, peerId: PeerId, chatLocation: ChatLocation, sharedMediaFromForumTopic: (EnginePeer.Id, Int64)?, chatLocationContextHolder: Atomic<ChatLocationContextHolder?>, isMediaOnly: Bool, initialPaneKey: PeerInfoPaneKey?, initialStoryFolderId: Int64?, initialGiftCollectionId: Int64?) {
+    init(context: AccountContext, updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>)?, peerId: EnginePeer.Id, chatLocation: ChatLocation, sharedMediaFromForumTopic: (EnginePeer.Id, Int64)?, chatLocationContextHolder: Atomic<ChatLocationContextHolder?>, isMediaOnly: Bool, initialPaneKey: PeerInfoPaneKey?, initialStoryFolderId: Int64?, initialGiftCollectionId: Int64?, switchToMediaTarget: PeerInfoSwitchToMediaTarget?) {
         self.context = context
         self.updatedPresentationData = updatedPresentationData
         self.peerId = peerId
@@ -664,6 +667,7 @@ final class PeerInfoPaneContainerNode: ASDisplayNode, ASGestureRecognizerDelegat
         self.initialPaneKey = initialPaneKey
         self.initialStoryFolderId = initialStoryFolderId
         self.initialGiftCollectionId = initialGiftCollectionId
+        self.switchToMediaTarget = switchToMediaTarget
         
         self.tabsBackgroundContainer = GlassBackgroundContainerView()
         self.tabsBackgroundView = GlassBackgroundView()
@@ -818,7 +822,7 @@ final class PeerInfoPaneContainerNode: ASDisplayNode, ASGestureRecognizerDelegat
         }
     }
     
-    func findLoadedMessage(id: MessageId) -> Message? {
+    func findLoadedMessage(id: EngineMessage.Id) -> EngineMessage? {
         return self.currentPane?.node.findLoadedMessage(id: id)
     }
     
@@ -826,11 +830,11 @@ final class PeerInfoPaneContainerNode: ASDisplayNode, ASGestureRecognizerDelegat
         self.currentPane?.node.updateHiddenMedia()
     }
     
-    func transitionNodeForGallery(messageId: MessageId, media: Media) -> (ASDisplayNode, CGRect, () -> (UIView?, UIView?))? {
+    func transitionNodeForGallery(messageId: EngineMessage.Id, media: EngineMedia) -> (ASDisplayNode, CGRect, () -> (UIView?, UIView?))? {
         return self.currentPane?.node.transitionNodeForGallery(messageId: messageId, media: media)
     }
     
-    func updateSelectedMessageIds(_ selectedMessageIds: Set<MessageId>?, animated: Bool) {
+    func updateSelectedMessageIds(_ selectedMessageIds: Set<EngineMessage.Id>?, animated: Bool) {
         for (_, pane) in self.currentPanes {
             pane.node.updateSelectedMessages(animated: animated)
         }
@@ -899,7 +903,7 @@ final class PeerInfoPaneContainerNode: ASDisplayNode, ASGestureRecognizerDelegat
             }
         })))
         
-        let contextController = ContextController(
+        let contextController = makeContextController(
             presentationData: params.presentationData,
             source: .reference(TabsReferenceContentSource(sourceView: sourceView)),
             items: .single(ContextController.Items(content: .list(items))),
@@ -959,7 +963,11 @@ final class PeerInfoPaneContainerNode: ASDisplayNode, ASGestureRecognizerDelegat
         if self.currentPaneKey == .gifts {
             backgroundColor = presentationData.theme.list.blocksBackgroundColor
         } else {
-            backgroundColor = presentationData.theme.list.blocksBackgroundColor.mixedWith(presentationData.theme.list.plainBackgroundColor, alpha: expansionFraction)
+            if self.currentPaneKey == .stories || self.currentPaneKey == .storyArchive {
+                backgroundColor = presentationData.theme.list.blocksBackgroundColor.mixedWith(presentationData.theme.list.plainBackgroundColor, alpha: expansionFraction)
+            } else {
+                backgroundColor = presentationData.theme.list.blocksBackgroundColor
+            }
         }
         
         self.backgroundColor = backgroundColor
@@ -1002,6 +1010,7 @@ final class PeerInfoPaneContainerNode: ASDisplayNode, ASGestureRecognizerDelegat
                 var leftScope = false
                 var initialStoryFolderId: Int64?
                 var initialGiftCollectionId: Int64?
+                var switchToMediaTarget: PeerInfoSwitchToMediaTarget?
                 if case .stories = key {
                     if let initialStoryFolderIdValue = self.initialStoryFolderId {
                         self.initialStoryFolderId = nil
@@ -1012,6 +1021,18 @@ final class PeerInfoPaneContainerNode: ASDisplayNode, ASGestureRecognizerDelegat
                     if let initialGiftCollectionIdValue = self.initialGiftCollectionId {
                         self.initialGiftCollectionId = nil
                         initialGiftCollectionId = initialGiftCollectionIdValue
+                    }
+                }
+                if case .media = key {
+                    if let switchToMediaTargetValue = self.switchToMediaTarget, case .photoVideo = switchToMediaTargetValue.kind {
+                        self.switchToMediaTarget = nil
+                        switchToMediaTarget = switchToMediaTargetValue
+                    }
+                }
+                if case .files = key {
+                    if let switchToMediaTargetValue = self.switchToMediaTarget, case .file = switchToMediaTargetValue.kind {
+                        self.switchToMediaTarget = nil
+                        switchToMediaTarget = switchToMediaTargetValue
                     }
                 }
                 let pane = PeerInfoPendingPane(
@@ -1034,6 +1055,7 @@ final class PeerInfoPaneContainerNode: ASDisplayNode, ASGestureRecognizerDelegat
                     sharedMediaFromForumTopic: self.sharedMediaFromForumTopic,
                     initialStoryFolderId: initialStoryFolderId,
                     initialGiftCollectionId: initialGiftCollectionId,
+                    switchToMediaTarget: switchToMediaTarget,
                     key: key,
                     hasBecomeReady: { [weak self] key in
                         let apply: () -> Void = {
@@ -1226,7 +1248,7 @@ final class PeerInfoPaneContainerNode: ASDisplayNode, ASGestureRecognizerDelegat
         if let peer = data?.peer {
             if peer.id == self.context.account.peerId {
                 canManageTabs = true
-            } else if let channel = data?.peer as? TelegramChannel, case .broadcast = channel.info {
+            } else if case let .channel(channel) = data?.peer, case .broadcast = channel.info {
                 if channel.hasPermission(.changeInfo) {
                     canManageTabs = true
                 }
@@ -1291,6 +1313,8 @@ final class PeerInfoPaneContainerNode: ASDisplayNode, ASGestureRecognizerDelegat
                             GiftsTabItemComponent(context: self.context, icons: icons, title: presentationData.strings.PeerInfo_PaneGifts, theme: presentationData.theme)
                         ))
                         canReorder = true
+                    case .polls:
+                        content = .title(HorizontalTabsComponent.Tab.Title(text: presentationData.strings.PeerInfo_PanePolls, entities: [], enableAnimations: false))
                     }
                     
                     return HorizontalTabsComponent.Tab(
@@ -1354,7 +1378,7 @@ final class PeerInfoPaneContainerNode: ASDisplayNode, ASGestureRecognizerDelegat
         self.tabsBackgroundContainer.update(size: tabContainerFrame.size, isDark: presentationData.theme.overallDarkAppearance, transition: ComponentTransition(transition))
         
         transition.updateFrame(view: self.tabsBackgroundView, frame: CGRect(origin: CGPoint(), size: tabContainerFrame.size))
-        self.tabsBackgroundView.update(size: tabContainerFrame.size, cornerRadius: tabContainerFrame.height * 0.5, isDark: presentationData.theme.overallDarkAppearance, tintColor: .init(kind: .panel, color: UIColor(white: presentationData.theme.overallDarkAppearance ? 0.0 : 1.0, alpha: 0.6)), transition: ComponentTransition(transition))
+        self.tabsBackgroundView.update(size: tabContainerFrame.size, cornerRadius: tabContainerFrame.height * 0.5, isDark: presentationData.theme.overallDarkAppearance, tintColor: .init(kind: .panel), transition: ComponentTransition(transition))
         
         ComponentTransition(transition).setAlpha(view: self.tabsBackgroundContainer, alpha: tabsAlpha)
         

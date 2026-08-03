@@ -9,7 +9,6 @@ import ComponentDisplayAdapters
 import TelegramPresentationData
 import AccountContext
 import TelegramCore
-import Postbox
 import MultilineTextComponent
 import PresentationDataUtils
 import ButtonComponent
@@ -878,7 +877,7 @@ final class LiveStreamSettingsScreenComponent: Component {
                 transition.setFrame(view: titleView, frame: titleFrame)
             }
             
-            let barButtonSize = CGSize(width: 40.0, height: 40.0)
+            let barButtonSize = CGSize(width: 44.0, height: 44.0)
             let cancelButtonSize = self.cancelButton.update(
                 transition: transition,
                 component: AnyComponent(GlassBarButtonComponent(

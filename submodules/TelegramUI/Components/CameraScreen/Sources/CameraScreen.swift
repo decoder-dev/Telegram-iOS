@@ -46,13 +46,13 @@ let collageGrids: [Camera.CollageGrid] = [
     Camera.CollageGrid(rows: [Camera.CollageGrid.Row(columns: 2), Camera.CollageGrid.Row(columns: 2), Camera.CollageGrid.Row(columns: 2)])
 ]
 
-enum CameraMode: Int32, Equatable {
-    case photo
-    case video
-    case live
-}
-
 struct CameraState: Equatable {
+    enum CameraMode: Int32, Equatable {
+        case photo
+        case video
+        case live
+    }
+    
     enum Recording: Equatable {
         case none
         case holding
@@ -171,6 +171,7 @@ private final class CameraScreenComponent: CombinedComponent {
     typealias EnvironmentType = ViewControllerComponentContainer.Environment
     
     let context: AccountContext
+    let mode: CameraScreenImpl.Mode
     let cameraState: CameraState
     let cameraAuthorizationStatus: AccessType
     let microphoneAuthorizationStatus: AccessType
@@ -190,6 +191,7 @@ private final class CameraScreenComponent: CombinedComponent {
     
     init(
         context: AccountContext,
+        mode: CameraScreenImpl.Mode,
         cameraState: CameraState,
         cameraAuthorizationStatus: AccessType,
         microphoneAuthorizationStatus: AccessType,
@@ -208,6 +210,7 @@ private final class CameraScreenComponent: CombinedComponent {
         openResolvedPeer: @escaping (EnginePeer) -> Void
     ) {
         self.context = context
+        self.mode = mode
         self.cameraState = cameraState
         self.cameraAuthorizationStatus = cameraAuthorizationStatus
         self.microphoneAuthorizationStatus = microphoneAuthorizationStatus
@@ -228,6 +231,9 @@ private final class CameraScreenComponent: CombinedComponent {
     
     static func ==(lhs: CameraScreenComponent, rhs: CameraScreenComponent) -> Bool {
         if lhs.context !== rhs.context {
+            return false
+        }
+        if lhs.mode != rhs.mode {
             return false
         }
         if lhs.cameraState != rhs.cameraState {
@@ -318,7 +324,7 @@ private final class CameraScreenComponent: CombinedComponent {
         
         fileprivate var sendAsPeerId: EnginePeer.Id?
         fileprivate var isCustomTarget = false
-        fileprivate var canLivestream = true
+        fileprivate var canLivestream = false
         
         private var privacy: EngineStoryPrivacy = EngineStoryPrivacy(base: .everyone, additionallyIncludePeers: [])
         private var allowComments = true
@@ -345,6 +351,7 @@ private final class CameraScreenComponent: CombinedComponent {
         
         init(
             context: AccountContext,
+            mode: CameraScreenImpl.Mode,
             present: @escaping (ViewController) -> Void,
             completion: ActionSlot<Signal<CameraScreenImpl.Result, NoError>>,
             animateShutter: @escaping () -> Void = {},
@@ -378,6 +385,10 @@ private final class CameraScreenComponent: CombinedComponent {
             
             Queue.concurrentDefaultQueue().async {
                 self.setupRecentAssetSubscription()
+            }
+            
+            if case .story = mode {
+                self.canLivestream = true
             }
             
             if let controller = getController() {
@@ -548,7 +559,7 @@ private final class CameraScreenComponent: CombinedComponent {
             self.buttonPressTimestamp = nil
         }
         
-        func updateCameraMode(_ mode: CameraMode) {
+        func updateCameraMode(_ mode: CameraState.CameraMode) {
             guard let controller = self.getController(), let camera = controller.camera else {
                 return
             }
@@ -1299,6 +1310,7 @@ private final class CameraScreenComponent: CombinedComponent {
     func makeState() -> State {
         return State(
             context: self.context,
+            mode: self.mode,
             present: self.present,
             completion: self.completion,
             animateShutter: self.animateShutter,
@@ -1366,7 +1378,7 @@ private final class CameraScreenComponent: CombinedComponent {
             let previewHeight = floorToScreenPixels(availableSize.width * 1.77778)
             if !isTablet {
                 if availableSize.height < previewHeight + 30.0 {
-                    controlsBottomInset = -48.0
+                    controlsBottomInset = -70.0
                 }
             }
             
@@ -1493,6 +1505,7 @@ private final class CameraScreenComponent: CombinedComponent {
                     hasAppeared: component.hasAppeared && hasAllRequiredAccess,
                     hasAccess: hasAllRequiredAccess,
                     hideControls: component.cameraState.collageProgress > 1.0 - .ulpOfOne,
+                    controlsBottomInset: controlsBottomInset,
                     collageProgress: component.cameraState.collageProgress,
                     collageCount: component.cameraState.isCollageEnabled ? component.cameraState.collageGrid.count : nil,
                     tintColor: controlsTintColor,
@@ -1945,7 +1958,7 @@ private final class CameraScreenComponent: CombinedComponent {
                                 availableSize: CGSize(width: 40.0, height: 40.0),
                                 transition: .immediate
                             )
-                            if component.cameraState.isCollageEnabled {
+                            if state.displayingCollageSelection {
                                 nextButtonX += 48.0
                             }
                             var collageButtonX = nextButtonX
@@ -2099,10 +2112,10 @@ private final class CameraScreenComponent: CombinedComponent {
                 if isTablet {
                     availableModeControlSize = CGSize(width: floor(panelWidth), height: 120.0)
                 } else {
-                    availableModeControlSize = availableSize
+                    availableModeControlSize = CGSize(width: availableSize.width - 140.0, height: availableSize.height)
                 }
                 
-                var availableModes: [CameraMode] = [.photo, .video]
+                var availableModes: [CameraState.CameraMode] = [.photo, .video]
                 if !isTablet && state.canLivestream {
                     availableModes.append(.live)
                 }
@@ -2216,6 +2229,12 @@ public class CameraScreenImpl: ViewController, CameraScreen {
         case story
         case sticker
         case avatar
+    }
+    
+    public enum CameraMode {
+        case photo
+        case video
+        case live
     }
     
     public enum PIPPosition: Int32 {
@@ -2528,8 +2547,18 @@ public class CameraScreenImpl: ViewController, CameraScreen {
                 self.mainPreviewView.resetPlaceholder(front: cameraFrontPosition)
             }
             
+            let cameraMode: CameraState.CameraMode
+            switch controller.cameraMode {
+            case .photo:
+                cameraMode = .photo
+            case .video:
+                cameraMode = .video
+            case .live:
+                cameraMode = .live
+            }
+            
             self.cameraState = CameraState(
-                mode: .photo,
+                mode: cameraMode,
                 position: cameraFrontPosition ? .front : .back,
                 flashMode: .off,
                 flashModeDidChange: false,
@@ -3691,6 +3720,7 @@ public class CameraScreenImpl: ViewController, CameraScreen {
                 component: AnyComponent(
                     CameraScreenComponent(
                         context: self.context,
+                        mode: controller.mode,
                         cameraState: self.cameraState,
                         cameraAuthorizationStatus: self.cameraAuthorizationStatus,
                         microphoneAuthorizationStatus: self.microphoneAuthorizationStatus,
@@ -4002,6 +4032,7 @@ public class CameraScreenImpl: ViewController, CameraScreen {
 
     private let context: AccountContext
     fileprivate let mode: Mode
+    fileprivate let cameraMode: CameraMode
     fileprivate let customTarget: EnginePeer.Id?
     fileprivate let resumeLiveStream: Bool
     fileprivate let holder: CameraHolder?
@@ -4071,6 +4102,7 @@ public class CameraScreenImpl: ViewController, CameraScreen {
     public init(
         context: AccountContext,
         mode: Mode,
+        cameraMode: CameraMode = .photo,
         customTarget: EnginePeer.Id? = nil,
         resumeLiveStream: Bool = false,
         holder: CameraHolder? = nil,
@@ -4080,6 +4112,7 @@ public class CameraScreenImpl: ViewController, CameraScreen {
     ) {
         self.context = context
         self.mode = mode
+        self.cameraMode = cameraMode
         self.customTarget = customTarget
         self.resumeLiveStream = resumeLiveStream
         self.holder = holder

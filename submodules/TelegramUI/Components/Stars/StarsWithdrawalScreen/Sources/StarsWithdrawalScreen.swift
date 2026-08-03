@@ -4,7 +4,6 @@ import AsyncDisplayKit
 import Display
 import ComponentFlow
 import SwiftSignalKit
-import Postbox
 import TelegramCore
 import Markdown
 import TextFormat
@@ -88,10 +87,10 @@ private final class SheetContent: CombinedComponent {
                         
             let closeButton = closeButton.update(
                 component: GlassBarButtonComponent(
-                    size: CGSize(width: 40.0, height: 40.0),
-                    backgroundColor: theme.rootController.navigationBar.glassBarButtonBackgroundColor,
+                    size: CGSize(width: 44.0, height: 44.0),
+                    backgroundColor: nil,
                     isDark: theme.overallDarkAppearance,
-                    state: .generic,
+                    state: .glass,
                     component: AnyComponentWithIdentity(id: "close", component: AnyComponent(
                         BundleIconComponent(
                             name: "Navigation/Close",
@@ -102,7 +101,7 @@ private final class SheetContent: CombinedComponent {
                         component.dismiss()
                     }
                 ),
-                availableSize: CGSize(width: 40.0, height: 40.0),
+                availableSize: CGSize(width: 44.0, height: 44.0),
                 transition: .immediate
             )
             context.add(closeButton
@@ -244,7 +243,7 @@ private final class SheetContent: CombinedComponent {
                 transition: .immediate
             )
             context.add(title
-                .position(CGPoint(x: context.availableSize.width / 2.0, y: 36.0))
+                .position(CGPoint(x: context.availableSize.width / 2.0, y: 38.0))
             )
             contentSize.height += title.size.height
             contentSize.height += 56.0
@@ -442,7 +441,7 @@ private final class SheetContent: CombinedComponent {
                 case .ton:
                     if let value = state.amount?.value, value > 0 {
                         let tonValue = Int64(Float(value) * Float(resaleConfiguration.starGiftCommissionTonPermille) / 1000.0)
-                        let tonString = formatTonAmountText(tonValue, dateTimeFormat: environment.dateTimeFormat, maxDecimalPositions: 3) + " TON"
+                        let tonString = formatTonAmountText(tonValue, dateTimeFormat: environment.dateTimeFormat, maxDecimalPositions: 3, formatString: presentationData.strings.Currency_Grams)
                         amountInfoString = NSAttributedString(attributedString: parseMarkdownIntoAttributedString(environment.strings.Stars_SellGift_AmountInfo(tonString).string, attributes: amountMarkdownAttributes, textAlignment: .natural))
                         
                         if let tonUsdRate = withdrawConfiguration.tonUsdRate {
@@ -954,6 +953,7 @@ private final class SheetContent: CombinedComponent {
                             if let minAmount, amount < minAmount, (!allowZero || amount != .zero) {
                                 controller.presentMinAmountTooltip(minAmount.value, currency: state.currency)
                             } else {
+                                var dismiss = true
                                 switch state.mode {
                                 case let .withdraw(_, completion):
                                     completion(amount.value)
@@ -964,6 +964,7 @@ private final class SheetContent: CombinedComponent {
                                 case let .reaction(_, completion):
                                     completion(amount.value)
                                 case let .starGiftResell(_, _, completion):
+                                    dismiss = false
                                     completion(CurrencyAmount(amount: amount, currency: state.currency))
                                 case let .paidMessages(_, _, _, _, completion):
                                     completion(amount.value)
@@ -1022,7 +1023,9 @@ private final class SheetContent: CombinedComponent {
                                     completion(CurrencyAmount(amount: amount, currency: state.currency), state.duration)
                                 }
                                 
-                                controller.dismissAnimated()
+                                if dismiss {
+                                    controller.dismissAnimated()
+                                }
                             }
                         }
                     }
@@ -1300,6 +1303,8 @@ private final class StarsWithdrawSheetComponent: CombinedComponent {
                 environment: {
                     environment
                     SheetComponentEnvironment(
+                        metrics: environment.metrics,
+                        deviceMetrics: environment.deviceMetrics,
                         isDisplaying: environment.value.isVisible,
                         isCentered: environment.metrics.widthClass == .regular,
                         hasInputHeight: !environment.inputHeight.isZero,
@@ -1421,7 +1426,7 @@ public final class StarsWithdrawScreen: ViewControllerComponentContainer {
             case .stars:
                 text = presentationData.strings.Stars_SellGiftMinAmountToast_Text("\(presentationData.strings.Stars_Withdraw_Withdraw_ErrorMinimum_Stars(Int32(clamping: minAmount)))").string
             case .ton:
-                let amountString = formatTonAmountText(minAmount, dateTimeFormat: presentationData.dateTimeFormat) + " TON"
+                let amountString = formatTonAmountText(minAmount, dateTimeFormat: presentationData.dateTimeFormat, formatString: presentationData.strings.Currency_Grams)
                 text = presentationData.strings.Stars_SellGiftMinAmountToast_Text(amountString).string
             }
         } else if case let .suggestedPost(mode, _, _, _) = self.mode {
@@ -1446,7 +1451,7 @@ public final class StarsWithdrawScreen: ViewControllerComponentContainer {
             case .stars:
                 text = presentationData.strings.Gift_Offer_GiftMinAmountToast_Text("\(presentationData.strings.Stars_Withdraw_Withdraw_ErrorMinimum_Stars(Int32(clamping: minAmount)))").string
             case .ton:
-                let amountString = formatTonAmountText(minAmount, dateTimeFormat: presentationData.dateTimeFormat) + " TON"
+                let amountString = formatTonAmountText(minAmount, dateTimeFormat: presentationData.dateTimeFormat, formatString: presentationData.strings.Currency_Grams)
                 text = presentationData.strings.Gift_Offer_GiftMinAmountToast_Text(amountString).string
             }
         }
@@ -1465,6 +1470,17 @@ public final class StarsWithdrawScreen: ViewControllerComponentContainer {
         
         if let view = self.node.hostView.findTaggedView(tag: amountTag) as? AmountFieldComponent.View {
             view.animateError()
+        }
+    }
+    
+    public override func dismiss(animated flag: Bool, completion: (() -> Void)? = nil) {
+        if flag {
+            self.dismissAnimated()
+            Queue.mainQueue().after(0.3, {
+                completion?()
+            })
+        } else {
+            super.dismiss(animated: false, completion: completion)
         }
     }
         
@@ -2450,7 +2466,7 @@ private final class MenuComponent: Component {
                 componentTransition.setFrame(view: view, frame: CGRect(origin: .zero, size: componentSize))
             }
             
-            self.backgroundView.update(size: backgroundFrame.size, cornerRadius: 30.0, isDark: component.theme.overallDarkAppearance, tintColor: .init(kind: .panel, color: component.theme.chat.inputPanel.inputBackgroundColor.withMultipliedAlpha(0.7)), transition: transition)
+            self.backgroundView.update(size: backgroundFrame.size, cornerRadius: 30.0, isDark: component.theme.overallDarkAppearance, tintColor: .init(kind: .panel), transition: transition)
             self.backgroundView.frame = backgroundFrame
             
             self.containerView.frame = CGRect(origin: .zero, size: availableSize)

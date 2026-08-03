@@ -28,4 +28,11 @@ public protocol ChatListController: ViewController {
     func openStoriesFromNotification(peerId: EnginePeer.Id, storyId: Int32)
     
     func resetForumStackIfOpen()
+    
+    func activateEdit()
+    func openEmojiStatusSetup()
+}
+
+public protocol CommunityViewScreen: ViewController {
+    
 }

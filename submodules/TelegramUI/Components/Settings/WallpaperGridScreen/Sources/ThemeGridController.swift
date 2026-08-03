@@ -2,7 +2,6 @@ import Foundation
 import UIKit
 import Display
 import AsyncDisplayKit
-import Postbox
 import TelegramCore
 import SwiftSignalKit
 import LegacyComponents
@@ -10,7 +9,6 @@ import TelegramPresentationData
 import TelegramUIPreferences
 import OverlayStatusController
 import AccountContext
-import ShareController
 import SearchUI
 import HexColor
 import PresentationDataUtils
@@ -40,6 +38,7 @@ public final class ThemeGridController: ViewController {
     
     private let context: AccountContext
     private let mode: Mode
+    private let forceEdit: Bool
     
     private var presentationData: PresentationData
     private let presentationDataPromise = Promise<PresentationData>()
@@ -58,9 +57,10 @@ public final class ThemeGridController: ViewController {
     
     public var completion: (WallpaperSelectionResult) -> Void = { _ in }
     
-    public init(context: AccountContext, mode: Mode = .generic) {
+    public init(context: AccountContext, mode: Mode = .generic, forceEdit: Bool = false) {
         self.context = context
         self.mode = mode
+        self.forceEdit = forceEdit
         
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
         self.presentationDataPromise.set(.single(self.presentationData))
@@ -115,7 +115,7 @@ public final class ThemeGridController: ViewController {
             if let isEmpty = self.isEmpty, isEmpty {
             } else {
                 if self.editingMode {
-                    self.navigationItem.rightBarButtonItem = UIBarButtonItem(title: self.presentationData.strings.Common_Done, style: .done, target: self, action: #selector(self.donePressed))
+                    self.navigationItem.rightBarButtonItem = UIBarButtonItem(title: "___done", style: .done, target: self, action: #selector(self.donePressed))
                 } else {
                     self.navigationItem.rightBarButtonItem = UIBarButtonItem(title: self.presentationData.strings.Common_Edit, style: .plain, target: self, action: #selector(self.editPressed))
                 }
@@ -359,7 +359,7 @@ public final class ThemeGridController: ViewController {
                                     })
                                 }).start()
                                 
-                                let _ = (telegramWallpapers(postbox: strongSelf.context.account.postbox, network: strongSelf.context.account.network)
+                                let _ = (strongSelf.context.engine.themes.wallpapers()
                                 |> deliverOnMainQueue).start(completed: { [weak self, weak controller] in
                                     controller?.dismiss()
                                     if let strongSelf = self {
@@ -419,6 +419,10 @@ public final class ThemeGridController: ViewController {
         self.navigationBar?.updateBackgroundAlpha(0.0, transition: .immediate)
         
         self.displayNodeDidLoad()
+        
+        if self.forceEdit {
+            self.editPressed()
+        }
     }
     
     private func shareWallpapers(_ wallpapers: [TelegramWallpaper]) {
@@ -460,7 +464,7 @@ public final class ThemeGridController: ViewController {
         } else {
             subject = .text(string)
         }
-        let shareController = ShareController(context: context, subject: subject)
+        let shareController = context.sharedContext.makeShareController(context: context, params: ShareControllerParams(subject: subject))
         self.present(shareController, in: .window(.root), blockInteraction: true)
         
         self.donePressed()
@@ -474,7 +478,7 @@ public final class ThemeGridController: ViewController {
     
     @objc func editPressed() {
         self.editingMode = true
-        self.navigationItem.rightBarButtonItem = UIBarButtonItem(title: self.presentationData.strings.Common_Done, style: .done, target: self, action: #selector(self.donePressed))
+        self.navigationItem.rightBarButtonItem = UIBarButtonItem(title: "___done", style: .done, target: self, action: #selector(self.donePressed))
         self.controllerNode.updateState { state in
             var state = state
             state.editing = true

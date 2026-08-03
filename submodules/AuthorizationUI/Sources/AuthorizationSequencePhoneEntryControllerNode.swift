@@ -8,7 +8,6 @@ import PhoneInputNode
 import CountrySelectionUI
 import QrCode
 import SwiftSignalKit
-import Postbox
 import AccountContext
 import AnimatedStickerNode
 import TelegramAnimatedStickerNode
@@ -118,7 +117,9 @@ private final class PhoneAndCountryNode: ASDisplayNode {
         self.phoneInputNode.numberField.textField.tintColor = theme.list.itemAccentColor
         self.phoneInputNode.countryCodeField.accessibilityHint = strings.Login_VoiceOver_PhoneCountryCode
         self.phoneInputNode.numberField.accessibilityHint = strings.Login_VoiceOver_PhoneNumber
-        
+        self.phoneInputNode.countryCodeField.textField.accessibilityIdentifier = "Auth.PhoneEntry.CountryCodeField"
+        self.phoneInputNode.numberField.textField.accessibilityIdentifier = "Auth.PhoneEntry.PhoneNumberField"
+
         self.phoneInputNode.countryCodeField.textField.tintColor = theme.list.itemAccentColor
         self.phoneInputNode.numberField.textField.tintColor = theme.list.itemAccentColor
         
@@ -423,10 +424,11 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
         
         self.phoneAndCountryNode = PhoneAndCountryNode(strings: strings, theme: theme)
         
-        self.proceedNode = SolidRoundedButtonNode(title: self.strings.Login_Continue, theme: SolidRoundedButtonTheme(theme: self.theme), glass: true, height: 50.0, cornerRadius: 50 * 0.5)
+        self.proceedNode = SolidRoundedButtonNode(title: self.strings.Login_Continue, theme: SolidRoundedButtonTheme(theme: self.theme), glass: false, height: 50.0, cornerRadius: 50 * 0.5)
         self.proceedNode.progressType = .embedded
         self.proceedNode.isEnabled = false
-        
+        self.proceedNode.accessibilityIdentifier = "Auth.PhoneEntry.ContinueButton"
+
         super.init()
         
         self.setViewBlock({
@@ -842,7 +844,7 @@ final class PhoneConfirmationController: ViewController {
             
             self.backgroundNode = ASDisplayNode()
             self.backgroundNode.backgroundColor = theme.list.itemBlocksBackgroundColor
-            self.backgroundNode.cornerRadius = 24.0
+            self.backgroundNode.cornerRadius = 42.0
             
             self.textNode = ImmediateTextNode()
             self.textNode.displaysAsynchronously = false
@@ -857,9 +859,10 @@ final class PhoneConfirmationController: ViewController {
             self.cancelButton.accessibilityTraits = [.button]
             self.cancelButton.accessibilityLabel = strings.Login_Edit
             
-            self.proceedNode = SolidRoundedButtonNode(title: strings.Login_Continue, theme: SolidRoundedButtonTheme(theme: theme), glass: true, height: 50.0, cornerRadius: 50.0 * 0.5)
+            self.proceedNode = SolidRoundedButtonNode(title: strings.Login_Continue, theme: SolidRoundedButtonTheme(theme: theme), glass: false, height: 50.0, cornerRadius: 50.0 * 0.5)
             self.proceedNode.progressType = .embedded
-            
+            self.proceedNode.accessibilityIdentifier = "Auth.PhoneConfirm.ContinueButton"
+
             let font = Font.with(size: 20.0, design: .regular, traits: [.monospacedNumbers])
             let largeFont = Font.with(size: 34.0, design: .regular, weight: .bold, traits: [.monospacedNumbers])
             
@@ -1110,7 +1113,7 @@ final class PhoneConfirmationController: ViewController {
             self.textActivateAreaNode.frame = self.textNode.frame
             self.textActivateAreaNode.accessibilityLabel = "\(self.code) \(self.number). \(self.strings.Login_PhoneNumberConfirmation)"
             
-            let proceedWidth = backgroundSize.width - 16.0 * 2.0
+            let proceedWidth = backgroundSize.width - innerInset * 2.0
             let proceedHeight = self.proceedNode.updateLayout(width: proceedWidth, transition: transition)
             transition.updateFrame(node: self.proceedNode, frame: CGRect(origin: CGPoint(x: innerInset, y: backgroundSize.height - proceedHeight - innerInset), size: CGSize(width: proceedWidth, height: proceedHeight)).offsetBy(dx: backgroundFrame.minX, dy: backgroundFrame.minY))
             

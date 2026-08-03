@@ -3,7 +3,6 @@ import UIKit
 import AsyncDisplayKit
 import Display
 import ComponentFlow
-import Postbox
 import TelegramCore
 import TelegramPresentationData
 import AccountContext
@@ -34,10 +33,10 @@ public func giftTransferAlertController(
     let text: String
     let buttonText: String
     if transferStars > 0 {
-        text = strings.Gift_Transfer_Confirmation_Text("\(gift.title) #\(presentationStringsFormattedNumber(gift.number, presentationData.dateTimeFormat.groupingSeparator))", peer.displayTitle(strings: strings, displayOrder: presentationData.nameDisplayOrder), strings.Gift_Transfer_Confirmation_Text_Stars(Int32(clamping: transferStars))).string
+        text = strings.Gift_Transfer_Confirmation_Text("\(gift.title) #\(formatCollectibleNumber(gift.number, dateTimeFormat: presentationData.dateTimeFormat))", peer.displayTitle(strings: strings, displayOrder: presentationData.nameDisplayOrder), strings.Gift_Transfer_Confirmation_Text_Stars(Int32(clamping: transferStars))).string
         buttonText = "\(strings.Gift_Transfer_Confirmation_Transfer)  $  \(transferStars)"
     } else {
-        text = strings.Gift_Transfer_Confirmation_TextFree("\(gift.title) #\(presentationStringsFormattedNumber(gift.number, presentationData.dateTimeFormat.groupingSeparator))", peer.displayTitle(strings: strings, displayOrder: presentationData.nameDisplayOrder)).string
+        text = strings.Gift_Transfer_Confirmation_TextFree("\(gift.title) #\(formatCollectibleNumber(gift.number, dateTimeFormat: presentationData.dateTimeFormat))", peer.displayTitle(strings: strings, displayOrder: presentationData.nameDisplayOrder)).string
         buttonText = strings.Gift_Transfer_Confirmation_TransferFree
     }
     
@@ -68,23 +67,23 @@ public func giftTransferAlertController(
             let tag: AnyObject?
             
             switch attribute {
-            case let .model(name, _, rarity):
+            case let .model(name, _, rarity, _):
                 id = "model"
                 title = strings.Gift_Unique_Model
                 value = NSAttributedString(string: name, font: tableFont, textColor: tableTextColor)
-                percentage = Float(rarity) * 0.1
+                percentage = Float(rarity.permilleValue) * 0.1
                 tag = modelButtonTag
             case let .backdrop(name, _, _, _, _, _, rarity):
                 id = "backdrop"
                 title = strings.Gift_Unique_Backdrop
                 value = NSAttributedString(string: name, font: tableFont, textColor: tableTextColor)
-                percentage = Float(rarity) * 0.1
+                percentage = Float(rarity.permilleValue) * 0.1
                 tag = backdropButtonTag
             case let .pattern(name, _, rarity):
                 id = "pattern"
                 title = strings.Gift_Unique_Symbol
                 value = NSAttributedString(string: name, font: tableFont, textColor: tableTextColor)
-                percentage = Float(rarity) * 0.1
+                percentage = Float(rarity.permilleValue) * 0.1
                 tag = symbolButtonTag
             case .originalInfo:
                 continue

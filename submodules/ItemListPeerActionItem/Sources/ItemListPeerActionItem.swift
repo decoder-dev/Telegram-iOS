@@ -35,8 +35,9 @@ public class ItemListPeerActionItem: ListViewItem, ItemListItem {
     let noInsets: Bool
     public let sectionId: ItemListSectionId
     public let action: (() -> Void)?
+    public let tag: Any?
     
-    public init(presentationData: ItemListPresentationData, style: ItemListStyle = .blocks, systemStyle: ItemListSystemStyle = .legacy, icon: UIImage?, iconSignal: Signal<UIImage?, NoError>? = nil, title: String, additionalBadgeIcon: UIImage? = nil, alwaysPlain: Bool = false, hasSeparator: Bool = true, sectionId: ItemListSectionId, height: ItemListPeerActionItemHeight = .peerList, color: ItemListPeerActionItemColor = .accent, noInsets: Bool = false, editing: Bool = false, action: (() -> Void)?) {
+    public init(presentationData: ItemListPresentationData, style: ItemListStyle = .blocks, systemStyle: ItemListSystemStyle = .legacy, icon: UIImage?, iconSignal: Signal<UIImage?, NoError>? = nil, title: String, additionalBadgeIcon: UIImage? = nil, alwaysPlain: Bool = false, hasSeparator: Bool = true, sectionId: ItemListSectionId, height: ItemListPeerActionItemHeight = .peerList, color: ItemListPeerActionItemColor = .accent, noInsets: Bool = false, editing: Bool = false, action: (() -> Void)?, tag: Any? = nil) {
         self.presentationData = presentationData
         self.style = style
         self.systemStyle = systemStyle
@@ -52,6 +53,7 @@ public class ItemListPeerActionItem: ListViewItem, ItemListItem {
         self.color = color
         self.sectionId = sectionId
         self.action = action
+        self.tag = tag
     }
     
     public func nodeConfiguredForParams(async: @escaping (@escaping () -> Void) -> Void, params: ListViewItemLayoutParams, synchronousLoads: Bool, previousItem: ListViewItem?, nextItem: ListViewItem?, completion: @escaping (ListViewItemNode, @escaping () -> (Signal<Void, NoError>?, (ListViewItemApply) -> Void)) -> Void) {
@@ -116,8 +118,9 @@ public class ItemListPeerActionItem: ListViewItem, ItemListItem {
     }
 }
 
-public final class ItemListPeerActionItemNode: ListViewItemNode {
+public final class ItemListPeerActionItemNode: ListViewItemNode, ItemListItemNode {
     private let backgroundNode: ASDisplayNode
+    private let highlightNode: ASDisplayNode
     private let topStripeNode: ASDisplayNode
     private let bottomStripeNode: ASDisplayNode
     private let highlightedBackgroundNode: ASDisplayNode
@@ -133,9 +136,16 @@ public final class ItemListPeerActionItemNode: ListViewItemNode {
     
     private let iconDisposable = MetaDisposable()
     
+    public var tag: ItemListItemTag? {
+        return self.item?.tag as? ItemListItemTag
+    }
+    
     public init() {
         self.backgroundNode = ASDisplayNode()
         self.backgroundNode.isLayerBacked = true
+        
+        self.highlightNode = ASDisplayNode()
+        self.highlightNode.isLayerBacked = true
         
         self.topStripeNode = ASDisplayNode()
         self.topStripeNode.isLayerBacked = true
@@ -170,6 +180,20 @@ public final class ItemListPeerActionItemNode: ListViewItemNode {
     
     deinit {
         self.iconDisposable.dispose()
+    }
+    
+    public func displayHighlight() {
+        if self.backgroundNode.supernode != nil {
+            self.insertSubnode(self.highlightNode, aboveSubnode: self.backgroundNode)
+        } else {
+            self.insertSubnode(self.highlightNode, at: 0)
+        }
+        
+        Queue.mainQueue().after(1.2, {
+            self.highlightNode.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.3, removeOnCompletion: false, completion: { _ in
+                self.highlightNode.removeFromSupernode()
+            })
+        })
     }
     
     public func asyncLayout() -> (_ item: ItemListPeerActionItem, _ params: ListViewItemLayoutParams, _ neighbors: ItemListNeighbors) -> (ListViewItemNodeLayout, (Bool) -> Void) {
@@ -269,6 +293,7 @@ public final class ItemListPeerActionItemNode: ListViewItemNode {
                             }
                             strongSelf.highlightedBackgroundNode.backgroundColor = item.presentationData.theme.list.itemHighlightedBackgroundColor
                         }
+                        strongSelf.highlightNode.backgroundColor = item.presentationData.theme.list.itemSearchHighlightColor
                     }
                     
                     let _ = titleApply()
@@ -308,7 +333,7 @@ public final class ItemListPeerActionItemNode: ListViewItemNode {
                         if strongSelf.maskNode.supernode != nil {
                             strongSelf.maskNode.removeFromSupernode()
                         }
-                        strongSelf.bottomStripeNode.frame = CGRect(origin: CGPoint(x: leftInset, y: contentSize.height - separatorHeight), size: CGSize(width: params.width - leftInset, height: separatorHeight))
+                        strongSelf.bottomStripeNode.frame = CGRect(origin: CGPoint(x: leftInset, y: contentSize.height - separatorHeight), size: CGSize(width: params.width - leftInset - separatorRightInset, height: separatorHeight))
                     case .blocks:
                         if strongSelf.backgroundNode.supernode == nil {
                             strongSelf.insertSubnode(strongSelf.backgroundNode, at: 0)
@@ -351,6 +376,7 @@ public final class ItemListPeerActionItemNode: ListViewItemNode {
                         strongSelf.maskNode.image = hasCorners ? PresentationResourcesItemList.cornersImage(item.presentationData.theme, top: hasTopCorners, bottom: hasBottomCorners, glass: item.systemStyle == .glass) : nil
                         
                         strongSelf.backgroundNode.frame = CGRect(origin: CGPoint(x: 0.0, y: -min(insets.top, separatorHeight)), size: CGSize(width: params.width, height: contentSize.height + min(insets.top, separatorHeight) + min(insets.bottom, separatorHeight)))
+                        strongSelf.highlightNode.frame = CGRect(origin: CGPoint(x: 0.0, y: -min(insets.top, separatorHeight)), size: CGSize(width: params.width, height: contentSize.height + min(insets.top, separatorHeight) + min(insets.bottom, separatorHeight)))
                         strongSelf.maskNode.frame = strongSelf.backgroundNode.frame.insetBy(dx: params.leftInset, dy: 0.0)
                         strongSelf.topStripeNode.frame = CGRect(origin: CGPoint(x: 0.0, y: -min(insets.top, separatorHeight)), size: CGSize(width: layoutSize.width, height: separatorHeight))
                         transition.updateFrame(node: strongSelf.bottomStripeNode, frame: CGRect(origin: CGPoint(x: bottomStripeInset, y: contentSize.height + bottomStripeOffset), size: CGSize(width: layoutSize.width - bottomStripeInset - separatorRightInset - params.rightInset, height: separatorHeight)))

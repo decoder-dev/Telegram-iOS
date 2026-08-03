@@ -65,6 +65,8 @@ public final class AlertTitleComponent: Component {
             
             let environment = environment[AlertComponentEnvironment.self]
             
+            let inset: CGFloat = -6.0
+            let titleConstrainedSize = CGSize(width: availableSize.width - inset * 2.0, height: availableSize.height)
             let titleSize = self.title.update(
                 transition: transition,
                 component: AnyComponent(MultilineTextComponent(
@@ -77,13 +79,13 @@ public final class AlertTitleComponent: Component {
                     maximumNumberOfLines: 0
                 )),
                 environment: {},
-                containerSize: availableSize
+                containerSize: titleConstrainedSize
             )
             
             let titleOriginX: CGFloat
             switch component.alignment {
             case .default:
-                titleOriginX = 0.0
+                titleOriginX = inset
             case .center:
                 titleOriginX = floorToScreenPixels((availableSize.width - titleSize.width) / 2.0)
             }
@@ -280,7 +282,8 @@ public final class AlertTextComponent: Component {
                 break
             }
             
-            let textConstrainedSize = CGSize(width: availableSize.width, height: availableSize.height)
+            let inset: CGFloat = -6.0
+            let textConstrainedSize = CGSize(width: availableSize.width - inset * 2.0, height: availableSize.height)
                         
             let textSize = self.text.update(
                 transition: transition,
@@ -314,29 +317,29 @@ public final class AlertTextComponent: Component {
                 containerSize: textConstrainedSize
             )
             
-            var textOffset = CGPoint()
+            var textOffset = CGPoint(x: inset, y: 0.0)
             if hasCenterAlignment {
                 textOffset.x = floorToScreenPixels((availableSize.width - textSize.width) / 2.0)
             }
             var size = CGSize(width: availableSize.width, height: textSize.height)
             if case .background = component.style {
-                let backgroundSize = CGSize(width: availableSize.width + 20.0, height: textSize.height + backgroundInset * 2.0)
+                let backgroundSize = CGSize(width: availableSize.width + 20.0 + component.insets.left + component.insets.right, height: textSize.height + backgroundInset * 2.0)
                 size = backgroundSize
-                textOffset = CGPoint(x: textOffset.x, y: backgroundInset)
+                textOffset = CGPoint(x: textOffset.x, y: backgroundInset + 1.0)
                 
                 let _ = self.background.update(
                     transition: transition,
                     component: AnyComponent(
                         FilledRoundedRectangleComponent(
                             color: textColor.withMultipliedAlpha(0.1),
-                            cornerRadius: .value(10.0),
+                            cornerRadius: .value(12.0),
                             smoothCorners: true
                         )
                     ),
                     environment: {},
                     containerSize: backgroundSize
                 )
-                let backgroundFrame = CGRect(origin: CGPoint(x: -10.0, y: component.insets.top), size: backgroundSize)
+                let backgroundFrame = CGRect(origin: CGPoint(x: -10.0 - component.insets.left, y: component.insets.top), size: backgroundSize)
                 if let backgroundView = self.background.view {
                     if backgroundView.superview == nil {
                         self.addSubview(backgroundView)

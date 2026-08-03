@@ -156,7 +156,8 @@ private class ReplyThreadHistoryContextImpl {
             |> mapToSignal { discussionMessage -> Signal<DiscussionMessage, FetchChannelReplyThreadMessageError> in
                 return account.postbox.transaction { transaction -> Signal<DiscussionMessage, FetchChannelReplyThreadMessageError> in
                     switch discussionMessage {
-                    case let .discussionMessage(_, messages, maxId, readInboxMaxId, readOutboxMaxId, unreadCount, chats, users):
+                    case let .discussionMessage(discussionMessageData):
+                        let (messages, maxId, readInboxMaxId, readOutboxMaxId, unreadCount, chats, users) = (discussionMessageData.messages, discussionMessageData.maxId, discussionMessageData.readInboxMaxId, discussionMessageData.readOutboxMaxId, discussionMessageData.unreadCount, discussionMessageData.chats, discussionMessageData.users)
                         let parsedMessages = messages.compactMap { message -> StoreMessage? in
                             StoreMessage(apiMessage: message, accountPeerId: accountPeerId, peerIsForum: peer.isForumOrMonoForum)
                         }
@@ -338,7 +339,6 @@ private class ReplyThreadHistoryContextImpl {
             }
             
             var markMainAsRead = false
-            markMainAsRead = !"".isEmpty
             
             if var data = transaction.getMessageHistoryThreadInfo(peerId: peerId, threadId: threadId)?.data.get(MessageHistoryThreadData.self) {
                 if messageIndex.id.id >= data.maxIncomingReadId {
@@ -347,6 +347,7 @@ private class ReplyThreadHistoryContextImpl {
                         data.maxIncomingReadId = messageIndex.id.id
                     }
                     
+                    var newCountIsZero = false
                     if let topMessageIndex = transaction.getMessageHistoryThreadTopMessage(peerId: peerId, threadId: threadId, namespaces: Set([Namespaces.Message.Cloud])) {
                         if messageIndex.id.id >= topMessageIndex.id.id {
                             let containingHole = transaction.getThreadIndexHole(peerId: peerId, threadId: threadId, namespace: topMessageIndex.id.namespace, containing: topMessageIndex.id.id)
@@ -354,6 +355,24 @@ private class ReplyThreadHistoryContextImpl {
                             } else {
                                 data.incomingUnreadCount = 0
                             }
+                        }
+                    }
+                    newCountIsZero = data.incomingUnreadCount == 0
+                    
+                    if newCountIsZero, let peer = transaction.getPeer(peerId), peer.isForumOrMonoForum {
+                        var allTopicsAreRead = true
+                        for item in transaction.getMessageHistoryThreadIndex(peerId: peer.id, limit: 100) {
+                            guard let data = transaction.getMessageHistoryThreadInfo(peerId: messageIndex.id.peerId, threadId: item.threadId)?.data.get(MessageHistoryThreadData.self) else {
+                                continue
+                            }
+                            if data.incomingUnreadCount != 0 {
+                                allTopicsAreRead = false
+                                break
+                            }
+                        }
+                        
+                        if allTopicsAreRead {
+                            markMainAsRead = true
                         }
                     }
                     
@@ -476,7 +495,8 @@ private class ReplyThreadHistoryContextImpl {
                     let validateSignal = strongSelf.account.network.request(Api.functions.messages.getDiscussionMessage(peer: inputPeer, msgId: Int32(clamping: threadId)))
                     |> map { result -> (MessageId?, Int) in
                         switch result {
-                        case let .discussionMessage(_, _, _, readInboxMaxId, _, unreadCount, _, _):
+                        case let .discussionMessage(discussionMessageData):
+                            let (readInboxMaxId, unreadCount) = (discussionMessageData.readInboxMaxId, discussionMessageData.unreadCount)
                             return (readInboxMaxId.flatMap({ MessageId(peerId: peerId, namespace: Namespaces.Message.Cloud, id: $0) }), Int(unreadCount))
                         }
                     }
@@ -670,7 +690,8 @@ func _internal_fetchChannelReplyThreadMessage(account: Account, messageId: Messa
             }
             return account.postbox.transaction { transaction -> DiscussionMessage? in
                 switch discussionMessage {
-                case let .discussionMessage(_, messages, maxId, readInboxMaxId, readOutboxMaxId, unreadCount, chats, users):
+                case let .discussionMessage(discussionMessageData):
+                    let (messages, maxId, readInboxMaxId, readOutboxMaxId, unreadCount, chats, users) = (discussionMessageData.messages, discussionMessageData.maxId, discussionMessageData.readInboxMaxId, discussionMessageData.readOutboxMaxId, discussionMessageData.unreadCount, discussionMessageData.chats, discussionMessageData.users)
                     let parsedMessages = messages.compactMap { message -> StoreMessage? in
                         StoreMessage(apiMessage: message, accountPeerId: accountPeerId, peerIsForum: peer.isForumOrMonoForum)
                     }

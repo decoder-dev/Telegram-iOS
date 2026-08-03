@@ -171,10 +171,9 @@ private enum LocationPickerEntry: Comparable, Identifiable {
                     if let coordinate = coordinate {
                         interaction?.sendLocation(coordinate, name, address?.withUpdated(street: nil))
                     }
-                }, highlighted: { highlighted in
-                    interaction?.updateSendActionHighlight(highlighted)
+                }, highlighted: { _ in
                 })
-            case let .location(_, title, subtitle, venue, queryId, resultId, coordinate, name, address, isTop):
+            case let .location(_, title, subtitle, venue, queryId, resultId, coordinate, name, address, _):
                 let icon: LocationActionListItemIcon
                 if let venue = venue {
                     icon = .venue(venue)
@@ -187,10 +186,7 @@ private enum LocationPickerEntry: Comparable, Identifiable {
                     } else if let coordinate {
                         interaction?.sendLocation(coordinate, name, address)
                     }
-                }, highlighted: { highlighted in
-                    if isTop {
-                        interaction?.updateSendActionHighlight(highlighted)
-                    }
+                }, highlighted: { _ in
                 })
             case let .liveLocation(_, title, subtitle, coordinate):
                 return LocationActionListItem(presentationData: ItemListPresentationData(presentationData), engine: engine, title: title, subtitle: subtitle, icon: .liveLocation, beginTimeAndTimeout: nil, action: {
@@ -354,13 +350,13 @@ final class LocationPickerControllerNode: ViewControllerTracingNode, CLLocationM
     private let cancelButton = ComponentView<Empty>()
     private let searchButton = ComponentView<Empty>()
     private let title = ComponentView<Empty>()
+    private let subtitle = ComponentView<Empty>()
     
     fileprivate let topEdgeEffectView: EdgeEffectView
     fileprivate let bottomEdgeEffectView: EdgeEffectView
     
     private var sendButton: ComponentView<Empty>?
     
-    private let optionsNode: LocationOptionsNode
     private(set) var searchContainerNode: LocationSearchContainerNode?
     
     private var placeholderBackgroundNode: NavigationBackgroundNode?
@@ -399,7 +395,7 @@ final class LocationPickerControllerNode: ViewControllerTracingNode, CLLocationM
         self.state = LocationPickerState()
         self.statePromise = Promise(self.state)
         
-        self.listNode = ListView()
+        self.listNode = ListViewImpl()
         self.listNode.backgroundColor = self.presentationData.theme.list.plainBackgroundColor
         self.listNode.verticalScrollIndicatorColor = UIColor(white: 0.0, alpha: 0.3)
         self.listNode.verticalScrollIndicatorFollowsOverscroll = true
@@ -421,9 +417,7 @@ final class LocationPickerControllerNode: ViewControllerTracingNode, CLLocationM
             showPlacesInThisArea: interaction.showPlacesInThisArea
         )
         self.headerNode.mapNode.isRotateEnabled = false
-                
-        self.optionsNode = LocationOptionsNode(presentationData: presentationData, updateMapMode: interaction.updateMapMode)
-        
+                        
         self.shadeNode = ASDisplayNode()
         self.shadeNode.backgroundColor = self.presentationData.theme.list.plainBackgroundColor
         self.shadeNode.alpha = 0.0
@@ -442,7 +436,7 @@ final class LocationPickerControllerNode: ViewControllerTracingNode, CLLocationM
         
         self.addSubnode(self.listNode)
         self.addSubnode(self.headerNode)
-        //self.addSubnode(self.optionsNode)
+        
         self.listNode.addSubnode(self.emptyResultsTextNode)
         self.shadeNode.addSubnode(self.innerShadeNode)
         self.addSubnode(self.shadeNode)
@@ -670,15 +664,18 @@ final class LocationPickerControllerNode: ViewControllerTracingNode, CLLocationM
                         var coordinate = userLocation?.coordinate
                         switch strongSelf.mode {
                         case .share:
-                            if source == .story {
+                            switch source {
+                            case .generic:
+                                title = presentationData.strings.Map_SendMyCurrentLocation
+                            case .story:
                                 if let initialLocation = strongSelf.controller?.initialLocation {
                                     title = presentationData.strings.Location_AddThisLocation
                                     coordinate = initialLocation
                                 } else {
                                     title = presentationData.strings.Location_AddMyLocation
                                 }
-                            } else {
-                                title = presentationData.strings.Map_SendMyCurrentLocation
+                            case .poll:
+                                title = presentationData.strings.Location_AddThisLocation
                             }
                         case .pick:
                             title = presentationData.strings.Map_SetThisLocation
@@ -1095,7 +1092,6 @@ final class LocationPickerControllerNode: ViewControllerTracingNode, CLLocationM
         self.backgroundColor = self.presentationData.theme.list.plainBackgroundColor
         self.listNode.backgroundColor = self.presentationData.theme.list.plainBackgroundColor
         self.headerNode.updatePresentationData(self.presentationData)
-        self.optionsNode.updatePresentationData(self.presentationData)
         self.shadeNode.backgroundColor = self.presentationData.theme.list.plainBackgroundColor
         self.innerShadeNode.backgroundColor = self.presentationData.theme.list.plainBackgroundColor
         self.searchContainerNode?.updatePresentationData(self.presentationData)
@@ -1210,6 +1206,16 @@ final class LocationPickerControllerNode: ViewControllerTracingNode, CLLocationM
         return (self.state.selectedLocation.isCustom || self.state.forceSelection) && !self.state.searchingVenuesAround
     }
     
+    func liveLocationActionSourceView(extend: Bool) -> UIView? {
+        var result: UIView?
+        self.listNode.forEachItemNode { itemNode in
+            if result == nil, let itemNode = itemNode as? LocationActionListItemNode {
+                result = itemNode.liveLocationContextSourceView(extend: extend)
+            }
+        }
+        return result
+    }
+    
     func requestLayout(transition: ContainedViewLayoutTransition) {
         if let (layout, navigationHeight) = self.validLayout {
             self.containerLayoutUpdated(layout, navigationHeight: navigationHeight, transition: transition)
@@ -1287,12 +1293,6 @@ final class LocationPickerControllerNode: ViewControllerTracingNode, CLLocationM
             }
         }
         
-        let optionsOffset: CGFloat = self.state.displayingMapModeOptions ? navigationHeight : navigationHeight - optionsHeight
-        let optionsFrame = CGRect(x: 0.0, y: optionsOffset, width: layout.size.width, height: optionsHeight)
-        transition.updateFrame(node: self.optionsNode, frame: optionsFrame)
-        self.optionsNode.updateLayout(size: optionsFrame.size, leftInset: insets.left, rightInset: insets.right, transition: transition)
-        self.optionsNode.isUserInteractionEnabled = self.state.displayingMapModeOptions
-        
         if let searchContainerNode = self.searchContainerNode {
             searchContainerNode.frame = CGRect(origin: CGPoint(), size: layout.size)
             searchContainerNode.containerLayoutUpdated(ContainerViewLayout(size: layout.size, metrics: LayoutMetrics(), deviceMetrics: layout.deviceMetrics, intrinsicInsets: layout.intrinsicInsets, safeInsets: layout.safeInsets, additionalInsets: layout.additionalInsets, statusBarHeight: nil, inputHeight: layout.inputHeight, inputHeightIsInteractivellyChanging: layout.inputHeightIsInteractivellyChanging, inVoiceOver: layout.inVoiceOver), navigationBarHeight: navigationHeight, transition: transition)
@@ -1358,6 +1358,28 @@ final class LocationPickerControllerNode: ViewControllerTracingNode, CLLocationM
                 self.view.addSubview(self.topEdgeEffectView)
             }
             
+            let titleSpacing: CGFloat = 1.0
+            var combinedTitleHeight: CGFloat = 0.0
+            
+            var subtitle: String = ""
+            if let source = self.controller?.source {
+                switch source {
+                case let .poll(pollMode):
+                    switch pollMode {
+                    case .description:
+                        subtitle = self.presentationData.strings.Location_PollSubtitle_Description
+                    case .quizAnswer:
+                        subtitle = self.presentationData.strings.Location_PollSubtitle_Explanation
+                    case .option:
+                        subtitle = self.presentationData.strings.Location_PollSubtitle_PollOption
+                    case .richText:
+                        subtitle = self.presentationData.strings.RichText_AddMediaTitle
+                    }
+                default:
+                    break
+                }
+            }
+            
             let titleSize = self.title.update(
                 transition: ComponentTransition(transition),
                 component: AnyComponent(
@@ -1374,7 +1396,37 @@ final class LocationPickerControllerNode: ViewControllerTracingNode, CLLocationM
                 environment: {},
                 containerSize: CGSize(width: 200.0, height: 40.0)
             )
-            let titleFrame = CGRect(origin: CGPoint(x: floorToScreenPixels((layout.size.width - titleSize.width) / 2.0), y: floorToScreenPixels((navigationHeight - titleSize.height) / 2.0) + 3.0), size: titleSize)
+            combinedTitleHeight += titleSize.height
+        
+            if !subtitle.isEmpty {
+                let subtitleSize = self.subtitle.update(
+                    transition: ComponentTransition(transition),
+                    component: AnyComponent(
+                        MultilineTextComponent(
+                            text: .plain(
+                                NSAttributedString(
+                                    string: subtitle,
+                                    font: Font.regular(12.0),
+                                    textColor: self.headerNode.mapNode.mapMode == .map ? self.presentationData.theme.rootController.navigationBar.primaryTextColor.withMultipliedAlpha(0.5) : .white.withAlphaComponent(0.5)
+                                )
+                            )
+                        )
+                    ),
+                    environment: {},
+                    containerSize: CGSize(width: 230.0, height: 40.0)
+                )
+                combinedTitleHeight += subtitleSize.height + titleSpacing
+                
+                let subtitleFrame = CGRect(origin: CGPoint(x: floorToScreenPixels((layout.size.width - subtitleSize.width) / 2.0), y: floorToScreenPixels((navigationHeight + combinedTitleHeight) / 2.0) + 3.0 - subtitleSize.height), size: subtitleSize)
+                if let subtitleView = self.subtitle.view {
+                    if subtitleView.superview == nil {
+                        self.view.addSubview(subtitleView)
+                    }
+                    transition.updateFrame(view: subtitleView, frame: subtitleFrame)
+                }
+            }
+            
+            let titleFrame = CGRect(origin: CGPoint(x: floorToScreenPixels((layout.size.width - titleSize.width) / 2.0), y: floorToScreenPixels((navigationHeight - combinedTitleHeight) / 2.0) + 3.0), size: titleSize)
             if let titleView = self.title.view {
                 if titleView.superview == nil {
                     self.view.addSubview(titleView)
@@ -1599,11 +1651,6 @@ final class LocationPickerControllerNode: ViewControllerTracingNode, CLLocationM
                 }
             }
         }
-    }
-    
-    func updateSendActionHighlight(_ highlighted: Bool) {
-        self.headerNode.updateHighlight(highlighted)
-        self.shadeNode.backgroundColor = highlighted ? self.presentationData.theme.list.itemHighlightedBackgroundColor : self.presentationData.theme.list.plainBackgroundColor
     }
     
     func goToUserLocation() {

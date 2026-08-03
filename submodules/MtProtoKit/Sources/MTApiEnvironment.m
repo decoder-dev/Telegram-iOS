@@ -264,14 +264,11 @@ static NSData *base64_decode(NSString *str) {
 
 - (NSString * _Nonnull)serializeToString {
     NSData *data = [self serialize];
-    if ([data respondsToSelector:@selector(base64EncodedDataWithOptions:)]) {
-        return [[data base64EncodedStringWithOptions:kNilOptions] stringByTrimmingCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@"="]];
-    } else {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-    return [self.serialize base64Encoding];
-#pragma clang diagnostic pop
-    }
+    NSString *result = [data base64EncodedStringWithOptions:kNilOptions];
+    result = [result stringByReplacingOccurrencesOfString:@"+" withString:@"-"];
+    result = [result stringByReplacingOccurrencesOfString:@"/" withString:@"_"];
+    result = [result stringByReplacingOccurrencesOfString:@"=" withString:@""];
+    return result;
 }
 
 - (BOOL)isEqual:(id)object {
@@ -740,6 +737,14 @@ NSString *suffix = @"";
         [platform isEqualToString:@"iPad16,6"])
         return @"iPad Pro 12.9 inch (7th gen)";
     
+    if ([platform isEqualToString:@"iPad16,8"] ||
+        [platform isEqualToString:@"iPad16,9"])
+        return @"iPad Air 11 inch (8th gen)";
+    
+    if ([platform isEqualToString:@"iPad16,10"] ||
+        [platform isEqualToString:@"iPad16,11"])
+        return @"iPad Air 13 inch (8th gen)";
+        
     if ([platform hasPrefix:@"iPhone"])
         return @"Unknown iPhone";
     if ([platform hasPrefix:@"iPod"])

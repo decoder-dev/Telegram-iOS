@@ -381,11 +381,28 @@ private final class AlertScreenComponent: Component {
                         if itemView.superview == nil {
                             self.backgroundView.contentView.addSubview(itemView)
                             item.parentState = state
+                            
+                            transition.animateAlpha(view: itemView, from: 0.0, to: 1.0)
                         }
-                        transition.setFrame(view: itemView, frame: itemFrame)
+                        itemTransition.setFrame(view: itemView, frame: itemFrame)
                     }
                     contentOriginY += itemSize.height
                 }
+            }
+            
+            var removeKeys: [AnyHashable] = []
+            for key in self.contentItems.keys {
+                if !validContentIds.contains(key) {
+                    removeKeys.append(key) 
+                    if let itemView = self.contentItems[key]?.view {
+                        transition.setAlpha(view: itemView, alpha: 0.0, completion: { _ in
+                            itemView.removeFromSuperview()
+                        })
+                    }
+                }
+            }
+            for key in removeKeys {
+                self.contentItems.removeValue(forKey: key)
             }
             
             if !contentOriginY.isZero {
@@ -407,9 +424,9 @@ private final class AlertScreenComponent: Component {
                     font: .bold
                 )
                 let destructiveActionTheme = AlertActionComponent.Theme(
-                    background: environment.theme.list.itemDestructiveColor,
-                    foreground: .white,
-                    secondary: .white.withMultipliedAlpha(0.6),
+                    background: environment.theme.actionSheet.primaryTextColor.withMultipliedAlpha(0.1),
+                    foreground: environment.theme.list.itemDestructiveColor,
+                    secondary: environment.theme.list.itemDestructiveColor.withMultipliedAlpha(0.6),
                     font: .regular
                 )
                 let defaultDestructiveActionTheme = AlertActionComponent.Theme(
@@ -547,12 +564,13 @@ private final class AlertScreenComponent: Component {
             self.containerView.update(size: availableSize, isDark: environment.theme.overallDarkAppearance, transition: transition)
             
             var availableHeight = availableSize.height
+            availableHeight -= environment.statusBarHeight
             if component.configuration.allowInputInset, environment.inputHeight > 0.0 {
                 availableHeight -= environment.inputHeight
             }
                         
-            transition.setFrame(view: self.backgroundView, frame: CGRect(origin: CGPoint(x: floorToScreenPixels((availableSize.width - alertSize.width) / 2.0), y: floorToScreenPixels((availableHeight - alertSize.height) / 2.0)), size: alertSize))
-            self.backgroundView.update(size: alertSize, shape: .roundedRect(cornerRadius: 35.0), isDark: environment.theme.overallDarkAppearance, tintColor: .init(kind: .panel, color: .white), isInteractive: true, transition: transition)
+            transition.setFrame(view: self.backgroundView, frame: CGRect(origin: CGPoint(x: floorToScreenPixels((availableSize.width - alertSize.width) / 2.0), y: environment.statusBarHeight +  floorToScreenPixels((availableHeight - alertSize.height) / 2.0)), size: alertSize))
+            self.backgroundView.update(size: alertSize, cornerRadius: 35.0, isDark: environment.theme.overallDarkAppearance, tintColor: .init(kind: .panel), isInteractive: true, transition: transition)
             
             return availableSize
         }
@@ -747,6 +765,15 @@ open class AlertScreen: ViewControllerComponentContainer, KeyShortcutResponder {
             ))
         }
         
+        if content.isEmpty {
+            content.append(AnyComponentWithIdentity(
+                id: "text",
+                component: AnyComponent(
+                    AlertTextComponent(content: .plain(" "), action: textAction)
+                )
+            ))
+        }
+        
         self.init(
             configuration: configuration,
             content: content,
@@ -798,6 +825,8 @@ open class AlertScreen: ViewControllerComponentContainer, KeyShortcutResponder {
     override open func dismiss(completion: (() -> Void)? = nil) {
         if !self.processedDidDisappear {
             self.processedDidDisappear = true
+            
+            self.view.window?.endEditing(true)
             
             if let componentView = self.node.hostView.componentView as? AlertScreenComponent.View {
                 let dismissedByTapOutside = componentView.dismissedByTapOutside

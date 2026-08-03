@@ -2,7 +2,6 @@ import Foundation
 import UIKit
 import Display
 import SwiftSignalKit
-import Postbox
 import TelegramCore
 import TelegramUIPreferences
 import AccountContext
@@ -10,10 +9,10 @@ import MusicAlbumArtResources
 import TextFormat
 
 private enum PeerMessagesMediaPlaylistLoadAnchor {
-    case messageId(MessageId)
-    case index(MessageIndex)
-    
-    var id: MessageId {
+    case messageId(EngineMessage.Id)
+    case index(EngineMessage.Index)
+
+    var id: EngineMessage.Id {
         switch self {
             case let .messageId(id):
                 return id
@@ -33,13 +32,16 @@ struct MessageMediaPlaylistItemStableId: Hashable {
     let stableId: UInt32
 }
 
-private func extractFileMedia(_ message: Message) -> TelegramMediaFile? {
+private func extractFileMedia(_ message: EngineRawMessage) -> TelegramMediaFile? {
     var file: TelegramMediaFile?
-    for media in message.media {
+    for media in message.effectiveMedia {
         if let media = media as? TelegramMediaFile {
             file = media
             break
         } else if let media = media as? TelegramMediaWebpage, case let .Loaded(content) = media.content, let f = content.file {
+            file = f
+            break
+        } else if let media = media as? TelegramMediaPoll, let f = media.attachedMedia as? TelegramMediaFile {
             file = f
             break
         }
@@ -49,10 +51,10 @@ private func extractFileMedia(_ message: Message) -> TelegramMediaFile? {
 
 public final class MessageMediaPlaylistItem: SharedMediaPlaylistItem {
     public let id: SharedMediaPlaylistItemId
-    public let message: Message
+    public let message: EngineRawMessage
     public let isSavedMusic: Bool
-    
-    public init(message: Message, isSavedMusic: Bool) {
+
+    public init(message: EngineRawMessage, isSavedMusic: Bool) {
         self.id = PeerMessagesMediaPlaylistItemId(messageId: message.id, messageIndex: message.index)
         self.message = message
         self.isSavedMusic = isSavedMusic
@@ -159,11 +161,11 @@ private enum NavigatedMessageFromViewPosition {
     case exact
 }
 
-private func aroundMessagesFromMessages(_ messages: [Message], centralIndex: MessageIndex) -> [Message] {
+private func aroundMessagesFromMessages(_ messages: [EngineRawMessage], centralIndex: EngineMessage.Index) -> [EngineRawMessage] {
     guard let index = messages.firstIndex(where: { $0.index.id == centralIndex.id }) else {
         return []
     }
-    var result: [Message] = []
+    var result: [EngineRawMessage] = []
     if index != 0 {
         for i in (0 ..< index).reversed() {
             result.append(messages[i])
@@ -179,7 +181,7 @@ private func aroundMessagesFromMessages(_ messages: [Message], centralIndex: Mes
     return result
 }
 
-private func aroundMessagesFromView(view: MessageHistoryView, centralIndex: MessageIndex) -> [Message] {
+private func aroundMessagesFromView(view: EngineRawMessageHistoryView, centralIndex: EngineMessage.Index) -> [EngineRawMessage] {
     let filteredEntries = view.entries.filter { entry in
         if entry.message.minAutoremoveOrClearTimeout == viewOnceTimeout {
             return false
@@ -191,7 +193,7 @@ private func aroundMessagesFromView(view: MessageHistoryView, centralIndex: Mess
     guard let index = filteredEntries.firstIndex(where: { $0.index.id == centralIndex.id }) else {
         return []
     }
-    var result: [Message] = []
+    var result: [EngineRawMessage] = []
     if index != 0 {
         for i in (0 ..< index).reversed() {
             result.append(filteredEntries[i].message)
@@ -207,7 +209,7 @@ private func aroundMessagesFromView(view: MessageHistoryView, centralIndex: Mess
     return result
 }
 
-private func navigatedMessageFromMessages(_ messages: [Message], anchorIndex: MessageIndex, position: NavigatedMessageFromViewPosition) -> (message: Message, around: [Message], exact: Bool)? {
+private func navigatedMessageFromMessages(_ messages: [EngineRawMessage], anchorIndex: EngineMessage.Index, position: NavigatedMessageFromViewPosition) -> (message: EngineRawMessage, around: [EngineRawMessage], exact: Bool)? {
     var index = 0
     for message in messages {
         if message.index.id == anchorIndex.id {
@@ -246,7 +248,7 @@ private func navigatedMessageFromMessages(_ messages: [Message], anchorIndex: Me
     }
 }
 
-private func navigatedMessageFromView(_ view: MessageHistoryView, anchorIndex: MessageIndex, position: NavigatedMessageFromViewPosition, reversed: Bool) -> (message: Message, around: [Message], exact: Bool)? {
+private func navigatedMessageFromView(_ view: EngineRawMessageHistoryView, anchorIndex: EngineMessage.Index, position: NavigatedMessageFromViewPosition, reversed: Bool) -> (message: EngineRawMessage, around: [EngineRawMessage], exact: Bool)? {
     var index = 0
     
     let filteredEntries = view.entries.filter { entry in
@@ -345,10 +347,10 @@ private func navigatedMessageFromView(_ view: MessageHistoryView, anchorIndex: M
 }
 
 private struct PlaybackStack {
-    var ids: [MessageId] = []
-    var set: Set<MessageId> = []
+    var ids: [EngineMessage.Id] = []
+    var set: Set<EngineMessage.Id> = []
     
-    mutating func resetToId(_ id: MessageId) {
+    mutating func resetToId(_ id: EngineMessage.Id) {
         if self.set.contains(id) {
             if let index = self.ids.firstIndex(of: id) {
                 for i in (index + 1) ..< self.ids.count {
@@ -366,7 +368,7 @@ private struct PlaybackStack {
         }
     }
     
-    mutating func push(_ id: MessageId) {
+    mutating func push(_ id: EngineMessage.Id) {
         if self.set.contains(id) {
             if let index = self.ids.firstIndex(of: id) {
                 self.ids.remove(at: index)
@@ -376,7 +378,7 @@ private struct PlaybackStack {
         self.set.insert(id)
     }
     
-    mutating func pop() -> MessageId? {
+    mutating func pop() -> EngineMessage.Id? {
         if !self.ids.isEmpty {
             let id = self.ids.removeLast()
             self.set.remove(id)
@@ -408,8 +410,8 @@ public final class PeerMessagesMediaPlaylist: SharedMediaPlaylist {
     
     private var playbackStack = PlaybackStack()
     
-    private var currentItem: (current: Message, around: [Message])?
-    private var currentlyObservedMessageId: MessageId?
+    private var currentItem: (current: EngineRawMessage, around: [EngineRawMessage])?
+    private var currentlyObservedMessageId: EngineMessage.Id?
     private let currentlyObservedMessageDisposable = MetaDisposable()
     private var loadingItem: Bool = false
     private var loadingMore: Bool = false
@@ -434,7 +436,7 @@ public final class PeerMessagesMediaPlaylist: SharedMediaPlaylist {
         self.messagesLocation = location
         
         switch self.messagesLocation.effectiveLocation(context: context) {
-        case let .messages(_, _, messageId), let .singleMessage(messageId), let .custom(_, _, messageId, _):
+        case let .messages(_, _, messageId), let .singleMessage(messageId), let .custom(_, _, messageId, _, _):
             self.loadItem(anchor: .messageId(messageId), navigation: .later, reversed: self.order == .reversed)
         case let .recentActions(message):
             self.loadingItem = false
@@ -561,7 +563,7 @@ public final class PeerMessagesMediaPlaylist: SharedMediaPlaylist {
         self.loadingItem = true
         self.updateState()
         
-        let namespaces: MessageIdNamespaces
+        let namespaces: EngineMessageIdNamespaces
         if Namespaces.Message.allScheduled.contains(anchor.id.namespace) {
             namespaces = .just(Namespaces.Message.allScheduled)
         } else if Namespaces.Message.allQuickReply.contains(anchor.id.namespace) {
@@ -576,13 +578,13 @@ public final class PeerMessagesMediaPlaylist: SharedMediaPlaylist {
                     case let .messages(chatLocation, tagMask, _):
                         let historySignal = self.context.account.postbox.messageAtId(messageId)
                         |> take(1)
-                        |> mapToSignal { message -> Signal<(Message, [Message])?, NoError> in
+                        |> mapToSignal { message -> Signal<(EngineRawMessage, [EngineRawMessage])?, NoError> in
                             guard let message = message else {
                                 return .single(nil)
                             }
                             
                             return self.context.account.postbox.aroundMessageHistoryViewForLocation(self.context.chatLocationInput(for: chatLocation, contextHolder: self.chatLocationContextHolder ?? Atomic<ChatLocationContextHolder?>(value: nil)), anchor: .index(message.index), ignoreMessagesInTimestampRange: nil, ignoreMessageIds: Set(), count: 10, fixedCombinedReadStates: nil, topTaggedMessageIdNamespaces: [], tag: .tag(tagMask), appendMessagesFromTheSameGroup: false, namespaces: namespaces, orderStatistics: [])
-                            |> mapToSignal { view -> Signal<(Message, [Message])?, NoError> in
+                            |> mapToSignal { view -> Signal<(EngineRawMessage, [EngineRawMessage])?, NoError> in
                                 if let (message, aroundMessages, _) = navigatedMessageFromView(view.0, anchorIndex: message.index, position: .exact, reversed: reversed) {
                                     return .single((message, aroundMessages))
                                 } else {
@@ -608,7 +610,7 @@ public final class PeerMessagesMediaPlaylist: SharedMediaPlaylist {
                                 strongSelf.updateState()
                             }
                         }))
-                    case let .custom(messages, _, at, _):
+                    case let .custom(messages, _, at, _, _):
                         self.navigationDisposable.set((messages
                         |> take(1)
                         |> deliverOnMainQueue).startStrict(next: { [weak self] messages in
@@ -655,7 +657,7 @@ public final class PeerMessagesMediaPlaylist: SharedMediaPlaylist {
             case let .index(index):
                 switch self.messagesLocation.effectiveLocation(context: self.context) {
                     case let .messages(chatLocation, tagMask, _):
-                        var inputIndex: Signal<MessageIndex?, NoError>?
+                        var inputIndex: Signal<EngineMessage.Index?, NoError>?
                         let looping = self.looping
                         switch self.order {
                             case .regular, .reversed:
@@ -690,12 +692,12 @@ public final class PeerMessagesMediaPlaylist: SharedMediaPlaylist {
                                 }
                         }
                         let historySignal = (inputIndex ?? .single(nil))
-                        |> mapToSignal { inputIndex -> Signal<(Message, [Message])?, NoError> in
+                        |> mapToSignal { inputIndex -> Signal<(EngineRawMessage, [EngineRawMessage])?, NoError> in
                             guard let inputIndex = inputIndex else {
                                 return .single(nil)
                             }
                             return self.context.account.postbox.aroundMessageHistoryViewForLocation(self.context.chatLocationInput(for: chatLocation, contextHolder: self.chatLocationContextHolder ?? Atomic<ChatLocationContextHolder?>(value: nil)), anchor: .index(inputIndex), ignoreMessagesInTimestampRange: nil, ignoreMessageIds: Set(), count: 10, fixedCombinedReadStates: nil, topTaggedMessageIdNamespaces: [], tag: .tag(tagMask), appendMessagesFromTheSameGroup: false, namespaces: namespaces, orderStatistics: [])
-                            |> mapToSignal { view -> Signal<(Message, [Message])?, NoError> in
+                            |> mapToSignal { view -> Signal<(EngineRawMessage, [EngineRawMessage])?, NoError> in
                                 let position: NavigatedMessageFromViewPosition
                                 switch navigation {
                                     case .later:
@@ -718,14 +720,14 @@ public final class PeerMessagesMediaPlaylist: SharedMediaPlaylist {
                                 }
                                 
                                 if case .all = looping {
-                                    let viewIndex: HistoryViewInputAnchor
+                                    let viewIndex: EngineHistoryViewInputAnchor
                                     if case .earlier = navigation {
                                         viewIndex = .upperBound
                                     } else {
                                         viewIndex = .lowerBound
                                     }
                                     return self.context.account.postbox.aroundMessageHistoryViewForLocation(self.context.chatLocationInput(for: chatLocation, contextHolder: self.chatLocationContextHolder ?? Atomic<ChatLocationContextHolder?>(value: nil)), anchor: viewIndex, ignoreMessagesInTimestampRange: nil, ignoreMessageIds: Set(), count: 10, fixedCombinedReadStates: nil, topTaggedMessageIdNamespaces: [], tag: .tag(tagMask), appendMessagesFromTheSameGroup: false, namespaces: namespaces, orderStatistics: [])
-                                    |> mapToSignal { view -> Signal<(Message, [Message])?, NoError> in
+                                    |> mapToSignal { view -> Signal<(EngineRawMessage, [EngineRawMessage])?, NoError> in
                                         let position: NavigatedMessageFromViewPosition
                                         switch navigation {
                                             case .later, .random:
@@ -733,7 +735,7 @@ public final class PeerMessagesMediaPlaylist: SharedMediaPlaylist {
                                             case .earlier:
                                                 position = .later
                                         }
-                                        if let (message, aroundMessages, _) = navigatedMessageFromView(view.0, anchorIndex: MessageIndex.absoluteLowerBound(), position: position, reversed: reversed) {
+                                        if let (message, aroundMessages, _) = navigatedMessageFromView(view.0, anchorIndex: EngineMessage.Index.absoluteLowerBound(), position: position, reversed: reversed) {
                                             return .single((message, aroundMessages))
                                         } else {
                                             return .single(nil)
@@ -787,8 +789,8 @@ public final class PeerMessagesMediaPlaylist: SharedMediaPlaylist {
                         self.updateState()
                     case .savedMusic:
                         fatalError()
-                    case let .custom(messages, _, _, loadMore):
-                        let inputIndex: Signal<MessageIndex, NoError>
+                    case let .custom(messages, _, _, loadMore, _):
+                        let inputIndex: Signal<EngineMessage.Index, NoError>
                         let looping = self.looping
                         switch self.order {
                             case .regular, .reversed:
@@ -797,7 +799,7 @@ public final class PeerMessagesMediaPlaylist: SharedMediaPlaylist {
                                 var playbackStack = self.playbackStack
                                 inputIndex = messages
                                 |> take(1)
-                                |> map { messages, _, _ -> MessageIndex in
+                                |> map { messages, _, _ -> EngineMessage.Index in
                                     if case let .random(previous) = navigation, previous {
                                         let _ = playbackStack.pop()
                                         while true {
@@ -814,10 +816,10 @@ public final class PeerMessagesMediaPlaylist: SharedMediaPlaylist {
                                 }
                         }
                         let historySignal = inputIndex
-                        |> mapToSignal { inputIndex -> Signal<((Message, [Message])?, Int, Bool), NoError> in
+                        |> mapToSignal { inputIndex -> Signal<((EngineRawMessage, [EngineRawMessage])?, Int, Bool), NoError> in
                             return messages
                             |> take(1)
-                            |> mapToSignal { messages, _, hasMore -> Signal<((Message, [Message])?, Int, Bool), NoError> in
+                            |> mapToSignal { messages, _, hasMore -> Signal<((EngineRawMessage, [EngineRawMessage])?, Int, Bool), NoError> in
                                 let position: NavigatedMessageFromViewPosition
                                 switch navigation {
                                     case .later:

@@ -1,5 +1,5 @@
 import UIKit
-@preconcurrency import SwiftSignalKit
+import SwiftSignalKit
 import Display
 import TelegramCore
 import UserNotifications
@@ -41,8 +41,11 @@ import MediaEditor
 import TelegramUIDeclareEncodables
 import ContextMenuScreen
 import MetalEngine
-import RecaptchaEnterpriseSDK
+import RecaptchaEnterprise
 import NavigationBarImpl
+import ContextUI
+import ContextControllerImpl
+import ProxyServerPreviewScreen
 
 #if canImport(AppCenter)
 import AppCenter
@@ -334,6 +337,62 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         defaultNavigationBarImpl = { presentationData in
             return NavigationBarImpl(presentationData: presentationData)
         }
+        makeContextControllerImpl = { context, presentationData, configuration, recognizer, gesture, workaroundUseLegacyImplementation, disableScreenshots, hideReactionPanelTail in
+            return ContextControllerImpl(
+                context: context,
+                presentationData: presentationData,
+                configuration: configuration,
+                recognizer: recognizer,
+                gesture: gesture,
+                workaroundUseLegacyImplementation: workaroundUseLegacyImplementation,
+                disableScreenshots: disableScreenshots,
+                hideReactionPanelTail: hideReactionPanelTail
+            )
+        }
+        makeContextControllerActionsStackNodeImpl = { context, getController, requestDismiss, requestUpdate in
+            return ContextControllerActionsStackNodeImpl(
+                context: context,
+                getController: getController,
+                requestDismiss: requestDismiss,
+                requestUpdate: requestUpdate
+            )
+        }
+        makeContextControllerActionsListStackItemImpl = { id, items, reactionItems, previewReaction, tip, tipSignal, dismissed in
+            return ContextControllerActionsListStackItem(
+                id: id,
+                items: items,
+                reactionItems: reactionItems,
+                previewReaction: previewReaction,
+                tip: tip,
+                tipSignal: tipSignal,
+                dismissed: dismissed
+            )
+        }
+        makeContextActionNodeImpl = { presentationData, action, getController, actionSelected, requestLayout, requestUpdateAction in
+            return ContextActionNode(
+                presentationData: presentationData,
+                action: action,
+                getController: getController,
+                actionSelected: actionSelected,
+                requestLayout: requestLayout,
+                requestUpdateAction: requestUpdateAction
+            )
+        }
+        makePeekControllerImpl = { presentationData, content, sourceView, activateImmediately in
+            return PeekControllerImpl(
+                presentationData: presentationData,
+                content: content,
+                sourceView: sourceView,
+                activateImmediately: activateImmediately
+            )
+        }
+        makePinchControllerImpl = { sourceNode, disableScreenshots, getContentAreaInScreenSpace in
+            return PinchControllerImpl(
+                sourceNode: sourceNode,
+                disableScreenshots: disableScreenshots,
+                getContentAreaInScreenSpace: getContentAreaInScreenSpace
+            )
+        }
         
         let (window, hostView) = nativeWindowHostView()
         let statusBarHost = ApplicationStatusBarHost(scene: window.windowScene)
@@ -493,80 +552,94 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             }
         }
         
-        let networkArguments = NetworkInitializationArguments(apiId: apiId, apiHash: apiHash, languagesCategory: languagesCategory, appVersion: appVersion, voipMaxLayer: PresentationCallManagerImpl.voipMaxLayer, voipVersions: PresentationCallManagerImpl.voipVersions(includeExperimental: true, includeReference: false).map { version, supportsVideo -> CallSessionManagerImplementationVersion in
-            CallSessionManagerImplementationVersion(version: version, supportsVideo: supportsVideo)
-        }, appData: self.regularDeviceToken.get()
-        |> map { token in
-            let tokenEnvironment: String
-            #if DEBUG
-            tokenEnvironment = "sandbox"
-            #else
-            tokenEnvironment = "production"
-            #endif
-            
-            let data = buildConfig.bundleData(withAppToken: token, tokenType: "apns", tokenEnvironment: tokenEnvironment, signatureDict: signatureDict)
-            if let data = data, let _ = String(data: data, encoding: .utf8) {
-            } else {
-                Logger.shared.log("data", "can't deserialize")
-            }
-            return data
-        }, externalRequestVerificationStream: self.firebaseRequestVerificationSecretStream.get(), externalRecaptchaRequestVerification: { method, siteKey in
-            return Signal { subscriber in
-                let recaptchaClient: Promise<RecaptchaClient>
-                if let current = self.recaptchaClientsBySiteKey[siteKey] {
-                    recaptchaClient = current
-                } else {
-                    recaptchaClient = Promise<RecaptchaClient>()
-                    self.recaptchaClientsBySiteKey[siteKey] = recaptchaClient
-                    
-                    Recaptcha.fetchClient(withSiteKey: siteKey) { client, error in
-                        Queue.mainQueue().async {
-                            guard let client else {
-                                Logger.shared.log("App \(self.episodeId)", "RecaptchaClient creation error: \(String(describing: error)).")
-                                return
-                            }
-                            recaptchaClient.set(.single(client))
-                        }
-                    }
-                }
+        let networkArguments = NetworkInitializationArguments(
+            apiId: apiId,
+            apiHash: apiHash,
+            languagesCategory: languagesCategory,
+            appVersion: appVersion,
+            voipMaxLayer: PresentationCallManagerImpl.voipMaxLayer,
+            voipVersions: PresentationCallManagerImpl.voipVersions(includeExperimental: true, includeReference: false).map { version, supportsVideo -> CallSessionManagerImplementationVersion in
+                CallSessionManagerImplementationVersion(version: version, supportsVideo: supportsVideo)
+            },
+            appData: self.regularDeviceToken.get() |> map { token in
+                let tokenEnvironment: String
+                #if DEBUG
+                tokenEnvironment = "sandbox"
+                #else
+                tokenEnvironment = "production"
+                #endif
                 
-                return (recaptchaClient.get()
-                |> take(1)
-                |> mapToSignal { recaptchaClient -> Signal<String?, NoError> in
-                    return Signal { subscriber in
-                        var recaptchaAction: RecaptchaAction?
-                        switch method {
-                        case "signup":
-                            recaptchaAction = RecaptchaAction.signup
-                        default:
-                            break
-                        }
+                let data = buildConfig.bundleData(withAppToken: token, tokenType: "apns", tokenEnvironment: tokenEnvironment, signatureDict: signatureDict)
+                if let data = data, let _ = String(data: data, encoding: .utf8) {
+                } else {
+                    Logger.shared.log("data", "can't deserialize")
+                }
+                return data
+            },
+            externalRequestVerificationStream: self.firebaseRequestVerificationSecretStream.get(),
+            externalRecaptchaRequestVerification: { method, siteKey in
+                return Signal<String?, NoError> { subscriber in
+                    let recaptchaClient: Promise<RecaptchaClient>
+                    if let current = self.recaptchaClientsBySiteKey[siteKey] {
+                        recaptchaClient = current
+                    } else {
+                        recaptchaClient = Promise<RecaptchaClient>()
+                        self.recaptchaClientsBySiteKey[siteKey] = recaptchaClient
                         
-                        guard let recaptchaAction else {
-                            subscriber.putNext(nil)
-                            subscriber.putCompletion()
-                            
-                            return EmptyDisposable
-                        }
-                        recaptchaClient.execute(withAction: recaptchaAction) { token, error in
-                            if let token {
-                                subscriber.putNext(token)
-                                Logger.shared.log("App \(self.episodeId)", "RecaptchaClient executed successfully")
-                            } else {
-                                subscriber.putNext(nil)
-                                Logger.shared.log("App \(self.episodeId)", "RecaptchaClient execute error: \(String(describing: error))")
+                        Recaptcha.fetchClient(withSiteKey: siteKey) { client, error in
+                            Queue.mainQueue().async {
+                                guard let client else {
+                                    Logger.shared.log("App \(self.episodeId)", "RecaptchaClient creation error: \(String(describing: error)).")
+                                    return
+                                }
+                                recaptchaClient.set(.single(client))
                             }
-                            subscriber.putCompletion()
-                        }
-                        
-                        return ActionDisposable {
                         }
                     }
-                    |> runOn(Queue.mainQueue())
-                }).startStandalone(next: subscriber.putNext, error: subscriber.putError, completed: subscriber.putCompletion)
-            }
-            |> runOn(Queue.mainQueue())
-        }, autolockDeadine: autolockDeadine, encryptionProvider: OpenSSLEncryptionProvider(), deviceModelName: nil, useBetaFeatures: !buildConfig.isAppStoreBuild, isICloudEnabled: buildConfig.isICloudEnabled)
+                    
+                    return (recaptchaClient.get()
+                    |> take(1)
+                    |> mapToSignal { recaptchaClient -> Signal<String?, NoError> in
+                        return Signal { subscriber in
+                            var recaptchaAction: RecaptchaAction?
+                            switch method {
+                            case "signup":
+                                recaptchaAction = RecaptchaAction.signup
+                            default:
+                                break
+                            }
+                            
+                            guard let recaptchaAction else {
+                                subscriber.putNext(nil)
+                                subscriber.putCompletion()
+                                
+                                return EmptyDisposable
+                            }
+                            recaptchaClient.execute(withAction: recaptchaAction) { token, error in
+                                if let token {
+                                    subscriber.putNext(token)
+                                    Logger.shared.log("App \(self.episodeId)", "RecaptchaClient executed successfully")
+                                } else {
+                                    subscriber.putNext(nil)
+                                    Logger.shared.log("App \(self.episodeId)", "RecaptchaClient execute error: \(String(describing: error))")
+                                }
+                                subscriber.putCompletion()
+                            }
+                            
+                            return ActionDisposable {
+                            }
+                        }
+                        |> runOn(Queue.mainQueue())
+                    }).startStandalone(next: subscriber.putNext, error: subscriber.putError, completed: subscriber.putCompletion)
+                }
+                |> runOn(Queue.mainQueue())
+            },
+            autolockDeadine: autolockDeadine,
+            encryptionProvider: OpenSSLEncryptionProvider(),
+            deviceModelName: nil,
+            useBetaFeatures: !buildConfig.isAppStoreBuild,
+            isICloudEnabled: buildConfig.isICloudEnabled
+        )
         
         guard let appGroupUrl = maybeAppGroupUrl else {
             self.mainWindow?.presentNative(UIAlertController(title: nil, message: "Error 2", preferredStyle: .alert))
@@ -588,8 +661,19 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             LoggingSettings.defaultSettings = LoggingSettings(logToFile: false, logToConsole: false, redactSensitiveData: true)
         }
         
-        let rootPath = rootPathForBasePath(appGroupUrl.path)
-        performAppGroupUpgrades(appGroupPath: appGroupUrl.path, rootPath: rootPath)
+        let isUITest = CommandLine.arguments.contains("--ui-test")
+
+        let rootPath: String
+        if isUITest {
+            let testDataPath = appGroupUrl.path + "/telegram-ui-tests-data"
+            let _ = try? FileManager.default.removeItem(atPath: testDataPath)
+            rootPath = rootPathForBasePath(testDataPath)
+        } else {
+            rootPath = rootPathForBasePath(appGroupUrl.path)
+        }
+        if !isUITest {
+            performAppGroupUpgrades(appGroupPath: appGroupUrl.path, rootPath: rootPath)
+        }
         
         let deviceSpecificEncryptionParameters = BuildConfig.deviceSpecificEncryptionParameters(rootPath, baseAppBundleId: baseAppBundleId)
         let encryptionParameters = ValueBoxEncryptionParameters(forceEncryptionIfNoSet: false, key: ValueBoxEncryptionParameters.Key(data: deviceSpecificEncryptionParameters.key)!, salt: ValueBoxEncryptionParameters.Salt(data: deviceSpecificEncryptionParameters.salt)!)
@@ -930,7 +1014,43 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
 
         telegramUIDeclareEncodables()
         initializeAccountManagement()
-        
+
+        if isUITest,
+           let deleteIdx = CommandLine.arguments.firstIndex(of: "--delete-test-account"),
+           deleteIdx + 1 < CommandLine.arguments.count
+        {
+            let phone = CommandLine.arguments[deleteIdx + 1]
+            let digits = phone.hasPrefix("+") ? String(phone.dropFirst()) : phone
+            guard digits.count == 10, digits.hasPrefix("99966") else {
+                preconditionFailure("--delete-test-account phone must match 99966XYYYY")
+            }
+            let dcDigit = digits[digits.index(digits.startIndex, offsetBy: 5)]
+            let phoneCode = String(repeating: dcDigit, count: 5)
+
+            let window = self.window!
+            window.makeKeyAndVisible()
+
+            NSLog("[DeleteAccount] starting for +\(digits)")
+            let _ = test_loginAndDeleteAccount(
+                rootPath: rootPath,
+                accountManager: accountManager,
+                networkArguments: networkArguments,
+                encryptionParameters: encryptionParameters,
+                phoneNumber: "+\(digits)",
+                phoneCode: phoneCode
+            ).start(error: { error in
+                NSLog("[DeleteAccount] error: \(error)")
+                preconditionFailure("test_loginAndDeleteAccount failed")
+            }, completed: {
+                NSLog("[DeleteAccount] completed")
+                DispatchQueue.main.async {
+                    window.accessibilityIdentifier = "DeleteAccount.Success"
+                }
+            })
+
+            return true
+        }
+
         let pushRegistry = PKPushRegistry(queue: .main)
         if #available(iOS 9.0, *) {
             pushRegistry.desiredPushTypes = Set([.voIP])
@@ -987,7 +1107,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                         self.mainWindow.coveringView = nil
                     }
                 }
-            }, appDelegate: self)
+            }, appDelegate: self, testingEnvironment: isUITest)
             
             presentationDataPromise.set(sharedContext.presentationData)
             
@@ -1066,6 +1186,8 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                 return applicationBindings.pushIdleTimerExtension()
             }, activeAccounts: sharedContext.activeAccountContexts |> map { ($0.0?.account, $0.1.map { ($0.0, $0.1.account) }) }, liveLocationPolling: liveLocationPolling, watchTasks: .single(nil), inForeground: applicationBindings.applicationInForeground, hasActiveAudioSession: self.hasActiveAudioSession.get(), notificationManager: notificationManager, mediaManager: sharedContext.mediaManager, callManager: sharedContext.callManager, accountUserInterfaceInUse: { id in
                 return sharedContext.accountUserInterfaceInUse(id)
+            }, presentationData: {
+                return sharedContext.currentPresentationData.with({ $0 })
             })
             let sharedApplicationContext = SharedApplicationContext(sharedContext: sharedContext, notificationManager: notificationManager, wakeupManager: wakeupManager)
             sharedApplicationContext.sharedContext.mediaManager.overlayMediaManager.attachOverlayMediaController(sharedApplicationContext.overlayMediaController)
@@ -1392,9 +1514,9 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         
         if let url = launchOptions?[.url] {
             if let url = url as? URL, url.scheme == "tg" || url.scheme == buildConfig.appSpecificUrlScheme {
-                self.openUrlWhenReady(url: url)
+                self.openUrlWhenReady(url: url, external: true)
             } else if let urlString = url as? String, urlString.lowercased().hasPrefix("tg:") || urlString.lowercased().hasPrefix("\(buildConfig.appSpecificUrlScheme):"), let url = URL(string: urlString) {
-                self.openUrlWhenReady(url: url)
+                self.openUrlWhenReady(url: url, external: true)
             }
         }
         
@@ -1416,31 +1538,6 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             }
         }
         
-        /*if UIApplication.shared.isStatusBarHidden {
-            UIApplication.shared.internalSetStatusBarHidden(false, animation: .none)
-        }*/
-        
-        /*if #available(iOS 13.0, *) {
-            BGTaskScheduler.shared.register(forTaskWithIdentifier: baseAppBundleId + ".refresh", using: nil, launchHandler: { task in
-                let _ = (self.sharedContextPromise.get()
-                |> take(1)
-                |> deliverOnMainQueue).start(next: { sharedApplicationContext in
-                    
-                    sharedApplicationContext.wakeupManager.replaceCurrentExtensionWithExternalTime(completion: {
-                        task.setTaskCompleted(success: true)
-                    }, timeout: 29.0)
-                    let _ = (self.context.get()
-                    |> take(1)
-                    |> deliverOnMainQueue).start(next: { context in
-                        guard let context = context else {
-                            return
-                        }
-                        sharedApplicationContext.notificationManager.beginPollingState(account: context.context.account)
-                    })
-                })
-            })
-        }*/
-        
         self.maybeCheckForUpdates()
 
         #if canImport(AppCenter)
@@ -1452,9 +1549,9 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         #endif
         
         if #available(iOS 13.0, *) {
-            let taskId = "\(baseAppBundleId).cleanup"
+            let cleanupTaskId = "\(baseAppBundleId).cleanup"
             
-            BGTaskScheduler.shared.register(forTaskWithIdentifier: taskId, using: DispatchQueue.main) { task in
+            BGTaskScheduler.shared.register(forTaskWithIdentifier: cleanupTaskId, using: DispatchQueue.main) { task in
                 Logger.shared.log("App \(self.episodeId)", "Executing cleanup task")
                 
                 let disposable = self.runCacheReindexTasks(lowImpact: true, completion: {
@@ -1470,11 +1567,11 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             }
             
             BGTaskScheduler.shared.getPendingTaskRequests(completionHandler: { tasks in
-                if tasks.contains(where: { $0.identifier == taskId }) {
+                if tasks.contains(where: { $0.identifier == cleanupTaskId }) {
                     Logger.shared.log("App \(self.episodeId)", "Already have a cleanup task pending")
                     return
                 }
-                let request = BGProcessingTaskRequest(identifier: taskId)
+                let request = BGProcessingTaskRequest(identifier: cleanupTaskId)
                 request.requiresExternalPower = true
                 request.requiresNetworkConnectivity = false
                 
@@ -1591,7 +1688,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                 }))
             }
         })
-        
+                
         return true
     }
     
@@ -2417,12 +2514,12 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             if let authContext = authContext, let confirmationCode = parseConfirmationCodeUrl(sharedContext: sharedContext, url: url) {
                 authContext.rootController.applyConfirmationCode(confirmationCode)
             } else if let context = context {
-                context.openUrl(url)
+                context.openUrl(url, external: true)
             } else if let authContext = authContext {
                 if let proxyData = parseProxyUrl(sharedContext: sharedContext, url: url) {
                     authContext.rootController.view.endEditing(true)
                     let presentationData = authContext.sharedContext.currentPresentationData.with { $0 }
-                    let controller = ProxyServerActionSheetController(sharedContext: authContext.sharedContext, presentationData: presentationData, accountManager: authContext.sharedContext.accountManager, postbox: authContext.account.postbox, network: authContext.account.network, server: proxyData, updatedPresentationData: nil)
+                    let controller = ProxyServerPreviewScreen(sharedContext: authContext.sharedContext, network: authContext.account.network, updatedPresentationData: (presentationData, authContext.sharedContext.presentationData), server: proxyData)
                     authContext.rootController.currentWindow?.present(controller, on: PresentationSurfaceLevel.root, blockInteraction: false, completion: {})
                 } else if let secureIdData = parseSecureIdUrl(url) {
                     let presentationData = authContext.sharedContext.currentPresentationData.with { $0 }
@@ -2711,13 +2808,28 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
     }
     
     private var openUrlInProgress: URL?
-    private func openUrlWhenReady(url: URL) {
+    private func openUrlWhenReady(accountId: AccountRecordId? = nil, url: URL, external: Bool = false) {
         self.openUrlInProgress = url
         
-        self.openUrlWhenReadyDisposable.set((self.authorizedContext()
+        let signal = self.sharedContextPromise.get()
         |> take(1)
+        |> deliverOnMainQueue
+        |> mapToSignal { sharedApplicationContext -> Signal<AuthorizedApplicationContext, NoError> in
+            if let accountId = accountId {
+                sharedApplicationContext.sharedContext.switchToAccount(id: accountId)
+                return self.authorizedContext()
+                |> filter { context in
+                    context.context.account.id == accountId
+                }
+                |> take(1)
+            } else {
+                return self.authorizedContext()
+                |> take(1)
+            }
+        }
+        self.openUrlWhenReadyDisposable.set((signal
         |> deliverOnMainQueue).start(next: { [weak self] context in
-            context.openUrl(url)
+            context.openUrl(url, external: external)
             
             Queue.mainQueue().after(1.0, {
                 self?.openUrlInProgress = nil
@@ -2729,13 +2841,19 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         let _ = (accountIdFromNotification(response.notification, sharedContext: self.sharedContextPromise.get())
         |> deliverOnMainQueue).start(next: { accountId in
             if response.actionIdentifier == UNNotificationDefaultActionIdentifier {
-                if let (peerId, threadId) = peerIdFromNotification(response.notification) {
-                    var messageId: MessageId? = nil
-                    if response.notification.request.content.categoryIdentifier == "c" || response.notification.request.content.categoryIdentifier == "t" {
-                        messageId = messageIdFromNotification(peerId: peerId, notification: response.notification)
+                if let dataUrl = response.notification.request.content.userInfo["url"] as? String {
+                    if let url = URL(string: dataUrl) {
+                        self.openUrlWhenReady(accountId: accountId, url: url, external: true)
                     }
-                    let storyId = storyIdFromNotification(peerId: peerId, notification: response.notification)
-                    self.openChatWhenReady(accountId: accountId, peerId: peerId, threadId: threadId, messageId: messageId, storyId: storyId)
+                } else {
+                    if let (peerId, threadId) = peerIdFromNotification(response.notification) {
+                        var messageId: MessageId? = nil
+                        if response.notification.request.content.categoryIdentifier == "c" || response.notification.request.content.categoryIdentifier == "t" {
+                            messageId = messageIdFromNotification(peerId: peerId, notification: response.notification)
+                        }
+                        let storyId = storyIdFromNotification(peerId: peerId, notification: response.notification)
+                        self.openChatWhenReady(accountId: accountId, peerId: peerId, threadId: threadId, messageId: messageId, storyId: storyId)
+                    }
                 }
                 completionHandler()
             } else if response.actionIdentifier == "reply", let (peerId, threadId) = peerIdFromNotification(response.notification), let accountId = accountId {
@@ -2768,7 +2886,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                         if let threadId {
                             replyToMessageId = MessageId(peerId: peerId, namespace: Namespaces.Message.Cloud, id: Int32(clamping: threadId))
                         }
-                        return enqueueMessages(account: account, peerId: peerId, messages: [EnqueueMessage.message(text: text, attributes: [], inlineStickers: [:], mediaReference: nil, threadId: nil, replyToMessageId: replyToMessageId.flatMap { EngineMessageReplySubject(messageId: $0, quote: nil, todoItemId: nil) }, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: [])])
+                        return enqueueMessages(account: account, peerId: peerId, messages: [EnqueueMessage.message(text: text, attributes: [], inlineStickers: [:], mediaReference: nil, threadId: nil, replyToMessageId: replyToMessageId.flatMap { EngineMessageReplySubject(messageId: $0, quote: nil, innerSubject: nil) }, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: [])])
                         |> map { messageIds -> MessageId? in
                             if messageIds.isEmpty {
                                 return nil
@@ -2911,7 +3029,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         let _ = (accountIdFromNotification(notification, sharedContext: self.sharedContextPromise.get())
         |> deliverOnMainQueue).start(next: { accountId in
             if let context = self.contextValue {
-                if let accountId = accountId, context.context.account.id != accountId {
+                if let accountId = accountId, context.context.account.id != accountId || notification.request.content.userInfo["url"] != nil {
                     completionHandler([.alert])
                 }
             }

@@ -361,14 +361,14 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
                 self.avatarNode = nil
                 self.iconNode = nil
                 self.iconCheckNode = nil
-                self.animationNode = AnimationNode(animation: "anim_banned", colors: ["info1.info1.stroke": self.animationBackgroundColor, "info2.info2.Fill": self.animationBackgroundColor], scale: 1.0)
+                self.animationNode = AnimationNode(animation: "anim_banned", colors: ["info1.info1.stroke": self.animationBackgroundColor, "info2.info2.Fill": self.animationBackgroundColor], scale: 0.9)
                 self.animatedStickerNode = nil
             
                 let body = MarkdownAttributeSet(font: Font.regular(14.0), textColor: .white)
                 let bold = MarkdownAttributeSet(font: Font.semibold(14.0), textColor: .white)
                 let attributedText = parseMarkdownIntoAttributedString(text, attributes: MarkdownAttributes(body: body, bold: bold, link: body, linkAttribute: { _ in return nil }), textAlignment: .natural)
                 self.textNode.attributedText = attributedText
-                self.textNode.maximumNumberOfLines = 2
+                self.textNode.maximumNumberOfLines = 5
                 displayUndo = false
                 self.originalRemainingSeconds = 5
             case let .importedMessage(text):
@@ -597,7 +597,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
                         updatedImageSignal = chatMessageStickerPackThumbnail(postbox: context.account.postbox, resource: resource._asResource(), animated: true)
                     }
                     if let resourceReference = resourceReference {
-                        updatedFetchSignal = fetchedMediaResource(mediaBox: context.account.postbox.mediaBox, userLocation: .other, userContentType: .other, reference: resourceReference)
+                        updatedFetchSignal = context.engine.resources.fetch(reference: resourceReference, userLocation: .other, userContentType: .other)
                         |> mapError { _ -> EngineMediaResource.Fetch.Error in
                             return .generic
                         }
@@ -914,7 +914,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
                         updatedImageSignal = chatMessageStickerPackThumbnail(postbox: context.account.postbox, resource: resource._asResource(), animated: true)
                     }
                     if let resourceReference = resourceReference {
-                        updatedFetchSignal = fetchedMediaResource(mediaBox: context.account.postbox.mediaBox, userLocation: .other, userContentType: .other, reference: resourceReference)
+                        updatedFetchSignal = context.engine.resources.fetch(reference: resourceReference, userLocation: .other, userContentType: .other)
                         |> mapError { _ -> EngineMediaResource.Fetch.Error in
                             return .generic
                         }
@@ -2000,8 +2000,13 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
             }
         }
         
-        var panelFrame = CGRect(origin: CGPoint(x: leftMargin + layout.safeInsets.left, y: layout.size.height - contentHeight - insets.bottom - margin), size: CGSize(width: layout.size.width - leftMargin * 2.0 - layout.safeInsets.left - layout.safeInsets.right, height: contentHeight))
-        var panelWrapperFrame = CGRect(origin: CGPoint(x: leftMargin + layout.safeInsets.left, y: layout.size.height - contentHeight - insets.bottom - margin), size: CGSize(width: layout.size.width - leftMargin * 2.0 - layout.safeInsets.left - layout.safeInsets.right, height: contentHeight))
+        var panelWidth = layout.size.width - leftMargin * 2.0 - layout.safeInsets.left - layout.safeInsets.right
+        if self.appearance?.isNarrow == true {
+            panelWidth = 210.0
+        }
+        
+        var panelFrame = CGRect(origin: CGPoint(x: floorToScreenPixels((layout.size.width - panelWidth) / 2.0), y: layout.size.height - contentHeight - insets.bottom - margin), size: CGSize(width: panelWidth, height: contentHeight))
+        var panelWrapperFrame = CGRect(origin: CGPoint(x: floorToScreenPixels((layout.size.width - panelWidth) / 2.0), y: layout.size.height - contentHeight - insets.bottom - margin), size: CGSize(width: panelWidth, height: contentHeight))
         
         if case .top = self.placementPosition {
             var topInset = insets.top
@@ -2014,7 +2019,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
         
         transition.updateFrame(node: self.panelNode, frame: panelFrame)
         transition.updateFrame(node: self.panelWrapperNode, frame: panelWrapperFrame)
-        self.effectView.frame = CGRect(x: 0.0, y: 0.0, width: layout.size.width - leftMargin * 2.0 - layout.safeInsets.left - layout.safeInsets.right, height: contentHeight)
+        self.effectView.frame = CGRect(x: 0.0, y: 0.0, width: panelWidth, height: contentHeight)
         
         var buttonTextFrame = CGRect(origin: CGPoint(x: layout.size.width - layout.safeInsets.left - layout.safeInsets.right - rightInset - buttonTextSize.width - leftMargin * 2.0, y: floor((contentHeight - buttonTextSize.height) / 2.0)), size: buttonTextSize)
         var undoButtonFrame = CGRect(origin: CGPoint(x: layout.size.width - layout.safeInsets.left - layout.safeInsets.right - rightInset - buttonTextSize.width - 8.0 - leftMargin * 2.0, y: 0.0), size: CGSize(width: layout.safeInsets.right + rightInset + buttonTextSize.width + 8.0 + leftMargin, height: contentHeight))

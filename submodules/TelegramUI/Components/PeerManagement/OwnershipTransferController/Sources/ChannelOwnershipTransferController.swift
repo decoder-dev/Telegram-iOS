@@ -88,7 +88,7 @@ private func commitChannelOwnershipTransferController(
     applyImpl = {
         doneInProgressPromise.set(true)
         
-        let signal: Signal<EnginePeer.Id?, ChannelOwnershipTransferError>
+        let signal: Signal<EnginePeer.Id?, ChatOwnershipTransferError>
         if case let .channel(peer) = peer {
             signal = context.peerChannelMemberCategoriesContextsManager.transferOwnership(engine: context.engine, peerId: peer.id, memberId: member.id, password: inputState.value) |> mapToSignal { _ in
                 return .complete()
@@ -97,7 +97,7 @@ private func commitChannelOwnershipTransferController(
         } else if case let .legacyGroup(peer) = peer {
             signal = context.engine.peers.convertGroupToSupergroup(peerId: peer.id)
             |> map(Optional.init)
-            |> mapError { error -> ChannelOwnershipTransferError in
+            |> mapError { error -> ChatOwnershipTransferError in
                 switch error {
                 case .tooManyChannels:
                     return .tooMuchJoined
@@ -106,7 +106,7 @@ private func commitChannelOwnershipTransferController(
                 }
             }
             |> deliverOnMainQueue
-            |> mapToSignal { upgradedPeerId -> Signal<EnginePeer.Id?, ChannelOwnershipTransferError> in
+            |> mapToSignal { upgradedPeerId -> Signal<EnginePeer.Id?, ChatOwnershipTransferError> in
                 guard let upgradedPeerId = upgradedPeerId else {
                     return .fail(.generic)
                 }
@@ -169,6 +169,7 @@ private func confirmChannelOwnershipTransferController(
     updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>)? = nil,
     peer: EnginePeer,
     member: TelegramUser,
+    onLeave: Bool,
     present: @escaping (ViewController, Any?) -> Void,
     push: @escaping (ViewController) -> Void,
     completion: @escaping (EnginePeer.Id?) -> Void
@@ -184,7 +185,7 @@ private func confirmChannelOwnershipTransferController(
     var text: String
     if isGroup {
         title = presentationData.strings.Group_OwnershipTransfer_Title
-        text = presentationData.strings.Group_OwnershipTransfer_DescriptionInfo(peer.displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder), EnginePeer.user(member).displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder)).string
+        text = onLeave ? presentationData.strings.Group_OwnershipTransfer_DescriptionShortInfo(peer.displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder), EnginePeer.user(member).displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder)).string : presentationData.strings.Group_OwnershipTransfer_DescriptionInfo(peer.displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder), EnginePeer.user(member).displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder)).string
     } else {
         title = presentationData.strings.Channel_OwnershipTransfer_Title
         text = presentationData.strings.Channel_OwnershipTransfer_DescriptionInfo(peer.displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder), EnginePeer.user(member).displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder)).string
@@ -211,7 +212,8 @@ public func channelOwnershipTransferController(
     updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>)? = nil,
     peer: EnginePeer,
     member: TelegramUser,
-    initialError: ChannelOwnershipTransferError,
+    onLeave: Bool,
+    initialError: ChatOwnershipTransferError,
     present: @escaping (ViewController, Any?) -> Void,
     push: @escaping (ViewController) -> Void,
     completion: @escaping (EnginePeer.Id?) -> Void
@@ -232,7 +234,7 @@ public func channelOwnershipTransferController(
     ]
     switch initialError {
     case .requestPassword:
-        return confirmChannelOwnershipTransferController(context: context, updatedPresentationData: updatedPresentationData, peer: peer, member: member, present: present, push: push, completion: completion)
+        return confirmChannelOwnershipTransferController(context: context, updatedPresentationData: updatedPresentationData, peer: peer, member: member, onLeave: onLeave, present: present, push: push, completion: completion)
     case .twoStepAuthTooFresh, .authSessionTooFresh:
         text = text + strings.OwnershipTransfer_ComeBackLater
     case .twoStepAuthMissing:

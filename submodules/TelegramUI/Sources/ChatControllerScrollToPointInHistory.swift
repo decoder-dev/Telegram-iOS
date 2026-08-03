@@ -4,7 +4,6 @@ import AccountContext
 import Display
 import SwiftSignalKit
 import TelegramCore
-import Postbox
 import UIKit
 import OverlayStatusController
 import PresentationDataUtils
@@ -15,7 +14,7 @@ extension ChatControllerImpl {
         
         let historyView = preloadedChatHistoryViewForLocation(locationInput, context: self.context, chatLocation: self.chatLocation, subject: self.subject, chatLocationContextHolder: self.chatLocationContextHolder, fixedCombinedReadStates: nil, tag: nil, additionalData: [])
         let signal = historyView
-        |> mapToSignal { historyView -> Signal<(MessageIndex?, Bool), NoError> in
+        |> mapToSignal { historyView -> Signal<(EngineMessage.Index?, Bool), NoError> in
             switch historyView {
             case .Loading:
                 return .single((nil, true))
@@ -79,7 +78,7 @@ extension ChatControllerImpl {
         
         let historyView = preloadedChatHistoryViewForLocation(locationInput, context: self.context, chatLocation: self.chatLocation, subject: self.subject, chatLocationContextHolder: self.chatLocationContextHolder, fixedCombinedReadStates: nil, tag: nil, additionalData: [])
         let signal = historyView
-        |> mapToSignal { historyView -> Signal<(MessageIndex?, Bool), NoError> in
+        |> mapToSignal { historyView -> Signal<(EngineMessage.Index?, Bool), NoError> in
             switch historyView {
             case .Loading:
                 return .single((nil, true))
@@ -135,6 +134,38 @@ extension ChatControllerImpl {
                 strongSelf.loadingMessage.set(.single(nil))
                 strongSelf.messageIndexDisposable.set(nil)
             }
+        }
+    }
+    
+    func openMediaMessageContext(message: EngineMessage) async {
+        guard let peer = await self.context.engine.data.get(
+            TelegramEngine.EngineData.Item.Peer.Peer(id: message.id.peerId)
+        ).get() else {
+            return
+        }
+        
+        var kind: PeerInfoControllerMode.PeerInfoMediaKind?
+        if message.tags.contains(EngineMessage.Tags.photoOrVideo) {
+            kind = .photoVideo
+        } else if message.tags.contains(EngineMessage.Tags.file) {
+            kind = .file
+        }
+        
+        guard let kind else {
+            return
+        }
+        
+        let peerInfoController = self.context.sharedContext.makePeerInfoController(
+            context: self.context,
+            updatedPresentationData: self.updatedPresentationData,
+            peer: peer,
+            mode: .media(kind: kind, messageIndex: message.index),
+            avatarInitiallyExpanded: false,
+            fromChat: true,
+            requestsContext: nil
+        )
+        if let peerInfoController {
+            self.push(peerInfoController)
         }
     }
 }
