@@ -1,15 +1,11 @@
 # Build Telegram-iOS (Bazel) on GitHub-hosted macOS runners.
 #
-# Required repository secrets (Settings → Secrets and variables → Actions):
-#   TELEGRAM_API_ID    – app api_id from https://my.telegram.org
-#   TELEGRAM_API_HASH  – app api_hash from https://my.telegram.org
+# Optional repository secrets (override the committed appstore-configuration.json):
+#   TELEGRAM_API_ID / TELEGRAM_API_HASH – from https://my.telegram.org
+#   TELEGRAM_BUNDLE_ID / TELEGRAM_TEAM_ID
 #
-# Optional secrets:
-#   TELEGRAM_BUNDLE_ID – defaults to ph.telegra.Telegraph
-#   TELEGRAM_TEAM_ID   – Apple Team ID (empty is fine for unsigned/fake-signed IPA)
-#
-# Manual run: Actions → Build iOS → Run workflow
-# Artifacts: Telegram.ipa + Telegram.DSYMs.zip (unsigned / fake-codesigned)
+# If secrets are unset, CI uses build-system/appstore-configuration.json (same as
+# the previous open-source workflow). Artifacts: Telegram.ipa + Telegram.DSYMs.zip.
 
 name: Build iOS
 
@@ -51,16 +47,6 @@ jobs:
       BAZEL_CACHE_DIR: /Users/Shared/telegram-bazel-cache
 
     steps:
-      - name: Check API secrets
-        env:
-          TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
-          TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
-        run: |
-          if [ -z "$TELEGRAM_API_ID" ] || [ -z "$TELEGRAM_API_HASH" ]; then
-            echo "::error::Set repository secrets TELEGRAM_API_ID and TELEGRAM_API_HASH (from https://my.telegram.org)."
-            exit 1
-          fi
-
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -125,7 +111,7 @@ jobs:
           sudo cp -R "$GITHUB_WORKSPACE" "$SOURCE_DIR"
           sudo chown -R "$(whoami)" "$SOURCE_DIR"
 
-      - name: Write build configuration from secrets
+      - name: Write build configuration
         working-directory: ${{ env.SOURCE_DIR }}
         env:
           TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
@@ -136,21 +122,26 @@ jobs:
           set -euo pipefail
           python3 <<'PY'
           import json, os
-          cfg = {
-              "bundle_id": os.environ.get("TELEGRAM_BUNDLE_ID") or "ph.telegra.Telegraph",
-              "api_id": os.environ["TELEGRAM_API_ID"],
-              "api_hash": os.environ["TELEGRAM_API_HASH"],
-              "team_id": os.environ.get("TELEGRAM_TEAM_ID") or "",
-              "app_center_id": "0",
-              "is_internal_build": "false",
-              "is_appstore_build": "true",
-              "appstore_id": "686449807",
-              "app_specific_url_scheme": "tg",
-              "premium_iap_product_id": "org.telegram.telegramPremium.monthly",
-              "enable_siri": True,
-              "enable_icloud": True,
-          }
+
           path = "build-system/ci-configuration.json"
+          base_path = "build-system/appstore-configuration.json"
+          with open(base_path) as f:
+              cfg = json.load(f)
+
+          api_id = os.environ.get("TELEGRAM_API_ID") or ""
+          api_hash = os.environ.get("TELEGRAM_API_HASH") or ""
+          if api_id and api_hash:
+              cfg["api_id"] = api_id
+              cfg["api_hash"] = api_hash
+              print("Using TELEGRAM_API_* repository secrets")
+          else:
+              print(f"Secrets unset — using {base_path} (api_id={cfg.get('api_id')})")
+
+          if os.environ.get("TELEGRAM_BUNDLE_ID"):
+              cfg["bundle_id"] = os.environ["TELEGRAM_BUNDLE_ID"]
+          if "TELEGRAM_TEAM_ID" in os.environ and os.environ["TELEGRAM_TEAM_ID"] != "":
+              cfg["team_id"] = os.environ["TELEGRAM_TEAM_ID"]
+
           with open(path, "w") as f:
               json.dump(cfg, f, indent="\t")
               f.write("\n")
