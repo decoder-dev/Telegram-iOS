@@ -1,29 +1,21 @@
 import Foundation
 import SwiftSignalKit
 import TelegramCore
-import CryptoUtils
 
 public struct ChatArchiveSettings: Equatable, Codable {
     public var isHiddenByDefault: Bool
     public var hiddenPsaPeerId: EnginePeer.Id?
-    /// SHA-256 hex digest of the Archive password. Nil = unlocked.
-    public var lockPasswordHash: String?
+    /// Legacy field kept only for migration into Keychain; never written going forward.
+    public var legacyLockPasswordHash: String?
     
     public static var `default`: ChatArchiveSettings {
-        return ChatArchiveSettings(isHiddenByDefault: false, hiddenPsaPeerId: nil, lockPasswordHash: nil)
+        return ChatArchiveSettings(isHiddenByDefault: false, hiddenPsaPeerId: nil, legacyLockPasswordHash: nil)
     }
     
-    public var isPasswordProtected: Bool {
-        if let lockPasswordHash = self.lockPasswordHash, !lockPasswordHash.isEmpty {
-            return true
-        }
-        return false
-    }
-    
-    public init(isHiddenByDefault: Bool, hiddenPsaPeerId: EnginePeer.Id?, lockPasswordHash: String? = nil) {
+    public init(isHiddenByDefault: Bool, hiddenPsaPeerId: EnginePeer.Id?, legacyLockPasswordHash: String? = nil) {
         self.isHiddenByDefault = isHiddenByDefault
         self.hiddenPsaPeerId = hiddenPsaPeerId
-        self.lockPasswordHash = lockPasswordHash
+        self.legacyLockPasswordHash = legacyLockPasswordHash
     }
     
     public init(from decoder: Decoder) throws {
@@ -32,12 +24,11 @@ public struct ChatArchiveSettings: Equatable, Codable {
         self.isHiddenByDefault = (try container.decode(Int32.self, forKey: "isHiddenByDefault")) != 0
         self.hiddenPsaPeerId = (try container.decodeIfPresent(Int64.self, forKey: "hiddenPsaPeerId")).flatMap(EnginePeer.Id.init)
         if let hash = try container.decodeIfPresent(String.self, forKey: "lockPasswordHash"), !hash.isEmpty {
-            self.lockPasswordHash = hash
+            self.legacyLockPasswordHash = hash
         } else if let legacy = try container.decodeIfPresent(String.self, forKey: "lockPassword"), !legacy.isEmpty {
-            // One-shot migration from plaintext password stored by the first draft.
-            self.lockPasswordHash = archivePasswordHash(legacy)
+            self.legacyLockPasswordHash = archivePasswordHash(legacy)
         } else {
-            self.lockPasswordHash = nil
+            self.legacyLockPasswordHash = nil
         }
     }
     
@@ -50,34 +41,14 @@ public struct ChatArchiveSettings: Equatable, Codable {
         } else {
             try container.encodeNil(forKey: "hiddenPsaPeerId")
         }
-        if let lockPasswordHash = self.lockPasswordHash {
-            try container.encode(lockPasswordHash, forKey: "lockPasswordHash")
-        } else {
-            try container.encodeNil(forKey: "lockPasswordHash")
-        }
-        // Drop any legacy plaintext key on next write.
+        // Password hash lives in Keychain; clear any prefs copies on write.
+        try container.encodeNil(forKey: "lockPasswordHash")
         try container.encodeNil(forKey: "lockPassword")
     }
     
-    public func withUpdatedLockPasswordHash(_ hash: String?) -> ChatArchiveSettings {
-        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, lockPasswordHash: hash)
+    public func clearingLegacyPasswordHash() -> ChatArchiveSettings {
+        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: nil)
     }
-    
-    public func matchesPassword(_ password: String) -> Bool {
-        guard let lockPasswordHash = self.lockPasswordHash else {
-            return false
-        }
-        return lockPasswordHash == archivePasswordHash(password)
-    }
-}
-
-public func archivePasswordHash(_ password: String) -> String {
-    let data = Data(password.utf8)
-    let digest: Data = data.withUnsafeBytes { buffer -> Data in
-        let pointer = buffer.baseAddress ?? UnsafeRawPointer(bitPattern: 0x1)!
-        return CryptoSHA256(pointer, Int32(buffer.count)) as Data
-    }
-    return digest.map { String(format: "%02x", $0) }.joined()
 }
 
 /// In-memory session unlock for the Archive folder password.
@@ -87,6 +58,7 @@ public final class ArchiveLockSession {
     private let lock = NSLock()
     private var unlocked = false
     private var didMuteSweep = false
+    private var didAlignKeepArchived = false
     private var backgroundDisposable: Disposable?
     private let relockedPipe = ValuePipe<Void>()
     
@@ -133,6 +105,17 @@ public final class ArchiveLockSession {
         return true
     }
     
+    /// Returns true the first time per process; used to align keepArchivedUnmuted with force-mute.
+    public func claimKeepArchivedAlign() -> Bool {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        if self.didAlignKeepArchived {
+            return false
+        }
+        self.didAlignKeepArchived = true
+        return true
+    }
+    
     /// Re-lock Archive when the app leaves the active state.
     public func bindBackgroundRelock(applicationIsActive: Signal<Bool, NoError>) {
         self.lock.lock()
@@ -163,4 +146,12 @@ public func updateChatArchiveSettings(engine: TelegramEngine, _ f: @escaping (Ch
         }
         return SharedPreferencesEntry(f(currentSettings))
     })
+}
+
+/// Whether Archive is password-protected for this account (Keychain, with prefs migration).
+public func archiveIsPasswordProtected(peerId: EnginePeer.Id, settings: ChatArchiveSettings) -> Bool {
+    if ArchivePasswordKeychain.migrateFromPreferencesIfNeeded(peerId: peerId, legacyHash: settings.legacyLockPasswordHash) {
+        return true
+    }
+    return ArchivePasswordKeychain.hasPassword(peerId: peerId)
 }

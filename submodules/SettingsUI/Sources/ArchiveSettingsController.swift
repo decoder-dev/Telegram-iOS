@@ -112,7 +112,7 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
         case .unmutedHeader:
             return ItemListSectionHeaderItem(presentationData: presentationData, text: presentationData.strings.ArchiveSettings_UnmutedChatsHeader, sectionId: self.section)
         case let .unmutedValue(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: presentationData.strings.ArchiveSettings_KeepArchived, value: value, sectionId: self.section, style: .blocks, updated: { value in
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: presentationData.strings.ArchiveSettings_KeepArchived, value: value, enableInteractiveChanges: false, enabled: false, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateUnmuted(value)
             })
         case .unmutedFooter:
@@ -136,17 +136,17 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
         case .unknownFooter:
             return ItemListTextItem(presentationData: presentationData, text: .markdown(presentationData.strings.ArchiveSettings_UnknownChatsFooter), sectionId: self.section)
         case .passwordHeader:
-            return ItemListSectionHeaderItem(presentationData: presentationData, text: "PASSWORD", sectionId: self.section)
+            return ItemListSectionHeaderItem(presentationData: presentationData, text: ArchiveLockLocalizedString.passwordSection, sectionId: self.section)
         case let .passwordValue(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: "Lock Archive", value: value, sectionId: self.section, style: .blocks, updated: { value in
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ArchiveLockLocalizedString.lockArchive, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.togglePassword(value)
             })
         case .passwordLockNow:
-            return ItemListActionItem(presentationData: presentationData, title: "Lock Now", kind: .generic, alignment: .natural, sectionId: self.section, style: .blocks, action: {
+            return ItemListActionItem(presentationData: presentationData, title: ArchiveLockLocalizedString.lockNow, kind: .generic, alignment: .natural, sectionId: self.section, style: .blocks, action: {
                 arguments.lockNow()
             })
         case .passwordFooter:
-            return ItemListTextItem(presentationData: presentationData, text: .plain("When enabled, opening Archive requires a password. Archived chats are muted and hidden from folders, search, and frequent contacts."), sectionId: self.section)
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ArchiveLockLocalizedString.footer), sectionId: self.section)
         }
     }
 }
@@ -154,7 +154,7 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
 private func archiveSettingsControllerEntries(
     presentationData: PresentationData,
     settings: GlobalPrivacySettings,
-    archiveSettings: ChatArchiveSettings,
+    isPasswordProtected: Bool,
     passwordLockOverride: Bool?,
     sessionUnlocked: Bool,
     isPremium: Bool,
@@ -163,14 +163,9 @@ private func archiveSettingsControllerEntries(
     var entries: [ArchiveSettingsControllerEntry] = []
     
     entries.append(.unmutedHeader)
-    entries.append(.unmutedValue(settings.keepArchivedUnmuted))
+    // Force-mute policy: keep archived even if manually unmuted later.
+    entries.append(.unmutedValue(true))
     entries.append(.unmutedFooter)
-    
-    if !settings.keepArchivedUnmuted {
-        entries.append(.foldersHeader)
-        entries.append(.foldersValue(settings.keepArchivedFolders))
-        entries.append(.foldersFooter)
-    }
     
     if isPremium || isPremiumEnabled {
         entries.append(.unknownHeader)
@@ -178,7 +173,7 @@ private func archiveSettingsControllerEntries(
         entries.append(.unknownFooter)
     }
     
-    let passwordOn = passwordLockOverride ?? archiveSettings.isPasswordProtected
+    let passwordOn = passwordLockOverride ?? isPasswordProtected
     entries.append(.passwordHeader)
     entries.append(.passwordValue(passwordOn))
     if passwordOn && sessionUnlocked {
@@ -206,7 +201,8 @@ public func archiveSettingsController(context: AccountContext) -> ViewController
     
     let arguments = ArchiveSettingsControllerArguments(
         updateUnmuted: { value in
-            let _ = context.engine.privacy.updateAccountKeepArchivedUnmuted(value: value).start()
+            // Archived chats are force-muted; always keep them archived if unmuted manually.
+            let _ = context.engine.privacy.updateAccountKeepArchivedUnmuted(value: true).start()
         },
         updateFolders: { value in
             let _ = context.engine.privacy.updateAccountKeepArchivedFolders(value: value).start()
@@ -281,12 +277,18 @@ public func archiveSettingsController(context: AccountContext) -> ViewController
         let isPremium = accountPeer?.isPremium ?? false
         let isPremiumDisabled = PremiumConfiguration.with(appConfiguration: appConfiguration).isPremiumDisabled
         let archiveSettings = archiveSettingsPreference?.get(ChatArchiveSettings.self) ?? .default
+        let isPasswordProtected = archiveIsPasswordProtected(peerId: context.account.peerId, settings: archiveSettings)
+        if archiveSettings.legacyLockPasswordHash != nil {
+            let _ = updateChatArchiveSettings(engine: context.engine) { current in
+                current.clearingLegacyPasswordHash()
+            }.startStandalone()
+        }
         
         let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .text(presentationData.strings.ArchiveSettings_Title), leftNavigationButton: nil, rightNavigationButton: nil, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back))
         let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: archiveSettingsControllerEntries(
             presentationData: presentationData,
             settings: settings,
-            archiveSettings: archiveSettings,
+            isPasswordProtected: isPasswordProtected,
             passwordLockOverride: passwordOverride,
             sessionUnlocked: sessionUnlocked,
             isPremium: isPremium,

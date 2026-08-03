@@ -44,8 +44,9 @@ func archiveContextMenuItems(context: AccountContext, group: EngineChatList.Grou
             f(.default)
         })))
         
-        if settings.isPasswordProtected {
-            items.append(.action(ContextMenuActionItem(text: "Remove Archive Password", icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Lock"), color: theme.contextMenu.primaryColor) }, action: { [weak chatListController] _, f in
+        let isPasswordProtected = archiveIsPasswordProtected(peerId: context.account.peerId, settings: settings)
+        if isPasswordProtected {
+            items.append(.action(ContextMenuActionItem(text: ArchiveLockLocalizedString.removePassword, icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Lock"), color: theme.contextMenu.primaryColor) }, action: { [weak chatListController] _, f in
                 f(.default)
                 guard let chatListController else {
                     return
@@ -55,14 +56,14 @@ func archiveContextMenuItems(context: AccountContext, group: EngineChatList.Grou
                 }, completion: { _ in })
             })))
             if ArchiveLockSession.shared.isUnlocked {
-                items.append(.action(ContextMenuActionItem(text: "Lock Archive", icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Lock"), color: theme.contextMenu.primaryColor) }, action: { [weak chatListController] _, f in
+                items.append(.action(ContextMenuActionItem(text: ArchiveLockLocalizedString.lockArchiveAction, icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Lock"), color: theme.contextMenu.primaryColor) }, action: { [weak chatListController] _, f in
                     ArchiveLockSession.shared.relock()
                     dismissOpenArchiveControllers(from: chatListController?.navigationController)
                     f(.default)
                 })))
             }
         } else {
-            items.append(.action(ContextMenuActionItem(text: "Set Archive Password", icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Lock"), color: theme.contextMenu.primaryColor) }, action: { [weak chatListController] _, f in
+            items.append(.action(ContextMenuActionItem(text: ArchiveLockLocalizedString.setPassword, icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Lock"), color: theme.contextMenu.primaryColor) }, action: { [weak chatListController] _, f in
                 f(.default)
                 guard let chatListController else {
                     return

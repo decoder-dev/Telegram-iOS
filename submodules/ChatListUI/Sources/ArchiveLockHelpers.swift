@@ -13,6 +13,32 @@ public enum ArchiveUnlockResult {
     case notProtected
 }
 
+private func migrateAndResolvePasswordProtected(context: AccountContext, settings: ChatArchiveSettings) -> Bool {
+    let peerId = context.account.peerId
+    let protected = archiveIsPasswordProtected(peerId: peerId, settings: settings)
+    if settings.legacyLockPasswordHash != nil {
+        let _ = updateChatArchiveSettings(engine: context.engine) { current in
+            current.clearingLegacyPasswordHash()
+        }.startStandalone()
+    }
+    return protected
+}
+
+/// Align server-side keepArchivedUnmuted with local force-mute: unmuted
+/// archived chats (if any) should stay in Archive rather than auto-unarchiving.
+func alignKeepArchivedUnmutedIfNeeded(context: AccountContext) {
+    guard ArchiveLockSession.shared.claimKeepArchivedAlign() else {
+        return
+    }
+    let _ = (context.engine.data.get(TelegramEngine.EngineData.Item.Configuration.GlobalPrivacy())
+    |> take(1)
+    |> deliverOnMainQueue).startStandalone(next: { settings in
+        if !settings.keepArchivedUnmuted {
+            let _ = context.engine.privacy.updateAccountKeepArchivedUnmuted(value: true).startStandalone()
+        }
+    })
+}
+
 /// Ensures the Archive folder can be opened. If a password is set and the
 /// current session is locked, presents a prompt; otherwise proceeds immediately.
 public func ensureArchiveUnlocked(
@@ -27,7 +53,7 @@ public func ensureArchiveUnlocked(
     )
     |> deliverOnMainQueue).startStandalone(next: { preference in
         let settings = preference?.get(ChatArchiveSettings.self) ?? .default
-        guard settings.isPasswordProtected else {
+        guard migrateAndResolvePasswordProtected(context: context, settings: settings) else {
             completion(.notProtected)
             return
         }
@@ -38,10 +64,10 @@ public func ensureArchiveUnlocked(
         
         presentArchivePasswordAlert(
             context: context,
-            title: "Archive Password",
-            message: "Enter the password to open Archive",
-            confirmTitle: "Unlock",
-            expectedSettings: settings,
+            title: ArchiveLockLocalizedString.enterTitle,
+            message: ArchiveLockLocalizedString.enterText,
+            confirmTitle: ArchiveLockLocalizedString.unlock,
+            verifyPassword: true,
             onSuccess: {
                 ArchiveLockSession.shared.unlock()
                 completion(.unlocked)
@@ -68,7 +94,8 @@ public func ensureArchivedPeerAccessible(
     )
     |> deliverOnMainQueue).startStandalone(next: { group, preference in
         let settings = preference?.get(ChatArchiveSettings.self) ?? .default
-        guard group == .archive, settings.isPasswordProtected else {
+        let protected = migrateAndResolvePasswordProtected(context: context, settings: settings)
+        guard group == .archive, protected else {
             completion(.notProtected)
             return
         }
@@ -85,29 +112,31 @@ private func presentArchivePasswordAlert(
     title: String,
     message: String?,
     confirmTitle: String,
-    expectedSettings: ChatArchiveSettings?,
+    verifyPassword: Bool,
     onSuccess: @escaping () -> Void,
     onCancel: @escaping () -> Void,
     capturePassword: ((String) -> Void)? = nil
 ) {
     var attemptsLeft = 5
+    let peerId = context.account.peerId
+    let strings = context.sharedContext.currentPresentationData.with { $0 }.strings
     
     func show(messageOverride: String?) {
         let alert = UIAlertController(title: title, message: messageOverride ?? message, preferredStyle: .alert)
         alert.addTextField { field in
             field.isSecureTextEntry = true
-            field.placeholder = "Password"
+            field.placeholder = ArchiveLockLocalizedString.passwordPlaceholder
             field.autocorrectionType = .no
             field.autocapitalizationType = .none
             field.returnKeyType = .done
         }
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: { _ in
+        alert.addAction(UIAlertAction(title: strings.Common_Cancel, style: .cancel, handler: { _ in
             onCancel()
         }))
         alert.addAction(UIAlertAction(title: confirmTitle, style: .default, handler: { _ in
             let trimmed = (alert.textFields?.first?.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-            if let expectedSettings {
-                if expectedSettings.matchesPassword(trimmed) {
+            if verifyPassword {
+                if ArchivePasswordKeychain.matchesPassword(trimmed, peerId: peerId) {
                     onSuccess()
                 } else {
                     attemptsLeft -= 1
@@ -115,7 +144,7 @@ private func presentArchivePasswordAlert(
                         onCancel()
                     } else {
                         Queue.mainQueue().after(0.3) {
-                            show(messageOverride: "Incorrect password. \(attemptsLeft) attempts left.")
+                            show(messageOverride: ArchiveLockLocalizedString.incorrectPassword(attemptsLeft: attemptsLeft))
                         }
                     }
                 }
@@ -124,24 +153,24 @@ private func presentArchivePasswordAlert(
                     onCancel()
                 } else {
                     Queue.mainQueue().after(0.2) {
-                        let confirm = UIAlertController(title: "Confirm Password", message: "Re-enter the Archive password", preferredStyle: .alert)
+                        let confirm = UIAlertController(title: ArchiveLockLocalizedString.confirmTitle, message: ArchiveLockLocalizedString.confirmText, preferredStyle: .alert)
                         confirm.addTextField { field in
                             field.isSecureTextEntry = true
-                            field.placeholder = "Password"
+                            field.placeholder = ArchiveLockLocalizedString.passwordPlaceholder
                             field.autocorrectionType = .no
                             field.autocapitalizationType = .none
                         }
-                        confirm.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: { _ in
+                        confirm.addAction(UIAlertAction(title: strings.Common_Cancel, style: .cancel, handler: { _ in
                             onCancel()
                         }))
-                        confirm.addAction(UIAlertAction(title: "Done", style: .default, handler: { _ in
+                        confirm.addAction(UIAlertAction(title: strings.Common_Done, style: .default, handler: { _ in
                             let confirmValue = (confirm.textFields?.first?.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
                             if confirmValue == trimmed {
                                 capturePassword(trimmed)
                                 onSuccess()
                             } else {
                                 Queue.mainQueue().after(0.3) {
-                                    show(messageOverride: "Passwords did not match. Try again.")
+                                    show(messageOverride: ArchiveLockLocalizedString.passwordsDoNotMatch)
                                 }
                             }
                         }))
@@ -171,12 +200,13 @@ private func presentUIAlert(context: AccountContext, alert: UIAlertController) {
 public func setArchivePassword(context: AccountContext, present: @escaping (ViewController) -> Void, completion: @escaping (Bool) -> Void) {
     presentArchivePasswordAlert(
         context: context,
-        title: "Set Archive Password",
-        message: "Archived chats stay muted and hidden from folders",
-        confirmTitle: "Continue",
-        expectedSettings: nil,
+        title: ArchiveLockLocalizedString.setTitle,
+        message: ArchiveLockLocalizedString.setText,
+        confirmTitle: ArchiveLockLocalizedString.continueAction,
+        verifyPassword: false,
         onSuccess: {
             ArchiveLockSession.shared.unlock()
+            alignKeepArchivedUnmutedIfNeeded(context: context)
             completion(true)
         },
         onCancel: {
@@ -184,8 +214,9 @@ public func setArchivePassword(context: AccountContext, present: @escaping (View
         },
         capturePassword: { password in
             let hash = archivePasswordHash(password)
+            _ = ArchivePasswordKeychain.storeHash(hash, peerId: context.account.peerId)
             let _ = updateChatArchiveSettings(engine: context.engine) { current in
-                current.withUpdatedLockPasswordHash(hash)
+                current.clearingLegacyPasswordHash()
             }.startStandalone()
         }
     )
@@ -197,19 +228,20 @@ public func removeArchivePassword(context: AccountContext, present: @escaping (V
     )
     |> deliverOnMainQueue).startStandalone(next: { preference in
         let settings = preference?.get(ChatArchiveSettings.self) ?? .default
-        guard settings.isPasswordProtected else {
+        guard migrateAndResolvePasswordProtected(context: context, settings: settings) else {
             completion(true)
             return
         }
         presentArchivePasswordAlert(
             context: context,
-            title: "Remove Archive Password",
-            message: "Enter the current password to disable the lock",
-            confirmTitle: "Remove",
-            expectedSettings: settings,
+            title: ArchiveLockLocalizedString.removeTitle,
+            message: ArchiveLockLocalizedString.removeText,
+            confirmTitle: ArchiveLockLocalizedString.remove,
+            verifyPassword: true,
             onSuccess: {
+                _ = ArchivePasswordKeychain.clear(peerId: context.account.peerId)
                 let _ = updateChatArchiveSettings(engine: context.engine) { current in
-                    current.withUpdatedLockPasswordHash(nil)
+                    current.clearingLegacyPasswordHash()
                 }.startStandalone()
                 ArchiveLockSession.shared.relock()
                 completion(true)
@@ -227,6 +259,7 @@ public func muteAllArchivedChatsIfNeeded(context: AccountContext) {
     guard ArchiveLockSession.shared.claimMuteSweep() else {
         return
     }
+    alignKeepArchivedUnmutedIfNeeded(context: context)
     muteAllArchivedChats(context: context)
 }
 

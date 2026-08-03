@@ -15,6 +15,9 @@ swift_library(
         "//submodules/SSignalKit/SwiftSignalKit:SwiftSignalKit",
         "//submodules/CryptoUtils:CryptoUtils",
     ],
+    sdk_frameworks = [
+        "Security",
+    ],
     visibility = [
         "//visibility:public",
     ],
