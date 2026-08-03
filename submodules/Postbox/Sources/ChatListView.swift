@@ -473,6 +473,11 @@ public struct ChatListFilterPredicate {
         if self.excludePeerIds.contains(includePeerId) {
             return false
         }
+        // Archive folder (PeerGroupId rawValue 1): never surface in chat-list filters,
+        // even when the peer is explicitly included or pinned in the folder.
+        if groupId.rawValue == 1 {
+            return false
+        }
         if self.includePeerIds.contains(includePeerId) {
             return true
         }
@@ -626,7 +631,14 @@ final class MutableChatListView {
                 spaces.append(.group(groupId: additionalGroupId, pinned: .includePinnedAsUnpinned, predicate: filterPredicate))
             }
             if !filterPredicate.pinnedPeerIds.isEmpty {
-                spaces.append(.peers(peerIds: filterPredicate.pinnedPeerIds, asPinned: true))
+                // Drop archived peers from the pinned-peers space so they cannot
+                // leak into folders via explicit pin / include membership.
+                let nonArchivedPinnedPeerIds = filterPredicate.pinnedPeerIds.filter { peerId in
+                    postbox.getPeerChatListInclusion(peerId).groupId?.rawValue != 1
+                }
+                if !nonArchivedPinnedPeerIds.isEmpty {
+                    spaces.append(.peers(peerIds: nonArchivedPinnedPeerIds, asPinned: true))
+                }
             }
         } else {
             spaces.append(.group(groupId: self.groupId, pinned: .includePinned, predicate: filterPredicate))

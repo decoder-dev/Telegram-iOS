@@ -9503,8 +9503,8 @@ Sorry for the inconvenience.";
 
 "ArchiveSettings.Title" = "Archive Settings";
 
-"ArchiveSettings.UnmutedChatsHeader" = "UNMUTED CHATS";
-"ArchiveSettings.UnmutedChatsFooter" = "Keep archived chats in the Archive even if they are unmuted and get a new message.";
+"ArchiveSettings.UnmutedChatsHeader" = "ARCHIVED CHATS";
+"ArchiveSettings.UnmutedChatsFooter" = "Chats moved to Archive are muted automatically. Keep them in the Archive even if you unmute one and it gets a new message.";
 "ArchiveSettings.FolderChatsHeader" = "CHATS FROM FOLDERS";
 "ArchiveSettings.FolderChatsFooter" = "Keep archived chats from folders in the Archive even if they are unmuted and get a new message.";
 
@@ -9514,6 +9514,28 @@ Sorry for the inconvenience.";
 "ArchiveSettings.KeepArchived" = "Always Keep Archived";
 "ArchiveSettings.AutomaticallyArchive" = "Automatically Archive";
 "ArchiveSettings.TooltipPremiumRequired" = "This setting is available only to the subscribers of [Telegram Premium]().";
+
+"ArchiveLock.PasswordSection" = "PASSWORD";
+"ArchiveLock.LockArchive" = "Lock Archive";
+"ArchiveLock.LockNow" = "Lock Now";
+"ArchiveLock.Footer" = "When enabled, opening Archive requires a password. Archived chats are muted and hidden from folders, search, and frequent contacts.";
+"ArchiveLock.EnterTitle" = "Archive Password";
+"ArchiveLock.EnterText" = "Enter the password to open Archive";
+"ArchiveLock.Unlock" = "Unlock";
+"ArchiveLock.PasswordPlaceholder" = "Password";
+"ArchiveLock.SetTitle" = "Set Archive Password";
+"ArchiveLock.SetText" = "Archived chats stay muted and hidden from folders";
+"ArchiveLock.Continue" = "Continue";
+"ArchiveLock.ConfirmTitle" = "Confirm Password";
+"ArchiveLock.ConfirmText" = "Re-enter the Archive password";
+"ArchiveLock.RemoveTitle" = "Remove Archive Password";
+"ArchiveLock.RemoveText" = "Enter the current password to disable the lock";
+"ArchiveLock.Remove" = "Remove";
+"ArchiveLock.IncorrectPassword" = "Incorrect password. %d attempts left.";
+"ArchiveLock.PasswordsDoNotMatch" = "Passwords did not match. Try again.";
+"ArchiveLock.SetPassword" = "Set Archive Password";
+"ArchiveLock.RemovePassword" = "Remove Archive Password";
+"ArchiveLock.LockArchiveAction" = "Lock Archive";
 
 "NotificationSettings.Stories.ShowAll" = "Show All Notifications";
 "NotificationSettings.Stories.ShowImportant" = "Show Important Notifications";

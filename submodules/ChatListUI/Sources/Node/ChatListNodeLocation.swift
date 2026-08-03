@@ -118,10 +118,9 @@ public func chatListFilterPredicate(filter: ChatListFilterData, accountPeerId: E
         excludePeers.subtract(filter.includePeers.pinnedPeers)
     }
     
-    var includeAdditionalPeerGroupIds: [PeerGroupId] = []
-    if !filter.excludeArchived {
-        includeAdditionalPeerGroupIds.append(Namespaces.PeerGroup.archive)
-    }
+    // Archived chats must never appear in chat folders, regardless of the
+    // folder's excludeArchived flag (including pinned / explicitly included peers).
+    let includeAdditionalPeerGroupIds: [PeerGroupId] = []
     
     var messageTagSummary: ChatListMessageTagSummaryResultCalculation?
     if filter.excludeRead || filter.excludeMuted {

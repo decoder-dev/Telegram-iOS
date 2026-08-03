@@ -77,6 +77,10 @@ public func _internal_recentlySearchedPeers(postbox: Postbox) -> Signal<[Recentl
             var migratedPeerIds: [EnginePeer.Id: EnginePeer.Id] = [:]
             for peerId in peerIds {
                 if let peerView = view.views[.peer(peerId: peerId, components: .all)] as? PeerView {
+                    // Hide archived chats from recently-searched strip.
+                    if peerView.groupId == Namespaces.PeerGroup.archive {
+                        continue
+                    }
                     var presence: TelegramUserPresence?
                     var unreadCount = unreadCounts[peerId] ?? 0
                     var subpeerSummary: RecentlySearchedPeerSubpeerSummary?

@@ -22,6 +22,28 @@ import ChatMessageNotificationItem
 import FaceScanScreen
 
 public func navigateToChatControllerImpl(_ params: NavigateToChatControllerParams) {
+    navigateToChatControllerImpl(params, skipArchiveUnlock: false)
+}
+
+private func navigateToChatControllerImpl(_ params: NavigateToChatControllerParams, skipArchiveUnlock: Bool) {
+    if !skipArchiveUnlock {
+        let peerId = params.chatLocation.peerId
+        let presentUnlock: (ViewController) -> Void = { controller in
+            if let host = params.navigationController.viewControllers.last as? ViewController {
+                host.present(controller, in: .window(.root))
+            }
+        }
+        ensureArchivedPeerAccessible(context: params.context, peerId: peerId, present: presentUnlock, completion: { result in
+            switch result {
+            case .cancelled:
+                return
+            case .unlocked, .notProtected:
+                navigateToChatControllerImpl(params, skipArchiveUnlock: true)
+            }
+        })
+        return
+    }
+    
     if case let .peer(peer) = params.chatLocation {
         let _ = params.context.engine.peers.ensurePeerIsLocallyAvailable(peer: peer).startStandalone()
     }
@@ -76,7 +98,7 @@ public func navigateToChatControllerImpl(_ params: NavigateToChatControllerParam
     ).start(next: { viewForumAsMessages, requiresAgeVerification in
         if requiresAgeVerification, let parentController = params.navigationController.viewControllers.last as? ViewController {
             presentAgeVerification(context: params.context, parentController: parentController, completion: {
-                navigateToChatControllerImpl(params.withSkipAgeVerification(true))
+                navigateToChatControllerImpl(params.withSkipAgeVerification(true), skipArchiveUnlock: true)
             })
             return
         }

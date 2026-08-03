@@ -1404,7 +1404,7 @@ public func chatListFilterPresetController(context: AccountContext, currentPrese
         includeCategories: initialPreset?.data?.categories ?? [],
         excludeMuted: initialPreset?.data?.excludeMuted ?? false,
         excludeRead: initialPreset?.data?.excludeRead ?? false,
-        excludeArchived: initialPreset?.data?.excludeArchived ?? false,
+        excludeArchived: true,
         additionallyIncludePeers: initialPreset?.data?.includePeers.peers ?? [],
         additionallyExcludePeers: initialPreset?.data?.excludePeers ?? [],
         expandedSections: []

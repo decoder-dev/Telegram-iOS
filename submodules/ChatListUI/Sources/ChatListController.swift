@@ -142,6 +142,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
     
     private let suggestAutoarchiveDisposable = MetaDisposable()
     private let dismissAutoarchiveDisposable = MetaDisposable()
+    private let archiveLockDisposable = MetaDisposable()
     private var didSuggestAutoarchive = false
     private var didSuggestLoginEmailSetup = false
     private var didSuggestLoginPasskeySetup = false
@@ -258,6 +259,17 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
         
         self.animationCache = context.animationCache
         self.animationRenderer = context.animationRenderer
+        
+        if case .chatList(groupId: .archive) = location {
+            ArchiveLockSession.shared.bindBackgroundRelock(applicationIsActive: context.sharedContext.applicationBindings.applicationIsActive)
+            self.archiveLockDisposable.set((ArchiveLockSession.shared.relockedSignal
+            |> deliverOnMainQueue).startStrict(next: { [weak self] _ in
+                guard let self else {
+                    return
+                }
+                dismissOpenArchiveControllers(from: self.navigationController)
+            }))
+        }
         
         var groupCallPanelSource: EnginePeer.Id?
         var chatListNotices = false
@@ -796,6 +808,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
         self.suggestLocalizationDisposable.dispose()
         self.suggestAutoarchiveDisposable.dispose()
         self.dismissAutoarchiveDisposable.dispose()
+        self.archiveLockDisposable.dispose()
         self.presentationDataDisposable?.dispose()
         self.stateDisposable.dispose()
         self.filterDisposable.dispose()
@@ -1569,36 +1582,60 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                 return
             }
             
-            let _ = self.context.engine.privacy.updateGlobalPrivacySettings().startStandalone()
-            let _ = (combineLatest(
-                ApplicationSpecificNotice.displayChatListArchiveTooltip(accountManager: self.context.sharedContext.accountManager),
-                self.context.engine.data.get(
-                    TelegramEngine.EngineData.Item.Configuration.GlobalPrivacy()
-                ),
-                self.context.engine.messages.chatList(group: .archive, count: 20) |> take(1)
-            )
-            |> deliverOnMainQueue).startStandalone(next: { [weak self] didDisplayTip, settings, chatListHead in
+            let openArchive: () -> Void = { [weak self] in
                 guard let self else {
                     return
                 }
                 
-                self.chatListDisplayNode.mainContainerNode.currentItemNode.clearHighlightAnimated(true)
+                // Keep every archived chat muted (covers peers archived before auto-mute).
+                muteAllArchivedChatsIfNeeded(context: self.context)
                 
-                if let navigationController = self.navigationController as? NavigationController {
-                    let chatListController = ChatListControllerImpl(context: self.context, location: .chatList(groupId: groupId), controlsHistoryPreload: false, enableDebugActions: false)
-                    chatListController.navigationPresentation = .master
-                    navigationController.pushViewController(chatListController)
-                }
-                
-                if !didDisplayTip, chatListHead.items.count < 10 {
-                    #if DEBUG
-                    #else
-                    let _ = ApplicationSpecificNotice.setDisplayChatListArchiveTooltip(accountManager: self.context.sharedContext.accountManager).startStandalone()
-                    #endif
+                let _ = self.context.engine.privacy.updateGlobalPrivacySettings().startStandalone()
+                let _ = (combineLatest(
+                    ApplicationSpecificNotice.displayChatListArchiveTooltip(accountManager: self.context.sharedContext.accountManager),
+                    self.context.engine.data.get(
+                        TelegramEngine.EngineData.Item.Configuration.GlobalPrivacy()
+                    ),
+                    self.context.engine.messages.chatList(group: .archive, count: 20) |> take(1)
+                )
+                |> deliverOnMainQueue).startStandalone(next: { [weak self] didDisplayTip, settings, chatListHead in
+                    guard let self else {
+                        return
+                    }
                     
-                    self.push(ArchiveInfoScreen(context: self.context, settings: settings))
-                }
-            })
+                    self.chatListDisplayNode.mainContainerNode.currentItemNode.clearHighlightAnimated(true)
+                    
+                    if let navigationController = self.navigationController as? NavigationController {
+                        let chatListController = ChatListControllerImpl(context: self.context, location: .chatList(groupId: groupId), controlsHistoryPreload: false, enableDebugActions: false)
+                        chatListController.navigationPresentation = .master
+                        navigationController.pushViewController(chatListController)
+                    }
+                    
+                    if !didDisplayTip, chatListHead.items.count < 10 {
+                        #if DEBUG
+                        #else
+                        let _ = ApplicationSpecificNotice.setDisplayChatListArchiveTooltip(accountManager: self.context.sharedContext.accountManager).startStandalone()
+                        #endif
+                        
+                        self.push(ArchiveInfoScreen(context: self.context, settings: settings))
+                    }
+                })
+            }
+            
+            if case .archive = groupId {
+                ensureArchiveUnlocked(context: self.context, present: { [weak self] controller in
+                    self?.present(controller, in: .window(.root))
+                }, completion: { result in
+                    switch result {
+                    case .unlocked, .notProtected:
+                        openArchive()
+                    case .cancelled:
+                        self.chatListDisplayNode.mainContainerNode.currentItemNode.clearHighlightAnimated(true)
+                    }
+                })
+            } else {
+                openArchive()
+            }
         }
         
         self.chatListDisplayNode.mainContainerNode.updatePeerGrouping = { [weak self] peerId, group in
@@ -1910,10 +1947,26 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
             case .loading:
                 break
             case let .groupReference(groupReference):
-                let chatListController = ChatListControllerImpl(context: strongSelf.context, location: .chatList(groupId: groupReference.groupId), controlsHistoryPreload: false, hideNetworkActivityStatus: true, previewing: true, enableDebugActions: false)
-                chatListController.navigationPresentation = .master
-                let contextController = makeContextController(presentationData: strongSelf.presentationData, source: .controller(ContextControllerContentSourceImpl(controller: chatListController, sourceNode: node, navigationController: strongSelf.navigationController as? NavigationController)), items: archiveContextMenuItems(context: strongSelf.context, group: groupReference.groupId, chatListController: strongSelf) |> map { ContextController.Items(content: .list($0)) }, gesture: gesture)
-                strongSelf.presentInGlobalOverlay(contextController)
+                let presentPreview: () -> Void = {
+                    let chatListController = ChatListControllerImpl(context: strongSelf.context, location: .chatList(groupId: groupReference.groupId), controlsHistoryPreload: false, hideNetworkActivityStatus: true, previewing: true, enableDebugActions: false)
+                    chatListController.navigationPresentation = .master
+                    let contextController = makeContextController(presentationData: strongSelf.presentationData, source: .controller(ContextControllerContentSourceImpl(controller: chatListController, sourceNode: node, navigationController: strongSelf.navigationController as? NavigationController)), items: archiveContextMenuItems(context: strongSelf.context, group: groupReference.groupId, chatListController: strongSelf) |> map { ContextController.Items(content: .list($0)) }, gesture: gesture)
+                    strongSelf.presentInGlobalOverlay(contextController)
+                }
+                if case .archive = groupReference.groupId {
+                    ensureArchiveUnlocked(context: strongSelf.context, present: { controller in
+                        strongSelf.present(controller, in: .window(.root))
+                    }, completion: { result in
+                        switch result {
+                        case .unlocked, .notProtected:
+                            presentPreview()
+                        case .cancelled:
+                            gesture?.cancel()
+                        }
+                    })
+                } else {
+                    presentPreview()
+                }
             case let .peer(peerData):
                 let peer = peerData.peer
                 let threadInfo = peerData.threadInfo
