@@ -34,8 +34,8 @@ permissions:
 
 jobs:
   build:
-    name: Build IPA (xcode-27)
-    runs-on: xcode-27
+    name: Build IPA (macos-26)
+    runs-on: macos-26
     timeout-minutes: 360
 
     env:
@@ -65,25 +65,27 @@ jobs:
       - name: Select Xcode
         run: |
           set -euo pipefail
-          if [ -d /Applications/Xcode_27.0.app ]; then
-            sudo xcode-select -s /Applications/Xcode_27.0.app
-          elif [ -d /Applications/Xcode.app ]; then
-            sudo xcode-select -s /Applications/Xcode.app
-          else
-            XCODE_VERSION="$(python3 -c 'import json; print(json.load(open("versions.json"))["xcode"])')"
-            DEVELOPER_DIR="/Applications/Xcode_${XCODE_VERSION}.app/Contents/Developer"
-            if [ ! -d "$DEVELOPER_DIR" ]; then
-              CANDIDATE="$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1 || true)"
-              [ -n "$CANDIDATE" ] || { echo "::error::No Xcode found"; exit 1; }
-              DEVELOPER_DIR="${CANDIDATE}/Contents/Developer"
-            fi
-            sudo xcode-select -s "$DEVELOPER_DIR"
+          # Prefer versions.json (26.2). Xcode 27 preview runners often download Metal
+          # but xcrun still cannot find `metal` for Bazel MetalCompile.
+          XCODE_VERSION="$(python3 -c 'import json; print(json.load(open("versions.json"))["xcode"])')"
+          DEVELOPER_DIR="/Applications/Xcode_${XCODE_VERSION}.app/Contents/Developer"
+          if [ ! -d "$DEVELOPER_DIR" ]; then
+            CANDIDATE="$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1 || true)"
+            [ -n "$CANDIDATE" ] || { echo "::error::No Xcode 26.x found"; exit 1; }
+            DEVELOPER_DIR="${CANDIDATE}/Contents/Developer"
+            echo "::warning::using $(basename "$CANDIDATE") instead of ${XCODE_VERSION}"
           fi
+          sudo xcode-select -s "$DEVELOPER_DIR"
           xcodebuild -version
 
-      # Same as decoder-dev/PrivateMusic2 — Xcode 27 runners ship without Metal by default.
+      # PrivateMusic-style Metal install + xcrun cache reset (Bazel calls `xcrun metal`).
       - name: Prepare Metal toolchain
-        run: sudo xcodebuild -downloadComponent MetalToolchain || true
+        run: |
+          set -euo pipefail
+          sudo xcodebuild -downloadComponent MetalToolchain
+          rm -f "$(getconf DARWIN_USER_TEMP_DIR)/xcrun_db" || true
+          xcrun -f metal
+          xcrun metal -v
 
       - name: Free disk space
         run: |
