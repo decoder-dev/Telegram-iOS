@@ -65,6 +65,7 @@ public final class ChatListNavigationBar: Component {
     public let tabsNodeIsSearch: Bool
     public let accessoryPanelContainer: ASDisplayNode?
     public let accessoryPanelContainerHeight: CGFloat
+    public let hasEdgeEffect: Bool
     public let activateSearch: (NavigationBarSearchContentNode) -> Void
     public let openStatusSetup: (UIView) -> Void
     public let allowAutomaticOrder: () -> Void
@@ -88,6 +89,7 @@ public final class ChatListNavigationBar: Component {
         tabsNodeIsSearch: Bool,
         accessoryPanelContainer: ASDisplayNode?,
         accessoryPanelContainerHeight: CGFloat,
+        hasEdgeEffect: Bool = true,
         activateSearch: @escaping (NavigationBarSearchContentNode) -> Void,
         openStatusSetup: @escaping (UIView) -> Void,
         allowAutomaticOrder: @escaping () -> Void
@@ -110,6 +112,7 @@ public final class ChatListNavigationBar: Component {
         self.tabsNodeIsSearch = tabsNodeIsSearch
         self.accessoryPanelContainer = accessoryPanelContainer
         self.accessoryPanelContainerHeight = accessoryPanelContainerHeight
+        self.hasEdgeEffect = hasEdgeEffect
         self.activateSearch = activateSearch
         self.openStatusSetup = openStatusSetup
         self.allowAutomaticOrder = allowAutomaticOrder
@@ -170,6 +173,9 @@ public final class ChatListNavigationBar: Component {
         if lhs.accessoryPanelContainerHeight != rhs.accessoryPanelContainerHeight {
             return false
         }
+        if lhs.hasEdgeEffect != rhs.hasEdgeEffect {
+            return false
+        }
         return true
     }
     
@@ -224,6 +230,7 @@ public final class ChatListNavigationBar: Component {
         private var currentHeaderComponent: ChatListHeaderComponent?
 
         private var currentHeight: CGFloat = 0.0
+        private var pinnedFraction: CGFloat = 0.0
         
         override public init(frame: CGRect) {
             self.edgeEffectView = EdgeEffectView()
@@ -392,20 +399,18 @@ public final class ChatListNavigationBar: Component {
                 }
             }
             
-            let edgeEffectHeight: CGFloat = currentLayout.size.height + 20.0
-            var edgeEffectFrame = CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: CGSize(width: currentLayout.size.width, height: edgeEffectHeight))
+            var edgeEffectHeight: CGFloat = currentLayout.size.height + 14.0
             if component.search != nil {
                 if component.activeSearch != nil {
-                    edgeEffectFrame.origin.y -= 16.0
                 } else {
-                    edgeEffectFrame.origin.y -= embeddedSearchBarExpansionHeight
+                    edgeEffectHeight -= embeddedSearchBarExpansionHeight
                 }
             } else if component.activeSearch != nil {
-                edgeEffectFrame.origin.y -= 16.0
             }
+            edgeEffectHeight = max(0.0, edgeEffectHeight)
+            let edgeEffectFrame = CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: CGSize(width: currentLayout.size.width, height: edgeEffectHeight))
             transition.setFrame(view: self.edgeEffectView, frame: edgeEffectFrame)
-            self.edgeEffectView.update(content: component.theme.list.plainBackgroundColor, blur: true, alpha: 0.55, rect: edgeEffectFrame, edge: .top, edgeSize: 40.0, transition: transition)
-            
+            self.edgeEffectView.update(content: nil, blur: true, alpha: 0.85, rect: edgeEffectFrame, edge: .top, edgeSize: min(54.0, edgeEffectHeight), transition: transition)
             
             let headerTransition = transition
             
@@ -616,6 +621,12 @@ public final class ChatListNavigationBar: Component {
             }
         }
         
+        public func openEmojiStatusSetup() {
+            if let headerContentView = self.headerContent.view as? ChatListHeaderComponent.View {
+                headerContentView.openEmojiStatusSetup()
+            }
+        }
+        
         public func updateStoryUploadProgress(storyUploadProgress: [EnginePeer.Id: Float]) {
             guard let component = self.component else {
                 return
@@ -672,6 +683,27 @@ public final class ChatListNavigationBar: Component {
                     )
                 }
             }
+        }
+        
+        public func updateEdgeEffectForPinnedFraction(pinnedFraction: CGFloat, transition: ComponentTransition) {
+            if self.pinnedFraction != pinnedFraction {
+                self.pinnedFraction = pinnedFraction
+                self.updateEdgeEffectColor(transition: transition)
+            }
+        }
+        
+        private func updateEdgeEffectColor(transition: ComponentTransition) {
+            guard let component = self.component else {
+                return
+            }
+            var color: UIColor = component.theme.list.plainBackgroundColor
+            if component.activeSearch == nil {
+                color = component.theme.list.plainBackgroundColor.mixedWith(component.theme.chatList.pinnedItemBackgroundColor, alpha: self.pinnedFraction)
+            }
+            if !component.hasEdgeEffect {
+                color = component.theme.list.itemModalBlocksBackgroundColor
+            }
+            self.edgeEffectView.updateColor(color: color, transition: transition)
         }
         
         func update(component: ChatListNavigationBar, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
@@ -780,6 +812,10 @@ public final class ChatListNavigationBar: Component {
                     self.applyScroll(offset: rawScrollOffset, allowAvatarsExpansion: self.currentAllowAvatarsExpansion, forceUpdate: true, transition: transition)
                 }
             }
+            
+            self.updateEdgeEffectColor(transition: transition)
+            
+            self.edgeEffectView.isHidden = !component.hasEdgeEffect
             
             return size
         }

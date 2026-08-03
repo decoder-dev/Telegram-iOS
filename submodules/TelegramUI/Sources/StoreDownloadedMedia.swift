@@ -65,14 +65,15 @@ private final class DownloadedMediaStoreContext {
             resource = file.resource
         }
         if let resource = resource {
-            self.disposable = (postbox.transaction { transaction -> (MediaAutoSaveSettings, EnginePeer?) in
+            self.disposable = (postbox.transaction { transaction -> (MediaAutoSaveSettings, EnginePeer?, CachedPeerData?) in
                 let peer = transaction.getPeer(peerId).flatMap(EnginePeer.init)
+                let cachedData = transaction.getPeerCachedData(peerId: peerId)
                 guard let entry = transaction.getPreferencesEntry(key: ApplicationSpecificPreferencesKeys.mediaAutoSaveSettings)?.get(MediaAutoSaveSettings.self) else {
-                    return (.default, peer)
+                    return (.default, peer, cachedData)
                 }
-                return (entry, peer)
+                return (entry, peer, cachedData)
             }
-            |> map { storeSettings, peer -> Bool in
+            |> map { storeSettings, peer, cachedData -> Bool in
                 guard let peer = peer else {
                     return false
                 }
@@ -84,8 +85,11 @@ private final class DownloadedMediaStoreContext {
                     let peerTypeValue: MediaAutoSaveSettings.PeerType
                     switch peer {
                     case .user:
+                        if let cachedUserData = cachedData as? CachedUserData, cachedUserData.flags.contains(.copyProtectionEnabled) || cachedUserData.flags.contains(.myCopyProtectionEnabled) {
+                            return false
+                        }
                         peerTypeValue = .users
-                    case .secretChat:
+                    case .secretChat, .community:
                         return false
                     case .legacyGroup:
                         peerTypeValue = .groups
@@ -298,7 +302,7 @@ final class DownloadedMediaStoreManagerImpl: DownloadedMediaStoreManager {
                 return
             }
             for item in items {
-                for media in item.message.media {
+                for media in item.message.effectiveMedia {
                     if let id = media.id, id == item.mediaId {
                         self.store(.standalone(media: media), timestamp: item.message.timestamp, peerId: item.message.id.peerId)
                         break

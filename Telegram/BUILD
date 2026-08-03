@@ -8,6 +8,13 @@ load("@build_bazel_rules_apple//apple:ios.bzl",
     "ios_application",
     "ios_extension",
     "ios_framework",
+    "ios_ui_test",
+    "ios_ui_test_suite",
+)
+
+load(
+    "@build_bazel_rules_apple//apple/testing/default_runner:ios_test_runner.bzl",
+    "ios_test_runner",
 )
 
 load("@build_bazel_rules_apple//apple:resources.bzl",
@@ -21,11 +28,16 @@ load("@build_bazel_rules_swift//swift:swift.bzl",
 load(
     "@rules_xcodeproj//xcodeproj:defs.bzl",
     "top_level_targets",
+    "top_level_target",
     "xcodeproj",
     "xcode_provisioning_profile",
 )
 
 load("@build_bazel_rules_apple//apple:apple.bzl", "local_provisioning_profile")
+
+load("//Telegram:prebuilt_watchos.bzl",
+    "apple_prebuilt_watchos_application",
+)
 
 load("//build-system/bazel-utils:plist_fragment.bzl",
     "plist_fragment",
@@ -86,6 +98,19 @@ config_setting(
     name = "disableProvisioningProfilesSetting",
     flag_values = {
         ":disableProvisioningProfiles": "True",
+    },
+)
+
+bool_flag(
+    name = "embedWatchApp",
+    build_setting_default = False,
+    visibility = ["//visibility:public"],
+)
+
+config_setting(
+    name = "embedWatchAppSetting",
+    flag_values = {
+        ":embedWatchApp": "True",
     },
 )
 
@@ -377,7 +402,8 @@ plist_fragment(
     """
     <key>CFBundleVersion</key>
     <string>{buildNumber}</string>
-    """
+    """,
+    defaults = {"buildNumber": "1"},
 )
 
 plist_fragment(
@@ -479,7 +505,7 @@ icloud_fragment = "" if not telegram_enable_icloud else """
     <string>iCloud.{telegram_bundle_id}</string>
 </array>
 <key>com.apple.developer.ubiquity-kvstore-identifier</key>
-<string>{telegram_team_id}.*</string>
+<string>{telegram_team_id}.{telegram_bundle_id}</string>
 <key>com.apple.developer.icloud-container-environment</key>
 <string>{telegram_icloud_environment}</string>
 """.format(
@@ -541,6 +567,12 @@ store_signin_fragment = """
 """
 signin_fragment = store_signin_fragment if telegram_bundle_id in store_bundle_ids else ""
 
+official_background_gpu_fragment = """
+<key>com.apple.developer.background-tasks.continued-processing.gpu</key>
+<true/>
+"""
+background_gpu_fragment = official_background_gpu_fragment if telegram_bundle_id == "ph.telegra.Telegraph" else ""
+
 plist_fragment(
     name = "TelegramEntitlements",
     extension = "entitlements",
@@ -556,17 +588,27 @@ plist_fragment(
         communication_notifications_fragment,
         notification_filtering_fragment,
         signin_fragment,
+        background_gpu_fragment,
     ])
 )
 
-plist_fragment(
+genrule(
     name = "VersionInfoPlist",
-    extension = "plist",
-    template =
-    """
+    srcs = ["//:versions.json"],
+    outs = ["VersionInfoPlist.plist"],
+    cmd = """
+        version=$$(python3 -c "import json; print(json.load(open('$(location //:versions.json)'))['app'])")
+        cat > $@ <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
     <key>CFBundleShortVersionString</key>
-    <string>{telegramVersion}</string>
-    """
+    <string>$$version</string>
+</dict>
+</plist>
+PLIST
+    """,
 )
 
 plist_fragment(
@@ -1519,6 +1561,7 @@ plist_fragment(
     <array>
         <string>{telegram_bundle_id}.refresh</string>
         <string>{telegram_bundle_id}.cleanup</string>
+        <string>{telegram_bundle_id}.upload.*</string>
     </array>
     <key>CFBundleAllowMixedLocalizations</key>
     <true/>
@@ -1544,6 +1587,8 @@ plist_fragment(
         <string>here-location</string>
         <string>yandexmaps</string>
         <string>yandexnavi</string>
+        <string>yandextaxi</string>
+        <string>yangoride</string>
         <string>comgooglemaps</string>
         <string>youtube</string>
         <string>twitter</string>
@@ -1572,6 +1617,8 @@ plist_fragment(
         <string>dolphin</string>
         <string>instagram-stories</string>
         <string>yangomaps</string>
+        <string>vivaldi</string>
+        <string>rizogo</string>
     </array>
     <key>LSRequiresIPhoneOS</key>
     <true/>
@@ -1609,7 +1656,6 @@ plist_fragment(
     </array>
     <key>UIAppFonts</key>
     <array>
-        <string>SFCompactRounded-Semibold.otf</string>
         <string>AremacFS-Regular.otf</string>
         <string>AremacFS-Semibold.otf</string>
     </array>
@@ -1699,6 +1745,19 @@ xcode_provisioning_profile(
    provisioning_profile = ":Telegram_local_profile",
 )
 
+apple_prebuilt_watchos_application(
+    name = "TelegramWatchApp",
+    # Watch bundle id tracks the host config ("<host>.watchkitapp"). The rule passes it
+    # to xcodebuild as PRODUCT_BUNDLE_IDENTIFIER (baked + signed); the watch Info.plist
+    # derives WKCompanionAppBundleIdentifier from it via $(PRODUCT_BUNDLE_IDENTIFIER:base),
+    # so the embedded watch app is correct for any host (ph.telegra.Telegraph,
+    # org.telegram.TelegramInternal, ...) with no post-build plist patching.
+    bundle_id = "{telegram_bundle_id}.watchkitapp".format(
+        telegram_bundle_id = telegram_bundle_id,
+    ),
+    tags = ["manual"],
+)
+
 ios_application(
     name = "Telegram",
     bundle_id = "{telegram_bundle_id}".format(
@@ -1747,6 +1806,13 @@ ios_application(
             ":BroadcastUploadExtension",
         ],
     }),
+    # Embed the in-repo tgwatch watch app (Telegram/WatchApp) under Watch/ only when
+    # --//Telegram:embedWatchApp is set (Make.py sets it for device configs when
+    # --embedWatchApp is passed). Off by default, so simulator/dev builds are unaffected.
+    watch_application = select({
+        ":embedWatchAppSetting": ":TelegramWatchApp",
+        "//conditions:default": None,
+    }),
     deps = [
         ":Main",
         ":Lib",
@@ -1759,12 +1825,10 @@ xcodeproj(
     bazel_path = telegram_bazel_path,
     project_name = "Telegram",
     tags = ["manual"],
-    top_level_targets = top_level_targets(
-        labels = [
-            ":Telegram",
-        ],
-        target_environments = ["device", "simulator"],
-    ),
+    top_level_targets = [
+        top_level_target(":Telegram", target_environments = ["device", "simulator"]),
+        ":iOSAppUITestSuite",
+    ],
     xcode_configurations = {
         "Debug": {
             "//command_line_option:compilation_mode": "dbg",
@@ -1774,6 +1838,39 @@ xcodeproj(
         },
     },
     default_xcode_configuration = "Debug"
+)
+
+filegroup(
+    name = "TestSources",
+    srcs = glob(["Tests/Sources/**/*.swift"]),
+)
+
+ios_test_runner(
+    name = "iPhone-17__26.2",
+    device_type = "iPhone 17",
+    os_version = "26.2",
+)
+
+
+swift_library(
+    name = "iOSAppUITestSuite.library",
+    testonly = True,
+    srcs = [":TestSources"],
+    module_name = "iOSAppUITestSuite",
+    tags = ["manual"],
+)
+
+ios_ui_test_suite(
+    name = "iOSAppUITestSuite",
+    bundle_id = "org.telegram.Telegram-iOS-uitests",
+    minimum_os_version = minimum_os_version,
+    runners = [
+        ":iPhone-17__26.2",
+    ],
+    tags = ["manual"],
+    test_host = "//Telegram",
+    visibility = ["@rules_xcodeproj//xcodeproj:generated"],
+    deps = [":iOSAppUITestSuite.library"],
 )
 
 # Temporary targets used to simplify build tests
@@ -1809,7 +1906,7 @@ ios_application(
         #"//third-party/boringssl:ssl",
         #"//third-party/boringssl:crypto",
         #"//submodules/TelegramVoip",
-        #"//third-party/recaptcha:RecaptchaEnterpriseSDK",
+        #"//third-party/recaptcha:RecaptchaEnterprise",
         "//submodules/TelegramUI",
     ],
 )

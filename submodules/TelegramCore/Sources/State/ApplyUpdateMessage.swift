@@ -31,6 +31,9 @@ func applyMediaResourceChanges(from: Media, to: Media, postbox: Postbox, force: 
                 copyOrMoveResourceData(from: fromLargestRepresentation.resource, to: toLargestRepresentation.resource, mediaBox: postbox.mediaBox)
             }
         }
+        if let fromVideo = fromImage.video, let toVideo = toImage.video {
+            applyMediaResourceChanges(from: fromVideo, to: toVideo, postbox: postbox, force: true)
+        }
     } else if let fromFile = from as? TelegramMediaFile, let toFile = to as? TelegramMediaFile {
         if !skipPreviews {
             if let fromPreview = smallestImageRepresentation(fromFile.previewRepresentations), let toPreview = smallestImageRepresentation(toFile.previewRepresentations) {
@@ -58,6 +61,98 @@ func applyMediaResourceChanges(from: Media, to: Media, postbox: Postbox, force: 
     }
 }
 
+func applyMediaResourceChanges(from: InstantPageBlock, fromMedia: [MediaId: Media], to: InstantPageBlock, toMedia: [MediaId: Media], postbox: Postbox, force: Bool, skipPreviews: Bool) {
+    switch from {
+    case .unsupported, .title, .subtitle, .authorDate, .header, .subheader, .heading, .formula, .paragraph, .preformatted, .footer, .divider, .anchor, .pullQuote, .webEmbed, .channelBanner, .kicker, .thinking, .table, .relatedArticles, .map:
+        break
+    case let .list(lhsItems, _):
+        guard case let .list(rhsItems, _) = to else {
+            return
+        }
+        if lhsItems.count != rhsItems.count {
+            return
+        }
+        outer: for i in 0 ..< lhsItems.count {
+            switch lhsItems[i] {
+            case .unknown, .text:
+                break
+            case let .blocks(lhsItemBlocks, _, _):
+                if case let .blocks(rhsItemBlocks, _, _) = rhsItems[i] {
+                    applyMediaResourceChanges(from: lhsItemBlocks, fromMedia: fromMedia, to: rhsItemBlocks, toMedia: toMedia, postbox: postbox, force: force, skipPreviews: skipPreviews)
+                } else {
+                    break outer
+                }
+            }
+        }
+    case let .blockQuote(lhsBlocks, _, _):
+        guard case let .blockQuote(rhsBlocks, _, _) = to else {
+            return
+        }
+        applyMediaResourceChanges(from: lhsBlocks, fromMedia: fromMedia, to: rhsBlocks, toMedia: toMedia, postbox: postbox, force: force, skipPreviews: skipPreviews)
+    case let .image(lhsId, _, _, _, _):
+        guard case let .image(rhsId, _, _, _, _) = to else {
+            return
+        }
+        if let lhsMedia = fromMedia[lhsId], let rhsMedia = toMedia[rhsId] {
+            applyMediaResourceChanges(from: lhsMedia, to: rhsMedia, postbox: postbox, force: force, skipPreviews: skipPreviews)
+        }
+    case let .video(lhsId, _, _, _, _):
+        guard case let .video(rhsId, _, _, _, _) = to else {
+            return
+        }
+        if let lhsMedia = fromMedia[lhsId], let rhsMedia = toMedia[rhsId] {
+            applyMediaResourceChanges(from: lhsMedia, to: rhsMedia, postbox: postbox, force: force, skipPreviews: skipPreviews)
+        }
+    case let .audio(lhsId, _):
+        guard case let .audio(rhsId, _) = to else {
+            return
+        }
+        if let lhsMedia = fromMedia[lhsId], let rhsMedia = toMedia[rhsId] {
+            applyMediaResourceChanges(from: lhsMedia, to: rhsMedia, postbox: postbox, force: force, skipPreviews: skipPreviews)
+        }
+    case let .collage(lhsItems, _):
+        guard case let .collage(rhsItems, _) = to else {
+            return
+        }
+        applyMediaResourceChanges(from: lhsItems, fromMedia: fromMedia, to: rhsItems, toMedia: toMedia, postbox: postbox, force: force, skipPreviews: skipPreviews)
+    case let .slideshow(lhsItems, _):
+        guard case let .slideshow(rhsItems, _) = to else {
+            return
+        }
+        applyMediaResourceChanges(from: lhsItems, fromMedia: fromMedia, to: rhsItems, toMedia: toMedia, postbox: postbox, force: force, skipPreviews: skipPreviews)
+    case let .details(_, lhsBlocks, _):
+        guard case let .details(_, rhsBlocks, _) = to else {
+            return
+        }
+        applyMediaResourceChanges(from: lhsBlocks, fromMedia: fromMedia, to: rhsBlocks, toMedia: toMedia, postbox: postbox, force: force, skipPreviews: skipPreviews)
+    case let .cover(lhsBlock):
+        guard case let .cover(rhsBlock) = to else {
+            return
+        }
+        applyMediaResourceChanges(from: lhsBlock, fromMedia: fromMedia, to: rhsBlock, toMedia: toMedia, postbox: postbox, force: force, skipPreviews: skipPreviews)
+    case let .postEmbed(_, _, _, _, _, lhsBlocks, _):
+        guard case let .postEmbed(_, _, _, _, _, rhsBlocks, _) = to else {
+            return
+        }
+        applyMediaResourceChanges(from: lhsBlocks, fromMedia: fromMedia, to: rhsBlocks, toMedia: toMedia, postbox: postbox, force: force, skipPreviews: skipPreviews)
+    }
+}
+
+func applyMediaResourceChanges(from: [InstantPageBlock], fromMedia: [MediaId: Media], to: [InstantPageBlock], toMedia: [MediaId: Media], postbox: Postbox, force: Bool, skipPreviews: Bool) {
+    if from.count != to.count {
+        return
+    }
+    for i in 0 ..< from.count {
+        let lhsBlock = from[i]
+        let rhsBlock = to[i]
+        applyMediaResourceChanges(from: lhsBlock, fromMedia: fromMedia, to: rhsBlock, toMedia: toMedia, postbox: postbox, force: force, skipPreviews: skipPreviews)
+    }
+}
+
+func applyMediaResourceChanges(from: RichTextMessageAttribute, to: RichTextMessageAttribute, postbox: Postbox, force: Bool, skipPreviews: Bool = false) {
+    applyMediaResourceChanges(from: from.instantPage.blocks, fromMedia: from.instantPage.media, to: to.instantPage.blocks, toMedia: to.instantPage.media, postbox: postbox, force: force, skipPreviews: skipPreviews)
+}
+
 func applyUpdateMessage(postbox: Postbox, stateManager: AccountStateManager, message: Message, cacheReferenceKey: CachedSentMediaReferenceKey?, result: Api.Updates, accountPeerId: PeerId, pendingMessageEvent: @escaping (PeerPendingMessageDelivered) -> Void) -> Signal<Void, NoError> {
     return postbox.transaction { transaction -> Void in
         let messageId: Int32?
@@ -67,7 +162,8 @@ func applyUpdateMessage(postbox: Postbox, stateManager: AccountStateManager, mes
         
         for update in result.allUpdates {
             switch update {
-            case let .updateMessageID(id, randomId):
+            case let .updateMessageID(updateMessageIDData):
+                let (id, randomId) = (updateMessageIDData.id, updateMessageIDData.randomId)
                 for attribute in message.attributes {
                     if let attribute = attribute as? OutgoingMessageInfoAttribute {
                         if attribute.uniqueId == randomId {
@@ -104,16 +200,19 @@ func applyUpdateMessage(postbox: Postbox, stateManager: AccountStateManager, mes
         var updatedTimestamp: Int32?
         if let apiMessage = apiMessage {
             switch apiMessage {
-                case let .message(_, _, _, _, _, _, _, _, _, _, _, date, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _):
+                case let .message(messageData):
+                    let date = messageData.date
                     updatedTimestamp = date
                 case .messageEmpty:
                     break
-                case let .messageService(_, _, _, _, _, _, date, _, _, _):
+                case let .messageService(messageServiceData):
+                    let date = messageServiceData.date
                     updatedTimestamp = date
             }
         } else {
             switch result {
-                case let .updateShortSentMessage(_, _, _, _, date, _, _, _):
+                case let .updateShortSentMessage(updateShortSentMessageData):
+                    let (_, _, _, _, date, _, _, _) = (updateShortSentMessageData.flags, updateShortSentMessageData.id, updateShortSentMessageData.pts, updateShortSentMessageData.ptsCount, updateShortSentMessageData.date, updateShortSentMessageData.media, updateShortSentMessageData.entities, updateShortSentMessageData.ttlPeriod)
                     updatedTimestamp = date
                 default:
                     break
@@ -151,7 +250,8 @@ func applyUpdateMessage(postbox: Postbox, stateManager: AccountStateManager, mes
                 text = updatedMessage.text
                 forwardInfo = updatedMessage.forwardInfo
                 threadId = updatedMessage.threadId
-            } else if case let .updateShortSentMessage(_, _, _, _, _, apiMedia, entities, ttlPeriod) = result {
+            } else if case let .updateShortSentMessage(updateShortSentMessageData) = result {
+                let (_, _, _, _, _, apiMedia, entities, ttlPeriod) = (updateShortSentMessageData.flags, updateShortSentMessageData.id, updateShortSentMessageData.pts, updateShortSentMessageData.ptsCount, updateShortSentMessageData.date, updateShortSentMessageData.media, updateShortSentMessageData.entities, updateShortSentMessageData.ttlPeriod)
                 let (mediaValue, _, nonPremium, hasSpoiler, _, _) = textMediaAndExpirationTimerFromApiMedia(apiMedia, currentMessage.id.peerId)
                 if let mediaValue = mediaValue {
                     media = [mediaValue]
@@ -258,6 +358,9 @@ func applyUpdateMessage(postbox: Postbox, stateManager: AccountStateManager, mes
             
             if let fromMedia = currentMessage.media.first, let toMedia = media.first {
                 applyMediaResourceChanges(from: fromMedia, to: toMedia, postbox: postbox, force: false)
+            }
+            if let fromRichText = currentMessage.richText, let toRichText = attributes.first(where: { $0 is RichTextMessageAttribute }) as? RichTextMessageAttribute {
+                applyMediaResourceChanges(from: fromRichText, to: toRichText, postbox: postbox, force: false)
             }
             
             if forwardInfo == nil {
@@ -400,7 +503,7 @@ func applyUpdateGroupMessages(postbox: Postbox, stateManager: AccountStateManage
         } else if let message = messages.first, let apiMessage = result.messages.first {
             if message.scheduleTime != nil && message.scheduleTime == apiMessage.timestamp {
                 namespace = Namespaces.Message.ScheduledCloud
-            } else if let apiMessage = result.messages.first, case let .message(_, flags2, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _) = apiMessage, (flags2 & (1 << 4)) != 0 {
+            } else if let apiMessage = result.messages.first, case let .message(messageData) = apiMessage, (messageData.flags2 & (1 << 4)) != 0 {
                 namespace = Namespaces.Message.ScheduledCloud
             }
         }

@@ -3,7 +3,6 @@ import UIKit
 import Display
 import AsyncDisplayKit
 import SwiftSignalKit
-import Postbox
 import TelegramCore
 import TelegramPresentationData
 import TelegramUIPreferences
@@ -21,6 +20,7 @@ import Markdown
 import LocationUI
 import TelegramStringFormatting
 import TimezoneSelectionScreen
+import TextFormat
 
 private func wrappedMinuteRange(range: Range<Int>, dayIndexOffset: Int = 0) -> IndexSet {
     let mappedRange = (range.lowerBound + dayIndexOffset * 24 * 60) ..< (range.upperBound + dayIndexOffset * 24 * 60)

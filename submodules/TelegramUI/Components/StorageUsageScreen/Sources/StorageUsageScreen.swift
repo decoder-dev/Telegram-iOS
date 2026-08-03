@@ -9,7 +9,6 @@ import ComponentDisplayAdapters
 import TelegramPresentationData
 import AccountContext
 import TelegramCore
-import Postbox
 import MultilineTextComponent
 import EmojiStatusComponent
 import Markdown
@@ -25,6 +24,7 @@ import GalleryData
 import AnimatedTextComponent
 import BottomButtonPanelComponent
 import GlassBackgroundComponent
+import EdgeEffect
 
 #if DEBUG
 import os.signpost
@@ -90,6 +90,13 @@ private final class SignpostContextImpl: SignpostContext {
 
 #endif
 
+public enum StorageUsageEntryTag {
+    case edit
+    case autoRemove
+    case clearCache
+    case maxCache
+}
+
 private extension StorageUsageScreenComponent.Category {
     init(_ category: StorageUsageStats.CategoryKey) {
         switch category {
@@ -117,20 +124,17 @@ final class StorageUsageScreenComponent: Component {
     typealias EnvironmentType = ViewControllerComponentContainer.Environment
     
     let context: AccountContext
-    let overNavigationContainer: UIView
     let makeStorageUsageExceptionsScreen: (CacheStorageSettings.PeerStorageCategory) -> ViewController?
     let peer: EnginePeer?
     let ready: Promise<Bool>
     
     init(
         context: AccountContext,
-        overNavigationContainer: UIView,
         makeStorageUsageExceptionsScreen: @escaping (CacheStorageSettings.PeerStorageCategory) -> ViewController?,
         peer: EnginePeer?,
         ready: Promise<Bool>
     ) {
         self.context = context
-        self.overNavigationContainer = overNavigationContainer
         self.makeStorageUsageExceptionsScreen = makeStorageUsageExceptionsScreen
         self.peer = peer
         self.ready = ready
@@ -218,7 +222,7 @@ final class StorageUsageScreenComponent: Component {
             return true
         }
         
-        func togglePeer(id: EnginePeer.Id, availableMessages: [EngineMessage.Id: Message]) -> SelectionState {
+        func togglePeer(id: EnginePeer.Id, availableMessages: [EngineMessage.Id: EngineMessage]) -> SelectionState {
             var selectedPeers = self.selectedPeers
             var selectedMessages = self.selectedMessages
             
@@ -346,32 +350,32 @@ final class StorageUsageScreenComponent: Component {
         let peerId: EnginePeer.Id?
         let stats: AllStorageUsageStats
         let contextStats: StorageUsageStats
-        let messages: [MessageId: Message]
-        
+        let messages: [EngineMessage.Id: EngineMessage]
+
         var isSelectingPeers: Bool = false
         private(set) var selectionState: SelectionState
-        
+
         let existingCategories: Set<Category>
         private(set) var selectedCategories: Set<Category>
-        
+
         let peerItems: StoragePeerListPanelComponent.Items?
         let imageItems: StorageMediaGridPanelComponent.Items?
         let fileItems: StorageFileListPanelComponent.Items?
         let musicItems: StorageFileListPanelComponent.Items?
-        
+
         private let allPhotos: Set<EngineMessage.Id>
         private let allVideos: Set<EngineMessage.Id>
         private let allFiles: Set<EngineMessage.Id>
         private let allMusic: Set<EngineMessage.Id>
-        
+
         private(set) var selectedSize: Int64 = 0
-        private(set) var clearIncludeMessages: [Message] = []
-        private(set) var clearExcludeMessages: [Message] = []
-        
+        private(set) var clearIncludeMessages: [EngineMessage] = []
+        private(set) var clearExcludeMessages: [EngineMessage] = []
+
         init(
             peerId: EnginePeer.Id?,
             stats: AllStorageUsageStats,
-            messages: [MessageId: Message],
+            messages: [EngineMessage.Id: EngineMessage],
             peerItems: StoragePeerListPanelComponent.Items?,
             imageItems: StorageMediaGridPanelComponent.Items?,
             fileItems: StorageFileListPanelComponent.Items?,
@@ -576,16 +580,16 @@ final class StorageUsageScreenComponent: Component {
                     }
                 }
                 
-                var clearIncludeMessages: [Message] = []
-                var clearExcludeMessages: [Message] = []
-                
+                var clearIncludeMessages: [EngineMessage] = []
+                var clearExcludeMessages: [EngineMessage] = []
+
                 if self.selectedCategories.contains(.photos) {
                     let deselectedPhotos = self.allPhotos.subtracting(self.selectionState.selectedMessages)
                     if !deselectedPhotos.isEmpty, let imageItems = self.imageItems {
                         for item in imageItems.items {
                             if deselectedPhotos.contains(item.message.id) {
                                 selectedSize -= item.size
-                                clearExcludeMessages.append(item.message._asMessage())
+                                clearExcludeMessages.append(item.message)
                             }
                         }
                     }
@@ -595,19 +599,19 @@ final class StorageUsageScreenComponent: Component {
                         for item in imageItems.items {
                             if selectedPhotos.contains(item.message.id) {
                                 selectedSize += item.size
-                                clearIncludeMessages.append(item.message._asMessage())
+                                clearIncludeMessages.append(item.message)
                             }
                         }
                     }
                 }
-                
+
                 if self.selectedCategories.contains(.videos) {
                     let deselectedVideos = self.allVideos.subtracting(self.selectionState.selectedMessages)
                     if !deselectedVideos.isEmpty, let imageItems = self.imageItems {
                         for item in imageItems.items {
                             if deselectedVideos.contains(item.message.id) {
                                 selectedSize -= item.size
-                                clearExcludeMessages.append(item.message._asMessage())
+                                clearExcludeMessages.append(item.message)
                             }
                         }
                     }
@@ -617,12 +621,12 @@ final class StorageUsageScreenComponent: Component {
                         for item in imageItems.items {
                             if selectedVideos.contains(item.message.id) {
                                 selectedSize += item.size
-                                clearIncludeMessages.append(item.message._asMessage())
+                                clearIncludeMessages.append(item.message)
                             }
                         }
                     }
                 }
-                
+
                 if self.selectedCategories.contains(.files) {
                     let deselectedFiles = self.allFiles.subtracting(self.selectionState.selectedMessages)
                     if !deselectedFiles.isEmpty, let fileItems = self.fileItems {
@@ -644,7 +648,7 @@ final class StorageUsageScreenComponent: Component {
                         }
                     }
                 }
-                
+
                 if self.selectedCategories.contains(.music) {
                     let deselectedMusic = self.allMusic.subtracting(self.selectionState.selectedMessages)
                     if !deselectedMusic.isEmpty, let musicItems = self.musicItems {
@@ -748,6 +752,8 @@ final class StorageUsageScreenComponent: Component {
         private let navigationEditButton = ComponentView<Empty>()
         private let navigationDoneButton = ComponentView<Empty>()
         
+        private let edgeEffectView: EdgeEffectView
+        
         private let headerView = ComponentView<Empty>()
         private let headerOffsetContainer: UIView
         private let headerDescriptionView = ComponentView<Empty>()
@@ -761,7 +767,8 @@ final class StorageUsageScreenComponent: Component {
         private var doneStatusNode: RadialStatusNode?
         
         private let scrollContainerView: UIView
-        
+        private let topContentOverlayView: UIView
+
         private let pieChartView = ComponentView<Empty>()
         private let chartTotalLabel = ComponentView<Empty>()
         private let categoriesView = ComponentView<Empty>()
@@ -804,7 +811,11 @@ final class StorageUsageScreenComponent: Component {
             self.headerOffsetContainer = SparseContainerView()
             
             self.scrollContainerView = UIView()
-            
+
+            self.topContentOverlayView = UIView()
+            self.topContentOverlayView.isUserInteractionEnabled = false
+            self.topContentOverlayView.alpha = 0.0
+
             self.scrollView = ScrollViewImpl()
             
             self.keepDurationSectionContainerView = UIView()
@@ -815,6 +826,8 @@ final class StorageUsageScreenComponent: Component {
             self.headerProgressForegroundLayer = SimpleLayer()
             
             self.navigationRightButtonsBackground = GlassBackgroundView()
+            
+            self.edgeEffectView = EdgeEffectView()
             
             super.init(frame: frame)
             
@@ -841,6 +854,8 @@ final class StorageUsageScreenComponent: Component {
             
             self.scrollView.layer.addSublayer(self.headerProgressBackgroundLayer)
             self.scrollView.layer.addSublayer(self.headerProgressForegroundLayer)
+            
+            self.addSubview(self.edgeEffectView)
         }
         
         required init?(coder: NSCoder) {
@@ -954,6 +969,7 @@ final class StorageUsageScreenComponent: Component {
                 if let panelContainerView = self.panelContainer.view as? StorageUsagePanelContainerComponent.View {
                     panelContainerView.updateNavigationMergeFactor(value: 1.0 - expansionDistanceFactor, transition: transition)
                 }
+                self.topContentOverlayView.alpha = 1.0 - expansionDistanceFactor
                 
                 var offsetFraction: CGFloat = abs(headerOffset - minOffset) / 60.0
                 offsetFraction = min(1.0, max(0.0, offsetFraction))
@@ -1027,17 +1043,11 @@ final class StorageUsageScreenComponent: Component {
             
             if self.statsDisposable == nil {
                 let context = component.context
-                let viewKey: PostboxViewKey = .preferences(keys: Set([PreferencesKeys.accountSpecificCacheStorageSettings]))
-                let cacheSettingsExceptionCount: Signal<[CacheStorageSettings.PeerStorageCategory: Int32], NoError> = component.context.account.postbox.combinedView(keys: [viewKey])
-                |> map { views -> AccountSpecificCacheStorageSettings in
-                    let cacheSettings: AccountSpecificCacheStorageSettings
-                    if let view = views.views[viewKey] as? PreferencesView, let value = view.values[PreferencesKeys.accountSpecificCacheStorageSettings]?.get(AccountSpecificCacheStorageSettings.self) {
-                        cacheSettings = value
-                    } else {
-                        cacheSettings = AccountSpecificCacheStorageSettings.defaultSettings
-                    }
-                    
-                    return cacheSettings
+                let cacheSettingsExceptionCount: Signal<[CacheStorageSettings.PeerStorageCategory: Int32], NoError> = context.engine.data.subscribe(
+                    TelegramEngine.EngineData.Item.Configuration.ApplicationSpecificPreference(key: PreferencesKeys.accountSpecificCacheStorageSettings)
+                )
+                |> map { preferencesEntry -> AccountSpecificCacheStorageSettings in
+                    return preferencesEntry?.get(AccountSpecificCacheStorageSettings.self) ?? AccountSpecificCacheStorageSettings.defaultSettings
                 }
                 |> distinctUntilChanged
                 |> mapToSignal { accountSpecificSettings -> Signal<[CacheStorageSettings.PeerStorageCategory: Int32], NoError> in
@@ -1062,6 +1072,8 @@ final class StorageUsageScreenComponent: Component {
                                 } else {
                                     result[.channels, default: 0] += 1
                                 }
+                            case .community:
+                                break
                             }
                         }
                         
@@ -1098,15 +1110,15 @@ final class StorageUsageScreenComponent: Component {
             }
             
             if self.headerOffsetContainer.superview == nil {
-                component.overNavigationContainer.addSubview(self.headerOffsetContainer)
+                self.addSubview(self.headerOffsetContainer)
             }
             if self.navigationRightButtonsBackground.superview == nil {
-                component.overNavigationContainer.addSubview(self.navigationRightButtonsBackground)
+                self.addSubview(self.navigationRightButtonsBackground)
             }
             
             var wasLockedAtPanels = false
-            if let panelContainerView = self.panelContainer.view, let navigationMetrics = self.navigationMetrics {
-                if self.scrollView.bounds.minY > 0.0 && abs(self.scrollView.bounds.minY - (panelContainerView.frame.minY - navigationMetrics.navigationHeight)) <= UIScreenPixel {
+            if let panelContainerView = self.panelContainer.view {
+                if self.scrollView.bounds.minY > 0.0 && abs(self.scrollView.bounds.minY - (panelContainerView.frame.minY - 0.0)) <= UIScreenPixel {
                     wasLockedAtPanels = true
                 }
             }
@@ -1209,11 +1221,16 @@ final class StorageUsageScreenComponent: Component {
             }
             
             let navigationRightButtonsBackgroundSize = CGSize(width: max(44.0, rightButtonsWidth), height: 44.0)
-            self.navigationRightButtonsBackground.update(size: navigationRightButtonsBackgroundSize, cornerRadius: 44.0 * 0.5, isDark: environment.theme.overallDarkAppearance, tintColor: .init(kind: .panel, color: UIColor(white: environment.theme.overallDarkAppearance ? 0.0 : 1.0, alpha: 0.6)), isInteractive: true, transition: transition)
+            self.navigationRightButtonsBackground.update(size: navigationRightButtonsBackgroundSize, cornerRadius: 44.0 * 0.5, isDark: environment.theme.overallDarkAppearance, tintColor: .init(kind: .panel), isInteractive: true, transition: transition)
             let navigationRightButtonsBackgroundFrame = CGRect(origin: CGPoint(x: availableSize.width - environment.safeInsets.right - 16.0 - navigationRightButtonsBackgroundSize.width, y: environment.statusBarHeight + 2.0 + floor((environment.navigationHeight - environment.statusBarHeight - 44.0) * 0.5)), size: navigationRightButtonsBackgroundSize)
             transition.setFrame(view: self.navigationRightButtonsBackground, frame: navigationRightButtonsBackgroundFrame)
             
             self.backgroundColor = environment.theme.list.blocksBackgroundColor
+            
+            let edgeEffectHeight: CGFloat = environment.navigationHeight + 24.0
+            let edgeEffectFrame = CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: CGSize(width: availableSize.width, height: edgeEffectHeight))
+            transition.setFrame(view: self.edgeEffectView, frame: edgeEffectFrame)
+            self.edgeEffectView.update(content: environment.theme.list.blocksBackgroundColor, alpha: 1.0, rect: edgeEffectFrame, edge: .top, edgeSize: min(64.0, edgeEffectHeight), transition: transition)
             
             var contentHeight: CGFloat = 0.0
             
@@ -1823,23 +1840,23 @@ final class StorageUsageScreenComponent: Component {
                     
                     let mappedCategory: CacheStorageSettings.PeerStorageCategory
                     
-                    let iconName: String
+                    let icon: UIImage?
                     let title: String
                     switch i {
                     case 0:
-                        iconName = "Settings/Menu/EditProfile"
+                        icon = PresentationResourcesSettings.privateChats
                         title = environment.strings.Notifications_PrivateChats
                         mappedCategory = .privateChats
                     case 1:
-                        iconName = "Settings/Menu/GroupChats"
+                        icon = PresentationResourcesSettings.groups
                         title = environment.strings.Notifications_GroupChats
                         mappedCategory = .groups
                     case 3:
-                        iconName = "Settings/Menu/Stories"
+                        icon = PresentationResourcesSettings.stories
                         title = environment.strings.Notifications_Stories
                         mappedCategory = .stories
                     default:
-                        iconName = "Settings/Menu/Channels"
+                        icon = PresentationResourcesSettings.channels
                         title = environment.strings.Notifications_Channels
                         mappedCategory = .channels
                     }
@@ -1863,7 +1880,7 @@ final class StorageUsageScreenComponent: Component {
                         transition: transition,
                         component: AnyComponent(StoragePeerTypeItemComponent(
                             theme: environment.theme,
-                            iconName: iconName,
+                            icon: icon!,
                             title: title,
                             subtitle: subtitle,
                             value: optionText,
@@ -2060,7 +2077,7 @@ final class StorageUsageScreenComponent: Component {
                                         let peerInfoController = component.context.sharedContext.makePeerInfoController(
                                             context: component.context,
                                             updatedPresentationData: nil,
-                                            peer: peer._asPeer(),
+                                            peer: peer,
                                             mode: .generic,
                                             avatarInitiallyExpanded: false,
                                             fromChat: false,
@@ -2088,7 +2105,7 @@ final class StorageUsageScreenComponent: Component {
                             ))
                             let items = ContextController.Items(content: .list(itemList))
                             
-                            let controller = ContextController(
+                            let controller = makeContextController(
                                 presentationData: presentationData,
                                 source: .extracted(StorageUsageListContextExtractedContentSource(contentView: sourceView)), items: .single(items), recognizer: nil, gesture: gesture)
                             
@@ -2192,7 +2209,7 @@ final class StorageUsageScreenComponent: Component {
                         theme: environment.theme,
                         strings: environment.strings,
                         dateTimeFormat: environment.dateTimeFormat,
-                        insets: UIEdgeInsets(top: 0.0, left: environment.safeInsets.left, bottom: bottomInset, right: environment.safeInsets.right),
+                        insets: UIEdgeInsets(top: environment.navigationHeight, left: environment.safeInsets.left, bottom: bottomInset, right: environment.safeInsets.right),
                         items: panelItems,
                         currentPanelUpdated: { [weak self] id, transition in
                             guard let self else {
@@ -2205,17 +2222,23 @@ final class StorageUsageScreenComponent: Component {
                     environment: {
                         StorageUsagePanelContainerEnvironment(isScrollable: wasLockedAtPanels)
                     },
-                    containerSize: CGSize(width: availableSize.width, height: availableSize.height - environment.navigationHeight)
+                    containerSize: CGSize(width: availableSize.width, height: availableSize.height)
                 )
                 if let panelContainerView = self.panelContainer.view {
                     if panelContainerView.superview == nil {
                         self.scrollContainerView.addSubview(panelContainerView)
                     }
-                    transition.setFrame(view: panelContainerView, frame: CGRect(origin: CGPoint(x: 0.0, y: contentHeight), size: panelContainerSize))
+                    transition.setFrame(view: panelContainerView, frame: CGRect(origin: CGPoint(x: 0.0, y: contentHeight - environment.navigationHeight), size: panelContainerSize))
+                    if self.topContentOverlayView.superview == nil {
+                        self.scrollContainerView.insertSubview(self.topContentOverlayView, belowSubview: panelContainerView)
+                    }
+                    self.topContentOverlayView.backgroundColor = environment.theme.list.blocksBackgroundColor
+                    transition.setFrame(view: self.topContentOverlayView, frame: CGRect(origin: CGPoint(x: 0.0, y: panelContainerView.frame.minY - availableSize.height), size: availableSize))
                 }
-                contentHeight += panelContainerSize.height
+                contentHeight += panelContainerSize.height - environment.navigationHeight
             } else {
                 self.panelContainer.view?.removeFromSuperview()
+                self.topContentOverlayView.removeFromSuperview()
             }
             
             self.ignoreScrolling = true
@@ -2231,7 +2254,7 @@ final class StorageUsageScreenComponent: Component {
             var scrollViewBounds = self.scrollView.bounds
             scrollViewBounds.size = availableSize
             if wasLockedAtPanels, let panelContainerView = self.panelContainer.view {
-                scrollViewBounds.origin.y = panelContainerView.frame.minY - environment.navigationHeight
+                scrollViewBounds.origin.y = panelContainerView.frame.minY
             }
             transition.setBounds(view: self.scrollView, bounds: scrollViewBounds)
             
@@ -2360,20 +2383,20 @@ final class StorageUsageScreenComponent: Component {
                 }
                 
                 class RenderResult {
-                    var messages: [MessageId: Message] = [:]
+                    var messages: [EngineMessage.Id: EngineMessage] = [:]
                     var imageItems: [StorageMediaGridPanelComponent.Item] = []
                     var fileItems: [StorageFileListPanelComponent.Item] = []
                     var musicItems: [StorageFileListPanelComponent.Item] = []
                 }
-                
+
                 self.messagesDisposable = (component.context.engine.resources.renderStorageUsageStatsMessages(stats: contextStats, categories: [.files, .photos, .videos, .music], existingMessages: self.aggregatedData?.messages ?? [:])
                 |> deliverOn(Queue())
                 |> map { messages -> RenderResult in
                     let result = RenderResult()
-                    
+
                     result.messages = messages
                     
-                    var mergedMedia: [MessageId: Int64] = [:]
+                    var mergedMedia: [EngineMessage.Id: Int64] = [:]
                     if let categoryStats = contextStats.categories[.photos] {
                         mergedMedia = categoryStats.messages
                     }
@@ -2401,7 +2424,7 @@ final class StorageUsageScreenComponent: Component {
                                 
                                 if matches {
                                     result.imageItems.append(StorageMediaGridPanelComponent.Item(
-                                        message: EngineMessage(message),
+                                        message: message,
                                         size: messageSize
                                     ))
                                 }
@@ -2537,7 +2560,7 @@ final class StorageUsageScreenComponent: Component {
                 chatLocation: .peer(id: message.id.peerId),
                 chatFilterTag: nil,
                 chatLocationContextHolder: nil,
-                message: message,
+                message: message._asMessage(),
                 standalone: true,
                 reverseMessageGalleryOrder: false,
                 navigationController: self.controller?()?.navigationController as? NavigationController
@@ -2620,7 +2643,7 @@ final class StorageUsageScreenComponent: Component {
                 switch previewData {
                 case let .gallery(gallery):
                     gallery.setHintWillBePresentedInPreviewingContext(true)
-                    let contextController = ContextController(
+                    let contextController = makeContextController(
                         presentationData: presentationData,
                         source: .controller(StorageUsageListContextGalleryContentSourceImpl(
                             controller: gallery,
@@ -2723,7 +2746,7 @@ final class StorageUsageScreenComponent: Component {
             ))
             let items = ContextController.Items(content: .list(itemList))
             
-            let controller = ContextController(
+            let controller = makeContextController(
                 presentationData: presentationData,
                 source: .extracted(StorageUsageListContextExtractedContentSource(contentView: sourceView)), items: .single(items), recognizer: nil, gesture: gesture)
             
@@ -2736,25 +2759,21 @@ final class StorageUsageScreenComponent: Component {
             self.controller?()?.presentInGlobalOverlay(controller)
         }
         
-        private func openMessage(message: Message) {
+        private func openMessage(message: EngineMessage) {
             guard let component = self.component else {
                 return
             }
             guard let controller = self.controller?(), let navigationController = controller.navigationController as? NavigationController else {
                 return
             }
-            let foundGalleryMessage: Message? = message
-            guard let galleryMessage = foundGalleryMessage else {
-                return
-            }
             self.endEditing(true)
-            
+
             let _ = component.context.sharedContext.openChatMessage(OpenChatMessageParams(
                 context: component.context,
                 chatLocation: .peer(id: message.id.peerId),
                 chatFilterTag: nil,
                 chatLocationContextHolder: nil,
-                message: galleryMessage,
+                message: message._asMessage(),
                 standalone: true,
                 reverseMessageGalleryOrder: true,
                 navigationController: navigationController,
@@ -2842,7 +2861,7 @@ final class StorageUsageScreenComponent: Component {
                     let _ = self
                 }, editMedia: { _, _, _ in
                 }, updateCanReadHistory: { _ in
-                }),
+                }, sendSticker: nil),
                 centralItemUpdated: { [weak self] messageId in
                     //let _ = self?.paneContainerNode.requestExpandTabs?()
                     //self?.paneContainerNode.currentPane?.node.ensureMessageIsVisible(id: messageId)
@@ -3039,9 +3058,9 @@ final class StorageUsageScreenComponent: Component {
                         }
                     }
                     
-                    var includeMessages: [Message] = []
-                    var excludeMessages: [Message] = []
-                    
+                    var includeMessages: [EngineMessage] = []
+                    var excludeMessages: [EngineMessage] = []
+
                     for (id, message) in aggregatedData.messages {
                         if aggregatedData.selectionState.selectedPeers.contains(id.peerId) {
                             if !aggregatedData.selectionState.selectedMessages.contains(id) {
@@ -3053,7 +3072,7 @@ final class StorageUsageScreenComponent: Component {
                             }
                         }
                     }
-                    
+
                     let _ = (component.context.engine.resources.clearStorage(peerIds: aggregatedData.selectionState.selectedPeers, includeMessages: includeMessages, excludeMessages: excludeMessages)
                     |> deliverOnMainQueue).start(next: { [weak self] progress in
                         guard let self else {
@@ -3104,69 +3123,54 @@ final class StorageUsageScreenComponent: Component {
                 self.controller?()?.presentInGlobalOverlay(c, with: nil)
             }
             
-            let viewKey: PostboxViewKey = .preferences(keys: Set([PreferencesKeys.accountSpecificCacheStorageSettings]))
-            let accountSpecificSettings: Signal<AccountSpecificCacheStorageSettings, NoError> = context.account.postbox.combinedView(keys: [viewKey])
-            |> map { views -> AccountSpecificCacheStorageSettings in
-                let cacheSettings: AccountSpecificCacheStorageSettings
-                if let view = views.views[viewKey] as? PreferencesView, let value = view.values[PreferencesKeys.accountSpecificCacheStorageSettings]?.get(AccountSpecificCacheStorageSettings.self) {
-                    cacheSettings = value
-                } else {
-                    cacheSettings = AccountSpecificCacheStorageSettings.defaultSettings
-                }
-
-                return cacheSettings
+            let accountSpecificSettings: Signal<AccountSpecificCacheStorageSettings, NoError> = context.engine.data.subscribe(
+                TelegramEngine.EngineData.Item.Configuration.ApplicationSpecificPreference(key: PreferencesKeys.accountSpecificCacheStorageSettings)
+            )
+            |> map { preferencesEntry -> AccountSpecificCacheStorageSettings in
+                return preferencesEntry?.get(AccountSpecificCacheStorageSettings.self) ?? AccountSpecificCacheStorageSettings.defaultSettings
             }
             |> distinctUntilChanged
-            
-            let peerExceptions: Signal<[(peer: FoundPeer, value: Int32)], NoError> = accountSpecificSettings
-            |> mapToSignal { accountSpecificSettings -> Signal<[(peer: FoundPeer, value: Int32)], NoError> in
-                return context.account.postbox.transaction { transaction -> [(peer: FoundPeer, value: Int32)] in
-                    var result: [(peer: FoundPeer, value: Int32)] = []
-                    
+
+            let peerExceptions: Signal<[(peer: EnginePeer, value: Int32)], NoError> = accountSpecificSettings
+            |> mapToSignal { accountSpecificSettings -> Signal<[(peer: EnginePeer, value: Int32)], NoError> in
+                return context.engine.data.get(
+                    EngineDataMap(accountSpecificSettings.peerStorageTimeoutExceptions.map(\.key).map(TelegramEngine.EngineData.Item.Peer.Peer.init(id:)))
+                )
+                |> map { peers -> [(peer: EnginePeer, value: Int32)] in
+                    var result: [(peer: EnginePeer, value: Int32)] = []
+
                     for item in accountSpecificSettings.peerStorageTimeoutExceptions {
-                        let peerId = item.key
-                        let value = item.value
-                        
-                        guard let peer = transaction.getPeer(peerId) else {
+                        guard let peer = peers[item.key] ?? nil else {
                             continue
                         }
                         let peerCategory: CacheStorageSettings.PeerStorageCategory
-                        var subscriberCount: Int32?
-                        if peer is TelegramUser {
+                        switch peer {
+                        case .user, .secretChat:
                             peerCategory = .privateChats
-                        } else if peer is TelegramGroup {
+                        case .legacyGroup:
                             peerCategory = .groups
-                            
-                            if let cachedData = transaction.getPeerCachedData(peerId: peerId) as? CachedGroupData {
-                                subscriberCount = (cachedData.participants?.participants.count).flatMap(Int32.init)
-                            }
-                        } else if let channel = peer as? TelegramChannel {
+                        case let .channel(channel):
                             if case .group = channel.info {
                                 peerCategory = .groups
                             } else {
                                 peerCategory = .channels
                             }
-                            if peerCategory == mappedCategory {
-                                if let cachedData = transaction.getPeerCachedData(peerId: peerId) as? CachedChannelData {
-                                    subscriberCount = cachedData.participantsSummary.memberCount
-                                }
-                            }
-                        } else {
+                        case .community:
                             continue
                         }
-                            
+
                         if peerCategory != mappedCategory {
                             continue
                         }
-                        
-                        result.append((peer: FoundPeer(peer: peer, subscribers: subscriberCount), value: value))
+
+                        result.append((peer: peer, value: item.value))
                     }
-                    
+
                     return result.sorted(by: { lhs, rhs in
                         if lhs.value != rhs.value {
                             return lhs.value < rhs.value
                         }
-                        return lhs.peer.peer.debugDisplayTitle < rhs.peer.peer.debugDisplayTitle
+                        return lhs.peer.debugDisplayTitle < rhs.peer.debugDisplayTitle
                     })
                 }
             }
@@ -3234,7 +3238,7 @@ final class StorageUsageScreenComponent: Component {
                         if currentValue == value {
                             return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Check"), color: theme.contextMenu.primaryColor)
                         } else {
-                            return nil
+                            return UIImage()
                         }
                     }, action: { _, f in
                         applyValue(value)
@@ -3261,7 +3265,7 @@ final class StorageUsageScreenComponent: Component {
                             }
                         })))
                     } else {
-                        subItems.append(.custom(MultiplePeerAvatarsContextItem(context: context, peers: peerExceptions.prefix(3).map { EnginePeer($0.peer.peer) }, totalCount: peerExceptions.count, action: { c, _ in
+                        subItems.append(.custom(MultiplePeerAvatarsContextItem(context: context, peers: peerExceptions.prefix(3).map { $0.peer }, totalCount: peerExceptions.count, action: { c, _ in
                             c.dismiss(completion: {
                                 
                             })
@@ -3280,7 +3284,7 @@ final class StorageUsageScreenComponent: Component {
                     let items: Signal<ContextController.Items, NoError> = .single(ContextController.Items(content: .list(subItems)))
                     let source: ContextContentSource = .reference(StorageUsageContextReferenceContentSource(sourceView: sourceLabelView))
                     
-                    let contextController = ContextController(
+                    let contextController = makeContextController(
                         presentationData: presentationData,
                         source: source,
                         items: items,
@@ -3308,8 +3312,6 @@ final class StorageUsageScreenComponent: Component {
 public final class StorageUsageScreen: ViewControllerComponentContainer {
     private let context: AccountContext
     
-    private let overNavigationContainer: UIView
-    
     private let readyValue = Promise<Bool>()
     override public var ready: Promise<Bool> {
         return self.readyValue
@@ -3317,20 +3319,15 @@ public final class StorageUsageScreen: ViewControllerComponentContainer {
     
     fileprivate var childCompleted: ((@escaping () -> Void) -> Void)?
     
-    public init(context: AccountContext, makeStorageUsageExceptionsScreen: @escaping (CacheStorageSettings.PeerStorageCategory) -> ViewController?, peer: EnginePeer? = nil) {
+    public init(context: AccountContext, makeStorageUsageExceptionsScreen: @escaping (CacheStorageSettings.PeerStorageCategory) -> ViewController?, peer: EnginePeer? = nil, focusOnItemTag: StorageUsageEntryTag? = nil) {
         self.context = context
         
-        self.overNavigationContainer = SparseContainerView()
-        
         let componentReady = Promise<Bool>()
-        super.init(context: context, component: StorageUsageScreenComponent(context: context, overNavigationContainer: self.overNavigationContainer, makeStorageUsageExceptionsScreen: makeStorageUsageExceptionsScreen, peer: peer, ready: componentReady), navigationBarAppearance: .default)
+        super.init(context: context, component: StorageUsageScreenComponent(context: context, makeStorageUsageExceptionsScreen: makeStorageUsageExceptionsScreen, peer: peer, ready: componentReady), navigationBarAppearance: .transparent)
         
         if peer != nil {
             self.navigationPresentation = .modal
-        }
-        
-        if let navigationBar = self.navigationBar {
-            navigationBar.customOverBackgroundContentView.insertSubview(self.overNavigationContainer, at: 0)
+            self._hasGlassStyle = true
         }
         
         self.readyValue.set(componentReady.get() |> timeout(0.3, queue: .mainQueue(), alternate: .single(true)))

@@ -3,7 +3,6 @@ import UIKit
 import AsyncDisplayKit
 import Display
 import TelegramCore
-import Postbox
 import SwiftSignalKit
 import TelegramPresentationData
 import AlertUI
@@ -63,7 +62,7 @@ private func titleAndColorForAction(_ action: SubscriberAction, theme: Presentat
     }
 }
 
-private func actionForPeer(context: AccountContext, peer: Peer, interfaceState: ChatPresentationInterfaceState, isJoining: Bool, isMuted: Bool) -> SubscriberAction? {
+private func actionForPeer(context: AccountContext, peer: EnginePeer, interfaceState: ChatPresentationInterfaceState, isJoining: Bool, isMuted: Bool) -> SubscriberAction? {
     if case let .replyThread(message) = interfaceState.chatLocation, message.peerId == context.account.peerId {
         if let peer = interfaceState.savedMessagesTopicPeer {
             if case let .channel(channel) = peer {
@@ -79,9 +78,9 @@ private func actionForPeer(context: AccountContext, peer: Peer, interfaceState: 
         return .openChat
     } else if case .pinnedMessages = interfaceState.subject {
         var canManagePin = false
-        if let channel = peer as? TelegramChannel {
+        if case let .channel(channel) = peer {
             canManagePin = channel.hasPermission(.pinMessages)
-        } else if let group = peer as? TelegramGroup {
+        } else if case let .legacyGroup(group) = peer {
             switch group.role {
                 case .creator, .admin:
                     canManagePin = true
@@ -92,7 +91,7 @@ private func actionForPeer(context: AccountContext, peer: Peer, interfaceState: 
                         canManagePin = true
                     }
             }
-        } else if let _ = peer as? TelegramUser, interfaceState.explicitelyCanPinMessages {
+        } else if case .user = peer, interfaceState.explicitelyCanPinMessages {
             canManagePin = true
         }
         if canManagePin {
@@ -101,7 +100,7 @@ private func actionForPeer(context: AccountContext, peer: Peer, interfaceState: 
             return .hidePinnedMessages
         }
     } else {
-        if let channel = peer as? TelegramChannel {
+        if case let .channel(channel) = peer {
             if case .broadcast = channel.info, isJoining {
                 if isMuted {
                     return .unmuteNotifications
@@ -174,7 +173,7 @@ public final class ChatChannelSubscriberInputPanelNode: ChatInputPanelNode {
     
     private var presentationInterfaceState: ChatPresentationInterfaceState?
     
-    private var layoutData: (CGFloat, CGFloat, CGFloat, CGFloat, UIEdgeInsets, CGFloat, CGFloat, Bool, LayoutMetrics)?
+    private var layoutData: (CGFloat, CGFloat, CGFloat, CGFloat, UIEdgeInsets, CGFloat, CGFloat, Bool, LayoutMetrics, DeviceMetrics)?
     
     public override init() {
         super.init()
@@ -214,9 +213,10 @@ public final class ChatChannelSubscriberInputPanelNode: ChatInputPanelNode {
         switch action {
         case .join, .joinGroup, .applyToJoin:
             self.isJoining = true
-            if let (width, leftInset, rightInset, bottomInset, additionalSideInsets, maxHeight, maxOverlayHeight, isSecondary, metrics) = self.layoutData, let presentationInterfaceState = self.presentationInterfaceState {
-                let _ = self.updateLayout(width: width, leftInset: leftInset, rightInset: rightInset, bottomInset: bottomInset, additionalSideInsets: additionalSideInsets, maxHeight: maxHeight, maxOverlayHeight: maxOverlayHeight, isSecondary: isSecondary, transition: .immediate, interfaceState: presentationInterfaceState, metrics: metrics, force: true)
+            if let (width, leftInset, rightInset, bottomInset, additionalSideInsets, maxHeight, maxOverlayHeight, isSecondary, metrics, deviceMetrics) = self.layoutData, let presentationInterfaceState = self.presentationInterfaceState {
+                let _ = self.updateLayout(width: width, leftInset: leftInset, rightInset: rightInset, bottomInset: bottomInset, additionalSideInsets: additionalSideInsets, maxHeight: maxHeight, maxOverlayHeight: maxOverlayHeight, isSecondary: isSecondary, transition: .immediate, interfaceState: presentationInterfaceState, metrics: metrics, deviceMetrics: deviceMetrics, force: true)
             }
+            var didJoin = false
             self.actionDisposable.set((context.peerChannelMemberCategoriesContextsManager.join(engine: context.engine, peerId: peer.id, hash: nil)
             |> afterDisposed { [weak self] in
                 Queue.mainQueue().async {
@@ -224,7 +224,19 @@ public final class ChatChannelSubscriberInputPanelNode: ChatInputPanelNode {
                         strongSelf.isJoining = false
                     }
                 }
-            }).startStrict(error: { [weak self] error in
+            }).startStrict(next: { [weak self] result in
+                guard let strongSelf = self else {
+                    return
+                }
+                switch result {
+                case .joined:
+                    didJoin = true
+                case let .webView(webView):
+                    if let controller = strongSelf.interfaceInteraction?.getNavigationController()?.viewControllers.last as? ViewController {
+                        context.sharedContext.openJoinChatWebView(context: context, parentController: controller, updatedPresentationData: nil, webView: webView, chatTitle: EnginePeer(peer).compactDisplayTitle)
+                    }
+                }
+            }, error: { [weak self] error in
                 guard let strongSelf = self, let presentationInterfaceState = strongSelf.presentationInterfaceState, let peer = presentationInterfaceState.renderedPeer?.peer else {
                     return
                 }
@@ -251,6 +263,34 @@ public final class ChatChannelSubscriberInputPanelNode: ChatInputPanelNode {
                     }
                 }
                 strongSelf.interfaceInteraction?.presentController(textAlertController(context: context, title: nil, text: text, actions: [TextAlertAction(type: .defaultAction, title: presentationInterfaceState.strings.Common_OK, action: {})]), nil)
+            }, completed: { [weak self] in
+                guard let self else {
+                    return
+                }
+                if !didJoin {
+                    return
+                }
+                Queue.mainQueue().after(0.5) {
+                    if let presentationInterfaceState = self.presentationInterfaceState, let peer = presentationInterfaceState.renderedPeer?.peer {
+                        var canEditRank = false
+                        if let channel = peer as? TelegramChannel, case .group = channel.info, channel.hasPermission(.editRank) {
+                            canEditRank = true
+                        } else if let group = peer as? TelegramGroup, !group.hasBannedPermission(.banEditRank) {
+                            canEditRank = true
+                        }
+                        if canEditRank {
+                            let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+                            let controller = UndoOverlayController(presentationData: presentationData, content: .actionSucceeded(title: nil, text: presentationData.strings.Chat_JoinedGroup_Text, cancel: presentationData.strings.Chat_JoinedGroup_AddTag, destructive: false), elevatedLayout: true, action: { action in
+                                if case .undo = action {
+                                    let tagController = context.sharedContext.makeChatCustomRankSetupScreen(context: context, peerId: peer.id, participantId: context.account.peerId, rank: nil, role: .member)
+                                    self.interfaceInteraction?.getNavigationController()?.pushViewController(tagController)
+                                }
+                                return true
+                            })
+                            self.interfaceInteraction?.presentController(controller, nil)
+                        }
+                    }
+                }
             }))
         case .kicked:
             break
@@ -267,8 +307,8 @@ public final class ChatChannelSubscriberInputPanelNode: ChatInputPanelNode {
         }
     }
     
-    override public func updateLayout(width: CGFloat, leftInset: CGFloat, rightInset: CGFloat, bottomInset: CGFloat, additionalSideInsets: UIEdgeInsets, maxHeight: CGFloat, maxOverlayHeight: CGFloat, isSecondary: Bool, transition: ContainedViewLayoutTransition, interfaceState: ChatPresentationInterfaceState, metrics: LayoutMetrics, isMediaInputExpanded: Bool) -> CGFloat {
-        return self.updateLayout(width: width, leftInset: leftInset, rightInset: rightInset, bottomInset: bottomInset, additionalSideInsets: additionalSideInsets, maxHeight: maxHeight, maxOverlayHeight: maxOverlayHeight, isSecondary: isSecondary, transition: transition, interfaceState: interfaceState, metrics: metrics, force: false)
+    override public func updateLayout(width: CGFloat, leftInset: CGFloat, rightInset: CGFloat, bottomInset: CGFloat, additionalSideInsets: UIEdgeInsets, maxHeight: CGFloat, maxOverlayHeight: CGFloat, isSecondary: Bool, transition: ContainedViewLayoutTransition, interfaceState: ChatPresentationInterfaceState, metrics: LayoutMetrics, deviceMetrics: DeviceMetrics, isMediaInputExpanded: Bool) -> CGFloat {
+        return self.updateLayout(width: width, leftInset: leftInset, rightInset: rightInset, bottomInset: bottomInset, additionalSideInsets: additionalSideInsets, maxHeight: maxHeight, maxOverlayHeight: maxOverlayHeight, isSecondary: isSecondary, transition: transition, interfaceState: interfaceState, metrics: metrics, deviceMetrics: deviceMetrics, force: false)
     }
     
     private var displayedGiftOrSuggestTooltip = false
@@ -364,9 +404,9 @@ public final class ChatChannelSubscriberInputPanelNode: ChatInputPanelNode {
         })
     }
     
-    private func updateLayout(width: CGFloat, leftInset: CGFloat, rightInset: CGFloat, bottomInset: CGFloat, additionalSideInsets: UIEdgeInsets, maxHeight: CGFloat, maxOverlayHeight: CGFloat, isSecondary: Bool, transition: ContainedViewLayoutTransition, interfaceState: ChatPresentationInterfaceState, metrics: LayoutMetrics, force: Bool) -> CGFloat {
+    private func updateLayout(width: CGFloat, leftInset: CGFloat, rightInset: CGFloat, bottomInset: CGFloat, additionalSideInsets: UIEdgeInsets, maxHeight: CGFloat, maxOverlayHeight: CGFloat, isSecondary: Bool, transition: ContainedViewLayoutTransition, interfaceState: ChatPresentationInterfaceState, metrics: LayoutMetrics, deviceMetrics: DeviceMetrics, force: Bool) -> CGFloat {
         let isFirstTime = self.layoutData == nil
-        self.layoutData = (width, leftInset, rightInset, bottomInset, additionalSideInsets, maxHeight, maxOverlayHeight, isSecondary, metrics)
+        self.layoutData = (width, leftInset, rightInset, bottomInset, additionalSideInsets, maxHeight, maxOverlayHeight, isSecondary, metrics, deviceMetrics)
         
         var transition = transition
         if !isFirstTime && !transition.isAnimated {
@@ -376,7 +416,7 @@ public final class ChatChannelSubscriberInputPanelNode: ChatInputPanelNode {
         self.presentationInterfaceState = interfaceState
         
         var centerAction: (title: String, isAccent: Bool)?
-        if let context = self.context, let peer = interfaceState.renderedPeer?.peer, let action = actionForPeer(context: context, peer: peer, interfaceState: interfaceState, isJoining: self.isJoining, isMuted: interfaceState.peerIsMuted) {
+        if let context = self.context, let peer = interfaceState.renderedPeer?.peer, let action = actionForPeer(context: context, peer: EnginePeer(peer), interfaceState: interfaceState, isJoining: self.isJoining, isMuted: interfaceState.peerIsMuted) {
             self.action = action
             let (title, _) = titleAndColorForAction(action, theme: interfaceState.theme, strings: interfaceState.strings)
             
@@ -408,10 +448,9 @@ public final class ChatChannelSubscriberInputPanelNode: ChatInputPanelNode {
         
         var leftInset = leftInset + 8.0
         var rightInset = rightInset + 8.0
-        if bottomInset <= 32.0 {
-            leftInset += 18.0
-            rightInset += 18.0
-        }
+        let compactBottomSideInset = self.compactBottomSideInset(bottomInset: bottomInset, deviceMetrics: deviceMetrics)
+        leftInset += compactBottomSideInset
+        rightInset += compactBottomSideInset
         
         var leftPanelItems: [GlassControlGroupComponent.Item] = []
         if displaySuggestPost {
@@ -452,22 +491,24 @@ public final class ChatChannelSubscriberInputPanelNode: ChatInputPanelNode {
                         self?.buttonPressed()
                     }
                 )],
-                background: centerAction.isAccent ? .activeTint : .panel,
+                background: centerAction.isAccent ? .activeTint(inset: true) : .panel,
                 keepWide: true
             )
         }
         
         var rightPanelItems: [GlassControlGroupComponent.Item] = []
-        rightPanelItems.append(GlassControlGroupComponent.Item(
-            id: "search",
-            content: .icon("Chat List/SearchIcon"),
-            action: { [weak self] in
-                guard let self else {
-                    return
+        if !canJoinInaccessibleCommunityChat(interfaceState) {
+            rightPanelItems.append(GlassControlGroupComponent.Item(
+                id: "search",
+                content: .icon("Chat List/SearchIcon"),
+                action: { [weak self] in
+                    guard let self else {
+                        return
+                    }
+                    self.interfaceInteraction?.beginMessageSearch(.everything, "")
                 }
-                self.interfaceInteraction?.beginMessageSearch(.everything, "")
-            }
-        ))
+            ))
+        }
         
         let panelHeight = defaultHeight(metrics: metrics)
         let _ = isFirstTime
@@ -477,6 +518,7 @@ public final class ChatChannelSubscriberInputPanelNode: ChatInputPanelNode {
             transition: ComponentTransition(transition),
             component: AnyComponent(GlassControlPanelComponent(
                 theme: interfaceState.theme,
+                preferClearGlass: interfaceState.preferredGlassType == .clear,
                 leftItem: leftPanelItems.isEmpty ? nil : GlassControlPanelComponent.Item(
                     items: leftPanelItems,
                     background: .panel
@@ -497,118 +539,6 @@ public final class ChatChannelSubscriberInputPanelNode: ChatInputPanelNode {
             transition.updateFrame(view: self.panelContainer, frame: panelFrame)
             transition.updateFrame(view: panelView, frame: CGRect(origin: CGPoint(), size: panelFrame.size))
         }
-        
-        /*if self.presentationInterfaceState != interfaceState || force {
-            let previousState = self.presentationInterfaceState
-            self.presentationInterfaceState = interfaceState
-            
-            if previousState?.theme !== interfaceState.theme {
-                self.helpButtonIconView.image = generateTintedImage(image: UIImage(bundleImageName: "Chat/Input/Accessory Panels/Help"), color: .white)?.withRenderingMode(.alwaysTemplate)
-                self.helpButtonIconView.tintColor = interfaceState.theme.chat.inputPanel.panelControlColor
-                
-                self.suggestedPostButtonIconView.image = generateTintedImage(image: UIImage(bundleImageName: "Chat/Input/Accessory Panels/SuggestPost"), color: .white)?.withRenderingMode(.alwaysTemplate)
-                self.suggestedPostButtonIconView.tintColor = interfaceState.theme.chat.inputPanel.panelControlColor
-                
-                self.giftButtonIconView.image = generateTintedImage(image: UIImage(bundleImageName: "Chat/Input/Accessory Panels/Gift"), color: .white)?.withRenderingMode(.alwaysTemplate)
-                self.giftButtonIconView.tintColor = interfaceState.theme.chat.inputPanel.panelControlColor
-            }
-            
-            if let context = self.context, let peer = interfaceState.renderedPeer?.peer, previousState?.renderedPeer?.peer == nil || !peer.isEqual(previousState!.renderedPeer!.peer!) || previousState?.theme !== interfaceState.theme || previousState?.strings !== interfaceState.strings || previousState?.peerIsMuted != interfaceState.peerIsMuted || previousState?.pinnedMessage != interfaceState.pinnedMessage || force {
-                
-                if let action = actionForPeer(context: context, peer: peer, interfaceState: interfaceState, isJoining: self.isJoining, isMuted: interfaceState.peerIsMuted) {
-                    let previousAction = self.action
-                    self.action = action
-                    let (title, _) = titleAndColorForAction(action, theme: interfaceState.theme, strings: interfaceState.strings)
-                    
-                    let _ = previousAction
-                    
-                    let titleColor: UIColor
-                    if case .join = self.action {
-                        titleColor = interfaceState.theme.chat.inputPanel.actionControlForegroundColor
-                    } else {
-                        titleColor = interfaceState.theme.chat.inputPanel.panelControlColor
-                    }
-                    self.buttonTitle.attributedText = NSAttributedString(string: title, font: Font.semibold(15.0), textColor: titleColor)
-                    self.buttonTintTitle.attributedText = NSAttributedString(string: title, font: Font.semibold(15.0), textColor: .black)
-                    self.button.accessibilityLabel = title
-                } else {
-                    self.action = nil
-                }
-            }
-        }
-        
-        let panelHeight = defaultHeight(metrics: metrics)
-        
-        if let peer = interfaceState.renderedPeer?.peer as? TelegramChannel {
-            if case let .broadcast(broadcastInfo) = peer.info, interfaceState.starGiftsAvailable {
-                if self.giftButton.isHidden && !isFirstTime {
-                    self.giftButton.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.2)
-                    self.giftButton.layer.animateScale(from: 0.01, to: 1.0, duration: 0.2)
-                }
-                
-                self.giftButtonBackgroundView.isHidden = false
-                self.helpButtonBackgroundView.isHidden = true
-                self.suggestedPostButtonBackgroundView.isHidden = !broadcastInfo.flags.contains(.hasMonoforum)
-                self.presentGiftOrSuggestTooltip()
-            } else if case let .broadcast(broadcastInfo) = peer.info, broadcastInfo.flags.contains(.hasMonoforum) {
-                self.giftButtonBackgroundView.isHidden = true
-                self.helpButtonBackgroundView.isHidden = true
-                self.suggestedPostButtonBackgroundView.isHidden = false
-                self.presentGiftOrSuggestTooltip()
-            } else if peer.flags.contains(.isGigagroup), self.action == .muteNotifications || self.action == .unmuteNotifications {
-                self.giftButtonBackgroundView.isHidden = true
-                self.helpButtonBackgroundView.isHidden = false
-                self.suggestedPostButtonBackgroundView.isHidden = true
-            } else {
-                self.giftButtonBackgroundView.isHidden = true
-                self.helpButtonBackgroundView.isHidden = true
-                self.suggestedPostButtonBackgroundView.isHidden = true
-            }
-        } else {
-            self.giftButtonBackgroundView.isHidden = true
-            self.helpButtonBackgroundView.isHidden = true
-            self.suggestedPostButtonBackgroundView.isHidden = true
-        }
-        
-        let buttonTitleSize = self.buttonTitle.updateLayout(CGSize(width: width, height: panelHeight))
-        let _ = self.buttonTintTitle.updateLayout(CGSize(width: width, height: panelHeight))
-        let buttonSize = CGSize(width: buttonTitleSize.width + 16.0 * 2.0, height: 40.0)
-        let buttonFrame = CGRect(origin: CGPoint(x: floor((width - buttonSize.width) / 2.0), y: floor((panelHeight - buttonSize.height) * 0.5)), size: buttonSize)
-        transition.updateFrame(view: self.buttonBackgroundView, frame: buttonFrame)
-        transition.updateFrame(view: self.button, frame: CGRect(origin: CGPoint(), size: buttonFrame.size))
-        let buttonTintColor: GlassBackgroundView.TintColor
-        if case .join = self.action {
-            buttonTintColor = .init(kind: .custom, color: interfaceState.theme.chat.inputPanel.inputBackgroundColor.withMultipliedAlpha(0.7), innerColor: interfaceState.theme.chat.inputPanel.actionControlFillColor)
-        } else {
-            buttonTintColor = .init(kind: .panel, color: interfaceState.theme.chat.inputPanel.inputBackgroundColor.withMultipliedAlpha(0.7))
-        }
-        self.buttonBackgroundView.update(size: buttonFrame.size, cornerRadius: buttonFrame.height * 0.5, isDark: interfaceState.theme.overallDarkAppearance, tintColor: buttonTintColor, isInteractive: true, transition: ComponentTransition(transition))
-        self.buttonTitle.frame = CGRect(origin: CGPoint(x: floor((buttonFrame.width - buttonTitleSize.width) * 0.5), y: floor((buttonFrame.height - buttonTitleSize.height) * 0.5)), size: buttonTitleSize)
-        self.buttonTintTitle.frame = self.buttonTitle.frame
-        
-        let giftButtonFrame = CGRect(x: width - rightInset - 40.0 - 8.0, y: floor((panelHeight - 40.0) * 0.5), width: 40.0, height: 40.0)
-        transition.updateFrame(view: self.giftButtonBackgroundView, frame: giftButtonFrame)
-        if let image = self.giftButtonIconView.image {
-            transition.updateFrame(view: self.giftButtonIconView, frame: image.size.centered(in: CGRect(origin: CGPoint(), size: giftButtonFrame.size)))
-        }
-        transition.updateFrame(view: self.giftButton, frame: CGRect(origin: CGPoint(), size: giftButtonFrame.size))
-        self.giftButtonBackgroundView.update(size: giftButtonFrame.size, cornerRadius: giftButtonFrame.height * 0.5, isDark: interfaceState.theme.overallDarkAppearance, tintColor: .init(kind: .panel, color: interfaceState.theme.chat.inputPanel.inputBackgroundColor.withMultipliedAlpha(0.7)), isInteractive: true, transition: ComponentTransition(transition))
-        
-        let helpButtonFrame = CGRect(x: width - rightInset - 8.0 - 40.0, y: floor((panelHeight - 40.0) * 0.5), width: 40.0, height: 40.0)
-        transition.updateFrame(view: self.helpButtonBackgroundView, frame: helpButtonFrame)
-        if let image = self.helpButtonIconView.image {
-            transition.updateFrame(view: self.helpButtonIconView, frame: image.size.centered(in: CGRect(origin: CGPoint(), size: helpButtonFrame.size)))
-        }
-        transition.updateFrame(view: self.helpButton, frame: CGRect(origin: CGPoint(), size: helpButtonFrame.size))
-        self.helpButtonBackgroundView.update(size: helpButtonFrame.size, cornerRadius: helpButtonFrame.height * 0.5, isDark: interfaceState.theme.overallDarkAppearance, tintColor: .init(kind: .panel, color: interfaceState.theme.chat.inputPanel.inputBackgroundColor.withMultipliedAlpha(0.7)), isInteractive: true, transition: ComponentTransition(transition))
-        
-        let suggestedPostButtonFrame = CGRect(x: leftInset + 8.0, y: floor((panelHeight - 40.0) * 0.5), width: 40.0, height: 40.0)
-        transition.updateFrame(view: self.suggestedPostButtonBackgroundView, frame: suggestedPostButtonFrame)
-        if let image = self.suggestedPostButtonIconView.image {
-            transition.updateFrame(view: self.suggestedPostButtonIconView, frame: image.size.centered(in: CGRect(origin: CGPoint(), size: suggestedPostButtonFrame.size)))
-        }
-        transition.updateFrame(view: self.suggestedPostButton, frame: CGRect(origin: CGPoint(), size: suggestedPostButtonFrame.size))
-        self.suggestedPostButtonBackgroundView.update(size: suggestedPostButtonFrame.size, cornerRadius: suggestedPostButtonFrame.height * 0.5, isDark: interfaceState.theme.overallDarkAppearance, tintColor: .init(kind: .panel, color: interfaceState.theme.chat.inputPanel.inputBackgroundColor.withMultipliedAlpha(0.7)), isInteractive: true, transition: ComponentTransition(transition))*/
         
         return panelHeight
     }

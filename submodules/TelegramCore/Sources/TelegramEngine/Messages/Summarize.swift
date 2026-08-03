@@ -27,7 +27,7 @@ func _internal_summarizeMessage(account: Account, messageId: EngineMessage.Id, t
             flags |= (1 << 0)
         }
         
-        return account.network.request(Api.functions.messages.summarizeText(flags: flags, peer: inputPeer, id: messageId.id, toLang: translateToLang))
+        return account.network.request(Api.functions.messages.summarizeText(flags: flags, peer: inputPeer, id: messageId.id, toLang: translateToLang, tone: nil))
         |> map(Optional.init)
         |> mapError { error -> SummarizeError in
             if error.errorDescription.hasPrefix("FLOOD_WAIT") {
@@ -45,7 +45,8 @@ func _internal_summarizeMessage(account: Account, messageId: EngineMessage.Id, t
         |> mapToSignal { result -> Signal<Void, SummarizeError> in
             return account.postbox.transaction { transaction in
                 switch result {
-                case let .textWithEntities(text, entities):
+                case let .textWithEntities(textWithEntitiesData):
+                    let (text, entities) = (textWithEntitiesData.text, textWithEntitiesData.entities)
                     transaction.updateMessage(messageId, update: { currentMessage in
                         let storeForwardInfo = currentMessage.forwardInfo.flatMap(StoreMessageForwardInfo.init)
                         var attributes = currentMessage.attributes

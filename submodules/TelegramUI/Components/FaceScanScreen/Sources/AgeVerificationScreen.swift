@@ -28,7 +28,7 @@ public func requireAgeVerification(context: AccountContext) -> Bool {
 }
 
 public func requireAgeVerification(context: AccountContext, peer: EnginePeer) -> Signal<Bool, NoError> {
-    if requireAgeVerification(context: context), peer._asPeer().hasSensitiveContent(platform: "ios") {
+    if requireAgeVerification(context: context), peer.hasSensitiveContent(platform: "ios") {
         return context.engine.data.get(TelegramEngine.EngineData.Item.Configuration.ContentSettings())
         |> map { contentSettings in
             if !contentSettings.ignoreContentRestrictionReasons.contains("sensitive") {
@@ -69,11 +69,10 @@ private final class SheetContent: CombinedComponent {
     }
         
     static var body: Body {
-        let icon = Child(ZStack<Empty>.self)
         let closeButton = Child(GlassBarButtonComponent.self)
+        let icon = Child(ZStack<Empty>.self)
         let title = Child(Text.self)
         let text = Child(BalancedTextComponent.self)
-        
         let button = Child(ButtonComponent.self)
         
         return { context in
@@ -109,10 +108,10 @@ private final class SheetContent: CombinedComponent {
             
             let closeButton = closeButton.update(
                 component: GlassBarButtonComponent(
-                    size: CGSize(width: 40.0, height: 40.0),
-                    backgroundColor: theme.rootController.navigationBar.glassBarButtonBackgroundColor,
+                    size: CGSize(width: 44.0, height: 44.0),
+                    backgroundColor: nil,
                     isDark: theme.overallDarkAppearance,
-                    state: .generic,
+                    state: .glass,
                     component: AnyComponentWithIdentity(id: "close", component: AnyComponent(
                         BundleIconComponent(
                             name: "Navigation/Close",
@@ -123,7 +122,7 @@ private final class SheetContent: CombinedComponent {
                         component.dismiss()
                     }
                 ),
-                availableSize: CGSize(width: 40.0, height: 40.0),
+                availableSize: CGSize(width: 44.0, height: 44.0),
                 transition: .immediate
             )
             context.add(closeButton
@@ -265,6 +264,8 @@ private final class AgeVerificationSheetComponent: CombinedComponent {
                 environment: {
                     environment
                     SheetComponentEnvironment(
+                        metrics: environment.metrics,
+                        deviceMetrics: environment.deviceMetrics,
                         isDisplaying: environment.value.isVisible,
                         isCentered: environment.metrics.widthClass == .regular,
                         hasInputHeight: !environment.inputHeight.isZero,

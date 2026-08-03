@@ -3,12 +3,12 @@ import UIKit
 import AsyncDisplayKit
 import Display
 import SwiftSignalKit
-import Postbox
 import TelegramCore
 import AccountContext
 import TelegramPresentationData
 import StickerResources
 import ContextUI
+import ContextControllerImpl
 
 final class StickerPackListContextItem: ContextMenuCustomItem {
     let context: AccountContext
@@ -61,7 +61,7 @@ private final class StickerPackListContextItemNode: ASDisplayNode, ContextMenuCu
                 if let resource = thumbnailResource as? CloudDocumentMediaResource {
                     resourceId = resource.fileId
                 }
-                let thumbnailFile = topItemFile ?? TelegramMediaFile(fileId: MediaId(namespace: Namespaces.Media.CloudFile, id: resourceId), partialReference: nil, resource: thumbnailResource, previewRepresentations: [], videoThumbnails: [], immediateThumbnailData: nil, mimeType: "image/webp", size: thumbnailResource.size ?? 0, attributes: [], alternativeRepresentations: [])
+                let thumbnailFile = topItemFile ?? TelegramMediaFile(fileId: EngineMedia.Id(namespace: Namespaces.Media.CloudFile, id: resourceId), partialReference: nil, resource: thumbnailResource, previewRepresentations: [], videoThumbnails: [], immediateThumbnailData: nil, mimeType: "image/webp", size: thumbnailResource.size ?? 0, attributes: [], alternativeRepresentations: [])
 
                 let _ = freeMediaFileInteractiveFetched(account: item.context.account, userLocation: .other, fileReference: .stickerPack(stickerPack: .id(id: pack.id.id, accessHash: pack.accessHash), media: thumbnailFile)).start()
                 thumbnailIconSource = ContextMenuActionItemIconSource(
@@ -95,9 +95,9 @@ private final class StickerPackListContextItemNode: ASDisplayNode, ContextMenuCu
         super.init()
         
         self.addSubnode(self.scrollNode)
-        for separatorNode in self.separatorNodes {
-            self.scrollNode.addSubnode(separatorNode)
-        }
+//        for separatorNode in self.separatorNodes {
+//            self.scrollNode.addSubnode(separatorNode)
+//        }
         for actionNode in self.actionNodes {
             self.scrollNode.addSubnode(actionNode)
         }
@@ -110,6 +110,7 @@ private final class StickerPackListContextItemNode: ASDisplayNode, ContextMenuCu
         self.scrollNode.view.alwaysBounceVertical = false
         self.scrollNode.view.showsHorizontalScrollIndicator = false
         self.scrollNode.view.scrollIndicatorInsets = UIEdgeInsets(top: 0.0, left: 0.0, bottom: 5.0, right: 0.0)
+        self.scrollNode.view.scrollsToTop = false
     }
 
     func updateLayout(constrainedWidth: CGFloat, constrainedHeight: CGFloat) -> (CGSize, (CGSize, ContainedViewLayoutTransition) -> Void) {
@@ -170,7 +171,7 @@ private final class StickerPackListContextItemNode: ASDisplayNode, ContextMenuCu
     }
     
     func canBeHighlighted() -> Bool {
-        return self.isActionEnabled
+        return false
     }
     
     func updateIsHighlighted(isHighlighted: Bool) {

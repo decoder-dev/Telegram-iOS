@@ -3,7 +3,6 @@ import UIKit
 import AsyncDisplayKit
 import Display
 import SwiftSignalKit
-import Postbox
 import TelegramCore
 import TelegramUIPreferences
 import TelegramPresentationData
@@ -27,7 +26,7 @@ public class ChatMessageMediaBubbleContentNode: ChatMessageBubbleContentNode {
     private var selectionNode: GridMessageSelectionNode?
     private var highlightedState: Bool = false
     
-    private var media: Media?
+    private var media: EngineRawMedia?
     private var mediaIndex: Int?
     private var automaticPlayback: Bool?
     
@@ -59,7 +58,15 @@ public class ChatMessageMediaBubbleContentNode: ChatMessageBubbleContentNode {
             }
             
             if !item.controllerInteraction.isOpeningMedia {
-                let params = OpenMessageParams(mode: openChatMessageMode, mediaIndex: self.mediaIndex, progress: self.itemNode?.makeProgress())
+                let mediaSubject: GalleryMediaSubject?
+                if self.media is TelegramMediaPaidContent {
+                    mediaSubject = .paidMediaIndex(self.mediaIndex ?? 0)
+                } else if let _ = item.message.media.first(where: { $0 is TelegramMediaPoll }) {
+                    mediaSubject = .pollDescription
+                } else {
+                    mediaSubject = nil
+                }
+                let params = OpenMessageParams(mode: openChatMessageMode, mediaSubject: mediaSubject, progress: self.itemNode?.makeProgress())
                 let _ = item.controllerInteraction.openMessage(item.message, params)
             }
         }
@@ -108,12 +115,13 @@ public class ChatMessageMediaBubbleContentNode: ChatMessageBubbleContentNode {
         let interactiveImageLayout = self.interactiveImageNode.asyncLayout()
         
         return { item, layoutConstants, preparePosition, selection, constrainedSize, _ in
-            var selectedMedia: Media?
+            var selectedMedia: EngineRawMedia?
             var selectedMediaIndex: Int?
             var extendedMedia: TelegramExtendedMedia?
             var automaticDownload: InteractiveMediaNodeAutodownloadMode = .none
             var automaticPlayback: Bool = false
             var contentMode: InteractiveMediaNodeContentMode = .aspectFit
+            var isLivePhoto = false
             
             if let updatingMedia = item.attributes.updatingMedia, case let .update(mediaReference) = updatingMedia.media {
                 selectedMedia = mediaReference.media
@@ -124,6 +132,11 @@ public class ChatMessageMediaBubbleContentNode: ChatMessageBubbleContentNode {
                         selectedMedia = telegramImage
                         if shouldDownloadMediaAutomatically(settings: item.controllerInteraction.automaticMediaDownloadSettings, peerType: item.associatedData.automaticDownloadPeerType, networkType: item.associatedData.automaticDownloadNetworkType, authorPeerId: item.message.author?.id, contactsPeerIds: item.associatedData.contactsPeerIds, media: telegramImage) {
                             automaticDownload = .full
+                        }
+                        
+                        if let _ = telegramImage.video {
+                            automaticPlayback = true
+                            isLivePhoto = true
                         }
                     } else if let telegramStory = media as? TelegramMediaStory {
                         selectedMedia = telegramStory
@@ -144,13 +157,13 @@ public class ChatMessageMediaBubbleContentNode: ChatMessageBubbleContentNode {
                                         if case .full = automaticDownload {
                                             automaticPlayback = true
                                         } else {
-                                            automaticPlayback = item.context.account.postbox.mediaBox.completedResourcePath(telegramFile.resource) != nil
+                                            automaticPlayback = item.context.engine.resources.completedResourcePath(id: EngineMediaResource.Id(telegramFile.resource.id)) != nil
                                         }
                                     } else if (telegramFile.isVideo && !telegramFile.isAnimated) && item.context.sharedContext.energyUsageSettings.autoplayVideo {
                                         if case .full = automaticDownload {
                                             automaticPlayback = true
                                         } else {
-                                            automaticPlayback = item.context.account.postbox.mediaBox.completedResourcePath(telegramFile.resource) != nil
+                                            automaticPlayback = item.context.engine.resources.completedResourcePath(id: EngineMediaResource.Id(telegramFile.resource.id)) != nil
                                         }
                                     }
                                 }
@@ -170,7 +183,7 @@ public class ChatMessageMediaBubbleContentNode: ChatMessageBubbleContentNode {
                                 if case .full = automaticDownload {
                                     automaticPlayback = true
                                 } else {
-                                    automaticPlayback = item.context.account.postbox.mediaBox.completedResourcePath(telegramFile.resource) != nil
+                                    automaticPlayback = item.context.engine.resources.completedResourcePath(id: EngineMediaResource.Id(telegramFile.resource.id)) != nil
                                 }
                             } else if (telegramFile.isVideo && !telegramFile.isAnimated) && item.context.sharedContext.energyUsageSettings.autoplayVideo {
                                 if let _ = telegramFile.videoCover {
@@ -180,7 +193,7 @@ public class ChatMessageMediaBubbleContentNode: ChatMessageBubbleContentNode {
                                 } else if case .full = automaticDownload {
                                     automaticPlayback = true
                                 } else {
-                                    automaticPlayback = item.context.account.postbox.mediaBox.completedResourcePath(telegramFile.resource) != nil
+                                    automaticPlayback = item.context.engine.resources.completedResourcePath(id: EngineMediaResource.Id(telegramFile.resource.id)) != nil
                                 }
                             }
                         }
@@ -200,6 +213,35 @@ public class ChatMessageMediaBubbleContentNode: ChatMessageBubbleContentNode {
                         selectedMedia = webFile
                         if item.presentationData.isPreview {
                             automaticDownload = .full
+                        }
+                    } else if let poll = media as? TelegramMediaPoll {
+                        if let telegramImage = poll.attachedMedia as? TelegramMediaImage {
+                            selectedMedia = telegramImage
+                            if shouldDownloadMediaAutomatically(settings: item.controllerInteraction.automaticMediaDownloadSettings, peerType: item.associatedData.automaticDownloadPeerType, networkType: item.associatedData.automaticDownloadNetworkType, authorPeerId: item.message.author?.id, contactsPeerIds: item.associatedData.contactsPeerIds, media: telegramImage) {
+                                automaticDownload = .full
+                            }
+                            
+                            if let _ = telegramImage.video {
+                                automaticPlayback = true
+                            }
+                        } else if let telegramFile = poll.attachedMedia as? TelegramMediaFile {
+                            selectedMedia = telegramFile
+                            if shouldDownloadMediaAutomatically(settings: item.controllerInteraction.automaticMediaDownloadSettings, peerType: item.associatedData.automaticDownloadPeerType, networkType: item.associatedData.automaticDownloadNetworkType, authorPeerId: item.message.author?.id, contactsPeerIds: item.associatedData.contactsPeerIds, media: telegramFile) {
+                                automaticDownload = .full
+                            } else if shouldPredownloadMedia(settings: item.controllerInteraction.automaticMediaDownloadSettings, peerType: item.associatedData.automaticDownloadPeerType, networkType: item.associatedData.automaticDownloadNetworkType, media: telegramFile) {
+                                automaticDownload = .prefetch
+                            }
+                            if (telegramFile.isVideo && !telegramFile.isAnimated) && item.context.sharedContext.energyUsageSettings.autoplayVideo {
+                                if let _ = telegramFile.videoCover {
+                                    automaticPlayback = false
+                                } else if NativeVideoContent.isHLSVideo(file: telegramFile) {
+                                    automaticPlayback = true
+                                } else if case .full = automaticDownload {
+                                    automaticPlayback = true
+                                } else {
+                                    automaticPlayback = item.context.engine.resources.completedResourcePath(id: EngineMediaResource.Id(telegramFile.resource.id)) != nil
+                                }
+                            }
                         }
                     }
                 }
@@ -222,7 +264,7 @@ public class ChatMessageMediaBubbleContentNode: ChatMessageBubbleContentNode {
                             if case .full = automaticDownload {
                                 automaticPlayback = true
                             } else {
-                                automaticPlayback = item.context.account.postbox.mediaBox.completedResourcePath(telegramFile.resource) != nil
+                                automaticPlayback = item.context.engine.resources.completedResourcePath(id: EngineMediaResource.Id(telegramFile.resource.id)) != nil
                             }
                         } else if (telegramFile.isVideo && !telegramFile.isAnimated) && item.context.sharedContext.energyUsageSettings.autoplayVideo {
                             if let _ = telegramFile.videoCover {
@@ -232,7 +274,7 @@ public class ChatMessageMediaBubbleContentNode: ChatMessageBubbleContentNode {
                             } else if case .full = automaticDownload {
                                 automaticPlayback = true
                             } else {
-                                automaticPlayback = item.context.account.postbox.mediaBox.completedResourcePath(telegramFile.resource) != nil
+                                automaticPlayback = item.context.engine.resources.completedResourcePath(id: EngineMediaResource.Id(telegramFile.resource.id)) != nil
                             }
                         }
                     }
@@ -335,7 +377,7 @@ public class ChatMessageMediaBubbleContentNode: ChatMessageBubbleContentNode {
             } else {
                 dateFormat = .regular
             }
-            let dateText = stringForMessageTimestampStatus(accountPeerId: item.context.account.peerId, message: item.message, dateTimeFormat: item.presentationData.dateTimeFormat, nameDisplayOrder: item.presentationData.nameDisplayOrder, strings: item.presentationData.strings, format: dateFormat, associatedData: item.associatedData)
+            let dateText = stringForMessageTimestampStatus(context: item.context, message: EngineMessage(item.message), dateTimeFormat: item.presentationData.dateTimeFormat, nameDisplayOrder: item.presentationData.nameDisplayOrder, strings: item.presentationData.strings, format: dateFormat, associatedData: item.associatedData)
 
             let statusType: ChatMessageDateAndStatusType?
             if case .customChatContents = item.associatedData.subject {
@@ -391,7 +433,7 @@ public class ChatMessageMediaBubbleContentNode: ChatMessageBubbleContentNode {
                 var wideLayout = true
                 if case let .mosaic(_, wide) = position {
                     wideLayout = wide
-                    automaticPlayback = automaticPlayback && wide
+                    automaticPlayback = automaticPlayback && (wide || isLivePhoto)
                 }
                 
                 var updatedPosition: ChatMessageBubbleContentPosition = position
@@ -469,7 +511,7 @@ public class ChatMessageMediaBubbleContentNode: ChatMessageBubbleContentNode {
         }
     }
     
-    override public func transitionNode(messageId: MessageId, media: Media, adjustRect: Bool) -> (ASDisplayNode, CGRect, () -> (UIView?, UIView?))? {
+    override public func transitionNode(messageId: EngineMessage.Id, media: EngineRawMedia, adjustRect: Bool) -> (ASDisplayNode, CGRect, () -> (UIView?, UIView?))? {
         if self.item?.message.id == messageId, var currentMedia = self.media {
             if let invoice = currentMedia as? TelegramMediaInvoice, let extendedMedia = invoice.extendedMedia, case let .full(fullMedia) = extendedMedia {
                 currentMedia = fullMedia
@@ -484,7 +526,7 @@ public class ChatMessageMediaBubbleContentNode: ChatMessageBubbleContentNode {
         return nil
     }
     
-    override public func updateHiddenMedia(_ media: [Media]?) -> Bool {
+    override public func updateHiddenMedia(_ media: [EngineRawMedia]?) -> Bool {
         var mediaHidden = false
         
         var currentMedia = self.media
@@ -553,7 +595,7 @@ public class ChatMessageMediaBubbleContentNode: ChatMessageBubbleContentNode {
         guard let item = self.item else {
             return false
         }
-        let highlighted = item.controllerInteraction.highlightedState?.messageStableId == item.message.stableId
+        let highlighted = item.controllerInteraction.highlightedState?.messageStableId == item.message.stableId && item.controllerInteraction.highlightedState?.subject == nil
         
         if self.highlightedState != highlighted {
             self.highlightedState = highlighted

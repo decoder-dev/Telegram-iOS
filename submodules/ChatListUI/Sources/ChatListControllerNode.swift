@@ -28,6 +28,7 @@ import MediaPlaybackHeaderPanelComponent
 import LiveLocationHeaderPanelComponent
 import ChatListHeaderNoticeComponent
 import ChatListFilterTabContainerNode
+import GlassControls
 
 public enum ChatListContainerNodeFilter: Equatable {
     case all
@@ -165,11 +166,14 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
             previousItemNode.listNode.updatePeerGrouping = nil
             previousItemNode.listNode.contentOffsetChanged = nil
             previousItemNode.listNode.contentScrollingEnded = nil
+            previousItemNode.listNode.pinnedHeaderDisplayFractionUpdated = nil
             previousItemNode.listNode.didBeginInteractiveDragging = nil
             previousItemNode.listNode.endedInteractiveDragging = { _ in }
             previousItemNode.listNode.shouldStopScrolling = nil
             previousItemNode.listNode.activateChatPreview = nil
             previousItemNode.listNode.openStories = nil
+            previousItemNode.listNode.openCommunity = nil
+            previousItemNode.listNode.ungroupCommunity = nil
             previousItemNode.listNode.addedVisibleChatsWithPeerIds = nil
             previousItemNode.listNode.didBeginSelectingChats = nil
             previousItemNode.listNode.canExpandHiddenItems = nil
@@ -220,6 +224,12 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
         }
         itemNode.listNode.groupSelected = { [weak self] groupId in
             self?.groupSelected?(groupId)
+        }
+        itemNode.listNode.openCommunity = { [weak self] communityId in
+            self?.openCommunity?(communityId)
+        }
+        itemNode.listNode.ungroupCommunity = { [weak self] communityId in
+            self?.ungroupCommunity?(communityId)
         }
         itemNode.listNode.updatePeerGrouping = { [weak self] peerId, group in
             self?.updatePeerGrouping?(peerId, group)
@@ -327,11 +337,12 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
             }
             
             return self.contentScrollingEnded?(listView) ?? false
-            //DispatchQueue.main.async { [weak self] in
-            //    let _ = self?.contentScrollingEnded?(listView)
-            //}
-            
-            //return false
+        }
+        itemNode.listNode.pinnedHeaderDisplayFractionUpdated = { [weak self] transition in
+            guard let self else {
+                return
+            }
+            self.pinnedHeaderDisplayFractionUpdated?(transition)
         }
         itemNode.listNode.activateChatPreview = { [weak self] item, threadId, sourceNode, gesture, location in
             self?.activateChatPreview?(item, threadId, sourceNode, gesture, location)
@@ -423,10 +434,13 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
     public var peerSelected: ((EnginePeer, Int64?, Bool, Bool, ChatListNodeEntryPromoInfo?) -> Void)?
     public var disabledPeerSelected: ((EnginePeer, Int64?, ChatListDisabledPeerReason) -> Void)?
     var groupSelected: ((EngineChatList.Group) -> Void)?
+    var openCommunity: ((EnginePeer.Id) -> Void)?
+    var ungroupCommunity: ((EnginePeer.Id) -> Void)?
     var updatePeerGrouping: ((EnginePeer.Id, Bool) -> Void)?
     var contentOffset: ListViewVisibleContentOffset?
     public var contentOffsetChanged: ((ListViewVisibleContentOffset, ListView) -> Void)?
     public var contentScrollingEnded: ((ListView) -> Bool)?
+    public var pinnedHeaderDisplayFractionUpdated: ((ContainedViewLayoutTransition) -> Void)?
     var didBeginInteractiveDragging: ((ListView) -> Void)?
     var endedInteractiveDragging: ((ListView) -> Void)?
     var shouldStopScrolling: ((ListView, CGFloat) -> Bool)?
@@ -442,6 +456,34 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
     var didBeginSelectingChats: (() -> Void)?
     var canExpandHiddenItems: (() -> Bool)?
     public var displayFilterLimit: (() -> Void)?
+    
+    public var pinnedHeaderDisplayFraction: CGFloat {
+        guard let currentItemNodeValue = self.currentItemNodeValue else {
+            return 0.0
+        }
+        if self.transitionFraction != 0.0 {
+            var nextItemNode: ChatListContainerItemNode?
+            if let selectedIndex = self.availableFilters.firstIndex(where: { $0.id == self.selectedId }) {
+                if self.transitionFraction < 0.0 {
+                    if selectedIndex + 1 < self.availableFilters.count {
+                        nextItemNode = self.itemNodes[self.availableFilters[selectedIndex + 1].id]
+                    }
+                } else {
+                    if selectedIndex > 0 {
+                        nextItemNode = self.itemNodes[self.availableFilters[selectedIndex - 1].id]
+                    }
+                }
+            }
+            
+            if let nextItemNode {
+                let absTransitionFraction = abs(self.transitionFraction)
+                return (1.0 - absTransitionFraction) * currentItemNodeValue.listNode.pinnedScrollFraction + absTransitionFraction * nextItemNode.listNode.pinnedScrollFraction
+            } else {
+                return currentItemNodeValue.listNode.pinnedScrollFraction
+            }
+        }
+        return currentItemNodeValue.listNode.pinnedScrollFraction
+    }
     
     public init(
         context: AccountContext,
@@ -584,6 +626,7 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
                         self.update(layout: layout, navigationBarHeight: navigationBarHeight, visualNavigationHeight: visualNavigationHeight, originalNavigationHeight: originalNavigationHeight, cleanNavigationBarHeight: cleanNavigationBarHeight, insets: insets, isReorderingFilters: isReorderingFilters, isEditing: isEditing, inlineNavigationLocation: inlineNavigationLocation, inlineNavigationTransitionFraction: inlineNavigationTransitionFraction, storiesInset: storiesInset, transition: .immediate)
                         self.isSwitchingCurrentItemFilterByDragging = true
                         self.currentItemFilterUpdated?(self.currentItemFilter, self.transitionFraction, .immediate, true)
+                        self.pinnedHeaderDisplayFractionUpdated?(.immediate)
                     }
                 }
             }
@@ -661,6 +704,7 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
                 self.update(layout: layout, navigationBarHeight: navigationBarHeight, visualNavigationHeight: visualNavigationHeight, originalNavigationHeight: originalNavigationHeight, cleanNavigationBarHeight: cleanNavigationBarHeight, insets: insets, isReorderingFilters: isReorderingFilters, isEditing: isEditing, inlineNavigationLocation: inlineNavigationLocation, inlineNavigationTransitionFraction: inlineNavigationTransitionFraction, storiesInset: storiesInset, transition: .immediate)
                 self.isSwitchingCurrentItemFilterByDragging = true
                 self.currentItemFilterUpdated?(self.currentItemFilter, self.transitionFraction, transition, false)
+                self.pinnedHeaderDisplayFractionUpdated?(transition)
             }
         case .cancelled, .ended:
             if let (layout, navigationBarHeight, visualNavigationHeight, originalNavigationHeight: originalNavigationHeight, cleanNavigationBarHeight, insets, isReorderingFilters, isEditing, inlineNavigationLocation, inlineNavigationTransitionFraction, storiesInset) = self.validLayout, let selectedIndex = self.availableFilters.firstIndex(where: { $0.id == self.selectedId }) {
@@ -723,6 +767,7 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
                 }
                 self.isSwitchingCurrentItemFilterByDragging = false
                 self.currentItemFilterUpdated?(self.currentItemFilter, self.transitionFraction, transition, false)
+                self.pinnedHeaderDisplayFractionUpdated?(transition)
             }
         default:
             break
@@ -843,6 +888,7 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
                 let transition: ContainedViewLayoutTransition = .animated(duration: 0.35, curve: .spring)
                 self.update(layout: layout, navigationBarHeight: navigationBarHeight, visualNavigationHeight: visualNavigationHeight, originalNavigationHeight: originalNavigationHeight, cleanNavigationBarHeight: cleanNavigationBarHeight, insets: insets, isReorderingFilters: isReorderingFilters, isEditing: isEditing, inlineNavigationLocation: inlineNavigationLocation, inlineNavigationTransitionFraction: inlineNavigationTransitionFraction, storiesInset: storiesInset, transition: transition)
                 self.currentItemFilterUpdated?(self.currentItemFilter, self.transitionFraction, transition, false)
+                self.pinnedHeaderDisplayFractionUpdated?(transition)
                 itemNode.emptyNode?.restartAnimation()
                 completion?()
             } else if self.pendingItemNode == nil {
@@ -889,6 +935,7 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
                         strongSelf.selectedId = id
                         strongSelf.applyItemNodeAsCurrent(id: id, itemNode: itemNode)
                         strongSelf.currentItemFilterUpdated?(strongSelf.currentItemFilter, strongSelf.transitionFraction, .immediate, false)
+                        strongSelf.pinnedHeaderDisplayFractionUpdated?(.immediate)
                         
                         completion?()
                         return
@@ -945,6 +992,7 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
                         strongSelf.update(layout: layout, navigationBarHeight: navigationBarHeight, visualNavigationHeight: visualNavigationHeight, originalNavigationHeight: originalNavigationHeight, cleanNavigationBarHeight: cleanNavigationBarHeight, insets: insets, isReorderingFilters: isReorderingFilters, isEditing: isEditing, inlineNavigationLocation: inlineNavigationLocation, inlineNavigationTransitionFraction: inlineNavigationTransitionFraction, storiesInset: storiesInset, transition: .immediate)
                         
                         strongSelf.currentItemFilterUpdated?(strongSelf.currentItemFilter, strongSelf.transitionFraction, transition, false)
+                        strongSelf.pinnedHeaderDisplayFractionUpdated?(transition)
                     }
                     
                     completion?()
@@ -1097,8 +1145,8 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
     let navigationBarView = ComponentView<Empty>()
     weak var controller: ChatListControllerImpl?
     
-    var toolbar: Toolbar?
-    private var toolbarNode: ToolbarNode?
+    private var toolbar: ComponentView<Empty>?
+    var toolbarData: Toolbar?
     var toolbarActionSelected: ((ToolbarActionOption) -> Void)?
     
     private var isSearchDisplayControllerActive: ChatListNavigationBar.ActiveSearch?
@@ -1136,7 +1184,7 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
     var cancelEditing: (() -> Void)?
     var dismissSearch: (() -> Void)?
     
-    let debugListView = ListView()
+    let debugListView = ListViewImpl()
     
     init(context: AccountContext, location: ChatListControllerLocation, previewing: Bool, controlsHistoryPreload: Bool, presentationData: PresentationData, animationCache: AnimationCache, animationRenderer: MultiAnimationRenderer, controller: ChatListControllerImpl) {
         self.context = context
@@ -1176,6 +1224,9 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
         }
         self.mainContainerNode.contentScrollingEnded = { [weak self] listView in
             return self?.contentScrollingEnded(listView: listView, isPrimary: true) ?? false
+        }
+        self.mainContainerNode.pinnedHeaderDisplayFractionUpdated = { [weak self] transition in
+            self?.pinnedHeaderDisplayFractionUpdated(transition: transition)
         }
         self.mainContainerNode.didBeginInteractiveDragging = { [weak self] listView in
             self?.didBeginInteractiveDragging(listView: listView, isPrimary: true)
@@ -1355,10 +1406,6 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
         self.mainContainerNode.updatePresentationData(presentationData)
         self.inlineStackContainerNode?.updatePresentationData(presentationData)
         self.searchDisplayController?.updatePresentationData(presentationData)
-        
-        if let toolbarNode = self.toolbarNode {
-            toolbarNode.updateTheme(ToolbarTheme(rootControllerTheme: self.presentationData.theme))
-        }
     }
     
     private func updateNavigationBar(layout: ContainerViewLayout, deferScrollApplication: Bool, transition: ComponentTransition) -> (navigationHeight: CGFloat, storiesInset: CGFloat) {
@@ -1395,6 +1442,8 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
                             self.effectiveContainerNode.currentItemNode.interaction?.openPremiumGift(peers, birthdays)
                         case .reviewLogin:
                             break
+                        case .reviewBotConnection:
+                            break
                         case let .starsSubscriptionLowBalance(amount, _):
                             self.effectiveContainerNode.currentItemNode.interaction?.openStarsTopup(amount.value)
                         case .setupPhoto:
@@ -1418,6 +1467,8 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
                         switch notice {
                         case let .reviewLogin(newSessionReview, _):
                             self.effectiveContainerNode.currentItemNode.interaction?.performActiveSessionAction(newSessionReview, isPositive)
+                        case let .reviewBotConnection(newBotConnectionReview, _, _):
+                            self.effectiveContainerNode.currentItemNode.interaction?.performBotConnectionReviewAction(newBotConnectionReview, isPositive)
                         default:
                             break
                         }
@@ -1426,19 +1477,23 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
             )
         }
         if let mediaPlayback = self.controller?.globalControlPanelsContextState?.mediaPlayback {
-            panels.append(HeaderPanelContainerComponent.Panel(
-                key: "media",
-                orderIndex: 1,
-                component: AnyComponent(MediaPlaybackHeaderPanelComponent(
-                    context: self.context,
-                    theme: self.presentationData.theme,
-                    strings: self.presentationData.strings,
-                    data: mediaPlayback,
-                    controller: { [weak self] in
-                        return self?.controller
-                    }
-                )))
-            )
+            if let playlistLocation = mediaPlayback.playlistLocation as? PeerMessagesPlaylistLocation, case let .custom(_, _, _, _, hidePanel) = playlistLocation, hidePanel {
+                
+            } else {
+                panels.append(HeaderPanelContainerComponent.Panel(
+                    key: "media",
+                    orderIndex: 1,
+                    component: AnyComponent(MediaPlaybackHeaderPanelComponent(
+                        context: self.context,
+                        theme: self.presentationData.theme,
+                        strings: self.presentationData.strings,
+                        data: mediaPlayback,
+                        controller: { [weak self] in
+                            return self?.controller
+                        }
+                    )))
+                )
+            }
         }
         if let liveLocation = self.controller?.globalControlPanelsContextState?.liveLocation {
             panels.append(HeaderPanelContainerComponent.Panel(
@@ -1460,6 +1515,24 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
         if self.controller?.tabContainerData != nil || !panels.isEmpty {
             var tabs: AnyComponent<Empty>?
             if let tabContainerData = self.controller?.tabContainerData, tabContainerData.0.count > 1 {
+                let folderFilterIndex: (ChatListFilterTabEntryId, [ChatListFilterTabEntry]) -> Int? = { id, entries in
+                    var index = 0
+                    for entry in entries {
+                        switch entry {
+                        case .all:
+                            if entry.id == id {
+                                return nil
+                            }
+                        case .filter:
+                            if entry.id == id {
+                                return index
+                            }
+                            index += 1
+                        }
+                    }
+                    return nil
+                }
+
                 let selectedTab: HorizontalTabsComponent.Tab.Id
                 switch self.effectiveContainerNode.currentItemFilter {
                 case .all:
@@ -1509,10 +1582,9 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
                                 
                                 var isDisabled = false
                                 if let filtersLimit = tabContainerData.2 {
-                                    guard let folderIndex = tabContainerData.0.firstIndex(where: { $0.id == mappedId }) else {
-                                        return
+                                    if let folderIndex = folderFilterIndex(mappedId, tabContainerData.0) {
+                                        isDisabled = !isPremium && folderIndex >= filtersLimit
                                     }
-                                    isDisabled = !isPremium && folderIndex >= filtersLimit
                                 }
                                 
                                 if isDisabled {
@@ -1555,10 +1627,9 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
                                 
                                 var isDisabled = false
                                 if let filtersLimit = tabContainerData.2 {
-                                    guard let folderIndex = tabContainerData.0.firstIndex(where: { $0.id == entry.id }) else {
-                                        return
+                                    if let folderIndex = folderFilterIndex(entry.id, tabContainerData.0) {
+                                        isDisabled = !isPremium && folderIndex >= filtersLimit
                                     }
-                                    isDisabled = !isPremium && folderIndex >= filtersLimit
                                 }
                                 
                                 self.controller?.tabContextGesture(id: mappedId, sourceNode: nil, sourceView: sourceView, gesture: gesture, keepInPlace: false, isDisabled: isDisabled)
@@ -1778,53 +1849,101 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
         insets.left += layout.safeInsets.left
         insets.right += layout.safeInsets.right
         
-        if let toolbar = self.toolbar {
-            var tabBarHeight: CGFloat
-            var options: ContainerViewLayoutInsetOptions = []
-            if layout.metrics.widthClass == .regular {
-                options.insert(.input)
+        if let toolbarData = self.toolbarData {
+            var panelsBottomInset: CGFloat = layout.insets(options: []).bottom
+            if layout.metrics.widthClass == .regular, let inputHeight = layout.inputHeight, inputHeight != 0.0 {
+                panelsBottomInset = inputHeight + 8.0
             }
-            
-            var heightInset: CGFloat = 0.0
-            if case .forum = self.location {
-                heightInset = 4.0
-            }
-            
-            let bottomInset: CGFloat = layout.insets(options: options).bottom
-            if !layout.safeInsets.left.isZero {
-                tabBarHeight = 34.0 + bottomInset
-                insets.bottom += 34.0
+            if panelsBottomInset == 0.0 {
+                panelsBottomInset = 8.0
             } else {
-                tabBarHeight = 49.0 - heightInset + bottomInset
-                insets.bottom += 49.0 - heightInset
+                panelsBottomInset = max(panelsBottomInset, 8.0)
             }
             
-            let toolbarFrame = CGRect(origin: CGPoint(x: 0.0, y: layout.size.height - tabBarHeight), size: CGSize(width: layout.size.width, height: tabBarHeight))
+            let sideInset: CGFloat = 20.0
+            let toolbarHeight = 44.0
+            let toolbarFrame = CGRect(origin: CGPoint(x: sideInset, y: layout.size.height - panelsBottomInset - toolbarHeight), size: CGSize(width: layout.size.width - sideInset * 2.0, height: toolbarHeight))
             
-            if let toolbarNode = self.toolbarNode {
-                transition.updateFrame(node: toolbarNode, frame: toolbarFrame)
-                toolbarNode.updateLayout(size: toolbarFrame.size, leftInset: layout.safeInsets.left, rightInset: layout.safeInsets.right, additionalSideInsets: layout.additionalInsets, bottomInset: bottomInset, toolbar: toolbar, transition: transition)
+            let toolbar: ComponentView<Empty>
+            var toolbarTransition = ComponentTransition(transition)
+            if let current = self.toolbar {
+                toolbar = current
             } else {
-                let toolbarNode = ToolbarNode(theme: ToolbarTheme(rootControllerTheme: self.presentationData.theme), displaySeparator: true, left: { [weak self] in
-                    self?.toolbarActionSelected?(.left)
-                }, right: { [weak self] in
-                    self?.toolbarActionSelected?(.right)
-                }, middle: { [weak self] in
-                    self?.toolbarActionSelected?(.middle)
-                })
-                toolbarNode.frame = toolbarFrame
-                toolbarNode.updateLayout(size: toolbarFrame.size, leftInset: layout.safeInsets.left, rightInset: layout.safeInsets.right, additionalSideInsets: layout.additionalInsets, bottomInset: bottomInset, toolbar: toolbar, transition: .immediate)
-                self.addSubnode(toolbarNode)
-                self.toolbarNode = toolbarNode
-                if transition.isAnimated {
-                    toolbarNode.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.2)
+                toolbar = ComponentView()
+                self.toolbar = toolbar
+                toolbarTransition = .immediate
+            }
+            
+            let _ = toolbar.update(
+                transition: toolbarTransition,
+                component: AnyComponent(GlassControlPanelComponent(
+                    theme: self.presentationData.theme,
+                    leftItem: toolbarData.leftAction.flatMap { value in
+                        return GlassControlPanelComponent.Item(
+                            items: [GlassControlGroupComponent.Item(
+                                id: "left_" + value.title,
+                                content: .text(value.title),
+                                action: value.isEnabled ? { [weak self] in
+                                    guard let self else {
+                                        return
+                                    }
+                                    self.toolbarActionSelected?(.left)
+                                } : nil
+                            )],
+                            background: .panel
+                        )
+                    },
+                    centralItem: toolbarData.middleAction.flatMap { value in
+                        return GlassControlPanelComponent.Item(
+                            items: [GlassControlGroupComponent.Item(
+                                id: "right_" + value.title,
+                                content: .text(value.title),
+                                action: value.isEnabled ? { [weak self] in
+                                    guard let self else {
+                                        return
+                                    }
+                                    self.toolbarActionSelected?(.middle)
+                                } : nil
+                            )],
+                            background: .panel
+                        )
+                    },
+                    rightItem: toolbarData.rightAction.flatMap { value in
+                        return GlassControlPanelComponent.Item(
+                            items: [GlassControlGroupComponent.Item(
+                                id: "right_" + value.title,
+                                content: .text(value.title),
+                                action: value.isEnabled ? { [weak self] in
+                                    guard let self else {
+                                        return
+                                    }
+                                    self.toolbarActionSelected?(.right)
+                                } : nil
+                            )],
+                            background: .panel
+                        )
+                    },
+                    centerAlignmentIfPossible: true
+                )),
+                environment: {},
+                containerSize: toolbarFrame.size
+            )
+            
+            if let toolbarView = toolbar.view {
+                if toolbarView.superview == nil {
+                    self.view.addSubview(toolbarView)
+                    toolbarView.alpha = 0.0
                 }
+                toolbarTransition.setFrame(view: toolbarView, frame: toolbarFrame)
+                ComponentTransition(transition).setAlpha(view: toolbarView, alpha: 1.0)
             }
-        } else if let toolbarNode = self.toolbarNode {
-            self.toolbarNode = nil
-            transition.updateAlpha(node: toolbarNode, alpha: 0.0, completion: { [weak toolbarNode] _ in
-                toolbarNode?.removeFromSupernode()
-            })
+        } else if let toolbar = self.toolbar {
+            self.toolbar = nil
+            if let toolbarView = toolbar.view {
+                ComponentTransition(transition).setAlpha(view: toolbarView, alpha: 0.0, completion: { [weak toolbarView] _ in
+                    toolbarView?.removeFromSuperview()
+                })
+            }
         }
         
         var childrenLayout = layout
@@ -1905,7 +2024,21 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
             //filter.insert(.excludeRecent)
         }
         
-        let contentNode = ChatListSearchContainerNode(context: self.context, animationCache: self.animationCache, animationRenderer: self.animationRenderer, filter: filter, requestPeerType: nil, location: effectiveLocation, displaySearchFilters: displaySearchFilters, hasDownloads: hasDownloads, initialFilter: initialFilter, openPeer: { [weak self] peer, _, threadId, dismissSearch in
+        var folder: (Int32, String)?
+        if let folders = self.controller?.tabContainerData?.0 {
+            switch self.effectiveContainerNode.currentItemFilter {
+            case .all:
+                break
+            case let .filter(id):
+                if let value = folders.first(where: { $0.id == .filter(id) }) {
+                    if case let .filter(_, text, _) = value {
+                        folder = (id, text.text)
+                    }
+                }
+            }
+        }
+        
+        let contentNode = ChatListSearchContainerNode(context: self.context, animationCache: self.animationCache, animationRenderer: self.animationRenderer, filter: filter, requestPeerType: nil, location: effectiveLocation, folder: folder, displaySearchFilters: displaySearchFilters, hasDownloads: hasDownloads, initialFilter: initialFilter, openPeer: { [weak self] peer, _, threadId, dismissSearch in
             self?.requestOpenPeerFromSearch?(peer, threadId, dismissSearch)
         }, openDisabledPeer: { _, _, _ in
         }, openRecentPeerOptions: { [weak self] peer in
@@ -1927,6 +2060,9 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
         })
         contentNode.dismissSearch = { [weak self] in
             self?.dismissSearch?()
+        }
+        contentNode.dismissSearchImmediately = { [weak self] in
+            self?.controller?.deactivateSearch(animated: false)
         }
         contentNode.openAdInfo = { [weak self] node, adPeer in
             self?.controller?.openAdInfo(node: node, adPeer: adPeer)
@@ -2172,6 +2308,19 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
         return false
     }
     
+    private func pinnedHeaderDisplayFractionUpdated(transition: ContainedViewLayoutTransition) {
+        var pinnedFraction: CGFloat = 0.0
+        if let inlineStackContainerNode = self.inlineStackContainerNode, self.inlineStackContainerTransitionFraction != 0.0 {
+            pinnedFraction = (1.0 - self.inlineStackContainerTransitionFraction) * self.mainContainerNode.pinnedHeaderDisplayFraction + self.inlineStackContainerTransitionFraction * inlineStackContainerNode.pinnedHeaderDisplayFraction
+        } else {
+            pinnedFraction = self.mainContainerNode.pinnedHeaderDisplayFraction
+        }
+        
+        if let navigationBarComponentView = self.navigationBarView.view as? ChatListNavigationBar.View {
+            navigationBarComponentView.updateEdgeEffectForPinnedFraction(pinnedFraction: pinnedFraction, transition: ComponentTransition(transition))
+        }
+    }
+    
     func makeInlineChatList(location: ChatListControllerLocation) -> ChatListContainerNode {
         var forumPeerId: EnginePeer.Id?
         if case let .forum(peerId) = location {
@@ -2203,6 +2352,8 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
                 inlineStackContainerNode.setPeerThreadHidden = self.mainContainerNode.setPeerThreadHidden
                 inlineStackContainerNode.peerSelected = self.mainContainerNode.peerSelected
                 inlineStackContainerNode.groupSelected = self.mainContainerNode.groupSelected
+                inlineStackContainerNode.openCommunity = self.mainContainerNode.openCommunity
+                inlineStackContainerNode.ungroupCommunity = self.mainContainerNode.ungroupCommunity
                 inlineStackContainerNode.updatePeerGrouping = self.mainContainerNode.updatePeerGrouping
                 
                 inlineStackContainerNode.contentOffsetChanged = { [weak self] offset, listView in
@@ -2219,6 +2370,9 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
                 }
                 inlineStackContainerNode.contentScrollingEnded = { [weak self] listView in
                     return self?.contentScrollingEnded(listView: listView, isPrimary: false) ?? false
+                }
+                inlineStackContainerNode.pinnedHeaderDisplayFractionUpdated = { [weak self] transition in
+                    self?.pinnedHeaderDisplayFractionUpdated(transition: transition)
                 }
                 
                 inlineStackContainerNode.activateChatPreview = self.mainContainerNode.activateChatPreview

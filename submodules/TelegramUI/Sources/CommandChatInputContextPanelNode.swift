@@ -1,7 +1,6 @@
 import Foundation
 import UIKit
 import AsyncDisplayKit
-import Postbox
 import TelegramCore
 import Display
 import TelegramPresentationData
@@ -167,6 +166,8 @@ private struct CommandChatInputContextPanelEntry: Comparable, Identifiable {
                     },
                     performActiveSessionAction: { _, _ in
                     },
+                    performBotConnectionReviewAction: { _, _ in
+                    },
                     openChatFolderUpdates: {
                     },
                     hideChatFolderUpdates: {
@@ -211,7 +212,7 @@ private struct CommandChatInputContextPanelEntry: Comparable, Identifiable {
                     context: context,
                     chatListLocation: .chatList(groupId: .root),
                     filterData: nil,
-                    index: EngineChatList.Item.Index.chatList(ChatListIndex(pinningIndex: nil, messageIndex: MessageIndex(id: MessageId(peerId: context.account.peerId, namespace: 0, id: 0), timestamp: 0))),
+                    index: EngineChatList.Item.Index.chatList(EngineChatListIndex(pinningIndex: nil, messageIndex: EngineMessage.Index(id: EngineMessage.Id(peerId: context.account.peerId, namespace: 0, id: 0), timestamp: 0))),
                     content: .peer(ChatListItemContent.PeerData(
                         messages: [shortcut.topMessage],
                         peer: renderedPeer,
@@ -221,6 +222,7 @@ private struct CommandChatInputContextPanelEntry: Comparable, Identifiable {
                         presence: nil,
                         hasUnseenMentions: false,
                         hasUnseenReactions: false,
+                        hasUnseenPollVotes: false,
                         draftState: nil,
                         mediaDraftContentType: nil,
                         inputActivities: nil,
@@ -297,7 +299,7 @@ final class CommandChatInputContextPanelNode: ChatInputContextPanelNode {
         self.backgroundView = GlassBackgroundView()
         self.backgroundView.layer.anchorPoint = CGPoint()
         
-        self.listView = ListView()
+        self.listView = ListViewImpl()
         self.listView.anchorPoint = CGPoint()
         self.listView.isOpaque = false
         self.listView.stackFromBottom = true
@@ -316,7 +318,7 @@ final class CommandChatInputContextPanelNode: ChatInputContextPanelNode {
         self.addSubnode(self.listView)
         
         self.backgroundView.isHidden = true
-        self.listView.visibleContentOffsetChanged = { [weak self] offset in
+        self.listView.visibleContentOffsetChanged = { [weak self] offset, _ in
             guard let self else {
                 return
             }
@@ -367,7 +369,7 @@ final class CommandChatInputContextPanelNode: ChatInputContextPanelNode {
             switch command {
             case let .command(command):
                 if sendImmediately {
-                    interfaceInteraction.sendBotCommand(command.peer, "/" + command.command.text)
+                    interfaceInteraction.sendBotCommand(command.peer._asPeer(), "/" + command.command.text)
                 } else {
                     interfaceInteraction.updateTextInputStateAndMode { textInputState, inputMode in
                         var commandQueryRange: NSRange?
@@ -504,7 +506,7 @@ final class CommandChatInputContextPanelNode: ChatInputContextPanelNode {
             size: self.backgroundView.bounds.size,
             cornerRadius: 20.0,
             isDark: interfaceState.theme.overallDarkAppearance,
-            tintColor: .init(kind: .panel, color: interfaceState.theme.chat.inputPanel.inputBackgroundColor.withMultipliedAlpha(0.7)),
+            tintColor: .init(kind: .panel),
             transition: ComponentTransition(transition)
         )
         

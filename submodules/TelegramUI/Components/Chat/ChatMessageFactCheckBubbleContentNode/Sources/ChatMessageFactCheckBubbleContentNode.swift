@@ -1,6 +1,5 @@
 import Foundation
 import UIKit
-import Postbox
 import Display
 import AsyncDisplayKit
 import SwiftSignalKit
@@ -134,7 +133,7 @@ public class ChatMessageFactCheckBubbleContentNode: ChatMessageBubbleContentNode
         guard let item = self.item else{
             return
         }
-        let _ = item.controllerInteraction.requestMessageUpdate(item.message.id, false)
+        let _ = item.controllerInteraction.requestMessageUpdate(item.message.id, false, nil)
     }
     
     public override func willUpdateIsExtractedToContextPreview(_ value: Bool) {
@@ -156,17 +155,17 @@ public class ChatMessageFactCheckBubbleContentNode: ChatMessageBubbleContentNode
                 let selectionColor: UIColor = item.presentationData.theme.theme.chat.message.incoming.textSelectionColor
                 let knobColor: UIColor = item.presentationData.theme.theme.chat.message.incoming.textSelectionKnobColor
                 
-                let textSelectionNode = TextSelectionNode(theme: TextSelectionTheme(selection: selectionColor, knob: knobColor, isDark: item.presentationData.theme.theme.overallDarkAppearance), strings: item.presentationData.strings, textNode: self.textNode, updateIsActive: { [weak self] value in
+                let textSelectionNode = TextSelectionNode(theme: TextSelectionTheme(selection: selectionColor, knob: knobColor, isDark: item.presentationData.theme.theme.overallDarkAppearance), strings: item.presentationData.strings, textNodeOrView: .node(self.textNode), updateIsActive: { [weak self] value in
                     self?.updateIsTextSelectionActive?(value)
                 }, present: { [weak self] c, a in
                     self?.item?.controllerInteraction.presentGlobalOverlayController(c, a)
-                }, rootNode: { [weak rootNode] in
-                    return rootNode
+                }, rootView: { [weak rootNode] in
+                    return rootNode?.view
                 }, performAction: { [weak self] text, action in
                     guard let strongSelf = self, let item = strongSelf.item else {
                         return
                     }
-                    item.controllerInteraction.performTextSelectionAction(item.message, true, text, action)
+                    item.controllerInteraction.performTextSelectionAction(item.message, true, text, nil, action)
                 })
                 textSelectionNode.enableQuote = false
                 self.textSelectionNode = textSelectionNode
@@ -233,7 +232,8 @@ public class ChatMessageFactCheckBubbleContentNode: ChatMessageBubbleContentNode
                     TelegramTextAttributes.PeerTextMention,
                     TelegramTextAttributes.BotCommand,
                     TelegramTextAttributes.Hashtag,
-                    TelegramTextAttributes.BankCard
+                    TelegramTextAttributes.BankCard,
+                    TelegramTextAttributes.Date
                 ]
                 for name in possibleNames {
                     if let _ = attributes[NSAttributedString.Key(rawValue: name)] {
@@ -325,7 +325,7 @@ public class ChatMessageFactCheckBubbleContentNode: ChatMessageBubbleContentNode
                 } else {
                     dateFormat = .regular
                 }
-                let dateText = stringForMessageTimestampStatus(accountPeerId: item.context.account.peerId, message: item.message, dateTimeFormat: item.presentationData.dateTimeFormat, nameDisplayOrder: item.presentationData.nameDisplayOrder, strings: item.presentationData.strings, format: dateFormat, associatedData: item.associatedData)
+                let dateText = stringForMessageTimestampStatus(context: item.context, message: EngineMessage(item.message), dateTimeFormat: item.presentationData.dateTimeFormat, nameDisplayOrder: item.presentationData.nameDisplayOrder, strings: item.presentationData.strings, format: dateFormat, associatedData: item.associatedData)
                 
                 let statusType: ChatMessageDateAndStatusType?
                 if case .customChatContents = item.associatedData.subject {
@@ -440,7 +440,7 @@ public class ChatMessageFactCheckBubbleContentNode: ChatMessageBubbleContentNode
                         impressionCount: !item.presentationData.isPreview ? viewCount : nil,
                         dateText: dateText,
                         type: statusType,
-                        layoutInput: .trailingContent(contentWidth: nil, reactionSettings: item.presentationData.isPreview ? nil : ChatMessageDateAndStatusNode.TrailingReactionSettings(displayInline: shouldDisplayInlineDateReactions(message: message, isPremium: item.associatedData.isPremium, forceInline: item.associatedData.forceInlineReactions), preferAdditionalInset: false)),
+                        layoutInput: .trailingContent(contentWidth: nil, reactionSettings: item.presentationData.isPreview ? nil : ChatMessageDateAndStatusNode.TrailingReactionSettings(displayInline: shouldDisplayInlineDateReactions(message: EngineMessage(message), isPremium: item.associatedData.isPremium, forceInline: item.associatedData.forceInlineReactions), preferAdditionalInset: false)),
                         constrainedSize: textConstrainedSize,
                         availableReactions: item.associatedData.availableReactions,
                         savedMessageTags: item.associatedData.savedMessageTags,
@@ -454,7 +454,7 @@ public class ChatMessageFactCheckBubbleContentNode: ChatMessageBubbleContentNode
                         starsCount: starsCount,
                         isPinned: item.message.tags.contains(.pinned) && !item.associatedData.isInPinnedListMode && isReplyThread,
                         hasAutoremove: item.message.isSelfExpiring,
-                        canViewReactionList: canViewMessageReactionList(message: item.topMessage),
+                        canViewReactionList: canViewMessageReactionList(message: EngineMessage(item.topMessage)),
                         animationCache: item.controllerInteraction.presentationContext.animationCache,
                         animationRenderer: item.controllerInteraction.presentationContext.animationRenderer
                     ))

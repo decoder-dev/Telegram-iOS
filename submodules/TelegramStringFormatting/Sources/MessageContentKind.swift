@@ -1,5 +1,4 @@
 import Foundation
-import Postbox
 import TelegramCore
 import TelegramPresentationData
 import TelegramUIPreferences
@@ -9,6 +8,7 @@ import TextFormat
 public enum MessageContentKindKey {
     case text
     case image
+    case livePhoto
     case video
     case videoMessage
     case audioMessage
@@ -36,6 +36,7 @@ public enum MessageContentKindKey {
 public enum MessageContentKind: Equatable {
     case text(NSAttributedString)
     case image
+    case livePhoto
     case video
     case videoMessage
     case audioMessage
@@ -68,6 +69,12 @@ public enum MessageContentKind: Equatable {
             }
         case .image:
             if case .image = other {
+                return true
+            } else {
+                return false
+            }
+        case .livePhoto:
+            if case .livePhoto = other {
                 return true
             } else {
                 return false
@@ -207,6 +214,8 @@ public enum MessageContentKind: Equatable {
             return .text
         case .image:
             return .image
+        case .livePhoto:
+            return .livePhoto
         case .video:
             return .video
         case .videoMessage:
@@ -272,10 +281,13 @@ public func messageTextWithAttributes(message: EngineMessage) -> NSAttributedStr
             }
             
             let range = NSRange(location: entity.range.lowerBound, length: entity.range.upperBound - entity.range.lowerBound)
+            if range.upperBound >= updatedString.length {
+                continue
+            }
             
             let currentDict = updatedString.attributes(at: range.lowerBound, effectiveRange: nil)
             var updatedAttributes: [NSAttributedString.Key: Any] = currentDict
-            updatedAttributes[ChatTextInputAttributes.customEmoji] = ChatTextInputTextCustomEmojiAttribute(interactivelySelectedFromPackId: nil, fileId: fileId, file: message.associatedMedia[MediaId(namespace: Namespaces.Media.CloudFile, id: fileId)] as? TelegramMediaFile)
+            updatedAttributes[ChatTextInputAttributes.customEmoji] = ChatTextInputTextCustomEmojiAttribute(interactivelySelectedFromPackId: nil, fileId: fileId, file: message.associatedMedia[EngineMedia.Id(namespace: Namespaces.Media.CloudFile, id: fileId)] as? TelegramMediaFile)
             
             let insertString = NSAttributedString(string: updatedString.attributedSubstring(from: range).string, attributes: updatedAttributes)
             updatedString.replaceCharacters(in: range, with: insertString)
@@ -300,6 +312,11 @@ public func messageContentKind(contentSettings: ContentSettings, message: Engine
             return kind
         }
     }
+    for attribute in message.attributes {
+        if let attribute = attribute as? RichTextMessageAttribute {
+            return .text(attribute.instantPage.previewAttributedText(strings: strings))
+        }
+    }
     return .text(messageTextWithAttributes(message: message))
 }
 
@@ -316,8 +333,12 @@ public func mediaContentKind(_ media: EngineMedia, message: EngineMessage? = nil
         case .videoMessage:
             return .expiredVideoMessage
         }
-    case .image:
-        return .image
+    case let .image(image):
+        if let _ = image.video {
+            return .livePhoto
+        } else {
+            return .image
+        }
     case let .file(file):
         var fileName: String = ""
         
@@ -429,6 +450,8 @@ public func stringForMediaKind(_ kind: MessageContentKind, strings: Presentation
         return (foldLineBreaks(text), false)
     case .image:
         return (NSAttributedString(string: strings.Message_Photo), true)
+    case .livePhoto:
+        return (NSAttributedString(string: strings.Message_LivePhoto), true)
     case .video:
         return (NSAttributedString(string: strings.Message_Video), true)
     case .videoMessage:
@@ -466,7 +489,7 @@ public func stringForMediaKind(_ kind: MessageContentKind, strings: Presentation
     case .expiredVideoMessage:
         return (NSAttributedString(string: strings.Message_VideoMessageExpired), true)
     case let .poll(text):
-        return (NSAttributedString(string: "📊 \(text)"), false)
+        return (NSAttributedString(string: text), false)
     case let .todo(text):
         return (NSAttributedString(string: "☑️ \(text)"), false)
     case let .restricted(text):
@@ -484,7 +507,7 @@ public func stringForMediaKind(_ kind: MessageContentKind, strings: Presentation
 
 public func descriptionStringForMessage(contentSettings: ContentSettings, message: EngineMessage, strings: PresentationStrings, nameDisplayOrder: PresentationPersonNameOrder, dateTimeFormat: PresentationDateTimeFormat, accountPeerId: EnginePeer.Id) -> (NSAttributedString, Bool, Bool) {
     let contentKind = messageContentKind(contentSettings: contentSettings, message: message, strings: strings, nameDisplayOrder: nameDisplayOrder, dateTimeFormat: dateTimeFormat, accountPeerId: accountPeerId)
-    if !message.text.isEmpty && ![.expiredImage, .expiredVideo].contains(contentKind.key) {
+    if !message.text.isEmpty && ![.expiredImage, .expiredVideo, .poll].contains(contentKind.key) {
         return (foldLineBreaks(messageTextWithAttributes(message: message)), false, true)
     }
     let result = stringForMediaKind(contentKind, strings: strings)

@@ -11,7 +11,7 @@ import TextNodeWithEntities
 
 public protocol ChatInputTextNodeDelegate: AnyObject {
     func chatInputTextNodeDidUpdateText()
-    func chatInputTextNodeShouldReturn() -> Bool
+    func chatInputTextNodeShouldReturn(modifierFlags: UIKeyModifierFlags) -> Bool
     func chatInputTextNodeDidChangeSelection(dueToEditing: Bool)
     func chatInputTextNodeDidBeginEditing()
     func chatInputTextNodeDidFinishEditing()
@@ -287,6 +287,9 @@ open class ChatInputTextNode: ASDisplayNode {
         self.setViewBlock({
             return ChatInputTextView(disableTiling: disableTiling)
         })
+    }
+    
+    deinit {
     }
     
     public func resetInitialPrimaryLanguage() {
@@ -1098,19 +1101,13 @@ public final class ChatInputTextView: ChatInputTextViewImpl, UITextViewDelegate,
     }
     
     public init(disableTiling: Bool) {
-        let useModernImpl = !"".isEmpty
-        
-        if #available(iOS 15.0, *), useModernImpl {
-            self.displayInternal = ChatInputTextNewInternal()
-            self.measureInternal = ChatInputTextNewInternal()
-        } else {
-            self.displayInternal = ChatInputTextLegacyInternal()
-            self.measureInternal = ChatInputTextLegacyInternal()
-        }
+        self.displayInternal = ChatInputTextLegacyInternal()
+        self.measureInternal = ChatInputTextLegacyInternal()
         
         super.init(frame: CGRect(), textContainer: self.displayInternal.textContainer, disableTiling: disableTiling)
         
         self.delegate = self
+        self.scrollsToTop = false
         
         if #available(iOS 18.0, *) {
             self.supportsAdaptiveImageGlyph = false
@@ -1180,11 +1177,11 @@ public final class ChatInputTextView: ChatInputTextViewImpl, UITextViewDelegate,
             }
             return self.customDelegate?.chatInputTextNodeShouldPaste() ?? true
         }
-        self.shouldReturn = { [weak self] in
+        self.shouldReturn = { [weak self] modifierFlags in
             guard let self else {
                 return true
             }
-            return self.customDelegate?.chatInputTextNodeShouldReturn() ?? true
+            return self.customDelegate?.chatInputTextNodeShouldReturn(modifierFlags: modifierFlags) ?? true
         }
         self.backspaceWhileEmpty = { [weak self] in
             guard let self else {

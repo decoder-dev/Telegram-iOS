@@ -6,7 +6,6 @@ import AppBundle
 import BundleIconComponent
 import AccountContext
 import TelegramCore
-import Postbox
 import SwiftSignalKit
 import TelegramPresentationData
 import StoryContainerScreen
@@ -377,6 +376,7 @@ public final class StoryPeerListComponent: Component {
             self.scrollView.alwaysBounceVertical = false
             self.scrollView.alwaysBounceHorizontal = true
             self.scrollView.clipsToBounds = false
+            self.scrollView.scrollsToTop = false
             
             self.scrollContainerView = UIView()
             self.scrollContainerView.clipsToBounds = true
@@ -443,7 +443,7 @@ public final class StoryPeerListComponent: Component {
             }
         }
         
-        public func setPreviewedItem(signal: Signal<StoryId?, NoError>) {
+        public func setPreviewedItem(signal: Signal<EngineStoryId?, NoError>) {
             self.previewedItemDisposable?.dispose()
             self.previewedItemDisposable = (signal |> map(\.?.peerId) |> distinctUntilChanged |> deliverOnMainQueue).start(next: { [weak self] itemId in
                 guard let self, let component = self.component else {
@@ -627,6 +627,13 @@ public final class StoryPeerListComponent: Component {
                     }
                 }
             }
+        }
+        
+        public func openEmojiStatusSetup() {
+            guard let component = self.component, let titleIconView = self.titleIconView?.view else {
+                return
+            }
+            component.openStatusSetup(titleIconView)
         }
         
         private func updateScrolling(transition: ComponentTransition) {
@@ -1682,14 +1689,15 @@ public final class StoryPeerListComponent: Component {
                     NSAttributedString.Key.font: Font.semibold(17.0),
                     NSAttributedString.Key.foregroundColor: component.theme.rootController.navigationBar.primaryTextColor
                 ])
-                var boundingRect = attributedText.boundingRect(with: CGSize(width: max(0.0, component.maxTitleX - component.minTitleX - 30.0), height: 100.0), options: .usesLineFragmentOrigin, context: nil)
-                boundingRect.size.width = ceil(boundingRect.size.width)
-                boundingRect.size.height = ceil(boundingRect.size.height)
+                
+                let cachedLayout = TextNode.calculateLayout(attributedString: attributedText, minimumNumberOfLines: 1, maximumNumberOfLines: 1, truncationType: .end, backgroundColor: nil, constrainedSize: CGSize(width: max(0.0, component.maxTitleX - component.minTitleX - 46.0), height: 100.0), alignment: .left, verticalAlignment: .middle, lineSpacingFactor: 0.0, cutout: nil, insets: UIEdgeInsets(), lineColor: nil, textShadowColor: nil, textShadowBlur: nil, textStroke: nil, displaySpoilers: false, displayEmbeddedItemsUnderSpoilers: false, customTruncationToken: nil)
 
-                let renderer = UIGraphicsImageRenderer(bounds: CGRect(origin: CGPoint(), size: boundingRect.size))
+                let renderer = UIGraphicsImageRenderer(bounds: CGRect(origin: CGPoint(), size: cachedLayout.size))
                 let image = renderer.image { context in
                     UIGraphicsPushContext(context.cgContext)
-                    attributedText.draw(at: CGPoint())
+                    
+                    TextNode.draw(CGRect(origin: CGPoint(), size: cachedLayout.size), withParameters: TextNode.DrawingParameters(cachedLayout: cachedLayout, renderContentTypes: .all), isCancelled: { return false }, isRasterizing: false)
+                    
                     UIGraphicsPopContext()
                 }
                 self.titleView.image = image

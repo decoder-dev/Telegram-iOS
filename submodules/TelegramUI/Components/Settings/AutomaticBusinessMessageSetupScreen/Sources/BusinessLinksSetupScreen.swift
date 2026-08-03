@@ -18,7 +18,6 @@ import ListActionItemComponent
 import BundleIconComponent
 import TextFormat
 import UndoUI
-import ShareController
 import ContextUI
 
 final class BusinessLinksSetupScreenComponent: Component {
@@ -258,7 +257,7 @@ final class BusinessLinksSetupScreenComponent: Component {
                 return
             }
             
-            environment.controller()?.present(ShareController(context: component.context, subject: .url(link.url), showInChat: nil, externalShare: false, immediateExternalShare: false), in: .window(.root))
+            environment.controller()?.present(component.context.sharedContext.makeShareController(context: component.context, params: ShareControllerParams(subject: .url(link.url), showInChat: nil, externalShare: false, immediateExternalShare: false)), in: .window(.root))
         }
         
         func update(component: BusinessLinksSetupScreenComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<EnvironmentType>, transition: ComponentTransition) -> CGSize {
@@ -577,7 +576,7 @@ final class BusinessLinksSetupScreenComponent: Component {
                         ))
                         let items = ContextController.Items(content: .list(itemList))
                         
-                        let controller = ContextController(
+                        let controller = makeContextController(
                             presentationData: presentationData,
                             source: .extracted(BusineesLinkListContextExtractedContentSource(contentView: sourceView)), items: .single(items), recognizer: nil, gesture: gesture)
                         

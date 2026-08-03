@@ -643,7 +643,7 @@ public final class AvatarNode: ASDisplayNode {
                 
                 let parameters: AvatarNodeParameters
                 
-                if let peer = peer, let signal = peerAvatarImage(postbox: postbox, network: network, peerReference: PeerReference(peer._asPeer()), authorOfMessage: authorOfMessage, representation: representation, displayDimensions: displayDimensions, clipStyle: clipStyle, emptyColor: emptyColor, synchronousLoad: synchronousLoad, provideUnrounded: storeUnrounded, cutoutRect: cutoutRect) {
+                if let peer = peer, let signal = peerAvatarImage(postbox: postbox, peerReference: PeerReference(peer), authorOfMessage: authorOfMessage, representation: representation, displayDimensions: displayDimensions, clipStyle: clipStyle, emptyColor: emptyColor, synchronousLoad: synchronousLoad, provideUnrounded: storeUnrounded, cutoutRect: cutoutRect) {
                     self.contents = nil
                     self.displaySuspended = true
                     self.imageReady.set(self.imageNode.contentReady)
@@ -763,7 +763,7 @@ public final class AvatarNode: ASDisplayNode {
                 self.imageNode.view.mask = nil
             }
             
-            if let imageCache = genericContext.imageCache as? DirectMediaImageCache, let peer, let smallProfileImage = peer.smallProfileImage, let peerReference = PeerReference(peer._asPeer()) {
+            if let imageCache = genericContext.imageCache as? DirectMediaImageCache, let peer, let smallProfileImage = peer.smallProfileImage, let peerReference = PeerReference(peer) {
                 if let result = imageCache.getAvatarImage(peer: peerReference, resource: MediaResourceReference.avatar(peer: peerReference, resource: smallProfileImage.resource), immediateThumbnail: peer.profileImageRepresentations.first?.immediateThumbnailData, size: Int(displayDimensions.width * UIScreenScale), synchronous: synchronousLoad) {
                     if let image = result.image {
                         self.imageNode.contents = image.cgImage
@@ -852,7 +852,7 @@ public final class AvatarNode: ASDisplayNode {
                 
                 let account = account ?? genericContext.account
                 
-                if let peer = peer, let signal = peerAvatarImage(account: account, peerReference: PeerReference(peer._asPeer()), authorOfMessage: authorOfMessage, representation: representation, displayDimensions: displayDimensions, clipStyle: clipStyle, emptyColor: emptyColor, synchronousLoad: synchronousLoad, provideUnrounded: storeUnrounded, cutoutRect: cutoutRect) {
+                if let peer = peer, let signal = peerAvatarImage(account: account, peerReference: PeerReference(peer), authorOfMessage: authorOfMessage, representation: representation, displayDimensions: displayDimensions, clipStyle: clipStyle, emptyColor: emptyColor, synchronousLoad: synchronousLoad, provideUnrounded: storeUnrounded, cutoutRect: cutoutRect) {
                     self.contents = nil
                     self.displaySuspended = true
                     self.imageReady.set(self.imageNode.contentReady)
@@ -1149,7 +1149,7 @@ public final class AvatarNode: ASDisplayNode {
             if let parameters = parameters as? AvatarNodeParameters, let cutoutRect = parameters.cutoutRect {
                 context.setBlendMode(.copy)
                 context.setFillColor(UIColor.clear.cgColor)
-                context.fillEllipse(in: cutoutRect.offsetBy(dx: 0.0, dy: bounds.height - cutoutRect.maxY - cutoutRect.height))
+                context.fillEllipse(in: cutoutRect)
             }
         }
     }

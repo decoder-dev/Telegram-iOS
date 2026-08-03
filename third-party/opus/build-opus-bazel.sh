@@ -12,8 +12,6 @@ OPT_CFLAGS="-Os -g"
 OPT_LDFLAGS=""
 OPT_CONFIG_ARGS=""
 
-DEVELOPER=`xcode-select -print-path`
-
 OUTPUTDIR="$BUILD_DIR/Public"
 
 # where we will keep our sources and build from.
@@ -28,13 +26,37 @@ mkdir -p $INTERDIR
 tar zxf "$BUILD_DIR/$SOURCE_CODE_ARCHIVE" -C $SRCDIR
 cd "${SRCDIR}/opus-"*
 
-if [ "${ARCH}" == "x86_64" ]; then
+if [ "${ARCH}" = "linux_x86_64" ] || [ "${ARCH}" = "linux_arm64" ]; then
+  mkdir -p "${INTERDIR}"
+
+  # Keep it simple and portable for container builds.
+  ./configure \
+    --disable-shared \
+    --enable-static \
+    --with-pic \
+    --disable-extra-programs \
+    --disable-doc \
+    --disable-asm \
+    --enable-intrinsics \
+    ${OPT_CONFIG_ARGS} \
+    --prefix="${INTERDIR}" \
+    CFLAGS="$CFLAGS ${OPT_CFLAGS} -fPIC" \
+    LDFLAGS="$LDFLAGS ${OPT_LDFLAGS}"
+
+  make -j"$(getconf _NPROCESSORS_ONLN || echo 4)"
+  make install
+  exit 0
+elif [ "${ARCH}" == "x86_64" ]; then
   PLATFORM="iphonesimulator"
   EXTRA_CFLAGS="-arch ${ARCH}"
   EXTRA_CONFIG="--host=x86_64-apple-darwin"
 elif [ "${ARCH}" == "sim_arm64" ]; then
   PLATFORM="iphonesimulator"
   EXTRA_CFLAGS="-arch arm64 --target=arm64-apple-ios$MINIOSVERSION-simulator"
+  EXTRA_CONFIG="--host=arm-apple-darwin20"
+elif [ "${ARCH}" == "macos_arm64" ]; then
+  PLATFORM="macosx"
+  EXTRA_CFLAGS="-arch arm64 --target=arm64-apple-macosx14.0"
   EXTRA_CONFIG="--host=arm-apple-darwin20"
 else
   PLATFORM="iphoneos"

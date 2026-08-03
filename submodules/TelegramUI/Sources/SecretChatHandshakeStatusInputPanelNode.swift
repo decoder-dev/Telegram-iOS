@@ -3,7 +3,6 @@ import UIKit
 import AsyncDisplayKit
 import Display
 import TelegramCore
-import Postbox
 import SwiftSignalKit
 import LocalizedPeerData
 import ChatPresentationInterfaceState
@@ -53,7 +52,7 @@ final class SecretChatHandshakeStatusInputPanelNode: ChatInputPanelNode {
         self.interfaceInteraction?.unblockPeer()
     }
     
-    override func updateLayout(width: CGFloat, leftInset: CGFloat, rightInset: CGFloat, bottomInset: CGFloat, additionalSideInsets: UIEdgeInsets, maxHeight: CGFloat, maxOverlayHeight: CGFloat, isSecondary: Bool, transition: ContainedViewLayoutTransition, interfaceState: ChatPresentationInterfaceState, metrics: LayoutMetrics, isMediaInputExpanded: Bool) -> CGFloat {
+    override func updateLayout(width: CGFloat, leftInset: CGFloat, rightInset: CGFloat, bottomInset: CGFloat, additionalSideInsets: UIEdgeInsets, maxHeight: CGFloat, maxOverlayHeight: CGFloat, isSecondary: Bool, transition: ContainedViewLayoutTransition, interfaceState: ChatPresentationInterfaceState, metrics: LayoutMetrics, deviceMetrics: DeviceMetrics, isMediaInputExpanded: Bool) -> CGFloat {
         self.presentationInterfaceState = interfaceState
         
         var text: String?
@@ -87,7 +86,7 @@ final class SecretChatHandshakeStatusInputPanelNode: ChatInputPanelNode {
         let backgroundFrame = CGRect(origin: CGPoint(x: leftInset + floor((width - leftInset - rightInset - backgroundSize.width) * 0.5), y: floor((panelHeight - backgroundSize.height) / 2.0)), size: backgroundSize)
         transition.updateFrame(node: self.button, frame: backgroundFrame)
         transition.updateFrame(view: self.titleBackground, frame: CGRect(origin: CGPoint(), size: backgroundFrame.size))
-        self.titleBackground.update(size: backgroundFrame.size, cornerRadius: backgroundFrame.height * 0.5, isDark: interfaceState.theme.overallDarkAppearance, tintColor: .init(kind: .panel, color: interfaceState.theme.chat.inputPanel.inputBackgroundColor.withMultipliedAlpha(0.7)), transition: .immediate)
+        self.titleBackground.update(size: backgroundFrame.size, cornerRadius: backgroundFrame.height * 0.5, isDark: interfaceState.theme.overallDarkAppearance, tintColor: .init(kind: .panel), transition: .immediate)
         let titleFrame = CGRect(origin: CGPoint(x: floor((backgroundFrame.width - titleSize.width) * 0.5), y: floor((backgroundFrame.height - titleSize.height) * 0.5)), size: titleSize)
         if let titleView = self.title.view {
             if titleView.superview == nil {

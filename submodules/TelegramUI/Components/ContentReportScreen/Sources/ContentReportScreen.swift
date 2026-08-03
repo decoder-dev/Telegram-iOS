@@ -202,6 +202,7 @@ private final class SheetPageContent: CombinedComponent {
                 items.append(
                     AnyComponentWithIdentity(id: items.count, component: AnyComponent(ListMultilineTextFieldItemComponent(
                         externalState: state.textInputState,
+                        style: .glass,
                         context: component.context,
                         theme: theme,
                         strings: strings,
@@ -218,12 +219,6 @@ private final class SheetPageContent: CombinedComponent {
                             state?.updated()
                         },
                         returnKeyAction: {
-//                            guard let self else {
-//                                return
-//                            }
-//                            if let titleView = self.introSection.findTaggedView(tag: self.textInputTag) as? ListMultilineTextFieldItemComponent.View {
-//                                titleView.endEditing(true)
-//                            }
                         },
                         textUpdateTransition: .spring(duration: 0.4),
                         tag: textInputTag
@@ -519,13 +514,13 @@ private final class SheetContent: CombinedComponent {
             contentSize.height += navigation.size.height
             
             let isBack = items.count > 1
-            let barButtonSize = CGSize(width: 40.0, height: 40.0)
+            let barButtonSize = CGSize(width: 44.0, height: 44.0)
             let backButton = backButton.update(
                 component: GlassBarButtonComponent(
                     size: barButtonSize,
-                    backgroundColor: environment.theme.rootController.navigationBar.glassBarButtonBackgroundColor,
+                    backgroundColor: nil,
                     isDark: environment.theme.overallDarkAppearance,
-                    state: .generic,
+                    state: .glass,
                     component: AnyComponentWithIdentity(id: isBack ? "back" : "close", component: AnyComponent(
                         BundleIconComponent(
                             name: isBack ? "Navigation/Back" : "Navigation/Close",
@@ -651,6 +646,8 @@ private final class SheetContainerComponent: CombinedComponent {
                 environment: {
                     environment
                     SheetComponentEnvironment(
+                        metrics: environment.metrics,
+                        deviceMetrics: environment.deviceMetrics,
                         isDisplaying: environment.value.isVisible,
                         isCentered: environment.metrics.widthClass == .regular,
                         hasInputHeight: !environment.inputHeight.isZero,

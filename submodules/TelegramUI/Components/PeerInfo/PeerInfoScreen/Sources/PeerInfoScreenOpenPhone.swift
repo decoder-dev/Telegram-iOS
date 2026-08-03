@@ -3,7 +3,6 @@ import UIKit
 import Display
 import AccountContext
 import SwiftSignalKit
-import Postbox
 import TelegramCore
 import AsyncDisplayKit
 import ContextUI
@@ -172,7 +171,7 @@ extension PeerInfoScreenNode {
                     })
                 })
             }
-            let contextController = ContextController(presentationData: strongSelf.presentationData, source: .extracted(PeerInfoContextExtractedContentSource(sourceNode: sourceNode)), items: .single(actions), gesture: gesture)
+            let contextController = makeContextController(presentationData: strongSelf.presentationData, source: .extracted(PeerInfoContextExtractedContentSource(sourceNode: sourceNode)), items: .single(actions), gesture: gesture)
             strongSelf.controller?.present(contextController, in: .window(.root))
         })
     }

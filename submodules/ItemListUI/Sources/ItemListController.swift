@@ -25,6 +25,8 @@ public enum ItemListNavigationButtonContentIcon {
     case search
     case add
     case action
+    case close
+    case done
 }
 
 public enum ItemListNavigationButtonContent: Equatable {
@@ -426,16 +428,27 @@ open class ItemListController: ViewController, KeyShortcutResponder, Presentable
                                 case let .text(value):
                                     item = UIBarButtonItem(title: value, style: leftNavigationButton.style.barButtonItemStyle, target: strongSelf, action: #selector(strongSelf.leftNavigationButtonPressed))
                                 case let .icon(icon):
-                                    var image: UIImage?
-                                    switch icon {
+                                    if [.close, .done].contains(icon) {
+                                        switch icon {
+                                        case .done:
+                                            item = UIBarButtonItem(title: "___done", style: leftNavigationButton.style.barButtonItemStyle, target: strongSelf, action: #selector(strongSelf.leftNavigationButtonPressed))
+                                        default:
+                                            item = UIBarButtonItem(title: "___close", style: leftNavigationButton.style.barButtonItemStyle, target: strongSelf, action: #selector(strongSelf.leftNavigationButtonPressed))
+                                        }
+                                    } else {
+                                        var image: UIImage?
+                                        switch icon {
                                         case .search:
                                             image = PresentationResourcesRootController.navigationCompactSearchIcon(controllerState.presentationData.theme)
                                         case .add:
                                             image = PresentationResourcesRootController.navigationAddIcon(controllerState.presentationData.theme)
                                         case .action:
                                             image = PresentationResourcesRootController.navigationShareIcon(controllerState.presentationData.theme)
+                                        default:
+                                            image = nil
+                                        }
+                                        item = UIBarButtonItem(image: image, style: leftNavigationButton.style.barButtonItemStyle, target: strongSelf, action: #selector(strongSelf.leftNavigationButtonPressed))
                                     }
-                                    item = UIBarButtonItem(image: image, style: leftNavigationButton.style.barButtonItemStyle, target: strongSelf, action: #selector(strongSelf.leftNavigationButtonPressed))
                                 case let .node(node):
                                     item = UIBarButtonItem(customDisplayNode: node)
                                     item.setCustomAction({ [weak self] in
@@ -488,16 +501,27 @@ open class ItemListController: ViewController, KeyShortcutResponder, Presentable
                                     case let .text(value):
                                         item = UIBarButtonItem(title: value, style: style.barButtonItemStyle, target: strongSelf, action: action)
                                     case let .icon(icon):
-                                        var image: UIImage?
-                                        switch icon {
+                                        if [.close, .done].contains(icon) {
+                                            switch icon {
+                                            case .done:
+                                                item = UIBarButtonItem(title: "___done", style: style.barButtonItemStyle, target: strongSelf, action: action)
+                                            default:
+                                                item = UIBarButtonItem(title: "___close", style: style.barButtonItemStyle, target: strongSelf, action: action)
+                                            }
+                                        } else {
+                                            var image: UIImage?
+                                            switch icon {
                                             case .search:
                                                 image = PresentationResourcesRootController.navigationCompactSearchIcon(controllerState.presentationData.theme)
                                             case .add:
                                                 image = PresentationResourcesRootController.navigationAddIcon(controllerState.presentationData.theme)
                                             case .action:
                                                 image = PresentationResourcesRootController.navigationShareIcon(controllerState.presentationData.theme)
+                                            default:
+                                                image = nil
+                                            }
+                                            item = UIBarButtonItem(image: image, style: style.barButtonItemStyle, target: strongSelf, action: action)
                                         }
-                                        item = UIBarButtonItem(image: image, style: style.barButtonItemStyle, target: strongSelf, action: action)
                                     case let .node(node):
                                         item = UIBarButtonItem(customDisplayNode: node)
                                         item.setCustomAction({ [weak self] in
@@ -665,6 +689,16 @@ open class ItemListController: ViewController, KeyShortcutResponder, Presentable
         }
     }
     
+    public func itemNode(forTag tag: ItemListItemTag) -> ListViewItemNode? {
+        var result: ListViewItemNode?
+        self.forEachItemNode { itemNode in
+            if result == nil, let taggedItemNode = itemNode as? ItemListItemNode, let itemTag = taggedItemNode.tag, itemTag.isEqual(to: tag) {
+                result = itemNode
+            }
+        }
+        return result
+    }
+
     public func ensureItemNodeVisible(_ itemNode: ListViewItemNode, animated: Bool = true, overflow: CGFloat = 0.0, atTop: Bool = false, curve: ListViewAnimationCurve = .Default(duration: 0.25)) {
         self.controllerNode.listNode.ensureItemNodeVisible(itemNode, animated: animated, overflow: overflow, atTop: atTop, curve: curve)
     }
@@ -699,14 +733,14 @@ private final class ItemListTextWithSubtitleTitleView: UIView, NavigationBarTitl
         self.titleNode.maximumNumberOfLines = 1
         self.titleNode.isOpaque = false
         
-        self.titleNode.attributedText = NSAttributedString(string: title, font: Font.medium(17.0), textColor: theme.rootController.navigationBar.primaryTextColor)
+        self.titleNode.attributedText = NSAttributedString(string: title, font: Font.semibold(17.0), textColor: theme.rootController.navigationBar.primaryTextColor)
         
         self.subtitleNode = ImmediateTextNode()
         self.subtitleNode.displaysAsynchronously = false
         self.subtitleNode.maximumNumberOfLines = 1
         self.subtitleNode.isOpaque = false
         
-        self.subtitleNode.attributedText = NSAttributedString(string: subtitle, font: Font.regular(13.0), textColor: theme.rootController.navigationBar.secondaryTextColor)
+        self.subtitleNode.attributedText = NSAttributedString(string: subtitle, font: Font.regular(12.0), textColor: theme.rootController.navigationBar.secondaryTextColor)
         
         super.init(frame: CGRect())
         
@@ -719,8 +753,8 @@ private final class ItemListTextWithSubtitleTitleView: UIView, NavigationBarTitl
     }
     
     func updateTheme(theme: PresentationTheme) {
-        self.titleNode.attributedText = NSAttributedString(string: self.titleNode.attributedText?.string ?? "", font: Font.medium(17.0), textColor: theme.rootController.navigationBar.primaryTextColor)
-        self.subtitleNode.attributedText = NSAttributedString(string: self.subtitleNode.attributedText?.string ?? "", font: Font.regular(13.0), textColor: theme.rootController.navigationBar.secondaryTextColor)
+        self.titleNode.attributedText = NSAttributedString(string: self.titleNode.attributedText?.string ?? "", font: Font.semibold(17.0), textColor: theme.rootController.navigationBar.primaryTextColor)
+        self.subtitleNode.attributedText = NSAttributedString(string: self.subtitleNode.attributedText?.string ?? "", font: Font.regular(12.0), textColor: theme.rootController.navigationBar.secondaryTextColor)
         if let size = self.validLayout {
             let _ = self.updateLayout(availableSize: size, transition: .immediate)
         }
@@ -741,7 +775,7 @@ private final class ItemListTextWithSubtitleTitleView: UIView, NavigationBarTitl
         
         let titleSize = self.titleNode.updateLayout(size)
         let subtitleSize = self.subtitleNode.updateLayout(size)
-        let spacing: CGFloat = 0.0
+        let spacing: CGFloat = 1.0
         let contentHeight = titleSize.height + spacing + subtitleSize.height
         let titleFrame = CGRect(origin: CGPoint(x: floor((size.width - titleSize.width) / 2.0), y: floor((size.height - contentHeight) / 2.0)), size: titleSize)
         let subtitleFrame = CGRect(origin: CGPoint(x: floor((size.width - subtitleSize.width) / 2.0), y: titleFrame.maxY + spacing), size: subtitleSize)

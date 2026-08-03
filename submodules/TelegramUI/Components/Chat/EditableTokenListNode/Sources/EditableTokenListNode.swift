@@ -229,6 +229,7 @@ public final class EditableTokenListNode: ASDisplayNode, UITextFieldDelegate {
         self.scrollNode = ASScrollNode()
         self.scrollNode.view.alwaysBounceVertical = false
         self.scrollNode.clipsToBounds = true
+        self.scrollNode.view.scrollsToTop = false
         
         self.placeholderNode = ASTextNode()
         self.placeholderNode.isUserInteractionEnabled = false
@@ -236,6 +237,7 @@ public final class EditableTokenListNode: ASDisplayNode, UITextFieldDelegate {
         self.placeholderNode.attributedText = NSAttributedString(string: placeholder, font: Font.regular(15.0), textColor: theme.list.itemPlaceholderTextColor)
         
         self.textFieldScrollNode = ASScrollNode()
+        self.textFieldScrollNode.view.scrollsToTop = false
         
         self.textFieldNode = TextFieldNode()
         self.textFieldNode.textField.font = Font.regular(15.0)
@@ -434,7 +436,7 @@ public final class EditableTokenListNode: ASDisplayNode, UITextFieldDelegate {
         self.backgroundContainer.update(size: backgroundFrame.size, isDark: self.theme.overallDarkAppearance, transition: ComponentTransition(transition))
         transition.updateFrame(view: self.backgroundContainer, frame: backgroundFrame)
         
-        self.backgroundView.update(size: backgroundFrame.size, cornerRadius: min(44.0, backgroundFrame.height) * 0.5, isDark: self.theme.overallDarkAppearance, tintColor: .init(kind: .panel, color: UIColor(white: self.theme.overallDarkAppearance ? 0.0 : 1.0, alpha: 0.6)), isInteractive: true, transition: ComponentTransition(transition))
+        self.backgroundView.update(size: backgroundFrame.size, cornerRadius: min(44.0, backgroundFrame.height) * 0.5, isDark: self.theme.overallDarkAppearance, tintColor: .init(kind: .panel), isInteractive: true, transition: ComponentTransition(transition))
         transition.updateFrame(view: self.backgroundView, frame: CGRect(origin: CGPoint(), size: backgroundFrame.size))
         
         return nodeHeight

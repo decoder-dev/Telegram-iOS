@@ -47,6 +47,8 @@ swift_library(
         "//submodules/ContextUI",
         "//submodules/TelegramUI/Components/EdgeEffect",
         "//submodules/TelegramUI/Components/SearchInputPanelComponent",
+        "//submodules/TelegramUI/Components/AnimatedTextComponent",
+        "//submodules/TelegramUI/Components/ButtonComponent",
         "//submodules/SearchBarNode",
     ],
     visibility = [

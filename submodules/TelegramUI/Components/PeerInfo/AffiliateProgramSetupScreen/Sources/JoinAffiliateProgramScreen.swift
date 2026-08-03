@@ -8,7 +8,6 @@ import AppBundle
 import ViewControllerComponent
 import AccountContext
 import TelegramCore
-import Postbox
 import SwiftSignalKit
 import MultilineTextComponent
 import ButtonComponent
@@ -20,6 +19,7 @@ import ContextUI
 import AvatarNode
 import PlainButtonComponent
 import ToastComponent
+import TextFormat
 
 private final class JoinAffiliateProgramScreenComponent: Component {
     typealias EnvironmentType = ViewControllerComponentContainer.Environment
@@ -450,7 +450,7 @@ private final class JoinAffiliateProgramScreenComponent: Component {
                 })))
             }
             
-            let contextController = ContextController(presentationData: presentationData, source: .reference(HeaderContextReferenceContentSource(controller: controller, sourceView: sourceView, actionsOnTop: true)), items: .single(ContextController.Items(id: AnyHashable(0), content: .list(items))), gesture: nil)
+            let contextController = makeContextController(presentationData: presentationData, source: .reference(HeaderContextReferenceContentSource(controller: controller, sourceView: sourceView, actionsOnTop: true)), items: .single(ContextController.Items(id: AnyHashable(0), content: .list(items))), gesture: nil)
             controller.presentInGlobalOverlay(contextController)
         }
         
@@ -875,7 +875,7 @@ private final class JoinAffiliateProgramScreenComponent: Component {
                         guard let infoController = component.context.sharedContext.makePeerInfoController(
                             context: component.context,
                             updatedPresentationData: nil,
-                            peer: component.sourcePeer._asPeer(),
+                            peer: component.sourcePeer,
                             mode: .generic,
                             avatarInitiallyExpanded: false,
                             fromChat: false,
@@ -1221,13 +1221,28 @@ private final class JoinAffiliateProgramScreenComponent: Component {
                             body: MarkdownAttributeSet(font: Font.regular(13.0), textColor: environment.theme.list.itemSecondaryTextColor),
                             bold: MarkdownAttributeSet(font: Font.semibold(13.0), textColor: environment.theme.list.itemSecondaryTextColor),
                             link: MarkdownAttributeSet(font: Font.regular(13.0), textColor: environment.theme.list.itemAccentColor),
-                            linkAttribute: { url in
-                                return ("URL", url)
+                            linkAttribute: { contents in
+                                return (TelegramTextAttributes.URL, contents)
                             }
                         )
                     ),
                     horizontalAlignment: .center,
-                    maximumNumberOfLines: 0
+                    maximumNumberOfLines: 0,
+                    highlightColor: environment.theme.list.itemAccentColor.withAlphaComponent(0.2),
+                    highlightAction: { attributes in
+                        if let _ = attributes[NSAttributedString.Key(rawValue: TelegramTextAttributes.URL)] {
+                            return NSAttributedString.Key(rawValue: TelegramTextAttributes.URL)
+                        } else {
+                            return nil
+                        }
+                    },
+                    tapAction: { [weak self] attributes, _ in
+                        guard let environment = self?.environment, let controller = environment.controller(), let navigationController = controller.navigationController as? NavigationController else {
+                            return
+                        }
+                        let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
+                        component.context.sharedContext.openExternalUrl(context: component.context, urlContext: .generic, url: environment.strings.Stars_Purchase_Terms_URL, forceExternal: false, presentationData: presentationData, navigationController: navigationController, dismissInput: {})
+                    }
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - sideInset * 2.0, height: 1000.0)
@@ -2153,7 +2168,7 @@ final class PeerBadgeAvatarComponent: Component {
                 peer: component.peer,
                 synchronousLoad: synchronousLoad,
                 displayDimensions: size,
-                cutoutRect: component.hasBadge ? badgeFrame.insetBy(dx: -(1.0 + UIScreenPixel), dy: -(1.0 + UIScreenPixel)) : nil
+                cutoutRect: component.hasBadge ? CGRect(origin: CGPoint(x: badgeFrame.minX, y: size.height - badgeFrame.maxY), size: badgeFrame.size).insetBy(dx: -1.0 + UIScreenPixel, dy: -1.0 + UIScreenPixel) : nil
             )
             
             if self.badgeBackground.image == nil {

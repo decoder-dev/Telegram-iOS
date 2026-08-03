@@ -89,7 +89,7 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
         case .unmutedHeader:
             return ItemListSectionHeaderItem(presentationData: presentationData, text: presentationData.strings.ArchiveSettings_UnmutedChatsHeader, sectionId: self.section)
         case let .unmutedValue(value):
-            return ItemListSwitchItem(presentationData: presentationData, title: presentationData.strings.ArchiveSettings_KeepArchived, value: value, sectionId: self.section, style: .blocks, updated: { value in
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: presentationData.strings.ArchiveSettings_KeepArchived, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateUnmuted(value)
             })
         case .unmutedFooter:
@@ -97,7 +97,7 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
         case .foldersHeader:
             return ItemListSectionHeaderItem(presentationData: presentationData, text: presentationData.strings.ArchiveSettings_FolderChatsHeader, sectionId: self.section)
         case let .foldersValue(value):
-            return ItemListSwitchItem(presentationData: presentationData, title: presentationData.strings.ArchiveSettings_KeepArchived, value: value, sectionId: self.section, style: .blocks, updated: { value in
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: presentationData.strings.ArchiveSettings_KeepArchived, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateFolders(value)
             })
         case .foldersFooter:
@@ -105,7 +105,7 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
         case .unknownHeader:
             return ItemListSectionHeaderItem(presentationData: presentationData, text: presentationData.strings.ArchiveSettings_UnknownChatsHeader, sectionId: self.section)
         case let .unknownValue(isOn, isLocked):
-            return ItemListSwitchItem(presentationData: presentationData, title: presentationData.strings.ArchiveSettings_AutomaticallyArchive, value: isOn, enableInteractiveChanges: !isLocked, enabled: true, displayLocked: isLocked, sectionId: self.section, style: .blocks, updated: { value in
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: presentationData.strings.ArchiveSettings_AutomaticallyArchive, value: isOn, enableInteractiveChanges: !isLocked, enabled: true, displayLocked: isLocked, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateUnknown(value)
             }, activatedWhileDisabled: {
                 arguments.updateUnknown(nil)
@@ -178,6 +178,11 @@ public func archiveSettingsController(context: AccountContext) -> ViewController
     )
     |> deliverOnMainQueue
     |> map { presentationData, settings, appConfiguration, accountPeer -> (ItemListControllerState, (ItemListNodeState, Any)) in
+        var presentationData = presentationData
+
+        let updatedTheme = presentationData.theme.withModalBlocksBackground()
+        presentationData = presentationData.withUpdated(theme: updatedTheme)
+        
         let isPremium = accountPeer?.isPremium ?? false
         let isPremiumDisabled = PremiumConfiguration.with(appConfiguration: appConfiguration).isPremiumDisabled
         

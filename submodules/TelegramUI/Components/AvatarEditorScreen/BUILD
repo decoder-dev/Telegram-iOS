@@ -12,7 +12,6 @@ swift_library(
     deps = [
         "//submodules/AsyncDisplayKit:AsyncDisplayKit",
         "//submodules/Display:Display",
-        "//submodules/Postbox:Postbox",
         "//submodules/TelegramCore:TelegramCore",
         "//submodules/SSignalKit/SwiftSignalKit:SwiftSignalKit",
         "//submodules/ComponentFlow:ComponentFlow",
@@ -42,6 +41,8 @@ swift_library(
         "//submodules/TelegramUI/Components/AvatarBackground",
         "//submodules/TelegramUI/Components/LottieComponent",
         "//submodules/TelegramUI/Components/PremiumAlertController",
+        "//submodules/TelegramUI/Components/GlassBarButtonComponent",
+        "//submodules/Components/BundleIconComponent",
     ],
     visibility = [
         "//visibility:public",

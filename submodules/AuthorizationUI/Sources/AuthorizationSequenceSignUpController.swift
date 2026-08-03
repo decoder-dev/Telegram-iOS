@@ -10,7 +10,6 @@ import LegacyComponents
 import ProgressNavigationButtonNode
 import ImageCompression
 import LegacyMediaPickerUI
-import Postbox
 import TextFormat
 import MoreButtonNode
 import ContextUI
@@ -117,7 +116,7 @@ final class AuthorizationSequenceSignUpController: ViewController {
         items.append(.separator)
         items.append(.action(ContextMenuActionItem(text: presentationData.strings.Login_Announce_Notify, icon: { theme in
             if !announceSignUp {
-                return nil
+                return UIImage()
             }
             return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Check"), color: theme.contextMenu.primaryColor)
         }, iconPosition: .left, action: { [weak self] _, a in
@@ -128,7 +127,7 @@ final class AuthorizationSequenceSignUpController: ViewController {
         
         items.append(.action(ContextMenuActionItem(text: presentationData.strings.Login_Announce_DontNotify, icon: { theme in
             if announceSignUp {
-                return nil
+                return UIImage()
             }
             return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Check"), color: theme.contextMenu.primaryColor)
         }, iconPosition: .left, action: { [weak self] _, a in
@@ -138,7 +137,7 @@ final class AuthorizationSequenceSignUpController: ViewController {
         })))
         
         
-        let contextController = ContextController(presentationData: self.presentationData, source: .reference(AuthorizationContextReferenceContentSource(controller: self, sourceNode: node)), items: .single(ContextController.Items(content: .list(items))), gesture: gesture)
+        let contextController = makeContextController(presentationData: self.presentationData, source: .reference(AuthorizationContextReferenceContentSource(controller: self, sourceNode: node)), items: .single(ContextController.Items(content: .list(items))), gesture: gesture)
         self.present(contextController, in: .window(.root))
     }
     
@@ -272,9 +271,9 @@ final class AuthorizationSequenceSignUpController: ViewController {
         
         if let name = name {
             self.signUpWithName?(name.0, name.1, self.controllerNode.currentPhoto.flatMap({ image in
-                let tempFile = TempBox.shared.tempFile(fileName: "file")
+                let tempFile = EngineTempBox.shared.tempFile(fileName: "file")
                 let result = compressImageToJPEG(image, quality: 0.7, tempFilePath: tempFile.path)
-                TempBox.shared.dispose(tempFile)
+                EngineTempBox.shared.dispose(tempFile)
                 return result
             }), self.avatarAsset, self.avatarAdjustments, self.announceSignUp)
         }

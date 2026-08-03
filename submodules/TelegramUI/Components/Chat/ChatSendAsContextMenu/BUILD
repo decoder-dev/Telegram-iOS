@@ -14,7 +14,6 @@ swift_library(
         "//submodules/AsyncDisplayKit",
         "//submodules/SSignalKit/SwiftSignalKit",
         "//submodules/TelegramPresentationData",
-        "//submodules/Postbox",
         "//submodules/TelegramCore",
         "//submodules/AppBundle",
         "//submodules/ContextUI",
@@ -22,6 +21,7 @@ swift_library(
         "//submodules/AvatarNode",
         "//submodules/AccountContext",
         "//submodules/UndoUI",
+        "//submodules/TelegramUI/Components/ContextControllerImpl",
     ],
     visibility = [
         "//visibility:public",

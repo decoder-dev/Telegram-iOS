@@ -3,7 +3,6 @@ import UIKit
 import Display
 import AccountContext
 import TelegramCore
-import Postbox
 import SwiftSignalKit
 import TelegramPresentationData
 import ComponentFlow
@@ -183,10 +182,10 @@ final class NewContactScreenComponent: Component {
             
         }
         
-        func updateCountryCode(code: Int32, name: String) {
+        func updateCountryCode(code: Int32, name: String, phoneNumber: String?) {
             if let view = self.phoneSection.findTaggedView(tag: self.phoneTag) as? ListItemComponentAdaptor.View {
                 if let itemNode = view.itemNode as? PhoneInputItemNode {
-                    itemNode.updateCountryCode(code: code, name: name)
+                    itemNode.updateCountryCode(code: code, name: name, phoneNumber: phoneNumber)
                 }
             }
         }
@@ -252,10 +251,11 @@ final class NewContactScreenComponent: Component {
             let themeUpdated = self.environment?.theme !== environment.theme
             self.environment = environment
             
-            let theme = environment.theme
+            let theme = environment.theme.withModalBlocksBackground()
             let strings = environment.strings
             
             var initialCountryCode: Int32?
+            var initialPhoneNumberWithoutCountryCode: String?
             var updateFocusTag: Any?
             if self.component == nil {
                 if let peer = component.initialData.peer {
@@ -278,6 +278,9 @@ final class NewContactScreenComponent: Component {
                     if let _ = component.initialData.peer {   
                     } else {
                         updateFocusTag = self.firstNameTag
+                    }
+                    if phone.hasPrefix("\(countryCode)") {
+                        initialPhoneNumberWithoutCountryCode = String(phone[phone.index(phone.startIndex, offsetBy: "\(countryCode)".count)...])
                     }
                 } else {
                     countryCode = AuthorizationSequenceCountrySelectionController.defaultCountryCode()
@@ -456,7 +459,7 @@ final class NewContactScreenComponent: Component {
                         itemGenerator: PhoneInputItem(
                             theme: theme,
                             strings: strings,
-                            value: (initialCountryCode, nil, ""),
+                            value: (initialCountryCode, nil, initialPhoneNumberWithoutCountryCode ?? ""),
                             accessory: phoneAccesory,
                             selectCountryCode: { [weak self] in
                                 guard let self, let environment = self.environment, let controller = environment.controller() else {
@@ -467,7 +470,7 @@ final class NewContactScreenComponent: Component {
                                     guard let self else {
                                         return
                                     }
-                                    self.updateCountryCode(code: Int32(code), name: name)
+                                    self.updateCountryCode(code: Int32(code), name: name, phoneNumber: nil)
                                     self.activateInput(tag: self.phoneTag)
                                 }
                                 self.deactivateInput()
@@ -579,7 +582,7 @@ final class NewContactScreenComponent: Component {
                                 return
                             }
                             if case let .peer(peer, _) = self.resolvedPeer {
-                                if let infoController = component.context.sharedContext.makePeerInfoController(context: component.context, updatedPresentationData: nil, peer: peer._asPeer(), mode: .generic, avatarInitiallyExpanded: false, fromChat: false, requestsContext: nil) {
+                                if let infoController = component.context.sharedContext.makePeerInfoController(context: component.context, updatedPresentationData: nil, peer: peer, mode: .generic, avatarInitiallyExpanded: false, fromChat: false, requestsContext: nil) {
                                     if let navigationController = component.context.sharedContext.mainWindow?.viewController as? NavigationController {
                                         navigationController.pushViewController(infoController)
                                     }
@@ -616,9 +619,8 @@ final class NewContactScreenComponent: Component {
             contentHeight += sectionSpacing
             
             if let initialCountryCode {
-                self.updateCountryCode(code: initialCountryCode, name: "")
+                self.updateCountryCode(code: initialCountryCode, name: "", phoneNumber: initialPhoneNumberWithoutCountryCode)
             }
-            
 
             var optionsSectionItems: [AnyComponentWithIdentity<Empty>] = [
                 AnyComponentWithIdentity(id: "syncContact", component: AnyComponent(ListActionItemComponent(
@@ -713,7 +715,6 @@ final class NewContactScreenComponent: Component {
                             ListComposePollOptionComponent(
                                 externalState: nil,
                                 context: component.context,
-                                style: .glass,
                                 theme: theme,
                                 strings: strings,
                                 placeholder: NSAttributedString(string: strings.AddContact_NotePlaceholder, font: Font.regular(17.0), textColor: theme.list.itemPlaceholderTextColor),
@@ -860,7 +861,7 @@ final class NewContactScreenComponent: Component {
             let edgeEffectHeight: CGFloat = 66.0
             let edgeEffectFrame = CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: CGSize(width: availableSize.width, height: edgeEffectHeight))
             transition.setFrame(view: self.edgeEffectView, frame: edgeEffectFrame)
-            self.edgeEffectView.update(content: environment.theme.list.blocksBackgroundColor, alpha: 1.0, rect: edgeEffectFrame, edge: .top, edgeSize: edgeEffectFrame.height, transition: transition)
+            self.edgeEffectView.update(content: theme.list.blocksBackgroundColor, alpha: 1.0, rect: edgeEffectFrame, edge: .top, edgeSize: edgeEffectFrame.height, transition: transition)
             
             let titleSize = self.title.update(
                 transition: transition,
@@ -886,12 +887,12 @@ final class NewContactScreenComponent: Component {
                 transition.setFrame(view: titleView, frame: titleFrame)
             }
             
-            let barButtonSize = CGSize(width: 40.0, height: 40.0)
+            let barButtonSize = CGSize(width: 44.0, height: 44.0)
             let cancelButtonSize = self.cancelButton.update(
                 transition: transition,
                 component: AnyComponent(GlassBarButtonComponent(
                     size: barButtonSize,
-                    backgroundColor: environment.theme.rootController.navigationBar.opaqueBackgroundColor,
+                    backgroundColor: nil,
                     isDark: environment.theme.overallDarkAppearance,
                     state: .glass,
                     component: AnyComponentWithIdentity(id: "close", component: AnyComponent(
@@ -1033,22 +1034,24 @@ public class NewContactScreen: ViewControllerComponentContainer {
     
     public static func initialData(
         peer: EnginePeer? = nil,
+        firstName: String? = nil,
+        lastName: String? = nil,
         phoneNumber: String? = nil,
         shareViaException: Bool = false
     ) -> InitialData {
         if case let .user(user) = peer {
             return InitialData(
                 peer: peer,
-                firstName: user.firstName,
-                lastName: user.lastName,
+                firstName: firstName ?? user.firstName,
+                lastName: lastName ?? user.lastName,
                 phoneNumber: user.phone ?? phoneNumber,
                 shareViaException: shareViaException
             )
         } else {
             return InitialData(
                 peer: nil,
-                firstName: nil,
-                lastName: nil,
+                firstName: firstName,
+                lastName: lastName,
                 phoneNumber: phoneNumber,
                 shareViaException: false
             )

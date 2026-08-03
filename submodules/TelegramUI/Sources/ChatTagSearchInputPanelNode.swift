@@ -3,7 +3,6 @@ import UIKit
 import AsyncDisplayKit
 import Display
 import TelegramCore
-import Postbox
 import SwiftSignalKit
 import TelegramNotices
 import TelegramPresentationData
@@ -32,9 +31,10 @@ final class ChatTagSearchInputPanelNode: ChatInputPanelNode {
         var isSecondary: Bool
         var interfaceState: ChatPresentationInterfaceState
         var metrics: LayoutMetrics
+        var deviceMetrics: DeviceMetrics
         var isMediaInputExpanded: Bool
 
-        init(width: CGFloat, leftInset: CGFloat, rightInset: CGFloat, bottomInset: CGFloat, additionalSideInsets: UIEdgeInsets, maxHeight: CGFloat, maxOverlayHeight: CGFloat, isSecondary: Bool, interfaceState: ChatPresentationInterfaceState, metrics: LayoutMetrics, isMediaInputExpanded: Bool) {
+        init(width: CGFloat, leftInset: CGFloat, rightInset: CGFloat, bottomInset: CGFloat, additionalSideInsets: UIEdgeInsets, maxHeight: CGFloat, maxOverlayHeight: CGFloat, isSecondary: Bool, interfaceState: ChatPresentationInterfaceState, metrics: LayoutMetrics, deviceMetrics: DeviceMetrics, isMediaInputExpanded: Bool) {
             self.width = width
             self.leftInset = leftInset
             self.rightInset = rightInset
@@ -45,6 +45,7 @@ final class ChatTagSearchInputPanelNode: ChatInputPanelNode {
             self.isSecondary = isSecondary
             self.interfaceState = interfaceState
             self.metrics = metrics
+            self.deviceMetrics = deviceMetrics
             self.isMediaInputExpanded = isMediaInputExpanded
         }
     }
@@ -73,7 +74,7 @@ final class ChatTagSearchInputPanelNode: ChatInputPanelNode {
     
     private var currentLayout: Layout?
     
-    private var tagMessageCount: (tag: MemoryBuffer, count: Int?, disposable: Disposable?)?
+    private var tagMessageCount: (tag: EngineMemoryBuffer, count: Int?, disposable: Disposable?)?
     
     private var totalMessageCount: Int?
     private var totalMessageCountDisposable: Disposable?
@@ -110,16 +111,15 @@ final class ChatTagSearchInputPanelNode: ChatInputPanelNode {
         self.totalMessageCountDisposable?.dispose()
     }
     
-    override func updateLayout(width: CGFloat, leftInset: CGFloat, rightInset: CGFloat, bottomInset: CGFloat, additionalSideInsets: UIEdgeInsets, maxHeight: CGFloat, maxOverlayHeight: CGFloat, isSecondary: Bool, transition: ContainedViewLayoutTransition, interfaceState: ChatPresentationInterfaceState, metrics: LayoutMetrics, isMediaInputExpanded: Bool) -> CGFloat {
+    override func updateLayout(width: CGFloat, leftInset: CGFloat, rightInset: CGFloat, bottomInset: CGFloat, additionalSideInsets: UIEdgeInsets, maxHeight: CGFloat, maxOverlayHeight: CGFloat, isSecondary: Bool, transition: ContainedViewLayoutTransition, interfaceState: ChatPresentationInterfaceState, metrics: LayoutMetrics, deviceMetrics: DeviceMetrics, isMediaInputExpanded: Bool) -> CGFloat {
         var leftInset = leftInset + 8.0
         var rightInset = rightInset + 8.0
         
-        if bottomInset <= 32.0 {
-            leftInset += 18.0
-            rightInset += 18.0
-        }
+        let compactBottomSideInset = self.compactBottomSideInset(bottomInset: bottomInset, deviceMetrics: deviceMetrics)
+        leftInset += compactBottomSideInset
+        rightInset += compactBottomSideInset
         
-        let params = Params(width: width, leftInset: leftInset, rightInset: rightInset, bottomInset: bottomInset, additionalSideInsets: additionalSideInsets, maxHeight: maxHeight, maxOverlayHeight: maxOverlayHeight, isSecondary: isSecondary, interfaceState: interfaceState, metrics: metrics, isMediaInputExpanded: isMediaInputExpanded)
+        let params = Params(width: width, leftInset: leftInset, rightInset: rightInset, bottomInset: bottomInset, additionalSideInsets: additionalSideInsets, maxHeight: maxHeight, maxOverlayHeight: maxOverlayHeight, isSecondary: isSecondary, interfaceState: interfaceState, metrics: metrics, deviceMetrics: deviceMetrics, isMediaInputExpanded: isMediaInputExpanded)
         if let currentLayout = self.currentLayout, currentLayout.params == params {
             return currentLayout.height
         }
@@ -130,7 +130,7 @@ final class ChatTagSearchInputPanelNode: ChatInputPanelNode {
         return height
     }
     
-    func prepareSwitchToFilter(tag: MemoryBuffer, count: Int) {
+    func prepareSwitchToFilter(tag: EngineMemoryBuffer, count: Int) {
         self.tagMessageCount?.disposable?.dispose()
         self.tagMessageCount = (tag, count, nil)
     }
@@ -561,7 +561,7 @@ final class ChatTagSearchInputPanelNode: ChatInputPanelNode {
         var leftControlsBackgroundFrame = CGRect(origin: CGPoint(x: params.leftInset, y: floor((height - 40.0) * 0.5)), size: CGSize(width: 0.0, height: 40.0))
         leftControlsBackgroundFrame.size.width = max(40.0, leftControlsRect.maxX - leftControlsBackgroundFrame.minX)
         transition.setFrame(view: self.leftControlsBackgroundView, frame: leftControlsBackgroundFrame)
-        self.leftControlsBackgroundView.update(size: leftControlsBackgroundFrame.size, cornerRadius: leftControlsBackgroundFrame.height * 0.5, isDark: params.interfaceState.theme.overallDarkAppearance, tintColor: .init(kind: .panel, color: params.interfaceState.theme.chat.inputPanel.inputBackgroundColor.withMultipliedAlpha(0.7)), transition: transition)
+        self.leftControlsBackgroundView.update(size: leftControlsBackgroundFrame.size, cornerRadius: leftControlsBackgroundFrame.height * 0.5, isDark: params.interfaceState.theme.overallDarkAppearance, tintColor: .init(kind: params.interfaceState.preferredGlassType == .clear ? .clear : .panel), transition: transition)
         transition.setAlpha(view: self.leftControlsBackgroundView, alpha: leftControlsRect.isEmpty ? 0.0 : 1.0)
         
         let rightControlsFrames: [CGRect?] = [
@@ -583,7 +583,7 @@ final class ChatTagSearchInputPanelNode: ChatInputPanelNode {
         rightControlsBackgroundFrame.size.width = max(40.0, rightControlsRect.maxX - rightControlsRect.minX + 8.0 * 2.0)
         rightControlsBackgroundFrame.origin.x -= rightControlsBackgroundFrame.width
         transition.setFrame(view: self.rightControlsBackgroundView, frame: rightControlsBackgroundFrame)
-        self.rightControlsBackgroundView.update(size: rightControlsBackgroundFrame.size, cornerRadius: rightControlsBackgroundFrame.height * 0.5, isDark: params.interfaceState.theme.overallDarkAppearance, tintColor: .init(kind: .panel, color: params.interfaceState.theme.chat.inputPanel.inputBackgroundColor.withMultipliedAlpha(0.7)), transition: transition)
+        self.rightControlsBackgroundView.update(size: rightControlsBackgroundFrame.size, cornerRadius: rightControlsBackgroundFrame.height * 0.5, isDark: params.interfaceState.theme.overallDarkAppearance, tintColor: .init(kind: params.interfaceState.preferredGlassType == .clear ? .clear : .panel), transition: transition)
         self.rightControlsBackgroundView.isHidden = rightControlsRect.isEmpty
         
         transition.setFrame(view: self.backgroundContainerView, frame: CGRect(origin: CGPoint(), size: CGSize(width: params.width, height: height)))

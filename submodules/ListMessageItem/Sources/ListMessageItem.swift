@@ -4,27 +4,37 @@ import AsyncDisplayKit
 import Display
 import TelegramCore
 import SwiftSignalKit
-import Postbox
 import TelegramPresentationData
 import AccountContext
 import TelegramUIPreferences
 import ItemListUI
 
 public final class ListMessageItemInteraction {
-    public let openMessage: (Message, ChatControllerInteractionOpenMessageMode) -> Bool
-    public let openMessageContextMenu: (Message, Bool, ASDisplayNode, CGRect, UIGestureRecognizer?) -> Void
-    public let toggleMessagesSelection: ([MessageId], Bool) -> Void
-    let openUrl: (String, Bool, Bool?, Message?) -> Void
-    let openInstantPage: (Message, ChatMessageItemAssociatedData?) -> Void
-    let longTap: (ChatControllerInteractionLongTapAction, Message?) -> Void
-    let getHiddenMedia: () -> [MessageId: [Media]]
+    public let openMessage: (EngineRawMessage, ChatControllerInteractionOpenMessageMode) -> Bool
+    public let openMessageContextMenu: (EngineRawMessage, Bool, ASDisplayNode, CGRect, UIGestureRecognizer?) -> Void
+    public let toggleMessagesSelection: ([EngineMessage.Id], Bool) -> Void
+    public let toggleMediaPlayback: ((EngineRawMessage) -> Void)?
+    let openUrl: (String, Bool, Bool?, EngineRawMessage?) -> Void
+    let openInstantPage: (EngineRawMessage, ChatMessageItemAssociatedData?) -> Void
+    let longTap: (ChatControllerInteractionLongTapAction, EngineRawMessage?) -> Void
+    let getHiddenMedia: () -> [EngineMessage.Id: [EngineRawMedia]]
     
     public var searchTextHighightState: String?
     public var preferredStoryHighQuality: Bool = false
     
-    public init(openMessage: @escaping (Message, ChatControllerInteractionOpenMessageMode) -> Bool, openMessageContextMenu: @escaping (Message, Bool, ASDisplayNode, CGRect, UIGestureRecognizer?) -> Void, toggleMessagesSelection: @escaping ([MessageId], Bool) -> Void, openUrl: @escaping (String, Bool, Bool?, Message?) -> Void, openInstantPage: @escaping (Message, ChatMessageItemAssociatedData?) -> Void, longTap: @escaping (ChatControllerInteractionLongTapAction, Message?) -> Void, getHiddenMedia: @escaping () -> [MessageId: [Media]]) {
+    public init(
+        openMessage: @escaping (EngineRawMessage, ChatControllerInteractionOpenMessageMode) -> Bool,
+        openMessageContextMenu: @escaping (EngineRawMessage, Bool, ASDisplayNode, CGRect, UIGestureRecognizer?) -> Void,
+        toggleMediaPlayback: ((EngineRawMessage) -> Void)?,
+        toggleMessagesSelection: @escaping ([EngineMessage.Id], Bool) -> Void,
+        openUrl: @escaping (String, Bool, Bool?, EngineRawMessage?) -> Void,
+        openInstantPage: @escaping (EngineRawMessage, ChatMessageItemAssociatedData?) -> Void,
+        longTap: @escaping (ChatControllerInteractionLongTapAction, EngineRawMessage?) -> Void,
+        getHiddenMedia: @escaping () -> [EngineMessage.Id: [EngineRawMedia]]
+    ) {
         self.openMessage = openMessage
         self.openMessageContextMenu = openMessageContextMenu
+        self.toggleMediaPlayback = toggleMediaPlayback
         self.toggleMessagesSelection = toggleMessagesSelection
         self.openUrl = openUrl
         self.openInstantPage = openInstantPage
@@ -35,13 +45,19 @@ public final class ListMessageItemInteraction {
     public static var `default`: ListMessageItemInteraction = ListMessageItemInteraction(openMessage: { _, _ in
         return false
     }, openMessageContextMenu: { _, _, _, _, _ in
-    }, toggleMessagesSelection: { _, _ in
-    }, openUrl: { _, _, _, _ in
+    }, toggleMediaPlayback: nil, toggleMessagesSelection: { _, _ in
+    },
+    openUrl: { _, _, _, _ in
     }, openInstantPage: { _, _ in
     }, longTap: { _, _ in
-    }, getHiddenMedia: { () -> [MessageId : [Media]] in
+    }, getHiddenMedia: { () -> [EngineMessage.Id : [EngineRawMedia]] in
         return [:]
     })
+}
+
+public enum ListMessageItemSelectionSide {
+    case left
+    case right
 }
 
 public final class ListMessageItem: ListViewItem, ItemListItem {
@@ -50,14 +66,16 @@ public final class ListMessageItem: ListViewItem, ItemListItem {
     let context: AccountContext
     let chatLocation: ChatLocation
     let interaction: ListMessageItemInteraction
-    let message: Message?
+    let message: EngineRawMessage?
     let translateToLanguage: String?
     public let selection: ChatHistoryMessageSelection
+    public let selectionSide: ListMessageItemSelectionSide
     let hintIsLink: Bool
     let isGlobalSearchResult: Bool
     let isDownloadList: Bool
     let isSavedMusic: Bool
     let isStoryMusic: Bool
+    let isAttachMusic: Bool
     let displayFileInfo: Bool
     let displayBackground: Bool
     let canReorder: Bool
@@ -69,7 +87,30 @@ public final class ListMessageItem: ListViewItem, ItemListItem {
     
     public let selectable: Bool = true
     
-    public init(presentationData: ChatPresentationData, systemStyle: ItemListSystemStyle = .legacy, context: AccountContext, chatLocation: ChatLocation, interaction: ListMessageItemInteraction, message: Message?, translateToLanguage: String? = nil, selection: ChatHistoryMessageSelection, displayHeader: Bool, customHeader: ListViewItemHeader? = nil, hintIsLink: Bool = false, isGlobalSearchResult: Bool = false, isDownloadList: Bool = false, isSavedMusic: Bool = false, isStoryMusic: Bool = false, displayFileInfo: Bool = true, displayBackground: Bool = false, canReorder: Bool = false, style: ItemListStyle = .plain, sectionId: ItemListSectionId = 0) {
+    public init(
+        presentationData: ChatPresentationData,
+        systemStyle: ItemListSystemStyle = .legacy,
+        context: AccountContext,
+        chatLocation: ChatLocation,
+        interaction: ListMessageItemInteraction,
+        message: EngineRawMessage?,
+        translateToLanguage: String? = nil,
+        selection: ChatHistoryMessageSelection,
+        selectionSide: ListMessageItemSelectionSide = .right,
+        displayHeader: Bool,
+        customHeader: ListViewItemHeader? = nil,
+        hintIsLink: Bool = false,
+        isGlobalSearchResult: Bool = false,
+        isDownloadList: Bool = false,
+        isSavedMusic: Bool = false,
+        isStoryMusic: Bool = false,
+        isAttachMusic: Bool = false,
+        displayFileInfo: Bool = true,
+        displayBackground: Bool = false,
+        canReorder: Bool = false,
+        style: ItemListStyle = .plain,
+        sectionId: ItemListSectionId = 0
+    ) {
         self.presentationData = presentationData
         self.systemStyle = systemStyle
         self.context = context
@@ -85,11 +126,13 @@ public final class ListMessageItem: ListViewItem, ItemListItem {
             self.header = nil
         }
         self.selection = selection
+        self.selectionSide = selectionSide
         self.hintIsLink = hintIsLink
         self.isGlobalSearchResult = isGlobalSearchResult
         self.isDownloadList = isDownloadList
         self.isSavedMusic = isSavedMusic
         self.isStoryMusic = isStoryMusic
+        self.isAttachMusic = isAttachMusic
         self.displayFileInfo = displayFileInfo
         self.displayBackground = displayBackground
         self.canReorder = canReorder
@@ -102,7 +145,7 @@ public final class ListMessageItem: ListViewItem, ItemListItem {
         
         if !self.hintIsLink {
             if let message = self.message {
-                for media in message.media {
+                for media in message.effectiveMedia {
                     if let _ = media as? TelegramMediaFile {
                         viewClassName = ListMessageFileItemNode.self
                         break
@@ -209,10 +252,10 @@ public final class ListMessageItem: ListViewItem, ItemListItem {
             return
         }
         
-        if case let .selectable(selected) = self.selection {
+        if case let .selectable(selected, _) = self.selection {
             self.interaction.toggleMessagesSelection([message.id], !selected)
         } else {
-            if !self.displayFileInfo {
+            if !self.displayFileInfo || self.isAttachMusic {
                 let _ = self.interaction.openMessage(message, .default)
             } else {
                 listView.forEachItemNode { itemNode in

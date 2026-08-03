@@ -36,7 +36,7 @@ private struct MentionChatInputContextPanelEntry: Comparable, Identifiable {
     }
     
     func item(context: AccountContext, presentationData: PresentationData, inverted: Bool, setPeerIdRevealed: @escaping (EnginePeer.Id?) -> Void, peerSelected: @escaping (EnginePeer) -> Void, removeRequested: @escaping (EnginePeer.Id) -> Void) -> ListViewItem {
-        return MentionChatInputPanelItem(context: context, presentationData: ItemListPresentationData(presentationData), inverted: inverted, peer: self.peer._asPeer(), revealed: self.revealed, setPeerIdRevealed: setPeerIdRevealed, peerSelected: peerSelected, removeRequested: removeRequested)
+        return MentionChatInputPanelItem(context: context, presentationData: ItemListPresentationData(presentationData), inverted: inverted, peer: self.peer, revealed: self.revealed, setPeerIdRevealed: setPeerIdRevealed, peerSelected: peerSelected, removeRequested: removeRequested)
     }
 }
 
@@ -80,7 +80,7 @@ final class MentionChatInputContextPanelNode: ChatInputContextPanelNode {
         self.backgroundView = GlassBackgroundView()
         self.backgroundView.layer.anchorPoint = CGPoint()
         
-        self.listView = ListView()
+        self.listView = ListViewImpl()
         self.listView.isOpaque = false
         self.listView.stackFromBottom = true
         self.listView.limitHitTestToNodes = true
@@ -101,7 +101,7 @@ final class MentionChatInputContextPanelNode: ChatInputContextPanelNode {
         }
         
         self.backgroundView.isHidden = true
-        self.listView.visibleContentOffsetChanged = { [weak self] offset in
+        self.listView.visibleContentOffsetChanged = { [weak self] offset, _ in
             guard let self else {
                 return
             }
@@ -277,7 +277,7 @@ final class MentionChatInputContextPanelNode: ChatInputContextPanelNode {
             size: self.backgroundView.bounds.size,
             cornerRadius: 20.0,
             isDark: interfaceState.theme.overallDarkAppearance,
-            tintColor: .init(kind: .panel, color: interfaceState.theme.chat.inputPanel.inputBackgroundColor.withMultipliedAlpha(0.7)),
+            tintColor: .init(kind: .panel),
             transition: ComponentTransition(transition)
         )
         

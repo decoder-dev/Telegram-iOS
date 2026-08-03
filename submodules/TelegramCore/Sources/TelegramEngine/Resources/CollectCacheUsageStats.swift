@@ -14,15 +14,15 @@ public enum PeerCacheUsageCategory: Int32 {
 public struct CacheUsageStats {
     public let media: [PeerId: [PeerCacheUsageCategory: [MediaId: Int64]]]
     public let mediaResourceIds: [MediaId: [MediaResourceId]]
-    public let peers: [PeerId: Peer]
+    public let peers: [EnginePeer.Id: EnginePeer]
     public let otherSize: Int64
     public let otherPaths: [String]
     public let cacheSize: Int64
     public let tempPaths: [String]
     public let tempSize: Int64
     public let immutableSize: Int64
-    
-    public init(media: [PeerId: [PeerCacheUsageCategory: [MediaId: Int64]]], mediaResourceIds: [MediaId: [MediaResourceId]], peers: [PeerId: Peer], otherSize: Int64, otherPaths: [String], cacheSize: Int64, tempPaths: [String], tempSize: Int64, immutableSize: Int64) {
+
+    public init(media: [PeerId: [PeerCacheUsageCategory: [MediaId: Int64]]], mediaResourceIds: [MediaId: [MediaResourceId]], peers: [EnginePeer.Id: EnginePeer], otherSize: Int64, otherPaths: [String], cacheSize: Int64, tempPaths: [String], tempSize: Int64, immutableSize: Int64) {
         self.media = media
         self.mediaResourceIds = mediaResourceIds
         self.peers = peers
@@ -325,6 +325,31 @@ func _internal_renderStorageUsageStatsMessages(account: Account, stats: StorageU
 }
 
 func _internal_clearStorage(account: Account, peerId: EnginePeer.Id?, categories: [StorageUsageStats.CategoryKey], includeMessages: [Message], excludeMessages: [Message]) -> Signal<Float, NoError> {
+    #if DEBUG
+    if "".isEmpty {
+        return Signal { subscriber in
+            var value: Float = 0.0
+            subscriber.putNext(value)
+            let timer = SwiftSignalKit.Timer(timeout: 0.1, repeat: true, completion: {
+                if value != 1.0 {
+                    value += 0.1
+                    if value >= 1.0 {
+                        value = 1.0
+                        subscriber.putNext(value)
+                        subscriber.putCompletion()
+                    } else {
+                        subscriber.putNext(value)
+                    }
+                }
+            }, queue: .mainQueue())
+            timer.start()
+            return ActionDisposable {
+                timer.invalidate()
+            }
+        }
+    }
+    #endif
+    
     let mediaBox = account.postbox.mediaBox
     return Signal { subscriber in
         var includeResourceIds = Set<MediaResourceId>()
@@ -711,7 +736,7 @@ func _internal_collectCacheUsageStats(account: Account, peerId: PeerId? = nil, a
                                         continue
                                     }
                                     if let message = transaction.getMessage(MessageId(peerId: PeerId(reference.peerId), namespace: MessageId.Namespace(reference.messageNamespace), id: reference.messageId)) {
-                                        for mediaItem in message.media {
+                                        for mediaItem in message.effectiveMedia {
                                             guard let mediaId = mediaItem.id else {
                                                 continue
                                             }
@@ -869,7 +894,7 @@ func _internal_collectCacheUsageStats(account: Account, peerId: PeerId? = nil, a
                                 subscriber.putNext(.result(CacheUsageStats(
                                     media: state.media,
                                     mediaResourceIds: state.mediaResourceIds,
-                                    peers: state.peers,
+                                    peers: state.peers.mapValues(EnginePeer.init),
                                     otherSize: state.otherSize,
                                     otherPaths: state.otherPaths,
                                     cacheSize: cacheSize,

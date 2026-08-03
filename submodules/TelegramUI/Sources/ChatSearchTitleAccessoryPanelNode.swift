@@ -10,7 +10,6 @@ import MultilineTextComponent
 import PlainButtonComponent
 import UIKitRuntimeUtils
 import TelegramCore
-import Postbox
 import EmojiStatusComponent
 import SwiftSignalKit
 import ContextUI
@@ -446,7 +445,7 @@ final class ChatSearchTitleAccessoryPanelNode: ChatTitleAccessoryPanelNode, Chat
     
     private var itemsDisposable: Disposable?
     
-    private var appliedScrollToTag: MemoryBuffer?
+    private var appliedScrollToTag: EngineMemoryBuffer?
     
     init(context: AccountContext, chatLocation: ChatLocation) {
         self.context = context
@@ -691,7 +690,7 @@ final class ChatSearchTitleAccessoryPanelNode: ChatTitleAccessoryPanelNode, Chat
                         })
                     })))
                     
-                    let controller = ContextController(presentationData: presentationData, source: .extracted(TagContextExtractedContentSource(controller: chatController, sourceNode: sourceNode, keepInPlace: false)), items: .single(ContextController.Items(content: .list(items))), recognizer: nil, gesture: gesture)
+                    let controller = makeContextController(presentationData: presentationData, source: .extracted(TagContextExtractedContentSource(controller: chatController, sourceNode: sourceNode, keepInPlace: false)), items: .single(ContextController.Items(content: .list(items))), recognizer: nil, gesture: gesture)
                     interfaceInteraction.presentGlobalOverlayController(controller, nil)
                 })
                 self.itemViews[itemId] = itemView

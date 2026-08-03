@@ -48,8 +48,8 @@ public extension TelegramEngineUnauthorized {
             return _internal_resendTwoStepRecoveryEmail(network: self.account.network)
         }
 
-        public func uploadedPeerVideo(resource: MediaResource) -> Signal<UploadedPeerPhotoData, NoError> {
-            return _internal_uploadedPeerVideo(postbox: self.account.postbox, network: self.account.network, messageMediaPreuploadManager: nil, resource: resource)
+        public func uploadedPeerVideo(resource: EngineMediaResource) -> Signal<UploadedPeerPhotoData, NoError> {
+            return _internal_uploadedPeerVideo(postbox: self.account.postbox, network: self.account.network, messageMediaPreuploadManager: nil, resource: resource._asResource())
         }
         
         public func reportMissingCode(phoneNumber: String, phoneCodeHash: String, mnc: String) -> Signal<Never, ReportMissingCodeError> {
@@ -116,7 +116,7 @@ public extension TelegramEngine {
                         guard let kdfResult = passwordKDF(encryptionProvider: network.encryptionProvider, password: password, derivation: currentPasswordDerivation, srpSessionData: srpSessionData) else {
                             return .fail(.generic)
                         }
-                        return .single(.inputCheckPasswordSRP(srpId: kdfResult.id, A: Buffer(data: kdfResult.A), M1: Buffer(data: kdfResult.M1)))
+                        return .single(.inputCheckPasswordSRP(.init(srpId: kdfResult.id, A: Buffer(data: kdfResult.A), M1: Buffer(data: kdfResult.M1))))
                     } else {
                         return .single(nil)
                     }

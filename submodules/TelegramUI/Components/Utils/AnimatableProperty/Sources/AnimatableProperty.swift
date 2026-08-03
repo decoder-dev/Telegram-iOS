@@ -74,10 +74,15 @@ public final class AnimatableProperty<T: Interpolatable> {
             break
         case .easeInOut:
             t = listViewAnimationCurveEaseInOut(t)
+        case .easeIn:
+            t = listViewAnimationCurveEaseIn(t)
         case .spring:
             t = lookupSpringValue(t)
         case let .custom(x1, y1, x2, y2):
             t = bezierPoint(CGFloat(x1), CGFloat(y1), CGFloat(x2), CGFloat(y2), t)
+        case .bounce:
+            assertionFailure()
+            t = lookupSpringValue(t)
         }
         self.presentationValue = animation.valueAt(t) as! T
     

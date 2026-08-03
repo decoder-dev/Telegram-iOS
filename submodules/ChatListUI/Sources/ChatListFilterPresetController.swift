@@ -1136,6 +1136,8 @@ private final class ChatListFilterPresetController: ItemListController {
             sendBotContextResultAsGif: { _, _ , _, _, _, _ in
                 return false
             },
+            editGif: { _, _ in
+            },
             updateChoosingSticker: { _ in
             },
             switchToTextInput: { [weak self] in
@@ -1268,6 +1270,7 @@ private final class ChatListFilterPresetController: ItemListController {
             let presentationInterfaceState = ChatPresentationInterfaceState(
                 chatWallpaper: .builtin(WallpaperSettings()),
                 theme: presentationData.theme,
+                preferredGlassType: .default,
                 strings: presentationData.strings,
                 dateTimeFormat: presentationData.dateTimeFormat,
                 nameDisplayOrder: presentationData.nameDisplayOrder,
@@ -1278,7 +1281,6 @@ private final class ChatListFilterPresetController: ItemListController {
                 mode: .standard(.default),
                 chatLocation: .peer(id: context.account.peerId),
                 subject: nil,
-                peerNearbyData: nil,
                 greetingData: nil,
                 pendingUnpinnedAllMessages: false,
                 activeGroupCallInfo: nil,
@@ -1387,7 +1389,7 @@ private final class ChatListFilterPresetController: ItemListController {
     }
 }
 
-func chatListFilterPresetController(context: AccountContext, currentPreset initialPreset: ChatListFilter?, updated: @escaping ([ChatListFilter]) -> Void) -> ViewController {
+public func chatListFilterPresetController(context: AccountContext, currentPreset initialPreset: ChatListFilter?, updated: @escaping ([ChatListFilter]) -> Void) -> ViewController {
     let initialName: ChatFolderTitle
     if let initialPreset {
         initialName = initialPreset.title
@@ -1927,7 +1929,7 @@ func chatListFilterPresetController(context: AccountContext, currentPreset initi
                     })
                 })))
                 
-                let contextController = ContextController(presentationData: presentationData, source: .extracted(InviteLinkContextExtractedContentSource(controller: controller, sourceNode: node, keepInPlace: false, blurBackground: true)), items: .single(ContextController.Items(content: .list(items))), gesture: gesture)
+                let contextController = makeContextController(presentationData: presentationData, source: .extracted(InviteLinkContextExtractedContentSource(controller: controller, sourceNode: node, keepInPlace: false, blurBackground: true)), items: .single(ContextController.Items(content: .list(items))), gesture: gesture)
                 presentInGlobalOverlayImpl?(contextController)
             })
         },
@@ -1968,7 +1970,7 @@ func chatListFilterPresetController(context: AccountContext, currentPreset initi
                 })
             })))
             
-            let contextController = ContextController(presentationData: presentationData, source: .controller(ContextControllerContentSourceImpl(controller: chatController, sourceNode: node)), items: .single(ContextController.Items(content: .list(items))), gesture: gesture)
+            let contextController = makeContextController(presentationData: presentationData, source: .controller(ContextControllerContentSourceImpl(controller: chatController, sourceNode: node)), items: .single(ContextController.Items(content: .list(items))), gesture: gesture)
             presentInGlobalOverlayImpl?(contextController)
         },
         updateTagColor: { color in
@@ -2069,11 +2071,16 @@ func chatListFilterPresetController(context: AccountContext, currentPreset initi
     )
     |> deliverOnMainQueue
     |> map { presentationData, stateWithPeers, peerView, premiumLimits, sharedLinks, currentPreset -> (ItemListControllerState, (ItemListNodeState, Any)) in
+        var presentationData = presentationData
+
+        let updatedTheme = presentationData.theme.withModalBlocksBackground()
+        presentationData = presentationData.withUpdated(theme: updatedTheme)
+        
         let (state, includePeers, excludePeers) = stateWithPeers
         
         let isPremium = peerView.peers[peerView.peerId]?.isPremium ?? false
         
-        let leftNavigationButton = ItemListNavigationButton(content: .text(presentationData.strings.Common_Cancel), style: .regular, enabled: true, action: {
+        let leftNavigationButton = ItemListNavigationButton(content: .icon(.close), style: .regular, enabled: true, action: {
             if let attemptNavigationImpl {
                 attemptNavigationImpl({ value in
                     if value {
@@ -2084,7 +2091,7 @@ func chatListFilterPresetController(context: AccountContext, currentPreset initi
                 dismissImpl?()
             }
         })
-        let rightNavigationButton = ItemListNavigationButton(content: .text(currentPreset == nil ? presentationData.strings.Common_Create : presentationData.strings.Common_Done), style: .bold, enabled: state.isComplete, action: {
+        let rightNavigationButton = ItemListNavigationButton(content: .icon(.done), style: .bold, enabled: state.isComplete, action: {
             applyImpl?(false, {
                 dismissImpl?()
             })

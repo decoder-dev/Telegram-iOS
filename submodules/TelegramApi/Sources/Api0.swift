@@ -1,10 +1,12 @@
 
 public enum Api {
     public enum account {}
+    public enum aicompose {}
     public enum auth {}
     public enum bots {}
     public enum channels {}
     public enum chatlists {}
+    public enum communities {}
     public enum contacts {}
     public enum fragment {}
     public enum help {}
@@ -23,11 +25,14 @@ public enum Api {
     public enum users {}
     public enum functions {
         public enum account {}
+        public enum aicompose {}
         public enum auth {}
         public enum bots {}
         public enum channels {}
         public enum chatlists {}
+        public enum communities {}
         public enum contacts {}
+        public enum ephemeral {}
         public enum folders {}
         public enum fragment {}
         public enum help {}
@@ -55,6 +60,9 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[0x0929C32F] = { return parseInt256($0) }
     dict[-1255641564] = { return parseString($0) }
     dict[-1194283041] = { return Api.AccountDaysTTL.parse_accountDaysTTL($0) }
+    dict[-805945687] = { return Api.AiComposeTone.parse_aiComposeTone($0) }
+    dict[-1683135468] = { return Api.AiComposeTone.parse_aiComposeToneDefault($0) }
+    dict[-237623060] = { return Api.AiComposeToneExample.parse_aiComposeToneExample($0) }
     dict[-653423106] = { return Api.AttachMenuBot.parse_attachMenuBot($0) }
     dict[-1297663893] = { return Api.AttachMenuBotIcon.parse_attachMenuBotIcon($0) }
     dict[1165423600] = { return Api.AttachMenuBotIconColor.parse_attachMenuBotIconColor($0) }
@@ -87,7 +95,7 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[1571189943] = { return Api.BotApp.parse_botAppNotModified($0) }
     dict[-912582320] = { return Api.BotAppSettings.parse_botAppSettings($0) }
     dict[-1892371723] = { return Api.BotBusinessConnection.parse_botBusinessConnection($0) }
-    dict[-1032140601] = { return Api.BotCommand.parse_botCommand($0) }
+    dict[-1739401518] = { return Api.BotCommand.parse_botCommand($0) }
     dict[-1180016534] = { return Api.BotCommandScope.parse_botCommandScopeChatAdmins($0) }
     dict[1877059713] = { return Api.BotCommandScope.parse_botCommandScopeChats($0) }
     dict[795652779] = { return Api.BotCommandScope.parse_botCommandScopeDefault($0) }
@@ -102,6 +110,7 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[894081801] = { return Api.BotInlineMessage.parse_botInlineMessageMediaInvoice($0) }
     dict[-1970903652] = { return Api.BotInlineMessage.parse_botInlineMessageMediaVenue($0) }
     dict[-2137335386] = { return Api.BotInlineMessage.parse_botInlineMessageMediaWebPage($0) }
+    dict[174161531] = { return Api.BotInlineMessage.parse_botInlineMessageRichMessage($0) }
     dict[-1937807902] = { return Api.BotInlineMessage.parse_botInlineMessageText($0) }
     dict[400266251] = { return Api.BotInlineResult.parse_botInlineMediaResult($0) }
     dict[295067450] = { return Api.BotInlineResult.parse_botInlineResult($0) }
@@ -152,6 +161,7 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[1515256996] = { return Api.ChannelAdminLogEventAction.parse_channelAdminLogEventActionExportedInviteDelete($0) }
     dict[-384910503] = { return Api.ChannelAdminLogEventAction.parse_channelAdminLogEventActionExportedInviteEdit($0) }
     dict[1091179342] = { return Api.ChannelAdminLogEventAction.parse_channelAdminLogEventActionExportedInviteRevoke($0) }
+    dict[1476834540] = { return Api.ChannelAdminLogEventAction.parse_channelAdminLogEventActionParticipantEditRank($0) }
     dict[-484690728] = { return Api.ChannelAdminLogEventAction.parse_channelAdminLogEventActionParticipantInvite($0) }
     dict[405815507] = { return Api.ChannelAdminLogEventAction.parse_channelAdminLogEventActionParticipantJoin($0) }
     dict[-23084712] = { return Api.ChannelAdminLogEventAction.parse_channelAdminLogEventActionParticipantJoinByInvite($0) }
@@ -179,16 +189,17 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[1401984889] = { return Api.ChannelAdminLogEventAction.parse_channelAdminLogEventActionToggleSlowMode($0) }
     dict[-370660328] = { return Api.ChannelAdminLogEventAction.parse_channelAdminLogEventActionUpdatePinned($0) }
     dict[-368018716] = { return Api.ChannelAdminLogEventsFilter.parse_channelAdminLogEventsFilter($0) }
+    dict[206065458] = { return Api.ChannelCategory.parse_channelCategory($0) }
     dict[547062491] = { return Api.ChannelLocation.parse_channelLocation($0) }
     dict[-1078612597] = { return Api.ChannelLocation.parse_channelLocationEmpty($0) }
     dict[-847783593] = { return Api.ChannelMessagesFilter.parse_channelMessagesFilter($0) }
     dict[-1798033689] = { return Api.ChannelMessagesFilter.parse_channelMessagesFilterEmpty($0) }
-    dict[-885426663] = { return Api.ChannelParticipant.parse_channelParticipant($0) }
+    dict[466961494] = { return Api.ChannelParticipant.parse_channelParticipant($0) }
     dict[885242707] = { return Api.ChannelParticipant.parse_channelParticipantAdmin($0) }
-    dict[1844969806] = { return Api.ChannelParticipant.parse_channelParticipantBanned($0) }
+    dict[-705647215] = { return Api.ChannelParticipant.parse_channelParticipantBanned($0) }
     dict[803602899] = { return Api.ChannelParticipant.parse_channelParticipantCreator($0) }
     dict[453242886] = { return Api.ChannelParticipant.parse_channelParticipantLeft($0) }
-    dict[1331723247] = { return Api.ChannelParticipant.parse_channelParticipantSelf($0) }
+    dict[-1454929382] = { return Api.ChannelParticipant.parse_channelParticipantSelf($0) }
     dict[-1268741783] = { return Api.ChannelParticipantsFilter.parse_channelParticipantsAdmins($0) }
     dict[338142689] = { return Api.ChannelParticipantsFilter.parse_channelParticipantsBanned($0) }
     dict[-1328445861] = { return Api.ChannelParticipantsFilter.parse_channelParticipantsBots($0) }
@@ -197,24 +208,27 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-531931925] = { return Api.ChannelParticipantsFilter.parse_channelParticipantsMentions($0) }
     dict[-566281095] = { return Api.ChannelParticipantsFilter.parse_channelParticipantsRecent($0) }
     dict[106343499] = { return Api.ChannelParticipantsFilter.parse_channelParticipantsSearch($0) }
-    dict[473084188] = { return Api.Chat.parse_channel($0) }
+    dict[-727763770] = { return Api.Chat.parse_channel($0) }
     dict[399807445] = { return Api.Chat.parse_channelForbidden($0) }
     dict[1103884886] = { return Api.Chat.parse_chat($0) }
     dict[693512293] = { return Api.Chat.parse_chatEmpty($0) }
     dict[1704108455] = { return Api.Chat.parse_chatForbidden($0) }
+    dict[1710221652] = { return Api.Chat.parse_community($0) }
+    dict[-46343496] = { return Api.Chat.parse_communityForbidden($0) }
     dict[1605510357] = { return Api.ChatAdminRights.parse_chatAdminRights($0) }
     dict[-219353309] = { return Api.ChatAdminWithInvites.parse_chatAdminWithInvites($0) }
     dict[-1626209256] = { return Api.ChatBannedRights.parse_chatBannedRights($0) }
-    dict[-455036259] = { return Api.ChatFull.parse_channelFull($0) }
+    dict[-1605464774] = { return Api.ChatFull.parse_channelFull($0) }
     dict[640893467] = { return Api.ChatFull.parse_chatFull($0) }
+    dict[-877157113] = { return Api.ChatFull.parse_communityFull($0) }
     dict[1553807106] = { return Api.ChatInvite.parse_chatInvite($0) }
     dict[1516793212] = { return Api.ChatInvite.parse_chatInviteAlready($0) }
     dict[1634294960] = { return Api.ChatInvite.parse_chatInvitePeek($0) }
     dict[-1940201511] = { return Api.ChatInviteImporter.parse_chatInviteImporter($0) }
     dict[-264117680] = { return Api.ChatOnlines.parse_chatOnlines($0) }
-    dict[-1070776313] = { return Api.ChatParticipant.parse_chatParticipant($0) }
-    dict[-1600962725] = { return Api.ChatParticipant.parse_chatParticipantAdmin($0) }
-    dict[-462696732] = { return Api.ChatParticipant.parse_chatParticipantCreator($0) }
+    dict[954703838] = { return Api.ChatParticipant.parse_chatParticipant($0) }
+    dict[56677842] = { return Api.ChatParticipant.parse_chatParticipantAdmin($0) }
+    dict[-503814216] = { return Api.ChatParticipant.parse_chatParticipantCreator($0) }
     dict[1018991608] = { return Api.ChatParticipants.parse_chatParticipants($0) }
     dict[-2023500831] = { return Api.ChatParticipants.parse_chatParticipantsForbidden($0) }
     dict[476978193] = { return Api.ChatPhoto.parse_chatPhoto($0) }
@@ -225,8 +239,10 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-1008731132] = { return Api.ChatTheme.parse_chatTheme($0) }
     dict[878246344] = { return Api.ChatTheme.parse_chatThemeUniqueGift($0) }
     dict[-1390068360] = { return Api.CodeSettings.parse_codeSettings($0) }
+    dict[1981030077] = { return Api.CommunityPeer.parse_communityPeer($0) }
+    dict[2078997125] = { return Api.CommunityPeerRequest.parse_communityPeerRequest($0) }
     dict[-870702050] = { return Api.Config.parse_config($0) }
-    dict[-849058964] = { return Api.ConnectedBot.parse_connectedBot($0) }
+    dict[54448129] = { return Api.ConnectedBot.parse_connectedBot($0) }
     dict[429997937] = { return Api.ConnectedBotStarRef.parse_connectedBotStarRef($0) }
     dict[341499403] = { return Api.Contact.parse_contact($0) }
     dict[496600883] = { return Api.ContactBirthday.parse_contactBirthday($0) }
@@ -234,13 +250,15 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[2104790276] = { return Api.DataJSON.parse_dataJSON($0) }
     dict[414687501] = { return Api.DcOption.parse_dcOption($0) }
     dict[1135897376] = { return Api.DefaultHistoryTTL.parse_defaultHistoryTTL($0) }
-    dict[-712374074] = { return Api.Dialog.parse_dialog($0) }
+    dict[-58066957] = { return Api.Dialog.parse_dialog($0) }
+    dict[-141948557] = { return Api.Dialog.parse_dialogCommunity($0) }
     dict[1908216652] = { return Api.Dialog.parse_dialogFolder($0) }
     dict[-1438177711] = { return Api.DialogFilter.parse_dialogFilter($0) }
     dict[-1772913705] = { return Api.DialogFilter.parse_dialogFilterChatlist($0) }
     dict[909284270] = { return Api.DialogFilter.parse_dialogFilterDefault($0) }
     dict[2004110666] = { return Api.DialogFilterSuggested.parse_dialogFilterSuggested($0) }
     dict[-445792507] = { return Api.DialogPeer.parse_dialogPeer($0) }
+    dict[795199716] = { return Api.DialogPeer.parse_dialogPeerCommunity($0) }
     dict[1363483106] = { return Api.DialogPeer.parse_dialogPeerFolder($0) }
     dict[1911715524] = { return Api.DisallowedGiftsSettings.parse_disallowedGiftsSettings($0) }
     dict[-1881881384] = { return Api.Document.parse_document($0) }
@@ -253,7 +271,7 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[1815593308] = { return Api.DocumentAttribute.parse_documentAttributeImageSize($0) }
     dict[1662637586] = { return Api.DocumentAttribute.parse_documentAttributeSticker($0) }
     dict[1137015880] = { return Api.DocumentAttribute.parse_documentAttributeVideo($0) }
-    dict[-1763006997] = { return Api.DraftMessage.parse_draftMessage($0) }
+    dict[1627271828] = { return Api.DraftMessage.parse_draftMessage($0) }
     dict[453805082] = { return Api.DraftMessage.parse_draftMessageEmpty($0) }
     dict[-1764723459] = { return Api.EmailVerification.parse_emailVerificationApple($0) }
     dict[-1842457175] = { return Api.EmailVerification.parse_emailVerificationCode($0) }
@@ -284,6 +302,7 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-1038136962] = { return Api.EncryptedFile.parse_encryptedFileEmpty($0) }
     dict[-317144808] = { return Api.EncryptedMessage.parse_encryptedMessage($0) }
     dict[594758406] = { return Api.EncryptedMessage.parse_encryptedMessageService($0) }
+    dict[-641278950] = { return Api.EphemeralMessage.parse_ephemeralMessage($0) }
     dict[-1574126186] = { return Api.ExportedChatInvite.parse_chatInviteExported($0) }
     dict[-317687113] = { return Api.ExportedChatInvite.parse_chatInvitePublicJoinRequests($0) }
     dict[206668204] = { return Api.ExportedChatlistInvite.parse_exportedChatlistInvite($0) }
@@ -294,7 +313,7 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-207944868] = { return Api.FileHash.parse_fileHash($0) }
     dict[-11252123] = { return Api.Folder.parse_folder($0) }
     dict[-373643672] = { return Api.FolderPeer.parse_folderPeer($0) }
-    dict[-838922550] = { return Api.ForumTopic.parse_forumTopic($0) }
+    dict[-52766699] = { return Api.ForumTopic.parse_forumTopic($0) }
     dict[37687451] = { return Api.ForumTopic.parse_forumTopicDeleted($0) }
     dict[-394605632] = { return Api.FoundStory.parse_foundStory($0) }
     dict[-1107729093] = { return Api.Game.parse_game($0) }
@@ -320,6 +339,10 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[1589952067] = { return Api.InlineQueryPeerType.parse_inlineQueryPeerTypeMegagroup($0) }
     dict[-2093215828] = { return Api.InlineQueryPeerType.parse_inlineQueryPeerTypePM($0) }
     dict[813821341] = { return Api.InlineQueryPeerType.parse_inlineQueryPeerTypeSameBotPM($0) }
+    dict[535407039] = { return Api.InputAiComposeTone.parse_inputAiComposeToneDefault($0) }
+    dict[125026432] = { return Api.InputAiComposeTone.parse_inputAiComposeToneID($0) }
+    dict[235681199] = { return Api.InputAiComposeTone.parse_inputAiComposeToneSingleUse($0) }
+    dict[530584407] = { return Api.InputAiComposeTone.parse_inputAiComposeToneSlug($0) }
     dict[488313413] = { return Api.InputAppEvent.parse_inputAppEvent($0) }
     dict[-1457472134] = { return Api.InputBotApp.parse_inputBotAppID($0) }
     dict[-1869872121] = { return Api.InputBotApp.parse_inputBotAppShortName($0) }
@@ -330,6 +353,7 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-672693723] = { return Api.InputBotInlineMessage.parse_inputBotInlineMessageMediaInvoice($0) }
     dict[1098628881] = { return Api.InputBotInlineMessage.parse_inputBotInlineMessageMediaVenue($0) }
     dict[-1109605104] = { return Api.InputBotInlineMessage.parse_inputBotInlineMessageMediaWebPage($0) }
+    dict[-1271007892] = { return Api.InputBotInlineMessage.parse_inputBotInlineMessageRichMessage($0) }
     dict[1036876423] = { return Api.InputBotInlineMessage.parse_inputBotInlineMessageText($0) }
     dict[-1995686519] = { return Api.InputBotInlineMessageID.parse_inputBotInlineMessageID($0) }
     dict[-1227287081] = { return Api.InputBotInlineMessageID.parse_inputBotInlineMessageID64($0) }
@@ -360,6 +384,7 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-476815191] = { return Api.InputCollectible.parse_inputCollectibleUsername($0) }
     dict[1780335806] = { return Api.InputContact.parse_inputPhoneContact($0) }
     dict[-55902537] = { return Api.InputDialogPeer.parse_inputDialogPeer($0) }
+    dict[1777300164] = { return Api.InputDialogPeer.parse_inputDialogPeerCommunity($0) }
     dict[1684014375] = { return Api.InputDialogPeer.parse_inputDialogPeerFolder($0) }
     dict[448771445] = { return Api.InputDocument.parse_inputDocument($0) }
     dict[1928391342] = { return Api.InputDocument.parse_inputDocumentEmpty($0) }
@@ -414,22 +439,24 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-104578748] = { return Api.InputMedia.parse_inputMediaGeoPoint($0) }
     dict[1080028941] = { return Api.InputMedia.parse_inputMediaInvoice($0) }
     dict[-1005571194] = { return Api.InputMedia.parse_inputMediaPaidMedia($0) }
-    dict[-1279654347] = { return Api.InputMedia.parse_inputMediaPhoto($0) }
+    dict[-475053004] = { return Api.InputMedia.parse_inputMediaPhoto($0) }
     dict[-440664550] = { return Api.InputMedia.parse_inputMediaPhotoExternal($0) }
-    dict[261416433] = { return Api.InputMedia.parse_inputMediaPoll($0) }
+    dict[-2009448184] = { return Api.InputMedia.parse_inputMediaPoll($0) }
     dict[-207018934] = { return Api.InputMedia.parse_inputMediaStakeDice($0) }
     dict[-1979852936] = { return Api.InputMedia.parse_inputMediaStory($0) }
     dict[-1614454818] = { return Api.InputMedia.parse_inputMediaTodo($0) }
     dict[58495792] = { return Api.InputMedia.parse_inputMediaUploadedDocument($0) }
-    dict[505969924] = { return Api.InputMedia.parse_inputMediaUploadedPhoto($0) }
+    dict[2105767386] = { return Api.InputMedia.parse_inputMediaUploadedPhoto($0) }
     dict[-1052959727] = { return Api.InputMedia.parse_inputMediaVenue($0) }
     dict[-1038383031] = { return Api.InputMedia.parse_inputMediaWebPage($0) }
     dict[-1392895362] = { return Api.InputMessage.parse_inputMessageCallbackQuery($0) }
     dict[-1502174430] = { return Api.InputMessage.parse_inputMessageID($0) }
     dict[-2037963464] = { return Api.InputMessage.parse_inputMessagePinned($0) }
     dict[-1160215659] = { return Api.InputMessage.parse_inputMessageReplyTo($0) }
+    dict[1076577429] = { return Api.InputMessageReadMetric.parse_inputMessageReadMetric($0) }
     dict[-1311015810] = { return Api.InputNotifyPeer.parse_inputNotifyBroadcasts($0) }
     dict[1251338318] = { return Api.InputNotifyPeer.parse_inputNotifyChats($0) }
+    dict[666573532] = { return Api.InputNotifyPeer.parse_inputNotifyCommunity($0) }
     dict[1548122514] = { return Api.InputNotifyPeer.parse_inputNotifyForumTopic($0) }
     dict[-1195615476] = { return Api.InputNotifyPeer.parse_inputNotifyPeer($0) }
     dict[423314455] = { return Api.InputNotifyPeer.parse_inputNotifyUsers($0) }
@@ -480,9 +507,15 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-1877932953] = { return Api.InputPrivacyRule.parse_inputPrivacyValueDisallowUsers($0) }
     dict[609840449] = { return Api.InputQuickReplyShortcut.parse_inputQuickReplyShortcut($0) }
     dict[18418929] = { return Api.InputQuickReplyShortcut.parse_inputQuickReplyShortcutId($0) }
-    dict[-2036351472] = { return Api.InputReplyTo.parse_inputReplyToMessage($0) }
+    dict[1092204894] = { return Api.InputReplyTo.parse_inputReplyToEphemeralMessage($0) }
+    dict[1003796418] = { return Api.InputReplyTo.parse_inputReplyToMessage($0) }
     dict[1775660101] = { return Api.InputReplyTo.parse_inputReplyToMonoForum($0) }
     dict[1484862010] = { return Api.InputReplyTo.parse_inputReplyToStory($0) }
+    dict[-2094522947] = { return Api.InputRichFile.parse_inputRichFileDocument($0) }
+    dict[-1694473685] = { return Api.InputRichFile.parse_inputRichFilePhoto($0) }
+    dict[-456898052] = { return Api.InputRichMessage.parse_inputRichMessage($0) }
+    dict[-624196758] = { return Api.InputRichMessage.parse_inputRichMessageHTML($0) }
+    dict[4937516] = { return Api.InputRichMessage.parse_inputRichMessageMarkdown($0) }
     dict[-251549057] = { return Api.InputSavedStarGift.parse_inputSavedStarGiftChat($0) }
     dict[545636920] = { return Api.InputSavedStarGift.parse_inputSavedStarGiftSlug($0) }
     dict[1764202389] = { return Api.InputSavedStarGift.parse_inputSavedStarGiftUser($0) }
@@ -508,7 +541,7 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[853188252] = { return Api.InputStickerSetItem.parse_inputStickerSetItem($0) }
     dict[70813275] = { return Api.InputStickeredMedia.parse_inputStickeredMediaDocument($0) }
     dict[1251549527] = { return Api.InputStickeredMedia.parse_inputStickeredMediaPhoto($0) }
-    dict[-1682807955] = { return Api.InputStorePaymentPurpose.parse_inputStorePaymentAuthCode($0) }
+    dict[1069645911] = { return Api.InputStorePaymentPurpose.parse_inputStorePaymentAuthCode($0) }
     dict[1634697192] = { return Api.InputStorePaymentPurpose.parse_inputStorePaymentGiftPremium($0) }
     dict[-75955309] = { return Api.InputStorePaymentPurpose.parse_inputStorePaymentPremiumGiftCode($0) }
     dict[369444042] = { return Api.InputStorePaymentPurpose.parse_inputStorePaymentPremiumGiveaway($0) }
@@ -538,25 +571,30 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[736157604] = { return Api.JSONValue.parse_jsonNumber($0) }
     dict[-1715350371] = { return Api.JSONValue.parse_jsonObject($0) }
     dict[-1222740358] = { return Api.JSONValue.parse_jsonString($0) }
-    dict[-916050683] = { return Api.KeyboardButton.parse_inputKeyboardButtonRequestPeer($0) }
-    dict[-802258988] = { return Api.KeyboardButton.parse_inputKeyboardButtonUrlAuth($0) }
-    dict[-376962181] = { return Api.KeyboardButton.parse_inputKeyboardButtonUserProfile($0) }
-    dict[-1560655744] = { return Api.KeyboardButton.parse_keyboardButton($0) }
-    dict[-1344716869] = { return Api.KeyboardButton.parse_keyboardButtonBuy($0) }
-    dict[901503851] = { return Api.KeyboardButton.parse_keyboardButtonCallback($0) }
-    dict[1976723854] = { return Api.KeyboardButton.parse_keyboardButtonCopy($0) }
-    dict[1358175439] = { return Api.KeyboardButton.parse_keyboardButtonGame($0) }
-    dict[-59151553] = { return Api.KeyboardButton.parse_keyboardButtonRequestGeoLocation($0) }
-    dict[1406648280] = { return Api.KeyboardButton.parse_keyboardButtonRequestPeer($0) }
-    dict[-1318425559] = { return Api.KeyboardButton.parse_keyboardButtonRequestPhone($0) }
-    dict[-1144565411] = { return Api.KeyboardButton.parse_keyboardButtonRequestPoll($0) }
-    dict[-1598009252] = { return Api.KeyboardButton.parse_keyboardButtonSimpleWebView($0) }
-    dict[-1816527947] = { return Api.KeyboardButton.parse_keyboardButtonSwitchInline($0) }
-    dict[629866245] = { return Api.KeyboardButton.parse_keyboardButtonUrl($0) }
-    dict[280464681] = { return Api.KeyboardButton.parse_keyboardButtonUrlAuth($0) }
-    dict[814112961] = { return Api.KeyboardButton.parse_keyboardButtonUserProfile($0) }
-    dict[326529584] = { return Api.KeyboardButton.parse_keyboardButtonWebView($0) }
+    dict[-1374344599] = { return Api.JoinChatBotResult.parse_joinChatBotResultApproved($0) }
+    dict[251265428] = { return Api.JoinChatBotResult.parse_joinChatBotResultDeclined($0) }
+    dict[-1734105024] = { return Api.JoinChatBotResult.parse_joinChatBotResultQueued($0) }
+    dict[-689719277] = { return Api.JoinChatBotResult.parse_joinChatBotResultWebView($0) }
+    dict[45580630] = { return Api.KeyboardButton.parse_inputKeyboardButtonRequestPeer($0) }
+    dict[1744911986] = { return Api.KeyboardButton.parse_inputKeyboardButtonUrlAuth($0) }
+    dict[2103314375] = { return Api.KeyboardButton.parse_inputKeyboardButtonUserProfile($0) }
+    dict[2098662655] = { return Api.KeyboardButton.parse_keyboardButton($0) }
+    dict[1067792645] = { return Api.KeyboardButton.parse_keyboardButtonBuy($0) }
+    dict[-433338016] = { return Api.KeyboardButton.parse_keyboardButtonCallback($0) }
+    dict[-1127960816] = { return Api.KeyboardButton.parse_keyboardButtonCopy($0) }
+    dict[-1983540999] = { return Api.KeyboardButton.parse_keyboardButtonGame($0) }
+    dict[-1438582451] = { return Api.KeyboardButton.parse_keyboardButtonRequestGeoLocation($0) }
+    dict[1527715317] = { return Api.KeyboardButton.parse_keyboardButtonRequestPeer($0) }
+    dict[1098841487] = { return Api.KeyboardButton.parse_keyboardButtonRequestPhone($0) }
+    dict[2047989634] = { return Api.KeyboardButton.parse_keyboardButtonRequestPoll($0) }
+    dict[-514047120] = { return Api.KeyboardButton.parse_keyboardButtonSimpleWebView($0) }
+    dict[-1726768644] = { return Api.KeyboardButton.parse_keyboardButtonSwitchInline($0) }
+    dict[-670292500] = { return Api.KeyboardButton.parse_keyboardButtonUrl($0) }
+    dict[-183499015] = { return Api.KeyboardButton.parse_keyboardButtonUrlAuth($0) }
+    dict[-1057137399] = { return Api.KeyboardButton.parse_keyboardButtonUserProfile($0) }
+    dict[-398020192] = { return Api.KeyboardButton.parse_keyboardButtonWebView($0) }
     dict[2002815875] = { return Api.KeyboardButtonRow.parse_keyboardButtonRow($0) }
+    dict[1339896880] = { return Api.KeyboardButtonStyle.parse_keyboardButtonStyle($0) }
     dict[-886477832] = { return Api.LabeledPrice.parse_labeledPrice($0) }
     dict[-209337866] = { return Api.LangPackDifference.parse_langPackDifference($0) }
     dict[-288727837] = { return Api.LangPackLanguage.parse_langPackLanguage($0) }
@@ -574,11 +612,13 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-1098720356] = { return Api.MediaArea.parse_mediaAreaVenue($0) }
     dict[1235637404] = { return Api.MediaArea.parse_mediaAreaWeather($0) }
     dict[-808853502] = { return Api.MediaAreaCoordinates.parse_mediaAreaCoordinates($0) }
-    dict[-1665888023] = { return Api.Message.parse_message($0) }
+    dict[1979759059] = { return Api.Message.parse_message($0) }
     dict[-1868117372] = { return Api.Message.parse_messageEmpty($0) }
     dict[2055212554] = { return Api.Message.parse_messageService($0) }
     dict[-872240531] = { return Api.MessageAction.parse_messageActionBoostApply($0) }
     dict[-988359047] = { return Api.MessageAction.parse_messageActionBotAllowed($0) }
+    dict[1562426088] = { return Api.MessageAction.parse_messageActionChangeCommunity($0) }
+    dict[-511160261] = { return Api.MessageAction.parse_messageActionChangeCreator($0) }
     dict[-1781355374] = { return Api.MessageAction.parse_messageActionChannelCreate($0) }
     dict[-365344535] = { return Api.MessageAction.parse_messageActionChannelMigrateFrom($0) }
     dict[365886720] = { return Api.MessageAction.parse_messageActionChatAddUser($0) }
@@ -606,6 +646,10 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-1281329567] = { return Api.MessageAction.parse_messageActionGroupCallScheduled($0) }
     dict[-1615153660] = { return Api.MessageAction.parse_messageActionHistoryClear($0) }
     dict[1345295095] = { return Api.MessageAction.parse_messageActionInviteToGroupCall($0) }
+    dict[375414334] = { return Api.MessageAction.parse_messageActionManagedBotCreated($0) }
+    dict[-1333866363] = { return Api.MessageAction.parse_messageActionNewCreatorPending($0) }
+    dict[1042781114] = { return Api.MessageAction.parse_messageActionNoForwardsRequest($0) }
+    dict[-1082301070] = { return Api.MessageAction.parse_messageActionNoForwardsToggle($0) }
     dict[-2068281992] = { return Api.MessageAction.parse_messageActionPaidMessagesPrice($0) }
     dict[-1407246387] = { return Api.MessageAction.parse_messageActionPaidMessagesRefunded($0) }
     dict[1102307842] = { return Api.MessageAction.parse_messageActionPaymentRefunded($0) }
@@ -613,6 +657,8 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-6288180] = { return Api.MessageAction.parse_messageActionPaymentSentMe($0) }
     dict[-2132731265] = { return Api.MessageAction.parse_messageActionPhoneCall($0) }
     dict[-1799538451] = { return Api.MessageAction.parse_messageActionPinMessage($0) }
+    dict[-1650340500] = { return Api.MessageAction.parse_messageActionPollAppendAnswer($0) }
+    dict[966161628] = { return Api.MessageAction.parse_messageActionPollDeleteAnswer($0) }
     dict[-1341372510] = { return Api.MessageAction.parse_messageActionPrizeStars($0) }
     dict[827428507] = { return Api.MessageAction.parse_messageActionRequestedPeer($0) }
     dict[-1816979384] = { return Api.MessageAction.parse_messageActionRequestedPeerSentMe($0) }
@@ -625,7 +671,7 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-366202413] = { return Api.MessageAction.parse_messageActionStarGift($0) }
     dict[2000845012] = { return Api.MessageAction.parse_messageActionStarGiftPurchaseOffer($0) }
     dict[1940760427] = { return Api.MessageAction.parse_messageActionStarGiftPurchaseOfferDeclined($0) }
-    dict[-1787656893] = { return Api.MessageAction.parse_messageActionStarGiftUnique($0) }
+    dict[-423422686] = { return Api.MessageAction.parse_messageActionStarGiftUnique($0) }
     dict[747579941] = { return Api.MessageAction.parse_messageActionSuggestBirthday($0) }
     dict[1474192222] = { return Api.MessageAction.parse_messageActionSuggestProfilePhoto($0) }
     dict[-293988970] = { return Api.MessageAction.parse_messageActionSuggestedPostApproval($0) }
@@ -645,7 +691,11 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[1280209983] = { return Api.MessageEntity.parse_messageEntityCashtag($0) }
     dict[681706865] = { return Api.MessageEntity.parse_messageEntityCode($0) }
     dict[-925956616] = { return Api.MessageEntity.parse_messageEntityCustomEmoji($0) }
+    dict[106086853] = { return Api.MessageEntity.parse_messageEntityDiffDelete($0) }
+    dict[1903653142] = { return Api.MessageEntity.parse_messageEntityDiffInsert($0) }
+    dict[-960371289] = { return Api.MessageEntity.parse_messageEntityDiffReplace($0) }
     dict[1692693954] = { return Api.MessageEntity.parse_messageEntityEmail($0) }
+    dict[-1874147385] = { return Api.MessageEntity.parse_messageEntityFormattedDate($0) }
     dict[1868782349] = { return Api.MessageEntity.parse_messageEntityHashtag($0) }
     dict[-2106619040] = { return Api.MessageEntity.parse_messageEntityItalic($0) }
     dict[-100378723] = { return Api.MessageEntity.parse_messageEntityMention($0) }
@@ -672,8 +722,8 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-827703647] = { return Api.MessageMedia.parse_messageMediaGiveawayResults($0) }
     dict[-156940077] = { return Api.MessageMedia.parse_messageMediaInvoice($0) }
     dict[-1467669359] = { return Api.MessageMedia.parse_messageMediaPaidMedia($0) }
-    dict[1766936791] = { return Api.MessageMedia.parse_messageMediaPhoto($0) }
-    dict[1272375192] = { return Api.MessageMedia.parse_messageMediaPoll($0) }
+    dict[-501814429] = { return Api.MessageMedia.parse_messageMediaPhoto($0) }
+    dict[2000637542] = { return Api.MessageMedia.parse_messageMediaPoll($0) }
     dict[1758159491] = { return Api.MessageMedia.parse_messageMediaStory($0) }
     dict[-1974226924] = { return Api.MessageMedia.parse_messageMediaToDo($0) }
     dict[-1618676578] = { return Api.MessageMedia.parse_messageMediaUnsupported($0) }
@@ -688,7 +738,7 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[171155211] = { return Api.MessageReactions.parse_messageReactions($0) }
     dict[1269016922] = { return Api.MessageReactor.parse_messageReactor($0) }
     dict[-2083123262] = { return Api.MessageReplies.parse_messageReplies($0) }
-    dict[1763137035] = { return Api.MessageReplyHeader.parse_messageReplyHeader($0) }
+    dict[462937446] = { return Api.MessageReplyHeader.parse_messageReplyHeader($0) }
     dict[240843065] = { return Api.MessageReplyHeader.parse_messageReplyStoryHeader($0) }
     dict[2030298073] = { return Api.MessageReportOption.parse_messageReportOption($0) }
     dict[1163625789] = { return Api.MessageViews.parse_messageViews($0) }
@@ -704,6 +754,7 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[1458172132] = { return Api.MessagesFilter.parse_inputMessagesFilterPhotoVideo($0) }
     dict[-1777752804] = { return Api.MessagesFilter.parse_inputMessagesFilterPhotos($0) }
     dict[464520273] = { return Api.MessagesFilter.parse_inputMessagesFilterPinned($0) }
+    dict[-97793782] = { return Api.MessagesFilter.parse_inputMessagesFilterPoll($0) }
     dict[-1253451181] = { return Api.MessagesFilter.parse_inputMessagesFilterRoundVideo($0) }
     dict[2054952868] = { return Api.MessagesFilter.parse_inputMessagesFilterRoundVoice($0) }
     dict[2129714567] = { return Api.MessagesFilter.parse_inputMessagesFilterUrl($0) }
@@ -718,15 +769,18 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-9666487] = { return Api.NotificationSound.parse_notificationSoundRingtone($0) }
     dict[-703403793] = { return Api.NotifyPeer.parse_notifyBroadcasts($0) }
     dict[-1073230141] = { return Api.NotifyPeer.parse_notifyChats($0) }
+    dict[-1103664743] = { return Api.NotifyPeer.parse_notifyCommunity($0) }
     dict[577659656] = { return Api.NotifyPeer.parse_notifyForumTopic($0) }
     dict[-1613493288] = { return Api.NotifyPeer.parse_notifyPeer($0) }
     dict[-1261946036] = { return Api.NotifyPeer.parse_notifyUsers($0) }
     dict[1001931436] = { return Api.OutboxReadDate.parse_outboxReadDate($0) }
     dict[-1738178803] = { return Api.Page.parse_page($0) }
+    dict[1464557951] = { return Api.PageBlock.parse_inputPageBlockMap($0) }
     dict[-837994576] = { return Api.PageBlock.parse_pageBlockAnchor($0) }
     dict[-2143067670] = { return Api.PageBlock.parse_pageBlockAudio($0) }
     dict[-1162877472] = { return Api.PageBlock.parse_pageBlockAuthorDate($0) }
     dict[641563686] = { return Api.PageBlock.parse_pageBlockBlockquote($0) }
+    dict[242108356] = { return Api.PageBlock.parse_pageBlockBlockquoteBlocks($0) }
     dict[-283684427] = { return Api.PageBlock.parse_pageBlockChannel($0) }
     dict[1705048653] = { return Api.PageBlock.parse_pageBlockCollage($0) }
     dict[972174080] = { return Api.PageBlock.parse_pageBlockCover($0) }
@@ -736,10 +790,17 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-229005301] = { return Api.PageBlock.parse_pageBlockEmbedPost($0) }
     dict[1216809369] = { return Api.PageBlock.parse_pageBlockFooter($0) }
     dict[-1076861716] = { return Api.PageBlock.parse_pageBlockHeader($0) }
+    dict[-1157691601] = { return Api.PageBlock.parse_pageBlockHeading1($0) }
+    dict[158018284] = { return Api.PageBlock.parse_pageBlockHeading2($0) }
+    dict[1743204781] = { return Api.PageBlock.parse_pageBlockHeading3($0) }
+    dict[-1254983893] = { return Api.PageBlock.parse_pageBlockHeading4($0) }
+    dict[-608277398] = { return Api.PageBlock.parse_pageBlockHeading5($0) }
+    dict[1747599785] = { return Api.PageBlock.parse_pageBlockHeading6($0) }
     dict[504660880] = { return Api.PageBlock.parse_pageBlockKicker($0) }
     dict[-454524911] = { return Api.PageBlock.parse_pageBlockList($0) }
     dict[-1538310410] = { return Api.PageBlock.parse_pageBlockMap($0) }
-    dict[-1702174239] = { return Api.PageBlock.parse_pageBlockOrderedList($0) }
+    dict[1493699616] = { return Api.PageBlock.parse_pageBlockMath($0) }
+    dict[534181569] = { return Api.PageBlock.parse_pageBlockOrderedList($0) }
     dict[1182402406] = { return Api.PageBlock.parse_pageBlockParagraph($0) }
     dict[391759200] = { return Api.PageBlock.parse_pageBlockPhoto($0) }
     dict[-1066346178] = { return Api.PageBlock.parse_pageBlockPreformatted($0) }
@@ -749,14 +810,15 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-248793375] = { return Api.PageBlock.parse_pageBlockSubheader($0) }
     dict[-1879401953] = { return Api.PageBlock.parse_pageBlockSubtitle($0) }
     dict[-1085412734] = { return Api.PageBlock.parse_pageBlockTable($0) }
+    dict[1009361890] = { return Api.PageBlock.parse_pageBlockThinking($0) }
     dict[1890305021] = { return Api.PageBlock.parse_pageBlockTitle($0) }
     dict[324435594] = { return Api.PageBlock.parse_pageBlockUnsupported($0) }
     dict[2089805750] = { return Api.PageBlock.parse_pageBlockVideo($0) }
     dict[1869903447] = { return Api.PageCaption.parse_pageCaption($0) }
-    dict[635466748] = { return Api.PageListItem.parse_pageListItemBlocks($0) }
-    dict[-1188055347] = { return Api.PageListItem.parse_pageListItemText($0) }
-    dict[-1730311882] = { return Api.PageListOrderedItem.parse_pageListOrderedItemBlocks($0) }
-    dict[1577484359] = { return Api.PageListOrderedItem.parse_pageListOrderedItemText($0) }
+    dict[1674209194] = { return Api.PageListItem.parse_pageListItemBlocks($0) }
+    dict[794323004] = { return Api.PageListItem.parse_pageListItemText($0) }
+    dict[-1879910928] = { return Api.PageListOrderedItem.parse_pageListOrderedItemBlocks($0) }
+    dict[352522633] = { return Api.PageListOrderedItem.parse_pageListOrderedItemText($0) }
     dict[-1282352120] = { return Api.PageRelatedArticle.parse_pageRelatedArticle($0) }
     dict[878078826] = { return Api.PageTableCell.parse_pageTableCell($0) }
     dict[-524237339] = { return Api.PageTableRow.parse_pageTableRow($0) }
@@ -783,6 +845,7 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-193510921] = { return Api.PeerSettings.parse_peerSettings($0) }
     dict[-1707742823] = { return Api.PeerStories.parse_peerStories($0) }
     dict[-404214254] = { return Api.PendingSuggestion.parse_pendingSuggestion($0) }
+    dict[431767677] = { return Api.PersonalChannel.parse_personalChannel($0) }
     dict[810769141] = { return Api.PhoneCall.parse_phoneCall($0) }
     dict[912311057] = { return Api.PhoneCall.parse_phoneCallAccepted($0) }
     dict[1355435489] = { return Api.PhoneCall.parse_phoneCallDiscarded($0) }
@@ -805,10 +868,11 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[236446268] = { return Api.PhotoSize.parse_photoSizeEmpty($0) }
     dict[-96535659] = { return Api.PhotoSize.parse_photoSizeProgressive($0) }
     dict[-525288402] = { return Api.PhotoSize.parse_photoStrippedSize($0) }
-    dict[1484026161] = { return Api.Poll.parse_poll($0) }
-    dict[-15277366] = { return Api.PollAnswer.parse_pollAnswer($0) }
-    dict[997055186] = { return Api.PollAnswerVoters.parse_pollAnswerVoters($0) }
-    dict[2061444128] = { return Api.PollResults.parse_pollResults($0) }
+    dict[-1771164225] = { return Api.Poll.parse_poll($0) }
+    dict[429911446] = { return Api.PollAnswer.parse_inputPollAnswer($0) }
+    dict[1266514026] = { return Api.PollAnswer.parse_pollAnswer($0) }
+    dict[910500618] = { return Api.PollAnswerVoters.parse_pollAnswerVoters($0) }
+    dict[-1166298786] = { return Api.PollResults.parse_pollResults($0) }
     dict[1558266229] = { return Api.PopularContact.parse_popularContact($0) }
     dict[512535275] = { return Api.PostAddress.parse_postAddress($0) }
     dict[-419066241] = { return Api.PostInteractionCounters.parse_postInteractionCountersMessage($0) }
@@ -861,7 +925,7 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-1546531968] = { return Api.ReactionCount.parse_reactionCount($0) }
     dict[1268654752] = { return Api.ReactionNotificationsFrom.parse_reactionNotificationsFromAll($0) }
     dict[-1161583078] = { return Api.ReactionNotificationsFrom.parse_reactionNotificationsFromContacts($0) }
-    dict[1457736048] = { return Api.ReactionsNotifySettings.parse_reactionsNotifySettings($0) }
+    dict[1910827608] = { return Api.ReactionsNotifySettings.parse_reactionsNotifySettings($0) }
     dict[1246753138] = { return Api.ReadParticipantDate.parse_readParticipantDate($0) }
     dict[-1551583367] = { return Api.ReceivedNotifyMessage.parse_receivedNotifyMessage($0) }
     dict[-1294306862] = { return Api.RecentMeUrl.parse_recentMeUrlChat($0) }
@@ -889,6 +953,7 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-1917633461] = { return Api.ReportResult.parse_reportResultReported($0) }
     dict[865857388] = { return Api.RequestPeerType.parse_requestPeerTypeBroadcast($0) }
     dict[-906990053] = { return Api.RequestPeerType.parse_requestPeerTypeChat($0) }
+    dict[1048699000] = { return Api.RequestPeerType.parse_requestPeerTypeCreateBot($0) }
     dict[1597737472] = { return Api.RequestPeerType.parse_requestPeerTypeUser($0) }
     dict[-1952185372] = { return Api.RequestedPeer.parse_requestedPeerChannel($0) }
     dict[1929860175] = { return Api.RequestedPeer.parse_requestedPeerChat($0) }
@@ -897,17 +962,32 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-1258914157] = { return Api.RequirementToContact.parse_requirementToContactPaidMessages($0) }
     dict[-444472087] = { return Api.RequirementToContact.parse_requirementToContactPremium($0) }
     dict[-797791052] = { return Api.RestrictionReason.parse_restrictionReason($0) }
+    dict[-1158439541] = { return Api.RichMessage.parse_richMessage($0) }
     dict[894777186] = { return Api.RichText.parse_textAnchor($0) }
+    dict[-984177571] = { return Api.RichText.parse_textAutoEmail($0) }
+    dict[616720265] = { return Api.RichText.parse_textAutoPhone($0) }
+    dict[-1402305622] = { return Api.RichText.parse_textAutoUrl($0) }
+    dict[-1185513171] = { return Api.RichText.parse_textBankCard($0) }
     dict[1730456516] = { return Api.RichText.parse_textBold($0) }
+    dict[50276819] = { return Api.RichText.parse_textBotCommand($0) }
+    dict[2073958401] = { return Api.RichText.parse_textCashtag($0) }
     dict[2120376535] = { return Api.RichText.parse_textConcat($0) }
+    dict[-1570679104] = { return Api.RichText.parse_textCustomEmoji($0) }
+    dict[-1514906069] = { return Api.RichText.parse_textDate($0) }
+    dict[-1769551024] = { return Api.RichText.parse_textDiff($0) }
     dict[-564523562] = { return Api.RichText.parse_textEmail($0) }
     dict[-599948721] = { return Api.RichText.parse_textEmpty($0) }
     dict[1816074681] = { return Api.RichText.parse_textFixed($0) }
+    dict[1368728810] = { return Api.RichText.parse_textHashtag($0) }
     dict[136105807] = { return Api.RichText.parse_textImage($0) }
     dict[-653089380] = { return Api.RichText.parse_textItalic($0) }
     dict[55281185] = { return Api.RichText.parse_textMarked($0) }
+    dict[-1657885545] = { return Api.RichText.parse_textMath($0) }
+    dict[-853225660] = { return Api.RichText.parse_textMention($0) }
+    dict[27917308] = { return Api.RichText.parse_textMentionName($0) }
     dict[483104362] = { return Api.RichText.parse_textPhone($0) }
     dict[1950782688] = { return Api.RichText.parse_textPlain($0) }
+    dict[1277844834] = { return Api.RichText.parse_textSpoiler($0) }
     dict[-1678197867] = { return Api.RichText.parse_textStrike($0) }
     dict[-311786236] = { return Api.RichText.parse_textSubscript($0) }
     dict[-939827711] = { return Api.RichText.parse_textSuperscript($0) }
@@ -917,7 +997,7 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[1681948327] = { return Api.SavedDialog.parse_monoForumDialog($0) }
     dict[-1115174036] = { return Api.SavedDialog.parse_savedDialog($0) }
     dict[-881854424] = { return Api.SavedReactionTag.parse_savedReactionTag($0) }
-    dict[-355041186] = { return Api.SavedStarGift.parse_savedStarGift($0) }
+    dict[1105150972] = { return Api.SavedStarGift.parse_savedStarGift($0) }
     dict[1040931690] = { return Api.SearchPostsFlood.parse_searchPostsFlood($0) }
     dict[-911191137] = { return Api.SearchResultsCalendarPeriod.parse_searchResultsCalendarPeriod($0) }
     dict[2137295719] = { return Api.SearchResultsPosition.parse_searchResultPosition($0) }
@@ -958,6 +1038,7 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-368907213] = { return Api.SecureValueType.parse_secureValueTypeTemporaryRegistration($0) }
     dict[-63531698] = { return Api.SecureValueType.parse_secureValueTypeUtilityBill($0) }
     dict[-1206095820] = { return Api.SendAsPeer.parse_sendAsPeer($0) }
+    dict[-491635887] = { return Api.SendMessageAction.parse_inputSendMessageRichMessageDraftAction($0) }
     dict[-44119819] = { return Api.SendMessageAction.parse_sendMessageCancelAction($0) }
     dict[1653390447] = { return Api.SendMessageAction.parse_sendMessageChooseContactAction($0) }
     dict[-1336228175] = { return Api.SendMessageAction.parse_sendMessageChooseStickerAction($0) }
@@ -969,6 +1050,7 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-718310409] = { return Api.SendMessageAction.parse_sendMessageRecordAudioAction($0) }
     dict[-1997373508] = { return Api.SendMessageAction.parse_sendMessageRecordRoundAction($0) }
     dict[-1584933265] = { return Api.SendMessageAction.parse_sendMessageRecordVideoAction($0) }
+    dict[-1563745031] = { return Api.SendMessageAction.parse_sendMessageRichMessageDraftAction($0) }
     dict[929929052] = { return Api.SendMessageAction.parse_sendMessageTextDraftAction($0) }
     dict[381645902] = { return Api.SendMessageAction.parse_sendMessageTypingAction($0) }
     dict[-212740181] = { return Api.SendMessageAction.parse_sendMessageUploadAudioAction($0) }
@@ -983,16 +1065,21 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[1124938064] = { return Api.SponsoredMessageReportOption.parse_sponsoredMessageReportOption($0) }
     dict[-963180333] = { return Api.SponsoredPeer.parse_sponsoredPeer($0) }
     dict[825922887] = { return Api.StarGift.parse_starGift($0) }
-    dict[1453155529] = { return Api.StarGift.parse_starGiftUnique($0) }
+    dict[-2047825459] = { return Api.StarGift.parse_starGiftUnique($0) }
     dict[-753154979] = { return Api.StarGiftActiveAuctionState.parse_starGiftActiveAuctionState($0) }
-    dict[-650279524] = { return Api.StarGiftAttribute.parse_starGiftAttributeBackdrop($0) }
-    dict[970559507] = { return Api.StarGiftAttribute.parse_starGiftAttributeModel($0) }
+    dict[-1624963868] = { return Api.StarGiftAttribute.parse_starGiftAttributeBackdrop($0) }
+    dict[1448235490] = { return Api.StarGiftAttribute.parse_starGiftAttributeModel($0) }
     dict[-524291476] = { return Api.StarGiftAttribute.parse_starGiftAttributeOriginalDetails($0) }
-    dict[330104601] = { return Api.StarGiftAttribute.parse_starGiftAttributePattern($0) }
+    dict[1315997162] = { return Api.StarGiftAttribute.parse_starGiftAttributePattern($0) }
     dict[783398488] = { return Api.StarGiftAttributeCounter.parse_starGiftAttributeCounter($0) }
     dict[520210263] = { return Api.StarGiftAttributeId.parse_starGiftAttributeIdBackdrop($0) }
     dict[1219145276] = { return Api.StarGiftAttributeId.parse_starGiftAttributeIdModel($0) }
     dict[1242965043] = { return Api.StarGiftAttributeId.parse_starGiftAttributeIdPattern($0) }
+    dict[910391095] = { return Api.StarGiftAttributeRarity.parse_starGiftAttributeRarity($0) }
+    dict[2029777832] = { return Api.StarGiftAttributeRarity.parse_starGiftAttributeRarityEpic($0) }
+    dict[-822614104] = { return Api.StarGiftAttributeRarity.parse_starGiftAttributeRarityLegendary($0) }
+    dict[-259174037] = { return Api.StarGiftAttributeRarity.parse_starGiftAttributeRarityRare($0) }
+    dict[-607231095] = { return Api.StarGiftAttributeRarity.parse_starGiftAttributeRarityUncommon($0) }
     dict[1118831432] = { return Api.StarGiftAuctionAcquiredGift.parse_starGiftAuctionAcquiredGift($0) }
     dict[984483112] = { return Api.StarGiftAuctionRound.parse_starGiftAuctionRound($0) }
     dict[178266597] = { return Api.StarGiftAuctionRound.parse_starGiftAuctionRoundExtendable($0) }
@@ -1043,7 +1130,7 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[1898850301] = { return Api.StoriesStealthMode.parse_storiesStealthMode($0) }
     dict[-1826262950] = { return Api.StoryAlbum.parse_storyAlbum($0) }
     dict[-1205411504] = { return Api.StoryFwdHeader.parse_storyFwdHeader($0) }
-    dict[-302947087] = { return Api.StoryItem.parse_storyItem($0) }
+    dict[379894076] = { return Api.StoryItem.parse_storyItem($0) }
     dict[1374088783] = { return Api.StoryItem.parse_storyItemDeleted($0) }
     dict[-5388013] = { return Api.StoryItem.parse_storyItemSkipped($0) }
     dict[1620104917] = { return Api.StoryReaction.parse_storyReaction($0) }
@@ -1063,6 +1150,7 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[1236871718] = { return Api.TodoList.parse_todoList($0) }
     dict[-305282981] = { return Api.TopPeer.parse_topPeer($0) }
     dict[-39945236] = { return Api.TopPeerCategory.parse_topPeerCategoryBotsApp($0) }
+    dict[1814361053] = { return Api.TopPeerCategory.parse_topPeerCategoryBotsGuestChat($0) }
     dict[344356834] = { return Api.TopPeerCategory.parse_topPeerCategoryBotsInline($0) }
     dict[-1419371685] = { return Api.TopPeerCategory.parse_topPeerCategoryBotsPM($0) }
     dict[371037736] = { return Api.TopPeerCategory.parse_topPeerCategoryChannels($0) }
@@ -1072,15 +1160,17 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-1122524854] = { return Api.TopPeerCategory.parse_topPeerCategoryGroups($0) }
     dict[511092620] = { return Api.TopPeerCategory.parse_topPeerCategoryPhoneCalls($0) }
     dict[-75283823] = { return Api.TopPeerCategoryPeers.parse_topPeerCategoryPeers($0) }
+    dict[-1945136645] = { return Api.Update.parse_updateAiComposeTones($0) }
     dict[397910539] = { return Api.Update.parse_updateAttachMenuBots($0) }
     dict[-335171433] = { return Api.Update.parse_updateAutoSaveSettings($0) }
     dict[-1964652166] = { return Api.Update.parse_updateBotBusinessConnect($0) }
     dict[-1177566067] = { return Api.Update.parse_updateBotCallbackQuery($0) }
     dict[-1873947492] = { return Api.Update.parse_updateBotChatBoost($0) }
-    dict[299870598] = { return Api.Update.parse_updateBotChatInviteRequester($0) }
+    dict[2092125561] = { return Api.Update.parse_updateBotChatInviteRequester($0) }
     dict[1299263278] = { return Api.Update.parse_updateBotCommands($0) }
     dict[-1607821266] = { return Api.Update.parse_updateBotDeleteBusinessMessage($0) }
     dict[132077692] = { return Api.Update.parse_updateBotEditBusinessMessage($0) }
+    dict[-841742019] = { return Api.Update.parse_updateBotGuestChatQuery($0) }
     dict[1232025500] = { return Api.Update.parse_updateBotInlineQuery($0) }
     dict[317794823] = { return Api.Update.parse_updateBotInlineSend($0) }
     dict[347625491] = { return Api.Update.parse_updateBotMenuButton($0) }
@@ -1110,12 +1200,14 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[1037718609] = { return Api.Update.parse_updateChatParticipantAdd($0) }
     dict[-674602590] = { return Api.Update.parse_updateChatParticipantAdmin($0) }
     dict[-483443337] = { return Api.Update.parse_updateChatParticipantDelete($0) }
+    dict[-1115461703] = { return Api.Update.parse_updateChatParticipantRank($0) }
     dict[125178264] = { return Api.Update.parse_updateChatParticipants($0) }
     dict[-2092401936] = { return Api.Update.parse_updateChatUserTyping($0) }
     dict[-1574314746] = { return Api.Update.parse_updateConfig($0) }
     dict[1887741886] = { return Api.Update.parse_updateContactsReset($0) }
     dict[-1906403213] = { return Api.Update.parse_updateDcOptions($0) }
     dict[-1020437742] = { return Api.Update.parse_updateDeleteChannelMessages($0) }
+    dict[1457257720] = { return Api.Update.parse_updateDeleteEphemeralMessages($0) }
     dict[1048963372] = { return Api.Update.parse_updateDeleteGroupCallMessages($0) }
     dict[-1576161051] = { return Api.Update.parse_updateDeleteMessages($0) }
     dict[1407644140] = { return Api.Update.parse_updateDeleteQuickReply($0) }
@@ -1128,6 +1220,7 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-1235684802] = { return Api.Update.parse_updateDialogUnreadMark($0) }
     dict[-302247650] = { return Api.Update.parse_updateDraftMessage($0) }
     dict[457133559] = { return Api.Update.parse_updateEditChannelMessage($0) }
+    dict[1270583041] = { return Api.Update.parse_updateEditEphemeralMessage($0) }
     dict[-469536605] = { return Api.Update.parse_updateEditMessage($0) }
     dict[-73640838] = { return Api.Update.parse_updateEmojiGameInfo($0) }
     dict[386986326] = { return Api.Update.parse_updateEncryptedChatTyping($0) }
@@ -1143,19 +1236,23 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-667783411] = { return Api.Update.parse_updateGroupCallMessage($0) }
     dict[-219423922] = { return Api.Update.parse_updateGroupCallParticipants($0) }
     dict[1763610706] = { return Api.Update.parse_updateInlineBotCallbackQuery($0) }
+    dict[-1112768912] = { return Api.Update.parse_updateJoinChatWebViewDecision($0) }
     dict[1442983757] = { return Api.Update.parse_updateLangPack($0) }
     dict[1180041828] = { return Api.Update.parse_updateLangPackTooLong($0) }
     dict[1448076945] = { return Api.Update.parse_updateLoginToken($0) }
+    dict[1216408986] = { return Api.Update.parse_updateManagedBot($0) }
     dict[-710666460] = { return Api.Update.parse_updateMessageExtendedMedia($0) }
     dict[1318109142] = { return Api.Update.parse_updateMessageID($0) }
-    dict[-1398708869] = { return Api.Update.parse_updateMessagePoll($0) }
-    dict[619974263] = { return Api.Update.parse_updateMessagePollVote($0) }
+    dict[-699641301] = { return Api.Update.parse_updateMessagePoll($0) }
+    dict[1989799956] = { return Api.Update.parse_updateMessagePollVote($0) }
     dict[506035194] = { return Api.Update.parse_updateMessageReactions($0) }
     dict[-1618924792] = { return Api.Update.parse_updateMonoForumNoPaidException($0) }
     dict[-2030252155] = { return Api.Update.parse_updateMoveStickerSetToTop($0) }
     dict[-1991136273] = { return Api.Update.parse_updateNewAuthorization($0) }
+    dict[-1306491994] = { return Api.Update.parse_updateNewBotConnection($0) }
     dict[1656358105] = { return Api.Update.parse_updateNewChannelMessage($0) }
     dict[314359194] = { return Api.Update.parse_updateNewEncryptedMessage($0) }
+    dict[549239713] = { return Api.Update.parse_updateNewEphemeralMessage($0) }
     dict[522914557] = { return Api.Update.parse_updateNewMessage($0) }
     dict[-180508905] = { return Api.Update.parse_updateNewQuickReply($0) }
     dict[967122427] = { return Api.Update.parse_updateNewScheduledMessage($0) }
@@ -1206,6 +1303,7 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-245208620] = { return Api.Update.parse_updateSmsJob($0) }
     dict[1222788802] = { return Api.Update.parse_updateStarGiftAuctionState($0) }
     dict[-598150370] = { return Api.Update.parse_updateStarGiftAuctionUserState($0) }
+    dict[-1408818108] = { return Api.Update.parse_updateStarGiftCraftFail($0) }
     dict[1317053305] = { return Api.Update.parse_updateStarsBalance($0) }
     dict[-1518030823] = { return Api.Update.parse_updateStarsRevenueStatus($0) }
     dict[834816008] = { return Api.Update.parse_updateStickerSets($0) }
@@ -1221,6 +1319,8 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[88680979] = { return Api.Update.parse_updateUserPhone($0) }
     dict[-440534818] = { return Api.Update.parse_updateUserStatus($0) }
     dict[706199388] = { return Api.Update.parse_updateUserTyping($0) }
+    dict[335872721] = { return Api.Update.parse_updateWebBrowserException($0) }
+    dict[-1013306658] = { return Api.Update.parse_updateWebBrowserSettings($0) }
     dict[2139689491] = { return Api.Update.parse_updateWebPage($0) }
     dict[361936797] = { return Api.Update.parse_updateWebViewResultSent($0) }
     dict[2027216577] = { return Api.Updates.parse_updateShort($0) }
@@ -1230,12 +1330,12 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[1957577280] = { return Api.Updates.parse_updates($0) }
     dict[1918567619] = { return Api.Updates.parse_updatesCombined($0) }
     dict[-484987010] = { return Api.Updates.parse_updatesTooLong($0) }
-    dict[-1886646706] = { return Api.UrlAuthResult.parse_urlAuthResultAccepted($0) }
+    dict[1648005024] = { return Api.UrlAuthResult.parse_urlAuthResultAccepted($0) }
     dict[-1445536993] = { return Api.UrlAuthResult.parse_urlAuthResultDefault($0) }
-    dict[-1831650802] = { return Api.UrlAuthResult.parse_urlAuthResultRequest($0) }
-    dict[829899656] = { return Api.User.parse_user($0) }
+    dict[1020666860] = { return Api.UrlAuthResult.parse_urlAuthResultRequest($0) }
+    dict[-1313289085] = { return Api.User.parse_user($0) }
     dict[-742634630] = { return Api.User.parse_userEmpty($0) }
-    dict[-1607745218] = { return Api.UserFull.parse_userFull($0) }
+    dict[114026053] = { return Api.UserFull.parse_userFull($0) }
     dict[-2100168954] = { return Api.UserProfilePhoto.parse_userProfilePhoto($0) }
     dict[1326562017] = { return Api.UserProfilePhoto.parse_userProfilePhotoEmpty($0) }
     dict[164646985] = { return Api.UserStatus.parse_userStatusEmpty($0) }
@@ -1254,10 +1354,12 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-1493633966] = { return Api.WebAuthorization.parse_webAuthorization($0) }
     dict[475467473] = { return Api.WebDocument.parse_webDocument($0) }
     dict[-104284986] = { return Api.WebDocument.parse_webDocumentNoProxy($0) }
+    dict[-1824741993] = { return Api.WebDomainException.parse_webDomainException($0) }
     dict[-392411726] = { return Api.WebPage.parse_webPage($0) }
     dict[555358088] = { return Api.WebPage.parse_webPageEmpty($0) }
     dict[1930545681] = { return Api.WebPage.parse_webPageNotModified($0) }
     dict[-1328464313] = { return Api.WebPage.parse_webPagePending($0) }
+    dict[2005007896] = { return Api.WebPageAttribute.parse_webPageAttributeAiComposeTone($0) }
     dict[29770178] = { return Api.WebPageAttribute.parse_webPageAttributeStarGiftAuction($0) }
     dict[835375875] = { return Api.WebPageAttribute.parse_webPageAttributeStarGiftCollection($0) }
     dict[1355547603] = { return Api.WebPageAttribute.parse_webPageAttributeStickerSet($0) }
@@ -1304,6 +1406,10 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-842824308] = { return Api.account.WallPapers.parse_wallPapers($0) }
     dict[471437699] = { return Api.account.WallPapers.parse_wallPapersNotModified($0) }
     dict[-313079300] = { return Api.account.WebAuthorizations.parse_webAuthorizations($0) }
+    dict[2045480115] = { return Api.account.WebBrowserSettings.parse_webBrowserSettings($0) }
+    dict[-1021538482] = { return Api.account.WebBrowserSettings.parse_webBrowserSettingsNotModified($0) }
+    dict[1822232318] = { return Api.aicompose.Tones.parse_tones($0) }
+    dict[-1040948989] = { return Api.aicompose.Tones.parse_tonesNotModified($0) }
     dict[782418132] = { return Api.auth.Authorization.parse_authorization($0) }
     dict[1148485274] = { return Api.auth.Authorization.parse_authorizationSignUpRequired($0) }
     dict[1948046307] = { return Api.auth.CodeType.parse_codeTypeCall($0) }
@@ -1319,7 +1425,7 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-503089271] = { return Api.auth.PasskeyLoginOptions.parse_passkeyLoginOptions($0) }
     dict[326715557] = { return Api.auth.PasswordRecovery.parse_passwordRecovery($0) }
     dict[1577067778] = { return Api.auth.SentCode.parse_sentCode($0) }
-    dict[-527082948] = { return Api.auth.SentCode.parse_sentCodePaymentRequired($0) }
+    dict[-125665601] = { return Api.auth.SentCode.parse_sentCodePaymentRequired($0) }
     dict[596704836] = { return Api.auth.SentCode.parse_sentCodeSuccess($0) }
     dict[1035688326] = { return Api.auth.SentCodeType.parse_sentCodeTypeApp($0) }
     dict[1398007207] = { return Api.auth.SentCodeType.parse_sentCodeTypeCall($0) }
@@ -1332,13 +1438,18 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-1073693790] = { return Api.auth.SentCodeType.parse_sentCodeTypeSms($0) }
     dict[-1284008785] = { return Api.auth.SentCodeType.parse_sentCodeTypeSmsPhrase($0) }
     dict[-1542017919] = { return Api.auth.SentCodeType.parse_sentCodeTypeSmsWord($0) }
+    dict[-585121901] = { return Api.bots.AccessSettings.parse_accessSettings($0) }
     dict[-391678544] = { return Api.bots.BotInfo.parse_botInfo($0) }
+    dict[1012971041] = { return Api.bots.ExportedBotToken.parse_exportedBotToken($0) }
     dict[428978491] = { return Api.bots.PopularAppBots.parse_popularAppBots($0) }
     dict[212278628] = { return Api.bots.PreviewInfo.parse_previewInfo($0) }
+    dict[-247743273] = { return Api.bots.RequestedButton.parse_requestedButton($0) }
     dict[-309659827] = { return Api.channels.AdminLogResults.parse_adminLogResults($0) }
     dict[-541588713] = { return Api.channels.ChannelParticipant.parse_channelParticipant($0) }
     dict[-1699676497] = { return Api.channels.ChannelParticipants.parse_channelParticipants($0) }
     dict[-266911767] = { return Api.channels.ChannelParticipants.parse_channelParticipantsNotModified($0) }
+    dict[824755388] = { return Api.channels.Found.parse_found($0) }
+    dict[-694491059] = { return Api.channels.PersonalChannels.parse_personalChannels($0) }
     dict[-191450938] = { return Api.channels.SendAsPeers.parse_sendAsPeers($0) }
     dict[1044107055] = { return Api.channels.SponsoredMessageReportResult.parse_sponsoredMessageReportResultAdsHidden($0) }
     dict[-2073059774] = { return Api.channels.SponsoredMessageReportResult.parse_sponsoredMessageReportResultChooseOption($0) }
@@ -1348,6 +1459,8 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-1816295539] = { return Api.chatlists.ChatlistUpdates.parse_chatlistUpdates($0) }
     dict[283567014] = { return Api.chatlists.ExportedChatlistInvite.parse_exportedChatlistInvite($0) }
     dict[279670215] = { return Api.chatlists.ExportedInvites.parse_exportedInvites($0) }
+    dict[-1921494742] = { return Api.communities.ParticipantJoinedChats.parse_participantJoinedChats($0) }
+    dict[574926765] = { return Api.communities.PeerLinkRequests.parse_peerLinkRequests($0) }
     dict[182326673] = { return Api.contacts.Blocked.parse_blocked($0) }
     dict[-513392236] = { return Api.contacts.Blocked.parse_blockedSlice($0) }
     dict[290452237] = { return Api.contacts.ContactBirthdays.parse_contactBirthdays($0) }
@@ -1410,9 +1523,13 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-1231326505] = { return Api.messages.ChatAdminsWithInvites.parse_chatAdminsWithInvites($0) }
     dict[-438840932] = { return Api.messages.ChatFull.parse_chatFull($0) }
     dict[-2118733814] = { return Api.messages.ChatInviteImporters.parse_chatInviteImporters($0) }
+    dict[1146512295] = { return Api.messages.ChatInviteJoinResult.parse_chatInviteJoinResultOk($0) }
+    dict[1640638931] = { return Api.messages.ChatInviteJoinResult.parse_chatInviteJoinResultWebView($0) }
     dict[1694474197] = { return Api.messages.Chats.parse_chats($0) }
     dict[-1663561404] = { return Api.messages.Chats.parse_chatsSlice($0) }
     dict[-1571952873] = { return Api.messages.CheckedHistoryImportPeer.parse_checkedHistoryImportPeer($0) }
+    dict[-1864913414] = { return Api.messages.ComposedMessageWithAI.parse_composedMessageWithAI($0) }
+    dict[1279604680] = { return Api.messages.ComposedRichMessageWithAI.parse_composedRichMessageWithAI($0) }
     dict[740433629] = { return Api.messages.DhConfig.parse_dhConfig($0) }
     dict[-1058912715] = { return Api.messages.DhConfig.parse_dhConfigNotModified($0) }
     dict[718878489] = { return Api.messages.DialogFilters.parse_dialogFilters($0) }
@@ -1480,6 +1597,7 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[816245886] = { return Api.messages.Stickers.parse_stickers($0) }
     dict[-244016606] = { return Api.messages.Stickers.parse_stickersNotModified($0) }
     dict[-809903785] = { return Api.messages.TranscribedAudio.parse_transcribedAudio($0) }
+    dict[1107532175] = { return Api.messages.TranslatedRichMessage.parse_translatedRichMessage($0) }
     dict[870003448] = { return Api.messages.TranslatedText.parse_translateResult($0) }
     dict[1218005070] = { return Api.messages.VotesList.parse_votesList($0) }
     dict[-44166467] = { return Api.messages.WebPage.parse_webPage($0) }
@@ -1540,6 +1658,7 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[963421692] = { return Api.stats.BroadcastStats.parse_broadcastStats($0) }
     dict[-276825834] = { return Api.stats.MegagroupStats.parse_megagroupStats($0) }
     dict[2145983508] = { return Api.stats.MessageStats.parse_messageStats($0) }
+    dict[697941741] = { return Api.stats.PollStats.parse_pollStats($0) }
     dict[-1828487648] = { return Api.stats.PublicForwards.parse_publicForwards($0) }
     dict[1355613820] = { return Api.stats.StoryStats.parse_storyStats($0) }
     dict[-2046910401] = { return Api.stickers.SuggestedShortName.parse_suggestedShortName($0) }
@@ -1593,18 +1712,17 @@ public extension Api {
         }
         return nil
     }
-    
-        static func parse(_ reader: BufferReader, signature: Int32) -> Any? {
-            if let parser = parsers[signature] {
-                return parser(reader)
-            }
-            else {
-                telegramApiLog("Type constructor \(String(UInt32(bitPattern: signature), radix: 16, uppercase: false)) not found")
-                return nil
-            }
+
+    static func parse(_ reader: BufferReader, signature: Int32) -> Any? {
+        if let parser = parsers[signature] {
+            return parser(reader)
+        } else {
+            telegramApiLog("Type constructor \(String(UInt32(bitPattern: signature), radix: 16, uppercase: false)) not found")
+            return nil
         }
-        
-        static func parseVector<T>(_ reader: BufferReader, elementSignature: Int32, elementType: T.Type) -> [T]? {
+    }
+
+    static func parseVector<T>(_ reader: BufferReader, elementSignature: Int32, elementType: T.Type) -> [T]? {
         if let count = reader.readInt32() {
             var array = [T]()
             var i: Int32 = 0
@@ -1613,8 +1731,7 @@ public extension Api {
                 if elementSignature == 0 {
                     if let unboxedSignature = reader.readInt32() {
                         signature = unboxedSignature
-                    }
-                    else {
+                    } else {
                         return nil
                     }
                 }
@@ -1625,12 +1742,11 @@ public extension Api {
                         return nil
                     }
                 } else {
-                if let item = Api.parse(reader, signature: signature) as? T {
-                    array.append(item)
-                }
-                else {
-                    return nil
-                }
+                    if let item = Api.parse(reader, signature: signature) as? T {
+                        array.append(item)
+                    } else {
+                        return nil
+                    }
                 }
                 i += 1
             }
@@ -1638,1170 +1754,1229 @@ public extension Api {
         }
         return nil
     }
-    
+
     static func serializeObject(_ object: Any, buffer: Buffer, boxed: Swift.Bool) {
         switch object {
-            case let _1 as Api.AccountDaysTTL:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.AttachMenuBot:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.AttachMenuBotIcon:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.AttachMenuBotIconColor:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.AttachMenuBots:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.AttachMenuBotsBot:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.AttachMenuPeerType:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.AuctionBidLevel:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.Authorization:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.AutoDownloadSettings:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.AutoSaveException:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.AutoSaveSettings:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.AvailableEffect:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.AvailableReaction:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.BankCardOpenUrl:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.BaseTheme:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.Birthday:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.Bool:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.Boost:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.BotApp:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.BotAppSettings:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.BotBusinessConnection:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.BotCommand:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.BotCommandScope:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.BotInfo:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.BotInlineMessage:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.BotInlineResult:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.BotMenuButton:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.BotPreviewMedia:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.BotVerification:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.BotVerifierSettings:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.BusinessAwayMessage:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.BusinessAwayMessageSchedule:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.BusinessBotRecipients:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.BusinessBotRights:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.BusinessChatLink:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.BusinessGreetingMessage:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.BusinessIntro:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.BusinessLocation:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.BusinessRecipients:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.BusinessWeeklyOpen:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.BusinessWorkHours:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.CdnConfig:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.CdnPublicKey:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ChannelAdminLogEvent:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ChannelAdminLogEventAction:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ChannelAdminLogEventsFilter:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ChannelLocation:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ChannelMessagesFilter:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ChannelParticipant:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ChannelParticipantsFilter:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.Chat:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ChatAdminRights:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ChatAdminWithInvites:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ChatBannedRights:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ChatFull:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ChatInvite:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ChatInviteImporter:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ChatOnlines:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ChatParticipant:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ChatParticipants:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ChatPhoto:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ChatReactions:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ChatTheme:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.CodeSettings:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.Config:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ConnectedBot:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ConnectedBotStarRef:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.Contact:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ContactBirthday:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ContactStatus:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.DataJSON:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.DcOption:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.DefaultHistoryTTL:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.Dialog:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.DialogFilter:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.DialogFilterSuggested:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.DialogPeer:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.DisallowedGiftsSettings:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.Document:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.DocumentAttribute:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.DraftMessage:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.EmailVerification:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.EmailVerifyPurpose:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.EmojiGroup:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.EmojiKeyword:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.EmojiKeywordsDifference:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.EmojiLanguage:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.EmojiList:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.EmojiStatus:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.EmojiURL:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.EncryptedChat:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.EncryptedFile:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.EncryptedMessage:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ExportedChatInvite:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ExportedChatlistInvite:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ExportedContactToken:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ExportedMessageLink:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ExportedStoryLink:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.FactCheck:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.FileHash:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.Folder:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.FolderPeer:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ForumTopic:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.FoundStory:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.Game:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.GeoPoint:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.GeoPointAddress:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.GlobalPrivacySettings:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.GroupCall:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.GroupCallDonor:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.GroupCallMessage:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.GroupCallParticipant:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.GroupCallParticipantVideo:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.GroupCallParticipantVideoSourceGroup:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.GroupCallStreamChannel:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.HighScore:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ImportedContact:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InlineBotSwitchPM:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InlineBotWebView:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InlineQueryPeerType:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputAppEvent:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputBotApp:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputBotInlineMessage:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputBotInlineMessageID:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputBotInlineResult:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputBusinessAwayMessage:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputBusinessBotRecipients:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputBusinessChatLink:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputBusinessGreetingMessage:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputBusinessIntro:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputBusinessRecipients:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputChannel:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputChatPhoto:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputChatTheme:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputChatlist:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputCheckPasswordSRP:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputClientProxy:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputCollectible:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputContact:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputDialogPeer:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputDocument:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputEncryptedChat:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputEncryptedFile:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputFile:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputFileLocation:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputFolderPeer:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputGame:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputGeoPoint:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputGroupCall:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputInvoice:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputMedia:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputMessage:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputNotifyPeer:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputPasskeyCredential:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputPasskeyResponse:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputPaymentCredentials:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputPeer:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputPeerNotifySettings:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputPhoneCall:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputPhoto:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputPrivacyKey:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputPrivacyRule:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputQuickReplyShortcut:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputReplyTo:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputSavedStarGift:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputSecureFile:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputSecureValue:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputSingleMedia:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputStarGiftAuction:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputStarsTransaction:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputStickerSet:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputStickerSetItem:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputStickeredMedia:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputStorePaymentPurpose:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputTheme:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputThemeSettings:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputUser:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputWallPaper:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputWebDocument:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.InputWebFileLocation:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.Invoice:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.JSONObjectValue:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.JSONValue:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.KeyboardButton:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.KeyboardButtonRow:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.LabeledPrice:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.LangPackDifference:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.LangPackLanguage:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.LangPackString:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.MaskCoords:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.MediaArea:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.MediaAreaCoordinates:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.Message:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.MessageAction:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.MessageEntity:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.MessageExtendedMedia:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.MessageFwdHeader:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.MessageMedia:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.MessagePeerReaction:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.MessagePeerVote:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.MessageRange:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.MessageReactions:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.MessageReactor:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.MessageReplies:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.MessageReplyHeader:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.MessageReportOption:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.MessageViews:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.MessagesFilter:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.MissingInvitee:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.MyBoost:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.NearestDc:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.NotificationSound:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.NotifyPeer:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.OutboxReadDate:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.Page:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.PageBlock:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.PageCaption:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.PageListItem:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.PageListOrderedItem:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.PageRelatedArticle:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.PageTableCell:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.PageTableRow:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.PaidReactionPrivacy:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.Passkey:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.PasswordKdfAlgo:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.PaymentCharge:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.PaymentFormMethod:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.PaymentRequestedInfo:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.PaymentSavedCredentials:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.Peer:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.PeerBlocked:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.PeerColor:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.PeerLocated:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.PeerNotifySettings:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.PeerSettings:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.PeerStories:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.PendingSuggestion:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.PhoneCall:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.PhoneCallDiscardReason:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.PhoneCallProtocol:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.PhoneConnection:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.Photo:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.PhotoSize:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.Poll:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.PollAnswer:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.PollAnswerVoters:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.PollResults:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.PopularContact:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.PostAddress:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.PostInteractionCounters:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.PremiumGiftCodeOption:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.PremiumSubscriptionOption:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.PrepaidGiveaway:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.PrivacyKey:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.PrivacyRule:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ProfileTab:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.PublicForward:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.QuickReply:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.Reaction:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ReactionCount:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ReactionNotificationsFrom:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ReactionsNotifySettings:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ReadParticipantDate:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ReceivedNotifyMessage:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.RecentMeUrl:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.RecentStory:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ReplyMarkup:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ReportReason:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ReportResult:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.RequestPeerType:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.RequestedPeer:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.RequirementToContact:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.RestrictionReason:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.RichText:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.SavedContact:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.SavedDialog:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.SavedReactionTag:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.SavedStarGift:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.SearchPostsFlood:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.SearchResultsCalendarPeriod:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.SearchResultsPosition:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.SecureCredentialsEncrypted:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.SecureData:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.SecureFile:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.SecurePasswordKdfAlgo:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.SecurePlainData:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.SecureRequiredType:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.SecureSecretSettings:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.SecureValue:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.SecureValueError:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.SecureValueHash:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.SecureValueType:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.SendAsPeer:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.SendMessageAction:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ShippingOption:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.SmsJob:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.SponsoredMessage:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.SponsoredMessageReportOption:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.SponsoredPeer:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StarGift:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StarGiftActiveAuctionState:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StarGiftAttribute:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StarGiftAttributeCounter:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StarGiftAttributeId:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StarGiftAuctionAcquiredGift:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StarGiftAuctionRound:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StarGiftAuctionState:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StarGiftAuctionUserState:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StarGiftBackground:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StarGiftCollection:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StarGiftUpgradePrice:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StarRefProgram:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StarsAmount:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StarsGiftOption:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StarsGiveawayOption:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StarsGiveawayWinnersOption:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StarsRating:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StarsRevenueStatus:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StarsSubscription:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StarsSubscriptionPricing:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StarsTopupOption:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StarsTransaction:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StarsTransactionPeer:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StatsAbsValueAndPrev:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StatsDateRangeDays:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StatsGraph:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StatsGroupTopAdmin:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StatsGroupTopInviter:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StatsGroupTopPoster:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StatsPercentValue:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StatsURL:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StickerKeyword:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StickerPack:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StickerSet:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StickerSetCovered:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StoriesStealthMode:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StoryAlbum:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StoryFwdHeader:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StoryItem:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StoryReaction:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StoryView:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.StoryViews:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.SuggestedPost:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.TextWithEntities:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.Theme:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.ThemeSettings:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.Timezone:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.TodoCompletion:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.TodoItem:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.TodoList:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.TopPeer:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.TopPeerCategory:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.TopPeerCategoryPeers:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.Update:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.Updates:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.UrlAuthResult:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.User:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.UserFull:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.UserProfilePhoto:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.UserStatus:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.Username:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.VideoSize:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.WallPaper:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.WallPaperSettings:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.WebAuthorization:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.WebDocument:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.WebPage:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.WebPageAttribute:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.WebViewMessageSent:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.WebViewResult:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.account.AuthorizationForm:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.account.Authorizations:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.account.AutoDownloadSettings:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.account.AutoSaveSettings:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.account.BusinessChatLinks:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.account.ChatThemes:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.account.ConnectedBots:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.account.ContentSettings:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.account.EmailVerified:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.account.EmojiStatuses:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.account.PaidMessagesRevenue:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.account.PasskeyRegistrationOptions:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.account.Passkeys:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.account.Password:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.account.PasswordInputSettings:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.account.PasswordSettings:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.account.PrivacyRules:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.account.ResetPasswordResult:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.account.ResolvedBusinessChatLinks:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.account.SavedMusicIds:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.account.SavedRingtone:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.account.SavedRingtones:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.account.SentEmailCode:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.account.Takeout:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.account.Themes:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.account.TmpPassword:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.account.WallPapers:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.account.WebAuthorizations:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.auth.Authorization:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.auth.CodeType:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.auth.ExportedAuthorization:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.auth.LoggedOut:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.auth.LoginToken:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.auth.PasskeyLoginOptions:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.auth.PasswordRecovery:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.auth.SentCode:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.auth.SentCodeType:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.bots.BotInfo:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.bots.PopularAppBots:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.bots.PreviewInfo:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.channels.AdminLogResults:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.channels.ChannelParticipant:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.channels.ChannelParticipants:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.channels.SendAsPeers:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.channels.SponsoredMessageReportResult:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.chatlists.ChatlistInvite:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.chatlists.ChatlistUpdates:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.chatlists.ExportedChatlistInvite:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.chatlists.ExportedInvites:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.contacts.Blocked:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.contacts.ContactBirthdays:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.contacts.Contacts:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.contacts.Found:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.contacts.ImportedContacts:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.contacts.ResolvedPeer:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.contacts.SponsoredPeers:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.contacts.TopPeers:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.fragment.CollectibleInfo:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.help.AppConfig:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.help.AppUpdate:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.help.CountriesList:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.help.Country:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.help.CountryCode:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.help.DeepLinkInfo:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.help.InviteText:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.help.PassportConfig:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.help.PeerColorOption:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.help.PeerColorSet:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.help.PeerColors:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.help.PremiumPromo:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.help.PromoData:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.help.RecentMeUrls:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.help.Support:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.help.SupportName:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.help.TermsOfService:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.help.TermsOfServiceUpdate:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.help.TimezonesList:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.help.UserInfo:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.AffectedFoundMessages:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.AffectedHistory:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.AffectedMessages:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.AllStickers:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.ArchivedStickers:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.AvailableEffects:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.AvailableReactions:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.BotApp:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.BotCallbackAnswer:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.BotPreparedInlineMessage:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.BotResults:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.ChatAdminsWithInvites:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.ChatFull:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.ChatInviteImporters:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.Chats:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.CheckedHistoryImportPeer:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.DhConfig:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.DialogFilters:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.Dialogs:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.DiscussionMessage:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.EmojiGameInfo:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.EmojiGameOutcome:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.EmojiGroups:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.ExportedChatInvite:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.ExportedChatInvites:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.FavedStickers:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.FeaturedStickers:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.ForumTopics:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.FoundStickerSets:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.FoundStickers:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.HighScores:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.HistoryImport:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.HistoryImportParsed:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.InactiveChats:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.InvitedUsers:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.MessageEditData:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.MessageReactionsList:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.MessageViews:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.Messages:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.MyStickers:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.PeerDialogs:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.PeerSettings:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.PreparedInlineMessage:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.QuickReplies:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.Reactions:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.RecentStickers:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.SavedDialogs:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.SavedGifs:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.SavedReactionTags:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.SearchCounter:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.SearchResultsCalendar:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.SearchResultsPositions:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.SentEncryptedMessage:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.SponsoredMessages:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.StickerSet:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.StickerSetInstallResult:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.Stickers:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.TranscribedAudio:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.TranslatedText:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.VotesList:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.WebPage:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.messages.WebPagePreview:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.payments.BankCardData:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.payments.CheckCanSendGiftResult:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.payments.CheckedGiftCode:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.payments.ConnectedStarRefBots:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.payments.ExportedInvoice:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.payments.GiveawayInfo:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.payments.PaymentForm:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.payments.PaymentReceipt:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.payments.PaymentResult:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.payments.ResaleStarGifts:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.payments.SavedInfo:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.payments.SavedStarGifts:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.payments.StarGiftActiveAuctions:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.payments.StarGiftAuctionAcquiredGifts:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.payments.StarGiftAuctionState:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.payments.StarGiftCollections:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.payments.StarGiftUpgradeAttributes:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.payments.StarGiftUpgradePreview:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.payments.StarGiftWithdrawalUrl:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.payments.StarGifts:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.payments.StarsRevenueAdsAccountUrl:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.payments.StarsRevenueStats:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.payments.StarsRevenueWithdrawalUrl:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.payments.StarsStatus:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.payments.SuggestedStarRefBots:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.payments.UniqueStarGift:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.payments.UniqueStarGiftValueInfo:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.payments.ValidatedRequestedInfo:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.phone.ExportedGroupCallInvite:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.phone.GroupCall:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.phone.GroupCallStars:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.phone.GroupCallStreamChannels:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.phone.GroupCallStreamRtmpUrl:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.phone.GroupParticipants:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.phone.JoinAsPeers:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.phone.PhoneCall:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.photos.Photo:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.photos.Photos:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.premium.BoostsList:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.premium.BoostsStatus:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.premium.MyBoosts:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.smsjobs.EligibilityToJoin:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.smsjobs.Status:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.stats.BroadcastStats:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.stats.MegagroupStats:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.stats.MessageStats:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.stats.PublicForwards:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.stats.StoryStats:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.stickers.SuggestedShortName:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.storage.FileType:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.stories.Albums:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.stories.AllStories:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.stories.CanSendStoryCount:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.stories.FoundStories:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.stories.PeerStories:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.stories.Stories:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.stories.StoryReactionsList:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.stories.StoryViews:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.stories.StoryViewsList:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.updates.ChannelDifference:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.updates.Difference:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.updates.State:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.upload.CdnFile:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.upload.File:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.upload.WebFile:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.users.SavedMusic:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.users.UserFull:
-                _1.serialize(buffer, boxed)
-            case let _1 as Api.users.Users:
-                _1.serialize(buffer, boxed)
-            default:
-                break
+        case let _1 as Api.AccountDaysTTL:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.AiComposeTone:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.AiComposeToneExample:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.AttachMenuBot:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.AttachMenuBotIcon:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.AttachMenuBotIconColor:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.AttachMenuBots:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.AttachMenuBotsBot:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.AttachMenuPeerType:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.AuctionBidLevel:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.Authorization:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.AutoDownloadSettings:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.AutoSaveException:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.AutoSaveSettings:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.AvailableEffect:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.AvailableReaction:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.BankCardOpenUrl:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.BaseTheme:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.Birthday:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.Bool:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.Boost:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.BotApp:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.BotAppSettings:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.BotBusinessConnection:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.BotCommand:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.BotCommandScope:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.BotInfo:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.BotInlineMessage:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.BotInlineResult:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.BotMenuButton:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.BotPreviewMedia:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.BotVerification:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.BotVerifierSettings:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.BusinessAwayMessage:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.BusinessAwayMessageSchedule:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.BusinessBotRecipients:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.BusinessBotRights:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.BusinessChatLink:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.BusinessGreetingMessage:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.BusinessIntro:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.BusinessLocation:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.BusinessRecipients:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.BusinessWeeklyOpen:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.BusinessWorkHours:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.CdnConfig:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.CdnPublicKey:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ChannelAdminLogEvent:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ChannelAdminLogEventAction:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ChannelAdminLogEventsFilter:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ChannelCategory:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ChannelLocation:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ChannelMessagesFilter:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ChannelParticipant:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ChannelParticipantsFilter:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.Chat:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ChatAdminRights:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ChatAdminWithInvites:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ChatBannedRights:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ChatFull:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ChatInvite:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ChatInviteImporter:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ChatOnlines:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ChatParticipant:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ChatParticipants:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ChatPhoto:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ChatReactions:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ChatTheme:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.CodeSettings:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.CommunityPeer:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.CommunityPeerRequest:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.Config:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ConnectedBot:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ConnectedBotStarRef:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.Contact:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ContactBirthday:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ContactStatus:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.DataJSON:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.DcOption:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.DefaultHistoryTTL:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.Dialog:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.DialogFilter:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.DialogFilterSuggested:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.DialogPeer:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.DisallowedGiftsSettings:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.Document:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.DocumentAttribute:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.DraftMessage:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.EmailVerification:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.EmailVerifyPurpose:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.EmojiGroup:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.EmojiKeyword:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.EmojiKeywordsDifference:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.EmojiLanguage:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.EmojiList:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.EmojiStatus:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.EmojiURL:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.EncryptedChat:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.EncryptedFile:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.EncryptedMessage:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.EphemeralMessage:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ExportedChatInvite:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ExportedChatlistInvite:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ExportedContactToken:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ExportedMessageLink:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ExportedStoryLink:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.FactCheck:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.FileHash:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.Folder:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.FolderPeer:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ForumTopic:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.FoundStory:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.Game:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.GeoPoint:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.GeoPointAddress:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.GlobalPrivacySettings:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.GroupCall:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.GroupCallDonor:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.GroupCallMessage:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.GroupCallParticipant:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.GroupCallParticipantVideo:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.GroupCallParticipantVideoSourceGroup:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.GroupCallStreamChannel:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.HighScore:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ImportedContact:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InlineBotSwitchPM:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InlineBotWebView:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InlineQueryPeerType:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputAiComposeTone:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputAppEvent:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputBotApp:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputBotInlineMessage:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputBotInlineMessageID:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputBotInlineResult:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputBusinessAwayMessage:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputBusinessBotRecipients:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputBusinessChatLink:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputBusinessGreetingMessage:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputBusinessIntro:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputBusinessRecipients:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputChannel:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputChatPhoto:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputChatTheme:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputChatlist:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputCheckPasswordSRP:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputClientProxy:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputCollectible:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputContact:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputDialogPeer:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputDocument:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputEncryptedChat:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputEncryptedFile:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputFile:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputFileLocation:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputFolderPeer:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputGame:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputGeoPoint:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputGroupCall:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputInvoice:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputMedia:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputMessage:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputMessageReadMetric:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputNotifyPeer:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputPasskeyCredential:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputPasskeyResponse:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputPaymentCredentials:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputPeer:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputPeerNotifySettings:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputPhoneCall:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputPhoto:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputPrivacyKey:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputPrivacyRule:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputQuickReplyShortcut:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputReplyTo:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputRichFile:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputRichMessage:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputSavedStarGift:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputSecureFile:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputSecureValue:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputSingleMedia:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputStarGiftAuction:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputStarsTransaction:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputStickerSet:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputStickerSetItem:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputStickeredMedia:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputStorePaymentPurpose:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputTheme:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputThemeSettings:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputUser:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputWallPaper:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputWebDocument:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.InputWebFileLocation:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.Invoice:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.JSONObjectValue:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.JSONValue:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.JoinChatBotResult:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.KeyboardButton:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.KeyboardButtonRow:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.KeyboardButtonStyle:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.LabeledPrice:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.LangPackDifference:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.LangPackLanguage:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.LangPackString:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.MaskCoords:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.MediaArea:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.MediaAreaCoordinates:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.Message:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.MessageAction:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.MessageEntity:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.MessageExtendedMedia:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.MessageFwdHeader:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.MessageMedia:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.MessagePeerReaction:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.MessagePeerVote:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.MessageRange:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.MessageReactions:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.MessageReactor:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.MessageReplies:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.MessageReplyHeader:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.MessageReportOption:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.MessageViews:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.MessagesFilter:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.MissingInvitee:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.MyBoost:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.NearestDc:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.NotificationSound:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.NotifyPeer:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.OutboxReadDate:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.Page:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.PageBlock:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.PageCaption:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.PageListItem:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.PageListOrderedItem:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.PageRelatedArticle:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.PageTableCell:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.PageTableRow:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.PaidReactionPrivacy:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.Passkey:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.PasswordKdfAlgo:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.PaymentCharge:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.PaymentFormMethod:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.PaymentRequestedInfo:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.PaymentSavedCredentials:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.Peer:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.PeerBlocked:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.PeerColor:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.PeerLocated:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.PeerNotifySettings:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.PeerSettings:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.PeerStories:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.PendingSuggestion:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.PersonalChannel:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.PhoneCall:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.PhoneCallDiscardReason:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.PhoneCallProtocol:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.PhoneConnection:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.Photo:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.PhotoSize:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.Poll:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.PollAnswer:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.PollAnswerVoters:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.PollResults:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.PopularContact:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.PostAddress:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.PostInteractionCounters:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.PremiumGiftCodeOption:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.PremiumSubscriptionOption:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.PrepaidGiveaway:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.PrivacyKey:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.PrivacyRule:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ProfileTab:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.PublicForward:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.QuickReply:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.Reaction:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ReactionCount:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ReactionNotificationsFrom:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ReactionsNotifySettings:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ReadParticipantDate:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ReceivedNotifyMessage:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.RecentMeUrl:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.RecentStory:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ReplyMarkup:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ReportReason:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ReportResult:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.RequestPeerType:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.RequestedPeer:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.RequirementToContact:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.RestrictionReason:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.RichMessage:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.RichText:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.SavedContact:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.SavedDialog:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.SavedReactionTag:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.SavedStarGift:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.SearchPostsFlood:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.SearchResultsCalendarPeriod:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.SearchResultsPosition:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.SecureCredentialsEncrypted:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.SecureData:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.SecureFile:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.SecurePasswordKdfAlgo:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.SecurePlainData:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.SecureRequiredType:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.SecureSecretSettings:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.SecureValue:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.SecureValueError:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.SecureValueHash:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.SecureValueType:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.SendAsPeer:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.SendMessageAction:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ShippingOption:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.SmsJob:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.SponsoredMessage:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.SponsoredMessageReportOption:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.SponsoredPeer:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StarGift:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StarGiftActiveAuctionState:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StarGiftAttribute:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StarGiftAttributeCounter:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StarGiftAttributeId:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StarGiftAttributeRarity:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StarGiftAuctionAcquiredGift:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StarGiftAuctionRound:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StarGiftAuctionState:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StarGiftAuctionUserState:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StarGiftBackground:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StarGiftCollection:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StarGiftUpgradePrice:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StarRefProgram:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StarsAmount:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StarsGiftOption:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StarsGiveawayOption:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StarsGiveawayWinnersOption:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StarsRating:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StarsRevenueStatus:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StarsSubscription:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StarsSubscriptionPricing:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StarsTopupOption:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StarsTransaction:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StarsTransactionPeer:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StatsAbsValueAndPrev:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StatsDateRangeDays:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StatsGraph:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StatsGroupTopAdmin:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StatsGroupTopInviter:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StatsGroupTopPoster:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StatsPercentValue:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StatsURL:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StickerKeyword:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StickerPack:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StickerSet:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StickerSetCovered:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StoriesStealthMode:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StoryAlbum:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StoryFwdHeader:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StoryItem:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StoryReaction:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StoryView:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.StoryViews:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.SuggestedPost:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.TextWithEntities:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.Theme:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.ThemeSettings:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.Timezone:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.TodoCompletion:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.TodoItem:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.TodoList:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.TopPeer:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.TopPeerCategory:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.TopPeerCategoryPeers:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.Update:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.Updates:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.UrlAuthResult:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.User:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.UserFull:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.UserProfilePhoto:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.UserStatus:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.Username:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.VideoSize:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.WallPaper:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.WallPaperSettings:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.WebAuthorization:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.WebDocument:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.WebDomainException:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.WebPage:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.WebPageAttribute:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.WebViewMessageSent:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.WebViewResult:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.account.AuthorizationForm:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.account.Authorizations:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.account.AutoDownloadSettings:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.account.AutoSaveSettings:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.account.BusinessChatLinks:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.account.ChatThemes:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.account.ConnectedBots:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.account.ContentSettings:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.account.EmailVerified:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.account.EmojiStatuses:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.account.PaidMessagesRevenue:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.account.PasskeyRegistrationOptions:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.account.Passkeys:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.account.Password:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.account.PasswordInputSettings:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.account.PasswordSettings:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.account.PrivacyRules:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.account.ResetPasswordResult:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.account.ResolvedBusinessChatLinks:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.account.SavedMusicIds:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.account.SavedRingtone:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.account.SavedRingtones:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.account.SentEmailCode:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.account.Takeout:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.account.Themes:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.account.TmpPassword:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.account.WallPapers:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.account.WebAuthorizations:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.account.WebBrowserSettings:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.aicompose.Tones:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.auth.Authorization:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.auth.CodeType:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.auth.ExportedAuthorization:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.auth.LoggedOut:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.auth.LoginToken:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.auth.PasskeyLoginOptions:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.auth.PasswordRecovery:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.auth.SentCode:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.auth.SentCodeType:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.bots.AccessSettings:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.bots.BotInfo:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.bots.ExportedBotToken:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.bots.PopularAppBots:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.bots.PreviewInfo:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.bots.RequestedButton:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.channels.AdminLogResults:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.channels.ChannelParticipant:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.channels.ChannelParticipants:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.channels.Found:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.channels.PersonalChannels:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.channels.SendAsPeers:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.channels.SponsoredMessageReportResult:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.chatlists.ChatlistInvite:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.chatlists.ChatlistUpdates:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.chatlists.ExportedChatlistInvite:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.chatlists.ExportedInvites:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.communities.ParticipantJoinedChats:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.communities.PeerLinkRequests:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.contacts.Blocked:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.contacts.ContactBirthdays:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.contacts.Contacts:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.contacts.Found:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.contacts.ImportedContacts:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.contacts.ResolvedPeer:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.contacts.SponsoredPeers:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.contacts.TopPeers:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.fragment.CollectibleInfo:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.help.AppConfig:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.help.AppUpdate:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.help.CountriesList:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.help.Country:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.help.CountryCode:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.help.DeepLinkInfo:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.help.InviteText:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.help.PassportConfig:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.help.PeerColorOption:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.help.PeerColorSet:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.help.PeerColors:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.help.PremiumPromo:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.help.PromoData:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.help.RecentMeUrls:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.help.Support:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.help.SupportName:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.help.TermsOfService:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.help.TermsOfServiceUpdate:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.help.TimezonesList:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.help.UserInfo:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.AffectedFoundMessages:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.AffectedHistory:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.AffectedMessages:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.AllStickers:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.ArchivedStickers:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.AvailableEffects:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.AvailableReactions:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.BotApp:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.BotCallbackAnswer:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.BotPreparedInlineMessage:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.BotResults:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.ChatAdminsWithInvites:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.ChatFull:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.ChatInviteImporters:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.ChatInviteJoinResult:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.Chats:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.CheckedHistoryImportPeer:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.ComposedMessageWithAI:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.ComposedRichMessageWithAI:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.DhConfig:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.DialogFilters:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.Dialogs:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.DiscussionMessage:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.EmojiGameInfo:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.EmojiGameOutcome:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.EmojiGroups:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.ExportedChatInvite:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.ExportedChatInvites:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.FavedStickers:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.FeaturedStickers:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.ForumTopics:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.FoundStickerSets:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.FoundStickers:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.HighScores:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.HistoryImport:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.HistoryImportParsed:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.InactiveChats:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.InvitedUsers:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.MessageEditData:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.MessageReactionsList:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.MessageViews:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.Messages:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.MyStickers:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.PeerDialogs:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.PeerSettings:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.PreparedInlineMessage:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.QuickReplies:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.Reactions:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.RecentStickers:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.SavedDialogs:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.SavedGifs:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.SavedReactionTags:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.SearchCounter:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.SearchResultsCalendar:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.SearchResultsPositions:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.SentEncryptedMessage:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.SponsoredMessages:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.StickerSet:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.StickerSetInstallResult:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.Stickers:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.TranscribedAudio:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.TranslatedRichMessage:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.TranslatedText:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.VotesList:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.WebPage:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.messages.WebPagePreview:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.payments.BankCardData:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.payments.CheckCanSendGiftResult:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.payments.CheckedGiftCode:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.payments.ConnectedStarRefBots:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.payments.ExportedInvoice:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.payments.GiveawayInfo:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.payments.PaymentForm:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.payments.PaymentReceipt:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.payments.PaymentResult:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.payments.ResaleStarGifts:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.payments.SavedInfo:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.payments.SavedStarGifts:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.payments.StarGiftActiveAuctions:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.payments.StarGiftAuctionAcquiredGifts:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.payments.StarGiftAuctionState:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.payments.StarGiftCollections:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.payments.StarGiftUpgradeAttributes:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.payments.StarGiftUpgradePreview:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.payments.StarGiftWithdrawalUrl:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.payments.StarGifts:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.payments.StarsRevenueAdsAccountUrl:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.payments.StarsRevenueStats:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.payments.StarsRevenueWithdrawalUrl:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.payments.StarsStatus:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.payments.SuggestedStarRefBots:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.payments.UniqueStarGift:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.payments.UniqueStarGiftValueInfo:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.payments.ValidatedRequestedInfo:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.phone.ExportedGroupCallInvite:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.phone.GroupCall:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.phone.GroupCallStars:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.phone.GroupCallStreamChannels:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.phone.GroupCallStreamRtmpUrl:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.phone.GroupParticipants:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.phone.JoinAsPeers:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.phone.PhoneCall:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.photos.Photo:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.photos.Photos:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.premium.BoostsList:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.premium.BoostsStatus:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.premium.MyBoosts:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.smsjobs.EligibilityToJoin:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.smsjobs.Status:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.stats.BroadcastStats:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.stats.MegagroupStats:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.stats.MessageStats:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.stats.PollStats:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.stats.PublicForwards:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.stats.StoryStats:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.stickers.SuggestedShortName:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.storage.FileType:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.stories.Albums:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.stories.AllStories:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.stories.CanSendStoryCount:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.stories.FoundStories:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.stories.PeerStories:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.stories.Stories:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.stories.StoryReactionsList:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.stories.StoryViews:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.stories.StoryViewsList:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.updates.ChannelDifference:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.updates.Difference:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.updates.State:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.upload.CdnFile:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.upload.File:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.upload.WebFile:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.users.SavedMusic:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.users.UserFull:
+            _1.serialize(buffer, boxed)
+        case let _1 as Api.users.Users:
+            _1.serialize(buffer, boxed)
+        default:
+            break
         }
     }
-
 }

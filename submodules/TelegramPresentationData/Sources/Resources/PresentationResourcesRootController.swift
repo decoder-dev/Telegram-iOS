@@ -45,7 +45,7 @@ public struct PresentationResourcesRootController {
     
     public static func navigationShareIcon(_ theme: PresentationTheme) -> UIImage? {
         return theme.image(PresentationResourceKey.navigationShareIcon.rawValue, { theme in
-            return generateTintedImage(image: UIImage(bundleImageName: "Chat/Input/Accessory Panels/MessageSelectionForward"), color: theme.rootController.navigationBar.accentTextColor)
+            return generateTintedImage(image: UIImage(bundleImageName: "Chat/Input/Accessory Panels/MessageSelectionForward"), color: theme.chat.inputPanel.panelControlColor)
         })
 //        return theme.image(PresentationResourceKey.navigationShareIcon.rawValue, generateShareButtonImage)
     }
@@ -64,7 +64,7 @@ public struct PresentationResourcesRootController {
     
     public static func navigationSearchIcon(_ theme: PresentationTheme) -> UIImage? {
         return theme.image(PresentationResourceKey.navigationSearchIcon.rawValue, { theme in
-            return generateTintedImage(image: UIImage(bundleImageName: "Chat List/SearchIcon"), color: theme.rootController.navigationBar.accentTextColor)
+            return generateTintedImage(image: UIImage(bundleImageName: "Navigation/Search"), color: theme.chat.inputPanel.panelControlColor)
         })
     }
     
@@ -113,7 +113,7 @@ public struct PresentationResourcesRootController {
 
     public static func navigationMoreCircledIcon(_ theme: PresentationTheme) -> UIImage? {
         return theme.image(PresentationResourceKey.navigationMoreCircledIcon.rawValue, { theme in
-            generateTintedImage(image: UIImage(bundleImageName: "Chat List/NavigationMore"), color: theme.rootController.navigationBar.accentTextColor)
+            generateTintedImage(image: UIImage(bundleImageName: "Chat List/NavigationMore"), color: theme.rootController.navigationBar.buttonColor)
         })
     }
 
@@ -125,7 +125,7 @@ public struct PresentationResourcesRootController {
     
     public static func navigationAddIcon(_ theme: PresentationTheme) -> UIImage? {
         return theme.image(PresentationResourceKey.navigationAddIcon.rawValue, { theme in
-            return generateTintedImage(image: UIImage(bundleImageName: "Chat List/AddIcon"), color: theme.rootController.navigationBar.accentTextColor)
+            return generateTintedImage(image: UIImage(bundleImageName: "Chat List/AddIcon"), color: theme.rootController.navigationBar.buttonColor)
         })
     }
     
@@ -197,6 +197,18 @@ public struct PresentationResourcesRootController {
     public static func navigationSortIcon(_ theme: PresentationTheme) -> UIImage? {
         return theme.image(PresentationResourceKey.navigationSortIcon.rawValue, { theme in
             return generateTintedImage(image: UIImage(bundleImageName: "Peer Info/SortIcon"), color: .white)
+        })
+    }
+    
+    public static func navigationBackIcon(_ theme: PresentationTheme) -> UIImage? {
+        return theme.image(PresentationResourceKey.navigationBackIcon.rawValue, { theme in
+            return generateTintedImage(image: UIImage(bundleImageName: "Navigation/Back"), color: .white)
+        })
+    }
+    
+    public static func navigationCloseIcon(_ theme: PresentationTheme) -> UIImage? {
+        return theme.image(PresentationResourceKey.navigationCloseIcon.rawValue, { theme in
+            return generateTintedImage(image: UIImage(bundleImageName: "Navigation/Close"), color: .white)
         })
     }
     

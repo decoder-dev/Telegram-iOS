@@ -9,13 +9,11 @@ import TelegramStringFormatting
 import TelegramVoip
 import TelegramAudio
 import AccountContext
-import Postbox
 import TelegramCore
 import MergeLists
 import ItemListUI
 import AppBundle
 import ContextUI
-import ShareController
 import DeleteChatPeerActionSheetItem
 import UndoUI
 import AlertUI
@@ -26,7 +24,6 @@ import TooltipUI
 import LegacyUI
 import LegacyComponents
 import LegacyMediaPickerUI
-import WebSearchUI
 import MapResourceToAvatarSizes
 import SolidRoundedButtonNode
 import AudioBlob
@@ -126,7 +123,7 @@ struct VoiceChatPeerEntry: Identifiable {
         case raisedHand
     }
     
-    var peer: Peer
+    var peer: EnginePeer
     var about: String?
     var isMyPeer: Bool
     var videoEndpointId: String?
@@ -148,7 +145,7 @@ struct VoiceChatPeerEntry: Identifiable {
     }
 
     init(
-        peer: Peer,
+        peer: EnginePeer,
         about: String?,
         isMyPeer: Bool,
         videoEndpointId: String?,
@@ -183,12 +180,12 @@ struct VoiceChatPeerEntry: Identifiable {
         self.isLandscape = isLandscape
     }
     
-    var stableId: PeerId {
+    var stableId: EnginePeer.Id {
         return self.peer.id
     }
-    
+
     static func ==(lhs: VoiceChatPeerEntry, rhs: VoiceChatPeerEntry) -> Bool {
-        if !lhs.peer.isEqual(rhs.peer) {
+        if lhs.peer != rhs.peer {
             return false
         }
         if lhs.about != rhs.about {

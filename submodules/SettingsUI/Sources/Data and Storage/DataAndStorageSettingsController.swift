@@ -2,7 +2,6 @@ import Foundation
 import UIKit
 import Display
 import SwiftSignalKit
-import Postbox
 import TelegramCore
 import LegacyComponents
 import TelegramPresentationData
@@ -10,7 +9,6 @@ import TelegramUIPreferences
 import ItemListUI
 import PresentationDataUtils
 import AccountContext
-import OpenInExternalAppUI
 import ItemListPeerActionItem
 import StorageUsageScreen
 import PresentationDataUtils
@@ -34,7 +32,6 @@ private final class DataAndStorageControllerArguments {
     let togglePauseMusicOnRecording: (Bool) -> Void
     let toggleRaiseToListen: (Bool) -> Void
     let toggleDownloadInBackground: (Bool) -> Void
-    let openBrowserSelection: () -> Void
     let openIntents: () -> Void
     let toggleSensitiveContent: (Bool) -> Void
 
@@ -50,7 +47,6 @@ private final class DataAndStorageControllerArguments {
         togglePauseMusicOnRecording: @escaping (Bool) -> Void,
         toggleRaiseToListen: @escaping (Bool) -> Void,
         toggleDownloadInBackground: @escaping (Bool) -> Void,
-        openBrowserSelection: @escaping () -> Void,
         openIntents: @escaping () -> Void,
         toggleSensitiveContent: @escaping (Bool) -> Void
     ) {
@@ -65,7 +61,6 @@ private final class DataAndStorageControllerArguments {
         self.togglePauseMusicOnRecording = togglePauseMusicOnRecording
         self.toggleRaiseToListen = toggleRaiseToListen
         self.toggleDownloadInBackground = toggleDownloadInBackground
-        self.openBrowserSelection = openBrowserSelection
         self.openIntents = openIntents
         self.toggleSensitiveContent = toggleSensitiveContent
     }
@@ -90,6 +85,7 @@ public enum DataAndStorageEntryTag: ItemListItemTag, Equatable {
     case raiseToListen
     case autoSave(AutomaticSaveIncomingPeerType)
     case sensitiveContent
+    case useLessVoiceData
     
     public func isEqual(to other: ItemListItemTag) -> Bool {
         if let other = other as? DataAndStorageEntryTag, self == other {
@@ -118,7 +114,6 @@ private enum DataAndStorageEntry: ItemListNodeEntry {
     case useLessVoiceData(PresentationTheme, String, Bool)
     case useLessVoiceDataInfo(PresentationTheme, String)
     case otherHeader(PresentationTheme, String)
-    case openLinksIn(PresentationTheme, String, String)
     case shareSheet(PresentationTheme, String)
     case saveEditedPhotos(PresentationTheme, String, Bool)
     case pauseMusicOnRecording(PresentationTheme, String, Bool)
@@ -143,7 +138,7 @@ private enum DataAndStorageEntry: ItemListNodeEntry {
                 return DataAndStorageSection.backgroundDownload.rawValue
             case .useLessVoiceData, .useLessVoiceDataInfo:
                 return DataAndStorageSection.voiceCalls.rawValue
-            case .otherHeader, .openLinksIn, .shareSheet, .saveEditedPhotos, .pauseMusicOnRecording, .raiseToListen, .raiseToListenInfo:
+            case .otherHeader, .shareSheet, .saveEditedPhotos, .pauseMusicOnRecording, .raiseToListen, .raiseToListenInfo:
                 return DataAndStorageSection.other.rawValue
             case .sensitiveContent, .sensitiveContentInfo:
                 return DataAndStorageSection.sensitiveContent.rawValue
@@ -182,8 +177,6 @@ private enum DataAndStorageEntry: ItemListNodeEntry {
                 return 24
             case .otherHeader:
                 return 29
-            case .openLinksIn:
-                return 30
             case .shareSheet:
                 return 31
             case .saveEditedPhotos:
@@ -279,12 +272,6 @@ private enum DataAndStorageEntry: ItemListNodeEntry {
                 } else {
                     return false
                 }
-            case let .openLinksIn(lhsTheme, lhsText, lhsValue):
-                if case let .openLinksIn(rhsTheme, rhsText, rhsValue) = rhs, lhsTheme === rhsTheme, lhsText == rhsText, lhsValue == rhsValue {
-                    return true
-                } else {
-                    return false
-                }
             case let .shareSheet(lhsTheme, lhsText):
                 if case let .shareSheet(rhsTheme, rhsText) = rhs, lhsTheme === rhsTheme, lhsText == rhsText {
                     return true
@@ -362,21 +349,21 @@ private enum DataAndStorageEntry: ItemListNodeEntry {
         let arguments = arguments as! DataAndStorageControllerArguments
         switch self {
             case let .storageUsage(_, text, value):
-                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: UIImage(bundleImageName: "Settings/Menu/Storage")?.precomposed(), title: text, label: value, sectionId: self.section, style: .blocks, action: {
+                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.storageUsage, title: text, label: value, sectionId: self.section, style: .blocks, action: {
                     arguments.openStorageUsage()
                 })
             case let .networkUsage(_, text, value):
-                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: UIImage(bundleImageName: "Settings/Menu/Network")?.precomposed(), title: text, label: value, sectionId: self.section, style: .blocks, action: {
+                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.dataUsage, title: text, label: value, sectionId: self.section, style: .blocks, action: {
                     arguments.openNetworkUsage()
                 })
             case let .automaticDownloadHeader(_, text):
                 return ItemListSectionHeaderItem(presentationData: presentationData, text: text, sectionId: self.section)
             case let .automaticDownloadCellular(_, text, value):
-                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: UIImage(bundleImageName: "Settings/Menu/Cellular")?.precomposed(), title: text, label: value, labelStyle: .detailText, sectionId: self.section, style: .blocks, action: {
+                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.cellular, title: text, label: value, labelStyle: .detailText, sectionId: self.section, style: .blocks, action: {
                     arguments.openAutomaticDownloadConnectionType(.cellular)
                 })
             case let .automaticDownloadWifi(_, text, value):
-                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: UIImage(bundleImageName: "Settings/Menu/WiFi")?.precomposed(), title: text, label: value, labelStyle: .detailText, sectionId: self.section, style: .blocks, action: {
+                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.wifi, title: text, label: value, labelStyle: .detailText, sectionId: self.section, style: .blocks, action: {
                     arguments.openAutomaticDownloadConnectionType(.wifi)
                 })
             case let .automaticDownloadReset(theme, text, enabled):
@@ -388,20 +375,20 @@ private enum DataAndStorageEntry: ItemListNodeEntry {
                     if enabled {
                         arguments.resetAutomaticDownload()
                     }
-                })
+                }, tag: DataAndStorageEntryTag.automaticDownloadReset)
             case let .autoSaveHeader(text):
                 return ItemListSectionHeaderItem(presentationData: presentationData, text: text, sectionId: self.section)
             case let .autoSaveItem(_, type, title, label, value):
-                let iconName: String
+                let icon: UIImage?
                 switch type {
                 case .privateChats:
-                    iconName = "Settings/Menu/EditProfile"
+                    icon = PresentationResourcesSettings.privateChats
                 case .groups:
-                    iconName = "Settings/Menu/GroupChats"
+                    icon = PresentationResourcesSettings.groups
                 case .channels:
-                    iconName = "Settings/Menu/Channels"
+                    icon = PresentationResourcesSettings.channels
                 }
-                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: UIImage(bundleImageName: iconName)?.precomposed(), title: title, label: value, labelStyle: .text, additionalDetailLabel: label.isEmpty ? nil : label, sectionId: self.section, style: .blocks, action: {
+                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: icon, title: title, label: value, labelStyle: .text, additionalDetailLabel: label.isEmpty ? nil : label, sectionId: self.section, style: .blocks, action: {
                     arguments.openSaveIncoming(type)
                 })
             case let .autoSaveInfo(text):
@@ -409,15 +396,11 @@ private enum DataAndStorageEntry: ItemListNodeEntry {
             case let .useLessVoiceData(_, text, value):
                 return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: text, value: value, sectionId: self.section, style: .blocks, updated: { value in
                     arguments.toggleVoiceUseLessData(value)
-                }, tag: nil)
+                }, tag: DataAndStorageEntryTag.useLessVoiceData)
             case let .useLessVoiceDataInfo(_, text):
                 return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section)
             case let .otherHeader(_, text):
                 return ItemListSectionHeaderItem(presentationData: presentationData, text: text, sectionId: self.section)
-            case let .openLinksIn(_, text, value):
-                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: text, label: value, sectionId: self.section, style: .blocks, action: {
-                    arguments.openBrowserSelection()
-                })
             case let .shareSheet(_, text):
                 return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: text, label: "", sectionId: self.section, style: .blocks, action: {
                     arguments.openIntents()
@@ -576,6 +559,8 @@ private func autosaveLabelAndValue(presentationData: PresentationData, settings:
                 } else {
                     peerTypeValue = .groups
                 }
+            case .community:
+                continue
             }
             
             if peerTypeValue == peerType {
@@ -618,7 +603,7 @@ private func autosaveLabelAndValue(presentationData: PresentationData, settings:
     return (label, value)
 }
 
-private func dataAndStorageControllerEntries(context: AccountContext, state: DataAndStorageControllerState, data: DataAndStorageData, presentationData: PresentationData, defaultWebBrowser: String, contentSettingsConfiguration: ContentSettingsConfiguration?, networkUsage: Int64, storageUsage: Int64, mediaAutoSaveSettings: MediaAutoSaveSettings, autosaveExceptionPeers: [EnginePeer.Id: EnginePeer?], mediaSettings: MediaDisplaySettings, showSensitiveContentSetting: Bool) -> [DataAndStorageEntry] {
+private func dataAndStorageControllerEntries(context: AccountContext, state: DataAndStorageControllerState, data: DataAndStorageData, presentationData: PresentationData, contentSettingsConfiguration: ContentSettingsConfiguration?, networkUsage: Int64, storageUsage: Int64, mediaAutoSaveSettings: MediaAutoSaveSettings, autosaveExceptionPeers: [EnginePeer.Id: EnginePeer?], mediaSettings: MediaDisplaySettings, showSensitiveContentSetting: Bool) -> [DataAndStorageEntry] {
     var entries: [DataAndStorageEntry] = []
     
     entries.append(.storageUsage(presentationData.theme, presentationData.strings.ChatSettings_Cache, dataSizeString(storageUsage, formatting: DataSizeStringFormatting(presentationData: presentationData))))
@@ -648,7 +633,6 @@ private func dataAndStorageControllerEntries(context: AccountContext, state: Dat
     entries.append(.useLessVoiceDataInfo(presentationData.theme, presentationData.strings.CallSettings_UseLessDataLongDescription))
     
     entries.append(.otherHeader(presentationData.theme, presentationData.strings.ChatSettings_Other))
-    entries.append(.openLinksIn(presentationData.theme, presentationData.strings.ChatSettings_OpenLinksIn, defaultWebBrowser))
     if #available(iOSApplicationExtension 13.2, iOS 13.2, *) {
         entries.append(.shareSheet(presentationData.theme, presentationData.strings.ChatSettings_IntentsSettings))
     }
@@ -896,9 +880,6 @@ public func dataAndStorageController(context: AccountContext, focusOnItemTag: Da
             settings.downloadInBackground = value
             return settings
         }).start()
-    }, openBrowserSelection: {
-        let controller = webBrowserSettingsController(context: context)
-        pushControllerImpl?(controller)
     }, openIntents: {
         let controller = intentsSettingsController(context: context)
         pushControllerImpl?(controller)
@@ -932,13 +913,9 @@ public func dataAndStorageController(context: AccountContext, focusOnItemTag: Da
         }
     })
     
-    let preferencesKey: PostboxViewKey = .preferences(keys: Set([ApplicationSpecificPreferencesKeys.mediaAutoSaveSettings]))
-    let preferences = context.account.postbox.combinedView(keys: [preferencesKey])
-    |> map { views -> MediaAutoSaveSettings in
-        guard let view = views.views[preferencesKey] as? PreferencesView else {
-            return .default
-        }
-        return view.values[ApplicationSpecificPreferencesKeys.mediaAutoSaveSettings]?.get(MediaAutoSaveSettings.self) ?? MediaAutoSaveSettings.default
+    let preferences = context.engine.data.subscribe(TelegramEngine.EngineData.Item.Configuration.ApplicationSpecificPreference(key: ApplicationSpecificPreferencesKeys.mediaAutoSaveSettings))
+    |> map { entry -> MediaAutoSaveSettings in
+        return entry?.get(MediaAutoSaveSettings.self) ?? MediaAutoSaveSettings.default
     }
     
     let autosaveExceptionPeers: Signal<[EnginePeer.Id: EnginePeer?], NoError> = preferences
@@ -956,25 +933,14 @@ public func dataAndStorageController(context: AccountContext, focusOnItemTag: Da
         context.sharedContext.presentationData,
         statePromise.get(),
         dataAndStorageDataPromise.get(),
-        context.sharedContext.accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.webBrowserSettings, ApplicationSpecificSharedDataKeys.mediaDisplaySettings]),
+        context.sharedContext.accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.mediaDisplaySettings]),
         contentSettingsConfiguration.get(),
         preferences,
         usageSignal,
         autosaveExceptionPeers
     )
     |> map { presentationData, state, dataAndStorageData, sharedData, contentSettingsConfiguration, mediaAutoSaveSettings, usageSignal, autosaveExceptionPeers -> (ItemListControllerState, (ItemListNodeState, Any)) in
-        let webBrowserSettings = sharedData.entries[ApplicationSpecificSharedDataKeys.webBrowserSettings]?.get(WebBrowserSettings.self) ?? WebBrowserSettings.defaultSettings
         let mediaSettings = sharedData.entries[ApplicationSpecificSharedDataKeys.mediaDisplaySettings]?.get(MediaDisplaySettings.self) ?? MediaDisplaySettings.defaultSettings
-        
-        let options = availableOpenInOptions(context: context, item: .url(url: "https://telegram.org"))
-        let defaultWebBrowser: String
-        if let option = options.first(where: { $0.identifier == webBrowserSettings.defaultWebBrowser }) {
-            defaultWebBrowser = option.title
-        } else if webBrowserSettings.defaultWebBrowser == "inApp" {
-            defaultWebBrowser = presentationData.strings.WebBrowser_InAppSafari
-        } else {
-            defaultWebBrowser = presentationData.strings.WebBrowser_Telegram
-        }
         
         let previousSensitiveContent = sensitiveContent.swap(contentSettingsConfiguration?.sensitiveContentEnabled)
         var animateChanges = false
@@ -988,7 +954,7 @@ public func dataAndStorageController(context: AccountContext, focusOnItemTag: Da
         let showSensitiveContentSetting = canAdjustSensitiveContent.with { $0 } ?? false
         
         let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .text(presentationData.strings.ChatSettings_Title), leftNavigationButton: nil, rightNavigationButton: nil, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back), animateChanges: false)
-        let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: dataAndStorageControllerEntries(context: context, state: state, data: dataAndStorageData, presentationData: presentationData, defaultWebBrowser: defaultWebBrowser, contentSettingsConfiguration: contentSettingsConfiguration, networkUsage: usageSignal.network, storageUsage: usageSignal.storage, mediaAutoSaveSettings: mediaAutoSaveSettings, autosaveExceptionPeers: autosaveExceptionPeers, mediaSettings: mediaSettings, showSensitiveContentSetting: showSensitiveContentSetting), style: .blocks, ensureVisibleItemTag: focusOnItemTag, emptyStateItem: nil, animateChanges: animateChanges)
+        let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: dataAndStorageControllerEntries(context: context, state: state, data: dataAndStorageData, presentationData: presentationData, contentSettingsConfiguration: contentSettingsConfiguration, networkUsage: usageSignal.network, storageUsage: usageSignal.storage, mediaAutoSaveSettings: mediaAutoSaveSettings, autosaveExceptionPeers: autosaveExceptionPeers, mediaSettings: mediaSettings, showSensitiveContentSetting: showSensitiveContentSetting), style: .blocks, ensureVisibleItemTag: focusOnItemTag, emptyStateItem: nil, animateChanges: animateChanges)
         
         return (controllerState, (listState, arguments))
     } |> afterDisposed {
@@ -1012,6 +978,20 @@ public func dataAndStorageController(context: AccountContext, focusOnItemTag: Da
             update()
         })
     }
-
+    
+    if let focusOnItemTag {
+        var didFocusOnItem = false
+        controller.afterTransactionCompleted = { [weak controller] in
+            if !didFocusOnItem, let controller {
+                controller.forEachItemNode { itemNode in
+                    if let itemNode = itemNode as? ItemListItemNode, let tag = itemNode.tag, tag.isEqual(to: focusOnItemTag) {
+                        didFocusOnItem = true
+                        itemNode.displayHighlight()
+                    }
+                }
+            }
+        }
+    }
+    
     return controller
 }

@@ -12,7 +12,6 @@ swift_library(
     deps = [
         "//submodules/AsyncDisplayKit",
         "//submodules/Display",
-        "//submodules/Postbox",
         "//submodules/TelegramCore",
         "//submodules/SSignalKit/SwiftSignalKit",
         "//submodules/ComponentFlow",
@@ -48,6 +47,7 @@ swift_library(
         "//submodules/TelegramUI/Components/EdgeEffect",
         "//submodules/Components/MultilineTextWithEntitiesComponent",
         "//submodules/TelegramUI/Components/PlainButtonComponent",
+        "//submodules/Components/ResizableSheetComponent",
     ],
     visibility = [
         "//visibility:public",

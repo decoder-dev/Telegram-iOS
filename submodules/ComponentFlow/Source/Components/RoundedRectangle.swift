@@ -193,7 +193,7 @@ public final class FilledRoundedRectangleComponent: Component {
                 }
             } else {
                 if component.smoothCorners {
-                    let size = CGSize(width: cornerRadius * 2.0 + 10.0, height: cornerRadius * 2.0 + 10.0)
+                    let size = CGSize(width: cornerRadius * 2.0 + 8.0, height: cornerRadius * 2.0 + 8.0)
                     if let cornerImage = self.cornerImage, cornerImage.size == size {
                     } else {
                         self.cornerImage = generateImage(size, rotatedContext: { size, context in
@@ -225,7 +225,7 @@ public final class FilledRoundedRectangleComponent: Component {
             let cornerRadius: CGFloat
             switch component.cornerRadius {
             case let .value(value):
-                cornerRadius = value
+                cornerRadius = min(value, availableSize.width * 0.5, availableSize.height * 0.5)
             case .minEdge:
                 cornerRadius = min(availableSize.width, availableSize.height) * 0.5
             }
