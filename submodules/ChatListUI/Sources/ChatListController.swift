@@ -293,7 +293,13 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                 guard let self else {
                     return
                 }
-                dismissOpenArchiveControllers(from: self.navigationController)
+                // Defer: same crash window as lockArchiveAfterUnarchive.
+                Queue.mainQueue().after(0.3, { [weak self] in
+                    guard let self else {
+                        return
+                    }
+                    dismissOpenArchiveControllers(from: self.navigationController)
+                })
             }))
         }
         

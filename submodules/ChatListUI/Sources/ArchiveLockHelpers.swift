@@ -291,20 +291,39 @@ public func muteAllArchivedChats(context: AccountContext) {
 }
 
 /// Pop any Archive chat-list controllers currently on the navigation stack.
+/// Safe to call multiple times; never animates (avoids races with swipe/context completions).
 public func dismissOpenArchiveControllers(from navigationController: UINavigationController?) {
     guard let navigationController else {
         return
     }
-    let filtered = navigationController.viewControllers.filter { controller in
-        if let chatList = controller as? ChatListControllerImpl {
-            if case .chatList(groupId: .archive) = chatList.location {
-                return false
+    // Must run on main; callers may bounce from signal completions.
+    let work = {
+        let controllers = navigationController.viewControllers
+        let filtered = controllers.filter { controller in
+            if let chatList = controller as? ChatListControllerImpl {
+                if case .chatList(groupId: .archive) = chatList.location {
+                    return false
+                }
             }
+            return true
         }
-        return true
+        guard filtered.count != controllers.count else {
+            return
+        }
+        // Prefer a single pop when Archive is on top — cheaper and less crash-prone
+        // than replacing the whole stack mid-transition.
+        if controllers.count == filtered.count + 1,
+           let top = controllers.last as? ChatListControllerImpl,
+           case .chatList(groupId: .archive) = top.location {
+            navigationController.popViewController(animated: false)
+        } else {
+            navigationController.setViewControllers(filtered, animated: false)
+        }
     }
-    if filtered.count != navigationController.viewControllers.count {
-        navigationController.setViewControllers(filtered, animated: true)
+    if Queue.mainQueue().isCurrent() {
+        work()
+    } else {
+        Queue.mainQueue().async(work)
     }
 }
 
@@ -313,5 +332,9 @@ public func dismissOpenArchiveControllers(from navigationController: UINavigatio
 /// searchable again automatically (search filters on live group membership).
 public func lockArchiveAfterUnarchive(navigationController: UINavigationController?) {
     ArchiveLockSession.shared.relock()
-    dismissOpenArchiveControllers(from: navigationController)
+    // Defer navigation mutation until after the unarchive swipe/context
+    // completion finishes — tearing down Archive VC synchronously was crashing.
+    Queue.mainQueue().after(0.3, {
+        dismissOpenArchiveControllers(from: navigationController)
+    })
 }
