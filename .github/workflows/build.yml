@@ -131,7 +131,6 @@ jobs:
           restore-keys: |
             bazel-warm-xcode27-release_arm64-
 
-
       - name: Write sideload configuration
         env:
           TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
