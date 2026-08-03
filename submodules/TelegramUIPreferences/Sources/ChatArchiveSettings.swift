@@ -5,14 +5,24 @@ import TelegramCore
 public struct ChatArchiveSettings: Equatable, Codable {
     public var isHiddenByDefault: Bool
     public var hiddenPsaPeerId: EnginePeer.Id?
+    /// When non-nil, opening the Archive folder requires this password.
+    public var lockPassword: String?
     
     public static var `default`: ChatArchiveSettings {
-        return ChatArchiveSettings(isHiddenByDefault: false, hiddenPsaPeerId: nil)
+        return ChatArchiveSettings(isHiddenByDefault: false, hiddenPsaPeerId: nil, lockPassword: nil)
     }
     
-    public init(isHiddenByDefault: Bool, hiddenPsaPeerId: EnginePeer.Id?) {
+    public var isPasswordProtected: Bool {
+        if let lockPassword = self.lockPassword, !lockPassword.isEmpty {
+            return true
+        }
+        return false
+    }
+    
+    public init(isHiddenByDefault: Bool, hiddenPsaPeerId: EnginePeer.Id?, lockPassword: String? = nil) {
         self.isHiddenByDefault = isHiddenByDefault
         self.hiddenPsaPeerId = hiddenPsaPeerId
+        self.lockPassword = lockPassword
     }
     
     public init(from decoder: Decoder) throws {
@@ -20,6 +30,7 @@ public struct ChatArchiveSettings: Equatable, Codable {
 
         self.isHiddenByDefault = (try container.decode(Int32.self, forKey: "isHiddenByDefault")) != 0
         self.hiddenPsaPeerId = (try container.decodeIfPresent(Int64.self, forKey: "hiddenPsaPeerId")).flatMap(EnginePeer.Id.init)
+        self.lockPassword = try container.decodeIfPresent(String.self, forKey: "lockPassword")
     }
     
     public func encode(to encoder: Encoder) throws {
@@ -31,6 +42,44 @@ public struct ChatArchiveSettings: Equatable, Codable {
         } else {
             try container.encodeNil(forKey: "hiddenPsaPeerId")
         }
+        if let lockPassword = self.lockPassword {
+            try container.encode(lockPassword, forKey: "lockPassword")
+        } else {
+            try container.encodeNil(forKey: "lockPassword")
+        }
+    }
+    
+    public func withUpdatedLockPassword(_ password: String?) -> ChatArchiveSettings {
+        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, lockPassword: password)
+    }
+}
+
+/// In-memory session unlock for the Archive folder password.
+/// Cleared when the process exits; re-lock is available via `relock()`.
+public final class ArchiveLockSession {
+    public static let shared = ArchiveLockSession()
+    
+    private let lock = NSLock()
+    private var unlocked = false
+    
+    private init() {}
+    
+    public var isUnlocked: Bool {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        return self.unlocked
+    }
+    
+    public func unlock() {
+        self.lock.lock()
+        self.unlocked = true
+        self.lock.unlock()
+    }
+    
+    public func relock() {
+        self.lock.lock()
+        self.unlocked = false
+        self.lock.unlock()
     }
 }
 

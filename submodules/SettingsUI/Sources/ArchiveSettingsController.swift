@@ -9,20 +9,27 @@ import ItemListUI
 import PresentationDataUtils
 import AccountContext
 import UndoUI
+import ChatListUI
 
 private final class ArchiveSettingsControllerArguments {
     let updateUnmuted: (Bool) -> Void
     let updateFolders: (Bool) -> Void
     let updateUnknown: (Bool?) -> Void
+    let togglePassword: (Bool) -> Void
+    let lockNow: () -> Void
     
     init(
         updateUnmuted: @escaping (Bool) -> Void,
         updateFolders: @escaping (Bool) -> Void,
-        updateUnknown: @escaping (Bool?) -> Void
+        updateUnknown: @escaping (Bool?) -> Void,
+        togglePassword: @escaping (Bool) -> Void,
+        lockNow: @escaping () -> Void
     ) {
         self.updateUnmuted = updateUnmuted
         self.updateFolders = updateFolders
         self.updateUnknown = updateUnknown
+        self.togglePassword = togglePassword
+        self.lockNow = lockNow
     }
 }
 
@@ -30,6 +37,7 @@ private enum ArchiveSettingsSection: Int32 {
     case unmuted
     case folders
     case unknown
+    case password
 }
 
 private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
@@ -45,6 +53,11 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
     case unknownValue(isOn: Bool, isLocked: Bool)
     case unknownFooter
     
+    case passwordHeader
+    case passwordValue(Bool)
+    case passwordLockNow
+    case passwordFooter
+    
     var section: ItemListSectionId {
         switch self {
         case .unmutedHeader, .unmutedValue, .unmutedFooter:
@@ -53,6 +66,8 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
             return ArchiveSettingsSection.folders.rawValue
         case .unknownHeader, .unknownValue, .unknownFooter:
             return ArchiveSettingsSection.unknown.rawValue
+        case .passwordHeader, .passwordValue, .passwordLockNow, .passwordFooter:
+            return ArchiveSettingsSection.password.rawValue
         }
     }
     
@@ -76,6 +91,14 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
             return 7
         case .unknownFooter:
             return 8
+        case .passwordHeader:
+            return 9
+        case .passwordValue:
+            return 10
+        case .passwordLockNow:
+            return 11
+        case .passwordFooter:
+            return 12
         }
     }
         
@@ -112,6 +135,18 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
             })
         case .unknownFooter:
             return ItemListTextItem(presentationData: presentationData, text: .markdown(presentationData.strings.ArchiveSettings_UnknownChatsFooter), sectionId: self.section)
+        case .passwordHeader:
+            return ItemListSectionHeaderItem(presentationData: presentationData, text: "PASSWORD", sectionId: self.section)
+        case let .passwordValue(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: "Lock Archive", value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.togglePassword(value)
+            })
+        case .passwordLockNow:
+            return ItemListActionItem(presentationData: presentationData, title: "Lock Now", kind: .generic, alignment: .natural, sectionId: self.section, style: .blocks, action: {
+                arguments.lockNow()
+            })
+        case .passwordFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain("When enabled, opening Archive requires a password. Archived chats are muted and hidden from folders and frequent contacts."), sectionId: self.section)
         }
     }
 }
@@ -119,6 +154,7 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
 private func archiveSettingsControllerEntries(
     presentationData: PresentationData,
     settings: GlobalPrivacySettings,
+    archiveSettings: ChatArchiveSettings,
     isPremium: Bool,
     isPremiumEnabled: Bool
 ) -> [ArchiveSettingsControllerEntry] {
@@ -140,6 +176,13 @@ private func archiveSettingsControllerEntries(
         entries.append(.unknownFooter)
     }
     
+    entries.append(.passwordHeader)
+    entries.append(.passwordValue(archiveSettings.isPasswordProtected))
+    if archiveSettings.isPasswordProtected && ArchiveLockSession.shared.isUnlocked {
+        entries.append(.passwordLockNow)
+    }
+    entries.append(.passwordFooter)
+    
     return entries
 }
 
@@ -150,6 +193,7 @@ public func archiveSettingsController(context: AccountContext) -> ViewController
     
     var presentUndoImpl: ((UndoOverlayContent) -> Void)?
     var presentPremiumImpl: (() -> Void)?
+    var presentControllerImpl: ((ViewController) -> Void)?
     
     let arguments = ArchiveSettingsControllerArguments(
         updateUnmuted: { value in
@@ -167,6 +211,21 @@ public func archiveSettingsController(context: AccountContext) -> ViewController
                     presentPremiumImpl?()
                 }))
             }
+        },
+        togglePassword: { enabled in
+            if enabled {
+                setArchivePassword(context: context, present: { controller in
+                    presentControllerImpl?(controller)
+                }, completion: { _ in })
+            } else {
+                removeArchivePassword(context: context, present: { controller in
+                    presentControllerImpl?(controller)
+                }, completion: { _ in })
+            }
+        },
+        lockNow: {
+            ArchiveLockSession.shared.relock()
+            muteAllArchivedChats(context: context)
         }
     )
     
@@ -174,10 +233,11 @@ public func archiveSettingsController(context: AccountContext) -> ViewController
         context.sharedContext.presentationData,
         context.engine.data.subscribe(TelegramEngine.EngineData.Item.Configuration.GlobalPrivacy()),
         context.engine.data.subscribe(TelegramEngine.EngineData.Item.Configuration.App()),
-        context.engine.data.subscribe(TelegramEngine.EngineData.Item.Peer.Peer(id: context.account.peerId))
+        context.engine.data.subscribe(TelegramEngine.EngineData.Item.Peer.Peer(id: context.account.peerId)),
+        context.engine.data.subscribe(TelegramEngine.EngineData.Item.Configuration.ApplicationSpecificPreference(key: ApplicationSpecificPreferencesKeys.chatArchiveSettings))
     )
     |> deliverOnMainQueue
-    |> map { presentationData, settings, appConfiguration, accountPeer -> (ItemListControllerState, (ItemListNodeState, Any)) in
+    |> map { presentationData, settings, appConfiguration, accountPeer, archiveSettingsPreference -> (ItemListControllerState, (ItemListNodeState, Any)) in
         var presentationData = presentationData
 
         let updatedTheme = presentationData.theme.withModalBlocksBackground()
@@ -185,11 +245,13 @@ public func archiveSettingsController(context: AccountContext) -> ViewController
         
         let isPremium = accountPeer?.isPremium ?? false
         let isPremiumDisabled = PremiumConfiguration.with(appConfiguration: appConfiguration).isPremiumDisabled
+        let archiveSettings = archiveSettingsPreference?.get(ChatArchiveSettings.self) ?? .default
         
         let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .text(presentationData.strings.ArchiveSettings_Title), leftNavigationButton: nil, rightNavigationButton: nil, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back))
         let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: archiveSettingsControllerEntries(
             presentationData: presentationData,
             settings: settings,
+            archiveSettings: archiveSettings,
             isPremium: isPremium,
             isPremiumEnabled: !isPremiumDisabled
         ), style: .blocks, animateChanges: true)
@@ -216,6 +278,12 @@ public func archiveSettingsController(context: AccountContext) -> ViewController
         let premiumController = context.sharedContext.makePremiumIntroController(context: context, source: .settings, forceDark: false, dismissed: nil)
         controller.push(premiumController)
     }
+    presentControllerImpl = { [weak controller] presented in
+        controller?.present(presented, in: .window(.root))
+    }
+    
+    // Ensure existing archived chats are muted when visiting settings.
+    muteAllArchivedChats(context: context)
     
     return controller
 }

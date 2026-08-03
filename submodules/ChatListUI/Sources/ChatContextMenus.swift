@@ -44,6 +44,34 @@ func archiveContextMenuItems(context: AccountContext, group: EngineChatList.Grou
             f(.default)
         })))
         
+        if settings.isPasswordProtected {
+            items.append(.action(ContextMenuActionItem(text: "Remove Archive Password", icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Lock"), color: theme.contextMenu.primaryColor) }, action: { [weak chatListController] _, f in
+                f(.default)
+                guard let chatListController else {
+                    return
+                }
+                removeArchivePassword(context: context, present: { controller in
+                    chatListController.present(controller, in: .window(.root))
+                }, completion: { _ in })
+            })))
+            if ArchiveLockSession.shared.isUnlocked {
+                items.append(.action(ContextMenuActionItem(text: "Lock Archive", icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Lock"), color: theme.contextMenu.primaryColor) }, action: { _, f in
+                    ArchiveLockSession.shared.relock()
+                    f(.default)
+                })))
+            }
+        } else {
+            items.append(.action(ContextMenuActionItem(text: "Set Archive Password", icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Lock"), color: theme.contextMenu.primaryColor) }, action: { [weak chatListController] _, f in
+                f(.default)
+                guard let chatListController else {
+                    return
+                }
+                setArchivePassword(context: context, present: { controller in
+                    chatListController.present(controller, in: .window(.root))
+                }, completion: { _ in })
+            })))
+        }
+        
         return items
     }
 }

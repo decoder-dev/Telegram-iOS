@@ -132,6 +132,7 @@ swift_library(
         "//submodules/TelegramUI/Components/AvatarComponent",
         "//submodules/TelegramUI/Components/PeerManagement/OwnershipTransferController",
         "//submodules/TelegramUI/Components/GlassControls",
+        "//submodules/PromptUI:PromptUI",
     ],
     visibility = [
         "//visibility:public",

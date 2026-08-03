@@ -938,6 +938,10 @@ public final class Transaction {
         }
         for (peerId, included) in includedPeerIds {
             if !included {
+                // Skip archived peers so folder counts match the visible list.
+                if postbox.getPeerChatListInclusion(peerId).groupId?.rawValue == 1 {
+                    continue
+                }
                 if postbox.chatListTable.getPeerChatListIndex(peerId: peerId) != nil {
                     count += 1
                 }
