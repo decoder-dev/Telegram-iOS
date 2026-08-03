@@ -1,16 +1,14 @@
-# Turbo IPA CI — PrivateMusic-style packaging + Telegram-specific Bazel speed profile.
+# Build unsigned Telegram IPA on GitHub Actions — same *shape* as
+# decoder-dev/PrivateMusic2 (.github/workflows/ios-build.yml):
+#   checkout → Xcode → Metal → unsigned build → package IPA → artifact/release
 #
-# Speed levers vs a full App Store build:
-#   - configuration=ci_arm64  (dbg, no WMO / -Osize / strip / dSYM)
-#   - --disableExtensions     (skip 6 app extensions)
-#   - --ciFast                (jobs=HOST_CPUS, Swift -j = all cores)
-#   - shallow clone + depth-1 submodules
-#   - single global concurrency (cancel older IPA jobs)
-#   - Bazel disk + repository cache
+# Telegram-iOS cannot use plain `xcodebuild` the way PrivateMusic does: the
+# official build graph is Bazel via Make.py. The CI surface matches PrivateMusic;
+# the compile engine is Make.py `ci_arm64` (dbg, no extensions/dSYM, max jobs).
 #
 # Optional secrets: TELEGRAM_API_ID / TELEGRAM_API_HASH / TELEGRAM_BUNDLE_ID / TELEGRAM_TEAM_ID
 
-name: Build iOS
+name: Build unsigned IPA
 
 on:
   push:
@@ -18,20 +16,11 @@ on:
     tags: ['v*']
   workflow_dispatch:
     inputs:
-      configuration:
-        description: Bazel build configuration
-        type: choice
-        options:
-          - ci_arm64
-          - debug_arm64
-          - release_arm64
-        default: ci_arm64
       create_release:
         description: Publish a GitHub Release with the IPA
         type: boolean
         default: false
 
-# One IPA job at a time — cancel stale master/tag races.
 concurrency:
   group: telegram-ios-ipa
   cancel-in-progress: true
@@ -41,19 +30,18 @@ permissions:
 
 jobs:
   build:
-    name: Build IPA (${{ github.event.inputs.configuration || 'ci_arm64' }})
+    name: Build IPA (macos-26)
     runs-on: macos-26
     timeout-minutes: 240
 
     env:
-      BUILD_CONFIGURATION: ${{ github.event.inputs.configuration || 'ci_arm64' }}
+      BUILD_CONFIGURATION: ci_arm64
       BAZEL_USER_ROOT: /private/var/tmp/_bazel_telegram_ios
       BAZEL_CACHE_DIR: ${{ github.workspace }}/.telegram-bazel-cache
       BAZEL_REPO_CACHE: ${{ github.workspace }}/.telegram-bazel-repo-cache
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 1
           submodules: false
@@ -67,9 +55,7 @@ jobs:
           git submodule sync --recursive
 
       - name: Checkout submodules
-        run: |
-          # Depth-1 + parallel fetch; drop unused history for third-party giants.
-          git submodule update --init --recursive --depth 1 --jobs 8
+        run: git submodule update --init --recursive --depth 1 --jobs 8
 
       - name: Select Xcode
         run: |
@@ -84,7 +70,7 @@ jobs:
           fi
           sudo xcode-select -s "$DEVELOPER_DIR"
           xcodebuild -version
-          sysctl -n hw.ncpu || true
+          echo "CPUS=$(sysctl -n hw.ncpu)"
 
       - name: Prepare Metal toolchain
         run: |
@@ -117,11 +103,11 @@ jobs:
           path: |
             ${{ env.BAZEL_CACHE_DIR }}
             ${{ env.BAZEL_REPO_CACHE }}
-          key: bazel-turbo-${{ runner.os }}-${{ env.BUILD_CONFIGURATION }}-${{ hashFiles('versions.json', 'MODULE.bazel', 'MODULE.bazel.lock') }}
+          key: bazel-pm-${{ runner.os }}-${{ env.BUILD_CONFIGURATION }}-${{ hashFiles('versions.json', 'MODULE.bazel', 'MODULE.bazel.lock') }}
           restore-keys: |
+            bazel-pm-${{ runner.os }}-${{ env.BUILD_CONFIGURATION }}-
             bazel-turbo-${{ runner.os }}-${{ env.BUILD_CONFIGURATION }}-
             bazel-turbo-${{ runner.os }}-
-            bazel-${{ runner.os }}-${{ env.BUILD_CONFIGURATION }}-
             bazel-${{ runner.os }}-
 
       - name: Write build configuration
@@ -142,9 +128,6 @@ jobs:
           if api_id and api_hash:
               cfg["api_id"] = api_id
               cfg["api_hash"] = api_hash
-              print("Using TELEGRAM_API_* repository secrets")
-          else:
-              print(f"Secrets unset — using appstore-configuration.json (api_id={cfg.get('api_id')})")
           if os.environ.get("TELEGRAM_BUNDLE_ID"):
               cfg["bundle_id"] = os.environ["TELEGRAM_BUNDLE_ID"]
           if os.environ.get("TELEGRAM_TEAM_ID"):
@@ -152,30 +135,32 @@ jobs:
           with open(path, "w") as f:
               json.dump(cfg, f, indent="\t")
               f.write("\n")
-          print(f"Wrote {path} (api_id={cfg['api_id']}, bundle_id={cfg['bundle_id']})")
+          print(f"api_id={cfg['api_id']} bundle_id={cfg['bundle_id']}")
           PY
 
       - name: Compute build number
         run: |
           set -euo pipefail
-          # Shallow clone: use Actions run number instead of git rev-list --count.
           BUILD_NUMBER_OFFSET="$(cat build_number_offset)"
           APP_VERSION="$(python3 -c 'import json; print(json.load(open("versions.json"))["app"])')"
           BUILD_NUMBER="$((BUILD_NUMBER_OFFSET + GITHUB_RUN_NUMBER))"
           {
             echo "APP_VERSION=$APP_VERSION"
             echo "BUILD_NUMBER=$BUILD_NUMBER"
+            echo "IPA_NAME=Telegram-${APP_VERSION}-${BUILD_NUMBER}-unsigned.ipa"
           } >> "$GITHUB_ENV"
-          echo "Telegram ${APP_VERSION} (${BUILD_NUMBER}) config=${BUILD_CONFIGURATION}"
+          echo "Telegram ${APP_VERSION} (${BUILD_NUMBER})"
 
-      - name: Build IPA
+      - name: Archive unsigned iPhone application
         run: |
           set -euo pipefail
-          mkdir -p "$BAZEL_CACHE_DIR" "$BAZEL_REPO_CACHE"
+          mkdir -p "$BAZEL_CACHE_DIR" "$BAZEL_REPO_CACHE" artifacts build/artifacts
 
           python3 build-system/Make/ImportCertificates.py \
             --path build-system/fake-codesigning/certs
 
+          # Make.py + Bazel is Telegram's build system (PrivateMusic uses xcodebuild).
+          set -o pipefail
           python3 -u build-system/Make/Make.py \
             --overrideXcodeVersion \
             --bazelUserRoot="$BAZEL_USER_ROOT" \
@@ -188,38 +173,49 @@ jobs:
             --disableExtensions \
             --skipDsym \
             --ciFast \
-            --outputBuildArtifactsPath=build/artifacts
+            --outputBuildArtifactsPath=build/artifacts \
+            2>&1 | tee release-build.log
 
-      - name: Collect artifacts
+      - name: Report compiler errors
+        if: failure()
+        run: |
+          grep -E '(^| )error:' release-build.log \
+            | tail -40 \
+            | while IFS= read -r line; do
+                safe="${line//'%'/'%25'}"
+                safe="${safe//$'\r'/'%0D'}"
+                safe="${safe//$'\n'/'%0A'}"
+                echo "::error title=Telegram compiler::$safe"
+              done
+
+      - name: Package unsigned IPA
         run: |
           set -euo pipefail
-          OUTPUT_PATH="build/artifacts"
-          mkdir -p "$OUTPUT_PATH"
-          if [ ! -f "$OUTPUT_PATH/Telegram.ipa" ]; then
-            IPA="$(find -L bazel-out -path '*/Telegram/Telegram.ipa' -type f 2>/dev/null | head -1 || true)"
-            [ -n "$IPA" ] || { echo "::error::Telegram.ipa not found"; exit 1; }
-            cp "$IPA" "$OUTPUT_PATH/Telegram.ipa"
+          chmod +x scripts/package_unsigned_ipa.sh
+
+          # Prefer .app from bazel-bin; fall back to unzipping Make.py IPA.
+          APP="$(find -L bazel-bin/Telegram bazel-out -path '*/Telegram.app' -type d 2>/dev/null | head -1 || true)"
+          if [ -z "$APP" ] || [ ! -d "$APP" ]; then
+            RAW_IPA="$(find build/artifacts bazel-bin/Telegram bazel-out -name 'Telegram.ipa' -type f 2>/dev/null | head -1 || true)"
+            [ -n "$RAW_IPA" ] || { echo "::error::no Telegram.app / Telegram.ipa"; exit 1; }
+            STAGE="$(mktemp -d)"
+            unzip -q "$RAW_IPA" -d "$STAGE"
+            APP="$(find "$STAGE" -name 'Telegram.app' -type d | head -1)"
+            [ -d "$APP" ] || { echo "::error::IPA missing Telegram.app"; exit 1; }
           fi
-          mv "$OUTPUT_PATH/Telegram.ipa" \
-            "$OUTPUT_PATH/Telegram-${APP_VERSION}-${BUILD_NUMBER}-unsigned.ipa"
-          ls -lh "$OUTPUT_PATH"
 
-      - name: Upload unsigned IPA
-        if: success()
-        uses: actions/upload-artifact@v5
-        with:
-          name: Telegram-iOS-${{ env.APP_VERSION }}-${{ env.BUILD_NUMBER }}-unsigned
-          path: build/artifacts/*.ipa
-          if-no-files-found: error
-          retention-days: 14
+          bash ./scripts/package_unsigned_ipa.sh \
+            "$APP" \
+            "$PWD/artifacts/${IPA_NAME}"
+          ls -lh "artifacts/${IPA_NAME}"
 
-      - name: Publish GitHub Release
+      - name: Publish GitHub release
         if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.create_release == true)
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          IPA="build/artifacts/Telegram-${APP_VERSION}-${BUILD_NUMBER}-unsigned.ipa"
+          IPA="$PWD/artifacts/${IPA_NAME}"
           test -f "$IPA"
           if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
             TAG="${GITHUB_REF_NAME}"
@@ -230,11 +226,9 @@ jobs:
           cat > "$NOTES" <<EOF
           Telegram iOS ${APP_VERSION} (${BUILD_NUMBER})
 
-          Turbo CI unsigned IPA (\`${BUILD_CONFIGURATION}\`):
-          - no app extensions, no dSYMs
-          - dbg / no WMO (ci_arm64) for compile speed
-          - fake-codesigned — resign before device install
+          Unsigned IPA (PrivateMusic-style packaging). Resign before install.
 
+          Build: \`ci_arm64\` via Make.py/Bazel (Telegram cannot use plain xcodebuild).
           Commit: \`${GITHUB_SHA}\`
           EOF
           if gh release view "$TAG" >/dev/null 2>&1; then
@@ -245,3 +239,12 @@ jobs:
               --title "Telegram ${APP_VERSION} (${BUILD_NUMBER})" \
               --notes-file "$NOTES"
           fi
+
+      - name: Upload unsigned IPA
+        if: success() || failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: Telegram-${{ env.APP_VERSION }}-${{ env.BUILD_NUMBER }}-unsigned
+          path: artifacts/${{ env.IPA_NAME }}
+          if-no-files-found: ignore
+          retention-days: 14
