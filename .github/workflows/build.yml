@@ -1,8 +1,14 @@
-# Build unsigned Telegram-iOS IPA (Bazel), styled after decoder-dev/PrivateMusic2 CI:
-# fast runner, unsigned artifact, tag → GitHub Release.
+# Turbo IPA CI — PrivateMusic-style packaging + Telegram-specific Bazel speed profile.
 #
-# Optional secrets TELEGRAM_API_ID / TELEGRAM_API_HASH / TELEGRAM_BUNDLE_ID / TELEGRAM_TEAM_ID
-# override build-system/appstore-configuration.json when set.
+# Speed levers vs a full App Store build:
+#   - configuration=ci_arm64  (dbg, no WMO / -Osize / strip / dSYM)
+#   - --disableExtensions     (skip 6 app extensions)
+#   - --ciFast                (jobs=HOST_CPUS, Swift -j = all cores)
+#   - shallow clone + depth-1 submodules
+#   - single global concurrency (cancel older IPA jobs)
+#   - Bazel disk + repository cache
+#
+# Optional secrets: TELEGRAM_API_ID / TELEGRAM_API_HASH / TELEGRAM_BUNDLE_ID / TELEGRAM_TEAM_ID
 
 name: Build iOS
 
@@ -10,23 +16,24 @@ on:
   push:
     branches: [master]
     tags: ['v*']
-  pull_request:
   workflow_dispatch:
     inputs:
       configuration:
         description: Bazel build configuration
         type: choice
         options:
-          - release_arm64
+          - ci_arm64
           - debug_arm64
-        default: release_arm64
+          - release_arm64
+        default: ci_arm64
       create_release:
         description: Publish a GitHub Release with the IPA
         type: boolean
         default: false
 
+# One IPA job at a time — cancel stale master/tag races.
 concurrency:
-  group: ios-build-${{ github.workflow }}-${{ github.ref }}
+  group: telegram-ios-ipa
   cancel-in-progress: true
 
 permissions:
@@ -34,20 +41,21 @@ permissions:
 
 jobs:
   build:
-    name: Build IPA (macos-26)
+    name: Build IPA (${{ github.event.inputs.configuration || 'ci_arm64' }})
     runs-on: macos-26
-    timeout-minutes: 360
+    timeout-minutes: 240
 
     env:
-      BUILD_CONFIGURATION: ${{ github.event.inputs.configuration || 'release_arm64' }}
+      BUILD_CONFIGURATION: ${{ github.event.inputs.configuration || 'ci_arm64' }}
       BAZEL_USER_ROOT: /private/var/tmp/_bazel_telegram_ios
       BAZEL_CACHE_DIR: ${{ github.workspace }}/.telegram-bazel-cache
+      BAZEL_REPO_CACHE: ${{ github.workspace }}/.telegram-bazel-repo-cache
 
     steps:
       - name: Checkout
         uses: actions/checkout@v5
         with:
-          fetch-depth: 0
+          fetch-depth: 1
           submodules: false
 
       - name: Fix submodule URLs for forks
@@ -60,13 +68,12 @@ jobs:
 
       - name: Checkout submodules
         run: |
+          # Depth-1 + parallel fetch; drop unused history for third-party giants.
           git submodule update --init --recursive --depth 1 --jobs 8
 
       - name: Select Xcode
         run: |
           set -euo pipefail
-          # Prefer versions.json (26.2). Xcode 27 preview runners often download Metal
-          # but xcrun still cannot find `metal` for Bazel MetalCompile.
           XCODE_VERSION="$(python3 -c 'import json; print(json.load(open("versions.json"))["xcode"])')"
           DEVELOPER_DIR="/Applications/Xcode_${XCODE_VERSION}.app/Contents/Developer"
           if [ ! -d "$DEVELOPER_DIR" ]; then
@@ -77,13 +84,17 @@ jobs:
           fi
           sudo xcode-select -s "$DEVELOPER_DIR"
           xcodebuild -version
+          sysctl -n hw.ncpu || true
 
-      # PrivateMusic-style Metal install + xcrun cache reset (Bazel calls `xcrun metal`).
       - name: Prepare Metal toolchain
         run: |
           set -euo pipefail
-          sudo xcodebuild -downloadComponent MetalToolchain
-          rm -f "$(getconf DARWIN_USER_TEMP_DIR)/xcrun_db" || true
+          if xcrun -f metal >/dev/null 2>&1; then
+            echo "metal already available: $(xcrun -f metal)"
+          else
+            sudo xcodebuild -downloadComponent MetalToolchain
+            rm -f "$(getconf DARWIN_USER_TEMP_DIR)/xcrun_db" || true
+          fi
           xcrun -f metal
           xcrun metal -v
 
@@ -103,9 +114,13 @@ jobs:
       - name: Cache Bazel
         uses: actions/cache@v4
         with:
-          path: ${{ env.BAZEL_CACHE_DIR }}
-          key: bazel-${{ runner.os }}-${{ env.BUILD_CONFIGURATION }}-${{ hashFiles('versions.json', 'MODULE.bazel', 'MODULE.bazel.lock') }}
+          path: |
+            ${{ env.BAZEL_CACHE_DIR }}
+            ${{ env.BAZEL_REPO_CACHE }}
+          key: bazel-turbo-${{ runner.os }}-${{ env.BUILD_CONFIGURATION }}-${{ hashFiles('versions.json', 'MODULE.bazel', 'MODULE.bazel.lock') }}
           restore-keys: |
+            bazel-turbo-${{ runner.os }}-${{ env.BUILD_CONFIGURATION }}-
+            bazel-turbo-${{ runner.os }}-
             bazel-${{ runner.os }}-${{ env.BUILD_CONFIGURATION }}-
             bazel-${{ runner.os }}-
 
@@ -143,25 +158,24 @@ jobs:
       - name: Compute build number
         run: |
           set -euo pipefail
+          # Shallow clone: use Actions run number instead of git rev-list --count.
           BUILD_NUMBER_OFFSET="$(cat build_number_offset)"
           APP_VERSION="$(python3 -c 'import json; print(json.load(open("versions.json"))["app"])')"
-          COMMIT_COUNT="$(git rev-list --count HEAD)"
-          BUILD_NUMBER="$((COMMIT_COUNT + BUILD_NUMBER_OFFSET))"
+          BUILD_NUMBER="$((BUILD_NUMBER_OFFSET + GITHUB_RUN_NUMBER))"
           {
             echo "APP_VERSION=$APP_VERSION"
             echo "BUILD_NUMBER=$BUILD_NUMBER"
           } >> "$GITHUB_ENV"
-          echo "Telegram ${APP_VERSION} (${BUILD_NUMBER})"
+          echo "Telegram ${APP_VERSION} (${BUILD_NUMBER}) config=${BUILD_CONFIGURATION}"
 
       - name: Build IPA
         run: |
           set -euo pipefail
-          mkdir -p "$BAZEL_CACHE_DIR"
+          mkdir -p "$BAZEL_CACHE_DIR" "$BAZEL_REPO_CACHE"
 
           python3 build-system/Make/ImportCertificates.py \
             --path build-system/fake-codesigning/certs
 
-          # PrivateMusic-style fast path: unsigned/fake-signed IPA, no extensions, no dSYM.
           python3 -u build-system/Make/Make.py \
             --overrideXcodeVersion \
             --bazelUserRoot="$BAZEL_USER_ROOT" \
@@ -173,6 +187,7 @@ jobs:
             --buildNumber="$BUILD_NUMBER" \
             --disableExtensions \
             --skipDsym \
+            --ciFast \
             --enableParallelSwiftmoduleGeneration \
             --outputBuildArtifactsPath=build/artifacts
 
@@ -216,10 +231,11 @@ jobs:
           cat > "$NOTES" <<EOF
           Telegram iOS ${APP_VERSION} (${BUILD_NUMBER})
 
-          Unsigned (fake-codesigned) IPA — extensions and dSYMs skipped for CI speed.
-          Sign with your own certificate before installing on a device.
+          Turbo CI unsigned IPA (\`${BUILD_CONFIGURATION}\`):
+          - no app extensions, no dSYMs
+          - dbg / no WMO (ci_arm64) for compile speed
+          - fake-codesigned — resign before device install
 
-          Configuration: \`${BUILD_CONFIGURATION}\`
           Commit: \`${GITHUB_SHA}\`
           EOF
           if gh release view "$TAG" >/dev/null 2>&1; then
