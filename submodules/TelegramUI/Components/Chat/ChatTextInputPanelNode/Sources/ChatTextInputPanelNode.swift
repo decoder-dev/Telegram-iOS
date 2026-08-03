@@ -258,6 +258,8 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
 
     private var expandButton: (button: HighlightTrackingButton, icon: UIImageView)?
     private var heightDependentExpandButtonAlpha: CGFloat = 0.0
+    
+    private var formattingAccessoryToolbar: UIToolbar?
 
     public let menuButton: HighlightTrackingButtonNode
     private let menuButtonBackgroundView: GlassBackgroundView
@@ -4919,6 +4921,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         }
         
         self.inputMenu.activate()
+        self.updateFormattingAccessoryToolbar()
         
         if let touchDownGestureRecognizer = self.touchDownGestureRecognizer {
             self.richTextInputNode?.inputView.addGestureRecognizer(touchDownGestureRecognizer)
@@ -4938,6 +4941,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         self.storedInputLanguage = richTextInputNode.primaryLanguage
         self.inputMenu.deactivate()
         self.dismissedEmojiSuggestionPosition = nil
+        self.clearFormattingAccessoryToolbar()
         
         if let presentationInterfaceState = self.presentationInterfaceState, !self.skipPresentationInterfaceStateUpdate {
             if let peer = presentationInterfaceState.renderedPeer?.peer as? TelegramUser, peer.botInfo != nil, let keyboardButtonsMessage = presentationInterfaceState.keyboardButtonsMessage, let keyboardMarkup = keyboardButtonsMessage.visibleButtonKeyboardMarkup, keyboardMarkup.flags.contains(.persistent) {
@@ -5275,6 +5279,63 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
                 }
             }
         })
+    }
+    
+    private func ensureFormattingAccessoryToolbar() -> UIToolbar {
+        if let toolbar = self.formattingAccessoryToolbar {
+            return toolbar
+        }
+        let toolbar = UIToolbar(frame: CGRect(origin: CGPoint(), size: CGSize(width: UIScreen.main.bounds.width, height: 44.0)))
+        toolbar.sizeToFit()
+        let bold = UIBarButtonItem(title: "B", style: .plain, target: self, action: #selector(self.formatAttributesBold(_:)))
+        let italic = UIBarButtonItem(title: "I", style: .plain, target: self, action: #selector(self.formatAttributesItalic(_:)))
+        let mono = UIBarButtonItem(title: "M", style: .plain, target: self, action: #selector(self.formatAttributesMonospace(_:)))
+        let link = UIBarButtonItem(title: "Link", style: .plain, target: self, action: #selector(self.formatAttributesLink(_:)))
+        let flex = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+        toolbar.items = [bold, flex, italic, flex, mono, flex, link]
+        self.formattingAccessoryToolbar = toolbar
+        return toolbar
+    }
+    
+    private func textViewForFormattingAccessory() -> UITextView? {
+        guard let inputView = self.richTextInputNode?.inputView else {
+            return nil
+        }
+        if let textView = inputView as? UITextView {
+            return textView
+        }
+        func findTextView(in view: UIView) -> UITextView? {
+            if let textView = view as? UITextView {
+                return textView
+            }
+            for subview in view.subviews {
+                if let found = findTextView(in: subview) {
+                    return found
+                }
+            }
+            return nil
+        }
+        return findTextView(in: inputView)
+    }
+    
+    private func updateFormattingAccessoryToolbar() {
+        let enabled = self.context?.sharedContext.immediateForkExtrasSettings.formattingPanel ?? false
+        guard let textView = self.textViewForFormattingAccessory() else {
+            return
+        }
+        if enabled {
+            textView.inputAccessoryView = self.ensureFormattingAccessoryToolbar()
+        } else {
+            textView.inputAccessoryView = nil
+        }
+        textView.reloadInputViews()
+    }
+    
+    private func clearFormattingAccessoryToolbar() {
+        if let textView = self.textViewForFormattingAccessory() {
+            textView.inputAccessoryView = nil
+            textView.reloadInputViews()
+        }
     }
     
     @objc public func _showTextStyleOptions(_ sender: Any) {
