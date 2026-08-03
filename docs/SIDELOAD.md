@@ -86,4 +86,6 @@ features (stored in AccountManager + App Group UserDefaults for NSE):
 
 ## Toolchain note (Xcode / iOS)
 
-CI targets **Xcode 27 / iOS 27 SDK** via the GitHub `xcode-27` runner image (`versions.json` → `"xcode": "27.0"`). The preview image omits Metal by default; the workflow runs `xcodebuild -downloadComponent MetalToolchain` and verifies `xcrun metal` before the Bazel build. Make.py always uses `--overrideXcodeVersion` so beta Xcode version strings are accepted.
+CI targets **Xcode 27 / iOS 27 SDK** via the GitHub `xcode-27` runner image (`versions.json` → `"xcode": "27.0"`). The preview image omits Metal by default; the workflow downloads `MetalToolchain` (as the runner user) and verifies `xcrun metal -v` before the Bazel build. Make.py always uses `--overrideXcodeVersion` so beta Xcode version strings are accepted.
+
+**Minimum iOS: 15.0** — Xcode 27’s libc++ rejects deployment targets below iOS 15 (`The selected platform is no longer supported by libc++`). The app `minimum_os_version` in `Telegram/BUILD` was raised from 13.0 accordingly.
