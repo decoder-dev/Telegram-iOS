@@ -3617,7 +3617,14 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
         }
     }
         
-    private let emptyInputView = EmptyInputView()
+    // Local empty keyboard stand-in — TextFieldComponent and
+    // ChatEntityKeyboardInputNode both export a public EmptyInputView.
+    private final class MediaModeEmptyInputView: UIView, UIInputViewAudioFeedback {
+        var enableInputClicksWhenVisible: Bool {
+            return true
+        }
+    }
+    private let emptyInputView = MediaModeEmptyInputView()
     private func chatPresentationInterfaceStateInputView(_ state: ChatPresentationInterfaceState) -> UIView? {
         switch state.inputMode {
         case .text:
