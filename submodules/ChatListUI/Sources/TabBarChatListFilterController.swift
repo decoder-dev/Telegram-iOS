@@ -19,9 +19,8 @@ public func chatListFilterItems(context: AccountContext) -> Signal<(Int, [(ChatL
         for case let .filter(_, _, _, data) in filters {
             additionalPeerIds.formUnion(data.includePeers.peers)
             additionalPeerIds.formUnion(data.excludePeers)
-            if !data.excludeArchived {
-                additionalGroupIds.insert(Namespaces.PeerGroup.archive)
-            }
+            // Archived chats are always excluded from folders; do not merge
+            // archive unread totals into folder tab badges.
         }
         if !additionalPeerIds.isEmpty {
             for peerId in additionalPeerIds {
@@ -150,31 +149,14 @@ public func chatListFilterItems(context: AccountContext) -> Signal<(Int, [(ChatL
                             }
                         }
                     }
-                    if !data.excludeArchived {
-                        if let totalState = totalStates[Namespaces.PeerGroup.archive] {
-                            for tag in tags {
-                                if data.excludeMuted {
-                                    if let value = totalState.filteredCounters[tag] {
-                                        if value.chatCount != 0 {
-                                            count += Int(value.chatCount)
-                                            unmutedUnreadCount += Int(value.chatCount)
-                                        }
-                                    }
-                                } else {
-                                    if let value = totalState.absoluteCounters[tag] {
-                                        count += Int(value.chatCount)
-                                    }
-                                    if let value = totalState.filteredCounters[tag] {
-                                        if value.chatCount != 0 {
-                                            unmutedUnreadCount += Int(value.chatCount)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    // Archived chats are always excluded from folder unread badges.
+                    // (Previously merged archive totals when !data.excludeArchived.)
                     for peerId in data.includePeers.peers {
                         if let (tag, peerCount, hasUnmuted, groupIdValue, isMuted) = peerTagAndCount[peerId], peerCount != 0, let groupId = groupIdValue {
+                            // Skip archived peers that were explicitly included in the folder.
+                            if groupId == Namespaces.PeerGroup.archive {
+                                continue
+                            }
                             var matches = true
                             if tags.contains(tag) {
                                 if isMuted && data.excludeMuted {
@@ -188,17 +170,8 @@ public func chatListFilterItems(context: AccountContext) -> Signal<(Int, [(ChatL
                                 case .root:
                                     matchesGroup = true
                                 case .group:
-                                    if groupId == Namespaces.PeerGroup.archive {
-                                        matchesGroup = !data.excludeArchived
-                                    } else {
-                                        matchesGroup = false
-                                    }
-                                }
-                                if matchesGroup && peerCount != 0 {
-                                    count += 1
-                                    if hasUnmuted {
-                                        unmutedUnreadCount += 1
-                                    }
+                                    // Archived peers never contribute to folder badges.
+                                    matchesGroup = false
                                 }
                             }
                         }
@@ -219,11 +192,8 @@ public func chatListFilterItems(context: AccountContext) -> Signal<(Int, [(ChatL
                                 case .root:
                                     matchesGroup = true
                                 case .group:
-                                    if groupId == Namespaces.PeerGroup.archive {
-                                        matchesGroup = !data.excludeArchived
-                                    } else {
-                                        matchesGroup = false
-                                    }
+                                    // Archived peers never contribute to folder badges.
+                                    matchesGroup = false
                                 }
                                 if matchesGroup && peerCount != 0 {
                                     count -= 1
