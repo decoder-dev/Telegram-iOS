@@ -48,6 +48,7 @@ class BazelCommandLine:
         self.disable_provisioning_profiles = False
         self.disable_extensions = False
         self.skip_dsym = False
+        self.ci_fast = False
         self.profile_swift = False
         self.embed_watch_app = False
         self.watch_api_id = None
@@ -146,10 +147,25 @@ class BazelCommandLine:
     def set_skip_dsym(self, value=True):
         self.skip_dsym = value
 
+    def set_ci_fast(self, value=True):
+        self.ci_fast = value
+
     def set_profile_swift(self, value):
         self.profile_swift = value
 
     def set_configuration(self, configuration):
+        cpus = os.cpu_count() or 4
+        # CI: use every core. Local debug builds leave two cores free for the IDE.
+        debug_swift_threads = cpus if self.ci_fast else max(cpus - 2, 2)
+        debug_parallel = [
+            '--@build_bazel_rules_swift//swift:copt="-j"',
+            f'--@build_bazel_rules_swift//swift:copt="{debug_swift_threads}"',
+        ]
+        ci_jobs = [
+            f'--jobs={cpus}',
+            f'--local_cpu_resources={cpus}',
+        ] if self.ci_fast else []
+
         if configuration == 'debug_arm64':
             self.configuration_args = [
                 # bazel debug build configuration
@@ -160,7 +176,7 @@ class BazelCommandLine:
 
                 # Always build universal Watch binaries.
                 '--watchos_cpus=arm64_32'
-            ] + self.common_debug_args
+            ] + debug_parallel + ci_jobs
         elif configuration == 'debug_sim_arm64':
             self.configuration_args = [
                 # bazel debug build configuration
@@ -171,7 +187,7 @@ class BazelCommandLine:
 
                 # Always build universal Watch binaries.
                 '--watchos_cpus=arm64_32'
-            ] + self.common_debug_args
+            ] + debug_parallel + ci_jobs
         elif configuration == 'release_sim_arm64':
             self.configuration_args = [
                 # bazel optimized build configuration
@@ -182,7 +198,17 @@ class BazelCommandLine:
 
                 # Always build universal Watch binaries.
                 '--watchos_cpus=arm64_32'
-            ] + self.common_debug_args
+            ] + debug_parallel + ci_jobs
+        elif configuration == 'ci_arm64':
+            # Fastest device IPA for GitHub Actions: dbg, no WMO/dSYM, max parallelism.
+            self.configuration_args = [
+                '-c', 'dbg',
+                '--ios_multi_cpus=arm64',
+                '--watchos_cpus=arm64_32',
+            ] + debug_parallel + [
+                f'--jobs={cpus}',
+                f'--local_cpu_resources={cpus}',
+            ]
         elif configuration == 'release_arm64':
             self.configuration_args = [
                 # bazel optimized build configuration
@@ -202,7 +228,11 @@ class BazelCommandLine:
                     # Require DSYM files as build output.
                     '--output_groups=+dsyms',
                 ]
-            self.configuration_args += self.common_release_args
+            if self.ci_fast:
+                # Skip WMO / -Osize / strip — biggest compile-time wins after dbg.
+                self.configuration_args += debug_parallel + ci_jobs
+            else:
+                self.configuration_args += self.common_release_args
         else:
             raise Exception('Unknown configuration {}'.format(configuration))
 
@@ -281,7 +311,13 @@ class BazelCommandLine:
                 # rather than as part of the compilation.
                 '--features=swift.split_derived_files_generation',
             ]
-
+        if self.ci_fast:
+            repo_cache = os.environ.get('BAZEL_REPO_CACHE')
+            if repo_cache:
+                combined_arguments += [
+                    f'--repository_cache={repo_cache}',
+                    '--experimental_repository_cache_hardlinks',
+                ]
         return combined_arguments
 
     def invoke_build(self):
@@ -696,6 +732,8 @@ def build(bazel, arguments):
         bazel_command_line.set_disable_extensions(True)
     if getattr(arguments, 'skipDsym', False):
         bazel_command_line.set_skip_dsym(True)
+    if getattr(arguments, 'ciFast', False):
+        bazel_command_line.set_ci_fast(True)
     bazel_command_line.set_configuration(arguments.configuration)
     if arguments.embedWatchApp:
         if arguments.configuration in ('debug_arm64', 'release_arm64'):
@@ -1063,6 +1101,7 @@ if __name__ == '__main__':
             'debug_sim_arm64',
             'release_sim_arm64',
             'release_arm64',
+            'ci_arm64',
         ],
         required=True,
         help='Build configuration'
@@ -1085,6 +1124,12 @@ if __name__ == '__main__':
         action='store_true',
         default=False,
         help='Skip dSYM generation on release_arm64 builds (much faster CI artifacts).'
+    )
+    buildParser.add_argument(
+        '--ciFast',
+        action='store_true',
+        default=False,
+        help='Max out Bazel/Swift parallelism and skip release WMO/osize/strip (CI speed profile).'
     )
     buildParser.add_argument(
         '--profileSwift',
