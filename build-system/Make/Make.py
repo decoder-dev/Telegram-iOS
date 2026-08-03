@@ -46,6 +46,8 @@ class BazelCommandLine:
         self.show_actions = False
         self.enable_sandbox = False
         self.disable_provisioning_profiles = False
+        self.disable_extensions = False
+        self.skip_dsym = False
         self.profile_swift = False
         self.embed_watch_app = False
         self.watch_api_id = None
@@ -138,6 +140,12 @@ class BazelCommandLine:
     def set_disable_provisioning_profiles(self):
         self.disable_provisioning_profiles = True
 
+    def set_disable_extensions(self, value=True):
+        self.disable_extensions = value
+
+    def set_skip_dsym(self, value=True):
+        self.skip_dsym = value
+
     def set_profile_swift(self, value):
         self.profile_swift = value
 
@@ -185,13 +193,16 @@ class BazelCommandLine:
 
                 # Always build universal Watch binaries.
                 '--watchos_cpus=arm64_32',
+            ]
+            if not self.skip_dsym:
+                self.configuration_args += [
+                    # Generate DSYM files when building.
+                    '--apple_generate_dsym',
 
-                # Generate DSYM files when building.
-                '--apple_generate_dsym',
-
-                # Require DSYM files as build output.
-                '--output_groups=+dsyms',
-            ] + self.common_release_args
+                    # Require DSYM files as build output.
+                    '--output_groups=+dsyms',
+                ]
+            self.configuration_args += self.common_release_args
         else:
             raise Exception('Unknown configuration {}'.format(configuration))
 
@@ -298,6 +309,9 @@ class BazelCommandLine:
 
         if self.disable_provisioning_profiles:
             combined_arguments += ['--//Telegram:disableProvisioningProfiles']
+
+        if self.disable_extensions:
+            combined_arguments += ['--//Telegram:disableExtensions']
 
         combined_arguments += self.common_args
         combined_arguments += self.common_build_args
@@ -678,6 +692,10 @@ def build(bazel, arguments):
         additional_codesigning_output_path=None
     )
 
+    if getattr(arguments, 'disableExtensions', False):
+        bazel_command_line.set_disable_extensions(True)
+    if getattr(arguments, 'skipDsym', False):
+        bazel_command_line.set_skip_dsym(True)
     bazel_command_line.set_configuration(arguments.configuration)
     if arguments.embedWatchApp:
         if arguments.configuration in ('debug_arm64', 'release_arm64'):
@@ -1055,6 +1073,18 @@ if __name__ == '__main__':
         default=False,
         help='Generate .swiftmodule files in parallel to building modules, can speed up compilation on multi-core '
              'systems. '
+    )
+    buildParser.add_argument(
+        '--disableExtensions',
+        action='store_true',
+        default=False,
+        help='Skip app extensions (Share/Widget/NSE/…) for a faster CI IPA.'
+    )
+    buildParser.add_argument(
+        '--skipDsym',
+        action='store_true',
+        default=False,
+        help='Skip dSYM generation on release_arm64 builds (much faster CI artifacts).'
     )
     buildParser.add_argument(
         '--profileSwift',
