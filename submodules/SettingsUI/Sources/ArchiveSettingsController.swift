@@ -254,7 +254,9 @@ public func archiveSettingsController(context: AccountContext) -> ViewController
         lockNow: {
             ArchiveLockSession.shared.relock()
             sessionUnlockedPromise.set(false)
-            dismissOpenArchiveControllers(from: navigationControllerImpl?())
+            Queue.mainQueue().after(0.3, {
+                dismissOpenArchiveControllers(from: navigationControllerImpl?())
+            })
         }
     )
     
