@@ -142,6 +142,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
     
     private let suggestAutoarchiveDisposable = MetaDisposable()
     private let dismissAutoarchiveDisposable = MetaDisposable()
+    private let archiveLockDisposable = MetaDisposable()
     private var didSuggestAutoarchive = false
     private var didSuggestLoginEmailSetup = false
     private var didSuggestLoginPasskeySetup = false
@@ -258,6 +259,17 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
         
         self.animationCache = context.animationCache
         self.animationRenderer = context.animationRenderer
+        
+        if case .chatList(groupId: .archive) = location {
+            ArchiveLockSession.shared.bindBackgroundRelock(applicationIsActive: context.sharedContext.applicationBindings.applicationIsActive)
+            self.archiveLockDisposable.set((ArchiveLockSession.shared.relockedSignal
+            |> deliverOnMainQueue).startStrict(next: { [weak self] _ in
+                guard let self else {
+                    return
+                }
+                dismissOpenArchiveControllers(from: self.navigationController)
+            }))
+        }
         
         var groupCallPanelSource: EnginePeer.Id?
         var chatListNotices = false
@@ -796,6 +808,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
         self.suggestLocalizationDisposable.dispose()
         self.suggestAutoarchiveDisposable.dispose()
         self.dismissAutoarchiveDisposable.dispose()
+        self.archiveLockDisposable.dispose()
         self.presentationDataDisposable?.dispose()
         self.stateDisposable.dispose()
         self.filterDisposable.dispose()
@@ -1575,7 +1588,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                 }
                 
                 // Keep every archived chat muted (covers peers archived before auto-mute).
-                muteAllArchivedChats(context: self.context)
+                muteAllArchivedChatsIfNeeded(context: self.context)
                 
                 let _ = self.context.engine.privacy.updateGlobalPrivacySettings().startStandalone()
                 let _ = (combineLatest(

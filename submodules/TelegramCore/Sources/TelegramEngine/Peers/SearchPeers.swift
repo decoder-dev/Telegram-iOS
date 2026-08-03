@@ -72,6 +72,10 @@ public func _internal_searchPeers(accountPeerId: PeerId, postbox: Postbox, netwo
                     var renderedMyPeers: [FoundPeer] = []
                     for result in myResults {
                         let peerId: PeerId = result.peerId
+                        // Hide archived chats from "My chats" search results.
+                        if transaction.getPeerChatListInclusion(peerId).groupId == Namespaces.PeerGroup.archive {
+                            continue
+                        }
                         if let peer = parsedPeers.get(peerId) {
                             if let group = peer as? TelegramGroup, group.migrationReference != nil {
                                 continue

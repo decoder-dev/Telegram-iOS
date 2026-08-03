@@ -5,7 +5,6 @@ import SwiftSignalKit
 import TelegramCore
 import TelegramUIPreferences
 import AccountContext
-import PromptUI
 
 public enum ArchiveUnlockResult {
     case unlocked
@@ -21,12 +20,14 @@ public func ensureArchiveUnlocked(
     present: @escaping (ViewController) -> Void,
     completion: @escaping (ArchiveUnlockResult) -> Void
 ) {
+    ArchiveLockSession.shared.bindBackgroundRelock(applicationIsActive: context.sharedContext.applicationBindings.applicationIsActive)
+    
     let _ = (context.engine.data.get(
         TelegramEngine.EngineData.Item.Configuration.ApplicationSpecificPreference(key: ApplicationSpecificPreferencesKeys.chatArchiveSettings)
     )
     |> deliverOnMainQueue).startStandalone(next: { preference in
         let settings = preference?.get(ChatArchiveSettings.self) ?? .default
-        guard settings.isPasswordProtected, let expectedPassword = settings.lockPassword else {
+        guard settings.isPasswordProtected else {
             completion(.notProtected)
             return
         }
@@ -35,12 +36,12 @@ public func ensureArchiveUnlocked(
             return
         }
         
-        presentArchivePasswordPrompt(
+        presentArchivePasswordAlert(
             context: context,
-            present: present,
             title: "Archive Password",
-            subtitle: "Enter the password to open Archive",
-            expectedPassword: expectedPassword,
+            message: "Enter the password to open Archive",
+            confirmTitle: "Unlock",
+            expectedSettings: settings,
             onSuccess: {
                 ArchiveLockSession.shared.unlock()
                 completion(.unlocked)
@@ -52,104 +53,141 @@ public func ensureArchiveUnlocked(
     })
 }
 
-public func presentArchivePasswordPrompt(
+/// Gate for opening a specific peer that may live in the Archive.
+public func ensureArchivedPeerAccessible(
     context: AccountContext,
+    peerId: EnginePeer.Id,
     present: @escaping (ViewController) -> Void,
+    completion: @escaping (ArchiveUnlockResult) -> Void
+) {
+    ArchiveLockSession.shared.bindBackgroundRelock(applicationIsActive: context.sharedContext.applicationBindings.applicationIsActive)
+    
+    let _ = (combineLatest(
+        context.engine.data.get(TelegramEngine.EngineData.Item.Messages.ChatListGroup(id: peerId)),
+        context.engine.data.get(TelegramEngine.EngineData.Item.Configuration.ApplicationSpecificPreference(key: ApplicationSpecificPreferencesKeys.chatArchiveSettings))
+    )
+    |> deliverOnMainQueue).startStandalone(next: { group, preference in
+        let settings = preference?.get(ChatArchiveSettings.self) ?? .default
+        guard group == .archive, settings.isPasswordProtected else {
+            completion(.notProtected)
+            return
+        }
+        if ArchiveLockSession.shared.isUnlocked {
+            completion(.unlocked)
+            return
+        }
+        ensureArchiveUnlocked(context: context, present: present, completion: completion)
+    })
+}
+
+private func presentArchivePasswordAlert(
+    context: AccountContext,
     title: String,
-    subtitle: String?,
-    expectedPassword: String?,
+    message: String?,
+    confirmTitle: String,
+    expectedSettings: ChatArchiveSettings?,
     onSuccess: @escaping () -> Void,
-    onCancel: @escaping () -> Void
+    onCancel: @escaping () -> Void,
+    capturePassword: ((String) -> Void)? = nil
 ) {
     var attemptsLeft = 5
     
-    func showPrompt(message: String?) {
-        let prompt = promptController(
-            context: context,
-            text: title,
-            titleFont: .bold,
-            subtitle: message ?? subtitle,
-            value: "",
-            placeholder: "Password",
-            characterLimit: 64,
-            displayCharacterLimit: false,
-            apply: { value in
-                guard let value else {
-                    onCancel()
-                    return
-                }
-                let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-                if let expectedPassword {
-                    if trimmed == expectedPassword {
-                        onSuccess()
-                    } else {
-                        attemptsLeft -= 1
-                        if attemptsLeft <= 0 {
-                            onCancel()
-                        } else {
-                            Queue.mainQueue().after(0.35) {
-                                showPrompt(message: "Incorrect password. \(attemptsLeft) attempts left.")
-                            }
-                        }
-                    }
+    func show(messageOverride: String?) {
+        let alert = UIAlertController(title: title, message: messageOverride ?? message, preferredStyle: .alert)
+        alert.addTextField { field in
+            field.isSecureTextEntry = true
+            field.placeholder = "Password"
+            field.autocorrectionType = .no
+            field.autocapitalizationType = .none
+            field.returnKeyType = .done
+        }
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: { _ in
+            onCancel()
+        }))
+        alert.addAction(UIAlertAction(title: confirmTitle, style: .default, handler: { _ in
+            let trimmed = (alert.textFields?.first?.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            if let expectedSettings {
+                if expectedSettings.matchesPassword(trimmed) {
+                    onSuccess()
                 } else {
-                    if trimmed.isEmpty {
+                    attemptsLeft -= 1
+                    if attemptsLeft <= 0 {
                         onCancel()
                     } else {
-                        Queue.mainQueue().after(0.2) {
-                            let confirm = promptController(
-                                context: context,
-                                text: "Confirm Password",
-                                titleFont: .bold,
-                                subtitle: "Re-enter the Archive password",
-                                value: "",
-                                placeholder: "Password",
-                                characterLimit: 64,
-                                apply: { confirmValue in
-                                    guard let confirmValue else {
-                                        onCancel()
-                                        return
-                                    }
-                                    if confirmValue.trimmingCharacters(in: .whitespacesAndNewlines) == trimmed {
-                                        let _ = updateChatArchiveSettings(engine: context.engine) { current in
-                                            current.withUpdatedLockPassword(trimmed)
-                                        }.startStandalone()
-                                        ArchiveLockSession.shared.unlock()
-                                        onSuccess()
-                                    } else {
-                                        Queue.mainQueue().after(0.35) {
-                                            showPrompt(message: "Passwords did not match. Try again.")
-                                        }
-                                    }
-                                },
-                                dismissed: {
-                                    onCancel()
-                                }
-                            )
-                            present(confirm)
+                        Queue.mainQueue().after(0.3) {
+                            show(messageOverride: "Incorrect password. \(attemptsLeft) attempts left.")
                         }
                     }
                 }
-            },
-            dismissed: {
+            } else if let capturePassword {
+                if trimmed.isEmpty {
+                    onCancel()
+                } else {
+                    Queue.mainQueue().after(0.2) {
+                        let confirm = UIAlertController(title: "Confirm Password", message: "Re-enter the Archive password", preferredStyle: .alert)
+                        confirm.addTextField { field in
+                            field.isSecureTextEntry = true
+                            field.placeholder = "Password"
+                            field.autocorrectionType = .no
+                            field.autocapitalizationType = .none
+                        }
+                        confirm.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: { _ in
+                            onCancel()
+                        }))
+                        confirm.addAction(UIAlertAction(title: "Done", style: .default, handler: { _ in
+                            let confirmValue = (confirm.textFields?.first?.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                            if confirmValue == trimmed {
+                                capturePassword(trimmed)
+                                onSuccess()
+                            } else {
+                                Queue.mainQueue().after(0.3) {
+                                    show(messageOverride: "Passwords did not match. Try again.")
+                                }
+                            }
+                        }))
+                        presentUIAlert(context: context, alert: confirm)
+                    }
+                }
+            } else {
                 onCancel()
             }
-        )
-        present(prompt)
+        }))
+        presentUIAlert(context: context, alert: alert)
     }
     
-    showPrompt(message: nil)
+    show(messageOverride: nil)
+}
+
+private func presentUIAlert(context: AccountContext, alert: UIAlertController) {
+    if let host = context.sharedContext.applicationBindings.getTopWindow()?.rootViewController {
+        var presenter = host
+        while let presented = presenter.presentedViewController {
+            presenter = presented
+        }
+        presenter.present(alert, animated: true)
+    }
 }
 
 public func setArchivePassword(context: AccountContext, present: @escaping (ViewController) -> Void, completion: @escaping (Bool) -> Void) {
-    presentArchivePasswordPrompt(
+    presentArchivePasswordAlert(
         context: context,
-        present: present,
         title: "Set Archive Password",
-        subtitle: "Chats in Archive stay muted and hidden from folders",
-        expectedPassword: nil,
-        onSuccess: { completion(true) },
-        onCancel: { completion(false) }
+        message: "Archived chats stay muted and hidden from folders",
+        confirmTitle: "Continue",
+        expectedSettings: nil,
+        onSuccess: {
+            ArchiveLockSession.shared.unlock()
+            completion(true)
+        },
+        onCancel: {
+            completion(false)
+        },
+        capturePassword: { password in
+            let hash = archivePasswordHash(password)
+            let _ = updateChatArchiveSettings(engine: context.engine) { current in
+                current.withUpdatedLockPasswordHash(hash)
+            }.startStandalone()
+        }
     )
 }
 
@@ -159,19 +197,19 @@ public func removeArchivePassword(context: AccountContext, present: @escaping (V
     )
     |> deliverOnMainQueue).startStandalone(next: { preference in
         let settings = preference?.get(ChatArchiveSettings.self) ?? .default
-        guard let expectedPassword = settings.lockPassword, settings.isPasswordProtected else {
+        guard settings.isPasswordProtected else {
             completion(true)
             return
         }
-        presentArchivePasswordPrompt(
+        presentArchivePasswordAlert(
             context: context,
-            present: present,
             title: "Remove Archive Password",
-            subtitle: "Enter the current password to disable the lock",
-            expectedPassword: expectedPassword,
+            message: "Enter the current password to disable the lock",
+            confirmTitle: "Remove",
+            expectedSettings: settings,
             onSuccess: {
                 let _ = updateChatArchiveSettings(engine: context.engine) { current in
-                    current.withUpdatedLockPassword(nil)
+                    current.withUpdatedLockPasswordHash(nil)
                 }.startStandalone()
                 ArchiveLockSession.shared.relock()
                 completion(true)
@@ -184,13 +222,24 @@ public func removeArchivePassword(context: AccountContext, present: @escaping (V
 }
 
 /// Mute every peer currently in the archive that is not already muted forever.
-/// Covers chats archived before auto-mute was introduced.
+/// Runs at most once per process lifetime.
+public func muteAllArchivedChatsIfNeeded(context: AccountContext) {
+    guard ArchiveLockSession.shared.claimMuteSweep() else {
+        return
+    }
+    muteAllArchivedChats(context: context)
+}
+
 public func muteAllArchivedChats(context: AccountContext) {
     let _ = (context.account.postbox.transaction { transaction -> [EnginePeer.Id] in
         let peerIds = transaction.chatListGetAllPeerIds(groupId: Namespaces.PeerGroup.archive)
         var toMute: [EnginePeer.Id] = []
         for peerId in peerIds {
-            let settings = transaction.getPeerNotificationSettings(id: peerId) as? TelegramPeerNotificationSettings
+            var notificationPeerId = peerId
+            if let peer = transaction.getPeer(peerId), peer is TelegramSecretChat, let associatedPeerId = peer.associatedPeerId {
+                notificationPeerId = associatedPeerId
+            }
+            let settings = transaction.getPeerNotificationSettings(id: notificationPeerId) as? TelegramPeerNotificationSettings
             switch settings?.muteState {
             case let .muted(until) where until == Int32.max:
                 continue
@@ -206,4 +255,22 @@ public func muteAllArchivedChats(context: AccountContext) {
         }
         return context.engine.peers.updateMultiplePeerMuteSettings(peerIds: peerIds, muted: true)
     }).startStandalone()
+}
+
+/// Pop any Archive chat-list controllers currently on the navigation stack.
+public func dismissOpenArchiveControllers(from navigationController: UINavigationController?) {
+    guard let navigationController else {
+        return
+    }
+    let filtered = navigationController.viewControllers.filter { controller in
+        if let chatList = controller as? ChatListControllerImpl {
+            if case .chatList(groupId: .archive) = chatList.location {
+                return false
+            }
+        }
+        return true
+    }
+    if filtered.count != navigationController.viewControllers.count {
+        navigationController.setViewControllers(filtered, animated: true)
+    }
 }

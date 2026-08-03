@@ -55,8 +55,9 @@ func archiveContextMenuItems(context: AccountContext, group: EngineChatList.Grou
                 }, completion: { _ in })
             })))
             if ArchiveLockSession.shared.isUnlocked {
-                items.append(.action(ContextMenuActionItem(text: "Lock Archive", icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Lock"), color: theme.contextMenu.primaryColor) }, action: { _, f in
+                items.append(.action(ContextMenuActionItem(text: "Lock Archive", icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Lock"), color: theme.contextMenu.primaryColor) }, action: { [weak chatListController] _, f in
                     ArchiveLockSession.shared.relock()
+                    dismissOpenArchiveControllers(from: chatListController?.navigationController)
                     f(.default)
                 })))
             }

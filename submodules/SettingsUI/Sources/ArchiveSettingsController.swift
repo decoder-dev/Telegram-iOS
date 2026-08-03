@@ -146,7 +146,7 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
                 arguments.lockNow()
             })
         case .passwordFooter:
-            return ItemListTextItem(presentationData: presentationData, text: .plain("When enabled, opening Archive requires a password. Archived chats are muted and hidden from folders and frequent contacts."), sectionId: self.section)
+            return ItemListTextItem(presentationData: presentationData, text: .plain("When enabled, opening Archive requires a password. Archived chats are muted and hidden from folders, search, and frequent contacts."), sectionId: self.section)
         }
     }
 }
@@ -155,6 +155,8 @@ private func archiveSettingsControllerEntries(
     presentationData: PresentationData,
     settings: GlobalPrivacySettings,
     archiveSettings: ChatArchiveSettings,
+    passwordLockOverride: Bool?,
+    sessionUnlocked: Bool,
     isPremium: Bool,
     isPremiumEnabled: Bool
 ) -> [ArchiveSettingsControllerEntry] {
@@ -176,9 +178,10 @@ private func archiveSettingsControllerEntries(
         entries.append(.unknownFooter)
     }
     
+    let passwordOn = passwordLockOverride ?? archiveSettings.isPasswordProtected
     entries.append(.passwordHeader)
-    entries.append(.passwordValue(archiveSettings.isPasswordProtected))
-    if archiveSettings.isPasswordProtected && ArchiveLockSession.shared.isUnlocked {
+    entries.append(.passwordValue(passwordOn))
+    if passwordOn && sessionUnlocked {
         entries.append(.passwordLockNow)
     }
     entries.append(.passwordFooter)
@@ -194,6 +197,12 @@ public func archiveSettingsController(context: AccountContext) -> ViewController
     var presentUndoImpl: ((UndoOverlayContent) -> Void)?
     var presentPremiumImpl: (() -> Void)?
     var presentControllerImpl: ((ViewController) -> Void)?
+    var navigationControllerImpl: (() -> NavigationController?)?
+    
+    // Overrides the switch while a set/remove password sheet is in flight,
+    // so cancel snaps the UI back instead of leaving an optimistic ON state.
+    let passwordLockOverride = ValuePromise<Bool?>(nil, ignoreRepeated: true)
+    let sessionUnlockedPromise = ValuePromise<Bool>(ArchiveLockSession.shared.isUnlocked, ignoreRepeated: true)
     
     let arguments = ArchiveSettingsControllerArguments(
         updateUnmuted: { value in
@@ -213,19 +222,43 @@ public func archiveSettingsController(context: AccountContext) -> ViewController
             }
         },
         togglePassword: { enabled in
+            // Optimistic override mirrors the switch the user just flipped.
+            passwordLockOverride.set(enabled)
             if enabled {
                 setArchivePassword(context: context, present: { controller in
                     presentControllerImpl?(controller)
-                }, completion: { _ in })
+                }, completion: { success in
+                    if success {
+                        passwordLockOverride.set(nil)
+                        sessionUnlockedPromise.set(true)
+                    } else {
+                        // Snap switch back off.
+                        passwordLockOverride.set(false)
+                        Queue.mainQueue().after(0.05) {
+                            passwordLockOverride.set(nil)
+                        }
+                    }
+                })
             } else {
                 removeArchivePassword(context: context, present: { controller in
                     presentControllerImpl?(controller)
-                }, completion: { _ in })
+                }, completion: { success in
+                    if success {
+                        passwordLockOverride.set(nil)
+                        sessionUnlockedPromise.set(false)
+                    } else {
+                        passwordLockOverride.set(true)
+                        Queue.mainQueue().after(0.05) {
+                            passwordLockOverride.set(nil)
+                        }
+                    }
+                })
             }
         },
         lockNow: {
             ArchiveLockSession.shared.relock()
-            muteAllArchivedChats(context: context)
+            sessionUnlockedPromise.set(false)
+            dismissOpenArchiveControllers(from: navigationControllerImpl?())
         }
     )
     
@@ -234,10 +267,12 @@ public func archiveSettingsController(context: AccountContext) -> ViewController
         context.engine.data.subscribe(TelegramEngine.EngineData.Item.Configuration.GlobalPrivacy()),
         context.engine.data.subscribe(TelegramEngine.EngineData.Item.Configuration.App()),
         context.engine.data.subscribe(TelegramEngine.EngineData.Item.Peer.Peer(id: context.account.peerId)),
-        context.engine.data.subscribe(TelegramEngine.EngineData.Item.Configuration.ApplicationSpecificPreference(key: ApplicationSpecificPreferencesKeys.chatArchiveSettings))
+        context.engine.data.subscribe(TelegramEngine.EngineData.Item.Configuration.ApplicationSpecificPreference(key: ApplicationSpecificPreferencesKeys.chatArchiveSettings)),
+        passwordLockOverride.get(),
+        sessionUnlockedPromise.get()
     )
     |> deliverOnMainQueue
-    |> map { presentationData, settings, appConfiguration, accountPeer, archiveSettingsPreference -> (ItemListControllerState, (ItemListNodeState, Any)) in
+    |> map { presentationData, settings, appConfiguration, accountPeer, archiveSettingsPreference, passwordOverride, sessionUnlocked -> (ItemListControllerState, (ItemListNodeState, Any)) in
         var presentationData = presentationData
 
         let updatedTheme = presentationData.theme.withModalBlocksBackground()
@@ -252,6 +287,8 @@ public func archiveSettingsController(context: AccountContext) -> ViewController
             presentationData: presentationData,
             settings: settings,
             archiveSettings: archiveSettings,
+            passwordLockOverride: passwordOverride,
+            sessionUnlocked: sessionUnlocked,
             isPremium: isPremium,
             isPremiumEnabled: !isPremiumDisabled
         ), style: .blocks, animateChanges: true)
@@ -281,9 +318,11 @@ public func archiveSettingsController(context: AccountContext) -> ViewController
     presentControllerImpl = { [weak controller] presented in
         controller?.present(presented, in: .window(.root))
     }
+    navigationControllerImpl = { [weak controller] in
+        return controller?.navigationController as? NavigationController
+    }
     
-    // Ensure existing archived chats are muted when visiting settings.
-    muteAllArchivedChats(context: context)
+    muteAllArchivedChatsIfNeeded(context: context)
     
     return controller
 }
