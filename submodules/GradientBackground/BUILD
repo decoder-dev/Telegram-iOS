@@ -9,6 +9,9 @@ swift_library(
     copts = [
         "-O",
         "-warnings-as-errors",
+        # Xcode 27: keep new diagnostic groups as warnings (SE-0443 last-wins)
+        "-Wwarning", "ImplicitStrongCapture",
+        "-Wwarning", "DeprecatedDeclaration",
     ],
     deps = [
         "//submodules/AsyncDisplayKit:AsyncDisplayKit",
