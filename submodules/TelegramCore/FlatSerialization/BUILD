@@ -46,10 +46,6 @@ swift_library(
     srcs = generated_models,
     copts = [
         "-warnings-as-errors",
-        # Xcode 27: keep new diagnostic groups as warnings (SE-0443 last-wins)
-        "-Wwarning", "ImplicitStrongCapture",
-        "-Wwarning", "DeprecatedDeclaration",
-        "-Wwarning", "NoUseUnstructuredThrowingTask",
     ],
     deps = [
         "//submodules/TelegramCore/FlatBuffers",

@@ -56,7 +56,7 @@ class ProjectGenerator {
             "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",  // Disable explicit module builds for Swift
             "ENABLE_STRICT_OBJC_MSGSEND": "YES",
             "GCC_NO_COMMON_BLOCKS": "YES",
-            "IPHONEOS_DEPLOYMENT_TARGET": "15.0",
+            "IPHONEOS_DEPLOYMENT_TARGET": "13.0",
             "MTL_ENABLE_DEBUG_INFO": "INCLUDE_SOURCE",
             "ONLY_ACTIVE_ARCH": "YES",
             "SDKROOT": "iphoneos",

@@ -10,10 +10,6 @@ swift_library(
     ]),
     copts = [
         "-warnings-as-errors",
-        # Xcode 27: keep new diagnostic groups as warnings (SE-0443 last-wins)
-        "-Wwarning", "ImplicitStrongCapture",
-        "-Wwarning", "DeprecatedDeclaration",
-        "-Wwarning", "NoUseUnstructuredThrowingTask",
     ],
     deps = [
         "//submodules/SSignalKit/SwiftSignalKit",
@@ -50,7 +46,7 @@ ios_test_runner(
 
 ios_unit_test(
     name = "TextFormatTests",
-    minimum_os_version = "15.0",
+    minimum_os_version = "13.0",
     runner = ":TextFormatTestRunner",
     deps = [
         ":TextFormatTestsLib",
