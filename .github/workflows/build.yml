@@ -2,7 +2,7 @@
 #
 # Research (upstream #1120/#1136 + ad/Telegram-iOS fake-codesigning docs):
 #   • Build release_arm64 (not ci_arm64 dbg) with bundled fake-codesigning.
-#   • Keep bundle_id/team_id matching fake profiles (ph.telegra.Telegraph / C67CF9S4VU).
+#   • Keep bundle_id/team_id matching fake profiles (ph.teleg.Telegrapf / C67CF9S4VU).
 #   • Disable extensions + Siri/iCloud for personal-Apple-ID re-sign.
 #   • Publish the Make.py IPA (embedded.mobileprovision + _CodeSignature intact).
 #   • Final device install still requires Sideloadly/AltStore re-sign — see docs/SIDELOAD.md.
@@ -132,7 +132,7 @@ jobs:
               cfg = json.load(f)
           # Bundle/team MUST match build-system/fake-codesigning profiles.
           # Do not override from secrets unless real Apple profiles are also provided.
-          cfg["bundle_id"] = "ph.telegra.Telegraph"
+          cfg["bundle_id"] = "ph.teleg.Telegrapf"
           cfg["team_id"] = "C67CF9S4VU"
           cfg["enable_siri"] = False
           cfg["enable_icloud"] = False
@@ -254,7 +254,7 @@ jobs:
           ### Build
           - Configuration: \`release_arm64\` + \`build-system/fake-codesigning\`
           - Toolchain: Xcode 26.2 (\`runs-on: macos-26\`) — Xcode 27 preview parked (device crash)
-          - Bundle / team (build-time): \`ph.telegra.Telegraph\` / \`C67CF9S4VU\`
+          - Bundle / team (build-time): \`ph.teleg.Telegrapf\` / \`C67CF9S4VU\`
           - Extensions / Siri / iCloud: disabled
           - Commit: \`${GITHUB_SHA}\`
           EOF
