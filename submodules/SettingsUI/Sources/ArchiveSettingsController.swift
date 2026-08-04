@@ -10,25 +10,32 @@ import PresentationDataUtils
 import AccountContext
 import UndoUI
 import ChatListUI
+import LocalAuth
 
 private final class ArchiveSettingsControllerArguments {
     let updateUnmuted: (Bool) -> Void
     let updateFolders: (Bool) -> Void
     let updateUnknown: (Bool?) -> Void
     let togglePassword: (Bool) -> Void
+    let toggleBiometrics: (Bool) -> Void
+    let changePassword: () -> Void
     let lockNow: () -> Void
-    
+
     init(
         updateUnmuted: @escaping (Bool) -> Void,
         updateFolders: @escaping (Bool) -> Void,
         updateUnknown: @escaping (Bool?) -> Void,
         togglePassword: @escaping (Bool) -> Void,
+        toggleBiometrics: @escaping (Bool) -> Void,
+        changePassword: @escaping () -> Void,
         lockNow: @escaping () -> Void
     ) {
         self.updateUnmuted = updateUnmuted
         self.updateFolders = updateFolders
         self.updateUnknown = updateUnknown
         self.togglePassword = togglePassword
+        self.toggleBiometrics = toggleBiometrics
+        self.changePassword = changePassword
         self.lockNow = lockNow
     }
 }
@@ -55,9 +62,11 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
     
     case passwordHeader
     case passwordValue(Bool)
+    case biometricsValue(isOn: Bool, isFaceId: Bool)
+    case changePassword
     case passwordLockNow
     case passwordFooter
-    
+
     var section: ItemListSectionId {
         switch self {
         case .unmutedHeader, .unmutedValue, .unmutedFooter:
@@ -66,11 +75,11 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
             return ArchiveSettingsSection.folders.rawValue
         case .unknownHeader, .unknownValue, .unknownFooter:
             return ArchiveSettingsSection.unknown.rawValue
-        case .passwordHeader, .passwordValue, .passwordLockNow, .passwordFooter:
+        case .passwordHeader, .passwordValue, .biometricsValue, .changePassword, .passwordLockNow, .passwordFooter:
             return ArchiveSettingsSection.password.rawValue
         }
     }
-    
+
     var stableId: Int32 {
         switch self {
         case .unmutedHeader:
@@ -95,10 +104,14 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
             return 9
         case .passwordValue:
             return 10
-        case .passwordLockNow:
+        case .biometricsValue:
             return 11
-        case .passwordFooter:
+        case .changePassword:
             return 12
+        case .passwordLockNow:
+            return 13
+        case .passwordFooter:
+            return 14
         }
     }
         
@@ -141,6 +154,14 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ArchiveLockLocalizedString.lockArchive, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.togglePassword(value)
             })
+        case let .biometricsValue(isOn, isFaceId):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: isFaceId ? ArchiveLockLocalizedString.useFaceId : ArchiveLockLocalizedString.useTouchId, value: isOn, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.toggleBiometrics(value)
+            })
+        case .changePassword:
+            return ItemListActionItem(presentationData: presentationData, title: ArchiveLockLocalizedString.changePassword, kind: .generic, alignment: .natural, sectionId: self.section, style: .blocks, action: {
+                arguments.changePassword()
+            })
         case .passwordLockNow:
             return ItemListActionItem(presentationData: presentationData, title: ArchiveLockLocalizedString.lockNow, kind: .generic, alignment: .natural, sectionId: self.section, style: .blocks, action: {
                 arguments.lockNow()
@@ -158,29 +179,43 @@ private func archiveSettingsControllerEntries(
     passwordLockOverride: Bool?,
     sessionUnlocked: Bool,
     isPremium: Bool,
-    isPremiumEnabled: Bool
+    isPremiumEnabled: Bool,
+    biometricAuthentication: LocalAuthBiometricAuthentication?,
+    useBiometrics: Bool
 ) -> [ArchiveSettingsControllerEntry] {
     var entries: [ArchiveSettingsControllerEntry] = []
-    
+
     entries.append(.unmutedHeader)
     // Force-mute policy: keep archived even if manually unmuted later.
     entries.append(.unmutedValue(true))
     entries.append(.unmutedFooter)
-    
+
     if isPremium || isPremiumEnabled {
         entries.append(.unknownHeader)
         entries.append(.unknownValue(isOn: isPremium && settings.automaticallyArchiveAndMuteNonContacts, isLocked: !isPremium))
         entries.append(.unknownFooter)
     }
-    
+
     let passwordOn = passwordLockOverride ?? isPasswordProtected
     entries.append(.passwordHeader)
     entries.append(.passwordValue(passwordOn))
-    if passwordOn && sessionUnlocked {
-        entries.append(.passwordLockNow)
+    if passwordOn {
+        if let biometricAuthentication {
+            let isFaceId: Bool
+            if case .faceId = biometricAuthentication {
+                isFaceId = true
+            } else {
+                isFaceId = false
+            }
+            entries.append(.biometricsValue(isOn: useBiometrics, isFaceId: isFaceId))
+        }
+        entries.append(.changePassword)
+        if sessionUnlocked {
+            entries.append(.passwordLockNow)
+        }
     }
     entries.append(.passwordFooter)
-    
+
     return entries
 }
 
@@ -251,6 +286,18 @@ public func archiveSettingsController(context: AccountContext) -> ViewController
                 })
             }
         },
+        toggleBiometrics: { enabled in
+            setArchiveUseBiometrics(context: context, enabled: enabled)
+        },
+        changePassword: {
+            changeArchivePassword(context: context, present: { controller in
+                presentControllerImpl?(controller)
+            }, completion: { success in
+                if success {
+                    presentUndoImpl?(.info(title: nil, text: ArchiveLockLocalizedString.passwordChanged, timeout: nil, customUndoText: nil))
+                }
+            })
+        },
         lockNow: {
             ArchiveLockSession.shared.relock()
             sessionUnlockedPromise.set(false)
@@ -285,7 +332,7 @@ public func archiveSettingsController(context: AccountContext) -> ViewController
                 current.clearingLegacyPasswordHash()
             }.startStandalone()
         }
-        
+
         let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .text(presentationData.strings.ArchiveSettings_Title), leftNavigationButton: nil, rightNavigationButton: nil, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back))
         let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: archiveSettingsControllerEntries(
             presentationData: presentationData,
@@ -294,7 +341,9 @@ public func archiveSettingsController(context: AccountContext) -> ViewController
             passwordLockOverride: passwordOverride,
             sessionUnlocked: sessionUnlocked,
             isPremium: isPremium,
-            isPremiumEnabled: !isPremiumDisabled
+            isPremiumEnabled: !isPremiumDisabled,
+            biometricAuthentication: LocalAuth.biometricAuthentication,
+            useBiometrics: archiveSettings.useBiometrics
         ), style: .blocks, animateChanges: true)
         
         return (controllerState, (listState, arguments))

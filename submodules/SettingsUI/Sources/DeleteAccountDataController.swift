@@ -15,6 +15,7 @@ import InviteLinksUI
 import CountrySelectionUI
 import PhoneInputNode
 import UndoUI
+import TelegramUIPreferences
 
 private struct DeleteAccountDataArguments {
     let context: AccountContext
@@ -451,6 +452,7 @@ func deleteAccountDataController(context: AccountContext, mode: DeleteAccountDat
                     }
                     
                     let accountId = context.account.id
+                    let accountPeerId = context.account.peerId
                     let accountManager = context.sharedContext.accountManager
                     let _ = (context.engine.auth.deleteAccount(reason: "Manual", password: password)
                     |> deliverOnMainQueue).start(error: { _ in
@@ -466,6 +468,7 @@ func deleteAccountDataController(context: AccountContext, mode: DeleteAccountDat
                         dismissImpl?()
                                                 
                         let presentGlobalController = context.sharedContext.presentGlobalController
+                        ArchivePasswordKeychain.clear(peerId: accountPeerId)
                         let _ = logoutFromAccount(id: accountId, accountManager: accountManager, alreadyLoggedOutRemotely: false).start(completed: {
                             Queue.mainQueue().after(0.1) {
                                 presentGlobalController(UndoOverlayController(presentationData: presentationData, content: .info(title: nil, text: presentationData.strings.DeleteAccount_Success, timeout: nil, customUndoText: nil), elevatedLayout: true, animateInAsReplacement: false, action: { _ in return false }), nil)

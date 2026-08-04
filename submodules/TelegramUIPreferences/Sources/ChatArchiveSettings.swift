@@ -7,17 +7,21 @@ public struct ChatArchiveSettings: Equatable, Codable {
     public var hiddenPsaPeerId: EnginePeer.Id?
     /// Legacy field kept only for migration into Keychain; never written going forward.
     public var legacyLockPasswordHash: String?
-    
+    /// Per-account: allow Face ID/Touch ID as a convenience unlock alongside the password.
+    /// Only meaningful while a password is set; forced back to `false` when the password is removed.
+    public var useBiometrics: Bool
+
     public static var `default`: ChatArchiveSettings {
-        return ChatArchiveSettings(isHiddenByDefault: false, hiddenPsaPeerId: nil, legacyLockPasswordHash: nil)
+        return ChatArchiveSettings(isHiddenByDefault: false, hiddenPsaPeerId: nil, legacyLockPasswordHash: nil, useBiometrics: false)
     }
-    
-    public init(isHiddenByDefault: Bool, hiddenPsaPeerId: EnginePeer.Id?, legacyLockPasswordHash: String? = nil) {
+
+    public init(isHiddenByDefault: Bool, hiddenPsaPeerId: EnginePeer.Id?, legacyLockPasswordHash: String? = nil, useBiometrics: Bool = false) {
         self.isHiddenByDefault = isHiddenByDefault
         self.hiddenPsaPeerId = hiddenPsaPeerId
         self.legacyLockPasswordHash = legacyLockPasswordHash
+        self.useBiometrics = useBiometrics
     }
-    
+
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: StringCodingKey.self)
 
@@ -30,8 +34,9 @@ public struct ChatArchiveSettings: Equatable, Codable {
         } else {
             self.legacyLockPasswordHash = nil
         }
+        self.useBiometrics = ((try container.decodeIfPresent(Int32.self, forKey: "useBiometrics")) ?? 0) != 0
     }
-    
+
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: StringCodingKey.self)
 
@@ -44,10 +49,15 @@ public struct ChatArchiveSettings: Equatable, Codable {
         // Password hash lives in Keychain; clear any prefs copies on write.
         try container.encodeNil(forKey: "lockPasswordHash")
         try container.encodeNil(forKey: "lockPassword")
+        try container.encode((self.useBiometrics ? 1 : 0) as Int32, forKey: "useBiometrics")
     }
-    
+
     public func clearingLegacyPasswordHash() -> ChatArchiveSettings {
-        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: nil)
+        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: nil, useBiometrics: self.useBiometrics)
+    }
+
+    public func withUpdatedUseBiometrics(_ useBiometrics: Bool) -> ChatArchiveSettings {
+        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: self.legacyLockPasswordHash, useBiometrics: useBiometrics)
     }
 }
 

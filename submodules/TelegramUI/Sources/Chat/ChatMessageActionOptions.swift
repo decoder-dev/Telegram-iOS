@@ -19,6 +19,7 @@ import ChatMessageWebpageBubbleContentNode
 import PremiumUI
 import UndoUI
 import WebsiteType
+import ChatListUI
 
 private enum OptionsId: Hashable {
     case reply
@@ -793,16 +794,30 @@ func moveReplyToChat(selfController: ChatControllerImpl, peerId: EnginePeer.Id, 
                 }))
             }
         }
-        if let threadId = threadId {
-            let _ = (selfController.context.sharedContext.chatControllerForForumThread(context: selfController.context, peerId: peerId, threadId: threadId)
-            |> deliverOnMainQueue).startStandalone(next: { chatController in
+        // The picked target peer for "reply in another chat" can live in a
+        // password-locked archive — gate it like the shared navigateToChatController
+        // funnel does, so picking it from the peer-selection sheet can't be used to
+        // open a locked chat without the password.
+        ensureArchivedPeerAccessible(context: selfController.context, peerId: peerId, present: { [weak selfController] controller in
+            selfController?.present(controller, in: .window(.root))
+        }, completion: { result in
+            switch result {
+            case .cancelled:
+                return
+            case .unlocked, .notProtected:
+                break
+            }
+            if let threadId = threadId {
+                let _ = (selfController.context.sharedContext.chatControllerForForumThread(context: selfController.context, peerId: peerId, threadId: threadId)
+                |> deliverOnMainQueue).startStandalone(next: { chatController in
+                    proceed(chatController)
+                })
+            } else {
+                let chatController = ChatControllerImpl(context: selfController.context, chatLocation: .peer(id: peerId))
+                chatController.activateInput(type: .text)
                 proceed(chatController)
-            })
-        } else {
-            let chatController = ChatControllerImpl(context: selfController.context, chatLocation: .peer(id: peerId))
-            chatController.activateInput(type: .text)
-            proceed(chatController)
-        }
+            }
+        })
     })
 }
 

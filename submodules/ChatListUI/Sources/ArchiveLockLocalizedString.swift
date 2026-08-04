@@ -30,6 +30,13 @@ public enum ArchiveLockLocalizedString {
             "ArchiveLock.SetPassword": "Set Archive Password",
             "ArchiveLock.RemovePassword": "Remove Archive Password",
             "ArchiveLock.LockArchiveAction": "Lock Archive",
+            "ArchiveLock.ChangePassword": "Change Password",
+            "ArchiveLock.ChangeCurrentText": "Enter the current password to change it",
+            "ArchiveLock.PasswordChanged": "Archive password changed",
+            "ArchiveLock.TooManyAttempts": "Too many incorrect attempts. Try again in %d s.",
+            "ArchiveLock.BiometricReason": "Unlock Archive",
+            "ArchiveLock.UseFaceId": "Unlock with Face ID",
+            "ArchiveLock.UseTouchId": "Unlock with Touch ID",
         ],
         "ru": [
             "ArchiveLock.PasswordSection": "ПАРОЛЬ",
@@ -53,6 +60,13 @@ public enum ArchiveLockLocalizedString {
             "ArchiveLock.SetPassword": "Задать пароль архива",
             "ArchiveLock.RemovePassword": "Удалить пароль архива",
             "ArchiveLock.LockArchiveAction": "Заблокировать архив",
+            "ArchiveLock.ChangePassword": "Изменить пароль",
+            "ArchiveLock.ChangeCurrentText": "Введите текущий пароль, чтобы изменить его",
+            "ArchiveLock.PasswordChanged": "Пароль архива изменён",
+            "ArchiveLock.TooManyAttempts": "Слишком много неверных попыток. Повторите через %d с.",
+            "ArchiveLock.BiometricReason": "Разблокировать архив",
+            "ArchiveLock.UseFaceId": "Разблокировать Face ID",
+            "ArchiveLock.UseTouchId": "Разблокировать Touch ID",
         ],
     ]
     
@@ -107,10 +121,20 @@ public enum ArchiveLockLocalizedString {
     public static var setPassword: String { string(forKey: "ArchiveLock.SetPassword") }
     public static var removePassword: String { string(forKey: "ArchiveLock.RemovePassword") }
     public static var lockArchiveAction: String { string(forKey: "ArchiveLock.LockArchiveAction") }
-    
+    public static var changePassword: String { string(forKey: "ArchiveLock.ChangePassword") }
+    public static var changeCurrentText: String { string(forKey: "ArchiveLock.ChangeCurrentText") }
+    public static var passwordChanged: String { string(forKey: "ArchiveLock.PasswordChanged") }
+    public static var biometricReason: String { string(forKey: "ArchiveLock.BiometricReason") }
+    public static var useFaceId: String { string(forKey: "ArchiveLock.UseFaceId") }
+    public static var useTouchId: String { string(forKey: "ArchiveLock.UseTouchId") }
+
     public static func incorrectPassword(attemptsLeft: Int) -> String {
         return String(format: string(forKey: "ArchiveLock.IncorrectPassword"), attemptsLeft)
     }
-    
+
+    public static func tooManyAttempts(seconds: Int) -> String {
+        return String(format: string(forKey: "ArchiveLock.TooManyAttempts"), seconds)
+    }
+
     public static var passwordsDoNotMatch: String { string(forKey: "ArchiveLock.PasswordsDoNotMatch") }
 }

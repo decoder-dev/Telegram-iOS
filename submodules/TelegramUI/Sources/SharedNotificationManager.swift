@@ -372,8 +372,9 @@ public final class SharedNotificationManager {
             
             if isForcedLogOut {
                 self.clearNotificationsManager?.clearAll()
-                
+
                 if let accountManager = self.accountManager {
+                    ArchivePasswordKeychain.clear(peerId: account.peerId)
                     let _ = logoutFromAccount(id: account.id, accountManager: accountManager, alreadyLoggedOutRemotely: true).startStandalone()
                 }
                 return

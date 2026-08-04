@@ -263,10 +263,14 @@ final class AuthorizedApplicationContext {
         }
         
         let accountId = context.account.id
+        let accountPeerId = context.account.peerId
         self.loggedOutDisposable.set((context.account.loggedOut
         |> deliverOnMainQueue).start(next: { [weak self] value in
             if value {
                 Logger.shared.log("ApplicationContext", "account logged out")
+                // Don't leave an orphaned Archive-lock password hash behind for an account
+                // that no longer exists on this device.
+                ArchivePasswordKeychain.clear(peerId: accountPeerId)
                 let _ = logoutFromAccount(id: accountId, accountManager: accountManager, alreadyLoggedOutRemotely: false).start()
                 if let strongSelf = self {
                     strongSelf.rootController.currentWindow?.forEachController { controller in
@@ -564,6 +568,7 @@ final class AuthorizedApplicationContext {
                         return
                     }
                     let accountId = strongSelf.context.account.id
+                    let accountPeerId = strongSelf.context.account.peerId
                     let accountManager = strongSelf.context.sharedContext.accountManager
                     let _ = (strongSelf.context.engine.auth.deleteAccount(reason: "GDPR", password: nil)
                     |> deliverOnMainQueue).start(error: { _ in
@@ -575,6 +580,7 @@ final class AuthorizedApplicationContext {
                         (strongSelf.rootController.viewControllers.last as? ViewController)?.present(controller, in: .window(.root))
                     }, completed: {
                         controller?.dismiss()
+                        ArchivePasswordKeychain.clear(peerId: accountPeerId)
                         let _ = logoutFromAccount(id: accountId, accountManager: accountManager, alreadyLoggedOutRemotely: true).start()
                     })
                 }
@@ -756,6 +762,7 @@ final class AuthorizedApplicationContext {
                     if isDropAuth {
                         actions = [TextAlertAction(type: .genericAction, title: presentationData.strings.Common_Cancel, action: {}), TextAlertAction(type: .genericAction, title: presentationData.strings.LogoutOptions_LogOut, action: {
                             if let strongSelf = self {
+                                ArchivePasswordKeychain.clear(peerId: strongSelf.context.account.peerId)
                                 let _ = logoutFromAccount(id: strongSelf.context.account.id, accountManager: strongSelf.context.sharedContext.accountManager, alreadyLoggedOutRemotely: false).start()
                             }
                         })]
