@@ -51,6 +51,14 @@ public struct ChatArchiveSettings: Equatable, Codable {
     }
 }
 
+/// How the secret Archive folder is presented in the main chat list.
+/// `collapsing` keeps the row for one official spring hide (0.4s), then `omitted`.
+public enum ArchiveFolderPresentation: Equatable {
+    case omitted
+    case expanded
+    case collapsing
+}
+
 /// In-memory session state for the secret Archive:
 /// - `isRevealed`: folder row visible (10 taps on Settings).
 /// - `isUnlocked`: password accepted for this process.
@@ -58,14 +66,19 @@ public struct ChatArchiveSettings: Equatable, Codable {
 public final class ArchiveLockSession {
     public static let shared = ArchiveLockSession()
     
+    /// Match ChatListItem's official archive hide spring (`duration: 0.4`).
+    private static let collapseAnimationDuration: Double = 0.4
+    
     private let lock = NSLock()
     private var unlocked = false
     private var revealed = false
     private var didMuteSweep = false
     private var didAlignKeepArchived = false
     private var backgroundDisposable: Disposable?
+    private var collapseGeneration: Int = 0
     private let relockedPipe = ValuePipe<Void>()
     private let revealedPromise = ValuePromise<Bool>(false, ignoreRepeated: true)
+    private let folderPresentationPromise = ValuePromise<ArchiveFolderPresentation>(.omitted, ignoreRepeated: true)
     
     private init() {}
     
@@ -92,6 +105,11 @@ public final class ArchiveLockSession {
         return self.revealedPromise.get()
     }
     
+    /// List presentation including the transient `collapsing` auto-close phase.
+    public var folderPresentationSignal: Signal<ArchiveFolderPresentation, NoError> {
+        return self.folderPresentationPromise.get()
+    }
+    
     public func unlock() {
         self.lock.lock()
         self.unlocked = true
@@ -102,6 +120,7 @@ public final class ArchiveLockSession {
     public func reveal() {
         var changed = false
         self.lock.lock()
+        self.collapseGeneration &+= 1
         if !self.revealed {
             self.revealed = true
             changed = true
@@ -109,12 +128,17 @@ public final class ArchiveLockSession {
         self.lock.unlock()
         if changed {
             self.revealedPromise.set(true)
+            self.folderPresentationPromise.set(.expanded)
+        } else {
+            // Cancel a mid-collapse omit if Settings is tapped again.
+            self.folderPresentationPromise.set(.expanded)
         }
     }
     
     public func relock() {
         var shouldNotifyRelock = false
         var shouldNotifyReveal = false
+        var collapseGeneration = 0
         self.lock.lock()
         if self.unlocked {
             self.unlocked = false
@@ -123,10 +147,26 @@ public final class ArchiveLockSession {
         if self.revealed {
             self.revealed = false
             shouldNotifyReveal = true
+            self.collapseGeneration &+= 1
+            collapseGeneration = self.collapseGeneration
         }
         self.lock.unlock()
         if shouldNotifyReveal {
             self.revealedPromise.set(false)
+            // Keep the row briefly so ChatList can play the official spring collapse,
+            // then omit so pull-to-reveal stays unavailable while locked.
+            self.folderPresentationPromise.set(.collapsing)
+            Queue.mainQueue().after(ArchiveLockSession.collapseAnimationDuration, { [weak self] in
+                guard let self else {
+                    return
+                }
+                self.lock.lock()
+                let stillCurrent = self.collapseGeneration == collapseGeneration && !self.revealed
+                self.lock.unlock()
+                if stillCurrent {
+                    self.folderPresentationPromise.set(.omitted)
+                }
+            })
         }
         if shouldNotifyRelock || shouldNotifyReveal {
             self.relockedPipe.putNext(Void())
