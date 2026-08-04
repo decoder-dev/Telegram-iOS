@@ -34,10 +34,9 @@ permissions:
 
 jobs:
   build:
-    # Xcode 27 public-preview image (arm64). Do not fall back to macos-26 /
-    # Xcode 26 — that silently defeats the toolchain bump.
-    name: Build IPA (xcode-27)
-    runs-on: xcode-27
+    # Xcode 27 preview IPA crashed on device — stay on macos-26 / Xcode 26.2.
+    name: Build IPA (macos-26)
+    runs-on: macos-26
     timeout-minutes: 240
 
     env:
@@ -69,64 +68,26 @@ jobs:
           XCODE_VERSION="$(python3 -c 'import json; print(json.load(open("versions.json"))["xcode"])')"
           DEVELOPER_DIR="/Applications/Xcode_${XCODE_VERSION}.app/Contents/Developer"
           if [ ! -d "$DEVELOPER_DIR" ]; then
-            # Preview images ship betas as Xcode_27_beta_N.app (+ optional
-            # Xcode_27.0.app / Xcode.app symlinks). Never accept Xcode 26 here.
-            CANDIDATE="$(ls -d /Applications/Xcode_27*.app 2>/dev/null | sort -V | tail -1 || true)"
-            [ -n "$CANDIDATE" ] || {
-              echo "::error::No Xcode 27.x found under /Applications (wanted ${XCODE_VERSION})"
-              ls -d /Applications/Xcode*.app 2>/dev/null || true
-              exit 1
-            }
+            CANDIDATE="$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1 || true)"
+            [ -n "$CANDIDATE" ] || { echo "::error::No Xcode 26.x found"; exit 1; }
             DEVELOPER_DIR="${CANDIDATE}/Contents/Developer"
-            echo "::warning::using $(basename "$CANDIDATE") instead of Xcode_${XCODE_VERSION}.app"
+            echo "::warning::using $(basename "$CANDIDATE") instead of ${XCODE_VERSION}"
           fi
           sudo xcode-select -s "$DEVELOPER_DIR"
           xcodebuild -version
-          echo "DEVELOPER_DIR=$DEVELOPER_DIR"
           echo "CPUS=$(sysctl -n hw.ncpu)"
-          ls -d /Applications/Xcode*.app 2>/dev/null || true
 
       - name: Prepare Metal toolchain
         run: |
           set -euo pipefail
-          # Xcode 27 betas omit the Metal component. Do NOT trust `xcrun -f metal`:
-          # it can resolve the stub under XcodeDefault.xctoolchain while the real
-          # MetalToolchain cryptex is still missing (`xcrun metal` then fails).
-          # Download as the runner user (not only root) so
-          # ~/Library/.../XcodeToMetalToolchainIndexMapping.plist is written.
-          clear_xcrun() {
-            rm -f "$(getconf DARWIN_USER_TEMP_DIR)/xcrun_db" || true
-            sudo rm -f "$(sudo getconf DARWIN_USER_TEMP_DIR)/xcrun_db" || true
-          }
-          metal_ok() {
-            clear_xcrun
-            xcrun metal -v >/dev/null 2>&1
-          }
-
-          echo "=== before MetalToolchain ==="
-          xcodebuild -showComponent MetalToolchain 2>&1 || true
-          xcrun -f metal 2>&1 || true
-
-          if metal_ok; then
-            echo "metal already executable"
+          if xcrun -f metal >/dev/null 2>&1; then
+            echo "metal already available: $(xcrun -f metal)"
           else
-            echo "Downloading MetalToolchain as runner…"
-            xcodebuild -downloadComponent MetalToolchain
-            clear_xcrun
-            if ! metal_ok; then
-              echo "Retry with sudo…"
-              sudo xcodebuild -downloadComponent MetalToolchain
-              clear_xcrun
-            fi
+            sudo xcodebuild -downloadComponent MetalToolchain
+            rm -f "$(getconf DARWIN_USER_TEMP_DIR)/xcrun_db" || true
           fi
-
-          echo "=== after MetalToolchain ==="
-          xcodebuild -showComponent MetalToolchain 2>&1 || true
           xcrun -f metal
-          # Prefer the SDK-scoped lookup (points at the cryptex when installed).
-          xcrun --sdk macosx -f metal 2>&1 || true
           xcrun metal -v
-          xcrun --sdk macosx metal -v
 
       - name: Free disk space
         run: |
@@ -147,11 +108,16 @@ jobs:
           path: |
             ${{ env.BAZEL_CACHE_DIR }}
             ${{ env.BAZEL_REPO_CACHE }}
-          # Bust when Xcode/SDK major changes (versions.json). Prefer xcode-27
-          # caches; do not restore older macos-26 / Xcode 26 warm caches.
-          key: bazel-warm-xcode27-release_arm64-${{ hashFiles('versions.json', 'MODULE.bazel', 'MODULE.bazel.lock') }}
+          # release_arm64 cache; versions.json bump isolates from Xcode 27 caches.
+          key: bazel-warm-release_arm64-${{ hashFiles('versions.json', 'MODULE.bazel', 'MODULE.bazel.lock') }}
           restore-keys: |
-            bazel-warm-xcode27-release_arm64-
+            bazel-warm-release_arm64-
+            bazel-warm-ci_arm64-
+            bazel-pm-macOS-ci_arm64-
+            bazel-turbo-macOS-ci_arm64-
+            bazel-pm-
+            bazel-turbo-
+            bazel-
 
       - name: Write sideload configuration
         env:
@@ -218,7 +184,6 @@ jobs:
             --disableExtensions \
             --skipDsym \
             --ciFast \
-            --continueOnError \
             --outputBuildArtifactsPath=build/artifacts \
             2>&1 | tee release-build.log
 
@@ -288,7 +253,7 @@ jobs:
 
           ### Build
           - Configuration: \`release_arm64\` + \`build-system/fake-codesigning\`
-          - Toolchain: Xcode 27 / iOS 27 SDK (\`runs-on: xcode-27\`)
+          - Toolchain: Xcode 26.2 (\`runs-on: macos-26\`) — Xcode 27 preview parked (device crash)
           - Bundle / team (build-time): \`ph.telegra.Telegraph\` / \`C67CF9S4VU\`
           - Extensions / Siri / iCloud: disabled
           - Commit: \`${GITHUB_SHA}\`
