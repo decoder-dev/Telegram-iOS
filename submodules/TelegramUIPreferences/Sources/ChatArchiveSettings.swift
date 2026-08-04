@@ -1,6 +1,7 @@
 import Foundation
 import SwiftSignalKit
 import TelegramCore
+import Postbox
 
 public struct ChatArchiveSettings: Equatable, Codable {
     public var isHiddenByDefault: Bool
@@ -10,16 +11,23 @@ public struct ChatArchiveSettings: Equatable, Codable {
     /// Per-account: allow Face ID/Touch ID as a convenience unlock alongside the password.
     /// Only meaningful while a password is set; forced back to `false` when the password is removed.
     public var useBiometrics: Bool
+    /// Plain mirror of "does this account currently have an Archive password set" — kept in
+    /// sync with the Keychain by ArchiveLockHelpers. Exists so processes that only have this
+    /// account's Postbox (no Keychain access group shared with the main app, e.g. the
+    /// Notification Service Extension) can still decide whether to redact a locked-archived
+    /// peer's notifications, without needing the password hash itself.
+    public var isPasswordConfigured: Bool
 
     public static var `default`: ChatArchiveSettings {
-        return ChatArchiveSettings(isHiddenByDefault: false, hiddenPsaPeerId: nil, legacyLockPasswordHash: nil, useBiometrics: false)
+        return ChatArchiveSettings(isHiddenByDefault: false, hiddenPsaPeerId: nil, legacyLockPasswordHash: nil, useBiometrics: false, isPasswordConfigured: false)
     }
 
-    public init(isHiddenByDefault: Bool, hiddenPsaPeerId: EnginePeer.Id?, legacyLockPasswordHash: String? = nil, useBiometrics: Bool = false) {
+    public init(isHiddenByDefault: Bool, hiddenPsaPeerId: EnginePeer.Id?, legacyLockPasswordHash: String? = nil, useBiometrics: Bool = false, isPasswordConfigured: Bool = false) {
         self.isHiddenByDefault = isHiddenByDefault
         self.hiddenPsaPeerId = hiddenPsaPeerId
         self.legacyLockPasswordHash = legacyLockPasswordHash
         self.useBiometrics = useBiometrics
+        self.isPasswordConfigured = isPasswordConfigured
     }
 
     public init(from decoder: Decoder) throws {
@@ -35,6 +43,7 @@ public struct ChatArchiveSettings: Equatable, Codable {
             self.legacyLockPasswordHash = nil
         }
         self.useBiometrics = ((try container.decodeIfPresent(Int32.self, forKey: "useBiometrics")) ?? 0) != 0
+        self.isPasswordConfigured = ((try container.decodeIfPresent(Int32.self, forKey: "isPasswordConfigured")) ?? 0) != 0
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -50,14 +59,19 @@ public struct ChatArchiveSettings: Equatable, Codable {
         try container.encodeNil(forKey: "lockPasswordHash")
         try container.encodeNil(forKey: "lockPassword")
         try container.encode((self.useBiometrics ? 1 : 0) as Int32, forKey: "useBiometrics")
+        try container.encode((self.isPasswordConfigured ? 1 : 0) as Int32, forKey: "isPasswordConfigured")
     }
 
     public func clearingLegacyPasswordHash() -> ChatArchiveSettings {
-        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: nil, useBiometrics: self.useBiometrics)
+        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: nil, useBiometrics: self.useBiometrics, isPasswordConfigured: self.isPasswordConfigured)
     }
 
     public func withUpdatedUseBiometrics(_ useBiometrics: Bool) -> ChatArchiveSettings {
-        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: self.legacyLockPasswordHash, useBiometrics: useBiometrics)
+        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: self.legacyLockPasswordHash, useBiometrics: useBiometrics, isPasswordConfigured: self.isPasswordConfigured)
+    }
+
+    public func withUpdatedIsPasswordConfigured(_ isPasswordConfigured: Bool) -> ChatArchiveSettings {
+        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: self.legacyLockPasswordHash, useBiometrics: isPasswordConfigured ? self.useBiometrics : false, isPasswordConfigured: isPasswordConfigured)
     }
 }
 
@@ -243,4 +257,20 @@ public func archiveIsPasswordProtected(peerId: EnginePeer.Id, settings: ChatArch
         return true
     }
     return ArchivePasswordKeychain.hasPassword(peerId: peerId)
+}
+
+/// Whether a peer's notifications/calls should be fully redacted because it currently lives
+/// in a password-protected Archive. Single source of truth for this check so the Notification
+/// Service Extension (Postbox only, no Keychain access group shared with the main app) and the
+/// main app's CallKit/VoIP handling can't drift out of sync with each other.
+///
+/// Uses `ChatArchiveSettings.isPasswordConfigured` (a plain Postbox-resident mirror of the
+/// Keychain state) rather than `archiveIsPasswordProtected`/`ArchivePasswordKeychain` directly,
+/// since the latter requires Keychain access this check must also work without.
+public func archiveNotificationShouldRedact(transaction: Transaction, peerId: EnginePeer.Id) -> Bool {
+    guard transaction.getPeerChatListIndex(peerId)?.0 == Namespaces.PeerGroup.archive else {
+        return false
+    }
+    let settings = transaction.getPreferencesEntry(key: ApplicationSpecificPreferencesKeys.chatArchiveSettings)?.get(ChatArchiveSettings.self) ?? .default
+    return settings.isPasswordConfigured
 }

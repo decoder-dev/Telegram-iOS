@@ -367,14 +367,22 @@ final class AuthorizedApplicationContext {
                     }
                     
                     if let appLockContext = strongSelf.context.sharedContext.appLockContext as? AppLockContextImpl {
-                        let _ = (appLockContext.isCurrentlyLocked
-                        |> take(1)
-                        |> deliverOnMainQueue).start(next: { locked in
+                        let _ = (combineLatest(
+                            appLockContext.isCurrentlyLocked |> take(1),
+                            // A locked, password-protected Archive peer must not produce an
+                            // in-app foreground toast either — that's a separate code path from
+                            // the OS push banner (NotificationService.swift) and was leaking
+                            // sender name/text the same way.
+                            context.account.postbox.transaction { transaction -> Bool in
+                                return archiveNotificationShouldRedact(transaction: transaction, peerId: firstMessage.id.peerId)
+                            }
+                        )
+                        |> deliverOnMainQueue).start(next: { locked, shouldRedactForArchive in
                             guard let strongSelf = self else {
                                 return
                             }
-                            
-                            guard !locked else {
+
+                            guard !locked, !shouldRedactForArchive else {
                                 return
                             }
                             let isMuted = firstMessage.attributes.contains(where: { attribute in

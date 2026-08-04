@@ -818,7 +818,18 @@ private final class NotificationServiceHandler {
         } else {
             isLockedMessage = nil
         }
-        
+
+        // Generic redaction text for a peer that currently lives in a password-protected
+        // Archive (submodules/TelegramUIPreferences/Sources/ChatArchiveSettings.swift) — reuses
+        // the same generic copy as the app-passcode-lock case above, computed unconditionally
+        // here since this one applies per-peer rather than only while the whole app is locked.
+        let genericArchiveMessageText: String
+        if let notificationsPresentationData = try? Data(contentsOf: URL(fileURLWithPath: notificationsPresentationDataPath(rootPath: rootPath))), let notificationsPresentationDataValue = try? JSONDecoder().decode(NotificationsPresentationData.self, from: notificationsPresentationData) {
+            genericArchiveMessageText = notificationsPresentationDataValue.applicationLockedMessageString
+        } else {
+            genericArchiveMessageText = "You have a new message"
+        }
+
         let incomingCallMessage: String
         if let notificationsPresentationData = try? Data(contentsOf: URL(fileURLWithPath: notificationsPresentationDataPath(rootPath: rootPath))), let notificationsPresentationDataValue = try? JSONDecoder().decode(NotificationsPresentationData.self, from: notificationsPresentationData) {
             incomingCallMessage = notificationsPresentationDataValue.incomingCallString
@@ -1371,13 +1382,19 @@ private final class NotificationServiceHandler {
                                 let content = NotificationContent(isLockedMessage: nil)
                                 updateCurrentContent(content)
                                 
-                                let _ = (stateManager.postbox.transaction { transaction -> String? in
+                                let _ = (stateManager.postbox.transaction { transaction -> (String?, Bool) in
+                                    let phoneNumber: String?
                                     if let peer = transaction.getPeer(callData.fromId) as? TelegramUser {
-                                        return peer.phone
+                                        phoneNumber = peer.phone
                                     } else {
-                                        return nil
+                                        phoneNumber = nil
                                     }
-                                }).start(next: { phoneNumber in
+                                    // Same Archive-lock redaction as message notifications — this
+                                    // fallback banner (used when CallKit system integration is off)
+                                    // must not reveal a locked-archived caller's identity either.
+                                    let shouldRedact = archiveNotificationShouldRedact(transaction: transaction, peerId: callData.fromId)
+                                    return (phoneNumber, shouldRedact)
+                                }).start(next: { phoneNumber, shouldRedact in
                                     var voipPayload: [AnyHashable: Any] = [
                                         "call_id": "\(callData.id)",
                                         "call_ah": "\(callData.accessHash)",
@@ -1385,20 +1402,32 @@ private final class NotificationServiceHandler {
                                         "updates": callData.updates,
                                         "accountId": "\(callData.accountId)"
                                     ]
-                                    if let phoneNumber = phoneNumber {
+                                    if let phoneNumber = phoneNumber, !shouldRedact {
                                         voipPayload["phoneNumber"] = phoneNumber
                                     }
 
                                     if #available(iOS 14.5, *), voiceCallSettings.enableSystemIntegration {
+                                        // Every VoIP push must still be handed to CXProvider regardless
+                                        // of archive-redaction (PushKit's contract) — AppDelegate's
+                                        // pushRegistry handler is where the actual CallKit report happens
+                                        // and independently redacts/immediately-drops locked-archived
+                                        // callers, so it's safe to forward the payload unchanged here.
                                         Logger.shared.log("NotificationService \(episode)", "Will report voip notification")
                                         let content = NotificationContent(isLockedMessage: nil)
                                         updateCurrentContent(content)
-                                        
+
                                         CXProvider.reportNewIncomingVoIPPushPayload(voipPayload, completion: { error in
                                             Logger.shared.log("NotificationService \(episode)", "Did report voip notification, error: \(String(describing: error))")
 
                                             completed()
                                         })
+                                    } else if shouldRedact {
+                                        // No CallKit here to "report then drop" — this fallback path
+                                        // only ever shows a plain notification banner, so the closest
+                                        // available behavior to full suppression is a fully generic one.
+                                        let content = NotificationContent(isLockedMessage: nil)
+                                        updateCurrentContent(content)
+                                        completed()
                                     } else {
                                         var content = NotificationContent(isLockedMessage: nil)
                                         if let peer = callData.peer {
@@ -1407,7 +1436,7 @@ private final class NotificationServiceHandler {
                                         } else {
                                             content.body = "Incoming Call"
                                         }
-                                        
+
                                         updateCurrentContent(content)
                                         completed()
                                     }
@@ -1418,9 +1447,12 @@ private final class NotificationServiceHandler {
                                 let content = NotificationContent(isLockedMessage: nil)
                                 updateCurrentContent(content)
                                 
-                                let _ = (stateManager.postbox.transaction { transaction -> TelegramUser? in
-                                    return transaction.getPeer(groupCallData.fromId) as? TelegramUser
-                                }).start(next: { fromPeer in
+                                let _ = (stateManager.postbox.transaction { transaction -> (TelegramUser?, Bool) in
+                                    let fromPeer = transaction.getPeer(groupCallData.fromId) as? TelegramUser
+                                    // Same Archive-lock redaction as the 1:1 call fallback above.
+                                    let shouldRedact = archiveNotificationShouldRedact(transaction: transaction, peerId: groupCallData.fromId)
+                                    return (fromPeer, shouldRedact)
+                                }).start(next: { fromPeer, shouldRedact in
                                     var voipPayload: [AnyHashable: Any] = [
                                         "group_call_id": "\(groupCallData.id)",
                                         "msg_id": "\(groupCallData.messageId)",
@@ -1430,20 +1462,27 @@ private final class NotificationServiceHandler {
                                         "from_title": groupCallData.fromTitle,
                                         "accountId": "\(groupCallData.accountId)"
                                     ]
-                                    if let phoneNumber = fromPeer?.phone {
+                                    if let phoneNumber = fromPeer?.phone, !shouldRedact {
                                         voipPayload["phoneNumber"] = phoneNumber
                                     }
 
                                     if #available(iOS 14.5, *), voiceCallSettings.enableSystemIntegration {
+                                        // See the 1:1 call path above: always forward to CXProvider,
+                                        // AppDelegate's pushRegistry handler independently redacts
+                                        // locked-archived callers before/while reporting.
                                         Logger.shared.log("NotificationService \(episode)", "Will report voip notification")
                                         let content = NotificationContent(isLockedMessage: nil)
                                         updateCurrentContent(content)
-                                        
+
                                         CXProvider.reportNewIncomingVoIPPushPayload(voipPayload, completion: { error in
                                             Logger.shared.log("NotificationService \(episode)", "Did report voip notification, error: \(String(describing: error))")
 
                                             completed()
                                         })
+                                    } else if shouldRedact {
+                                        let content = NotificationContent(isLockedMessage: nil)
+                                        updateCurrentContent(content)
+                                        completed()
                                     } else {
                                         var content = NotificationContent(isLockedMessage: nil)
                                         if let peer = fromPeer {
@@ -1452,7 +1491,7 @@ private final class NotificationServiceHandler {
                                         } else {
                                             content.body = "Incoming Call"
                                         }
-                                        
+
                                         updateCurrentContent(content)
                                         completed()
                                     }
@@ -1976,13 +2015,25 @@ private final class NotificationServiceHandler {
                                 if interactionAuthorId != nil || messageId != nil {
                                     pollWithUpdatedContent = stateManager.postbox.transaction { transaction -> (NotificationContent, Media?) in
                                         var content = initialContent
-                                        
-                                        if let interactionAuthorId = interactionAuthorId {
+
+                                        // A locked, password-protected Archive must stay invisible through
+                                        // notifications too — redact sender identity and message text
+                                        // entirely rather than just muting (see ChatArchiveSettings.swift /
+                                        // archiveNotificationShouldRedact).
+                                        let shouldRedactForArchive = archiveNotificationShouldRedact(transaction: transaction, peerId: peerId)
+                                        if shouldRedactForArchive {
+                                            content.title = genericArchiveMessageText
+                                            content.subtitle = nil
+                                            content.body = genericArchiveMessageText
+                                            content.isLockedMessage = genericArchiveMessageText
+                                        }
+
+                                        if let interactionAuthorId = interactionAuthorId, !shouldRedactForArchive {
                                             if inAppNotificationSettings.displayNameOnLockscreen, var peer = transaction.getPeer(interactionAuthorId) {
                                                 if let channel = peer as? TelegramChannel, channel.isMonoForum, let linkedMonoforumId = channel.linkedMonoforumId, let mainChannel = transaction.getPeer(linkedMonoforumId) {
                                                     peer = mainChannel
                                                 }
-                                                
+
                                                 var foundLocalId: String?
                                                 transaction.enumerateDeviceContactImportInfoItems({ _, value in
                                                     if let value = value as? TelegramDeviceContactImportedData {
@@ -1998,11 +2049,11 @@ private final class NotificationServiceHandler {
                                                     }
                                                     return true
                                                 })
-                                                
+
                                                 content.addSenderInfo(mediaBox: stateManager.postbox.mediaBox, accountPeerId: stateManager.accountPeerId, peer: peer, topicTitle: topicTitle, contactIdentifier: foundLocalId, isStory: false)
                                             }
                                         }
-                                        
+
                                         if let messageId = messageId {
                                             if let readState = transaction.getCombinedPeerReadState(messageId.peerId) {
                                                 for (namespace, state) in readState.states {
@@ -2317,13 +2368,24 @@ private final class NotificationServiceHandler {
                                 if interactionAuthorId != nil || messageId != nil {
                                     pollWithUpdatedContent = stateManager.postbox.transaction { transaction -> NotificationContent in
                                         var content = initialContent
-                                        
-                                        if let interactionAuthorId = interactionAuthorId {
+
+                                        // Same archive-lock redaction as the plain-message poll case above —
+                                        // a story from a locked, password-protected Archive peer must stay
+                                        // fully hidden too.
+                                        let shouldRedactForArchive = archiveNotificationShouldRedact(transaction: transaction, peerId: peerId)
+                                        if shouldRedactForArchive {
+                                            content.title = genericArchiveMessageText
+                                            content.subtitle = nil
+                                            content.body = genericArchiveMessageText
+                                            content.isLockedMessage = genericArchiveMessageText
+                                        }
+
+                                        if let interactionAuthorId = interactionAuthorId, !shouldRedactForArchive {
                                             if inAppNotificationSettings.displayNameOnLockscreen, var peer = transaction.getPeer(interactionAuthorId) {
                                                 if let channel = peer as? TelegramChannel, channel.isMonoForum, let linkedMonoforumId = channel.linkedMonoforumId, let mainChannel = transaction.getPeer(linkedMonoforumId) {
                                                     peer = mainChannel
                                                 }
-                                                
+
                                                 var foundLocalId: String?
                                                 transaction.enumerateDeviceContactImportInfoItems({ _, value in
                                                     if let value = value as? TelegramDeviceContactImportedData {
@@ -2339,7 +2401,7 @@ private final class NotificationServiceHandler {
                                                     }
                                                     return true
                                                 })
-                                                
+
                                                 content.addSenderInfo(mediaBox: stateManager.postbox.mediaBox, accountPeerId: stateManager.accountPeerId, peer: peer, topicTitle: topicTitle, contactIdentifier: foundLocalId, isStory: false)
                                             }
                                         }
