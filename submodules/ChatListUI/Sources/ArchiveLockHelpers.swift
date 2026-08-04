@@ -1,5 +1,6 @@
 import Foundation
 import UIKit
+import UserNotifications
 import Display
 import SwiftSignalKit
 import TelegramCore
@@ -17,12 +18,50 @@ public enum ArchiveUnlockResult {
 private func migrateAndResolvePasswordProtected(context: AccountContext, settings: ChatArchiveSettings) -> Bool {
     let peerId = context.account.peerId
     let protected = archiveIsPasswordProtected(peerId: peerId, settings: settings)
-    if settings.legacyLockPasswordHash != nil {
+    if settings.legacyLockPasswordHash != nil || (protected && !settings.isPasswordConfigured) {
+        // Also backfills isPasswordConfigured for accounts that set a password before that
+        // flag existed, so the notification/CallKit redaction check (which only has Postbox,
+        // not Keychain, access in the Notification Service Extension) stays correct.
         let _ = updateChatArchiveSettings(engine: context.engine) { current in
-            current.clearingLegacyPasswordHash()
+            current.clearingLegacyPasswordHash().withUpdatedIsPasswordConfigured(true)
         }.startStandalone()
     }
     return protected
+}
+
+/// Remove any OS notifications already sitting in Notification Center for peers that just
+/// became password-locked-archived — otherwise a banner delivered before the lock was set stays
+/// visible (with sender name/text) until manually dismissed, undermining the point of hiding
+/// the conversation. Matches on the "peerId" key the Notification Service Extension already
+/// stamps into each notification's userInfo (Telegram/NotificationService/Sources/NotificationService.swift).
+private func clearDeliveredNotifications(forPeerIds peerIds: Set<Int64>) {
+    guard !peerIds.isEmpty else {
+        return
+    }
+    UNUserNotificationCenter.current().getDeliveredNotifications(completionHandler: { notifications in
+        let matchingIdentifiers = notifications.compactMap { notification -> String? in
+            guard let peerIdString = notification.request.content.userInfo["peerId"] as? String, let peerIdValue = Int64(peerIdString), peerIds.contains(peerIdValue) else {
+                return nil
+            }
+            return notification.request.identifier
+        }
+        guard !matchingIdentifiers.isEmpty else {
+            return
+        }
+        UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: matchingIdentifiers)
+    })
+}
+
+/// Sweep currently-delivered notifications for every peer presently in the Archive. Call this
+/// right after Archive password-protection turns on, since chats already archived at that point
+/// need their pre-existing notifications cleared too, not just future ones.
+public func clearStaleArchiveNotifications(context: AccountContext) {
+    let _ = (context.account.postbox.transaction { transaction -> Set<Int64> in
+        return Set(transaction.chatListGetAllPeerIds(groupId: Namespaces.PeerGroup.archive).map { $0.toInt64() })
+    }
+    |> deliverOnMainQueue).startStandalone(next: { peerIds in
+        clearDeliveredNotifications(forPeerIds: peerIds)
+    })
 }
 
 /// Align server-side keepArchivedUnmuted with local force-mute: unmuted
@@ -249,6 +288,7 @@ public func setArchivePassword(context: AccountContext, present: @escaping (View
         onSuccess: {
             ArchiveLockSession.shared.unlock()
             alignKeepArchivedUnmutedIfNeeded(context: context)
+            clearStaleArchiveNotifications(context: context)
             completion(true)
         },
         onCancel: {
@@ -258,7 +298,7 @@ public func setArchivePassword(context: AccountContext, present: @escaping (View
             _ = ArchivePasswordKeychain.store(password: password, peerId: context.account.peerId)
             ArchivePasswordKeychain.clearFailureState(peerId: context.account.peerId)
             let _ = updateChatArchiveSettings(engine: context.engine) { current in
-                current.clearingLegacyPasswordHash()
+                current.clearingLegacyPasswordHash().withUpdatedIsPasswordConfigured(true)
             }.startStandalone()
         }
     )
@@ -325,7 +365,7 @@ public func removeArchivePassword(context: AccountContext, present: @escaping (V
             onSuccess: {
                 _ = ArchivePasswordKeychain.clear(peerId: context.account.peerId)
                 let _ = updateChatArchiveSettings(engine: context.engine) { current in
-                    current.clearingLegacyPasswordHash().withUpdatedUseBiometrics(false)
+                    current.clearingLegacyPasswordHash().withUpdatedIsPasswordConfigured(false)
                 }.startStandalone()
                 ArchiveLockSession.shared.relock()
                 completion(true)

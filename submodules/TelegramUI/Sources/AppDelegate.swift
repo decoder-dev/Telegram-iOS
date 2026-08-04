@@ -2241,106 +2241,125 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             let messageId = MessageId(peerId: fromPeerId, namespace: Namespaces.Message.Cloud, id: messageId)
             
             let internalId = CallSessionManager.getStableIncomingUUID(peerId: fromPeerId.id._internalGetInt64Value(), messageId: messageId.id)
-            
-            var strings: PresentationStrings = defaultPresentationStrings
-            let _ = (self.sharedContextPromise.get()
-            |> take(1)
-            |> deliverOnMainQueue).start(next: { sharedApplicationContext in
-                strings = sharedApplicationContext.sharedContext.currentPresentationData.with { $0.strings }
-            })
 
-            let displayTitle: String
-            if let memberCountString = payloadJson["member_count"] as? String, let memberCount = Int(memberCountString) {
-                displayTitle = strings.Call_IncomingGroupCallTitle_Multiple(Int32(memberCount)).replacingOccurrences(of: "{}", with: fromTitle)
-            } else {
-                displayTitle = strings.Call_IncomingGroupCallTitle_Single(fromTitle).string
-            }
-            
-            callKitIntegration.reportIncomingCall(
-                uuid: internalId,
-                stableId: groupCallId,
-                handle: "\(fromPeerId.id._internalGetInt64Value())",
-                phoneNumber: phoneNumber.flatMap(formatPhoneNumber),
-                isVideo: isVideo,
-                displayTitle: displayTitle,
-                completion: { error in
-                    if let error = error {
-                        if error.domain == "com.apple.CallKit.error.incomingcall" && (error.code == -3 || error.code == 3) {
-                            Logger.shared.log("PresentationCall", "reportIncomingCall device in DND mode")
-                        } else {
-                            Logger.shared.log("PresentationCall", "reportIncomingCall error \(error)")
-                            /*Queue.mainQueue().async {
-                             if let strongSelf = self {
-                             strongSelf.callSessionManager.drop(internalId: strongSelf.internalId, reason: .hangUp, debugLog: .single(nil))
-                             }
-                             }*/
-                        }
-                    }
-                }
-            )
-            
+            // Resolve the matching account (and this Archive-lock check) *before* reporting to
+            // CallKit — see the 1:1 call path below for why this can't be report-then-correct.
             let _ = (self.sharedContextPromise.get()
             |> take(1)
             |> deliverOnMainQueue).start(next: { sharedApplicationContext in
+                let strings = sharedApplicationContext.sharedContext.currentPresentationData.with { $0.strings }
+
                 let _ = (sharedApplicationContext.sharedContext.activeAccountContexts
                 |> take(1)
                 |> deliverOnMainQueue).start(next: { activeAccounts in
-                    var processed = false
+                    var matchedContext: AccountContext?
                     for (_, context, _) in activeAccounts.accounts {
                         if context.account.id == accountId {
-                            context.account.callSessionManager.addConferenceInvitationMessages(ids: [(messageId, IncomingConferenceTermporaryExternalInfo(callId: groupCallId, isVideo: isVideo))])
-                            
-                            let disposable = MetaDisposable()
-                            self.watchedCallsDisposables.add(disposable)
-                            
-                            if let callManager = context.sharedContext.callManager {
-                                let signal = combineLatest(queue: .mainQueue(), context.account.callSessionManager.ringingStates()
-                                    |> map { ringingStates -> Bool in
-                                        for state in ringingStates {
-                                            if state.id == internalId {
-                                                return true
-                                            }
-                                        }
-                                        return false
-                                    },
-                                    callManager.currentGroupCallSignal
-                                    |> map { currentGroupCall -> Bool in
-                                        if case let .group(groupCall) = currentGroupCall {
-                                            if groupCall.internalId == internalId {
-                                                return true
-                                            }
-                                        }
-                                        return false
-                                    }
-                                )
-                                |> mapToSignal { exists0, exists1 -> Signal<Void, NoError> in
-                                    if !(exists0 || exists1) {
-                                        return .single(Void())
-                                        |> delay(1.0, queue: .mainQueue())
-                                    }
-                                    return .never()
-                                }
-                                
-                                disposable.set((signal
-                                |> take(1)
-                                |> deliverOnMainQueue).startStrict(next: { _ in
-                                    callKitIntegration.dropCall(uuid: internalId)
-                                }))
-                            }
-                            
-                            processed = true
-                            
+                            matchedContext = context
                             break
                         }
                     }
-                    
-                    if !processed {
-                        callKitIntegration.dropCall(uuid: internalId)
+
+                    let shouldRedactSignal: Signal<Bool, NoError>
+                    if let matchedContext {
+                        shouldRedactSignal = matchedContext.account.postbox.transaction { transaction -> Bool in
+                            return archiveNotificationShouldRedact(transaction: transaction, peerId: fromPeerId)
+                        }
+                    } else {
+                        shouldRedactSignal = .single(false)
                     }
+
+                    let _ = (shouldRedactSignal
+                    |> deliverOnMainQueue).start(next: { shouldRedact in
+                        let displayTitle: String
+                        if shouldRedact {
+                            displayTitle = "Telegram"
+                        } else if let memberCountString = payloadJson["member_count"] as? String, let memberCount = Int(memberCountString) {
+                            displayTitle = strings.Call_IncomingGroupCallTitle_Multiple(Int32(memberCount)).replacingOccurrences(of: "{}", with: fromTitle)
+                        } else {
+                            displayTitle = strings.Call_IncomingGroupCallTitle_Single(fromTitle).string
+                        }
+
+                        callKitIntegration.reportIncomingCall(
+                            uuid: internalId,
+                            stableId: groupCallId,
+                            handle: "\(fromPeerId.id._internalGetInt64Value())",
+                            phoneNumber: shouldRedact ? nil : phoneNumber.flatMap(formatPhoneNumber),
+                            isVideo: isVideo,
+                            displayTitle: displayTitle,
+                            completion: { error in
+                                if let error = error {
+                                    if error.domain == "com.apple.CallKit.error.incomingcall" && (error.code == -3 || error.code == 3) {
+                                        Logger.shared.log("PresentationCall", "reportIncomingCall device in DND mode")
+                                    } else {
+                                        Logger.shared.log("PresentationCall", "reportIncomingCall error \(error)")
+                                        /*Queue.mainQueue().async {
+                                         if let strongSelf = self {
+                                         strongSelf.callSessionManager.drop(internalId: strongSelf.internalId, reason: .hangUp, debugLog: .single(nil))
+                                         }
+                                         }*/
+                                    }
+                                }
+                            }
+                        )
+
+                        if shouldRedact {
+                            // Never let it actually ring or connect — this is the closest iOS
+                            // allows to fully suppressing a VoIP push's call UI (every VoIP push
+                            // must still be reported to CXProvider, see PushKit's contract).
+                            callKitIntegration.dropCall(uuid: internalId)
+                            return
+                        }
+
+                        guard let matchedContext else {
+                            callKitIntegration.dropCall(uuid: internalId)
+                            return
+                        }
+
+                        matchedContext.account.callSessionManager.addConferenceInvitationMessages(ids: [(messageId, IncomingConferenceTermporaryExternalInfo(callId: groupCallId, isVideo: isVideo))])
+
+                        let disposable = MetaDisposable()
+                        self.watchedCallsDisposables.add(disposable)
+
+                        if let callManager = matchedContext.sharedContext.callManager {
+                            let signal = combineLatest(queue: .mainQueue(), matchedContext.account.callSessionManager.ringingStates()
+                                |> map { ringingStates -> Bool in
+                                    for state in ringingStates {
+                                        if state.id == internalId {
+                                            return true
+                                        }
+                                    }
+                                    return false
+                                },
+                                callManager.currentGroupCallSignal
+                                |> map { currentGroupCall -> Bool in
+                                    if case let .group(groupCall) = currentGroupCall {
+                                        if groupCall.internalId == internalId {
+                                            return true
+                                        }
+                                    }
+                                    return false
+                                }
+                            )
+                            |> mapToSignal { exists0, exists1 -> Signal<Void, NoError> in
+                                if !(exists0 || exists1) {
+                                    return .single(Void())
+                                    |> delay(1.0, queue: .mainQueue())
+                                }
+                                return .never()
+                            }
+
+                            disposable.set((signal
+                            |> take(1)
+                            |> deliverOnMainQueue).startStrict(next: { _ in
+                                callKitIntegration.dropCall(uuid: internalId)
+                            }))
+                        }
+                    })
                 })
-                
+
                 sharedApplicationContext.wakeupManager.allowBackgroundTimeExtension(timeout: 2.0)
-                
+
                 if case PKPushType.voIP = type {
                     Logger.shared.log("App \(self.episodeId) PushRegistry", "pushRegistry payload: \(payload.dictionaryPayload)")
                     sharedApplicationContext.notificationManager.addNotification(payload.dictionaryPayload)
@@ -2377,63 +2396,92 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                 return
             }
             
-            callKitIntegration.reportIncomingCall(
-                uuid: CallSessionManager.getStableIncomingUUID(stableId: callUpdate.callId),
-                stableId: callUpdate.callId,
-                handle: "\(callUpdate.peer.id.id._internalGetInt64Value())",
-                phoneNumber: phoneNumber.flatMap(formatPhoneNumber),
-                isVideo: callUpdate.isVideo,
-                displayTitle: callUpdate.peer.debugDisplayTitle,
-                completion: { error in
-                    if let error = error {
-                        if error.domain == "com.apple.CallKit.error.incomingcall" && (error.code == -3 || error.code == 3) {
-                            Logger.shared.log("PresentationCall", "reportIncomingCall device in DND mode")
-                        } else {
-                            Logger.shared.log("PresentationCall", "reportIncomingCall error \(error)")
-                            /*Queue.mainQueue().async {
-                             if let strongSelf = self {
-                             strongSelf.callSessionManager.drop(internalId: strongSelf.internalId, reason: .hangUp, debugLog: .single(nil))
-                             }
-                             }*/
-                        }
-                    }
-                }
-            )
-            
+            let oneToOneCallUUID = CallSessionManager.getStableIncomingUUID(stableId: callUpdate.callId)
+
+            // Resolve the matching account *before* reporting to CallKit, so a caller hidden in
+            // a locked, password-protected Archive is never shown by real name/handle — not even
+            // for the brief window it'd take to report-then-correct. If the account can't be
+            // resolved in time (e.g. cold launch), fail open (report normally) rather than risk
+            // silently swallowing ordinary calls; this only weakens the Archive redaction in a
+            // rare timing edge case, it never breaks calling.
             let _ = (self.sharedContextPromise.get()
             |> take(1)
             |> deliverOnMainQueue).start(next: { sharedApplicationContext in
                 let _ = (sharedApplicationContext.sharedContext.activeAccountContexts
                 |> take(1)
                 |> deliverOnMainQueue).start(next: { activeAccounts in
-                    var processed = false
+                    var matchedContext: AccountContext?
                     for (_, context, _) in activeAccounts.accounts {
                         if context.account.id == accountId {
-                            context.account.stateManager.processIncomingCallUpdate(data: updateData, completion: { _ in
-                            })
-                            
-                            let disposable = MetaDisposable()
-                            self.watchedCallsDisposables.add(disposable)
-                            
-                            disposable.set((context.account.callSessionManager.callState(internalId: CallSessionManager.getStableIncomingUUID(stableId: callUpdate.callId))
-                            |> deliverOnMainQueue).start(next: { state in
-                                switch state.state {
-                                case .terminated:
-                                    callKitIntegration.dropCall(uuid: CallSessionManager.getStableIncomingUUID(stableId: callUpdate.callId))
-                                default:
-                                    break
-                                }
-                            }))
-                            
-                            processed = true
-                            
+                            matchedContext = context
                             break
                         }
                     }
-                    
-                    if !processed {
-                        callKitIntegration.dropCall(uuid: CallSessionManager.getStableIncomingUUID(stableId: callUpdate.callId))
+
+                    let shouldRedactSignal: Signal<Bool, NoError>
+                    if let matchedContext {
+                        shouldRedactSignal = matchedContext.account.postbox.transaction { transaction -> Bool in
+                            return archiveNotificationShouldRedact(transaction: transaction, peerId: callUpdate.peer.id)
+                        }
+                    } else {
+                        shouldRedactSignal = .single(false)
                     }
+
+                    let _ = (shouldRedactSignal
+                    |> deliverOnMainQueue).start(next: { shouldRedact in
+                        callKitIntegration.reportIncomingCall(
+                            uuid: oneToOneCallUUID,
+                            stableId: callUpdate.callId,
+                            handle: "\(callUpdate.peer.id.id._internalGetInt64Value())",
+                            phoneNumber: shouldRedact ? nil : phoneNumber.flatMap(formatPhoneNumber),
+                            isVideo: callUpdate.isVideo,
+                            displayTitle: shouldRedact ? "Telegram" : callUpdate.peer.debugDisplayTitle,
+                            completion: { error in
+                                if let error = error {
+                                    if error.domain == "com.apple.CallKit.error.incomingcall" && (error.code == -3 || error.code == 3) {
+                                        Logger.shared.log("PresentationCall", "reportIncomingCall device in DND mode")
+                                    } else {
+                                        Logger.shared.log("PresentationCall", "reportIncomingCall error \(error)")
+                                        /*Queue.mainQueue().async {
+                                         if let strongSelf = self {
+                                         strongSelf.callSessionManager.drop(internalId: strongSelf.internalId, reason: .hangUp, debugLog: .single(nil))
+                                         }
+                                         }*/
+                                    }
+                                }
+                            }
+                        )
+
+                        if shouldRedact {
+                            // Never let it actually ring or connect — this is the closest iOS
+                            // allows to fully suppressing a VoIP push's call UI (every VoIP push
+                            // must still be reported to CXProvider, see PushKit's contract).
+                            callKitIntegration.dropCall(uuid: oneToOneCallUUID)
+                            return
+                        }
+
+                        guard let matchedContext else {
+                            // Same fallback as before this change: an account we can't attach
+                            // to a live session for shouldn't keep ringing indefinitely.
+                            callKitIntegration.dropCall(uuid: oneToOneCallUUID)
+                            return
+                        }
+                        matchedContext.account.stateManager.processIncomingCallUpdate(data: updateData, completion: { _ in
+                        })
+
+                        let disposable = MetaDisposable()
+                        self.watchedCallsDisposables.add(disposable)
+
+                        disposable.set((matchedContext.account.callSessionManager.callState(internalId: oneToOneCallUUID)
+                        |> deliverOnMainQueue).start(next: { state in
+                            switch state.state {
+                            case .terminated:
+                                callKitIntegration.dropCall(uuid: oneToOneCallUUID)
+                            default:
+                                break
+                            }
+                        }))
+                    })
                 })
                 
                 sharedApplicationContext.wakeupManager.allowBackgroundTimeExtension(timeout: 2.0)
