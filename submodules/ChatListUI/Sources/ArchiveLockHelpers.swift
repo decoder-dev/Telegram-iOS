@@ -5,6 +5,7 @@ import SwiftSignalKit
 import TelegramCore
 import TelegramUIPreferences
 import AccountContext
+import LocalAuth
 
 public enum ArchiveUnlockResult {
     case unlocked
@@ -61,21 +62,41 @@ public func ensureArchiveUnlocked(
             completion(.unlocked)
             return
         }
-        
-        presentArchivePasswordAlert(
-            context: context,
-            title: ArchiveLockLocalizedString.enterTitle,
-            message: ArchiveLockLocalizedString.enterText,
-            confirmTitle: ArchiveLockLocalizedString.unlock,
-            verifyPassword: true,
-            onSuccess: {
-                ArchiveLockSession.shared.unlock()
-                completion(.unlocked)
-            },
-            onCancel: {
-                completion(.cancelled)
-            }
-        )
+
+        func showPasswordPrompt() {
+            presentArchivePasswordAlert(
+                context: context,
+                title: ArchiveLockLocalizedString.enterTitle,
+                message: ArchiveLockLocalizedString.enterText,
+                confirmTitle: ArchiveLockLocalizedString.unlock,
+                verifyPassword: true,
+                onSuccess: {
+                    ArchiveLockSession.shared.unlock()
+                    completion(.unlocked)
+                },
+                onCancel: {
+                    completion(.cancelled)
+                }
+            )
+        }
+
+        // Face ID/Touch ID is a convenience on top of the password, not a replacement for
+        // it: it only ever grants access this way when the account already has a password
+        // set (checked above) and the user opted in per-account. A cancel/failure always
+        // falls through to the password prompt — never a dead end.
+        if settings.useBiometrics, LocalAuth.biometricAuthentication != nil {
+            let _ = (LocalAuth.auth(reason: ArchiveLockLocalizedString.biometricReason)
+            |> deliverOnMainQueue).start(next: { success, _ in
+                if success {
+                    ArchiveLockSession.shared.unlock()
+                    completion(.unlocked)
+                } else {
+                    showPasswordPrompt()
+                }
+            })
+        } else {
+            showPasswordPrompt()
+        }
     })
 }
 
@@ -117,11 +138,29 @@ private func presentArchivePasswordAlert(
     onCancel: @escaping () -> Void,
     capturePassword: ((String) -> Void)? = nil
 ) {
-    var attemptsLeft = 5
     let peerId = context.account.peerId
     let strings = context.sharedContext.currentPresentationData.with { $0 }.strings
-    
+
+    func cooldownMessage(_ remaining: Double) -> String {
+        return ArchiveLockLocalizedString.tooManyAttempts(seconds: max(1, Int(remaining.rounded(.up))))
+    }
+
     func show(messageOverride: String?) {
+        // The failure/cooldown counter is Keychain-backed (ArchivePasswordKeychain), not a
+        // local variable, so cancelling and reopening this prompt can't be used to reset an
+        // attempt limit — see ArchivePasswordKeychain's brute-force throttling section.
+        if verifyPassword {
+            let remaining = ArchivePasswordKeychain.remainingCooldown(peerId: peerId)
+            if remaining > 0 {
+                let cooldownAlert = UIAlertController(title: title, message: cooldownMessage(remaining), preferredStyle: .alert)
+                cooldownAlert.addAction(UIAlertAction(title: strings.Common_OK, style: .cancel, handler: { _ in
+                    onCancel()
+                }))
+                presentUIAlert(context: context, alert: cooldownAlert)
+                return
+            }
+        }
+
         let alert = UIAlertController(title: title, message: messageOverride ?? message, preferredStyle: .alert)
         alert.addTextField { field in
             field.isSecureTextEntry = true
@@ -137,13 +176,16 @@ private func presentArchivePasswordAlert(
             let trimmed = (alert.textFields?.first?.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
             if verifyPassword {
                 if ArchivePasswordKeychain.matchesPassword(trimmed, peerId: peerId) {
+                    ArchivePasswordKeychain.clearFailureState(peerId: peerId)
                     onSuccess()
                 } else {
-                    attemptsLeft -= 1
-                    if attemptsLeft <= 0 {
-                        onCancel()
-                    } else {
-                        Queue.mainQueue().after(0.3) {
+                    ArchivePasswordKeychain.recordFailure(peerId: peerId)
+                    let remaining = ArchivePasswordKeychain.remainingCooldown(peerId: peerId)
+                    Queue.mainQueue().after(0.3) {
+                        if remaining > 0 {
+                            show(messageOverride: cooldownMessage(remaining))
+                        } else {
+                            let attemptsLeft = max(0, 5 - ArchivePasswordKeychain.failureCount(peerId: peerId))
                             show(messageOverride: ArchiveLockLocalizedString.incorrectPassword(attemptsLeft: attemptsLeft))
                         }
                     }
@@ -213,13 +255,55 @@ public func setArchivePassword(context: AccountContext, present: @escaping (View
             completion(false)
         },
         capturePassword: { password in
-            let hash = archivePasswordHash(password)
-            _ = ArchivePasswordKeychain.storeHash(hash, peerId: context.account.peerId)
+            _ = ArchivePasswordKeychain.store(password: password, peerId: context.account.peerId)
+            ArchivePasswordKeychain.clearFailureState(peerId: context.account.peerId)
             let _ = updateChatArchiveSettings(engine: context.engine) { current in
                 current.clearingLegacyPasswordHash()
             }.startStandalone()
         }
     )
+}
+
+/// Rotate the Archive password: verify the current one, then capture and store a new one.
+/// Reuses the same verify → confirm-new-password flow as initial setup.
+public func changeArchivePassword(context: AccountContext, present: @escaping (ViewController) -> Void, completion: @escaping (Bool) -> Void) {
+    presentArchivePasswordAlert(
+        context: context,
+        title: ArchiveLockLocalizedString.enterTitle,
+        message: ArchiveLockLocalizedString.changeCurrentText,
+        confirmTitle: ArchiveLockLocalizedString.continueAction,
+        verifyPassword: true,
+        onSuccess: {
+            presentArchivePasswordAlert(
+                context: context,
+                title: ArchiveLockLocalizedString.setTitle,
+                message: ArchiveLockLocalizedString.setText,
+                confirmTitle: ArchiveLockLocalizedString.continueAction,
+                verifyPassword: false,
+                onSuccess: {
+                    completion(true)
+                },
+                onCancel: {
+                    completion(false)
+                },
+                capturePassword: { password in
+                    _ = ArchivePasswordKeychain.store(password: password, peerId: context.account.peerId)
+                    ArchivePasswordKeychain.clearFailureState(peerId: context.account.peerId)
+                }
+            )
+        },
+        onCancel: {
+            completion(false)
+        }
+    )
+}
+
+/// Toggle per-account Face ID/Touch ID as a convenience unlock. Only meaningful while a
+/// password is set; the settings UI hides this row otherwise.
+public func setArchiveUseBiometrics(context: AccountContext, enabled: Bool) {
+    let _ = updateChatArchiveSettings(engine: context.engine) { current in
+        current.withUpdatedUseBiometrics(enabled)
+    }.startStandalone()
 }
 
 public func removeArchivePassword(context: AccountContext, present: @escaping (ViewController) -> Void, completion: @escaping (Bool) -> Void) {
@@ -241,7 +325,7 @@ public func removeArchivePassword(context: AccountContext, present: @escaping (V
             onSuccess: {
                 _ = ArchivePasswordKeychain.clear(peerId: context.account.peerId)
                 let _ = updateChatArchiveSettings(engine: context.engine) { current in
-                    current.clearingLegacyPasswordHash()
+                    current.clearingLegacyPasswordHash().withUpdatedUseBiometrics(false)
                 }.startStandalone()
                 ArchiveLockSession.shared.relock()
                 completion(true)

@@ -13,6 +13,7 @@ import PremiumUI
 import ReactionSelectionNode
 import TopMessageReactions
 import ChatMessagePaymentAlertController
+import ChatListUI
 
 extension ChatControllerImpl {
     func forwardMessages(messageIds: [EngineMessage.Id], options: ChatInterfaceForwardOptionsState? = nil, resetCurrent: Bool = false) {
@@ -499,14 +500,28 @@ extension ChatControllerImpl {
                                     }))
                                 }
                             }
-                            if let threadId = threadId {
-                                let _ = (strongSelf.context.sharedContext.chatControllerForForumThread(context: strongSelf.context, peerId: peerId, threadId: threadId)
-                                |> deliverOnMainQueue).startStandalone(next: { chatController in
-                                    proceed(chatController)
-                                })
-                            } else {
-                                proceed(ChatControllerImpl(context: strongSelf.context, chatLocation: .peer(id: peerId)))
-                            }
+                            // The forward target peer can live in a password-locked archive —
+                            // gate the post-forward jump like the shared navigateToChatController
+                            // funnel does, so forwarding into a locked chat can't be used to
+                            // open it without the password.
+                            ensureArchivedPeerAccessible(context: strongSelf.context, peerId: peerId, present: { [weak strongSelf] controller in
+                                strongSelf?.present(controller, in: .window(.root))
+                            }, completion: { result in
+                                switch result {
+                                case .cancelled:
+                                    return
+                                case .unlocked, .notProtected:
+                                    break
+                                }
+                                if let threadId = threadId {
+                                    let _ = (strongSelf.context.sharedContext.chatControllerForForumThread(context: strongSelf.context, peerId: peerId, threadId: threadId)
+                                    |> deliverOnMainQueue).startStandalone(next: { chatController in
+                                        proceed(chatController)
+                                    })
+                                } else {
+                                    proceed(ChatControllerImpl(context: strongSelf.context, chatLocation: .peer(id: peerId)))
+                                }
+                            })
                         }
                     })
                 }

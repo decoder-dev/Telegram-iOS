@@ -797,6 +797,12 @@ public final class SharedAccountContextImpl: SharedAccountContext {
                     self.activeAccountsValue!.primary?.account.postbox.clearCaches()
                     self.activeAccountsValue!.primary?.account.resetCachedData()
                     self.activeAccountsValue!.primary = primary
+                    // The Archive lock session is a single process-wide singleton with no
+                    // account identity of its own — an unlock/reveal on the previous primary
+                    // account must not carry over to the newly selected one, whether the
+                    // change came from a manual account switch or from the previous primary
+                    // being logged out/removed.
+                    ArchiveLockSession.shared.relock()
                 }
                 if self.activeAccountsValue!.currentAuth?.id != authRecord?.0 {
                     hadUpdates = true

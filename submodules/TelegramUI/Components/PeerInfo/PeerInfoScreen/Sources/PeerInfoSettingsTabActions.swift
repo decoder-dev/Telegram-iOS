@@ -11,6 +11,7 @@ import AsyncDisplayKit
 import ComponentFlow
 import ComponentDisplayAdapters
 import EmojiStatusComponent
+import TelegramUIPreferences
 
 extension PeerInfoScreenNode {
     func accountContextMenuItems(context: AccountContext, logout: @escaping () -> Void) -> Signal<[ContextMenuItem], NoError> {
@@ -78,6 +79,18 @@ extension PeerInfoScreenNode {
         items.append(ActionSheetButtonItem(title: self.presentationData.strings.Settings_Logout, color: .destructive, action: { [weak self] in
             dismissAction()
             if let strongSelf = self {
+                // Don't leave an orphaned Archive-lock password hash behind for an account
+                // that no longer exists on this device.
+                let _ = (strongSelf.accountsAndPeers.get()
+                |> take(1)
+                |> deliverOnMainQueue).startStandalone(next: { accountsAndPeers in
+                    for (account, _, _) in accountsAndPeers {
+                        if account.account.id == id {
+                            ArchivePasswordKeychain.clear(peerId: account.account.peerId)
+                            break
+                        }
+                    }
+                })
                 let _ = logoutFromAccount(id: id, accountManager: strongSelf.context.sharedContext.accountManager, alreadyLoggedOutRemotely: false).startStandalone()
             }
         }))

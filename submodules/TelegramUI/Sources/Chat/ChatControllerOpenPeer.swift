@@ -120,6 +120,7 @@ import ChatEmptyNode
 import ChatMediaInputStickerGridItem
 import FaceScanScreen
 import ForumCreateTopicScreen
+import ChatListUI
 
 extension ChatControllerImpl {
     func openPeer(peer: EnginePeer?, navigation: ChatControllerInteractionNavigateToPeer, fromMessage: MessageReference?, fromReactionMessageId: EngineMessage.Id? = nil, expandAvatar: Bool = false, peerTypes: ReplyMarkupButtonAction.PeerTypes? = nil, skipAgeVerification: Bool = false) {
@@ -232,11 +233,28 @@ extension ChatControllerImpl {
                                                 self.openPeer(peer: peer, navigation: navigation, fromMessage: fromMessage, fromReactionMessageId: fromReactionMessageId, expandAvatar: expandAvatar, peerTypes: peerTypes)
                                             })
                                         } else {
-                                            if case let .channel(channel) = peer, channel.isForumOrMonoForum {
-                                                self.effectiveNavigationController?.pushViewController(ChatListControllerImpl(context: self.context, location: .forum(peerId: channel.id), controlsHistoryPreload: false, enableDebugActions: false))
-                                            } else {
-                                                self.effectiveNavigationController?.pushViewController(ChatControllerImpl(context: self.context, chatLocation: .peer(id: peer.id), subject: subject))
-                                            }
+                                            // Opening a peer referenced from inside another chat (e.g. a
+                                            // forwarded-from author, a reply-preview author, a mention) must
+                                            // not bypass the Archive lock just because it doesn't go through
+                                            // the shared navigateToChatController funnel.
+                                            ensureArchivedPeerAccessible(context: self.context, peerId: peer.id, present: { [weak self] controller in
+                                                self?.present(controller, in: .window(.root))
+                                            }, completion: { [weak self] result in
+                                                guard let self else {
+                                                    return
+                                                }
+                                                switch result {
+                                                case .cancelled:
+                                                    return
+                                                case .unlocked, .notProtected:
+                                                    break
+                                                }
+                                                if case let .channel(channel) = peer, channel.isForumOrMonoForum {
+                                                    self.effectiveNavigationController?.pushViewController(ChatListControllerImpl(context: self.context, location: .forum(peerId: channel.id), controlsHistoryPreload: false, enableDebugActions: false))
+                                                } else {
+                                                    self.effectiveNavigationController?.pushViewController(ChatControllerImpl(context: self.context, chatLocation: .peer(id: peer.id), subject: subject))
+                                                }
+                                            })
                                         }
                                     })
                                 }
@@ -281,15 +299,33 @@ extension ChatControllerImpl {
                                                     return
                                                 }
                                                 strongSelf.updateChatPresentationInterfaceState(animated: false, interactive: true, { $0.updatedInterfaceState({ $0.withoutSelectionState() }) })
-                                                                                                        
-                                                if let navigationController = strongSelf.effectiveNavigationController {
+
+                                                guard let navigationController = strongSelf.effectiveNavigationController else {
+                                                    return
+                                                }
+                                                // The picked target peer can live in a password-locked
+                                                // archive — gate it like the shared navigateToChatController
+                                                // funnel does, so picking it from the peer-selection sheet
+                                                // can't be used to open a locked chat without the password.
+                                                ensureArchivedPeerAccessible(context: strongSelf.context, peerId: peerId, present: { [weak strongSelf] controller in
+                                                    strongSelf?.present(controller, in: .window(.root))
+                                                }, completion: { [weak self, weak navigationController] result in
+                                                    guard let strongSelf = self, let navigationController else {
+                                                        return
+                                                    }
+                                                    switch result {
+                                                    case .cancelled:
+                                                        return
+                                                    case .unlocked, .notProtected:
+                                                        break
+                                                    }
                                                     let chatController: Signal<ChatController, NoError>
                                                     if let threadId {
                                                         chatController = chatControllerForForumThreadImpl(context: strongSelf.context, peerId: peerId, threadId: threadId)
                                                     } else {
                                                         chatController = .single(ChatControllerImpl(context: strongSelf.context, chatLocation: .peer(id: peerId)))
                                                     }
-                                                    
+
                                                     let _ = (chatController
                                                     |> deliverOnMainQueue).start(next: { [weak self, weak navigationController] chatController in
                                                         guard let strongSelf = self, let navigationController  else {
@@ -303,7 +339,7 @@ extension ChatControllerImpl {
                                                         }
                                                         viewControllers.insert(chatController, at: viewControllers.count - 1)
                                                         navigationController.setViewControllers(viewControllers, animated: false)
-                                                        
+
                                                         strongSelf.controllerNavigationDisposable.set((chatController.ready.get()
                                                         |> filter { $0 }
                                                         |> take(1)
@@ -311,7 +347,7 @@ extension ChatControllerImpl {
                                                             lastController?.dismiss()
                                                         }))
                                                     })
-                                                }
+                                                })
                                             })
                                         }
                                     }

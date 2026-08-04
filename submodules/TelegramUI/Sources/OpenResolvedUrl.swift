@@ -44,6 +44,7 @@ import ProxyServerPreviewScreen
 import AuthConfirmationScreen
 import OpenInExternalAppUI
 import CreateBotScreen
+import ChatListUI
 
 private func defaultNavigationForPeerId(_ peerId: PeerId?, navigation: ChatControllerInteractionNavigateToPeer) -> ChatControllerInteractionNavigateToPeer {
     if case .default = navigation {
@@ -651,7 +652,20 @@ func openResolvedUrlImpl(
                     })
                 }
 
-                updateControllers()
+                // A share-target peer resolved from a `tg://msg_url` link (or the in-app
+                // contact/forward picker) can be a peer sitting in a password-locked archive —
+                // gate it the same way the chat-list navigation funnel does, so a share intent
+                // can't be used to peek into a locked archived chat's history without the password.
+                ensureArchivedPeerAccessible(context: context, peerId: peerId, present: { controller in
+                    present(controller, nil)
+                }, completion: { result in
+                    switch result {
+                    case .cancelled:
+                        break
+                    case .unlocked, .notProtected:
+                        updateControllers()
+                    }
+                })
             }
             
             if let to = to {

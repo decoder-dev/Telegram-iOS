@@ -15,6 +15,7 @@ import UrlHandling
 import AccountUtils
 import PremiumUI
 import StorageUsageScreen
+import TelegramUIPreferences
 
 private struct LogoutOptionsItemArguments {
     let addAccount: () -> Void
@@ -260,6 +261,9 @@ public func logoutOptionsController(context: AccountContext, navigationControlle
             TextAlertAction(type: .genericAction, title: presentationData.strings.Common_Cancel, action: {
             }),
             TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {
+                // Don't leave an orphaned Archive-lock password hash behind for an account
+                // that no longer exists on this device.
+                ArchivePasswordKeychain.clear(peerId: context.account.peerId)
                 let _ = logoutFromAccount(id: context.account.id, accountManager: context.sharedContext.accountManager, alreadyLoggedOutRemotely: false).start()
                 dismissImpl?()
             })
