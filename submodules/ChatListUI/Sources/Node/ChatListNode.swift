@@ -1940,6 +1940,7 @@ public final class ChatListNode: ListViewImpl {
         let previousState = Atomic<ChatListNodeState>(value: self.currentState)
         let previousView = Atomic<ChatListNodeView?>(value: nil)
         let previousHideArchivedFolderByDefault = Atomic<Bool?>(value: nil)
+        let previousArchiveFolderPresentation = Atomic<ArchiveFolderPresentation?>(value: nil)
         let currentRemovingItemId = self.currentRemovingItemId
         
         let savedMessagesPeer: Signal<EnginePeer?, NoError>
@@ -1964,11 +1965,9 @@ public final class ChatListNode: ListViewImpl {
         }
         |> distinctUntilChanged
         
-        // Secret archive: omit the folder row until Settings is tapped 10×.
-        let omitArchiveFolder = ArchiveLockSession.shared.revealedSignal
-        |> map { revealed -> Bool in
-            return !revealed
-        }
+        // Secret archive: omit until Settings ×10; on auto-close keep the row briefly
+        // (`.collapsing`) so ChatListItem can play the official 0.4s spring hide.
+        let archiveFolderPresentation = ArchiveLockSession.shared.folderPresentationSignal
         |> distinctUntilChanged
         
         let displayArchiveIntro: Signal<Bool, NoError>
@@ -2190,7 +2189,7 @@ public final class ChatListNode: ListViewImpl {
         
         let chatListNodeViewTransition = combineLatest(queue: viewProcessingQueue,
             hideArchivedFolderByDefault,
-            omitArchiveFolder,
+            archiveFolderPresentation,
             displayArchiveIntro,
             storageInfo,
             savedMessagesPeer,
@@ -2200,14 +2199,18 @@ public final class ChatListNode: ListViewImpl {
             chatListFilters,
             accountIsPremium
         )
-        |> mapToQueue { (hideArchivedFolderByDefault, omitArchiveFolder, displayArchiveIntro, storageInfo, savedMessagesPeer, updateAndFilter, state, contacts, chatListFilters, accountIsPremium) -> Signal<ChatListNodeListViewTransition, NoError> in
+        |> mapToQueue { (hideArchivedFolderByDefault, archiveFolderPresentation, displayArchiveIntro, storageInfo, savedMessagesPeer, updateAndFilter, state, contacts, chatListFilters, accountIsPremium) -> Signal<ChatListNodeListViewTransition, NoError> in
             let (update, filter) = updateAndFilter
             
             let previousHideArchivedFolderByDefaultValue = previousHideArchivedFolderByDefault.swap(hideArchivedFolderByDefault)
+            let previousArchiveFolderPresentationValue = previousArchiveFolderPresentation.swap(archiveFolderPresentation)
+            
+            let omitArchiveFolder = archiveFolderPresentation == .omitted
+            let forceArchiveCollapsed = archiveFolderPresentation == .collapsing
             
             let innerIsMainTab = location == .chatList(groupId: .root) && chatListFilter == nil
             
-            let (rawEntries, isLoading) = chatListNodeEntriesForView(view: update.list, state: state, savedMessagesPeer: savedMessagesPeer, foundPeers: state.foundPeers, hideArchivedFolderByDefault: hideArchivedFolderByDefault, displayArchiveIntro: displayArchiveIntro, mode: mode, chatListLocation: location, contacts: contacts, accountPeerId: accountPeerId, isMainTab: innerIsMainTab, omitArchiveFolder: omitArchiveFolder)
+            let (rawEntries, isLoading) = chatListNodeEntriesForView(view: update.list, state: state, savedMessagesPeer: savedMessagesPeer, foundPeers: state.foundPeers, hideArchivedFolderByDefault: hideArchivedFolderByDefault, displayArchiveIntro: displayArchiveIntro, mode: mode, chatListLocation: location, contacts: contacts, accountPeerId: accountPeerId, isMainTab: innerIsMainTab, omitArchiveFolder: omitArchiveFolder, forceArchiveCollapsed: forceArchiveCollapsed)
             var isEmpty = true
             var entries = rawEntries.filter { entry in
                 switch entry {
@@ -2632,6 +2635,12 @@ public final class ChatListNode: ListViewImpl {
                 }
                 if didIncludeHiddenByDefaultArchive != doesIncludeHiddenByDefaultArchive {
                     disableAnimations = false
+                }
+                // Secret archive auto-close / reopen-during-collapse: spring like official hide/reveal.
+                if previousArchiveFolderPresentationValue != archiveFolderPresentation {
+                    if archiveFolderPresentation == .collapsing || (previousArchiveFolderPresentationValue == .collapsing && archiveFolderPresentation == .expanded) {
+                        disableAnimations = false
+                    }
                 }
                 if previousState.hiddenItemShouldBeTemporaryRevealed != state.hiddenItemShouldBeTemporaryRevealed && doesIncludeHiddenThread {
                     disableAnimations = false
@@ -3218,6 +3227,8 @@ public final class ChatListNode: ListViewImpl {
         if self.currentState.hiddenItemShouldBeTemporaryRevealed {
             return false
         }
+        // While the secret Archive is locked/collapsing, do not allow pull-to-reveal of the folder.
+        let allowArchivePullReveal = ArchiveLockSession.shared.isRevealed
         var isHiddenItemVisible = false
         self.forEachItemNode({ itemNode in
             if let itemNode = itemNode as? ChatListItemNode, let item = itemNode.item {
@@ -3227,7 +3238,7 @@ public final class ChatListNode: ListViewImpl {
                     }
                 }
                 if case let .groupReference(groupReference) = item.content {
-                    if groupReference.hiddenByDefault {
+                    if groupReference.hiddenByDefault && allowArchivePullReveal {
                         isHiddenItemVisible = true
                     }
                 }
@@ -3238,6 +3249,7 @@ public final class ChatListNode: ListViewImpl {
     }
     
     func revealScrollHiddenItem() {
+        let allowArchivePullReveal = ArchiveLockSession.shared.isRevealed
         var isHiddenItemVisible = false
         self.forEachItemNode({ itemNode in
             if let itemNode = itemNode as? ChatListItemNode, let item = itemNode.item {
@@ -3247,7 +3259,7 @@ public final class ChatListNode: ListViewImpl {
                     }
                 }
                 if case let .groupReference(groupReference) = item.content {
-                    if groupReference.hiddenByDefault {
+                    if groupReference.hiddenByDefault && allowArchivePullReveal {
                         isHiddenItemVisible = true
                     }
                 }
