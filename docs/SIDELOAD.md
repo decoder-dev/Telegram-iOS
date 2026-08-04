@@ -16,7 +16,7 @@ Build from this repo’s Actions artifact instead.
 |--------|--------|
 | Configuration | `release_arm64` |
 | Codesigning | `build-system/fake-codesigning` |
-| Bundle ID (build-time) | `ph.telegra.Telegraph` |
+| Bundle ID (build-time) | `ph.teleg.Telegrapf` |
 | Team ID (build-time) | `C67CF9S4VU` |
 | Extensions | disabled (`--disableExtensions`) |
 | Siri / iCloud | off |
