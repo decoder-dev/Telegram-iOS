@@ -63,7 +63,6 @@ final class CompactDocumentPreviewController: QLPreviewController, QLPreviewCont
         if let tempFile = self.tempFile {
             TempBox.shared.dispose(tempFile)
         }
-        self.timer?.invalidate()
     }
     
     @objc private func cancelPressed() {
@@ -99,18 +98,28 @@ final class CompactDocumentPreviewController: QLPreviewController, QLPreviewCont
     private var toolbars: [UIView] = []
     private var observations : [NSKeyValueObservation] = []
     
-    private var initialized = false
-    private var timer: SwiftSignalKit.Timer?
+    private var hideShareScheduled = false
+    
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         
-        if !self.canShare && !self.initialized {
-            self.initialized = true
-            
-            self.timer = SwiftSignalKit.Timer(timeout: 0.01, repeat: true, completion: { [weak self] in
+        if !self.canShare {
+            // Apply on every layout — QLPreview rebuilds chrome asynchronously.
+            // Avoid the former 100 Hz Timer that walked the hierarchy continuously.
+            self.tick()
+            if !self.hideShareScheduled {
+                self.hideShareScheduled = true
+                self.scheduleHideShareChromeRetries()
+            }
+        }
+    }
+    
+    private func scheduleHideShareChromeRetries() {
+        // A handful of delayed passes covers late-created share buttons without a busy loop.
+        for delay in [0.05, 0.15, 0.35, 0.75, 1.5] as [Double] {
+            Queue.mainQueue().after(delay, { [weak self] in
                 self?.tick()
-            }, queue: Queue.mainQueue())
-            self.timer?.start()
+            })
         }
     }
     

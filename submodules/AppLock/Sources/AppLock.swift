@@ -8,8 +8,6 @@ import AccountContext
 import TelegramPresentationData
 import PasscodeUI
 import TelegramUIPreferences
-import ImageBlur
-import FastBlur
 import AppLockState
 import PassKit
 
@@ -35,34 +33,6 @@ private func isLocked(passcodeSettings: PresentationPasscodeSettings, state: Loc
         }
     }
     return false
-}
-
-private func getCoveringViewSnaphot(window: Window1) -> UIImage? {
-    let scale: CGFloat = 0.5
-    let unscaledSize = window.hostView.containerView.frame.size
-    return generateImage(CGSize(width: floor(unscaledSize.width * scale), height: floor(unscaledSize.height * scale)), rotatedContext: { size, context in
-        context.clear(CGRect(origin: CGPoint(), size: size))
-        context.scaleBy(x: scale, y: scale)
-        UIGraphicsPushContext(context)
-
-        window.badgeView.alpha = 0.0
-        window.forEachViewController({ controller in
-            if let controller = controller as? PasscodeEntryController {
-                controller.displayNode.alpha = 0.0
-            }
-            return true
-        })
-        window.hostView.containerView.drawHierarchy(in: CGRect(origin: CGPoint(), size: unscaledSize), afterScreenUpdates: false)
-        window.forEachViewController({ controller in
-            if let controller = controller as? PasscodeEntryController {
-                controller.displayNode.alpha = 1.0
-            }
-            return true
-        })
-        window.badgeView.alpha = 1.0
-        
-        UIGraphicsPopContext()
-    }).flatMap(applyScreenshotEffectToImage)
 }
 
 public final class AppLockContextImpl: AppLockContext {
@@ -250,13 +220,10 @@ public final class AppLockContextImpl: AppLockContext {
             if shouldDisplayCoveringView {
                 if strongSelf.coveringView == nil, let window = strongSelf.window {
                     let coveringView = LockedWindowCoveringView(theme: presentationData.theme)
-                    // Skip drawHierarchy snapshot on instant-lock path — it is expensive
-                    // and was contributing to thermal pressure on backgrounding.
-                    if justEnteredBackground && forkExtras.instantPasscodeLock && passcodeSettings.autolockTimeout == nil {
-                        coveringView.updateSnapshot(nil)
-                    } else {
-                        coveringView.updateSnapshot(getCoveringViewSnaphot(window: window))
-                    }
+                    // Never take a drawHierarchy snapshot here — full-window capture + blur
+                    // heats the device on every background/lock. Solid theme cover is enough;
+                    // PasscodeEntryController overlays it when locked.
+                    coveringView.updateSnapshot(nil)
                     strongSelf.coveringView = coveringView
                     window.coveringView = coveringView
                     
