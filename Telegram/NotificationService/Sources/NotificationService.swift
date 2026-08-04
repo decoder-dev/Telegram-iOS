@@ -1181,34 +1181,40 @@ private final class NotificationServiceHandler {
                                 messageIdValue = MessageId(peerId: peerId, namespace: Namespaces.Message.Cloud, id: messageId)
                             }
                             
+                            // Fork extras: drop mention / pinned push noise when enabled.
+                            // Must run even when APS has no category — many mention/pin
+                            // payloads omit it, which previously skipped the filter entirely.
+                            let categoryString = (aps["category"] as? String) ?? ""
+                            let locKey = ((payloadJson["loc-key"] as? String) ?? "").uppercased()
+                            let alertTitle = ((aps["alert"] as? [String: Any])?["title"] as? String)?.uppercased() ?? ""
+                            let alertBody = ((aps["alert"] as? [String: Any])?["body"] as? String)?.uppercased()
+                                ?? (aps["alert"] as? String)?.uppercased()
+                                ?? ""
+                            let looksMention = locKey.contains("MENTION")
+                                || locKey.contains("MENTIONED")
+                                || payloadJson["mention"] != nil
+                                || payloadJson["mentioned"] as? Bool == true
+                                || alertTitle.contains("MENTION")
+                                || alertBody.contains("MENTION")
+                                || alertTitle.contains("УПОМЯН")
+                                || alertBody.contains("УПОМЯН")
+                            let looksPinned = locKey.contains("PINNED") || locKey.contains("PIN_")
+                                || categoryString.lowercased().contains("pin")
+                                || alertTitle.contains("PINNED")
+                                || alertBody.contains("PINNED")
+                                || alertTitle.contains("ЗАКРЕП")
+                                || alertBody.contains("ЗАКРЕП")
+                            if looksMention && ForkExtrasNotificationBridge.hideMentionNotifications {
+                                completed()
+                                return
+                            }
+                            if looksPinned && ForkExtrasNotificationBridge.hidePinnedNotifications {
+                                completed()
+                                return
+                            }
+                            
                             var isReaction = false
                             if let category = aps["category"] as? String {
-                                // Fork extras: drop mention / pinned notification noise when enabled.
-                                // Mentions are identified by loc-key / payload flags — APS category "m"
-                                // is repliable-media, not mention.
-                                let locKey = ((payloadJson["loc-key"] as? String) ?? "").uppercased()
-                                let alertTitle = ((aps["alert"] as? [String: Any])?["title"] as? String)?.uppercased() ?? ""
-                                let alertBody = ((aps["alert"] as? [String: Any])?["body"] as? String)?.uppercased()
-                                    ?? (aps["alert"] as? String)?.uppercased()
-                                    ?? ""
-                                let looksMention = locKey.contains("MENTION")
-                                    || payloadJson["mention"] != nil
-                                    || payloadJson["mentioned"] as? Bool == true
-                                let looksPinned = locKey.contains("PINNED") || locKey.contains("PIN_")
-                                    || category.lowercased().contains("pin")
-                                    || alertTitle.contains("PINNED")
-                                    || alertBody.contains("PINNED")
-                                    || alertTitle.contains("ЗАКРЕП")
-                                    || alertBody.contains("ЗАКРЕП")
-                                if looksMention && ForkExtrasNotificationBridge.hideMentionNotifications {
-                                    completed()
-                                    return
-                                }
-                                if looksPinned && ForkExtrasNotificationBridge.hidePinnedNotifications {
-                                    completed()
-                                    return
-                                }
-                                
                                 if peerId.isGroupOrChannel && ["r", "m"].contains(category) {
                                     content.category = "g\(category)"
                                 } else {

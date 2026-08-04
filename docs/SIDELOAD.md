@@ -73,10 +73,11 @@ features (stored in AccountManager + App Group UserDefaults for NSE):
 |--------|--------|
 | Ghost Mode | Skips marking chats/messages as read while browsing |
 | Instant Passcode Lock | Locks as soon as the app backgrounds (passcode must be set) |
-| Hide Mention Notifications | Drops APS category `"m"` in Notification Service |
-| Hide Pinned Notifications | Drops payloads that look like pinned-message alerts |
-| Formatting Panel | Bold / Italic / Monospace / Link toolbar above the keyboard |
+| Hide Mention Notifications | Drops mention pushes in Notification Service (`loc-key` / alert heuristics; App Group + standard defaults) |
+| Hide Pinned Notifications | Drops pinned-message pushes the same way |
 | Keychain Session Backup | Mirrors `AccountBackupData` into the device Keychain for same-bundle E-Sign reinstalls |
+
+Settings → Support footer shows `Telegram VERSION (BUILD)` and `decoder-dev`. Archive tip sheets / auto-archive suggestion alerts are suppressed.
 
 ## What CI cannot do without your Apple certs
 

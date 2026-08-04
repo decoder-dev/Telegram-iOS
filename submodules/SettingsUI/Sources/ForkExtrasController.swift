@@ -21,8 +21,6 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.HideMentionsFooter": "Suppress push notifications for mentions.",
             "ForkExtras.HidePinned": "Hide Pinned Notifications",
             "ForkExtras.HidePinnedFooter": "Suppress push notifications for pinned messages.",
-            "ForkExtras.FormattingPanel": "Formatting Panel",
-            "ForkExtras.FormattingPanelFooter": "Show Bold / Italic / Monospace / Link buttons above the keyboard.",
             "ForkExtras.SessionBackup": "Keychain Session Backup",
             "ForkExtras.SessionBackupFooter": "Mirror account session data to the device Keychain for same-bundle reinstalls.",
         ],
@@ -36,8 +34,6 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.HideMentionsFooter": "Не показывать push-уведомления об упоминаниях.",
             "ForkExtras.HidePinned": "Скрыть уведомления о закреплении",
             "ForkExtras.HidePinnedFooter": "Не показывать push-уведомления о закреплённых сообщениях.",
-            "ForkExtras.FormattingPanel": "Панель форматирования",
-            "ForkExtras.FormattingPanelFooter": "Показывать кнопки Жирный / Курсив / Моно / Ссылка над клавиатурой.",
             "ForkExtras.SessionBackup": "Резерв сессии в Keychain",
             "ForkExtras.SessionBackupFooter": "Дублировать данные сессии в Keychain для переустановки с тем же Bundle ID.",
         ],
@@ -71,8 +67,6 @@ private enum ForkExtrasLocalizedString {
     static var hideMentionsFooter: String { string(forKey: "ForkExtras.HideMentionsFooter") }
     static var hidePinned: String { string(forKey: "ForkExtras.HidePinned") }
     static var hidePinnedFooter: String { string(forKey: "ForkExtras.HidePinnedFooter") }
-    static var formattingPanel: String { string(forKey: "ForkExtras.FormattingPanel") }
-    static var formattingPanelFooter: String { string(forKey: "ForkExtras.FormattingPanelFooter") }
     static var sessionBackup: String { string(forKey: "ForkExtras.SessionBackup") }
     static var sessionBackupFooter: String { string(forKey: "ForkExtras.SessionBackupFooter") }
 }
@@ -82,7 +76,6 @@ private final class ForkExtrasControllerArguments {
     let updateInstantPasscode: (Bool) -> Void
     let updateHideMentions: (Bool) -> Void
     let updateHidePinned: (Bool) -> Void
-    let updateFormattingPanel: (Bool) -> Void
     let updateSessionBackup: (Bool) -> Void
     
     init(
@@ -90,14 +83,12 @@ private final class ForkExtrasControllerArguments {
         updateInstantPasscode: @escaping (Bool) -> Void,
         updateHideMentions: @escaping (Bool) -> Void,
         updateHidePinned: @escaping (Bool) -> Void,
-        updateFormattingPanel: @escaping (Bool) -> Void,
         updateSessionBackup: @escaping (Bool) -> Void
     ) {
         self.updateGhostMode = updateGhostMode
         self.updateInstantPasscode = updateInstantPasscode
         self.updateHideMentions = updateHideMentions
         self.updateHidePinned = updateHidePinned
-        self.updateFormattingPanel = updateFormattingPanel
         self.updateSessionBackup = updateSessionBackup
     }
 }
@@ -106,7 +97,6 @@ private enum ForkExtrasSection: Int32 {
     case ghost
     case lock
     case notifications
-    case formatting
     case backup
 }
 
@@ -119,8 +109,6 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     case hideMentionsFooter
     case hidePinned(Bool)
     case hidePinnedFooter
-    case formattingPanel(Bool)
-    case formattingPanelFooter
     case sessionBackup(Bool)
     case sessionBackupFooter
     
@@ -132,8 +120,6 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return ForkExtrasSection.lock.rawValue
         case .hideMentions, .hideMentionsFooter, .hidePinned, .hidePinnedFooter:
             return ForkExtrasSection.notifications.rawValue
-        case .formattingPanel, .formattingPanelFooter:
-            return ForkExtrasSection.formatting.rawValue
         case .sessionBackup, .sessionBackupFooter:
             return ForkExtrasSection.backup.rawValue
         }
@@ -149,10 +135,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case .hideMentionsFooter: return 5
         case .hidePinned: return 6
         case .hidePinnedFooter: return 7
-        case .formattingPanel: return 8
-        case .formattingPanelFooter: return 9
-        case .sessionBackup: return 10
-        case .sessionBackupFooter: return 11
+        case .sessionBackup: return 8
+        case .sessionBackupFooter: return 9
         }
     }
     
@@ -187,12 +171,6 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             })
         case .hidePinnedFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.hidePinnedFooter), sectionId: self.section)
-        case let .formattingPanel(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.formattingPanel, value: value, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateFormattingPanel(value)
-            })
-        case .formattingPanelFooter:
-            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.formattingPanelFooter), sectionId: self.section)
         case let .sessionBackup(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.sessionBackup, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateSessionBackup(value)
@@ -213,8 +191,6 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings) -> [ForkE
         .hideMentionsFooter,
         .hidePinned(settings.hidePinnedNotifications),
         .hidePinnedFooter,
-        .formattingPanel(settings.formattingPanel),
-        .formattingPanelFooter,
         .sessionBackup(settings.sessionKeychainBackup),
         .sessionBackupFooter,
     ]
@@ -252,13 +228,6 @@ public func forkExtrasController(context: AccountContext) -> ViewController {
                 return updated
             }.start())
         },
-        updateFormattingPanel: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.formattingPanel = value
-                return updated
-            }.start())
-        },
         updateSessionBackup: { value in
             updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
                 var updated = current
@@ -269,7 +238,6 @@ public func forkExtrasController(context: AccountContext) -> ViewController {
     )
     
     let signal = combineLatest(
-        queue: .mainQueue(),
         context.sharedContext.presentationData,
         forkExtrasSettings(accountManager: context.sharedContext.accountManager)
     )
@@ -280,15 +248,12 @@ public func forkExtrasController(context: AccountContext) -> ViewController {
             title: .text(ForkExtrasLocalizedString.title),
             leftNavigationButton: nil,
             rightNavigationButton: nil,
-            backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back),
-            animateChanges: false
+            backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back)
         )
         let listState = ItemListNodeState(
             presentationData: ItemListPresentationData(presentationData),
             entries: forkExtrasControllerEntries(settings: settings),
-            style: .blocks,
-            emptyStateItem: nil,
-            animateChanges: false
+            style: .blocks
         )
         return (controllerState, (listState, arguments))
     }
