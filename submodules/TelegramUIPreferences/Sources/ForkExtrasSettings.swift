@@ -8,7 +8,6 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var instantPasscodeLock: Bool
     public var hideMentionNotifications: Bool
     public var hidePinnedNotifications: Bool
-    public var formattingPanel: Bool
     public var sessionKeychainBackup: Bool
     
     public static var defaultSettings: ForkExtrasSettings {
@@ -17,7 +16,6 @@ public struct ForkExtrasSettings: Codable, Equatable {
             instantPasscodeLock: false,
             hideMentionNotifications: false,
             hidePinnedNotifications: false,
-            formattingPanel: true,
             sessionKeychainBackup: true
         )
     }
@@ -27,14 +25,12 @@ public struct ForkExtrasSettings: Codable, Equatable {
         instantPasscodeLock: Bool,
         hideMentionNotifications: Bool,
         hidePinnedNotifications: Bool,
-        formattingPanel: Bool,
         sessionKeychainBackup: Bool
     ) {
         self.ghostMode = ghostMode
         self.instantPasscodeLock = instantPasscodeLock
         self.hideMentionNotifications = hideMentionNotifications
         self.hidePinnedNotifications = hidePinnedNotifications
-        self.formattingPanel = formattingPanel
         self.sessionKeychainBackup = sessionKeychainBackup
     }
     
@@ -44,7 +40,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.instantPasscodeLock = try container.decodeIfPresent(Bool.self, forKey: "instantPasscodeLock") ?? false
         self.hideMentionNotifications = try container.decodeIfPresent(Bool.self, forKey: "hideMentionNotifications") ?? false
         self.hidePinnedNotifications = try container.decodeIfPresent(Bool.self, forKey: "hidePinnedNotifications") ?? false
-        self.formattingPanel = try container.decodeIfPresent(Bool.self, forKey: "formattingPanel") ?? true
+        // formattingPanel removed — ignore if present in older prefs.
         self.sessionKeychainBackup = try container.decodeIfPresent(Bool.self, forKey: "sessionKeychainBackup") ?? true
     }
     
@@ -54,7 +50,6 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.instantPasscodeLock, forKey: "instantPasscodeLock")
         try container.encode(self.hideMentionNotifications, forKey: "hideMentionNotifications")
         try container.encode(self.hidePinnedNotifications, forKey: "hidePinnedNotifications")
-        try container.encode(self.formattingPanel, forKey: "formattingPanel")
         try container.encode(self.sessionKeychainBackup, forKey: "sessionKeychainBackup")
     }
 }
@@ -88,33 +83,55 @@ public enum ForkExtrasNotificationBridge {
     private static let hideMentionsKey = "ForkExtras.hideMentionNotifications"
     private static let hidePinnedKey = "ForkExtras.hidePinnedNotifications"
     
+    private static func candidateSuites() -> [String] {
+        var suites: [String] = []
+        if let suite = Bundle.main.object(forInfoDictionaryKey: "AppGroupName") as? String {
+            suites.append(suite)
+        }
+        if let bundleId = Bundle.main.bundleIdentifier {
+            suites.append("group.\(bundleId)")
+        }
+        if let hinted = UserDefaults.standard.string(forKey: suiteHintKey) {
+            suites.append(hinted)
+        }
+        var seen = Set<String>()
+        return suites.filter { seen.insert($0).inserted }
+    }
+    
     public static func sync(_ settings: ForkExtrasSettings) {
         let defaults = UserDefaults.standard
         defaults.set(settings.hideMentionNotifications, forKey: hideMentionsKey)
         defaults.set(settings.hidePinnedNotifications, forKey: hidePinnedKey)
-        if let suite = Bundle.main.object(forInfoDictionaryKey: "AppGroupName") as? String
-            ?? Bundle.main.bundleIdentifier.map({ "group.\($0)" }) {
+        for suite in candidateSuites() {
             defaults.set(suite, forKey: suiteHintKey)
             if let shared = UserDefaults(suiteName: suite) {
                 shared.set(settings.hideMentionNotifications, forKey: hideMentionsKey)
                 shared.set(settings.hidePinnedNotifications, forKey: hidePinnedKey)
+                shared.synchronize()
             }
         }
+        defaults.synchronize()
+    }
+    
+    private static func bool(forKey key: String) -> Bool {
+        // OR across stores — sideload often lacks a working App Group; NSE may only
+        // see one of the suites. Prefer "hide if any store says hide".
+        if UserDefaults.standard.bool(forKey: key) {
+            return true
+        }
+        for suite in candidateSuites() {
+            if let shared = UserDefaults(suiteName: suite), shared.bool(forKey: key) {
+                return true
+            }
+        }
+        return false
     }
     
     public static var hideMentionNotifications: Bool {
-        if let suite = UserDefaults.standard.string(forKey: suiteHintKey),
-           let shared = UserDefaults(suiteName: suite) {
-            return shared.bool(forKey: hideMentionsKey)
-        }
-        return UserDefaults.standard.bool(forKey: hideMentionsKey)
+        return bool(forKey: hideMentionsKey)
     }
     
     public static var hidePinnedNotifications: Bool {
-        if let suite = UserDefaults.standard.string(forKey: suiteHintKey),
-           let shared = UserDefaults(suiteName: suite) {
-            return shared.bool(forKey: hidePinnedKey)
-        }
-        return UserDefaults.standard.bool(forKey: hidePinnedKey)
+        return bool(forKey: hidePinnedKey)
     }
 }

@@ -512,7 +512,7 @@ private enum PrivacyAndSecurityEntry: ItemListNodeEntry {
                     arguments.openPasscode()
                 })
             case let .forkExtras(_, text):
-                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: text, label: "", sectionId: self.section, style: .blocks, action: {
+                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.forkExtras, title: text, label: "", sectionId: self.section, style: .blocks, action: {
                     arguments.openForkExtras()
                 })
             case let .twoStepVerification(_, text, value, data):

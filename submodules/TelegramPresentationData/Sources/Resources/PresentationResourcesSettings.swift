@@ -170,6 +170,7 @@ public struct PresentationResourcesSettings {
     public static let passkeys = renderSettingsIcon(name: "Item List/Icons/Key", backgroundColors: [colorViolet])
     public static let timer = renderSettingsIcon(name: "Item List/Icons/Timer", backgroundColors: [colorPurple])
     public static let email = renderSettingsIcon(name: "Item List/Icons/Email", backgroundColors: [colorViolet])
+    public static let forkExtras = renderSettingsIcon(name: "Item List/Icons/Settings", backgroundColors: [colorTeal])
         
     public static let premium = generateImage(CGSize(width: 30.0, height: 30.0), contextGenerator: { size, context in
         let bounds = CGRect(origin: CGPoint(), size: size)
