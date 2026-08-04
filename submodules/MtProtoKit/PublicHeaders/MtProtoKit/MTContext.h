@@ -79,6 +79,8 @@
 @property (nonatomic, readonly) bool isTestingEnvironment;
 @property (nonatomic, readonly) bool useTempAuthKeys;
 @property (nonatomic) int32_t tempKeyExpiration;
+/// When true, resolve SOCKS/MTProxy hostnames via system DNS instead of Google DoH-first.
+@property (nonatomic) bool forceLocalDNS;
 
 @property (nonatomic, copy) id<MTTcpConnectionInterface> _Nonnull (^ _Nullable makeTcpConnectionInterface)(id<MTTcpConnectionInterfaceDelegate> _Nonnull delegate, dispatch_queue_t _Nonnull delegateQueue);
 

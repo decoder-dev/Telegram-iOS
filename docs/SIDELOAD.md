@@ -79,6 +79,16 @@ features (stored in AccountManager + App Group UserDefaults for NSE):
 
 Settings → Support footer shows `Telegram VERSION (BUILD)` and `decoder-dev`. Archive tip sheets / auto-archive suggestion alerts are suppressed.
 
+## Network fixes (MtProtoKit / Proxy)
+
+| Fix | Where |
+|-----|--------|
+| Apply `bad_server_salt` on normal requests (no more stuck Connecting/Updating after background) | `MTProto.m` (upstream PR #2197) |
+| Local DNS for proxy hostnames (skip Google DoH-first) | Settings → Proxy → **Local DNS for Proxy** |
+| IPv6 SOCKS5 address type | `MTTcpConnection.m` (upstream PR #735) |
+| MTProxy Fake-TLS SNI (empty `server_name` bug) | `MTTcpConnection.m` ClientHello DSL |
+| Auto-rotate saved proxies on connection issues | Settings → Proxy → **Auto-rotate Proxies** |
+
 ## What CI cannot do without your Apple certs
 
 - Produce a universally installable IPA

@@ -506,6 +506,7 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
             let useTempAuthKeys: Bool = true
             
             let context = MTContext(serialization: serialization, encryptionProvider: arguments.encryptionProvider, apiEnvironment: apiEnvironment, isTestingEnvironment: testingEnvironment, useTempAuthKeys: useTempAuthKeys)
+            context.forceLocalDNS = proxySettings?.useLocalDNSForProxyHosts ?? false
             
             if let networkSettings = networkSettings {
                 let useNetworkFramework: Bool

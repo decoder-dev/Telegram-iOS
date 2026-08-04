@@ -1485,21 +1485,21 @@ public class Account {
             }
         }))
         self.managedOperationsDisposable.add((accountManager.sharedData(keys: [SharedDataKeys.proxySettings])
-        |> map { sharedData -> ProxyServerSettings? in
-            if let settings = sharedData.entries[SharedDataKeys.proxySettings]?.get(ProxySettings.self) {
-                return settings.effectiveActiveServer
-            } else {
-                return nil
-            }
+        |> map { sharedData -> ProxySettings in
+            return sharedData.entries[SharedDataKeys.proxySettings]?.get(ProxySettings.self) ?? .defaultSettings
         }
-        |> distinctUntilChanged).start(next: { activeServer in
-            let updated = activeServer.flatMap { activeServer -> MTSocksProxySettings? in
+        |> distinctUntilChanged).start(next: { settings in
+            let previousForceLocalDNS = network.context.forceLocalDNS
+            network.context.forceLocalDNS = settings.useLocalDNSForProxyHosts
+            let updated = settings.effectiveActiveServer.flatMap { activeServer -> MTSocksProxySettings? in
                 return activeServer.mtProxySettings
             }
             network.context.updateApiEnvironment { environment in
                 let current = environment?.socksProxySettings
                 let updateNetwork: Bool
-                if let current = current, let updated = updated {
+                if previousForceLocalDNS != settings.useLocalDNSForProxyHosts {
+                    updateNetwork = true
+                } else if let current = current, let updated = updated {
                     updateNetwork = !current.isEqual(updated)
                 } else {
                     updateNetwork = (current != nil) != (updated != nil)
@@ -1512,8 +1512,10 @@ public class Account {
                 }
             }
         }))
-
+        
         if !supplementary {
+            self.managedOperationsDisposable.add(managedProxyFailover(accountManager: accountManager, network: network).start())
+            
             let mediaBox = postbox.mediaBox
             let _ = (accountManager.sharedData(keys: [SharedDataKeys.cacheStorageSettings])
             |> take(1)).start(next: { [weak mediaBox] sharedData in
