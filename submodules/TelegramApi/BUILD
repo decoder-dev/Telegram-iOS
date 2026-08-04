@@ -5,10 +5,6 @@ swift_library(
     module_name = "TelegramApi",
     copts = [
         "-warnings-as-errors",
-        # Xcode 27: keep new diagnostic groups as warnings (SE-0443 last-wins)
-        "-Wwarning", "ImplicitStrongCapture",
-        "-Wwarning", "DeprecatedDeclaration",
-        "-Wwarning", "NoUseUnstructuredThrowingTask",
     ],
     srcs = glob([
         "Sources/**/*.swift",
