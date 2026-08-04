@@ -325,6 +325,9 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
     items[.support]!.append(PeerInfoScreenDisclosureItem(id: 2, text: presentationData.strings.Settings_Tips, icon: PresentationResourcesSettings.tips, action: {
         interaction.openSettings(.tips)
     }))
+    let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
+    let appBuild = Bundle.main.infoDictionary?[kCFBundleVersionKey as String] as? String ?? ""
+    items[.support]!.append(PeerInfoScreenCommentItem(id: 100, text: "Telegram \(appVersion) (\(appBuild))\ndecoder-dev"))
     
     var result: [(AnyHashable, [PeerInfoScreenItem])] = []
     for section in SettingsSection.allCases {

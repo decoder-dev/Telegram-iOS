@@ -47,7 +47,6 @@ import InviteLinksUI
 import ChatFolderLinkPreviewScreen
 import StoryContainerScreen
 import PeerInfoStoryGridScreen
-import ArchiveInfoScreen
 import BirthdayPickerScreen
 import OldChannelsController
 import TextFormat
@@ -1600,35 +1599,14 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                 muteAllArchivedChatsIfNeeded(context: self.context)
                 
                 let _ = self.context.engine.privacy.updateGlobalPrivacySettings().startStandalone()
-                let _ = (combineLatest(
-                    ApplicationSpecificNotice.displayChatListArchiveTooltip(accountManager: self.context.sharedContext.accountManager),
-                    self.context.engine.data.get(
-                        TelegramEngine.EngineData.Item.Configuration.GlobalPrivacy()
-                    ),
-                    self.context.engine.messages.chatList(group: .archive, count: 20) |> take(1)
-                )
-                |> deliverOnMainQueue).startStandalone(next: { [weak self] didDisplayTip, settings, chatListHead in
-                    guard let self else {
-                        return
-                    }
-                    
-                    self.chatListDisplayNode.mainContainerNode.currentItemNode.clearHighlightAnimated(true)
-                    
-                    if let navigationController = self.navigationController as? NavigationController {
-                        let chatListController = ChatListControllerImpl(context: self.context, location: .chatList(groupId: groupId), controlsHistoryPreload: false, enableDebugActions: false)
-                        chatListController.navigationPresentation = .master
-                        navigationController.pushViewController(chatListController)
-                    }
-                    
-                    if !didDisplayTip, chatListHead.items.count < 10 {
-                        #if DEBUG
-                        #else
-                        let _ = ApplicationSpecificNotice.setDisplayChatListArchiveTooltip(accountManager: self.context.sharedContext.accountManager).startStandalone()
-                        #endif
-                        
-                        self.push(ArchiveInfoScreen(context: self.context, settings: settings))
-                    }
-                })
+                
+                self.chatListDisplayNode.mainContainerNode.currentItemNode.clearHighlightAnimated(true)
+                
+                if let navigationController = self.navigationController as? NavigationController {
+                    let chatListController = ChatListControllerImpl(context: self.context, location: .chatList(groupId: groupId), controlsHistoryPreload: false, enableDebugActions: false)
+                    chatListController.navigationPresentation = .master
+                    navigationController.pushViewController(chatListController)
+                }
             }
             
             if case .archive = groupId {
@@ -2692,25 +2670,11 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                 if strongSelf.didSuggestAutoarchive {
                     return
                 }
-                if !values.contains(.autoarchivePopular) {
-                    return
+                // Auto-archive suggestion alert suppressed (archive pop-ups off).
+                if values.contains(.autoarchivePopular) {
+                    strongSelf.didSuggestAutoarchive = true
+                    strongSelf.dismissAutoarchiveDisposable.set(strongSelf.context.engine.notices.dismissServerProvidedSuggestion(suggestion: ServerProvidedSuggestion.autoarchivePopular.id).startStrict())
                 }
-                strongSelf.didSuggestAutoarchive = true
-                strongSelf.present(textAlertController(context: strongSelf.context, title: strongSelf.presentationData.strings.ChatList_AutoarchiveSuggestion_Title, text: strongSelf.presentationData.strings.ChatList_AutoarchiveSuggestion_Text, actions: [
-                    TextAlertAction(type: .genericAction, title: strongSelf.presentationData.strings.Common_Cancel, action: {
-                        guard let strongSelf = self else {
-                            return
-                        }
-                        strongSelf.dismissAutoarchiveDisposable.set(strongSelf.context.engine.notices.dismissServerProvidedSuggestion(suggestion: ServerProvidedSuggestion.autoarchivePopular.id).startStrict())
-                    }),
-                    TextAlertAction(type: .defaultAction, title: strongSelf.presentationData.strings.ChatList_AutoarchiveSuggestion_OpenSettings, action: {
-                        guard let strongSelf = self else {
-                            return
-                        }
-                        strongSelf.dismissAutoarchiveDisposable.set(strongSelf.context.engine.notices.dismissServerProvidedSuggestion(suggestion: ServerProvidedSuggestion.autoarchivePopular.id).startStrict())
-                        strongSelf.push(strongSelf.context.sharedContext.makePrivacyAndSecurityController(context: strongSelf.context))
-                    })
-                ], actionLayout: .vertical, parseMarkdown: true), in: .window(.root))
             }))
             
             Queue.mainQueue().after(1.0, {
@@ -4027,24 +3991,6 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
             })))
             
             if !archiveChatList.items.isEmpty {
-                items.append(.action(ContextMenuActionItem(text: presentationData.strings.ChatList_Archive_ContextInfo, icon: { theme in
-                    return generateTintedImage(image: UIImage(bundleImageName: "Chat/Message/Question"), color: theme.contextMenu.primaryColor)
-                }, action: { [weak self] _, a in
-                    a(.default)
-                    
-                    guard let self else {
-                        return
-                    }
-                    let _ = (self.context.engine.data.get(
-                        TelegramEngine.EngineData.Item.Configuration.GlobalPrivacy()
-                    )
-                    |> deliverOnMainQueue).startStandalone(next: { [weak self] settings in
-                        guard let self else {
-                            return
-                        }
-                        self.push(ArchiveInfoScreen(context: self.context, settings: settings))
-                    })
-                })))
                 items.append(.action(ContextMenuActionItem(text: presentationData.strings.ChatList_ContextSelectChats, icon: { theme in
                     return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Select"), color: theme.contextMenu.primaryColor)
                 }, action: { [weak self] _, a in
