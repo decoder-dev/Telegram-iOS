@@ -19,9 +19,11 @@ private final class ProxySettingsControllerArguments {
     let removeServer: (ProxyServerSettings) -> Void
     let setServerWithRevealedOptions: (ProxyServerSettings?, ProxyServerSettings?) -> Void
     let toggleUseForCalls: (Bool) -> Void
+    let toggleUseLocalDNS: (Bool) -> Void
+    let toggleAutoRotate: (Bool) -> Void
     let shareProxyList: () -> Void
     
-    init(toggleEnabled: @escaping (Bool) -> Void, addNewServer: @escaping () -> Void, activateServer: @escaping (ProxyServerSettings) -> Void, editServer: @escaping (ProxyServerSettings) -> Void, removeServer: @escaping (ProxyServerSettings) -> Void, setServerWithRevealedOptions: @escaping (ProxyServerSettings?, ProxyServerSettings?) -> Void, toggleUseForCalls: @escaping (Bool) -> Void, shareProxyList: @escaping () -> Void) {
+    init(toggleEnabled: @escaping (Bool) -> Void, addNewServer: @escaping () -> Void, activateServer: @escaping (ProxyServerSettings) -> Void, editServer: @escaping (ProxyServerSettings) -> Void, removeServer: @escaping (ProxyServerSettings) -> Void, setServerWithRevealedOptions: @escaping (ProxyServerSettings?, ProxyServerSettings?) -> Void, toggleUseForCalls: @escaping (Bool) -> Void, toggleUseLocalDNS: @escaping (Bool) -> Void, toggleAutoRotate: @escaping (Bool) -> Void, shareProxyList: @escaping () -> Void) {
         self.toggleEnabled = toggleEnabled
         self.addNewServer = addNewServer
         self.activateServer = activateServer
@@ -29,6 +31,8 @@ private final class ProxySettingsControllerArguments {
         self.removeServer = removeServer
         self.setServerWithRevealedOptions = setServerWithRevealedOptions
         self.toggleUseForCalls = toggleUseForCalls
+        self.toggleUseLocalDNS = toggleUseLocalDNS
+        self.toggleAutoRotate = toggleAutoRotate
         self.shareProxyList = shareProxyList
     }
 }
@@ -37,6 +41,7 @@ private enum ProxySettingsControllerSection: Int32 {
     case enabled
     case servers
     case share
+    case advanced
     case calls
 }
 
@@ -78,6 +83,10 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
     case addServer(PresentationTheme, String, Bool)
     case server(Int, PresentationTheme, PresentationStrings, ProxyServerSettings, Bool, DisplayProxyServerStatus, ProxySettingsServerItemEditing, Bool)
     case shareProxyList(PresentationTheme, String)
+    case useLocalDNS(PresentationTheme, String, Bool)
+    case useLocalDNSInfo(PresentationTheme, String)
+    case autoRotate(PresentationTheme, String, Bool)
+    case autoRotateInfo(PresentationTheme, String)
     case useForCalls(PresentationTheme, String, Bool)
     case useForCallsInfo(PresentationTheme, String)
     
@@ -89,6 +98,8 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
                 return ProxySettingsControllerSection.servers.rawValue
             case .shareProxyList:
                 return ProxySettingsControllerSection.share.rawValue
+            case .useLocalDNS, .useLocalDNSInfo, .autoRotate, .autoRotateInfo:
+                return ProxySettingsControllerSection.advanced.rawValue
             case .useForCalls, .useForCallsInfo:
                 return ProxySettingsControllerSection.calls.rawValue
         }
@@ -106,10 +117,18 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
                 return .server(settings.host, settings.port, settings.connection)
             case .shareProxyList:
                 return .index(3)
-            case .useForCalls:
+            case .useLocalDNS:
                 return .index(4)
-            case .useForCallsInfo:
+            case .useLocalDNSInfo:
                 return .index(5)
+            case .autoRotate:
+                return .index(6)
+            case .autoRotateInfo:
+                return .index(7)
+            case .useForCalls:
+                return .index(8)
+            case .useForCallsInfo:
+                return .index(9)
         }
     }
     
@@ -141,6 +160,30 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
                 }
             case let .shareProxyList(lhsTheme, lhsText):
                 if case let .shareProxyList(rhsTheme, rhsText) = rhs, lhsTheme === rhsTheme, lhsText == rhsText {
+                    return true
+                } else {
+                    return false
+                }
+            case let .useLocalDNS(lhsTheme, lhsText, lhsValue):
+                if case let .useLocalDNS(rhsTheme, rhsText, rhsValue) = rhs, lhsTheme === rhsTheme, lhsText == rhsText, lhsValue == rhsValue {
+                    return true
+                } else {
+                    return false
+                }
+            case let .useLocalDNSInfo(lhsTheme, lhsText):
+                if case let .useLocalDNSInfo(rhsTheme, rhsText) = rhs, lhsTheme === rhsTheme, lhsText == rhsText {
+                    return true
+                } else {
+                    return false
+                }
+            case let .autoRotate(lhsTheme, lhsText, lhsValue):
+                if case let .autoRotate(rhsTheme, rhsText, rhsValue) = rhs, lhsTheme === rhsTheme, lhsText == rhsText, lhsValue == rhsValue {
+                    return true
+                } else {
+                    return false
+                }
+            case let .autoRotateInfo(lhsTheme, lhsText):
+                if case let .autoRotateInfo(rhsTheme, rhsText) = rhs, lhsTheme === rhsTheme, lhsText == rhsText {
                     return true
                 } else {
                     return false
@@ -199,9 +242,37 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
                     default:
                         return true
             }
+            case .useLocalDNS:
+                switch rhs {
+                    case .enabled, .serversHeader, .addServer, .server, .shareProxyList, .useLocalDNS:
+                        return false
+                    default:
+                        return true
+                }
+            case .useLocalDNSInfo:
+                switch rhs {
+                    case .enabled, .serversHeader, .addServer, .server, .shareProxyList, .useLocalDNS, .useLocalDNSInfo:
+                        return false
+                    default:
+                        return true
+                }
+            case .autoRotate:
+                switch rhs {
+                    case .enabled, .serversHeader, .addServer, .server, .shareProxyList, .useLocalDNS, .useLocalDNSInfo, .autoRotate:
+                        return false
+                    default:
+                        return true
+                }
+            case .autoRotateInfo:
+                switch rhs {
+                    case .enabled, .serversHeader, .addServer, .server, .shareProxyList, .useLocalDNS, .useLocalDNSInfo, .autoRotate, .autoRotateInfo:
+                        return false
+                    default:
+                        return true
+                }
             case .useForCalls:
                 switch rhs {
-                    case .enabled, .serversHeader, .addServer, .server, .shareProxyList, .useForCalls:
+                    case .enabled, .serversHeader, .addServer, .server, .shareProxyList, .useLocalDNS, .useLocalDNSInfo, .autoRotate, .autoRotateInfo, .useForCalls:
                         return false
                     default:
                         return true
@@ -242,6 +313,18 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
                 return ProxySettingsActionItem(presentationData: presentationData, systemStyle: .glass, title: text, sectionId: self.section, editing: false, action: {
                     arguments.shareProxyList()
                 }, tag: ProxySettingsEntryTag.shareList)
+            case let .useLocalDNS(_, text, value):
+                return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: text, value: value, enableInteractiveChanges: true, enabled: true, sectionId: self.section, style: .blocks, updated: { value in
+                    arguments.toggleUseLocalDNS(value)
+                })
+            case let .useLocalDNSInfo(_, text):
+                return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section)
+            case let .autoRotate(_, text, value):
+                return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: text, value: value, enableInteractiveChanges: true, enabled: true, sectionId: self.section, style: .blocks, updated: { value in
+                    arguments.toggleAutoRotate(value)
+                })
+            case let .autoRotateInfo(_, text):
+                return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section)
             case let .useForCalls(_, text, value):
                 return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: text, value: value, enableInteractiveChanges: true, enabled: true, sectionId: self.section, style: .blocks, updated: { value in
                     arguments.toggleUseForCalls(value)
@@ -306,6 +389,30 @@ private func proxySettingsControllerEntries(theme: PresentationTheme, strings: P
     }
     if !existingServers.isEmpty {
         entries.append(.shareProxyList(theme, strings.SocksProxySetup_ShareProxyList))
+    }
+    
+    let useLocalDNSTitle: String
+    let useLocalDNSInfo: String
+    let autoRotateTitle: String
+    let autoRotateInfo: String
+    let preferRussian = Locale.preferredLanguages.first?.hasPrefix("ru") == true
+        || strings.primaryComponent.languageCode.hasPrefix("ru")
+    if preferRussian {
+        useLocalDNSTitle = "Локальный DNS для прокси"
+        useLocalDNSInfo = "Резолвить домен прокси через системный DNS вместо Google DoH (быстрее, если DoH недоступен)."
+        autoRotateTitle = "Автосмена прокси"
+        autoRotateInfo = "При проблемах с соединением переключаться на следующий сохранённый прокси."
+    } else {
+        useLocalDNSTitle = "Local DNS for Proxy"
+        useLocalDNSInfo = "Resolve proxy hostnames via system DNS instead of Google DoH (avoids DoH timeouts)."
+        autoRotateTitle = "Auto-rotate Proxies"
+        autoRotateInfo = "When the active proxy has connection issues, switch to the next saved proxy."
+    }
+    entries.append(.useLocalDNS(theme, useLocalDNSTitle, proxySettings.useLocalDNSForProxyHosts))
+    entries.append(.useLocalDNSInfo(theme, useLocalDNSInfo))
+    if proxySettings.servers.count > 1 {
+        entries.append(.autoRotate(theme, autoRotateTitle, proxySettings.autoRotateProxies))
+        entries.append(.autoRotateInfo(theme, autoRotateInfo))
     }
     
     if let activeServer = proxySettings.activeServer, case .socks5 = activeServer.connection {
@@ -405,6 +512,18 @@ public func proxySettingsController(accountManager: AccountManager<TelegramAccou
         let _ = updateProxySettingsInteractively(accountManager: accountManager, { current in
             var current = current
             current.useForCalls = value
+            return current
+        }).start()
+    }, toggleUseLocalDNS: { value in
+        let _ = updateProxySettingsInteractively(accountManager: accountManager, { current in
+            var current = current
+            current.useLocalDNSForProxyHosts = value
+            return current
+        }).start()
+    }, toggleAutoRotate: { value in
+        let _ = updateProxySettingsInteractively(accountManager: accountManager, { current in
+            var current = current
+            current.autoRotateProxies = value
             return current
         }).start()
     }, shareProxyList: {

@@ -76,16 +76,22 @@ public struct ProxySettings: Codable, Equatable {
     public var servers: [ProxyServerSettings]
     public var activeServer: ProxyServerSettings?
     public var useForCalls: Bool
+    /// Resolve SOCKS/MTProxy hostnames via system DNS (skip Google DoH-first).
+    public var useLocalDNSForProxyHosts: Bool
+    /// On sustained proxy connection issues, round-robin to the next saved server.
+    public var autoRotateProxies: Bool
     
     public static var defaultSettings: ProxySettings {
-        return ProxySettings(enabled: false, servers: [], activeServer: nil, useForCalls: false)
+        return ProxySettings(enabled: false, servers: [], activeServer: nil, useForCalls: false, useLocalDNSForProxyHosts: false, autoRotateProxies: false)
     }
     
-    public init(enabled: Bool, servers: [ProxyServerSettings], activeServer: ProxyServerSettings?, useForCalls: Bool) {
+    public init(enabled: Bool, servers: [ProxyServerSettings], activeServer: ProxyServerSettings?, useForCalls: Bool, useLocalDNSForProxyHosts: Bool = false, autoRotateProxies: Bool = false) {
         self.enabled = enabled
         self.servers = servers
         self.activeServer = activeServer
         self.useForCalls = useForCalls
+        self.useLocalDNSForProxyHosts = useLocalDNSForProxyHosts
+        self.autoRotateProxies = autoRotateProxies
     }
     
     public init(from decoder: Decoder) throws {
@@ -95,6 +101,8 @@ public struct ProxySettings: Codable, Equatable {
         self.servers = try container.decode([ProxyServerSettings].self, forKey: "servers")
         self.activeServer = try container.decodeIfPresent(ProxyServerSettings.self, forKey: "activeServer")
         self.useForCalls = ((try? container.decode(Int32.self, forKey: "useForCalls")) ?? 0) != 0
+        self.useLocalDNSForProxyHosts = ((try? container.decode(Int32.self, forKey: "useLocalDNSForProxyHosts")) ?? 0) != 0
+        self.autoRotateProxies = ((try? container.decode(Int32.self, forKey: "autoRotateProxies")) ?? 0) != 0
     }
     
     public func encode(to encoder: Encoder) throws {
@@ -104,6 +112,8 @@ public struct ProxySettings: Codable, Equatable {
         try container.encode(self.servers, forKey: "servers")
         try container.encodeIfPresent(self.activeServer, forKey: "activeServer")
         try container.encode((self.useForCalls ? 1 : 0) as Int32, forKey: "useForCalls")
+        try container.encode((self.useLocalDNSForProxyHosts ? 1 : 0) as Int32, forKey: "useLocalDNSForProxyHosts")
+        try container.encode((self.autoRotateProxies ? 1 : 0) as Int32, forKey: "autoRotateProxies")
     }
     
     public var effectiveActiveServer: ProxyServerSettings? {

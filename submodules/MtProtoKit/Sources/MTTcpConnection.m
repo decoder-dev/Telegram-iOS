@@ -493,7 +493,7 @@ static NSMutableData *executeGenerationCode(id<EncryptionProvider> provider, NSD
                       "S \"\\x01\\x00\"\n"
                       "[\n"
                       "G 2\n"
-                      "S \"\\x00\\x00\\x00\\x00\"\n"
+                      "S \"\\x00\\x00\"\n"
                       "[\n"
                       "[\n"
                       "S \"\\x00\"\n"
@@ -852,6 +852,7 @@ struct ctr_state {
     
     MTMetaDisposable *_resolveDisposable;
     
+    bool _forceLocalDNS;
     bool _readyToSendData;
     NSMutableArray<MTTcpSendData *> *_pendingDataQueue;
     NSMutableData *_receivedDataBuffer;
@@ -894,6 +895,7 @@ struct ctr_state {
         _encryptionProvider = context.encryptionProvider;
         
         _scheme = scheme;
+        _forceLocalDNS = context.forceLocalDNS;
         
         _interface = interface;
         _usageCalculationInfo = usageCalculationInfo;
@@ -1017,7 +1019,7 @@ struct ctr_state {
                 
                 if (isHostname) {
                     int32_t port = _socksPort;
-                    resolveSignal = [[MTDNS resolveHostnameUniversal:_socksIp port:port] map:^id(NSString *resolvedIp) {
+                    resolveSignal = [(_forceLocalDNS ? [MTDNS resolveHostnameNative:_socksIp port:port] : [MTDNS resolveHostnameUniversal:_socksIp port:port]) map:^id(NSString *resolvedIp) {
                         return [[MTTcpConnectionData alloc] initWithIp:resolvedIp port:port isSocks:true];
                     }];
                 } else {
@@ -1035,7 +1037,7 @@ struct ctr_state {
                 
                 if (isHostname) {
                     int32_t port = _mtpPort;
-                    resolveSignal = [[MTDNS resolveHostnameUniversal:_mtpIp port:port] map:^id(NSString *resolvedIp) {
+                    resolveSignal = [(_forceLocalDNS ? [MTDNS resolveHostnameNative:_mtpIp port:port] : [MTDNS resolveHostnameUniversal:_mtpIp port:port]) map:^id(NSString *resolvedIp) {
                         return [[MTTcpConnectionData alloc] initWithIp:resolvedIp port:port isSocks:false];
                     }];
                 } else {
@@ -1438,11 +1440,23 @@ struct ctr_state {
     req.Version = 5;
     req.Cmd = 1;
     req.Reserved = 0;
-    req.AddrType = 1;
     
     struct in_addr ip4;
-    inet_aton(_scheme.address.ip.UTF8String, &ip4);
-    req.DestAddr.IPv4 = ip4;
+    struct in6_addr ip6;
+
+    if (inet_aton(_scheme.address.ip.UTF8String, &ip4) == 1) {
+        req.DestAddr.IPv4 = ip4;
+        req.AddrType = 1;
+    } else if (inet_pton(AF_INET6, _scheme.address.ip.UTF8String, &ip6) == 1) {
+        req.DestAddr.IPv6 = ip6;
+        req.AddrType = 4;
+    } else {
+        NSUInteger domainLen = MIN(_scheme.address.ip.length, (NSUInteger)255);
+        [_scheme.address.ip getCString:req.DestAddr.Domain maxLength:sizeof(req.DestAddr.Domain) encoding:NSASCIIStringEncoding];
+        req.DestAddr.DomainLen = (uint8_t)domainLen;
+        req.AddrType = 3;
+    }
+    
     req.DestPort = _scheme.address.port;
     
     NSMutableData *reqData = [[NSMutableData alloc] init];
