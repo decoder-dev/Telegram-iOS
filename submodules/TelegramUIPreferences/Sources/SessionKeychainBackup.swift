@@ -6,7 +6,7 @@ import TelegramCore
 /// Does NOT sync to iCloud. Changing Bundle ID loses access to these items.
 public enum SessionKeychainBackup {
     private static var service: String {
-        let bundle = Bundle.main.bundleIdentifier ?? "ph.telegra.Telegraph"
+        let bundle = Bundle.main.bundleIdentifier ?? "ph.teleg.Telegrapf"
         return "\(bundle).sessionsbackup"
     }
     

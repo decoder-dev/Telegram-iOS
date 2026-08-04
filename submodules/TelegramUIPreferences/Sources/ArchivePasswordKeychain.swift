@@ -5,7 +5,7 @@ import CryptoUtils
 
 /// Stores the Archive password hash in the system Keychain (not app preferences).
 public enum ArchivePasswordKeychain {
-    private static let service = "ph.telegra.Telegraph.ArchiveLock"
+    private static let service = "ph.teleg.Telegrapf.ArchiveLock"
     
     private static func accountKey(for peerId: EnginePeer.Id) -> String {
         return "archive-password-hash-\(peerId.toInt64())"
