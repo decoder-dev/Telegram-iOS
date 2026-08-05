@@ -221,8 +221,15 @@ public final class ArchiveLockSession {
     
     /// Re-lock Archive when the app leaves the active state.
     public func bindBackgroundRelock(applicationIsActive: Signal<Bool, NoError>) {
+        // Claim the "binding" slot atomically with a placeholder before subscribing, so two
+        // concurrent callers can't both observe "not yet bound" and both subscribe — only the
+        // caller that wins the claim installs a real disposable; the loser's subscription is
+        // disposed immediately instead of being silently orphaned by an overwritten assignment.
         self.lock.lock()
         let alreadyBound = self.backgroundDisposable != nil
+        if !alreadyBound {
+            self.backgroundDisposable = EmptyDisposable
+        }
         self.lock.unlock()
         if alreadyBound {
             return

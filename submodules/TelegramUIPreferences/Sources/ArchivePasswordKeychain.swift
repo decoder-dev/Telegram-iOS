@@ -101,6 +101,14 @@ public enum ArchivePasswordKeychain {
 
     private static let failureService = "ph.teleg.Telegrapf.ArchiveLockFailures"
 
+    // Guards the failure-state read-modify-write below. `recordFailure` reads the current
+    // count, increments it, and writes it back — without this lock, two concurrent calls
+    // (e.g. a rapid double-submit of the password alert) can both read the same count and
+    // one increment is lost, silently weakening the brute-force cooldown. Also serializes
+    // against `clearFailureState`/`clear(peerId:)` so a concurrent clear can't race a
+    // failure recording and leave a stale or resurrected count.
+    private static let failureLock = NSLock()
+
     private struct FailureState: Codable {
         var count: Int
         var lastFailureTimestamp: Double
@@ -154,6 +162,8 @@ public enum ArchivePasswordKeychain {
 
     /// Seconds still remaining before another attempt is allowed (0 if none).
     public static func remainingCooldown(peerId: EnginePeer.Id) -> Double {
+        self.failureLock.lock()
+        defer { self.failureLock.unlock() }
         guard let state = self.loadFailureState(peerId: peerId) else {
             return 0
         }
@@ -167,15 +177,21 @@ public enum ArchivePasswordKeychain {
 
     /// Total recorded failures since the last success (persists across dialog dismissal).
     public static func failureCount(peerId: EnginePeer.Id) -> Int {
+        self.failureLock.lock()
+        defer { self.failureLock.unlock() }
         return self.loadFailureState(peerId: peerId)?.count ?? 0
     }
 
     public static func recordFailure(peerId: EnginePeer.Id) {
+        self.failureLock.lock()
+        defer { self.failureLock.unlock() }
         let previous = self.loadFailureState(peerId: peerId)?.count ?? 0
         self.storeFailureState(FailureState(count: previous + 1, lastFailureTimestamp: Date().timeIntervalSince1970), peerId: peerId)
     }
 
     public static func clearFailureState(peerId: EnginePeer.Id) {
+        self.failureLock.lock()
+        defer { self.failureLock.unlock() }
         _ = SecItemDelete(self.failureQuery(peerId: peerId) as CFDictionary)
     }
 }

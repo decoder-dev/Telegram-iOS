@@ -24,20 +24,28 @@ private final class ThreadTaskQueue: NSObject {
     }
     
     func loop() {
-        while !self.shouldExit {
+        while true {
             pthread_mutex_lock(&self.mutex)
-            
+
+            // `shouldExit` is only ever mutated under this mutex (in `terminate()`); read it
+            // here too rather than unguarded in a `while` condition, which raced against that
+            // write from another thread.
+            if self.shouldExit {
+                pthread_mutex_unlock(&self.mutex)
+                break
+            }
+
             if tasks.isEmpty {
                 pthread_cond_wait(&self.condition, &self.mutex)
             }
-            
+
             var task: (() -> Void)?
             if !self.tasks.isEmpty {
                 task = self.tasks.removeFirst()
             }
-            
+
             pthread_mutex_unlock(&self.mutex)
-            
+
             if let task = task {
                 autoreleasepool {
                     task()
