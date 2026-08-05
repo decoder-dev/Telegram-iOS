@@ -32,6 +32,12 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var translationBackend: ForkTranslationBackend
     public var transcriptionBackend: ForkTranscriptionBackend
     public var scrollToNextChatDisabled: Bool
+    /// AyuGram-style: keep text of remotely deleted messages (View Deleted).
+    public var saveDeletedMessages: Bool
+    /// AyuGram-style: keep previous text when a message is edited.
+    public var saveMessagesHistory: Bool
+    /// Also snapshot messages from bots when saving deleted/edited.
+    public var saveForBots: Bool
 
     public static var defaultSettings: ForkExtrasSettings {
         return ForkExtrasSettings(
@@ -52,7 +58,10 @@ public struct ForkExtrasSettings: Codable, Equatable {
             forceBuiltInMic: false,
             translationBackend: .default,
             transcriptionBackend: .default,
-            scrollToNextChatDisabled: false
+            scrollToNextChatDisabled: false,
+            saveDeletedMessages: true,
+            saveMessagesHistory: true,
+            saveForBots: false
         )
     }
 
@@ -74,7 +83,10 @@ public struct ForkExtrasSettings: Codable, Equatable {
         forceBuiltInMic: Bool,
         translationBackend: ForkTranslationBackend,
         transcriptionBackend: ForkTranscriptionBackend,
-        scrollToNextChatDisabled: Bool
+        scrollToNextChatDisabled: Bool,
+        saveDeletedMessages: Bool,
+        saveMessagesHistory: Bool,
+        saveForBots: Bool
     ) {
         self.ghostMode = ghostMode
         self.instantPasscodeLock = instantPasscodeLock
@@ -94,6 +106,9 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.translationBackend = translationBackend
         self.transcriptionBackend = transcriptionBackend
         self.scrollToNextChatDisabled = scrollToNextChatDisabled
+        self.saveDeletedMessages = saveDeletedMessages
+        self.saveMessagesHistory = saveMessagesHistory
+        self.saveForBots = saveForBots
     }
 
     public init(from decoder: Decoder) throws {
@@ -117,6 +132,9 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.translationBackend = (try container.decodeIfPresent(String.self, forKey: "translationBackend")).flatMap(ForkTranslationBackend.init(rawValue:)) ?? .default
         self.transcriptionBackend = (try container.decodeIfPresent(String.self, forKey: "transcriptionBackend")).flatMap(ForkTranscriptionBackend.init(rawValue:)) ?? .default
         self.scrollToNextChatDisabled = try container.decodeIfPresent(Bool.self, forKey: "scrollToNextChatDisabled") ?? false
+        self.saveDeletedMessages = try container.decodeIfPresent(Bool.self, forKey: "saveDeletedMessages") ?? true
+        self.saveMessagesHistory = try container.decodeIfPresent(Bool.self, forKey: "saveMessagesHistory") ?? true
+        self.saveForBots = try container.decodeIfPresent(Bool.self, forKey: "saveForBots") ?? false
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -139,6 +157,9 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.translationBackend.rawValue, forKey: "translationBackend")
         try container.encode(self.transcriptionBackend.rawValue, forKey: "transcriptionBackend")
         try container.encode(self.scrollToNextChatDisabled, forKey: "scrollToNextChatDisabled")
+        try container.encode(self.saveDeletedMessages, forKey: "saveDeletedMessages")
+        try container.encode(self.saveMessagesHistory, forKey: "saveMessagesHistory")
+        try container.encode(self.saveForBots, forKey: "saveForBots")
     }
 }
 

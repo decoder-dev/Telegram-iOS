@@ -14,6 +14,7 @@ import DeviceAccess
 import TextFormat
 import TelegramBaseController
 import AccountContext
+import SettingsUI
 import TelegramStringFormatting
 import OverlayStatusController
 import DeviceLocationManager
@@ -44,7 +45,6 @@ import AvatarNode
 import AppBundle
 import LocalizedPeerData
 import PhoneNumberFormat
-import SettingsUI
 import UrlWhitelist
 import TelegramIntents
 import TooltipUI
@@ -400,6 +400,19 @@ extension ChatControllerImpl {
             
             self?.beginMessageSearch("")
         })))
+        if self.context.sharedContext.immediateForkExtrasSettings.saveDeletedMessages,
+           MessageSavingStore.hasDeleted(accountPeerId: self.context.account.peerId.toInt64(), peerId: peerId.toInt64()) {
+            items.append(.action(ContextMenuActionItem(text: "View Deleted", icon: { theme in
+                return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Archive"), color: theme.contextMenu.primaryColor)
+            }, action: { [weak self] action in
+                action.dismissWithResult(.default)
+                guard let self else {
+                    return
+                }
+                let controller = messageSavingDeletedController(context: self.context, peerId: peerId, topicId: self.chatLocation.threadId)
+                self.push(controller)
+            })))
+        }
         
         if let threadId = self.chatLocation.threadId, let peer = self.presentationInterfaceState.renderedPeer?.chatMainPeer, (peer is TelegramChannel || peer is TelegramGroup) {
             items.append(.action(ContextMenuActionItem(text: strings.CreateTopic_EditTitle, icon: { theme in

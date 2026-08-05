@@ -1225,6 +1225,22 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
                 })
             })))
         }
+
+        if context.sharedContext.immediateForkExtrasSettings.saveMessagesHistory,
+           MessageSavingStore.hasEdits(
+            accountPeerId: context.account.peerId.toInt64(),
+            peerId: message.id.peerId.toInt64(),
+            messageId: message.id.id,
+            namespace: message.id.namespace
+           ) {
+            actions.append(.action(ContextMenuActionItem(text: "Edit History", icon: { theme in
+                return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Edit"), color: theme.actionSheet.primaryTextColor)
+            }, action: { [weak controllerInteraction] c, _ in
+                c?.dismiss(result: .dismissWithoutContent, completion: nil)
+                let editsController = messageSavingEditsController(context: context, messageId: message.id)
+                controllerInteraction?.navigationController()?.pushViewController(editsController, animated: true)
+            })))
+        }
         
         if data.messageActions.options.contains(.sendScheduledNow) {
             actions.append(.action(ContextMenuActionItem(text: chatPresentationInterfaceState.strings.ScheduledMessages_SendNow, icon: { theme in
