@@ -163,6 +163,11 @@ final class UniversalTextureSource: TextureSource {
     func invalidate() {
         self.mainInputContext?.invalidate()
         self.additionalInputContexts.forEach { $0.invalidate() }
+
+        if let displayLink = self.displayLink {
+            self.displayLink = nil
+            displayLink.invalidate()
+        }
     }
     
     private class DisplayLinkTarget {

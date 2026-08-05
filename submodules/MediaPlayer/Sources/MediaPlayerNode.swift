@@ -382,7 +382,11 @@ public final class MediaPlayerNode: ASDisplayNode {
     deinit {
         assert(Queue.mainQueue().isCurrent())
         self.videoLayer?.removeFromSuperlayer()
-        
+
+        if let observer = self.videoLayerReadyForDisplayObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+
         if let _ = self.takeFrameAndQueue {
             if let videoLayer = self.videoLayer {
                 videoLayer.flushAndRemoveImage()

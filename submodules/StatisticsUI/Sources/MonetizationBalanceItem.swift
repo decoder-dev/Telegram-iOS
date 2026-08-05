@@ -146,7 +146,11 @@ final class MonetizationBalanceItemNode: ListViewItemNode, ItemListItemNode {
         self.addSubnode(self.balanceTextNode)
         self.addSubnode(self.valueTextNode)
     }
-    
+
+    deinit {
+        self.timer?.invalidate()
+    }
+
     func asyncLayout() -> (_ item: MonetizationBalanceItem, _ params: ListViewItemLayoutParams, _ insets: ItemListNeighbors) -> (ListViewItemNodeLayout, () -> Void) {
         let currentItem = self.item
         let makeBalanceTextLayout = TextNode.asyncLayout(self.balanceTextNode)

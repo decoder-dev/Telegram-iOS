@@ -132,7 +132,11 @@ final class StarsBalanceComponent: Component {
         required init?(coder: NSCoder) {
             fatalError("init(coder:) has not been implemented")
         }
-        
+
+        deinit {
+            self.timer?.invalidate()
+        }
+
         func update(component: StarsBalanceComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
             if self.component == nil {
                 switch component.currency {
