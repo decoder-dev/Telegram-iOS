@@ -95,7 +95,15 @@ public final class CompressedImageRenderer {
     private var yuvaTextures: TextureSet?
     
     private let commandQueue: MTLCommandQueue
-    
+
+    // `compressedTextures`/`outputTextures`/`rgbTexture`/`yuvaTextures` above are mutated by
+    // renderIdct/renderRgb/renderYuva, which previously ran their update step on the
+    // *concurrent* `DispatchQueue.global()` (renderIdct/renderYuva) or synchronously on the
+    // caller's own thread (renderRgb) — three code paths racing on the same properties with no
+    // coordination. Routing all three through this dedicated serial queue makes them mutually
+    // exclusive without changing which thread class (background, not main) the work runs on.
+    private let textureQueue = DispatchQueue(label: "CompressedImageRenderer.textures")
+
     private var isRendering: Bool = false
 
     public init?(sharedContext: AnimationCompressor.SharedContext) {
@@ -190,7 +198,7 @@ public final class CompressedImageRenderer {
     }
     
     public func renderIdct(layer: MetalImageLayer, compressedImage: AnimationCompressor.CompressedImageData, completion: @escaping () -> Void) {
-        DispatchQueue.global().async {
+        self.textureQueue.async {
             self.updateIdctTextures(compressedImage: compressedImage)
             
             DispatchQueue.main.async {
@@ -331,53 +339,60 @@ public final class CompressedImageRenderer {
     }
     
     public func renderRgb(layer: MetalImageLayer, width: Int, height: Int, bytesPerRow: Int, data: Data, completion: @escaping () -> Void) {
-        self.updateRgbTexture(width: width, height: height, bytesPerRow: bytesPerRow, data: data)
-        
-        guard let rgbTexture = self.rgbTexture else {
-            return
-        }
-        
-        guard let commandBuffer = self.commandQueue.makeCommandBuffer() else {
-            return
-        }
-        commandBuffer.label = "MyCommand"
-        
-        let drawableSize = CGSize(width: CGFloat(rgbTexture.width), height: CGFloat(rgbTexture.height))
-        
-        guard let drawable = self.getNextDrawable(layer: layer, drawableSize: drawableSize) else {
-            commandBuffer.commit()
-            completion()
-            return
-        }
+        // Previously ran synchronously on the caller's thread (always main, per current call
+        // sites), racing renderIdct/renderYuva's update step on textureQueue. Routing through
+        // textureQueue too makes all three mutually exclusive; getNextDrawable/commandBuffer
+        // calls remain safe off-main (Metal's own APIs are thread-safe), and the final present
+        // already explicitly hops back to the main queue below.
+        self.textureQueue.async {
+            self.updateRgbTexture(width: width, height: height, bytesPerRow: bytesPerRow, data: data)
 
-        let renderPassDescriptor = MTLRenderPassDescriptor()
-        renderPassDescriptor.colorAttachments[0].texture = drawable.texture
-        renderPassDescriptor.colorAttachments[0].loadAction = .clear
-        renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
-        
-        guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
-            return
-        }
-        renderEncoder.label = "MyRenderEncoder"
-        
-        renderEncoder.setRenderPipelineState(self.shared.renderRgbPipelineState)
-        renderEncoder.setFragmentTexture(rgbTexture.texture, index: 0)
-        
-        renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
-        
-        renderEncoder.endEncoding()
-        
-        var storedDrawable: MetalImageLayer.Drawable? = drawable
-        commandBuffer.addCompletedHandler { _ in
-            DispatchQueue.main.async {
-                autoreleasepool {
-                    storedDrawable?.present(completion: completion)
-                    storedDrawable = nil
+            guard let rgbTexture = self.rgbTexture else {
+                return
+            }
+
+            guard let commandBuffer = self.commandQueue.makeCommandBuffer() else {
+                return
+            }
+            commandBuffer.label = "MyCommand"
+
+            let drawableSize = CGSize(width: CGFloat(rgbTexture.width), height: CGFloat(rgbTexture.height))
+
+            guard let drawable = self.getNextDrawable(layer: layer, drawableSize: drawableSize) else {
+                commandBuffer.commit()
+                completion()
+                return
+            }
+
+            let renderPassDescriptor = MTLRenderPassDescriptor()
+            renderPassDescriptor.colorAttachments[0].texture = drawable.texture
+            renderPassDescriptor.colorAttachments[0].loadAction = .clear
+            renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
+
+            guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
+                return
+            }
+            renderEncoder.label = "MyRenderEncoder"
+
+            renderEncoder.setRenderPipelineState(self.shared.renderRgbPipelineState)
+            renderEncoder.setFragmentTexture(rgbTexture.texture, index: 0)
+
+            renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
+
+            renderEncoder.endEncoding()
+
+            var storedDrawable: MetalImageLayer.Drawable? = drawable
+            commandBuffer.addCompletedHandler { _ in
+                DispatchQueue.main.async {
+                    autoreleasepool {
+                        storedDrawable?.present(completion: completion)
+                        storedDrawable = nil
+                    }
                 }
             }
+
+            commandBuffer.commit()
         }
-        
-        commandBuffer.commit()
     }
     
     private func updateYuvaTextures(width: Int, height: Int, data: Data) {
@@ -455,7 +470,7 @@ public final class CompressedImageRenderer {
     }
     
     public func renderYuva(layer: MetalImageLayer, width: Int, height: Int, data: Data, completion: @escaping () -> Void) {
-        DispatchQueue.global().async {
+        self.textureQueue.async {
             autoreleasepool {
                 //let renderStartTime = CFAbsoluteTimeGetCurrent()
                 

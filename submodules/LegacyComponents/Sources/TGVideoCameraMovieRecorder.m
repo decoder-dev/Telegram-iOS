@@ -304,8 +304,11 @@ typedef enum {
             {
 				[_assetWriter startSessionAtSourceTime:CMSampleBufferGetPresentationTimeStamp(sampleBuffer)];
 				_haveStartedSession = true;
-                
-                _startTimeStamp = timestamp;
+
+                @synchronized (self)
+                {
+                    _startTimeStamp = timestamp;
+                }
 			}
             
 			AVAssetWriterInput *input = (mediaType == AVMediaTypeVideo) ? _videoInput : _audioInput;
@@ -344,8 +347,13 @@ typedef enum {
                 pts = CMTimeAdd(pts, duration);
             
             if (input == _audioInput)
-                _lastAudioTimeStamp = pts;
-            
+            {
+                @synchronized (self)
+                {
+                    _lastAudioTimeStamp = pts;
+                }
+            }
+
 			if (input.readyForMoreMediaData)
 			{
 				if (![input appendSampleBuffer:buffer])
@@ -485,7 +493,14 @@ typedef enum {
 
 - (NSTimeInterval)videoDuration
 {
-    return CMTimeGetSeconds(CMTimeSubtract(_lastAudioTimeStamp, _startTimeStamp));
+    CMTime lastAudioTimeStamp;
+    CMTime startTimeStamp;
+    @synchronized (self)
+    {
+        lastAudioTimeStamp = _lastAudioTimeStamp;
+        startTimeStamp = _startTimeStamp;
+    }
+    return CMTimeGetSeconds(CMTimeSubtract(lastAudioTimeStamp, startTimeStamp));
 }
 
 @end

@@ -1838,20 +1838,25 @@ public final class MediaBox {
                 }
                 
                 if notify {
-                    for id in ids {
-                        if let context = self.statusContexts[id] {
-                            context.status = .Remote(progress: 0.0)
-                            for f in context.subscribers.copyItems() {
-                                f(.Remote(progress: 0.0))
+                    // Hop onto statusQueue for this — statusContexts is otherwise only ever
+                    // touched there (see resourceStatus below); mutating it here on dataQueue
+                    // raced a concurrent resourceStatus(...) call for the same resource.
+                    self.statusQueue.async {
+                        for id in ids {
+                            if let context = self.statusContexts[id] {
+                                context.status = .Remote(progress: 0.0)
+                                for f in context.subscribers.copyItems() {
+                                    f(.Remote(progress: 0.0))
+                                }
                             }
                         }
                     }
                 }
-                
+
                 self.dataQueue.justDispatch {
                     self.didRemoveResourcesPipe.putNext(Void())
                 }
-                
+
                 subscriber.putNext(1.0)
                 subscriber.putCompletion()
             }
@@ -1881,20 +1886,22 @@ public final class MediaBox {
                 }
                 
                 if notify {
-                    for id in ids {
-                        if let context = self.statusContexts[id] {
-                            context.status = .Remote(progress: 0.0)
-                            for f in context.subscribers.copyItems() {
-                                f(.Remote(progress: 0.0))
+                    self.statusQueue.async {
+                        for id in ids {
+                            if let context = self.statusContexts[id] {
+                                context.status = .Remote(progress: 0.0)
+                                for f in context.subscribers.copyItems() {
+                                    f(.Remote(progress: 0.0))
+                                }
                             }
                         }
                     }
                 }
-                
+
                 self.dataQueue.justDispatch {
                     self.didRemoveResourcesPipe.putNext(Void())
                 }
-                
+
                 subscriber.putNext(removedIds)
                 subscriber.putCompletion()
             }
