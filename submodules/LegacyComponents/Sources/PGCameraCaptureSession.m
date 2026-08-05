@@ -1124,6 +1124,8 @@ static UIImageOrientation TGSnapshotOrientationForVideoOrientation(bool mirrored
                         CFRelease(sampleBuffer);
                         capturedFrameCompletion(image);
                     }];
+                } else {
+                    CFRelease(sampleBuffer);
                 }
             });
         }];

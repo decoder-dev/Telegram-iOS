@@ -203,6 +203,11 @@ static UIView<TGPhotoToolbarViewProtocol> *TGPhotoEditorCreatePhotoToolbarView(i
 {
     [_faceDetectorDisposable dispose];
     [_thumbnailsDisposable dispose];
+
+    if (_registeredKeypathObserver) {
+        [_player removeObserver:self forKeyPath:@"rate" context:nil];
+        _registeredKeypathObserver = false;
+    }
 }
 
 - (void)loadView

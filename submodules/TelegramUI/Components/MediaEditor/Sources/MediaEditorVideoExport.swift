@@ -266,7 +266,10 @@ public final class MediaEditorVideoExport {
     private var startTimestamp = CACurrentMediaTime()
     
     private let composerSemaphore = DispatchSemaphore(value: 0)
-    
+
+    private var foregroundObserver: NSObjectProtocol?
+    private var backgroundObserver: NSObjectProtocol?
+
     public init(postbox: Postbox, subject: Subject, configuration: Configuration, outputPath: String, textScale: CGFloat = 1.0) {
         self.postbox = postbox
         self.subject = subject
@@ -284,7 +287,7 @@ public final class MediaEditorVideoExport {
         }
         self.setup()
         
-        let _ = NotificationCenter.default.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: nil, using: { [weak self] _ in
+        self.foregroundObserver = NotificationCenter.default.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: nil, using: { [weak self] _ in
             guard let self else {
                 return
             }
@@ -297,7 +300,7 @@ public final class MediaEditorVideoExport {
             }*/
             self.resume()
         })
-        let _ = NotificationCenter.default.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: nil, using: { [weak self] _ in
+        self.backgroundObserver = NotificationCenter.default.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: nil, using: { [weak self] _ in
             guard let self else {
                 return
             }
@@ -310,6 +313,15 @@ public final class MediaEditorVideoExport {
             }*/
             self.pause()
         })
+    }
+
+    deinit {
+        if let foregroundObserver = self.foregroundObserver {
+            NotificationCenter.default.removeObserver(foregroundObserver)
+        }
+        if let backgroundObserver = self.backgroundObserver {
+            NotificationCenter.default.removeObserver(backgroundObserver)
+        }
     }
     
     enum Input {

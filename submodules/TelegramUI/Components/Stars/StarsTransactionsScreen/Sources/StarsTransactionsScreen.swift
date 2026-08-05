@@ -1524,6 +1524,7 @@ public final class StarsTransactionsScreen: ViewControllerComponentContainer {
     
     deinit {
         self.navigateDisposable.dispose()
+        self.timer?.invalidate()
     }
     
     public func update() {

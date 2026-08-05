@@ -1039,7 +1039,11 @@ public final class StarsStatisticsScreen: ViewControllerComponentContainer {
     required public init(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
+
+    deinit {
+        self.timer?.invalidate()
+    }
+
     override public func viewDidLoad() {
         super.viewDidLoad()
     }

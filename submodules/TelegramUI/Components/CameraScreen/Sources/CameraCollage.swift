@@ -550,7 +550,13 @@ final class CameraCollageView: UIView, UIGestureRecognizerDelegate {
         required init?(coder aDecoder: NSCoder) {
             preconditionFailure()
         }
-               
+
+        deinit {
+            if let observer = self.didPlayToEndTimeObserver {
+                NotificationCenter.default.removeObserver(observer)
+            }
+        }
+
         func requestContextAction() {
             guard let item = self.item, self.isReady else {
                 return
