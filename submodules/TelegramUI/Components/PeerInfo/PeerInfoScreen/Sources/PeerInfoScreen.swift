@@ -150,6 +150,7 @@ enum PeerInfoContextSubject {
     case businessHours(String)
     case businessLocation(String)
     case birthday
+    case genericCopy(String)
 }
 
 enum PeerInfoSettingsSection {

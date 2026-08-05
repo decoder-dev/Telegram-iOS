@@ -2,6 +2,16 @@ import Foundation
 import TelegramCore
 import SwiftSignalKit
 
+public enum ForkTranslationBackend: String, Codable {
+    case `default`
+    case system
+}
+
+public enum ForkTranscriptionBackend: String, Codable {
+    case `default`
+    case apple
+}
+
 /// Extra fork features (Ghost Mode, instant lock, notification filters, etc.).
 public struct ForkExtrasSettings: Codable, Equatable {
     public var ghostMode: Bool
@@ -9,31 +19,83 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var hideMentionNotifications: Bool
     public var hidePinnedNotifications: Bool
     public var sessionKeychainBackup: Bool
-    
+    public var compactChatList: Bool
+    public var compactMessagePreview: Bool
+    public var compactFolderNames: Bool
+    public var hideReactionsBar: Bool
+    public var showDC: Bool
+    public var showProfileId: Bool
+    public var accentColorSaturation: Int32
+    public var confirmBeforeCall: Bool
+    public var sendWithReturnKey: Bool
+    public var forceBuiltInMic: Bool
+    public var translationBackend: ForkTranslationBackend
+    public var transcriptionBackend: ForkTranscriptionBackend
+    public var scrollToNextChatDisabled: Bool
+
     public static var defaultSettings: ForkExtrasSettings {
         return ForkExtrasSettings(
             ghostMode: false,
             instantPasscodeLock: false,
             hideMentionNotifications: false,
             hidePinnedNotifications: false,
-            sessionKeychainBackup: true
+            sessionKeychainBackup: true,
+            compactChatList: false,
+            compactMessagePreview: false,
+            compactFolderNames: false,
+            hideReactionsBar: false,
+            showDC: false,
+            showProfileId: false,
+            accentColorSaturation: 100,
+            confirmBeforeCall: false,
+            sendWithReturnKey: false,
+            forceBuiltInMic: false,
+            translationBackend: .default,
+            transcriptionBackend: .default,
+            scrollToNextChatDisabled: false
         )
     }
-    
+
     public init(
         ghostMode: Bool,
         instantPasscodeLock: Bool,
         hideMentionNotifications: Bool,
         hidePinnedNotifications: Bool,
-        sessionKeychainBackup: Bool
+        sessionKeychainBackup: Bool,
+        compactChatList: Bool,
+        compactMessagePreview: Bool,
+        compactFolderNames: Bool,
+        hideReactionsBar: Bool,
+        showDC: Bool,
+        showProfileId: Bool,
+        accentColorSaturation: Int32,
+        confirmBeforeCall: Bool,
+        sendWithReturnKey: Bool,
+        forceBuiltInMic: Bool,
+        translationBackend: ForkTranslationBackend,
+        transcriptionBackend: ForkTranscriptionBackend,
+        scrollToNextChatDisabled: Bool
     ) {
         self.ghostMode = ghostMode
         self.instantPasscodeLock = instantPasscodeLock
         self.hideMentionNotifications = hideMentionNotifications
         self.hidePinnedNotifications = hidePinnedNotifications
         self.sessionKeychainBackup = sessionKeychainBackup
+        self.compactChatList = compactChatList
+        self.compactMessagePreview = compactMessagePreview
+        self.compactFolderNames = compactFolderNames
+        self.hideReactionsBar = hideReactionsBar
+        self.showDC = showDC
+        self.showProfileId = showProfileId
+        self.accentColorSaturation = accentColorSaturation
+        self.confirmBeforeCall = confirmBeforeCall
+        self.sendWithReturnKey = sendWithReturnKey
+        self.forceBuiltInMic = forceBuiltInMic
+        self.translationBackend = translationBackend
+        self.transcriptionBackend = transcriptionBackend
+        self.scrollToNextChatDisabled = scrollToNextChatDisabled
     }
-    
+
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: StringCodingKey.self)
         self.ghostMode = try container.decodeIfPresent(Bool.self, forKey: "ghostMode") ?? false
@@ -42,8 +104,21 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.hidePinnedNotifications = try container.decodeIfPresent(Bool.self, forKey: "hidePinnedNotifications") ?? false
         // formattingPanel removed — ignore if present in older prefs.
         self.sessionKeychainBackup = try container.decodeIfPresent(Bool.self, forKey: "sessionKeychainBackup") ?? true
+        self.compactChatList = try container.decodeIfPresent(Bool.self, forKey: "compactChatList") ?? false
+        self.compactMessagePreview = try container.decodeIfPresent(Bool.self, forKey: "compactMessagePreview") ?? false
+        self.compactFolderNames = try container.decodeIfPresent(Bool.self, forKey: "compactFolderNames") ?? false
+        self.hideReactionsBar = try container.decodeIfPresent(Bool.self, forKey: "hideReactionsBar") ?? false
+        self.showDC = try container.decodeIfPresent(Bool.self, forKey: "showDC") ?? false
+        self.showProfileId = try container.decodeIfPresent(Bool.self, forKey: "showProfileId") ?? false
+        self.accentColorSaturation = try container.decodeIfPresent(Int32.self, forKey: "accentColorSaturation") ?? 100
+        self.confirmBeforeCall = try container.decodeIfPresent(Bool.self, forKey: "confirmBeforeCall") ?? false
+        self.sendWithReturnKey = try container.decodeIfPresent(Bool.self, forKey: "sendWithReturnKey") ?? false
+        self.forceBuiltInMic = try container.decodeIfPresent(Bool.self, forKey: "forceBuiltInMic") ?? false
+        self.translationBackend = (try container.decodeIfPresent(String.self, forKey: "translationBackend")).flatMap(ForkTranslationBackend.init(rawValue:)) ?? .default
+        self.transcriptionBackend = (try container.decodeIfPresent(String.self, forKey: "transcriptionBackend")).flatMap(ForkTranscriptionBackend.init(rawValue:)) ?? .default
+        self.scrollToNextChatDisabled = try container.decodeIfPresent(Bool.self, forKey: "scrollToNextChatDisabled") ?? false
     }
-    
+
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: StringCodingKey.self)
         try container.encode(self.ghostMode, forKey: "ghostMode")
@@ -51,6 +126,19 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.hideMentionNotifications, forKey: "hideMentionNotifications")
         try container.encode(self.hidePinnedNotifications, forKey: "hidePinnedNotifications")
         try container.encode(self.sessionKeychainBackup, forKey: "sessionKeychainBackup")
+        try container.encode(self.compactChatList, forKey: "compactChatList")
+        try container.encode(self.compactMessagePreview, forKey: "compactMessagePreview")
+        try container.encode(self.compactFolderNames, forKey: "compactFolderNames")
+        try container.encode(self.hideReactionsBar, forKey: "hideReactionsBar")
+        try container.encode(self.showDC, forKey: "showDC")
+        try container.encode(self.showProfileId, forKey: "showProfileId")
+        try container.encode(self.accentColorSaturation, forKey: "accentColorSaturation")
+        try container.encode(self.confirmBeforeCall, forKey: "confirmBeforeCall")
+        try container.encode(self.sendWithReturnKey, forKey: "sendWithReturnKey")
+        try container.encode(self.forceBuiltInMic, forKey: "forceBuiltInMic")
+        try container.encode(self.translationBackend.rawValue, forKey: "translationBackend")
+        try container.encode(self.transcriptionBackend.rawValue, forKey: "transcriptionBackend")
+        try container.encode(self.scrollToNextChatDisabled, forKey: "scrollToNextChatDisabled")
     }
 }
 

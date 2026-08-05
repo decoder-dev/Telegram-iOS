@@ -10,6 +10,7 @@ import TelegramCallsUI
 import TelegramUIPreferences
 import TelegramStringFormatting
 import AccountContext
+import TelegramAudio
 import DeviceLocationManager
 import ItemListUI
 import LegacyUI
@@ -542,6 +543,11 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             let settings = sharedData.entries[ApplicationSpecificSharedDataKeys.forkExtrasSettings]?.get(ForkExtrasSettings.self) ?? .defaultSettings
             let _ = immediateForkExtrasSettingsValue.swap(settings)
             ForkExtrasNotificationBridge.sync(settings)
+            // PeerNameColors is a plain value type with no live settings reference of its own —
+            // push the saturation setting down to its static property whenever it changes.
+            PeerNameColors.saturationPercent = settings.accentColorSaturation
+            // TelegramAudio has no visibility into ForkExtrasSettings either — same pattern.
+            ManagedAudioSessionImpl.forceBuiltInMic = settings.forceBuiltInMic
         })
         
         let _ = self.contactDataManager?.personNameDisplayOrder().start(next: { order in

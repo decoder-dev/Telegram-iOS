@@ -820,6 +820,31 @@ public final class AccountContextImpl: AccountContext {
     }
     
     public func requestCall(peerId: PeerId, isVideo: Bool, completion: @escaping () -> Void) {
+        // callManager.requestCall(...) below already dials — a confirmation needs to happen
+        // before this function's existing body runs at all, not partway through it.
+        if self.sharedContext.immediateForkExtrasSettings.confirmBeforeCall {
+            let _ = (self.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: peerId))
+            |> deliverOnMainQueue).start(next: { [weak self] peer in
+                guard let strongSelf = self, let peer else {
+                    return
+                }
+                let presentationData = strongSelf.sharedContext.currentPresentationData.with { $0 }
+                strongSelf.sharedContext.mainWindow?.present(textAlertController(context: strongSelf, title: nil, text: "Call \(peer.compactDisplayTitle)?", actions: [
+                    TextAlertAction(type: .genericAction, title: presentationData.strings.Common_Cancel, action: {}),
+                    TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {
+                        guard let strongSelf = self else {
+                            return
+                        }
+                        strongSelf.performRequestCall(peerId: peerId, isVideo: isVideo, completion: completion)
+                    })
+                ]), on: .root)
+            })
+        } else {
+            self.performRequestCall(peerId: peerId, isVideo: isVideo, completion: completion)
+        }
+    }
+
+    private func performRequestCall(peerId: PeerId, isVideo: Bool, completion: @escaping () -> Void) {
         guard let callResult = self.sharedContext.callManager?.requestCall(context: self, peerId: peerId, isVideo: isVideo, endCurrentIfAny: false) else {
             return
         }

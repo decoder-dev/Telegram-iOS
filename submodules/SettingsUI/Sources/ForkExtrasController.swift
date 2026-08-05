@@ -23,6 +23,30 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.HidePinnedFooter": "Suppress push notifications for pinned messages.",
             "ForkExtras.SessionBackup": "Keychain Session Backup",
             "ForkExtras.SessionBackupFooter": "Mirror account session data to the device Keychain for same-bundle reinstalls.",
+            "ForkExtras.CompactChatList": "Compact Chat List",
+            "ForkExtras.CompactMessagePreview": "Compact Message Preview",
+            "ForkExtras.CompactFolderNames": "Compact Folder Names",
+            "ForkExtras.UIDensityFooter": "Reduce row heights, preview line count, and folder tab label size.",
+            "ForkExtras.HideReactionsBar": "Hide Reactions",
+            "ForkExtras.HideReactionsBarFooter": "Hide the reaction bar under messages.",
+            "ForkExtras.ShowDC": "Show Data Center & Registration Date",
+            "ForkExtras.ShowProfileId": "Show Profile ID",
+            "ForkExtras.PrivacyFooter": "Add extra diagnostic rows to profile screens.",
+            "ForkExtras.AccentSaturation": "Accent Color Saturation",
+            "ForkExtras.ConfirmBeforeCall": "Confirm Before Calling",
+            "ForkExtras.SendWithReturnKey": "Send With Return Key",
+            "ForkExtras.SendWithReturnKeyFooter": "Tapping Return on the keyboard sends the message instead of adding a new line.",
+            "ForkExtras.ForceBuiltInMic": "Force Built-in Microphone",
+            "ForkExtras.ForceBuiltInMicFooter": "Use the device's built-in microphone instead of a connected Bluetooth device for calls and voice messages.",
+            "ForkExtras.CallsFooter": "Ask for confirmation before dialing a call.",
+            "ForkExtras.TranslationBackend": "Translation",
+            "ForkExtras.TranscriptionBackend": "Voice Transcription",
+            "ForkExtras.TranslationFooter": "Choose an alternative translation or voice-transcription engine, independent of Telegram Premium.",
+            "ForkExtras.ScrollToNextChat": "Swipe to Next Chat",
+            "ForkExtras.ScrollToNextChatFooter": "Swiping up on the last message jumps to the next unread chat or topic.",
+            "ForkExtras.BackendDefault": "Default",
+            "ForkExtras.BackendSystem": "System (Apple)",
+            "ForkExtras.BackendApple": "On-Device (Apple)",
         ],
         "ru": [
             "ForkExtras.Title": "Дополнительно",
@@ -36,6 +60,30 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.HidePinnedFooter": "Не показывать push-уведомления о закреплённых сообщениях.",
             "ForkExtras.SessionBackup": "Резерв сессии в Keychain",
             "ForkExtras.SessionBackupFooter": "Дублировать данные сессии в Keychain для переустановки с тем же Bundle ID.",
+            "ForkExtras.CompactChatList": "Компактный список чатов",
+            "ForkExtras.CompactMessagePreview": "Компактное превью сообщений",
+            "ForkExtras.CompactFolderNames": "Компактные названия папок",
+            "ForkExtras.UIDensityFooter": "Уменьшить высоту строк, число строк превью и размер названий папок.",
+            "ForkExtras.HideReactionsBar": "Скрыть реакции",
+            "ForkExtras.HideReactionsBarFooter": "Скрыть панель реакций под сообщениями.",
+            "ForkExtras.ShowDC": "Показать DC и дату регистрации",
+            "ForkExtras.ShowProfileId": "Показать ID профиля",
+            "ForkExtras.PrivacyFooter": "Добавить дополнительные диагностические строки на экраны профиля.",
+            "ForkExtras.AccentSaturation": "Насыщенность акцентного цвета",
+            "ForkExtras.ConfirmBeforeCall": "Подтверждать перед звонком",
+            "ForkExtras.SendWithReturnKey": "Отправка по Enter",
+            "ForkExtras.SendWithReturnKeyFooter": "Нажатие Enter на клавиатуре отправляет сообщение вместо новой строки.",
+            "ForkExtras.ForceBuiltInMic": "Только встроенный микрофон",
+            "ForkExtras.ForceBuiltInMicFooter": "Использовать встроенный микрофон устройства вместо подключённого Bluetooth-устройства для звонков и голосовых сообщений.",
+            "ForkExtras.CallsFooter": "Запрашивать подтверждение перед началом звонка.",
+            "ForkExtras.TranslationBackend": "Перевод",
+            "ForkExtras.TranscriptionBackend": "Расшифровка голоса",
+            "ForkExtras.TranslationFooter": "Выбрать альтернативный движок перевода или расшифровки голоса, независимо от Telegram Premium.",
+            "ForkExtras.ScrollToNextChat": "Свайп к следующему чату",
+            "ForkExtras.ScrollToNextChatFooter": "Смахивание вверх на последнем сообщении переходит к следующему непрочитанному чату или теме.",
+            "ForkExtras.BackendDefault": "По умолчанию",
+            "ForkExtras.BackendSystem": "Системный (Apple)",
+            "ForkExtras.BackendApple": "На устройстве (Apple)",
         ],
     ]
     
@@ -69,6 +117,30 @@ private enum ForkExtrasLocalizedString {
     static var hidePinnedFooter: String { string(forKey: "ForkExtras.HidePinnedFooter") }
     static var sessionBackup: String { string(forKey: "ForkExtras.SessionBackup") }
     static var sessionBackupFooter: String { string(forKey: "ForkExtras.SessionBackupFooter") }
+    static var compactChatList: String { string(forKey: "ForkExtras.CompactChatList") }
+    static var compactMessagePreview: String { string(forKey: "ForkExtras.CompactMessagePreview") }
+    static var compactFolderNames: String { string(forKey: "ForkExtras.CompactFolderNames") }
+    static var uiDensityFooter: String { string(forKey: "ForkExtras.UIDensityFooter") }
+    static var hideReactionsBar: String { string(forKey: "ForkExtras.HideReactionsBar") }
+    static var hideReactionsBarFooter: String { string(forKey: "ForkExtras.HideReactionsBarFooter") }
+    static var showDC: String { string(forKey: "ForkExtras.ShowDC") }
+    static var showProfileId: String { string(forKey: "ForkExtras.ShowProfileId") }
+    static var privacyFooter: String { string(forKey: "ForkExtras.PrivacyFooter") }
+    static var accentSaturation: String { string(forKey: "ForkExtras.AccentSaturation") }
+    static var confirmBeforeCall: String { string(forKey: "ForkExtras.ConfirmBeforeCall") }
+    static var sendWithReturnKey: String { string(forKey: "ForkExtras.SendWithReturnKey") }
+    static var sendWithReturnKeyFooter: String { string(forKey: "ForkExtras.SendWithReturnKeyFooter") }
+    static var forceBuiltInMic: String { string(forKey: "ForkExtras.ForceBuiltInMic") }
+    static var forceBuiltInMicFooter: String { string(forKey: "ForkExtras.ForceBuiltInMicFooter") }
+    static var callsFooter: String { string(forKey: "ForkExtras.CallsFooter") }
+    static var translationBackend: String { string(forKey: "ForkExtras.TranslationBackend") }
+    static var transcriptionBackend: String { string(forKey: "ForkExtras.TranscriptionBackend") }
+    static var translationFooter: String { string(forKey: "ForkExtras.TranslationFooter") }
+    static var scrollToNextChat: String { string(forKey: "ForkExtras.ScrollToNextChat") }
+    static var scrollToNextChatFooter: String { string(forKey: "ForkExtras.ScrollToNextChatFooter") }
+    static var backendDefault: String { string(forKey: "ForkExtras.BackendDefault") }
+    static var backendSystem: String { string(forKey: "ForkExtras.BackendSystem") }
+    static var backendApple: String { string(forKey: "ForkExtras.BackendApple") }
 }
 
 private final class ForkExtrasControllerArguments {
@@ -77,19 +149,58 @@ private final class ForkExtrasControllerArguments {
     let updateHideMentions: (Bool) -> Void
     let updateHidePinned: (Bool) -> Void
     let updateSessionBackup: (Bool) -> Void
-    
+    let updateCompactChatList: (Bool) -> Void
+    let updateCompactMessagePreview: (Bool) -> Void
+    let updateCompactFolderNames: (Bool) -> Void
+    let updateHideReactionsBar: (Bool) -> Void
+    let updateShowDC: (Bool) -> Void
+    let updateShowProfileId: (Bool) -> Void
+    let openAccentSaturation: () -> Void
+    let updateConfirmBeforeCall: (Bool) -> Void
+    let updateSendWithReturnKey: (Bool) -> Void
+    let updateForceBuiltInMic: (Bool) -> Void
+    let openTranslationBackend: () -> Void
+    let openTranscriptionBackend: () -> Void
+    let updateScrollToNextChatDisabled: (Bool) -> Void
+
     init(
         updateGhostMode: @escaping (Bool) -> Void,
         updateInstantPasscode: @escaping (Bool) -> Void,
         updateHideMentions: @escaping (Bool) -> Void,
         updateHidePinned: @escaping (Bool) -> Void,
-        updateSessionBackup: @escaping (Bool) -> Void
+        updateSessionBackup: @escaping (Bool) -> Void,
+        updateCompactChatList: @escaping (Bool) -> Void,
+        updateCompactMessagePreview: @escaping (Bool) -> Void,
+        updateCompactFolderNames: @escaping (Bool) -> Void,
+        updateHideReactionsBar: @escaping (Bool) -> Void,
+        updateShowDC: @escaping (Bool) -> Void,
+        updateShowProfileId: @escaping (Bool) -> Void,
+        openAccentSaturation: @escaping () -> Void,
+        updateConfirmBeforeCall: @escaping (Bool) -> Void,
+        updateSendWithReturnKey: @escaping (Bool) -> Void,
+        updateForceBuiltInMic: @escaping (Bool) -> Void,
+        openTranslationBackend: @escaping () -> Void,
+        openTranscriptionBackend: @escaping () -> Void,
+        updateScrollToNextChatDisabled: @escaping (Bool) -> Void
     ) {
         self.updateGhostMode = updateGhostMode
         self.updateInstantPasscode = updateInstantPasscode
         self.updateHideMentions = updateHideMentions
         self.updateHidePinned = updateHidePinned
         self.updateSessionBackup = updateSessionBackup
+        self.updateCompactChatList = updateCompactChatList
+        self.updateCompactMessagePreview = updateCompactMessagePreview
+        self.updateCompactFolderNames = updateCompactFolderNames
+        self.updateHideReactionsBar = updateHideReactionsBar
+        self.updateShowDC = updateShowDC
+        self.updateShowProfileId = updateShowProfileId
+        self.openAccentSaturation = openAccentSaturation
+        self.updateConfirmBeforeCall = updateConfirmBeforeCall
+        self.updateSendWithReturnKey = updateSendWithReturnKey
+        self.updateForceBuiltInMic = updateForceBuiltInMic
+        self.openTranslationBackend = openTranslationBackend
+        self.openTranscriptionBackend = openTranscriptionBackend
+        self.updateScrollToNextChatDisabled = updateScrollToNextChatDisabled
     }
 }
 
@@ -98,6 +209,11 @@ private enum ForkExtrasSection: Int32 {
     case lock
     case notifications
     case backup
+    case uiDensity
+    case privacy
+    case calls
+    case translation
+    case navigation
 }
 
 private enum ForkExtrasEntry: ItemListNodeEntry {
@@ -111,7 +227,26 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     case hidePinnedFooter
     case sessionBackup(Bool)
     case sessionBackupFooter
-    
+    case compactChatList(Bool)
+    case compactMessagePreview(Bool)
+    case compactFolderNames(Bool)
+    case uiDensityFooter
+    case hideReactionsBar(Bool)
+    case showDC(Bool)
+    case showProfileId(Bool)
+    case accentSaturation(Int32)
+    case privacyFooter
+    case confirmBeforeCall(Bool)
+    case sendWithReturnKey(Bool)
+    case sendWithReturnKeyFooter
+    case forceBuiltInMic(Bool)
+    case callsFooter
+    case translationBackend(ForkTranslationBackend)
+    case transcriptionBackend(ForkTranscriptionBackend)
+    case translationFooter
+    case scrollToNextChat(Bool)
+    case scrollToNextChatFooter
+
     var section: ItemListSectionId {
         switch self {
         case .ghostMode, .ghostModeFooter:
@@ -122,9 +257,19 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return ForkExtrasSection.notifications.rawValue
         case .sessionBackup, .sessionBackupFooter:
             return ForkExtrasSection.backup.rawValue
+        case .compactChatList, .compactMessagePreview, .compactFolderNames, .uiDensityFooter:
+            return ForkExtrasSection.uiDensity.rawValue
+        case .hideReactionsBar, .showDC, .showProfileId, .accentSaturation, .privacyFooter:
+            return ForkExtrasSection.privacy.rawValue
+        case .confirmBeforeCall, .sendWithReturnKey, .sendWithReturnKeyFooter, .forceBuiltInMic, .callsFooter:
+            return ForkExtrasSection.calls.rawValue
+        case .translationBackend, .transcriptionBackend, .translationFooter:
+            return ForkExtrasSection.translation.rawValue
+        case .scrollToNextChat, .scrollToNextChatFooter:
+            return ForkExtrasSection.navigation.rawValue
         }
     }
-    
+
     var stableId: Int32 {
         switch self {
         case .ghostMode: return 0
@@ -137,13 +282,32 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case .hidePinnedFooter: return 7
         case .sessionBackup: return 8
         case .sessionBackupFooter: return 9
+        case .compactChatList: return 10
+        case .compactMessagePreview: return 11
+        case .compactFolderNames: return 12
+        case .uiDensityFooter: return 13
+        case .hideReactionsBar: return 14
+        case .showDC: return 15
+        case .showProfileId: return 16
+        case .accentSaturation: return 17
+        case .privacyFooter: return 18
+        case .confirmBeforeCall: return 19
+        case .sendWithReturnKey: return 20
+        case .sendWithReturnKeyFooter: return 21
+        case .forceBuiltInMic: return 22
+        case .callsFooter: return 23
+        case .translationBackend: return 24
+        case .transcriptionBackend: return 25
+        case .translationFooter: return 26
+        case .scrollToNextChat: return 27
+        case .scrollToNextChatFooter: return 28
         }
     }
-    
+
     static func <(lhs: ForkExtrasEntry, rhs: ForkExtrasEntry) -> Bool {
         return lhs.stableId < rhs.stableId
     }
-    
+
     func item(presentationData: ItemListPresentationData, arguments: Any) -> ListViewItem {
         let arguments = arguments as! ForkExtrasControllerArguments
         switch self {
@@ -177,6 +341,84 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             })
         case .sessionBackupFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.sessionBackupFooter), sectionId: self.section)
+        case let .compactChatList(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.compactChatList, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateCompactChatList(value)
+            })
+        case let .compactMessagePreview(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.compactMessagePreview, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateCompactMessagePreview(value)
+            })
+        case let .compactFolderNames(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.compactFolderNames, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateCompactFolderNames(value)
+            })
+        case .uiDensityFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.uiDensityFooter), sectionId: self.section)
+        case let .hideReactionsBar(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.hideReactionsBar, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateHideReactionsBar(value)
+            })
+        case let .showDC(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.showDC, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateShowDC(value)
+            })
+        case let .showProfileId(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.showProfileId, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateShowProfileId(value)
+            })
+        case let .accentSaturation(percent):
+            return ItemListDisclosureItem(presentationData: presentationData, title: ForkExtrasLocalizedString.accentSaturation, label: "\(percent)%", sectionId: self.section, style: .blocks, action: {
+                arguments.openAccentSaturation()
+            })
+        case .privacyFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.privacyFooter), sectionId: self.section)
+        case let .confirmBeforeCall(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.confirmBeforeCall, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateConfirmBeforeCall(value)
+            })
+        case let .sendWithReturnKey(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.sendWithReturnKey, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateSendWithReturnKey(value)
+            })
+        case .sendWithReturnKeyFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.sendWithReturnKeyFooter), sectionId: self.section)
+        case let .forceBuiltInMic(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.forceBuiltInMic, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateForceBuiltInMic(value)
+            })
+        case .callsFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.forceBuiltInMicFooter + "\n\n" + ForkExtrasLocalizedString.callsFooter), sectionId: self.section)
+        case let .translationBackend(backend):
+            let label: String
+            switch backend {
+            case .default:
+                label = ForkExtrasLocalizedString.backendDefault
+            case .system:
+                label = ForkExtrasLocalizedString.backendSystem
+            }
+            return ItemListDisclosureItem(presentationData: presentationData, title: ForkExtrasLocalizedString.translationBackend, label: label, sectionId: self.section, style: .blocks, action: {
+                arguments.openTranslationBackend()
+            })
+        case let .transcriptionBackend(backend):
+            let label: String
+            switch backend {
+            case .default:
+                label = ForkExtrasLocalizedString.backendDefault
+            case .apple:
+                label = ForkExtrasLocalizedString.backendApple
+            }
+            return ItemListDisclosureItem(presentationData: presentationData, title: ForkExtrasLocalizedString.transcriptionBackend, label: label, sectionId: self.section, style: .blocks, action: {
+                arguments.openTranscriptionBackend()
+            })
+        case .translationFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.translationFooter), sectionId: self.section)
+        case let .scrollToNextChat(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.scrollToNextChat, value: !value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateScrollToNextChatDisabled(!value)
+            })
+        case .scrollToNextChatFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.scrollToNextChatFooter), sectionId: self.section)
         }
     }
 }
@@ -193,12 +435,51 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings) -> [ForkE
         .hidePinnedFooter,
         .sessionBackup(settings.sessionKeychainBackup),
         .sessionBackupFooter,
+        .compactChatList(settings.compactChatList),
+        .compactMessagePreview(settings.compactMessagePreview),
+        .compactFolderNames(settings.compactFolderNames),
+        .uiDensityFooter,
+        .hideReactionsBar(settings.hideReactionsBar),
+        .showDC(settings.showDC),
+        .showProfileId(settings.showProfileId),
+        .accentSaturation(settings.accentColorSaturation),
+        .privacyFooter,
+        .confirmBeforeCall(settings.confirmBeforeCall),
+        .sendWithReturnKey(settings.sendWithReturnKey),
+        .sendWithReturnKeyFooter,
+        .forceBuiltInMic(settings.forceBuiltInMic),
+        .callsFooter,
+        .translationBackend(settings.translationBackend),
+        .transcriptionBackend(settings.transcriptionBackend),
+        .translationFooter,
+        .scrollToNextChat(settings.scrollToNextChatDisabled),
+        .scrollToNextChatFooter,
     ]
 }
 
 public func forkExtrasController(context: AccountContext) -> ViewController {
     let updateDisposable = MetaDisposable()
-    
+    var presentControllerImpl: ((ViewController) -> Void)?
+
+    func presentPicker(title: String, options: [(String, () -> Void)]) {
+        let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+        let actionSheet = ActionSheetController(presentationData: presentationData)
+        var items: [ActionSheetItem] = [ActionSheetTextItem(title: title)]
+        for (optionTitle, action) in options {
+            items.append(ActionSheetButtonItem(title: optionTitle, action: { [weak actionSheet] in
+                actionSheet?.dismissAnimated()
+                action()
+            }))
+        }
+        actionSheet.setItemGroups([
+            ActionSheetItemGroup(items: items),
+            ActionSheetItemGroup(items: [ActionSheetButtonItem(title: presentationData.strings.Common_Cancel, action: { [weak actionSheet] in
+                actionSheet?.dismissAnimated()
+            })])
+        ])
+        presentControllerImpl?(actionSheet)
+    }
+
     let arguments = ForkExtrasControllerArguments(
         updateGhostMode: { value in
             updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
@@ -234,9 +515,127 @@ public func forkExtrasController(context: AccountContext) -> ViewController {
                 updated.sessionKeychainBackup = value
                 return updated
             }.start())
+        },
+        updateCompactChatList: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.compactChatList = value
+                return updated
+            }.start())
+        },
+        updateCompactMessagePreview: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.compactMessagePreview = value
+                return updated
+            }.start())
+        },
+        updateCompactFolderNames: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.compactFolderNames = value
+                return updated
+            }.start())
+        },
+        updateHideReactionsBar: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.hideReactionsBar = value
+                return updated
+            }.start())
+        },
+        updateShowDC: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.showDC = value
+                return updated
+            }.start())
+        },
+        updateShowProfileId: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.showProfileId = value
+                return updated
+            }.start())
+        },
+        openAccentSaturation: {
+            let percents: [Int32] = [0, 25, 50, 75, 100]
+            presentPicker(title: ForkExtrasLocalizedString.accentSaturation, options: percents.map { percent in
+                ("\(percent)%", {
+                    updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                        var updated = current
+                        updated.accentColorSaturation = percent
+                        return updated
+                    }.start())
+                })
+            })
+        },
+        updateConfirmBeforeCall: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.confirmBeforeCall = value
+                return updated
+            }.start())
+        },
+        updateSendWithReturnKey: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.sendWithReturnKey = value
+                return updated
+            }.start())
+        },
+        updateForceBuiltInMic: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.forceBuiltInMic = value
+                return updated
+            }.start())
+        },
+        openTranslationBackend: {
+            presentPicker(title: ForkExtrasLocalizedString.translationBackend, options: [
+                (ForkExtrasLocalizedString.backendDefault, {
+                    updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                        var updated = current
+                        updated.translationBackend = .default
+                        return updated
+                    }.start())
+                }),
+                (ForkExtrasLocalizedString.backendSystem, {
+                    updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                        var updated = current
+                        updated.translationBackend = .system
+                        return updated
+                    }.start())
+                })
+            ])
+        },
+        openTranscriptionBackend: {
+            presentPicker(title: ForkExtrasLocalizedString.transcriptionBackend, options: [
+                (ForkExtrasLocalizedString.backendDefault, {
+                    updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                        var updated = current
+                        updated.transcriptionBackend = .default
+                        return updated
+                    }.start())
+                }),
+                (ForkExtrasLocalizedString.backendApple, {
+                    updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                        var updated = current
+                        updated.transcriptionBackend = .apple
+                        return updated
+                    }.start())
+                })
+            ])
+        },
+        updateScrollToNextChatDisabled: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.scrollToNextChatDisabled = value
+                return updated
+            }.start())
         }
     )
-    
+
     let signal = combineLatest(
         context.sharedContext.presentationData,
         forkExtrasSettings(accountManager: context.sharedContext.accountManager)
@@ -257,7 +656,10 @@ public func forkExtrasController(context: AccountContext) -> ViewController {
         )
         return (controllerState, (listState, arguments))
     }
-    
+
     let controller = ItemListController(context: context, state: signal)
+    presentControllerImpl = { [weak controller] presented in
+        controller?.present(presented, in: .window(.root))
+    }
     return controller
 }

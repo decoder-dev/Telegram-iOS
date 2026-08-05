@@ -360,7 +360,9 @@ public final class ChatMessageInteractiveFileNode: ASDisplayNode {
         let premiumConfiguration = PremiumConfiguration.with(appConfiguration: arguments.context.currentAppConfiguration.with { $0 })
         
         let transcriptionText = self.forcedAudioTranscriptionText ?? transcribedText(message: EngineMessage(message))
-        if transcriptionText == nil && !arguments.associatedData.alwaysDisplayTranscribeButton.providedByGroupBoost {
+        // On-device transcription doesn't use Telegram's paid server-side feature, so it bypasses
+        // the Premium paywall entirely — matches the local-transcription branch below.
+        if transcriptionText == nil && !arguments.associatedData.alwaysDisplayTranscribeButton.providedByGroupBoost && context.sharedContext.immediateForkExtrasSettings.transcriptionBackend != .apple {
             if premiumConfiguration.audioTransciptionTrialCount > 0 {
                 if !arguments.associatedData.isPremium {
                     if self.presentAudioTranscriptionTooltip(finished: false) {
@@ -419,7 +421,7 @@ public final class ChatMessageInteractiveFileNode: ASDisplayNode {
                 self.audioTranscriptionState = .inProgress
                 self.requestUpdateLayout(true)
                 
-                if context.sharedContext.immediateExperimentalUISettings.localTranscription {
+                if context.sharedContext.immediateExperimentalUISettings.localTranscription || context.sharedContext.immediateForkExtrasSettings.transcriptionBackend == .apple {
                     let appLocale = presentationData.strings.baseLanguageCode
                     
                     let signal: Signal<LocallyTranscribedAudio?, NoError> = context.engine.data.get(TelegramEngine.EngineData.Item.Messages.Message(id: message.id))

@@ -1103,7 +1103,7 @@ extension ChatControllerImpl {
                         } else {
                             isRegularChat = true
                         }
-                        if strongSelf.nextChannelToReadDisposable == nil, let peerId = chatLocation.peerId, let customChatNavigationStack {
+                        if strongSelf.nextChannelToReadDisposable == nil, let peerId = chatLocation.peerId, let customChatNavigationStack, !context.sharedContext.immediateForkExtrasSettings.scrollToNextChatDisabled {
                             if let index = customChatNavigationStack.firstIndex(of: peerId), index != customChatNavigationStack.count - 1 {
                                 let nextPeerId = customChatNavigationStack[index + 1]
                                 strongSelf.nextChannelToReadDisposable = (combineLatest(queue: .mainQueue(),
@@ -1147,7 +1147,7 @@ extension ChatControllerImpl {
                                     }
                                 })
                             }
-                        } else if isRegularChat, strongSelf.nextChannelToReadDisposable == nil {
+                        } else if isRegularChat, strongSelf.nextChannelToReadDisposable == nil, !context.sharedContext.immediateForkExtrasSettings.scrollToNextChatDisabled {
                             //TODO:loc optimize
                             let accountPeerId = context.account.peerId
                             strongSelf.nextChannelToReadDisposable = (combineLatest(queue: .mainQueue(),
@@ -1791,7 +1791,7 @@ extension ChatControllerImpl {
                         strongSelf.state.alwaysShowGiftButton = alwaysShowGiftButton
                         strongSelf.state.disallowedGifts = disallowedGifts
                         
-                        if let replyThreadId, let channel = renderedPeer?.peer as? TelegramChannel, channel.isForumOrMonoForum, strongSelf.nextChannelToReadDisposable == nil {
+                        if let replyThreadId, let channel = renderedPeer?.peer as? TelegramChannel, channel.isForumOrMonoForum, strongSelf.nextChannelToReadDisposable == nil, !context.sharedContext.immediateForkExtrasSettings.scrollToNextChatDisabled {
                             strongSelf.nextChannelToReadDisposable = (combineLatest(queue: .mainQueue(),
                             context.engine.peers.getNextUnreadForumTopic(peerId: channel.id, topicId: Int32(clamping: replyThreadId)),
                                 ApplicationSpecificNotice.getNextChatSuggestionTip(accountManager: context.sharedContext.accountManager)

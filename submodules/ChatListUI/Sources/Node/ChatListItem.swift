@@ -2291,6 +2291,12 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
         let currentCustomTextEntities = self.cachedCustomTextEntities
         
         return { item, params, first, last, firstWithHeader, nextIsPinned, nextHasActiveRevealControls in
+            // Single read for this whole layout pass — avoids re-locking the settings Atomic at
+            // each of the two spots below that need it.
+            let forkExtrasSettings = item.context.sharedContext.immediateForkExtrasSettings
+            let compactChatList = forkExtrasSettings.compactChatList
+            let compactMessagePreview = forkExtrasSettings.compactMessagePreview
+
             let titleFont = Font.semibold(floor(item.presentationData.fontSize.itemListBaseFontSize * 16.0 / 17.0))
             let textFont = Font.regular(floor(item.presentationData.fontSize.itemListBaseFontSize * 15.0 / 17.0))
             let italicTextFont = Font.italic(floor(item.presentationData.fontSize.itemListBaseFontSize * 15.0 / 17.0))
@@ -3814,7 +3820,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
             let (textLayout, textApply) = textLayout(TextNodeLayoutArguments(
                 attributedString: textAttributedString,
                 backgroundColor: nil,
-                maximumNumberOfLines: (authorAttributedString == nil && itemTags.isEmpty && forumThread == nil && topForumTopicItems.isEmpty) ? 2 : 1,
+                maximumNumberOfLines: (!compactMessagePreview && authorAttributedString == nil && itemTags.isEmpty && forumThread == nil && topForumTopicItems.isEmpty) ? 2 : 1,
                 truncationType: .end,
                 constrainedSize: CGSize(width: textMaxWidth, height: .greatestFiniteMagnitude),
                 alignment: .natural,
@@ -4033,14 +4039,14 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
             
             let titleSpacing: CGFloat = -1.0
             let authorSpacing: CGFloat = -3.0
-            var itemHeight: CGFloat = 8.0 * 2.0 + 1.0
+            var itemHeight: CGFloat = (compactChatList ? 6.0 : 8.0) * 2.0 + 1.0
             itemHeight -= 21.0
             if case let .peer(peerData) = item.content, let customMessageListData = peerData.customMessageListData, customMessageListData.commandPrefix != nil {
                 itemHeight += measureLayout.size.height * 2.0
                 itemHeight += 20.0
             } else {
                 itemHeight += titleLayout.size.height
-                itemHeight += measureLayout.size.height * 3.0
+                itemHeight += measureLayout.size.height * (compactMessagePreview ? 2.0 : 3.0)
                 itemHeight += titleSpacing
                 itemHeight += authorSpacing
             }
