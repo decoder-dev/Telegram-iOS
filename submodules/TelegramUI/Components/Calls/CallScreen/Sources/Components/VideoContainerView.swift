@@ -301,7 +301,11 @@ final class VideoContainerView: HighlightTrackingButton {
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
+
+    deinit {
+        self.videoOnUpdatedListener?.dispose()
+    }
+
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
         guard let params = self.params else {
             return nil

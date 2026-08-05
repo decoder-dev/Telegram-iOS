@@ -135,7 +135,11 @@ final class PrivateCallPictureInPictureView: UIView {
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
+
+    deinit {
+        self.videoDisposable?.dispose()
+    }
+
     private func updateContents() {
         guard let video = self.video, let currentOutput = video.currentOutput else {
             return
