@@ -3607,6 +3607,12 @@ private func serializeGroupCallMessage(randomId: Int64, text: String, entities: 
     }
 }
 
+private func validatedEntityRange(offset: Int32, length: Int32) -> Range<Int> {
+    let safeOffset = max(0, Int(offset))
+    let safeLength = max(0, Int(length))
+    return safeOffset ..< (safeOffset + safeLength)
+}
+
 private func deserializeGroupCallMessage(data: Data) -> (randomId: Int64, text: String, entities: [MessageTextEntity])? {
     guard let jsonObject = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {
         return nil
@@ -3668,7 +3674,7 @@ private func deserializeGroupCallMessage(data: Data) -> (randomId: Int64, text: 
                 return nil
             }
             
-            let range = Int(offset)..<(Int(offset) + Int(length))
+            let range = validatedEntityRange(offset: offset, length: length)
             
             let messageEntityType: MessageTextEntityType
             switch entityType {
