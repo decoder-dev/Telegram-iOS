@@ -383,7 +383,10 @@ func chatInputBlocks(fromInstantPageBlocks blocks: [InstantPageBlock], media: [M
             // (default 1): a span `> 1` is preserved, anything else canonicalizes to `1`. Identity therefore
             // holds for a table whose columns use width `0.0` and whose cells use `background: nil` (the values
             // the reverse yields).
-            let columnCount = rows.map { row in row.cells.reduce(0) { $0 + max(1, Int($1.colspan)) } }.max() ?? 0
+            // `colspan` is an unvalidated Int32 straight from InstantPage's network-decoded table
+            // cell data (see ApiUtils/InstantPage.swift); clamp before using it as an allocation
+            // count so a huge peer-supplied colspan can't drive a multi-gigabyte array.
+            let columnCount = min(1024, rows.map { row in row.cells.reduce(0) { $0 + max(1, Int($1.colspan)) } }.max() ?? 0)
             let columns: [ChatInputColumnSpec] = Array(repeating: ChatInputColumnSpec(width: 0.0), count: columnCount)
             let outRows = rows.map { row -> ChatInputTableRow in
                 let cells = row.cells.map { cell -> ChatInputTableCell in

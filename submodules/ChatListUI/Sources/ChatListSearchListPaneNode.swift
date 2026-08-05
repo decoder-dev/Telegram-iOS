@@ -2407,6 +2407,14 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                             }
                         }
                     }
+                    // Search must not surface a peer sitting in a password-protected Archive —
+                    // that would defeat the lock without ever asking for the password. Reuses
+                    // the same check notification redaction already relies on.
+                    |> mapToSignal { peers -> Signal<[EngineRenderedPeer], NoError> in
+                        return context.account.postbox.transaction { transaction -> [EngineRenderedPeer] in
+                            return peers.filter { !archiveNotificationShouldRedact(transaction: transaction, peerId: $0.peerId) }
+                        }
+                    }
 
                     foundLocalPeers = combineLatest(
                         updatedLocalPeers,
@@ -2858,14 +2866,19 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                 }
 
                 let searchSignal = combineLatest(searchSignals)
-                |> map { results -> [ChatListSearchMessagesResult] in
-                    var mappedResults: [ChatListSearchMessagesResult] = []
-                    for resultData in results {
-                        let (result, updatedState) = resultData
+                // Message search must not surface content from a password-protected Archive chat
+                // (same rationale as the peer-search filter above).
+                |> mapToSignal { results -> Signal<[ChatListSearchMessagesResult], NoError> in
+                    return context.account.postbox.transaction { transaction -> [ChatListSearchMessagesResult] in
+                        var mappedResults: [ChatListSearchMessagesResult] = []
+                        for resultData in results {
+                            let (result, updatedState) = resultData
+                            let filteredMessages = result.messages.filter { !archiveNotificationShouldRedact(transaction: transaction, peerId: $0.id.peerId) }
 
-                        mappedResults.append(ChatListSearchMessagesResult(query: finalQuery, messages: result.messages.map({ EngineMessage($0) }).sorted(by: { $0.index > $1.index }), readStates: result.readStates.mapValues { EnginePeerReadCounters(state: $0, isMuted: false) }, threadInfo: result.threadInfo, hasMore: !result.completed, totalCount: result.totalCount, state: updatedState))
+                            mappedResults.append(ChatListSearchMessagesResult(query: finalQuery, messages: filteredMessages.map({ EngineMessage($0) }).sorted(by: { $0.index > $1.index }), readStates: result.readStates.mapValues { EnginePeerReadCounters(state: $0, isMuted: false) }, threadInfo: result.threadInfo, hasMore: !result.completed, totalCount: result.totalCount, state: updatedState))
+                        }
+                        return mappedResults
                     }
-                    return mappedResults
                 }
 
                 let loadMore = searchContexts.get()
@@ -2882,8 +2895,11 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                             }
                             if let _ = searchContext.loadMoreIndex {
                                 return context.engine.messages.searchMessages(location: searchLocations[i], query: finalQuery, state: searchContext.result.state, limit: 80)
-                                |> map { result, updatedState -> ChatListSearchMessagesResult in
-                                    return ChatListSearchMessagesResult(query: finalQuery, messages: result.messages.map({ EngineMessage($0) }).sorted(by: { $0.index > $1.index }), readStates: result.readStates.mapValues { EnginePeerReadCounters(state: $0, isMuted: false) }, threadInfo: result.threadInfo, hasMore: !result.completed, totalCount: result.totalCount, state: updatedState)
+                                |> mapToSignal { result, updatedState -> Signal<ChatListSearchMessagesResult, NoError> in
+                                    return context.account.postbox.transaction { transaction -> ChatListSearchMessagesResult in
+                                        let filteredMessages = result.messages.filter { !archiveNotificationShouldRedact(transaction: transaction, peerId: $0.id.peerId) }
+                                        return ChatListSearchMessagesResult(query: finalQuery, messages: filteredMessages.map({ EngineMessage($0) }).sorted(by: { $0.index > $1.index }), readStates: result.readStates.mapValues { EnginePeerReadCounters(state: $0, isMuted: false) }, threadInfo: result.threadInfo, hasMore: !result.completed, totalCount: result.totalCount, state: updatedState)
+                                    }
                                 }
                                 |> mapToSignal { foundMessages -> Signal<([FoundRemoteMessages], Bool), NoError> in
                                     updateSearchContexts { previous in

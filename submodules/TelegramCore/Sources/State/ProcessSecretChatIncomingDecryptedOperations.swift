@@ -711,31 +711,42 @@ extension TelegramMediaFileAttribute {
     }
 }
 
+// `offset`/`length` below come straight off the wire as unvalidated Int32 (secret-chat entities
+// are E2E content the server can't inspect or filter at all). A negative length would make
+// Range's lowerBound > upperBound and a large offset+length would overflow Int32 before
+// conversion, both hard Swift traps. Do the math in 64-bit Int and clamp negatives to 0 so this
+// always produces a valid range; downstream code already clamps against the actual string length.
+private func validatedEntityRange(offset: Int32, length: Int32) -> Range<Int> {
+    let safeOffset = max(0, Int(offset))
+    let safeLength = max(0, Int(length))
+    return safeOffset ..< (safeOffset + safeLength)
+}
+
 private func parseEntities(_ entities: [SecretApi46.MessageEntity]?) -> TextEntitiesMessageAttribute {
     var result: [MessageTextEntity] = []
     if let entities = entities {
         for entity in entities {
             switch entity {
                 case let .messageEntityMention(offset, length):
-                    result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Mention))
+                    result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Mention))
                 case let .messageEntityHashtag(offset, length):
-                    result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Hashtag))
+                    result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Hashtag))
                 case let .messageEntityBotCommand(offset, length):
-                    result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .BotCommand))
+                    result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .BotCommand))
                 case let .messageEntityUrl(offset, length):
-                    result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Url))
+                    result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Url))
                 case let .messageEntityEmail(offset, length):
-                    result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Email))
+                    result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Email))
                 case let .messageEntityBold(offset, length):
-                    result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Bold))
+                    result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Bold))
                 case let .messageEntityItalic(offset, length):
-                    result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Italic))
+                    result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Italic))
                 case let .messageEntityCode(offset, length):
-                    result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Code))
+                    result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Code))
                 case let .messageEntityPre(offset, length, language):
-                    result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Pre(language: language)))
+                    result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Pre(language: language)))
                 case let .messageEntityTextUrl(offset, length, url):
-                    result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .TextUrl(url: url)))
+                    result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .TextUrl(url: url)))
                 case .messageEntityUnknown:
                     break
             }
@@ -930,25 +941,25 @@ private func parseEntities(_ entities: [SecretApi73.MessageEntity]) -> TextEntit
     for entity in entities {
         switch entity {
             case let .messageEntityMention(offset, length):
-                result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Mention))
+                result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Mention))
             case let .messageEntityHashtag(offset, length):
-                result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Hashtag))
+                result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Hashtag))
             case let .messageEntityBotCommand(offset, length):
-                result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .BotCommand))
+                result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .BotCommand))
             case let .messageEntityUrl(offset, length):
-                result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Url))
+                result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Url))
             case let .messageEntityEmail(offset, length):
-                result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Email))
+                result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Email))
             case let .messageEntityBold(offset, length):
-                result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Bold))
+                result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Bold))
             case let .messageEntityItalic(offset, length):
-                result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Italic))
+                result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Italic))
             case let .messageEntityCode(offset, length):
-                result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Code))
+                result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Code))
             case let .messageEntityPre(offset, length, language):
-                result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Pre(language: language)))
+                result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Pre(language: language)))
             case let .messageEntityTextUrl(offset, length, url):
-                result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .TextUrl(url: url)))
+                result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .TextUrl(url: url)))
             case .messageEntityUnknown:
                 break
         }
@@ -1162,31 +1173,31 @@ private func parseEntities(_ entities: [SecretApi101.MessageEntity]) -> TextEnti
     for entity in entities {
         switch entity {
         case let .messageEntityMention(offset, length):
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Mention))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Mention))
         case let .messageEntityHashtag(offset, length):
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Hashtag))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Hashtag))
         case let .messageEntityBotCommand(offset, length):
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .BotCommand))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .BotCommand))
         case let .messageEntityUrl(offset, length):
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Url))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Url))
         case let .messageEntityEmail(offset, length):
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Email))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Email))
         case let .messageEntityBold(offset, length):
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Bold))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Bold))
         case let .messageEntityItalic(offset, length):
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Italic))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Italic))
         case let .messageEntityCode(offset, length):
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Code))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Code))
         case let .messageEntityPre(offset, length, language):
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Pre(language: language)))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Pre(language: language)))
         case let .messageEntityTextUrl(offset, length, url):
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .TextUrl(url: url)))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .TextUrl(url: url)))
         case let .messageEntityStrike(offset, length):
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Strikethrough))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Strikethrough))
         case let .messageEntityUnderline(offset, length):
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Underline))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Underline))
         case let .messageEntityBlockquote(offset, length):
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .BlockQuote(isCollapsed: false)))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .BlockQuote(isCollapsed: false)))
         case .messageEntityUnknown:
             break
         }
@@ -1199,35 +1210,35 @@ private func parseEntities(_ entities: [SecretApi144.MessageEntity]) -> TextEnti
     for entity in entities {
         switch entity {
         case let .messageEntityMention(offset, length):
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Mention))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Mention))
         case let .messageEntityHashtag(offset, length):
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Hashtag))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Hashtag))
         case let .messageEntityBotCommand(offset, length):
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .BotCommand))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .BotCommand))
         case let .messageEntityUrl(offset, length):
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Url))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Url))
         case let .messageEntityEmail(offset, length):
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Email))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Email))
         case let .messageEntityBold(offset, length):
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Bold))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Bold))
         case let .messageEntityItalic(offset, length):
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Italic))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Italic))
         case let .messageEntityCode(offset, length):
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Code))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Code))
         case let .messageEntityPre(offset, length, language):
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Pre(language: language)))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Pre(language: language)))
         case let .messageEntityTextUrl(offset, length, url):
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .TextUrl(url: url)))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .TextUrl(url: url)))
         case let .messageEntityStrike(offset, length):
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Strikethrough))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Strikethrough))
         case let .messageEntityUnderline(offset, length):
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Underline))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Underline))
         case let .messageEntityBlockquote(offset, length):
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .BlockQuote(isCollapsed: false)))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .BlockQuote(isCollapsed: false)))
         case let .messageEntitySpoiler(offset, length):
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Spoiler))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Spoiler))
         case let .messageEntityCustomEmoji(offset, length, documentId):
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .CustomEmoji(stickerPack: nil, fileId: documentId)))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .CustomEmoji(stickerPack: nil, fileId: documentId)))
         case .messageEntityUnknown:
             break
         }
