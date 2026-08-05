@@ -961,6 +961,18 @@ func apiMediaAreasFromMediaAreas(_ mediaAreas: [MediaArea], transaction: Transac
 }
 
 
+// `offset`/`length` below come straight off the wire as unvalidated Int32 (see TelegramApi's
+// entity decoders) — a negative length would make Range's lowerBound > upperBound and a large
+// offset+length would overflow Int32 before conversion, both hard Swift traps. Do the math in
+// 64-bit Int and clamp negatives to 0 so this always produces a valid (if possibly
+// out-of-bounds-for-the-message) range; downstream code already clamps against the actual
+// string length before applying entities.
+private func validatedEntityRange(offset: Int32, length: Int32) -> Range<Int> {
+    let safeOffset = max(0, Int(offset))
+    let safeLength = max(0, Int(length))
+    return safeOffset ..< (safeOffset + safeLength)
+}
+
 func messageTextEntitiesFromApiEntities(_ entities: [Api.MessageEntity]) -> [MessageTextEntity] {
     var result: [MessageTextEntity] = []
     for entity in entities {
@@ -969,61 +981,61 @@ func messageTextEntitiesFromApiEntities(_ entities: [Api.MessageEntity]) -> [Mes
             break
         case let .messageEntityMention(messageEntityMentionData):
             let (offset, length) = (messageEntityMentionData.offset, messageEntityMentionData.length)
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Mention))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Mention))
         case let .messageEntityHashtag(messageEntityHashtagData):
             let (offset, length) = (messageEntityHashtagData.offset, messageEntityHashtagData.length)
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Hashtag))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Hashtag))
         case let .messageEntityBotCommand(messageEntityBotCommandData):
             let (offset, length) = (messageEntityBotCommandData.offset, messageEntityBotCommandData.length)
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .BotCommand))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .BotCommand))
         case let .messageEntityUrl(messageEntityUrlData):
             let (offset, length) = (messageEntityUrlData.offset, messageEntityUrlData.length)
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Url))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Url))
         case let .messageEntityEmail(messageEntityEmailData):
             let (offset, length) = (messageEntityEmailData.offset, messageEntityEmailData.length)
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Email))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Email))
         case let .messageEntityBold(messageEntityBoldData):
             let (offset, length) = (messageEntityBoldData.offset, messageEntityBoldData.length)
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Bold))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Bold))
         case let .messageEntityItalic(messageEntityItalicData):
             let (offset, length) = (messageEntityItalicData.offset, messageEntityItalicData.length)
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Italic))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Italic))
         case let .messageEntityCode(messageEntityCodeData):
             let (offset, length) = (messageEntityCodeData.offset, messageEntityCodeData.length)
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Code))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Code))
         case let .messageEntityPre(messageEntityPreData):
             let (offset, length, language) = (messageEntityPreData.offset, messageEntityPreData.length, messageEntityPreData.language)
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Pre(language: language)))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Pre(language: language)))
         case let .messageEntityTextUrl(messageEntityTextUrlData):
             let (offset, length, url) = (messageEntityTextUrlData.offset, messageEntityTextUrlData.length, messageEntityTextUrlData.url)
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .TextUrl(url: url)))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .TextUrl(url: url)))
         case let .messageEntityMentionName(messageEntityMentionNameData):
             let (offset, length, userId) = (messageEntityMentionNameData.offset, messageEntityMentionNameData.length, messageEntityMentionNameData.userId)
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .TextMention(peerId: PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(userId)))))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .TextMention(peerId: PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(userId)))))
         case let .messageEntityPhone(messageEntityPhoneData):
             let (offset, length) = (messageEntityPhoneData.offset, messageEntityPhoneData.length)
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .PhoneNumber))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .PhoneNumber))
         case let .messageEntityCashtag(messageEntityCashtagData):
             let (offset, length) = (messageEntityCashtagData.offset, messageEntityCashtagData.length)
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Hashtag))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Hashtag))
         case let .messageEntityUnderline(messageEntityUnderlineData):
             let (offset, length) = (messageEntityUnderlineData.offset, messageEntityUnderlineData.length)
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Underline))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Underline))
         case let .messageEntityStrike(messageEntityStrikeData):
             let (offset, length) = (messageEntityStrikeData.offset, messageEntityStrikeData.length)
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Strikethrough))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Strikethrough))
         case let .messageEntityBlockquote(messageEntityBlockquoteData):
             let (flags, offset, length) = (messageEntityBlockquoteData.flags, messageEntityBlockquoteData.offset, messageEntityBlockquoteData.length)
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .BlockQuote(isCollapsed: (flags & (1 << 0)) != 0)))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .BlockQuote(isCollapsed: (flags & (1 << 0)) != 0)))
         case let .messageEntityBankCard(messageEntityBankCardData):
             let (offset, length) = (messageEntityBankCardData.offset, messageEntityBankCardData.length)
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .BankCard))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .BankCard))
         case let .messageEntitySpoiler(messageEntitySpoilerData):
             let (offset, length) = (messageEntitySpoilerData.offset, messageEntitySpoilerData.length)
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .Spoiler))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .Spoiler))
         case let .messageEntityCustomEmoji(messageEntityCustomEmojiData):
             let (offset, length, documentId) = (messageEntityCustomEmojiData.offset, messageEntityCustomEmojiData.length, messageEntityCustomEmojiData.documentId)
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .CustomEmoji(stickerPack: nil, fileId: documentId)))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .CustomEmoji(stickerPack: nil, fileId: documentId)))
         case let .messageEntityFormattedDate(messageEntityFormattedDateData):
             let (flags, offset, length, date) = (messageEntityFormattedDateData.flags, messageEntityFormattedDateData.offset, messageEntityFormattedDateData.length, messageEntityFormattedDateData.date)
             let format: MessageTextEntityType.DateTimeFormat?
@@ -1050,7 +1062,7 @@ func messageTextEntitiesFromApiEntities(_ entities: [Api.MessageEntity]) -> [Mes
                 }
                 format = .full(timeFormat: timeFormat, dateFormat: dateFormat, dayOfWeek: (flags & (1 << 5)) != 0)
             }
-            result.append(MessageTextEntity(range: Int(offset) ..< Int(offset + length), type: .FormattedDate(format: format, date: date)))
+            result.append(MessageTextEntity(range: validatedEntityRange(offset: offset, length: length), type: .FormattedDate(format: format, date: date)))
         case .messageEntityDiffDelete, .messageEntityDiffInsert, .messageEntityDiffReplace:
             break
         }
