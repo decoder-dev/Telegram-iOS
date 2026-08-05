@@ -38,6 +38,7 @@ final class StoryItemImageView: UIView {
     
     deinit {
         self.disposable?.dispose()
+        self.fetchDisposable?.dispose()
     }
     
     private func updateImage(image: UIImage, isCaptureProtected: Bool) {
