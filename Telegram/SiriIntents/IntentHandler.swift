@@ -10,6 +10,7 @@ import AppLockState
 import UIKit
 import GeneratedSources
 import WidgetItems
+import TelegramUIPreferences
 
 private var accountCache: Account?
 
@@ -816,7 +817,7 @@ class DefaultIntentHandler: INExtension, INSendMessageIntentHandling, INSearchFo
                     if let searchTerm = searchTerm {
                         if !searchTerm.isEmpty {
                             for renderedPeer in transaction.searchPeers(query: searchTerm, predicate: nil) {
-                                if let peer = renderedPeer.peer, !(peer is TelegramSecretChat), !peer.isDeleted {
+                                if let peer = renderedPeer.peer, !(peer is TelegramSecretChat), !peer.isDeleted, !archiveNotificationShouldRedact(transaction: transaction, peerId: peer.id) {
                                     peers.append(peer)
                                 }
                             }
@@ -989,7 +990,7 @@ private final class WidgetIntentHandler {
                     if let searchTerm = searchTerm {
                         if !searchTerm.isEmpty {
                             for renderedPeer in transaction.searchPeers(query: searchTerm, predicate: nil) {
-                                if let peer = renderedPeer.peer, !(peer is TelegramSecretChat), !peer.isDeleted {
+                                if let peer = renderedPeer.peer, !(peer is TelegramSecretChat), !peer.isDeleted, !archiveNotificationShouldRedact(transaction: transaction, peerId: peer.id) {
                                     peers.append(peer)
                                 }
                             }

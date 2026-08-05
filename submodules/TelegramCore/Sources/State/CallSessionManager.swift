@@ -1210,7 +1210,7 @@ private final class CallSessionManagerContext {
                                     switch callProtocol {
                                         case let .phoneCallProtocol(phoneCallProtocolData):
                                             let (maxLayer, versions) = (phoneCallProtocolData.maxLayer, phoneCallProtocolData.libraryVersions)
-                                            if !versions.isEmpty {
+                                            if !versions.isEmpty && !connections.isEmpty {
                                                 var customParametersValue: String?
                                                 switch customParameters {
                                                 case .none:
@@ -1239,7 +1239,7 @@ private final class CallSessionManagerContext {
                             switch callProtocol {
                                 case let .phoneCallProtocol(phoneCallProtocolData):
                                     let (maxLayer, versions) = (phoneCallProtocolData.maxLayer, phoneCallProtocolData.libraryVersions)
-                                    if !versions.isEmpty {
+                                    if !versions.isEmpty && !connections.isEmpty {
                                         var customParametersValue: String?
                                         switch customParameters {
                                         case .none:
@@ -1633,7 +1633,7 @@ private func acceptCallSession(accountPeerId: PeerId, postbox: Postbox, network:
                                 switch callProtocol{
                                     case let .phoneCallProtocol(phoneCallProtocolData):
                                         let (maxLayer, versions) = (phoneCallProtocolData.maxLayer, phoneCallProtocolData.libraryVersions)
-                                        if !versions.isEmpty {
+                                        if !versions.isEmpty && !connections.isEmpty {
                                             var customParametersValue: String?
                                             switch customParameters {
                                             case .none:

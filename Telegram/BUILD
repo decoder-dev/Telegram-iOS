@@ -1347,6 +1347,7 @@ swift_library(
         "//submodules/AppLockState:AppLockState",
         "//Telegram:GeneratedSources",
         "//submodules/WidgetItems:WidgetItems",
+        "//submodules/TelegramUIPreferences:TelegramUIPreferences",
     ],
 )
 
