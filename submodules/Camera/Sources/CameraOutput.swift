@@ -570,7 +570,9 @@ final class CameraOutput: NSObject {
                     if self.needsCrossfadeTransition {
                         self.needsCrossfadeTransition = false
                         self.crossfadeTransitionStart = currentTimestamp + 0.03
+                        self.semaphore.wait()
                         self.needsSwitchSampleOffset = true
+                        self.semaphore.signal()
                     }
                     if self.crossfadeTransitionStart > 0.0, currentTimestamp - self.crossfadeTransitionStart < duration {
                         if case .front = self.currentPosition {
@@ -592,9 +594,10 @@ final class CameraOutput: NSObject {
             }
         } else {
             if type == kCMMediaType_Audio {
+                self.semaphore.wait()
                 if self.needsSwitchSampleOffset {
                     self.needsSwitchSampleOffset = false
-                    
+
                     if let lastAudioSampleTime = self.lastAudioSampleTime {
                         let videoSampleTime = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
                         let offset = videoSampleTime - lastAudioSampleTime
@@ -606,8 +609,9 @@ final class CameraOutput: NSObject {
                         self.lastAudioSampleTime = nil
                     }
                 }
-                
+
                 self.lastAudioSampleTime = CMSampleBufferGetPresentationTimeStamp(sampleBuffer) + CMSampleBufferGetDuration(sampleBuffer)
+                self.semaphore.signal()
             }
             videoRecorder.appendSampleBuffer(sampleBuffer)
         }
