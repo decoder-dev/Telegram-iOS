@@ -1276,6 +1276,9 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         self.textInputNodeClippingContainer.addSubnode(richTextInputNode.asNode)
         richTextInputNode.inputView.disablesInteractiveTransitionGestureRecognizer = true
         richTextInputNode.inputIsUserInteractionEnabled = !self.sendingTextDisabled
+        if let context = self.context {
+            richTextInputNode.returnKeyType = context.sharedContext.immediateForkExtrasSettings.sendWithReturnKey ? .send : .default
+        }
         self.richTextInputNode = richTextInputNode
         richTextInputNode.emojiViewProvider = { [weak self] emoji in
             return self?.emojiViewProvider?(emoji)
