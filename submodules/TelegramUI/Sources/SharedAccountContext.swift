@@ -543,6 +543,8 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             let settings = sharedData.entries[ApplicationSpecificSharedDataKeys.forkExtrasSettings]?.get(ForkExtrasSettings.self) ?? .defaultSettings
             let _ = immediateForkExtrasSettingsValue.swap(settings)
             ForkExtrasNotificationBridge.sync(settings)
+            MessageSavingStore.installBridge()
+            MessageSavingStore.applySettings(settings)
             // PeerNameColors is a plain value type with no live settings reference of its own —
             // push the saturation setting down to its static property whenever it changes.
             PeerNameColors.saturationPercent = settings.accentColorSaturation

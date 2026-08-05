@@ -47,6 +47,16 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.BackendDefault": "Default",
             "ForkExtras.BackendSystem": "System (Apple)",
             "ForkExtras.BackendApple": "On-Device (Apple)",
+            "ForkExtras.SaveDeletedMessages": "Save Deleted Messages",
+            "ForkExtras.SaveDeletedMessagesFooter": "Keep text of messages others delete. Open View Deleted from the chat menu.",
+            "ForkExtras.SaveMessagesHistory": "Save Edit History",
+            "ForkExtras.SaveMessagesHistoryFooter": "Keep previous text when a message is edited. Open Edit History from the message menu.",
+            "ForkExtras.SaveForBots": "Also Save Bot Messages",
+            "ForkExtras.ViewDeleted": "View Deleted",
+            "ForkExtras.EditHistory": "Edit History",
+            "ForkExtras.ClearDeleted": "Clear Deleted",
+            "ForkExtras.NoDeleted": "No deleted messages saved yet.",
+            "ForkExtras.NoEdits": "No previous versions saved.",
         ],
         "ru": [
             "ForkExtras.Title": "Дополнительно",
@@ -84,6 +94,16 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.BackendDefault": "По умолчанию",
             "ForkExtras.BackendSystem": "Системный (Apple)",
             "ForkExtras.BackendApple": "На устройстве (Apple)",
+            "ForkExtras.SaveDeletedMessages": "Сохранять удалённые",
+            "ForkExtras.SaveDeletedMessagesFooter": "Хранить текст сообщений, которые удалили другие. Смотрите «Удалённые» в меню чата.",
+            "ForkExtras.SaveMessagesHistory": "История правок",
+            "ForkExtras.SaveMessagesHistoryFooter": "Хранить предыдущий текст при редактировании. Открывается из меню сообщения.",
+            "ForkExtras.SaveForBots": "Также сохранять ботов",
+            "ForkExtras.ViewDeleted": "Удалённые",
+            "ForkExtras.EditHistory": "История правок",
+            "ForkExtras.ClearDeleted": "Очистить удалённые",
+            "ForkExtras.NoDeleted": "Пока нет сохранённых удалённых сообщений.",
+            "ForkExtras.NoEdits": "Предыдущих версий нет.",
         ],
     ]
     
@@ -138,6 +158,16 @@ private enum ForkExtrasLocalizedString {
     static var translationFooter: String { string(forKey: "ForkExtras.TranslationFooter") }
     static var scrollToNextChat: String { string(forKey: "ForkExtras.ScrollToNextChat") }
     static var scrollToNextChatFooter: String { string(forKey: "ForkExtras.ScrollToNextChatFooter") }
+    static var saveDeletedMessages: String { string(forKey: "ForkExtras.SaveDeletedMessages") }
+    static var saveDeletedMessagesFooter: String { string(forKey: "ForkExtras.SaveDeletedMessagesFooter") }
+    static var saveMessagesHistory: String { string(forKey: "ForkExtras.SaveMessagesHistory") }
+    static var saveMessagesHistoryFooter: String { string(forKey: "ForkExtras.SaveMessagesHistoryFooter") }
+    static var saveForBots: String { string(forKey: "ForkExtras.SaveForBots") }
+    static var viewDeleted: String { string(forKey: "ForkExtras.ViewDeleted") }
+    static var editHistory: String { string(forKey: "ForkExtras.EditHistory") }
+    static var clearDeleted: String { string(forKey: "ForkExtras.ClearDeleted") }
+    static var noDeleted: String { string(forKey: "ForkExtras.NoDeleted") }
+    static var noEdits: String { string(forKey: "ForkExtras.NoEdits") }
     static var backendDefault: String { string(forKey: "ForkExtras.BackendDefault") }
     static var backendSystem: String { string(forKey: "ForkExtras.BackendSystem") }
     static var backendApple: String { string(forKey: "ForkExtras.BackendApple") }
@@ -162,6 +192,9 @@ private final class ForkExtrasControllerArguments {
     let openTranslationBackend: () -> Void
     let openTranscriptionBackend: () -> Void
     let updateScrollToNextChatDisabled: (Bool) -> Void
+    let updateSaveDeletedMessages: (Bool) -> Void
+    let updateSaveMessagesHistory: (Bool) -> Void
+    let updateSaveForBots: (Bool) -> Void
 
     init(
         updateGhostMode: @escaping (Bool) -> Void,
@@ -181,7 +214,10 @@ private final class ForkExtrasControllerArguments {
         updateForceBuiltInMic: @escaping (Bool) -> Void,
         openTranslationBackend: @escaping () -> Void,
         openTranscriptionBackend: @escaping () -> Void,
-        updateScrollToNextChatDisabled: @escaping (Bool) -> Void
+        updateScrollToNextChatDisabled: @escaping (Bool) -> Void,
+        updateSaveDeletedMessages: @escaping (Bool) -> Void,
+        updateSaveMessagesHistory: @escaping (Bool) -> Void,
+        updateSaveForBots: @escaping (Bool) -> Void
     ) {
         self.updateGhostMode = updateGhostMode
         self.updateInstantPasscode = updateInstantPasscode
@@ -201,6 +237,9 @@ private final class ForkExtrasControllerArguments {
         self.openTranslationBackend = openTranslationBackend
         self.openTranscriptionBackend = openTranscriptionBackend
         self.updateScrollToNextChatDisabled = updateScrollToNextChatDisabled
+        self.updateSaveDeletedMessages = updateSaveDeletedMessages
+        self.updateSaveMessagesHistory = updateSaveMessagesHistory
+        self.updateSaveForBots = updateSaveForBots
     }
 }
 
@@ -214,6 +253,7 @@ private enum ForkExtrasSection: Int32 {
     case calls
     case translation
     case navigation
+    case messageSaving
 }
 
 private enum ForkExtrasEntry: ItemListNodeEntry {
@@ -246,6 +286,11 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     case translationFooter
     case scrollToNextChat(Bool)
     case scrollToNextChatFooter
+    case saveDeletedMessages(Bool)
+    case saveDeletedMessagesFooter
+    case saveMessagesHistory(Bool)
+    case saveMessagesHistoryFooter
+    case saveForBots(Bool)
 
     var section: ItemListSectionId {
         switch self {
@@ -267,6 +312,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return ForkExtrasSection.translation.rawValue
         case .scrollToNextChat, .scrollToNextChatFooter:
             return ForkExtrasSection.navigation.rawValue
+        case .saveDeletedMessages, .saveDeletedMessagesFooter, .saveMessagesHistory, .saveMessagesHistoryFooter, .saveForBots:
+            return ForkExtrasSection.messageSaving.rawValue
         }
     }
 
@@ -301,6 +348,11 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case .translationFooter: return 26
         case .scrollToNextChat: return 27
         case .scrollToNextChatFooter: return 28
+        case .saveDeletedMessages: return 29
+        case .saveDeletedMessagesFooter: return 30
+        case .saveMessagesHistory: return 31
+        case .saveMessagesHistoryFooter: return 32
+        case .saveForBots: return 33
         }
     }
 
@@ -419,6 +471,22 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             })
         case .scrollToNextChatFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.scrollToNextChatFooter), sectionId: self.section)
+        case let .saveDeletedMessages(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.saveDeletedMessages, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateSaveDeletedMessages(value)
+            })
+        case .saveDeletedMessagesFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.saveDeletedMessagesFooter), sectionId: self.section)
+        case let .saveMessagesHistory(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.saveMessagesHistory, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateSaveMessagesHistory(value)
+            })
+        case .saveMessagesHistoryFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.saveMessagesHistoryFooter), sectionId: self.section)
+        case let .saveForBots(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.saveForBots, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateSaveForBots(value)
+            })
         }
     }
 }
@@ -454,6 +522,11 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings) -> [ForkE
         .translationFooter,
         .scrollToNextChat(settings.scrollToNextChatDisabled),
         .scrollToNextChatFooter,
+        .saveDeletedMessages(settings.saveDeletedMessages),
+        .saveDeletedMessagesFooter,
+        .saveMessagesHistory(settings.saveMessagesHistory),
+        .saveMessagesHistoryFooter,
+        .saveForBots(settings.saveForBots),
     ]
 }
 
@@ -631,6 +704,27 @@ public func forkExtrasController(context: AccountContext) -> ViewController {
             updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
                 var updated = current
                 updated.scrollToNextChatDisabled = value
+                return updated
+            }.start())
+        },
+        updateSaveDeletedMessages: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.saveDeletedMessages = value
+                return updated
+            }.start())
+        },
+        updateSaveMessagesHistory: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.saveMessagesHistory = value
+                return updated
+            }.start())
+        },
+        updateSaveForBots: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.saveForBots = value
                 return updated
             }.start())
         }
