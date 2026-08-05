@@ -34,7 +34,12 @@ public func presentTranslateScreen(
     default:
         break
     }
-    
+    // Let the user force Apple's on-device system translation regardless of what the server's
+    // translation config says — a free alternative independent of Telegram's own backend.
+    if !useSystemTranslation, context.sharedContext.immediateForkExtrasSettings.translationBackend == .system, #available(iOS 18.0, *) {
+        useSystemTranslation = true
+    }
+
     if useSystemTranslation {
         presentSystemTranslateScreen(context: context, text: text)
     } else {

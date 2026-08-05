@@ -5372,6 +5372,12 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         }
 
         self.updateActivity()
+
+        if context.sharedContext.immediateForkExtrasSettings.sendWithReturnKey && text == "\n" {
+            self.sendButtonPressed()
+            return false
+        }
+
         var cleanText = text
         let removeSequences: [String] = ["\u{202d}", "\u{202c}"]
         for sequence in removeSequences {

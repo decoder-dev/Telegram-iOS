@@ -2,6 +2,33 @@ import Foundation
 import UIKit
 import TelegramCore
 
+// Small local HSL-desaturation helper (mirrors Display/UIKitUtils.swift's desaturatedHSL, not
+// reused directly to avoid adding a new module dependency for a single function).
+private extension UIColor {
+    func sgDesaturated(by amount: CGFloat) -> UIColor {
+        let amount = max(0, min(1, amount))
+        guard amount > 0 else { return self }
+        var h: CGFloat = 0, s: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        guard self.getHue(&h, saturation: &s, brightness: &b, alpha: &a) else { return self }
+        return UIColor(hue: h, saturation: s * (1.0 - amount), brightness: b, alpha: a)
+    }
+}
+
+private extension PeerNameColors.Colors {
+    var sgSaturationAdjusted: PeerNameColors.Colors {
+        let percent = PeerNameColors.saturationPercent
+        if percent >= 100 {
+            return self
+        }
+        let amount = 1.0 - (CGFloat(max(0, min(100, percent))) / 100.0)
+        return PeerNameColors.Colors(
+            main: self.main.sgDesaturated(by: amount),
+            secondary: self.secondary?.sgDesaturated(by: amount),
+            tertiary: self.tertiary?.sgDesaturated(by: amount)
+        )
+    }
+}
+
 private extension PeerNameColors.Colors {
     init?(colors: EngineAvailableColorOptions.MultiColorPack) {
         if colors.colors.isEmpty {
@@ -22,6 +49,11 @@ private extension PeerNameColors.Colors {
 }
 
 public class PeerNameColors: Equatable {
+    /// Percentage (0-100) applied to every color this class returns; pushed down from
+    /// ForkExtrasSettings.accentColorSaturation by SharedAccountContext whenever settings change,
+    /// since this plain value type has no live AccountContext/settings reference of its own.
+    public static var saturationPercent: Int32 = 100
+
     public enum Subject {
         case background
         case palette
@@ -114,47 +146,47 @@ public class PeerNameColors: Equatable {
     
     public func get(_ color: PeerNameColor, dark: Bool = false) -> Colors {
         if dark, let colors = self.darkColors[color.rawValue] {
-            return colors
+            return colors.sgSaturationAdjusted
         } else if let colors = self.colors[color.rawValue] {
-            return colors
+            return colors.sgSaturationAdjusted
         } else {
-            return PeerNameColors.defaultSingleColors[5]!
+            return PeerNameColors.defaultSingleColors[5]!.sgSaturationAdjusted
         }
     }
-    
+
     public func getChatFolderTag(_ color: PeerNameColor, dark: Bool = false) -> Colors {
         if dark, let colors = self.darkColors[color.rawValue] {
-            return colors
+            return colors.sgSaturationAdjusted
         } else if let colors = self.colors[color.rawValue] {
-            return colors
+            return colors.sgSaturationAdjusted
         } else {
-            return PeerNameColors.defaultSingleColors[5]!
+            return PeerNameColors.defaultSingleColors[5]!.sgSaturationAdjusted
         }
     }
-    
+
     public func getProfile(_ color: PeerNameColor, dark: Bool = false, subject: Subject = .background) -> Colors {
         switch subject {
         case .background:
             if dark, let colors = self.profileDarkColors[color.rawValue] {
-                return colors
+                return colors.sgSaturationAdjusted
             } else if let colors = self.profileColors[color.rawValue] {
-                return colors
+                return colors.sgSaturationAdjusted
             } else {
-                return Colors(main: UIColor(rgb: 0xcc5049))
+                return Colors(main: UIColor(rgb: 0xcc5049)).sgSaturationAdjusted
             }
         case .palette:
             if dark, let colors = self.profilePaletteDarkColors[color.rawValue] {
-                return colors
+                return colors.sgSaturationAdjusted
             } else if let colors = self.profilePaletteColors[color.rawValue] {
-                return colors
+                return colors.sgSaturationAdjusted
             } else {
                 return self.getProfile(color, dark: dark, subject: .background)
             }
         case .stories:
             if dark, let colors = self.profileStoryDarkColors[color.rawValue] {
-                return colors
+                return colors.sgSaturationAdjusted
             } else if let colors = self.profileStoryColors[color.rawValue] {
-                return colors
+                return colors.sgSaturationAdjusted
             } else {
                 return self.getProfile(color, dark: dark, subject: .background)
             }

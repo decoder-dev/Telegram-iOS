@@ -281,6 +281,10 @@ public var sharedManagedAudioSession: ManagedAudioSession? {
 }
 
 public final class ManagedAudioSessionImpl: NSObject, ManagedAudioSession {
+    /// This module has no visibility into ForkExtrasSettings/AccountContext — MediaManager.swift
+    /// (the sole construction site of this class) pushes the setting down here whenever it changes.
+    public static var forceBuiltInMic: Bool = false
+
     private var nextId: Int32 = 0
     private let queue: Queue
     private let hasLoudspeaker: Bool
@@ -1075,7 +1079,7 @@ public final class ManagedAudioSessionImpl: NSObject, ManagedAudioSession {
                     try AVAudioSession.sharedInstance().overrideOutputAudioPort(.none)
                     if let routes = AVAudioSession.sharedInstance().availableInputs {
                         var alreadySet = false
-                        if self.isHeadsetPluggedInValue {
+                        if self.isHeadsetPluggedInValue && !ManagedAudioSessionImpl.forceBuiltInMic {
                             if case .voiceCall = updatedType, case .custom(.builtin) = outputMode {
                             } else {
                                 loop: for route in routes {

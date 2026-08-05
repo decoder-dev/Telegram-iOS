@@ -160,7 +160,7 @@ extension PeerInfoScreenNode {
                     return nil
                 }
             }))
-        case .businessHours(let text), .businessLocation(let text):
+        case .businessHours(let text), .businessLocation(let text), .genericCopy(let text):
             let presentationData = context.sharedContext.currentPresentationData.with { $0 }
                 
             let actions: [ContextMenuAction] = [ContextMenuAction(content: .text(title: presentationData.strings.Conversation_ContextMenuCopy, accessibilityLabel: presentationData.strings.Conversation_ContextMenuCopy), action: { [weak self] in
