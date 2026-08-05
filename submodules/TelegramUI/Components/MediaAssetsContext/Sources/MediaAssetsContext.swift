@@ -45,8 +45,19 @@ public final class MediaAssetsContext: NSObject, PHPhotoLibraryChangeObserver {
         |> then(
             self.changeSink.signal()
             |> mapToSignal { change in
-                if let updatedFetchResult = change.changeDetails(for: fetchResult.with { $0 })?.fetchResultAfterChanges {
-                    let _ = fetchResult.modify { _ in return updatedFetchResult }
+                // Compute the change against `current` and store it inside the same `modify` call,
+                // instead of a separate `with` read followed by a `modify` that discards its own
+                // `current` parameter — that split let a second concurrent change notification
+                // overwrite this one with a value derived from an already-stale read.
+                var updatedFetchResult: PHFetchResult<PHAsset>?
+                let _ = fetchResult.modify { current in
+                    if let newValue = change.changeDetails(for: current)?.fetchResultAfterChanges {
+                        updatedFetchResult = newValue
+                        return newValue
+                    }
+                    return current
+                }
+                if let updatedFetchResult {
                     return .single(updatedFetchResult)
                 } else {
                     return .complete()
@@ -54,7 +65,7 @@ public final class MediaAssetsContext: NSObject, PHPhotoLibraryChangeObserver {
             }
         )
     }
-    
+
     public func fetchAssetsCollections(_ type: PHAssetCollectionType) -> Signal<PHFetchResult<PHAssetCollection>, NoError> {
         let initialFetchResult = PHAssetCollection.fetchAssetCollections(with: type, subtype: .any, options: nil)
         let fetchResult = Atomic<PHFetchResult<PHAssetCollection>>(value: initialFetchResult)
@@ -62,8 +73,15 @@ public final class MediaAssetsContext: NSObject, PHPhotoLibraryChangeObserver {
         |> then(
             self.changeSink.signal()
             |> mapToSignal { change in
-                if let updatedFetchResult = change.changeDetails(for: fetchResult.with { $0 })?.fetchResultAfterChanges {
-                    let _ = fetchResult.modify { _ in return updatedFetchResult }
+                var updatedFetchResult: PHFetchResult<PHAssetCollection>?
+                let _ = fetchResult.modify { current in
+                    if let newValue = change.changeDetails(for: current)?.fetchResultAfterChanges {
+                        updatedFetchResult = newValue
+                        return newValue
+                    }
+                    return current
+                }
+                if let updatedFetchResult {
                     return .single(updatedFetchResult)
                 } else {
                     return .complete()

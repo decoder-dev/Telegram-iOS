@@ -553,12 +553,15 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
             var wrappedAdditionalSource: MTSignal?
             #if os(iOS)
             if #available(iOS 10.0, *), !supplementary, arguments.isICloudEnabled {
-                var cloudDataContextValue: CloudDataContext?
-                if let value = cloudDataContext.with({ $0 }) {
-                    cloudDataContextValue = value
-                } else {
-                    cloudDataContextValue = makeCloudDataContext(encryptionProvider: arguments.encryptionProvider)
-                    let _ = cloudDataContext.swap(cloudDataContextValue)
+                // Read-and-conditionally-write as a single atomic op: `initializedNetwork` runs on a
+                // fresh queue per call and is invoked once per account, so two accounts initializing
+                // concurrently could otherwise both observe `nil` and race to create their own
+                // `CloudDataContext`, silently discarding one via the second `swap`.
+                let cloudDataContextValue: CloudDataContext? = cloudDataContext.modify { current in
+                    if let current {
+                        return current
+                    }
+                    return makeCloudDataContext(encryptionProvider: arguments.encryptionProvider)
                 }
                 
                 if let cloudDataContext = cloudDataContextValue {
