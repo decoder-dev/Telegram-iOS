@@ -159,7 +159,10 @@ func withDecryptedMessageContents(parameters: SecretChatEncryptionParameters, da
             }
             
             let paddingLength = decryptedData.count - (Int(payloadLength) + 4)
-            if Int(payloadLength) > decryptedData.count - 4 || paddingLength > 16 {
+            // `payloadLength` is read straight from decrypted bytes; a negative value (bit-corrupted
+            // or malformed ciphertext) would otherwise reach `UInt(payloadLength)` below and trap -
+            // guard it the same way the `.v2` branch already does just below.
+            if Int(payloadLength) < 0 || Int(payloadLength) > decryptedData.count - 4 || paddingLength > 16 {
                 return nil
             }
             
