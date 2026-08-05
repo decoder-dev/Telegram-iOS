@@ -6492,6 +6492,14 @@ private final class EmptyResultsButtonPaidSearchContent: Component {
             fatalError("init(coder:) has not been implemented")
         }
 
+        deinit {
+            // The timer below is only invalidated from `update(component:...)` when
+            // unlockTimestamp becomes nil; if this view is torn down while a countdown is
+            // still running, that call never comes and the RunLoop-retained repeating timer
+            // would otherwise fire forever.
+            self.timer?.invalidate()
+        }
+
         func update(component: EmptyResultsButtonPaidSearchContent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
             let subtitleSpacing: CGFloat = 1.0
 
