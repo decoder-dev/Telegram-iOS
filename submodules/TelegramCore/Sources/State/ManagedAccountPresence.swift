@@ -43,6 +43,9 @@ private final class AccountPresenceManagerImpl {
     }
     
     private func updatePresence(_ isOnline: Bool) {
+        // Ghost Mode: never report online status to the server, matching the same
+        // suppression already applied to outgoing typing/input activity.
+        let isOnline = isOnline && !ForkGhostModeSettings.suppressOutgoingActivity
         let request: Signal<Api.Bool, MTRpcError>
         if isOnline {
             let timer = SignalKitTimer(timeout: 30.0, repeat: false, completion: { [weak self] in
