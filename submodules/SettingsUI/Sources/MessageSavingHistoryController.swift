@@ -14,6 +14,14 @@ private enum MessageSavingHistoryMode {
     case edits(peerId: EnginePeer.Id, messageId: EngineMessage.Id)
 }
 
+private final class MessageSavingHistoryArguments {
+    let openAttachment: (String) -> Void
+
+    init(openAttachment: @escaping (String) -> Void) {
+        self.openAttachment = openAttachment
+    }
+}
+
 private enum MessageSavingHistoryEntry: ItemListNodeEntry {
     case empty(String)
     case record(Int, MessageSavingRecord)
@@ -34,6 +42,7 @@ private enum MessageSavingHistoryEntry: ItemListNodeEntry {
     }
 
     func item(presentationData: ItemListPresentationData, arguments: Any) -> ListViewItem {
+        let args = arguments as? MessageSavingHistoryArguments
         switch self {
         case let .empty(text):
             return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section)
@@ -42,13 +51,25 @@ private enum MessageSavingHistoryEntry: ItemListNodeEntry {
             let formatter = DateFormatter()
             formatter.dateStyle = .medium
             formatter.timeStyle = .short
-            let header = "\(record.authorName) · \(formatter.string(from: date))"
+            // AyuGram Android: deleted mark (🧹) next to the timestamp in View Deleted too.
+            let mark = record.kind == .deleted ? "\(MessageSavingBridge.defaultDeletedMark) " : ""
+            let header = "\(record.authorName) · \(mark)\(formatter.string(from: date))"
+            var body = record.text
+            if let mediaPath = record.mediaPath, FileManager.default.fileExists(atPath: mediaPath) {
+                let name = (mediaPath as NSString).lastPathComponent
+                body += "\n📎 \(name)"
+            }
             return ItemListMultilineTextItem(
                 presentationData: presentationData,
-                text: "\(header)\n\(record.text)",
+                text: "\(header)\n\(body)",
                 enabledEntityTypes: [],
                 sectionId: self.section,
-                style: .blocks
+                style: .blocks,
+                action: {
+                    if let mediaPath = record.mediaPath, FileManager.default.fileExists(atPath: mediaPath) {
+                        args?.openAttachment(mediaPath)
+                    }
+                }
             )
         }
     }
@@ -74,7 +95,7 @@ private func messageSavingHistoryEntries(mode: MessageSavingHistoryMode, account
     return records.enumerated().map { .record($0.offset, $0.element) }
 }
 
-/// AyuGram-style "View Deleted" list for a peer.
+/// AyuGram-style "View Deleted" list for a peer (rows with 🧹 + attachment affordance).
 public func messageSavingDeletedController(context: AccountContext, peerId: EnginePeer.Id, topicId: Int64? = nil) -> ViewController {
     return messageSavingHistoryController(
         context: context,
@@ -102,6 +123,19 @@ public func messageSavingEditsController(context: AccountContext, messageId: Eng
     )
 }
 
+private func messageSavingPresentAttachmentShare(path: String) {
+    let url = URL(fileURLWithPath: path)
+    let activity = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+    guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
+        return
+    }
+    var presenter = scene.windows.first(where: { $0.isKeyWindow })?.rootViewController
+    while let presented = presenter?.presentedViewController {
+        presenter = presented
+    }
+    presenter?.present(activity, animated: true)
+}
+
 private func messageSavingHistoryController(
     context: AccountContext,
     title: String,
@@ -111,6 +145,10 @@ private func messageSavingHistoryController(
 ) -> ViewController {
     let refresh = Promise<Void>()
     refresh.set(.single(Void()))
+
+    let arguments = MessageSavingHistoryArguments(openAttachment: { path in
+        messageSavingPresentAttachmentShare(path: path)
+    })
 
     let signal = combineLatest(
         context.sharedContext.presentationData,
@@ -142,7 +180,7 @@ private func messageSavingHistoryController(
             entries: messageSavingHistoryEntries(mode: mode, accountPeerId: context.account.peerId, emptyText: emptyText),
             style: .blocks
         )
-        return (controllerState, (listState, ()))
+        return (controllerState, (listState, arguments))
     }
 
     return ItemListController(context: context, state: signal)

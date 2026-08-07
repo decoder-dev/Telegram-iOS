@@ -8,7 +8,7 @@ public enum MessageSavingKind: String, Codable {
     case edited
 }
 
-/// Text-only snapshot persisted outside Postbox (matches AyuGram Desktop's current scope).
+/// Snapshot persisted outside Postbox. AyuGram Android also keeps `mediaPath` for attachments.
 public struct MessageSavingRecord: Codable, Equatable {
     public let id: String
     public let accountPeerId: Int64
@@ -22,6 +22,8 @@ public struct MessageSavingRecord: Codable, Equatable {
     public let kind: MessageSavingKind
     public let savedAt: Int32
     public let topicId: Int64
+    /// Durable local copy under MessageSaving/Saved Attachments (optional).
+    public let mediaPath: String?
 
     public init(
         id: String,
@@ -35,7 +37,8 @@ public struct MessageSavingRecord: Codable, Equatable {
         text: String,
         kind: MessageSavingKind,
         savedAt: Int32,
-        topicId: Int64
+        topicId: Int64,
+        mediaPath: String? = nil
     ) {
         self.id = id
         self.accountPeerId = accountPeerId
@@ -49,6 +52,45 @@ public struct MessageSavingRecord: Codable, Equatable {
         self.kind = kind
         self.savedAt = savedAt
         self.topicId = topicId
+        self.mediaPath = mediaPath
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, accountPeerId, peerId, messageId, namespace, date, authorId, authorName, text, kind, savedAt, topicId, mediaPath
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try container.decode(String.self, forKey: .id)
+        self.accountPeerId = try container.decode(Int64.self, forKey: .accountPeerId)
+        self.peerId = try container.decode(Int64.self, forKey: .peerId)
+        self.messageId = try container.decode(Int32.self, forKey: .messageId)
+        self.namespace = try container.decode(Int32.self, forKey: .namespace)
+        self.date = try container.decode(Int32.self, forKey: .date)
+        self.authorId = try container.decodeIfPresent(Int64.self, forKey: .authorId)
+        self.authorName = try container.decode(String.self, forKey: .authorName)
+        self.text = try container.decode(String.self, forKey: .text)
+        self.kind = try container.decode(MessageSavingKind.self, forKey: .kind)
+        self.savedAt = try container.decode(Int32.self, forKey: .savedAt)
+        self.topicId = try container.decode(Int64.self, forKey: .topicId)
+        self.mediaPath = try container.decodeIfPresent(String.self, forKey: .mediaPath)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(self.id, forKey: .id)
+        try container.encode(self.accountPeerId, forKey: .accountPeerId)
+        try container.encode(self.peerId, forKey: .peerId)
+        try container.encode(self.messageId, forKey: .messageId)
+        try container.encode(self.namespace, forKey: .namespace)
+        try container.encode(self.date, forKey: .date)
+        try container.encodeIfPresent(self.authorId, forKey: .authorId)
+        try container.encode(self.authorName, forKey: .authorName)
+        try container.encode(self.text, forKey: .text)
+        try container.encode(self.kind, forKey: .kind)
+        try container.encode(self.savedAt, forKey: .savedAt)
+        try container.encode(self.topicId, forKey: .topicId)
+        try container.encodeIfPresent(self.mediaPath, forKey: .mediaPath)
     }
 }
 
@@ -56,28 +98,32 @@ public struct MessageSavingBridgeSettings: Equatable {
     public var saveDeleted: Bool
     public var saveEdits: Bool
     public var saveForBots: Bool
+    public var saveMedia: Bool
 
-    public init(saveDeleted: Bool, saveEdits: Bool, saveForBots: Bool) {
+    public init(saveDeleted: Bool, saveEdits: Bool, saveForBots: Bool, saveMedia: Bool = true) {
         self.saveDeleted = saveDeleted
         self.saveEdits = saveEdits
         self.saveForBots = saveForBots
+        self.saveMedia = saveMedia
     }
 
     /// Matches ForkExtrasSettings.defaultSettings so deletes are captured before
     /// SharedAccountContext's async sharedData subscription applies persisted prefs.
-    public static let defaults = MessageSavingBridgeSettings(saveDeleted: true, saveEdits: true, saveForBots: false)
+    public static let defaults = MessageSavingBridgeSettings(saveDeleted: true, saveEdits: true, saveForBots: false, saveMedia: true)
 
-    public static let disabled = MessageSavingBridgeSettings(saveDeleted: false, saveEdits: false, saveForBots: false)
+    public static let disabled = MessageSavingBridgeSettings(saveDeleted: false, saveEdits: false, saveForBots: false, saveMedia: false)
 }
 
 /// TelegramCore cannot import TelegramUIPreferences; SharedAccountContext pushes settings + append sink here.
 public enum MessageSavingBridge {
+    /// AyuGram Android default deleted mark (`AyuConstants.DEFAULT_DELETED_MARK`).
+    public static let defaultDeletedMark = "🧹"
+
     public static let settings = Atomic(value: MessageSavingBridgeSettings.defaults)
     public static let append = Atomic<((MessageSavingRecord) -> Void)?>(value: nil)
 
     /// Prefer a textual body; fall back to a short media placeholder so media-only
-    /// deletes still appear in View Deleted (AyuGram is text-only, but empty skips
-    /// looked like "saving is broken" for photo/sticker/voice messages).
+    /// deletes still appear in View Deleted.
     private static func displayText(for message: Message) -> String? {
         let text = message.text.trimmingCharacters(in: .whitespacesAndNewlines)
         if !text.isEmpty {
@@ -151,8 +197,6 @@ public enum MessageSavingBridge {
         return "Unknown"
     }
 
-    /// Incoming (MTProto `out` unset) or CountedAsIncoming — excludes the local user's
-    /// own outgoing messages in every chat type, including channels.
     private static func shouldSave(message: Message, settings: MessageSavingBridgeSettings) -> Bool {
         if message.isLocallyDeleted {
             return false
@@ -184,7 +228,8 @@ public enum MessageSavingBridge {
         transaction: Transaction,
         accountPeerId: PeerId,
         messageIds: [MessageId],
-        kind: MessageSavingKind
+        kind: MessageSavingKind,
+        mediaBox: MediaBox? = nil
     ) {
         let current = settings.with { $0 }
         switch kind {
@@ -201,6 +246,11 @@ public enum MessageSavingBridge {
             guard shouldSave(message: message, settings: current) else { continue }
             guard let text = displayText(for: message) else { continue }
 
+            var mediaPath: String?
+            if kind == .deleted, current.saveMedia, let mediaBox {
+                mediaPath = MessageSavingAttachments.copyIfAvailable(message: message, mediaBox: mediaBox)
+            }
+
             let record = MessageSavingRecord(
                 id: UUID().uuidString,
                 accountPeerId: accountPeerId.toInt64(),
@@ -213,7 +263,8 @@ public enum MessageSavingBridge {
                 text: text,
                 kind: kind,
                 savedAt: now,
-                topicId: message.threadId ?? 0
+                topicId: message.threadId ?? 0,
+                mediaPath: mediaPath
             )
             sink(record)
         }
@@ -222,7 +273,8 @@ public enum MessageSavingBridge {
     public static func snapshotMessage(
         message: Message,
         accountPeerId: PeerId,
-        kind: MessageSavingKind
+        kind: MessageSavingKind,
+        mediaBox: MediaBox? = nil
     ) {
         let current = settings.with { $0 }
         switch kind {
@@ -234,6 +286,11 @@ public enum MessageSavingBridge {
         guard let sink = append.with({ $0 }) else { return }
         guard shouldSave(message: message, settings: current) else { return }
         guard let text = displayText(for: message) else { return }
+
+        var mediaPath: String?
+        if kind == .deleted, current.saveMedia, let mediaBox {
+            mediaPath = MessageSavingAttachments.copyIfAvailable(message: message, mediaBox: mediaBox)
+        }
 
         let record = MessageSavingRecord(
             id: UUID().uuidString,
@@ -247,17 +304,17 @@ public enum MessageSavingBridge {
             text: text,
             kind: kind,
             savedAt: Int32(Date().timeIntervalSince1970),
-            topicId: message.threadId ?? 0
+            topicId: message.threadId ?? 0,
+            mediaPath: mediaPath
         )
         sink(record)
     }
 
     /// Resolve account peer from the postbox and snapshot before a local delete.
-    /// Used by `_internal_deleteMessages` so TTL / interactive / secret-chat paths
-    /// are covered even when they never go through `replayFinalState`.
     public static func snapshotDeletedMessages(
         transaction: Transaction,
-        messageIds: [MessageId]
+        messageIds: [MessageId],
+        mediaBox: MediaBox? = nil
     ) {
         guard let accountPeerId = (transaction.getState() as? AuthorizedAccountState)?.peerId else {
             return
@@ -266,7 +323,8 @@ public enum MessageSavingBridge {
             transaction: transaction,
             accountPeerId: accountPeerId,
             messageIds: messageIds,
-            kind: .deleted
+            kind: .deleted,
+            mediaBox: mediaBox
         )
     }
 }

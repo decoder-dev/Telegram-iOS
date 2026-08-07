@@ -133,7 +133,8 @@ public enum MessageSavingStore {
         let _ = MessageSavingBridge.settings.swap(MessageSavingBridgeSettings(
             saveDeleted: settings.saveDeletedMessages,
             saveEdits: settings.saveMessagesHistory,
-            saveForBots: settings.saveForBots
+            saveForBots: settings.saveForBots,
+            saveMedia: settings.saveMedia
         ))
     }
 }

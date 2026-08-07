@@ -24,9 +24,10 @@ func addMessageMediaResourceIdsToRemove(message: Message, resourceIds: inout [Me
 
 /// Convert eligible incoming messages into in-chat deleted markers (anti-recall).
 /// Returns message ids that were converted (and must not be hard-deleted).
-func convertEligibleMessagesToDeletedMarkers(transaction: Transaction, ids: [MessageId]) -> Set<MessageId> {
+func convertEligibleMessagesToDeletedMarkers(transaction: Transaction, mediaBox: MediaBox?, ids: [MessageId]) -> Set<MessageId> {
     var converted = Set<MessageId>()
     let now = Int32(Date().timeIntervalSince1970)
+    let saveMedia = MessageSavingBridge.settings.with { $0.saveMedia }
     for id in ids {
         guard let message = transaction.getMessage(id) else { continue }
         if message.isLocallyDeleted {
@@ -35,6 +36,11 @@ func convertEligibleMessagesToDeletedMarkers(transaction: Transaction, ids: [Mes
             continue
         }
         guard MessageSavingBridge.shouldRetainInChat(message: message) else { continue }
+
+        var mediaPath: String?
+        if saveMedia, let mediaBox {
+            mediaPath = MessageSavingAttachments.copyIfAvailable(message: message, mediaBox: mediaBox)
+        }
 
         transaction.updateMessage(id, update: { currentMessage in
             if currentMessage.isLocallyDeleted {
@@ -57,7 +63,7 @@ func convertEligibleMessagesToDeletedMarkers(transaction: Transaction, ids: [Mes
                     && !(attribute is AutoclearTimeoutMessageAttribute)
                     && !(attribute is DeletedMessageAttribute)
             }
-            attributes.append(DeletedMessageAttribute(date: now))
+            attributes.append(DeletedMessageAttribute(date: now, mediaPath: mediaPath))
             return .update(StoreMessage(
                 id: currentMessage.id,
                 customStableId: nil,
@@ -86,11 +92,11 @@ func convertEligibleMessagesToDeletedMarkers(transaction: Transaction, ids: [Mes
 ///   (user interactive delete), always hard-remove — including existing markers.
 public func _internal_deleteMessages(transaction: Transaction, mediaBox: MediaBox, ids: [MessageId], deleteMedia: Bool = true, allowDeletedMarkers: Bool = true, manualAddMessageThreadStatsDifference: ((MessageThreadKey, Int, Int) -> Void)? = nil) {
     // Snapshot before any hard delete / conversion. Duplicates are deduped in MessageSavingStore.
-    MessageSavingBridge.snapshotDeletedMessages(transaction: transaction, messageIds: ids)
+    MessageSavingBridge.snapshotDeletedMessages(transaction: transaction, messageIds: ids, mediaBox: mediaBox)
 
     var hardDeleteIds = ids
     if allowDeletedMarkers {
-        let converted = convertEligibleMessagesToDeletedMarkers(transaction: transaction, ids: ids)
+        let converted = convertEligibleMessagesToDeletedMarkers(transaction: transaction, mediaBox: mediaBox, ids: ids)
         if !converted.isEmpty {
             hardDeleteIds = ids.filter { !converted.contains($0) }
         }

@@ -48,9 +48,11 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.BackendSystem": "System (Apple)",
             "ForkExtras.BackendApple": "On-Device (Apple)",
             "ForkExtras.SaveDeletedMessages": "Save Deleted Messages",
-            "ForkExtras.SaveDeletedMessagesFooter": "Keep messages others delete visible in the chat (marked deleted). Also under View Deleted.",
+            "ForkExtras.SaveDeletedMessagesFooter": "Keep messages others delete visible in the chat (🧹 mark). Also under View Deleted.",
             "ForkExtras.SaveMessagesHistory": "Save Edit History",
             "ForkExtras.SaveMessagesHistoryFooter": "Keep previous text when a message is edited. Open Edit History from the message menu.",
+            "ForkExtras.SaveMedia": "Save Media",
+            "ForkExtras.SaveMediaFooter": "Copy attachments into local Saved Attachments when a message is deleted (AyuGram Android parity).",
             "ForkExtras.SaveForBots": "Also Save Bot Messages",
             "ForkExtras.ViewDeleted": "View Deleted",
             "ForkExtras.EditHistory": "Edit History",
@@ -95,9 +97,11 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.BackendSystem": "Системный (Apple)",
             "ForkExtras.BackendApple": "На устройстве (Apple)",
             "ForkExtras.SaveDeletedMessages": "Сохранять удалённые",
-            "ForkExtras.SaveDeletedMessagesFooter": "Сообщения, которые удалили другие, остаются в чате (с пометкой «удалено»). Также в «Удалённые».",
+            "ForkExtras.SaveDeletedMessagesFooter": "Сообщения, которые удалили другие, остаются в чате (метка 🧹). Также в «Удалённые».",
             "ForkExtras.SaveMessagesHistory": "История правок",
             "ForkExtras.SaveMessagesHistoryFooter": "Хранить предыдущий текст при редактировании. Открывается из меню сообщения.",
+            "ForkExtras.SaveMedia": "Сохранять медиа",
+            "ForkExtras.SaveMediaFooter": "Копировать вложения в локальную папку Saved Attachments при удалении (как в AyuGram Android).",
             "ForkExtras.SaveForBots": "Также сохранять ботов",
             "ForkExtras.ViewDeleted": "Удалённые",
             "ForkExtras.EditHistory": "История правок",
@@ -162,6 +166,8 @@ private enum ForkExtrasLocalizedString {
     static var saveDeletedMessagesFooter: String { string(forKey: "ForkExtras.SaveDeletedMessagesFooter") }
     static var saveMessagesHistory: String { string(forKey: "ForkExtras.SaveMessagesHistory") }
     static var saveMessagesHistoryFooter: String { string(forKey: "ForkExtras.SaveMessagesHistoryFooter") }
+    static var saveMedia: String { string(forKey: "ForkExtras.SaveMedia") }
+    static var saveMediaFooter: String { string(forKey: "ForkExtras.SaveMediaFooter") }
     static var saveForBots: String { string(forKey: "ForkExtras.SaveForBots") }
     static var viewDeleted: String { string(forKey: "ForkExtras.ViewDeleted") }
     static var editHistory: String { string(forKey: "ForkExtras.EditHistory") }
@@ -194,6 +200,7 @@ private final class ForkExtrasControllerArguments {
     let updateScrollToNextChatDisabled: (Bool) -> Void
     let updateSaveDeletedMessages: (Bool) -> Void
     let updateSaveMessagesHistory: (Bool) -> Void
+    let updateSaveMedia: (Bool) -> Void
     let updateSaveForBots: (Bool) -> Void
 
     init(
@@ -217,6 +224,7 @@ private final class ForkExtrasControllerArguments {
         updateScrollToNextChatDisabled: @escaping (Bool) -> Void,
         updateSaveDeletedMessages: @escaping (Bool) -> Void,
         updateSaveMessagesHistory: @escaping (Bool) -> Void,
+        updateSaveMedia: @escaping (Bool) -> Void,
         updateSaveForBots: @escaping (Bool) -> Void
     ) {
         self.updateGhostMode = updateGhostMode
@@ -239,6 +247,7 @@ private final class ForkExtrasControllerArguments {
         self.updateScrollToNextChatDisabled = updateScrollToNextChatDisabled
         self.updateSaveDeletedMessages = updateSaveDeletedMessages
         self.updateSaveMessagesHistory = updateSaveMessagesHistory
+        self.updateSaveMedia = updateSaveMedia
         self.updateSaveForBots = updateSaveForBots
     }
 }
@@ -290,6 +299,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     case saveDeletedMessagesFooter
     case saveMessagesHistory(Bool)
     case saveMessagesHistoryFooter
+    case saveMedia(Bool)
+    case saveMediaFooter
     case saveForBots(Bool)
 
     var section: ItemListSectionId {
@@ -312,7 +323,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return ForkExtrasSection.translation.rawValue
         case .scrollToNextChat, .scrollToNextChatFooter:
             return ForkExtrasSection.navigation.rawValue
-        case .saveDeletedMessages, .saveDeletedMessagesFooter, .saveMessagesHistory, .saveMessagesHistoryFooter, .saveForBots:
+        case .saveDeletedMessages, .saveDeletedMessagesFooter, .saveMessagesHistory, .saveMessagesHistoryFooter, .saveMedia, .saveMediaFooter, .saveForBots:
             return ForkExtrasSection.messageSaving.rawValue
         }
     }
@@ -352,7 +363,9 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case .saveDeletedMessagesFooter: return 30
         case .saveMessagesHistory: return 31
         case .saveMessagesHistoryFooter: return 32
-        case .saveForBots: return 33
+        case .saveMedia: return 33
+        case .saveMediaFooter: return 34
+        case .saveForBots: return 35
         }
     }
 
@@ -483,6 +496,12 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             })
         case .saveMessagesHistoryFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.saveMessagesHistoryFooter), sectionId: self.section)
+        case let .saveMedia(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.saveMedia, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateSaveMedia(value)
+            })
+        case .saveMediaFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.saveMediaFooter), sectionId: self.section)
         case let .saveForBots(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.saveForBots, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateSaveForBots(value)
@@ -526,6 +545,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings) -> [ForkE
         .saveDeletedMessagesFooter,
         .saveMessagesHistory(settings.saveMessagesHistory),
         .saveMessagesHistoryFooter,
+        .saveMedia(settings.saveMedia),
+        .saveMediaFooter,
         .saveForBots(settings.saveForBots),
     ]
 }
@@ -718,6 +739,13 @@ public func forkExtrasController(context: AccountContext) -> ViewController {
             updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
                 var updated = current
                 updated.saveMessagesHistory = value
+                return updated
+            }.start())
+        },
+        updateSaveMedia: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.saveMedia = value
                 return updated
             }.start())
         },

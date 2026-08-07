@@ -38,6 +38,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var saveMessagesHistory: Bool
     /// Also snapshot messages from bots when saving deleted/edited.
     public var saveForBots: Bool
+    /// AyuGram Android parity: copy attachments into Saved Attachments on delete.
+    public var saveMedia: Bool
 
     public static var defaultSettings: ForkExtrasSettings {
         return ForkExtrasSettings(
@@ -61,7 +63,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
             scrollToNextChatDisabled: false,
             saveDeletedMessages: true,
             saveMessagesHistory: true,
-            saveForBots: false
+            saveForBots: false,
+            saveMedia: true
         )
     }
 
@@ -86,7 +89,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         scrollToNextChatDisabled: Bool,
         saveDeletedMessages: Bool,
         saveMessagesHistory: Bool,
-        saveForBots: Bool
+        saveForBots: Bool,
+        saveMedia: Bool = true
     ) {
         self.ghostMode = ghostMode
         self.instantPasscodeLock = instantPasscodeLock
@@ -109,6 +113,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.saveDeletedMessages = saveDeletedMessages
         self.saveMessagesHistory = saveMessagesHistory
         self.saveForBots = saveForBots
+        self.saveMedia = saveMedia
     }
 
     public init(from decoder: Decoder) throws {
@@ -135,6 +140,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.saveDeletedMessages = try container.decodeIfPresent(Bool.self, forKey: "saveDeletedMessages") ?? true
         self.saveMessagesHistory = try container.decodeIfPresent(Bool.self, forKey: "saveMessagesHistory") ?? true
         self.saveForBots = try container.decodeIfPresent(Bool.self, forKey: "saveForBots") ?? false
+        self.saveMedia = try container.decodeIfPresent(Bool.self, forKey: "saveMedia") ?? true
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -160,6 +166,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.saveDeletedMessages, forKey: "saveDeletedMessages")
         try container.encode(self.saveMessagesHistory, forKey: "saveMessagesHistory")
         try container.encode(self.saveForBots, forKey: "saveForBots")
+        try container.encode(self.saveMedia, forKey: "saveMedia")
     }
 }
 
