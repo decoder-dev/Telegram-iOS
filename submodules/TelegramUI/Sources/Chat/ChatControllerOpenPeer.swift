@@ -400,8 +400,7 @@ extension ChatControllerImpl {
             
             self?.beginMessageSearch("")
         })))
-        if self.context.sharedContext.immediateForkExtrasSettings.saveDeletedMessages,
-           MessageSavingStore.hasDeleted(accountPeerId: self.context.account.peerId.toInt64(), peerId: peerId.toInt64()) {
+        if self.context.sharedContext.immediateForkExtrasSettings.saveDeletedMessages {
             items.append(.action(ContextMenuActionItem(text: "View Deleted", icon: { theme in
                 return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Archive"), color: theme.contextMenu.primaryColor)
             }, action: { [weak self] action in

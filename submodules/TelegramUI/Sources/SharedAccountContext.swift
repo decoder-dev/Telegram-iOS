@@ -538,6 +538,12 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         })
         
         let immediateForkExtrasSettingsValue = self.immediateForkExtrasSettingsValue
+        // Install the message-saving bridge *immediately* with defaults. The sharedData
+        // signal below is async (and deliverOnMainQueue); account state sync can delete
+        // messages before it fires — without an eager sink those snapshots were dropped
+        // (settings stayed disabled / append was nil), so View Deleted stayed empty.
+        MessageSavingStore.installBridge()
+        MessageSavingStore.applySettings(immediateForkExtrasSettingsValue.with { $0 })
         self.forkExtrasSettingsDisposable = (self.accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.forkExtrasSettings])
         |> deliverOnMainQueue).start(next: { sharedData in
             let settings = sharedData.entries[ApplicationSpecificSharedDataKeys.forkExtrasSettings]?.get(ForkExtrasSettings.self) ?? .defaultSettings
