@@ -23,6 +23,12 @@ func addMessageMediaResourceIdsToRemove(message: Message, resourceIds: inout [Me
 }
 
 public func _internal_deleteMessages(transaction: Transaction, mediaBox: MediaBox, ids: [MessageId], deleteMedia: Bool = true, manualAddMessageThreadStatsDifference: ((MessageThreadKey, Int, Int) -> Void)? = nil) {
+    // Snapshot before the messages leave Postbox. Covers TTL/autoremove, interactive
+    // "delete for me", secret-chat deletes, and history validation — not only the
+    // replayFinalState DeleteMessages path. Duplicate snapshots from that path are
+    // deduped in MessageSavingStore.
+    MessageSavingBridge.snapshotDeletedMessages(transaction: transaction, messageIds: ids)
+
     var resourceIds: [MediaResourceId] = []
     if deleteMedia {
         for id in ids {

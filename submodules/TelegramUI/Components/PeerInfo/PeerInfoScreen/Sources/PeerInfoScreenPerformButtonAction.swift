@@ -565,7 +565,7 @@ extension PeerInfoScreenNode {
                         }
                     }
                     
-                    if strongSelf.context.sharedContext.immediateForkExtrasSettings.saveDeletedMessages, MessageSavingStore.hasDeleted(accountPeerId: strongSelf.context.account.peerId.toInt64(), peerId: strongSelf.peerId.toInt64()) {
+                    if strongSelf.context.sharedContext.immediateForkExtrasSettings.saveDeletedMessages {
                         items.append(.action(ContextMenuActionItem(text: "View Deleted", icon: { theme in
                             generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Archive"), color: theme.contextMenu.primaryColor)
                         }, action: { [weak self] _, f in

@@ -6008,8 +6008,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                             f(.dismissWithoutContent)
                             self?.interfaceInteraction?.beginMessageSearch(.everything, "")
                         })))
-                        if context.sharedContext.immediateForkExtrasSettings.saveDeletedMessages,
-                           MessageSavingStore.hasDeleted(accountPeerId: context.account.peerId.toInt64(), peerId: peer.id.toInt64()) {
+                        if context.sharedContext.immediateForkExtrasSettings.saveDeletedMessages {
                             items.append(.action(ContextMenuActionItem(text: "View Deleted", icon: { theme in
                                 return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Archive"), color: theme.actionSheet.primaryTextColor)
                             }, action: { [weak self] _, f in
@@ -6271,8 +6270,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                             f(.dismissWithoutContent)
                             self?.interfaceInteraction?.beginMessageSearch(.everything, "")
                         })))
-                        if context.sharedContext.immediateForkExtrasSettings.saveDeletedMessages,
-                           MessageSavingStore.hasDeleted(accountPeerId: context.account.peerId.toInt64(), peerId: peerId.toInt64()) {
+                        if context.sharedContext.immediateForkExtrasSettings.saveDeletedMessages {
                             items.append(.action(ContextMenuActionItem(text: "View Deleted", icon: { theme in
                                 return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Archive"), color: theme.actionSheet.primaryTextColor)
                             }, action: { [weak self] _, f in

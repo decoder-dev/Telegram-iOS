@@ -63,13 +63,108 @@ public struct MessageSavingBridgeSettings: Equatable {
         self.saveForBots = saveForBots
     }
 
+    /// Matches ForkExtrasSettings.defaultSettings so deletes are captured before
+    /// SharedAccountContext's async sharedData subscription applies persisted prefs.
+    public static let defaults = MessageSavingBridgeSettings(saveDeleted: true, saveEdits: true, saveForBots: false)
+
     public static let disabled = MessageSavingBridgeSettings(saveDeleted: false, saveEdits: false, saveForBots: false)
 }
 
 /// TelegramCore cannot import TelegramUIPreferences; SharedAccountContext pushes settings + append sink here.
 public enum MessageSavingBridge {
-    public static let settings = Atomic(value: MessageSavingBridgeSettings.disabled)
+    public static let settings = Atomic(value: MessageSavingBridgeSettings.defaults)
     public static let append = Atomic<((MessageSavingRecord) -> Void)?>(value: nil)
+
+    /// Prefer a textual body; fall back to a short media placeholder so media-only
+    /// deletes still appear in View Deleted (AyuGram is text-only, but empty skips
+    /// looked like "saving is broken" for photo/sticker/voice messages).
+    private static func displayText(for message: Message) -> String? {
+        let text = message.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !text.isEmpty {
+            return text
+        }
+        for media in message.media {
+            if media is TelegramMediaImage {
+                return "[Photo]"
+            }
+            if let file = media as? TelegramMediaFile {
+                if file.isAnimatedSticker || file.isSticker {
+                    return "[Sticker]"
+                }
+                if file.isInstantVideo {
+                    return "[Video message]"
+                }
+                if file.isVoice {
+                    return "[Voice message]"
+                }
+                if file.isMusic {
+                    return "[Music]"
+                }
+                if file.isVideo {
+                    return "[Video]"
+                }
+                if file.isAnimated {
+                    return "[GIF]"
+                }
+                if let name = file.fileName, !name.isEmpty {
+                    return "[\(name)]"
+                }
+                return "[File]"
+            }
+            if media is TelegramMediaWebpage {
+                return "[Link]"
+            }
+            if media is TelegramMediaMap {
+                return "[Location]"
+            }
+            if media is TelegramMediaContact {
+                return "[Contact]"
+            }
+            if media is TelegramMediaPoll {
+                return "[Poll]"
+            }
+            if media is TelegramMediaDice {
+                return "[Dice]"
+            }
+            if media is TelegramMediaGame {
+                return "[Game]"
+            }
+            if media is TelegramMediaInvoice {
+                return "[Invoice]"
+            }
+            if media is TelegramMediaAction {
+                return nil
+            }
+        }
+        return nil
+    }
+
+    private static func authorName(for message: Message) -> String {
+        if let user = message.author as? TelegramUser {
+            let name = [user.firstName, user.lastName].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " ")
+            return name.isEmpty ? "Unknown" : name
+        }
+        if let peer = message.author {
+            let title = peer.debugDisplayTitle
+            return title.isEmpty ? "Unknown" : title
+        }
+        return "Unknown"
+    }
+
+    /// Incoming (MTProto `out` unset) or CountedAsIncoming — excludes the local user's
+    /// own outgoing messages in every chat type, including channels.
+    private static func shouldSave(message: Message, settings: MessageSavingBridgeSettings) -> Bool {
+        if !message.flags.contains(.Incoming) && !message.flags.contains(.CountedAsIncoming) {
+            return false
+        }
+        if let author = message.author as? TelegramUser, author.botInfo != nil, !settings.saveForBots {
+            return false
+        }
+        if let peer = message.peers[message.id.peerId] as? TelegramUser, peer.botInfo != nil, !settings.saveForBots {
+            return false
+        }
+        return true
+    }
 
     public static func snapshotMessages(
         transaction: Transaction,
@@ -89,30 +184,8 @@ public enum MessageSavingBridge {
         let now = Int32(Date().timeIntervalSince1970)
         for id in messageIds {
             guard let message = transaction.getMessage(id) else { continue }
-            // message.id.peerId is the CHAT the message lives in, not its author — it only
-            // equals accountPeerId for the Saved Messages self-chat. Use the Incoming flag to
-            // correctly exclude the local account's own outgoing messages in every chat.
-            if !message.flags.contains(.Incoming) {
-                continue
-            }
-            if let author = message.author as? TelegramUser, author.botInfo != nil, !current.saveForBots {
-                continue
-            }
-            if let peer = message.peers[message.id.peerId] as? TelegramUser, peer.botInfo != nil, !current.saveForBots {
-                continue
-            }
-            let text = message.text.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !text.isEmpty else { continue }
-
-            let author = message.author
-            let authorName: String
-            if let user = author as? TelegramUser {
-                authorName = [user.firstName, user.lastName].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " ")
-            } else if let peer = author {
-                authorName = peer.debugDisplayTitle
-            } else {
-                authorName = ""
-            }
+            guard shouldSave(message: message, settings: current) else { continue }
+            guard let text = displayText(for: message) else { continue }
 
             let record = MessageSavingRecord(
                 id: UUID().uuidString,
@@ -121,8 +194,8 @@ public enum MessageSavingBridge {
                 messageId: message.id.id,
                 namespace: message.id.namespace,
                 date: message.timestamp,
-                authorId: author.map { $0.id.toInt64() },
-                authorName: authorName.isEmpty ? "Unknown" : authorName,
+                authorId: message.author.map { $0.id.toInt64() },
+                authorName: authorName(for: message),
                 text: text,
                 kind: kind,
                 savedAt: now,
@@ -145,29 +218,8 @@ public enum MessageSavingBridge {
             guard current.saveEdits else { return }
         }
         guard let sink = append.with({ $0 }) else { return }
-        // Same fix as snapshotMessages: check authorship via the Incoming flag, not whether
-        // the chat itself is the Saved Messages self-chat.
-        if !message.flags.contains(.Incoming) {
-            return
-        }
-        if let author = message.author as? TelegramUser, author.botInfo != nil, !current.saveForBots {
-            return
-        }
-        if let peer = message.peers[message.id.peerId] as? TelegramUser, peer.botInfo != nil, !current.saveForBots {
-            return
-        }
-        let text = message.text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return }
-
-        let author = message.author
-        let authorName: String
-        if let user = author as? TelegramUser {
-            authorName = [user.firstName, user.lastName].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " ")
-        } else if let peer = author {
-            authorName = peer.debugDisplayTitle
-        } else {
-            authorName = ""
-        }
+        guard shouldSave(message: message, settings: current) else { return }
+        guard let text = displayText(for: message) else { return }
 
         let record = MessageSavingRecord(
             id: UUID().uuidString,
@@ -176,13 +228,31 @@ public enum MessageSavingBridge {
             messageId: message.id.id,
             namespace: message.id.namespace,
             date: message.timestamp,
-            authorId: author.map { $0.id.toInt64() },
-            authorName: authorName.isEmpty ? "Unknown" : authorName,
+            authorId: message.author.map { $0.id.toInt64() },
+            authorName: authorName(for: message),
             text: text,
             kind: kind,
             savedAt: Int32(Date().timeIntervalSince1970),
             topicId: message.threadId ?? 0
         )
         sink(record)
+    }
+
+    /// Resolve account peer from the postbox and snapshot before a local delete.
+    /// Used by `_internal_deleteMessages` so TTL / interactive / secret-chat paths
+    /// are covered even when they never go through `replayFinalState`.
+    public static func snapshotDeletedMessages(
+        transaction: Transaction,
+        messageIds: [MessageId]
+    ) {
+        guard let accountPeerId = (transaction.getState() as? AuthorizedAccountState)?.peerId else {
+            return
+        }
+        snapshotMessages(
+            transaction: transaction,
+            accountPeerId: accountPeerId,
+            messageIds: messageIds,
+            kind: .deleted
+        )
     }
 }
