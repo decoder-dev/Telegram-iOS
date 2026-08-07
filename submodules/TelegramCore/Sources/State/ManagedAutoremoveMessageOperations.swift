@@ -84,7 +84,11 @@ func managedAutoremoveMessageOperations(network: Network, postbox: Postbox, isRe
                     if let message = transaction.getMessage(entry.messageId) {
                         if message.id.peerId.namespace == Namespaces.Peer.SecretChat || isRemove {
                             _internal_deleteMessages(transaction: transaction, mediaBox: postbox.mediaBox, ids: [entry.messageId])
+                        } else if MessageSavingBridge.shouldRetainInChat(message: message) {
+                            // AyuGram Android: keep media + 🧹 marker instead of TelegramMediaExpiredContent.
+                            _internal_deleteMessages(transaction: transaction, mediaBox: postbox.mediaBox, ids: [entry.messageId])
                         } else {
+                            MessageSavingBridge.snapshotDeletedMessages(transaction: transaction, messageIds: [entry.messageId], mediaBox: postbox.mediaBox)
                             transaction.updateMessage(message.id, update: { currentMessage in
                                 var storeForwardInfo: StoreMessageForwardInfo?
                                 if let forwardInfo = currentMessage.forwardInfo {

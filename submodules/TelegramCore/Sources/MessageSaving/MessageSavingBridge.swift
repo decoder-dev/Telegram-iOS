@@ -185,7 +185,7 @@ public enum MessageSavingBridge {
         return nil
     }
 
-    private static func authorName(for message: Message) -> String {
+    private static func authorName(for message: Message, accountPeer: Peer? = nil) -> String {
         if let user = message.author as? TelegramUser {
             let name = [user.firstName, user.lastName].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " ")
             return name.isEmpty ? "Unknown" : name
@@ -194,6 +194,13 @@ public enum MessageSavingBridge {
             let title = peer.debugDisplayTitle
             return title.isEmpty ? "Unknown" : title
         }
+        // Outgoing cloud messages sometimes omit author; use the local account peer.
+        if !message.flags.contains(.Incoming), let accountPeer {
+            let title = accountPeer.debugDisplayTitle
+            if !title.isEmpty {
+                return title
+            }
+        }
         return "Unknown"
     }
 
@@ -201,9 +208,7 @@ public enum MessageSavingBridge {
         if message.isLocallyDeleted {
             return false
         }
-        if !message.flags.contains(.Incoming) && !message.flags.contains(.CountedAsIncoming) {
-            return false
-        }
+        // AyuGram Android saves outgoing/own messages too — no Incoming-only filter.
         if let author = message.author as? TelegramUser, author.botInfo != nil, !settings.saveForBots {
             return false
         }
@@ -213,7 +218,7 @@ public enum MessageSavingBridge {
         return true
     }
 
-    /// Whether a remote delete should keep the bubble in chat (anti-recall) instead of removing it.
+    /// Whether a remote / TTL delete should keep the bubble in chat (anti-recall) instead of removing it.
     public static func shouldRetainInChat(message: Message) -> Bool {
         let current = settings.with { $0 }
         guard current.saveDeleted else { return false }
@@ -222,6 +227,18 @@ public enum MessageSavingBridge {
             return false
         }
         return displayText(for: message) != nil || !message.media.isEmpty
+    }
+
+    /// AyuGram Android: when Save Deleted is on, skip secret/view-once TTL countdown and media wipe.
+    public static var shouldProtectSecretMedia: Bool {
+        return settings.with { $0.saveDeleted }
+    }
+
+    /// Copy attachments early (on open / consume) so TTL can't race the cache eviction.
+    public static func preserveMediaIfNeeded(message: Message, mediaBox: MediaBox) {
+        let current = settings.with { $0 }
+        guard current.saveDeleted, current.saveMedia else { return }
+        let _ = MessageSavingAttachments.copyIfAvailable(message: message, mediaBox: mediaBox)
     }
 
     public static func snapshotMessages(
@@ -240,6 +257,7 @@ public enum MessageSavingBridge {
         }
         guard let sink = append.with({ $0 }) else { return }
 
+        let accountPeer = transaction.getPeer(accountPeerId)
         let now = Int32(Date().timeIntervalSince1970)
         for id in messageIds {
             guard let message = transaction.getMessage(id) else { continue }
@@ -258,8 +276,8 @@ public enum MessageSavingBridge {
                 messageId: message.id.id,
                 namespace: message.id.namespace,
                 date: message.timestamp,
-                authorId: message.author.map { $0.id.toInt64() },
-                authorName: authorName(for: message),
+                authorId: message.author.map { $0.id.toInt64() } ?? (message.flags.contains(.Incoming) ? nil : accountPeerId.toInt64()),
+                authorName: authorName(for: message, accountPeer: accountPeer),
                 text: text,
                 kind: kind,
                 savedAt: now,
@@ -274,7 +292,8 @@ public enum MessageSavingBridge {
         message: Message,
         accountPeerId: PeerId,
         kind: MessageSavingKind,
-        mediaBox: MediaBox? = nil
+        mediaBox: MediaBox? = nil,
+        accountPeer: Peer? = nil
     ) {
         let current = settings.with { $0 }
         switch kind {
@@ -299,8 +318,8 @@ public enum MessageSavingBridge {
             messageId: message.id.id,
             namespace: message.id.namespace,
             date: message.timestamp,
-            authorId: message.author.map { $0.id.toInt64() },
-            authorName: authorName(for: message),
+            authorId: message.author.map { $0.id.toInt64() } ?? (message.flags.contains(.Incoming) ? nil : accountPeerId.toInt64()),
+            authorName: authorName(for: message, accountPeer: accountPeer),
             text: text,
             kind: kind,
             savedAt: Int32(Date().timeIntervalSince1970),

@@ -211,7 +211,7 @@ final class ChatMessageNotificationItemNode: NotificationItemNode {
                     break
                 }
             }
-            if message.containsSecretMedia {
+            if message.shouldDrawSecretMediaBlur {
                 imageDimensions = nil
             }
             let (textString, _, isText) = descriptionStringForMessage(contentSettings: item.context.currentContentSettings.with { $0 }, message: EngineMessage(message), strings: item.strings, nameDisplayOrder: item.nameDisplayOrder, dateTimeFormat: item.dateTimeFormat, accountPeerId: item.context.account.peerId)

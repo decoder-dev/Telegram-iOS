@@ -922,7 +922,7 @@ public final class ChatMessageInteractiveMediaNode: ASDisplayNode, GalleryItemTr
             
             var nativeSize: CGSize
             
-            let isSecretMedia = message.containsSecretMedia
+            let isSecretMedia = message.shouldDrawSecretMediaBlur
             var secretBeginTimeAndTimeout: (Double, Double)?
             if isSecretMedia {
                 if let attribute = message.autoclearAttribute {
@@ -2563,7 +2563,7 @@ public final class ChatMessageInteractiveMediaNode: ASDisplayNode, GalleryItemTr
         }*/
         
         var secretBeginTimeAndTimeout: (Double?, Double)?
-        let isSecretMedia = message.containsSecretMedia
+        let isSecretMedia = message.shouldDrawSecretMediaBlur
         if isSecretMedia {
             if let attribute = message.autoclearAttribute {
                 if let countdownBeginTime = attribute.countdownBeginTime {

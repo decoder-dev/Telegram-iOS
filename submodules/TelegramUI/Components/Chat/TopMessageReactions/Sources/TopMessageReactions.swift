@@ -14,7 +14,7 @@ public func peerMessageAllowedReactions(context: AccountContext, message: Engine
         return .single((.all, false))
     }
     
-//    if message.containsSecretMedia {
+//    if message.shouldDrawSecretMediaBlur {
 //        return .single((AllowedReactions.set(Set()), false))
 //    }
     

@@ -1676,7 +1676,7 @@ public class ChatMessageTextBubbleContentNode: ChatMessageBubbleContentNode {
                 if item.message.id.peerId.namespace == Namespaces.Peer.SecretChat || item.message.id.peerId.isVerificationCodes {
                     enableQuote = false
                 }
-                if item.message.containsSecretMedia {
+                if item.message.shouldDrawSecretMediaBlur {
                     enableQuote = false
                 }
                 if item.associatedData.translateToLanguage != nil {

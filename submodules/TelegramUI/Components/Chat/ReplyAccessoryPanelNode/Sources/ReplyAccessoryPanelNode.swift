@@ -186,7 +186,7 @@ public final class ReplyAccessoryPanelNode: AccessoryPanelNode {
                 var updatedMediaReference: AnyMediaReference?
                 var imageDimensions: CGSize?
                 var isRoundImage = false
-                if let message = message, !message.containsSecretMedia {
+                if let message = message, !message.shouldDrawSecretMediaBlur {
                     for media in message.media {
                         if let image = media as? TelegramMediaImage {
                             updatedMediaReference = .message(message: MessageReference(message), media: image)

@@ -192,7 +192,7 @@ final class EditAccessoryPanelNode: AccessoryPanelNode {
         
         var updatedMediaReference: AnyMediaReference?
         var imageDimensions: CGSize?
-        if let message = message, !message.containsSecretMedia {
+        if let message = message, !message.shouldDrawSecretMediaBlur {
             var candidateMediaReference: AnyMediaReference?
             if let currentEditMedia = self.currentEditMediaReference {
                 candidateMediaReference = currentEditMedia

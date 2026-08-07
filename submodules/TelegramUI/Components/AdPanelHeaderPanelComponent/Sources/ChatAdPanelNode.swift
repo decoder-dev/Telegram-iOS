@@ -293,7 +293,7 @@ final class ChatAdPanelNode: ASDisplayNode {
         var updatedMediaReference: AnyMediaReference?
         var imageDimensions: CGSize?
                     
-        if !message._asMessage().containsSecretMedia {
+        if !message._asMessage().shouldDrawSecretMediaBlur {
             for media in message.media {
                 if let image = media as? TelegramMediaImage {
                     updatedMediaReference = .message(message: MessageReference(message._asMessage()), media: image)

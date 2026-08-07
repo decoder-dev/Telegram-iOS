@@ -6,6 +6,13 @@ import SwiftSignalKit
 func _internal_markMessageContentAsConsumedInteractively(postbox: Postbox, messageId: MessageId) -> Signal<Void, NoError> {
     return postbox.transaction { transaction -> Void in
         if let message = transaction.getMessage(messageId), message.flags.contains(.Incoming) {
+            // AyuGram Android: with saveDeletedMessages, skip scheduling secret/TTL delete tasks
+            // after open; still sync "consumed" and copy media into Saved Attachments.
+            let protectSecretMedia = MessageSavingBridge.shouldProtectSecretMedia
+            if protectSecretMedia {
+                MessageSavingBridge.preserveMediaIfNeeded(message: message, mediaBox: postbox.mediaBox)
+            }
+
             var updateMessage = false
             var updatedAttributes = message.attributes
             
@@ -48,65 +55,67 @@ func _internal_markMessageContentAsConsumedInteractively(postbox: Postbox, messa
             }
             
             let timestamp = Int32(CFAbsoluteTimeGetCurrent() + NSTimeIntervalSince1970)
-            for i in 0 ..< updatedAttributes.count {
-                if let attribute = updatedAttributes[i] as? AutoremoveTimeoutMessageAttribute {
-                    if attribute.countdownBeginTime == nil || attribute.countdownBeginTime == 0 {
-                        var timeout = attribute.timeout
-                        if let duration = message.secretMediaDuration {
-                            timeout = max(timeout, Int32(duration))
-                        }
-                        updatedAttributes[i] = AutoremoveTimeoutMessageAttribute(timeout: timeout, countdownBeginTime: timestamp)
-                        updateMessage = true
-                        
-                        if messageId.peerId.namespace == Namespaces.Peer.SecretChat {
-                            var layer: SecretChatLayer?
-                            let state = transaction.getPeerChatState(message.id.peerId) as? SecretChatState
-                            if let state = state {
-                                switch state.embeddedState {
-                                    case .terminated, .handshake:
-                                        break
-                                    case .basicLayer:
-                                        layer = .layer8
-                                    case let .sequenceBasedLayer(sequenceState):
-                                        layer = sequenceState.layerNegotiationState.activeLayer.secretChatLayer
-                                }
+            if !protectSecretMedia {
+                for i in 0 ..< updatedAttributes.count {
+                    if let attribute = updatedAttributes[i] as? AutoremoveTimeoutMessageAttribute {
+                        if attribute.countdownBeginTime == nil || attribute.countdownBeginTime == 0 {
+                            var timeout = attribute.timeout
+                            if let duration = message.secretMediaDuration {
+                                timeout = max(timeout, Int32(duration))
                             }
+                            updatedAttributes[i] = AutoremoveTimeoutMessageAttribute(timeout: timeout, countdownBeginTime: timestamp)
+                            updateMessage = true
                             
-                            if let state = state, let layer = layer, let globallyUniqueId = message.globallyUniqueId {
-                                let updatedState = addSecretChatOutgoingOperation(transaction: transaction, peerId: messageId.peerId, operation: .readMessagesContent(layer: layer, actionGloballyUniqueId: Int64.random(in: Int64.min ... Int64.max), globallyUniqueIds: [globallyUniqueId]), state: state)
-                                if updatedState != state {
-                                    transaction.setPeerChatState(messageId.peerId, state: updatedState)
+                            if messageId.peerId.namespace == Namespaces.Peer.SecretChat {
+                                var layer: SecretChatLayer?
+                                let state = transaction.getPeerChatState(message.id.peerId) as? SecretChatState
+                                if let state = state {
+                                    switch state.embeddedState {
+                                        case .terminated, .handshake:
+                                            break
+                                        case .basicLayer:
+                                            layer = .layer8
+                                        case let .sequenceBasedLayer(sequenceState):
+                                            layer = sequenceState.layerNegotiationState.activeLayer.secretChatLayer
+                                    }
+                                }
+                                
+                                if let state = state, let layer = layer, let globallyUniqueId = message.globallyUniqueId {
+                                    let updatedState = addSecretChatOutgoingOperation(transaction: transaction, peerId: messageId.peerId, operation: .readMessagesContent(layer: layer, actionGloballyUniqueId: Int64.random(in: Int64.min ... Int64.max), globallyUniqueIds: [globallyUniqueId]), state: state)
+                                    if updatedState != state {
+                                        transaction.setPeerChatState(messageId.peerId, state: updatedState)
+                                    }
                                 }
                             }
                         }
-                    }
-                } else if let attribute = updatedAttributes[i] as? AutoclearTimeoutMessageAttribute {
-                    if attribute.countdownBeginTime == nil || attribute.countdownBeginTime == 0 {
-                        var timeout = attribute.timeout
-                        if let duration = message.secretMediaDuration, timeout != viewOnceTimeout {
-                            timeout = max(timeout, Int32(duration))
-                        }
-                        updatedAttributes[i] = AutoclearTimeoutMessageAttribute(timeout: timeout, countdownBeginTime: timestamp)
-                        updateMessage = true
-                        
-                        if messageId.peerId.namespace == Namespaces.Peer.SecretChat {
-                            var layer: SecretChatLayer?
-                            let state = transaction.getPeerChatState(message.id.peerId) as? SecretChatState
-                            if let state = state {
-                                switch state.embeddedState {
-                                    case .terminated, .handshake:
-                                        break
-                                    case .basicLayer:
-                                        layer = .layer8
-                                    case let .sequenceBasedLayer(sequenceState):
-                                        layer = sequenceState.layerNegotiationState.activeLayer.secretChatLayer
-                                }
+                    } else if let attribute = updatedAttributes[i] as? AutoclearTimeoutMessageAttribute {
+                        if attribute.countdownBeginTime == nil || attribute.countdownBeginTime == 0 {
+                            var timeout = attribute.timeout
+                            if let duration = message.secretMediaDuration, timeout != viewOnceTimeout {
+                                timeout = max(timeout, Int32(duration))
                             }
+                            updatedAttributes[i] = AutoclearTimeoutMessageAttribute(timeout: timeout, countdownBeginTime: timestamp)
+                            updateMessage = true
                             
-                            if let state = state, let layer = layer, let globallyUniqueId = message.globallyUniqueId {
-                                let updatedState = addSecretChatOutgoingOperation(transaction: transaction, peerId: messageId.peerId, operation: .readMessagesContent(layer: layer, actionGloballyUniqueId: Int64.random(in: Int64.min ... Int64.max), globallyUniqueIds: [globallyUniqueId]), state: state)
-                                if updatedState != state {
-                                    transaction.setPeerChatState(messageId.peerId, state: updatedState)
+                            if messageId.peerId.namespace == Namespaces.Peer.SecretChat {
+                                var layer: SecretChatLayer?
+                                let state = transaction.getPeerChatState(message.id.peerId) as? SecretChatState
+                                if let state = state {
+                                    switch state.embeddedState {
+                                        case .terminated, .handshake:
+                                            break
+                                        case .basicLayer:
+                                            layer = .layer8
+                                        case let .sequenceBasedLayer(sequenceState):
+                                            layer = sequenceState.layerNegotiationState.activeLayer.secretChatLayer
+                                    }
+                                }
+                                
+                                if let state = state, let layer = layer, let globallyUniqueId = message.globallyUniqueId {
+                                    let updatedState = addSecretChatOutgoingOperation(transaction: transaction, peerId: messageId.peerId, operation: .readMessagesContent(layer: layer, actionGloballyUniqueId: Int64.random(in: Int64.min ... Int64.max), globallyUniqueIds: [globallyUniqueId]), state: state)
+                                    if updatedState != state {
+                                        transaction.setPeerChatState(messageId.peerId, state: updatedState)
+                                    }
                                 }
                             }
                         }
@@ -173,12 +182,18 @@ func _internal_markReactionsOrPollVotesAsSeenInteractively(postbox: Postbox, mes
     }
 }
 
-func markMessageContentAsConsumedRemotely(transaction: Transaction, messageId: MessageId, consumeDate: Int32?) {
+func markMessageContentAsConsumedRemotely(transaction: Transaction, messageId: MessageId, consumeDate: Int32?, mediaBox: MediaBox? = nil) {
     if let message = transaction.getMessage(messageId) {
         var updateMessage = false
         var updatedAttributes = message.attributes
         var updatedMedia = message.media
         var updatedTags = message.tags
+
+        // AyuGram Android: keep one-time media when Save Deleted is on (no ExpiredContent wipe).
+        let protectSecretMedia = MessageSavingBridge.shouldProtectSecretMedia
+        if protectSecretMedia, let mediaBox {
+            MessageSavingBridge.preserveMediaIfNeeded(message: message, mediaBox: mediaBox)
+        }
         
         for i in 0 ..< updatedAttributes.count {
             if let attribute = updatedAttributes[i] as? ConsumableContentMessageAttribute {
@@ -199,49 +214,51 @@ func markMessageContentAsConsumedRemotely(transaction: Transaction, messageId: M
         let timestamp = Int32(CFAbsoluteTimeGetCurrent() + NSTimeIntervalSince1970)
         let countdownBeginTime = consumeDate ?? timestamp
         
-        for i in 0 ..< updatedAttributes.count {
-            if let attribute = updatedAttributes[i] as? AutoremoveTimeoutMessageAttribute {
-                if (attribute.countdownBeginTime == nil || attribute.countdownBeginTime == 0) && message.containsSecretMedia {
-                    updatedAttributes[i] = AutoremoveTimeoutMessageAttribute(timeout: attribute.timeout, countdownBeginTime: countdownBeginTime)
-                    updateMessage = true
-                                 
-                    if message.id.peerId.namespace == Namespaces.Peer.SecretChat {
-                    } else {
-                        if attribute.timeout == viewOnceTimeout || timestamp >= countdownBeginTime + attribute.timeout {
-                            for i in 0 ..< updatedMedia.count {
-                                if let _ = updatedMedia[i] as? TelegramMediaImage {
-                                    updatedMedia[i] = TelegramMediaExpiredContent(data: .image)
-                                } else if let file = updatedMedia[i] as? TelegramMediaFile {
-                                    if file.isInstantVideo {
-                                        updatedMedia[i] = TelegramMediaExpiredContent(data: .videoMessage)
-                                    } else if file.isVoice {
-                                        updatedMedia[i] = TelegramMediaExpiredContent(data: .voiceMessage)
-                                    } else {
-                                        updatedMedia[i] = TelegramMediaExpiredContent(data: .file)
+        if !protectSecretMedia {
+            for i in 0 ..< updatedAttributes.count {
+                if let attribute = updatedAttributes[i] as? AutoremoveTimeoutMessageAttribute {
+                    if (attribute.countdownBeginTime == nil || attribute.countdownBeginTime == 0) && message.containsSecretMedia {
+                        updatedAttributes[i] = AutoremoveTimeoutMessageAttribute(timeout: attribute.timeout, countdownBeginTime: countdownBeginTime)
+                        updateMessage = true
+                                     
+                        if message.id.peerId.namespace == Namespaces.Peer.SecretChat {
+                        } else {
+                            if attribute.timeout == viewOnceTimeout || timestamp >= countdownBeginTime + attribute.timeout {
+                                for i in 0 ..< updatedMedia.count {
+                                    if let _ = updatedMedia[i] as? TelegramMediaImage {
+                                        updatedMedia[i] = TelegramMediaExpiredContent(data: .image)
+                                    } else if let file = updatedMedia[i] as? TelegramMediaFile {
+                                        if file.isInstantVideo {
+                                            updatedMedia[i] = TelegramMediaExpiredContent(data: .videoMessage)
+                                        } else if file.isVoice {
+                                            updatedMedia[i] = TelegramMediaExpiredContent(data: .voiceMessage)
+                                        } else {
+                                            updatedMedia[i] = TelegramMediaExpiredContent(data: .file)
+                                        }
                                     }
                                 }
                             }
                         }
                     }
-                }
-            } else if let attribute = updatedAttributes[i] as? AutoclearTimeoutMessageAttribute {
-                if (attribute.countdownBeginTime == nil || attribute.countdownBeginTime == 0) && message.containsSecretMedia {
-                    updatedAttributes[i] = AutoclearTimeoutMessageAttribute(timeout: attribute.timeout, countdownBeginTime: countdownBeginTime)
-                    updateMessage = true
-                    
-                    if message.id.peerId.namespace == Namespaces.Peer.SecretChat {
-                    } else {
-                        for i in 0 ..< updatedMedia.count {
-                            if attribute.timeout == viewOnceTimeout || timestamp >= countdownBeginTime + attribute.timeout {
-                                if let _ = updatedMedia[i] as? TelegramMediaImage {
-                                    updatedMedia[i] = TelegramMediaExpiredContent(data: .image)
-                                } else if let file = updatedMedia[i] as? TelegramMediaFile {
-                                    if file.isInstantVideo {
-                                        updatedMedia[i] = TelegramMediaExpiredContent(data: .videoMessage)
-                                    } else if file.isVoice {
-                                        updatedMedia[i] = TelegramMediaExpiredContent(data: .voiceMessage)
-                                    } else {
-                                        updatedMedia[i] = TelegramMediaExpiredContent(data: .file)
+                } else if let attribute = updatedAttributes[i] as? AutoclearTimeoutMessageAttribute {
+                    if (attribute.countdownBeginTime == nil || attribute.countdownBeginTime == 0) && message.containsSecretMedia {
+                        updatedAttributes[i] = AutoclearTimeoutMessageAttribute(timeout: attribute.timeout, countdownBeginTime: countdownBeginTime)
+                        updateMessage = true
+                        
+                        if message.id.peerId.namespace == Namespaces.Peer.SecretChat {
+                        } else {
+                            for i in 0 ..< updatedMedia.count {
+                                if attribute.timeout == viewOnceTimeout || timestamp >= countdownBeginTime + attribute.timeout {
+                                    if let _ = updatedMedia[i] as? TelegramMediaImage {
+                                        updatedMedia[i] = TelegramMediaExpiredContent(data: .image)
+                                    } else if let file = updatedMedia[i] as? TelegramMediaFile {
+                                        if file.isInstantVideo {
+                                            updatedMedia[i] = TelegramMediaExpiredContent(data: .videoMessage)
+                                        } else if file.isVoice {
+                                            updatedMedia[i] = TelegramMediaExpiredContent(data: .voiceMessage)
+                                        } else {
+                                            updatedMedia[i] = TelegramMediaExpiredContent(data: .file)
+                                        }
                                     }
                                 }
                             }
