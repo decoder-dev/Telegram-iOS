@@ -361,8 +361,10 @@ public final class ChatMessageInteractiveFileNode: ASDisplayNode {
         
         let transcriptionText = self.forcedAudioTranscriptionText ?? transcribedText(message: EngineMessage(message))
         // On-device transcription doesn't use Telegram's paid server-side feature, so it bypasses
-        // the Premium paywall entirely — matches the local-transcription branch below.
-        if transcriptionText == nil && !arguments.associatedData.alwaysDisplayTranscribeButton.providedByGroupBoost && context.sharedContext.immediateForkExtrasSettings.transcriptionBackend != .apple {
+        // the Premium paywall entirely — matches the local-transcription branch below (which
+        // treats the DEBUG-only localTranscription flag as an equivalent signal to the Extras
+        // setting, so a DEBUG build using only that flag isn't stopped by the paywall here).
+        if transcriptionText == nil && !arguments.associatedData.alwaysDisplayTranscribeButton.providedByGroupBoost && context.sharedContext.immediateForkExtrasSettings.transcriptionBackend != .apple && !context.sharedContext.immediateExperimentalUISettings.localTranscription {
             if premiumConfiguration.audioTransciptionTrialCount > 0 {
                 if !arguments.associatedData.isPremium {
                     if self.presentAudioTranscriptionTooltip(finished: false) {

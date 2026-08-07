@@ -12,6 +12,8 @@ import NotificationExceptionsScreen
 import TranslateUI
 import TelegramNotices
 import AlertComponent
+import SettingsUI
+import TelegramUIPreferences
 
 extension PeerInfoScreenNode {
     func performButtonAction(key: PeerInfoHeaderButtonKey, buttonNode: PeerInfoHeaderButtonNode?, gesture: ContextGesture?) {
@@ -563,12 +565,25 @@ extension PeerInfoScreenNode {
                         }
                     }
                     
+                    if strongSelf.context.sharedContext.immediateForkExtrasSettings.saveDeletedMessages, MessageSavingStore.hasDeleted(accountPeerId: strongSelf.context.account.peerId.toInt64(), peerId: strongSelf.peerId.toInt64()) {
+                        items.append(.action(ContextMenuActionItem(text: "View Deleted", icon: { theme in
+                            generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Archive"), color: theme.contextMenu.primaryColor)
+                        }, action: { [weak self] _, f in
+                            f(.dismissWithoutContent)
+
+                            if let strongSelf = self {
+                                let historyController = messageSavingDeletedController(context: strongSelf.context, peerId: strongSelf.peerId)
+                                strongSelf.controller?.push(historyController)
+                            }
+                        })))
+                    }
+
                     if user.botInfo == nil && data.isContact, case let .user(peer) = strongSelf.data?.peer, let phone = peer.phone {
                         items.append(.action(ContextMenuActionItem(text: presentationData.strings.Profile_ShareContactButton, icon: { theme in
                             generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Forward"), color: theme.contextMenu.primaryColor)
                         }, action: { [weak self] _, f in
                             f(.dismissWithoutContent)
-                            
+
                             if let strongSelf = self {
                                 let contact = TelegramMediaContact(firstName: peer.firstName ?? "", lastName: peer.lastName ?? "", phoneNumber: phone, peerId: peer.id, vCardData: nil)
                                 let shareController = strongSelf.context.sharedContext.makeShareController(context: strongSelf.context, params: ShareControllerParams(subject: .media(.standalone(media: contact), nil), updatedPresentationData: strongSelf.controller?.updatedPresentationData, completed: { [weak self] peerIds in
