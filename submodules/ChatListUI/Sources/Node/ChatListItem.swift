@@ -3082,7 +3082,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                         }
                 
                         var displayMediaPreviews = true
-                        if message._asMessage().containsSecretMedia {
+                        if message._asMessage().shouldDrawSecretMediaBlur {
                             displayMediaPreviews = false
                         } else if let _ = message.peers[message.id.peerId] as? TelegramSecretChat {
                             displayMediaPreviews = false

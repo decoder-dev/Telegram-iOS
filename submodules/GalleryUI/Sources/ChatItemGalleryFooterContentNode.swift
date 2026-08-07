@@ -865,7 +865,8 @@ final class ChatItemGalleryFooterContentNode: GalleryFooterContentNode, ASScroll
         }
         var canFullscreen = false
         var canDelete: Bool
-        var canShare = !message.containsSecretMedia && !Namespaces.Message.allNonRegular.contains(message.id.namespace) && message.adAttribute == nil
+        // AyuGram Android: Save to Gallery unlocks when !needDrawBluredPreview() (Save Deleted on).
+        var canShare = !message.shouldDrawSecretMediaBlur && !Namespaces.Message.allNonRegular.contains(message.id.namespace) && message.adAttribute == nil
                 
         var canEdit = false
         var isImage = false
@@ -910,7 +911,7 @@ final class ChatItemGalleryFooterContentNode: GalleryFooterContentNode, ASScroll
             }
         }
         
-        canEdit = canEdit && !message.containsSecretMedia
+        canEdit = canEdit && !message.shouldDrawSecretMediaBlur
         if let peer = message.peers[message.id.peerId] {
             if peer is TelegramUser || peer is TelegramSecretChat {
                 canDelete = true
@@ -950,7 +951,7 @@ final class ChatItemGalleryFooterContentNode: GalleryFooterContentNode, ASScroll
             canEdit = false
         }
         
-        if message.containsSecretMedia {
+        if message.shouldDrawSecretMediaBlur {
             canDelete = false
         }
         

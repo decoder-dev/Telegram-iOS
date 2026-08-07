@@ -314,7 +314,9 @@ public func chatMessageGalleryControllerData(
                 }, baseNavigationController: navigationController, actionInteraction: actionInteraction)
                 gallery.temporaryDoNotWaitForReady = autoplayingVideo
                 return .gallery(.single(gallery))
-            } else if message.containsSecretMedia {
+            } else if message.shouldDrawSecretMediaBlur {
+                // AyuGram Android: with Save Deleted on, needDrawBluredPreview() is false →
+                // open the normal gallery (Save / Delete available) instead of SecretMediaPreview.
                 let gallery = SecretMediaPreviewController(context: context, messageId: message.id)
                 return .secretGallery(gallery)
             } else {
