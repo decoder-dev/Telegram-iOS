@@ -2599,7 +2599,7 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
                 if item.content.firstMessageAttributes.updatingMedia != nil {
                     edited = true
                 }
-                var deleted = message.isLocallyDeleted
+                let deleted = message.isLocallyDeleted
                 var viewCount: Int?
                 var dateReplies = 0
                 var starsCount: Int64?
