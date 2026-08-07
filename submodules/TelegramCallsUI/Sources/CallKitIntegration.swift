@@ -183,22 +183,25 @@ class CallKitProviderDelegate: NSObject, CXProviderDelegate {
     
     func endCall(uuid: UUID) {
         Logger.shared.log("CallKitIntegration", "endCall \(uuid)")
-        
+
         let endCallAction = CXEndCallAction(call: uuid)
         let transaction = CXTransaction(action: endCallAction)
         self.requestTransaction(transaction)
-        
+
         self.activeCalls.remove(uuid)
+        self.uuidToPeerIdMapping.removeValue(forKey: uuid)
+        self.alreadyReportedIncomingCalls.remove(uuid)
     }
-    
+
     func dropCall(uuid: UUID) {
         self.alreadyReportedIncomingCalls.insert(uuid)
-        
+
         Logger.shared.log("CallKitIntegration", "report call ended \(uuid)")
-        
+
         self.provider.reportCall(with: uuid, endedAt: nil, reason: CXCallEndedReason.remoteEnded)
-        
+
         self.activeCalls.remove(uuid)
+        self.uuidToPeerIdMapping.removeValue(forKey: uuid)
     }
     
     func answerCall(uuid: UUID) {
@@ -306,8 +309,10 @@ class CallKitProviderDelegate: NSObject, CXProviderDelegate {
     
     func providerDidReset(_ provider: CXProvider) {
         Logger.shared.log("CallKitIntegration", "providerDidReset")
-        
+
         self.activeCalls.removeAll()
+        self.uuidToPeerIdMapping.removeAll()
+        self.alreadyReportedIncomingCalls.removeAll()
     }
     
     func provider(_ provider: CXProvider, perform action: CXStartCallAction) {

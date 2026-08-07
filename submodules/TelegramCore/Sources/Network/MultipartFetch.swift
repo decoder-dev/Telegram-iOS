@@ -433,6 +433,11 @@ private enum MultipartFetchSource {
                             } else {
                                 var partIv = iv
                                 let partIvCount = partIv.count
+                                // A CDN-supplied IV shorter than 4 bytes would make the memcpy
+                                // below write out of bounds (partIvCount - 4 going negative).
+                                guard partIvCount >= 4 else {
+                                    return .fail(.generic)
+                                }
                                 partIv.withUnsafeMutableBytes { rawBytes -> Void in
                                     let bytes = rawBytes.baseAddress!.assumingMemoryBound(to: UInt8.self)
                                     var ivOffset: Int32 = Int32(clamping: (offset / 16)).bigEndian

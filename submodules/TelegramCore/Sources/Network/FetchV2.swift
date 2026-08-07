@@ -808,12 +808,17 @@ private final class FetchImpl {
                         } else {
                             var partIv = cdnData.encryptionIv
                             let partIvCount = partIv.count
+                            // A CDN-supplied IV shorter than 4 bytes would make the memcpy
+                            // below write out of bounds (partIvCount - 4 going negative).
+                            guard partIvCount >= 4 else {
+                                return .failure
+                            }
                             partIv.withUnsafeMutableBytes { rawBytes -> Void in
                                 let bytes = rawBytes.baseAddress!.assumingMemoryBound(to: UInt8.self)
                                 var ivOffset: Int32 = Int32(clamping: (requestedOffset / 16)).bigEndian
                                 memcpy(bytes.advanced(by: partIvCount - 4), &ivOffset, 4)
                             }
-                            
+
                             let fetchedData = bytes.makeData()
                             return .data(
                                 data: MTAesCtrDecrypt(fetchedData, cdnData.encryptionKey, partIv)!,

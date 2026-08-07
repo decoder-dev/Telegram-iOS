@@ -2637,7 +2637,11 @@ final class NotificationService: UNNotificationServiceExtension {
 
     private var initialContent: UNNotificationContent?
     private let content = Atomic<NotificationContent?>(value: nil)
-    private var contentHandler: ((UNNotificationContent) -> Void)?
+    // Atomic so completed()'s background-queue completion and the OS-invoked
+    // serviceExtensionTimeWillExpire() can't both observe it as non-nil and both
+    // call it, which would get the extension killed by the watchdog for invoking
+    // the completion handler more than once.
+    private let contentHandler = Atomic<((UNNotificationContent) -> Void)?>(value: nil)
     private var episode: String?
     
     override init() {
@@ -2649,7 +2653,7 @@ final class NotificationService: UNNotificationServiceExtension {
         self.episode = episode
         
         self.initialContent = request.content
-        self.contentHandler = contentHandler
+        let _ = self.contentHandler.swap(contentHandler)
 
         self.impl = nil
 
@@ -2668,11 +2672,9 @@ final class NotificationService: UNNotificationServiceExtension {
                     }
                     strongSelf.impl = nil
 
-                    if let contentHandler = strongSelf.contentHandler {
+                    if let contentHandler = strongSelf.contentHandler.swap(nil) {
                         Logger.shared.log("NotificationService \(episode)", "Complete handling notification")
-                        
-                        strongSelf.contentHandler = nil
-                        
+
                         if let content = content.with({ $0 }) {
                             contentHandler(content.generate())
                         } else if let initialContent = strongSelf.initialContent {
@@ -2688,9 +2690,7 @@ final class NotificationService: UNNotificationServiceExtension {
     }
     
     override func serviceExtensionTimeWillExpire() {
-        if let contentHandler = self.contentHandler {
-            self.contentHandler = nil
-            
+        if let contentHandler = self.contentHandler.swap(nil) {
             Logger.shared.log("NotificationService \(self.episode ?? "???")", "Completing due to serviceExtensionTimeWillExpire")
             
             if let content = self.content.with({ $0 }) {
