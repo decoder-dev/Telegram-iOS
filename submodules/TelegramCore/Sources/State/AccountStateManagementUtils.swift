@@ -4445,9 +4445,10 @@ func replayFinalState(
                     transaction: transaction,
                     accountPeerId: accountPeerId,
                     messageIds: resolvedIds,
-                    kind: .deleted
+                    kind: .deleted,
+                    mediaBox: mediaBox
                 )
-                let converted = convertEligibleMessagesToDeletedMarkers(transaction: transaction, ids: resolvedIds)
+                let converted = convertEligibleMessagesToDeletedMarkers(transaction: transaction, mediaBox: mediaBox, ids: resolvedIds)
                 let remainingGlobalIds: [Int32]
                 if converted.isEmpty {
                     remainingGlobalIds = ids
@@ -4474,7 +4475,8 @@ func replayFinalState(
                     transaction: transaction,
                     accountPeerId: accountPeerId,
                     messageIds: ids,
-                    kind: .deleted
+                    kind: .deleted,
+                    mediaBox: mediaBox
                 )
                 _internal_deleteMessages(transaction: transaction, mediaBox: mediaBox, ids: ids, manualAddMessageThreadStatsDifference: { id, add, remove in
                     addMessageThreadStatsDifference(threadKey: id, remove: remove, addedMessagePeer: nil, addedMessageId: nil, isOutgoing: false)

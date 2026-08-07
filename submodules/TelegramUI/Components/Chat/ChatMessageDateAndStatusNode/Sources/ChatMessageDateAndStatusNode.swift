@@ -542,9 +542,8 @@ public class ChatMessageDateAndStatusNode: ASDisplayNode {
             
             var updatedDateText = arguments.dateText
             if arguments.deleted {
-                let preferred = Locale.preferredLanguages.first.map { String($0.prefix(2)).lowercased() } ?? "en"
-                let deletedLabel = preferred == "ru" ? "удалено" : "deleted"
-                updatedDateText = "\(deletedLabel) \(updatedDateText)"
+                // AyuGram Android: customizable deleted mark (default 🧹) before the time.
+                updatedDateText = "\(MessageSavingBridge.defaultDeletedMark) \(updatedDateText)"
             } else if arguments.edited {
                 if let useEditedTimestamp = arguments.context.getAppConfigValue("message_primary_edited_date") as? Bool, useEditedTimestamp {
                 } else {
