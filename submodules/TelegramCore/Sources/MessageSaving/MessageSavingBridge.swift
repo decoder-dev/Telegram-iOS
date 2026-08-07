@@ -89,10 +89,10 @@ public enum MessageSavingBridge {
         let now = Int32(Date().timeIntervalSince1970)
         for id in messageIds {
             guard let message = transaction.getMessage(id) else { continue }
-            if message.id.peerId == accountPeerId {
-                continue
-            }
-            if kind == .edited, let author = message.author, author.id == accountPeerId {
+            // message.id.peerId is the CHAT the message lives in, not its author — it only
+            // equals accountPeerId for the Saved Messages self-chat. Use the Incoming flag to
+            // correctly exclude the local account's own outgoing messages in every chat.
+            if !message.flags.contains(.Incoming) {
                 continue
             }
             if let author = message.author as? TelegramUser, author.botInfo != nil, !current.saveForBots {
@@ -145,10 +145,9 @@ public enum MessageSavingBridge {
             guard current.saveEdits else { return }
         }
         guard let sink = append.with({ $0 }) else { return }
-        if message.id.peerId == accountPeerId {
-            return
-        }
-        if kind == .edited, let author = message.author, author.id == accountPeerId {
+        // Same fix as snapshotMessages: check authorship via the Incoming flag, not whether
+        // the chat itself is the Saved Messages self-chat.
+        if !message.flags.contains(.Incoming) {
             return
         }
         if let author = message.author as? TelegramUser, author.botInfo != nil, !current.saveForBots {

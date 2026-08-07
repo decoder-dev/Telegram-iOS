@@ -984,12 +984,25 @@ public final class ManagedAudioSessionImpl: NSObject, ManagedAudioSession {
                     }
                     try AVAudioSession.sharedInstance().overrideOutputAudioPort(.speaker)
                 case .headphones:
-                    break
+                    // Force built-in mic: this branch otherwise leaves whatever input
+                    // (possibly a connected Bluetooth device) was already active untouched.
+                    if ManagedAudioSessionImpl.forceBuiltInMic, let routes = AVAudioSession.sharedInstance().availableInputs {
+                        for route in routes {
+                            if route.portType == .builtInMic {
+                                let _ = try? AVAudioSession.sharedInstance().setPreferredInput(route)
+                                break
+                            }
+                        }
+                    }
                 case let .port(port):
                     try AVAudioSession.sharedInstance().overrideOutputAudioPort(.none)
                     if let routes = AVAudioSession.sharedInstance().availableInputs {
+                        // Force built-in mic overrides the specifically requested input port —
+                        // output routing (overrideOutputAudioPort above) is unaffected, matching
+                        // the setting's scope (mic only, not speaker/earpiece).
+                        let wantsBuiltIn = ManagedAudioSessionImpl.forceBuiltInMic
                         for route in routes {
-                            if route.uid == port.uid {
+                            if wantsBuiltIn ? route.portType == .builtInMic : route.uid == port.uid {
                                 let _ = try? AVAudioSession.sharedInstance().setPreferredInput(route)
                                 break
                             }

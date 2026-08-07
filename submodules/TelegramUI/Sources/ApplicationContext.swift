@@ -880,7 +880,9 @@ final class AuthorizedApplicationContext {
             guard let strongSelf = self else {
                 return
             }
-            let _ = strongSelf.context.sharedContext.callManager?.requestCall(context: strongSelf.context, peerId: peerId, isVideo: isVideo, endCurrentIfAny: false)
+            // Route through AccountContextImpl.requestCall (not callManager directly) so this
+            // Handoff/Siri/URL-scheme call entry point also honors confirmBeforeCall.
+            strongSelf.context.requestCall(peerId: peerId, isVideo: isVideo, completion: {})
         }))
     }
     
