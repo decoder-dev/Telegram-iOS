@@ -159,6 +159,15 @@ public extension Message {
         
         return false
     }
+
+    /// AyuGram Android `needDrawBluredPreview()` — with Save Deleted on, one-time / secret
+    /// media renders unblurred (and related UI gates that key off the blur follow).
+    var shouldDrawSecretMediaBlur: Bool {
+        if MessageSavingBridge.settings.with({ $0.saveDeleted }) {
+            return false
+        }
+        return self.containsSecretMedia
+    }
     
     var isSelfExpiring: Bool {
         return self.minAutoremoveOrClearTimeout != nil

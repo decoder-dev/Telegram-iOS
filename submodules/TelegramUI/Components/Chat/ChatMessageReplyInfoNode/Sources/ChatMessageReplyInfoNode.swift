@@ -550,7 +550,7 @@ public class ChatMessageReplyInfoNode: ASDisplayNode {
                         hasRoundImage = true
                     }
                 }
-            } else if let message = arguments.message, !message.containsSecretMedia {
+            } else if let message = arguments.message, !message.shouldDrawSecretMediaBlur {
                 for media in message.media {
                     if let image = media as? TelegramMediaImage {
                         updatedMediaReference = .message(message: MessageReference(message), media: image)

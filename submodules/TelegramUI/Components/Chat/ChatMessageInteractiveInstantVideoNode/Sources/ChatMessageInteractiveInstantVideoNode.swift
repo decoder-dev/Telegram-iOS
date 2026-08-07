@@ -287,10 +287,11 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
                 updatedMuteIconImage = PresentationResourcesChat.chatInstantMessageMuteIconImage(item.presentationData.theme.theme)
             }
             
-            let isViewOnceMessage = item.message.minAutoremoveOrClearTimeout == viewOnceTimeout
+            // AyuGram Android needDrawBluredPreview(false): with Save Deleted, show view-once inline.
+            let isViewOnceMessage = item.message.minAutoremoveOrClearTimeout == viewOnceTimeout && !MessageSavingBridge.shouldProtectSecretMedia
             
             let theme = item.presentationData.theme
-            var isSecretMedia = item.message.containsSecretMedia
+            var isSecretMedia = item.message.shouldDrawSecretMediaBlur
             if isViewOnceMessage {
                 isSecretMedia = true
             }
@@ -1187,9 +1188,9 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
             return
         }
     
-        let isViewOnceMessage = item.message.minAutoremoveOrClearTimeout == viewOnceTimeout
+        let isViewOnceMessage = item.message.minAutoremoveOrClearTimeout == viewOnceTimeout && !MessageSavingBridge.shouldProtectSecretMedia
         
-        let isSecretMedia = item.message.containsSecretMedia
+        let isSecretMedia = item.message.shouldDrawSecretMediaBlur
         
 //        var secretBeginTimeAndTimeout: (Double, Double)?
 //        if isSecretMedia {

@@ -465,7 +465,7 @@ public final class ChatInputMessageAccessoryPanel: Component {
                 
                 var updatedMediaReference: AnyMediaReference?
                 var imageDimensions: CGSize?
-                if !message._asMessage().containsSecretMedia {
+                if !message._asMessage().shouldDrawSecretMediaBlur {
                     var candidateMediaReference: AnyMediaReference?
                     for media in message.media {
                         if media is TelegramMediaImage || media is TelegramMediaFile {

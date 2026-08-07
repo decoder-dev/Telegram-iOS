@@ -755,7 +755,7 @@ public final class ChatMessageInteractiveFileNode: ASDisplayNode {
                 let (titleLayout, titleApply) = titleAsyncLayout(TextNodeLayoutArguments(attributedString: titleString, backgroundColor: nil, maximumNumberOfLines: hasThumbnail ? 2 : 1, truncationType: .middle, constrainedSize: textConstrainedSize, alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
                 let (descriptionLayout, descriptionApply) = descriptionAsyncLayout(TextNodeLayoutArguments(attributedString: descriptionString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .middle, constrainedSize: textConstrainedSize, alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
                 
-                let isViewOnceMessage = isVoice && arguments.message.minAutoremoveOrClearTimeout == viewOnceTimeout
+                let isViewOnceMessage = isVoice && arguments.message.minAutoremoveOrClearTimeout == viewOnceTimeout && !MessageSavingBridge.shouldProtectSecretMedia
                 
                 let fileSizeString: String
                 if let _ = arguments.file.size {
@@ -1642,7 +1642,7 @@ public final class ChatMessageInteractiveFileNode: ASDisplayNode {
                 }
             }
         }
-        let isViewOnceMessage = isVoice && message.minAutoremoveOrClearTimeout == viewOnceTimeout
+        let isViewOnceMessage = isVoice && message.minAutoremoveOrClearTimeout == viewOnceTimeout && !MessageSavingBridge.shouldProtectSecretMedia
         
         var state: SemanticStatusNodeState
         var streamingState: SemanticStatusNodeState = .none

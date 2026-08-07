@@ -641,7 +641,7 @@ final class ChatPinnedMessageTitlePanelNode: ChatTitleAccessoryPanelNode {
             }
         }
         
-        if !message.containsSecretMedia {
+        if !message.shouldDrawSecretMediaBlur {
             for media in message.media {
                 if let image = media as? TelegramMediaImage {
                     updatedMediaReference = .message(message: MessageReference(message), media: image)

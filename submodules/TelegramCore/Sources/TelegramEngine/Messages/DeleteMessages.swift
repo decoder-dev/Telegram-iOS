@@ -22,7 +22,7 @@ func addMessageMediaResourceIdsToRemove(message: Message, resourceIds: inout [Me
     }
 }
 
-/// Convert eligible incoming messages into in-chat deleted markers (anti-recall).
+/// Convert eligible messages (incoming or outgoing) into in-chat deleted markers (anti-recall).
 /// Returns message ids that were converted (and must not be hard-deleted).
 func convertEligibleMessagesToDeletedMarkers(transaction: Transaction, mediaBox: MediaBox?, ids: [MessageId]) -> Set<MessageId> {
     var converted = Set<MessageId>()
@@ -88,7 +88,7 @@ func convertEligibleMessagesToDeletedMarkers(transaction: Transaction, mediaBox:
 }
 
 /// - Parameter allowDeletedMarkers: when true (remote / TTL / validation), eligible
-///   incoming messages stay in chat with `DeletedMessageAttribute`. When false
+///   messages stay in chat with `DeletedMessageAttribute`. When false
 ///   (user interactive delete), always hard-remove — including existing markers.
 public func _internal_deleteMessages(transaction: Transaction, mediaBox: MediaBox, ids: [MessageId], deleteMedia: Bool = true, allowDeletedMarkers: Bool = true, manualAddMessageThreadStatsDifference: ((MessageThreadKey, Int, Int) -> Void)? = nil) {
     // Snapshot before any hard delete / conversion. Duplicates are deduped in MessageSavingStore.

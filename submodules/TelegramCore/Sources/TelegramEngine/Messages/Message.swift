@@ -247,6 +247,10 @@ public extension EngineMessage {
         return self._asMessage().containsSecretMedia
     }
 
+    var shouldDrawSecretMediaBlur: Bool {
+        return self._asMessage().shouldDrawSecretMediaBlur
+    }
+
     func effectiveReactions(isTags: Bool) -> [MessageReaction]? {
         return self._asMessage().effectiveReactions(isTags: isTags)
     }

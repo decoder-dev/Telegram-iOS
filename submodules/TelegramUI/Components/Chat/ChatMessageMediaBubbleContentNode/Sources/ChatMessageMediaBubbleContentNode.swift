@@ -152,7 +152,7 @@ public class ChatMessageMediaBubbleContentNode: ChatMessageBubbleContentNode {
                                     automaticDownload = .prefetch
                                 }
                                 
-                                if !item.message.containsSecretMedia {
+                                if !item.message.shouldDrawSecretMediaBlur {
                                     if telegramFile.isAnimated && item.context.sharedContext.energyUsageSettings.autoplayGif {
                                         if case .full = automaticDownload {
                                             automaticPlayback = true
@@ -178,7 +178,7 @@ public class ChatMessageMediaBubbleContentNode: ChatMessageBubbleContentNode {
                             automaticDownload = .prefetch
                         }
                         
-                        if !item.message.containsSecretMedia {
+                        if !item.message.shouldDrawSecretMediaBlur {
                             if telegramFile.isAnimated && item.context.sharedContext.energyUsageSettings.autoplayGif {
                                 if case .full = automaticDownload {
                                     automaticPlayback = true
@@ -259,7 +259,7 @@ public class ChatMessageMediaBubbleContentNode: ChatMessageBubbleContentNode {
                         automaticDownload = .prefetch
                     }
                     
-                    if !item.message.containsSecretMedia {
+                    if !item.message.shouldDrawSecretMediaBlur {
                         if telegramFile.isAnimated && item.context.sharedContext.energyUsageSettings.autoplayGif {
                             if case .full = automaticDownload {
                                 automaticPlayback = true
