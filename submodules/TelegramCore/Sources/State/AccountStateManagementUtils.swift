@@ -4447,14 +4447,28 @@ func replayFinalState(
                     messageIds: resolvedIds,
                     kind: .deleted
                 )
-                var resourceIds: [MediaResourceId] = []
-                transaction.deleteMessagesWithGlobalIds(ids, forEachMedia: { media in
-                    addMessageMediaResourceIdsToRemove(media: media, resourceIds: &resourceIds)
-                })
-                if !resourceIds.isEmpty {
-                    let _ = mediaBox.removeCachedResources(Array(Set(resourceIds)), force: true).start()
+                let converted = convertEligibleMessagesToDeletedMarkers(transaction: transaction, ids: resolvedIds)
+                let remainingGlobalIds: [Int32]
+                if converted.isEmpty {
+                    remainingGlobalIds = ids
+                } else {
+                    remainingGlobalIds = ids.filter { globalId in
+                        if let resolved = resolvedIds.first(where: { $0.id == globalId }) {
+                            return !converted.contains(resolved)
+                        }
+                        return true
+                    }
                 }
-                deletedMessageIds.append(contentsOf: ids.map { .global($0) })
+                if !remainingGlobalIds.isEmpty {
+                    var resourceIds: [MediaResourceId] = []
+                    transaction.deleteMessagesWithGlobalIds(remainingGlobalIds, forEachMedia: { media in
+                        addMessageMediaResourceIdsToRemove(media: media, resourceIds: &resourceIds)
+                    })
+                    if !resourceIds.isEmpty {
+                        let _ = mediaBox.removeCachedResources(Array(Set(resourceIds)), force: true).start()
+                    }
+                }
+                deletedMessageIds.append(contentsOf: remainingGlobalIds.map { .global($0) })
             case let .DeleteMessages(ids):
                 MessageSavingBridge.snapshotMessages(
                     transaction: transaction,
@@ -4465,7 +4479,9 @@ func replayFinalState(
                 _internal_deleteMessages(transaction: transaction, mediaBox: mediaBox, ids: ids, manualAddMessageThreadStatsDifference: { id, add, remove in
                     addMessageThreadStatsDifference(threadKey: id, remove: remove, addedMessagePeer: nil, addedMessageId: nil, isOutgoing: false)
                 })
-                deletedMessageIds.append(contentsOf: ids.map { .messageId($0) })
+                // Only report hard-deleted ids for dust animation; converted markers stay in history.
+                let stillPresent = Set(ids.filter { transaction.getMessage($0) != nil })
+                deletedMessageIds.append(contentsOf: ids.filter { !stillPresent.contains($0) }.map { .messageId($0) })
             case let .UpdateMinAvailableMessage(id):
                 if let message = transaction.getMessage(id) {
                     updatePeerChatInclusionWithMinTimestamp(transaction: transaction, id: id.peerId, minTimestamp: message.timestamp, forceRootGroupIfNotExists: false)

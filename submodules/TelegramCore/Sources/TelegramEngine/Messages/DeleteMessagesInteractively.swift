@@ -151,7 +151,7 @@ func deleteMessagesInteractively(transaction: Transaction, stateManager: Account
             }
         }
     }
-    _internal_deleteMessages(transaction: transaction, mediaBox: postbox.mediaBox, ids: messageIds.map(\.messageId))
+    _internal_deleteMessages(transaction: transaction, mediaBox: postbox.mediaBox, ids: messageIds.map(\.messageId), allowDeletedMarkers: false)
     
     stateManager?.notifyDeletedMessages(messageIds: messageIds.map(\.messageId))
     

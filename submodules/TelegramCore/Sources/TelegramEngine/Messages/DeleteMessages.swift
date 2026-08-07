@@ -22,16 +22,87 @@ func addMessageMediaResourceIdsToRemove(message: Message, resourceIds: inout [Me
     }
 }
 
-public func _internal_deleteMessages(transaction: Transaction, mediaBox: MediaBox, ids: [MessageId], deleteMedia: Bool = true, manualAddMessageThreadStatsDifference: ((MessageThreadKey, Int, Int) -> Void)? = nil) {
-    // Snapshot before the messages leave Postbox. Covers TTL/autoremove, interactive
-    // "delete for me", secret-chat deletes, and history validation — not only the
-    // replayFinalState DeleteMessages path. Duplicate snapshots from that path are
-    // deduped in MessageSavingStore.
+/// Convert eligible incoming messages into in-chat deleted markers (anti-recall).
+/// Returns message ids that were converted (and must not be hard-deleted).
+func convertEligibleMessagesToDeletedMarkers(transaction: Transaction, ids: [MessageId]) -> Set<MessageId> {
+    var converted = Set<MessageId>()
+    let now = Int32(Date().timeIntervalSince1970)
+    for id in ids {
+        guard let message = transaction.getMessage(id) else { continue }
+        if message.isLocallyDeleted {
+            // Already retained — leave it alone (history validation re-hits).
+            converted.insert(id)
+            continue
+        }
+        guard MessageSavingBridge.shouldRetainInChat(message: message) else { continue }
+
+        transaction.updateMessage(id, update: { currentMessage in
+            if currentMessage.isLocallyDeleted {
+                return .skip
+            }
+            var storeForwardInfo: StoreMessageForwardInfo?
+            if let forwardInfo = currentMessage.forwardInfo {
+                storeForwardInfo = StoreMessageForwardInfo(
+                    authorId: forwardInfo.author?.id,
+                    sourceId: forwardInfo.source?.id,
+                    sourceMessageId: forwardInfo.sourceMessageId,
+                    date: forwardInfo.date,
+                    authorSignature: forwardInfo.authorSignature,
+                    psaType: forwardInfo.psaType,
+                    flags: forwardInfo.flags
+                )
+            }
+            var attributes = currentMessage.attributes.filter { attribute in
+                !(attribute is AutoremoveTimeoutMessageAttribute)
+                    && !(attribute is AutoclearTimeoutMessageAttribute)
+                    && !(attribute is DeletedMessageAttribute)
+            }
+            attributes.append(DeletedMessageAttribute(date: now))
+            return .update(StoreMessage(
+                id: currentMessage.id,
+                customStableId: nil,
+                globallyUniqueId: currentMessage.globallyUniqueId,
+                groupingKey: currentMessage.groupingKey,
+                threadId: currentMessage.threadId,
+                timestamp: currentMessage.timestamp,
+                flags: StoreMessageFlags(currentMessage.flags),
+                tags: currentMessage.tags,
+                globalTags: currentMessage.globalTags,
+                localTags: currentMessage.localTags,
+                forwardInfo: storeForwardInfo,
+                authorId: currentMessage.author?.id,
+                text: currentMessage.text,
+                attributes: attributes,
+                media: currentMessage.media
+            ))
+        })
+        converted.insert(id)
+    }
+    return converted
+}
+
+/// - Parameter allowDeletedMarkers: when true (remote / TTL / validation), eligible
+///   incoming messages stay in chat with `DeletedMessageAttribute`. When false
+///   (user interactive delete), always hard-remove — including existing markers.
+public func _internal_deleteMessages(transaction: Transaction, mediaBox: MediaBox, ids: [MessageId], deleteMedia: Bool = true, allowDeletedMarkers: Bool = true, manualAddMessageThreadStatsDifference: ((MessageThreadKey, Int, Int) -> Void)? = nil) {
+    // Snapshot before any hard delete / conversion. Duplicates are deduped in MessageSavingStore.
     MessageSavingBridge.snapshotDeletedMessages(transaction: transaction, messageIds: ids)
+
+    var hardDeleteIds = ids
+    if allowDeletedMarkers {
+        let converted = convertEligibleMessagesToDeletedMarkers(transaction: transaction, ids: ids)
+        if !converted.isEmpty {
+            hardDeleteIds = ids.filter { !converted.contains($0) }
+        }
+    }
+
+    guard !hardDeleteIds.isEmpty else {
+        return
+    }
 
     var resourceIds: [MediaResourceId] = []
     if deleteMedia {
-        for id in ids {
+        for id in hardDeleteIds {
             if id.peerId.namespace == Namespaces.Peer.SecretChat {
                 if let message = transaction.getMessage(id) {
                     addMessageMediaResourceIdsToRemove(message: message, resourceIds: &resourceIds)
@@ -42,7 +113,7 @@ public func _internal_deleteMessages(transaction: Transaction, mediaBox: MediaBo
     if !resourceIds.isEmpty {
         let _ = mediaBox.removeCachedResources(Array(Set(resourceIds)), force: true).start()
     }
-    for id in ids {
+    for id in hardDeleteIds {
         if id.peerId.namespace == Namespaces.Peer.CloudChannel && id.namespace == Namespaces.Message.Cloud {
             if let message = transaction.getMessage(id) {
                 if let threadId = message.threadId {
@@ -58,7 +129,7 @@ public func _internal_deleteMessages(transaction: Transaction, mediaBox: MediaBo
             }
         }
     }
-    transaction.deleteMessages(ids, forEachMedia: { _ in
+    transaction.deleteMessages(hardDeleteIds, forEachMedia: { _ in
     })
 }
 

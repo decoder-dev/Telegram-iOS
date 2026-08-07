@@ -154,6 +154,9 @@ public enum MessageSavingBridge {
     /// Incoming (MTProto `out` unset) or CountedAsIncoming — excludes the local user's
     /// own outgoing messages in every chat type, including channels.
     private static func shouldSave(message: Message, settings: MessageSavingBridgeSettings) -> Bool {
+        if message.isLocallyDeleted {
+            return false
+        }
         if !message.flags.contains(.Incoming) && !message.flags.contains(.CountedAsIncoming) {
             return false
         }
@@ -164,6 +167,17 @@ public enum MessageSavingBridge {
             return false
         }
         return true
+    }
+
+    /// Whether a remote delete should keep the bubble in chat (anti-recall) instead of removing it.
+    public static func shouldRetainInChat(message: Message) -> Bool {
+        let current = settings.with { $0 }
+        guard current.saveDeleted else { return false }
+        guard shouldSave(message: message, settings: current) else { return false }
+        if message.media.contains(where: { $0 is TelegramMediaAction }) && message.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return false
+        }
+        return displayText(for: message) != nil || !message.media.isEmpty
     }
 
     public static func snapshotMessages(
