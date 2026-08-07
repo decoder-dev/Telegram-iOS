@@ -182,6 +182,7 @@ public class ChatMessageDateAndStatusNode: ASDisplayNode {
         var context: AccountContext
         var presentationData: ChatPresentationData
         var edited: Bool
+        var deleted: Bool
         var impressionCount: Int?
         var dateText: String
         var type: ChatMessageDateAndStatusType
@@ -208,6 +209,7 @@ public class ChatMessageDateAndStatusNode: ASDisplayNode {
             context: AccountContext,
             presentationData: ChatPresentationData,
             edited: Bool,
+            deleted: Bool = false,
             impressionCount: Int?,
             dateText: String,
             type: ChatMessageDateAndStatusType,
@@ -233,6 +235,7 @@ public class ChatMessageDateAndStatusNode: ASDisplayNode {
             self.context = context
             self.presentationData = presentationData
             self.edited = edited
+            self.deleted = deleted
             self.impressionCount = impressionCount == 0 ? nil : impressionCount
             self.dateText = dateText
             self.type = type
@@ -538,7 +541,11 @@ public class ChatMessageDateAndStatusNode: ASDisplayNode {
             }
             
             var updatedDateText = arguments.dateText
-            if arguments.edited {
+            if arguments.deleted {
+                let preferred = Locale.preferredLanguages.first.map { String($0.prefix(2)).lowercased() } ?? "en"
+                let deletedLabel = preferred == "ru" ? "удалено" : "deleted"
+                updatedDateText = "\(deletedLabel) \(updatedDateText)"
+            } else if arguments.edited {
                 if let useEditedTimestamp = arguments.context.getAppConfigValue("message_primary_edited_date") as? Bool, useEditedTimestamp {
                 } else {
                     updatedDateText = "\(arguments.presentationData.strings.Conversation_MessageEditedLabel) \(updatedDateText)"

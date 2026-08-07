@@ -76,7 +76,7 @@ features (stored in AccountManager + App Group UserDefaults for NSE):
 | Hide Mention Notifications | Drops mention pushes in Notification Service (`loc-key` / alert heuristics; App Group + standard defaults) |
 | Hide Pinned Notifications | Drops pinned-message pushes the same way |
 | Keychain Session Backup | Mirrors `AccountBackupData` into the device Keychain for same-bundle E-Sign reinstalls |
-| Save Deleted Messages | AyuGram-style: keep text of remotely deleted messages; **View Deleted** in the chat ⋯ menu |
+| Save Deleted Messages | AyuGram-style anti-recall: deleted incoming messages stay in the chat (marked «deleted») and also appear under **View Deleted** |
 | Save Edit History | Keep previous text when others edit; **Edit History** in the message context menu |
 | Also Save Bot Messages | Include bot chats in the deleted/edit snapshot store |
 

@@ -2599,6 +2599,7 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
                 if item.content.firstMessageAttributes.updatingMedia != nil {
                     edited = true
                 }
+                var deleted = message.isLocallyDeleted
                 var viewCount: Int?
                 var dateReplies = 0
                 var starsCount: Int64?
@@ -2622,6 +2623,9 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
                         }
                         starsCount = attribute.stars.value * Int64(messageCount)
                     }
+                }
+                if deleted {
+                    edited = false
                 }
                 
                 let dateFormat: MessageTimestampStatusFormat
@@ -2656,6 +2660,7 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
                     context: item.context,
                     presentationData: item.presentationData,
                     edited: edited && !item.presentationData.isPreview,
+                    deleted: deleted && !item.presentationData.isPreview,
                     impressionCount: !item.presentationData.isPreview ? viewCount : nil,
                     dateText: dateText,
                     type: statusType,
@@ -3926,6 +3931,10 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
         strongSelf.mainContextSourceNode.frame = CGRect(origin: CGPoint(), size: layout.contentSize)
         strongSelf.mainContextSourceNode.contentNode.frame = CGRect(origin: CGPoint(), size: layout.contentSize)
         strongSelf.contentContainersWrapperNode.frame = CGRect(origin: CGPoint(), size: layout.contentSize)
+        strongSelf.contentContainersWrapperNode.alpha = item.message.isLocallyDeleted ? 0.72 : 1.0
+        if let backgroundNode = strongSelf.backgroundNode {
+            backgroundNode.alpha = item.message.isLocallyDeleted ? 0.85 : 1.0
+        }
         
         strongSelf.appliedItem = item
         strongSelf.appliedForwardInfo = (forwardSource, forwardAuthorSignature)

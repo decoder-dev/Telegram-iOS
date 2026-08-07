@@ -279,6 +279,7 @@ public class ChatMessageTextBubbleContentNode: ChatMessageBubbleContentNode {
                 if item.attributes.updatingMedia != nil {
                     edited = true
                 }
+                var deleted = item.message.isLocallyDeleted
                 var viewCount: Int?
                 var dateReplies = 0
                 var starsCount: Int64?
@@ -299,6 +300,9 @@ public class ChatMessageTextBubbleContentNode: ChatMessageBubbleContentNode {
                     } else if let attribute = attribute as? PaidStarsMessageAttribute, item.message.id.peerId.namespace == Namespaces.Peer.CloudChannel {
                         starsCount = attribute.stars.value
                     }
+                }
+                if deleted {
+                    edited = false
                 }
                 
                 let dateFormat: MessageTimestampStatusFormat
@@ -730,6 +734,7 @@ public class ChatMessageTextBubbleContentNode: ChatMessageBubbleContentNode {
                         context: item.context,
                         presentationData: item.presentationData,
                         edited: edited && !item.presentationData.isPreview,
+                        deleted: deleted && !item.presentationData.isPreview,
                         impressionCount: !item.presentationData.isPreview ? viewCount : nil,
                         dateText: dateText,
                         type: statusType,
