@@ -279,7 +279,7 @@ public class ChatMessageTextBubbleContentNode: ChatMessageBubbleContentNode {
                 if item.attributes.updatingMedia != nil {
                     edited = true
                 }
-                var deleted = item.message.isLocallyDeleted
+                let deleted = item.message.isLocallyDeleted
                 var viewCount: Int?
                 var dateReplies = 0
                 var starsCount: Int64?
