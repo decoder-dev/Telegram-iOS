@@ -3932,9 +3932,7 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
         strongSelf.mainContextSourceNode.contentNode.frame = CGRect(origin: CGPoint(), size: layout.contentSize)
         strongSelf.contentContainersWrapperNode.frame = CGRect(origin: CGPoint(), size: layout.contentSize)
         strongSelf.contentContainersWrapperNode.alpha = item.message.isLocallyDeleted ? 0.72 : 1.0
-        if let backgroundNode = strongSelf.backgroundNode {
-            backgroundNode.alpha = item.message.isLocallyDeleted ? 0.85 : 1.0
-        }
+        strongSelf.backgroundNode.alpha = item.message.isLocallyDeleted ? 0.85 : 1.0
         
         strongSelf.appliedItem = item
         strongSelf.appliedForwardInfo = (forwardSource, forwardAuthorSignature)
