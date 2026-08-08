@@ -234,11 +234,30 @@ public enum MessageSavingBridge {
         return settings.with { $0.saveDeleted }
     }
 
+    private static let preserveQueue = DispatchQueue(label: "MessageSavingBridge.preserve", qos: .utility)
+
     /// Copy attachments early (on open / consume) so TTL can't race the cache eviction.
     public static func preserveMediaIfNeeded(message: Message, mediaBox: MediaBox) {
         let current = settings.with { $0 }
         guard current.saveDeleted, current.saveMedia else { return }
-        let _ = MessageSavingAttachments.copyIfAvailable(message: message, mediaBox: mediaBox)
+        if MessageSavingAttachments.copyIfAvailable(message: message, mediaBox: mediaBox) != nil {
+            return
+        }
+        // The resource is only copyable once fully downloaded, and one-time media is typically
+        // still downloading at the moment the user opens it — giving up here is what loses
+        // exactly the media this feature exists to keep. Retry on a backoff instead.
+        retryPreserve(message: message, mediaBox: mediaBox, attemptsRemaining: 6, delay: 1.0)
+    }
+
+    private static func retryPreserve(message: Message, mediaBox: MediaBox, attemptsRemaining: Int, delay: Double) {
+        guard attemptsRemaining > 0 else { return }
+        preserveQueue.asyncAfter(deadline: .now() + delay) {
+            guard settings.with({ $0.saveDeleted && $0.saveMedia }) else { return }
+            if MessageSavingAttachments.copyIfAvailable(message: message, mediaBox: mediaBox) != nil {
+                return
+            }
+            retryPreserve(message: message, mediaBox: mediaBox, attemptsRemaining: attemptsRemaining - 1, delay: min(delay * 2.0, 16.0))
+        }
     }
 
     public static func snapshotMessages(

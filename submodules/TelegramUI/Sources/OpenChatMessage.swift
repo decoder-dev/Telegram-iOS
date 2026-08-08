@@ -131,6 +131,19 @@ func openChatMessageImpl(_ params: OpenChatMessageParams) -> Bool {
         return true
     }
     
+    // With Save Deleted on, one-time / secret media routes to the NORMAL gallery instead of
+    // SecretMediaPreviewController — which was the only caller of the consume path that copied
+    // the file into Saved Attachments. Without this the early copy never happens and the media
+    // is lost when the server-side TTL delete races the media cache. Copy off the main thread:
+    // this is file I/O and the open path is user-interactive.
+    if params.message.containsSecretMedia {
+        let secretMediaMessage = params.message
+        let secretMediaBox = params.context.account.postbox.mediaBox
+        DispatchQueue.global(qos: .utility).async {
+            MessageSavingBridge.preserveMediaIfNeeded(message: secretMediaMessage, mediaBox: secretMediaBox)
+        }
+    }
+
     if let mediaData = chatMessageGalleryControllerData(context: params.context, chatLocation: params.chatLocation, chatFilterTag: params.chatFilterTag, chatLocationContextHolder: params.chatLocationContextHolder, message: params.message, mediaSubject: params.mediaSubject, navigationController: params.navigationController, standalone: params.standalone, reverseMessageGalleryOrder: params.reverseMessageGalleryOrder, mode: params.mode, source: params.gallerySource, synchronousLoad: false, actionInteraction: params.actionInteraction) {
         switch mediaData {
             case let .url(url):
