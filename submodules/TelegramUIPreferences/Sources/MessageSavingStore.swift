@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 import TelegramCore
 import SwiftSignalKit
 
@@ -29,12 +30,45 @@ public enum MessageSavingStore {
         memory = (try? JSONDecoder().decode([MessageSavingRecord].self, from: data)) ?? []
     }
 
-    private static func persistLocked() {
-        guard let data = try? JSONEncoder().encode(memory) else { return }
-        try? data.write(to: fileURL, options: .atomic)
+    private static var pendingPersist = false
+    private static var observerInstalled = false
+
+    /// Coalesce disk writes. Previously every single saved record triggered a full JSON
+    /// re-encode of the entire store plus an atomic file write, all while holding the lock —
+    /// so a burst of deletions (channel spam cleanup, bulk admin delete) meant hundreds of
+    /// full re-serializations back to back, and main-thread readers blocked on each one.
+    private static func schedulePersistLocked() {
+        guard !self.pendingPersist else { return }
+        self.pendingPersist = true
+        queue.asyncAfter(deadline: .now() + 5.0) {
+            self.persistNow()
+        }
+    }
+
+    private static func persistNow() {
+        lock.lock()
+        self.pendingPersist = false
+        let snapshot = self.memory
+        lock.unlock()
+        // Encode outside the lock: serialization is the expensive part, and holding the lock
+        // through it is what stalled main-thread reads (hasDeleted/hasEdits in context menus).
+        guard let data = try? JSONEncoder().encode(snapshot) else { return }
+        try? data.write(to: self.fileURL, options: .atomic)
+    }
+
+    /// Force any coalesced write out to disk (called when the app leaves the foreground).
+    public static func flush() {
+        self.persistNow()
     }
 
     public static func installBridge() {
+        if !self.observerInstalled {
+            self.observerInstalled = true
+            // Process-lifetime singleton observer — deliberately never removed.
+            NotificationCenter.default.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: nil, using: { _ in
+                MessageSavingStore.flush()
+            })
+        }
         let _ = MessageSavingBridge.append.swap({ record in
             queue.async {
                 append(record)
@@ -63,7 +97,7 @@ public enum MessageSavingStore {
         if memory.count > 5000 {
             memory.removeFirst(memory.count - 5000)
         }
-        persistLocked()
+        schedulePersistLocked()
         lock.unlock()
     }
 
@@ -125,8 +159,9 @@ public enum MessageSavingStore {
                 && record.peerId == peerId
                 && (topicId == nil || topicId == 0 || record.topicId == topicId)
         }
-        persistLocked()
         lock.unlock()
+        // User-initiated and rare — write through immediately so it survives a kill.
+        persistNow()
     }
 
     public static func applySettings(_ settings: ForkExtrasSettings) {
