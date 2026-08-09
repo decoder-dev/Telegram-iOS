@@ -65,6 +65,43 @@ enum MessageSavingAttachments {
         return existingCopyPath(peerId: message.id.peerId.toInt64(), namespace: message.id.namespace, messageId: message.id.id, mediaBox: mediaBox)
     }
 
+    static let ioQueue = DispatchQueue(label: "MessageSaving.IO", qos: .utility)
+
+    /// Same as `copyIfAvailable`, but the byte copy runs off the caller's thread and the
+    /// destination path is returned immediately. Use this from inside a Postbox transaction:
+    /// copying a large video synchronously there holds the database lock for the whole of the
+    /// file I/O, which stalls every other transaction behind it.
+    /// Resolving the source and destination is only path arithmetic plus a directory listing,
+    /// so it stays on the caller's thread and the returned path is still deterministic.
+    static func scheduleCopy(message: Message, mediaBox: MediaBox) -> String? {
+        if let existing = existingCopyPath(message: message, mediaBox: mediaBox) {
+            return existing
+        }
+        guard let source = sourcePath(message: message, mediaBox: mediaBox) else {
+            return nil
+        }
+        let dest = destinationURL(message: message, source: source, mediaBox: mediaBox)
+        ioQueue.async {
+            if FileManager.default.fileExists(atPath: dest.path) {
+                return
+            }
+            try? FileManager.default.copyItem(atPath: source, toPath: dest.path)
+        }
+        return dest.path
+    }
+
+    private static func destinationURL(message: Message, source: String, mediaBox: MediaBox) -> URL {
+        let ext: String
+        let sourceExtension = (source as NSString).pathExtension
+        if !sourceExtension.isEmpty {
+            ext = sourceExtension
+        } else {
+            ext = "bin"
+        }
+        let base = baseName(peerId: message.id.peerId.toInt64(), namespace: message.id.namespace, messageId: message.id.id, mediaBox: mediaBox)
+        return directoryURL.appendingPathComponent("\(base).\(ext)")
+    }
+
     /// Copy the best available local media file for `message`. Returns the destination path, or nil.
     static func copyIfAvailable(message: Message, mediaBox: MediaBox) -> String? {
         // Check the durable copy BEFORE asking MediaBox for a source: once the Telegram cache is
@@ -76,14 +113,7 @@ enum MessageSavingAttachments {
         guard let source = sourcePath(message: message, mediaBox: mediaBox) else {
             return nil
         }
-        let ext: String
-        let sourceExtension = (source as NSString).pathExtension
-        if !sourceExtension.isEmpty {
-            ext = sourceExtension
-        } else {
-            ext = "bin"
-        }
-        let dest = directoryURL.appendingPathComponent("\(baseName(peerId: message.id.peerId.toInt64(), namespace: message.id.namespace, messageId: message.id.id, mediaBox: mediaBox)).\(ext)")
+        let dest = destinationURL(message: message, source: source, mediaBox: mediaBox)
         do {
             try FileManager.default.copyItem(atPath: source, toPath: dest.path)
             return dest.path

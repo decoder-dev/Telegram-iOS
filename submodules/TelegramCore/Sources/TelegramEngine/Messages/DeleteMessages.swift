@@ -39,7 +39,7 @@ func convertEligibleMessagesToDeletedMarkers(transaction: Transaction, mediaBox:
 
         var mediaPath: String?
         if saveMedia, let mediaBox {
-            mediaPath = MessageSavingAttachments.copyIfAvailable(message: message, mediaBox: mediaBox)
+            mediaPath = MessageSavingAttachments.scheduleCopy(message: message, mediaBox: mediaBox)
         }
 
         transaction.updateMessage(id, update: { currentMessage in

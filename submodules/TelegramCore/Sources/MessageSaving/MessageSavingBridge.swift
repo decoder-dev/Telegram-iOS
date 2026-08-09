@@ -314,14 +314,9 @@ public enum MessageSavingBridge {
     public static func preserveMediaIfNeeded(message: Message, accountPeerId: PeerId? = nil, mediaBox: MediaBox) {
         let current = settings.with { $0 }
         guard current.saveDeleted, current.saveMedia else { return }
-        if let path = MessageSavingAttachments.copyIfAvailable(message: message, mediaBox: mediaBox) {
-            log("preserve: durable copy available immediately \(message.id.id)")
-            linkMediaPath(path, message: message, accountPeerId: accountPeerId)
-            return
-        }
-        // The resource is only copyable once fully downloaded, and one-time media is typically
-        // still downloading at the moment the user opens it — giving up here is what loses
-        // exactly the media this feature exists to keep. Retry on a backoff instead.
+        // Callers include code running inside a Postbox transaction (consume-on-open), so no
+        // filesystem work may happen on this thread: a synchronous copy would hold the database
+        // lock for the duration of the I/O. Everything below is dispatched.
         let key = PreserveKey(
             accountScope: mediaBox.basePath,
             peerId: message.id.peerId.toInt64(),
@@ -343,7 +338,8 @@ public enum MessageSavingBridge {
             log("preserve: retry already pending for \(message.id.id)")
             return
         }
-        retryPreserve(message: message, accountPeerId: accountPeerId, mediaBox: mediaBox, key: key, attemptsRemaining: 6, delay: 1.0)
+        // delay 0: first attempt runs immediately, just not on the caller's thread.
+        retryPreserve(message: message, accountPeerId: accountPeerId, mediaBox: mediaBox, key: key, attemptsRemaining: 7, delay: 0.0)
     }
 
     private static func finishPreserve(_ key: PreserveKey) {
@@ -371,7 +367,7 @@ public enum MessageSavingBridge {
                 finishPreserve(key)
                 return
             }
-            retryPreserve(message: message, accountPeerId: accountPeerId, mediaBox: mediaBox, key: key, attemptsRemaining: attemptsRemaining - 1, delay: min(delay * 2.0, 16.0))
+            retryPreserve(message: message, accountPeerId: accountPeerId, mediaBox: mediaBox, key: key, attemptsRemaining: attemptsRemaining - 1, delay: min(max(1.0, delay * 2.0), 16.0))
         }
     }
 
@@ -410,7 +406,7 @@ public enum MessageSavingBridge {
 
             var mediaPath: String?
             if kind == .deleted, current.saveMedia, let mediaBox {
-                mediaPath = MessageSavingAttachments.copyIfAvailable(message: message, mediaBox: mediaBox)
+                mediaPath = MessageSavingAttachments.scheduleCopy(message: message, mediaBox: mediaBox)
             }
 
             let record = MessageSavingRecord(
@@ -452,7 +448,7 @@ public enum MessageSavingBridge {
 
         var mediaPath: String?
         if kind == .deleted, current.saveMedia, let mediaBox {
-            mediaPath = MessageSavingAttachments.copyIfAvailable(message: message, mediaBox: mediaBox)
+            mediaPath = MessageSavingAttachments.scheduleCopy(message: message, mediaBox: mediaBox)
         }
 
         let record = MessageSavingRecord(
