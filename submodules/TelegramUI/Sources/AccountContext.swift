@@ -306,39 +306,6 @@ public final class AccountContextImpl: AccountContext {
             self.starsContext = self.engine.payments.peerStarsContext()
             self.tonContext = self.engine.payments.peerTonContext()
             self.giftAuctionsManager = GiftAuctionsManager(account: account)
-
-            // AyuGram Message Filters: only page blocked peers while Hide Blocked Messages is on.
-            let accountPeerId = account.peerId
-            self.hideBlockedMessagesDisposable = (forkExtrasSettings(accountManager: sharedContext.accountManager)
-            |> map { $0.hideBlockedMessages }
-            |> distinctUntilChanged
-            |> deliverOnMainQueue).start(next: { [weak self] enabled in
-                guard let self else {
-                    return
-                }
-                if enabled {
-                    if self.blockedPeersContext != nil {
-                        return
-                    }
-                    let blockedContext = BlockedPeersContext(account: account, subject: .blocked)
-                    self.blockedPeersContext = blockedContext
-                    self.blockedPeersDisposable?.dispose()
-                    self.blockedPeersDisposable = (blockedContext.state
-                    |> deliverOnMainQueue).start(next: { [weak blockedContext] state in
-                        // Ids only — do not retain RenderedPeer graph in the filter path.
-                        let ids = Set(state.peers.map(\.peerId))
-                        ForkBlockedPeersFilter.update(accountPeerId: accountPeerId, peerIds: ids)
-                        if state.canLoadMore && !state.isLoadingMore {
-                            blockedContext?.loadMore()
-                        }
-                    })
-                } else {
-                    self.blockedPeersDisposable?.dispose()
-                    self.blockedPeersDisposable = nil
-                    self.blockedPeersContext = nil
-                    ForkBlockedPeersFilter.update(accountPeerId: accountPeerId, peerIds: [])
-                }
-            })
         } else {
             self.prefetchManager = nil
             self.wallpaperUploadManager = nil
