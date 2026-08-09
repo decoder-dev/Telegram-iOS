@@ -7801,18 +7801,19 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
             
             if case let .peer(peerId) = self.chatLocation, self.screenCaptureManager == nil {
                 if peerId.namespace == Namespaces.Peer.SecretChat {
-                    self.screenCaptureManager = ScreenCaptureDetectionManager(check: { [weak self] in
-                        if let strongSelf = self, strongSelf.traceVisibility() {
-                            // AyuGram: allow secret screenshots without notifying the peer.
-                            if !ForkSecretScreenshotSettings.allow,
-                               strongSelf.canReadHistoryValue {
-                                let _ = strongSelf.context.engine.messages.addSecretChatMessageScreenshot(peerId: peerId).startStandalone()
+                    // AyuGram: skip capture detection entirely when secret screenshots are allowed.
+                    if !ForkSecretScreenshotSettings.allow {
+                        self.screenCaptureManager = ScreenCaptureDetectionManager(check: { [weak self] in
+                            if let strongSelf = self, strongSelf.traceVisibility() {
+                                if strongSelf.canReadHistoryValue {
+                                    let _ = strongSelf.context.engine.messages.addSecretChatMessageScreenshot(peerId: peerId).startStandalone()
+                                }
+                                return true
+                            } else {
+                                return false
                             }
-                            return true
-                        } else {
-                            return false
-                        }
-                    })
+                        })
+                    }
                 } else if peerId.isTelegramNotifications {
                     self.screenCaptureManager = ScreenCaptureDetectionManager(check: { [weak self] in
                         if let strongSelf = self, strongSelf.traceVisibility() {
@@ -8897,6 +8898,19 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
             defaultReplyMessageSubject = EngineMessageReplySubject(messageId: editingOriginalMessageId, quote: nil, innerSubject: nil)
         }
         
+        var isScheduledMessagesSubject = false
+        if case .scheduledMessages = self.presentationInterfaceState.subject {
+            isScheduledMessagesSubject = true
+        }
+        // Hoist once per send — albums must share one schedule base timestamp.
+        let applyGhostSchedule = scheduleTime == nil
+            && !isScheduledMessagesSubject
+            && ForkGhostScheduleSettings.enabled
+            && ForkGhostModeSettings.suppressMessageReads
+            && ForkGhostModeSettings.suppressOutgoingActivity
+            && ForkGhostModeSettings.suppressOnline
+        let ghostScheduleBaseTimestamp = applyGhostSchedule ? Int32(Date().timeIntervalSince1970) : 0
+
         return messages.map { message in
             var message = message
             
@@ -8995,23 +9009,12 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                         ))
                     }
                 }
-                // AyuGram Ghost Schedule Messages: delay-send when full Ghost Mode + toggle are on
-                // and the user didn't already pick a schedule time.
-                var isScheduledMessagesSubject = false
-                if case .scheduledMessages = self.presentationInterfaceState.subject {
-                    isScheduledMessagesSubject = true
-                }
-                // Cheap static gates first — avoid copying ForkExtrasSettings unless scheduling applies.
-                if scheduleTime == nil,
-                   !isScheduledMessagesSubject,
-                   ForkGhostScheduleSettings.enabled,
-                   ForkGhostModeSettings.suppressMessageReads,
-                   ForkGhostModeSettings.suppressOutgoingActivity,
-                   ForkGhostModeSettings.suppressOnline,
+                // AyuGram Ghost Schedule Messages: delay-send when full Ghost Mode + toggle are on.
+                if applyGhostSchedule,
                    attributes.first(where: { $0 is OutgoingScheduleInfoMessageAttribute }) == nil {
                     let delay = Self.forkGhostScheduleDelaySeconds(for: message)
                     attributes.append(OutgoingScheduleInfoMessageAttribute(
-                        scheduleTime: Int32(Date().timeIntervalSince1970) + delay,
+                        scheduleTime: ghostScheduleBaseTimestamp + delay,
                         repeatPeriod: nil
                     ))
                 }

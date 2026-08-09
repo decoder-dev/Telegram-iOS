@@ -35,6 +35,10 @@ func shouldExcludePeerFromChatList(transaction: Transaction, peerId: PeerId, pee
         case .member:
             return isPeerHiddenByCollapsedCommunity(transaction: transaction, peerId: peerId, peer: channel)
         case .kicked:
+            // Pass-through peers (creationDate == 0) never belong in the chat list.
+            if channel.creationDate == 0 {
+                return true
+            }
             // AyuGram: keep banned/kicked channels/supergroups in the chat list.
             return !ForkKeepBannedChatsSettings.enabled
         default:
@@ -391,10 +395,12 @@ public func updatePeersCustom(transaction: Transaction, peers: [Peer], update: (
                             updatePeerChatInclusionWithMinTimestamp(transaction: transaction, id: peerId, minTimestamp: channel.creationDate, forceRootGroupIfNotExists: true, peer: channel)
                         case .left:
                             transaction.updatePeerChatListInclusion(peerId, inclusion: .notIncluded)
-                        case .kicked where ForkKeepBannedChatsSettings.enabled:
-                            updatePeerChatInclusionWithMinTimestamp(transaction: transaction, id: peerId, minTimestamp: channel.creationDate, forceRootGroupIfNotExists: true, peer: channel)
                         case .kicked where channel.creationDate == 0:
+                            // Pass-through / unknown channels stay out of the chat list.
                             transaction.updatePeerChatListInclusion(peerId, inclusion: .notIncluded)
+                        case .kicked where ForkKeepBannedChatsSettings.enabled:
+                            // AyuGram: keep real kicked chats; do not force-create root entries.
+                            updatePeerChatInclusionWithMinTimestamp(transaction: transaction, id: peerId, minTimestamp: channel.creationDate, forceRootGroupIfNotExists: false, peer: channel)
                         default:
                             transaction.updatePeerChatListInclusion(peerId, inclusion: .notIncluded)
                         }

@@ -20,19 +20,20 @@ import TranslateUI
 /// AyuGram: when secret screenshots are allowed, drop capture protection for secret chat / secret media
 /// while keeping noforwards / paid / peer copy-protection intact.
 private func forkCaptureProtected(message: Message, peerIsCopyProtected: Bool, additionalSecret: Bool = false) -> Bool {
-    let base = message.isCopyProtected() || message.shouldDrawSecretMediaBlur || message.paidContent != nil || peerIsCopyProtected || additionalSecret || message.id.peerId.namespace == Namespaces.Peer.SecretChat
-    guard ForkSecretScreenshotSettings.allow else {
-        return base
+    let allowSecretScreenshots = ForkSecretScreenshotSettings.allow
+    // `shouldDrawSecretMediaBlur` takes a settings lock — evaluate once.
+    let drawsSecretBlur = message.shouldDrawSecretMediaBlur
+    if allowSecretScreenshots {
+        let isSecretSurface = message.id.peerId.namespace == Namespaces.Peer.SecretChat
+            || drawsSecretBlur
+            || message.autoclearAttribute != nil
+            || message.autoremoveAttribute != nil
+            || additionalSecret
+        if isSecretSurface {
+            return message.isCopyProtected() || peerIsCopyProtected || message.paidContent != nil
+        }
     }
-    let isSecretSurface = message.id.peerId.namespace == Namespaces.Peer.SecretChat
-        || message.shouldDrawSecretMediaBlur
-        || message.autoclearAttribute != nil
-        || message.autoremoveAttribute != nil
-        || additionalSecret
-    if isSecretSurface {
-        return message.isCopyProtected() || peerIsCopyProtected || message.paidContent != nil
-    }
-    return base
+    return message.isCopyProtected() || drawsSecretBlur || message.paidContent != nil || peerIsCopyProtected || additionalSecret || message.id.peerId.namespace == Namespaces.Peer.SecretChat
 }
 
 private func tagsForMessage(_ message: Message) -> MessageTags? {
