@@ -133,12 +133,56 @@ public enum MessageSavingStore {
         }
     }
 
+    /// Overridden by tests so they neither read nor overwrite the real store. Nil in the app.
+    private static var overrideDirectory: URL?
+
     private static var fileURL: URL {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-            ?? FileManager.default.temporaryDirectory
-        let dir = base.appendingPathComponent("MessageSaving", isDirectory: true)
+        let dir: URL
+        if let overrideDirectory = self.overrideDirectory {
+            dir = overrideDirectory
+        } else {
+            let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+                ?? FileManager.default.temporaryDirectory
+            dir = base.appendingPathComponent("MessageSaving", isDirectory: true)
+        }
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir.appendingPathComponent("records.json")
+    }
+
+    /// Point the store at `directory` and drop all in-memory state, so each test starts clean.
+    /// `loaded` is cleared rather than set, so the next access reads whatever is in `directory` —
+    /// a fresh directory yields an empty store, and pointing two runs at the same directory
+    /// exercises the load path.
+    ///
+    /// Test-only: the app never calls this, and calling it at runtime would discard unsaved
+    /// records.
+    public static func resetForTesting(directory: URL) {
+        lock.lock()
+        self.overrideDirectory = directory
+        self.memory = []
+        self.deletedIndex.removeAll()
+        self.editIndex.removeAll()
+        self.storeGeneration = 0
+        self.pendingPersist = false
+        self.loaded = false
+        lock.unlock()
+        writeLock.lock()
+        self.lastWrittenGeneration = 0
+        writeLock.unlock()
+    }
+
+    /// Number of retained versions of one message, for tests asserting the per-message cap.
+    public static func editCountForTesting(accountPeerId: Int64, peerId: Int64, messageId: Int32, namespace: Int32) -> Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return editIndex[EditIndexKey(accountPeerId: accountPeerId, peerId: peerId, namespace: namespace, messageId: messageId)] ?? 0
+    }
+
+    /// Total retained records, for tests asserting eviction.
+    public static var recordCountForTesting: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return memory.count
     }
 
     private static func loadIfNeeded() {
@@ -428,17 +472,33 @@ public enum MessageSavingStore {
     private static func removeOrphanedAttachments(candidates: [String], remaining: [MessageSavingRecord]) {
         guard !candidates.isEmpty else { return }
         let stillReferenced = Set(remaining.compactMap { $0.mediaPath })
-        let root = MessageSavingBridge.savedAttachmentsDirectory.standardizedFileURL
-        let rootComponents = root.pathComponents
+        let root = MessageSavingBridge.savedAttachmentsDirectory
         for path in Set(candidates) where !stillReferenced.contains(path) {
-            let url = URL(fileURLWithPath: path).standardizedFileURL
-            let components = url.pathComponents
-            guard components.count > rootComponents.count,
-                  Array(components.prefix(rootComponents.count)) == rootComponents else {
+            guard isPath(path, strictlyInside: root) else {
                 continue
             }
-            try? FileManager.default.removeItem(at: url)
+            try? FileManager.default.removeItem(at: URL(fileURLWithPath: path))
         }
+    }
+
+    /// Whether `path` names something strictly below `root`.
+    ///
+    /// Compared by path component after standardizing, which is what makes the check safe: a
+    /// prefix comparison on the raw string would accept a sibling directory whose name merely
+    /// starts the same way ("…/Saved Attachments Backup"), and skipping standardization would
+    /// accept a path escaping through "..". `root` itself is not inside itself, so a stored path
+    /// equal to the directory can never delete the whole folder.
+    ///
+    /// Exposed for tests: this guard is the only thing standing between a corrupted stored path
+    /// and `FileManager.removeItem`, so it is worth asserting directly rather than through the
+    /// filesystem.
+    public static func isPath(_ path: String, strictlyInside root: URL) -> Bool {
+        let rootComponents = root.standardizedFileURL.pathComponents
+        let components = URL(fileURLWithPath: path).standardizedFileURL.pathComponents
+        guard components.count > rootComponents.count else {
+            return false
+        }
+        return Array(components.prefix(rootComponents.count)) == rootComponents
     }
 
     public static func applySettings(_ settings: ForkExtrasSettings) {
