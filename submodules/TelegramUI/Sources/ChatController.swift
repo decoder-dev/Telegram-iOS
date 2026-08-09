@@ -2193,7 +2193,11 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                 }
             }
 
-            let isSecret = strongSelf.presentationInterfaceState.copyProtectionEnabled || strongSelf.chatLocation.peerId?.namespace == Namespaces.Peer.SecretChat
+            var isSecret = strongSelf.presentationInterfaceState.copyProtectionEnabled || strongSelf.chatLocation.peerId?.namespace == Namespaces.Peer.SecretChat
+            if strongSelf.context.sharedContext.immediateForkExtrasSettings.allowSecretScreenshots,
+               strongSelf.chatLocation.peerId?.namespace == Namespaces.Peer.SecretChat {
+                isSecret = strongSelf.presentationInterfaceState.copyProtectionEnabled
+            }
             let pinchController = makePinchController(sourceNode: sourceNode, disableScreenshots: isSecret, getContentAreaInScreenSpace: {
                 guard let strongSelf = self else {
                     return CGRect()
@@ -7799,7 +7803,9 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                 if peerId.namespace == Namespaces.Peer.SecretChat {
                     self.screenCaptureManager = ScreenCaptureDetectionManager(check: { [weak self] in
                         if let strongSelf = self, strongSelf.traceVisibility() {
-                            if strongSelf.canReadHistoryValue {
+                            // AyuGram: allow secret screenshots without notifying the peer.
+                            if !strongSelf.context.sharedContext.immediateForkExtrasSettings.allowSecretScreenshots,
+                               strongSelf.canReadHistoryValue {
                                 let _ = strongSelf.context.engine.messages.addSecretChatMessageScreenshot(peerId: peerId).startStandalone()
                             }
                             return true
@@ -8989,8 +8995,47 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                         ))
                     }
                 }
+                // AyuGram Ghost Schedule Messages: delay-send when full Ghost Mode + toggle are on
+                // and the user didn't already pick a schedule time.
+                var isScheduledMessagesSubject = false
+                if case .scheduledMessages = self.presentationInterfaceState.subject {
+                    isScheduledMessagesSubject = true
+                }
+                if scheduleTime == nil,
+                   !isScheduledMessagesSubject,
+                   attributes.first(where: { $0 is OutgoingScheduleInfoMessageAttribute }) == nil {
+                    let forkExtras = self.context.sharedContext.immediateForkExtrasSettings
+                    if forkExtras.ghostScheduleMessages, forkExtras.isFullGhostMode {
+                        let delay = Self.forkGhostScheduleDelaySeconds(for: message)
+                        attributes.append(OutgoingScheduleInfoMessageAttribute(
+                            scheduleTime: Int32(Date().timeIntervalSince1970) + delay,
+                            repeatPeriod: nil
+                        ))
+                    }
+                }
                 return attributes
             }
+        }
+    }
+
+    /// AyuGram formula: text = 12s; media = max(6, ceil(MB * 4.5)).
+    private static func forkGhostScheduleDelaySeconds(for message: EnqueueMessage) -> Int32 {
+        switch message {
+        case let .message(_, _, _, mediaReference, _, _, _, _, _, _):
+            guard let media = mediaReference?.media else {
+                return 12
+            }
+            var byteCount: Int64 = 0
+            if let file = media as? TelegramMediaFile, let size = file.size, size > 0, size != .max {
+                byteCount = size
+            }
+            if byteCount > 0 {
+                let megabytes = Double(byteCount) / 1024.0 / 1024.0
+                return Int32(max(6, Int(ceil(megabytes * 4.5))))
+            }
+            return 6
+        case .forward:
+            return 12
         }
     }
     

@@ -17,6 +17,24 @@ import ScreenCaptureDetection
 import UndoUI
 import TranslateUI
 
+/// AyuGram: when secret screenshots are allowed, drop capture protection for secret chat / secret media
+/// while keeping noforwards / paid / peer copy-protection intact.
+private func forkCaptureProtected(message: Message, peerIsCopyProtected: Bool, additionalSecret: Bool = false) -> Bool {
+    let base = message.isCopyProtected() || message.shouldDrawSecretMediaBlur || message.paidContent != nil || peerIsCopyProtected || additionalSecret || message.id.peerId.namespace == Namespaces.Peer.SecretChat
+    guard ForkSecretScreenshotSettings.allow else {
+        return base
+    }
+    let isSecretSurface = message.id.peerId.namespace == Namespaces.Peer.SecretChat
+        || message.shouldDrawSecretMediaBlur
+        || message.autoclearAttribute != nil
+        || message.autoremoveAttribute != nil
+        || additionalSecret
+    if isSecretSurface {
+        return message.isCopyProtected() || peerIsCopyProtected || message.paidContent != nil
+    }
+    return base
+}
+
 private func tagsForMessage(_ message: Message) -> MessageTags? {
     //TODO:rewrite to take all media (effectiveMedia returns all rich-text media; we stop at the first)
     for media in message.effectiveMedia {
@@ -291,7 +309,7 @@ public func galleryItemForEntry(
     
     if let image = media as? TelegramMediaImage {
         if let file = image.video {
-            let captureProtected = message.isCopyProtected() || message.shouldDrawSecretMediaBlur || message.paidContent != nil || peerIsCopyProtected
+            let captureProtected = forkCaptureProtected(message: message, peerIsCopyProtected: peerIsCopyProtected)
             
             var originData = GalleryItemOriginData(title: message.effectiveAuthor.flatMap(EnginePeer.init)?.displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder), timestamp: message.timestamp)
             if Namespaces.Message.allNonRegular.contains(message.id.namespace) {
@@ -348,7 +366,7 @@ public func galleryItemForEntry(
     } else if let file = media as? TelegramMediaFile {
         if file.isVideo {
             let content: UniversalVideoContent
-            let captureProtected = message.isCopyProtected() || message.shouldDrawSecretMediaBlur || message.paidContent != nil || peerIsCopyProtected
+            let captureProtected = forkCaptureProtected(message: message, peerIsCopyProtected: peerIsCopyProtected)
             if file.isAnimated {
                 content = NativeVideoContent(id: .message(message.stableId, file.fileId), userLocation: .peer(message.id.peerId), fileReference: .message(message: MessageReference(message), media: file), imageReference: mediaImage.flatMap({ ImageMediaReference.message(message: MessageReference(message), media: $0) }), loopVideo: true, enableSound: false, tempFilePath: tempFilePath, captureProtected: captureProtected, storeAfterDownload: generateStoreAfterDownload?(message, file))
             } else {
@@ -478,11 +496,11 @@ public func galleryItemForEntry(
         var content: UniversalVideoContent?
         switch websiteType(of: webpageContent.websiteName) {
         case .instagram where webpageContent.file != nil && webpageContent.image != nil && webpageContent.file!.isVideo:
-            content = NativeVideoContent(id: .message(message.stableId, webpageContent.file?.id ?? webpage.webpageId), userLocation: .peer(message.id.peerId), fileReference: .message(message: MessageReference(message), media: webpageContent.file!), imageReference: webpageContent.image.flatMap({ ImageMediaReference.message(message: MessageReference(message), media: $0) }), streamVideo: .conservative, enableSound: true, captureProtected: message.isCopyProtected() || message.shouldDrawSecretMediaBlur || peerIsCopyProtected, storeAfterDownload: nil)
+            content = NativeVideoContent(id: .message(message.stableId, webpageContent.file?.id ?? webpage.webpageId), userLocation: .peer(message.id.peerId), fileReference: .message(message: MessageReference(message), media: webpageContent.file!), imageReference: webpageContent.image.flatMap({ ImageMediaReference.message(message: MessageReference(message), media: $0) }), streamVideo: .conservative, enableSound: true, captureProtected: forkCaptureProtected(message: message, peerIsCopyProtected: peerIsCopyProtected), storeAfterDownload: nil)
         default:
             if let embedUrl = webpageContent.embedUrl, let image = webpageContent.image {
                 if let file = webpageContent.file, file.isVideo {
-                    content = NativeVideoContent(id: .message(message.stableId, file.fileId), userLocation: .peer(message.id.peerId), fileReference: .message(message: MessageReference(message), media: file), imageReference: mediaImage.flatMap({ ImageMediaReference.message(message: MessageReference(message), media: $0) }), streamVideo: .conservative, loopVideo: loopVideos, tempFilePath: tempFilePath, captureProtected: message.isCopyProtected() || message.shouldDrawSecretMediaBlur || peerIsCopyProtected, storeAfterDownload: generateStoreAfterDownload?(message, file))
+                    content = NativeVideoContent(id: .message(message.stableId, file.fileId), userLocation: .peer(message.id.peerId), fileReference: .message(message: MessageReference(message), media: file), imageReference: mediaImage.flatMap({ ImageMediaReference.message(message: MessageReference(message), media: $0) }), streamVideo: .conservative, loopVideo: loopVideos, tempFilePath: tempFilePath, captureProtected: forkCaptureProtected(message: message, peerIsCopyProtected: peerIsCopyProtected), storeAfterDownload: generateStoreAfterDownload?(message, file))
                 } else if URL(string: embedUrl)?.pathExtension == "mp4" {
                     content = SystemVideoContent(userLocation: .peer(message.id.peerId), url: embedUrl, imageReference: .webPage(webPage: WebpageReference(webpage), media: image), dimensions: webpageContent.embedSize?.cgSize ?? CGSize(width: 640.0, height: 640.0), duration: webpageContent.duration.flatMap(Double.init) ?? 0.0)
                 }
@@ -1433,6 +1451,10 @@ public class GalleryController: ViewController, StandalonePresentableController,
                 self.screenCaptureEventsDisposable = (screenCaptureEvents()
                 |> deliverOnMainQueue).start(next: { [weak self] _ in
                     if let strongSelf = self, strongSelf.traceVisibility() {
+                        // AyuGram: allow secret screenshots without notifying the peer.
+                        if ForkSecretScreenshotSettings.allow {
+                            return
+                        }
                         let _ = strongSelf.context.engine.messages.addSecretChatMessageScreenshot(peerId: id.peerId).start()
                     }
                 }).strict()

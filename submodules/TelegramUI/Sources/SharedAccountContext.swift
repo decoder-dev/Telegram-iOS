@@ -544,6 +544,14 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         // (settings stayed disabled / append was nil), so View Deleted stayed empty.
         MessageSavingStore.installBridge()
         MessageSavingStore.applySettings(immediateForkExtrasSettingsValue.with { $0 })
+        // Eager Core pushdown from current immediate defaults (sharedData signal is async).
+        do {
+            let settings = immediateForkExtrasSettingsValue.with { $0 }
+            ForkSecretScreenshotSettings.allow = settings.allowSecretScreenshots
+            ForkExpireTtlSettings.enabled = settings.expireTtlButton
+            ForkKeepBannedChatsSettings.enabled = settings.keepBannedChats
+            ForkAyuForwardSettings.enabled = settings.ayuForward
+        }
         self.forkExtrasSettingsDisposable = (self.accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.forkExtrasSettings])
         |> deliverOnMainQueue).start(next: { sharedData in
             let settings = sharedData.entries[ApplicationSpecificSharedDataKeys.forkExtrasSettings]?.get(ForkExtrasSettings.self) ?? .defaultSettings
@@ -564,6 +572,9 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             ForkGhostModeSettings.goOfflineAutomatically = settings.ghostGoOfflineAutomatically
             ForkGhostModeSettings.readOnInteract = settings.ghostReadOnInteract
             ForkAyuForwardSettings.enabled = settings.ayuForward
+            ForkSecretScreenshotSettings.allow = settings.allowSecretScreenshots
+            ForkExpireTtlSettings.enabled = settings.expireTtlButton
+            ForkKeepBannedChatsSettings.enabled = settings.keepBannedChats
         })
         
         let _ = self.contactDataManager?.personNameDisplayOrder().start(next: { order in

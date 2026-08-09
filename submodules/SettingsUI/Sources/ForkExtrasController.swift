@@ -69,6 +69,18 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.HideAdsFooter": "Hide sponsored and recommended messages in chats (AyuGram Message Filters).",
             "ForkExtras.HideBlockedMessages": "Hide Blocked Users",
             "ForkExtras.HideBlockedMessagesFooter": "Hide messages and typing from users you've blocked.",
+            "ForkExtras.GhostScheduleMessages": "Schedule Messages (Ghost)",
+            "ForkExtras.GhostScheduleMessagesFooter": "When full Ghost Mode is on, delay sending (text 12s; media max(6, ceil(MB×4.5))) so you stay offline (AyuGram).",
+            "ForkExtras.AllowSecretScreenshots": "Screenshots in Secret Chats",
+            "ForkExtras.AllowSecretScreenshotsFooter": "Allow screenshots in secret chats and of secret media, without notifying the peer.",
+            "ForkExtras.ExpireTtlButton": "Expire TTL Button",
+            "ForkExtras.ExpireTtlButtonFooter": "Tap the flame on expiring photos/videos to expire them immediately.",
+            "ForkExtras.KeepBannedChats": "Keep Banned Chats",
+            "ForkExtras.KeepBannedChatsFooter": "Keep chats where you were banned or kicked in the chat list.",
+            "ForkExtras.RegexFilters": "Regex Message Filters",
+            "ForkExtras.RegexFiltersCaseInsensitive": "Case Insensitive",
+            "ForkExtras.RegexFiltersPatterns": "Patterns (one per line)",
+            "ForkExtras.RegexFiltersFooter": "Hide messages matching any NSRegularExpression pattern (AyuGram Message Filters).",
             "ForkExtras.ViewDeleted": "View Deleted",
             "ForkExtras.EditHistory": "Edit History",
             "ForkExtras.ClearDeleted": "Clear Deleted",
@@ -133,6 +145,18 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.HideAdsFooter": "Скрывать спонсорские и рекомендованные сообщения в чатах (фильтры AyuGram).",
             "ForkExtras.HideBlockedMessages": "Скрыть заблокированных",
             "ForkExtras.HideBlockedMessagesFooter": "Скрывать сообщения и набор текста от заблокированных пользователей.",
+            "ForkExtras.GhostScheduleMessages": "Отложенная отправка (призрак)",
+            "ForkExtras.GhostScheduleMessagesFooter": "При полном режиме призрака откладывать отправку (текст 12 с; медиа max(6, ceil(МБ×4.5))), чтобы оставаться офлайн (AyuGram).",
+            "ForkExtras.AllowSecretScreenshots": "Скриншоты в секретных чатах",
+            "ForkExtras.AllowSecretScreenshotsFooter": "Разрешить скриншоты в секретных чатах и секретного медиа без уведомления собеседника.",
+            "ForkExtras.ExpireTtlButton": "Кнопка Expire TTL",
+            "ForkExtras.ExpireTtlButtonFooter": "Нажатие на пламя у самоуничтожающихся фото/видео сразу истекает их.",
+            "ForkExtras.KeepBannedChats": "Сохранять забаненные чаты",
+            "ForkExtras.KeepBannedChatsFooter": "Оставлять в списке чаты, из которых вас забанили или кикнули.",
+            "ForkExtras.RegexFilters": "Regex-фильтры сообщений",
+            "ForkExtras.RegexFiltersCaseInsensitive": "Без учёта регистра",
+            "ForkExtras.RegexFiltersPatterns": "Шаблоны (по одному в строке)",
+            "ForkExtras.RegexFiltersFooter": "Скрывать сообщения, совпадающие с любым NSRegularExpression (фильтры AyuGram).",
             "ForkExtras.ViewDeleted": "Удалённые",
             "ForkExtras.EditHistory": "История правок",
             "ForkExtras.ClearDeleted": "Очистить удалённые",
@@ -214,6 +238,18 @@ private enum ForkExtrasLocalizedString {
     static var hideAdsFooter: String { string(forKey: "ForkExtras.HideAdsFooter") }
     static var hideBlockedMessages: String { string(forKey: "ForkExtras.HideBlockedMessages") }
     static var hideBlockedMessagesFooter: String { string(forKey: "ForkExtras.HideBlockedMessagesFooter") }
+    static var ghostScheduleMessages: String { string(forKey: "ForkExtras.GhostScheduleMessages") }
+    static var ghostScheduleMessagesFooter: String { string(forKey: "ForkExtras.GhostScheduleMessagesFooter") }
+    static var allowSecretScreenshots: String { string(forKey: "ForkExtras.AllowSecretScreenshots") }
+    static var allowSecretScreenshotsFooter: String { string(forKey: "ForkExtras.AllowSecretScreenshotsFooter") }
+    static var expireTtlButton: String { string(forKey: "ForkExtras.ExpireTtlButton") }
+    static var expireTtlButtonFooter: String { string(forKey: "ForkExtras.ExpireTtlButtonFooter") }
+    static var keepBannedChats: String { string(forKey: "ForkExtras.KeepBannedChats") }
+    static var keepBannedChatsFooter: String { string(forKey: "ForkExtras.KeepBannedChatsFooter") }
+    static var regexFilters: String { string(forKey: "ForkExtras.RegexFilters") }
+    static var regexFiltersCaseInsensitive: String { string(forKey: "ForkExtras.RegexFiltersCaseInsensitive") }
+    static var regexFiltersPatterns: String { string(forKey: "ForkExtras.RegexFiltersPatterns") }
+    static var regexFiltersFooter: String { string(forKey: "ForkExtras.RegexFiltersFooter") }
     static var viewDeleted: String { string(forKey: "ForkExtras.ViewDeleted") }
     static var editHistory: String { string(forKey: "ForkExtras.EditHistory") }
     static var clearDeleted: String { string(forKey: "ForkExtras.ClearDeleted") }
@@ -256,6 +292,13 @@ private final class ForkExtrasControllerArguments {
     let updateAyuForward: (Bool) -> Void
     let updateHideAds: (Bool) -> Void
     let updateHideBlockedMessages: (Bool) -> Void
+    let updateGhostScheduleMessages: (Bool) -> Void
+    let updateAllowSecretScreenshots: (Bool) -> Void
+    let updateExpireTtlButton: (Bool) -> Void
+    let updateKeepBannedChats: (Bool) -> Void
+    let updateRegexFiltersEnabled: (Bool) -> Void
+    let updateRegexFiltersCaseInsensitive: (Bool) -> Void
+    let updateRegexFilterPatternsText: (String) -> Void
 
     init(
         updateGhostDontReadMessages: @escaping (Bool) -> Void,
@@ -288,7 +331,14 @@ private final class ForkExtrasControllerArguments {
         updateSaveForBots: @escaping (Bool) -> Void,
         updateAyuForward: @escaping (Bool) -> Void,
         updateHideAds: @escaping (Bool) -> Void,
-        updateHideBlockedMessages: @escaping (Bool) -> Void
+        updateHideBlockedMessages: @escaping (Bool) -> Void,
+        updateGhostScheduleMessages: @escaping (Bool) -> Void,
+        updateAllowSecretScreenshots: @escaping (Bool) -> Void,
+        updateExpireTtlButton: @escaping (Bool) -> Void,
+        updateKeepBannedChats: @escaping (Bool) -> Void,
+        updateRegexFiltersEnabled: @escaping (Bool) -> Void,
+        updateRegexFiltersCaseInsensitive: @escaping (Bool) -> Void,
+        updateRegexFilterPatternsText: @escaping (String) -> Void
     ) {
         self.updateGhostDontReadMessages = updateGhostDontReadMessages
         self.updateGhostDontReadStories = updateGhostDontReadStories
@@ -321,6 +371,13 @@ private final class ForkExtrasControllerArguments {
         self.updateAyuForward = updateAyuForward
         self.updateHideAds = updateHideAds
         self.updateHideBlockedMessages = updateHideBlockedMessages
+        self.updateGhostScheduleMessages = updateGhostScheduleMessages
+        self.updateAllowSecretScreenshots = updateAllowSecretScreenshots
+        self.updateExpireTtlButton = updateExpireTtlButton
+        self.updateKeepBannedChats = updateKeepBannedChats
+        self.updateRegexFiltersEnabled = updateRegexFiltersEnabled
+        self.updateRegexFiltersCaseInsensitive = updateRegexFiltersCaseInsensitive
+        self.updateRegexFilterPatternsText = updateRegexFilterPatternsText
     }
 }
 
@@ -348,6 +405,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     case ghostReadOnInteractFooter
     case ghostAlertBeforeOpeningStory(Bool)
     case ghostAlertBeforeOpeningStoryFooter
+    case ghostScheduleMessages(Bool)
+    case ghostScheduleMessagesFooter
     case ghostModeFooter
     case instantPasscode(Bool)
     case instantPasscodeFooter
@@ -389,10 +448,20 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     case hideAdsFooter
     case hideBlockedMessages(Bool)
     case hideBlockedMessagesFooter
+    case allowSecretScreenshots(Bool)
+    case allowSecretScreenshotsFooter
+    case expireTtlButton(Bool)
+    case expireTtlButtonFooter
+    case keepBannedChats(Bool)
+    case keepBannedChatsFooter
+    case regexFilters(Bool)
+    case regexFiltersCaseInsensitive(Bool)
+    case regexFiltersPatterns(String)
+    case regexFiltersFooter
 
     var section: ItemListSectionId {
         switch self {
-        case .ghostDontReadMessages, .ghostDontReadStories, .ghostDontSendOnline, .ghostDontSendTyping, .ghostGoOfflineAutomatically, .ghostGoOfflineAutomaticallyFooter, .ghostReadOnInteract, .ghostReadOnInteractFooter, .ghostAlertBeforeOpeningStory, .ghostAlertBeforeOpeningStoryFooter, .ghostModeFooter:
+        case .ghostDontReadMessages, .ghostDontReadStories, .ghostDontSendOnline, .ghostDontSendTyping, .ghostGoOfflineAutomatically, .ghostGoOfflineAutomaticallyFooter, .ghostReadOnInteract, .ghostReadOnInteractFooter, .ghostAlertBeforeOpeningStory, .ghostAlertBeforeOpeningStoryFooter, .ghostScheduleMessages, .ghostScheduleMessagesFooter, .ghostModeFooter:
             return ForkExtrasSection.ghost.rawValue
         case .instantPasscode, .instantPasscodeFooter:
             return ForkExtrasSection.lock.rawValue
@@ -410,7 +479,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return ForkExtrasSection.translation.rawValue
         case .scrollToNextChat, .scrollToNextChatFooter:
             return ForkExtrasSection.navigation.rawValue
-        case .saveDeletedMessages, .saveDeletedMessagesFooter, .saveMessagesHistory, .saveMessagesHistoryFooter, .saveMedia, .saveMediaFooter, .saveForBots, .ayuForward, .ayuForwardFooter, .hideAds, .hideAdsFooter, .hideBlockedMessages, .hideBlockedMessagesFooter:
+        case .saveDeletedMessages, .saveDeletedMessagesFooter, .saveMessagesHistory, .saveMessagesHistoryFooter, .saveMedia, .saveMediaFooter, .saveForBots, .ayuForward, .ayuForwardFooter, .hideAds, .hideAdsFooter, .hideBlockedMessages, .hideBlockedMessagesFooter, .allowSecretScreenshots, .allowSecretScreenshotsFooter, .expireTtlButton, .expireTtlButtonFooter, .keepBannedChats, .keepBannedChatsFooter, .regexFilters, .regexFiltersCaseInsensitive, .regexFiltersPatterns, .regexFiltersFooter:
             return ForkExtrasSection.messageSaving.rawValue
         }
     }
@@ -427,47 +496,59 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case .ghostReadOnInteractFooter: return 7
         case .ghostAlertBeforeOpeningStory: return 8
         case .ghostAlertBeforeOpeningStoryFooter: return 9
-        case .ghostModeFooter: return 10
-        case .instantPasscode: return 11
-        case .instantPasscodeFooter: return 12
-        case .hideMentions: return 13
-        case .hideMentionsFooter: return 14
-        case .hidePinned: return 15
-        case .hidePinnedFooter: return 16
-        case .sessionBackup: return 17
-        case .sessionBackupFooter: return 18
-        case .compactChatList: return 19
-        case .compactMessagePreview: return 20
-        case .compactFolderNames: return 21
-        case .uiDensityFooter: return 22
-        case .hideReactionsBar: return 23
-        case .showDC: return 24
-        case .showProfileId: return 25
-        case .accentSaturation: return 26
-        case .privacyFooter: return 27
-        case .confirmBeforeCall: return 28
-        case .sendWithReturnKey: return 29
-        case .sendWithReturnKeyFooter: return 30
-        case .forceBuiltInMic: return 31
-        case .callsFooter: return 32
-        case .translationBackend: return 33
-        case .transcriptionBackend: return 34
-        case .translationFooter: return 35
-        case .scrollToNextChat: return 36
-        case .scrollToNextChatFooter: return 37
-        case .saveDeletedMessages: return 38
-        case .saveDeletedMessagesFooter: return 39
-        case .saveMessagesHistory: return 40
-        case .saveMessagesHistoryFooter: return 41
-        case .saveMedia: return 42
-        case .saveMediaFooter: return 43
-        case .saveForBots: return 44
-        case .ayuForward: return 45
-        case .ayuForwardFooter: return 46
-        case .hideAds: return 47
-        case .hideAdsFooter: return 48
-        case .hideBlockedMessages: return 49
-        case .hideBlockedMessagesFooter: return 50
+        case .ghostScheduleMessages: return 10
+        case .ghostScheduleMessagesFooter: return 11
+        case .ghostModeFooter: return 12
+        case .instantPasscode: return 13
+        case .instantPasscodeFooter: return 14
+        case .hideMentions: return 15
+        case .hideMentionsFooter: return 16
+        case .hidePinned: return 17
+        case .hidePinnedFooter: return 18
+        case .sessionBackup: return 19
+        case .sessionBackupFooter: return 20
+        case .compactChatList: return 21
+        case .compactMessagePreview: return 22
+        case .compactFolderNames: return 23
+        case .uiDensityFooter: return 24
+        case .hideReactionsBar: return 25
+        case .showDC: return 26
+        case .showProfileId: return 27
+        case .accentSaturation: return 28
+        case .privacyFooter: return 29
+        case .confirmBeforeCall: return 30
+        case .sendWithReturnKey: return 31
+        case .sendWithReturnKeyFooter: return 32
+        case .forceBuiltInMic: return 33
+        case .callsFooter: return 34
+        case .translationBackend: return 35
+        case .transcriptionBackend: return 36
+        case .translationFooter: return 37
+        case .scrollToNextChat: return 38
+        case .scrollToNextChatFooter: return 39
+        case .saveDeletedMessages: return 40
+        case .saveDeletedMessagesFooter: return 41
+        case .saveMessagesHistory: return 42
+        case .saveMessagesHistoryFooter: return 43
+        case .saveMedia: return 44
+        case .saveMediaFooter: return 45
+        case .saveForBots: return 46
+        case .ayuForward: return 47
+        case .ayuForwardFooter: return 48
+        case .hideAds: return 49
+        case .hideAdsFooter: return 50
+        case .hideBlockedMessages: return 51
+        case .hideBlockedMessagesFooter: return 52
+        case .allowSecretScreenshots: return 53
+        case .allowSecretScreenshotsFooter: return 54
+        case .expireTtlButton: return 55
+        case .expireTtlButtonFooter: return 56
+        case .keepBannedChats: return 57
+        case .keepBannedChatsFooter: return 58
+        case .regexFilters: return 59
+        case .regexFiltersCaseInsensitive: return 60
+        case .regexFiltersPatterns: return 61
+        case .regexFiltersFooter: return 62
         }
     }
 
@@ -512,6 +593,12 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             })
         case .ghostAlertBeforeOpeningStoryFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.ghostAlertBeforeOpeningStoryFooter), sectionId: self.section)
+        case let .ghostScheduleMessages(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.ghostScheduleMessages, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateGhostScheduleMessages(value)
+            })
+        case .ghostScheduleMessagesFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.ghostScheduleMessagesFooter), sectionId: self.section)
         case .ghostModeFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.ghostModeFooter), sectionId: self.section)
         case let .instantPasscode(value):
@@ -656,6 +743,38 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             })
         case .hideBlockedMessagesFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.hideBlockedMessagesFooter), sectionId: self.section)
+        case let .allowSecretScreenshots(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.allowSecretScreenshots, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateAllowSecretScreenshots(value)
+            })
+        case .allowSecretScreenshotsFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.allowSecretScreenshotsFooter), sectionId: self.section)
+        case let .expireTtlButton(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.expireTtlButton, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateExpireTtlButton(value)
+            })
+        case .expireTtlButtonFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.expireTtlButtonFooter), sectionId: self.section)
+        case let .keepBannedChats(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.keepBannedChats, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateKeepBannedChats(value)
+            })
+        case .keepBannedChatsFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.keepBannedChatsFooter), sectionId: self.section)
+        case let .regexFilters(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.regexFilters, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateRegexFiltersEnabled(value)
+            })
+        case let .regexFiltersCaseInsensitive(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.regexFiltersCaseInsensitive, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateRegexFiltersCaseInsensitive(value)
+            })
+        case let .regexFiltersPatterns(value):
+            return ItemListMultilineInputItem(presentationData: presentationData, systemStyle: .glass, text: value, placeholder: ForkExtrasLocalizedString.regexFiltersPatterns, maxLength: ItemListMultilineInputItemTextLimit(value: 4000, display: false), sectionId: self.section, style: .blocks, capitalization: false, autocorrection: false, textUpdated: { value in
+                arguments.updateRegexFilterPatternsText(value)
+            })
+        case .regexFiltersFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.regexFiltersFooter), sectionId: self.section)
         }
     }
 }
@@ -672,6 +791,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings) -> [ForkE
         .ghostReadOnInteractFooter,
         .ghostAlertBeforeOpeningStory(settings.ghostAlertBeforeOpeningStory),
         .ghostAlertBeforeOpeningStoryFooter,
+        .ghostScheduleMessages(settings.ghostScheduleMessages),
+        .ghostScheduleMessagesFooter,
         .ghostModeFooter,
         .instantPasscode(settings.instantPasscodeLock),
         .instantPasscodeFooter,
@@ -713,6 +834,16 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings) -> [ForkE
         .hideAdsFooter,
         .hideBlockedMessages(settings.hideBlockedMessages),
         .hideBlockedMessagesFooter,
+        .allowSecretScreenshots(settings.allowSecretScreenshots),
+        .allowSecretScreenshotsFooter,
+        .expireTtlButton(settings.expireTtlButton),
+        .expireTtlButtonFooter,
+        .keepBannedChats(settings.keepBannedChats),
+        .keepBannedChatsFooter,
+        .regexFilters(settings.regexMessageFiltersEnabled),
+        .regexFiltersCaseInsensitive(settings.regexMessageFiltersCaseInsensitive),
+        .regexFiltersPatterns(settings.regexMessageFilterPatterns.joined(separator: "\n")),
+        .regexFiltersFooter,
     ]
 }
 
@@ -984,6 +1115,58 @@ public func forkExtrasController(context: AccountContext) -> ViewController {
             updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
                 var updated = current
                 updated.hideBlockedMessages = value
+                return updated
+            }.start())
+        },
+        updateGhostScheduleMessages: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.ghostScheduleMessages = value
+                return updated
+            }.start())
+        },
+        updateAllowSecretScreenshots: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.allowSecretScreenshots = value
+                return updated
+            }.start())
+        },
+        updateExpireTtlButton: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.expireTtlButton = value
+                return updated
+            }.start())
+        },
+        updateKeepBannedChats: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.keepBannedChats = value
+                return updated
+            }.start())
+        },
+        updateRegexFiltersEnabled: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.regexMessageFiltersEnabled = value
+                return updated
+            }.start())
+        },
+        updateRegexFiltersCaseInsensitive: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.regexMessageFiltersCaseInsensitive = value
+                return updated
+            }.start())
+        },
+        updateRegexFilterPatternsText: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.regexMessageFilterPatterns = value
+                    .split(separator: "\n", omittingEmptySubsequences: false)
+                    .map { String($0).trimmingCharacters(in: .whitespaces) }
+                    .filter { !$0.isEmpty }
                 return updated
             }.start())
         }

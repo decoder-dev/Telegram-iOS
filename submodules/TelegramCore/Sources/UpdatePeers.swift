@@ -24,6 +24,9 @@ func shouldExcludePeerFromChatList(transaction: Transaction, peerId: PeerId, pee
         switch group.membership {
         case .Member:
             return false
+        case .Removed:
+            // AyuGram: keep banned/kicked groups in the chat list.
+            return !ForkKeepBannedChatsSettings.enabled
         default:
             return true
         }
@@ -31,6 +34,9 @@ func shouldExcludePeerFromChatList(transaction: Transaction, peerId: PeerId, pee
         switch channel.participationStatus {
         case .member:
             return isPeerHiddenByCollapsedCommunity(transaction: transaction, peerId: peerId, peer: channel)
+        case .kicked:
+            // AyuGram: keep banned/kicked channels/supergroups in the chat list.
+            return !ForkKeepBannedChatsSettings.enabled
         default:
             return true
         }
@@ -368,6 +374,8 @@ public func updatePeersCustom(transaction: Transaction, peers: [Peer], update: (
                         switch group.membership {
                             case .Member:
                                 updatePeerChatInclusionWithMinTimestamp(transaction: transaction, id: peerId, minTimestamp: group.creationDate, forceRootGroupIfNotExists: false, peer: group)
+                            case .Removed where ForkKeepBannedChatsSettings.enabled:
+                                updatePeerChatInclusionWithMinTimestamp(transaction: transaction, id: peerId, minTimestamp: group.creationDate, forceRootGroupIfNotExists: false, peer: group)
                             default:
                                 transaction.updatePeerChatListInclusion(peerId, inclusion: .notIncluded)
                         }
@@ -383,6 +391,8 @@ public func updatePeersCustom(transaction: Transaction, peers: [Peer], update: (
                             updatePeerChatInclusionWithMinTimestamp(transaction: transaction, id: peerId, minTimestamp: channel.creationDate, forceRootGroupIfNotExists: true, peer: channel)
                         case .left:
                             transaction.updatePeerChatListInclusion(peerId, inclusion: .notIncluded)
+                        case .kicked where ForkKeepBannedChatsSettings.enabled:
+                            updatePeerChatInclusionWithMinTimestamp(transaction: transaction, id: peerId, minTimestamp: channel.creationDate, forceRootGroupIfNotExists: true, peer: channel)
                         case .kicked where channel.creationDate == 0:
                             transaction.updatePeerChatListInclusion(peerId, inclusion: .notIncluded)
                         default:

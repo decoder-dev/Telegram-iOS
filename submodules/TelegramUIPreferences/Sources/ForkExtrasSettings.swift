@@ -62,6 +62,20 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var hideAds: Bool
     /// AyuGram Message Filters: hide messages (and typing) from blocked users.
     public var hideBlockedMessages: Bool
+    /// AyuGram: allow screenshots in secret chats / secret media and suppress peer notify.
+    public var allowSecretScreenshots: Bool
+    /// AyuGram: tap the TTL flame in the secret-media viewer to expire (delete) now.
+    public var expireTtlButton: Bool
+    /// AyuGram: keep banned/kicked chats in the chat list / cache.
+    public var keepBannedChats: Bool
+    /// AyuGram Message Filters: enable global regex filters.
+    public var regexMessageFiltersEnabled: Bool
+    /// AyuGram Message Filters: case-insensitive regex matching (default on).
+    public var regexMessageFiltersCaseInsensitive: Bool
+    /// AyuGram Message Filters: one NSRegularExpression pattern per entry.
+    public var regexMessageFilterPatterns: [String]
+    /// AyuGram Ghost Schedule Messages: delay-send via scheduled messages when full Ghost Mode is on.
+    public var ghostScheduleMessages: Bool
 
     public static var defaultSettings: ForkExtrasSettings {
         return ForkExtrasSettings(
@@ -96,7 +110,14 @@ public struct ForkExtrasSettings: Codable, Equatable {
             saveMedia: true,
             ayuForward: true,
             hideAds: false,
-            hideBlockedMessages: false
+            hideBlockedMessages: false,
+            allowSecretScreenshots: true,
+            expireTtlButton: true,
+            keepBannedChats: true,
+            regexMessageFiltersEnabled: false,
+            regexMessageFiltersCaseInsensitive: true,
+            regexMessageFilterPatterns: [],
+            ghostScheduleMessages: false
         )
     }
 
@@ -132,7 +153,14 @@ public struct ForkExtrasSettings: Codable, Equatable {
         saveMedia: Bool = true,
         ayuForward: Bool = true,
         hideAds: Bool = false,
-        hideBlockedMessages: Bool = false
+        hideBlockedMessages: Bool = false,
+        allowSecretScreenshots: Bool = true,
+        expireTtlButton: Bool = true,
+        keepBannedChats: Bool = true,
+        regexMessageFiltersEnabled: Bool = false,
+        regexMessageFiltersCaseInsensitive: Bool = true,
+        regexMessageFilterPatterns: [String] = [],
+        ghostScheduleMessages: Bool = false
     ) {
         self.ghostMode = ghostMode
         self.ghostDontReadMessages = ghostDontReadMessages
@@ -166,6 +194,13 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.ayuForward = ayuForward
         self.hideAds = hideAds
         self.hideBlockedMessages = hideBlockedMessages
+        self.allowSecretScreenshots = allowSecretScreenshots
+        self.expireTtlButton = expireTtlButton
+        self.keepBannedChats = keepBannedChats
+        self.regexMessageFiltersEnabled = regexMessageFiltersEnabled
+        self.regexMessageFiltersCaseInsensitive = regexMessageFiltersCaseInsensitive
+        self.regexMessageFilterPatterns = regexMessageFilterPatterns
+        self.ghostScheduleMessages = ghostScheduleMessages
     }
 
     public init(from decoder: Decoder) throws {
@@ -205,6 +240,13 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.ayuForward = try container.decodeIfPresent(Bool.self, forKey: "ayuForward") ?? true
         self.hideAds = try container.decodeIfPresent(Bool.self, forKey: "hideAds") ?? false
         self.hideBlockedMessages = try container.decodeIfPresent(Bool.self, forKey: "hideBlockedMessages") ?? false
+        self.allowSecretScreenshots = try container.decodeIfPresent(Bool.self, forKey: "allowSecretScreenshots") ?? true
+        self.expireTtlButton = try container.decodeIfPresent(Bool.self, forKey: "expireTtlButton") ?? true
+        self.keepBannedChats = try container.decodeIfPresent(Bool.self, forKey: "keepBannedChats") ?? true
+        self.regexMessageFiltersEnabled = try container.decodeIfPresent(Bool.self, forKey: "regexMessageFiltersEnabled") ?? false
+        self.regexMessageFiltersCaseInsensitive = try container.decodeIfPresent(Bool.self, forKey: "regexMessageFiltersCaseInsensitive") ?? true
+        self.regexMessageFilterPatterns = try container.decodeIfPresent([String].self, forKey: "regexMessageFilterPatterns") ?? []
+        self.ghostScheduleMessages = try container.decodeIfPresent(Bool.self, forKey: "ghostScheduleMessages") ?? false
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -242,11 +284,23 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.ayuForward, forKey: "ayuForward")
         try container.encode(self.hideAds, forKey: "hideAds")
         try container.encode(self.hideBlockedMessages, forKey: "hideBlockedMessages")
+        try container.encode(self.allowSecretScreenshots, forKey: "allowSecretScreenshots")
+        try container.encode(self.expireTtlButton, forKey: "expireTtlButton")
+        try container.encode(self.keepBannedChats, forKey: "keepBannedChats")
+        try container.encode(self.regexMessageFiltersEnabled, forKey: "regexMessageFiltersEnabled")
+        try container.encode(self.regexMessageFiltersCaseInsensitive, forKey: "regexMessageFiltersCaseInsensitive")
+        try container.encode(self.regexMessageFilterPatterns, forKey: "regexMessageFilterPatterns")
+        try container.encode(self.ghostScheduleMessages, forKey: "ghostScheduleMessages")
     }
 
     /// Whether message/reaction read receipts should be suppressed right now.
     public var suppressesMessageReads: Bool {
         return self.ghostDontReadMessages
+    }
+
+    /// Full Ghost Mode (AyuGram): dont-read + dont-online + dont-typing.
+    public var isFullGhostMode: Bool {
+        return self.ghostDontReadMessages && self.ghostDontSendOnline && self.ghostDontSendTyping
     }
 }
 
