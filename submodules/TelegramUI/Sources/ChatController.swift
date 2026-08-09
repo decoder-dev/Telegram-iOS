@@ -4445,6 +4445,22 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                 } else {
                     f()
                 }
+            case .addFilter:
+                let selected = text.string.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !selected.isEmpty else {
+                    break
+                }
+                let isRussian = self.presentationData.strings.baseLanguageCode.hasPrefix("ru")
+                let _ = (updateForkExtrasSettingsInteractively(accountManager: self.context.sharedContext.accountManager) { current in
+                    return current.appendingRegexFilterPattern(fromSelectedText: selected).settings
+                }
+                |> deliverOnMainQueue).startStandalone(completed: { [weak self] in
+                    guard let self else {
+                        return
+                    }
+                    let infoText = isRussian ? "Фильтр добавлен" : "Filter added"
+                    self.present(UndoOverlayController(presentationData: self.presentationData, content: .info(title: nil, text: infoText, timeout: nil, customUndoText: nil), elevatedLayout: false, animateInAsReplacement: false, action: { _ in true }), in: .current)
+                })
             case let .quote(range):
                 let completion: (ContainedViewLayoutTransition?) -> Void = { [weak self] transition in
                     guard let self else {

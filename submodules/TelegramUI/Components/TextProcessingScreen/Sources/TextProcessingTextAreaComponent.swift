@@ -519,6 +519,8 @@ final class TextProcessingTextAreaComponent: Component {
                             break
                         case .quote:
                             break
+                        case .addFilter:
+                            break
                         }
                     })
                     
