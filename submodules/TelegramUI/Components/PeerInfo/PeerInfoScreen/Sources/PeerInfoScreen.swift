@@ -815,7 +815,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                     })))
                 }
                 
-                if message.isCopyProtected() || isCopyProtected {
+                if (message.isCopyProtected() || isCopyProtected) && !ForkAyuForwardSettings.enabled {
                     
                 } else if message.id.peerId.namespace != Namespaces.Peer.SecretChat && message.minAutoremoveOrClearTimeout == nil {
                     items.append(.action(ContextMenuActionItem(text: strongSelf.presentationData.strings.Conversation_ContextMenuForward, icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Forward"), color: theme.contextMenu.primaryColor) }, action: { c, _ in
@@ -972,7 +972,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                             })
                         })))
                         
-                        if message.isCopyProtected() || isCopyProtected {
+                        if (message.isCopyProtected() || isCopyProtected) && !ForkAyuForwardSettings.enabled {
                             
                         } else if message.id.peerId.namespace != Namespaces.Peer.SecretChat {
                             items.append(.action(ContextMenuActionItem(text: strings.Conversation_ContextMenuForward, icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Forward"), color: theme.contextMenu.primaryColor) }, action: { c, f in

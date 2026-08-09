@@ -26,6 +26,13 @@ struct PeerInputActivityRecord: Equatable {
     let updateId: Int32
 }
 
+/// AyuGram AyuForward — pushed down from SharedAccountContext (TelegramCore has no ForkExtrasSettings).
+/// When enabled, copy-protected / locally-deleted messages are re-uploaded as new content (no author)
+/// instead of `messages.forwardMessages` (which the server rejects for noforwards).
+public enum ForkAyuForwardSettings {
+    public static var enabled: Bool = true
+}
+
 /// Pushed down from SharedAccountContext.swift's ForkExtrasSettings subscription — this module
 /// has no visibility into ForkExtrasSettings, same pattern as ManagedAudioSessionImpl.forceBuiltInMic.
 /// Mirrors AyuGram's granular Ghost Mode toggles.
