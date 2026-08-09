@@ -250,6 +250,61 @@ private func convertForwardedMediaForSecretChat(_ media: Media) -> Media {
     }
 }
 
+/// AyuForward: remap to local MediaIds and strip cloud photo/document reuse hooks so PendingMessageManager
+/// actually re-uploads instead of calling inputMediaPhoto/Document with the noforwards source ids.
+/// When bytes are already in mediaBox, copy them onto a LocalFileMediaResource for reliable upload.
+private func convertMediaForAyuForward(_ media: Media, mediaBox: MediaBox) -> Media {
+    if let file = media as? TelegramMediaFile {
+        let resource: TelegramMediaResource
+        if mediaBox.completedResourcePath(file.resource) != nil {
+            let localResource = LocalFileMediaResource(fileId: Int64.random(in: Int64.min ... Int64.max), size: file.size)
+            mediaBox.copyResourceData(from: file.resource.id, to: localResource.id, synchronous: true)
+            resource = localResource
+        } else {
+            resource = file.resource
+        }
+        return TelegramMediaFile(
+            fileId: MediaId(namespace: Namespaces.Media.LocalFile, id: Int64.random(in: Int64.min ... Int64.max)),
+            partialReference: nil,
+            resource: resource,
+            previewRepresentations: file.previewRepresentations,
+            videoThumbnails: file.videoThumbnails,
+            immediateThumbnailData: file.immediateThumbnailData,
+            mimeType: file.mimeType,
+            size: file.size,
+            attributes: file.attributes,
+            alternativeRepresentations: []
+        )
+    } else if let image = media as? TelegramMediaImage {
+        let representations: [TelegramMediaImageRepresentation] = image.representations.map { representation in
+            if mediaBox.completedResourcePath(representation.resource) != nil {
+                let localResource = LocalFileMediaResource(fileId: Int64.random(in: Int64.min ... Int64.max), size: nil)
+                mediaBox.copyResourceData(from: representation.resource.id, to: localResource.id, synchronous: true)
+                return TelegramMediaImageRepresentation(
+                    dimensions: representation.dimensions,
+                    resource: localResource,
+                    progressiveSizes: representation.progressiveSizes,
+                    immediateThumbnailData: representation.immediateThumbnailData,
+                    hasVideo: representation.hasVideo,
+                    isPersonal: representation.isPersonal
+                )
+            } else {
+                return representation
+            }
+        }
+        return TelegramMediaImage(
+            imageId: MediaId(namespace: Namespaces.Media.LocalImage, id: Int64.random(in: Int64.min ... Int64.max)),
+            representations: representations,
+            immediateThumbnailData: image.immediateThumbnailData,
+            reference: nil,
+            partialReference: nil,
+            flags: []
+        )
+    } else {
+        return media
+    }
+}
+
 private func filterMessageAttributesForOutgoingMessage(_ attributes: [MessageAttribute]) -> [MessageAttribute] {
     return attributes.filter { attribute in
         switch attribute {
@@ -296,6 +351,9 @@ private func filterMessageAttributesForOutgoingMessage(_ attributes: [MessageAtt
         case _ as PaidStarsMessageAttribute:
             return true
         case _ as SuggestedPostMessageAttribute:
+            return true
+        case _ as SourceReferenceMessageAttribute:
+            // AyuForward → Saved Messages: keep source peer association through outgoing filter.
             return true
         case _ as EphemeralOutgoingMessageAttribute:
             assertionFailure("EphemeralOutgoingMessageAttribute must be routed before normal outgoing enqueue")
@@ -540,7 +598,7 @@ private func forwardedMessageToBeReuploaded(transaction: Transaction, id: Messag
 private func ayuForwardMediaReference(account: Account, sourceMessage: Message) -> AnyMediaReference? {
     for media in sourceMessage.media {
         if media is TelegramMediaImage || media is TelegramMediaFile {
-            return .standalone(media: convertForwardedMediaForSecretChat(media))
+            return .standalone(media: convertMediaForAyuForward(media, mediaBox: account.postbox.mediaBox))
         }
     }
     // Deleted message whose cloud media is gone — fall back to Saved Attachments / mediaPath.
@@ -834,6 +892,19 @@ func enqueueMessages(transaction: Transaction, account: Account, peerId: PeerId,
                         }
                     }
 
+                    // Saved Messages (Избранное): associate with the source peer topic. applyUpdateMessage
+                    // preserves local threadId; SourceReference mirrors the normal forward→Saved path.
+                    // No ForwardSourceInfo / forwardInfo — AyuForward is authorless.
+                    var effectiveThreadId = threadId
+                    if peerId == account.peerId {
+                        if effectiveThreadId == nil {
+                            effectiveThreadId = sourceMessage.id.peerId.toInt64()
+                        }
+                        if !attributes.contains(where: { $0 is SourceReferenceMessageAttribute }) {
+                            attributes.append(SourceReferenceMessageAttribute(messageId: sourceMessage.id))
+                        }
+                    }
+
                     let localGroupingKey: Int64?
                     switch grouping {
                     case .none:
@@ -842,13 +913,26 @@ func enqueueMessages(transaction: Transaction, account: Account, peerId: PeerId,
                         localGroupingKey = sourceMessage.groupingKey
                     }
 
+                    // Forum topic roots use message ids (fit in Int32). Saved Messages topics use PeerId
+                    // thread ids — never synthesize replyTo from those.
+                    let replyToMessageId: EngineMessageReplySubject?
+                    if peerId != account.peerId, let effectiveThreadId, effectiveThreadId > 0, effectiveThreadId <= Int64(Int32.max) {
+                        replyToMessageId = EngineMessageReplySubject(
+                            messageId: MessageId(peerId: peerId, namespace: Namespaces.Message.Cloud, id: Int32(effectiveThreadId)),
+                            quote: nil,
+                            innerSubject: nil
+                        )
+                    } else {
+                        replyToMessageId = nil
+                    }
+
                     updatedMessages.append((true, .message(
                         text: text,
                         attributes: attributes,
                         inlineStickers: [:],
                         mediaReference: mediaReference,
-                        threadId: threadId,
-                        replyToMessageId: threadId.flatMap { EngineMessageReplySubject(messageId: MessageId(peerId: peerId, namespace: Namespaces.Message.Cloud, id: Int32(clamping: $0)), quote: nil, innerSubject: nil) },
+                        threadId: effectiveThreadId,
+                        replyToMessageId: replyToMessageId,
                         replyToStoryId: nil,
                         localGroupingKey: localGroupingKey,
                         correlationId: correlationId,

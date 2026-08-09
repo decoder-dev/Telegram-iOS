@@ -250,6 +250,13 @@ func applyUpdateMessage(postbox: Postbox, stateManager: AccountStateManager, mes
                 text = updatedMessage.text
                 forwardInfo = updatedMessage.forwardInfo
                 threadId = updatedMessage.threadId
+                // AyuForward → Saved Messages: sendMedia ack has no fwdFrom/savedPeerId, so reattach
+                // the local SourceReference that organizes the Saved Messages topic.
+                if currentMessage.id.peerId == accountPeerId,
+                   !attributes.contains(where: { $0 is SourceReferenceMessageAttribute }),
+                   let sourceReference = currentMessage.attributes.first(where: { $0 is SourceReferenceMessageAttribute }) {
+                    attributes.append(sourceReference)
+                }
             } else if case let .updateShortSentMessage(updateShortSentMessageData) = result {
                 let (_, _, _, _, _, apiMedia, entities, ttlPeriod) = (updateShortSentMessageData.flags, updateShortSentMessageData.id, updateShortSentMessageData.pts, updateShortSentMessageData.ptsCount, updateShortSentMessageData.date, updateShortSentMessageData.media, updateShortSentMessageData.entities, updateShortSentMessageData.ttlPeriod)
                 let (mediaValue, _, nonPremium, hasSpoiler, _, _) = textMediaAndExpirationTimerFromApiMedia(apiMedia, currentMessage.id.peerId)
