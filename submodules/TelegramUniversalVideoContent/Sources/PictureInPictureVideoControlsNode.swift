@@ -4,7 +4,6 @@ import Display
 import AsyncDisplayKit
 import SwiftSignalKit
 import UniversalMediaPlayer
-import LegacyComponents
 import AppBundle
 
 private let leaveImage = UIImage(bundleImageName: "Media Gallery/PictureInPictureLeave")?.precomposed()
@@ -17,10 +16,10 @@ final class PictureInPictureVideoControlsNode: ASDisplayNode {
     private let playPause: () -> Void
     private let close: () -> Void
     
-    private let leaveButton: TGEmbedPIPButton
-    private let pauseButton: TGEmbedPIPButton
-    private let playButton: TGEmbedPIPButton
-    private let closeButton: TGEmbedPIPButton
+    private let leaveButton: PictureInPictureButton
+    private let pauseButton: PictureInPictureButton
+    private let playButton: PictureInPictureButton
+    private let closeButton: PictureInPictureButton
     
     private var playbackStatusValue: MediaPlayerPlaybackStatus?
     private var statusValue: MediaPlayerStatus? {
@@ -70,10 +69,10 @@ final class PictureInPictureVideoControlsNode: ASDisplayNode {
         self.playPause = playPause
         self.close = close
         
-        self.leaveButton = TGEmbedPIPButton(frame: CGRect(origin: CGPoint(), size: TGEmbedPIPButtonSize))
-        self.pauseButton = TGEmbedPIPButton(frame: CGRect(origin: CGPoint(), size: TGEmbedPIPButtonSize))
-        self.playButton = TGEmbedPIPButton(frame: CGRect(origin: CGPoint(), size: TGEmbedPIPButtonSize))
-        self.closeButton = TGEmbedPIPButton(frame: CGRect(origin: CGPoint(), size: TGEmbedPIPButtonSize))
+        self.leaveButton = PictureInPictureButton(frame: CGRect(origin: CGPoint(), size: PictureInPictureButton.size))
+        self.pauseButton = PictureInPictureButton(frame: CGRect(origin: CGPoint(), size: PictureInPictureButton.size))
+        self.playButton = PictureInPictureButton(frame: CGRect(origin: CGPoint(), size: PictureInPictureButton.size))
+        self.closeButton = PictureInPictureButton(frame: CGRect(origin: CGPoint(), size: PictureInPictureButton.size))
         
         super.init()
         
@@ -107,7 +106,7 @@ final class PictureInPictureVideoControlsNode: ASDisplayNode {
     func updateLayout(size: CGSize, transition: ContainedViewLayoutTransition) {
         let forth = floor(size.width / 4.0)
         
-        let buttonSize = TGEmbedPIPButtonSize
+        let buttonSize = PictureInPictureButton.size
         
         transition.updateFrame(view: self.leaveButton, frame: CGRect(origin: CGPoint(x: forth - floor(buttonSize.width / 2.0) - 10.0, y: size.height - buttonSize.height - 15.0), size: buttonSize))
         
