@@ -2063,6 +2063,10 @@ public final class ChatMessageInteractiveFileNode: ASDisplayNode {
                     item.controllerInteraction.performTextSelectionAction(item.message, true, text, nil, action)
                 })
                 textSelectionNode.enableQuote = false
+                if let arguments = self.arguments {
+                    let lang = arguments.presentationData.strings.baseLanguageCode
+                    textSelectionNode.addFilterTitle = lang.hasPrefix("ru") ? "Добавить фильтр" : "Add filter"
+                }
                 self.textSelectionNode = textSelectionNode
                 self.textClippingNode.addSubnode(textSelectionNode)
                 self.textClippingNode.insertSubnode(textSelectionNode.highlightAreaNode, belowSubnode: self.textNode)

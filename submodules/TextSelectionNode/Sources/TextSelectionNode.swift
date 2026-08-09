@@ -213,6 +213,8 @@ public enum TextSelectionAction: Equatable {
     case speak
     case translate
     case quote(range: Range<Int>)
+    /// AyuGram Message Filters: add selected text as a global regex filter pattern.
+    case addFilter
 }
 
 public final class TextSelectionNode: ASDisplayNode {
@@ -284,6 +286,8 @@ public final class TextSelectionNode: ASDisplayNode {
     public var enableQuote: Bool = false
     public var enableTranslate: Bool = true
     public var enableShare: Bool = true
+    /// When non-nil, the selection menu offers AyuGram "Add filter" with this title.
+    public var addFilterTitle: String?
     
     public var menuSkipCoordnateConversion: Bool = false
     
@@ -771,6 +775,12 @@ public final class TextSelectionNode: ASDisplayNode {
         if self.enableCopy {
             actions.append(ContextMenuAction(content: .text(title: self.strings.Conversation_ContextMenuCopy, accessibilityLabel: self.strings.Conversation_ContextMenuCopy), action: { [weak self] in
                 self?.performAction(string, .copy)
+                self?.cancelSelection()
+            }))
+        }
+        if let addFilterTitle = self.addFilterTitle, !addFilterTitle.isEmpty, !string.string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            actions.append(ContextMenuAction(content: .text(title: addFilterTitle, accessibilityLabel: addFilterTitle), action: { [weak self] in
+                self?.performAction(string, .addFilter)
                 self?.cancelSelection()
             }))
         }

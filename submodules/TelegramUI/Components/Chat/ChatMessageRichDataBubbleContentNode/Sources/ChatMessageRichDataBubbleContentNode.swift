@@ -1641,6 +1641,12 @@ public class ChatMessageRichDataBubbleContentNode: ChatMessageBubbleContentNode 
         textSelectionNode.enableTranslate = enableOtherActions
         textSelectionNode.enableShare = enableOtherActions && enableCopy
         textSelectionNode.enableLookup = true
+        if enableOtherActions {
+            let lang = messageItem.presentationData.strings.baseLanguageCode
+            textSelectionNode.addFilterTitle = lang.hasPrefix("ru") ? "Добавить фильтр" : "Add filter"
+        } else {
+            textSelectionNode.addFilterTitle = nil
+        }
         textSelectionNode.menuSkipCoordnateConversion = !enableOtherActions
 
         textSelectionNode.frame = self.containerNode.bounds

@@ -586,6 +586,8 @@ final class ChatItemGalleryFooterContentNode: GalleryFooterContentNode, ASScroll
                 })
             case .quote:
                 break
+            case .addFilter:
+                break
             }
         })
         

@@ -302,6 +302,30 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var isFullGhostMode: Bool {
         return self.ghostDontReadMessages && self.ghostDontSendOnline && self.ghostDontSendTyping
     }
+
+    /// AyuGram "Add filter": escape selected text as a literal regex pattern, enable filters, append if new.
+    public func appendingRegexFilterPattern(fromSelectedText selectedText: String, maxPatterns: Int = 64) -> (settings: ForkExtrasSettings, added: Bool) {
+        let trimmed = selectedText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            return (self, false)
+        }
+        let pattern = NSRegularExpression.escapedPattern(for: trimmed)
+        guard !pattern.isEmpty, pattern.utf16.count <= 512 else {
+            return (self, false)
+        }
+        var updated = self
+        updated.regexMessageFiltersEnabled = true
+        if updated.regexMessageFilterPatterns.contains(pattern) {
+            return (updated, false)
+        }
+        var patterns = updated.regexMessageFilterPatterns
+        patterns.append(pattern)
+        if patterns.count > maxPatterns {
+            patterns = Array(patterns.suffix(maxPatterns))
+        }
+        updated.regexMessageFilterPatterns = patterns
+        return (updated, true)
+    }
 }
 
 public func updateForkExtrasSettingsInteractively(accountManager: AccountManager<TelegramAccountManagerTypes>, _ f: @escaping (ForkExtrasSettings) -> ForkExtrasSettings) -> Signal<Void, NoError> {
