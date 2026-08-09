@@ -58,6 +58,10 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var saveMedia: Bool
     /// AyuGram AyuForward: re-upload noforwards / deleted messages as new content (no author). Default on.
     public var ayuForward: Bool
+    /// AyuGram Message Filters: hide sponsored / recommended ads in chats.
+    public var hideAds: Bool
+    /// AyuGram Message Filters: hide messages (and typing) from blocked users.
+    public var hideBlockedMessages: Bool
 
     public static var defaultSettings: ForkExtrasSettings {
         return ForkExtrasSettings(
@@ -90,7 +94,9 @@ public struct ForkExtrasSettings: Codable, Equatable {
             saveMessagesHistory: true,
             saveForBots: false,
             saveMedia: true,
-            ayuForward: true
+            ayuForward: true,
+            hideAds: false,
+            hideBlockedMessages: false
         )
     }
 
@@ -124,7 +130,9 @@ public struct ForkExtrasSettings: Codable, Equatable {
         saveMessagesHistory: Bool,
         saveForBots: Bool,
         saveMedia: Bool = true,
-        ayuForward: Bool = true
+        ayuForward: Bool = true,
+        hideAds: Bool = false,
+        hideBlockedMessages: Bool = false
     ) {
         self.ghostMode = ghostMode
         self.ghostDontReadMessages = ghostDontReadMessages
@@ -156,6 +164,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.saveForBots = saveForBots
         self.saveMedia = saveMedia
         self.ayuForward = ayuForward
+        self.hideAds = hideAds
+        self.hideBlockedMessages = hideBlockedMessages
     }
 
     public init(from decoder: Decoder) throws {
@@ -193,6 +203,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.saveForBots = try container.decodeIfPresent(Bool.self, forKey: "saveForBots") ?? false
         self.saveMedia = try container.decodeIfPresent(Bool.self, forKey: "saveMedia") ?? true
         self.ayuForward = try container.decodeIfPresent(Bool.self, forKey: "ayuForward") ?? true
+        self.hideAds = try container.decodeIfPresent(Bool.self, forKey: "hideAds") ?? false
+        self.hideBlockedMessages = try container.decodeIfPresent(Bool.self, forKey: "hideBlockedMessages") ?? false
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -228,6 +240,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.saveForBots, forKey: "saveForBots")
         try container.encode(self.saveMedia, forKey: "saveMedia")
         try container.encode(self.ayuForward, forKey: "ayuForward")
+        try container.encode(self.hideAds, forKey: "hideAds")
+        try container.encode(self.hideBlockedMessages, forKey: "hideBlockedMessages")
     }
 
     /// Whether message/reaction read receipts should be suppressed right now.

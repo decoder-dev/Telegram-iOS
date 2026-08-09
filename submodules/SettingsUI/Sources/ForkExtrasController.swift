@@ -65,6 +65,10 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.SaveForBots": "Also Save Bot Messages",
             "ForkExtras.AyuForward": "AyuForward",
             "ForkExtras.AyuForwardFooter": "Forward from noforwards channels and deleted messages by re-uploading media without an author (AyuGram Android).",
+            "ForkExtras.HideAds": "Hide Ads",
+            "ForkExtras.HideAdsFooter": "Hide sponsored and recommended messages in chats (AyuGram Message Filters).",
+            "ForkExtras.HideBlockedMessages": "Hide Blocked Users",
+            "ForkExtras.HideBlockedMessagesFooter": "Hide messages and typing from users you've blocked.",
             "ForkExtras.ViewDeleted": "View Deleted",
             "ForkExtras.EditHistory": "Edit History",
             "ForkExtras.ClearDeleted": "Clear Deleted",
@@ -125,6 +129,10 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.SaveForBots": "Также сохранять ботов",
             "ForkExtras.AyuForward": "AyuForward",
             "ForkExtras.AyuForwardFooter": "Пересылать из каналов с запретом пересылки и удалённые сообщения: медиа загружается заново без автора (AyuGram Android).",
+            "ForkExtras.HideAds": "Скрыть рекламу",
+            "ForkExtras.HideAdsFooter": "Скрывать спонсорские и рекомендованные сообщения в чатах (фильтры AyuGram).",
+            "ForkExtras.HideBlockedMessages": "Скрыть заблокированных",
+            "ForkExtras.HideBlockedMessagesFooter": "Скрывать сообщения и набор текста от заблокированных пользователей.",
             "ForkExtras.ViewDeleted": "Удалённые",
             "ForkExtras.EditHistory": "История правок",
             "ForkExtras.ClearDeleted": "Очистить удалённые",
@@ -202,6 +210,10 @@ private enum ForkExtrasLocalizedString {
     static var saveForBots: String { string(forKey: "ForkExtras.SaveForBots") }
     static var ayuForward: String { string(forKey: "ForkExtras.AyuForward") }
     static var ayuForwardFooter: String { string(forKey: "ForkExtras.AyuForwardFooter") }
+    static var hideAds: String { string(forKey: "ForkExtras.HideAds") }
+    static var hideAdsFooter: String { string(forKey: "ForkExtras.HideAdsFooter") }
+    static var hideBlockedMessages: String { string(forKey: "ForkExtras.HideBlockedMessages") }
+    static var hideBlockedMessagesFooter: String { string(forKey: "ForkExtras.HideBlockedMessagesFooter") }
     static var viewDeleted: String { string(forKey: "ForkExtras.ViewDeleted") }
     static var editHistory: String { string(forKey: "ForkExtras.EditHistory") }
     static var clearDeleted: String { string(forKey: "ForkExtras.ClearDeleted") }
@@ -242,6 +254,8 @@ private final class ForkExtrasControllerArguments {
     let updateSaveMedia: (Bool) -> Void
     let updateSaveForBots: (Bool) -> Void
     let updateAyuForward: (Bool) -> Void
+    let updateHideAds: (Bool) -> Void
+    let updateHideBlockedMessages: (Bool) -> Void
 
     init(
         updateGhostDontReadMessages: @escaping (Bool) -> Void,
@@ -272,7 +286,9 @@ private final class ForkExtrasControllerArguments {
         updateSaveMessagesHistory: @escaping (Bool) -> Void,
         updateSaveMedia: @escaping (Bool) -> Void,
         updateSaveForBots: @escaping (Bool) -> Void,
-        updateAyuForward: @escaping (Bool) -> Void
+        updateAyuForward: @escaping (Bool) -> Void,
+        updateHideAds: @escaping (Bool) -> Void,
+        updateHideBlockedMessages: @escaping (Bool) -> Void
     ) {
         self.updateGhostDontReadMessages = updateGhostDontReadMessages
         self.updateGhostDontReadStories = updateGhostDontReadStories
@@ -303,6 +319,8 @@ private final class ForkExtrasControllerArguments {
         self.updateSaveMedia = updateSaveMedia
         self.updateSaveForBots = updateSaveForBots
         self.updateAyuForward = updateAyuForward
+        self.updateHideAds = updateHideAds
+        self.updateHideBlockedMessages = updateHideBlockedMessages
     }
 }
 
@@ -367,6 +385,10 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     case saveForBots(Bool)
     case ayuForward(Bool)
     case ayuForwardFooter
+    case hideAds(Bool)
+    case hideAdsFooter
+    case hideBlockedMessages(Bool)
+    case hideBlockedMessagesFooter
 
     var section: ItemListSectionId {
         switch self {
@@ -388,7 +410,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return ForkExtrasSection.translation.rawValue
         case .scrollToNextChat, .scrollToNextChatFooter:
             return ForkExtrasSection.navigation.rawValue
-        case .saveDeletedMessages, .saveDeletedMessagesFooter, .saveMessagesHistory, .saveMessagesHistoryFooter, .saveMedia, .saveMediaFooter, .saveForBots, .ayuForward, .ayuForwardFooter:
+        case .saveDeletedMessages, .saveDeletedMessagesFooter, .saveMessagesHistory, .saveMessagesHistoryFooter, .saveMedia, .saveMediaFooter, .saveForBots, .ayuForward, .ayuForwardFooter, .hideAds, .hideAdsFooter, .hideBlockedMessages, .hideBlockedMessagesFooter:
             return ForkExtrasSection.messageSaving.rawValue
         }
     }
@@ -442,6 +464,10 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case .saveForBots: return 44
         case .ayuForward: return 45
         case .ayuForwardFooter: return 46
+        case .hideAds: return 47
+        case .hideAdsFooter: return 48
+        case .hideBlockedMessages: return 49
+        case .hideBlockedMessagesFooter: return 50
         }
     }
 
@@ -618,6 +644,18 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             })
         case .ayuForwardFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.ayuForwardFooter), sectionId: self.section)
+        case let .hideAds(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.hideAds, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateHideAds(value)
+            })
+        case .hideAdsFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.hideAdsFooter), sectionId: self.section)
+        case let .hideBlockedMessages(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.hideBlockedMessages, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateHideBlockedMessages(value)
+            })
+        case .hideBlockedMessagesFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.hideBlockedMessagesFooter), sectionId: self.section)
         }
     }
 }
@@ -671,6 +709,10 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings) -> [ForkE
         .saveForBots(settings.saveForBots),
         .ayuForward(settings.ayuForward),
         .ayuForwardFooter,
+        .hideAds(settings.hideAds),
+        .hideAdsFooter,
+        .hideBlockedMessages(settings.hideBlockedMessages),
+        .hideBlockedMessagesFooter,
     ]
 }
 
@@ -928,6 +970,20 @@ public func forkExtrasController(context: AccountContext) -> ViewController {
             updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
                 var updated = current
                 updated.ayuForward = value
+                return updated
+            }.start())
+        },
+        updateHideAds: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.hideAds = value
+                return updated
+            }.start())
+        },
+        updateHideBlockedMessages: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.hideBlockedMessages = value
                 return updated
             }.start())
         }
