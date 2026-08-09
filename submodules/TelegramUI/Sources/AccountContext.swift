@@ -168,6 +168,8 @@ public final class AccountContextImpl: AccountContext {
     private var managedAppSpecificContactsDisposable: Disposable?
     
     private var experimentalUISettingsDisposable: Disposable?
+    private var blockedPeersContext: BlockedPeersContext?
+    private var blockedPeersDisposable: Disposable?
     
     public let cachedGroupCallContexts: AccountGroupCallContextCache
     
@@ -303,6 +305,19 @@ public final class AccountContextImpl: AccountContext {
             self.starsContext = self.engine.payments.peerStarsContext()
             self.tonContext = self.engine.payments.peerTonContext()
             self.giftAuctionsManager = GiftAuctionsManager(account: account)
+
+            // AyuGram Message Filters: keep a live blocked-peer set for Hide Blocked Messages.
+            let blockedContext = BlockedPeersContext(account: account, subject: .blocked)
+            self.blockedPeersContext = blockedContext
+            let accountPeerId = account.peerId
+            self.blockedPeersDisposable = (blockedContext.state
+            |> deliverOnMainQueue).start(next: { [weak blockedContext] state in
+                let ids = Set(state.peers.map { $0.peerId })
+                ForkBlockedPeersFilter.update(accountPeerId: accountPeerId, peerIds: ids)
+                if state.canLoadMore && !state.isLoadingMore {
+                    blockedContext?.loadMore()
+                }
+            })
         } else {
             self.prefetchManager = nil
             self.wallpaperUploadManager = nil
@@ -515,6 +530,7 @@ public final class AccountContextImpl: AccountContext {
         self.userLimitsConfigurationDisposable?.dispose()
         self.peerNameColorsConfigurationDisposable?.dispose()
         self.isFrozenDisposable?.dispose()
+        self.blockedPeersDisposable?.dispose()
     }
     
     public func storeSecureIdPassword(password: String) {
