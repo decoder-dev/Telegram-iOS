@@ -10,6 +10,69 @@ public enum MessageSavingStore {
     private static var memory: [MessageSavingRecord] = []
     private static var loaded = false
 
+    /// hasDeleted / hasEdits are called while building context menus, where a linear scan over
+    /// up to 5000 records ran on the main thread for every menu open. These indexes make the
+    /// existence checks a dictionary lookup instead.
+    struct DeletedIndexKey: Hashable {
+        let accountPeerId: Int64
+        let peerId: Int64
+    }
+
+    struct EditIndexKey: Hashable {
+        let accountPeerId: Int64
+        let peerId: Int64
+        let namespace: Int32
+        let messageId: Int32
+    }
+
+    private static var deletedIndex: [DeletedIndexKey: Int] = [:]
+    private static var editIndex: [EditIndexKey: Int] = [:]
+
+    private static func indexKeys(for record: MessageSavingRecord) -> (DeletedIndexKey?, EditIndexKey?) {
+        switch record.kind {
+        case .deleted:
+            return (DeletedIndexKey(accountPeerId: record.accountPeerId, peerId: record.peerId), nil)
+        case .edited:
+            return (nil, EditIndexKey(accountPeerId: record.accountPeerId, peerId: record.peerId, namespace: record.namespace, messageId: record.messageId))
+        }
+    }
+
+    private static func indexAddLocked(_ record: MessageSavingRecord) {
+        let (deletedKey, editKey) = indexKeys(for: record)
+        if let deletedKey {
+            deletedIndex[deletedKey, default: 0] += 1
+        }
+        if let editKey {
+            editIndex[editKey, default: 0] += 1
+        }
+    }
+
+    private static func indexRemoveLocked(_ record: MessageSavingRecord) {
+        let (deletedKey, editKey) = indexKeys(for: record)
+        if let deletedKey, let count = deletedIndex[deletedKey] {
+            if count <= 1 {
+                deletedIndex.removeValue(forKey: deletedKey)
+            } else {
+                deletedIndex[deletedKey] = count - 1
+            }
+        }
+        if let editKey, let count = editIndex[editKey] {
+            if count <= 1 {
+                editIndex.removeValue(forKey: editKey)
+            } else {
+                editIndex[editKey] = count - 1
+            }
+        }
+    }
+
+    private static func rebuildIndexesLocked() {
+        deletedIndex.removeAll(keepingCapacity: true)
+        editIndex.removeAll(keepingCapacity: true)
+        for record in memory {
+            indexAddLocked(record)
+        }
+    }
+
     private static var fileURL: URL {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? FileManager.default.temporaryDirectory
@@ -28,6 +91,7 @@ public enum MessageSavingStore {
             return
         }
         memory = (try? JSONDecoder().decode([MessageSavingRecord].self, from: data)) ?? []
+        rebuildIndexesLocked()
     }
 
     private static var pendingPersist = false
@@ -157,9 +221,14 @@ public enum MessageSavingStore {
             return
         }
         memory.append(record)
+        indexAddLocked(record)
         // Soft cap to keep the JSON store bounded.
         if memory.count > 5000 {
-            memory.removeFirst(memory.count - 5000)
+            let overflow = memory.count - 5000
+            for dropped in memory.prefix(overflow) {
+                indexRemoveLocked(dropped)
+            }
+            memory.removeFirst(overflow)
         }
         schedulePersistLocked()
         lock.unlock()
@@ -202,17 +271,29 @@ public enum MessageSavingStore {
         .sorted { $0.savedAt > $1.savedAt }
     }
 
+    /// O(1) index lookup — called from context-menu construction on the main thread.
     public static func hasEdits(
         accountPeerId: Int64,
         peerId: Int64,
         messageId: Int32,
         namespace: Int32
     ) -> Bool {
-        return !edits(accountPeerId: accountPeerId, peerId: peerId, messageId: messageId, namespace: namespace).isEmpty
+        loadIfNeeded()
+        lock.lock()
+        defer { lock.unlock() }
+        return editIndex[EditIndexKey(accountPeerId: accountPeerId, peerId: peerId, namespace: namespace, messageId: messageId)] != nil
     }
 
+    /// O(1) for the common (whole-peer) case. A topic-scoped query still needs the filter,
+    /// but that path is only reached from forum chats.
     public static func hasDeleted(accountPeerId: Int64, peerId: Int64, topicId: Int64? = nil) -> Bool {
-        return !deleted(accountPeerId: accountPeerId, peerId: peerId, topicId: topicId).isEmpty
+        if let topicId, topicId != 0 {
+            return !deleted(accountPeerId: accountPeerId, peerId: peerId, topicId: topicId).isEmpty
+        }
+        loadIfNeeded()
+        lock.lock()
+        defer { lock.unlock() }
+        return deletedIndex[DeletedIndexKey(accountPeerId: accountPeerId, peerId: peerId)] != nil
     }
 
     public static func clearDeleted(accountPeerId: Int64, peerId: Int64, topicId: Int64? = nil) {
@@ -224,8 +305,11 @@ public enum MessageSavingStore {
                 && record.accountPeerId == accountPeerId
                 && record.peerId == peerId
                 && (topicId == nil || topicId == 0 || record.topicId == topicId)
-            if matches, let path = record.mediaPath {
-                removedPaths.append(path)
+            if matches {
+                if let path = record.mediaPath {
+                    removedPaths.append(path)
+                }
+                indexRemoveLocked(record)
             }
             return matches
         }
