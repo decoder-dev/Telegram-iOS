@@ -144,6 +144,12 @@ public enum MessageSavingBridge {
     /// finished after the record was already stored. Installed by MessageSavingStore.
     public static let updateMediaPath = Atomic<((Int64, Int64, Int32, Int32, String) -> Void)?>(value: nil)
 
+    /// Canonical durable-attachment directory. Exposed so the store can verify that anything it
+    /// is about to delete really lives inside it.
+    public static var savedAttachmentsDirectory: URL {
+        return MessageSavingAttachments.directoryURL
+    }
+
     static func log(_ message: @autoclosure () -> String) {
         #if DEBUG
         print("[MessageSaving] \(message())")
