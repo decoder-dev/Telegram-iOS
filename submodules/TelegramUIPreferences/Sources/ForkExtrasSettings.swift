@@ -313,9 +313,8 @@ public func updateForkExtrasSettingsInteractively(accountManager: AccountManager
             } else {
                 current = .defaultSettings
             }
-            let updated = f(current)
-            ForkExtrasNotificationBridge.sync(updated)
-            return SharedPreferencesEntry(updated)
+            // NSE bridge sync is owned by SharedAccountContext (single writer, change-gated).
+            return SharedPreferencesEntry(f(current))
         })
     }
 }
@@ -353,29 +352,43 @@ public enum ForkRegexMessageFilters {
 
     public static func apply(enabled: Bool, caseInsensitive: Bool, patterns: [String]) {
         let fingerprint = Fingerprint(enabled: enabled, caseInsensitive: caseInsensitive, patterns: patterns)
-        let _ = snapshot.modify { current in
-            if current.fingerprint == fingerprint {
-                return current
+        // Skip compile if fingerprint unchanged (read outside any write lock).
+        if snapshot.with({ $0.fingerprint == fingerprint }) {
+            return
+        }
+        guard enabled else {
+            let _ = snapshot.swap(Snapshot(fingerprint: fingerprint, regexes: []))
+            return
+        }
+        // Compile outside the Atomic lock so matching readers are never blocked on ICU.
+        var options: NSRegularExpression.Options = []
+        if caseInsensitive {
+            options.insert(.caseInsensitive)
+        }
+        var regexes: [NSRegularExpression] = []
+        regexes.reserveCapacity(min(patterns.count, maxPatterns))
+        for pattern in patterns.prefix(maxPatterns) {
+            let trimmed = pattern.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else {
+                continue
             }
-            guard enabled else {
-                return Snapshot(fingerprint: fingerprint, regexes: [])
+            // Bound pattern size — pathological lengths are a free DoS of the main process.
+            guard trimmed.utf16.count <= 512 else {
+                continue
             }
-            var options: NSRegularExpression.Options = [.anchorsMatchLines]
-            if caseInsensitive {
-                options.insert(.caseInsensitive)
+            if let regex = try? NSRegularExpression(pattern: trimmed, options: options) {
+                regexes.append(regex)
             }
-            var regexes: [NSRegularExpression] = []
-            regexes.reserveCapacity(min(patterns.count, maxPatterns))
-            for pattern in patterns.prefix(maxPatterns) {
-                let trimmed = pattern.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !trimmed.isEmpty else {
-                    continue
-                }
-                if let regex = try? NSRegularExpression(pattern: trimmed, options: options) {
-                    regexes.append(regex)
-                }
-            }
-            return Snapshot(fingerprint: fingerprint, regexes: regexes)
+        }
+        // Last writer wins — a superseded compile is rare (settings edits) and harmless.
+        let _ = snapshot.swap(Snapshot(fingerprint: fingerprint, regexes: regexes))
+    }
+
+    /// Immutable snapshot for one history rebuild (take once before the message loop).
+    public static func currentSnapshot() -> (active: Bool, regexes: [NSRegularExpression]) {
+        return snapshot.with { current in
+            let active = current.fingerprint.enabled && !current.regexes.isEmpty
+            return (active, active ? current.regexes : [])
         }
     }
 
@@ -385,9 +398,18 @@ public enum ForkRegexMessageFilters {
     }
 
     /// Returns true if `text` matches any compiled filter (AyuGram `Pattern.matcher.find()`).
-    public static func matches(_ text: String) -> Bool {
-        let current = snapshot.with { $0 }
-        guard current.fingerprint.enabled, !current.regexes.isEmpty, !text.isEmpty else {
+    public static func matches(_ text: String, regexes: [NSRegularExpression]? = nil) -> Bool {
+        let expressions: [NSRegularExpression]
+        if let regexes {
+            expressions = regexes
+        } else {
+            let current = currentSnapshot()
+            guard current.active else {
+                return false
+            }
+            expressions = current.regexes
+        }
+        guard !expressions.isEmpty, !text.isEmpty else {
             return false
         }
         let nsText = text as NSString
@@ -396,7 +418,7 @@ public enum ForkRegexMessageFilters {
             return false
         }
         let range = NSRange(location: 0, length: length)
-        for regex in current.regexes {
+        for regex in expressions {
             if regex.firstMatch(in: text, options: [], range: range) != nil {
                 return true
             }
@@ -426,19 +448,33 @@ public enum ForkExtrasNotificationBridge {
         return suites.filter { seen.insert($0).inserted }
     }
     
+    private static let lastSynced = Atomic<(hideMentions: Bool, hidePinned: Bool)?>(value: nil)
+
+    /// Project notification-hide flags into App Group / standard defaults for NSE.
+    /// Change-gated and without `synchronize()` — `set` is enough and avoids main-thread disk stalls.
     public static func sync(_ settings: ForkExtrasSettings) {
+        let next = (hideMentions: settings.hideMentionNotifications, hidePinned: settings.hidePinnedNotifications)
+        var shouldWrite = false
+        let _ = lastSynced.modify { previous in
+            if previous?.hideMentions == next.hideMentions, previous?.hidePinned == next.hidePinned {
+                return previous
+            }
+            shouldWrite = true
+            return next
+        }
+        guard shouldWrite else {
+            return
+        }
         let defaults = UserDefaults.standard
-        defaults.set(settings.hideMentionNotifications, forKey: hideMentionsKey)
-        defaults.set(settings.hidePinnedNotifications, forKey: hidePinnedKey)
+        defaults.set(next.hideMentions, forKey: hideMentionsKey)
+        defaults.set(next.hidePinned, forKey: hidePinnedKey)
         for suite in candidateSuites() {
             defaults.set(suite, forKey: suiteHintKey)
             if let shared = UserDefaults(suiteName: suite) {
-                shared.set(settings.hideMentionNotifications, forKey: hideMentionsKey)
-                shared.set(settings.hidePinnedNotifications, forKey: hidePinnedKey)
-                shared.synchronize()
+                shared.set(next.hideMentions, forKey: hideMentionsKey)
+                shared.set(next.hidePinned, forKey: hidePinnedKey)
             }
         }
-        defaults.synchronize()
     }
     
     private static func bool(forKey key: String) -> Bool {

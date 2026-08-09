@@ -1447,14 +1447,11 @@ public class GalleryController: ViewController, StandalonePresentableController,
         
         switch source {
         case let .peerMessagesAtId(id, _, _, _):
-            if id.peerId.namespace == Namespaces.Peer.SecretChat {
+            // AyuGram: no capture subscription when screenshots are allowed.
+            if id.peerId.namespace == Namespaces.Peer.SecretChat, !ForkSecretScreenshotSettings.allow {
                 self.screenCaptureEventsDisposable = (screenCaptureEvents()
                 |> deliverOnMainQueue).start(next: { [weak self] _ in
                     if let strongSelf = self, strongSelf.traceVisibility() {
-                        // AyuGram: allow secret screenshots without notifying the peer.
-                        if ForkSecretScreenshotSettings.allow {
-                            return
-                        }
                         let _ = strongSelf.context.engine.messages.addSecretChatMessageScreenshot(peerId: id.peerId).start()
                     }
                 }).strict()

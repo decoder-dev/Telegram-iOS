@@ -142,9 +142,11 @@ func chatHistoryEntriesForView(
     }
     
     // Hot flags / precompiled regex only — never copy ForkExtrasSettings per rebuild/message.
-    let hideBlockedMessages = ForkExtrasHotFlags.hideBlockedMessages
-    let regexFiltersActive = ForkRegexMessageFilters.isActive
+    let hotFlags = ForkExtrasHotFlags.current
+    let hideBlockedMessages = hotFlags.hideBlockedMessages
+    let regexSnapshot = ForkRegexMessageFilters.currentSnapshot()
     let accountPeerId = context.account.peerId
+    let blockedPeerIds: Set<PeerId> = hideBlockedMessages ? ForkBlockedPeersFilter.peerIds(accountPeerId: accountPeerId) : []
 
     var count = 0
     loop: for entry in view.entries {
@@ -164,15 +166,15 @@ func chatHistoryEntriesForView(
         if hideBlockedMessages {
             if let authorId = message.author?.id,
                authorId != accountPeerId,
-               ForkBlockedPeersFilter.contains(accountPeerId: accountPeerId, peerId: authorId) {
+               blockedPeerIds.contains(authorId) {
                 continue loop
             }
         }
 
         // AyuGram Message Filters: precompiled regex (see ForkRegexMessageFilters.apply).
-        if regexFiltersActive,
+        if regexSnapshot.active,
            message.author?.id != accountPeerId,
-           ForkRegexMessageFilters.matches(message.text) {
+           ForkRegexMessageFilters.matches(message.text, regexes: regexSnapshot.regexes) {
             continue loop
         }
         
@@ -701,7 +703,7 @@ func chatHistoryEntriesForView(
         }
         
         // AyuGram Message Filters: Hide Ads — skip sponsored injection.
-        let hideAds = ForkExtrasHotFlags.hideAds
+        let hideAds = hotFlags.hideAds
         if !hideAds, !dynamicAdMessages.isEmpty {
             assert(entries.sorted() == entries)
             for message in dynamicAdMessages {

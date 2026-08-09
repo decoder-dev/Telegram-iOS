@@ -550,9 +550,13 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             Self.pushForkExtrasToEngineStatics(settings)
         }
         self.forkExtrasSettingsDisposable = (self.accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.forkExtrasSettings])
-        |> deliverOnMainQueue).start(next: { [weak self] sharedData in
-            let settings = sharedData.entries[ApplicationSpecificSharedDataKeys.forkExtrasSettings]?.get(ForkExtrasSettings.self) ?? .defaultSettings
+        |> map { sharedData -> ForkExtrasSettings in
+            return sharedData.entries[ApplicationSpecificSharedDataKeys.forkExtrasSettings]?.get(ForkExtrasSettings.self) ?? .defaultSettings
+        }
+        |> distinctUntilChanged
+        |> deliverOnMainQueue).start(next: { [weak self] settings in
             let _ = immediateForkExtrasSettingsValue.swap(settings)
+            // Single owner of NSE projection (change-gated inside sync).
             ForkExtrasNotificationBridge.sync(settings)
             MessageSavingStore.installBridge()
             MessageSavingStore.applySettings(settings)
@@ -1142,20 +1146,24 @@ public final class SharedAccountContextImpl: SharedAccountContext {
     /// Push Extras flags into TelegramCore statics + precompile regex filters.
     /// Kept off the chat scroll path: history filtering reads the compiled cache only.
     private static func pushForkExtrasToEngineStatics(_ settings: ForkExtrasSettings) {
-        ForkGhostModeSettings.suppressOutgoingActivity = settings.ghostDontSendTyping
-        ForkGhostModeSettings.suppressOnline = settings.ghostDontSendOnline
-        ForkGhostModeSettings.suppressMessageReads = settings.ghostDontReadMessages
-        ForkGhostModeSettings.suppressStoryViews = settings.ghostDontReadStories
-        ForkGhostModeSettings.goOfflineAutomatically = settings.ghostGoOfflineAutomatically
-        ForkGhostModeSettings.readOnInteract = settings.ghostReadOnInteract
+        ForkGhostModeSettings.applyPreferences(
+            suppressOutgoingActivity: settings.ghostDontSendTyping,
+            suppressOnline: settings.ghostDontSendOnline,
+            suppressMessageReads: settings.ghostDontReadMessages,
+            suppressStoryViews: settings.ghostDontReadStories,
+            goOfflineAutomatically: settings.ghostGoOfflineAutomatically,
+            readOnInteract: settings.ghostReadOnInteract
+        )
         ForkAyuForwardSettings.enabled = settings.ayuForward
         ForkSecretScreenshotSettings.allow = settings.allowSecretScreenshots
         ForkExpireTtlSettings.enabled = settings.expireTtlButton
         ForkKeepBannedChatsSettings.enabled = settings.keepBannedChats
         ForkGhostScheduleSettings.enabled = settings.ghostScheduleMessages
-        ForkExtrasHotFlags.hideAds = settings.hideAds
-        ForkExtrasHotFlags.hideBlockedMessages = settings.hideBlockedMessages
-        ForkExtrasHotFlags.hideReactionsBar = settings.hideReactionsBar
+        ForkExtrasHotFlags.update(ForkExtrasHotFlags.State(
+            hideAds: settings.hideAds,
+            hideBlockedMessages: settings.hideBlockedMessages,
+            hideReactionsBar: settings.hideReactionsBar
+        ))
         ForkRegexMessageFilters.apply(
             enabled: settings.regexMessageFiltersEnabled,
             caseInsensitive: settings.regexMessageFiltersCaseInsensitive,

@@ -30,86 +30,232 @@ struct PeerInputActivityRecord: Equatable {
 /// When enabled, copy-protected / locally-deleted messages are re-uploaded as new content (no author)
 /// instead of `messages.forwardMessages` (which the server rejects for noforwards).
 public enum ForkAyuForwardSettings {
-    public static var enabled: Bool = true
+    private static let value = Atomic<Bool>(value: true)
+    public static var enabled: Bool {
+        get { return value.with { $0 } }
+        set { let _ = value.swap(newValue) }
+    }
 }
 
 /// AyuGram: allow screenshots in secret chats / secret media and suppress peer notify.
 public enum ForkSecretScreenshotSettings {
-    public static var allow: Bool = true
+    private static let value = Atomic<Bool>(value: true)
+    public static var allow: Bool {
+        get { return value.with { $0 } }
+        set { let _ = value.swap(newValue) }
+    }
 }
 
 /// AyuGram: expire-now button on TTL / secret media viewer.
 public enum ForkExpireTtlSettings {
-    public static var enabled: Bool = true
+    private static let value = Atomic<Bool>(value: true)
+    public static var enabled: Bool {
+        get { return value.with { $0 } }
+        set { let _ = value.swap(newValue) }
+    }
 }
 
 /// AyuGram: keep banned/kicked chats in the chat list instead of dropping them.
 public enum ForkKeepBannedChatsSettings {
-    public static var enabled: Bool = true
+    private static let value = Atomic<Bool>(value: true)
+    public static var enabled: Bool {
+        get { return value.with { $0 } }
+        set { let _ = value.swap(newValue) }
+    }
 }
 
 /// AyuGram Ghost Schedule Messages — delay-send when full Ghost Mode is active.
 public enum ForkGhostScheduleSettings {
-    public static var enabled: Bool = false
+    private static let value = Atomic<Bool>(value: false)
+    public static var enabled: Bool {
+        get { return value.with { $0 } }
+        set { let _ = value.swap(newValue) }
+    }
 }
 
-/// Bool flags read on scroll / bubble-layout paths. Plain statics so callers never copy
-/// a preferences struct (which may embed regex pattern strings) per frame.
+/// Bool flags read on scroll / bubble-layout paths. Atomic so Postbox/UI queues never race.
 public enum ForkExtrasHotFlags {
-    public static var hideAds: Bool = false
-    public static var hideBlockedMessages: Bool = false
-    public static var hideReactionsBar: Bool = false
+    public struct State: Equatable {
+        public var hideAds: Bool = false
+        public var hideBlockedMessages: Bool = false
+        public var hideReactionsBar: Bool = false
+
+        public init(hideAds: Bool = false, hideBlockedMessages: Bool = false, hideReactionsBar: Bool = false) {
+            self.hideAds = hideAds
+            self.hideBlockedMessages = hideBlockedMessages
+            self.hideReactionsBar = hideReactionsBar
+        }
+    }
+
+    private static let state = Atomic<State>(value: State())
+
+    public static var current: State {
+        return state.with { $0 }
+    }
+
+    public static func update(_ next: State) {
+        let _ = state.swap(next)
+    }
+
+    public static var hideAds: Bool {
+        get { return state.with { $0.hideAds } }
+        set { let _ = state.modify { var s = $0; s.hideAds = newValue; return s } }
+    }
+    public static var hideBlockedMessages: Bool {
+        get { return state.with { $0.hideBlockedMessages } }
+        set { let _ = state.modify { var s = $0; s.hideBlockedMessages = newValue; return s } }
+    }
+    public static var hideReactionsBar: Bool {
+        get { return state.with { $0.hideReactionsBar } }
+        set { let _ = state.modify { var s = $0; s.hideReactionsBar = newValue; return s } }
+    }
 }
 
 /// Pushed down from SharedAccountContext.swift's ForkExtrasSettings subscription — this module
 /// has no visibility into ForkExtrasSettings, same pattern as ManagedAudioSessionImpl.forceBuiltInMic.
 /// Mirrors AyuGram's granular Ghost Mode toggles.
 public enum ForkGhostModeSettings {
+    public struct State: Equatable {
+        public var suppressOutgoingActivity: Bool = false
+        public var suppressOnline: Bool = false
+        public var suppressMessageReads: Bool = false
+        public var suppressStoryViews: Bool = false
+        public var goOfflineAutomatically: Bool = false
+        public var readOnInteract: Bool = false
+        public var interactOverrideActive: Bool = false
+        public var interactOverrideGeneration: Int = 0
+
+        public init(
+            suppressOutgoingActivity: Bool = false,
+            suppressOnline: Bool = false,
+            suppressMessageReads: Bool = false,
+            suppressStoryViews: Bool = false,
+            goOfflineAutomatically: Bool = false,
+            readOnInteract: Bool = false,
+            interactOverrideActive: Bool = false,
+            interactOverrideGeneration: Int = 0
+        ) {
+            self.suppressOutgoingActivity = suppressOutgoingActivity
+            self.suppressOnline = suppressOnline
+            self.suppressMessageReads = suppressMessageReads
+            self.suppressStoryViews = suppressStoryViews
+            self.goOfflineAutomatically = goOfflineAutomatically
+            self.readOnInteract = readOnInteract
+            self.interactOverrideActive = interactOverrideActive
+            self.interactOverrideGeneration = interactOverrideGeneration
+        }
+    }
+
+    private static let state = Atomic<State>(value: State())
+
+    public static var current: State {
+        return state.with { $0 }
+    }
+
+    public static func update(_ f: (State) -> State) {
+        let _ = state.modify(f)
+    }
+
+    /// Replace preference-backed fields in one atomic write (keeps interact-override intact).
+    public static func applyPreferences(
+        suppressOutgoingActivity: Bool,
+        suppressOnline: Bool,
+        suppressMessageReads: Bool,
+        suppressStoryViews: Bool,
+        goOfflineAutomatically: Bool,
+        readOnInteract: Bool
+    ) {
+        update { current in
+            var next = current
+            next.suppressOutgoingActivity = suppressOutgoingActivity
+            next.suppressOnline = suppressOnline
+            next.suppressMessageReads = suppressMessageReads
+            next.suppressStoryViews = suppressStoryViews
+            next.goOfflineAutomatically = goOfflineAutomatically
+            next.readOnInteract = readOnInteract
+            return next
+        }
+    }
+
     /// Don't Send Typing — suppress typing / upload / sticker activity.
-    public static var suppressOutgoingActivity: Bool = false
+    public static var suppressOutgoingActivity: Bool {
+        get { return state.with { $0.suppressOutgoingActivity } }
+        set { update { var s = $0; s.suppressOutgoingActivity = newValue; return s } }
+    }
     /// Don't Send Online — never report online (unless briefly overridden by read-on-interact).
-    public static var suppressOnline: Bool = false
+    public static var suppressOnline: Bool {
+        get { return state.with { $0.suppressOnline } }
+        set { update { var s = $0; s.suppressOnline = newValue; return s } }
+    }
     /// Don't Read Messages — suppress read receipts / seen reactions while browsing.
-    public static var suppressMessageReads: Bool = false
+    public static var suppressMessageReads: Bool {
+        get { return state.with { $0.suppressMessageReads } }
+        set { update { var s = $0; s.suppressMessageReads = newValue; return s } }
+    }
     /// Don't Read Stories — suppress story view increments.
-    public static var suppressStoryViews: Bool = false
+    public static var suppressStoryViews: Bool {
+        get { return state.with { $0.suppressStoryViews } }
+        set { update { var s = $0; s.suppressStoryViews = newValue; return s } }
+    }
     /// Go Offline Automatically — after reporting online, immediately flip back to offline.
-    public static var goOfflineAutomatically: Bool = false
+    public static var goOfflineAutomatically: Bool {
+        get { return state.with { $0.goOfflineAutomatically } }
+        set { update { var s = $0; s.goOfflineAutomatically = newValue; return s } }
+    }
     /// Read on Interact — when set with dont-read, interactions briefly allow reads + online blink.
-    public static var readOnInteract: Bool = false
+    public static var readOnInteract: Bool {
+        get { return state.with { $0.readOnInteract } }
+        set { update { var s = $0; s.readOnInteract = newValue; return s } }
+    }
     /// Temporary override window opened by `beginReadOnInteractOverride()`.
-    public static var interactOverrideActive: Bool = false
+    public static var interactOverrideActive: Bool {
+        get { return state.with { $0.interactOverrideActive } }
+        set { update { var s = $0; s.interactOverrideActive = newValue; return s } }
+    }
 
     /// Call when the user sends/reacts and Read on Interact is enabled.
     public static func beginReadOnInteractOverride(duration: TimeInterval = 1.5) {
-        guard readOnInteract else {
+        var generation: Int?
+        update { current in
+            guard current.readOnInteract else {
+                return current
+            }
+            var next = current
+            next.interactOverrideActive = true
+            next.interactOverrideGeneration += 1
+            generation = next.interactOverrideGeneration
+            return next
+        }
+        guard let generation else {
             return
         }
-        interactOverrideActive = true
-        interactOverrideGeneration += 1
-        let generation = interactOverrideGeneration
         Queue.mainQueue().after(duration) {
-            if interactOverrideGeneration == generation {
-                interactOverrideActive = false
+            update { current in
+                guard current.interactOverrideGeneration == generation else {
+                    return current
+                }
+                var next = current
+                next.interactOverrideActive = false
+                return next
             }
         }
     }
 
-    private static var interactOverrideGeneration: Int = 0
-
     /// True when dont-read is on and the read-on-interact override window is closed.
     public static var shouldSuppressMessageReads: Bool {
-        if interactOverrideActive {
+        let current = state.with { $0 }
+        if current.interactOverrideActive {
             return false
         }
-        return suppressMessageReads
+        return current.suppressMessageReads
     }
 
     public static var shouldSuppressOnline: Bool {
-        if interactOverrideActive {
+        let current = state.with { $0 }
+        if current.interactOverrideActive {
             return false
         }
-        return suppressOnline
+        return current.suppressOnline
     }
 }
 
