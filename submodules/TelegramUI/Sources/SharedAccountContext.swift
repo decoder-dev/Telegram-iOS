@@ -544,16 +544,13 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         // (settings stayed disabled / append was nil), so View Deleted stayed empty.
         MessageSavingStore.installBridge()
         MessageSavingStore.applySettings(immediateForkExtrasSettingsValue.with { $0 })
-        // Eager Core pushdown from current immediate defaults (sharedData signal is async).
+        // Eager Core / filter pushdown from current immediate defaults (sharedData signal is async).
         do {
             let settings = immediateForkExtrasSettingsValue.with { $0 }
-            ForkSecretScreenshotSettings.allow = settings.allowSecretScreenshots
-            ForkExpireTtlSettings.enabled = settings.expireTtlButton
-            ForkKeepBannedChatsSettings.enabled = settings.keepBannedChats
-            ForkAyuForwardSettings.enabled = settings.ayuForward
+            Self.pushForkExtrasToEngineStatics(settings)
         }
         self.forkExtrasSettingsDisposable = (self.accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.forkExtrasSettings])
-        |> deliverOnMainQueue).start(next: { sharedData in
+        |> deliverOnMainQueue).start(next: { [weak self] sharedData in
             let settings = sharedData.entries[ApplicationSpecificSharedDataKeys.forkExtrasSettings]?.get(ForkExtrasSettings.self) ?? .defaultSettings
             let _ = immediateForkExtrasSettingsValue.swap(settings)
             ForkExtrasNotificationBridge.sync(settings)
@@ -564,17 +561,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             PeerNameColors.saturationPercent = settings.accentColorSaturation
             // TelegramAudio has no visibility into ForkExtrasSettings either — same pattern.
             ManagedAudioSessionImpl.forceBuiltInMic = settings.forceBuiltInMic
-            // Ghost Mode (AyuGram granular): push each flag into TelegramCore statics —
-            // TelegramCore has no visibility into ForkExtrasSettings.
-            ForkGhostModeSettings.suppressOutgoingActivity = settings.ghostDontSendTyping
-            ForkGhostModeSettings.suppressOnline = settings.ghostDontSendOnline
-            ForkGhostModeSettings.suppressStoryViews = settings.ghostDontReadStories
-            ForkGhostModeSettings.goOfflineAutomatically = settings.ghostGoOfflineAutomatically
-            ForkGhostModeSettings.readOnInteract = settings.ghostReadOnInteract
-            ForkAyuForwardSettings.enabled = settings.ayuForward
-            ForkSecretScreenshotSettings.allow = settings.allowSecretScreenshots
-            ForkExpireTtlSettings.enabled = settings.expireTtlButton
-            ForkKeepBannedChatsSettings.enabled = settings.keepBannedChats
+            self?.pushForkExtrasRuntime(settings)
         })
         
         let _ = self.contactDataManager?.personNameDisplayOrder().start(next: { order in
@@ -1152,6 +1139,34 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         }*/
     }
     
+    /// Push Extras flags into TelegramCore statics + precompile regex filters.
+    /// Kept off the chat scroll path: history filtering reads the compiled cache only.
+    private static func pushForkExtrasToEngineStatics(_ settings: ForkExtrasSettings) {
+        ForkGhostModeSettings.suppressOutgoingActivity = settings.ghostDontSendTyping
+        ForkGhostModeSettings.suppressOnline = settings.ghostDontSendOnline
+        ForkGhostModeSettings.suppressMessageReads = settings.ghostDontReadMessages
+        ForkGhostModeSettings.suppressStoryViews = settings.ghostDontReadStories
+        ForkGhostModeSettings.goOfflineAutomatically = settings.ghostGoOfflineAutomatically
+        ForkGhostModeSettings.readOnInteract = settings.ghostReadOnInteract
+        ForkAyuForwardSettings.enabled = settings.ayuForward
+        ForkSecretScreenshotSettings.allow = settings.allowSecretScreenshots
+        ForkExpireTtlSettings.enabled = settings.expireTtlButton
+        ForkKeepBannedChatsSettings.enabled = settings.keepBannedChats
+        ForkGhostScheduleSettings.enabled = settings.ghostScheduleMessages
+        ForkExtrasHotFlags.hideAds = settings.hideAds
+        ForkExtrasHotFlags.hideBlockedMessages = settings.hideBlockedMessages
+        ForkExtrasHotFlags.hideReactionsBar = settings.hideReactionsBar
+        ForkRegexMessageFilters.apply(
+            enabled: settings.regexMessageFiltersEnabled,
+            caseInsensitive: settings.regexMessageFiltersCaseInsensitive,
+            patterns: settings.regexMessageFilterPatterns
+        )
+    }
+
+    private func pushForkExtrasRuntime(_ settings: ForkExtrasSettings) {
+        SharedAccountContextImpl.pushForkExtrasToEngineStatics(settings)
+    }
+
     deinit {
         assertionFailure("SharedAccountContextImpl is not supposed to be deallocated")
         self.registeredNotificationTokensDisposable.dispose()

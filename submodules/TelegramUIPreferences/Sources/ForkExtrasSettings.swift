@@ -327,6 +327,84 @@ public func forkExtrasSettings(accountManager: AccountManager<TelegramAccountMan
     }
 }
 
+/// Compiled AyuGram-style regex message filters.
+/// Patterns are compiled once when Extras settings change — never on the chat-history rebuild path.
+public enum ForkRegexMessageFilters {
+    private struct Fingerprint: Equatable {
+        var enabled: Bool
+        var caseInsensitive: Bool
+        var patterns: [String]
+    }
+
+    private struct Snapshot {
+        var fingerprint: Fingerprint
+        var regexes: [NSRegularExpression]
+    }
+
+    /// Cap matching input to keep pathological patterns from burning CPU/heat on huge messages.
+    private static let maxMatchUTF16Length = 4096
+    /// Soft cap so a huge pasted list cannot explode compile / match cost.
+    private static let maxPatterns = 64
+
+    private static let snapshot = Atomic<Snapshot>(value: Snapshot(
+        fingerprint: Fingerprint(enabled: false, caseInsensitive: true, patterns: []),
+        regexes: []
+    ))
+
+    public static func apply(enabled: Bool, caseInsensitive: Bool, patterns: [String]) {
+        let fingerprint = Fingerprint(enabled: enabled, caseInsensitive: caseInsensitive, patterns: patterns)
+        let _ = snapshot.modify { current in
+            if current.fingerprint == fingerprint {
+                return current
+            }
+            guard enabled else {
+                return Snapshot(fingerprint: fingerprint, regexes: [])
+            }
+            var options: NSRegularExpression.Options = [.anchorsMatchLines]
+            if caseInsensitive {
+                options.insert(.caseInsensitive)
+            }
+            var regexes: [NSRegularExpression] = []
+            regexes.reserveCapacity(min(patterns.count, maxPatterns))
+            for pattern in patterns.prefix(maxPatterns) {
+                let trimmed = pattern.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !trimmed.isEmpty else {
+                    continue
+                }
+                if let regex = try? NSRegularExpression(pattern: trimmed, options: options) {
+                    regexes.append(regex)
+                }
+            }
+            return Snapshot(fingerprint: fingerprint, regexes: regexes)
+        }
+    }
+
+    /// True when filters are enabled and at least one compiled pattern is ready.
+    public static var isActive: Bool {
+        return snapshot.with { !$0.regexes.isEmpty && $0.fingerprint.enabled }
+    }
+
+    /// Returns true if `text` matches any compiled filter (AyuGram `Pattern.matcher.find()`).
+    public static func matches(_ text: String) -> Bool {
+        let current = snapshot.with { $0 }
+        guard current.fingerprint.enabled, !current.regexes.isEmpty, !text.isEmpty else {
+            return false
+        }
+        let nsText = text as NSString
+        let length = min(nsText.length, maxMatchUTF16Length)
+        guard length > 0 else {
+            return false
+        }
+        let range = NSRange(location: 0, length: length)
+        for regex in current.regexes {
+            if regex.firstMatch(in: text, options: [], range: range) != nil {
+                return true
+            }
+        }
+        return false
+    }
+}
+
 /// NSE-readable flags (App Group / standard UserDefaults). AccountManager is not available in NSE.
 public enum ForkExtrasNotificationBridge {
     private static let suiteHintKey = "ForkExtras.AppGroupSuite"

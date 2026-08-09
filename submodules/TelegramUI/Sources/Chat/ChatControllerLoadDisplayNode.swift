@@ -5182,7 +5182,7 @@ extension ChatControllerImpl {
                     }
                     |> deliverOnMainQueue).startStrict(next: { [weak self] activities in
                         if let strongSelf = self {
-                            let hideBlocked = strongSelf.context.sharedContext.immediateForkExtrasSettings.hideBlockedMessages
+                            let hideBlocked = ForkExtrasHotFlags.hideBlockedMessages
                             let accountPeerId = strongSelf.context.account.peerId
                             let displayActivities = activities.filter({
                                 if hideBlocked, ForkBlockedPeersFilter.contains(accountPeerId: accountPeerId, peerId: $0.0.id) {

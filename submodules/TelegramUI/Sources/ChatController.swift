@@ -2194,7 +2194,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
             }
 
             var isSecret = strongSelf.presentationInterfaceState.copyProtectionEnabled || strongSelf.chatLocation.peerId?.namespace == Namespaces.Peer.SecretChat
-            if strongSelf.context.sharedContext.immediateForkExtrasSettings.allowSecretScreenshots,
+            if ForkSecretScreenshotSettings.allow,
                strongSelf.chatLocation.peerId?.namespace == Namespaces.Peer.SecretChat {
                 isSecret = strongSelf.presentationInterfaceState.copyProtectionEnabled
             }
@@ -7804,7 +7804,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                     self.screenCaptureManager = ScreenCaptureDetectionManager(check: { [weak self] in
                         if let strongSelf = self, strongSelf.traceVisibility() {
                             // AyuGram: allow secret screenshots without notifying the peer.
-                            if !strongSelf.context.sharedContext.immediateForkExtrasSettings.allowSecretScreenshots,
+                            if !ForkSecretScreenshotSettings.allow,
                                strongSelf.canReadHistoryValue {
                                 let _ = strongSelf.context.engine.messages.addSecretChatMessageScreenshot(peerId: peerId).startStandalone()
                             }
@@ -9001,17 +9001,19 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                 if case .scheduledMessages = self.presentationInterfaceState.subject {
                     isScheduledMessagesSubject = true
                 }
+                // Cheap static gates first — avoid copying ForkExtrasSettings unless scheduling applies.
                 if scheduleTime == nil,
                    !isScheduledMessagesSubject,
+                   ForkGhostScheduleSettings.enabled,
+                   ForkGhostModeSettings.suppressMessageReads,
+                   ForkGhostModeSettings.suppressOutgoingActivity,
+                   ForkGhostModeSettings.suppressOnline,
                    attributes.first(where: { $0 is OutgoingScheduleInfoMessageAttribute }) == nil {
-                    let forkExtras = self.context.sharedContext.immediateForkExtrasSettings
-                    if forkExtras.ghostScheduleMessages, forkExtras.isFullGhostMode {
-                        let delay = Self.forkGhostScheduleDelaySeconds(for: message)
-                        attributes.append(OutgoingScheduleInfoMessageAttribute(
-                            scheduleTime: Int32(Date().timeIntervalSince1970) + delay,
-                            repeatPeriod: nil
-                        ))
-                    }
+                    let delay = Self.forkGhostScheduleDelaySeconds(for: message)
+                    attributes.append(OutgoingScheduleInfoMessageAttribute(
+                        scheduleTime: Int32(Date().timeIntervalSince1970) + delay,
+                        repeatPeriod: nil
+                    ))
                 }
                 return attributes
             }
@@ -9054,7 +9056,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         }
 
         // AyuGram Ghost Mode: Read on Interact — briefly allow read receipts + online blink on send.
-        if self.context.sharedContext.immediateForkExtrasSettings.ghostReadOnInteract {
+        if ForkGhostModeSettings.readOnInteract {
             ForkGhostModeSettings.beginReadOnInteractOverride()
         }
         

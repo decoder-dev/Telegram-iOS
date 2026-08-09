@@ -141,6 +141,11 @@ func chatHistoryEntriesForView(
         }
     }
     
+    // Hot flags / precompiled regex only — never copy ForkExtrasSettings per rebuild/message.
+    let hideBlockedMessages = ForkExtrasHotFlags.hideBlockedMessages
+    let regexFiltersActive = ForkRegexMessageFilters.isActive
+    let accountPeerId = context.account.peerId
+
     var count = 0
     loop: for entry in view.entries {
         var message = entry.message
@@ -156,35 +161,19 @@ func chatHistoryEntriesForView(
         }
 
         // AyuGram Message Filters: Hide Blocked Messages.
-        if context.sharedContext.immediateForkExtrasSettings.hideBlockedMessages {
+        if hideBlockedMessages {
             if let authorId = message.author?.id,
-               authorId != context.account.peerId,
-               ForkBlockedPeersFilter.contains(accountPeerId: context.account.peerId, peerId: authorId) {
+               authorId != accountPeerId,
+               ForkBlockedPeersFilter.contains(accountPeerId: accountPeerId, peerId: authorId) {
                 continue loop
             }
         }
 
-        // AyuGram Message Filters: regex patterns (global).
-        let forkExtras = context.sharedContext.immediateForkExtrasSettings
-        if forkExtras.regexMessageFiltersEnabled,
-           !forkExtras.regexMessageFilterPatterns.isEmpty,
-           message.author?.id != context.account.peerId {
-            let options: NSRegularExpression.Options = forkExtras.regexMessageFiltersCaseInsensitive ? [.caseInsensitive] : []
-            let text = message.text
-            if !text.isEmpty {
-                let nsText = text as NSString
-                let fullRange = NSRange(location: 0, length: nsText.length)
-                for pattern in forkExtras.regexMessageFilterPatterns {
-                    let trimmed = pattern.trimmingCharacters(in: .whitespacesAndNewlines)
-                    guard !trimmed.isEmpty else {
-                        continue
-                    }
-                    if let regex = try? NSRegularExpression(pattern: trimmed, options: options),
-                       regex.firstMatch(in: text, options: [], range: fullRange) != nil {
-                        continue loop
-                    }
-                }
-            }
+        // AyuGram Message Filters: precompiled regex (see ForkRegexMessageFilters.apply).
+        if regexFiltersActive,
+           message.author?.id != accountPeerId,
+           ForkRegexMessageFilters.matches(message.text) {
+            continue loop
         }
         
         if case let .replyThread(replyThreadMessage) = location, replyThreadMessage.isForumPost {
@@ -712,7 +701,7 @@ func chatHistoryEntriesForView(
         }
         
         // AyuGram Message Filters: Hide Ads — skip sponsored injection.
-        let hideAds = context.sharedContext.immediateForkExtrasSettings.hideAds
+        let hideAds = ForkExtrasHotFlags.hideAds
         if !hideAds, !dynamicAdMessages.isEmpty {
             assert(entries.sorted() == entries)
             for message in dynamicAdMessages {

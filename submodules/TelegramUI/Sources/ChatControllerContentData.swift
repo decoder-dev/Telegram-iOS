@@ -775,7 +775,7 @@ extension ChatControllerImpl {
                     }
                     
                     var shouldDismiss = false
-                    let keepBanned = strongSelf.context.sharedContext.immediateForkExtrasSettings.keepBannedChats
+                    let keepBanned = ForkKeepBannedChatsSettings.enabled
                     if let previous = strongSelf.state.peerView, let group = previous.peers[previous.peerId] as? TelegramGroup, group.membership != .Removed, let updatedGroup = peerView.peers[peerView.peerId] as? TelegramGroup, updatedGroup.membership == .Removed {
                         // AyuGram: keep banned chats open when Keep Banned Chats is on.
                         shouldDismiss = !keepBanned
