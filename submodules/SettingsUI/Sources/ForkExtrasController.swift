@@ -849,6 +849,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings) -> [ForkE
 
 public func forkExtrasController(context: AccountContext) -> ViewController {
     let updateDisposable = MetaDisposable()
+    /// Debounce regex pattern edits — each keystroke must not rewrite AccountManager + rebuild history filters.
+    let regexPatternsDisposable = MetaDisposable()
     var presentControllerImpl: ((ViewController) -> Void)?
 
     func presentPicker(title: String, options: [(String, () -> Void)]) {
@@ -1161,14 +1163,25 @@ public func forkExtrasController(context: AccountContext) -> ViewController {
             }.start())
         },
         updateRegexFilterPatternsText: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.regexMessageFilterPatterns = value
-                    .split(separator: "\n", omittingEmptySubsequences: false)
-                    .map { String($0).trimmingCharacters(in: .whitespaces) }
-                    .filter { !$0.isEmpty }
-                return updated
-            }.start())
+            regexPatternsDisposable.set((
+                Signal<String, NoError>.single(value)
+                |> delay(0.4, queue: Queue.mainQueue())
+                |> mapToSignal { value in
+                    return updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                        var updated = current
+                        let patterns = value
+                            .split(whereSeparator: { $0.isNewline })
+                            .map { String($0).trimmingCharacters(in: .whitespaces) }
+                            .filter { !$0.isEmpty }
+                        // Skip no-op writes (avoids filter recompile + sharedData fan-out while typing).
+                        if updated.regexMessageFilterPatterns == patterns {
+                            return updated
+                        }
+                        updated.regexMessageFilterPatterns = patterns
+                        return updated
+                    }
+                }
+            ).start())
         }
     )
 

@@ -48,6 +48,19 @@ public enum ForkKeepBannedChatsSettings {
     public static var enabled: Bool = true
 }
 
+/// AyuGram Ghost Schedule Messages — delay-send when full Ghost Mode is active.
+public enum ForkGhostScheduleSettings {
+    public static var enabled: Bool = false
+}
+
+/// Bool flags read on scroll / bubble-layout paths. Plain statics so callers never copy
+/// a preferences struct (which may embed regex pattern strings) per frame.
+public enum ForkExtrasHotFlags {
+    public static var hideAds: Bool = false
+    public static var hideBlockedMessages: Bool = false
+    public static var hideReactionsBar: Bool = false
+}
+
 /// Pushed down from SharedAccountContext.swift's ForkExtrasSettings subscription — this module
 /// has no visibility into ForkExtrasSettings, same pattern as ManagedAudioSessionImpl.forceBuiltInMic.
 /// Mirrors AyuGram's granular Ghost Mode toggles.
@@ -56,6 +69,8 @@ public enum ForkGhostModeSettings {
     public static var suppressOutgoingActivity: Bool = false
     /// Don't Send Online — never report online (unless briefly overridden by read-on-interact).
     public static var suppressOnline: Bool = false
+    /// Don't Read Messages — suppress read receipts / seen reactions while browsing.
+    public static var suppressMessageReads: Bool = false
     /// Don't Read Stories — suppress story view increments.
     public static var suppressStoryViews: Bool = false
     /// Go Offline Automatically — after reporting online, immediately flip back to offline.
@@ -82,8 +97,12 @@ public enum ForkGhostModeSettings {
 
     private static var interactOverrideGeneration: Int = 0
 
+    /// True when dont-read is on and the read-on-interact override window is closed.
     public static var shouldSuppressMessageReads: Bool {
-        return !interactOverrideActive
+        if interactOverrideActive {
+            return false
+        }
+        return suppressMessageReads
     }
 
     public static var shouldSuppressOnline: Bool {

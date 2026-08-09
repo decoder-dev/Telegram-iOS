@@ -332,7 +332,7 @@ extension ChatControllerImpl {
                 }
                 
                 var isSecret = self.presentationInterfaceState.copyProtectionEnabled || self.presentationInterfaceState.myCopyProtectionEnabled || self.chatLocation.peerId?.namespace == Namespaces.Peer.SecretChat
-                if self.context.sharedContext.immediateForkExtrasSettings.allowSecretScreenshots,
+                if ForkSecretScreenshotSettings.allow,
                    self.chatLocation.peerId?.namespace == Namespaces.Peer.SecretChat {
                     isSecret = self.presentationInterfaceState.copyProtectionEnabled || self.presentationInterfaceState.myCopyProtectionEnabled
                 }

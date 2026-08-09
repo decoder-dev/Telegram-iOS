@@ -493,7 +493,7 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
         
         self.floatingTopicsPanelContainer = ChatControllerTitlePanelNodeContainer()
         
-        let initialSecretScreenshotsBlocked = chatLocation.peerId?.namespace == Namespaces.Peer.SecretChat && !context.sharedContext.immediateForkExtrasSettings.allowSecretScreenshots
+        let initialSecretScreenshotsBlocked = chatLocation.peerId?.namespace == Namespaces.Peer.SecretChat && !ForkSecretScreenshotSettings.allow
         setLayerDisableScreenshots(self.titleAccessoryPanelContainer.layer, initialSecretScreenshotsBlocked)
         
         self.inputContextPanelContainer = ChatControllerTitlePanelNodeContainer()
@@ -773,7 +773,7 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
                 break
             }
         }
-        if let displayAdPeer, !context.sharedContext.immediateForkExtrasSettings.hideAds {
+        if let displayAdPeer, !ForkExtrasHotFlags.hideAds {
             self.adMessagesContext = context.engine.messages.adMessages(peerId: displayAdPeer, activateManually: true)
         } else {
             self.adMessagesContext = nil
@@ -1207,8 +1207,8 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
         }
         
         var isSecret = self.chatPresentationInterfaceState.copyProtectionEnabled || self.chatLocation.peerId?.namespace == Namespaces.Peer.SecretChat || self.chatLocation.peerId?.isVerificationCodes == true
-        // AyuGram: Screenshots in Secret Chats — drop screenshot blocking for secret chats when allowed.
-        if self.context.sharedContext.immediateForkExtrasSettings.allowSecretScreenshots,
+        // AyuGram: Screenshots in Secret Chats — use Core static (Bool), never copy ForkExtrasSettings on layout.
+        if ForkSecretScreenshotSettings.allow,
            self.chatLocation.peerId?.namespace == Namespaces.Peer.SecretChat {
             isSecret = self.chatPresentationInterfaceState.copyProtectionEnabled || self.chatLocation.peerId?.isVerificationCodes == true
         }
