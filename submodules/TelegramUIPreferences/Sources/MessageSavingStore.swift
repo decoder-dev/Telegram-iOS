@@ -131,6 +131,13 @@ public enum MessageSavingStore {
     public static let changes = ValuePromise<Int>(0, ignoreRepeated: false)
     private static var changeCounter: Int = 0
 
+    /// Ask open screens to rebuild without changing any record. Needed because a durable copy can
+    /// finish after its record was already written with that exact path: nothing in the store
+    /// changes when the bytes land, but what the screen renders does.
+    public static func refresh() {
+        notifyChanged()
+    }
+
     private static func notifyChanged() {
         lock.lock()
         self.changeCounter += 1
