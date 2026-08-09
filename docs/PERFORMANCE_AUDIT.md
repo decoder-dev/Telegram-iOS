@@ -141,25 +141,36 @@ The app currently has **two** `OSSignposter` instances in the whole tree
 answer "what is hot" from inside the app, so every diagnosis has to be made
 from the outside with Instruments attached.
 
-Recommended, in order:
+**Added** (`submodules/TelegramUI/Sources/ForkPerformanceTelemetry.swift`,
+installed from `AppDelegate` right after the shared logger exists):
 
-1. **`ProcessInfo.thermalState` observer.** One notification observer, logged
-   with the current screen. Cheapest possible signal, and it answers "when does
-   it get hot" without any tooling.
-2. **MetricKit subscriber** (`MXMetricManager`). Gives daily CPU-time,
-   hang-rate, and disk-write payloads from real devices. This is the only item
-   here that produces data from users rather than from a developer's desk.
+1. **`ProcessInfo.thermalState` observer.** Logs the state at launch and every
+   transition. Cheapest possible signal, and it answers "when does it get hot"
+   with no tooling at all — the user reads it out of the app log.
+   `ForkPerformanceTelemetry.isThermallyStressed` exposes the same state
+   synchronously so a future throttling decision does not have to hop a queue
+   on a layout path.
+2. **MetricKit subscriber** (`MXMetricManager`). Logs a greppable one-line
+   summary of the scalar metrics — cumulative CPU time, logical disk writes,
+   background-exit counts including watchdog and CPU-limit kills — plus the
+   full payload JSON, which carries the launch-time and hang-time histograms.
+   At most one payload per day, so the volume is negligible. This is the only
+   signal here that comes back from real users rather than from a developer's
+   desk.
+
+Both are observation only. Nothing throttles or changes behaviour, because
+choosing what work to shed requires first knowing what it costs.
+
+**Still to do:**
+
 3. **Signposts on the suspected paths** — media decode, chat history layout,
-   the saving store's persist. Signposts are near-free when no tool is
-   attached, and they make an Instruments trace readable instead of a wall of
-   symbol names.
+   the saving store's persist. Near-free when no tool is attached, and they
+   make an Instruments trace readable instead of a wall of symbol names.
+   Requires a device and Instruments to be worth anything, so it is sequenced
+   behind 1–2, which do not.
 4. **Thermal-aware throttling**, only after 1–3 say where. Reducing work when
    `thermalState >= .serious` (lower decode target, pause non-visible
-   animations) is a real lever, but choosing what to shed requires knowing what
-   costs.
-
-None of this was added in this pass: instrumentation that nobody can read the
-output of is not worth the code, and no device was available to read it.
+   animations) is a real lever; the state is already available for it.
 
 ## Priority order
 
@@ -170,8 +181,8 @@ output of is not worth the code, and no device was available to read it.
 | 3 | O(n) scans on the main thread | fixed (structural) |
 | 4 | Persist lost-update race | fixed (correctness) |
 | 5 | Un-invalidated timers / display links | fixed where found |
-| 6 | `thermalState` observer | not started |
-| 7 | MetricKit subscriber | not started |
+| 6 | `thermalState` observer | added |
+| 7 | MetricKit subscriber | added |
 | 8 | Signposts on suspected paths | not started |
 | 9 | Thermal-aware throttling | blocked on 6–8 |
 | 10 | Indexed store instead of JSON | deferred pending measurement |

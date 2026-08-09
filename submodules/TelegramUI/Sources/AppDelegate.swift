@@ -338,7 +338,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         })
         
         let launchStartTime = CFAbsoluteTimeGetCurrent()
-        
+
         defaultNavigationBarImpl = { presentationData in
             return NavigationBarImpl(presentationData: presentationData)
         }
@@ -747,6 +747,11 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         let logsPath = rootPath + "/logs/app-logs"
         let _ = try? FileManager.default.createDirectory(atPath: logsPath, withIntermediateDirectories: true, attributes: nil)
         Logger.setSharedLogger(Logger(rootPath: rootPath, basePath: logsPath))
+
+        // Observation only — records thermal transitions and MetricKit payloads so a heat report
+        // can be diagnosed from the log instead of requiring Instruments on a device. Must come
+        // after setSharedLogger: Logger.shared asserts if used before one is installed.
+        ForkPerformanceTelemetry.install()
 
         setManagedAudioSessionLogger({ s in
             Logger.shared.log("ManagedAudioSession", s)
