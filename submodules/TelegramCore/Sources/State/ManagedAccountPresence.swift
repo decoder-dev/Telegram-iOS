@@ -43,11 +43,11 @@ private final class AccountPresenceManagerImpl {
     }
     
     private func updatePresence(_ isOnline: Bool) {
-        // Ghost Mode: never report online status to the server, matching the same
-        // suppression already applied to outgoing typing/input activity.
-        let isOnline = isOnline && !ForkGhostModeSettings.suppressOutgoingActivity
+        // Ghost Mode (AyuGram): Don't Send Online — never report online unless a
+        // Read-on-Interact override is briefly active.
+        let reportOnline = isOnline && !ForkGhostModeSettings.shouldSuppressOnline
         let request: Signal<Api.Bool, MTRpcError>
-        if isOnline {
+        if reportOnline {
             let timer = SignalKitTimer(timeout: 30.0, repeat: false, completion: { [weak self] in
                 guard let strongSelf = self else {
                     return
@@ -72,6 +72,10 @@ private final class AccountPresenceManagerImpl {
                 return
             }
             strongSelf.isPerformingUpdate.set(false)
+            // AyuGram: Go Offline Automatically — blink online then flip offline.
+            if reportOnline && ForkGhostModeSettings.goOfflineAutomatically && !ForkGhostModeSettings.interactOverrideActive {
+                strongSelf.updatePresence(false)
+            }
         }))
     }
 }

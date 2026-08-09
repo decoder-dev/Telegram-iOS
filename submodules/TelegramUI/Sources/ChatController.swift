@@ -9007,6 +9007,11 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         guard let peerId = self.chatLocation.peerId else {
             return
         }
+
+        // AyuGram Ghost Mode: Read on Interact — briefly allow read receipts + online blink on send.
+        if self.context.sharedContext.immediateForkExtrasSettings.ghostReadOnInteract {
+            ForkGhostModeSettings.beginReadOnInteractOverride()
+        }
         
         let _ = (self.shouldDivertMessagesToScheduled(messages: messages)
         |> deliverOnMainQueue).startStandalone(next: { [weak self] shouldDivert in

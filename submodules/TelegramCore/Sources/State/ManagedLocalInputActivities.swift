@@ -28,8 +28,48 @@ struct PeerInputActivityRecord: Equatable {
 
 /// Pushed down from SharedAccountContext.swift's ForkExtrasSettings subscription — this module
 /// has no visibility into ForkExtrasSettings, same pattern as ManagedAudioSessionImpl.forceBuiltInMic.
+/// Mirrors AyuGram's granular Ghost Mode toggles.
 public enum ForkGhostModeSettings {
+    /// Don't Send Typing — suppress typing / upload / sticker activity.
     public static var suppressOutgoingActivity: Bool = false
+    /// Don't Send Online — never report online (unless briefly overridden by read-on-interact).
+    public static var suppressOnline: Bool = false
+    /// Don't Read Stories — suppress story view increments.
+    public static var suppressStoryViews: Bool = false
+    /// Go Offline Automatically — after reporting online, immediately flip back to offline.
+    public static var goOfflineAutomatically: Bool = false
+    /// Read on Interact — when set with dont-read, interactions briefly allow reads + online blink.
+    public static var readOnInteract: Bool = false
+    /// Temporary override window opened by `beginReadOnInteractOverride()`.
+    public static var interactOverrideActive: Bool = false
+
+    /// Call when the user sends/reacts and Read on Interact is enabled.
+    public static func beginReadOnInteractOverride(duration: TimeInterval = 1.5) {
+        guard readOnInteract else {
+            return
+        }
+        interactOverrideActive = true
+        interactOverrideGeneration += 1
+        let generation = interactOverrideGeneration
+        Queue.mainQueue().after(duration) {
+            if interactOverrideGeneration == generation {
+                interactOverrideActive = false
+            }
+        }
+    }
+
+    private static var interactOverrideGeneration: Int = 0
+
+    public static var shouldSuppressMessageReads: Bool {
+        return !interactOverrideActive
+    }
+
+    public static var shouldSuppressOnline: Bool {
+        if interactOverrideActive {
+            return false
+        }
+        return suppressOnline
+    }
 }
 
 private final class ManagedLocalTypingActivitiesContext {

@@ -5,9 +5,56 @@ import AccountContext
 import SwiftSignalKit
 import TelegramCore
 import AvatarNode
+import TelegramUIPreferences
+import PresentationDataUtils
 
 public extension StoryContainerScreen {
+    /// AyuGram Ghost Mode: Alert Before Opening Story.
+    /// Outside tap dismisses without opening (`dismissOnOutsideTap`).
+    static func confirmGhostStoryOpenIfNeeded(context: AccountContext, controller: ViewController?, proceed: @escaping () -> Void) {
+        guard context.sharedContext.immediateForkExtrasSettings.ghostAlertBeforeOpeningStory else {
+            proceed()
+            return
+        }
+        guard let controller else {
+            proceed()
+            return
+        }
+        let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+        let languageCode = (Locale.preferredLanguages.first ?? "en").prefix(2).lowercased()
+        let title: String
+        let text: String
+        let openTitle: String
+        if languageCode == "ru" {
+            title = "Режим призрака"
+            text = "Открыть историю? Просмотр может быть замечен, если не включено «Не читать истории»."
+            openTitle = "Открыть"
+        } else {
+            title = "Ghost Mode"
+            text = "Open this story? Viewing may be noticed unless Don't Read Stories is on."
+            openTitle = "Open"
+        }
+        controller.present(standardTextAlertController(
+            theme: AlertControllerTheme(presentationData: presentationData),
+            title: title,
+            text: text,
+            actions: [
+                TextAlertAction(type: .genericAction, title: presentationData.strings.Common_Cancel, action: {}),
+                TextAlertAction(type: .defaultAction, title: openTitle, action: {
+                    proceed()
+                })
+            ],
+            dismissOnOutsideTap: true
+        ), in: .window(.root))
+    }
+
     static func openArchivedStories(context: AccountContext, parentController: ViewController, avatarNode: AvatarNode, sharedProgressDisposable: MetaDisposable?) {
+        confirmGhostStoryOpenIfNeeded(context: context, controller: parentController) {
+            openArchivedStoriesImmediate(context: context, parentController: parentController, avatarNode: avatarNode, sharedProgressDisposable: sharedProgressDisposable)
+        }
+    }
+
+    private static func openArchivedStoriesImmediate(context: AccountContext, parentController: ViewController, avatarNode: AvatarNode, sharedProgressDisposable: MetaDisposable?) {
         let storyContent = StoryContentContextImpl(context: context, isHidden: true, focusedPeerId: nil, singlePeer: false)
         let signal = storyContent.state
         |> take(1)
@@ -166,12 +213,50 @@ public extension StoryContainerScreen {
         isHidden: Bool,
         initialOrder: [EnginePeer.Id] = [],
         singlePeer: Bool,
+        skipGhostConfirm: Bool = false,
         parentController: ViewController,
         transitionIn: @escaping () -> StoryContainerScreen.TransitionIn?,
         transitionOut: @escaping (EnginePeer.Id) -> StoryContainerScreen.TransitionOut?,
         setFocusedItem: @escaping (Signal<EngineStoryId?, NoError>) -> Void,
         setProgress: @escaping (Signal<Never, NoError>) -> Void,
         completion: @escaping (StoryContainerScreen) -> Void = { _ in }
+    ) {
+        let proceed = {
+            openPeerStoriesCustomImmediate(
+                context: context,
+                peerId: peerId,
+                focusOnId: focusOnId,
+                isHidden: isHidden,
+                initialOrder: initialOrder,
+                singlePeer: singlePeer,
+                parentController: parentController,
+                transitionIn: transitionIn,
+                transitionOut: transitionOut,
+                setFocusedItem: setFocusedItem,
+                setProgress: setProgress,
+                completion: completion
+            )
+        }
+        if skipGhostConfirm {
+            proceed()
+        } else {
+            confirmGhostStoryOpenIfNeeded(context: context, controller: parentController, proceed: proceed)
+        }
+    }
+
+    private static func openPeerStoriesCustomImmediate(
+        context: AccountContext,
+        peerId: EnginePeer.Id,
+        focusOnId: Int32?,
+        isHidden: Bool,
+        initialOrder: [EnginePeer.Id],
+        singlePeer: Bool,
+        parentController: ViewController,
+        transitionIn: @escaping () -> StoryContainerScreen.TransitionIn?,
+        transitionOut: @escaping (EnginePeer.Id) -> StoryContainerScreen.TransitionOut?,
+        setFocusedItem: @escaping (Signal<EngineStoryId?, NoError>) -> Void,
+        setProgress: @escaping (Signal<Never, NoError>) -> Void,
+        completion: @escaping (StoryContainerScreen) -> Void
     ) {
         let storyContent = StoryContentContextImpl(context: context, isHidden: isHidden, focusedPeerId: peerId, focusedStoryId: focusOnId, singlePeer: singlePeer, fixedOrder: initialOrder)
         let signal = storyContent.state

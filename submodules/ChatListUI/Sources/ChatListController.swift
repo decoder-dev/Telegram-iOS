@@ -4354,6 +4354,14 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
     }
     
     public func openStories(peerId: EnginePeer.Id, completion: @escaping (StoryContainerScreen) -> Void = { _ in }) {
+        // AyuGram Ghost Mode: Alert Before Opening Story. Confirm once here, then skip the
+        // confirm inside openPeerStoriesCustom so the story-strip path doesn't double-prompt.
+        StoryContainerScreen.confirmGhostStoryOpenIfNeeded(context: self.context, controller: self) { [weak self] in
+            self?.openStoriesConfirmed(peerId: peerId, completion: completion)
+        }
+    }
+
+    private func openStoriesConfirmed(peerId: EnginePeer.Id, completion: @escaping (StoryContainerScreen) -> Void) {
         if let navigationBarView = self.chatListDisplayNode.navigationBarView.view as? ChatListNavigationBar.View {
             if navigationBarView.storiesUnlocked {
                 self.shouldFixStorySubscriptionOrder = true
@@ -4384,6 +4392,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                             isHidden: self.location == .chatList(groupId: .archive),
                             initialOrder: initialOrder,
                             singlePeer: false,
+                            skipGhostConfirm: true,
                             parentController: self,
                             transitionIn: { [weak self] in
                                 guard let self else {

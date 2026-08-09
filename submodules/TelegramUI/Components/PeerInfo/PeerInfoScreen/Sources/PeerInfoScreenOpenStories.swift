@@ -10,9 +10,75 @@ extension PeerInfoScreenNode {
         guard let controller = self.controller else {
             return
         }
+        StoryContainerScreen.confirmGhostStoryOpenIfNeeded(context: self.context, controller: controller) { [weak self] in
+            self?.openStoriesConfirmed(fromAvatar: fromAvatar)
+        }
+    }
+
+    private func openStoriesConfirmed(fromAvatar: Bool) {
+        guard let controller = self.controller else {
+            return
+        }
         if let expiringStoryList = self.expiringStoryList, let expiringStoryListState = self.expiringStoryListState, !expiringStoryListState.items.isEmpty {
             if fromAvatar {
-                StoryContainerScreen.openPeerStories(context: self.context, peerId: self.peerId, parentController: controller, avatarNode: self.headerNode.avatarListNode.avatarContainerNode.avatarNode)
+                // skipGhostConfirm: already confirmed above.
+                StoryContainerScreen.openPeerStoriesCustom(
+                    context: self.context,
+                    peerId: self.peerId,
+                    isHidden: false,
+                    singlePeer: true,
+                    skipGhostConfirm: true,
+                    parentController: controller,
+                    transitionIn: { [weak self] in
+                        guard let self else { return nil }
+                        let avatarNode = self.headerNode.avatarListNode.avatarContainerNode.avatarNode
+                        avatarNode.isHidden = true
+                        return StoryContainerScreen.TransitionIn(
+                            sourceView: avatarNode.view,
+                            sourceRect: avatarNode.view.bounds,
+                            sourceCornerRadius: avatarNode.view.bounds.width * 0.5,
+                            sourceIsAvatar: false
+                        )
+                    },
+                    transitionOut: { [weak self] _ in
+                        guard let self else { return nil }
+                        let avatarNode = self.headerNode.avatarListNode.avatarContainerNode.avatarNode
+                        let destinationView = avatarNode.view
+                        return StoryContainerScreen.TransitionOut(
+                            destinationView: destinationView,
+                            transitionView: StoryContainerScreen.TransitionView(
+                                makeView: { [weak destinationView] in
+                                    let parentView = UIView()
+                                    if let copyView = destinationView?.snapshotContentTree(unhide: true) {
+                                        parentView.addSubview(copyView)
+                                    }
+                                    return parentView
+                                },
+                                updateView: { copyView, state, transition in
+                                    guard let view = copyView.subviews.first else {
+                                        return
+                                    }
+                                    let size = state.sourceSize.interpolate(to: state.destinationSize, amount: state.progress)
+                                    transition.setPosition(view: view, position: CGPoint(x: size.width * 0.5, y: size.height * 0.5))
+                                    transition.setScale(view: view, scale: size.width / state.destinationSize.width)
+                                },
+                                insertCloneTransitionView: nil
+                            ),
+                            destinationRect: destinationView.bounds,
+                            destinationCornerRadius: destinationView.bounds.width * 0.5,
+                            destinationIsAvatar: false,
+                            completed: { [weak self] in
+                                self?.headerNode.avatarListNode.avatarContainerNode.avatarNode.isHidden = false
+                            }
+                        )
+                    },
+                    setFocusedItem: { _ in },
+                    setProgress: { [weak self] signal in
+                        guard let self else { return }
+                        let avatarNode = self.headerNode.avatarListNode.avatarContainerNode.avatarNode
+                        let _ = avatarNode.pushLoadingStatus(signal: signal)
+                    }
+                )
                 return
             }
             

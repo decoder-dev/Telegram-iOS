@@ -13,8 +13,17 @@ private enum ForkExtrasLocalizedString {
     private static let translations: [String: [String: String]] = [
         "en": [
             "ForkExtras.Title": "Extras",
-            "ForkExtras.GhostMode": "Ghost Mode",
-            "ForkExtras.GhostModeFooter": "Do not mark chats as read while browsing.",
+            "ForkExtras.GhostDontReadMessages": "Don't Read Messages",
+            "ForkExtras.GhostDontReadStories": "Don't Read Stories",
+            "ForkExtras.GhostDontSendOnline": "Don't Send Online",
+            "ForkExtras.GhostDontSendTyping": "Don't Send Typing",
+            "ForkExtras.GhostGoOfflineAutomatically": "Go Offline Automatically",
+            "ForkExtras.GhostGoOfflineAutomaticallyFooter": "After briefly appearing online, immediately go offline again.",
+            "ForkExtras.GhostReadOnInteract": "Read on Interact",
+            "ForkExtras.GhostReadOnInteractFooter": "When Don't Read Messages is on, mark chats read and blink online after you send a message.",
+            "ForkExtras.GhostAlertBeforeOpeningStory": "Alert Before Opening Story",
+            "ForkExtras.GhostAlertBeforeOpeningStoryFooter": "Ask before opening any story. Tap outside to dismiss without opening.",
+            "ForkExtras.GhostModeFooter": "AyuGram-style Ghost Mode. Each option can be toggled independently.",
             "ForkExtras.InstantPasscode": "Instant Passcode Lock",
             "ForkExtras.InstantPasscodeFooter": "Lock the app as soon as it leaves the foreground.",
             "ForkExtras.HideMentions": "Hide Mention Notifications",
@@ -62,8 +71,17 @@ private enum ForkExtrasLocalizedString {
         ],
         "ru": [
             "ForkExtras.Title": "Дополнительно",
-            "ForkExtras.GhostMode": "Режим призрака",
-            "ForkExtras.GhostModeFooter": "Не отмечать чаты прочитанными при просмотре.",
+            "ForkExtras.GhostDontReadMessages": "Не читать сообщения",
+            "ForkExtras.GhostDontReadStories": "Не читать истории",
+            "ForkExtras.GhostDontSendOnline": "Не отправлять онлайн",
+            "ForkExtras.GhostDontSendTyping": "Не отправлять набор",
+            "ForkExtras.GhostGoOfflineAutomatically": "Сразу уходить в офлайн",
+            "ForkExtras.GhostGoOfflineAutomaticallyFooter": "После короткого появления онлайн сразу снова уходить в офлайн.",
+            "ForkExtras.GhostReadOnInteract": "Читать при взаимодействии",
+            "ForkExtras.GhostReadOnInteractFooter": "Если включено «Не читать сообщения», отмечать прочтение и кратко показывать онлайн после отправки.",
+            "ForkExtras.GhostAlertBeforeOpeningStory": "Спрашивать перед открытием истории",
+            "ForkExtras.GhostAlertBeforeOpeningStoryFooter": "Показывать предупреждение перед открытием истории. Нажатие снаружи закрывает без открытия.",
+            "ForkExtras.GhostModeFooter": "Режим призрака в стиле AyuGram. Каждую опцию можно включать отдельно.",
             "ForkExtras.InstantPasscode": "Мгновенная блокировка",
             "ForkExtras.InstantPasscodeFooter": "Блокировать приложение сразу при уходе в фон.",
             "ForkExtras.HideMentions": "Скрыть уведомления об упоминаниях",
@@ -131,7 +149,16 @@ private enum ForkExtrasLocalizedString {
     }
     
     static var title: String { string(forKey: "ForkExtras.Title") }
-    static var ghostMode: String { string(forKey: "ForkExtras.GhostMode") }
+    static var ghostDontReadMessages: String { string(forKey: "ForkExtras.GhostDontReadMessages") }
+    static var ghostDontReadStories: String { string(forKey: "ForkExtras.GhostDontReadStories") }
+    static var ghostDontSendOnline: String { string(forKey: "ForkExtras.GhostDontSendOnline") }
+    static var ghostDontSendTyping: String { string(forKey: "ForkExtras.GhostDontSendTyping") }
+    static var ghostGoOfflineAutomatically: String { string(forKey: "ForkExtras.GhostGoOfflineAutomatically") }
+    static var ghostGoOfflineAutomaticallyFooter: String { string(forKey: "ForkExtras.GhostGoOfflineAutomaticallyFooter") }
+    static var ghostReadOnInteract: String { string(forKey: "ForkExtras.GhostReadOnInteract") }
+    static var ghostReadOnInteractFooter: String { string(forKey: "ForkExtras.GhostReadOnInteractFooter") }
+    static var ghostAlertBeforeOpeningStory: String { string(forKey: "ForkExtras.GhostAlertBeforeOpeningStory") }
+    static var ghostAlertBeforeOpeningStoryFooter: String { string(forKey: "ForkExtras.GhostAlertBeforeOpeningStoryFooter") }
     static var ghostModeFooter: String { string(forKey: "ForkExtras.GhostModeFooter") }
     static var instantPasscode: String { string(forKey: "ForkExtras.InstantPasscode") }
     static var instantPasscodeFooter: String { string(forKey: "ForkExtras.InstantPasscodeFooter") }
@@ -180,7 +207,13 @@ private enum ForkExtrasLocalizedString {
 }
 
 private final class ForkExtrasControllerArguments {
-    let updateGhostMode: (Bool) -> Void
+    let updateGhostDontReadMessages: (Bool) -> Void
+    let updateGhostDontReadStories: (Bool) -> Void
+    let updateGhostDontSendOnline: (Bool) -> Void
+    let updateGhostDontSendTyping: (Bool) -> Void
+    let updateGhostGoOfflineAutomatically: (Bool) -> Void
+    let updateGhostReadOnInteract: (Bool) -> Void
+    let updateGhostAlertBeforeOpeningStory: (Bool) -> Void
     let updateInstantPasscode: (Bool) -> Void
     let updateHideMentions: (Bool) -> Void
     let updateHidePinned: (Bool) -> Void
@@ -204,7 +237,13 @@ private final class ForkExtrasControllerArguments {
     let updateSaveForBots: (Bool) -> Void
 
     init(
-        updateGhostMode: @escaping (Bool) -> Void,
+        updateGhostDontReadMessages: @escaping (Bool) -> Void,
+        updateGhostDontReadStories: @escaping (Bool) -> Void,
+        updateGhostDontSendOnline: @escaping (Bool) -> Void,
+        updateGhostDontSendTyping: @escaping (Bool) -> Void,
+        updateGhostGoOfflineAutomatically: @escaping (Bool) -> Void,
+        updateGhostReadOnInteract: @escaping (Bool) -> Void,
+        updateGhostAlertBeforeOpeningStory: @escaping (Bool) -> Void,
         updateInstantPasscode: @escaping (Bool) -> Void,
         updateHideMentions: @escaping (Bool) -> Void,
         updateHidePinned: @escaping (Bool) -> Void,
@@ -227,7 +266,13 @@ private final class ForkExtrasControllerArguments {
         updateSaveMedia: @escaping (Bool) -> Void,
         updateSaveForBots: @escaping (Bool) -> Void
     ) {
-        self.updateGhostMode = updateGhostMode
+        self.updateGhostDontReadMessages = updateGhostDontReadMessages
+        self.updateGhostDontReadStories = updateGhostDontReadStories
+        self.updateGhostDontSendOnline = updateGhostDontSendOnline
+        self.updateGhostDontSendTyping = updateGhostDontSendTyping
+        self.updateGhostGoOfflineAutomatically = updateGhostGoOfflineAutomatically
+        self.updateGhostReadOnInteract = updateGhostReadOnInteract
+        self.updateGhostAlertBeforeOpeningStory = updateGhostAlertBeforeOpeningStory
         self.updateInstantPasscode = updateInstantPasscode
         self.updateHideMentions = updateHideMentions
         self.updateHidePinned = updateHidePinned
@@ -266,7 +311,16 @@ private enum ForkExtrasSection: Int32 {
 }
 
 private enum ForkExtrasEntry: ItemListNodeEntry {
-    case ghostMode(Bool)
+    case ghostDontReadMessages(Bool)
+    case ghostDontReadStories(Bool)
+    case ghostDontSendOnline(Bool)
+    case ghostDontSendTyping(Bool)
+    case ghostGoOfflineAutomatically(Bool)
+    case ghostGoOfflineAutomaticallyFooter
+    case ghostReadOnInteract(Bool)
+    case ghostReadOnInteractFooter
+    case ghostAlertBeforeOpeningStory(Bool)
+    case ghostAlertBeforeOpeningStoryFooter
     case ghostModeFooter
     case instantPasscode(Bool)
     case instantPasscodeFooter
@@ -305,7 +359,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
 
     var section: ItemListSectionId {
         switch self {
-        case .ghostMode, .ghostModeFooter:
+        case .ghostDontReadMessages, .ghostDontReadStories, .ghostDontSendOnline, .ghostDontSendTyping, .ghostGoOfflineAutomatically, .ghostGoOfflineAutomaticallyFooter, .ghostReadOnInteract, .ghostReadOnInteractFooter, .ghostAlertBeforeOpeningStory, .ghostAlertBeforeOpeningStoryFooter, .ghostModeFooter:
             return ForkExtrasSection.ghost.rawValue
         case .instantPasscode, .instantPasscodeFooter:
             return ForkExtrasSection.lock.rawValue
@@ -330,42 +384,51 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
 
     var stableId: Int32 {
         switch self {
-        case .ghostMode: return 0
-        case .ghostModeFooter: return 1
-        case .instantPasscode: return 2
-        case .instantPasscodeFooter: return 3
-        case .hideMentions: return 4
-        case .hideMentionsFooter: return 5
-        case .hidePinned: return 6
-        case .hidePinnedFooter: return 7
-        case .sessionBackup: return 8
-        case .sessionBackupFooter: return 9
-        case .compactChatList: return 10
-        case .compactMessagePreview: return 11
-        case .compactFolderNames: return 12
-        case .uiDensityFooter: return 13
-        case .hideReactionsBar: return 14
-        case .showDC: return 15
-        case .showProfileId: return 16
-        case .accentSaturation: return 17
-        case .privacyFooter: return 18
-        case .confirmBeforeCall: return 19
-        case .sendWithReturnKey: return 20
-        case .sendWithReturnKeyFooter: return 21
-        case .forceBuiltInMic: return 22
-        case .callsFooter: return 23
-        case .translationBackend: return 24
-        case .transcriptionBackend: return 25
-        case .translationFooter: return 26
-        case .scrollToNextChat: return 27
-        case .scrollToNextChatFooter: return 28
-        case .saveDeletedMessages: return 29
-        case .saveDeletedMessagesFooter: return 30
-        case .saveMessagesHistory: return 31
-        case .saveMessagesHistoryFooter: return 32
-        case .saveMedia: return 33
-        case .saveMediaFooter: return 34
-        case .saveForBots: return 35
+        case .ghostDontReadMessages: return 0
+        case .ghostDontReadStories: return 1
+        case .ghostDontSendOnline: return 2
+        case .ghostDontSendTyping: return 3
+        case .ghostGoOfflineAutomatically: return 4
+        case .ghostGoOfflineAutomaticallyFooter: return 5
+        case .ghostReadOnInteract: return 6
+        case .ghostReadOnInteractFooter: return 7
+        case .ghostAlertBeforeOpeningStory: return 8
+        case .ghostAlertBeforeOpeningStoryFooter: return 9
+        case .ghostModeFooter: return 10
+        case .instantPasscode: return 11
+        case .instantPasscodeFooter: return 12
+        case .hideMentions: return 13
+        case .hideMentionsFooter: return 14
+        case .hidePinned: return 15
+        case .hidePinnedFooter: return 16
+        case .sessionBackup: return 17
+        case .sessionBackupFooter: return 18
+        case .compactChatList: return 19
+        case .compactMessagePreview: return 20
+        case .compactFolderNames: return 21
+        case .uiDensityFooter: return 22
+        case .hideReactionsBar: return 23
+        case .showDC: return 24
+        case .showProfileId: return 25
+        case .accentSaturation: return 26
+        case .privacyFooter: return 27
+        case .confirmBeforeCall: return 28
+        case .sendWithReturnKey: return 29
+        case .sendWithReturnKeyFooter: return 30
+        case .forceBuiltInMic: return 31
+        case .callsFooter: return 32
+        case .translationBackend: return 33
+        case .transcriptionBackend: return 34
+        case .translationFooter: return 35
+        case .scrollToNextChat: return 36
+        case .scrollToNextChatFooter: return 37
+        case .saveDeletedMessages: return 38
+        case .saveDeletedMessagesFooter: return 39
+        case .saveMessagesHistory: return 40
+        case .saveMessagesHistoryFooter: return 41
+        case .saveMedia: return 42
+        case .saveMediaFooter: return 43
+        case .saveForBots: return 44
         }
     }
 
@@ -376,10 +439,40 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     func item(presentationData: ItemListPresentationData, arguments: Any) -> ListViewItem {
         let arguments = arguments as! ForkExtrasControllerArguments
         switch self {
-        case let .ghostMode(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.ghostMode, value: value, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateGhostMode(value)
+        case let .ghostDontReadMessages(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.ghostDontReadMessages, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateGhostDontReadMessages(value)
             })
+        case let .ghostDontReadStories(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.ghostDontReadStories, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateGhostDontReadStories(value)
+            })
+        case let .ghostDontSendOnline(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.ghostDontSendOnline, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateGhostDontSendOnline(value)
+            })
+        case let .ghostDontSendTyping(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.ghostDontSendTyping, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateGhostDontSendTyping(value)
+            })
+        case let .ghostGoOfflineAutomatically(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.ghostGoOfflineAutomatically, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateGhostGoOfflineAutomatically(value)
+            })
+        case .ghostGoOfflineAutomaticallyFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.ghostGoOfflineAutomaticallyFooter), sectionId: self.section)
+        case let .ghostReadOnInteract(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.ghostReadOnInteract, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateGhostReadOnInteract(value)
+            })
+        case .ghostReadOnInteractFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.ghostReadOnInteractFooter), sectionId: self.section)
+        case let .ghostAlertBeforeOpeningStory(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.ghostAlertBeforeOpeningStory, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateGhostAlertBeforeOpeningStory(value)
+            })
+        case .ghostAlertBeforeOpeningStoryFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.ghostAlertBeforeOpeningStoryFooter), sectionId: self.section)
         case .ghostModeFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.ghostModeFooter), sectionId: self.section)
         case let .instantPasscode(value):
@@ -512,7 +605,16 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
 
 private func forkExtrasControllerEntries(settings: ForkExtrasSettings) -> [ForkExtrasEntry] {
     return [
-        .ghostMode(settings.ghostMode),
+        .ghostDontReadMessages(settings.ghostDontReadMessages),
+        .ghostDontReadStories(settings.ghostDontReadStories),
+        .ghostDontSendOnline(settings.ghostDontSendOnline),
+        .ghostDontSendTyping(settings.ghostDontSendTyping),
+        .ghostGoOfflineAutomatically(settings.ghostGoOfflineAutomatically),
+        .ghostGoOfflineAutomaticallyFooter,
+        .ghostReadOnInteract(settings.ghostReadOnInteract),
+        .ghostReadOnInteractFooter,
+        .ghostAlertBeforeOpeningStory(settings.ghostAlertBeforeOpeningStory),
+        .ghostAlertBeforeOpeningStoryFooter,
         .ghostModeFooter,
         .instantPasscode(settings.instantPasscodeLock),
         .instantPasscodeFooter,
@@ -575,10 +677,55 @@ public func forkExtrasController(context: AccountContext) -> ViewController {
     }
 
     let arguments = ForkExtrasControllerArguments(
-        updateGhostMode: { value in
+        updateGhostDontReadMessages: { value in
             updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
                 var updated = current
-                updated.ghostMode = value
+                updated.ghostDontReadMessages = value
+                updated.ghostMode = updated.ghostDontReadMessages && updated.ghostDontSendOnline && updated.ghostDontSendTyping
+                return updated
+            }.start())
+        },
+        updateGhostDontReadStories: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.ghostDontReadStories = value
+                return updated
+            }.start())
+        },
+        updateGhostDontSendOnline: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.ghostDontSendOnline = value
+                updated.ghostMode = updated.ghostDontReadMessages && updated.ghostDontSendOnline && updated.ghostDontSendTyping
+                return updated
+            }.start())
+        },
+        updateGhostDontSendTyping: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.ghostDontSendTyping = value
+                updated.ghostMode = updated.ghostDontReadMessages && updated.ghostDontSendOnline && updated.ghostDontSendTyping
+                return updated
+            }.start())
+        },
+        updateGhostGoOfflineAutomatically: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.ghostGoOfflineAutomatically = value
+                return updated
+            }.start())
+        },
+        updateGhostReadOnInteract: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.ghostReadOnInteract = value
+                return updated
+            }.start())
+        },
+        updateGhostAlertBeforeOpeningStory: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.ghostAlertBeforeOpeningStory = value
                 return updated
             }.start())
         },
