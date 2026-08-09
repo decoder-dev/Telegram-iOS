@@ -63,6 +63,8 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.SaveMedia": "Save Media",
             "ForkExtras.SaveMediaFooter": "Copy attachments into local Saved Attachments on delete/TTL (own and others; AyuGram Android parity).",
             "ForkExtras.SaveForBots": "Also Save Bot Messages",
+            "ForkExtras.AyuForward": "AyuForward",
+            "ForkExtras.AyuForwardFooter": "Forward from noforwards channels and deleted messages by re-uploading media without an author (AyuGram Android).",
             "ForkExtras.ViewDeleted": "View Deleted",
             "ForkExtras.EditHistory": "Edit History",
             "ForkExtras.ClearDeleted": "Clear Deleted",
@@ -121,6 +123,8 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.SaveMedia": "Сохранять медиа",
             "ForkExtras.SaveMediaFooter": "Копировать вложения в Saved Attachments при удалении/TTL (свои и чужие; как в AyuGram Android).",
             "ForkExtras.SaveForBots": "Также сохранять ботов",
+            "ForkExtras.AyuForward": "AyuForward",
+            "ForkExtras.AyuForwardFooter": "Пересылать из каналов с запретом пересылки и удалённые сообщения: медиа загружается заново без автора (AyuGram Android).",
             "ForkExtras.ViewDeleted": "Удалённые",
             "ForkExtras.EditHistory": "История правок",
             "ForkExtras.ClearDeleted": "Очистить удалённые",
@@ -196,6 +200,8 @@ private enum ForkExtrasLocalizedString {
     static var saveMedia: String { string(forKey: "ForkExtras.SaveMedia") }
     static var saveMediaFooter: String { string(forKey: "ForkExtras.SaveMediaFooter") }
     static var saveForBots: String { string(forKey: "ForkExtras.SaveForBots") }
+    static var ayuForward: String { string(forKey: "ForkExtras.AyuForward") }
+    static var ayuForwardFooter: String { string(forKey: "ForkExtras.AyuForwardFooter") }
     static var viewDeleted: String { string(forKey: "ForkExtras.ViewDeleted") }
     static var editHistory: String { string(forKey: "ForkExtras.EditHistory") }
     static var clearDeleted: String { string(forKey: "ForkExtras.ClearDeleted") }
@@ -235,6 +241,7 @@ private final class ForkExtrasControllerArguments {
     let updateSaveMessagesHistory: (Bool) -> Void
     let updateSaveMedia: (Bool) -> Void
     let updateSaveForBots: (Bool) -> Void
+    let updateAyuForward: (Bool) -> Void
 
     init(
         updateGhostDontReadMessages: @escaping (Bool) -> Void,
@@ -264,7 +271,8 @@ private final class ForkExtrasControllerArguments {
         updateSaveDeletedMessages: @escaping (Bool) -> Void,
         updateSaveMessagesHistory: @escaping (Bool) -> Void,
         updateSaveMedia: @escaping (Bool) -> Void,
-        updateSaveForBots: @escaping (Bool) -> Void
+        updateSaveForBots: @escaping (Bool) -> Void,
+        updateAyuForward: @escaping (Bool) -> Void
     ) {
         self.updateGhostDontReadMessages = updateGhostDontReadMessages
         self.updateGhostDontReadStories = updateGhostDontReadStories
@@ -294,6 +302,7 @@ private final class ForkExtrasControllerArguments {
         self.updateSaveMessagesHistory = updateSaveMessagesHistory
         self.updateSaveMedia = updateSaveMedia
         self.updateSaveForBots = updateSaveForBots
+        self.updateAyuForward = updateAyuForward
     }
 }
 
@@ -356,6 +365,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     case saveMedia(Bool)
     case saveMediaFooter
     case saveForBots(Bool)
+    case ayuForward(Bool)
+    case ayuForwardFooter
 
     var section: ItemListSectionId {
         switch self {
@@ -377,7 +388,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return ForkExtrasSection.translation.rawValue
         case .scrollToNextChat, .scrollToNextChatFooter:
             return ForkExtrasSection.navigation.rawValue
-        case .saveDeletedMessages, .saveDeletedMessagesFooter, .saveMessagesHistory, .saveMessagesHistoryFooter, .saveMedia, .saveMediaFooter, .saveForBots:
+        case .saveDeletedMessages, .saveDeletedMessagesFooter, .saveMessagesHistory, .saveMessagesHistoryFooter, .saveMedia, .saveMediaFooter, .saveForBots, .ayuForward, .ayuForwardFooter:
             return ForkExtrasSection.messageSaving.rawValue
         }
     }
@@ -429,6 +440,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case .saveMedia: return 42
         case .saveMediaFooter: return 43
         case .saveForBots: return 44
+        case .ayuForward: return 45
+        case .ayuForwardFooter: return 46
         }
     }
 
@@ -599,6 +612,12 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.saveForBots, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateSaveForBots(value)
             })
+        case let .ayuForward(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.ayuForward, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateAyuForward(value)
+            })
+        case .ayuForwardFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.ayuForwardFooter), sectionId: self.section)
         }
     }
 }
@@ -650,6 +669,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings) -> [ForkE
         .saveMedia(settings.saveMedia),
         .saveMediaFooter,
         .saveForBots(settings.saveForBots),
+        .ayuForward(settings.ayuForward),
+        .ayuForwardFooter,
     ]
 }
 
@@ -900,6 +921,13 @@ public func forkExtrasController(context: AccountContext) -> ViewController {
             updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
                 var updated = current
                 updated.saveForBots = value
+                return updated
+            }.start())
+        },
+        updateAyuForward: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.ayuForward = value
                 return updated
             }.start())
         }

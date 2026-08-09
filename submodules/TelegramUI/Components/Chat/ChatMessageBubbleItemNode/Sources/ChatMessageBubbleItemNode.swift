@@ -1952,7 +1952,7 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
                 }
             }
             
-            if (item.associatedData.isCopyProtectionEnabled || item.message.isCopyProtected()) {
+            if (item.associatedData.isCopyProtectionEnabled || item.message.isCopyProtected()) && !ForkAyuForwardSettings.enabled {
                 if mayHaveSeparateCommentsButton && hasCommentButton(item: item) {
                 } else {
                     needsShareButton = false

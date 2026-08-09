@@ -56,6 +56,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var saveForBots: Bool
     /// AyuGram Android parity: copy attachments into Saved Attachments on delete.
     public var saveMedia: Bool
+    /// AyuGram AyuForward: re-upload noforwards / deleted messages as new content (no author). Default on.
+    public var ayuForward: Bool
 
     public static var defaultSettings: ForkExtrasSettings {
         return ForkExtrasSettings(
@@ -87,7 +89,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
             saveDeletedMessages: true,
             saveMessagesHistory: true,
             saveForBots: false,
-            saveMedia: true
+            saveMedia: true,
+            ayuForward: true
         )
     }
 
@@ -120,7 +123,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         saveDeletedMessages: Bool,
         saveMessagesHistory: Bool,
         saveForBots: Bool,
-        saveMedia: Bool = true
+        saveMedia: Bool = true,
+        ayuForward: Bool = true
     ) {
         self.ghostMode = ghostMode
         self.ghostDontReadMessages = ghostDontReadMessages
@@ -151,6 +155,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.saveMessagesHistory = saveMessagesHistory
         self.saveForBots = saveForBots
         self.saveMedia = saveMedia
+        self.ayuForward = ayuForward
     }
 
     public init(from decoder: Decoder) throws {
@@ -187,6 +192,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.saveMessagesHistory = try container.decodeIfPresent(Bool.self, forKey: "saveMessagesHistory") ?? true
         self.saveForBots = try container.decodeIfPresent(Bool.self, forKey: "saveForBots") ?? false
         self.saveMedia = try container.decodeIfPresent(Bool.self, forKey: "saveMedia") ?? true
+        self.ayuForward = try container.decodeIfPresent(Bool.self, forKey: "ayuForward") ?? true
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -221,6 +227,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.saveMessagesHistory, forKey: "saveMessagesHistory")
         try container.encode(self.saveForBots, forKey: "saveForBots")
         try container.encode(self.saveMedia, forKey: "saveMedia")
+        try container.encode(self.ayuForward, forKey: "ayuForward")
     }
 
     /// Whether message/reaction read receipts should be suppressed right now.

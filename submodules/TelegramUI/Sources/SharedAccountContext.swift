@@ -563,6 +563,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             ForkGhostModeSettings.suppressStoryViews = settings.ghostDontReadStories
             ForkGhostModeSettings.goOfflineAutomatically = settings.ghostGoOfflineAutomatically
             ForkGhostModeSettings.readOnInteract = settings.ghostReadOnInteract
+            ForkAyuForwardSettings.enabled = settings.ayuForward
         })
         
         let _ = self.contactDataManager?.personNameDisplayOrder().start(next: { order in

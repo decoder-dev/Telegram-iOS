@@ -524,12 +524,80 @@ private func forwardedMessageToBeReuploaded(transaction: Transaction, id: Messag
     if let message = transaction.getMessage(id) {
         if message.id.namespace != Namespaces.Message.Cloud {
             return message
-        } else {
-            return nil
         }
+        // AyuForward: cloud messages that cannot use messages.forwardMessages — re-upload as new content.
+        if ForkAyuForwardSettings.enabled, message.isCopyProtected() || message.isLocallyDeleted {
+            return message
+        }
+        return nil
     } else {
         return nil
     }
+}
+
+/// Build a standalone media reference for AyuForward / secret-chat reupload, remapping to local MediaIds
+/// so PendingMessageManager uploads instead of calling forwardMessages.
+private func ayuForwardMediaReference(account: Account, sourceMessage: Message) -> AnyMediaReference? {
+    for media in sourceMessage.media {
+        if media is TelegramMediaImage || media is TelegramMediaFile {
+            return .standalone(media: convertForwardedMediaForSecretChat(media))
+        }
+    }
+    // Deleted message whose cloud media is gone — fall back to Saved Attachments / mediaPath.
+    let path = sourceMessage.locallyDeletedMediaPath
+        ?? MessageSavingAttachments.existingCopyPath(message: sourceMessage, mediaBox: account.postbox.mediaBox)
+    if let path, FileManager.default.fileExists(atPath: path), let data = try? Data(contentsOf: URL(fileURLWithPath: path)) {
+        let resource = LocalFileMediaResource(fileId: Int64.random(in: Int64.min ... Int64.max), size: Int64(data.count))
+        account.postbox.mediaBox.storeResourceData(resource.id, data: data, synchronous: true)
+        let ext = (path as NSString).pathExtension.lowercased()
+        if ["jpg", "jpeg", "png", "webp", "heic", "gif"].contains(ext) {
+            let representation = TelegramMediaImageRepresentation(
+                dimensions: PixelDimensions(width: 1280, height: 1280),
+                resource: resource,
+                progressiveSizes: [],
+                immediateThumbnailData: nil,
+                hasVideo: false,
+                isPersonal: false
+            )
+            let image = TelegramMediaImage(
+                imageId: MediaId(namespace: Namespaces.Media.LocalImage, id: Int64.random(in: Int64.min ... Int64.max)),
+                representations: [representation],
+                immediateThumbnailData: nil,
+                reference: nil,
+                partialReference: nil,
+                flags: []
+            )
+            return .standalone(media: image)
+        } else {
+            let mime: String
+            switch ext {
+            case "mp4", "m4v": mime = "video/mp4"
+            case "mov": mime = "video/quicktime"
+            case "mp3": mime = "audio/mpeg"
+            case "ogg", "opus": mime = "audio/ogg"
+            case "webp": mime = "image/webp"
+            default: mime = "application/octet-stream"
+            }
+            var attributes: [TelegramMediaFileAttribute] = [.FileName(fileName: (path as NSString).lastPathComponent)]
+            if mime.hasPrefix("video/") {
+                attributes.append(.Video(duration: 0.0, size: PixelDimensions(width: 1280, height: 720), flags: [], preloadSize: nil, coverTime: nil, videoCodec: nil))
+            }
+            let file = TelegramMediaFile(
+                fileId: MediaId(namespace: Namespaces.Media.LocalFile, id: Int64.random(in: Int64.min ... Int64.max)),
+                partialReference: nil,
+                resource: resource,
+                previewRepresentations: [],
+                videoThumbnails: [],
+                immediateThumbnailData: nil,
+                mimeType: mime,
+                size: Int64(data.count),
+                attributes: attributes,
+                alternativeRepresentations: []
+            )
+            return .standalone(media: file)
+        }
+    }
+    return nil
 }
 
 private func opportunisticallyTransformOutgoingMedia(network: Network, postbox: Postbox, transformOutgoingMessageMedia: TransformOutgoingMessageMedia, messages: [EnqueueMessage], userInteractive: Bool) -> Signal<[(Bool, EnqueueMessage)], NoError> {
@@ -731,15 +799,61 @@ func enqueueMessages(transaction: Transaction, account: Account, peerId: PeerId,
                         updatedMessages.append((true, .forward(source: replyToMessageId.messageId, threadId: threadId, grouping: .none, attributes: attributes, correlationId: nil)))
                     }
                 }
-            case let .forward(sourceId, threadId, _, _, _):
+            case let .forward(sourceId, threadId, grouping, requestedAttributes, correlationId):
                 if let sourceMessage = forwardedMessageToBeReuploaded(transaction: transaction, id: sourceId) {
                     var mediaReference: AnyMediaReference?
                     if sourceMessage.id.peerId.namespace == Namespaces.Peer.SecretChat {
                         if let media = sourceMessage.media.first {
                             mediaReference = .standalone(media: media)
                         }
+                    } else if ForkAyuForwardSettings.enabled, sourceMessage.isCopyProtected() || sourceMessage.isLocallyDeleted {
+                        // AyuForward: re-upload without author (noforwards / deleted).
+                        mediaReference = ayuForwardMediaReference(account: account, sourceMessage: sourceMessage)
                     }
-                    updatedMessages.append((transformedMedia, .message(text: sourceMessage.text, attributes: sourceMessage.attributes, inlineStickers: [:], mediaReference: mediaReference, threadId: threadId, replyToMessageId: threadId.flatMap { EngineMessageReplySubject(messageId: MessageId(peerId: peerId, namespace: Namespaces.Message.Cloud, id: Int32(clamping: $0)), quote: nil, innerSubject: nil) }, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: [])))
+
+                    var text = sourceMessage.text
+                    for attribute in requestedAttributes {
+                        if let options = attribute as? ForwardOptionsMessageAttribute, options.hideCaptions {
+                            if sourceMessage.media.contains(where: { $0 is TelegramMediaImage || $0 is TelegramMediaFile }) {
+                                text = ""
+                            }
+                        }
+                    }
+
+                    var attributes = filterMessageAttributesForOutgoingMessage(sourceMessage.attributes)
+                    for attribute in requestedAttributes {
+                        if attribute is ForwardOptionsMessageAttribute || attribute is DeletedMessageAttribute {
+                            continue
+                        }
+                        if attribute is OutgoingScheduleInfoMessageAttribute
+                            || attribute is NotificationInfoMessageAttribute
+                            || attribute is OutgoingContentInfoMessageAttribute
+                            || attribute is PaidStarsMessageAttribute
+                            || attribute is OutgoingQuickReplyMessageAttribute {
+                            attributes.append(attribute)
+                        }
+                    }
+
+                    let localGroupingKey: Int64?
+                    switch grouping {
+                    case .none:
+                        localGroupingKey = nil
+                    case .auto:
+                        localGroupingKey = sourceMessage.groupingKey
+                    }
+
+                    updatedMessages.append((true, .message(
+                        text: text,
+                        attributes: attributes,
+                        inlineStickers: [:],
+                        mediaReference: mediaReference,
+                        threadId: threadId,
+                        replyToMessageId: threadId.flatMap { EngineMessageReplySubject(messageId: MessageId(peerId: peerId, namespace: Namespaces.Message.Cloud, id: Int32(clamping: $0)), quote: nil, innerSubject: nil) },
+                        replyToStoryId: nil,
+                        localGroupingKey: localGroupingKey,
+                        correlationId: correlationId,
+                        bubbleUpEmojiOrStickersets: []
+                    )))
                     continue outer
                 }
         }

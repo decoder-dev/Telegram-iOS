@@ -380,7 +380,7 @@ public class ChatMessageInstantVideoItemNode: ChatMessageItemView, ASGestureReco
                     }
                 }
                 
-                if item.associatedData.isCopyProtectionEnabled || item.message.isCopyProtected() {
+                if (item.associatedData.isCopyProtectionEnabled || item.message.isCopyProtected()) && !ForkAyuForwardSettings.enabled {
                     needsShareButton = false
                 }
             }

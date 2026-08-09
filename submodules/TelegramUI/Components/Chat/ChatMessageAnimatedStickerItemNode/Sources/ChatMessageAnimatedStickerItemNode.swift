@@ -1010,7 +1010,7 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
                     }
                 }
                 
-                if item.associatedData.isCopyProtectionEnabled || item.message.isCopyProtected() {
+                if (item.associatedData.isCopyProtectionEnabled || item.message.isCopyProtected()) && !ForkAyuForwardSettings.enabled {
                     if hasCommentButton(item: item) {
                     } else {
                         needsShareButton = false
