@@ -16,6 +16,11 @@ enum ForkBlockedPeersFilter {
         }
     }
 
+    /// Take once per history rebuild — avoid an Atomic lock per message.
+    static func peerIds(accountPeerId: PeerId) -> Set<PeerId> {
+        return map.with { $0[accountPeerId] ?? [] }
+    }
+
     static func contains(accountPeerId: PeerId, peerId: PeerId) -> Bool {
         return map.with { $0[accountPeerId]?.contains(peerId) ?? false }
     }
