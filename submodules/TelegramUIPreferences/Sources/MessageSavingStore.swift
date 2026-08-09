@@ -65,6 +65,66 @@ public enum MessageSavingStore {
         }
     }
 
+    /// Versions retained per edited message.
+    ///
+    /// Without a per-message limit, one chatty message — a bot rewriting a counter, a live score,
+    /// a progress line — accumulates a version per edit and pushes everything else out through the
+    /// shared 5000-record cap, silently destroying other peers' saved deleted messages, which is
+    /// the thing this feature exists to keep. 32 is well past what anyone reads and small enough
+    /// that a runaway editor cannot dominate the store.
+    private static let editHistoryLimitPerMessage = 32
+
+    private static func editKey(for record: MessageSavingRecord) -> EditIndexKey {
+        return EditIndexKey(
+            accountPeerId: record.accountPeerId,
+            peerId: record.peerId,
+            namespace: record.namespace,
+            messageId: record.messageId
+        )
+    }
+
+    private static func isEdit(_ candidate: MessageSavingRecord, of key: EditIndexKey) -> Bool {
+        return candidate.kind == .edited
+            && candidate.accountPeerId == key.accountPeerId
+            && candidate.peerId == key.peerId
+            && candidate.messageId == key.messageId
+            && candidate.namespace == key.namespace
+    }
+
+    private static func isDuplicateOfLatestEditLocked(_ record: MessageSavingRecord) -> Bool {
+        let key = editKey(for: record)
+        // The index answers "are there any versions at all" in O(1), so the first edit of a
+        // message — the common case — never pays for the scan below.
+        guard editIndex[key] != nil else {
+            return false
+        }
+        guard let latest = memory.last(where: { isEdit($0, of: key) }) else {
+            return false
+        }
+        return latest.text == record.text
+    }
+
+    /// Drop the oldest versions of one message once it exceeds the limit. `memory` is in insertion
+    /// order, so scanning from the front removes oldest first.
+    private static func enforceEditHistoryLimitLocked(for record: MessageSavingRecord) {
+        let key = editKey(for: record)
+        guard let count = editIndex[key], count > editHistoryLimitPerMessage else {
+            return
+        }
+        var remaining = count - editHistoryLimitPerMessage
+        var index = 0
+        while index < memory.count && remaining > 0 {
+            if isEdit(memory[index], of: key) {
+                indexRemoveLocked(memory[index])
+                memory.remove(at: index)
+                remaining -= 1
+                // Deliberately not advancing: the remaining elements shifted down by one.
+                continue
+            }
+            index += 1
+        }
+    }
+
     private static func rebuildIndexesLocked() {
         deletedIndex.removeAll(keepingCapacity: true)
         editIndex.removeAll(keepingCapacity: true)
@@ -247,8 +307,17 @@ public enum MessageSavingStore {
             }
             return
         }
+        // The same guard for edits. A message can legitimately go A -> B -> A, so only a snapshot
+        // identical to the message's most recent one is dropped, not any earlier match.
+        if record.kind == .edited, isDuplicateOfLatestEditLocked(record) {
+            lock.unlock()
+            return
+        }
         memory.append(record)
         indexAddLocked(record)
+        if record.kind == .edited {
+            enforceEditHistoryLimitLocked(for: record)
+        }
         // Soft cap to keep the JSON store bounded.
         if memory.count > 5000 {
             let overflow = memory.count - 5000
