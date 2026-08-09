@@ -67,30 +67,94 @@ benchmark, and then one kernel at a time.
 The ObjC there is already a thin shim over a C API; Swift would add bridging
 cost and remove nothing.
 
-## Worth migrating, in this order
+## The blocker: file-by-file migration does not work here
 
-The case for each of these is maintainability, not speed. None of them will
-make the app faster; Swift and ObjC compile to comparable machine code for this
-kind of work. The wins are memory safety, nullability, and being able to reason
-about ownership.
+An earlier revision of this document recommended migrating small
+`LegacyComponents` leaf classes one at a time. That advice was written from
+general Swift-migration experience and **not** checked against this
+repository's build. Checked now, it is wrong on two counts.
 
-### 1. Small self-contained `LegacyComponents` leaf classes
+**1. A `.swift` file cannot go into `LegacyComponents` at all.**
+`submodules/LegacyComponents/BUILD` declares one `objc_library` whose sources
+are `glob(["Sources/*.m", "Sources/*.mm", "Sources/*.c", "Sources/*.cpp",
+"Sources/*.h"])`. Bazel's `objc_library` compiles no Swift, and the glob does
+not match `*.swift` — so a Swift file dropped into `Sources/` is **silently
+ignored**, not a build error. Migrating a file in place is not possible.
 
-`LegacyComponents` is 379 files, so "migrate LegacyComponents" is not a task —
-but individual leaf views and controllers with few dependents are. Good
-candidates are files with no C interop, no manual `CFRetain`/`CFRelease`
-balancing, and a small header surface.
+Adding Swift requires a sibling `swift_library` target, with the remaining
+ObjC importing its generated `-Swift.h`. But a migrated class almost always
+uses other `LegacyComponents` ObjC types, so that `swift_library` would have to
+depend back on `LegacyComponents` — a dependency cycle, which Bazel rejects.
+Only a class whose dependencies are a strict subset of `{Foundation, UIKit,
+SSignalKit, AppBundle}` escapes the cycle.
 
-This is also where the real bugs have been: the audit found a
+**2. The population of migratable leaf files is one, and it is dead code.**
+Of the 379 `.m` files, exactly **one** has no dependents inside the module:
+`matrix.m` (306 lines). It is vendored Apple sample code for 4×4 matrix
+arithmetic, and nothing anywhere references it — the two `#include "matrix.h"`
+hits elsewhere in the tree resolve to `RMIntro`'s own separate copy. Every
+other file has at least one in-module dependent, so migrating it would break
+the ObjC that uses it.
+
+So the correct first action on that file is `git rm`, not a translation.
+
+The bug argument for migrating this code still stands — the audit found a
 `CFRetain` with a conditionally-skipped `CFRelease` in
-`PGCameraCaptureSession.m`, and a KVO observer removed only on one of two
-teardown paths in `TGPhotoEditorController.m` — a crash, not a leak. Both are
-bug classes Swift makes structurally impossible. That is the actual argument
-for migrating this code, and it is a good one.
+`PGCameraCaptureSession.m`, and a KVO observer removed on only one of two
+teardown paths in `TGPhotoEditorController.m`, a crash rather than a leak, and
+both are bug classes Swift makes structurally impossible. What does not stand
+is the idea that you can get there one file at a time.
 
-**Do not** start with the largest files. `TGCameraController.m` (3,261 lines)
-and `TGPhotoEditorController.m` (3,077) are the ones most in need, and the ones
-where a rewrite is most likely to introduce a regression nobody catches.
+## What does work
+
+### The module is an island with a narrow neck
+
+`LegacyComponents` publishes 296 headers. Only **64** of those names are
+referenced anywhere outside the module. The other 232 are internal detail.
+
+That 64-name neck is the real migration unit. You cannot extract a file, but
+you can replace a whole feature that enters through a few of those names and
+then delete everything behind it in one commit — no cycle, because nothing
+crosses the boundary any more.
+
+The externally-used names cluster by feature, and the clusters are very uneven:
+
+| Cluster | External entry points | Notes |
+|---|---|---|
+| Media picker / gallery | ~15 | largest and most entangled |
+| Camera | 5 (`TGCameraController`, `PGCamera`, `TGAttachmentCameraView`, …) | a modern Swift `Camera` / `CameraScreen` already exists in parallel |
+| Photo / video editor | ~6 | modern Swift `MediaEditor` exists in parallel |
+| Passport | 5, **one call site each** | smallest, most self-contained neck in the module |
+| POP animation | 3 | vendored Facebook POP — replace, don't translate |
+| Utilities (`TGStringUtils`, `TGDateUtils`) | 92 call sites | high traffic, but heavily used *inside* the module too, so it cannot move until the rest does |
+
+This also explains why the camera and media editor already have modern Swift
+counterparts under `submodules/TelegramUI/Components/`: the codebase has been
+migrating this way all along — building the replacement alongside, moving call
+sites over, deleting the old subtree — rather than translating files.
+
+### Recommended order
+
+1. **Delete dead code.** `matrix.m` / `matrix.h` first. Costs nothing, removes
+   306 lines of ObjC, and is verifiable by grep. There is likely more; the
+   232 internal-only headers are worth a reachability pass.
+2. **Passport.** Five entry points with one call site each — by a wide margin
+   the cheapest complete cluster to replace, and a real end-to-end rehearsal of
+   the pattern before touching anything load-bearing.
+3. **Camera, then photo/video editor.** Both already have Swift counterparts;
+   the work is finishing the call-site migration and deleting the ObjC subtree,
+   not writing a new implementation.
+4. **Media picker / gallery.** Largest neck, most entanglement. Last.
+5. **Utilities.** Fall out for free once nothing else in the module remains.
+
+### Cost per step
+
+There is no per-module build in this repository — the only verification is the
+full `Telegram/Telegram` target, which takes roughly 38 minutes on CI. Each
+migration step therefore costs a CI run, and `-Werror` on the ObjC side plus
+`-warnings-as-errors` on the Swift side means a step either lands clean or not
+at all. Batch related deletions into one commit; do not push a cluster
+migration in ten pieces.
 
 ### 2. `SSignalKit` (2,868 lines of ObjC)
 
@@ -118,18 +182,25 @@ lines of socket code into Swift line by line.
 hand-written logic. Translating generated code produces generated code in a
 different language. Regenerate or replace the library; never port it.
 
-## How to sequence this, if it is done at all
+## How to run one cluster migration
 
-1. Pick one leaf file with no C interop and fewer than ~400 lines.
-2. Migrate it whole, in one commit, with its callers updated in the same commit.
-3. Build the full app target — this repository has no per-module build, so a
-   partially-migrated module is not verifiable in isolation.
-4. Exercise the affected screen on a device before moving on.
+1. Confirm the cluster's neck: grep the tree outside `LegacyComponents` for its
+   public class names and list every call site. If the neck is wider than you
+   expected, stop and pick a smaller cluster.
+2. Build the Swift replacement as its own module under
+   `submodules/TelegramUI/Components/`, alongside the ObjC one. Do not touch
+   `LegacyComponents` yet — both implementations coexist and the app still uses
+   the old one.
+3. Move the call sites over, one commit, and build.
+4. Delete the ObjC subtree once nothing references it. This is the commit that
+   actually shrinks the codebase, and it is safe precisely because step 3
+   already proved nothing needs it.
+5. Exercise the affected screen on a device before starting the next cluster.
 
-Explicitly **not** the plan: converting many files at once, converting a whole
-module in one change, or deleting a vendored library to replace it with Swift.
-Each of those produces a diff nobody can review and a regression nobody can
-bisect.
+Explicitly **not** the plan: translating files in place (structurally
+impossible, see above), converting a whole module in one change, or deleting a
+vendored library to replace it with Swift. Each produces a diff nobody can
+review and a regression nobody can bisect.
 
 ## Honest summary
 
@@ -137,6 +208,13 @@ The client can be moved further toward Swift, and the parts worth moving are
 the fork's own aging Objective-C UI code, where two real bugs have already been
 found that Swift would have prevented. The parts people usually mean when they
 ask this question — the C — are the parts that should stay C.
+
+But it cannot be done file by file. The build makes that structurally
+impossible, and the one file that qualifies is dead code. The unit of migration
+is a feature cluster crossing the module's 64-name boundary, replaced wholesale
+and then deleted — which is how the camera and media editor already acquired
+their Swift counterparts. Anyone planning this work should budget in clusters
+and CI runs, not in files.
 
 None of this is a performance project. See `PERFORMANCE_AUDIT.md` for that; in
 particular, nothing here should be undertaken in the hope that it reduces
