@@ -55,7 +55,7 @@ private enum MessageSavingHistoryEntry: ItemListNodeEntry {
             let mark = record.kind == .deleted ? "\(MessageSavingBridge.defaultDeletedMark) " : ""
             let header = "\(record.authorName) · \(mark)\(formatter.string(from: date))"
             var body = record.text
-            if let mediaPath = record.mediaPath, FileManager.default.fileExists(atPath: mediaPath) {
+            if let mediaPath = record.mediaPath, messageSavingRecordHasFile(record) {
                 let name = (mediaPath as NSString).lastPathComponent
                 body += "\n📎 \(name)"
             }
@@ -66,13 +66,22 @@ private enum MessageSavingHistoryEntry: ItemListNodeEntry {
                 sectionId: self.section,
                 style: .blocks,
                 action: {
-                    if let mediaPath = record.mediaPath, FileManager.default.fileExists(atPath: mediaPath) {
+                    if let mediaPath = record.mediaPath, messageSavingRecordHasFile(record) {
                         args?.openAttachment(mediaPath)
                     }
                 }
             )
         }
     }
+}
+
+/// A record only counts as having an attachment when the file is actually on disk: the durable
+/// copy is dispatched, so the path is stored before the bytes exist.
+private func messageSavingRecordHasFile(_ record: MessageSavingRecord) -> Bool {
+    guard let mediaPath = record.mediaPath else {
+        return false
+    }
+    return FileManager.default.fileExists(atPath: mediaPath)
 }
 
 private func messageSavingRecords(mode: MessageSavingHistoryMode, accountPeerId: EnginePeer.Id) -> [MessageSavingRecord] {
@@ -153,19 +162,35 @@ private func messageSavingHistoryController(
     // the process died leaves a record with no path. Re-link those lazily for just the records
     // this screen shows — off the main thread, and never a global Postbox scan. The store's
     // change signal repaints the list once links are made.
+    //
+    // A stored path with no file behind it needs the same treatment: the copy is dispatched
+    // rather than synchronous, so a record is written with its final path before the bytes have
+    // landed, and a copy interrupted by a kill leaves that path pointing at nothing. Checking the
+    // filesystem here also picks up a file the user removed from Files.app and a legacy-named
+    // copy from before account scoping.
     let reconcileAccountPeerId = context.account.peerId
     let reconcileMediaBox = context.account.postbox.mediaBox
     let reconcileRecords = messageSavingRecords(mode: mode, accountPeerId: reconcileAccountPeerId)
     if !reconcileRecords.isEmpty {
         DispatchQueue.global(qos: .utility).async {
-            for record in reconcileRecords where record.mediaPath == nil {
-                MessageSavingBridge.reconcileStoredAttachment(
+            var didFindFile = false
+            for record in reconcileRecords where !messageSavingRecordHasFile(record) {
+                let path = MessageSavingBridge.reconcileStoredAttachment(
                     accountPeerId: reconcileAccountPeerId,
                     peerId: EnginePeer.Id(record.peerId),
                     namespace: record.namespace,
                     messageId: record.messageId,
                     mediaBox: reconcileMediaBox
                 )
+                if path != nil {
+                    didFindFile = true
+                }
+            }
+            // A record already pointing at the right path gets no store mutation when the copy
+            // finally lands, so nothing would tell an open screen to rebuild. Ask for one rebuild
+            // covering the whole pass rather than one per record.
+            if didFindFile {
+                MessageSavingStore.refresh()
             }
         }
     }
