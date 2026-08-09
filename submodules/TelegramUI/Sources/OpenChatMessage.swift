@@ -139,8 +139,9 @@ func openChatMessageImpl(_ params: OpenChatMessageParams) -> Bool {
     if params.message.containsSecretMedia {
         let secretMediaMessage = params.message
         let secretMediaBox = params.context.account.postbox.mediaBox
+        let secretMediaAccountPeerId = params.context.account.peerId
         DispatchQueue.global(qos: .utility).async {
-            MessageSavingBridge.preserveMediaIfNeeded(message: secretMediaMessage, mediaBox: secretMediaBox)
+            MessageSavingBridge.preserveMediaIfNeeded(message: secretMediaMessage, accountPeerId: secretMediaAccountPeerId, mediaBox: secretMediaBox)
         }
     }
 

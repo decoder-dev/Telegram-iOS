@@ -61,6 +61,53 @@ public enum MessageSavingStore {
         self.persistNow()
     }
 
+    /// Bumped after every mutation so open screens (View Deleted) can refresh when a late
+    /// attachment lands. Signal-based rather than a callback so subscribers get main-queue
+    /// delivery of their own choosing; never fired while the lock is held.
+    public static let changes = ValuePromise<Int>(0, ignoreRepeated: false)
+    private static var changeCounter: Int = 0
+
+    private static func notifyChanged() {
+        lock.lock()
+        self.changeCounter += 1
+        let value = self.changeCounter
+        lock.unlock()
+        changes.set(value)
+    }
+
+    /// Link a durable attachment copied after the record was already stored.
+    public static func attachMediaPath(
+        accountPeerId: Int64,
+        peerId: Int64,
+        messageId: Int32,
+        namespace: Int32,
+        mediaPath: String
+    ) {
+        loadIfNeeded()
+        lock.lock()
+        var didChange = false
+        for index in memory.indices {
+            let record = memory[index]
+            if record.kind == .deleted
+                && record.accountPeerId == accountPeerId
+                && record.peerId == peerId
+                && record.messageId == messageId
+                && record.namespace == namespace
+                && record.mediaPath != mediaPath
+            {
+                memory[index] = record.withMediaPath(mediaPath)
+                didChange = true
+            }
+        }
+        if didChange {
+            schedulePersistLocked()
+        }
+        lock.unlock()
+        if didChange {
+            notifyChanged()
+        }
+    }
+
     public static func installBridge() {
         if !self.observerInstalled {
             self.observerInstalled = true
@@ -74,14 +121,22 @@ public enum MessageSavingStore {
                 append(record)
             }
         })
+        let _ = MessageSavingBridge.updateMediaPath.swap({ accountPeerId, peerId, messageId, namespace, mediaPath in
+            queue.async {
+                attachMediaPath(accountPeerId: accountPeerId, peerId: peerId, messageId: messageId, namespace: namespace, mediaPath: mediaPath)
+            }
+        })
     }
 
     public static func append(_ record: MessageSavingRecord) {
         loadIfNeeded()
         lock.lock()
-        // Deduplicate consecutive identical deleted snapshots for the same message.
+        // Deduplicate consecutive identical deleted snapshots for the same message. A repeat
+        // snapshot must not be dropped outright: the first one is often taken while the file is
+        // still downloading (mediaPath nil) and a later one carries the durable path, so merge
+        // the path into the existing record instead of losing it.
         if record.kind == .deleted,
-           memory.contains(where: {
+           let existingIndex = memory.firstIndex(where: {
                $0.kind == .deleted
                    && $0.accountPeerId == record.accountPeerId
                    && $0.peerId == record.peerId
@@ -89,7 +144,16 @@ public enum MessageSavingStore {
                    && $0.namespace == record.namespace
                    && $0.text == record.text
            }) {
+            var merged = false
+            if memory[existingIndex].mediaPath == nil, let newPath = record.mediaPath {
+                memory[existingIndex] = memory[existingIndex].withMediaPath(newPath)
+                schedulePersistLocked()
+                merged = true
+            }
             lock.unlock()
+            if merged {
+                notifyChanged()
+            }
             return
         }
         memory.append(record)
@@ -99,6 +163,7 @@ public enum MessageSavingStore {
         }
         schedulePersistLocked()
         lock.unlock()
+        notifyChanged()
     }
 
     public static func deleted(
@@ -162,6 +227,7 @@ public enum MessageSavingStore {
         lock.unlock()
         // User-initiated and rare — write through immediately so it survives a kill.
         persistNow()
+        notifyChanged()
     }
 
     public static func applySettings(_ settings: ForkExtrasSettings) {
