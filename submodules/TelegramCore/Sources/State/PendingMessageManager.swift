@@ -1318,7 +1318,9 @@ public final class PendingMessageManager {
                     var topMsgId: Int32?
                     var monoforumPeerId: Api.InputPeer?
                     if let threadId = messages[0].0.threadId {
-                        if let channel = peer as? TelegramChannel, channel.flags.contains(.isMonoforum) {
+                        if peer.id == accountPeerId {
+                            // Saved Messages topics are keyed by PeerId — not forum topMsgId.
+                        } else if let channel = peer as? TelegramChannel, channel.flags.contains(.isMonoforum) {
                             if let linkedMonoforumId = channel.linkedMonoforumId, let mainChannel = transaction.getPeer(linkedMonoforumId) as? TelegramChannel, mainChannel.hasPermission(.manageDirect) {
                                 monoforumPeerId = transaction.getPeer(PeerId(threadId)).flatMap(apiInputPeer)
                             }
@@ -1418,7 +1420,9 @@ public final class PendingMessageManager {
                     var topMsgId: Int32?
                     var monoforumPeerId: Api.InputPeer?
                     if let threadId = messages[0].0.threadId {
-                        if let channel = peer as? TelegramChannel, channel.flags.contains(.isMonoforum) {
+                        if peer.id == accountPeerId {
+                            // Saved Messages topics are keyed by PeerId — not forum topMsgId.
+                        } else if let channel = peer as? TelegramChannel, channel.flags.contains(.isMonoforum) {
                             if let linkedMonoforumId = channel.linkedMonoforumId, let mainChannel = transaction.getPeer(linkedMonoforumId) as? TelegramChannel, mainChannel.hasPermission(.manageDirect) {
                                 monoforumPeerId = transaction.getPeer(PeerId(threadId)).flatMap(apiInputPeer)
                             }
@@ -1741,7 +1745,10 @@ public final class PendingMessageManager {
                 var topMsgId: Int32?
                 var monoforumPeerId: Api.InputPeer?
                 if let threadId = message.threadId {
-                    if let channel = peer as? TelegramChannel, channel.flags.contains(.isMonoforum) {
+                    if peer.id == accountPeerId {
+                        // Saved Messages topics are keyed by PeerId — not forum topMsgId.
+                        // Local threadId is preserved in applyUpdateMessage; do not clamp into API.
+                    } else if let channel = peer as? TelegramChannel, channel.flags.contains(.isMonoforum) {
                         if let linkedMonoforumId = channel.linkedMonoforumId, let mainChannel = transaction.getPeer(linkedMonoforumId) as? TelegramChannel, mainChannel.hasPermission(.manageDirect) {
                             monoforumPeerId = transaction.getPeer(PeerId(threadId)).flatMap(apiInputPeer)
                         }
@@ -2043,7 +2050,9 @@ public final class PendingMessageManager {
                         var topMsgId: Int32?
                         var monoforumPeerId: Api.InputPeer?
                         if let threadId = message.threadId {
-                            if let channel = peer as? TelegramChannel, channel.flags.contains(.isMonoforum) {
+                            if peer.id == accountPeerId {
+                                // Saved Messages topics are keyed by PeerId — not forum topMsgId.
+                            } else if let channel = peer as? TelegramChannel, channel.flags.contains(.isMonoforum) {
                                 if let linkedMonoforumId = channel.linkedMonoforumId, let mainChannel = transaction.getPeer(linkedMonoforumId) as? TelegramChannel, mainChannel.hasPermission(.manageDirect) {
                                     monoforumPeerId = transaction.getPeer(PeerId(threadId)).flatMap(apiInputPeer)
                                 }
