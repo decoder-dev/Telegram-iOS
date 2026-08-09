@@ -97,11 +97,21 @@ public enum MessageSavingStore {
     private static var pendingPersist = false
     private static var observerInstalled = false
 
+    /// Bumped under `lock` on every mutation of `memory`, so a snapshot can be ordered against
+    /// the snapshots other threads took. Only meaningful while holding `lock`.
+    private static var storeGeneration: Int = 0
+    /// Serializes the file write and guards `lastWrittenGeneration`. Deliberately separate from
+    /// `lock`: the encode must not hold the reader lock, but two encodes finishing out of order
+    /// still have to write in order.
+    private static let writeLock = NSLock()
+    private static var lastWrittenGeneration: Int = 0
+
     /// Coalesce disk writes. Previously every single saved record triggered a full JSON
     /// re-encode of the entire store plus an atomic file write, all while holding the lock —
     /// so a burst of deletions (channel spam cleanup, bulk admin delete) meant hundreds of
     /// full re-serializations back to back, and main-thread readers blocked on each one.
     private static func schedulePersistLocked() {
+        self.storeGeneration += 1
         guard !self.pendingPersist else { return }
         self.pendingPersist = true
         queue.asyncAfter(deadline: .now() + 5.0) {
@@ -113,11 +123,21 @@ public enum MessageSavingStore {
         lock.lock()
         self.pendingPersist = false
         let snapshot = self.memory
+        let generation = self.storeGeneration
         lock.unlock()
         // Encode outside the lock: serialization is the expensive part, and holding the lock
         // through it is what stalled main-thread reads (hasDeleted/hasEdits in context menus).
         guard let data = try? JSONEncoder().encode(snapshot) else { return }
+        // Encoding outside the lock means two persists can be in flight at once — the 5s
+        // coalesced one and a flush() triggered by backgrounding, which runs on whatever thread
+        // the notification arrives on. Without ordering, the slower encode of the *older*
+        // snapshot lands last and silently drops every record added in between. The generation
+        // is compared and committed under writeLock so the check cannot race the write itself.
+        writeLock.lock()
+        defer { writeLock.unlock() }
+        guard generation > self.lastWrittenGeneration else { return }
         try? data.write(to: self.fileURL, options: .atomic)
+        self.lastWrittenGeneration = generation
     }
 
     /// Force any coalesced write out to disk (called when the app leaves the foreground).
@@ -321,6 +341,9 @@ public enum MessageSavingStore {
             return matches
         }
         let remaining = memory
+        // Bumped here rather than through schedulePersistLocked, which this path deliberately
+        // skips — without it persistNow would see an unchanged generation and refuse to write.
+        self.storeGeneration += 1
         lock.unlock()
         // User-initiated and rare — write through immediately so it survives a kill.
         persistNow()
