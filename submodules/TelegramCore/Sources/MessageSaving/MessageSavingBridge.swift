@@ -55,6 +55,25 @@ public struct MessageSavingRecord: Codable, Equatable {
         self.mediaPath = mediaPath
     }
 
+    /// Records are immutable; this produces the same record carrying a durable attachment path.
+    public func withMediaPath(_ mediaPath: String?) -> MessageSavingRecord {
+        return MessageSavingRecord(
+            id: self.id,
+            accountPeerId: self.accountPeerId,
+            peerId: self.peerId,
+            messageId: self.messageId,
+            namespace: self.namespace,
+            date: self.date,
+            authorId: self.authorId,
+            authorName: self.authorName,
+            text: self.text,
+            kind: self.kind,
+            savedAt: self.savedAt,
+            topicId: self.topicId,
+            mediaPath: mediaPath
+        )
+    }
+
     private enum CodingKeys: String, CodingKey {
         case id, accountPeerId, peerId, messageId, namespace, date, authorId, authorName, text, kind, savedAt, topicId, mediaPath
     }
@@ -121,6 +140,15 @@ public enum MessageSavingBridge {
 
     public static let settings = Atomic(value: MessageSavingBridgeSettings.defaults)
     public static let append = Atomic<((MessageSavingRecord) -> Void)?>(value: nil)
+    /// (accountPeerId, peerId, messageId, namespace, mediaPath) — links a durable copy that
+    /// finished after the record was already stored. Installed by MessageSavingStore.
+    public static let updateMediaPath = Atomic<((Int64, Int64, Int32, Int32, String) -> Void)?>(value: nil)
+
+    static func log(_ message: @autoclosure () -> String) {
+        #if DEBUG
+        print("[MessageSaving] \(message())")
+        #endif
+    }
 
     /// Prefer a textual body; fall back to a short media placeholder so media-only
     /// deletes still appear in View Deleted.
@@ -236,28 +264,92 @@ public enum MessageSavingBridge {
 
     private static let preserveQueue = DispatchQueue(label: "MessageSavingBridge.preserve", qos: .utility)
 
+    /// Identifies an in-flight preserve so a message that is opened / re-delivered repeatedly
+    /// does not accumulate parallel retry chains all copying the same file.
+    private struct PreserveKey: Hashable {
+        let accountScope: String
+        let peerId: Int64
+        let namespace: Int32
+        let messageId: Int32
+    }
+
+    private static let pendingPreserves = Atomic<Set<PreserveKey>>(value: Set())
+
     /// Copy attachments early (on open / consume) so TTL can't race the cache eviction.
-    public static func preserveMediaIfNeeded(message: Message, mediaBox: MediaBox) {
+    /// `accountPeerId` is only needed to link a late copy back to an already-stored record;
+    /// the copy itself is account-scoped through `mediaBox`.
+    public static func preserveMediaIfNeeded(message: Message, accountPeerId: PeerId? = nil, mediaBox: MediaBox) {
         let current = settings.with { $0 }
         guard current.saveDeleted, current.saveMedia else { return }
-        if MessageSavingAttachments.copyIfAvailable(message: message, mediaBox: mediaBox) != nil {
+        if let path = MessageSavingAttachments.copyIfAvailable(message: message, mediaBox: mediaBox) {
+            log("preserve: durable copy available immediately \(message.id.id)")
+            linkMediaPath(path, message: message, accountPeerId: accountPeerId)
             return
         }
         // The resource is only copyable once fully downloaded, and one-time media is typically
         // still downloading at the moment the user opens it — giving up here is what loses
         // exactly the media this feature exists to keep. Retry on a backoff instead.
-        retryPreserve(message: message, mediaBox: mediaBox, attemptsRemaining: 6, delay: 1.0)
+        let key = PreserveKey(
+            accountScope: mediaBox.basePath,
+            peerId: message.id.peerId.toInt64(),
+            namespace: message.id.namespace,
+            messageId: message.id.id
+        )
+        // Insert-if-absent under the lock: only the first caller starts a retry chain.
+        var shouldStart = false
+        let _ = pendingPreserves.modify { current -> Set<PreserveKey> in
+            if current.contains(key) {
+                return current
+            }
+            shouldStart = true
+            var updated = current
+            updated.insert(key)
+            return updated
+        }
+        guard shouldStart else {
+            log("preserve: retry already pending for \(message.id.id)")
+            return
+        }
+        retryPreserve(message: message, accountPeerId: accountPeerId, mediaBox: mediaBox, key: key, attemptsRemaining: 6, delay: 1.0)
     }
 
-    private static func retryPreserve(message: Message, mediaBox: MediaBox, attemptsRemaining: Int, delay: Double) {
-        guard attemptsRemaining > 0 else { return }
+    private static func finishPreserve(_ key: PreserveKey) {
+        let _ = pendingPreserves.modify { current -> Set<PreserveKey> in
+            var updated = current
+            updated.remove(key)
+            return updated
+        }
+    }
+
+    private static func retryPreserve(message: Message, accountPeerId: PeerId?, mediaBox: MediaBox, key: PreserveKey, attemptsRemaining: Int, delay: Double) {
+        guard attemptsRemaining > 0 else {
+            log("preserve: retries exhausted for \(message.id.id) — source never became available")
+            finishPreserve(key)
+            return
+        }
         preserveQueue.asyncAfter(deadline: .now() + delay) {
-            guard settings.with({ $0.saveDeleted && $0.saveMedia }) else { return }
-            if MessageSavingAttachments.copyIfAvailable(message: message, mediaBox: mediaBox) != nil {
+            guard settings.with({ $0.saveDeleted && $0.saveMedia }) else {
+                finishPreserve(key)
                 return
             }
-            retryPreserve(message: message, mediaBox: mediaBox, attemptsRemaining: attemptsRemaining - 1, delay: min(delay * 2.0, 16.0))
+            if let path = MessageSavingAttachments.copyIfAvailable(message: message, mediaBox: mediaBox) {
+                log("preserve: late copy succeeded for \(message.id.id)")
+                linkMediaPath(path, message: message, accountPeerId: accountPeerId)
+                finishPreserve(key)
+                return
+            }
+            retryPreserve(message: message, accountPeerId: accountPeerId, mediaBox: mediaBox, key: key, attemptsRemaining: attemptsRemaining - 1, delay: min(delay * 2.0, 16.0))
         }
+    }
+
+    /// Attach a durable path to an already-stored deleted record. Without this a record created
+    /// while the file was still downloading keeps `mediaPath == nil` forever, so View Deleted
+    /// never learns about the file the retry eventually copied.
+    private static func linkMediaPath(_ path: String, message: Message, accountPeerId: PeerId?) {
+        guard let accountPeerId else { return }
+        guard let update = updateMediaPath.with({ $0 }) else { return }
+        update(accountPeerId.toInt64(), message.id.peerId.toInt64(), message.id.id, message.id.namespace, path)
+        log("preserve: linked media path to stored record \(message.id.id)")
     }
 
     public static func snapshotMessages(

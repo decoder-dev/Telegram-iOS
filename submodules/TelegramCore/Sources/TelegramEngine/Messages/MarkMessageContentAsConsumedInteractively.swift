@@ -3,14 +3,14 @@ import Postbox
 import TelegramApi
 import SwiftSignalKit
 
-func _internal_markMessageContentAsConsumedInteractively(postbox: Postbox, messageId: MessageId) -> Signal<Void, NoError> {
+func _internal_markMessageContentAsConsumedInteractively(postbox: Postbox, accountPeerId: PeerId, messageId: MessageId) -> Signal<Void, NoError> {
     return postbox.transaction { transaction -> Void in
         if let message = transaction.getMessage(messageId), message.flags.contains(.Incoming) {
             // AyuGram Android: with saveDeletedMessages, skip scheduling secret/TTL delete tasks
             // after open; still sync "consumed" and copy media into Saved Attachments.
             let protectSecretMedia = MessageSavingBridge.shouldProtectSecretMedia
             if protectSecretMedia {
-                MessageSavingBridge.preserveMediaIfNeeded(message: message, mediaBox: postbox.mediaBox)
+                MessageSavingBridge.preserveMediaIfNeeded(message: message, accountPeerId: accountPeerId, mediaBox: postbox.mediaBox)
             }
 
             var updateMessage = false

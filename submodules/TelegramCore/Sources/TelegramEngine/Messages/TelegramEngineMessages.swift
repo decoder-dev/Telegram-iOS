@@ -256,7 +256,7 @@ public extension TelegramEngine {
         }
 
         public func markMessageContentAsConsumedInteractively(messageId: MessageId) -> Signal<Void, NoError> {
-            return _internal_markMessageContentAsConsumedInteractively(postbox: self.account.postbox, messageId: messageId)
+            return _internal_markMessageContentAsConsumedInteractively(postbox: self.account.postbox, accountPeerId: self.account.peerId, messageId: messageId)
         }
 
         public func installInteractiveReadMessagesAction(peerId: PeerId, threadId: Int64?) -> Disposable {
