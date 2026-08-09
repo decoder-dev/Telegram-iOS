@@ -860,7 +860,13 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings) -> [ForkE
     return entries
 }
 
-public func forkExtrasController(context: AccountContext) -> ViewController {
+public enum ForkExtrasControllerFocus {
+    case top
+    case messageSaving
+    case messageFilters
+}
+
+public func forkExtrasController(context: AccountContext, focus: ForkExtrasControllerFocus = .top) -> ViewController {
     let updateDisposable = MetaDisposable()
     /// Debounce regex pattern edits — each keystroke must not rewrite AccountManager + rebuild history filters.
     let regexPatternsDisposable = MetaDisposable()
@@ -1204,6 +1210,22 @@ public func forkExtrasController(context: AccountContext) -> ViewController {
     )
     |> deliverOnMainQueue
     |> map { presentationData, settings -> (ItemListControllerState, (ItemListNodeState, Any)) in
+        let entries = forkExtrasControllerEntries(settings: settings)
+        let focusedSection: ItemListSectionId?
+        switch focus {
+        case .top:
+            focusedSection = nil
+        case .messageSaving:
+            focusedSection = ForkExtrasSection.messageSaving.rawValue
+        case .messageFilters:
+            focusedSection = ForkExtrasSection.messageFilters.rawValue
+        }
+        let initialScrollToItem: ListViewScrollToItem?
+        if let focusedSection, let index = entries.firstIndex(where: { $0.section == focusedSection }) {
+            initialScrollToItem = ListViewScrollToItem(index: index, position: .top(0.0), animated: false, curve: .Default(duration: 0.0), directionHint: .Down)
+        } else {
+            initialScrollToItem = nil
+        }
         let controllerState = ItemListControllerState(
             presentationData: ItemListPresentationData(presentationData),
             title: .text(ForkExtrasLocalizedString.title),
@@ -1213,8 +1235,9 @@ public func forkExtrasController(context: AccountContext) -> ViewController {
         )
         let listState = ItemListNodeState(
             presentationData: ItemListPresentationData(presentationData),
-            entries: forkExtrasControllerEntries(settings: settings),
-            style: .blocks
+            entries: entries,
+            style: .blocks,
+            initialScrollToItem: initialScrollToItem
         )
         return (controllerState, (listState, arguments))
     }

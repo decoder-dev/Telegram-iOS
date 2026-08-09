@@ -857,6 +857,18 @@ func openExternalUrlImpl(context: AccountContext, urlContext: OpenURLContext, ur
                 }
             } else {
                 switch host {
+                case "ayu":
+                    let path = parsedUrl.path.trimmingCharacters(in: CharacterSet(charactersIn: "/")).lowercased()
+                    switch path {
+                    case "", "settings", "preferences", "prefs":
+                        handleResolvedUrl(.settings(.path("ayu")))
+                    case "save", "saving":
+                        handleResolvedUrl(.settings(.path("ayu/saving")))
+                    case "filters":
+                        handleResolvedUrl(.settings(.path("ayu/filters")))
+                    default:
+                        break
+                    }
                 case "stars":
                     handleResolvedUrl(.stars)
                 case "ton":

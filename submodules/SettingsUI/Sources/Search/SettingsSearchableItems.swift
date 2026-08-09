@@ -4607,6 +4607,22 @@ func searchSettingsItems(items: [SettingsSearchableItem], query: String) -> [Set
 }
 
 public func handleSettingsPathUrl(context: AccountContext, path: String, navigationController: NavigationController) {
+    let forkExtrasFocus: ForkExtrasControllerFocus?
+    switch path {
+    case "ayu":
+        forkExtrasFocus = .top
+    case "ayu/saving":
+        forkExtrasFocus = .messageSaving
+    case "ayu/filters":
+        forkExtrasFocus = .messageFilters
+    default:
+        forkExtrasFocus = nil
+    }
+    if let forkExtrasFocus {
+        navigationController.pushViewController(forkExtrasController(context: context, focus: forkExtrasFocus))
+        return
+    }
+
     var notificationExceptionsList: Signal<NotificationExceptionsList?, NoError> = .single(nil)
     var activeSessionsContext: Signal<ActiveSessionsContext?, NoError> = .single(nil)
     var webSessionsContext: Signal<WebSessionsContext?, NoError> = .single(nil)
