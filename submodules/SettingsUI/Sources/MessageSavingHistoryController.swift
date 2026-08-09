@@ -150,12 +150,16 @@ private func messageSavingHistoryController(
         messageSavingPresentAttachmentShare(path: path)
     })
 
+    // Also rebuild when the store itself changes: a durable attachment can be copied seconds
+    // after this screen is opened (slow download), and without this the row would keep showing
+    // no attachment until the controller is closed and reopened.
     let signal = combineLatest(
         context.sharedContext.presentationData,
-        refresh.get()
+        refresh.get(),
+        MessageSavingStore.changes.get()
     )
     |> deliverOnMainQueue
-    |> map { presentationData, _ -> (ItemListControllerState, (ItemListNodeState, Any)) in
+    |> map { presentationData, _, _ -> (ItemListControllerState, (ItemListNodeState, Any)) in
         var rightButton: ItemListNavigationButton?
         if clearAction != nil {
             rightButton = ItemListNavigationButton(
