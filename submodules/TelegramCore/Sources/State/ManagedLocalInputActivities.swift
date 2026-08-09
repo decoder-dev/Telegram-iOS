@@ -33,6 +33,21 @@ public enum ForkAyuForwardSettings {
     public static var enabled: Bool = true
 }
 
+/// AyuGram: allow screenshots in secret chats / secret media and suppress peer notify.
+public enum ForkSecretScreenshotSettings {
+    public static var allow: Bool = true
+}
+
+/// AyuGram: expire-now button on TTL / secret media viewer.
+public enum ForkExpireTtlSettings {
+    public static var enabled: Bool = true
+}
+
+/// AyuGram: keep banned/kicked chats in the chat list instead of dropping them.
+public enum ForkKeepBannedChatsSettings {
+    public static var enabled: Bool = true
+}
+
 /// Pushed down from SharedAccountContext.swift's ForkExtrasSettings subscription — this module
 /// has no visibility into ForkExtrasSettings, same pattern as ManagedAudioSessionImpl.forceBuiltInMic.
 /// Mirrors AyuGram's granular Ghost Mode toggles.

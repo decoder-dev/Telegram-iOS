@@ -163,6 +163,29 @@ func chatHistoryEntriesForView(
                 continue loop
             }
         }
+
+        // AyuGram Message Filters: regex patterns (global).
+        let forkExtras = context.sharedContext.immediateForkExtrasSettings
+        if forkExtras.regexMessageFiltersEnabled,
+           !forkExtras.regexMessageFilterPatterns.isEmpty,
+           message.author?.id != context.account.peerId {
+            let options: NSRegularExpression.Options = forkExtras.regexMessageFiltersCaseInsensitive ? [.caseInsensitive] : []
+            let text = message.text
+            if !text.isEmpty {
+                let nsText = text as NSString
+                let fullRange = NSRange(location: 0, length: nsText.length)
+                for pattern in forkExtras.regexMessageFilterPatterns {
+                    let trimmed = pattern.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard !trimmed.isEmpty else {
+                        continue
+                    }
+                    if let regex = try? NSRegularExpression(pattern: trimmed, options: options),
+                       regex.firstMatch(in: text, options: [], range: fullRange) != nil {
+                        continue loop
+                    }
+                }
+            }
+        }
         
         if case let .replyThread(replyThreadMessage) = location, replyThreadMessage.isForumPost {
             for media in message.media {

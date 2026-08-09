@@ -260,9 +260,27 @@ public final class SecretMediaPreviewController: ViewController {
         self.displayNodeDidLoad()
         
         self.controllerNode.statusPressed = { [weak self] _ in
-            if let self {
-                self.presentViewOnceTooltip()
+            guard let self else {
+                return
             }
+            // AyuGram Expire TTL: when countdown has started, tap flame to expire now.
+            if ForkExpireTtlSettings.enabled,
+               let message = self.messageView?.message {
+                let countdownStarted: Bool
+                if let attribute = message.autoclearAttribute {
+                    countdownStarted = attribute.countdownBeginTime != nil
+                } else if let attribute = message.autoremoveAttribute {
+                    countdownStarted = attribute.countdownBeginTime != nil
+                } else {
+                    countdownStarted = false
+                }
+                if countdownStarted {
+                    let _ = self.context.engine.messages.deleteMessagesInteractively(messageIds: [message.id], type: .forEveryone).start()
+                    self.dismiss(forceAway: true)
+                    return
+                }
+            }
+            self.presentViewOnceTooltip()
         }
         
         self.controllerNode.onDismissTransitionUpdate = { [weak self] _ in
@@ -421,6 +439,10 @@ public final class SecretMediaPreviewController: ViewController {
             self.screenCaptureEventsDisposable = (screenCaptureEvents()
             |> deliverOnMainQueue).start(next: { [weak self] _ in
                 if let strongSelf = self, strongSelf.traceVisibility() {
+                    // AyuGram: Screenshots for Secret Media — suppress peer notify when allowed.
+                    if ForkSecretScreenshotSettings.allow {
+                        return
+                    }
                     if strongSelf.messageId.peerId.namespace == Namespaces.Peer.CloudUser {
                         let _ = enqueueMessages(account: strongSelf.context.account, peerId: strongSelf.messageId.peerId, messages: [.message(text: "", attributes: [], inlineStickers: [:], mediaReference: .standalone(media: TelegramMediaAction(action: TelegramMediaActionType.historyScreenshot)), threadId: nil, replyToMessageId: nil, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: [])]).start()
                     } else if strongSelf.messageId.peerId.namespace == Namespaces.Peer.SecretChat {

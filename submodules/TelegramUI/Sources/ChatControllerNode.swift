@@ -493,7 +493,8 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
         
         self.floatingTopicsPanelContainer = ChatControllerTitlePanelNodeContainer()
         
-        setLayerDisableScreenshots(self.titleAccessoryPanelContainer.layer, chatLocation.peerId?.namespace == Namespaces.Peer.SecretChat)
+        let initialSecretScreenshotsBlocked = chatLocation.peerId?.namespace == Namespaces.Peer.SecretChat && !context.sharedContext.immediateForkExtrasSettings.allowSecretScreenshots
+        setLayerDisableScreenshots(self.titleAccessoryPanelContainer.layer, initialSecretScreenshotsBlocked)
         
         self.inputContextPanelContainer = ChatControllerTitlePanelNodeContainer()
         self.inputContextOverTextPanelContainer = ChatControllerTitlePanelNodeContainer()
@@ -1205,7 +1206,12 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
             }
         }
         
-        let isSecret = self.chatPresentationInterfaceState.copyProtectionEnabled || self.chatLocation.peerId?.namespace == Namespaces.Peer.SecretChat || self.chatLocation.peerId?.isVerificationCodes == true
+        var isSecret = self.chatPresentationInterfaceState.copyProtectionEnabled || self.chatLocation.peerId?.namespace == Namespaces.Peer.SecretChat || self.chatLocation.peerId?.isVerificationCodes == true
+        // AyuGram: Screenshots in Secret Chats — drop screenshot blocking for secret chats when allowed.
+        if self.context.sharedContext.immediateForkExtrasSettings.allowSecretScreenshots,
+           self.chatLocation.peerId?.namespace == Namespaces.Peer.SecretChat {
+            isSecret = self.chatPresentationInterfaceState.copyProtectionEnabled || self.chatLocation.peerId?.isVerificationCodes == true
+        }
         if self.historyNodeContainer.isSecret != isSecret {
             #if DEBUG
             self.historyNodeContainer.isSecret = false
