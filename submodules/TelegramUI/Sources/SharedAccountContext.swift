@@ -556,9 +556,13 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             PeerNameColors.saturationPercent = settings.accentColorSaturation
             // TelegramAudio has no visibility into ForkExtrasSettings either — same pattern.
             ManagedAudioSessionImpl.forceBuiltInMic = settings.forceBuiltInMic
-            // Ghost Mode: extend beyond read-receipt suppression (ChatHistoryListNode) to also
-            // hide outgoing typing/input activity and online presence — same pushdown pattern.
-            ForkGhostModeSettings.suppressOutgoingActivity = settings.ghostMode
+            // Ghost Mode (AyuGram granular): push each flag into TelegramCore statics —
+            // TelegramCore has no visibility into ForkExtrasSettings.
+            ForkGhostModeSettings.suppressOutgoingActivity = settings.ghostDontSendTyping
+            ForkGhostModeSettings.suppressOnline = settings.ghostDontSendOnline
+            ForkGhostModeSettings.suppressStoryViews = settings.ghostDontReadStories
+            ForkGhostModeSettings.goOfflineAutomatically = settings.ghostGoOfflineAutomatically
+            ForkGhostModeSettings.readOnInteract = settings.ghostReadOnInteract
         })
         
         let _ = self.contactDataManager?.personNameDisplayOrder().start(next: { order in

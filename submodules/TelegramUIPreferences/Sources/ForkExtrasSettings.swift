@@ -14,7 +14,23 @@ public enum ForkTranscriptionBackend: String, Codable {
 
 /// Extra fork features (Ghost Mode, instant lock, notification filters, etc.).
 public struct ForkExtrasSettings: Codable, Equatable {
+    /// Legacy single Ghost Mode toggle. Still encoded for older builds; granular flags are source of truth.
+    /// When true in old prefs (no granular keys), it seeds dont-read / dont-online / dont-typing.
     public var ghostMode: Bool
+    /// AyuGram: Don't Read Messages — suppress read receipts / seen reactions while browsing.
+    public var ghostDontReadMessages: Bool
+    /// AyuGram: Don't Read Stories — suppress story view increments.
+    public var ghostDontReadStories: Bool
+    /// AyuGram: Don't Send Online — never report online status.
+    public var ghostDontSendOnline: Bool
+    /// AyuGram: Don't Send Typing — suppress typing / upload / sticker activity.
+    public var ghostDontSendTyping: Bool
+    /// AyuGram: Go Offline Automatically — after any online blink, immediately go offline again.
+    public var ghostGoOfflineAutomatically: Bool
+    /// AyuGram: Read on Interact — when dont-read is on, mark read (and briefly appear online) after send/react.
+    public var ghostReadOnInteract: Bool
+    /// AyuGram: Alert Before Opening Story — confirm before opening any story viewer.
+    public var ghostAlertBeforeOpeningStory: Bool
     public var instantPasscodeLock: Bool
     public var hideMentionNotifications: Bool
     public var hidePinnedNotifications: Bool
@@ -44,6 +60,13 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public static var defaultSettings: ForkExtrasSettings {
         return ForkExtrasSettings(
             ghostMode: false,
+            ghostDontReadMessages: false,
+            ghostDontReadStories: false,
+            ghostDontSendOnline: false,
+            ghostDontSendTyping: false,
+            ghostGoOfflineAutomatically: false,
+            ghostReadOnInteract: false,
+            ghostAlertBeforeOpeningStory: false,
             instantPasscodeLock: false,
             hideMentionNotifications: false,
             hidePinnedNotifications: false,
@@ -70,6 +93,13 @@ public struct ForkExtrasSettings: Codable, Equatable {
 
     public init(
         ghostMode: Bool,
+        ghostDontReadMessages: Bool,
+        ghostDontReadStories: Bool,
+        ghostDontSendOnline: Bool,
+        ghostDontSendTyping: Bool,
+        ghostGoOfflineAutomatically: Bool,
+        ghostReadOnInteract: Bool,
+        ghostAlertBeforeOpeningStory: Bool,
         instantPasscodeLock: Bool,
         hideMentionNotifications: Bool,
         hidePinnedNotifications: Bool,
@@ -93,6 +123,13 @@ public struct ForkExtrasSettings: Codable, Equatable {
         saveMedia: Bool = true
     ) {
         self.ghostMode = ghostMode
+        self.ghostDontReadMessages = ghostDontReadMessages
+        self.ghostDontReadStories = ghostDontReadStories
+        self.ghostDontSendOnline = ghostDontSendOnline
+        self.ghostDontSendTyping = ghostDontSendTyping
+        self.ghostGoOfflineAutomatically = ghostGoOfflineAutomatically
+        self.ghostReadOnInteract = ghostReadOnInteract
+        self.ghostAlertBeforeOpeningStory = ghostAlertBeforeOpeningStory
         self.instantPasscodeLock = instantPasscodeLock
         self.hideMentionNotifications = hideMentionNotifications
         self.hidePinnedNotifications = hidePinnedNotifications
@@ -118,7 +155,16 @@ public struct ForkExtrasSettings: Codable, Equatable {
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: StringCodingKey.self)
-        self.ghostMode = try container.decodeIfPresent(Bool.self, forKey: "ghostMode") ?? false
+        let legacyGhost = try container.decodeIfPresent(Bool.self, forKey: "ghostMode") ?? false
+        self.ghostDontReadMessages = try container.decodeIfPresent(Bool.self, forKey: "ghostDontReadMessages") ?? legacyGhost
+        self.ghostDontReadStories = try container.decodeIfPresent(Bool.self, forKey: "ghostDontReadStories") ?? false
+        self.ghostDontSendOnline = try container.decodeIfPresent(Bool.self, forKey: "ghostDontSendOnline") ?? legacyGhost
+        self.ghostDontSendTyping = try container.decodeIfPresent(Bool.self, forKey: "ghostDontSendTyping") ?? legacyGhost
+        self.ghostGoOfflineAutomatically = try container.decodeIfPresent(Bool.self, forKey: "ghostGoOfflineAutomatically") ?? false
+        self.ghostReadOnInteract = try container.decodeIfPresent(Bool.self, forKey: "ghostReadOnInteract") ?? false
+        self.ghostAlertBeforeOpeningStory = try container.decodeIfPresent(Bool.self, forKey: "ghostAlertBeforeOpeningStory") ?? false
+        // Keep legacy field in sync so older readers / encodings stay coherent.
+        self.ghostMode = self.ghostDontReadMessages && self.ghostDontSendOnline && self.ghostDontSendTyping
         self.instantPasscodeLock = try container.decodeIfPresent(Bool.self, forKey: "instantPasscodeLock") ?? false
         self.hideMentionNotifications = try container.decodeIfPresent(Bool.self, forKey: "hideMentionNotifications") ?? false
         self.hidePinnedNotifications = try container.decodeIfPresent(Bool.self, forKey: "hidePinnedNotifications") ?? false
@@ -145,7 +191,15 @@ public struct ForkExtrasSettings: Codable, Equatable {
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: StringCodingKey.self)
-        try container.encode(self.ghostMode, forKey: "ghostMode")
+        // Legacy: true only when the original three core flags are all on.
+        try container.encode(self.ghostDontReadMessages && self.ghostDontSendOnline && self.ghostDontSendTyping, forKey: "ghostMode")
+        try container.encode(self.ghostDontReadMessages, forKey: "ghostDontReadMessages")
+        try container.encode(self.ghostDontReadStories, forKey: "ghostDontReadStories")
+        try container.encode(self.ghostDontSendOnline, forKey: "ghostDontSendOnline")
+        try container.encode(self.ghostDontSendTyping, forKey: "ghostDontSendTyping")
+        try container.encode(self.ghostGoOfflineAutomatically, forKey: "ghostGoOfflineAutomatically")
+        try container.encode(self.ghostReadOnInteract, forKey: "ghostReadOnInteract")
+        try container.encode(self.ghostAlertBeforeOpeningStory, forKey: "ghostAlertBeforeOpeningStory")
         try container.encode(self.instantPasscodeLock, forKey: "instantPasscodeLock")
         try container.encode(self.hideMentionNotifications, forKey: "hideMentionNotifications")
         try container.encode(self.hidePinnedNotifications, forKey: "hidePinnedNotifications")
@@ -167,6 +221,11 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.saveMessagesHistory, forKey: "saveMessagesHistory")
         try container.encode(self.saveForBots, forKey: "saveForBots")
         try container.encode(self.saveMedia, forKey: "saveMedia")
+    }
+
+    /// Whether message/reaction read receipts should be suppressed right now.
+    public var suppressesMessageReads: Bool {
+        return self.ghostDontReadMessages
     }
 }
 
