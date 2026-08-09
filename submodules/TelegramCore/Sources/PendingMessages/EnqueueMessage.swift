@@ -252,14 +252,18 @@ private func convertForwardedMediaForSecretChat(_ media: Media) -> Media {
 
 /// AyuForward: remap to local MediaIds and strip cloud photo/document reuse hooks so PendingMessageManager
 /// actually re-uploads instead of calling inputMediaPhoto/Document with the noforwards source ids.
-/// When bytes are already in mediaBox, copy them onto a LocalFileMediaResource for reliable upload.
+/// Prefer a zero-copy `LocalFileReferenceMediaResource` over sync `copyResourceData` inside the Postbox write.
 private func convertMediaForAyuForward(_ media: Media, mediaBox: MediaBox) -> Media {
     if let file = media as? TelegramMediaFile {
         let resource: TelegramMediaResource
-        if mediaBox.completedResourcePath(file.resource) != nil {
-            let localResource = LocalFileMediaResource(fileId: Int64.random(in: Int64.min ... Int64.max), size: file.size)
-            mediaBox.copyResourceData(from: file.resource.id, to: localResource.id, synchronous: true)
-            resource = localResource
+        if let path = mediaBox.completedResourcePath(file.resource) {
+            let size = file.size ?? ((try? FileManager.default.attributesOfItem(atPath: path)[.size] as? NSNumber)?.int64Value)
+            resource = LocalFileReferenceMediaResource(
+                localFilePath: path,
+                randomId: Int64.random(in: Int64.min ... Int64.max),
+                isUniquelyReferencedTemporaryFile: false,
+                size: size
+            )
         } else {
             resource = file.resource
         }
@@ -277,9 +281,14 @@ private func convertMediaForAyuForward(_ media: Media, mediaBox: MediaBox) -> Me
         )
     } else if let image = media as? TelegramMediaImage {
         let representations: [TelegramMediaImageRepresentation] = image.representations.map { representation in
-            if mediaBox.completedResourcePath(representation.resource) != nil {
-                let localResource = LocalFileMediaResource(fileId: Int64.random(in: Int64.min ... Int64.max), size: nil)
-                mediaBox.copyResourceData(from: representation.resource.id, to: localResource.id, synchronous: true)
+            if let path = mediaBox.completedResourcePath(representation.resource) {
+                let size = (try? FileManager.default.attributesOfItem(atPath: path)[.size] as? NSNumber)?.int64Value
+                let localResource = LocalFileReferenceMediaResource(
+                    localFilePath: path,
+                    randomId: Int64.random(in: Int64.min ... Int64.max),
+                    isUniquelyReferencedTemporaryFile: false,
+                    size: size
+                )
                 return TelegramMediaImageRepresentation(
                     dimensions: representation.dimensions,
                     resource: localResource,
@@ -303,6 +312,21 @@ private func convertMediaForAyuForward(_ media: Media, mediaBox: MediaBox) -> Me
     } else {
         return media
     }
+}
+
+/// Cloud messages that cannot use `messages.forwardMessages` and must be re-uploaded as new content.
+private func messageNeedsAyuForwardReupload(_ message: Message) -> Bool {
+    guard ForkAyuForwardSettings.enabled else {
+        return false
+    }
+    if message.isCopyProtected() || message.isLocallyDeleted || message.containsSecretMedia {
+        return true
+    }
+    // View-once / ≤60s self-destruct (including text-only) — server rejects vanilla forward.
+    if let timeout = message.minAutoremoveOrClearTimeout, timeout <= 60 || timeout == viewOnceTimeout {
+        return true
+    }
+    return false
 }
 
 private func filterMessageAttributesForOutgoingMessage(_ attributes: [MessageAttribute]) -> [MessageAttribute] {
@@ -584,7 +608,7 @@ private func forwardedMessageToBeReuploaded(transaction: Transaction, id: Messag
             return message
         }
         // AyuForward: cloud messages that cannot use messages.forwardMessages — re-upload as new content.
-        if ForkAyuForwardSettings.enabled, message.isCopyProtected() || message.isLocallyDeleted {
+        if messageNeedsAyuForwardReupload(message) {
             return message
         }
         return nil
@@ -940,8 +964,8 @@ func enqueueMessages(transaction: Transaction, account: Account, peerId: PeerId,
                         if let media = sourceMessage.media.first {
                             mediaReference = .standalone(media: media)
                         }
-                    } else if ForkAyuForwardSettings.enabled, sourceMessage.isCopyProtected() || sourceMessage.isLocallyDeleted {
-                        // AyuForward: re-upload without author (noforwards / deleted).
+                    } else if messageNeedsAyuForwardReupload(sourceMessage) {
+                        // AyuForward: re-upload without author (noforwards / deleted / view-once).
                         mediaReference = ayuForwardMediaReference(account: account, sourceMessage: sourceMessage)
                     }
 
@@ -952,6 +976,12 @@ func enqueueMessages(transaction: Transaction, account: Account, peerId: PeerId,
                                 text = ""
                             }
                         }
+                    }
+
+                    // Nothing representable (unsupported media / missing bytes + empty caption) —
+                    // leave as vanilla `.forward` rather than enqueue MESSAGE_EMPTY.
+                    if messageNeedsAyuForwardReupload(sourceMessage), mediaReference == nil, text.isEmpty {
+                        break
                     }
 
                     var attributes = filterMessageAttributesForOutgoingMessage(sourceMessage.attributes)
@@ -967,8 +997,12 @@ func enqueueMessages(transaction: Transaction, account: Account, peerId: PeerId,
                             attributes.append(attribute)
                         }
                     }
-                    // Do not carry source chat TTL into the re-uploaded copy (would expire Saved Messages).
-                    attributes.removeAll { $0 is AutoremoveTimeoutMessageAttribute || $0 is AutoclearTimeoutMessageAttribute }
+                    // Do not carry source chat TTL / view-once into the re-uploaded copy.
+                    attributes.removeAll {
+                        $0 is AutoremoveTimeoutMessageAttribute
+                            || $0 is AutoclearTimeoutMessageAttribute
+                            || $0 is ConsumableContentMessageAttribute
+                    }
 
                     // Saved Messages (Избранное): associate with the source peer topic. applyUpdateMessage
                     // preserves local threadId; SourceReference mirrors the normal forward→Saved path.

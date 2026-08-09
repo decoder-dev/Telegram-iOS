@@ -2703,7 +2703,8 @@ func chatAvailableMessageActionsImpl(engine: TelegramEngine, accountPeerId: Engi
                                 banPeer = nil
                             }
                         }
-                        if !message.shouldDrawSecretMediaBlur && !isAction && !isShareProtected {
+                        // AyuForward: offer Forward even for blurred view-once / short-TTL media.
+                        if (!message.shouldDrawSecretMediaBlur || ForkAyuForwardSettings.enabled) && !isAction && !isShareProtected {
                             if message.id.peerId.namespace != Namespaces.Peer.SecretChat && (!message.isCopyProtected() || ForkAyuForwardSettings.enabled) {
                                 if !(message.flags.isSending || message.flags.contains(.Failed)) {
                                     optionsMap[id]!.insert(.forward)
@@ -2719,7 +2720,7 @@ func chatAvailableMessageActionsImpl(engine: TelegramEngine, accountPeerId: Engi
                             }
                         }
                     } else if let group = peer as? TelegramGroup {
-                        if message.id.peerId.namespace != Namespaces.Peer.SecretChat && !message.shouldDrawSecretMediaBlur {
+                        if message.id.peerId.namespace != Namespaces.Peer.SecretChat && (!message.shouldDrawSecretMediaBlur || ForkAyuForwardSettings.enabled) {
                             if !isAction && (!message.isCopyProtected() || ForkAyuForwardSettings.enabled) && !isShareProtected {
                                 if !(message.flags.isSending || message.flags.contains(.Failed)) {
                                     optionsMap[id]!.insert(.forward)
@@ -2739,7 +2740,7 @@ func chatAvailableMessageActionsImpl(engine: TelegramEngine, accountPeerId: Engi
                             optionsMap[id]!.insert(.report)
                         }
                     } else if let user = peer as? TelegramUser {
-                        if !isScheduled && message.id.peerId.namespace != Namespaces.Peer.SecretChat && !message.shouldDrawSecretMediaBlur && !isAction && !message.id.peerId.isReplies && (!message.isCopyProtected() || ForkAyuForwardSettings.enabled) && !isShareProtected {
+                        if !isScheduled && message.id.peerId.namespace != Namespaces.Peer.SecretChat && (!message.shouldDrawSecretMediaBlur || ForkAyuForwardSettings.enabled) && !isAction && !message.id.peerId.isReplies && (!message.isCopyProtected() || ForkAyuForwardSettings.enabled) && !isShareProtected {
                             if !(message.flags.isSending || message.flags.contains(.Failed)) {
                                 optionsMap[id]!.insert(.forward)
                             }
