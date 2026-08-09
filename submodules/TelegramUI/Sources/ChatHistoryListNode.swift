@@ -1904,6 +1904,41 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
                 return historyViewUpdateValue
             }
         }
+
+        // Re-run the current history view as soon as message-filter settings change. The
+        // underlying Postbox view does not emit for an AccountManager preference update.
+        let messageFilterSettings = forkExtrasSettings(accountManager: context.sharedContext.accountManager)
+        |> map { settings in
+            return (
+                settings.hideAds,
+                settings.hideBlockedMessages,
+                settings.regexMessageFiltersEnabled,
+                settings.regexMessageFiltersCaseInsensitive,
+                settings.regexMessageFilterPatterns
+            )
+        }
+        |> distinctUntilChanged(isEqual: { lhs, rhs in
+            return lhs.0 == rhs.0
+                && lhs.1 == rhs.1
+                && lhs.2 == rhs.2
+                && lhs.3 == rhs.3
+                && lhs.4 == rhs.4
+        })
+        historyViewUpdate = combineLatest(historyViewUpdate, messageFilterSettings)
+        |> map { update, filterSettings in
+            ForkExtrasHotFlags.hideAds = filterSettings.0
+            ForkExtrasHotFlags.hideBlockedMessages = filterSettings.1
+            ForkRegexMessageFilters.apply(
+                enabled: filterSettings.2,
+                caseInsensitive: filterSettings.3,
+                patterns: filterSettings.4
+            )
+            return update
+        }
+        historyViewUpdate = combineLatest(historyViewUpdate, ForkBlockedPeersFilter.updates)
+        |> map { update, _ in
+            return update
+        }
                 
         let startTime = CFAbsoluteTimeGetCurrent()
         var measure_isFirstTime = true

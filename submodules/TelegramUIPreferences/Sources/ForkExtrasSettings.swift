@@ -338,6 +338,7 @@ public enum ForkRegexMessageFilters {
     private struct Snapshot {
         var fingerprint: Fingerprint
         var regexes: [NSRegularExpression]
+        var revision: UInt64
     }
 
     /// Cap matching input to keep pathological patterns from burning CPU/heat on huge messages.
@@ -347,7 +348,8 @@ public enum ForkRegexMessageFilters {
 
     private static let snapshot = Atomic<Snapshot>(value: Snapshot(
         fingerprint: Fingerprint(enabled: false, caseInsensitive: true, patterns: []),
-        regexes: []
+        regexes: [],
+        revision: 0
     ))
 
     public static func apply(enabled: Bool, caseInsensitive: Bool, patterns: [String]) {
@@ -357,7 +359,9 @@ public enum ForkRegexMessageFilters {
             return
         }
         guard enabled else {
-            let _ = snapshot.swap(Snapshot(fingerprint: fingerprint, regexes: []))
+            let _ = snapshot.modify { current in
+                return Snapshot(fingerprint: fingerprint, regexes: [], revision: current.revision &+ 1)
+            }
             return
         }
         // Compile outside the Atomic lock so matching readers are never blocked on ICU.
@@ -381,14 +385,16 @@ public enum ForkRegexMessageFilters {
             }
         }
         // Last writer wins — a superseded compile is rare (settings edits) and harmless.
-        let _ = snapshot.swap(Snapshot(fingerprint: fingerprint, regexes: regexes))
+        let _ = snapshot.modify { current in
+            return Snapshot(fingerprint: fingerprint, regexes: regexes, revision: current.revision &+ 1)
+        }
     }
 
     /// Immutable snapshot for one history rebuild (take once before the message loop).
-    public static func currentSnapshot() -> (active: Bool, regexes: [NSRegularExpression]) {
+    public static func currentSnapshot() -> (active: Bool, regexes: [NSRegularExpression], revision: UInt64) {
         return snapshot.with { current in
             let active = current.fingerprint.enabled && !current.regexes.isEmpty
-            return (active, active ? current.regexes : [])
+            return (active, active ? current.regexes : [], current.revision)
         }
     }
 
@@ -424,6 +430,35 @@ public enum ForkRegexMessageFilters {
             }
         }
         return false
+    }
+
+    /// Match the same useful payload AyuGram exposes to filters: message text plus inline-button
+    /// titles and links. The resulting input is still bounded by `matches` before ICU sees it.
+    public static func matches(message: EngineMessage, regexes: [NSRegularExpression]? = nil) -> Bool {
+        var input = message.text
+        for attribute in message.attributes {
+            guard let replyMarkup = attribute as? ReplyMarkupMessageAttribute else {
+                continue
+            }
+            for row in replyMarkup.rows {
+                for button in row.buttons {
+                    input.append("\n<button>")
+                    input.append(button.title)
+                    switch button.action {
+                    case let .url(url):
+                        input.append("\n")
+                        input.append(url)
+                    case let .urlAuth(url, _):
+                        input.append("\n")
+                        input.append(url)
+                    default:
+                        break
+                    }
+                    input.append("</button>")
+                }
+            }
+        }
+        return matches(input, regexes: regexes)
     }
 }
 

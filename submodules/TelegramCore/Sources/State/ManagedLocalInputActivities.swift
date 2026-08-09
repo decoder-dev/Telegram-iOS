@@ -111,6 +111,67 @@ public enum ForkExtrasHotFlags {
     }
 }
 
+/// Account-scoped blocked peers used by AyuGram message filters.
+/// A revision lets UI caches invalidate without copying the full set on every row layout.
+public enum ForkBlockedPeersFilter {
+    private struct Snapshot {
+        var peerIds: Set<PeerId>
+        var revision: UInt64
+    }
+
+    private static let snapshots = Atomic<[PeerId: Snapshot]>(value: [:])
+    private static let updatesRevision = Atomic<UInt64>(value: 0)
+    private static let updatesPromise = ValuePromise<UInt64>(0, ignoreRepeated: true)
+
+    public static func update(accountPeerId: PeerId, peerIds: Set<PeerId>) {
+        var didChange = false
+        let _ = snapshots.modify { current in
+            var next = current
+            if let previous = current[accountPeerId], previous.peerIds == peerIds {
+                return current
+            }
+            didChange = true
+            let revision = (current[accountPeerId]?.revision ?? 0) &+ 1
+            next[accountPeerId] = Snapshot(peerIds: peerIds, revision: revision)
+            return next
+        }
+        if didChange {
+            var revision: UInt64 = 0
+            let _ = updatesRevision.modify { current in
+                revision = current &+ 1
+                return revision
+            }
+            updatesPromise.set(revision)
+        }
+    }
+
+    public static var updates: Signal<UInt64, NoError> {
+        return updatesPromise.get()
+    }
+
+    public static func snapshot(accountPeerId: PeerId) -> (peerIds: Set<PeerId>, revision: UInt64) {
+        return snapshots.with { snapshots in
+            guard let snapshot = snapshots[accountPeerId] else {
+                return ([], 0)
+            }
+            return (snapshot.peerIds, snapshot.revision)
+        }
+    }
+
+    public static func contains(accountPeerId: PeerId, peerId: PeerId) -> Bool {
+        return snapshots.with { $0[accountPeerId]?.peerIds.contains(peerId) ?? false }
+    }
+
+    public static func containsSnapshot(accountPeerId: PeerId, peerId: PeerId) -> (contains: Bool, revision: UInt64) {
+        return snapshots.with { snapshots in
+            guard let snapshot = snapshots[accountPeerId] else {
+                return (false, 0)
+            }
+            return (snapshot.peerIds.contains(peerId), snapshot.revision)
+        }
+    }
+}
+
 /// Pushed down from SharedAccountContext.swift's ForkExtrasSettings subscription — this module
 /// has no visibility into ForkExtrasSettings, same pattern as ManagedAudioSessionImpl.forceBuiltInMic.
 /// Mirrors AyuGram's granular Ghost Mode toggles.

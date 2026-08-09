@@ -392,6 +392,8 @@ private enum ForkExtrasSection: Int32 {
     case translation
     case navigation
     case messageSaving
+    case messageFilters
+    case smallThings
 }
 
 private enum ForkExtrasEntry: ItemListNodeEntry {
@@ -479,8 +481,12 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return ForkExtrasSection.translation.rawValue
         case .scrollToNextChat, .scrollToNextChatFooter:
             return ForkExtrasSection.navigation.rawValue
-        case .saveDeletedMessages, .saveDeletedMessagesFooter, .saveMessagesHistory, .saveMessagesHistoryFooter, .saveMedia, .saveMediaFooter, .saveForBots, .ayuForward, .ayuForwardFooter, .hideAds, .hideAdsFooter, .hideBlockedMessages, .hideBlockedMessagesFooter, .allowSecretScreenshots, .allowSecretScreenshotsFooter, .expireTtlButton, .expireTtlButtonFooter, .keepBannedChats, .keepBannedChatsFooter, .regexFilters, .regexFiltersCaseInsensitive, .regexFiltersPatterns, .regexFiltersFooter:
+        case .saveDeletedMessages, .saveDeletedMessagesFooter, .saveMessagesHistory, .saveMessagesHistoryFooter, .saveMedia, .saveMediaFooter, .saveForBots, .ayuForward, .ayuForwardFooter:
             return ForkExtrasSection.messageSaving.rawValue
+        case .hideAds, .hideAdsFooter, .hideBlockedMessages, .hideBlockedMessagesFooter, .regexFilters, .regexFiltersCaseInsensitive, .regexFiltersPatterns, .regexFiltersFooter:
+            return ForkExtrasSection.messageFilters.rawValue
+        case .allowSecretScreenshots, .allowSecretScreenshotsFooter, .expireTtlButton, .expireTtlButtonFooter, .keepBannedChats, .keepBannedChatsFooter:
+            return ForkExtrasSection.smallThings.rawValue
         }
     }
 
@@ -539,16 +545,16 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case .hideAdsFooter: return 50
         case .hideBlockedMessages: return 51
         case .hideBlockedMessagesFooter: return 52
-        case .allowSecretScreenshots: return 53
-        case .allowSecretScreenshotsFooter: return 54
-        case .expireTtlButton: return 55
-        case .expireTtlButtonFooter: return 56
-        case .keepBannedChats: return 57
-        case .keepBannedChatsFooter: return 58
-        case .regexFilters: return 59
-        case .regexFiltersCaseInsensitive: return 60
-        case .regexFiltersPatterns: return 61
-        case .regexFiltersFooter: return 62
+        case .regexFilters: return 53
+        case .regexFiltersCaseInsensitive: return 54
+        case .regexFiltersPatterns: return 55
+        case .regexFiltersFooter: return 56
+        case .allowSecretScreenshots: return 57
+        case .allowSecretScreenshotsFooter: return 58
+        case .expireTtlButton: return 59
+        case .expireTtlButtonFooter: return 60
+        case .keepBannedChats: return 61
+        case .keepBannedChatsFooter: return 62
         }
     }
 
@@ -780,7 +786,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
 }
 
 private func forkExtrasControllerEntries(settings: ForkExtrasSettings) -> [ForkExtrasEntry] {
-    return [
+    var entries: [ForkExtrasEntry] = [
         .ghostDontReadMessages(settings.ghostDontReadMessages),
         .ghostDontReadStories(settings.ghostDontReadStories),
         .ghostDontSendOnline(settings.ghostDontSendOnline),
@@ -834,17 +840,24 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings) -> [ForkE
         .hideAdsFooter,
         .hideBlockedMessages(settings.hideBlockedMessages),
         .hideBlockedMessagesFooter,
+        .regexFilters(settings.regexMessageFiltersEnabled),
+    ]
+    if settings.regexMessageFiltersEnabled {
+        entries.append(contentsOf: [
+            .regexFiltersCaseInsensitive(settings.regexMessageFiltersCaseInsensitive),
+            .regexFiltersPatterns(settings.regexMessageFilterPatterns.joined(separator: "\n")),
+        ])
+    }
+    entries.append(contentsOf: [
+        .regexFiltersFooter,
         .allowSecretScreenshots(settings.allowSecretScreenshots),
         .allowSecretScreenshotsFooter,
         .expireTtlButton(settings.expireTtlButton),
         .expireTtlButtonFooter,
         .keepBannedChats(settings.keepBannedChats),
         .keepBannedChatsFooter,
-        .regexFilters(settings.regexMessageFiltersEnabled),
-        .regexFiltersCaseInsensitive(settings.regexMessageFiltersCaseInsensitive),
-        .regexFiltersPatterns(settings.regexMessageFilterPatterns.joined(separator: "\n")),
-        .regexFiltersFooter,
-    ]
+    ])
+    return entries
 }
 
 public func forkExtrasController(context: AccountContext) -> ViewController {
