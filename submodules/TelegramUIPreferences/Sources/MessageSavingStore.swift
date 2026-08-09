@@ -218,16 +218,44 @@ public enum MessageSavingStore {
     public static func clearDeleted(accountPeerId: Int64, peerId: Int64, topicId: Int64? = nil) {
         loadIfNeeded()
         lock.lock()
+        var removedPaths: [String] = []
         memory.removeAll { record in
-            record.kind == .deleted
+            let matches = record.kind == .deleted
                 && record.accountPeerId == accountPeerId
                 && record.peerId == peerId
                 && (topicId == nil || topicId == 0 || record.topicId == topicId)
+            if matches, let path = record.mediaPath {
+                removedPaths.append(path)
+            }
+            return matches
         }
+        let remaining = memory
         lock.unlock()
         // User-initiated and rare — write through immediately so it survives a kill.
         persistNow()
+        removeOrphanedAttachments(candidates: removedPaths, remaining: remaining)
         notifyChanged()
+    }
+
+    /// Delete durable copies that no surviving record references any more. Deliberately
+    /// conservative: a file is only ever removed when it sits strictly inside our own
+    /// Saved Attachments directory, compared by path components after standardizing, so a
+    /// crafted or corrupted stored path cannot escape it (".." or a sibling directory whose
+    /// name merely shares a prefix).
+    private static func removeOrphanedAttachments(candidates: [String], remaining: [MessageSavingRecord]) {
+        guard !candidates.isEmpty else { return }
+        let stillReferenced = Set(remaining.compactMap { $0.mediaPath })
+        let root = MessageSavingBridge.savedAttachmentsDirectory.standardizedFileURL
+        let rootComponents = root.pathComponents
+        for path in Set(candidates) where !stillReferenced.contains(path) {
+            let url = URL(fileURLWithPath: path).standardizedFileURL
+            let components = url.pathComponents
+            guard components.count > rootComponents.count,
+                  Array(components.prefix(rootComponents.count)) == rootComponents else {
+                continue
+            }
+            try? FileManager.default.removeItem(at: url)
+        }
     }
 
     public static func applySettings(_ settings: ForkExtrasSettings) {
