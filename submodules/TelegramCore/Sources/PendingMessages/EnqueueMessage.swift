@@ -596,15 +596,91 @@ private func forwardedMessageToBeReuploaded(transaction: Transaction, id: Messag
 /// Build a standalone media reference for AyuForward / secret-chat reupload, remapping to local MediaIds
 /// so PendingMessageManager uploads instead of calling forwardMessages.
 private func ayuForwardMediaReference(account: Account, sourceMessage: Message) -> AnyMediaReference? {
+    // Locally deleted: prefer durable Saved Attachments before remapping stale cloud media ids.
+    if sourceMessage.isLocallyDeleted {
+        if let path = sourceMessage.locallyDeletedMediaPath
+            ?? MessageSavingAttachments.existingCopyPath(message: sourceMessage, mediaBox: account.postbox.mediaBox),
+           FileManager.default.fileExists(atPath: path),
+           let reference = ayuForwardMediaReferenceFromLocalPath(path, account: account) {
+            return reference
+        }
+    }
     for media in sourceMessage.media {
         if media is TelegramMediaImage || media is TelegramMediaFile {
             return .standalone(media: convertMediaForAyuForward(media, mediaBox: account.postbox.mediaBox))
         }
     }
-    // Deleted message whose cloud media is gone — fall back to Saved Attachments / mediaPath.
+    // Cloud media gone / unsupported — fall back to Saved Attachments / mediaPath.
     let path = sourceMessage.locallyDeletedMediaPath
         ?? MessageSavingAttachments.existingCopyPath(message: sourceMessage, mediaBox: account.postbox.mediaBox)
-    if let path, FileManager.default.fileExists(atPath: path), let data = try? Data(contentsOf: URL(fileURLWithPath: path)) {
+    if let path, FileManager.default.fileExists(atPath: path), let reference = ayuForwardMediaReferenceFromLocalPath(path, account: account) {
+        return reference
+    }
+    return nil
+}
+
+/// Load a local attachment for AyuForward. Prefer MediaBox path references over reading whole files into RAM
+/// when the file is already present as a MediaBox resource; otherwise store via mapped read for modest sizes.
+private func ayuForwardMediaReferenceFromLocalPath(_ path: String, account: Account) -> AnyMediaReference? {
+    guard FileManager.default.fileExists(atPath: path) else {
+        return nil
+    }
+    // Bound sync read — huge videos should already be in mediaBox from save-media; skip if oversized.
+    let attrs = try? FileManager.default.attributesOfItem(atPath: path)
+    let fileSize = (attrs?[.size] as? NSNumber)?.int64Value ?? 0
+    if fileSize <= 0 || fileSize > 64 * 1024 * 1024 {
+        // Still try MediaBox-friendly LocalFileReference when possible without loading bytes.
+        if fileSize > 0, fileSize <= 512 * 1024 * 1024 {
+            let resource = LocalFileReferenceMediaResource(localFilePath: path, randomId: Int64.random(in: Int64.min ... Int64.max), size: fileSize)
+            let ext = (path as NSString).pathExtension.lowercased()
+            if ["jpg", "jpeg", "png", "webp", "heic", "gif"].contains(ext) {
+                let representation = TelegramMediaImageRepresentation(
+                    dimensions: PixelDimensions(width: 1280, height: 1280),
+                    resource: resource,
+                    progressiveSizes: [],
+                    immediateThumbnailData: nil,
+                    hasVideo: false,
+                    isPersonal: false
+                )
+                let image = TelegramMediaImage(
+                    imageId: MediaId(namespace: Namespaces.Media.LocalImage, id: Int64.random(in: Int64.min ... Int64.max)),
+                    representations: [representation],
+                    immediateThumbnailData: nil,
+                    reference: nil,
+                    partialReference: nil,
+                    flags: []
+                )
+                return .standalone(media: image)
+            }
+            let mime: String
+            switch ext {
+            case "mp4", "m4v": mime = "video/mp4"
+            case "mov": mime = "video/quicktime"
+            case "mp3": mime = "audio/mpeg"
+            case "ogg", "opus": mime = "audio/ogg"
+            default: mime = "application/octet-stream"
+            }
+            var attributes: [TelegramMediaFileAttribute] = [.FileName(fileName: (path as NSString).lastPathComponent)]
+            if mime.hasPrefix("video/") {
+                attributes.append(.Video(duration: 0.0, size: PixelDimensions(width: 1280, height: 720), flags: [], preloadSize: nil, coverTime: nil, videoCodec: nil))
+            }
+            let file = TelegramMediaFile(
+                fileId: MediaId(namespace: Namespaces.Media.LocalFile, id: Int64.random(in: Int64.min ... Int64.max)),
+                partialReference: nil,
+                resource: resource,
+                previewRepresentations: [],
+                videoThumbnails: [],
+                immediateThumbnailData: nil,
+                mimeType: mime,
+                size: fileSize,
+                attributes: attributes,
+                alternativeRepresentations: []
+            )
+            return .standalone(media: file)
+        }
+        return nil
+    }
+    if let data = try? Data(contentsOf: URL(fileURLWithPath: path), options: [.mappedIfSafe]) {
         let resource = LocalFileMediaResource(fileId: Int64.random(in: Int64.min ... Int64.max), size: Int64(data.count))
         account.postbox.mediaBox.storeResourceData(resource.id, data: data, synchronous: true)
         let ext = (path as NSString).pathExtension.lowercased()
@@ -891,6 +967,8 @@ func enqueueMessages(transaction: Transaction, account: Account, peerId: PeerId,
                             attributes.append(attribute)
                         }
                     }
+                    // Do not carry source chat TTL into the re-uploaded copy (would expire Saved Messages).
+                    attributes.removeAll { $0 is AutoremoveTimeoutMessageAttribute || $0 is AutoclearTimeoutMessageAttribute }
 
                     // Saved Messages (Избранное): associate with the source peer topic. applyUpdateMessage
                     // preserves local threadId; SourceReference mirrors the normal forward→Saved path.
