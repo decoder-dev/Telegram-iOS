@@ -1907,36 +1907,40 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
 
         // Re-run the current history view as soon as message-filter settings change. The
         // underlying Postbox view does not emit for an AccountManager preference update.
-        let messageFilterSettings = forkExtrasSettings(accountManager: context.sharedContext.accountManager)
-        |> map { settings in
-            return (
-                settings.hideAds,
-                settings.hideBlockedMessages,
-                settings.regexMessageFiltersEnabled,
-                settings.regexMessageFiltersCaseInsensitive,
-                settings.regexMessageFilterPatterns
+        // (Named Equatable fingerprint — a 5-tuple + combineLatest was too heavy for the type checker.)
+        struct MessageFilterSettingsFingerprint: Equatable {
+            var hideAds: Bool
+            var hideBlockedMessages: Bool
+            var regexEnabled: Bool
+            var regexCaseInsensitive: Bool
+            var regexPatterns: [String]
+        }
+        let messageFilterSettings: Signal<MessageFilterSettingsFingerprint, NoError> = forkExtrasSettings(accountManager: context.sharedContext.accountManager)
+        |> map { settings -> MessageFilterSettingsFingerprint in
+            return MessageFilterSettingsFingerprint(
+                hideAds: settings.hideAds,
+                hideBlockedMessages: settings.hideBlockedMessages,
+                regexEnabled: settings.regexMessageFiltersEnabled,
+                regexCaseInsensitive: settings.regexMessageFiltersCaseInsensitive,
+                regexPatterns: settings.regexMessageFilterPatterns
             )
         }
-        |> distinctUntilChanged(isEqual: { lhs, rhs in
-            return lhs.0 == rhs.0
-                && lhs.1 == rhs.1
-                && lhs.2 == rhs.2
-                && lhs.3 == rhs.3
-                && lhs.4 == rhs.4
-        })
-        historyViewUpdate = combineLatest(historyViewUpdate, messageFilterSettings)
-        |> map { update, filterSettings in
-            ForkExtrasHotFlags.hideAds = filterSettings.0
-            ForkExtrasHotFlags.hideBlockedMessages = filterSettings.1
+        |> distinctUntilChanged
+        let historyViewUpdateForFilters = historyViewUpdate
+        historyViewUpdate = combineLatest(historyViewUpdateForFilters, messageFilterSettings)
+        |> map { update, filterSettings -> (ChatHistoryViewUpdate, Int, ChatHistoryLocationInput?, ClosedRange<Int32>?, Set<MessageId>) in
+            ForkExtrasHotFlags.hideAds = filterSettings.hideAds
+            ForkExtrasHotFlags.hideBlockedMessages = filterSettings.hideBlockedMessages
             ForkRegexMessageFilters.apply(
-                enabled: filterSettings.2,
-                caseInsensitive: filterSettings.3,
-                patterns: filterSettings.4
+                enabled: filterSettings.regexEnabled,
+                caseInsensitive: filterSettings.regexCaseInsensitive,
+                patterns: filterSettings.regexPatterns
             )
             return update
         }
-        historyViewUpdate = combineLatest(historyViewUpdate, ForkBlockedPeersFilter.updates)
-        |> map { update, _ in
+        let historyViewUpdateForBlocked = historyViewUpdate
+        historyViewUpdate = combineLatest(historyViewUpdateForBlocked, ForkBlockedPeersFilter.updates)
+        |> map { update, _ -> (ChatHistoryViewUpdate, Int, ChatHistoryLocationInput?, ClosedRange<Int32>?, Set<MessageId>) in
             return update
         }
                 
