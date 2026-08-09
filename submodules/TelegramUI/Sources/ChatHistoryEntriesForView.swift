@@ -146,7 +146,7 @@ func chatHistoryEntriesForView(
     let hideBlockedMessages = hotFlags.hideBlockedMessages
     let regexSnapshot = ForkRegexMessageFilters.currentSnapshot()
     let accountPeerId = context.account.peerId
-    let blockedPeerIds: Set<PeerId> = hideBlockedMessages ? ForkBlockedPeersFilter.peerIds(accountPeerId: accountPeerId) : []
+    let blockedPeerIds: Set<PeerId> = hideBlockedMessages ? ForkBlockedPeersFilter.snapshot(accountPeerId: accountPeerId).peerIds : []
 
     var count = 0
     loop: for entry in view.entries {
@@ -173,8 +173,8 @@ func chatHistoryEntriesForView(
 
         // AyuGram Message Filters: precompiled regex (see ForkRegexMessageFilters.apply).
         if regexSnapshot.active,
-           message.author?.id != accountPeerId,
-           ForkRegexMessageFilters.matches(message.text, regexes: regexSnapshot.regexes) {
+           message.flags.contains(.Incoming),
+           ForkRegexMessageFilters.matches(message: EngineMessage(message), regexes: regexSnapshot.regexes) {
             continue loop
         }
         

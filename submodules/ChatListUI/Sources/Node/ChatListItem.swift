@@ -5,6 +5,7 @@ import Display
 import SwiftSignalKit
 import TelegramCore
 import TelegramPresentationData
+import TelegramUIPreferences
 import ItemListUI
 import PresentationDataUtils
 import AvatarNode
@@ -29,6 +30,68 @@ import MultilineTextComponent
 import MultilineTextWithEntitiesComponent
 import ShimmerEffect
 import GlassBackgroundComponent
+
+private struct ForkChatListMessageFilterCacheKey: Hashable {
+    var accountPeerId: EnginePeer.Id
+    var messageId: EngineMessage.Id
+    var messageStableVersion: UInt32
+    var hideBlockedMessages: Bool
+    var blockedPeersRevision: UInt64
+    var regexRevision: UInt64
+}
+
+private enum ForkChatListMessageFilterCache {
+    private static let maxEntries = 1024
+    private static let values = Atomic<[ForkChatListMessageFilterCacheKey: Bool]>(value: [:])
+
+    static func value(for key: ForkChatListMessageFilterCacheKey) -> Bool? {
+        return values.with { $0[key] }
+    }
+
+    static func store(_ value: Bool, for key: ForkChatListMessageFilterCacheKey) {
+        let _ = values.modify { current in
+            var next = current
+            if next.count >= maxEntries {
+                next.removeAll(keepingCapacity: true)
+            }
+            next[key] = value
+            return next
+        }
+    }
+}
+
+private func forkShouldHideChatListMessage(accountPeerId: EnginePeer.Id, message: EngineMessage) -> Bool {
+    guard message.flags.contains(.Incoming) else {
+        return false
+    }
+
+    let hotFlags = ForkExtrasHotFlags.current
+    let blockedResult: (contains: Bool, revision: UInt64)
+    if hotFlags.hideBlockedMessages, let authorId = message.author?.id {
+        blockedResult = ForkBlockedPeersFilter.containsSnapshot(accountPeerId: accountPeerId, peerId: authorId)
+    } else {
+        blockedResult = (false, 0)
+    }
+    let regexSnapshot = ForkRegexMessageFilters.currentSnapshot()
+    let key = ForkChatListMessageFilterCacheKey(
+        accountPeerId: accountPeerId,
+        messageId: message.id,
+        messageStableVersion: message.stableVersion,
+        hideBlockedMessages: hotFlags.hideBlockedMessages,
+        blockedPeersRevision: blockedResult.revision,
+        regexRevision: regexSnapshot.revision
+    )
+    if let cached = ForkChatListMessageFilterCache.value(for: key) {
+        return cached
+    }
+
+    let result = blockedResult.contains || (
+        regexSnapshot.active
+        && ForkRegexMessageFilters.matches(message: message, regexes: regexSnapshot.regexes)
+    )
+    ForkChatListMessageFilterCache.store(result, for: key)
+    return result
+}
 
 public enum ChatListItemContent {
     public final class ThreadInfo: Equatable {
@@ -1549,6 +1612,9 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                         } else {
                             result += item.presentationData.strings.VoiceOver_ChatList_OutgoingMessage
                         }
+                        if forkShouldHideChatListMessage(accountPeerId: item.context.account.peerId, message: message) {
+                            return result
+                        }
                         let (_, initialHideAuthor, messageText, _, _, _, _) = chatListItemStrings(strings: item.presentationData.strings, nameDisplayOrder: item.presentationData.nameDisplayOrder, dateTimeFormat: item.presentationData.dateTimeFormat, contentSettings: item.context.currentContentSettings.with { $0 }, messages: messages, chatPeer: peer, accountPeerId: item.context.account.peerId, isPeerGroup: false)
                         if message.flags.contains(.Incoming), !initialHideAuthor, let author = message.author, case .user = author {
                             result += "\n\(item.presentationData.strings.VoiceOver_ChatList_MessageFrom(author.displayTitle(strings: item.presentationData.strings, displayOrder: item.presentationData.nameDisplayOrder)).string)"
@@ -1582,6 +1648,9 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                             result += item.presentationData.strings.VoiceOver_ChatList_Message
                         } else {
                             result += item.presentationData.strings.VoiceOver_ChatList_OutgoingMessage
+                        }
+                        if forkShouldHideChatListMessage(accountPeerId: item.context.account.peerId, message: message) {
+                            return result
                         }
                         let (_, initialHideAuthor, messageText, _, _, _, _) = chatListItemStrings(strings: item.presentationData.strings, nameDisplayOrder: item.presentationData.nameDisplayOrder, dateTimeFormat: item.presentationData.dateTimeFormat, contentSettings: item.context.currentContentSettings.with { $0 }, messages: peerData.messages, chatPeer: peerData.peer, accountPeerId: item.context.account.peerId, isPeerGroup: false)
                         if message.flags.contains(.Incoming), !initialHideAuthor, let author = message.author, case .user = author {
@@ -2474,6 +2543,9 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                     }
                 }
             }
+            let isLastMessageFiltered = messages.last.flatMap { message in
+                return forkShouldHideChatListMessage(accountPeerId: item.context.account.peerId, message: message)
+            } ?? false
             
             let useChatListLayout: Bool
             if case .chatList = item.chatListLocation {
@@ -2633,6 +2705,15 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                     default:
                         break
                     }
+
+                    if isLastMessageFiltered {
+                        initialHideAuthor = true
+                        messageEntities = []
+                        customEmojiRanges = nil
+                        richTextPreview = nil
+                        let length = (messageText as NSString).length
+                        spoilers = length == 0 ? nil : [NSRange(location: 0, length: length)]
+                    }
                     
                     contentData = .chat(itemPeer: itemPeer, threadInfo: threadInfo, peer: peer, hideAuthor: hideAuthor, messageText: messageText, messageEntities: messageEntities, spoilers: spoilers, customEmojiRanges: customEmojiRanges, richTextPreview: richTextPreview)
                     hideAuthor = initialHideAuthor
@@ -2669,7 +2750,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                 }
             }
             
-            if useInlineAuthorPrefix {
+            if useInlineAuthorPrefix && !isLastMessageFiltered {
                 if case let .user(author) = messages.last?.author {
                     if author.id == item.context.account.peerId {
                         inlineAuthorPrefix = item.presentationData.strings.DialogList_You
@@ -3080,8 +3161,11 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                                 }
                             }
                         }
+                        if isLastMessageFiltered {
+                            messageTypeIcon = nil
+                        }
                 
-                        var displayMediaPreviews = true
+                        var displayMediaPreviews = !isLastMessageFiltered
                         if message._asMessage().shouldDrawSecretMediaBlur {
                             displayMediaPreviews = false
                         } else if let _ = message.peers[message.id.peerId] as? TelegramSecretChat {
