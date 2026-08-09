@@ -1206,10 +1206,11 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
             }
         }
         
-        var isSecret = self.chatPresentationInterfaceState.copyProtectionEnabled || self.chatLocation.peerId?.namespace == Namespaces.Peer.SecretChat || self.chatLocation.peerId?.isVerificationCodes == true
-        // AyuGram: Screenshots in Secret Chats — use Core static (Bool), never copy ForkExtrasSettings on layout.
-        if ForkSecretScreenshotSettings.allow,
-           self.chatLocation.peerId?.namespace == Namespaces.Peer.SecretChat {
+        // Cheap namespace test first — non-secret chats must not touch fork statics on every layout.
+        let isSecretChat = self.chatLocation.peerId?.namespace == Namespaces.Peer.SecretChat
+        var isSecret = self.chatPresentationInterfaceState.copyProtectionEnabled || isSecretChat || self.chatLocation.peerId?.isVerificationCodes == true
+        // AyuGram: Screenshots in Secret Chats — Core static Bool, never copy ForkExtrasSettings.
+        if isSecretChat, ForkSecretScreenshotSettings.allow {
             isSecret = self.chatPresentationInterfaceState.copyProtectionEnabled || self.chatLocation.peerId?.isVerificationCodes == true
         }
         if self.historyNodeContainer.isSecret != isSecret {
