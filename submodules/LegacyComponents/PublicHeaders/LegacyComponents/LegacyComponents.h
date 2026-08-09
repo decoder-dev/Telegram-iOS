@@ -96,7 +96,6 @@
 #import <LegacyComponents/TGDocumentAttributeVideo.h>
 #import <LegacyComponents/TGDocumentMediaAttachment.h>
 #import <LegacyComponents/TGDoubleTapGestureRecognizer.h>
-#import <LegacyComponents/TGEmbedPIPButton.h>
 #import <LegacyComponents/TGEmbedPIPPullArrowView.h>
 #import <LegacyComponents/TGFileUtils.h>
 #import <LegacyComponents/TGFont.h>
