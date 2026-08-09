@@ -75,20 +75,23 @@ private enum MessageSavingHistoryEntry: ItemListNodeEntry {
     }
 }
 
-private func messageSavingHistoryEntries(mode: MessageSavingHistoryMode, accountPeerId: EnginePeer.Id, emptyText: String) -> [MessageSavingHistoryEntry] {
+private func messageSavingRecords(mode: MessageSavingHistoryMode, accountPeerId: EnginePeer.Id) -> [MessageSavingRecord] {
     let accountId = accountPeerId.toInt64()
-    let records: [MessageSavingRecord]
     switch mode {
     case let .deleted(peerId, topicId):
-        records = MessageSavingStore.deleted(accountPeerId: accountId, peerId: peerId.toInt64(), topicId: topicId)
+        return MessageSavingStore.deleted(accountPeerId: accountId, peerId: peerId.toInt64(), topicId: topicId)
     case let .edits(peerId, messageId):
-        records = MessageSavingStore.edits(
+        return MessageSavingStore.edits(
             accountPeerId: accountId,
             peerId: peerId.toInt64(),
             messageId: messageId.id,
             namespace: messageId.namespace
         )
     }
+}
+
+private func messageSavingHistoryEntries(mode: MessageSavingHistoryMode, accountPeerId: EnginePeer.Id, emptyText: String) -> [MessageSavingHistoryEntry] {
+    let records = messageSavingRecords(mode: mode, accountPeerId: accountPeerId)
     if records.isEmpty {
         return [.empty(emptyText)]
     }
@@ -145,6 +148,27 @@ private func messageSavingHistoryController(
 ) -> ViewController {
     let refresh = Promise<Void>()
     refresh.set(.single(Void()))
+
+    // In-memory retry state does not survive an app kill, so a copy that finished right before
+    // the process died leaves a record with no path. Re-link those lazily for just the records
+    // this screen shows — off the main thread, and never a global Postbox scan. The store's
+    // change signal repaints the list once links are made.
+    let reconcileAccountPeerId = context.account.peerId
+    let reconcileMediaBox = context.account.postbox.mediaBox
+    let reconcileRecords = messageSavingRecords(mode: mode, accountPeerId: reconcileAccountPeerId)
+    if !reconcileRecords.isEmpty {
+        DispatchQueue.global(qos: .utility).async {
+            for record in reconcileRecords where record.mediaPath == nil {
+                MessageSavingBridge.reconcileStoredAttachment(
+                    accountPeerId: reconcileAccountPeerId,
+                    peerId: EnginePeer.Id(record.peerId),
+                    namespace: record.namespace,
+                    messageId: record.messageId,
+                    mediaBox: reconcileMediaBox
+                )
+            }
+        }
+    }
 
     let arguments = MessageSavingHistoryArguments(openAttachment: { path in
         messageSavingPresentAttachmentShare(path: path)

@@ -30,13 +30,13 @@ enum MessageSavingAttachments {
         return String(stableHash(mediaBox.basePath), radix: 36)
     }
 
-    private static func baseName(message: Message, mediaBox: MediaBox) -> String {
-        return "\(accountScope(mediaBox: mediaBox))_\(message.id.peerId.toInt64())_\(message.id.namespace)_\(message.id.id)"
+    private static func baseName(peerId: Int64, namespace: Int32, messageId: Int32, mediaBox: MediaBox) -> String {
+        return "\(accountScope(mediaBox: mediaBox))_\(peerId)_\(namespace)_\(messageId)"
     }
 
     /// Pre-account-scoping name. Still read so previously saved files keep working.
-    private static func legacyBaseName(message: Message) -> String {
-        return "\(message.id.peerId.toInt64())_\(message.id.namespace)_\(message.id.id)"
+    private static func legacyBaseName(peerId: Int64, namespace: Int32, messageId: Int32) -> String {
+        return "\(peerId)_\(namespace)_\(messageId)"
     }
 
     private static func firstFile(withBase base: String, in directory: URL) -> String? {
@@ -51,12 +51,18 @@ enum MessageSavingAttachments {
     }
 
     /// A durable copy already on disk for this message, whatever extension it was saved with.
-    static func existingCopyPath(message: Message, mediaBox: MediaBox) -> String? {
+    /// Id-based so it also works after a restart, when only a stored record (not a Message) is
+    /// at hand.
+    static func existingCopyPath(peerId: Int64, namespace: Int32, messageId: Int32, mediaBox: MediaBox) -> String? {
         let directory = self.directoryURL
-        if let path = firstFile(withBase: baseName(message: message, mediaBox: mediaBox), in: directory) {
+        if let path = firstFile(withBase: baseName(peerId: peerId, namespace: namespace, messageId: messageId, mediaBox: mediaBox), in: directory) {
             return path
         }
-        return firstFile(withBase: legacyBaseName(message: message), in: directory)
+        return firstFile(withBase: legacyBaseName(peerId: peerId, namespace: namespace, messageId: messageId), in: directory)
+    }
+
+    static func existingCopyPath(message: Message, mediaBox: MediaBox) -> String? {
+        return existingCopyPath(peerId: message.id.peerId.toInt64(), namespace: message.id.namespace, messageId: message.id.id, mediaBox: mediaBox)
     }
 
     /// Copy the best available local media file for `message`. Returns the destination path, or nil.
@@ -77,7 +83,7 @@ enum MessageSavingAttachments {
         } else {
             ext = "bin"
         }
-        let dest = directoryURL.appendingPathComponent("\(baseName(message: message, mediaBox: mediaBox)).\(ext)")
+        let dest = directoryURL.appendingPathComponent("\(baseName(peerId: message.id.peerId.toInt64(), namespace: message.id.namespace, messageId: message.id.id, mediaBox: mediaBox)).\(ext)")
         do {
             try FileManager.default.copyItem(atPath: source, toPath: dest.path)
             return dest.path

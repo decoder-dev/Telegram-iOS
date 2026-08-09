@@ -150,6 +150,33 @@ public enum MessageSavingBridge {
         return MessageSavingAttachments.directoryURL
     }
 
+    /// Re-link a record whose durable copy exists on disk but whose stored `mediaPath` is nil.
+    /// The retry chain lives only in memory, so a copy that completed just before the app was
+    /// killed — or a record written before linking existed — would otherwise never be connected.
+    /// Called lazily for the records actually being displayed, never as a global scan.
+    /// Returns the path when a link was made.
+    @discardableResult
+    public static func reconcileStoredAttachment(
+        accountPeerId: PeerId,
+        peerId: PeerId,
+        namespace: Int32,
+        messageId: Int32,
+        mediaBox: MediaBox
+    ) -> String? {
+        guard let path = MessageSavingAttachments.existingCopyPath(
+            peerId: peerId.toInt64(),
+            namespace: namespace,
+            messageId: messageId,
+            mediaBox: mediaBox
+        ) else {
+            return nil
+        }
+        guard let update = updateMediaPath.with({ $0 }) else { return nil }
+        update(accountPeerId.toInt64(), peerId.toInt64(), messageId, namespace, path)
+        log("reconcile: relinked existing durable copy for \(messageId)")
+        return path
+    }
+
     static func log(_ message: @autoclosure () -> String) {
         #if DEBUG
         print("[MessageSaving] \(message())")
