@@ -319,7 +319,7 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
                     didPresentShare = true
                     commit()
                     let context = self.context
-                    controller.present(context.sharedContext.makeShareController(context: context, params: ShareControllerParams(subject: .fromExternal(1, { peerIds, _, _, text, account, silently in
+                    controller.present(context.sharedContext.makeShareController(context: context, params: ShareControllerParams(subject: .fromExternal(1, { peerIds, _, _, _, account, _ in
                         guard let account = account as? ShareControllerAppAccountContext else {
                             return .single(.done)
                         }
