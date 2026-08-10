@@ -346,27 +346,27 @@ test) still own it.
 
 | Neck symbol | External call sites | Notes |
 |---|---|---|
-| `TGPhotoEditorSliderView` | **ObjC only** inside `LegacyComponents` (generic/tint/blur tool views + `TGPhotoEditorCollectionView` hit test). No remaining Swift constructors. | Deleting the ObjC slider waits on Phase 3.2–3.4 editor flip. |
-| `TGPhotoToolbarViewProtocol` (+ the `TGPhotoEditorTab` / `TGPhotoEditorBackButton` / `TGPhotoEditorDoneButton` enums it declares) | `MediaPickerUI/MediaPickerPhotoToolbarView.swift`, `LegacyMediaPickerUI/LegacyAttachmentMenu.swift`, `LegacyMediaPickerUI/LegacyPaintStickersContext.swift`, `LegacyCamera/LegacyCamera.swift` | Already half-migrated, and it shows the pattern to copy: the toolbar is **Swift** (`MediaPickerPhotoToolbarView`) and is injected into the ObjC editor through `stickersContext.photoToolbarView`. **ObjC `TGPhotoToolbarView` deleted.** Creation via `TGPhotoToolbarViewMake` / `stickersContext.photoToolbarView` + registered Swift factory. |
-| `TGPhotoPaintStickersContext.h` | 13 Swift files (`DrawingUI` drawing view/entities/interface controller, `AttachmentTextInputPanelNode`, `MediaPickerUI`, `LegacyMessageInputPanel`, stories send path, `ChatControllerOpenAttachmentMenu`, …) | Widest, but it is a **pure protocol header** (`TGPhotoDrawingView`, `TGPhotoDrawingEntitiesView`, `TGPhotoDrawingInterfaceController`, `TGPhotoDrawingAdapter`, `TGCaptionPanelView`, `TGLivePhotoButton`, `TGPhotoPaintEntityRenderer`, …) whose implementations are already Swift. It is the ObjC↔Swift seam, not editor code, and should be the **last** thing removed. |
-| `TGPhotoVideoEditor` | `LegacyMediaPickerUI/LegacyAttachmentMenu.swift` (`legacyWallpaperEditor`, `legacyMediaEditor`, gallery controller), `LegacyMediaPickerUI/LegacyAvatarPicker.swift` (`legacyAvatarEditor`) | The actual editor entry point — four class methods. Reached from `ChatController` (edit media + avatar), `ChatControllerEditGif`, `PeerInfoScreenOpenMessage`, `WallpaperGalleryController`, `AuthorizationSequenceSignUpController`. This is where a Swift `MediaEditorScreen` bridge has to land. |
-| `TGPhotoEditorUtils`' `TGPhotoEditorCrop` | `WallpaperGridScreen/WallpaperUtils.swift` | One C function; trivially portable, but the file also holds orientation helpers used all over `LegacyComponents`. |
+| `TGPhotoEditorSliderView` | **ObjC only** inside `LegacyComponents` (generic/tint/blur tool views + `TGPhotoEditorCollectionView` hit test). No remaining Swift constructors. | Deleting the ObjC slider waits on Phase 3.2–3.4 editor flip. **Do not delete yet.** |
+| `TGPhotoToolbarViewProtocol` (+ `TGPhotoEditorTab` / `TGPhotoEditorBackButton` / `TGPhotoEditorDoneButton`) | `LegacyMediaPickerUI/MediaPickerPhotoToolbarView.swift` (moved from MediaPickerUI), `LegacyPaintStickersContext`, gallery/editor inject sites | **ObjC `TGPhotoToolbarView` deleted 2026-08-10.** Swift toolbar is the only implementation. `LegacyPaintStickersContext` always sets `photoToolbarView`; nil-`stickersContext` paths (Passport camera, signup avatar) use `TGPhotoToolbarViewMake` → registered Swift factory. Protocol + enums stay until the editor neck dies. |
+| `TGPhotoPaintStickersContext.h` | 13 Swift files (`DrawingUI` drawing view/entities/interface controller, `AttachmentTextInputPanelNode`, `MediaPickerUI`, `LegacyMessageInputPanel`, stories send path, `ChatControllerOpenAttachmentMenu`, …) | Widest, but it is a **pure protocol header** whose implementations are already Swift. ObjC↔Swift seam — **last** thing removed. |
+| `TGPhotoVideoEditor` | `LegacyAttachmentMenu` (`legacyWallpaperEditor`, `legacyMediaEditor`), `LegacyAvatarPicker` (`legacyAvatarEditor`) | Four class methods. **Do not half-delete.** Needs a `MediaEditorScreen` bridge (see remaining gaps below). |
+| ~~`TGPhotoEditorUtils`' `TGPhotoEditorCrop`~~ | ~~`WallpaperGridScreen/WallpaperUtils.swift`~~ | **Ported 2026-08-10** to local Swift crop. |
 
-Notes for whoever picks 3.2 up:
+Notes for whoever picks the next step up:
 
 - ~~`legacyStoryMediaEditor`~~ — **deleted 2026-08-10** with `StoryMediaEditorResult`.
 - ~~`TGPhotoEditorCrop` in WallpaperUtils~~ — **ported 2026-08-10** to local Swift crop.
-- Sequencing that falls out of the table: (1) ~~Swift slider
-  (`SliderComponent` + ItemList/settings call sites)~~ (done), (2) guarantee
-  the Swift toolbar is always injected and drop the ObjC fallback, (3)
-  `TGPhotoVideoEditor` → `MediaEditorScreen` bridge, (4) delete the
-  `TGPhoto*` subtree (incl. `TGPhotoEditorSliderView.m`), (5) retire
-  `TGPhotoPaintStickersContext.h` once DrawingUI no longer needs an ObjC seam.
+- ~~Swift toolbar inject + ObjC `TGPhotoToolbarView` fallback~~ — **done 2026-08-10** (see 3.2).
+- Sequencing left: (1) `TGPhotoVideoEditor` → `MediaEditorScreen` bridge (per-mode gaps below), (2) delete the `TGPhoto*` subtree (incl. `TGPhotoEditorSliderView.m`), (3) retire `TGPhotoPaintStickersContext.h` once DrawingUI no longer needs an ObjC seam.
 - **Already deleted (2026-08-10, safe leaves only):** `TGPhotoPaintEntity`,
   `TGPhotoPaintStickerEntity`, `TGPhotoPaintTextEntity` — three headers
   declaring classes with no `@implementation` anywhere in the repo, reachable
   only through stale imports in `TGMediaVideoConverter`, `TGPaintingData` and
-  `TGVideoEditAdjustments`. Also `TGPhotoToolbarView` / `TGPhotoEditorToolButtonsView` (Swift toolbar + size constant only). No other `TGPhoto*` file is deletion-safe today.
+  `TGVideoEditAdjustments`. Also `TGPhotoToolbarView` (Swift-only toolbar) and
+  `TGPhotoEditorToolButtonsView` (unreachable class; only
+  `TGPhotoEditorToolButtonsViewSize` lived — moved next to panel/toolbar
+  sizes on `TGPhotoEditorTabController`). **Do not delete**
+  `TGPhotoEditorSliderView` yet — ObjC tool views still own it.
 
 
 ### 3.2 progress — 2026-08-10
@@ -375,10 +375,31 @@ Notes for whoever picks 3.2 up:
 |---|---|
 | Dead Swift editor shim | Removed `legacyStoryMediaEditor` / `StoryMediaEditorResult` |
 | Crop neck cleared from Swift | `WallpaperUtils` local `cropWallpaperImage`; drops LegacyComponents import |
-| SliderComponent + ItemList off ObjC | `EditorStyleSliderView` replaces every Swift `TGPhotoEditorSliderView` constructor (`SliderComponent`, Settings/PeerInfo/InviteLinks/Premium/InstantPage ItemList embeds, `MessagePriceItem`, `WallpaperPatternPanelNode`). ObjC tool views still use `TGPhotoEditorSliderView` — **do not delete yet** |
+| SliderComponent + ItemList off ObjC | `EditorStyleSliderView` replaces every Swift `TGPhotoEditorSliderView` constructor. ObjC tool views still use it — **do not delete yet** |
 | Phase 2 adjacent | Deleted unused `presentedLegacyCamera`; trimmed LegacyCamera deps |
-| **ObjC `TGPhotoToolbarView` deleted** | Swift toolbar in `LegacyMediaPickerUI` + `TGPhotoToolbarViewFactory` for nil stickersContext. Wallpaper `presentEditor` takes stickersContext. |
-| Dead `TGPhotoEditorToolButtonsView` | Constant kept on `TGPhotoEditorTabController`; class deleted. |
+| **ObjC `TGPhotoToolbarView` deleted** | Swift `MediaPickerPhotoToolbarView` moved into `LegacyMediaPickerUI`; `LegacyPaintStickersContext` always injects it; `TGPhotoToolbarViewFactory` registers a global Swift factory for nil-`stickersContext` (Passport / signup). Wallpaper `presentEditor` now takes `stickersContext`. Protocol + tab/back/done enums remain. |
+| Dead `TGPhotoEditorToolButtonsView` | Class had zero constructors; only `TGPhotoEditorToolButtonsViewSize` used by curves histogram. Constant moved to `TGPhotoEditorTabController`; class deleted. |
+
+`LegacyComponents` stands at **315** `.m` + **24** `.mm` files and **233** public headers after the toolbar/factory/`ToolButtonsView` wave (factory `.m` replaces deleted toolbar `.m` net of ToolButtons).
+
+### Remaining `legacyMediaEditor` → `MediaEditorScreen` gaps
+
+`legacyMediaEditor` (`LegacyAttachmentMenu.swift`) is the chat/peer edit-media entry. Modes: `.draw`, `.caption`, `.adjustments` (GIF uses `.default`/`.caption` → `isGif`). Call sites and what blocks a Swift flip:
+
+| Call site | Mode | What `MediaEditorScreen` still lacks / blocks flip |
+|---|---|---|
+| `ChatController` (long-press draw on media) | `.draw` | Full paint/stickers/entities parity already exists on stories `MediaEditorScreen`, but the **chat edit-media result path** still expects `TGMediaEditingContext` + `TGCameraController.resultSignals` → enqueue. Need a bridge that maps `MediaEditorScreen` result → existing send/edit pipeline (caption entities, silent/schedule, paid stars). |
+| `ChatController` (edit caption on media) | `.caption` / draw+caption | Caption panel is injected via `getCaptionPanelView` (`TGCaptionPanelView` seam). Swift editor uses its own caption UI; flipping requires either adapting `AttachmentTextInputPanelNode` to `MediaEditorScreen` or dropping the ObjC caption mixin round-trip. |
+| `ChatControllerEditGif` | GIF (`.default`/caption) | GIF/`sendAsGif` + animation URL path goes through `TGCameraCapturedVideo(isAnimation:)`. `MediaEditorScreen` story path supports video; **chat GIF edit** needs the same result → `legacyAssetPickerEnqueueMessages` signal shape (or a native replacement). |
+| `PeerInfoScreenOpenMessage` | `.draw` | Same draw/result bridge as ChatController; peer-info send path also uses `legacyAssetPickerEnqueueMessages`. |
+
+Related entry points that are **not** `legacyMediaEditor` but still on `TGPhotoVideoEditor` (do not half-delete):
+
+| Entry | API | Blocker |
+|---|---|---|
+| `legacyWallpaperEditor` → `WallpaperGalleryController` | `presentEditorWithContext` (tools-only) | Wallpaper tools/crop result → `TGMediaEditAdjustments`; `MediaEditorScreen` has no wallpaper-tools intent yet. |
+| `legacyAvatarEditor` → `ChatController` | avatar `presentWithContext` | PeerInfo avatar already uses `MediaEditorScreen`/`AvatarEditorScreen`; this chat-avatar path is the leftover. Flip to the same avatar editor, then delete. |
+| Signup `presentLegacyAvatarPicker` | `TGMediaAvatarMenuMixin` → camera/assets | Unauthorized flow; no `AccountContext`. Keep until signup gets a Swift avatar picker, or keep mixin with Swift toolbar factory only. |
 
 ## Phase 4 — Drawing / paint remnants
 
