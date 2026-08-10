@@ -506,7 +506,78 @@ public enum MessageSavingStore {
             saveDeleted: settings.saveDeletedMessages,
             saveEdits: settings.saveMessagesHistory,
             saveForBots: settings.saveForBots,
-            saveMedia: settings.saveMedia
+            saveMedia: settings.saveMedia,
+            proactiveSaveMedia: settings.proactiveSaveMedia,
+            deletedMark: settings.deletedMessageMark,
+            editedMark: settings.editedMessageMark
         ))
+    }
+
+    /// Total retained snapshots (deleted + edited). Used by the Extras export/import UI.
+    public static var recordCount: Int {
+        loadIfNeeded()
+        lock.lock()
+        defer { lock.unlock() }
+        return memory.count
+    }
+
+    /// Encode the current store as a JSON array of `MessageSavingRecord` (AyuGram-style DB export).
+    /// Attachment bytes under Saved Attachments are not bundled — only text snapshots + optional paths.
+    public static func exportJSONData() -> Data? {
+        loadIfNeeded()
+        lock.lock()
+        let snapshot = memory
+        lock.unlock()
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        return try? encoder.encode(snapshot)
+    }
+
+    public enum ImportError: Error {
+        case invalidData
+    }
+
+    /// Import a previously exported JSON array. When `replace` is true the store is wiped first;
+    /// otherwise records are merged by `id` (duplicates skipped). Soft-capped at 5000.
+    @discardableResult
+    public static func importJSONData(_ data: Data, replace: Bool) -> Result<Int, ImportError> {
+        guard let incoming = try? JSONDecoder().decode([MessageSavingRecord].self, from: data) else {
+            return .failure(.invalidData)
+        }
+        loadIfNeeded()
+        lock.lock()
+        if replace {
+            memory = []
+            rebuildIndexesLocked()
+        }
+        var existingIds = Set(memory.map(\.id))
+        var added = 0
+        for record in incoming {
+            if existingIds.contains(record.id) {
+                continue
+            }
+            memory.append(record)
+            indexAddLocked(record)
+            existingIds.insert(record.id)
+            added += 1
+            if record.kind == .edited {
+                enforceEditHistoryLimitLocked(for: record)
+            }
+        }
+        if memory.count > 5000 {
+            let overflow = memory.count - 5000
+            for dropped in memory.prefix(overflow) {
+                indexRemoveLocked(dropped)
+            }
+            memory.removeFirst(overflow)
+        }
+        if added > 0 || replace {
+            schedulePersistLocked()
+        }
+        lock.unlock()
+        if added > 0 || replace {
+            notifyChanged()
+        }
+        return .success(added)
     }
 }

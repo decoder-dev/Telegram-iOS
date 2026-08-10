@@ -51,8 +51,8 @@ private enum MessageSavingHistoryEntry: ItemListNodeEntry {
             let formatter = DateFormatter()
             formatter.dateStyle = .medium
             formatter.timeStyle = .short
-            // AyuGram Android: deleted mark (🧹) next to the timestamp in View Deleted too.
-            let mark = record.kind == .deleted ? "\(MessageSavingBridge.defaultDeletedMark) " : ""
+            // AyuGram Android: customizable deleted mark (default 🧹) next to the timestamp in View Deleted too.
+            let mark = record.kind == .deleted ? "\(MessageSavingBridge.deletedMark) " : ""
             let header = "\(record.authorName) · \(mark)\(formatter.string(from: date))"
             var body = record.text
             if let mediaPath = record.mediaPath, messageSavingRecordHasFile(record) {

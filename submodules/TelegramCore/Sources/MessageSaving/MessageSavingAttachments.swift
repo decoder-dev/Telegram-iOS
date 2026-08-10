@@ -1,5 +1,6 @@
 import Foundation
 import Postbox
+import SwiftSignalKit
 
 /// AyuGram Android parity: copy attachments into a durable folder outside the Telegram cache
 /// (`Download/AyuGram/Saved Attachments` on Android → Application Support here).
@@ -158,5 +159,40 @@ enum MessageSavingAttachments {
             }
         }
         return nil
+    }
+
+    /// The single most-relevant (media, resource) pair for a proactive download — the same one
+    /// `sourcePath` looks for locally (largest photo representation, or the file's main resource).
+    private static func fetchableResource(message: Message) -> (media: Media, resource: TelegramMediaResource, contentType: MediaResourceUserContentType)? {
+        for media in message.media {
+            if let image = media as? TelegramMediaImage {
+                let reps = image.representations.sorted { ($0.dimensions.width * $0.dimensions.height) > ($1.dimensions.width * $1.dimensions.height) }
+                if let best = reps.first {
+                    return (image, best.resource, .image)
+                }
+            } else if let file = media as? TelegramMediaFile {
+                return (file, file.resource, MediaResourceUserContentType(file: file))
+            }
+        }
+        return nil
+    }
+
+    /// AyuGram Android parity: actively pull a not-yet-local resource instead of only waiting
+    /// for whatever else happens to be downloading it. Fire-and-forget: the returned disposable
+    /// is only so a caller can tear the fetch down once the preserve either succeeds or gives up
+    /// — cancelling it early is harmless, the file simply never finishes downloading.
+    static func startFetch(message: Message, mediaBox: MediaBox) -> Disposable? {
+        guard existingCopyPath(message: message, mediaBox: mediaBox) == nil else {
+            return nil
+        }
+        guard let (media, resource, contentType) = fetchableResource(message: message) else {
+            return nil
+        }
+        guard mediaBox.completedResourcePath(resource) == nil else {
+            // Already fully cached — copyIfAvailable will pick it up on the next retry.
+            return nil
+        }
+        let reference = AnyMediaReference.message(message: MessageReference(message), media: media).resourceReference(resource)
+        return fetchedMediaResource(mediaBox: mediaBox, userLocation: .peer(message.id.peerId), userContentType: contentType, reference: reference).start()
     }
 }

@@ -157,7 +157,9 @@ public final class ChatEntityKeyboardInputNode: ChatInputNode {
                 guard case let .user(user) = peer else {
                     return false
                 }
-                return user.isPremium
+                // AyuGram Local Telegram Premium: only unlocks the picker's own cosmetic lock —
+                // sending is still whatever the server allows, unaffected by this flag.
+                return forkEffectiveIsPremium(accountIsPremium: user.isPremium)
             }
             |> distinctUntilChanged
         }
@@ -952,7 +954,9 @@ public final class ChatEntityKeyboardInputNode: ChatInputNode {
                             guard case let .user(user) = peer else {
                                 return false
                             }
-                            return user.isPremium
+                            // AyuGram Local Telegram Premium: only unlocks the search results'
+                            // own cosmetic lock — sending is still whatever the server allows.
+                            return forkEffectiveIsPremium(accountIsPremium: user.isPremium)
                         }
                         |> distinctUntilChanged
 
@@ -2866,11 +2870,13 @@ public final class EmojiContentPeekBehaviorImpl: EmojiContentPeekBehavior {
 
                 if file.isCustomEmoji {
                     return context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: accountPeerId)) |> map { peer -> Bool in
-                        var hasPremium = false
+                        var accountIsPremium = false
                         if case let .user(user) = peer, user.isPremium {
-                            hasPremium = true
+                            accountIsPremium = true
                         }
-                        return hasPremium
+                        // AyuGram Local Telegram Premium: only unlocks the peek preview's own
+                        // cosmetic lock — sending is still whatever the server allows.
+                        return forkEffectiveIsPremium(accountIsPremium: accountIsPremium)
                     }
                     |> deliverOnMainQueue
                     |> map { [weak itemLayer] hasPremium -> (UIView, CGRect, PeekControllerContent)? in
@@ -2977,11 +2983,13 @@ public final class EmojiContentPeekBehaviorImpl: EmojiContentPeekBehavior {
                     return combineLatest(
                         context.engine.stickers.isStickerSaved(id: file.fileId),
                         context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: accountPeerId)) |> map { peer -> Bool in
-                            var hasPremium = false
+                            var accountIsPremium = false
                             if case let .user(user) = peer, user.isPremium {
-                                hasPremium = true
+                                accountIsPremium = true
                             }
-                            return hasPremium
+                            // AyuGram Local Telegram Premium: only unlocks the peek preview's own
+                            // cosmetic lock — sending is still whatever the server allows.
+                            return forkEffectiveIsPremium(accountIsPremium: accountIsPremium)
                         },
                         sendPaidMessageStars
                     )

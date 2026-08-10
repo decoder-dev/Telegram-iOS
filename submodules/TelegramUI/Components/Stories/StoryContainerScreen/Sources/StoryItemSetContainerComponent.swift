@@ -6681,15 +6681,16 @@ public final class StoryItemSetContainerComponent: Component {
                     })))
                     
                     if case let .user(accountUser) = component.slice.effectivePeer, !isLiveStream {
+                        let canUseStealthMode = forkEffectiveIsPremium(accountIsPremium: accountUser.isPremium)
                         items.append(.action(ContextMenuActionItem(text: component.strings.Story_ContextStealthMode, icon: { theme in
-                            return generateTintedImage(image: UIImage(bundleImageName: accountUser.isPremium ? "Chat/Context Menu/Eye" : "Chat/Context Menu/EyeLocked"), color: theme.contextMenu.primaryColor)
+                            return generateTintedImage(image: UIImage(bundleImageName: canUseStealthMode ? "Chat/Context Menu/Eye" : "Chat/Context Menu/EyeLocked"), color: theme.contextMenu.primaryColor)
                         }, action: { [weak self] _, a in
                             a(.default)
                             
                             guard let self else {
                                 return
                             }
-                            if accountUser.isPremium {
+                            if canUseStealthMode {
                                 self.sendMessageContext.requestStealthMode(view: self)
                             } else {
                                 self.presentStealthModeUpgradeScreen()
@@ -7305,11 +7306,12 @@ public final class StoryItemSetContainerComponent: Component {
                     
                     if !component.slice.item.storyItem.isMy, case let .file(file) = component.slice.item.storyItem.media, file.isVideo {
                         let isHq = component.slice.additionalPeerData.preferHighQualityStories
+                        let canUseHqStories = forkEffectiveIsPremium(accountIsPremium: accountUser.isPremium)
                         items.append(.action(ContextMenuActionItem(text: isHq ? component.strings.Story_ContextMenuSD : component.strings.Story_ContextMenuHD, icon: { theme in
                             if isHq {
                                 return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/QualitySd"), color: theme.contextMenu.primaryColor)
                             } else {
-                                return generateTintedImage(image: UIImage(bundleImageName: accountUser.isPremium ? "Chat/Context Menu/QualityHd" : "Chat/Context Menu/QualityHdLocked"), color: theme.contextMenu.primaryColor)
+                                return generateTintedImage(image: UIImage(bundleImageName: canUseHqStories ? "Chat/Context Menu/QualityHd" : "Chat/Context Menu/QualityHdLocked"), color: theme.contextMenu.primaryColor)
                             }
                         }, action: { [weak self] _, a in
                             a(.default)
@@ -7318,7 +7320,7 @@ public final class StoryItemSetContainerComponent: Component {
                                 return
                             }
                             
-                            if !component.slice.additionalPeerData.preferHighQualityStories && !accountUser.isPremium {
+                            if !component.slice.additionalPeerData.preferHighQualityStories && !canUseHqStories {
                                 self.presentQualityUpgradeScreen()
                                 
                                 return
@@ -7425,7 +7427,7 @@ public final class StoryItemSetContainerComponent: Component {
                         })))
                     } else if !component.slice.item.storyItem.isForwardingDisabled || ForkBypassDownloadRestrictionsSettings.enabled {
                         let saveText: String = component.strings.Story_Context_SaveToGallery
-                        let canSaveWithoutPremium = accountUser.isPremium || ForkBypassDownloadRestrictionsSettings.enabled
+                        let canSaveWithoutPremium = forkEffectiveIsPremium(accountIsPremium: accountUser.isPremium) || ForkBypassDownloadRestrictionsSettings.enabled
                         items.append(.action(ContextMenuActionItem(text: saveText, icon: { theme in
                             return generateTintedImage(image: UIImage(bundleImageName: canSaveWithoutPremium ? "Chat/Context Menu/Download" : "Chat/Context Menu/DownloadLocked"), color: theme.contextMenu.primaryColor)
                         }, action: { [weak self] _, a in
@@ -7435,7 +7437,7 @@ public final class StoryItemSetContainerComponent: Component {
                                 return
                             }
                             
-                            if accountUser.isPremium || ForkBypassDownloadRestrictionsSettings.enabled {
+                            if canSaveWithoutPremium {
                                 self.requestSave()
                             } else {
                                 self.presentSaveUpgradeScreen()
@@ -7444,15 +7446,16 @@ public final class StoryItemSetContainerComponent: Component {
                     }
                     
                     if case .user = component.slice.effectivePeer, !isLiveStream {
+                        let canUseStealthMode = forkEffectiveIsPremium(accountIsPremium: accountUser.isPremium)
                         items.append(.action(ContextMenuActionItem(text: component.strings.Story_ContextStealthMode, icon: { theme in
-                            return generateTintedImage(image: UIImage(bundleImageName: accountUser.isPremium ? "Chat/Context Menu/Eye" : "Chat/Context Menu/EyeLocked"), color: theme.contextMenu.primaryColor)
+                            return generateTintedImage(image: UIImage(bundleImageName: canUseStealthMode ? "Chat/Context Menu/Eye" : "Chat/Context Menu/EyeLocked"), color: theme.contextMenu.primaryColor)
                         }, action: { [weak self] _, a in
                             a(.default)
                             
                             guard let self else {
                                 return
                             }
-                            if accountUser.isPremium {
+                            if canUseStealthMode {
                                 self.sendMessageContext.requestStealthMode(view: self)
                             } else {
                                 self.presentStealthModeUpgradeScreen()

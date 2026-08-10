@@ -8,6 +8,66 @@ import TelegramUIPreferences
 import ItemListUI
 import PresentationDataUtils
 import AccountContext
+import UniformTypeIdentifiers
+
+/// Document-picker bridge for MessageSaving JSON import (AyuGram DB import parity).
+private final class ForkExtrasMessageSavingImportPresenter: NSObject, UIDocumentPickerDelegate {
+    static let shared = ForkExtrasMessageSavingImportPresenter()
+    private var replace = false
+    private var context: AccountContext?
+    private var present: ((ViewController) -> Void)?
+
+    func present(replace: Bool, context: AccountContext, present: @escaping (ViewController) -> Void) {
+        self.replace = replace
+        self.context = context
+        self.present = present
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.json, .data], asCopy: true)
+        picker.delegate = self
+        picker.allowsMultipleSelection = false
+        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
+            return
+        }
+        var presenter = scene.windows.first(where: { $0.isKeyWindow })?.rootViewController
+        while let presented = presenter?.presentedViewController {
+            presenter = presented
+        }
+        presenter?.present(picker, animated: true)
+    }
+
+    func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+        guard let url = urls.first else {
+            return
+        }
+        let access = url.startAccessingSecurityScopedResource()
+        defer {
+            if access {
+                url.stopAccessingSecurityScopedResource()
+            }
+        }
+        let presentationData = context?.sharedContext.currentPresentationData.with { $0 }
+        guard let data = try? Data(contentsOf: url) else {
+            if let context = self.context, let presentationData {
+                let alert = textAlertController(context: context, title: nil, text: ForkExtrasLocalizedString.importMessageSavingFailed, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})])
+                present?(alert)
+            }
+            return
+        }
+        let result = MessageSavingStore.importJSONData(data, replace: self.replace)
+        guard let context = self.context, let presentationData else {
+            return
+        }
+        switch result {
+        case let .success(count):
+            let text = ForkExtrasLocalizedString.importMessageSavingDone.replacingOccurrences(of: "{count}", with: "\(count)")
+            let alert = textAlertController(context: context, title: nil, text: text, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})])
+            present?(alert)
+        case .failure:
+            let alert = textAlertController(context: context, title: nil, text: ForkExtrasLocalizedString.importMessageSavingFailed, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})])
+            present?(alert)
+        }
+    }
+}
+
 
 private enum ForkExtrasLocalizedString {
     private static let translations: [String: [String: String]] = [
@@ -67,6 +127,14 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.AyuForwardFooter": "Forward from noforwards channels and deleted messages by re-uploading media without an author (AyuGram Android).",
             "ForkExtras.BypassDownloadRestrictions": "Save Stories & Protected Media",
             "ForkExtras.BypassDownloadRestrictionsFooter": "Save stories and download protected media without Telegram Premium, even when forwarding is disabled (AyuGram Desktop).",
+            "ForkExtras.ProactiveSaveMedia": "Proactively Download Media",
+            "ForkExtras.ProactiveSaveMediaFooter": "Actively download attachments that aren't fully cached yet, so TTL/delete can't outrun the save.",
+            "ForkExtras.DeletedMessageMark": "Deleted Message Mark",
+            "ForkExtras.DeletedMessageMarkFooter": "Shown before the time on deleted messages kept in chat.",
+            "ForkExtras.EditedMessageMark": "Edited Message Mark",
+            "ForkExtras.EditedMessageMarkFooter": "Replaces Telegram's \"edited\" label. Leave empty for the default.",
+            "ForkExtras.LocalPremium": "Local Telegram Premium",
+            "ForkExtras.LocalPremiumFooter": "Unlock client-side Premium UX on this device: Story Stealth Mode, HD stories, sticker/emoji cosmetics. Does not buy real Premium or change your badge for others.",
             "ForkExtras.HideAds": "Hide Ads",
             "ForkExtras.HideAdsFooter": "Hide sponsored and recommended messages in chats (AyuGram Message Filters).",
             "ForkExtras.HideBlockedMessages": "Hide Blocked Users",
@@ -83,6 +151,14 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.RegexFiltersCaseInsensitive": "Case Insensitive",
             "ForkExtras.RegexFiltersPatterns": "Patterns (one per line)",
             "ForkExtras.RegexFiltersFooter": "Hide messages matching any NSRegularExpression pattern (AyuGram Message Filters).",
+            "ForkExtras.ExportMessageSaving": "Export Saved Messages DB",
+            "ForkExtras.ImportMessageSaving": "Import Saved Messages DB",
+            "ForkExtras.ImportMessageSavingMerge": "Merge with existing",
+            "ForkExtras.ImportMessageSavingReplace": "Replace existing",
+            "ForkExtras.MessageSavingDbFooter": "Export / import the local deleted & edit-history JSON store (AyuGram DB backup). Media files in Saved Attachments are not included.",
+            "ForkExtras.ExportMessageSavingDone": "Exported {count} records.",
+            "ForkExtras.ImportMessageSavingDone": "Imported {count} new records.",
+            "ForkExtras.ImportMessageSavingFailed": "Could not import this file.",
             "ForkExtras.ViewDeleted": "View Deleted",
             "ForkExtras.EditHistory": "Edit History",
             "ForkExtras.ClearDeleted": "Clear Deleted",
@@ -145,6 +221,14 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.AyuForwardFooter": "Пересылать из каналов с запретом пересылки и удалённые сообщения: медиа загружается заново без автора (AyuGram Android).",
             "ForkExtras.BypassDownloadRestrictions": "Сохранять истории и защищённые медиа",
             "ForkExtras.BypassDownloadRestrictionsFooter": "Сохранять истории и скачивать защищённые медиа без Premium, даже при запрете пересылки (AyuGram Desktop).",
+            "ForkExtras.ProactiveSaveMedia": "Активно скачивать медиа",
+            "ForkExtras.ProactiveSaveMediaFooter": "Активно скачивать ещё не кэшированные вложения, чтобы TTL/удаление не обгоняло сохранение.",
+            "ForkExtras.DeletedMessageMark": "Метка удалённого",
+            "ForkExtras.DeletedMessageMarkFooter": "Показывается перед временем на сохранённых удалённых сообщениях.",
+            "ForkExtras.EditedMessageMark": "Метка изменённого",
+            "ForkExtras.EditedMessageMarkFooter": "Вместо метки «изменено». Пусто — стандарт Telegram.",
+            "ForkExtras.LocalPremium": "Локальный Telegram Premium",
+            "ForkExtras.LocalPremiumFooter": "Клиентские функции Premium на этом устройстве: stealth историй, HD, косметика стикеров/эмодзи. Не покупает Premium и не меняет ваш значок для других.",
             "ForkExtras.HideAds": "Скрыть рекламу",
             "ForkExtras.HideAdsFooter": "Скрывать спонсорские и рекомендованные сообщения в чатах (фильтры AyuGram).",
             "ForkExtras.HideBlockedMessages": "Скрыть заблокированных",
@@ -161,6 +245,14 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.RegexFiltersCaseInsensitive": "Без учёта регистра",
             "ForkExtras.RegexFiltersPatterns": "Шаблоны (по одному в строке)",
             "ForkExtras.RegexFiltersFooter": "Скрывать сообщения, совпадающие с любым NSRegularExpression (фильтры AyuGram).",
+            "ForkExtras.ExportMessageSaving": "Экспорт БД сохранённых",
+            "ForkExtras.ImportMessageSaving": "Импорт БД сохранённых",
+            "ForkExtras.ImportMessageSavingMerge": "Объединить с текущей",
+            "ForkExtras.ImportMessageSavingReplace": "Заменить текущую",
+            "ForkExtras.MessageSavingDbFooter": "Экспорт / импорт локального JSON с удалёнными и историей правок (бэкап БД AyuGram). Файлы из Saved Attachments не входят.",
+            "ForkExtras.ExportMessageSavingDone": "Экспортировано записей: {count}.",
+            "ForkExtras.ImportMessageSavingDone": "Добавлено новых записей: {count}.",
+            "ForkExtras.ImportMessageSavingFailed": "Не удалось импортировать файл.",
             "ForkExtras.ViewDeleted": "Удалённые",
             "ForkExtras.EditHistory": "История правок",
             "ForkExtras.ClearDeleted": "Очистить удалённые",
@@ -240,6 +332,14 @@ private enum ForkExtrasLocalizedString {
     static var ayuForwardFooter: String { string(forKey: "ForkExtras.AyuForwardFooter") }
     static var bypassDownloadRestrictions: String { string(forKey: "ForkExtras.BypassDownloadRestrictions") }
     static var bypassDownloadRestrictionsFooter: String { string(forKey: "ForkExtras.BypassDownloadRestrictionsFooter") }
+    static var proactiveSaveMedia: String { string(forKey: "ForkExtras.ProactiveSaveMedia") }
+    static var proactiveSaveMediaFooter: String { string(forKey: "ForkExtras.ProactiveSaveMediaFooter") }
+    static var deletedMessageMark: String { string(forKey: "ForkExtras.DeletedMessageMark") }
+    static var deletedMessageMarkFooter: String { string(forKey: "ForkExtras.DeletedMessageMarkFooter") }
+    static var editedMessageMark: String { string(forKey: "ForkExtras.EditedMessageMark") }
+    static var editedMessageMarkFooter: String { string(forKey: "ForkExtras.EditedMessageMarkFooter") }
+    static var localPremium: String { string(forKey: "ForkExtras.LocalPremium") }
+    static var localPremiumFooter: String { string(forKey: "ForkExtras.LocalPremiumFooter") }
     static var hideAds: String { string(forKey: "ForkExtras.HideAds") }
     static var hideAdsFooter: String { string(forKey: "ForkExtras.HideAdsFooter") }
     static var hideBlockedMessages: String { string(forKey: "ForkExtras.HideBlockedMessages") }
@@ -256,6 +356,14 @@ private enum ForkExtrasLocalizedString {
     static var regexFiltersCaseInsensitive: String { string(forKey: "ForkExtras.RegexFiltersCaseInsensitive") }
     static var regexFiltersPatterns: String { string(forKey: "ForkExtras.RegexFiltersPatterns") }
     static var regexFiltersFooter: String { string(forKey: "ForkExtras.RegexFiltersFooter") }
+    static var exportMessageSaving: String { string(forKey: "ForkExtras.ExportMessageSaving") }
+    static var importMessageSaving: String { string(forKey: "ForkExtras.ImportMessageSaving") }
+    static var importMessageSavingMerge: String { string(forKey: "ForkExtras.ImportMessageSavingMerge") }
+    static var importMessageSavingReplace: String { string(forKey: "ForkExtras.ImportMessageSavingReplace") }
+    static var messageSavingDbFooter: String { string(forKey: "ForkExtras.MessageSavingDbFooter") }
+    static var exportMessageSavingDone: String { string(forKey: "ForkExtras.ExportMessageSavingDone") }
+    static var importMessageSavingDone: String { string(forKey: "ForkExtras.ImportMessageSavingDone") }
+    static var importMessageSavingFailed: String { string(forKey: "ForkExtras.ImportMessageSavingFailed") }
     static var viewDeleted: String { string(forKey: "ForkExtras.ViewDeleted") }
     static var editHistory: String { string(forKey: "ForkExtras.EditHistory") }
     static var clearDeleted: String { string(forKey: "ForkExtras.ClearDeleted") }
@@ -297,6 +405,10 @@ private final class ForkExtrasControllerArguments {
     let updateSaveForBots: (Bool) -> Void
     let updateAyuForward: (Bool) -> Void
     let updateBypassDownloadRestrictions: (Bool) -> Void
+    let updateProactiveSaveMedia: (Bool) -> Void
+    let updateDeletedMessageMark: (String) -> Void
+    let updateEditedMessageMark: (String) -> Void
+    let updateLocalPremium: (Bool) -> Void
     let updateHideAds: (Bool) -> Void
     let updateHideBlockedMessages: (Bool) -> Void
     let updateGhostScheduleMessages: (Bool) -> Void
@@ -306,6 +418,8 @@ private final class ForkExtrasControllerArguments {
     let updateRegexFiltersEnabled: (Bool) -> Void
     let updateRegexFiltersCaseInsensitive: (Bool) -> Void
     let updateRegexFilterPatternsText: (String) -> Void
+    let exportMessageSavingDatabase: () -> Void
+    let importMessageSavingDatabase: () -> Void
 
     init(
         updateGhostDontReadMessages: @escaping (Bool) -> Void,
@@ -338,6 +452,10 @@ private final class ForkExtrasControllerArguments {
         updateSaveForBots: @escaping (Bool) -> Void,
         updateAyuForward: @escaping (Bool) -> Void,
         updateBypassDownloadRestrictions: @escaping (Bool) -> Void,
+        updateProactiveSaveMedia: @escaping (Bool) -> Void,
+        updateDeletedMessageMark: @escaping (String) -> Void,
+        updateEditedMessageMark: @escaping (String) -> Void,
+        updateLocalPremium: @escaping (Bool) -> Void,
         updateHideAds: @escaping (Bool) -> Void,
         updateHideBlockedMessages: @escaping (Bool) -> Void,
         updateGhostScheduleMessages: @escaping (Bool) -> Void,
@@ -346,7 +464,9 @@ private final class ForkExtrasControllerArguments {
         updateKeepBannedChats: @escaping (Bool) -> Void,
         updateRegexFiltersEnabled: @escaping (Bool) -> Void,
         updateRegexFiltersCaseInsensitive: @escaping (Bool) -> Void,
-        updateRegexFilterPatternsText: @escaping (String) -> Void
+        updateRegexFilterPatternsText: @escaping (String) -> Void,
+        exportMessageSavingDatabase: @escaping () -> Void,
+        importMessageSavingDatabase: @escaping () -> Void
     ) {
         self.updateGhostDontReadMessages = updateGhostDontReadMessages
         self.updateGhostDontReadStories = updateGhostDontReadStories
@@ -378,6 +498,10 @@ private final class ForkExtrasControllerArguments {
         self.updateSaveForBots = updateSaveForBots
         self.updateAyuForward = updateAyuForward
         self.updateBypassDownloadRestrictions = updateBypassDownloadRestrictions
+        self.updateProactiveSaveMedia = updateProactiveSaveMedia
+        self.updateDeletedMessageMark = updateDeletedMessageMark
+        self.updateEditedMessageMark = updateEditedMessageMark
+        self.updateLocalPremium = updateLocalPremium
         self.updateHideAds = updateHideAds
         self.updateHideBlockedMessages = updateHideBlockedMessages
         self.updateGhostScheduleMessages = updateGhostScheduleMessages
@@ -387,6 +511,8 @@ private final class ForkExtrasControllerArguments {
         self.updateRegexFiltersEnabled = updateRegexFiltersEnabled
         self.updateRegexFiltersCaseInsensitive = updateRegexFiltersCaseInsensitive
         self.updateRegexFilterPatternsText = updateRegexFilterPatternsText
+        self.exportMessageSavingDatabase = exportMessageSavingDatabase
+        self.importMessageSavingDatabase = importMessageSavingDatabase
     }
 }
 
@@ -403,6 +529,7 @@ private enum ForkExtrasSection: Int32 {
     case messageSaving
     case messageFilters
     case smallThings
+    case premium
 }
 
 private enum ForkExtrasEntry: ItemListNodeEntry {
@@ -457,6 +584,17 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     case ayuForwardFooter
     case bypassDownloadRestrictions(Bool)
     case bypassDownloadRestrictionsFooter
+    case proactiveSaveMedia(Bool)
+    case proactiveSaveMediaFooter
+    case deletedMessageMark(String)
+    case deletedMessageMarkFooter
+    case editedMessageMark(String)
+    case editedMessageMarkFooter
+    case exportMessageSavingDatabase
+    case importMessageSavingDatabase
+    case messageSavingDbFooter
+    case localPremium(Bool)
+    case localPremiumFooter
     case hideAds(Bool)
     case hideAdsFooter
     case hideBlockedMessages(Bool)
@@ -492,12 +630,14 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return ForkExtrasSection.translation.rawValue
         case .scrollToNextChat, .scrollToNextChatFooter:
             return ForkExtrasSection.navigation.rawValue
-        case .saveDeletedMessages, .saveDeletedMessagesFooter, .saveMessagesHistory, .saveMessagesHistoryFooter, .saveMedia, .saveMediaFooter, .saveForBots, .ayuForward, .ayuForwardFooter, .bypassDownloadRestrictions, .bypassDownloadRestrictionsFooter:
+        case .saveDeletedMessages, .saveDeletedMessagesFooter, .saveMessagesHistory, .saveMessagesHistoryFooter, .saveMedia, .saveMediaFooter, .proactiveSaveMedia, .proactiveSaveMediaFooter, .deletedMessageMark, .deletedMessageMarkFooter, .editedMessageMark, .editedMessageMarkFooter, .exportMessageSavingDatabase, .importMessageSavingDatabase, .messageSavingDbFooter, .saveForBots, .ayuForward, .ayuForwardFooter, .bypassDownloadRestrictions, .bypassDownloadRestrictionsFooter:
             return ForkExtrasSection.messageSaving.rawValue
         case .hideAds, .hideAdsFooter, .hideBlockedMessages, .hideBlockedMessagesFooter, .regexFilters, .regexFiltersCaseInsensitive, .regexFiltersPatterns, .regexFiltersFooter:
             return ForkExtrasSection.messageFilters.rawValue
         case .allowSecretScreenshots, .allowSecretScreenshotsFooter, .expireTtlButton, .expireTtlButtonFooter, .keepBannedChats, .keepBannedChatsFooter:
             return ForkExtrasSection.smallThings.rawValue
+        case .localPremium, .localPremiumFooter:
+            return ForkExtrasSection.premium.rawValue
         }
     }
 
@@ -554,20 +694,31 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case .ayuForwardFooter: return 48
         case .bypassDownloadRestrictions: return 49
         case .bypassDownloadRestrictionsFooter: return 50
-        case .hideAds: return 51
-        case .hideAdsFooter: return 52
-        case .hideBlockedMessages: return 53
-        case .hideBlockedMessagesFooter: return 54
-        case .regexFilters: return 55
-        case .regexFiltersCaseInsensitive: return 56
-        case .regexFiltersPatterns: return 57
-        case .regexFiltersFooter: return 58
-        case .allowSecretScreenshots: return 59
-        case .allowSecretScreenshotsFooter: return 60
-        case .expireTtlButton: return 61
-        case .expireTtlButtonFooter: return 62
-        case .keepBannedChats: return 63
-        case .keepBannedChatsFooter: return 64
+        case .proactiveSaveMedia: return 51
+        case .proactiveSaveMediaFooter: return 52
+        case .deletedMessageMark: return 53
+        case .deletedMessageMarkFooter: return 54
+        case .editedMessageMark: return 55
+        case .editedMessageMarkFooter: return 56
+        case .exportMessageSavingDatabase: return 73
+        case .importMessageSavingDatabase: return 74
+        case .messageSavingDbFooter: return 75
+        case .hideAds: return 57
+        case .hideAdsFooter: return 58
+        case .hideBlockedMessages: return 59
+        case .hideBlockedMessagesFooter: return 60
+        case .regexFilters: return 61
+        case .regexFiltersCaseInsensitive: return 62
+        case .regexFiltersPatterns: return 63
+        case .regexFiltersFooter: return 64
+        case .allowSecretScreenshots: return 65
+        case .allowSecretScreenshotsFooter: return 66
+        case .expireTtlButton: return 67
+        case .expireTtlButtonFooter: return 68
+        case .keepBannedChats: return 69
+        case .keepBannedChatsFooter: return 70
+        case .localPremium: return 71
+        case .localPremiumFooter: return 72
         }
     }
 
@@ -756,6 +907,40 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             })
         case .bypassDownloadRestrictionsFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.bypassDownloadRestrictionsFooter), sectionId: self.section)
+        case let .proactiveSaveMedia(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.proactiveSaveMedia, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateProactiveSaveMedia(value)
+            })
+        case .proactiveSaveMediaFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.proactiveSaveMediaFooter), sectionId: self.section)
+        case let .deletedMessageMark(value):
+            return ItemListSingleLineInputItem(presentationData: presentationData, systemStyle: .glass, title: NSAttributedString(string: ForkExtrasLocalizedString.deletedMessageMark), text: value, placeholder: "🧹", type: .regular(capitalization: false, autocorrection: false), clearType: .always, maxLength: 8, sectionId: self.section, textUpdated: { value in
+                arguments.updateDeletedMessageMark(value)
+            }, action: {})
+        case .deletedMessageMarkFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.deletedMessageMarkFooter), sectionId: self.section)
+        case let .editedMessageMark(value):
+            return ItemListSingleLineInputItem(presentationData: presentationData, systemStyle: .glass, title: NSAttributedString(string: ForkExtrasLocalizedString.editedMessageMark), text: value, placeholder: "", type: .regular(capitalization: false, autocorrection: false), clearType: .always, maxLength: 8, sectionId: self.section, textUpdated: { value in
+                arguments.updateEditedMessageMark(value)
+            }, action: {})
+        case .editedMessageMarkFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.editedMessageMarkFooter), sectionId: self.section)
+        case .exportMessageSavingDatabase:
+            return ItemListActionItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.exportMessageSaving, kind: .generic, alignment: .natural, sectionId: self.section, style: .blocks, action: {
+                arguments.exportMessageSavingDatabase()
+            })
+        case .importMessageSavingDatabase:
+            return ItemListActionItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.importMessageSaving, kind: .generic, alignment: .natural, sectionId: self.section, style: .blocks, action: {
+                arguments.importMessageSavingDatabase()
+            })
+        case .messageSavingDbFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.messageSavingDbFooter), sectionId: self.section)
+        case let .localPremium(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.localPremium, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateLocalPremium(value)
+            })
+        case .localPremiumFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.localPremiumFooter), sectionId: self.section)
         case let .hideAds(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.hideAds, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateHideAds(value)
@@ -857,6 +1042,15 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings) -> [ForkE
         .ayuForwardFooter,
         .bypassDownloadRestrictions(settings.bypassDownloadRestrictions),
         .bypassDownloadRestrictionsFooter,
+        .proactiveSaveMedia(settings.proactiveSaveMedia),
+        .proactiveSaveMediaFooter,
+        .deletedMessageMark(settings.deletedMessageMark),
+        .deletedMessageMarkFooter,
+        .editedMessageMark(settings.editedMessageMark),
+        .editedMessageMarkFooter,
+        .exportMessageSavingDatabase,
+        .importMessageSavingDatabase,
+        .messageSavingDbFooter,
         .hideAds(settings.hideAds),
         .hideAdsFooter,
         .hideBlockedMessages(settings.hideBlockedMessages),
@@ -877,6 +1071,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings) -> [ForkE
         .expireTtlButtonFooter,
         .keepBannedChats(settings.keepBannedChats),
         .keepBannedChatsFooter,
+        .localPremium(settings.localPremium),
+        .localPremiumFooter,
     ])
     return entries
 }
@@ -1153,6 +1349,34 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
                 return updated
             }.start())
         },
+        updateProactiveSaveMedia: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.proactiveSaveMedia = value
+                return updated
+            }.start())
+        },
+        updateDeletedMessageMark: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.deletedMessageMark = value
+                return updated
+            }.start())
+        },
+        updateEditedMessageMark: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.editedMessageMark = value
+                return updated
+            }.start())
+        },
+        updateLocalPremium: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.localPremium = value
+                return updated
+            }.start())
+        },
         updateHideAds: { value in
             updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
                 var updated = current
@@ -1229,6 +1453,36 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
                     }
                 }
             ).start())
+        },
+        exportMessageSavingDatabase: {
+            MessageSavingStore.flush()
+            guard let data = MessageSavingStore.exportJSONData() else {
+                return
+            }
+            let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("ayu-message-saving.json")
+            try? data.write(to: url, options: .atomic)
+            let activity = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+            guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
+                return
+            }
+            var presenter = scene.windows.first(where: { $0.isKeyWindow })?.rootViewController
+            while let presented = presenter?.presentedViewController {
+                presenter = presented
+            }
+            presenter?.present(activity, animated: true)
+        },
+        importMessageSavingDatabase: {
+            presentPicker(
+                title: ForkExtrasLocalizedString.importMessageSaving,
+                options: [
+                    (ForkExtrasLocalizedString.importMessageSavingMerge, {
+                        ForkExtrasMessageSavingImportPresenter.shared.present(replace: false, context: context, present: { presentControllerImpl?($0) })
+                    }),
+                    (ForkExtrasLocalizedString.importMessageSavingReplace, {
+                        ForkExtrasMessageSavingImportPresenter.shared.present(replace: true, context: context, present: { presentControllerImpl?($0) })
+                    }),
+                ]
+            )
         }
     )
 

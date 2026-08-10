@@ -543,11 +543,18 @@ public class ChatMessageDateAndStatusNode: ASDisplayNode {
             var updatedDateText = arguments.dateText
             if arguments.deleted {
                 // AyuGram Android: customizable deleted mark (default 🧹) before the time.
-                updatedDateText = "\(MessageSavingBridge.defaultDeletedMark) \(updatedDateText)"
+                updatedDateText = "\(MessageSavingBridge.deletedMark) \(updatedDateText)"
             } else if arguments.edited {
                 if let useEditedTimestamp = arguments.context.getAppConfigValue("message_primary_edited_date") as? Bool, useEditedTimestamp {
                 } else {
-                    updatedDateText = "\(arguments.presentationData.strings.Conversation_MessageEditedLabel) \(updatedDateText)"
+                    // AyuGram-style: an optional customizable mark replaces the localized "edited"
+                    // label entirely; empty keeps Telegram's own indicator.
+                    let editedMark = MessageSavingBridge.editedMark
+                    if !editedMark.isEmpty {
+                        updatedDateText = "\(editedMark) \(updatedDateText)"
+                    } else {
+                        updatedDateText = "\(arguments.presentationData.strings.Conversation_MessageEditedLabel) \(updatedDateText)"
+                    }
                 }
             }
             if let impressionCount = arguments.impressionCount {

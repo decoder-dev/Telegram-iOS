@@ -81,6 +81,12 @@ features (stored in AccountManager + App Group UserDefaults for NSE):
 | Save Edit History | Keep previous text when others edit; **Edit History** in the message context menu |
 | Also Save Bot Messages | Include bot chats in the deleted/edit snapshot store |
 | Save Stories & Protected Media | Save others’ stories to Photos without Premium; also when forwarding is disabled (AyuGram Desktop “No Copy & Download Restrictions”) |
+| Proactively Download Media | Start fetching attachments before delete/TTL so Save Media can keep a durable copy |
+| Deleted / Edited Marks | Customize the 🧹 deleted prefix and the “edited” label in chat |
+| Export / Import Saved Messages DB | Share or restore the local deleted/edit-history JSON store (`ayu-message-saving.json`; attachment files not bundled) |
+| Regex Filters Import | `tg://ayu/filters/import/<host/path>` pulls patterns from allowlisted paste hosts |
+| Hide Blocked Users | Hide blocked peers in chat, members lists, and reaction lists |
+| Local Telegram Premium | Client-side only: unlocks Story Stealth Mode, HD story quality, and sticker/emoji picker cosmetics on this device. Doesn't touch your real Premium status — nothing server-enforced (sends, quotas, your badge to others) changes |
 
 Settings → Support footer shows `Telegram VERSION (BUILD)` and `decoder-dev`. Archive tip sheets / auto-archive suggestion alerts are suppressed.
 

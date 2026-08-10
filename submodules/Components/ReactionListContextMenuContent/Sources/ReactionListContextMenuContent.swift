@@ -774,14 +774,24 @@ public final class ReactionListContextMenuContent: ContextControllerItemsContent
             
             let mergedItems: [EngineMessageReactionListContext.Item]
             
-            init(listState: EngineMessageReactionListContext.State, readStats: MessageReadStats?) {
+            init(listState: EngineMessageReactionListContext.State, readStats: MessageReadStats?, accountPeerId: EnginePeer.Id) {
                 self.listState = listState
                 self.readStats = readStats
                 
-                var mergedItems: [EngineMessageReactionListContext.Item] = listState.items
+                // AyuGram Message Filters: Hide Blocked Users also hides their reactions/seen entries here.
+                let hideBlocked = ForkExtrasHotFlags.hideBlockedMessages
+                let blockedPeerIds: Set<EnginePeer.Id> = hideBlocked ? ForkBlockedPeersFilter.snapshot(accountPeerId: accountPeerId).peerIds : []
+                func isBlocked(_ peerId: EnginePeer.Id) -> Bool {
+                    return hideBlocked && peerId != accountPeerId && blockedPeerIds.contains(peerId)
+                }
+                
+                var mergedItems: [EngineMessageReactionListContext.Item] = listState.items.filter { !isBlocked($0.peer.id) }
                 if !listState.canLoadMore, let readStats = readStats {                    
                     var existingPeers = Set(mergedItems.map(\.peer.id))
                     for peer in readStats.peers {
+                        if isBlocked(peer.id) {
+                            continue
+                        }
                         if !existingPeers.contains(peer.id) {
                             existingPeers.insert(peer.id)
                             mergedItems.append(EngineMessageReactionListContext.Item(peer: peer, reaction: nil, timestamp: readStats.readTimestamps[peer.id], timestampIsReaction: false))
@@ -885,7 +895,7 @@ public final class ReactionListContextMenuContent: ContextControllerItemsContent
             self.deleteReaction = deleteReaction
             
             self.listContext = context.engine.messages.messageReactionList(message: message, readStats: readStats, reaction: reaction)
-            self.state = ItemsState(listState: EngineMessageReactionListContext.State(message: message, readStats: readStats, reaction: reaction), readStats: readStats)
+            self.state = ItemsState(listState: EngineMessageReactionListContext.State(message: message, readStats: readStats, reaction: reaction), readStats: readStats, accountPeerId: context.account.peerId)
             
             self.scrollNode = ASScrollNode()
             self.separatorNode = ASDisplayNode()
@@ -916,7 +926,7 @@ public final class ReactionListContextMenuContent: ContextControllerItemsContent
                 guard let strongSelf = self else {
                     return
                 }
-                let updatedState = ItemsState(listState: state, readStats: strongSelf.state.readStats)
+                let updatedState = ItemsState(listState: state, readStats: strongSelf.state.readStats, accountPeerId: strongSelf.context.account.peerId)
                 var animateIn = false
                 if strongSelf.state.item(at: 0) == nil && updatedState.item(at: 0) != nil {
                     animateIn = true

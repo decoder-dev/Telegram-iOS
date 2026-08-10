@@ -47,6 +47,24 @@ public enum ForkBypassDownloadRestrictionsSettings {
     }
 }
 
+/// AyuGram Local Telegram Premium: unlock client-side Premium-gated UX (stealth mode, HD stories,
+/// sticker/emoji picker cosmetics, etc.) without touching the account's real, server-issued
+/// Premium status. Never use this to alter anything the server itself enforces or verifies.
+public enum ForkLocalPremiumSettings {
+    private static let value = Atomic<Bool>(value: false)
+    public static var enabled: Bool {
+        get { return value.with { $0 } }
+        set { let _ = value.swap(newValue) }
+    }
+}
+
+/// Client-only Premium check for UI gates: true when the account actually has Premium, or the
+/// user opted into AyuGram's Local Telegram Premium. Use only at UI decision points that merely
+/// show/hide a lock — never for anything the server verifies (sends, quotas, badges to others).
+public func forkEffectiveIsPremium(accountIsPremium: Bool) -> Bool {
+    return accountIsPremium || ForkLocalPremiumSettings.enabled
+}
+
 /// AyuGram: allow screenshots in secret chats / secret media and suppress peer notify.
 public enum ForkSecretScreenshotSettings {
     private static let value = Atomic<Bool>(value: true)

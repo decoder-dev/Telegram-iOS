@@ -13,6 +13,7 @@ import OpenInExternalAppUI
 import BrowserUI
 import OverlayStatusController
 import PresentationDataUtils
+import SettingsUI
 
 public struct ParsedSecureIdUrl {
     public let peerId: EnginePeer.Id
@@ -359,6 +360,82 @@ private func appendQueryItems(to base: String, items: [URLQueryItem]) -> String 
 
 private func makeTelegramUrl(_ path: String, queryItems: [URLQueryItem] = []) -> String {
     return appendQueryItems(to: "https://t.me\(path)", items: queryItems)
+}
+
+/// AyuGram parity: `tg://ayu/filters/import/<url-without-protocol>` fetches a plaintext list of
+/// regex patterns (one per line) and appends them to `regexMessageFilterPatterns`. Restricted to
+/// the same paste-site allowlist AyuGram Android documents, since this is an unauthenticated
+/// fetch triggered by a link the user merely tapped.
+private let ayuFiltersImportAllowedHosts: Set<String> = [
+    "dpaste.com",
+    "gist.githubusercontent.com",
+    "pastebin.com",
+    "nekobin.com",
+]
+
+private func handleAyuFiltersImportDeepLink(context: AccountContext, presentationData: PresentationData, navigationController: NavigationController?, target: String) {
+    guard let slashIndex = target.firstIndex(of: "/") else {
+        return
+    }
+    let host = String(target[target.startIndex..<slashIndex]).lowercased()
+    guard ayuFiltersImportAllowedHosts.contains(host) else {
+        return
+    }
+    guard let url = URL(string: "https://\(target)") else {
+        return
+    }
+
+    let statusController = OverlayStatusController(theme: presentationData.theme, type: .loading(cancelled: nil))
+    context.sharedContext.presentGlobalController(statusController, nil)
+
+    let task = URLSession.shared.dataTask(with: url) { data, _, _ in
+        Queue.mainQueue().async {
+            statusController.dismiss()
+
+            let showResult: (String) -> Void = { text in
+                let alertController = textAlertController(context: context, title: nil, text: text, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})])
+                context.sharedContext.presentGlobalController(alertController, nil)
+            }
+
+            guard let data, let text = String(data: data, encoding: .utf8) else {
+                showResult(presentationData.strings.Login_UnknownError)
+                return
+            }
+            let patterns = text
+                .split(whereSeparator: { $0.isNewline })
+                .map { String($0).trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty && !$0.hasPrefix("#") }
+            guard !patterns.isEmpty else {
+                showResult(presentationData.strings.Login_UnknownError)
+                return
+            }
+
+            let _ = updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.regexMessageFiltersEnabled = true
+                var existing = Set(updated.regexMessageFilterPatterns)
+                var merged = updated.regexMessageFilterPatterns
+                for pattern in patterns {
+                    guard pattern.utf16.count <= 512 else {
+                        continue
+                    }
+                    if existing.insert(pattern).inserted {
+                        merged.append(pattern)
+                    }
+                }
+                if merged.count > 64 {
+                    merged = Array(merged.suffix(64))
+                }
+                updated.regexMessageFilterPatterns = merged
+                return updated
+            }.start()
+
+            if let navigationController {
+                navigationController.pushViewController(forkExtrasController(context: context, focus: .messageFilters))
+            }
+        }
+    }
+    task.resume()
 }
 
 func openExternalUrlImpl(context: AccountContext, urlContext: OpenURLContext, url: String, forceExternal: Bool, presentationData: PresentationData, navigationController: NavigationController?, dismissInput: @escaping () -> Void) {
@@ -858,11 +935,21 @@ func openExternalUrlImpl(context: AccountContext, urlContext: OpenURLContext, ur
             } else {
                 switch host {
                 case "ayu":
-                    let path = parsedUrl.path.trimmingCharacters(in: CharacterSet(charactersIn: "/")).lowercased()
+                    // Preserve case for the import target (paste-site slugs are case-sensitive);
+                    // only the routing prefix itself is matched case-insensitively.
+                    let rawPath = parsedUrl.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                    let path = rawPath.lowercased()
+                    if path.hasPrefix("filters/import/") {
+                        let target = String(rawPath.dropFirst("filters/import/".count))
+                        if !target.isEmpty {
+                            handleAyuFiltersImportDeepLink(context: context, presentationData: presentationData, navigationController: navigationController, target: target)
+                        }
+                        return
+                    }
                     switch path {
                     case "", "settings", "preferences", "prefs":
                         handleResolvedUrl(.settings(.path("ayu")))
-                    case "save", "saving":
+                    case "save", "saving", "db_export", "db_import":
                         handleResolvedUrl(.settings(.path("ayu/saving")))
                     case "filters":
                         handleResolvedUrl(.settings(.path("ayu/filters")))

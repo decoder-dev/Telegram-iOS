@@ -21,7 +21,9 @@ public extension EmojiPagerContentComponent {
                 guard case let .user(user) = peer else {
                     return false
                 }
-                return user.isPremium
+                // AyuGram Local Telegram Premium: only unlocks the picker's own cosmetic lock —
+                // sending is still whatever the server allows, unaffected by this flag.
+                return forkEffectiveIsPremium(accountIsPremium: user.isPremium)
             }
             |> distinctUntilChanged
         }

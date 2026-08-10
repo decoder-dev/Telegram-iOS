@@ -293,13 +293,26 @@ private final class PeerInfoMembersContextImpl {
     }
     
     private func pushState() {
-        if self.removingMemberIds.isEmpty {
-            self.stateValue.set(.single(PeerInfoMembersState(canAddMembers: self.canAddMembers, members: self.members, dataState: self.dataState)))
+        // AyuGram Message Filters: Hide Blocked Users also hides them from the member list.
+        let hideBlocked = ForkExtrasHotFlags.hideBlockedMessages
+        let accountPeerId = self.context.account.peerId
+        let blockedPeerIds: Set<PeerId> = hideBlocked ? ForkBlockedPeersFilter.snapshot(accountPeerId: accountPeerId).peerIds : []
+        let removingMemberIds = self.removingMemberIds
+        let visibleMembers: [PeerInfoMember]
+        if removingMemberIds.isEmpty && blockedPeerIds.isEmpty {
+            visibleMembers = self.members
         } else {
-            self.stateValue.set(.single(PeerInfoMembersState(canAddMembers: self.canAddMembers, members: self.members.filter { member in
-                return self.removingMemberIds[member.id] == nil
-            }, dataState: self.dataState)))
+            visibleMembers = self.members.filter { member in
+                if removingMemberIds[member.id] != nil {
+                    return false
+                }
+                if hideBlocked, member.id != accountPeerId, blockedPeerIds.contains(member.id) {
+                    return false
+                }
+                return true
+            }
         }
+        self.stateValue.set(.single(PeerInfoMembersState(canAddMembers: self.canAddMembers, members: visibleMembers, dataState: self.dataState)))
     }
     
     func loadMore() {

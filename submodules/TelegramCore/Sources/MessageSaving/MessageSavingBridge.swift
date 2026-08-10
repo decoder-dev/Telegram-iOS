@@ -118,19 +118,29 @@ public struct MessageSavingBridgeSettings: Equatable {
     public var saveEdits: Bool
     public var saveForBots: Bool
     public var saveMedia: Bool
+    /// AyuGram Android parity: actively fetch a not-yet-local resource (instead of only copying
+    /// what already happens to be cached) before TTL/delete can race the cache eviction.
+    public var proactiveSaveMedia: Bool
+    /// AyuGram-style customizable deleted-message mark (default 🧹).
+    public var deletedMark: String
+    /// Optional customizable edited-message mark. Empty keeps Telegram's own "edited" label.
+    public var editedMark: String
 
-    public init(saveDeleted: Bool, saveEdits: Bool, saveForBots: Bool, saveMedia: Bool = true) {
+    public init(saveDeleted: Bool, saveEdits: Bool, saveForBots: Bool, saveMedia: Bool = true, proactiveSaveMedia: Bool = true, deletedMark: String = MessageSavingBridge.defaultDeletedMark, editedMark: String = "") {
         self.saveDeleted = saveDeleted
         self.saveEdits = saveEdits
         self.saveForBots = saveForBots
         self.saveMedia = saveMedia
+        self.proactiveSaveMedia = proactiveSaveMedia
+        self.deletedMark = deletedMark
+        self.editedMark = editedMark
     }
 
     /// Matches ForkExtrasSettings.defaultSettings so deletes are captured before
     /// SharedAccountContext's async sharedData subscription applies persisted prefs.
-    public static let defaults = MessageSavingBridgeSettings(saveDeleted: true, saveEdits: true, saveForBots: false, saveMedia: true)
+    public static let defaults = MessageSavingBridgeSettings(saveDeleted: true, saveEdits: true, saveForBots: false, saveMedia: true, proactiveSaveMedia: true, deletedMark: MessageSavingBridge.defaultDeletedMark, editedMark: "")
 
-    public static let disabled = MessageSavingBridgeSettings(saveDeleted: false, saveEdits: false, saveForBots: false, saveMedia: false)
+    public static let disabled = MessageSavingBridgeSettings(saveDeleted: false, saveEdits: false, saveForBots: false, saveMedia: false, proactiveSaveMedia: false, deletedMark: MessageSavingBridge.defaultDeletedMark, editedMark: "")
 }
 
 /// TelegramCore cannot import TelegramUIPreferences; SharedAccountContext pushes settings + append sink here.
@@ -148,6 +158,18 @@ public enum MessageSavingBridge {
     /// is about to delete really lives inside it.
     public static var savedAttachmentsDirectory: URL {
         return MessageSavingAttachments.directoryURL
+    }
+
+    /// Current customizable deleted-message mark (ForkExtrasSettings.deletedMessageMark, pushed
+    /// down through MessageSavingStore.applySettings). Falls back to the AyuGram default.
+    public static var deletedMark: String {
+        let mark = settings.with { $0.deletedMark }
+        return mark.isEmpty ? defaultDeletedMark : mark
+    }
+
+    /// Current customizable edited-message mark. Empty means "use Telegram's own label".
+    public static var editedMark: String {
+        return settings.with { $0.editedMark }
     }
 
     /// Re-link a record whose durable copy exists on disk but whose stored `mediaPath` is nil.
@@ -308,6 +330,10 @@ public enum MessageSavingBridge {
 
     private static let pendingPreserves = Atomic<Set<PreserveKey>>(value: Set())
 
+    /// AyuGram Android parity: proactive downloads started for an in-flight preserve, keyed the
+    /// same as `pendingPreserves` so they are torn down together (success or exhausted retries).
+    private static let activeFetchDisposables = Atomic<[PreserveKey: Disposable]>(value: [:])
+
     /// Copy attachments early (on open / consume) so TTL can't race the cache eviction.
     /// `accountPeerId` is only needed to link a late copy back to an already-stored record;
     /// the copy itself is account-scoped through `mediaBox`.
@@ -338,6 +364,21 @@ public enum MessageSavingBridge {
             log("preserve: retry already pending for \(message.id.id)")
             return
         }
+        if current.proactiveSaveMedia {
+            // AyuGram Android tries to actively download the resource rather than only wait for
+            // it to become locally cached by whatever else is already fetching it (or not).
+            preserveQueue.async {
+                guard let disposable = MessageSavingAttachments.startFetch(message: message, mediaBox: mediaBox) else {
+                    return
+                }
+                log("preserve: started proactive fetch for \(message.id.id)")
+                let _ = activeFetchDisposables.modify { current -> [PreserveKey: Disposable] in
+                    var updated = current
+                    updated[key] = disposable
+                    return updated
+                }
+            }
+        }
         // delay 0: first attempt runs immediately, just not on the caller's thread.
         retryPreserve(message: message, accountPeerId: accountPeerId, mediaBox: mediaBox, key: key, attemptsRemaining: 7, delay: 0.0)
     }
@@ -348,6 +389,13 @@ public enum MessageSavingBridge {
             updated.remove(key)
             return updated
         }
+        var removedFetch: Disposable?
+        let _ = activeFetchDisposables.modify { current -> [PreserveKey: Disposable] in
+            var updated = current
+            removedFetch = updated.removeValue(forKey: key)
+            return updated
+        }
+        removedFetch?.dispose()
     }
 
     private static func retryPreserve(message: Message, accountPeerId: PeerId?, mediaBox: MediaBox, key: PreserveKey, attemptsRemaining: Int, delay: Double) {

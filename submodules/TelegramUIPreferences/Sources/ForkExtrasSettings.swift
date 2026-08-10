@@ -56,10 +56,19 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var saveForBots: Bool
     /// AyuGram Android parity: copy attachments into Saved Attachments on delete.
     public var saveMedia: Bool
+    /// AyuGram Android: actively fetch not-yet-local media before TTL/delete can race the cache.
+    public var proactiveSaveMedia: Bool
+    /// Customizable deleted-message mark (default 🧹).
+    public var deletedMessageMark: String
+    /// Customizable edited-message mark. Empty keeps Telegram's default "edited" label.
+    public var editedMessageMark: String
     /// AyuGram AyuForward: re-upload noforwards / deleted messages as new content (no author). Default on.
     public var ayuForward: Bool
     /// AyuGram Desktop: No Copy & Download Restrictions — save stories / protected media without Premium.
     public var bypassDownloadRestrictions: Bool
+    /// AyuGram Local Telegram Premium: unlock client-side Premium-gated UX (stealth mode, HD stories,
+    /// sticker/emoji cosmetics) without touching the account's real Premium status. Default off — opt-in.
+    public var localPremium: Bool
     /// AyuGram Message Filters: hide sponsored / recommended ads in chats.
     public var hideAds: Bool
     /// AyuGram Message Filters: hide messages (and typing) from blocked users.
@@ -110,8 +119,12 @@ public struct ForkExtrasSettings: Codable, Equatable {
             saveMessagesHistory: true,
             saveForBots: false,
             saveMedia: true,
+            proactiveSaveMedia: true,
+            deletedMessageMark: MessageSavingBridge.defaultDeletedMark,
+            editedMessageMark: "",
             ayuForward: true,
             bypassDownloadRestrictions: true,
+            localPremium: false,
             hideAds: false,
             hideBlockedMessages: false,
             allowSecretScreenshots: true,
@@ -154,8 +167,12 @@ public struct ForkExtrasSettings: Codable, Equatable {
         saveMessagesHistory: Bool,
         saveForBots: Bool,
         saveMedia: Bool = true,
+        proactiveSaveMedia: Bool = true,
+        deletedMessageMark: String = MessageSavingBridge.defaultDeletedMark,
+        editedMessageMark: String = "",
         ayuForward: Bool = true,
         bypassDownloadRestrictions: Bool = true,
+        localPremium: Bool = false,
         hideAds: Bool = false,
         hideBlockedMessages: Bool = false,
         allowSecretScreenshots: Bool = true,
@@ -195,8 +212,12 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.saveMessagesHistory = saveMessagesHistory
         self.saveForBots = saveForBots
         self.saveMedia = saveMedia
+        self.proactiveSaveMedia = proactiveSaveMedia
+        self.deletedMessageMark = deletedMessageMark
+        self.editedMessageMark = editedMessageMark
         self.ayuForward = ayuForward
         self.bypassDownloadRestrictions = bypassDownloadRestrictions
+        self.localPremium = localPremium
         self.hideAds = hideAds
         self.hideBlockedMessages = hideBlockedMessages
         self.allowSecretScreenshots = allowSecretScreenshots
@@ -242,8 +263,12 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.saveMessagesHistory = try container.decodeIfPresent(Bool.self, forKey: "saveMessagesHistory") ?? true
         self.saveForBots = try container.decodeIfPresent(Bool.self, forKey: "saveForBots") ?? false
         self.saveMedia = try container.decodeIfPresent(Bool.self, forKey: "saveMedia") ?? true
+        self.proactiveSaveMedia = try container.decodeIfPresent(Bool.self, forKey: "proactiveSaveMedia") ?? true
+        self.deletedMessageMark = try container.decodeIfPresent(String.self, forKey: "deletedMessageMark") ?? MessageSavingBridge.defaultDeletedMark
+        self.editedMessageMark = try container.decodeIfPresent(String.self, forKey: "editedMessageMark") ?? ""
         self.ayuForward = try container.decodeIfPresent(Bool.self, forKey: "ayuForward") ?? true
         self.bypassDownloadRestrictions = try container.decodeIfPresent(Bool.self, forKey: "bypassDownloadRestrictions") ?? true
+        self.localPremium = try container.decodeIfPresent(Bool.self, forKey: "localPremium") ?? false
         self.hideAds = try container.decodeIfPresent(Bool.self, forKey: "hideAds") ?? false
         self.hideBlockedMessages = try container.decodeIfPresent(Bool.self, forKey: "hideBlockedMessages") ?? false
         self.allowSecretScreenshots = try container.decodeIfPresent(Bool.self, forKey: "allowSecretScreenshots") ?? true
@@ -287,8 +312,12 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.saveMessagesHistory, forKey: "saveMessagesHistory")
         try container.encode(self.saveForBots, forKey: "saveForBots")
         try container.encode(self.saveMedia, forKey: "saveMedia")
+        try container.encode(self.proactiveSaveMedia, forKey: "proactiveSaveMedia")
+        try container.encode(self.deletedMessageMark, forKey: "deletedMessageMark")
+        try container.encode(self.editedMessageMark, forKey: "editedMessageMark")
         try container.encode(self.ayuForward, forKey: "ayuForward")
         try container.encode(self.bypassDownloadRestrictions, forKey: "bypassDownloadRestrictions")
+        try container.encode(self.localPremium, forKey: "localPremium")
         try container.encode(self.hideAds, forKey: "hideAds")
         try container.encode(self.hideBlockedMessages, forKey: "hideBlockedMessages")
         try container.encode(self.allowSecretScreenshots, forKey: "allowSecretScreenshots")
