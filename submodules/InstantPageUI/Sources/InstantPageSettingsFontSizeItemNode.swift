@@ -3,19 +3,19 @@ import UIKit
 import AsyncDisplayKit
 import Display
 import AppBundle
-import LegacyComponents
+import SliderComponent
 
 final class InstantPageSettingsFontSizeItemNode: InstantPageSettingsItemNode {
     private let updated: (Int) -> Void
     
-    private let sliderView: TGPhotoEditorSliderView
+    private let sliderView: EditorStyleSliderView
     private let leftIconNode: ASImageNode
     private let rightIconNode: ASImageNode
     
     init(theme: InstantPageSettingsItemTheme, fontSizeVariant: Int, updated: @escaping (Int) -> Void) {
         self.updated = updated
         
-        self.sliderView = TGPhotoEditorSliderView()
+        self.sliderView = EditorStyleSliderView()
         self.sliderView.enablePanHandling = true
         self.sliderView.trackCornerRadius = 1.0
         self.sliderView.lineSize = 2.0

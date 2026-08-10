@@ -5,7 +5,7 @@ import AsyncDisplayKit
 import SwiftSignalKit
 import TelegramCore
 import TelegramPresentationData
-import LegacyComponents
+import SliderComponent
 import ItemListUI
 import PresentationDataUtils
 
@@ -116,7 +116,7 @@ private final class AutodownloadSizeLimitItemNode: ListViewItemNode, ItemListIte
     private let minTextNode: TextNode
     private let maxTextNode: TextNode
     private let textNode: TextNode
-    private var sliderView: TGPhotoEditorSliderView?
+    private var sliderView: EditorStyleSliderView?
     
     private var item: AutodownloadSizeLimitItem?
     private var layoutParams: ListViewItemLayoutParams?
@@ -159,7 +159,7 @@ private final class AutodownloadSizeLimitItemNode: ListViewItemNode, ItemListIte
     override func didLoad() {
         super.didLoad()
         
-        let sliderView = TGPhotoEditorSliderView()
+        let sliderView = EditorStyleSliderView()
         sliderView.enablePanHandling = true
         sliderView.trackCornerRadius = 2.0
         sliderView.lineSize = 4.0

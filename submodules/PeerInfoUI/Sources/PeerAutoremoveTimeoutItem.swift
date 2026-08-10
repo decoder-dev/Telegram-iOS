@@ -6,7 +6,7 @@ import SwiftSignalKit
 import TelegramCore
 import TelegramPresentationData
 import TelegramUIPreferences
-import LegacyComponents
+import SliderComponent
 import ItemListUI
 import PresentationDataUtils
 import AppBundle
@@ -96,7 +96,7 @@ class PeerRemoveTimeoutItemNode: ListViewItemNode, ItemListItemNode {
     private let bottomStripeNode: ASDisplayNode
     private let maskNode: ASImageNode
     
-    private var sliderView: TGPhotoEditorSliderView?
+    private var sliderView: EditorStyleSliderView?
     private let titleNodes: [TextNode]
     private let disabledOverlayNode: ASDisplayNode
     
@@ -135,7 +135,7 @@ class PeerRemoveTimeoutItemNode: ListViewItemNode, ItemListItemNode {
     override func didLoad() {
         super.didLoad()
         
-        let sliderView = TGPhotoEditorSliderView()
+        let sliderView = EditorStyleSliderView()
         sliderView.enablePanHandling = true
         sliderView.trackCornerRadius = 2.0
         sliderView.lineSize = 4.0

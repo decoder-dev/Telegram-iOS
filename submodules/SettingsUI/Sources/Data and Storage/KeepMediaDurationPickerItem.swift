@@ -6,7 +6,7 @@ import SwiftSignalKit
 import TelegramCore
 import TelegramUIPreferences
 import TelegramPresentationData
-import LegacyComponents
+import SliderComponent
 import ItemListUI
 import PresentationDataUtils
 
@@ -81,7 +81,7 @@ private final class KeepMediaDurationPickerItemNode: ListViewItemNode {
     private let maskNode: ASImageNode
     
     private let textNodes: [TextNode]
-    private var sliderView: TGPhotoEditorSliderView?
+    private var sliderView: EditorStyleSliderView?
     
     private var item: KeepMediaDurationPickerItem?
     private var layoutParams: ListViewItemLayoutParams?
@@ -127,7 +127,7 @@ private final class KeepMediaDurationPickerItemNode: ListViewItemNode {
     override func didLoad() {
         super.didLoad()
         
-        let sliderView = TGPhotoEditorSliderView()
+        let sliderView = EditorStyleSliderView()
         sliderView.enablePanHandling = true
         sliderView.trackCornerRadius = 2.0
         sliderView.lineSize = 4.0

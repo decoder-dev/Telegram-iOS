@@ -6,7 +6,7 @@ import SwiftSignalKit
 import TelegramCore
 import TelegramUIPreferences
 import TelegramPresentationData
-import LegacyComponents
+import SliderComponent
 import ItemListUI
 import PresentationDataUtils
 
@@ -71,7 +71,7 @@ class ChatUnrestrictBoostersItemNode: ListViewItemNode {
     
     private let iconNodes: [ASImageNode]
     private let textNodes: [TextNode]
-    private var sliderView: TGPhotoEditorSliderView?
+    private var sliderView: EditorStyleSliderView?
     
     private var item: ChatUnrestrictBoostersItem?
     private var layoutParams: ListViewItemLayoutParams?
@@ -140,7 +140,7 @@ class ChatUnrestrictBoostersItemNode: ListViewItemNode {
         
         self.view.disablesInteractiveTransitionGestureRecognizer = true
         
-        let sliderView = TGPhotoEditorSliderView()
+        let sliderView = EditorStyleSliderView()
         sliderView.limitValueChangedToLatestState = true
         sliderView.enablePanHandling = true
         sliderView.trackCornerRadius = 2.0

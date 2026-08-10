@@ -5,7 +5,7 @@ import SwiftSignalKit
 import Display
 import TelegramCore
 import TelegramPresentationData
-import LegacyComponents
+import SliderComponent
 import AccountContext
 import MergeLists
 import SettingsThemeWallpaperNode
@@ -183,7 +183,7 @@ public final class WallpaperPatternPanelNode: ASDisplayNode {
     
     private let titleNode: ImmediateTextNode
     private let labelNode: ImmediateTextNode
-    private var sliderView: TGPhotoEditorSliderView?
+    private var sliderView: EditorStyleSliderView?
     
     private var disposable: Disposable?
     public var wallpapers: [TelegramWallpaper] = []
@@ -295,7 +295,7 @@ public final class WallpaperPatternPanelNode: ASDisplayNode {
         self.scrollNode.view.alwaysBounceHorizontal = true
         self.scrollNode.view.scrollsToTop = false
         
-        let sliderView = TGPhotoEditorSliderView()
+        let sliderView = EditorStyleSliderView()
         sliderView.disableSnapToPositions = true
         sliderView.trackCornerRadius = 2.0
         sliderView.lineSize = 4.0

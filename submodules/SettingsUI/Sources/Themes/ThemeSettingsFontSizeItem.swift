@@ -6,7 +6,7 @@ import SwiftSignalKit
 import TelegramCore
 import TelegramPresentationData
 import TelegramUIPreferences
-import LegacyComponents
+import SliderComponent
 import ItemListUI
 import PresentationDataUtils
 import AppBundle
@@ -76,7 +76,7 @@ class ThemeSettingsFontSizeItemNode: ListViewItemNode, ItemListItemNode {
     private let bottomStripeNode: ASDisplayNode
     private let maskNode: ASImageNode
     
-    private var sliderView: TGPhotoEditorSliderView?
+    private var sliderView: EditorStyleSliderView?
     private let leftIconNode: ASImageNode
     private let rightIconNode: ASImageNode
     private let disabledOverlayNode: ASDisplayNode
@@ -121,7 +121,7 @@ class ThemeSettingsFontSizeItemNode: ListViewItemNode, ItemListItemNode {
     override func didLoad() {
         super.didLoad()
         
-        let sliderView = TGPhotoEditorSliderView()
+        let sliderView = EditorStyleSliderView()
         sliderView.enablePanHandling = true
         sliderView.enablePanHandling = true
         sliderView.trackCornerRadius = 1.0

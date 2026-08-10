@@ -46,6 +46,7 @@ swift_library(
         "//submodules/LocationResources:LocationResources",
         "//submodules/Geocoding:Geocoding",
         "//submodules/LegacyComponents:LegacyComponents",
+        "//submodules/TelegramUI/Components/SliderComponent",
         "//submodules/LocationUI:LocationUI",
         "//submodules/StickerResources:StickerResources",
         "//submodules/StickerPackPreviewUI:StickerPackPreviewUI",

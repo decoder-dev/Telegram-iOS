@@ -17,7 +17,7 @@ swift_library(
         "//submodules/PresentationDataUtils",
         "//submodules/TelegramPresentationData",
         "//submodules/ItemListUI",
-        "//submodules/LegacyComponents",
+        "//submodules/TelegramUI/Components/SliderComponent",
         "//submodules/ComponentFlow",
         "//submodules/TelegramUI/Components/ButtonComponent",
         "//submodules/Components/BundleIconComponent",

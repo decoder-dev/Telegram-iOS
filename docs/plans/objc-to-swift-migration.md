@@ -305,7 +305,7 @@ buttons, crop) |
 
 **DoD:** Edit → send / schedule / crop parity; no `TGPhotoEditor*` in Swift.
 
-### 3.1 status — unlock started 2026-08-10 (SliderComponent LC-free)
+### 3.1 status — Swift call sites flipped 2026-08-10
 
 ~22k LOC of `TGPhoto*` ObjC sits behind a neck of exactly **five** symbols.
 Everything else in the editor — `TGPhotoEditorController`, the tab controller,
@@ -314,15 +314,19 @@ tools/curves/tint/blur/crop/quality/HUD/preview views, `TGPhotoEditorButton`,
 `TGPhotoAvatarPreviewController`, `TGPhotoCaptionInputMixin` — has **no**
 reference outside `LegacyComponents` and dies with the neck, not before it.
 
-**SliderComponent is LC-free:** `EditorStyleSliderView` (pure-Swift `UIControl`
-in `SliderComponent/Sources`) replaced the non-native `TGPhotoEditorSliderView`
-branch; the module no longer imports / depends on `LegacyComponents`.
-`TGPhotoEditorSliderView` is **not** deleted — remaining call sites are ItemList
-settings nodes plus LegacyComponents editor internals.
+**Swift slider surface is LC-free:** `EditorStyleSliderView` (pure-Swift
+`UIControl` in `SliderComponent/Sources`) replaced every Swift construction of
+`TGPhotoEditorSliderView` — `SliderComponent` itself plus ItemList/settings
+call sites in `SettingsUI`, `PeerInfoUI`, `InviteLinksUI`, `PremiumUI`,
+`InstantPageUI`, `MessagePriceItem`, and `WallpaperPatternPanelNode`.
+`StorageKeepSizeComponent` already used `SliderComponent` (dead comment only).
+`TGPhotoEditorSliderView` is **not** deleted — ObjC editor tool views inside
+`LegacyComponents` (`TGPhotoEditorGenericToolView`, tint/blur, collection hit
+test) still own it.
 
 | Neck symbol | External call sites | Notes |
 |---|---|---|
-| `TGPhotoEditorSliderView` | ItemList settings + LC editor internals (no longer `SliderComponent`): `SettingsUI` (font size, brightness, text size, autodownload/cache/keep-media), `PeerInfoUI` (slowmode, unrestrict boosters, autoremove), `InviteLinksUI` (date/usage limit), `PremiumUI`, `InstantPageUI`, `StorageUsageScreen`, `MessagePriceItem`, `WallpaperPatternPanelNode`, plus ObjC tool views inside `LegacyComponents` | Still the blocker for deleting the ObjC slider. `SliderComponent` flipped to `EditorStyleSliderView`; remaining Swift call sites construct `TGPhotoEditorSliderView` directly in ItemList settings. |
+| `TGPhotoEditorSliderView` | **ObjC only** inside `LegacyComponents` (generic/tint/blur tool views + `TGPhotoEditorCollectionView` hit test). No remaining Swift constructors. | Deleting the ObjC slider waits on Phase 3.2–3.4 editor flip. |
 | `TGPhotoToolbarViewProtocol` (+ the `TGPhotoEditorTab` / `TGPhotoEditorBackButton` / `TGPhotoEditorDoneButton` enums it declares) | `MediaPickerUI/MediaPickerPhotoToolbarView.swift`, `LegacyMediaPickerUI/LegacyAttachmentMenu.swift`, `LegacyMediaPickerUI/LegacyPaintStickersContext.swift`, `LegacyCamera/LegacyCamera.swift` | Already half-migrated, and it shows the pattern to copy: the toolbar is **Swift** (`MediaPickerPhotoToolbarView`) and is injected into the ObjC editor through `stickersContext.photoToolbarView`. `TGPhotoEditorController` / `TGMediaPickerGalleryInterfaceView` fall back to the ObjC `TGPhotoToolbarView` only when that block is nil. Deleting the ObjC toolbar means proving every caller supplies the block. |
 | `TGPhotoPaintStickersContext.h` | 13 Swift files (`DrawingUI` drawing view/entities/interface controller, `AttachmentTextInputPanelNode`, `MediaPickerUI`, `LegacyMessageInputPanel`, stories send path, `ChatControllerOpenAttachmentMenu`, …) | Widest, but it is a **pure protocol header** (`TGPhotoDrawingView`, `TGPhotoDrawingEntitiesView`, `TGPhotoDrawingInterfaceController`, `TGPhotoDrawingAdapter`, `TGCaptionPanelView`, `TGLivePhotoButton`, `TGPhotoPaintEntityRenderer`, …) whose implementations are already Swift. It is the ObjC↔Swift seam, not editor code, and should be the **last** thing removed. |
 | `TGPhotoVideoEditor` | `LegacyMediaPickerUI/LegacyAttachmentMenu.swift` (`legacyWallpaperEditor`, `legacyMediaEditor`, gallery controller), `LegacyMediaPickerUI/LegacyAvatarPicker.swift` (`legacyAvatarEditor`) | The actual editor entry point — four class methods. Reached from `ChatController` (edit media + avatar), `ChatControllerEditGif`, `PeerInfoScreenOpenMessage`, `WallpaperGalleryController`, `AuthorizationSequenceSignUpController`. This is where a Swift `MediaEditorScreen` bridge has to land. |
@@ -332,11 +336,11 @@ Notes for whoever picks 3.2 up:
 
 - ~~`legacyStoryMediaEditor`~~ — **deleted 2026-08-10** with `StoryMediaEditorResult`.
 - ~~`TGPhotoEditorCrop` in WallpaperUtils~~ — **ported 2026-08-10** to local Swift crop.
-- Sequencing that falls out of the table: (1) ~~Swift slider in
-  `SliderComponent`~~ (done) — still flip remaining ItemList settings call
-  sites, (2) guarantee the Swift toolbar is always injected and
-  drop the ObjC fallback, (3) `TGPhotoVideoEditor` → `MediaEditorScreen`
-  bridge, (4) delete the `TGPhoto*` subtree, (5) retire
+- Sequencing that falls out of the table: (1) ~~Swift slider
+  (`SliderComponent` + ItemList/settings call sites)~~ (done), (2) guarantee
+  the Swift toolbar is always injected and drop the ObjC fallback, (3)
+  `TGPhotoVideoEditor` → `MediaEditorScreen` bridge, (4) delete the
+  `TGPhoto*` subtree (incl. `TGPhotoEditorSliderView.m`), (5) retire
   `TGPhotoPaintStickersContext.h` once DrawingUI no longer needs an ObjC seam.
 - **Already deleted (2026-08-10, safe leaves only):** `TGPhotoPaintEntity`,
   `TGPhotoPaintStickerEntity`, `TGPhotoPaintTextEntity` — three headers
@@ -351,7 +355,7 @@ Notes for whoever picks 3.2 up:
 |---|---|
 | Dead Swift editor shim | Removed `legacyStoryMediaEditor` / `StoryMediaEditorResult` |
 | Crop neck cleared from Swift | `WallpaperUtils` local `cropWallpaperImage`; drops LegacyComponents import |
-| SliderComponent off ObjC | `EditorStyleSliderView` replaces `TGPhotoEditorSliderView` in `SliderComponent` (LegacyComponents dep dropped). Settings ItemList embeds still use ObjC — **do not delete `TGPhotoEditorSliderView` yet** |
+| SliderComponent + ItemList off ObjC | `EditorStyleSliderView` replaces every Swift `TGPhotoEditorSliderView` constructor (`SliderComponent`, Settings/PeerInfo/InviteLinks/Premium/InstantPage ItemList embeds, `MessagePriceItem`, `WallpaperPatternPanelNode`). ObjC tool views still use `TGPhotoEditorSliderView` — **do not delete yet** |
 | Phase 2 adjacent | Deleted unused `presentedLegacyCamera`; trimmed LegacyCamera deps |
 
 ## Phase 4 — Drawing / paint remnants

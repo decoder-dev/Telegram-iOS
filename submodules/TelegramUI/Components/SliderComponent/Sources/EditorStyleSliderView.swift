@@ -1,9 +1,9 @@
 import Foundation
 import UIKit
 
-/// Horizontal editor-style slider used by `SliderComponent` in place of
-/// `TGPhotoEditorSliderView`. Covers the property/gesture surface that
-/// SliderComponent actually drives; not a full port of the ObjC control.
+/// Horizontal editor-style slider used in place of `TGPhotoEditorSliderView`.
+/// Covers the property/gesture surface ItemList settings and `SliderComponent`
+/// drive; not a full port of the ObjC control (no vertical orientation).
 public final class EditorStyleSliderView: UIControl, UIGestureRecognizerDelegate {
     public var interactionBegan: (() -> Void)?
     public var interactionEnded: (() -> Void)?
@@ -33,8 +33,12 @@ public final class EditorStyleSliderView: UIControl, UIGestureRecognizerDelegate
         }
     }
 
+    /// Mirrored from ObjC for API parity; the ObjC draw path never read it either.
+    public var minimumUndottedValue: Int = -1 { didSet { self.setNeedsDisplay() } }
+    public var displayEdges: Bool = false { didSet { self.setNeedsDisplay() } }
     public var useLinesForPositions: Bool = false { didSet { self.setNeedsDisplay() } }
     public var markPositions: Bool = true { didSet { self.setNeedsDisplay() } }
+    public var limitValueChangedToLatestState: Bool = false
     public var lineSize: CGFloat = 4.0 { didSet { self.setNeedsLayout() } }
     public var backColor: UIColor = .gray { didSet { self.setNeedsDisplay() } }
     public var trackColor: UIColor = .white { didSet { self.setNeedsDisplay() } }
@@ -45,9 +49,12 @@ public final class EditorStyleSliderView: UIControl, UIGestureRecognizerDelegate
         get { self.knobView.image }
         set { self.knobView.image = newValue; self.setNeedsLayout() }
     }
+    public var disableSnapToPositions: Bool = false {
+        didSet { self.updateTapGestureEnabled() }
+    }
     public var positionsCount: Int = 0 {
         didSet {
-            self.tapGestureRecognizer.isEnabled = self.positionsCount > 1
+            self.updateTapGestureEnabled()
             self.setNeedsDisplay()
         }
     }
@@ -55,11 +62,15 @@ public final class EditorStyleSliderView: UIControl, UIGestureRecognizerDelegate
     public var enablePanHandling: Bool = false {
         didSet { self.panGestureRecognizer.isEnabled = self.enablePanHandling }
     }
+    public var enableEdgeTap: Bool = false {
+        didSet { self.edgeTapGestureRecognizer.isEnabled = self.enableEdgeTap }
+    }
     public var hitTestEdgeInsets: UIEdgeInsets = .zero
 
     private let knobView = UIImageView()
     private let panGestureRecognizer = UIPanGestureRecognizer()
     private let tapGestureRecognizer = UITapGestureRecognizer()
+    private let edgeTapGestureRecognizer = UITapGestureRecognizer()
     private let feedbackGenerator = UISelectionFeedbackGenerator()
     private let knobPadding: CGFloat = 7.0
 
@@ -86,6 +97,14 @@ public final class EditorStyleSliderView: UIControl, UIGestureRecognizerDelegate
         self.tapGestureRecognizer.addTarget(self, action: #selector(self.handleTap(_:)))
         self.tapGestureRecognizer.isEnabled = false
         self.addGestureRecognizer(self.tapGestureRecognizer)
+
+        self.edgeTapGestureRecognizer.addTarget(self, action: #selector(self.handleEdgeTap(_:)))
+        self.edgeTapGestureRecognizer.isEnabled = false
+        self.addGestureRecognizer(self.edgeTapGestureRecognizer)
+    }
+
+    private func updateTapGestureEnabled() {
+        self.tapGestureRecognizer.isEnabled = !self.disableSnapToPositions && self.positionsCount > 1
     }
 
     required public init?(coder: NSCoder) {
@@ -168,6 +187,7 @@ public final class EditorStyleSliderView: UIControl, UIGestureRecognizerDelegate
 
         let lowerBoundPosition = self.knobPadding + self.centerPosition(for: self.lowerBoundValue, totalLength: totalLength)
         let startPosition = visualMargin + visualTotalLength / self.valueRange * (abs(self.minimumValue) + self.startValue)
+        let endPosition = visualMargin + visualTotalLength / self.valueRange * (abs(self.minimumValue) + self.maximumValue)
 
         var origin = startPosition
         var track = knobPosition - startPosition
@@ -179,6 +199,7 @@ public final class EditorStyleSliderView: UIControl, UIGestureRecognizerDelegate
         let backFrame = CGRect(x: visualMargin, y: (sideLength - self.lineSize) * 0.5, width: visualTotalLength, height: self.lineSize)
         let trackFrame = CGRect(x: origin, y: (sideLength - self.lineSize) * 0.5, width: track, height: self.lineSize)
         let startFrame = CGRect(x: startPosition - 2.0, y: (sideLength - 12.0) * 0.5, width: 4.0, height: 12.0)
+        let endFrame = CGRect(x: endPosition - 2.0, y: (sideLength - 12.0) * 0.5, width: 4.0, height: 12.0)
         let knobFrame = CGRect(x: knobPosition - knobSize * 0.5, y: (sideLength - knobSize) * 0.5, width: knobSize, height: knobSize)
 
         if self.bordered {
@@ -218,9 +239,14 @@ public final class EditorStyleSliderView: UIControl, UIGestureRecognizerDelegate
             context.setFillColor(passTrackColor.cgColor)
             self.fill(trackFrame, radius: self.trackCornerRadius, in: context)
 
-            if !self.startHidden {
-                context.setFillColor(self.startColor.cgColor)
+            if !self.startHidden || self.displayEdges {
+                let highlighted = startFrame.midX < trackFrame.maxX && self.displayEdges
+                context.setFillColor((highlighted ? passTrackColor : self.startColor).cgColor)
                 self.fill(startFrame, radius: self.trackCornerRadius, in: context)
+            }
+            if self.displayEdges {
+                context.setFillColor(passBackColor.cgColor)
+                self.fill(endFrame, radius: self.trackCornerRadius, in: context)
             }
             if self.bordered {
                 context.setFillColor(UIColor(white: 0.0, alpha: 0.6).cgColor)
@@ -313,6 +339,27 @@ public final class EditorStyleSliderView: UIControl, UIGestureRecognizerDelegate
         self.feedbackGenerator.prepare()
     }
 
+    @objc private func handleEdgeTap(_ gestureRecognizer: UITapGestureRecognizer) {
+        guard gestureRecognizer.state == .ended else { return }
+        let location = gestureRecognizer.location(in: self)
+        let edgeWidth: CGFloat = 16.0
+        guard location.x < edgeWidth || location.x > self.bounds.width - edgeWidth else { return }
+        let knobRect = self.knobView.frame.insetBy(dx: -8.0, dy: -8.0)
+        guard !knobRect.contains(location) else { return }
+
+        if location.x < edgeWidth {
+            self.value = self.minimumValue
+        } else {
+            self.value = self.maximumValue
+        }
+        self.interactionBegan?()
+        self.setNeedsLayout()
+        self.sendActions(for: .valueChanged)
+        self.interactionEnded?()
+        self.feedbackGenerator.selectionChanged()
+        self.feedbackGenerator.prepare()
+    }
+
     public override func beginTracking(_ touch: UITouch, with event: UIEvent?) -> Bool {
         if !self.enablePanHandling { self.beginKnobTracking(at: touch.location(in: self)) }
         return true
@@ -351,7 +398,7 @@ public final class EditorStyleSliderView: UIControl, UIGestureRecognizerDelegate
         let totalLength = max(self.bounds.width - self.knobPadding * 2.0, .ulpOfOne)
         let previousValue = self.value
 
-        if self.positionsCount > 1 {
+        if self.positionsCount > 1 && !self.disableSnapToPositions {
             var position = Int(round((dragCenter / totalLength) * CGFloat(self.positionsCount - 1)))
             if self.lowerBoundValue > 0.0 {
                 position = max(position, Int(self.lowerBoundValue))
@@ -364,12 +411,14 @@ public final class EditorStyleSliderView: UIControl, UIGestureRecognizerDelegate
         self.knobDragCenter = dragCenter
         self.value = self.value(forCenterPosition: dragCenter, totalLength: totalLength)
 
-        if previousValue != self.value && (self.positionsCount > 1 || self.value == self.minimumValue || self.value == self.maximumValue || (self.minimumValue != self.startValue && self.value == self.startValue)) {
+        if previousValue != self.value && !self.disableSnapToPositions && (self.positionsCount > 1 || self.value == self.minimumValue || self.value == self.maximumValue || (self.minimumValue != self.startValue && self.value == self.startValue)) {
             self.feedbackGenerator.selectionChanged()
             self.feedbackGenerator.prepare()
         }
         self.setNeedsLayout()
-        self.sendActions(for: .valueChanged)
+        if !self.limitValueChangedToLatestState {
+            self.sendActions(for: .valueChanged)
+        }
     }
 
     private func endKnobTracking() {

@@ -5,7 +5,7 @@ import AsyncDisplayKit
 import SwiftSignalKit
 import TelegramCore
 import TelegramPresentationData
-import LegacyComponents
+import SliderComponent
 import ItemListUI
 import PresentationDataUtils
 import AppBundle
@@ -63,7 +63,7 @@ class ThemeSettingsBrightnessItemNode: ListViewItemNode {
     private let bottomStripeNode: ASDisplayNode
     private let maskNode: ASImageNode
     
-    private var sliderView: TGPhotoEditorSliderView?
+    private var sliderView: EditorStyleSliderView?
     private let leftIconNode: ASImageNode
     private let rightIconNode: ASImageNode
     
@@ -99,7 +99,7 @@ class ThemeSettingsBrightnessItemNode: ListViewItemNode {
     override func didLoad() {
         super.didLoad()
         
-        let sliderView = TGPhotoEditorSliderView()
+        let sliderView = EditorStyleSliderView()
         sliderView.enablePanHandling = true
         sliderView.trackCornerRadius = 1.0
         sliderView.lineSize = 2.0

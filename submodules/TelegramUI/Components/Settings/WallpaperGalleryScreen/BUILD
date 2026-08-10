@@ -35,6 +35,7 @@ swift_library(
         "//submodules/TelegramUI/Components/ButtonComponent",
         "//submodules/TelegramUI/Components/GlassBackgroundComponent",
         "//submodules/TelegramUI/Components/GlassControls",
+        "//submodules/TelegramUI/Components/SliderComponent",
     ],
     visibility = [
         "//visibility:public",

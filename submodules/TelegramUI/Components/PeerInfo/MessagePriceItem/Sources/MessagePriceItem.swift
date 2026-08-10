@@ -5,7 +5,7 @@ import AsyncDisplayKit
 import SwiftSignalKit
 import TelegramCore
 import TelegramPresentationData
-import LegacyComponents
+import SliderComponent
 import ItemListUI
 import PresentationDataUtils
 import ComponentFlow
@@ -203,7 +203,7 @@ private class MessagePriceItemNode: ListViewItemNode, ItemListItemNode {
     private let bottomStripeNode: ASDisplayNode
     private let maskNode: ASImageNode
     
-    private var sliderView: TGPhotoEditorSliderView?
+    private var sliderView: EditorStyleSliderView?
     private let leftTextNode: ImmediateTextNode
     private let rightTextNode: ImmediateTextNode
     private let centerTextButtonNode: HighlightableButtonNode
@@ -270,7 +270,7 @@ private class MessagePriceItemNode: ListViewItemNode, ItemListItemNode {
     override func didLoad() {
         super.didLoad()
         
-        let sliderView = TGPhotoEditorSliderView()
+        let sliderView = EditorStyleSliderView()
         sliderView.enableEdgeTap = true
         sliderView.enablePanHandling = true
         sliderView.trackCornerRadius = 1.0

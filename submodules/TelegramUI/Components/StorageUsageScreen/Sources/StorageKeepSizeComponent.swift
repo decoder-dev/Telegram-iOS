@@ -77,7 +77,6 @@ final class StorageKeepSizeComponent: Component {
     class View: UIView {
         private let titles: [ComponentView<Empty>]
         private let slider: ComponentView<Empty>
-        //private var sliderView: TGPhotoEditorSliderView?
         
         private var component: StorageKeepSizeComponent?
         private weak var state: EmptyComponentState?

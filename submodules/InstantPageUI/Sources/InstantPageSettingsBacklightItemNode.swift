@@ -3,7 +3,7 @@ import UIKit
 import AsyncDisplayKit
 import Display
 import AppBundle
-import LegacyComponents
+import SliderComponent
 
 func generateKnobImage() -> UIImage? {
     return generateImage(CGSize(width: 40.0, height: 40.0), rotatedContext: { size, context in
@@ -15,12 +15,12 @@ func generateKnobImage() -> UIImage? {
 }
 
 final class InstantPageSettingsBacklightItemNode: InstantPageSettingsItemNode {
-    private let sliderView: TGPhotoEditorSliderView
+    private let sliderView: EditorStyleSliderView
     private let leftIconNode: ASImageNode
     private let rightIconNode: ASImageNode
     
     init(theme: InstantPageSettingsItemTheme) {
-        self.sliderView = TGPhotoEditorSliderView()
+        self.sliderView = EditorStyleSliderView()
         self.sliderView.enablePanHandling = true
         self.sliderView.trackCornerRadius = 1.0
         self.sliderView.lineSize = 2.0

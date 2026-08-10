@@ -86,6 +86,7 @@ swift_library(
         "//submodules/RadialStatusNode:RadialStatusNode",
         "//submodules/ShimmerEffect:ShimmerEffect",
         "//submodules/LegacyComponents:LegacyComponents",
+        "//submodules/TelegramUI/Components/SliderComponent",
         "//submodules/CheckNode:CheckNode",
         "//submodules/ComponentFlow:ComponentFlow",
         "//submodules/Components/ViewControllerComponent:ViewControllerComponent",

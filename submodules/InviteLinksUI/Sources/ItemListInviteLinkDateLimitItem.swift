@@ -6,7 +6,7 @@ import SwiftSignalKit
 import TelegramCore
 import TelegramUIPreferences
 import TelegramPresentationData
-import LegacyComponents
+import SliderComponent
 import ItemListUI
 import PresentationDataUtils
 
@@ -135,7 +135,7 @@ private final class ItemListInviteLinkTimeLimitItemNode: ListViewItemNode {
     private let highTextNode: TextNode
     private let unlimitedTextNode: TextNode
     private let customTextNode: TextNode
-    private var sliderView: TGPhotoEditorSliderView?
+    private var sliderView: EditorStyleSliderView?
     
     private var item: ItemListInviteLinkTimeLimitItem?
     private var layoutParams: ListViewItemLayoutParams?
@@ -201,7 +201,7 @@ private final class ItemListInviteLinkTimeLimitItemNode: ListViewItemNode {
     override func didLoad() {
         super.didLoad()
         
-        let sliderView = TGPhotoEditorSliderView()
+        let sliderView = EditorStyleSliderView()
         sliderView.enablePanHandling = true
         sliderView.trackCornerRadius = 2.0
         sliderView.lineSize = 4.0
