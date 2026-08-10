@@ -27,7 +27,7 @@ Fork-relevant ObjC surface:
 
 | Component | Notes |
 |---|---|
-| `LegacyComponents` | ~145k LOC, **359** `.m` files — primary target |
+| `LegacyComponents` | ~145k LOC, **322** `.m` files — primary target |
 | `MtProtoKit` | protocol/transport — low priority, shared with upstream |
 | `SSignalKit` | dies for free once LegacyComponents no longer needs it |
 | `AsyncDisplayKit` / `ffmpeg` / `TgVoipWebrtc` | vendored — do not migrate |
@@ -95,7 +95,45 @@ per-file scan can break):
   left over from `TGModernMediaListItemContentView`; `TGMediaPickerGalleryModel`
   imported the headers without naming the protocols.
 
-`LegacyComponents` is now 345 `.m` + 25 `.mm` files and 265 public headers.
+**2026-08-10 third wave** — same root-based reachability, tightened so that a
+mention which only ever appears on an `#import`/`#include` line, in an
+`@class`/`@protocol` forward declaration, or inside a comment does **not**
+count as a use. Stale imports are what kept the two islands below alive:
+
+- The legacy **message model**: `TGAudioMediaAttachment`,
+  `TGBotContextResultAttachment`, `TGContactMediaAttachment`,
+  `TGGameMediaAttachment`, `TGInvoiceMediaAttachment` (+ its only consumer of
+  `TGWebDocument`), `TGLocalMessageMetaMediaAttachment`,
+  `TGUnsupportedMediaAttachment`, `TGViaUserAttachment`. These are reachable
+  only through `TGMessage`'s dynamic parser registry, and nothing anywhere
+  calls `+registerMediaAttachmentParser:`, so no code path can construct them;
+  their type constants never leave their own files either. Same story for
+  `TGBotReplyMarkupRow` / `TGBotReplyMarkupButton` (`TGBotReplyMarkup.rows` is
+  an untyped `NSArray`) and for `TGStickerPack`, which had no references at all.
+- The **conversation / instant-page island**: `TGWebPageMediaAttachment` →
+  `TGInstantPage` → `TGConversation` → `TGChannelAdminRights`,
+  `TGChannelBannedRights`, `TGDatabaseMessageDraft`. Each link is the sole user
+  of the next, and the head is reachable only from a stale `#import` in
+  `TGMessage.h` plus a forward declaration in
+  `TGAuthorSignatureMediaAttachment.h`.
+- `TGLabel` (only a forward declaration in `TGViewController.h`),
+  `LegacyHTTPRequestOperation` (an unused protocol imported by
+  `LegacyComponentsGlobals.h`), and the mutually-referencing
+  `TGOverlayFormsheetController` / `TGOverlayFormsheetWindow` pair, whose only
+  outside mention is commented-out code in `TGMediaAvatarMenuMixin`.
+
+Checked and deliberately **kept**: `UIControl+HitTestEdgeInsets` (a
+property-only category — 17 Swift call sites set `hitTestEdgeInsets`, and a
+selector scan that ignores `@property` will wrongly call it dead),
+`NSObject+TGLock` (the `TG_SYNCHRONIZED_*` macros are used by `ASHandle` and
+`TGFont` even though the two methods are not), `FloatConversion.h` (C++
+templates, invisible to an ObjC-shaped symbol scan), and the
+`AVURLAsset`/`UIImage`/`TGMediaAsset` `TGMediaEditableItem` categories, which
+supply protocol conformances consumed through `id<TGMediaEditableItem>` and so
+can never be proven dead statically.
+
+`LegacyComponents` is now 322 `.m` + 24 `.mm` files and 239 public headers
+(~144k LOC).
 
 **Exit:** Continuous; run a pass before each numbered phase.
 
@@ -194,6 +232,39 @@ buttons, crop) |
 | 3.4 | Delete editor ObjC behind the neck |
 
 **DoD:** Edit → send / schedule / crop parity; no `TGPhotoEditor*` in Swift.
+
+### 3.1 status — neck frozen 2026-08-10 (recon only, no migration)
+
+~22k LOC of `TGPhoto*` ObjC sits behind a neck of exactly **five** symbols.
+Everything else in the editor — `TGPhotoEditorController`, the tab controller,
+tools/curves/tint/blur/crop/quality/HUD/preview views, `TGPhotoEditorButton`,
+`TGPhotoToolCell`, `TGPhotoDrawingController`, `TGPhotoAvatarCropView`,
+`TGPhotoAvatarPreviewController`, `TGPhotoCaptionInputMixin` — has **no**
+reference outside `LegacyComponents` and dies with the neck, not before it.
+
+| Neck symbol | External call sites | Notes |
+|---|---|---|
+| `TGPhotoEditorSliderView` | 17 Swift files, none of them the editor: `SliderComponent`, `SettingsUI` (font size, brightness, text size, autodownload/cache/keep-media), `PeerInfoUI` (slowmode, unrestrict boosters, autoremove), `InviteLinksUI` (date/usage limit), `PremiumUI`, `InstantPageUI`, `StorageUsageScreen`, `MessagePriceItem`, `WallpaperPatternPanelNode` | The real blocker. An 859-LOC general-purpose slider that has nothing to do with photo editing. Needs a Swift slider with the same knob/track/value semantics before anything in Phase 3 can be deleted, and the flip is a settings-UI change, not an editor change. |
+| `TGPhotoToolbarViewProtocol` (+ the `TGPhotoEditorTab` / `TGPhotoEditorBackButton` / `TGPhotoEditorDoneButton` enums it declares) | `MediaPickerUI/MediaPickerPhotoToolbarView.swift`, `LegacyMediaPickerUI/LegacyAttachmentMenu.swift`, `LegacyMediaPickerUI/LegacyPaintStickersContext.swift`, `LegacyCamera/LegacyCamera.swift` | Already half-migrated, and it shows the pattern to copy: the toolbar is **Swift** (`MediaPickerPhotoToolbarView`) and is injected into the ObjC editor through `stickersContext.photoToolbarView`. `TGPhotoEditorController` / `TGMediaPickerGalleryInterfaceView` fall back to the ObjC `TGPhotoToolbarView` only when that block is nil. Deleting the ObjC toolbar means proving every caller supplies the block. |
+| `TGPhotoPaintStickersContext.h` | 13 Swift files (`DrawingUI` drawing view/entities/interface controller, `AttachmentTextInputPanelNode`, `MediaPickerUI`, `LegacyMessageInputPanel`, stories send path, `ChatControllerOpenAttachmentMenu`, …) | Widest, but it is a **pure protocol header** (`TGPhotoDrawingView`, `TGPhotoDrawingEntitiesView`, `TGPhotoDrawingInterfaceController`, `TGPhotoDrawingAdapter`, `TGCaptionPanelView`, `TGLivePhotoButton`, `TGPhotoPaintEntityRenderer`, …) whose implementations are already Swift. It is the ObjC↔Swift seam, not editor code, and should be the **last** thing removed. |
+| `TGPhotoVideoEditor` | `LegacyMediaPickerUI/LegacyAttachmentMenu.swift` (`legacyWallpaperEditor`, `legacyStoryMediaEditor`, `legacyMediaEditor`, gallery controller), `LegacyMediaPickerUI/LegacyAvatarPicker.swift` (`legacyAvatarEditor`) | The actual editor entry point — four class methods. Reached from `ChatController` (edit media + avatar), `ChatControllerEditGif`, `PeerInfoScreenOpenMessage`, `WallpaperGalleryController`, `AuthorizationSequenceSignUpController`. This is where a Swift `MediaEditorScreen` bridge has to land. |
+| `TGPhotoEditorUtils`' `TGPhotoEditorCrop` | `WallpaperGridScreen/WallpaperUtils.swift` | One C function; trivially portable, but the file also holds orientation helpers used all over `LegacyComponents`. |
+
+Notes for whoever picks 3.2 up:
+
+- `legacyStoryMediaEditor` has **no callers** — the stories path was already
+  flipped. It is dead Swift, not dead ObjC, so it is out of Phase 0's scope,
+  but it can go with the first Phase 3 commit.
+- Sequencing that falls out of the table: (1) Swift slider + flip the 17
+  non-editor call sites, (2) guarantee the Swift toolbar is always injected and
+  drop the ObjC fallback, (3) `TGPhotoVideoEditor` → `MediaEditorScreen`
+  bridge, (4) delete the `TGPhoto*` subtree, (5) retire
+  `TGPhotoPaintStickersContext.h` once DrawingUI no longer needs an ObjC seam.
+- **Already deleted (2026-08-10, safe leaves only):** `TGPhotoPaintEntity`,
+  `TGPhotoPaintStickerEntity`, `TGPhotoPaintTextEntity` — three headers
+  declaring classes with no `@implementation` anywhere in the repo, reachable
+  only through stale imports in `TGMediaVideoConverter`, `TGPaintingData` and
+  `TGVideoEditAdjustments`. No other `TGPhoto*` file is deletion-safe today.
 
 ## Phase 4 — Drawing / paint remnants
 
