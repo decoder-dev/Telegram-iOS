@@ -86,13 +86,13 @@ private final class NotificationVolumeHandlerImpl: NSObject, VolumeButtonHandler
             return
         }
         switch Self.murmurHash32(name) {
-        case 0xaeae3258: // _UIApplicationVolumeDownButtonDownNotification
+        case -1364315560: // _UIApplicationVolumeDownButtonDownNotification (0xaeae3258)
             self.suppressKvoEcho()
             self.performAction(.down)
         case 0x784c165e: // _UIApplicationVolumeDownButtonUpNotification
             self.suppressKvoEcho()
             self.performAction(.downRelease)
-        case 0xba416d8e: // _UIApplicationVolumeUpButtonDownNotification
+        case -1170117234: // _UIApplicationVolumeUpButtonDownNotification (0xba416d8e)
             self.suppressKvoEcho()
             self.performAction(.up)
         case 0x4074ecfb: // _UIApplicationVolumeUpButtonUpNotification
