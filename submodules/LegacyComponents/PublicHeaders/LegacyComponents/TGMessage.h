@@ -6,13 +6,7 @@
 #import <LegacyComponents/TGImageMediaAttachment.h>
 #import <LegacyComponents/TGVideoMediaAttachment.h>
 #import <LegacyComponents/TGDocumentMediaAttachment.h>
-#import <LegacyComponents/TGReplyMessageMediaAttachment.h>
-#import <LegacyComponents/TGReplyMarkupAttachment.h>
 #import <LegacyComponents/TGMessageEntitiesAttachment.h>
-
-#import <LegacyComponents/TGMessageViewCountContentProperty.h>
-
-#import <LegacyComponents/TGBotReplyMarkup.h>
 
 #import <LegacyComponents/PSCoding.h>
 
@@ -181,10 +175,8 @@ static inline TGMessageSortKey TGTaggedMessageSortKeyExtract(NSData *data, int32
 @property (nonatomic) int64_t fromUid;
 @property (nonatomic) int64_t toUid;
 @property (nonatomic) int64_t cid;
-@property (nonatomic) int64_t groupedId;
 @property (nonatomic, copy) NSString *text;
 @property (nonatomic) NSTimeInterval date;
-@property (nonatomic) NSTimeInterval editDate;
 @property (nonatomic, strong) NSArray *mediaAttachments;
 
 @property (nonatomic) int32_t realDate;
@@ -203,14 +195,10 @@ static inline TGMessageSortKey TGTaggedMessageSortKeyExtract(NSData *data, int32
 @property (nonatomic) bool isBroadcast;
 @property (nonatomic) NSUInteger layer;
 
-@property (nonatomic, strong) TGBotReplyMarkup *replyMarkup;
-@property (nonatomic) bool hideReplyMarkup;
 @property (nonatomic) bool forceReply;
 
 @property (nonatomic) bool isSilent;
 @property (nonatomic) bool isEdited;
-
-@property (nonatomic, strong) TGMessageViewCountContentProperty *viewCount;
 
 @property (nonatomic, strong) NSArray *entities;
 
@@ -236,7 +224,6 @@ static inline TGMessageSortKey TGTaggedMessageSortKeyExtract(NSData *data, int32
 + (NSData *)serializeContentProperties:(NSDictionary *)contentProperties;
 + (NSDictionary *)parseContentProperties:(NSData *)data;
 
-- (void)removeReplyAndMarkup;
 
 - (void)filterOutExpiredMedia;
 - (bool)hasExpiredMedia;

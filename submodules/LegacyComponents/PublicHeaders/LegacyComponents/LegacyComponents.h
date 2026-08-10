@@ -39,13 +39,11 @@
 #import <LegacyComponents/PSLMDBKeyValueReaderWriter.h>
 #import <LegacyComponents/PSLMDBKeyValueStore.h>
 #import <LegacyComponents/PSLMDBTable.h>
-#import <LegacyComponents/RMPhoneFormat.h>
 #import <LegacyComponents/TGAnimationBlockDelegate.h>
 #import <LegacyComponents/TGAttachmentCameraView.h>
 #import <LegacyComponents/TGAttachmentCarouselItemView.h>
 #import <LegacyComponents/TGAudioWaveform.h>
 #import <LegacyComponents/TGBackdropView.h>
-#import <LegacyComponents/TGBotReplyMarkup.h>
 #import <LegacyComponents/TGCameraCapturedPhoto.h>
 #import <LegacyComponents/TGCameraCapturedVideo.h>
 #import <LegacyComponents/TGCameraController.h>
@@ -147,7 +145,6 @@
 #import <LegacyComponents/TGMessageEntityTextUrl.h>
 #import <LegacyComponents/TGMessageEntityUrl.h>
 #import <LegacyComponents/TGMessageImageViewOverlayView.h>
-#import <LegacyComponents/TGMessageViewCountContentProperty.h>
 #import <LegacyComponents/TGModernButton.h>
 #import <LegacyComponents/TGModernCache.h>
 #import <LegacyComponents/TGModernConversationInputMicButton.h>
@@ -181,7 +178,6 @@
 #import <LegacyComponents/TGPaintShader.h>
 #import <LegacyComponents/TGPaintUtils.h>
 #import <LegacyComponents/TGPeerIdAdapter.h>
-#import <LegacyComponents/TGPhoneUtils.h>
 #import <LegacyComponents/TGPhotoAvatarCropView.h>
 #import <LegacyComponents/TGPhotoCaptionInputMixin.h>
 #import <LegacyComponents/TGPhotoEditorAnimation.h>
@@ -198,8 +194,6 @@
 #import <LegacyComponents/TGPluralization.h>
 #import <LegacyComponents/TGProgressSpinnerView.h>
 #import <LegacyComponents/TGProgressWindow.h>
-#import <LegacyComponents/TGReplyMarkupAttachment.h>
-#import <LegacyComponents/TGReplyMessageMediaAttachment.h>
 #import <LegacyComponents/TGSecretTimerMenu.h>
 #import <LegacyComponents/TGStaticBackdropAreaData.h>
 #import <LegacyComponents/TGStaticBackdropImageData.h>

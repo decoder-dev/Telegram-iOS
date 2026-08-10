@@ -27,7 +27,7 @@ Fork-relevant ObjC surface:
 
 | Component | Notes |
 |---|---|
-| `LegacyComponents` | ~144k LOC, **309** `.m` files — primary target |
+| `LegacyComponents` | ~143k LOC, **303** `.m` files — primary target |
 | `MtProtoKit` | protocol/transport — low priority, shared with upstream |
 | `SSignalKit` | dies for free once LegacyComponents no longer needs it |
 | `AsyncDisplayKit` / `ffmpeg` / `TgVoipWebrtc` | vendored — do not migrate |
@@ -228,6 +228,23 @@ so types that only surface through `TGMessage` accessors are unreachable):
 
 Removed the four accessors/properties from `TGMessage` with the classes.
 `LegacyComponents` is now **309** `.m` + **23** `.mm` files and **226**
+public headers.
+
+**2026-08-10 seventh wave** — PhoneUtils was only reached from the
+`entities != nil` arm of `TGMessage textCheckingResults…` (all live callers
+pass `entities:nil`); reply markup/message attachments and view-count /
+edit-date / grouped-id content properties only lived behind unused
+`TGMessage` accessors:
+
+- `TGPhoneUtils` + `RMPhoneFormat` (~855 LOC) — replaced the two phone-clean
+  call sites with a local digit/`+` stripper.
+- `TGReplyMarkupAttachment` / `TGBotReplyMarkup` / `TGReplyMessageMediaAttachment`
+  — dropped with `replyMarkup` / `hideReplyMarkup` / `removeReplyAndMarkup`.
+- `TGMessageViewCountContentProperty` (+ EditDate / GroupedId in the same
+  files) — dropped with the matching `TGMessage` properties; `actualDate`
+  now returns `date`. Kept `contentProperties` for `contentsRead`.
+
+`LegacyComponents` is now **303** `.m` + **23** `.mm` files and **220**
 public headers.
 
 **Exit:** Continuous; run a pass before each numbered phase.

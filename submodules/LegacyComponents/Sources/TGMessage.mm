@@ -9,11 +9,24 @@
 
 #import <LegacyComponents/TGTextCheckingResult.h>
 #import <LegacyComponents/TGPeerIdAdapter.h>
-#import <LegacyComponents/TGPhoneUtils.h>
 
 #include <unordered_map>
 
 static void *NSTextCheckingResultTelegramHiddenLinkKey = &NSTextCheckingResultTelegramHiddenLinkKey;
+
+
+static NSString *TGLegacyCleanPhoneDigits(NSString *phone)
+{
+    if (phone.length == 0)
+        return phone;
+    NSMutableString *result = [[NSMutableString alloc] initWithCapacity:phone.length];
+    for (NSUInteger i = 0; i < phone.length; i++) {
+        unichar c = [phone characterAtIndex:i];
+        if ((c >= '0' && c <= '9') || (c == '+' && result.length == 0))
+            [result appendFormat:@"%C", c];
+    }
+    return result;
+}
 
 @implementation NSTextCheckingResult (TGMessage)
 
@@ -149,7 +162,6 @@ typedef enum {
     
     copyMessage->_contentProperties = [[NSDictionary alloc] initWithDictionary:_contentProperties];
     
-    copyMessage->_hideReplyMarkup = _hideReplyMarkup;
     
     return copyMessage;
 }
@@ -268,50 +280,6 @@ typedef enum {
     return flags & TGMessageFlagContainsUnseenMention;
 }
 
-- (int64_t)groupedId {
-    TGMessageGroupedIdContentProperty *property = _contentProperties[@"groupedId"];
-    return property.groupedId;
-}
-
-- (void)setGroupedId:(int64_t)groupedId {
-    NSMutableDictionary *dict = [[NSMutableDictionary alloc] initWithDictionary:_contentProperties];
-    if (groupedId != 0) {
-        dict[@"groupedId"] = [[TGMessageGroupedIdContentProperty alloc] initWithGroupedId:groupedId];
-    } else {
-        [dict removeObjectForKey:@"groupedId"];
-    }
-    _contentProperties = dict;
-}
-
-- (NSTimeInterval)editDate {
-    TGMessageEditDateContentProperty *property = _contentProperties[@"editDate"];
-    return property.editDate;
-}
-
-- (void)setEditDate:(NSTimeInterval)editDate {
-    NSMutableDictionary *dict = [[NSMutableDictionary alloc] initWithDictionary:_contentProperties];
-    if (editDate > 0) {
-        dict[@"editDate"] = [[TGMessageEditDateContentProperty alloc] initWithEditDate:editDate];
-    } else {
-        [dict removeObjectForKey:@"editDate"];
-    }
-    _contentProperties = dict;
-}
-
-- (TGMessageViewCountContentProperty *)viewCount {
-    return _contentProperties[@"viewCount"];
-}
-
-- (void)setViewCount:(TGMessageViewCountContentProperty *)viewCount {
-    NSMutableDictionary *dict = [[NSMutableDictionary alloc] initWithDictionary:_contentProperties];
-    if (viewCount != nil) {
-        dict[@"viewCount"] = viewCount;
-    } else {
-        [dict removeObjectForKey:@"viewCount"];
-    }
-    _contentProperties = dict;
-}
-
 - (void)setText:(NSString *)text
 {
     _text = text;
@@ -402,7 +370,7 @@ typedef enum {
                 }
             } else if ([entity isKindOfClass:[TGMessageEntityPhone class]]) {
                 NSString *phone = [text substringWithRange:entity.range];
-                phone = [TGPhoneUtils cleanInternationalPhone:phone forceInternational:false];
+                phone = TGLegacyCleanPhoneDigits(phone);
                 NSURL *url = [NSURL URLWithString:[NSString stringWithFormat:@"tel:%@", phone]];
                 if (url != nil)
                     [textCheckingResults addObject:[NSTextCheckingResult linkCheckingResultWithRange:entity.range URL:url]];
@@ -872,7 +840,7 @@ typedef enum {
                         }
                     } else if ([entity isKindOfClass:[TGMessageEntityPhone class]]) {
                         NSString *phone = [_text substringWithRange:entity.range];
-                        phone = [TGPhoneUtils cleanInternationalPhone:phone forceInternational:false];
+                        phone = TGLegacyCleanPhoneDigits(phone);
                         NSURL *url = [NSURL URLWithString:[NSString stringWithFormat:@"tel:%@", phone]];
                         if (url != nil)
                             [textCheckingResults addObject:[NSTextCheckingResult linkCheckingResultWithRange:entity.range URL:url]];
@@ -936,38 +904,6 @@ typedef enum {
     }
     
     return _textCheckingResults;
-}
-
-- (void)setReplyMarkup:(TGBotReplyMarkup *)replyMarkup
-{
-    NSMutableArray *array = [[NSMutableArray alloc] initWithArray:_mediaAttachments];
-    NSUInteger index = 0;
-    for (TGMediaAttachment *attachment in array)
-    {
-        if (attachment.type == TGReplyMarkupAttachmentType)
-        {
-            [array removeObjectAtIndex:index];
-            break;
-        }
-        index++;
-    }
-    TGReplyMarkupAttachment *attachment = [[TGReplyMarkupAttachment alloc] init];
-    attachment.replyMarkup = replyMarkup;
-    [array addObject:attachment];
-    _mediaAttachments = array;
-}
-
-- (TGBotReplyMarkup *)replyMarkup
-{
-    for (TGMediaAttachment *attachment in _mediaAttachments)
-    {
-        if (attachment.type == TGReplyMarkupAttachmentType)
-        {
-            return ((TGReplyMarkupAttachment *)attachment).replyMarkup;
-        }
-    }
-    
-    return nil;
 }
 
 - (void)setEntities:(NSArray *)entities
@@ -1160,28 +1096,6 @@ typedef enum {
     return [decoder decodeObjectsByKeys];
 }
 
-- (void)removeReplyAndMarkup {
-    if (_mediaAttachments.count != 0) {
-        for (NSUInteger i = 0; i < _mediaAttachments.count; i++) {
-            if ([_mediaAttachments[i] isKindOfClass:[TGReplyMessageMediaAttachment class]]) {
-                NSMutableArray *result = [[NSMutableArray alloc] initWithArray:_mediaAttachments];
-                [result removeObjectAtIndex:i];
-                _mediaAttachments = result;
-                break;
-            }
-        }
-        
-        for (NSUInteger i = 0; i < _mediaAttachments.count; i++) {
-            if ([_mediaAttachments[i] isKindOfClass:[TGReplyMarkupAttachment class]]) {
-                NSMutableArray *result = [[NSMutableArray alloc] initWithArray:_mediaAttachments];
-                [result removeObjectAtIndex:i];
-                _mediaAttachments = result;
-                break;
-            }
-        }
-    }
-}
-
 - (void)filterOutExpiredMedia {
     if (self.mediaAttachments.count != 0) {
         NSMutableArray *updatedMedia = [[NSMutableArray alloc] initWithArray:self.mediaAttachments];
@@ -1245,7 +1159,7 @@ typedef enum {
 
 - (int32_t)actualDate
 {
-    return self.editDate > 0 ? self.editDate : self.date;
+    return (int32_t)self.date;
 }
 
 - (NSString *)caption
