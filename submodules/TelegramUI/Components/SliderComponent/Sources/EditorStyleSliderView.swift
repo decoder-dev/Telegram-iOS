@@ -299,7 +299,7 @@ public final class EditorStyleSliderView: UIControl, UIGestureRecognizerDelegate
         }
     }
 
-    public func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+    public override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
         guard gestureRecognizer === self.panGestureRecognizer else { return true }
         let velocity = self.panGestureRecognizer.velocity(in: self)
         return abs(velocity.x) > abs(velocity.y)
