@@ -153,9 +153,6 @@ typedef enum {
     
     copyMessage->_hideReplyMarkup = _hideReplyMarkup;
     
-    copyMessage->_hole = _hole;
-    copyMessage->_group = _group;
-    
     return copyMessage;
 }
 

@@ -25,7 +25,6 @@
 #import <LegacyComponents/POPAnimationEvent.h>
 #import <LegacyComponents/POPAnimationTracer.h>
 #import <LegacyComponents/POPBasicAnimation.h>
-#import <LegacyComponents/POPDecayAnimation.h>
 #import <LegacyComponents/POPGeometry.h>
 #import <LegacyComponents/POPPropertyAnimation.h>
 #import <LegacyComponents/POPSpringAnimation.h>
@@ -153,8 +152,6 @@
 #import <LegacyComponents/TGMessageEntityPre.h>
 #import <LegacyComponents/TGMessageEntityTextUrl.h>
 #import <LegacyComponents/TGMessageEntityUrl.h>
-#import <LegacyComponents/TGMessageGroup.h>
-#import <LegacyComponents/TGMessageHole.h>
 #import <LegacyComponents/TGMessageImageViewOverlayView.h>
 #import <LegacyComponents/TGMessageViewCountContentProperty.h>
 #import <LegacyComponents/TGModernBackToolbarButton.h>

@@ -211,8 +211,6 @@ POPAnimationState *POPAnimationGetState(POPAnimation *a)
 
 #pragma mark - POPBasicAnimation
 
-#pragma mark - POPDecayAnimation
-
 @implementation NSObject (POP)
 
 - (void)pop_addAnimation:(POPAnimation *)anim forKey:(NSString *)key

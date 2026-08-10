@@ -20,9 +20,6 @@
 
 #import <LegacyComponents/PSCoding.h>
 
-#import <LegacyComponents/TGMessageHole.h>
-#import <LegacyComponents/TGMessageGroup.h>
-
 typedef enum {
     TGMessageDeliveryStateDelivered = 0,
     TGMessageDeliveryStatePending = 1,
@@ -229,9 +226,6 @@ static inline TGMessageSortKey TGTaggedMessageSortKeyExtract(NSData *data, int32
 @property (nonatomic, strong, readonly) NSString *forwardAuthorSignature;
 
 @property (nonatomic, strong) NSDictionary *contentProperties;
-
-@property (nonatomic, strong) TGMessageHole *hole;
-@property (nonatomic, strong) TGMessageGroup *group;
 
 - (NSArray *)effectiveTextAndEntities;
 

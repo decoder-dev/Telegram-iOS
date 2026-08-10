@@ -19,7 +19,6 @@
 #import <LegacyComponents/POPAnimation.h>
 #import "POPAnimationExtras.h"
 #import "POPBasicAnimationInternal.h"
-#import <LegacyComponents/POPDecayAnimation.h>
 
 #import <os/lock.h>
 
@@ -505,20 +504,9 @@ static void stopAndCleanup(POPAnimator *self, POPAnimatorItemRef item, bool shou
                 [state->tracer autoreversed];
               }
 
-              if (state->type == kPOPAnimationDecay) {
-                POPDecayAnimation *decayAnimation = (POPDecayAnimation *)propAnim;
-                decayAnimation.velocity = [decayAnimation reversedVelocity];
-              } else {
-                propAnim.toValue = oldFromValue;
-              }
+              propAnim.toValue = oldFromValue;
             } else {
-              if (state->type == kPOPAnimationDecay) {
-                POPDecayAnimation *decayAnimation = (POPDecayAnimation *)propAnim;
-                id originalVelocity = decayAnimation.originalVelocity;
-                decayAnimation.velocity = originalVelocity;
-              } else {
-                propAnim.fromValue = oldFromValue;
-              }
+              propAnim.fromValue = oldFromValue;
             }
           }
 
