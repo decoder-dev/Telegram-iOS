@@ -179,10 +179,20 @@ picker preview tile and the non-`CameraHolder` `openCamera` fallback now open
 results back into the existing `enqueueMediaMessages` legacy-signal pipeline
 via `SharedAccountContext.legacyCameraCapturedMediaSignals(fromCameraScreenResult:)`.
 Story reply and edit-media cameras also use `makeCameraScreen`.
-`presentedLegacyCamera` has **no remaining Swift call sites**. Remaining necks:
+`presentedLegacyCamera` was **deleted** (2026-08-10) — it had no remaining
+Swift callers after the edit-media / story flips. Remaining necks:
 Passport `TGCameraController` intents, `LegacyAttachmentMenu` carousel /
 `TGCameraController.resultSignals`, and `presentedLegacyShortcutCamera`.
 Schedule/silent/timer/QR on flipped paths remain a temporary gap (send immediately).
+
+### Shortcut share camera — leave (do not flip yet) — 2026-08-10
+
+`TelegramRootController.openRootCamera` still calls
+`presentedLegacyShortcutCamera` → `TGCameraController` → `makeShareController`
+(`.fromExternal` enqueue). **Not flipped** to `makeCameraScreen`:
+`CameraScreenMode` is only `.story` / `.sticker` / `.avatar`. None of those
+modes produce the capture-then-share-sheet product flow. Revisit after a
+share/generic `CameraScreenMode` exists.
 
 ### Passport attach camera — gap (do not flip yet) — 2026-08-10
 
@@ -258,8 +268,8 @@ side-by-side comparison on device photos.
 | `StoryItemSetContainerViewSendMessage` | DONE: all preview types use `makeCameraScreen` + AccountContext result bridge. Dropped `LegacyCamera` module dep. |
 | `PassportUI/SecureIdAttachmentMenu` | BLOCKED / LEGACY: still uses `TGCameraController` for Passport-specific intents (`PassportId`, multiple, selfie/document crop). Not flippable to `SecureIdScanController` (MRZ-only) or current `CameraScreen` modes — see “Passport attach camera — gap” above. No dead Passport intent branches to delete. |
 | `LegacyMediaPickerUI/LegacyAttachmentMenu` | LEGACY: still owns the carousel camera, `PGCamera.cameraAvailable()`, and editor-result conversion via `TGCameraController.resultSignals`. |
-| `TelegramRootController` shortcut share | LEGACY: `presentedLegacyShortcutCamera` still wraps `TGCameraController` → share sheet. |
-| `TelegramUI/Components/LegacyCamera/LegacyCamera.swift` | SHIM: `presentedLegacyCamera` has no Swift callers; `presentedLegacyShortcutCamera` still live. |
+| `TelegramRootController` shortcut share | LEGACY: `presentedLegacyShortcutCamera` still wraps `TGCameraController` → share sheet. Left intentionally — no share/generic `CameraScreenMode`. |
+| `TelegramUI/Components/LegacyCamera/LegacyCamera.swift` | SHIM: only `presentedLegacyShortcutCamera` remains (`presentedLegacyCamera` deleted). |
 
 No camera ObjC files are deletion-safe yet: `TGCameraController`, `PGCamera`,
 `TGAttachmentCameraView`, `TGAttachmentCarouselItemView`, and camera view/control
@@ -316,14 +326,13 @@ settings nodes plus LegacyComponents editor internals.
 | `TGPhotoEditorSliderView` | ItemList settings + LC editor internals (no longer `SliderComponent`): `SettingsUI` (font size, brightness, text size, autodownload/cache/keep-media), `PeerInfoUI` (slowmode, unrestrict boosters, autoremove), `InviteLinksUI` (date/usage limit), `PremiumUI`, `InstantPageUI`, `StorageUsageScreen`, `MessagePriceItem`, `WallpaperPatternPanelNode`, plus ObjC tool views inside `LegacyComponents` | Still the blocker for deleting the ObjC slider. `SliderComponent` flipped to `EditorStyleSliderView`; remaining Swift call sites construct `TGPhotoEditorSliderView` directly in ItemList settings. |
 | `TGPhotoToolbarViewProtocol` (+ the `TGPhotoEditorTab` / `TGPhotoEditorBackButton` / `TGPhotoEditorDoneButton` enums it declares) | `MediaPickerUI/MediaPickerPhotoToolbarView.swift`, `LegacyMediaPickerUI/LegacyAttachmentMenu.swift`, `LegacyMediaPickerUI/LegacyPaintStickersContext.swift`, `LegacyCamera/LegacyCamera.swift` | Already half-migrated, and it shows the pattern to copy: the toolbar is **Swift** (`MediaPickerPhotoToolbarView`) and is injected into the ObjC editor through `stickersContext.photoToolbarView`. `TGPhotoEditorController` / `TGMediaPickerGalleryInterfaceView` fall back to the ObjC `TGPhotoToolbarView` only when that block is nil. Deleting the ObjC toolbar means proving every caller supplies the block. |
 | `TGPhotoPaintStickersContext.h` | 13 Swift files (`DrawingUI` drawing view/entities/interface controller, `AttachmentTextInputPanelNode`, `MediaPickerUI`, `LegacyMessageInputPanel`, stories send path, `ChatControllerOpenAttachmentMenu`, …) | Widest, but it is a **pure protocol header** (`TGPhotoDrawingView`, `TGPhotoDrawingEntitiesView`, `TGPhotoDrawingInterfaceController`, `TGPhotoDrawingAdapter`, `TGCaptionPanelView`, `TGLivePhotoButton`, `TGPhotoPaintEntityRenderer`, …) whose implementations are already Swift. It is the ObjC↔Swift seam, not editor code, and should be the **last** thing removed. |
-| `TGPhotoVideoEditor` | `LegacyMediaPickerUI/LegacyAttachmentMenu.swift` (`legacyWallpaperEditor`, `legacyStoryMediaEditor`, `legacyMediaEditor`, gallery controller), `LegacyMediaPickerUI/LegacyAvatarPicker.swift` (`legacyAvatarEditor`) | The actual editor entry point — four class methods. Reached from `ChatController` (edit media + avatar), `ChatControllerEditGif`, `PeerInfoScreenOpenMessage`, `WallpaperGalleryController`, `AuthorizationSequenceSignUpController`. This is where a Swift `MediaEditorScreen` bridge has to land. |
+| `TGPhotoVideoEditor` | `LegacyMediaPickerUI/LegacyAttachmentMenu.swift` (`legacyWallpaperEditor`, `legacyMediaEditor`, gallery controller), `LegacyMediaPickerUI/LegacyAvatarPicker.swift` (`legacyAvatarEditor`) | The actual editor entry point — four class methods. Reached from `ChatController` (edit media + avatar), `ChatControllerEditGif`, `PeerInfoScreenOpenMessage`, `WallpaperGalleryController`, `AuthorizationSequenceSignUpController`. This is where a Swift `MediaEditorScreen` bridge has to land. |
 | `TGPhotoEditorUtils`' `TGPhotoEditorCrop` | `WallpaperGridScreen/WallpaperUtils.swift` | One C function; trivially portable, but the file also holds orientation helpers used all over `LegacyComponents`. |
 
 Notes for whoever picks 3.2 up:
 
-- `legacyStoryMediaEditor` has **no callers** — the stories path was already
-  flipped. It is dead Swift, not dead ObjC, so it is out of Phase 0's scope,
-  but it can go with the first Phase 3 commit.
+- ~~`legacyStoryMediaEditor`~~ — **deleted 2026-08-10** with `StoryMediaEditorResult`.
+- ~~`TGPhotoEditorCrop` in WallpaperUtils~~ — **ported 2026-08-10** to local Swift crop.
 - Sequencing that falls out of the table: (1) ~~Swift slider in
   `SliderComponent`~~ (done) — still flip remaining ItemList settings call
   sites, (2) guarantee the Swift toolbar is always injected and
@@ -335,6 +344,16 @@ Notes for whoever picks 3.2 up:
   declaring classes with no `@implementation` anywhere in the repo, reachable
   only through stale imports in `TGMediaVideoConverter`, `TGPaintingData` and
   `TGVideoEditAdjustments`. No other `TGPhoto*` file is deletion-safe today.
+
+
+### 3.2 progress — 2026-08-10
+
+| Landed | Detail |
+|---|---|
+| Dead Swift editor shim | Removed `legacyStoryMediaEditor` / `StoryMediaEditorResult` |
+| Crop neck cleared from Swift | `WallpaperUtils` local `cropWallpaperImage`; drops LegacyComponents import |
+| SliderComponent off ObjC | `EditorStyleSliderView` replaces `TGPhotoEditorSliderView` in `SliderComponent` (LegacyComponents dep dropped). Settings ItemList embeds still use ObjC — **do not delete `TGPhotoEditorSliderView` yet** |
+| Phase 2 adjacent | Deleted unused `presentedLegacyCamera`; trimmed LegacyCamera deps |
 
 ## Phase 4 — Drawing / paint remnants
 

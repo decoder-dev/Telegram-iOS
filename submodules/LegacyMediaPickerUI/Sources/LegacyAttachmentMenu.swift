@@ -9,7 +9,6 @@ import DeviceAccess
 import AccountContext
 import LegacyUI
 import SaveToCameraRoll
-import Photos
 
 public func defaultVideoPresetForContext(_ context: AccountContext) -> TGMediaVideoConversionPreset {
     var networkType: NetworkType = .wifi
@@ -96,63 +95,6 @@ public func legacyWallpaperEditor(context: AccountContext, item: TGMediaEditable
     }, finishTransitionOut: { [weak legacyController] in
         legacyController?.dismiss()
         finishTransitionOut?()
-    })
-}
-
-public enum StoryMediaEditorResult {
-    case image(UIImage)
-    case video(String)
-    case asset(PHAsset)
-}
-
-public func legacyStoryMediaEditor(context: AccountContext, item: TGMediaEditableItem & TGMediaSelectableItem, getCaptionPanelView: @escaping () -> TGCaptionPanelView?, completion: @escaping (StoryMediaEditorResult) -> Void, present: @escaping (ViewController, Any?) -> Void) {
-    let paintStickersContext = LegacyPaintStickersContext(context: context)
-    paintStickersContext.captionPanelView = {
-        return getCaptionPanelView()
-    }
-    
-    let presentationData = context.sharedContext.currentPresentationData.with { $0 }
-    let legacyController = LegacyController(presentation: .custom, theme: presentationData.theme, initialLayout: nil)
-    legacyController.blocksBackgroundWhenInOverlay = true
-    legacyController.acceptsFocusWhenInOverlay = true
-    legacyController.statusBar.statusBarStyle = .Ignore
-    legacyController.controllerLoaded = { [weak legacyController] in
-        legacyController?.view.disablesInteractiveTransitionGestureRecognizer = true
-    }
-
-    let emptyController = LegacyEmptyController(context: legacyController.context)!
-    emptyController.navigationBarShouldBeHidden = true
-    let navigationController = makeLegacyNavigationController(rootController: emptyController)
-    navigationController.setNavigationBarHidden(true, animated: false)
-    legacyController.bind(controller: navigationController)
-
-    legacyController.enableSizeClassSignal = true
-    
-    present(legacyController, nil)
-    
-    TGPhotoVideoEditor.present(with: legacyController.context, controller: emptyController, caption: NSAttributedString(), withItem: item, paint: false, adjustments: false, recipientName: "", stickersContext: paintStickersContext, from: .zero, mainSnapshot: nil, snapshots: [] as [Any], immediate: true, activateInput: false, isGif: false, hasSilentPosting: false, hasSchedule: false, reminder: false, presentSchedulePicker: { _, _ in }, appeared: {
-        
-    }, completion: { result, editingContext, _, _ in
-        var completionResult: Signal<StoryMediaEditorResult, NoError>
-        if let photo = result as? TGCameraCapturedPhoto {
-            if let _ = editingContext.adjustments(for: result) {
-                completionResult = .single(.image(photo.existingImage))
-            } else {
-                completionResult = .single(.image(photo.existingImage))
-            }
-        } else if let video = result as? TGCameraCapturedVideo {
-            completionResult = .single(.video(video.immediateAVAsset.url.absoluteString))
-        } else if let asset = result as? TGMediaAsset {
-            completionResult = .single(.asset(asset.backingAsset))
-        } else {
-            completionResult = .complete()
-        }
-        let _ = (completionResult
-        |> deliverOnMainQueue).start(next: { value in
-            completion(value)
-        })
-    }, dismissed: { [weak legacyController] in
-        legacyController?.dismiss()
     })
 }
 

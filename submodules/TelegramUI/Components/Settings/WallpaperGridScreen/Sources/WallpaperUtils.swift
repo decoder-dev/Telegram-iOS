@@ -7,9 +7,55 @@ import MediaResources
 import LocalMediaResources
 import TelegramUIPreferences
 import AccountContext
-import LegacyComponents
 import WallpaperGalleryScreen
 import ImageBlur
+
+private func wallpaperScreenSize() -> CGSize {
+    let screen = UIScreen.main
+    return screen.coordinateSpace.convert(screen.bounds, to: screen.fixedCoordinateSpace).size
+}
+
+/// Axis-aligned crop used by wallpaper apply paths (orientation `.up`, no paint /
+/// rotation / mirror). Replaces `TGPhotoEditorCrop` so WallpaperGridScreen no
+/// longer imports LegacyComponents for this one C helper.
+private func cropWallpaperImage(_ image: UIImage, cropRect: CGRect, maxSize: CGSize) -> UIImage {
+    let fittedImageSize = cropRect.size.fitted(maxSize)
+    let outputSize = CGSize(width: floor(fittedImageSize.width), height: floor(fittedImageSize.height))
+    guard outputSize.width > 0.0, outputSize.height > 0.0 else {
+        return image
+    }
+    
+    UIGraphicsBeginImageContextWithOptions(outputSize, true, 1.0)
+    defer { UIGraphicsEndImageContext() }
+    guard let context = UIGraphicsGetCurrentContext() else {
+        return image
+    }
+    
+    context.setFillColor(UIColor.black.cgColor)
+    context.fill(CGRect(origin: .zero, size: outputSize))
+    context.interpolationQuality = .high
+    
+    let scaleX = outputSize.width / max(cropRect.width, 1.0)
+    let scaleY = outputSize.height / max(cropRect.height, 1.0)
+    let drawRect = CGRect(
+        x: -cropRect.origin.x * scaleX,
+        y: -cropRect.origin.y * scaleY,
+        width: image.size.width * scaleX,
+        height: image.size.height * scaleY
+    )
+    image.draw(in: drawRect)
+    return UIGraphicsGetImageFromCurrentImageContext() ?? image
+}
+
+private func defaultWallpaperCropRect(for image: UIImage) -> CGRect {
+    let fittedSize = wallpaperScreenSize().fitted(image.size)
+    return CGRect(
+        x: (image.size.width - fittedSize.width) / 2.0,
+        y: (image.size.height - fittedSize.height) / 2.0,
+        width: fittedSize.width,
+        height: fittedSize.height
+    )
+}
 
 public func uploadCustomWallpaper(context: AccountContext, wallpaper: WallpaperGalleryEntry, mode: WallpaperPresentationOptions, editedImage: UIImage?, cropRect: CGRect?, brightness: CGFloat?, completion: @escaping () -> Void) {
     var imageSignal: Signal<UIImage, NoError>
@@ -84,15 +130,8 @@ public func uploadCustomWallpaper(context: AccountContext, wallpaper: WallpaperG
     |> map { image -> UIImage in
         var croppedImage = UIImage()
         
-        let finalCropRect: CGRect
-        if let cropRect = cropRect {
-            finalCropRect = cropRect
-        } else {
-            let screenSize = TGScreenSize()
-            let fittedSize = TGScaleToFit(screenSize, image.size)
-            finalCropRect = CGRect(x: (image.size.width - fittedSize.width) / 2.0, y: (image.size.height - fittedSize.height) / 2.0, width: fittedSize.width, height: fittedSize.height)
-        }
-        croppedImage = TGPhotoEditorCrop(image, nil, .up, 0.0, finalCropRect, false, CGSize(width: 1440.0, height: 2960.0), image.size, true)
+        let finalCropRect = cropRect ?? defaultWallpaperCropRect(for: image)
+        croppedImage = cropWallpaperImage(image, cropRect: finalCropRect, maxSize: CGSize(width: 1440.0, height: 2960.0))
         
         let thumbnailDimensions = finalCropRect.size.fitted(CGSize(width: 320.0, height: 320.0))
         let thumbnailImage = generateScaledImage(image: croppedImage, size: thumbnailDimensions, scale: 1.0)
@@ -218,15 +257,8 @@ public func getTemporaryCustomPeerWallpaper(context: AccountContext, wallpaper: 
     |> map { image -> TelegramWallpaper? in
         var croppedImage = UIImage()
         
-        let finalCropRect: CGRect
-        if let cropRect = cropRect {
-            finalCropRect = cropRect
-        } else {
-            let screenSize = TGScreenSize()
-            let fittedSize = TGScaleToFit(screenSize, image.size)
-            finalCropRect = CGRect(x: (image.size.width - fittedSize.width) / 2.0, y: (image.size.height - fittedSize.height) / 2.0, width: fittedSize.width, height: fittedSize.height)
-        }
-        croppedImage = TGPhotoEditorCrop(image, nil, .up, 0.0, finalCropRect, false, CGSize(width: 1440.0, height: 2960.0), image.size, true)
+        let finalCropRect = cropRect ?? defaultWallpaperCropRect(for: image)
+        croppedImage = cropWallpaperImage(image, cropRect: finalCropRect, maxSize: CGSize(width: 1440.0, height: 2960.0))
                 
         let thumbnailDimensions = finalCropRect.size.fitted(CGSize(width: 320.0, height: 320.0))
         let thumbnailImage = generateScaledImage(image: croppedImage, size: thumbnailDimensions, scale: 1.0)
@@ -331,15 +363,8 @@ public func uploadCustomPeerWallpaper(context: AccountContext, wallpaper: Wallpa
     |> map { image -> UIImage in
         var croppedImage = UIImage()
         
-        let finalCropRect: CGRect
-        if let cropRect = cropRect {
-            finalCropRect = cropRect
-        } else {
-            let screenSize = TGScreenSize()
-            let fittedSize = TGScaleToFit(screenSize, image.size)
-            finalCropRect = CGRect(x: (image.size.width - fittedSize.width) / 2.0, y: (image.size.height - fittedSize.height) / 2.0, width: fittedSize.width, height: fittedSize.height)
-        }
-        croppedImage = TGPhotoEditorCrop(image, nil, .up, 0.0, finalCropRect, false, CGSize(width: 1440.0, height: 2960.0), image.size, true)
+        let finalCropRect = cropRect ?? defaultWallpaperCropRect(for: image)
+        croppedImage = cropWallpaperImage(image, cropRect: finalCropRect, maxSize: CGSize(width: 1440.0, height: 2960.0))
                 
         let thumbnailDimensions = finalCropRect.size.fitted(CGSize(width: 320.0, height: 320.0))
         let thumbnailImage = generateScaledImage(image: croppedImage, size: thumbnailDimensions, scale: 1.0)
