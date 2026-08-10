@@ -29,7 +29,7 @@ extension ChatControllerImpl {
             getCaptionPanelView: { [weak self] in
                 return self?.getCaptionPanelView(isFile: false, hasTimer: false)
             },
-            photoToolbarView: { [context = self.context] backButton, doneButton, solidBackground, hasSendStarsButton in
+            photoToolbarView: { backButton, doneButton, solidBackground, hasSendStarsButton in
                 return makeMediaPickerPhotoToolbarView(backButton: backButton, doneButton: doneButton, solidBackground: solidBackground, hasSendStarsButton: hasSendStarsButton)
             },
             hasSilentPosting: hasSilentPosting,
