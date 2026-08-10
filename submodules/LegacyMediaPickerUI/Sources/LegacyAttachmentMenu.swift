@@ -86,7 +86,7 @@ public func legacyWallpaperEditor(context: AccountContext, item: TGMediaEditable
     
     present(legacyController, nil)
     
-    TGPhotoVideoEditor.presentEditor(with: legacyController.context, controller: emptyController, with: item, cropRect: cropRect, adjustments: adjustments, stickersContext: paintStickersContext, referenceView: referenceView, completion: { image, adjustments in
+    TGPhotoVideoEditor.present(with: legacyController.context, controller: emptyController, item: item, cropRect: cropRect, adjustments: adjustments, stickersContext: paintStickersContext, referenceView: referenceView, completion: { image, adjustments in
         completion(image, adjustments)
     }, fullSizeCompletion: { image in
         Queue.mainQueue().async {
