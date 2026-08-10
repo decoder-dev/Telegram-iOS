@@ -65,7 +65,7 @@ public final class EditorStyleSliderView: UIControl, UIGestureRecognizerDelegate
     public var enableEdgeTap: Bool = false {
         didSet { self.edgeTapGestureRecognizer.isEnabled = self.enableEdgeTap }
     }
-    public var hitTestEdgeInsets: UIEdgeInsets = .zero
+    public var expandedHitTestEdgeInsets: UIEdgeInsets = .zero
 
     private let knobView = UIImageView()
     private let panGestureRecognizer = UIPanGestureRecognizer()
@@ -112,10 +112,10 @@ public final class EditorStyleSliderView: UIControl, UIGestureRecognizerDelegate
     }
 
     public override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
-        if self.hitTestEdgeInsets == .zero || !self.isEnabled || self.isHidden {
+        if self.expandedHitTestEdgeInsets == .zero || !self.isEnabled || self.isHidden {
             return super.point(inside: point, with: event)
         }
-        return self.bounds.inset(by: self.hitTestEdgeInsets).contains(point)
+        return self.bounds.inset(by: self.expandedHitTestEdgeInsets).contains(point)
     }
 
     public override var isTracking: Bool { self.knobHighlighted }

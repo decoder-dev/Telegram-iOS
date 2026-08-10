@@ -170,7 +170,7 @@ class ChatUnrestrictBoostersItemNode: ListViewItemNode {
             sliderView.knobImage = PresentationResourcesItemList.knobImage(item.theme)
             
             sliderView.frame = CGRect(origin: CGPoint(x: params.leftInset + 15.0, y: 37.0), size: CGSize(width: params.width - params.leftInset - params.rightInset - 15.0 * 2.0, height: 44.0))
-            sliderView.hitTestEdgeInsets = UIEdgeInsets(top: -sliderView.frame.minX, left: 0.0, bottom: 0.0, right: -sliderView.frame.minX)
+            sliderView.expandedHitTestEdgeInsets = UIEdgeInsets(top: -sliderView.frame.minX, left: 0.0, bottom: 0.0, right: -sliderView.frame.minX)
         }
         self.view.addSubview(sliderView)
         sliderView.addTarget(self, action: #selector(self.sliderValueChanged), for: .valueChanged)
@@ -313,7 +313,7 @@ class ChatUnrestrictBoostersItemNode: ListViewItemNode {
                         }
                         
                         sliderView.frame = CGRect(origin: CGPoint(x: params.leftInset + 15.0, y: 37.0), size: CGSize(width: params.width - params.leftInset - params.rightInset - 15.0 * 2.0, height: 44.0))
-                        sliderView.hitTestEdgeInsets = UIEdgeInsets(top: -sliderView.frame.minX, left: 0.0, bottom: 0.0, right: -sliderView.frame.minX)
+                        sliderView.expandedHitTestEdgeInsets = UIEdgeInsets(top: -sliderView.frame.minX, left: 0.0, bottom: 0.0, right: -sliderView.frame.minX)
                         
                         strongSelf.updateSliderView()
                     }

@@ -334,7 +334,7 @@ public final class SliderComponent: Component {
                     sliderView.isOpaque = false
                     
                     sliderView.frame = CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: size)
-                    sliderView.hitTestEdgeInsets = UIEdgeInsets(top: -sliderView.frame.minX, left: 0.0, bottom: 0.0, right: -sliderView.frame.minX)
+                    sliderView.expandedHitTestEdgeInsets = UIEdgeInsets(top: -sliderView.frame.minX, left: 0.0, bottom: 0.0, right: -sliderView.frame.minX)
                     
                     
                     sliderView.disablesInteractiveTransitionGestureRecognizer = true
@@ -412,7 +412,7 @@ public final class SliderComponent: Component {
                 }
                 
                 transition.setFrame(view: sliderView, frame: CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: CGSize(width: availableSize.width, height: 44.0)))
-                sliderView.hitTestEdgeInsets = UIEdgeInsets(top: 0.0, left: 0.0, bottom: 0.0, right: 0.0)
+                sliderView.expandedHitTestEdgeInsets = UIEdgeInsets(top: 0.0, left: 0.0, bottom: 0.0, right: 0.0)
             }
             
             return size
