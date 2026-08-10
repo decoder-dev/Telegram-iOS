@@ -1926,20 +1926,26 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
             )
         }
         |> distinctUntilChanged
+        // SharedAccountContext already projects hot flags / regex compiles on settings change.
+        // Here we only re-emit the latest history when the fingerprint changes — no per-update
+        // Atomic writes or regex re-apply on every scroll/media history tick.
         let historyViewUpdateForFilters = historyViewUpdate
         historyViewUpdate = combineLatest(historyViewUpdateForFilters, messageFilterSettings)
-        |> map { update, filterSettings -> (ChatHistoryViewUpdate, Int, ChatHistoryLocationInput?, ClosedRange<Int32>?, Set<MessageId>) in
-            ForkExtrasHotFlags.hideAds = filterSettings.hideAds
-            ForkExtrasHotFlags.hideBlockedMessages = filterSettings.hideBlockedMessages
-            ForkRegexMessageFilters.apply(
-                enabled: filterSettings.regexEnabled,
-                caseInsensitive: filterSettings.regexCaseInsensitive,
-                patterns: filterSettings.regexPatterns
-            )
+        |> map { update, _ -> (ChatHistoryViewUpdate, Int, ChatHistoryLocationInput?, ClosedRange<Int32>?, Set<MessageId>) in
             return update
         }
+        // Coalesce blocked-list page loads: switchToLatest cancels prior delayed emissions so a
+        // 200-peer fetch does not rebuild every open history 20 times.
         let historyViewUpdateForBlocked = historyViewUpdate
-        historyViewUpdate = combineLatest(historyViewUpdateForBlocked, ForkBlockedPeersFilter.updates)
+        historyViewUpdate = combineLatest(
+            historyViewUpdateForBlocked,
+            ForkBlockedPeersFilter.updates
+            |> map { revision -> Signal<UInt64, NoError> in
+                return .single(revision)
+                |> delay(0.25, queue: Queue.mainQueue())
+            }
+            |> switchToLatest
+        )
         |> map { update, _ -> (ChatHistoryViewUpdate, Int, ChatHistoryLocationInput?, ClosedRange<Int32>?, Set<MessageId>) in
             return update
         }

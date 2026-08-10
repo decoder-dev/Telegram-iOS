@@ -79,11 +79,21 @@ public enum ForkExtrasHotFlags {
         public var hideAds: Bool = false
         public var hideBlockedMessages: Bool = false
         public var hideReactionsBar: Bool = false
+        public var compactChatList: Bool = false
+        public var compactMessagePreview: Bool = false
 
-        public init(hideAds: Bool = false, hideBlockedMessages: Bool = false, hideReactionsBar: Bool = false) {
+        public init(
+            hideAds: Bool = false,
+            hideBlockedMessages: Bool = false,
+            hideReactionsBar: Bool = false,
+            compactChatList: Bool = false,
+            compactMessagePreview: Bool = false
+        ) {
             self.hideAds = hideAds
             self.hideBlockedMessages = hideBlockedMessages
             self.hideReactionsBar = hideReactionsBar
+            self.compactChatList = compactChatList
+            self.compactMessagePreview = compactMessagePreview
         }
     }
 
@@ -108,6 +118,14 @@ public enum ForkExtrasHotFlags {
     public static var hideReactionsBar: Bool {
         get { return state.with { $0.hideReactionsBar } }
         set { let _ = state.modify { var s = $0; s.hideReactionsBar = newValue; return s } }
+    }
+    public static var compactChatList: Bool {
+        get { return state.with { $0.compactChatList } }
+        set { let _ = state.modify { var s = $0; s.compactChatList = newValue; return s } }
+    }
+    public static var compactMessagePreview: Bool {
+        get { return state.with { $0.compactMessagePreview } }
+        set { let _ = state.modify { var s = $0; s.compactMessagePreview = newValue; return s } }
     }
 }
 

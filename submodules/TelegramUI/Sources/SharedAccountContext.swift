@@ -1162,7 +1162,9 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         ForkExtrasHotFlags.update(ForkExtrasHotFlags.State(
             hideAds: settings.hideAds,
             hideBlockedMessages: settings.hideBlockedMessages,
-            hideReactionsBar: settings.hideReactionsBar
+            hideReactionsBar: settings.hideReactionsBar,
+            compactChatList: settings.compactChatList,
+            compactMessagePreview: settings.compactMessagePreview
         ))
         ForkRegexMessageFilters.apply(
             enabled: settings.regexMessageFiltersEnabled,

@@ -40,22 +40,26 @@ private struct ForkChatListMessageFilterCacheKey: Hashable {
     var regexRevision: UInt64
 }
 
+private final class ForkChatListMessageFilterCacheStorage {
+    var values: [ForkChatListMessageFilterCacheKey: Bool] = [:]
+}
+
 private enum ForkChatListMessageFilterCache {
     private static let maxEntries = 1024
-    private static let values = Atomic<[ForkChatListMessageFilterCacheKey: Bool]>(value: [:])
+    // Class box so we can mutate the dictionary in place under the Atomic lock
+    // without copying up to 1024 entries on every uncached chat-list row.
+    private static let storage = Atomic<ForkChatListMessageFilterCacheStorage>(value: ForkChatListMessageFilterCacheStorage())
 
     static func value(for key: ForkChatListMessageFilterCacheKey) -> Bool? {
-        return values.with { $0[key] }
+        return storage.with { $0.values[key] }
     }
 
     static func store(_ value: Bool, for key: ForkChatListMessageFilterCacheKey) {
-        let _ = values.modify { current in
-            var next = current
-            if next.count >= maxEntries {
-                next.removeAll(keepingCapacity: true)
+        let _ = storage.with { box -> Void in
+            if box.values.count >= maxEntries {
+                box.values.removeAll(keepingCapacity: true)
             }
-            next[key] = value
-            return next
+            box.values[key] = value
         }
     }
 }
@@ -66,13 +70,18 @@ private func forkShouldHideChatListMessage(accountPeerId: EnginePeer.Id, message
     }
 
     let hotFlags = ForkExtrasHotFlags.current
+    let regexSnapshot = ForkRegexMessageFilters.currentSnapshot()
+    // Cheap exit when no filter feature can hide this row — skip cache key / Atomic traffic.
+    if !hotFlags.hideBlockedMessages && !regexSnapshot.active {
+        return false
+    }
+
     let blockedResult: (contains: Bool, revision: UInt64)
     if hotFlags.hideBlockedMessages, let authorId = message.author?.id {
         blockedResult = ForkBlockedPeersFilter.containsSnapshot(accountPeerId: accountPeerId, peerId: authorId)
     } else {
         blockedResult = (false, 0)
     }
-    let regexSnapshot = ForkRegexMessageFilters.currentSnapshot()
     let key = ForkChatListMessageFilterCacheKey(
         accountPeerId: accountPeerId,
         messageId: message.id,
@@ -2360,11 +2369,10 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
         let currentCustomTextEntities = self.cachedCustomTextEntities
         
         return { item, params, first, last, firstWithHeader, nextIsPinned, nextHasActiveRevealControls in
-            // Single read for this whole layout pass — avoids re-locking the settings Atomic at
-            // each of the two spots below that need it.
-            let forkExtrasSettings = item.context.sharedContext.immediateForkExtrasSettings
-            let compactChatList = forkExtrasSettings.compactChatList
-            let compactMessagePreview = forkExtrasSettings.compactMessagePreview
+            // Hot flags only — never copy the full ForkExtrasSettings (regex patterns etc.) on scroll.
+            let hotFlags = ForkExtrasHotFlags.current
+            let compactChatList = hotFlags.compactChatList
+            let compactMessagePreview = hotFlags.compactMessagePreview
 
             let titleFont = Font.semibold(floor(item.presentationData.fontSize.itemListBaseFontSize * 16.0 / 17.0))
             let textFont = Font.regular(floor(item.presentationData.fontSize.itemListBaseFontSize * 15.0 / 17.0))

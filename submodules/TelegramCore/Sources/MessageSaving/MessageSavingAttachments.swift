@@ -39,13 +39,21 @@ enum MessageSavingAttachments {
         return "\(peerId)_\(namespace)_\(messageId)"
     }
 
+    private static let knownExtensions: [String] = [
+        "jpg", "jpeg", "png", "webp", "heic", "gif", "mp4", "mov", "m4v", "webm",
+        "mp3", "m4a", "ogg", "opus", "pdf", "bin", "tgs", "tgv", "mkv", "avi",
+        "doc", "docx", "xls", "xlsx", "zip", "rar", "7z", "txt"
+    ]
+
     private static func firstFile(withBase base: String, in directory: URL) -> String? {
-        guard let entries = try? FileManager.default.contentsOfDirectory(atPath: directory.path) else {
-            return nil
-        }
-        let prefix = base + "."
-        for entry in entries where entry.hasPrefix(prefix) {
-            return directory.appendingPathComponent(entry).path
+        // Probe known extensions with fileExists — O(1) per probe. Avoid listing the whole
+        // Saved Attachments directory on every delete/TTL (that becomes O(n) filesystem work
+        // inside Postbox transactions once the folder grows).
+        for ext in knownExtensions {
+            let path = directory.appendingPathComponent("\(base).\(ext)").path
+            if FileManager.default.fileExists(atPath: path) {
+                return path
+            }
         }
         return nil
     }
