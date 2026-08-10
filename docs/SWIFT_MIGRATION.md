@@ -138,7 +138,7 @@ sites over, deleting the old subtree — rather than translating files.
 ### Recommended order
 
 1. **Delete dead code.** Ongoing hygiene (see Phase 0 in the execution plan).
-   `matrix.m` is already gone. Re-run reachability on the remaining ~313 `.m`
+   `matrix.m` is already gone. Re-run reachability on the remaining ~309 `.m`
    files and the internal-only headers before each cluster.
 2. **Passport.** Five entry points with one call site each — by a wide margin
    the cheapest complete cluster to replace, and a real end-to-end rehearsal of
