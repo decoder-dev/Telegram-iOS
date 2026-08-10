@@ -57,7 +57,6 @@
 #import <LegacyComponents/TGBackdropView.h>
 #import <LegacyComponents/TGBotComandInfo.h>
 #import <LegacyComponents/TGBotContextResultAttachment.h>
-#import <LegacyComponents/TGBotInfo.h>
 #import <LegacyComponents/TGBotReplyMarkup.h>
 #import <LegacyComponents/TGBotReplyMarkupButton.h>
 #import <LegacyComponents/TGBotReplyMarkupRow.h>
@@ -245,7 +244,6 @@
 #import <LegacyComponents/TGSecretTimerMenu.h>
 #import <LegacyComponents/TGStaticBackdropAreaData.h>
 #import <LegacyComponents/TGStaticBackdropImageData.h>
-#import <LegacyComponents/TGStickerAssociation.h>
 #import <LegacyComponents/TGStickerPack.h>
 #import <LegacyComponents/TGStickerPackReference.h>
 #import <LegacyComponents/TGStringUtils.h>
@@ -272,4 +270,3 @@
 #import <LegacyComponents/UIControl+HitTestEdgeInsets.h>
 #import <LegacyComponents/UIImage+TG.h>
 #import <LegacyComponents/UIImage+TGMediaEditableItem.h>
-#import <LegacyComponents/UIScrollView+TGHacks.h>

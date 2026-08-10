@@ -70,7 +70,18 @@ Already done (do not redo):
 | Orphan headers in umbrella | Prune `LegacyComponents.h` exports for deleted symbols | Compile clean under `-Werror` |
 | Doc drift | Keep this plan + `SWIFT_MIGRATION.md` inventory in sync after each delete wave | Docs match `find`/`wc` |
 
+**2026-08-10 wave:** deleted `PGPhotoCustomFilterPass`, `TGBotInfo`,
+`TGModernMediaListItemContentView`, `TGStickerAssociation`,
+`UIScrollView+TGHacks` (+ umbrella exports).
+
 **Exit:** Continuous; run a pass before each numbered phase.
+
+## Phase 2 — Camera (finish the parallel migration) — IN PROGRESS
+
+**2026-08-10:** Media picker default asset mode now uses the Swift
+`CameraSimplePreviewView` path instead of `TGAttachmentCameraView`.
+`presentedLegacyCamera` / chat attach menu and Passport attach camera intents
+still use `TGCameraController` until those send-signal pipelines are flipped.
 
 ## Phase 1 — Passport (pilot cluster) — DONE 2026-08-10
 
