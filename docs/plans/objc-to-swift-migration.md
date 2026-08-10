@@ -77,6 +77,26 @@ exports). `UIScrollView+TGHacks` was deleted in the same wave and restored:
 name-based scan cannot see because the call site names neither the file nor a
 class. Categories must be checked selector by selector.
 
+**2026-08-10 second wave** — root-based reachability rather than per-symbol
+grep, which is what finally exposed the ActionStage island (a cycle no
+per-file scan can break):
+
+- `ActionStage` / `ASActor` / `SGraphNode` / `SGraphObjectNode` — the old
+  actor/graph scheduler. Nothing calls `ActionStageInstance()`; the four types
+  reference only each other. `ASWatcher` and `ASHandle` survive: they are used
+  as a plain delegate pair by `TGMenuView`, `TGMediaAssetsController` and
+  others, independently of the scheduler.
+- `ocr` / `genann` / `fast-edge` — the neural-net MRZ recogniser behind the
+  now-Swift `TGPassportOCR`. Its weights file (`ocr_nn.bin`) is not in the
+  resource bundle at all, so the path could not have run even before Phase 1.
+- `TGBotComandInfo` — reachable only through `TGBotInfo`, deleted above.
+- `TGImageLuminanceMap` — survived only as a stale `@class` in `UIImage+TG.h`.
+- `TGModernMediaListItem` / `TGModernMediaListSelectableItem` — protocols
+  left over from `TGModernMediaListItemContentView`; `TGMediaPickerGalleryModel`
+  imported the headers without naming the protocols.
+
+`LegacyComponents` is now 345 `.m` + 25 `.mm` files and 265 public headers.
+
 **Exit:** Continuous; run a pass before each numbered phase.
 
 ## Phase 2 — Camera (finish the parallel migration) — IN PROGRESS

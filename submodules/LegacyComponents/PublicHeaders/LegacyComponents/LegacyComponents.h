@@ -1,8 +1,6 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 
-#import <LegacyComponents/ActionStage.h>
-#import <LegacyComponents/ASActor.h>
 #import <LegacyComponents/ASHandle.h>
 #import <LegacyComponents/ASWatcher.h>
 #import <LegacyComponents/AVURLAsset+TGMediaItem.h>
@@ -45,8 +43,6 @@
 #import <LegacyComponents/PSLMDBKeyValueStore.h>
 #import <LegacyComponents/PSLMDBTable.h>
 #import <LegacyComponents/RMPhoneFormat.h>
-#import <LegacyComponents/SGraphNode.h>
-#import <LegacyComponents/SGraphObjectNode.h>
 #import <LegacyComponents/TGActionMediaAttachment.h>
 #import <LegacyComponents/TGAnimationBlockDelegate.h>
 #import <LegacyComponents/TGAttachmentCameraView.h>
@@ -55,7 +51,6 @@
 #import <LegacyComponents/TGAudioWaveform.h>
 #import <LegacyComponents/TGAuthorSignatureMediaAttachment.h>
 #import <LegacyComponents/TGBackdropView.h>
-#import <LegacyComponents/TGBotComandInfo.h>
 #import <LegacyComponents/TGBotContextResultAttachment.h>
 #import <LegacyComponents/TGBotReplyMarkup.h>
 #import <LegacyComponents/TGBotReplyMarkupButton.h>
@@ -103,7 +98,6 @@
 #import <LegacyComponents/TGImageBlur.h>
 #import <LegacyComponents/TGImageDataSource.h>
 #import <LegacyComponents/TGImageInfo.h>
-#import <LegacyComponents/TGImageLuminanceMap.h>
 #import <LegacyComponents/TGImageManager.h>
 #import <LegacyComponents/TGImageManagerTask.h>
 #import <LegacyComponents/TGImageMediaAttachment.h>
@@ -207,7 +201,6 @@
 #import <LegacyComponents/TGModernGalleryZoomableItemView.h>
 #import <LegacyComponents/TGModernGalleryZoomableScrollView.h>
 #import <LegacyComponents/TGModernGalleryZoomableScrollViewSwipeGestureRecognizer.h>
-#import <LegacyComponents/TGModernMediaListItem.h>
 #import <LegacyComponents/TGModernToolbarButton.h>
 #import <LegacyComponents/TGNavigationBar.h>
 #import <LegacyComponents/TGNavigationController.h>

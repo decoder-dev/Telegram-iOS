@@ -17,8 +17,6 @@
 #import "TGMediaPickerGalleryPhotoItemView.h"
 #import <LegacyComponents/TGMediaPickerGalleryVideoItemView.h>
 
-#import <LegacyComponents/TGModernMediaListItem.h>
-#import "TGModernMediaListSelectableItem.h"
 
 #import <LegacyComponents/PGPhotoEditorValues.h>
 

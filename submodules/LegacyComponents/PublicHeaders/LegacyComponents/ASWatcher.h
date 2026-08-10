@@ -1,7 +1,6 @@
 #import <Foundation/Foundation.h>
 
 #import <LegacyComponents/ASHandle.h>
-#import <LegacyComponents/SGraphNode.h>
 
 @protocol ASWatcher <NSObject>
 

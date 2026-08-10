@@ -1,6 +1,5 @@
 #import <UIKit/UIKit.h>
 
-@class TGImageLuminanceMap;
 @class TGStaticBackdropImageData;
 
 @interface UIImage (TG)
