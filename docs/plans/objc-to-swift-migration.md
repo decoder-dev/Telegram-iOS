@@ -27,7 +27,7 @@ Fork-relevant ObjC surface:
 
 | Component | Notes |
 |---|---|
-| `LegacyComponents` | ~143k LOC, **303** `.m` files — primary target |
+| `LegacyComponents` | ~142k LOC, **288** `.m` files — primary target |
 | `MtProtoKit` | protocol/transport — low priority, shared with upstream |
 | `SSignalKit` | dies for free once LegacyComponents no longer needs it |
 | `AsyncDisplayKit` / `ffmpeg` / `TgVoipWebrtc` | vendored — do not migrate |
@@ -245,6 +245,16 @@ edit-date / grouped-id content properties only lived behind unused
   now returns `date`. Kept `contentProperties` for `contentsRead`.
 
 `LegacyComponents` is now **303** `.m` + **23** `.mm` files and **220**
+public headers.
+
+**2026-08-10 eighth wave** — `TGMessageEntitiesAttachment` + all
+`TGMessageEntity*` subclasses (~342 LOC) only fed unused `TGMessage`
+`entities` / `entitiesForMarkedUpText` / `effectiveTextAndEntities` and the
+`entities != nil` text-checking arm. Live caption callers always pass
+`entities:nil`. Dropped the types and dead APIs; kept
+`textCheckingResultsForText:…entities:` signature (param unused).
+
+`LegacyComponents` is now **288** `.m` + **23** `.mm` files and **205**
 public headers.
 
 **Exit:** Continuous; run a pass before each numbered phase.

@@ -15,18 +15,6 @@
 static void *NSTextCheckingResultTelegramHiddenLinkKey = &NSTextCheckingResultTelegramHiddenLinkKey;
 
 
-static NSString *TGLegacyCleanPhoneDigits(NSString *phone)
-{
-    if (phone.length == 0)
-        return phone;
-    NSMutableString *result = [[NSMutableString alloc] initWithCapacity:phone.length];
-    for (NSUInteger i = 0; i < phone.length; i++) {
-        unichar c = [phone characterAtIndex:i];
-        if ((c >= '0' && c <= '9') || (c == '+' && result.length == 0))
-            [result appendFormat:@"%C", c];
-    }
-    return result;
-}
 
 @implementation NSTextCheckingResult (TGMessage)
 
@@ -288,136 +276,18 @@ typedef enum {
     _hasNoCheckingResults = false;
 }
 
-- (NSArray *)effectiveTextAndEntities {
-    NSArray *entities = nil;
-    for (id media in self.mediaAttachments) {
-        if ([media isKindOfClass:[TGImageMediaAttachment class]]) {
-            return @[((TGImageMediaAttachment *)media).caption ?: @"", @[]];
-        } else if ([media isKindOfClass:[TGVideoMediaAttachment class]]) {
-            return @[((TGImageMediaAttachment *)media).caption ?: @"", @[]];
-        } else if ([media isKindOfClass:[TGDocumentMediaAttachment class]]) {
-            return @[((TGImageMediaAttachment *)media).caption ?: @"", @[]];
-        } else if ([media isKindOfClass:[TGMessageEntitiesAttachment class]]) {
-            entities = ((TGMessageEntitiesAttachment *)media).entities;
-        }
-    }
-    return @[_text ?: @"", entities ?: @[]];
-}
-
 - (bool)local
 {
     return _mid >= TGMessageLocalMidBaseline;
 }
 
-+ (NSArray *)textCheckingResultsForText:(NSString *)text highlightMentionsAndTags:(bool)highlightMentionsAndTags highlightCommands:(bool)highlightCommands entities:(NSArray *)entities
++ (NSArray *)textCheckingResultsForText:(NSString *)text highlightMentionsAndTags:(bool)highlightMentionsAndTags highlightCommands:(bool)highlightCommands entities:(NSArray *)__unused entities
 {
-    return [self textCheckingResultsForText:text highlightMentionsAndTags:highlightMentionsAndTags highlightCommands:highlightCommands entities:entities highlightAsExternalMentionsAndHashtags:false];
+    return [self textCheckingResultsForText:text highlightMentionsAndTags:highlightMentionsAndTags highlightCommands:highlightCommands entities:nil highlightAsExternalMentionsAndHashtags:false];
 }
 
-+ (NSArray *)textCheckingResultsForText:(NSString *)text highlightMentionsAndTags:(bool)highlightMentionsAndTags highlightCommands:(bool)highlightCommands entities:(NSArray *)entities highlightAsExternalMentionsAndHashtags:(bool)highlightAsExternalMentionsAndHashtags
++ (NSArray *)textCheckingResultsForText:(NSString *)text highlightMentionsAndTags:(bool)highlightMentionsAndTags highlightCommands:(bool)highlightCommands entities:(NSArray *)__unused entities highlightAsExternalMentionsAndHashtags:(bool)highlightAsExternalMentionsAndHashtags
 {
-    if (entities != nil) {
-        NSMutableArray *textCheckingResults = [[NSMutableArray alloc] init];
-        
-        bool hasPhoneEntities = false;
-        for (TGMessageEntity *entity in entities) {
-            if (entity.range.location + entity.range.length > text.length) {
-                continue;
-            }
-            
-            if ([entity isKindOfClass:[TGMessageEntityBold class]]) {
-                [textCheckingResults addObject:[[TGTextCheckingResult alloc] initWithRange:entity.range type:TGTextCheckingResultTypeBold contents:@""]];
-            } else if ([entity isKindOfClass:[TGMessageEntityBotCommand class]]) {
-                if (entity.range.length > 1) {
-                    [textCheckingResults addObject:[[TGTextCheckingResult alloc] initWithRange:entity.range type:TGTextCheckingResultTypeCommand contents:[text substringWithRange:NSMakeRange(entity.range.location, entity.range.length)]]];
-                }
-            } else if ([entity isKindOfClass:[TGMessageEntityCode class]]) {
-                [textCheckingResults addObject:[[TGTextCheckingResult alloc] initWithRange:entity.range type:TGTextCheckingResultTypeCode contents:@""]];
-            } else if ([entity isKindOfClass:[TGMessageEntityEmail class]]) {
-                NSString *email = [text substringWithRange:entity.range];
-                [textCheckingResults addObject:[NSTextCheckingResult linkCheckingResultWithRange:entity.range URL:[NSURL URLWithString:[@"mailto:" stringByAppendingString:email]]]];
-            } else if ([entity isKindOfClass:[TGMessageEntityHashtag class]]) {
-                if (entity.range.length > 1) {
-                    [textCheckingResults addObject:[[TGTextCheckingResult alloc] initWithRange:entity.range type:TGTextCheckingResultTypeHashtag contents:[text substringWithRange:NSMakeRange(entity.range.location + 1, entity.range.length - 1)]]];
-                }
-            } else if ([entity isKindOfClass:[TGMessageEntityItalic class]]) {
-                [textCheckingResults addObject:[[TGTextCheckingResult alloc] initWithRange:entity.range type:TGTextCheckingResultTypeItalic contents:@""]];
-            } else if ([entity isKindOfClass:[TGMessageEntityMention class]]) {
-                if (entity.range.length > 1) {
-                    [textCheckingResults addObject:[[TGTextCheckingResult alloc] initWithRange:entity.range type:TGTextCheckingResultTypeMention contents:[text substringWithRange:NSMakeRange(entity.range.location + 1, entity.range.length - 1)]]];
-                }
-            } else if ([entity isKindOfClass:[TGMessageEntityMentionName class]]) {
-                [textCheckingResults addObject:[[TGTextCheckingResult alloc] initWithRange:entity.range type:TGTextCheckingResultTypeLink contents:[NSString stringWithFormat:@"tg-user://%d", ((TGMessageEntityMentionName *)entity).userId]]];
-            } else if ([entity isKindOfClass:[TGMessageEntityPre class]]) {
-                [textCheckingResults addObject:[[TGTextCheckingResult alloc] initWithRange:entity.range type:TGTextCheckingResultTypeCode contents:@""]];
-            } else if ([entity isKindOfClass:[TGMessageEntityTextUrl class]]) {
-                NSTextCheckingResult *result = [NSTextCheckingResult linkCheckingResultWithRange:entity.range URL:[NSURL URLWithString:((TGMessageEntityTextUrl *)entity).url]];
-                [result setIsTelegramHiddenLink:true];
-                [textCheckingResults addObject:result];
-            } else if ([entity isKindOfClass:[TGMessageEntityUrl class]]) {
-                NSString *link = [text substringWithRange:entity.range];
-                NSURL *url = [NSURL URLWithString:link];
-                if (url == nil) {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-                    url = [NSURL URLWithString:[link stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
-#pragma clang diagnostic pop
-                }
-                [textCheckingResults addObject:[NSTextCheckingResult linkCheckingResultWithRange:entity.range URL:url]];
-            } else if ([entity isKindOfClass:[TGMessageEntityCashtag class]]) {
-                if (entity.range.length > 1) {
-                    [textCheckingResults addObject:[[TGTextCheckingResult alloc] initWithRange:entity.range type:TGTextCheckingResultTypeCashtag contents:[text substringWithRange:NSMakeRange(entity.range.location + 1, entity.range.length - 1)]]];
-                }
-            } else if ([entity isKindOfClass:[TGMessageEntityPhone class]]) {
-                NSString *phone = [text substringWithRange:entity.range];
-                phone = TGLegacyCleanPhoneDigits(phone);
-                NSURL *url = [NSURL URLWithString:[NSString stringWithFormat:@"tel:%@", phone]];
-                if (url != nil)
-                    [textCheckingResults addObject:[NSTextCheckingResult linkCheckingResultWithRange:entity.range URL:url]];
-                
-                hasPhoneEntities = true;
-            }
-        }
-        
-        if (!hasPhoneEntities)
-        {
-            SEL sel = @selector(characterAtIndex:);
-            int length = (int)text.length;
-            unichar (*characterAtIndexImp)(id, SEL, NSUInteger) = (unichar (*)(id, SEL, NSUInteger))[text methodForSelector:sel];
-            
-            int digitCount = 0;
-            for (int i = 0; i < length; i++)
-            {
-                unichar c = characterAtIndexImp(text, sel, i);
-                if (c >= '0' && c <= '9') {
-                    digitCount++;
-                    if (digitCount == 2) {
-                        break;
-                    }
-                } else {
-                    digitCount = 0;
-                }
-            }
-            
-            if (digitCount >= 2) {
-                NSError *error = nil;
-                static NSDataDetector *dataDetector = nil;
-                if (dataDetector == nil)
-                    dataDetector = [NSDataDetector dataDetectorWithTypes:(int)(NSTextCheckingTypePhoneNumber) error:&error];
-                [dataDetector enumerateMatchesInString:text options:0 range:NSMakeRange(0, text.length) usingBlock:^(NSTextCheckingResult *match, __unused NSMatchingFlags flags, __unused BOOL *stop)
-                 {
-                     NSTextCheckingType type = [match resultType];
-                     if (type == NSTextCheckingTypePhoneNumber)
-                     {
-                         [textCheckingResults addObject:match];
-                     }
-                 }];
-            }
-        }
-        
-        return textCheckingResults;
-    }
-    
     bool containsSomething = false;
     
     int length = (int)text.length;
@@ -669,92 +539,6 @@ typedef enum {
     return nil;
 }
 
-+ (NSArray *)entitiesForMarkedUpText:(NSString *)text resultingText:(__autoreleasing NSString **)resultingText {
-    NSMutableArray *entities = [[NSMutableArray alloc] init];
-    
-    NSMutableString *cleanText = [[NSMutableString alloc] initWithString:text];
-    
-#ifdef DEBUG    
-    while (true)
-    {
-        NSRange startRange = [cleanText rangeOfString:@"***"];
-        if (startRange.location == NSNotFound)
-            break;
-        
-        [cleanText deleteCharactersInRange:startRange];
-        
-        NSRange endRange = [cleanText rangeOfString:@"***"];
-        if (endRange.location == NSNotFound)
-            break;
-        
-        [cleanText deleteCharactersInRange:endRange];
-        
-        NSRange range = NSMakeRange(startRange.location, endRange.location - startRange.location);
-        [entities addObject:[[TGMessageEntityBold alloc] initWithRange:range]];
-    }
-    
-    while (true)
-    {
-        NSRange startRange = [cleanText rangeOfString:@"%%%"];
-        if (startRange.location == NSNotFound)
-            break;
-        
-        [cleanText deleteCharactersInRange:startRange];
-        
-        NSRange endRange = [cleanText rangeOfString:@"%%%"];
-        if (endRange.location == NSNotFound)
-            break;
-        
-        [cleanText deleteCharactersInRange:endRange];
-        
-        NSRange range = NSMakeRange(startRange.location, endRange.location - startRange.location);
-        [entities addObject:[[TGMessageEntityItalic alloc] initWithRange:range]];
-    }
-    
-    while (true)
-    {
-        NSRange startRange = [cleanText rangeOfString:@"```"];
-        if (startRange.location == NSNotFound)
-            break;
-        
-        [cleanText deleteCharactersInRange:startRange];
-        
-        NSRange endRange = [cleanText rangeOfString:@"```"];
-        if (endRange.location == NSNotFound)
-            break;
-        
-        [cleanText deleteCharactersInRange:endRange];
-        
-        NSRange range = NSMakeRange(startRange.location, endRange.location - startRange.location);
-        [entities addObject:[[TGMessageEntityPre alloc] initWithRange:range]];
-    }
-    
-    while (true)
-    {
-        NSRange startRange = [cleanText rangeOfString:@"[[["];
-        if (startRange.location == NSNotFound)
-            break;
-        
-        [cleanText deleteCharactersInRange:startRange];
-        
-        NSRange endRange = [cleanText rangeOfString:@"]]]"];
-        if (endRange.location == NSNotFound)
-            break;
-        
-        [cleanText deleteCharactersInRange:endRange];
-        
-        NSRange range = NSMakeRange(startRange.location, endRange.location - startRange.location);
-        [entities addObject:[[TGMessageEntityTextUrl alloc] initWithRange:range url:@"http://google.com"]];
-    }
-#endif
-    
-    if (resultingText != NULL) {
-        *resultingText = cleanText;
-    }
-    
-    return entities.count == 0 ? nil : entities;
-}
-
 - (NSArray *)textCheckingResults
 {
     if (_textCheckingResults != nil) {
@@ -782,118 +566,6 @@ typedef enum {
     if (legacyTextCheckingResults.count > 0)
         return legacyTextCheckingResults;
     
-    if (_mediaAttachments.count != 0) {
-        bool hasPhoneEntities = false;
-        
-        for (TGMediaAttachment *attachment in _mediaAttachments) {
-            if (attachment.type == TGMessageEntitiesAttachmentType) {
-                NSMutableArray *textCheckingResults = [[NSMutableArray alloc] init];
-                
-                for (TGMessageEntity *entity in ((TGMessageEntitiesAttachment *)attachment).entities) {
-                    if (entity.range.location + entity.range.length > _text.length) {
-                        continue;
-                    }
-                    
-                    if ([entity isKindOfClass:[TGMessageEntityBold class]]) {
-                        [textCheckingResults addObject:[[TGTextCheckingResult alloc] initWithRange:entity.range type:TGTextCheckingResultTypeBold contents:@""]];
-                    } else if ([entity isKindOfClass:[TGMessageEntityBotCommand class]]) {
-                        if (entity.range.length > 1) {
-                            [textCheckingResults addObject:[[TGTextCheckingResult alloc] initWithRange:entity.range type:TGTextCheckingResultTypeCommand contents:[_text substringWithRange:NSMakeRange(entity.range.location, entity.range.length)]]];
-                        }
-                    } else if ([entity isKindOfClass:[TGMessageEntityCode class]]) {
-                        [textCheckingResults addObject:[[TGTextCheckingResult alloc] initWithRange:entity.range type:TGTextCheckingResultTypeCode contents:@""]];
-                    } else if ([entity isKindOfClass:[TGMessageEntityEmail class]]) {
-                        NSString *email = [_text substringWithRange:entity.range];
-                        [textCheckingResults addObject:[NSTextCheckingResult linkCheckingResultWithRange:entity.range URL:[NSURL URLWithString:[@"mailto:" stringByAppendingString:email]]]];
-                    } else if ([entity isKindOfClass:[TGMessageEntityHashtag class]]) {
-                        if (entity.range.length > 1) {
-                            [textCheckingResults addObject:[[TGTextCheckingResult alloc] initWithRange:entity.range type:TGTextCheckingResultTypeHashtag contents:[_text substringWithRange:NSMakeRange(entity.range.location + 1, entity.range.length - 1)]]];
-                        }
-                    } else if ([entity isKindOfClass:[TGMessageEntityItalic class]]) {
-                        [textCheckingResults addObject:[[TGTextCheckingResult alloc] initWithRange:entity.range type:TGTextCheckingResultTypeItalic contents:@""]];
-                    } else if ([entity isKindOfClass:[TGMessageEntityMention class]]) {
-                        if (entity.range.length > 1) {
-                            [textCheckingResults addObject:[[TGTextCheckingResult alloc] initWithRange:entity.range type:TGTextCheckingResultTypeMention contents:[_text substringWithRange:NSMakeRange(entity.range.location + 1, entity.range.length - 1)]]];
-                        }
-                    } else if ([entity isKindOfClass:[TGMessageEntityMentionName class]]) {
-                        [textCheckingResults addObject:[[TGTextCheckingResult alloc] initWithRange:entity.range type:TGTextCheckingResultTypeLink contents:[NSString stringWithFormat:@"tg-user://%d", ((TGMessageEntityMentionName *)entity).userId]]];
-                    } else if ([entity isKindOfClass:[TGMessageEntityPre class]]) {
-                        [textCheckingResults addObject:[[TGTextCheckingResult alloc] initWithRange:entity.range type:TGTextCheckingResultTypeCode contents:@""]];
-                    } else if ([entity isKindOfClass:[TGMessageEntityTextUrl class]]) {
-                        //NSTextCheckingResult *result = [NSTextCheckingResult linkCheckingResultWithRange:entity.range URL:[NSURL URLWithString:((TGMessageEntityTextUrl *)entity).url]];
-                        TGTextCheckingResult *result = [[TGTextCheckingResult alloc] initWithRange:entity.range type:TGTextCheckingResultTypeLink contents:((TGMessageEntityTextUrl *)entity).url value:nil highlightAsLink:true];
-                        //[result setIsTelegramHiddenLink:true];
-                        [textCheckingResults addObject:result];
-                    } else if ([entity isKindOfClass:[TGMessageEntityUrl class]]) {
-                        NSString *link = [_text substringWithRange:entity.range];
-                        NSURL *url = [NSURL URLWithString:link];
-                        if (url == nil) {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-                            url = [NSURL URLWithString:[link stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
-#pragma clang diagnostic pop
-                        }
-                        [textCheckingResults addObject:[NSTextCheckingResult linkCheckingResultWithRange:entity.range URL:url]];
-                    } else if ([entity isKindOfClass:[TGMessageEntityCashtag class]]) {
-                        if (entity.range.length > 1) {
-                            [textCheckingResults addObject:[[TGTextCheckingResult alloc] initWithRange:entity.range type:TGTextCheckingResultTypeCashtag contents:[_text substringWithRange:NSMakeRange(entity.range.location + 1, entity.range.length - 1)]]];
-                        }
-                    } else if ([entity isKindOfClass:[TGMessageEntityPhone class]]) {
-                        NSString *phone = [_text substringWithRange:entity.range];
-                        phone = TGLegacyCleanPhoneDigits(phone);
-                        NSURL *url = [NSURL URLWithString:[NSString stringWithFormat:@"tel:%@", phone]];
-                        if (url != nil)
-                            [textCheckingResults addObject:[NSTextCheckingResult linkCheckingResultWithRange:entity.range URL:url]];
-                        
-                        hasPhoneEntities = true;
-                    }
-                }
-                
-                if (!hasPhoneEntities)
-                {
-                    SEL sel = @selector(characterAtIndex:);
-                    NSString *text = _text;
-                    int length = (int)text.length;
-                    unichar (*characterAtIndexImp)(id, SEL, NSUInteger) = (unichar (*)(id, SEL, NSUInteger))[text methodForSelector:sel];
-                    
-                    int digitCount = 0;
-                    for (int i = 0; i < length; i++)
-                    {
-                        unichar c = characterAtIndexImp(text, sel, i);
-                        if (c >= '0' && c <= '9') {
-                            digitCount++;
-                            if (digitCount == 2) {
-                                break;
-                            }
-                        } else {
-                            digitCount = 0;
-                        }
-                    }
-                    
-                    if (digitCount >= 2) {
-                        static NSDataDetector *dataDetector = nil;
-                        static dispatch_once_t onceToken;
-                        dispatch_once(&onceToken, ^{
-                            NSError *error = nil;
-                            dataDetector = [NSDataDetector dataDetectorWithTypes:(int)(NSTextCheckingTypePhoneNumber) error:&error];
-                        });
-                        [dataDetector enumerateMatchesInString:text options:0 range:NSMakeRange(0, text.length) usingBlock:^(NSTextCheckingResult *match, __unused NSMatchingFlags flags, __unused BOOL *stop)
-                         {
-                             NSTextCheckingType type = [match resultType];
-                             if (type == NSTextCheckingTypePhoneNumber)
-                             {
-                                 [textCheckingResults addObject:match];
-                             }
-                         }];
-                    }
-                }
-                
-                _textCheckingResults = textCheckingResults;
-                return textCheckingResults;
-            }
-        }
-    }
-    
     if (_text.length < 2 || _text.length > 1024 * 20)
         return nil;
     
@@ -904,38 +576,6 @@ typedef enum {
     }
     
     return _textCheckingResults;
-}
-
-- (void)setEntities:(NSArray *)entities
-{
-    NSMutableArray *array = [[NSMutableArray alloc] initWithArray:_mediaAttachments];
-    NSUInteger index = 0;
-    for (TGMediaAttachment *attachment in array)
-    {
-        if (attachment.type == TGMessageEntitiesAttachmentType)
-        {
-            [array removeObjectAtIndex:index];
-            break;
-        }
-        index++;
-    }
-    TGMessageEntitiesAttachment *attachment = [[TGMessageEntitiesAttachment alloc] init];
-    attachment.entities = entities;
-    [array addObject:attachment];
-    _mediaAttachments = array;
-}
-
-- (NSArray *)entities
-{
-    for (TGMediaAttachment *attachment in _mediaAttachments)
-    {
-        if (attachment.type == TGMessageEntitiesAttachmentType)
-        {
-            return ((TGMessageEntitiesAttachment *)attachment).entities;
-        }
-    }
-    
-    return nil;
 }
 
 + (void)registerMediaAttachmentParser:(int)type parser:(id<TGMediaAttachmentParser>)parser

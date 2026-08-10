@@ -6,7 +6,6 @@
 #import <LegacyComponents/TGImageMediaAttachment.h>
 #import <LegacyComponents/TGVideoMediaAttachment.h>
 #import <LegacyComponents/TGDocumentMediaAttachment.h>
-#import <LegacyComponents/TGMessageEntitiesAttachment.h>
 
 #import <LegacyComponents/PSCoding.h>
 
@@ -200,17 +199,12 @@ static inline TGMessageSortKey TGTaggedMessageSortKeyExtract(NSData *data, int32
 @property (nonatomic) bool isSilent;
 @property (nonatomic) bool isEdited;
 
-@property (nonatomic, strong) NSArray *entities;
-
 @property (nonatomic, strong) NSDictionary *contentProperties;
-
-- (NSArray *)effectiveTextAndEntities;
 
 - (bool)local;
 
 + (void)registerMediaAttachmentParser:(int)type parser:(id<TGMediaAttachmentParser>)parser;
 + (NSArray *)textCheckingResultsForText:(NSString *)text highlightMentionsAndTags:(bool)highlightMentionsAndTags highlightCommands:(bool)highlightCommands entities:(NSArray *)entities;
-+ (NSArray *)entitiesForMarkedUpText:(NSString *)text resultingText:(__autoreleasing NSString **)resultingText;
 + (NSArray *)textCheckingResultsForText:(NSString *)text highlightMentionsAndTags:(bool)highlightMentionsAndTags highlightCommands:(bool)highlightCommands entities:(NSArray *)entities highlightAsExternalMentionsAndHashtags:(bool)highlightAsExternalMentionsAndHashtags;
 
 - (NSData *)serializeMediaAttachments:(bool)includeMeta;

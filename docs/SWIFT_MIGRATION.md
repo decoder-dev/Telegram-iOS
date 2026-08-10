@@ -26,7 +26,7 @@ Where the non-Swift lines actually live:
 | Component | Lines | Nature |
 |---|---|---|
 | `third-party/` + `submodules/ffmpeg/` | majority of C | vendored libraries / codecs |
-| `submodules/LegacyComponents/` | ~143,000 | app ObjC, ~303 `.m` + 23 `.mm` files — migration target |
+| `submodules/LegacyComponents/` | ~142,000 | app ObjC, ~288 `.m` + 23 `.mm` files — migration target |
 | `submodules/MtProtoKit/` | ~29,000 | protocol + transport |
 | `submodules/AsyncDisplayKit/` | ~18,000 | vendored Texture fork |
 | `submodules/TgVoipWebrtc/` | thin wrapper | over tgcalls (C++) |
