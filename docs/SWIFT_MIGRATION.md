@@ -4,31 +4,33 @@ Written in answer to "can the C parts of the client be rewritten in Swift?"
 Short answer: some of it, none of it urgently, and the largest pieces should
 never be.
 
+**Execution plan (phases, necks, DoD):**
+[`docs/plans/objc-to-swift-migration.md`](plans/objc-to-swift-migration.md).
+
 ## Inventory
 
 Line counts across `submodules/`, `Telegram/`, `third-party/` (excluding
-`bazel-*` symlinks):
+`bazel-*` symlinks), refreshed 2026-08-10:
 
 | Language | Lines |
 |---|---|
-| Swift | 304,288 |
-| C | 551,101 |
-| Objective-C (`.m`) | 219,662 |
-| C++ (`.cpp`) | 101,906 |
-| Objective-C++ (`.mm`) | 39,530 |
-| Headers (`.h`) | 280,335 |
+| Swift | ~305,000 |
+| C | ~511,000 |
+| Objective-C (`.m`) | ~215,000 |
+| C++ (`.cpp`) | ~102,000 |
+| Objective-C++ (`.mm`) | ~39,000 |
+| Headers (`.h`) | ~192,000 |
 
 Where the non-Swift lines actually live:
 
 | Component | Lines | Nature |
 |---|---|---|
-| `third-party/` | 690,599 | vendored libraries |
-| `submodules/ffmpeg/` | 598,692 | vendored codec stack |
-| `submodules/LegacyComponents/` | 142,897 | app code, 379 `.m` files |
-| `submodules/MtProtoKit/` | 28,914 | protocol + transport, 92 `.m` files |
-| `submodules/AsyncDisplayKit/` | 18,451 | vendored Texture fork |
-| `submodules/TgVoipWebrtc/` | 4,118 | thin wrapper over tgcalls (C++) |
-| `submodules/SSignalKit/` | 2,868 | ObjC signal primitives |
+| `third-party/` + `submodules/ffmpeg/` | majority of C | vendored libraries / codecs |
+| `submodules/LegacyComponents/` | ~145,000 | app ObjC, ~359 `.m` files — migration target |
+| `submodules/MtProtoKit/` | ~29,000 | protocol + transport |
+| `submodules/AsyncDisplayKit/` | ~18,000 | vendored Texture fork |
+| `submodules/TgVoipWebrtc/` | thin wrapper | over tgcalls (C++) |
+| `submodules/SSignalKit/` | ~3,000 | ObjC signal primitives (dies with LC) |
 
 So of ~900k non-Swift lines, roughly **85% is vendored third-party code** that
 this repository does not author and should not fork. The genuinely
@@ -135,17 +137,22 @@ sites over, deleting the old subtree — rather than translating files.
 
 ### Recommended order
 
-1. **Delete dead code.** `matrix.m` / `matrix.h` first. Costs nothing, removes
-   306 lines of ObjC, and is verifiable by grep. There is likely more; the
-   232 internal-only headers are worth a reachability pass.
+1. **Delete dead code.** Ongoing hygiene (see Phase 0 in the execution plan).
+   `matrix.m` is already gone. Re-run reachability on the remaining ~359 `.m`
+   files and the internal-only headers before each cluster.
 2. **Passport.** Five entry points with one call site each — by a wide margin
    the cheapest complete cluster to replace, and a real end-to-end rehearsal of
    the pattern before touching anything load-bearing.
 3. **Camera, then photo/video editor.** Both already have Swift counterparts;
    the work is finishing the call-site migration and deleting the ObjC subtree,
    not writing a new implementation.
-4. **Media picker / gallery.** Largest neck, most entanglement. Last.
-5. **Utilities.** Fall out for free once nothing else in the module remains.
+4. **Media picker / gallery.** Largest neck, most entanglement. Last among UI
+   clusters.
+5. **Utilities / POP / SSignalKit.** Fall out once nothing else in the module
+   remains.
+
+Full phase checklist, DoD, and the first ticket are in
+[`docs/plans/objc-to-swift-migration.md`](plans/objc-to-swift-migration.md).
 
 ### Cost per step
 
