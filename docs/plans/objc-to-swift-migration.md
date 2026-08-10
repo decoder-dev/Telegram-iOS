@@ -132,8 +132,30 @@ templates, invisible to an ObjC-shaped symbol scan), and the
 supply protocol conformances consumed through `id<TGMediaEditableItem>` and so
 can never be proven dead statically.
 
-`LegacyComponents` is now 322 `.m` + 24 `.mm` files and 239 public headers
-(~144k LOC).
+After the message-model + conversation deletes (and the Phase 3 recon that
+removed implementation-less `TGPhotoPaint*Entity` headers), `LegacyComponents`
+stood at 324 `.m` + 25 `.mm` files and 242 public headers.
+
+**2026-08-10 fourth wave** (`ede84449dc`) — leftovers the third-wave scan still
+left standing:
+
+- `TGMessageHole` / `TGMessageGroup` — only unused properties on `TGMessage`
+  (copied in `-copy`, never constructed / encoded / read; not PSCoding).
+- `POPDecayAnimation` (+ internal header) — never instantiated. Live POP users
+  are spring/basic. Removed the class and the decay-only autoreverse branches
+  in `POPAnimator`; left the unreachable `kPOPAnimationDecay` enum value.
+- Dead `TGStringUtils` surface — zero call sites outside the defining file
+  (HTML unescape + escape tables, actor-URL escape, base64, emoji/mute/currency/
+  timer/call/device/user-count formatters, `phoneMatchHash` /
+  `legacy_murMurHashBytes32`, `TGIsKorean` / `TGIsLocaleArabic`, unused
+  `NSString (Telegraph)` category). Kept: URL escape, localized numbers, md5,
+  `stringComponentsForMessageTimerSeconds`, `stringForFileSize:precision:`,
+  `integerValueFormat`, `legacy_murMurHash32`, `TGIsRTL` / `TGIsArabic`,
+  `NSData` hex helpers. Watch / CallsEmoji / TelegramStringFormatting keep
+  their own same-named helpers.
+
+`LegacyComponents` is now **322** `.m` + **24** `.mm` files and **239** public
+headers (~144k LOC).
 
 **Exit:** Continuous; run a pass before each numbered phase.
 
