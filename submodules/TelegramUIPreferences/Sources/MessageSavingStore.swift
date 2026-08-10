@@ -604,7 +604,7 @@ public enum MessageSavingStore {
         } catch {
             return nil
         }
-        let attachmentsSource = MessageSavingBridge.attachmentsDirectoryURL
+        let attachmentsSource = MessageSavingBridge.savedAttachmentsDirectory
         if let contents = try? FileManager.default.contentsOfDirectory(at: attachmentsSource, includingPropertiesForKeys: nil), !contents.isEmpty {
             let attachmentsDest = root.appendingPathComponent(bundleAttachmentsFolderName, isDirectory: true)
             try? FileManager.default.createDirectory(at: attachmentsDest, withIntermediateDirectories: true)
@@ -641,7 +641,7 @@ public enum MessageSavingStore {
         }
         let result = importJSONData(data, replace: replace)
         if case .success = result, let attachmentsURL, let files = try? FileManager.default.contentsOfDirectory(at: attachmentsURL, includingPropertiesForKeys: nil) {
-            let dest = MessageSavingBridge.attachmentsDirectoryURL
+            let dest = MessageSavingBridge.savedAttachmentsDirectory
             for file in files {
                 let destFile = dest.appendingPathComponent(file.lastPathComponent)
                 if !FileManager.default.fileExists(atPath: destFile.path) {
