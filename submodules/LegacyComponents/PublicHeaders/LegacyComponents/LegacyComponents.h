@@ -52,7 +52,6 @@
 #import <LegacyComponents/TGCameraCapturedPhoto.h>
 #import <LegacyComponents/TGCameraCapturedVideo.h>
 #import <LegacyComponents/TGCameraController.h>
-#import <LegacyComponents/TGCameraFlashActiveView.h>
 #import <LegacyComponents/TGCameraFlashControl.h>
 #import <LegacyComponents/TGCameraFlipButton.h>
 #import <LegacyComponents/TGCameraInterfaceAssets.h>
@@ -167,10 +166,8 @@
 #import <LegacyComponents/TGModernGalleryDefaultInterfaceView.h>
 #import <LegacyComponents/TGModernGalleryEditableItem.h>
 #import <LegacyComponents/TGModernGalleryEditableItemView.h>
-#import <LegacyComponents/TGModernGalleryImageItem.h>
 #import <LegacyComponents/TGModernGalleryImageItemContainerView.h>
 #import <LegacyComponents/TGModernGalleryImageItemImageView.h>
-#import <LegacyComponents/TGModernGalleryImageItemView.h>
 #import <LegacyComponents/TGModernGalleryInterfaceView.h>
 #import <LegacyComponents/TGModernGalleryItem.h>
 #import <LegacyComponents/TGModernGalleryItemView.h>

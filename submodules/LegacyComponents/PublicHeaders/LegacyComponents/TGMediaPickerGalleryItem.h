@@ -1,4 +1,4 @@
-#import <LegacyComponents/TGModernGalleryImageItem.h>
+#import <LegacyComponents/TGModernGalleryItem.h>
 #import <LegacyComponents/TGMediaEditingContext.h>
 #import <LegacyComponents/TGMediaSelectionContext.h>
 

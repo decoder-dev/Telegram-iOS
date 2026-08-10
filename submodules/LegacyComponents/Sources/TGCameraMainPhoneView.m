@@ -15,7 +15,6 @@
 #import <LegacyComponents/TGCameraShutterButton.h>
 #import <LegacyComponents/TGCameraModeControl.h>
 #import <LegacyComponents/TGCameraFlashControl.h>
-#import <LegacyComponents/TGCameraFlashActiveView.h>
 #import <LegacyComponents/TGCameraFlipButton.h>
 #import <LegacyComponents/TGCameraTimeCodeView.h>
 #import <LegacyComponents/TGCameraZoomView.h>

@@ -161,11 +161,10 @@ headers (~144k LOC).
 subtree another phase is actively editing — delete them as part of that phase's
 commit rather than as hygiene):
 
-- `TGCameraFlashActiveView` — Phase 2. Only mention outside its own pair is a
-  stale `#import` in `TGCameraMainPhoneView.m`.
-- `TGModernGalleryImageItem` / `TGModernGalleryImageItemView` — Phase 5. The
-  two only reference each other; the sole outside mention is a stale `#import`
-  in `TGMediaPickerGalleryItem.h`.
+- ~~`TGCameraFlashActiveView`~~ — deleted (Phase 2 hygiene).
+- ~~`TGModernGalleryImageItem` / `TGModernGalleryImageItemView`~~ — deleted
+  (Phase 5 hygiene). Kept `TGModernGalleryImageItemImageView` /
+  `TGModernGalleryImageItemContainerView` (still used by zoomable gallery).
 
 **Exit:** Continuous; run a pass before each numbered phase.
 
