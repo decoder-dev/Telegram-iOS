@@ -364,23 +364,22 @@ public enum MessageSavingBridge {
             log("preserve: retry already pending for \(message.id.id)")
             return
         }
-        if current.proactiveSaveMedia {
-            // AyuGram Android tries to actively download the resource rather than only wait for
-            // it to become locally cached by whatever else is already fetching it (or not).
-            preserveQueue.async {
-                guard let disposable = MessageSavingAttachments.startFetch(message: message, mediaBox: mediaBox) else {
-                    return
-                }
-                log("preserve: started proactive fetch for \(message.id.id)")
-                let _ = activeFetchDisposables.modify { current -> [PreserveKey: Disposable] in
-                    var updated = current
-                    updated[key] = disposable
-                    return updated
+        // Start proactive fetch and the first copy attempt on the same serial queue tick so
+        // finishPreserve cannot race ahead of activeFetchDisposables registration (which would
+        // leak the fetch disposable).
+        preserveQueue.async {
+            if current.proactiveSaveMedia {
+                if let disposable = MessageSavingAttachments.startFetch(message: message, mediaBox: mediaBox) {
+                    log("preserve: started proactive fetch for \(message.id.id)")
+                    let _ = activeFetchDisposables.modify { current -> [PreserveKey: Disposable] in
+                        var updated = current
+                        updated[key] = disposable
+                        return updated
+                    }
                 }
             }
+            retryPreserve(message: message, accountPeerId: accountPeerId, mediaBox: mediaBox, key: key, attemptsRemaining: 7, delay: 0.0)
         }
-        // delay 0: first attempt runs immediately, just not on the caller's thread.
-        retryPreserve(message: message, accountPeerId: accountPeerId, mediaBox: mediaBox, key: key, attemptsRemaining: 7, delay: 0.0)
     }
 
     private static func finishPreserve(_ key: PreserveKey) {

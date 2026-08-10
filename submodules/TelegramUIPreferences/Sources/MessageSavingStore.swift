@@ -586,22 +586,22 @@ public enum MessageSavingStore {
     private static let bundleAttachmentsFolderName = "Saved Attachments"
 
     /// Build a self-contained export folder — `records.json` + a copy of Saved Attachments
-    /// (AyuGram DB backup parity: "zip or folder of MessageSaving JSON store + Saved
-    /// Attachments"). Returned as a folder rather than a zip: Foundation has no built-in archive
-    /// writer, and both AirDrop and Files "Save to Files" accept a folder directly (users who
-    /// want an actual .zip can use Files' own "Compress" action afterwards).
+    /// (AyuGram DB backup parity). Returned as a folder rather than a zip: Foundation has no
+    /// built-in archive writer, and both AirDrop and Files "Save to Files" accept a folder.
+    /// Unique temp name per export so a still-open share sheet is not wiped by a re-export.
     public static func exportBundle() -> URL? {
         guard let data = exportJSONData() else {
             return nil
         }
-        let root = FileManager.default.temporaryDirectory.appendingPathComponent("AyuGram Saved Messages", isDirectory: true)
-        try? FileManager.default.removeItem(at: root)
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("AyuGram Saved Messages-\(UUID().uuidString)", isDirectory: true)
         guard (try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)) != nil else {
             return nil
         }
         do {
             try data.write(to: root.appendingPathComponent(bundleRecordsFileName), options: .atomic)
         } catch {
+            try? FileManager.default.removeItem(at: root)
             return nil
         }
         let attachmentsSource = MessageSavingBridge.savedAttachmentsDirectory
@@ -616,8 +616,9 @@ public enum MessageSavingStore {
     }
 
     /// Import either a bare `records.json` (simple export) or a folder produced by
-    /// `exportBundle()` (`records.json` + `Saved Attachments/`). Attachments are merged by
-    /// filename; a name already present locally is left untouched rather than overwritten.
+    /// `exportBundle()` (`records.json` + `Saved Attachments/`). On replace, local attachment
+    /// bytes are cleared first. After copy, every record's `mediaPath` is rewritten to the
+    /// local Saved Attachments path (exports carry absolute paths from the source device).
     @discardableResult
     public static func importBundle(from url: URL, replace: Bool) -> Result<Int, ImportError> {
         var isDirectory: ObjCBool = false
@@ -639,16 +640,65 @@ public enum MessageSavingStore {
         guard let data = try? Data(contentsOf: recordsURL) else {
             return .failure(.invalidData)
         }
+
+        let dest = MessageSavingBridge.savedAttachmentsDirectory
+        if replace {
+            if let existing = try? FileManager.default.contentsOfDirectory(at: dest, includingPropertiesForKeys: nil) {
+                for file in existing {
+                    try? FileManager.default.removeItem(at: file)
+                }
+            }
+        }
+
         let result = importJSONData(data, replace: replace)
-        if case .success = result, let attachmentsURL, let files = try? FileManager.default.contentsOfDirectory(at: attachmentsURL, includingPropertiesForKeys: nil) {
-            let dest = MessageSavingBridge.savedAttachmentsDirectory
+        guard case .success = result else {
+            return result
+        }
+
+        if let attachmentsURL, let files = try? FileManager.default.contentsOfDirectory(at: attachmentsURL, includingPropertiesForKeys: nil) {
+            try? FileManager.default.createDirectory(at: dest, withIntermediateDirectories: true)
             for file in files {
                 let destFile = dest.appendingPathComponent(file.lastPathComponent)
-                if !FileManager.default.fileExists(atPath: destFile.path) {
+                if replace || !FileManager.default.fileExists(atPath: destFile.path) {
+                    try? FileManager.default.removeItem(at: destFile)
                     try? FileManager.default.copyItem(at: file, to: destFile)
                 }
             }
         }
+
+        rewireImportedMediaPaths(to: dest)
         return result
+    }
+
+    /// Point imported records' `mediaPath` at local Saved Attachments by basename.
+    private static func rewireImportedMediaPaths(to dest: URL) {
+        loadIfNeeded()
+        lock.lock()
+        var didChange = false
+        for index in memory.indices {
+            guard let path = memory[index].mediaPath, !path.isEmpty else {
+                continue
+            }
+            let name = URL(fileURLWithPath: path).lastPathComponent
+            guard !name.isEmpty else {
+                continue
+            }
+            let localPath = dest.appendingPathComponent(name).path
+            guard localPath != path else {
+                continue
+            }
+            guard FileManager.default.fileExists(atPath: localPath) else {
+                continue
+            }
+            memory[index] = memory[index].withMediaPath(localPath)
+            didChange = true
+        }
+        if didChange {
+            schedulePersistLocked()
+        }
+        lock.unlock()
+        if didChange {
+            notifyChanged()
+        }
     }
 }

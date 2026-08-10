@@ -21,9 +21,10 @@ private final class ForkExtrasMessageSavingImportPresenter: NSObject, UIDocument
         self.replace = replace
         self.context = context
         self.present = present
-        // .folder alongside .json/.data lets the same picker accept either a bare records.json
-        // (older/simple export) or a full exportBundle() folder (records.json + Saved Attachments).
-        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.json, .data, .folder], asCopy: true)
+        // .folder alongside .json/.data: bare records.json or a full exportBundle() folder.
+        // asCopy must be false — UIDocumentPicker cannot copy directories; we rely on the
+        // security-scoped URL below instead.
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.json, .data, .folder], asCopy: false)
         picker.delegate = self
         picker.allowsMultipleSelection = false
         guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
@@ -695,25 +696,26 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case .deletedMessageMarkFooter: return 54
         case .editedMessageMark: return 55
         case .editedMessageMarkFooter: return 56
-        case .exportMessageSavingDatabase: return 73
-        case .importMessageSavingDatabase: return 74
-        case .messageSavingDbFooter: return 75
-        case .hideAds: return 57
-        case .hideAdsFooter: return 58
-        case .hideBlockedMessages: return 59
-        case .hideBlockedMessagesFooter: return 60
-        case .regexFilters: return 61
-        case .regexFiltersCaseInsensitive: return 62
-        case .regexFiltersPatterns: return 63
-        case .regexFiltersFooter: return 64
-        case .allowSecretScreenshots: return 65
-        case .allowSecretScreenshotsFooter: return 66
-        case .expireTtlButton: return 67
-        case .expireTtlButtonFooter: return 68
-        case .keepBannedChats: return 69
-        case .keepBannedChatsFooter: return 70
-        case .localPremium: return 71
-        case .localPremiumFooter: return 72
+        // Must stay ascending with entry array order — ItemList asserts consecutive stableIds.
+        case .exportMessageSavingDatabase: return 57
+        case .importMessageSavingDatabase: return 58
+        case .messageSavingDbFooter: return 59
+        case .hideAds: return 60
+        case .hideAdsFooter: return 61
+        case .hideBlockedMessages: return 62
+        case .hideBlockedMessagesFooter: return 63
+        case .regexFilters: return 64
+        case .regexFiltersCaseInsensitive: return 65
+        case .regexFiltersPatterns: return 66
+        case .regexFiltersFooter: return 67
+        case .allowSecretScreenshots: return 68
+        case .allowSecretScreenshotsFooter: return 69
+        case .expireTtlButton: return 70
+        case .expireTtlButtonFooter: return 71
+        case .keepBannedChats: return 72
+        case .keepBannedChatsFooter: return 73
+        case .localPremium: return 74
+        case .localPremiumFooter: return 75
         }
     }
 
@@ -1454,8 +1456,8 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
             guard let url = MessageSavingStore.exportBundle() else {
                 return
             }
-            // A folder URL: AirDrop and "Save to Files" accept it directly; Files' own
-            // "Compress" action turns it into an actual .zip afterwards if the user wants one.
+            // Folder URL: AirDrop / "Save to Files" accept it. Import the folder itself (not a
+            // zip — the picker does not open archives).
             let activity = UIActivityViewController(activityItems: [url], applicationActivities: nil)
             guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
                 return
