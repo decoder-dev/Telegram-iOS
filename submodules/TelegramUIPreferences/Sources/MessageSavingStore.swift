@@ -522,7 +522,8 @@ public enum MessageSavingStore {
     }
 
     /// Encode the current store as a JSON array of `MessageSavingRecord` (AyuGram-style DB export).
-    /// Attachment bytes under Saved Attachments are not bundled — only text snapshots + optional paths.
+    /// Records-only, no attachment bytes — see `exportBundle()` for a folder that also includes
+    /// Saved Attachments.
     public static func exportJSONData() -> Data? {
         loadIfNeeded()
         lock.lock()
@@ -579,5 +580,75 @@ public enum MessageSavingStore {
             notifyChanged()
         }
         return .success(added)
+    }
+
+    private static let bundleRecordsFileName = "records.json"
+    private static let bundleAttachmentsFolderName = "Saved Attachments"
+
+    /// Build a self-contained export folder — `records.json` + a copy of Saved Attachments
+    /// (AyuGram DB backup parity: "zip or folder of MessageSaving JSON store + Saved
+    /// Attachments"). Returned as a folder rather than a zip: Foundation has no built-in archive
+    /// writer, and both AirDrop and Files "Save to Files" accept a folder directly (users who
+    /// want an actual .zip can use Files' own "Compress" action afterwards).
+    public static func exportBundle() -> URL? {
+        guard let data = exportJSONData() else {
+            return nil
+        }
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("AyuGram Saved Messages", isDirectory: true)
+        try? FileManager.default.removeItem(at: root)
+        guard (try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)) != nil else {
+            return nil
+        }
+        do {
+            try data.write(to: root.appendingPathComponent(bundleRecordsFileName), options: .atomic)
+        } catch {
+            return nil
+        }
+        let attachmentsSource = MessageSavingBridge.attachmentsDirectoryURL
+        if let contents = try? FileManager.default.contentsOfDirectory(at: attachmentsSource, includingPropertiesForKeys: nil), !contents.isEmpty {
+            let attachmentsDest = root.appendingPathComponent(bundleAttachmentsFolderName, isDirectory: true)
+            try? FileManager.default.createDirectory(at: attachmentsDest, withIntermediateDirectories: true)
+            for file in contents {
+                try? FileManager.default.copyItem(at: file, to: attachmentsDest.appendingPathComponent(file.lastPathComponent))
+            }
+        }
+        return root
+    }
+
+    /// Import either a bare `records.json` (simple export) or a folder produced by
+    /// `exportBundle()` (`records.json` + `Saved Attachments/`). Attachments are merged by
+    /// filename; a name already present locally is left untouched rather than overwritten.
+    @discardableResult
+    public static func importBundle(from url: URL, replace: Bool) -> Result<Int, ImportError> {
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) else {
+            return .failure(.invalidData)
+        }
+        let recordsURL: URL
+        var attachmentsURL: URL?
+        if isDirectory.boolValue {
+            recordsURL = url.appendingPathComponent(bundleRecordsFileName)
+            let candidate = url.appendingPathComponent(bundleAttachmentsFolderName, isDirectory: true)
+            var candidateIsDirectory: ObjCBool = false
+            if FileManager.default.fileExists(atPath: candidate.path, isDirectory: &candidateIsDirectory), candidateIsDirectory.boolValue {
+                attachmentsURL = candidate
+            }
+        } else {
+            recordsURL = url
+        }
+        guard let data = try? Data(contentsOf: recordsURL) else {
+            return .failure(.invalidData)
+        }
+        let result = importJSONData(data, replace: replace)
+        if case .success = result, let attachmentsURL, let files = try? FileManager.default.contentsOfDirectory(at: attachmentsURL, includingPropertiesForKeys: nil) {
+            let dest = MessageSavingBridge.attachmentsDirectoryURL
+            for file in files {
+                let destFile = dest.appendingPathComponent(file.lastPathComponent)
+                if !FileManager.default.fileExists(atPath: destFile.path) {
+                    try? FileManager.default.copyItem(at: file, to: destFile)
+                }
+            }
+        }
+        return result
     }
 }

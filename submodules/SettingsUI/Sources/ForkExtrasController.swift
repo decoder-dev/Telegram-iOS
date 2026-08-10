@@ -21,7 +21,9 @@ private final class ForkExtrasMessageSavingImportPresenter: NSObject, UIDocument
         self.replace = replace
         self.context = context
         self.present = present
-        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.json, .data], asCopy: true)
+        // .folder alongside .json/.data lets the same picker accept either a bare records.json
+        // (older/simple export) or a full exportBundle() folder (records.json + Saved Attachments).
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.json, .data, .folder], asCopy: true)
         picker.delegate = self
         picker.allowsMultipleSelection = false
         guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
@@ -44,15 +46,8 @@ private final class ForkExtrasMessageSavingImportPresenter: NSObject, UIDocument
                 url.stopAccessingSecurityScopedResource()
             }
         }
+        let result = MessageSavingStore.importBundle(from: url, replace: self.replace)
         let presentationData = context?.sharedContext.currentPresentationData.with { $0 }
-        guard let data = try? Data(contentsOf: url) else {
-            if let context = self.context, let presentationData {
-                let alert = textAlertController(context: context, title: nil, text: ForkExtrasLocalizedString.importMessageSavingFailed, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})])
-                present?(alert)
-            }
-            return
-        }
-        let result = MessageSavingStore.importJSONData(data, replace: self.replace)
         guard let context = self.context, let presentationData else {
             return
         }
@@ -155,7 +150,7 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.ImportMessageSaving": "Import Saved Messages DB",
             "ForkExtras.ImportMessageSavingMerge": "Merge with existing",
             "ForkExtras.ImportMessageSavingReplace": "Replace existing",
-            "ForkExtras.MessageSavingDbFooter": "Export / import the local deleted & edit-history JSON store (AyuGram DB backup). Media files in Saved Attachments are not included.",
+            "ForkExtras.MessageSavingDbFooter": "Export / import the local deleted & edit-history JSON store (AyuGram DB backup), including a copy of Saved Attachments. Import also accepts a bare records.json.",
             "ForkExtras.ExportMessageSavingDone": "Exported {count} records.",
             "ForkExtras.ImportMessageSavingDone": "Imported {count} new records.",
             "ForkExtras.ImportMessageSavingFailed": "Could not import this file.",
@@ -249,7 +244,7 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.ImportMessageSaving": "Импорт БД сохранённых",
             "ForkExtras.ImportMessageSavingMerge": "Объединить с текущей",
             "ForkExtras.ImportMessageSavingReplace": "Заменить текущую",
-            "ForkExtras.MessageSavingDbFooter": "Экспорт / импорт локального JSON с удалёнными и историей правок (бэкап БД AyuGram). Файлы из Saved Attachments не входят.",
+            "ForkExtras.MessageSavingDbFooter": "Экспорт / импорт локального JSON с удалёнными и историей правок (бэкап БД AyuGram), включая копию Saved Attachments. При импорте также подходит обычный records.json.",
             "ForkExtras.ExportMessageSavingDone": "Экспортировано записей: {count}.",
             "ForkExtras.ImportMessageSavingDone": "Добавлено новых записей: {count}.",
             "ForkExtras.ImportMessageSavingFailed": "Не удалось импортировать файл.",
@@ -1456,11 +1451,11 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
         },
         exportMessageSavingDatabase: {
             MessageSavingStore.flush()
-            guard let data = MessageSavingStore.exportJSONData() else {
+            guard let url = MessageSavingStore.exportBundle() else {
                 return
             }
-            let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("ayu-message-saving.json")
-            try? data.write(to: url, options: .atomic)
+            // A folder URL: AirDrop and "Save to Files" accept it directly; Files' own
+            // "Compress" action turns it into an actual .zip afterwards if the user wants one.
             let activity = UIActivityViewController(activityItems: [url], applicationActivities: nil)
             guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
                 return

@@ -83,8 +83,8 @@ features (stored in AccountManager + App Group UserDefaults for NSE):
 | Save Stories & Protected Media | Save others’ stories to Photos without Premium; also when forwarding is disabled (AyuGram Desktop “No Copy & Download Restrictions”) |
 | Proactively Download Media | Start fetching attachments before delete/TTL so Save Media can keep a durable copy |
 | Deleted / Edited Marks | Customize the 🧹 deleted prefix and the “edited” label in chat |
-| Export / Import Saved Messages DB | Share or restore the local deleted/edit-history JSON store (`ayu-message-saving.json`; attachment files not bundled) |
-| Regex Filters Import | `tg://ayu/filters/import/<host/path>` pulls patterns from allowlisted paste hosts |
+| Export / Import Saved Messages DB | Share or restore a folder (`records.json` + a copy of Saved Attachments) via the share sheet / document picker; import also accepts a bare `records.json` |
+| Regex Filters | Patterns can match a trailing `<type>N</type>` tag (AyuGram Android `MessageObject.TYPE_*`, e.g. photo/video/voice/gif/sticker); `tg://ayu/filters/import/<host/path>` pulls a pattern list from allowlisted paste hosts |
 | Hide Blocked Users | Hide blocked peers in chat, members lists, and reaction lists |
 | Local Telegram Premium | Client-side only: unlocks Story Stealth Mode, HD story quality, and sticker/emoji picker cosmetics on this device. Doesn't touch your real Premium status — nothing server-enforced (sends, quotas, your badge to others) changes |
 
