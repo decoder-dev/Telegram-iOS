@@ -3,7 +3,6 @@ import UIKit
 import Display
 import AsyncDisplayKit
 import TelegramPresentationData
-import LegacyComponents
 import ComponentFlow
 
 public final class SliderComponent: Component {
@@ -165,7 +164,7 @@ public final class SliderComponent: Component {
         private var nativeSliderView: SliderView?
         private let nativeTrackBackgroundView = UIView()
         private let nativeTrackForegroundView = UIView()
-        private var sliderView: TGPhotoEditorSliderView?
+        private var sliderView: EditorStyleSliderView?
         
         private var component: SliderComponent?
         private weak var state: EmptyComponentState?
@@ -313,11 +312,11 @@ public final class SliderComponent: Component {
                     }
                 }
                 
-                let sliderView: TGPhotoEditorSliderView
+                let sliderView: EditorStyleSliderView
                 if let current = self.sliderView {
                     sliderView = current
                 } else {
-                    sliderView = TGPhotoEditorSliderView()
+                    sliderView = EditorStyleSliderView()
                     sliderView.enablePanHandling = true
                     sliderView.dotSize = 5.0
                     sliderView.disablesInteractiveTransitionGestureRecognizer = true
