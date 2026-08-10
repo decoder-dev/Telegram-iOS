@@ -32,7 +32,7 @@ struct SecureIdRecognizedDocumentData {
     let expiryDate: Date?
 }
 
-func presentLegacySecureIdAttachmentMenu(context: AccountContext, present: @escaping (ViewController) -> Void, validLayout: ContainerViewLayout, type: SecureIdAttachmentMenuType, recognizeDocumentData: Bool, completion: @escaping ([TelegramMediaResource], SecureIdRecognizedDocumentData?) -> Void) {
+func presentSecureIdAttachmentMenu(context: AccountContext, present: @escaping (ViewController) -> Void, validLayout: ContainerViewLayout, type: SecureIdAttachmentMenuType, recognizeDocumentData: Bool, completion: @escaping ([TelegramMediaResource], SecureIdRecognizedDocumentData?) -> Void) {
     let presentationData = context.sharedContext.currentPresentationData.with { $0 }
     let legacyController = LegacyController(presentation: .custom, theme: presentationData.theme, initialLayout: validLayout)
     legacyController.statusBar.statusBarStyle = .Ignore
@@ -45,21 +45,21 @@ func presentLegacySecureIdAttachmentMenu(context: AccountContext, present: @esca
     
     present(legacyController)
     
-    let mappedIntent: TGPassportAttachIntent
+    let mappedIntent: SecureIdAttachmentIntent
     switch type {
         case .generic:
-            mappedIntent = TGPassportAttachIntentDefault
+            mappedIntent = .default
         case .idCard:
-            mappedIntent = TGPassportAttachIntentIdentityCard
+            mappedIntent = .identityCard
         case .multiple:
-            mappedIntent = TGPassportAttachIntentMultiple
+            mappedIntent = .multiple
         case .selfie:
-            mappedIntent = TGPassportAttachIntentSelfie
+            mappedIntent = .selfie
     }
     
     var uploadStarted = false
     
-    guard let attachMenu = TGPassportAttachMenu.present(with: legacyController.context, parentController: emptyController, menuController: nil, title: "", intent: mappedIntent, uploadAction: { signal, completed in
+    guard let attachMenu = presentSecureIdAttachmentMenuImpl(presentationData: presentationData, context: legacyController.context, parentController: emptyController, intent: mappedIntent, uploadAction: { signal, completed in
         if let signal = signal {
             if uploadStarted {
                 completed?()
@@ -76,7 +76,7 @@ func presentLegacySecureIdAttachmentMenu(context: AccountContext, present: @esca
             |> runOn(.mainQueue())
             |> delay(0.1, queue: .mainQueue())).start()
             
-            let _ = (processedLegacySecureIdAttachmentItems(signal: signal)
+            let _ = (processedSecureIdAttachmentItems(signal: signal)
             |> mapToSignal { resources -> Signal<([TelegramMediaResource], SecureIdRecognizedDocumentData?), NoError> in
                 switch type {
                     case .generic, .idCard:
@@ -99,7 +99,7 @@ func presentLegacySecureIdAttachmentMenu(context: AccountContext, present: @esca
         } else {
             completed?()
         }
-    }, sourceView: nil, sourceRect: nil, barButtonItem: nil) else {
+    }) else {
         legacyController.dismiss()
         return
     }
@@ -116,7 +116,7 @@ private enum AttachmentItem {
     case iCloud(URL)
 }
 
-private func processedLegacySecureIdAttachmentItems(signal: SSignal) -> Signal<[TelegramMediaResource], NoError> {
+private func processedSecureIdAttachmentItems(signal: SSignal) -> Signal<[TelegramMediaResource], NoError> {
     let nativeSignal = Signal<AttachmentItem?, NoError> { subscriber in
         let disposable = signal.start(next: { next in
             if let dict = next as? [String: Any], let image = dict["image"] as? UIImage {
@@ -141,8 +141,8 @@ private func processedLegacySecureIdAttachmentItems(signal: SSignal) -> Signal<[
                 return .single(image)
             case let .iCloud(url):
                 return Signal<UIImage?, NoError> { subscriber in
-                    let disposable = TGPassportICloud.fetchFile(with: url).start(next: { next in
-                        if let url = next as? URL {
+                    let disposable = fetchSecureIdICloudFile(with: url).start(next: { next in
+                        if let url = next {
                             subscriber.putNext(UIImage(contentsOfFile: url.path))
                         }
                     }, completed: {
@@ -209,17 +209,9 @@ private func recognizedResources(postbox: Postbox, resources: [TelegramMediaReso
         |> mapToSignal { image -> Signal<SecureIdRecognizedDocumentData?, NoError> in
             if let image = image {
                 return Signal { subscriber in
-                    let disposable = TGPassportOCR.recognizeData(in: image, shouldBeDriversLicense: shouldBeDriversLicense)?.start(next: { value in
-                        if let value = value as? TGPassportMRZ {
-                            var issuingCountry: String? = nil
-                            if let issuingCountryValue = value.issuingCountry {
-                                issuingCountry = countryCodeAlpha3ToAlpha2(issuingCountryValue)
-                            }
-                            var nationality: String? = nil
-                            if let nationalityValue = value.nationality {
-                                nationality = countryCodeAlpha3ToAlpha2(nationalityValue)
-                            }
-                            subscriber.putNext(SecureIdRecognizedDocumentData(documentType: value.documentType, documentSubtype: value.documentSubtype, issuingCountry: issuingCountry, nationality: nationality, lastName: value.lastName.capitalized, firstName: value.firstName.capitalized, documentNumber: value.documentNumber, birthDate: value.birthDate, gender: value.gender, expiryDate: value.expiryDate))
+                    let disposable = SecureIdOCR.recognizeData(in: image, shouldBeDriversLicense: shouldBeDriversLicense).start(next: { value in
+                        if let value {
+                            subscriber.putNext(secureIdRecognizedDocumentData(from: value))
                             subscriber.putCompletion()
                         } else {
                             subscriber.putNext(nil)
@@ -228,7 +220,7 @@ private func recognizedResources(postbox: Postbox, resources: [TelegramMediaReso
                     }, completed: nil)
                     
                     return ActionDisposable {
-                        disposable?.dispose()
+                        disposable.dispose()
                     }
                 }
             } else {

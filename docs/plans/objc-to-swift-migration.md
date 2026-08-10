@@ -72,22 +72,32 @@ Already done (do not redo):
 
 **Exit:** Continuous; run a pass before each numbered phase.
 
-## Phase 1 — Passport (pilot cluster)
+## Phase 1 — Passport (pilot cluster) — DONE 2026-08-10
 
-**Why first:** Smallest real neck. External Swift uses of Passport ObjC are
-essentially the `LegacySecureId*` shims in `PassportUI` (`TGPassportAttachMenu`,
-`TGPassportScanController`, `TGPassportOCR` / `MRZ` / `ICloud`).
+**Why first:** Smallest real neck. External Swift uses of the Passport ObjC
+cluster are essentially the SecureId attachment/scan entry points in
+`PassportUI` (attach menu, scan controller, OCR, MRZ parsing, and iCloud import).
 
 | Step | Work |
 |---|---|
 | 1.1 | Inventory call sites in `PassportUI` + any other importers |
 | 1.2 | Swift replacement module (scan UI + attach menu + OCR bridge). Prefer Vision/`VNRecognizeTextRequest` / DataScanner where quality matches; keep MRZ parsing logic in Swift |
-| 1.3 | Flip `LegacySecureIdAttachmentMenu` / `LegacySecureIdScanController` to the new API; leave old LC symbols unused |
-| 1.4 | Delete `TGPassport*` under `LegacyComponents` once `rg` is clean |
+| 1.3 | Flip the SecureId attachment/scan entry points to the new API; leave old LC symbols unused |
+| 1.4 | Delete the Passport ObjC cluster under `LegacyComponents` once symbol search is clean |
 | 1.5 | Device: Passport attach / scan / MRZ on a real account flow |
 
-**DoD:** No `TGPassport*` outside deleted tree; PassportUI has no `Legacy*`
+**DoD:** No deleted Passport ObjC symbols outside the deleted tree; PassportUI has no `Legacy*`
 files; CI green; SSignalKit usage in Passport path gone.
+
+**2026-08-10 status:** Phase 1 Passport ObjC symbols were migrated out of
+`PassportUI`: Swift now owns the attach menu shim, iCloud image import, MRZ
+parser, Vision OCR/barcode bridge, and scan controller/camera preview. The
+LegacyComponents Passport sources and public headers were deleted. Full iOS
+CI/build and device smoke testing were unavailable on the Linux Cloud Agent VM.
+`PassportUI` still imports `LegacyComponents`/`SSignalKit` for the shared
+non-Passport media picker/camera asset pipeline used by the Swift attach menu;
+removing those broader dependencies belongs to a later media-picker/camera
+phase, not the Passport symbol deletion.
 
 **Risk:** OCR quality regression on low-light docs — gate delete behind
 side-by-side comparison on device photos.
@@ -199,7 +209,7 @@ No day/week estimates — cost is **CI runs + device verification depth**:
 
 **Phase 1.1 — Passport neck freeze**
 
-1. List every symbol under `TGPassport*` and every Swift reference.
+1. List every symbol under the Passport ObjC cluster and every Swift reference.
 2. Write a one-page “replacement API” sketch for attach + scan + OCR in
    `PassportUI` (no LC types in the public Swift surface).
 3. Do **not** delete ObjC until 1.3 is on a green IPA tag.

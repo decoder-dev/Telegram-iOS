@@ -2480,7 +2480,7 @@ final class SecureIdDocumentFormControllerNode: FormControllerNode<SecureIdDocum
             }
         }, scanPassport: { [weak self] in
             if let strongSelf = self {
-                let controller = legacySecureIdScanController(theme: strongSelf.theme, strings: strongSelf.strings, finished: { recognizedData in
+                let controller = secureIdScanController(theme: strongSelf.theme, strings: strongSelf.strings, finished: { recognizedData in
                     if let strongSelf = self, let recognizedData = recognizedData, var innerState = strongSelf.innerState {
                         innerState.documentState.updateWithRecognizedData(recognizedData)
                         strongSelf.updateInnerState(transition: .immediate, with: innerState)
@@ -2600,7 +2600,7 @@ final class SecureIdDocumentFormControllerNode: FormControllerNode<SecureIdDocum
             case .translation:
                 attachmentType = .multiple
         }
-        presentLegacySecureIdAttachmentMenu(context: self.context, present: { [weak self] c in
+        presentSecureIdAttachmentMenu(context: self.context, present: { [weak self] c in
             self?.view.endEditing(true)
             self?.present(c, nil)
             }, validLayout: validLayout, type: attachmentType, recognizeDocumentData: recognizeDocumentData, completion: { [weak self] resources, recognizedData in

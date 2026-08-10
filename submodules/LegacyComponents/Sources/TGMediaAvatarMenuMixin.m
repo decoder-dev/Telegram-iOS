@@ -1,5 +1,4 @@
 #import <LegacyComponents/LegacyComponents.h>
-#import <LegacyComponents/TGPassportAttachMenu.h>
 #import <LegacyComponents/TGMediaAvatarMenuMixin.h>
 
 #import "LegacyComponentsInternal.h"

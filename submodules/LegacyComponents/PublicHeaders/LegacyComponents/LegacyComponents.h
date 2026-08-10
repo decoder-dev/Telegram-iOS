@@ -218,11 +218,6 @@
 #import <LegacyComponents/TGPaintingData.h>
 #import <LegacyComponents/TGPaintShader.h>
 #import <LegacyComponents/TGPaintUtils.h>
-#import <LegacyComponents/TGPassportAttachMenu.h>
-#import <LegacyComponents/TGPassportICloud.h>
-#import <LegacyComponents/TGPassportMRZ.h>
-#import <LegacyComponents/TGPassportOCR.h>
-#import <LegacyComponents/TGPassportScanController.h>
 #import <LegacyComponents/TGPeerIdAdapter.h>
 #import <LegacyComponents/TGPhoneUtils.h>
 #import <LegacyComponents/TGPhotoAvatarCropView.h>
