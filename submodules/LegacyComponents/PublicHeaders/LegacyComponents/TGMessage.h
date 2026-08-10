@@ -2,17 +2,13 @@
 
 #import <Foundation/Foundation.h>
 
-#import <LegacyComponents/TGActionMediaAttachment.h>
 #import <LegacyComponents/TGMediaAttachment.h>
 #import <LegacyComponents/TGImageMediaAttachment.h>
-#import <LegacyComponents/TGLocationMediaAttachment.h>
 #import <LegacyComponents/TGVideoMediaAttachment.h>
-#import <LegacyComponents/TGForwardedMessageMediaAttachment.h>
 #import <LegacyComponents/TGDocumentMediaAttachment.h>
 #import <LegacyComponents/TGReplyMessageMediaAttachment.h>
 #import <LegacyComponents/TGReplyMarkupAttachment.h>
 #import <LegacyComponents/TGMessageEntitiesAttachment.h>
-#import <LegacyComponents/TGAuthorSignatureMediaAttachment.h>
 
 #import <LegacyComponents/TGMessageViewCountContentProperty.h>
 
@@ -194,13 +190,8 @@ static inline TGMessageSortKey TGTaggedMessageSortKeyExtract(NSData *data, int32
 @property (nonatomic) int32_t realDate;
 @property (nonatomic) int64_t randomId;
 
-@property (nonatomic, readonly) int64_t forwardPeerId;
-
 @property (nonatomic) bool containsMention;
 @property (nonatomic) bool containsUnseenMention;
-
-@property (nonatomic, strong) TGActionMediaAttachment *actionInfo;
-@property (nonatomic, readonly) TGLocationMediaAttachment *locationAttachment;
 
 @property (nonatomic, strong) NSArray *textCheckingResults;
 
@@ -222,8 +213,6 @@ static inline TGMessageSortKey TGTaggedMessageSortKeyExtract(NSData *data, int32
 @property (nonatomic, strong) TGMessageViewCountContentProperty *viewCount;
 
 @property (nonatomic, strong) NSArray *entities;
-@property (nonatomic, strong, readonly) NSString *authorSignature;
-@property (nonatomic, strong, readonly) NSString *forwardAuthorSignature;
 
 @property (nonatomic, strong) NSDictionary *contentProperties;
 

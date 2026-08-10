@@ -40,12 +40,10 @@
 #import <LegacyComponents/PSLMDBKeyValueStore.h>
 #import <LegacyComponents/PSLMDBTable.h>
 #import <LegacyComponents/RMPhoneFormat.h>
-#import <LegacyComponents/TGActionMediaAttachment.h>
 #import <LegacyComponents/TGAnimationBlockDelegate.h>
 #import <LegacyComponents/TGAttachmentCameraView.h>
 #import <LegacyComponents/TGAttachmentCarouselItemView.h>
 #import <LegacyComponents/TGAudioWaveform.h>
-#import <LegacyComponents/TGAuthorSignatureMediaAttachment.h>
 #import <LegacyComponents/TGBackdropView.h>
 #import <LegacyComponents/TGBotReplyMarkup.h>
 #import <LegacyComponents/TGCameraCapturedPhoto.h>
@@ -76,7 +74,6 @@
 #import <LegacyComponents/TGEmbedPIPPullArrowView.h>
 #import <LegacyComponents/TGFileUtils.h>
 #import <LegacyComponents/TGFont.h>
-#import <LegacyComponents/TGForwardedMessageMediaAttachment.h>
 #import <LegacyComponents/TGFullscreenContainerView.h>
 #import <LegacyComponents/TGGifConverter.h>
 #import <LegacyComponents/TGHacks.h>
@@ -93,7 +90,6 @@
 #import <LegacyComponents/TGKeyCommandController.h>
 #import <LegacyComponents/TGLiveUploadInterface.h>
 #import <LegacyComponents/TGLocalization.h>
-#import <LegacyComponents/TGLocationMediaAttachment.h>
 #import <LegacyComponents/TGMediaAsset+TGMediaEditableItem.h>
 #import <LegacyComponents/TGMediaAsset.h>
 #import <LegacyComponents/TGMediaAssetFetchResult.h>

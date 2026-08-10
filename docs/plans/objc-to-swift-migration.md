@@ -27,7 +27,7 @@ Fork-relevant ObjC surface:
 
 | Component | Notes |
 |---|---|
-| `LegacyComponents` | ~144k LOC, **316** `.m` files — primary target |
+| `LegacyComponents` | ~144k LOC, **309** `.m` files — primary target |
 | `MtProtoKit` | protocol/transport — low priority, shared with upstream |
 | `SSignalKit` | dies for free once LegacyComponents no longer needs it |
 | `AsyncDisplayKit` / `ffmpeg` / `TgVoipWebrtc` | vendored — do not migrate |
@@ -213,6 +213,22 @@ edit), and all `TGCamera*` / `PGCamera*` / live gallery /
 After this wave (and the intervening Phase 3 toolbar / ToolButtonsView
 delete that took 316→315 `.m`), `LegacyComponents` is **313** `.m` +
 **23** `.mm` files and **230** public headers.
+
+**2026-08-10 sixth wave** — same attachment-parser pattern as the third
+wave (nothing calls `+[TGMessage registerMediaAttachmentParser:parser:]`,
+so types that only surface through `TGMessage` accessors are unreachable):
+
+- `TGActionMediaAttachment` (+ `TGMessageAction` enum) — only wired through
+  `TGMessage.actionInfo` in `setMediaAttachments:` / `-copy`.
+- `TGAuthorSignatureMediaAttachment` — only `TGMessage.authorSignature`.
+- `TGForwardedMessageMediaAttachment` — only `TGMessage.forwardPeerId` /
+  `forwardAuthorSignature`.
+- `TGLocationMediaAttachment` (+ nested `TGVenueAttachment`) — only
+  `TGMessage.locationAttachment`.
+
+Removed the four accessors/properties from `TGMessage` with the classes.
+`LegacyComponents` is now **309** `.m` + **23** `.mm` files and **226**
+public headers.
 
 **Exit:** Continuous; run a pass before each numbered phase.
 

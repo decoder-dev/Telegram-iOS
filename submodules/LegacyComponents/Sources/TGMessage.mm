@@ -139,8 +139,6 @@ typedef enum {
     copyMessage->_realDate = _realDate;
     copyMessage->_randomId = _randomId;
     
-    copyMessage->_actionInfo = _actionInfo;
-    
     copyMessage->_textCheckingResults = _textCheckingResults;
     
     copyMessage->_messageLifetime = _messageLifetime;
@@ -268,20 +266,6 @@ typedef enum {
 
 + (bool)containsUnseenMention:(int64_t)flags {
     return flags & TGMessageFlagContainsUnseenMention;
-}
-
-- (int64_t)forwardPeerId
-{
-    for (TGMediaAttachment *attachment in _mediaAttachments)
-    {
-        if (attachment.type == TGForwardedMessageMediaAttachmentType)
-        {
-            TGForwardedMessageMediaAttachment *forwardedMessageAttachment = (TGForwardedMessageMediaAttachment *)attachment;
-            return forwardedMessageAttachment.forwardPeerId;
-        }
-    }
-    
-    return 0;
 }
 
 - (int64_t)groupedId {
@@ -1018,29 +1002,6 @@ typedef enum {
     return nil;
 }
 
-- (NSString *)authorSignature {
-    for (TGMediaAttachment *attachment in _mediaAttachments)
-    {
-        if (attachment.type == TGAuthorSignatureMediaAttachmentType)
-        {
-            return ((TGAuthorSignatureMediaAttachment *)attachment).signature;
-        }
-    }
-    
-    return nil;
-}
-
-- (NSString *)forwardAuthorSignature {
-    for (TGMediaAttachment *attachment in _mediaAttachments)
-    {
-        if (attachment.type == TGForwardedMessageMediaAttachmentType) {
-            return ((TGForwardedMessageMediaAttachment *)attachment).forwardAuthorSignature;
-        }
-    }
-    
-    return nil;
-}
-
 + (void)registerMediaAttachmentParser:(int)type parser:(id<TGMediaAttachmentParser>)parser
 {
     mediaAttachmentParsers.insert(std::pair<int, id<TGMediaAttachmentParser> >(type, parser));
@@ -1123,13 +1084,6 @@ typedef enum {
 
 - (void)setMediaAttachments:(NSArray *)mediaAttachments
 {
-    for (TGMediaAttachment *attachment in mediaAttachments)
-    {
-        if (attachment.type == TGActionMediaAttachmentType) {
-            _actionInfo = (TGActionMediaAttachment *)attachment;
-        }
-    }
-    
     _mediaAttachments = mediaAttachments;
 }
 
@@ -1292,16 +1246,6 @@ typedef enum {
 - (int32_t)actualDate
 {
     return self.editDate > 0 ? self.editDate : self.date;
-}
-
-- (TGLocationMediaAttachment *)locationAttachment
-{
-    for (TGMediaAttachment *attachment in _mediaAttachments)
-    {
-        if (attachment.type == TGLocationMediaAttachmentType)
-            return (TGLocationMediaAttachment *)attachment;
-    }
-    return nil;
 }
 
 - (NSString *)caption
