@@ -28,6 +28,7 @@ swift_library(
         "//submodules/AttachmentUI",
         "//submodules/TelegramUIPreferences",
         "//submodules/MediaPickerUI",
+        "//submodules/Camera",
         "//submodules/LegacyMediaPickerUI",
         "//submodules/LocationUI",
         "//submodules/TelegramUI/Components/ChatScheduleTimeController",

@@ -42,42 +42,16 @@ import ChatRichTextEditorComposer
 import Postbox
 
 private func legacyCameraCapturedMediaSignals(
-    from resultSignal: Signal<CameraScreenImpl.Result, NoError>,
+    from result: Any,
+    context: AccountContext,
     initialCaption: NSAttributedString,
     sendPaidMessageStars: Int64
 ) -> Signal<[Any], NoError> {
-    let price = sendPaidMessageStars == 0 ? nil : sendPaidMessageStars
-    return resultSignal
-    |> mapToSignal { result -> Signal<[Any], NoError> in
-        let media: [LegacyCameraCapturedMedia]
-        switch result {
-        case .pendingImage:
-            return .complete()
-        case let .image(image):
-            guard image.additionalImage == nil else {
-                return .complete()
-            }
-            media = [.photo(image: image.image, caption: initialCaption, price: price)]
-        case let .video(video):
-            guard video.additionalVideoPath == nil, let coverImage = video.coverImage else {
-                return .complete()
-            }
-            media = [.video(path: video.videoPath, previewImage: coverImage, coverImage: video.coverImage, duration: video.duration, caption: initialCaption, price: price)]
-        case let .asset(asset):
-            media = [.asset(asset, caption: initialCaption, price: price)]
-        case let .assets(assets):
-            media = assets.map { .asset($0, caption: initialCaption, price: price) }
-        case .draft, .videoCollage:
-            return .complete()
-        }
-
-        let signals = legacyCameraCapturedMediaSignals(media)
-        if signals.isEmpty {
-            return .complete()
-        }
-        return .single(signals)
-    }
-    |> take(1)
+    return context.sharedContext.legacyCameraCapturedMediaSignals(
+        fromCameraScreenResult: result,
+        initialCaption: initialCaption,
+        sendPaidMessageStars: sendPaidMessageStars
+    )
 }
 
 extension ChatControllerImpl {
@@ -1649,13 +1623,9 @@ extension ChatControllerImpl {
         }
         let mediaPickerContext = controller.mediaPickerContext
         controller.openCamera = { [weak self, weak controller] cameraView in
-            if let cameraView = cameraView as? TGAttachmentCameraView {
-                self?.openCamera(cameraView: cameraView)
-            } else {
-                self?.openCamera(cameraView: cameraView, presentCameraScreen: { [weak controller] cameraScreen in
-                    controller?.push(cameraScreen)
-                })
-            }
+            self?.openCamera(cameraView: cameraView, presentCameraScreen: { [weak controller] cameraScreen in
+                controller?.push(cameraScreen)
+            })
         }
         controller.presentSchedulePicker = { [weak self] media, done in
             if let strongSelf = self {
@@ -2057,57 +2027,50 @@ extension ChatControllerImpl {
             let entry = transaction.getSharedData(ApplicationSpecificSharedDataKeys.generatedMediaStoreSettings)?.get(GeneratedMediaStoreSettings.self)
             return entry ?? GeneratedMediaStoreSettings.defaultSettings
         }
-        |> deliverOnMainQueue).startStandalone(next: { [weak self] settings in
+        |> deliverOnMainQueue).startStandalone(next: { [weak self] _ in
             guard let strongSelf = self else {
                 return
             }
 
-            var enablePhoto = true
-            var enableVideo = true
-
-            if let callManager = strongSelf.context.sharedContext.callManager as? PresentationCallManagerImpl, callManager.hasActiveCall {
-                enableVideo = false
-            }
-
-            var bannedSendPhotos: (Int32, Bool)?
-            var bannedSendVideos: (Int32, Bool)?
-
-            if let peer = strongSelf.presentationInterfaceState.renderedPeer?.peer {
-                if let channel = peer as? TelegramChannel {
-                    if let value = channel.hasBannedPermission(.banSendPhotos) {
-                        bannedSendPhotos = value
-                    }
-                    if let value = channel.hasBannedPermission(.banSendVideos) {
-                        bannedSendVideos = value
-                    }
-                } else if let group = peer as? TelegramGroup {
-                    if group.hasBannedPermission(.banSendPhotos) {
-                        bannedSendPhotos = (Int32.max, false)
-                    }
-                    if group.hasBannedPermission(.banSendVideos) {
-                        bannedSendVideos = (Int32.max, false)
-                    }
-                }
-            }
-
-            if bannedSendPhotos != nil {
-                enablePhoto = false
-            }
-            if bannedSendVideos != nil {
-                enableVideo = false
-            }
-
-            var storeCapturedMedia = false
-            var hasSchedule = false
-            if let peer = strongSelf.presentationInterfaceState.renderedPeer?.peer {
-                storeCapturedMedia = peer.id.namespace != Namespaces.Peer.SecretChat
-                hasSchedule = strongSelf.presentationInterfaceState.subject != .scheduledMessages && peer.id.namespace != Namespaces.Peer.SecretChat && strongSelf.presentationInterfaceState.sendPaidMessageStars == nil
-            }
             let inputText = strongSelf.presentationInterfaceState.interfaceState.effectiveInputState.inputText
+            let sendPaidMessageStars = strongSelf.presentationInterfaceState.sendPaidMessageStars?.value ?? 0
+
+            var returnToCameraImpl: (() -> Void)?
+            let presentCapturedResult: (Any, @escaping () -> Void) -> Void = { [weak self] result, commit in
+                guard let strongSelf = self else {
+                    returnToCameraImpl?()
+                    return
+                }
+
+                var didSend = false
+                let _ = (legacyCameraCapturedMediaSignals(
+                    from: result,
+                    context: strongSelf.context,
+                    initialCaption: inputText,
+                    sendPaidMessageStars: sendPaidMessageStars
+                )
+                |> deliverOnMainQueue).startStandalone(next: { [weak self] signals in
+                    guard let strongSelf = self else {
+                        return
+                    }
+                    didSend = true
+                    // Schedule/silent/timer params are not yet exposed by CameraScreen completion;
+                    // send immediately (same temporary gap as the CameraHolder path).
+                    strongSelf.enqueueMediaMessages(signals: signals, silentPosting: false, scheduleTime: nil, completion: {
+                        commit()
+                    })
+                    if !inputText.string.isEmpty {
+                        strongSelf.clearInputText()
+                    }
+                    strongSelf.attachmentController?.dismiss(animated: false, completion: nil)
+                }, completed: {
+                    if !didSend {
+                        returnToCameraImpl?()
+                    }
+                })
+            }
 
             if let cameraHolder = cameraView as? CameraHolder {
-                var returnToCameraImpl: (() -> Void)?
-                let sendPaidMessageStars = strongSelf.presentationInterfaceState.sendPaidMessageStars?.value ?? 0
                 let cameraScreen = strongSelf.context.sharedContext.makeCameraScreen(
                     context: strongSelf.context,
                     mode: .sticker,
@@ -2125,31 +2088,8 @@ extension ChatControllerImpl {
                             destinationCornerRadius: 0.0
                         )
                     },
-                    completion: { [weak self] result, commit in
-                        guard let resultSignal = result as? Signal<CameraScreenImpl.Result, NoError> else {
-                            returnToCameraImpl?()
-                            return
-                        }
-
-                        var didSend = false
-                        let _ = (legacyCameraCapturedMediaSignals(from: resultSignal, initialCaption: inputText, sendPaidMessageStars: sendPaidMessageStars)
-                        |> deliverOnMainQueue).startStandalone(next: { [weak self] signals in
-                            guard let strongSelf = self else {
-                                return
-                            }
-                            didSend = true
-                            strongSelf.enqueueMediaMessages(signals: signals, silentPosting: false, scheduleTime: nil, completion: {
-                                commit()
-                            })
-                            if !inputText.string.isEmpty {
-                                strongSelf.clearInputText()
-                            }
-                            strongSelf.attachmentController?.dismiss(animated: false, completion: nil)
-                        }, completed: {
-                            if !didSend {
-                                returnToCameraImpl?()
-                            }
-                        })
+                    completion: { result, commit in
+                        presentCapturedResult(result, commit)
                     },
                     transitionedOut: { [weak cameraHolder] in
                         cameraHolder?.restore()
@@ -2170,46 +2110,33 @@ extension ChatControllerImpl {
                 return
             }
 
-            let cameraPeer: EnginePeer? = strongSelf.presentationInterfaceState.renderedPeer?.peer.map { EnginePeer($0) }
-            presentedLegacyCamera(context: strongSelf.context, peer: cameraPeer, chatLocation: strongSelf.chatLocation, cameraView: cameraView as? TGAttachmentCameraView, menuController: nil, parentController: strongSelf, attachmentController: self?.attachmentController, editingMedia: false, saveCapturedPhotos: storeCapturedMedia, mediaGrouping: true, initialCaption: inputText, hasSchedule: hasSchedule, enablePhoto: enablePhoto, enableVideo: enableVideo, sendPaidMessageStars: strongSelf.presentationInterfaceState.sendPaidMessageStars?.value ?? 0, sendMessagesWithSignals: { [weak self] signals, silentPosting, scheduleTime, parameters in
-                if let strongSelf = self {
-                    strongSelf.enqueueMediaMessages(signals: signals, silentPosting: silentPosting, scheduleTime: scheduleTime > 0 ? scheduleTime : nil, parameters: parameters)
-                    if !inputText.string.isEmpty {
-                        strongSelf.clearInputText()
-                    }
+            // Non-CameraHolder path (nil / legacy TGAttachmentCameraView): present Swift CameraScreen
+            // without a live preview holder. Schedule/silent posting remains a temporary gap until
+            // CameraScreen completion grows those parameters.
+            let cameraScreen = strongSelf.context.sharedContext.makeCameraScreen(
+                context: strongSelf.context,
+                mode: .sticker,
+                cameraHolder: nil,
+                transitionIn: nil,
+                transitionOut: { _ in nil },
+                completion: { result, commit in
+                    presentCapturedResult(result, commit)
+                },
+                transitionedOut: nil
+            )
+
+            if let presentCameraScreen {
+                presentCameraScreen(cameraScreen)
+            } else {
+                strongSelf.push(cameraScreen)
+            }
+
+            returnToCameraImpl = { [weak cameraScreen] in
+                if let cameraScreen = cameraScreen as? CameraScreen {
+                    cameraScreen.returnFromEditor()
                 }
-            }, recognizedQRCode: { [weak self] code in
-                if let strongSelf = self {
-                    if let (host, port, username, password, secret) = parseProxyUrl(sharedContext: strongSelf.context.sharedContext, url: code) {
-                        strongSelf.openResolved(result: ResolvedUrl.proxy(host: host, port: port, username: username, password: password, secret: secret), sourceMessageId: nil)
-                    }
-                }
-            }, presentSchedulePicker: { [weak self] _, done in
-                if let strongSelf = self {
-                    strongSelf.presentScheduleTimePicker(style: .media, presentInOverlay: true, completion: { [weak self] result in
-                        if let strongSelf = self {
-                            done(result.time, result.silentPosting)
-                            if strongSelf.presentationInterfaceState.subject != .scheduledMessages && result.time != scheduleWhenOnlineTimestamp {
-                                strongSelf.openScheduledMessages()
-                            }
-                        }
-                    })
-                }
-            }, presentTimerPicker: { [weak self] done in
-                if let strongSelf = self {
-                    strongSelf.presentTimerPicker(style: .media, completion: { time in
-                        done(time)
-                    })
-                }
-            }, getCaptionPanelView: { [weak self] in
-                return self?.getCaptionPanelView(isFile: false)
-            }, photoToolbarView: { [context = strongSelf.context] backButton, doneButton, solidBackground, hasSendStarsButton in
-                return makeMediaPickerPhotoToolbarView(context: context, backButton: backButton, doneButton: doneButton, solidBackground: solidBackground, hasSendStarsButton: hasSendStarsButton)
-            }, dismissedWithResult: { [weak self] in
-                self?.attachmentController?.dismiss(animated: false, completion: nil)
-            }, finishedTransitionIn: { [weak self] in
-                self?.attachmentController?.scrollToTop?()
-            })
+            }
+            strongSelf.attachmentController?.scrollToTop?()
         })
     }
 

@@ -9,6 +9,7 @@ import UndoUI
 import AttachmentUI
 import TelegramUIPreferences
 import MediaPickerUI
+import Camera
 import LegacyMediaPickerUI
 import LocationUI
 import ChatEntityKeyboardInputNode
@@ -2218,15 +2219,13 @@ final class StoryItemSetContainerSendMessage: @unchecked(Sendable) {
         let theme = component.theme
         let controller = MediaPickerScreenImpl(context: component.context, updatedPresentationData: (component.context.sharedContext.currentPresentationData.with({ $0 }).withUpdated(theme: theme), component.context.sharedContext.presentationData |> map { $0.withUpdated(theme: theme) }), style: .glass, peer: peer, threadTitle: nil, chatLocation: .peer(id: peer.id), bannedSendPhotos: bannedSendPhotos, bannedSendVideos: bannedSendVideos, subject: subject, saveEditedPhotos: saveEditedPhotos)
         let mediaPickerContext = controller.mediaPickerContext
-        controller.openCamera = { [weak self, weak view] cameraView in
+        controller.openCamera = { [weak self, weak view, weak controller] cameraView in
             guard let self, let view else {
                 return
             }
-            if let cameraView = cameraView as? TGAttachmentCameraView {
-                self.openCamera(view: view, peer: peer, replyToMessageId: replyToMessageId, replyToStoryId: replyToStoryId, cameraView: cameraView)
-            } else {
-                self.openCamera(view: view, peer: peer, replyToMessageId: replyToMessageId, replyToStoryId: replyToStoryId, cameraView: nil)
-            }
+            self.openCamera(view: view, peer: peer, replyToMessageId: replyToMessageId, replyToStoryId: replyToStoryId, cameraView: cameraView, presentCameraScreen: { [weak controller] cameraScreen in
+                controller?.push(cameraScreen)
+            })
         }
         controller.presentSchedulePicker = { [weak self, weak view] media, done in
             guard let self, let view else {
@@ -2627,7 +2626,7 @@ final class StoryItemSetContainerSendMessage: @unchecked(Sendable) {
         }) as? TGCaptionPanelView
     }
 
-    private func openCamera(view: StoryItemSetContainerComponent.View, peer: EnginePeer, replyToMessageId: EngineMessage.Id?, replyToStoryId: EngineStoryId?, cameraView: TGAttachmentCameraView? = nil) {
+    private func openCamera(view: StoryItemSetContainerComponent.View, peer: EnginePeer, replyToMessageId: EngineMessage.Id?, replyToStoryId: EngineStoryId?, cameraView: Any? = nil, presentCameraScreen: ((ViewController) -> Void)? = nil) {
         guard let component = view.component else {
             return
         }
@@ -2645,8 +2644,99 @@ final class StoryItemSetContainerSendMessage: @unchecked(Sendable) {
             let entry = transaction.getSharedData(ApplicationSpecificSharedDataKeys.generatedMediaStoreSettings)?.get(GeneratedMediaStoreSettings.self)
             return entry ?? GeneratedMediaStoreSettings.defaultSettings
         }
-        |> deliverOnMainQueue).start(next: { [weak self, weak view] settings in
+        |> deliverOnMainQueue).start(next: { [weak self, weak view] _ in
             guard let self, let view, let component = view.component, let parentController = component.controller() else {
+                return
+            }
+
+            // Swift CameraScreen path (CameraHolder preview tile or nil). Uses the AccountContext
+            // bridge so this module never imports CameraScreen (CameraScreen → StoryContainerScreen cycle).
+            if cameraView == nil || cameraView is CameraHolder {
+                var returnToCameraImpl: (() -> Void)?
+                let cameraHolder = cameraView as? CameraHolder
+                let transitionIn: CameraScreenTransitionIn?
+                let transitionOut: (Bool) -> CameraScreenTransitionOut?
+                if let cameraHolder {
+                    transitionIn = CameraScreenTransitionIn(
+                        sourceView: cameraHolder.parentView,
+                        sourceRect: cameraHolder.parentView.bounds,
+                        sourceCornerRadius: 0.0,
+                        useFillAnimation: false
+                    )
+                    transitionOut = { _ in
+                        CameraScreenTransitionOut(
+                            destinationView: cameraHolder.parentView,
+                            destinationRect: cameraHolder.parentView.bounds,
+                            destinationCornerRadius: 0.0
+                        )
+                    }
+                } else {
+                    transitionIn = nil
+                    transitionOut = { _ in nil }
+                }
+
+                let cameraScreen = component.context.sharedContext.makeCameraScreen(
+                    context: component.context,
+                    mode: .sticker,
+                    cameraHolder: cameraHolder,
+                    transitionIn: transitionIn,
+                    transitionOut: transitionOut,
+                    completion: { [weak self, weak view] result, commit in
+                        guard let self, let view else {
+                            returnToCameraImpl?()
+                            return
+                        }
+                        var didSend = false
+                        let _ = (component.context.sharedContext.legacyCameraCapturedMediaSignals(
+                            fromCameraScreenResult: result,
+                            initialCaption: inputText,
+                            sendPaidMessageStars: 0
+                        )
+                        |> deliverOnMainQueue).start(next: { [weak self, weak view] signals in
+                            guard let self, let view else {
+                                return
+                            }
+                            didSend = true
+                            self.presentPaidMessageAlertIfNeeded(view: view, completion: { [weak self, weak view] in
+                                guard let self, let view else {
+                                    return
+                                }
+                                // Schedule/silent params not yet on CameraScreen completion — send immediately.
+                                self.enqueueMediaMessages(view: view, peer: peer, replyToMessageId: replyToMessageId, replyToStoryId: replyToStoryId, signals: signals, silentPosting: false, scheduleTime: nil, parameters: nil)
+                                if !inputText.string.isEmpty {
+                                    self.clearInputText(view: view)
+                                }
+                                commit()
+                                self.attachmentController?.dismiss(animated: false, completion: nil)
+                            })
+                        }, completed: {
+                            if !didSend {
+                                returnToCameraImpl?()
+                            }
+                        })
+                    },
+                    transitionedOut: { [weak cameraHolder] in
+                        cameraHolder?.restore()
+                    }
+                )
+
+                if let presentCameraScreen {
+                    presentCameraScreen(cameraScreen)
+                } else {
+                    parentController.push(cameraScreen)
+                }
+
+                returnToCameraImpl = { [weak cameraScreen] in
+                    if let cameraScreen = cameraScreen as? CameraScreen {
+                        cameraScreen.returnFromEditor()
+                    }
+                }
+                self.attachmentController?.scrollToTop?()
+                return
+            }
+
+            // Legacy TGAttachmentCameraView still needs presentedLegacyCamera for the carousel preview transition.
+            guard let legacyCameraView = cameraView as? TGAttachmentCameraView else {
                 return
             }
 
@@ -2685,7 +2775,7 @@ final class StoryItemSetContainerSendMessage: @unchecked(Sendable) {
 
             let storeCapturedMedia = peer.id.namespace != Namespaces.Peer.SecretChat
 
-            presentedLegacyCamera(context: component.context, peer: peer, chatLocation: .peer(id: peer.id), cameraView: cameraView, menuController: nil, parentController: parentController, attachmentController: self.attachmentController, editingMedia: false, saveCapturedPhotos: storeCapturedMedia, mediaGrouping: true, initialCaption: inputText, hasSchedule: peer.id.namespace != Namespaces.Peer.SecretChat, enablePhoto: enablePhoto, enableVideo: enableVideo, sendMessagesWithSignals: { [weak self, weak view] signals, silentPosting, scheduleTime, parameters in
+            presentedLegacyCamera(context: component.context, peer: peer, chatLocation: .peer(id: peer.id), cameraView: legacyCameraView, menuController: nil, parentController: parentController, attachmentController: self.attachmentController, editingMedia: false, saveCapturedPhotos: storeCapturedMedia, mediaGrouping: true, initialCaption: inputText, hasSchedule: peer.id.namespace != Namespaces.Peer.SecretChat, enablePhoto: enablePhoto, enableVideo: enableVideo, sendMessagesWithSignals: { [weak self, weak view] signals, silentPosting, scheduleTime, parameters in
                 guard let self, let view else {
                     return
                 }

@@ -4074,6 +4074,44 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         }
         return controller
     }
+
+    public func legacyCameraCapturedMediaSignals(fromCameraScreenResult result: Any, initialCaption: NSAttributedString, sendPaidMessageStars: Int64) -> Signal<[Any], NoError> {
+        guard let resultSignal = result as? Signal<CameraScreenImpl.Result, NoError> else {
+            return .complete()
+        }
+        let price = sendPaidMessageStars == 0 ? nil : sendPaidMessageStars
+        return resultSignal
+        |> mapToSignal { cameraResult -> Signal<[Any], NoError> in
+            let media: [LegacyCameraCapturedMedia]
+            switch cameraResult {
+            case .pendingImage:
+                return .complete()
+            case let .image(image):
+                guard image.additionalImage == nil else {
+                    return .complete()
+                }
+                media = [.photo(image: image.image, caption: initialCaption, price: price)]
+            case let .video(video):
+                guard video.additionalVideoPath == nil, let coverImage = video.coverImage else {
+                    return .complete()
+                }
+                media = [.video(path: video.videoPath, previewImage: coverImage, coverImage: video.coverImage, duration: video.duration, caption: initialCaption, price: price)]
+            case let .asset(asset):
+                media = [.asset(asset, caption: initialCaption, price: price)]
+            case let .assets(assets):
+                media = assets.map { .asset($0, caption: initialCaption, price: price) }
+            case .draft, .videoCollage:
+                return .complete()
+            }
+
+            let signals = legacyCameraCapturedMediaSignals(media)
+            if signals.isEmpty {
+                return .complete()
+            }
+            return .single(signals)
+        }
+        |> take(1)
+    }
     
     public func makeMediaPickerScreen(context: AccountContext, hasSearch: Bool, completion: @escaping (Any) -> Void) -> ViewController {
         return mediaPickerController(context: context, hasSearch: hasSearch, completion: completion)
