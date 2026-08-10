@@ -82,9 +82,11 @@ public func legacyWallpaperEditor(context: AccountContext, item: TGMediaEditable
 
     legacyController.enableSizeClassSignal = true
     
+    let paintStickersContext = LegacyPaintStickersContext(context: context)
+    
     present(legacyController, nil)
     
-    TGPhotoVideoEditor.present(with: legacyController.context, controller: emptyController, with: item, cropRect: cropRect, adjustments: adjustments, referenceView: referenceView, completion: { image, adjustments in
+    TGPhotoVideoEditor.presentEditor(with: legacyController.context, controller: emptyController, with: item, cropRect: cropRect, adjustments: adjustments, stickersContext: paintStickersContext, referenceView: referenceView, completion: { image, adjustments in
         completion(image, adjustments)
     }, fullSizeCompletion: { image in
         Queue.mainQueue().async {
@@ -134,7 +136,9 @@ public func legacyMediaEditor(
         paintStickersContext.captionPanelView = {
             return getCaptionPanelView()
         }
-        paintStickersContext.photoToolbarView = photoToolbarView
+        if let photoToolbarView {
+            paintStickersContext.photoToolbarView = photoToolbarView
+        }
         
         let presentationData = context.sharedContext.currentPresentationData.with { $0 }
         let recipientName: String

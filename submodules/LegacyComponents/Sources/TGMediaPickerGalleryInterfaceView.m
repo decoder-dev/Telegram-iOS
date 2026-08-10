@@ -29,7 +29,8 @@
 #import <LegacyComponents/TGMessageImageViewOverlayView.h>
 
 #import <LegacyComponents/TGPhotoEditorTabController.h>
-#import <LegacyComponents/TGPhotoToolbarView.h>
+#import <LegacyComponents/TGPhotoToolbarViewProtocol.h>
+#import <LegacyComponents/TGPhotoToolbarViewFactory.h>
 #import <LegacyComponents/TGPhotoEditorButton.h>
 #import <LegacyComponents/TGCheckButtonView.h>
 #import "TGMediaPickerPhotoCounterButton.h"
@@ -44,16 +45,9 @@
 #import <LegacyComponents/TGPhotoCaptionInputMixin.h>
 #import <LegacyComponents/TGPhotoPaintStickersContext.h>
 
-static UIView<TGPhotoToolbarViewProtocol> *TGMediaPickerCreatePhotoToolbarView(id<LegacyComponentsContext> context, TGPhotoEditorBackButton backButton, TGPhotoEditorDoneButton doneButton, bool solidBackground, id<TGPhotoPaintStickersContext> stickersContext, bool hasSendStarsButton)
+static UIView<TGPhotoToolbarViewProtocol> *TGMediaPickerCreatePhotoToolbarView(TGPhotoEditorBackButton backButton, TGPhotoEditorDoneButton doneButton, bool solidBackground, id<TGPhotoPaintStickersContext> stickersContext, bool hasSendStarsButton)
 {
-    if (stickersContext.photoToolbarView != nil)
-    {
-        UIView<TGPhotoToolbarViewProtocol> *toolbarView = stickersContext.photoToolbarView(backButton, doneButton, solidBackground, hasSendStarsButton);
-        if (toolbarView != nil)
-            return toolbarView;
-    }
-
-    return [[TGPhotoToolbarView alloc] initWithContext:context backButton:backButton doneButton:doneButton solidBackground:solidBackground stickersContext:hasSendStarsButton ? stickersContext : nil];
+    return TGPhotoToolbarViewMake(stickersContext, backButton, doneButton, solidBackground, hasSendStarsButton);
 }
 
 static TGMediaAsset *TGMediaPickerGalleryLivePhotoAsset(id<TGMediaEditableItem> editableMediaItem)
@@ -486,13 +480,13 @@ static TGMediaLivePhotoMode TGMediaPickerGalleryResolvedLivePhotoMode(NSNumber *
         
         TGPhotoEditorDoneButton doneButton = isScheduledMessages ? TGPhotoEditorDoneButtonSchedule : TGPhotoEditorDoneButtonSend;
         
-        _portraitToolbarView = TGMediaPickerCreatePhotoToolbarView(_context, TGPhotoEditorBackButtonBack, doneButton, false, stickersContext, editingContext.sendPaidMessageStars > 0);
+        _portraitToolbarView = TGMediaPickerCreatePhotoToolbarView(TGPhotoEditorBackButtonBack, doneButton, false, stickersContext, editingContext.sendPaidMessageStars > 0);
         _portraitToolbarView.cancelPressed = toolbarCancelPressed;
         _portraitToolbarView.donePressed = toolbarDonePressed;
         _portraitToolbarView.doneLongPressed = toolbarDoneLongPressed;
         [_wrapperView addSubview:_portraitToolbarView];
         
-        _landscapeToolbarView = TGMediaPickerCreatePhotoToolbarView(_context, TGPhotoEditorBackButtonBack, doneButton, false, stickersContext, false);
+        _landscapeToolbarView = TGMediaPickerCreatePhotoToolbarView(TGPhotoEditorBackButtonBack, doneButton, false, stickersContext, false);
         _landscapeToolbarView.cancelPressed = toolbarCancelPressed;
         _landscapeToolbarView.donePressed = toolbarDonePressed;
         _landscapeToolbarView.doneLongPressed = toolbarDoneLongPressed;

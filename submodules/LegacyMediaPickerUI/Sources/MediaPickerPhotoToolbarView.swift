@@ -2,7 +2,6 @@ import Foundation
 import UIKit
 import Display
 import LegacyComponents
-import AccountContext
 import TelegramPresentationData
 import ComponentFlow
 import GlassBackgroundComponent
@@ -196,7 +195,6 @@ private func generateTimerIcon(value: Int, color: UIColor) -> UIImage? {
 }
 
 private final class MediaPickerPhotoToolbarComponent: Component {
-    let context: AccountContext
     let solidBackground: Bool
     let backButtonType: TGPhotoEditorBackButton
     let doneButtonType: TGPhotoEditorDoneButton
@@ -225,7 +223,6 @@ private final class MediaPickerPhotoToolbarComponent: Component {
     let tabPressed: ((TGPhotoEditorTab) -> Void)?
 
     init(
-        context: AccountContext,
         solidBackground: Bool,
         backButtonType: TGPhotoEditorBackButton,
         doneButtonType: TGPhotoEditorDoneButton,
@@ -253,7 +250,6 @@ private final class MediaPickerPhotoToolbarComponent: Component {
         doneLongPressed: ((Any?) -> Void)?,
         tabPressed: ((TGPhotoEditorTab) -> Void)?
     ) {
-        self.context = context
         self.solidBackground = solidBackground
         self.backButtonType = backButtonType
         self.doneButtonType = doneButtonType
@@ -283,9 +279,6 @@ private final class MediaPickerPhotoToolbarComponent: Component {
     }
 
     static func ==(lhs: MediaPickerPhotoToolbarComponent, rhs: MediaPickerPhotoToolbarComponent) -> Bool {
-        if lhs.context !== rhs.context {
-            return false
-        }
         if lhs.solidBackground != rhs.solidBackground {
             return false
         }
@@ -432,7 +425,6 @@ private final class MediaPickerPhotoToolbarComponent: Component {
             self.doneLongPressed = component.doneLongPressed
             self.tabPressed = component.tabPressed
 
-            //let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
             let accentColor = UIColor(rgb: 0xffd300) //presentationData.theme.list.itemAccentColor
             let selectedIconColor = UIColor.white //(rgb: 0xffd300)
 
@@ -887,12 +879,24 @@ private final class MediaPickerPhotoToolbarComponent: Component {
     }
 }
 
-public func makeMediaPickerPhotoToolbarView(context: AccountContext, backButton: TGPhotoEditorBackButton, doneButton: TGPhotoEditorDoneButton, solidBackground: Bool, hasSendStarsButton: Bool) -> (UIView & TGPhotoToolbarViewProtocol)? {
-    return MediaPickerPhotoToolbarView(context: context, backButton: backButton, doneButton: doneButton, solidBackground: solidBackground, hasSendStarsButton: hasSendStarsButton)
+public func makeMediaPickerPhotoToolbarView(backButton: TGPhotoEditorBackButton, doneButton: TGPhotoEditorDoneButton, solidBackground: Bool, hasSendStarsButton: Bool) -> (UIView & TGPhotoToolbarViewProtocol)? {
+    registerMediaPickerPhotoToolbarViewFactoryIfNeeded()
+    return MediaPickerPhotoToolbarView(backButton: backButton, doneButton: doneButton, solidBackground: solidBackground, hasSendStarsButton: hasSendStarsButton)
+}
+
+/// Ensures ObjC `TGPhotoToolbarViewMake` can fall back to the Swift toolbar when stickersContext is nil (Passport camera, signup avatar, wallpaper).
+public func registerMediaPickerPhotoToolbarViewFactoryIfNeeded() {
+    enum Registration {
+        static let once: Void = {
+            TGPhotoToolbarViewRegisterFactory { backButton, doneButton, solidBackground, hasSendStarsButton in
+                return MediaPickerPhotoToolbarView(backButton: backButton, doneButton: doneButton, solidBackground: solidBackground, hasSendStarsButton: hasSendStarsButton)
+            }
+        }()
+    }
+    _ = Registration.once
 }
 
 final class MediaPickerPhotoToolbarView: UIView, TGPhotoToolbarViewProtocol {
-    private let context: AccountContext
     private let solidBackground: Bool
     private let hasSendStarsButton: Bool
     private let rootView = ComponentView<Empty>()
@@ -974,8 +978,7 @@ final class MediaPickerPhotoToolbarView: UIView, TGPhotoToolbarViewProtocol {
         return (self.rootView.view as? MediaPickerPhotoToolbarComponent.View)?.doneButtonFrame ?? .zero
     }
 
-    init(context: AccountContext, backButton: TGPhotoEditorBackButton, doneButton: TGPhotoEditorDoneButton, solidBackground: Bool, hasSendStarsButton: Bool) {
-        self.context = context
+    init(backButton: TGPhotoEditorBackButton, doneButton: TGPhotoEditorDoneButton, solidBackground: Bool, hasSendStarsButton: Bool) {
         self.backButtonType = backButton
         self.doneButtonType = doneButton
         self.solidBackground = solidBackground
@@ -1125,7 +1128,6 @@ final class MediaPickerPhotoToolbarView: UIView, TGPhotoToolbarViewProtocol {
             transition: transition,
             component: AnyComponent(
                 MediaPickerPhotoToolbarComponent(
-                    context: self.context,
                     solidBackground: self.solidBackground,
                     backButtonType: self.backButtonType,
                     doneButtonType: self.doneButtonType,

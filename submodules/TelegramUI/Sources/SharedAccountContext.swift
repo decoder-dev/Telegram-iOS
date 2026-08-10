@@ -309,6 +309,10 @@ public final class SharedAccountContextImpl: SharedAccountContext {
     init(mainWindow: Window1?, sharedContainerPath: String, basePath: String, encryptionParameters: ValueBoxEncryptionParameters, accountManager: AccountManager<TelegramAccountManagerTypes>, appLockContext: AppLockContext, notificationController: NotificationContainerController?, applicationBindings: TelegramApplicationBindings, initialPresentationDataAndSettings: InitialPresentationDataAndSettings, networkArguments: NetworkInitializationArguments, hasInAppPurchases: Bool, rootPath: String, legacyBasePath: String?, apsNotificationToken: Signal<Data?, NoError>, voipNotificationToken: Signal<Data?, NoError>, firebaseSecretStream: Signal<[String: String], NoError>, setNotificationCall: @escaping (PresentationCall?) -> Void, navigateToChat: @escaping (AccountRecordId, PeerId, MessageId?, Bool) -> Void, displayUpgradeProgress: @escaping (Float?) -> Void = { _ in }, appDelegate: AppDelegate?, testingEnvironment: Bool = false) {
         assert(Queue.mainQueue().isCurrent())
 
+        // ObjC photo editor/gallery fall back to this Swift toolbar when stickersContext is nil
+        // (Passport camera, signup avatar). Must register before any TGPhotoToolbarViewMake call.
+        registerMediaPickerPhotoToolbarViewFactoryIfNeeded()
+
         precondition(!testHasInstance)
         testHasInstance = true
         

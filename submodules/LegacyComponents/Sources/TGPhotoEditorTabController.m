@@ -9,7 +9,7 @@
 #import <LegacyComponents/TGPhotoEditorAnimation.h>
 
 #import "TGPhotoEditorPreviewView.h"
-#import <LegacyComponents/TGPhotoToolbarView.h>
+#import <LegacyComponents/TGPhotoToolbarViewProtocol.h>
 
 #import <LegacyComponents/PGPhotoEditorValues.h>
 #import <LegacyComponents/TGVideoEditAdjustments.h>
@@ -20,6 +20,7 @@
 
 const CGFloat TGPhotoEditorPanelSize = 115.0f;
 const CGFloat TGPhotoEditorToolbarSize = 49.0f;
+const CGFloat TGPhotoEditorToolButtonsViewSize = 53.0f;
 
 @interface TGPhotoEditorTabController ()
 {

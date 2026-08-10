@@ -93,3 +93,5 @@
 
 extern const CGFloat TGPhotoEditorPanelSize;
 extern const CGFloat TGPhotoEditorToolbarSize;
+/// Legacy cancel/confirm tool-button strip height (class deleted; constant kept for curves panel layout).
+extern const CGFloat TGPhotoEditorToolButtonsViewSize;

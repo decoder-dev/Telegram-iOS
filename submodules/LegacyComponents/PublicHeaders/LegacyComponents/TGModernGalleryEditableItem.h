@@ -1,5 +1,5 @@
 #import <LegacyComponents/TGModernGalleryItem.h>
-#import <LegacyComponents/TGPhotoToolbarView.h>
+#import <LegacyComponents/TGPhotoToolbarViewProtocol.h>
 
 @protocol TGMediaEditableItem;
 @class TGMediaEditingContext;

@@ -30,7 +30,7 @@ extension ChatControllerImpl {
                 return self?.getCaptionPanelView(isFile: false, hasTimer: false)
             },
             photoToolbarView: { [context = self.context] backButton, doneButton, solidBackground, hasSendStarsButton in
-                return makeMediaPickerPhotoToolbarView(context: context, backButton: backButton, doneButton: doneButton, solidBackground: solidBackground, hasSendStarsButton: hasSendStarsButton)
+                return makeMediaPickerPhotoToolbarView(backButton: backButton, doneButton: doneButton, solidBackground: solidBackground, hasSendStarsButton: hasSendStarsButton)
             },
             hasSilentPosting: hasSilentPosting,
             hasSchedule: hasSchedule,

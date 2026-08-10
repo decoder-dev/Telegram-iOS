@@ -1609,7 +1609,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                                 }, getCaptionPanelView: { [weak self] in
                                     return self?.getCaptionPanelView(isFile: false)
                                 }, photoToolbarView: { [context = self.context] backButton, doneButton, solidBackground, hasSendStarsButton in
-                                    return makeMediaPickerPhotoToolbarView(context: context, backButton: backButton, doneButton: doneButton, solidBackground: solidBackground, hasSendStarsButton: hasSendStarsButton)
+                                    return makeMediaPickerPhotoToolbarView(backButton: backButton, doneButton: doneButton, solidBackground: solidBackground, hasSendStarsButton: hasSendStarsButton)
                                 }, hasSilentPosting: hasSilentPosting, hasSchedule: hasSchedule, reminder: peer.id == self.context.account.peerId, presentSchedulePicker: { [weak self] _, done in
                                     guard let self else {
                                         return
@@ -4782,7 +4782,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                         legacyMediaEditor(context: strongSelf.context, peer: EnginePeer(peer), threadTitle: strongSelf.contentData?.state.threadInfo?.title, media: mediaReference, mode: .draw, initialCaption: inputText, snapshots: [], transitionCompletion: nil, getCaptionPanelView: { [weak self] in
                             return self?.getCaptionPanelView(isFile: true)
                         }, photoToolbarView: { [context = strongSelf.context] backButton, doneButton, solidBackground, hasSendStarsButton in
-                            return makeMediaPickerPhotoToolbarView(context: context, backButton: backButton, doneButton: doneButton, solidBackground: solidBackground, hasSendStarsButton: hasSendStarsButton)
+                            return makeMediaPickerPhotoToolbarView(backButton: backButton, doneButton: doneButton, solidBackground: solidBackground, hasSendStarsButton: hasSendStarsButton)
                         }, sendMessagesWithSignals: { [weak self] signals, _, _, _ in
                             if let strongSelf = self {
                                 strongSelf.interfaceInteraction?.setupEditMessage(messageId, { _ in })

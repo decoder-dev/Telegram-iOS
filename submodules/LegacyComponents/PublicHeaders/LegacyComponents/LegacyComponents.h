@@ -200,7 +200,7 @@
 #import <LegacyComponents/TGPhotoEditorToolView.h>
 #import <LegacyComponents/TGPhotoEditorUtils.h>
 #import <LegacyComponents/TGPhotoPaintStickersContext.h>
-#import <LegacyComponents/TGPhotoToolbarView.h>
+#import <LegacyComponents/TGPhotoToolbarViewFactory.h>
 #import <LegacyComponents/TGPhotoVideoEditor.h>
 #import <LegacyComponents/TGPluralization.h>
 #import <LegacyComponents/TGProgressSpinnerView.h>

@@ -10,6 +10,8 @@ import AccountContext
 import SaveToCameraRoll
 
 public func presentLegacyAvatarPicker(holder: Atomic<NSObject?>, signup: Bool, theme: PresentationTheme, present: (ViewController, Any?) -> Void, openCurrent: (() -> Void)?, completion: @escaping (UIImage) -> Void, videoCompletion: @escaping (UIImage, Any?, TGVideoEditAdjustments?) -> Void = { _, _, _ in}) {
+    registerMediaPickerPhotoToolbarViewFactoryIfNeeded()
+    
     let legacyController = LegacyController(presentation: .custom, theme: theme)
     legacyController.statusBar.statusBarStyle = .Ignore
     

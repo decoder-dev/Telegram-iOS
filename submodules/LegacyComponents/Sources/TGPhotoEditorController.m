@@ -26,7 +26,8 @@
 #import <LegacyComponents/TGPaintingData.h>
 #import <LegacyComponents/TGMediaVideoConverter.h>
 
-#import <LegacyComponents/TGPhotoToolbarView.h>
+#import <LegacyComponents/TGPhotoToolbarViewProtocol.h>
+#import <LegacyComponents/TGPhotoToolbarViewFactory.h>
 #import <LegacyComponents/TGPhotoPaintStickersContext.h>
 #import "TGPhotoEditorPreviewView.h"
 
@@ -50,16 +51,9 @@
 #import <LegacyComponents/AVURLAsset+TGMediaItem.h>
 #import <LegacyComponents/TGCameraCapturedVideo.h>
 
-static UIView<TGPhotoToolbarViewProtocol> *TGPhotoEditorCreatePhotoToolbarView(id<LegacyComponentsContext> context, TGPhotoEditorBackButton backButton, TGPhotoEditorDoneButton doneButton, bool solidBackground, id<TGPhotoPaintStickersContext> stickersContext)
+static UIView<TGPhotoToolbarViewProtocol> *TGPhotoEditorCreatePhotoToolbarView(TGPhotoEditorBackButton backButton, TGPhotoEditorDoneButton doneButton, bool solidBackground, id<TGPhotoPaintStickersContext> stickersContext)
 {
-    if (stickersContext.photoToolbarView != nil)
-    {
-        UIView<TGPhotoToolbarViewProtocol> *toolbarView = stickersContext.photoToolbarView(backButton, doneButton, solidBackground, false);
-        if (toolbarView != nil)
-            return toolbarView;
-    }
-
-    return [[TGPhotoToolbarView alloc] initWithContext:context backButton:backButton doneButton:doneButton solidBackground:solidBackground stickersContext:nil];
+    return TGPhotoToolbarViewMake(stickersContext, backButton, doneButton, solidBackground, false);
 }
 
 @interface TGPhotoEditorController () <TGViewControllerNavigationBarAppearance, TGMediaPickerGalleryVideoScrubberDataSource, TGMediaPickerGalleryVideoScrubberDelegate, UIDocumentInteractionControllerDelegate>
@@ -321,7 +315,7 @@ static UIView<TGPhotoToolbarViewProtocol> *TGPhotoEditorCreatePhotoToolbarView(i
      
     TGPhotoEditorBackButton backButton = TGPhotoEditorBackButtonCancel;
     TGPhotoEditorDoneButton doneButton = TGPhotoEditorDoneButtonCheck;
-    _portraitToolbarView = TGPhotoEditorCreatePhotoToolbarView(_context, backButton, doneButton, true, _stickersContext);
+    _portraitToolbarView = TGPhotoEditorCreatePhotoToolbarView(backButton, doneButton, true, _stickersContext);
     [_portraitToolbarView setToolbarTabs:_availableTabs animated:false];
     [_portraitToolbarView setActiveTab:_currentTab];
     _portraitToolbarView.cancelPressed = toolbarCancelPressed;
@@ -330,7 +324,7 @@ static UIView<TGPhotoToolbarViewProtocol> *TGPhotoEditorCreatePhotoToolbarView(i
     _portraitToolbarView.tabPressed = toolbarTabPressed;
     [_wrapperView addSubview:_portraitToolbarView];
     
-    _landscapeToolbarView = TGPhotoEditorCreatePhotoToolbarView(_context, backButton, doneButton, true, _stickersContext);
+    _landscapeToolbarView = TGPhotoEditorCreatePhotoToolbarView(backButton, doneButton, true, _stickersContext);
     [_landscapeToolbarView setToolbarTabs:_availableTabs animated:false];
     [_landscapeToolbarView setActiveTab:_currentTab];
     _landscapeToolbarView.cancelPressed = toolbarCancelPressed;

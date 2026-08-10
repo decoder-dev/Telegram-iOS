@@ -33,6 +33,11 @@ swift_library(
         "//submodules/SolidRoundedButtonNode:SolidRoundedButtonNode",
         "//submodules/TelegramUI/Components/MediaEditor",
         "//submodules/AnimatedCountLabelNode",
+        "//submodules/ComponentFlow",
+        "//submodules/TelegramUI/Components/GlassBackgroundComponent",
+        "//submodules/TelegramUI/Components/GlassBarButtonComponent",
+        "//submodules/TelegramUI/Components/PlainButtonComponent",
+        "//submodules/Components/BundleIconComponent",
     ],
     visibility = [
         "//visibility:public",

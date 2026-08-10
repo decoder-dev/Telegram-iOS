@@ -684,6 +684,11 @@ public final class LegacyPaintStickersContext: NSObject, TGPhotoPaintStickersCon
         super.init()
 
         self.presentMediaPickerSendActionMenu = makeLegacyMediaPickerSendActionMenuPresenter(context: context)
+        // Always inject the Swift toolbar — ObjC TGPhotoToolbarView is gone.
+        registerMediaPickerPhotoToolbarViewFactoryIfNeeded()
+        self.photoToolbarView = { backButton, doneButton, solidBackground, hasSendStarsButton in
+            return makeMediaPickerPhotoToolbarView(backButton: backButton, doneButton: doneButton, solidBackground: solidBackground, hasSendStarsButton: hasSendStarsButton)
+        }
     }
     
     class LegacyDrawingAdapter: NSObject, TGPhotoDrawingAdapter {

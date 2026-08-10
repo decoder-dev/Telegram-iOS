@@ -1,5 +1,5 @@
 #import <LegacyComponents/TGMediaEditingContext.h>
-#import <LegacyComponents/TGPhotoToolbarView.h>
+#import <LegacyComponents/TGPhotoToolbarViewProtocol.h>
 #import <LegacyComponents/LegacyComponentsContext.h>
 #import <LegacyComponents/TGOverlayController.h>
 

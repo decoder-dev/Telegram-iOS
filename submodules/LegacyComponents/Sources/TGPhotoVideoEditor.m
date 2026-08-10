@@ -371,7 +371,7 @@
     [controller presentViewController:galleryController animated:false completion:nil];
 }
 
-+ (void)presentEditorWithContext:(id<LegacyComponentsContext> _Nonnull)context controller:(TGViewController * _Nonnull)controller withItem:(id<TGMediaEditableItem> _Nonnull)item cropRect:(CGRect)cropRect adjustments:(id<TGMediaEditAdjustments> _Nullable)adjustments referenceView:(UIView * _Nonnull)referenceView completion:(void (^ _Nonnull)(UIImage * _Nonnull image, id<TGMediaEditAdjustments> _Nullable adjustments))completion fullSizeCompletion:(void (^ _Nonnull)(UIImage * _Nonnull image))fullSizeCompletion beginTransitionOut:(void (^ _Nullable)(bool saving))beginTransitionOut finishTransitionOut:(void (^ _Nullable)(void))finishTransitionOut
++ (void)presentEditorWithContext:(id<LegacyComponentsContext> _Nonnull)context controller:(TGViewController * _Nonnull)controller withItem:(id<TGMediaEditableItem> _Nonnull)item cropRect:(CGRect)cropRect adjustments:(id<TGMediaEditAdjustments> _Nullable)adjustments stickersContext:(id<TGPhotoPaintStickersContext> _Nullable)stickersContext referenceView:(UIView * _Nonnull)referenceView completion:(void (^ _Nonnull)(UIImage * _Nonnull image, id<TGMediaEditAdjustments> _Nullable adjustments))completion fullSizeCompletion:(void (^ _Nonnull)(UIImage * _Nonnull image))fullSizeCompletion beginTransitionOut:(void (^ _Nullable)(bool saving))beginTransitionOut finishTransitionOut:(void (^ _Nullable)(void))finishTransitionOut
 {
     id<LegacyComponentsOverlayWindowManager> windowManager = [context makeOverlayWindowManager];
     
@@ -389,6 +389,7 @@
     
     TGPhotoEditorController *editorController = [[TGPhotoEditorController alloc] initWithContext:[windowManager context] item:item intent:TGPhotoEditorControllerWallpaperIntent adjustments:editorValues caption:nil screenImage:thumbnailImage availableTabs:TGPhotoEditorToolsTab selectedTab:TGPhotoEditorToolsTab];
     editorController.editingContext = editingContext;
+    editorController.stickersContext = stickersContext;
     editorController.dontHideStatusBar = true;
     editorController.ignoreCropForResult = true;
     

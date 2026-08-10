@@ -14,7 +14,6 @@
 #import "TGHistogramView.h"
 
 #import <LegacyComponents/TGPhotoEditorTabController.h>
-#import "TGPhotoEditorToolButtonsView.h"
 
 @interface TGPhotoEditorCurvesHistogramView ()
 {
