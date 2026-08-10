@@ -71,8 +71,11 @@ Already done (do not redo):
 | Doc drift | Keep this plan + `SWIFT_MIGRATION.md` inventory in sync after each delete wave | Docs match `find`/`wc` |
 
 **2026-08-10 wave:** deleted `PGPhotoCustomFilterPass`, `TGBotInfo`,
-`TGModernMediaListItemContentView`, `TGStickerAssociation`,
-`UIScrollView+TGHacks` (+ umbrella exports).
+`TGModernMediaListItemContentView`, `TGStickerAssociation` (+ umbrella
+exports). `UIScrollView+TGHacks` was deleted in the same wave and restored:
+`TGMediaPickerController` calls its `stopScrollingAnimation`, which a
+name-based scan cannot see because the call site names neither the file nor a
+class. Categories must be checked selector by selector.
 
 **Exit:** Continuous; run a pass before each numbered phase.
 

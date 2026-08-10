@@ -270,3 +270,4 @@
 #import <LegacyComponents/UIControl+HitTestEdgeInsets.h>
 #import <LegacyComponents/UIImage+TG.h>
 #import <LegacyComponents/UIImage+TGMediaEditableItem.h>
+#import <LegacyComponents/UIScrollView+TGHacks.h>
