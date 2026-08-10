@@ -701,7 +701,8 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
             var useLegacyCamera = false
             var useModernCamera = false
             if case .assets(nil, .default) = controller.subject {
-                useLegacyCamera = true
+                // Phase 2: prefer Swift Camera preview in the media picker grid.
+                useModernCamera = true
             } else if case .assets(nil, let mode) = controller.subject {
                 switch mode {
                 case .createSticker, .createAvatar:
