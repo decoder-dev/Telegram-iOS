@@ -1159,6 +1159,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             readOnInteract: settings.ghostReadOnInteract
         )
         ForkAyuForwardSettings.enabled = settings.ayuForward
+        ForkBypassDownloadRestrictionsSettings.enabled = settings.bypassDownloadRestrictions
         ForkSecretScreenshotSettings.allow = settings.allowSecretScreenshots
         ForkExpireTtlSettings.enabled = settings.expireTtlButton
         ForkKeepBannedChatsSettings.enabled = settings.keepBannedChats

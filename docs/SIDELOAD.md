@@ -80,6 +80,7 @@ features (stored in AccountManager + App Group UserDefaults for NSE):
 | Save Media | Copy attachments into `Application Support/MessageSaving/Saved Attachments` on delete (survives cache clears) |
 | Save Edit History | Keep previous text when others edit; **Edit History** in the message context menu |
 | Also Save Bot Messages | Include bot chats in the deleted/edit snapshot store |
+| Save Stories & Protected Media | Save others’ stories to Photos without Premium; also when forwarding is disabled (AyuGram Desktop “No Copy & Download Restrictions”) |
 
 Settings → Support footer shows `Telegram VERSION (BUILD)` and `decoder-dev`. Archive tip sheets / auto-archive suggestion alerts are suppressed.
 

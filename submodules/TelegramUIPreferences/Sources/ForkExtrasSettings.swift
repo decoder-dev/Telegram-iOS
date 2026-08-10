@@ -58,6 +58,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var saveMedia: Bool
     /// AyuGram AyuForward: re-upload noforwards / deleted messages as new content (no author). Default on.
     public var ayuForward: Bool
+    /// AyuGram Desktop: No Copy & Download Restrictions — save stories / protected media without Premium.
+    public var bypassDownloadRestrictions: Bool
     /// AyuGram Message Filters: hide sponsored / recommended ads in chats.
     public var hideAds: Bool
     /// AyuGram Message Filters: hide messages (and typing) from blocked users.
@@ -109,6 +111,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
             saveForBots: false,
             saveMedia: true,
             ayuForward: true,
+            bypassDownloadRestrictions: true,
             hideAds: false,
             hideBlockedMessages: false,
             allowSecretScreenshots: true,
@@ -152,6 +155,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         saveForBots: Bool,
         saveMedia: Bool = true,
         ayuForward: Bool = true,
+        bypassDownloadRestrictions: Bool = true,
         hideAds: Bool = false,
         hideBlockedMessages: Bool = false,
         allowSecretScreenshots: Bool = true,
@@ -192,6 +196,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.saveForBots = saveForBots
         self.saveMedia = saveMedia
         self.ayuForward = ayuForward
+        self.bypassDownloadRestrictions = bypassDownloadRestrictions
         self.hideAds = hideAds
         self.hideBlockedMessages = hideBlockedMessages
         self.allowSecretScreenshots = allowSecretScreenshots
@@ -238,6 +243,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.saveForBots = try container.decodeIfPresent(Bool.self, forKey: "saveForBots") ?? false
         self.saveMedia = try container.decodeIfPresent(Bool.self, forKey: "saveMedia") ?? true
         self.ayuForward = try container.decodeIfPresent(Bool.self, forKey: "ayuForward") ?? true
+        self.bypassDownloadRestrictions = try container.decodeIfPresent(Bool.self, forKey: "bypassDownloadRestrictions") ?? true
         self.hideAds = try container.decodeIfPresent(Bool.self, forKey: "hideAds") ?? false
         self.hideBlockedMessages = try container.decodeIfPresent(Bool.self, forKey: "hideBlockedMessages") ?? false
         self.allowSecretScreenshots = try container.decodeIfPresent(Bool.self, forKey: "allowSecretScreenshots") ?? true
@@ -282,6 +288,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.saveForBots, forKey: "saveForBots")
         try container.encode(self.saveMedia, forKey: "saveMedia")
         try container.encode(self.ayuForward, forKey: "ayuForward")
+        try container.encode(self.bypassDownloadRestrictions, forKey: "bypassDownloadRestrictions")
         try container.encode(self.hideAds, forKey: "hideAds")
         try container.encode(self.hideBlockedMessages, forKey: "hideBlockedMessages")
         try container.encode(self.allowSecretScreenshots, forKey: "allowSecretScreenshots")

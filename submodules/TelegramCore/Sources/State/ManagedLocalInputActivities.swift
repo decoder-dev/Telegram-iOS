@@ -37,6 +37,16 @@ public enum ForkAyuForwardSettings {
     }
 }
 
+/// AyuGram Desktop "No Copy & Download Restrictions": allow saving stories / protected media
+/// without Telegram Premium and despite `noforwards` / isForwardingDisabled.
+public enum ForkBypassDownloadRestrictionsSettings {
+    private static let value = Atomic<Bool>(value: true)
+    public static var enabled: Bool {
+        get { return value.with { $0 } }
+        set { let _ = value.swap(newValue) }
+    }
+}
+
 /// AyuGram: allow screenshots in secret chats / secret media and suppress peer notify.
 public enum ForkSecretScreenshotSettings {
     private static let value = Atomic<Bool>(value: true)

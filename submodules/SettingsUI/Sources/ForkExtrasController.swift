@@ -65,6 +65,8 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.SaveForBots": "Also Save Bot Messages",
             "ForkExtras.AyuForward": "AyuForward",
             "ForkExtras.AyuForwardFooter": "Forward from noforwards channels and deleted messages by re-uploading media without an author (AyuGram Android).",
+            "ForkExtras.BypassDownloadRestrictions": "Save Stories & Protected Media",
+            "ForkExtras.BypassDownloadRestrictionsFooter": "Save stories and download protected media without Telegram Premium, even when forwarding is disabled (AyuGram Desktop).",
             "ForkExtras.HideAds": "Hide Ads",
             "ForkExtras.HideAdsFooter": "Hide sponsored and recommended messages in chats (AyuGram Message Filters).",
             "ForkExtras.HideBlockedMessages": "Hide Blocked Users",
@@ -141,6 +143,8 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.SaveForBots": "Также сохранять ботов",
             "ForkExtras.AyuForward": "AyuForward",
             "ForkExtras.AyuForwardFooter": "Пересылать из каналов с запретом пересылки и удалённые сообщения: медиа загружается заново без автора (AyuGram Android).",
+            "ForkExtras.BypassDownloadRestrictions": "Сохранять истории и защищённые медиа",
+            "ForkExtras.BypassDownloadRestrictionsFooter": "Сохранять истории и скачивать защищённые медиа без Premium, даже при запрете пересылки (AyuGram Desktop).",
             "ForkExtras.HideAds": "Скрыть рекламу",
             "ForkExtras.HideAdsFooter": "Скрывать спонсорские и рекомендованные сообщения в чатах (фильтры AyuGram).",
             "ForkExtras.HideBlockedMessages": "Скрыть заблокированных",
@@ -234,6 +238,8 @@ private enum ForkExtrasLocalizedString {
     static var saveForBots: String { string(forKey: "ForkExtras.SaveForBots") }
     static var ayuForward: String { string(forKey: "ForkExtras.AyuForward") }
     static var ayuForwardFooter: String { string(forKey: "ForkExtras.AyuForwardFooter") }
+    static var bypassDownloadRestrictions: String { string(forKey: "ForkExtras.BypassDownloadRestrictions") }
+    static var bypassDownloadRestrictionsFooter: String { string(forKey: "ForkExtras.BypassDownloadRestrictionsFooter") }
     static var hideAds: String { string(forKey: "ForkExtras.HideAds") }
     static var hideAdsFooter: String { string(forKey: "ForkExtras.HideAdsFooter") }
     static var hideBlockedMessages: String { string(forKey: "ForkExtras.HideBlockedMessages") }
@@ -290,6 +296,7 @@ private final class ForkExtrasControllerArguments {
     let updateSaveMedia: (Bool) -> Void
     let updateSaveForBots: (Bool) -> Void
     let updateAyuForward: (Bool) -> Void
+    let updateBypassDownloadRestrictions: (Bool) -> Void
     let updateHideAds: (Bool) -> Void
     let updateHideBlockedMessages: (Bool) -> Void
     let updateGhostScheduleMessages: (Bool) -> Void
@@ -330,6 +337,7 @@ private final class ForkExtrasControllerArguments {
         updateSaveMedia: @escaping (Bool) -> Void,
         updateSaveForBots: @escaping (Bool) -> Void,
         updateAyuForward: @escaping (Bool) -> Void,
+        updateBypassDownloadRestrictions: @escaping (Bool) -> Void,
         updateHideAds: @escaping (Bool) -> Void,
         updateHideBlockedMessages: @escaping (Bool) -> Void,
         updateGhostScheduleMessages: @escaping (Bool) -> Void,
@@ -369,6 +377,7 @@ private final class ForkExtrasControllerArguments {
         self.updateSaveMedia = updateSaveMedia
         self.updateSaveForBots = updateSaveForBots
         self.updateAyuForward = updateAyuForward
+        self.updateBypassDownloadRestrictions = updateBypassDownloadRestrictions
         self.updateHideAds = updateHideAds
         self.updateHideBlockedMessages = updateHideBlockedMessages
         self.updateGhostScheduleMessages = updateGhostScheduleMessages
@@ -446,6 +455,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     case saveForBots(Bool)
     case ayuForward(Bool)
     case ayuForwardFooter
+    case bypassDownloadRestrictions(Bool)
+    case bypassDownloadRestrictionsFooter
     case hideAds(Bool)
     case hideAdsFooter
     case hideBlockedMessages(Bool)
@@ -481,7 +492,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return ForkExtrasSection.translation.rawValue
         case .scrollToNextChat, .scrollToNextChatFooter:
             return ForkExtrasSection.navigation.rawValue
-        case .saveDeletedMessages, .saveDeletedMessagesFooter, .saveMessagesHistory, .saveMessagesHistoryFooter, .saveMedia, .saveMediaFooter, .saveForBots, .ayuForward, .ayuForwardFooter:
+        case .saveDeletedMessages, .saveDeletedMessagesFooter, .saveMessagesHistory, .saveMessagesHistoryFooter, .saveMedia, .saveMediaFooter, .saveForBots, .ayuForward, .ayuForwardFooter, .bypassDownloadRestrictions, .bypassDownloadRestrictionsFooter:
             return ForkExtrasSection.messageSaving.rawValue
         case .hideAds, .hideAdsFooter, .hideBlockedMessages, .hideBlockedMessagesFooter, .regexFilters, .regexFiltersCaseInsensitive, .regexFiltersPatterns, .regexFiltersFooter:
             return ForkExtrasSection.messageFilters.rawValue
@@ -541,20 +552,22 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case .saveForBots: return 46
         case .ayuForward: return 47
         case .ayuForwardFooter: return 48
-        case .hideAds: return 49
-        case .hideAdsFooter: return 50
-        case .hideBlockedMessages: return 51
-        case .hideBlockedMessagesFooter: return 52
-        case .regexFilters: return 53
-        case .regexFiltersCaseInsensitive: return 54
-        case .regexFiltersPatterns: return 55
-        case .regexFiltersFooter: return 56
-        case .allowSecretScreenshots: return 57
-        case .allowSecretScreenshotsFooter: return 58
-        case .expireTtlButton: return 59
-        case .expireTtlButtonFooter: return 60
-        case .keepBannedChats: return 61
-        case .keepBannedChatsFooter: return 62
+        case .bypassDownloadRestrictions: return 49
+        case .bypassDownloadRestrictionsFooter: return 50
+        case .hideAds: return 51
+        case .hideAdsFooter: return 52
+        case .hideBlockedMessages: return 53
+        case .hideBlockedMessagesFooter: return 54
+        case .regexFilters: return 55
+        case .regexFiltersCaseInsensitive: return 56
+        case .regexFiltersPatterns: return 57
+        case .regexFiltersFooter: return 58
+        case .allowSecretScreenshots: return 59
+        case .allowSecretScreenshotsFooter: return 60
+        case .expireTtlButton: return 61
+        case .expireTtlButtonFooter: return 62
+        case .keepBannedChats: return 63
+        case .keepBannedChatsFooter: return 64
         }
     }
 
@@ -737,6 +750,12 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             })
         case .ayuForwardFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.ayuForwardFooter), sectionId: self.section)
+        case let .bypassDownloadRestrictions(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.bypassDownloadRestrictions, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateBypassDownloadRestrictions(value)
+            })
+        case .bypassDownloadRestrictionsFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.bypassDownloadRestrictionsFooter), sectionId: self.section)
         case let .hideAds(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.hideAds, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateHideAds(value)
@@ -836,6 +855,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings) -> [ForkE
         .saveForBots(settings.saveForBots),
         .ayuForward(settings.ayuForward),
         .ayuForwardFooter,
+        .bypassDownloadRestrictions(settings.bypassDownloadRestrictions),
+        .bypassDownloadRestrictionsFooter,
         .hideAds(settings.hideAds),
         .hideAdsFooter,
         .hideBlockedMessages(settings.hideBlockedMessages),
@@ -1122,6 +1143,13 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
             updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
                 var updated = current
                 updated.ayuForward = value
+                return updated
+            }.start())
+        },
+        updateBypassDownloadRestrictions: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.bypassDownloadRestrictions = value
                 return updated
             }.start())
         },
