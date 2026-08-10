@@ -157,6 +157,16 @@ left standing:
 `LegacyComponents` is now **322** `.m` + **24** `.mm` files and **239** public
 headers (~144k LOC).
 
+**Known-dead, left to their phase owners** (verified unreachable, but inside a
+subtree another phase is actively editing — delete them as part of that phase's
+commit rather than as hygiene):
+
+- `TGCameraFlashActiveView` — Phase 2. Only mention outside its own pair is a
+  stale `#import` in `TGCameraMainPhoneView.m`.
+- `TGModernGalleryImageItem` / `TGModernGalleryImageItemView` — Phase 5. The
+  two only reference each other; the sole outside mention is a stale `#import`
+  in `TGMediaPickerGalleryItem.h`.
+
 **Exit:** Continuous; run a pass before each numbered phase.
 
 ## Phase 2 — Camera (finish the parallel migration) — IN PROGRESS
@@ -173,6 +183,34 @@ Story reply and edit-media cameras also use `makeCameraScreen`.
 Passport `TGCameraController` intents, `LegacyAttachmentMenu` carousel /
 `TGCameraController.resultSignals`, and `presentedLegacyShortcutCamera`.
 Schedule/silent/timer/QR on flipped paths remain a temporary gap (send immediately).
+
+### Passport attach camera — gap (do not flip yet) — 2026-08-10
+
+`PassportUI/Sources/SecureIdAttachmentMenu.swift` still constructs
+`TGCameraController` with `PassportIntent` / `PassportIdIntent` /
+`PassportMultipleIntent` (plus selfie `disableResultMirroring`). That path is
+**live** from `presentSecureIdAttachmentMenu` → document form / auth flows.
+
+**Why not Option A (flip to Swift now):**
+
+- `SecureIdScanController` is **MRZ OCR only** (Vision frame poll →
+  `SecureIdMRZ`). It does not capture / crop / multi-select document photos for
+  SecureId attach upload.
+- `CameraScreen` / `CameraScreenMode` today is only `.story` / `.sticker` /
+  `.avatar`. It has no Passport equivalents for:
+  - `onlyCrop` editor mode (all three Passport camera intents)
+  - identity-card document frame overlay + fixed 0.704 aspect auto-crop
+    (`PassportIdIntent`)
+  - multi-capture + selection panel (`PassportMultipleIntent`)
+  - attach-menu carousel preview detach/reattach into `TGCameraControllerWindow`
+  - result handoff into `secureIdAttachmentResultSignal` (`TGCameraCapturedPhoto`
+    / editing + selection contexts → scaled image dicts)
+
+Until those intents exist on `CameraScreen` (Phase 2 step 2.2), keep the
+Legacy path. **Do not delete `TGCameraController` or the Passport intent enum
+cases** — they are still reachable. No unreachable `TGCameraControllerPassport*`
+branches were found to prune; media-picker
+`TGMediaAssetsControllerPassport*Intent` remains live for the same attach menu.
 
 ## Phase 1 — Passport (pilot cluster) — DONE 2026-08-10
 
@@ -218,7 +256,7 @@ side-by-side comparison on device photos.
 | `ChatControllerOpenAttachmentMenu.openCamera` | DONE: both `CameraHolder` and non-holder paths present `makeCameraScreen(.sticker)` and convert results via `legacyCameraCapturedMediaSignals(fromCameraScreenResult:)`. Schedule/silent/timer/QR not yet on CameraScreen completion (send immediately). |
 | `ChatControllerOpenAttachmentMenu` edit-media `legacyAttachmentMenu` `openCamera` | DONE: dismisses menu sheet and presents `makeCameraScreen`; drops carousel transition. |
 | `StoryItemSetContainerViewSendMessage` | DONE: all preview types use `makeCameraScreen` + AccountContext result bridge. Dropped `LegacyCamera` module dep. |
-| `PassportUI/SecureIdAttachmentMenu` | LEGACY: still uses `TGCameraController` for Passport-specific intents (`PassportId`, multiple, selfie/document crop). |
+| `PassportUI/SecureIdAttachmentMenu` | BLOCKED / LEGACY: still uses `TGCameraController` for Passport-specific intents (`PassportId`, multiple, selfie/document crop). Not flippable to `SecureIdScanController` (MRZ-only) or current `CameraScreen` modes — see “Passport attach camera — gap” above. No dead Passport intent branches to delete. |
 | `LegacyMediaPickerUI/LegacyAttachmentMenu` | LEGACY: still owns the carousel camera, `PGCamera.cameraAvailable()`, and editor-result conversion via `TGCameraController.resultSignals`. |
 | `TelegramRootController` shortcut share | LEGACY: `presentedLegacyShortcutCamera` still wraps `TGCameraController` → share sheet. |
 | `TelegramUI/Components/LegacyCamera/LegacyCamera.swift` | SHIM: `presentedLegacyCamera` has no Swift callers; `presentedLegacyShortcutCamera` still live. |
@@ -232,8 +270,10 @@ shortcut camera, and internal LC users (avatar / video-message capture).
 |---|---|
 | 2.1 | Map every remaining Legacy camera entry to the modern `Camera` /
 `CameraScreen` API (gaps = missing intents: video-only, attachment slot, volume
-button handler) |
-| 2.2 | Implement missing intents on the Swift side; do not extend ObjC |
+button handler; **Passport** onlyCrop / PassportId frame+auto-crop /
+PassportMultiple / selfie mirror / SecureId result signal) |
+| 2.2 | Implement missing intents on the Swift side; do not extend ObjC.
+Passport attach stays on `TGCameraController` until these land. |
 | 2.3 | Flip call sites (one commit per major surface: chat attach, stories, peer
 avatar if any) |
 | 2.4 | Delete camera ObjC subtree + `LegacyCamera` shim module |
