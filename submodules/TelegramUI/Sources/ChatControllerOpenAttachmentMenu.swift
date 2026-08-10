@@ -18,7 +18,6 @@ import LegacyUI
 import AttachmentUI
 import Camera
 import MediaPickerUI
-import LegacyCamera
 import LegacyMediaPickerUI
 import LocationUI
 import WebUI
@@ -1261,87 +1260,56 @@ extension ChatControllerImpl {
                         self?.editMessageMediaWithLegacySignals(signals)
                     })
                 }, openCamera: { [weak self] cameraView, menuController in
-                    if let strongSelf = self {
-                        var enablePhoto = true
-                        var enableVideo = true
-
-                        if let callManager = strongSelf.context.sharedContext.callManager as? PresentationCallManagerImpl, callManager.hasActiveCall {
-                            enableVideo = false
-                        }
-
-                        var bannedSendPhotos: (Int32, Bool)?
-                        var bannedSendVideos: (Int32, Bool)?
-
-                        if let peer = strongSelf.presentationInterfaceState.renderedPeer?.peer {
-                            if let channel = peer as? TelegramChannel {
-                                if let value = channel.hasBannedPermission(.banSendPhotos) {
-                                    bannedSendPhotos = value
-                                }
-                                if let value = channel.hasBannedPermission(.banSendVideos) {
-                                    bannedSendVideos = value
-                                }
-                            } else if let group = peer as? TelegramGroup {
-                                if group.hasBannedPermission(.banSendPhotos) {
-                                    bannedSendPhotos = (Int32.max, false)
-                                }
-                                if group.hasBannedPermission(.banSendVideos) {
-                                    bannedSendVideos = (Int32.max, false)
-                                }
+                    // Prefer Swift CameraScreen for edit-media capture. Drop the legacy
+                    // TGAttachmentCameraView → TGCameraController carousel transition (menuController
+                    // dismissed). Schedule/silent remain a temporary CameraScreen completion gap.
+                    let _ = cameraView
+                    menuController?.dismiss(animated: true)
+                    guard let strongSelf = self else {
+                        return
+                    }
+                    var returnToCameraImpl: (() -> Void)?
+                    let cameraScreen = strongSelf.context.sharedContext.makeCameraScreen(
+                        context: strongSelf.context,
+                        mode: .sticker,
+                        cameraHolder: nil,
+                        transitionIn: nil,
+                        transitionOut: { _ in nil },
+                        completion: { [weak self] result, commit in
+                            guard let strongSelf = self else {
+                                returnToCameraImpl?()
+                                return
                             }
-                        }
-
-                        if bannedSendPhotos != nil {
-                            enablePhoto = false
-                        }
-                        if bannedSendVideos != nil {
-                            enableVideo = false
-                        }
-
-                        var storeCapturedPhotos = false
-                        var hasSchedule = false
-                        if let peer = strongSelf.presentationInterfaceState.renderedPeer?.peer {
-                            storeCapturedPhotos = peer.id.namespace != Namespaces.Peer.SecretChat
-
-                            hasSchedule = strongSelf.presentationInterfaceState.subject != .scheduledMessages && peer.id.namespace != Namespaces.Peer.SecretChat && strongSelf.presentationInterfaceState.sendPaidMessageStars == nil
-                        }
-
-                        let cameraPeer: EnginePeer? = strongSelf.presentationInterfaceState.renderedPeer?.peer.map { EnginePeer($0) }
-                        presentedLegacyCamera(context: strongSelf.context, peer: cameraPeer, chatLocation: strongSelf.chatLocation, cameraView: cameraView, menuController: menuController, parentController: strongSelf, editingMedia: editMediaOptions != nil, saveCapturedPhotos: storeCapturedPhotos, mediaGrouping: true, initialCaption: inputText, hasSchedule: hasSchedule, enablePhoto: enablePhoto, enableVideo: enableVideo, sendMessagesWithSignals: { [weak self] signals, _, _, _ in
-                            if let strongSelf = self {
-                                strongSelf.editMessageMediaWithLegacySignals(signals!)
-
+                            var didApply = false
+                            let _ = (legacyCameraCapturedMediaSignals(
+                                from: result,
+                                context: strongSelf.context,
+                                initialCaption: inputText,
+                                sendPaidMessageStars: 0
+                            )
+                            |> deliverOnMainQueue).startStandalone(next: { [weak self] signals in
+                                guard let strongSelf = self else {
+                                    return
+                                }
+                                didApply = true
+                                strongSelf.editMessageMediaWithLegacySignals(signals)
                                 if !inputText.string.isEmpty {
                                     strongSelf.clearInputText()
                                 }
-                            }
-                        }, recognizedQRCode: { [weak self] code in
-                            if let strongSelf = self {
-                                if let (host, port, username, password, secret) = parseProxyUrl(sharedContext: strongSelf.context.sharedContext, url: code) {
-                                    strongSelf.openResolved(result: ResolvedUrl.proxy(host: host, port: port, username: username, password: password, secret: secret), sourceMessageId: nil)
+                                commit()
+                            }, completed: {
+                                if !didApply {
+                                    returnToCameraImpl?()
                                 }
-                            }
-                        }, presentSchedulePicker: { [weak self] _, done in
-                            if let strongSelf = self {
-                                strongSelf.presentScheduleTimePicker(style: .media, completion: { [weak self] result in
-                                    if let strongSelf = self {
-                                        done(result.time, result.silentPosting)
-                                        if strongSelf.presentationInterfaceState.subject != .scheduledMessages && result.time != scheduleWhenOnlineTimestamp {
-                                            strongSelf.openScheduledMessages()
-                                        }
-                                    }
-                                })
-                            }
-                        }, presentTimerPicker: { [weak self] done in
-                            if let strongSelf = self {
-                                strongSelf.presentTimerPicker(style: .media, completion: { time in
-                                    done(time)
-                                })
-                            }
-                        }, getCaptionPanelView: { [weak self] in
-                            return self?.getCaptionPanelView(isFile: false)
-                        }, photoToolbarView: { [context = strongSelf.context] backButton, doneButton, solidBackground, hasSendStarsButton in
-                            return makeMediaPickerPhotoToolbarView(context: context, backButton: backButton, doneButton: doneButton, solidBackground: solidBackground, hasSendStarsButton: hasSendStarsButton)
-                        })
+                            })
+                        },
+                        transitionedOut: nil
+                    )
+                    strongSelf.push(cameraScreen)
+                    returnToCameraImpl = { [weak cameraScreen] in
+                        if let cameraScreen = cameraScreen as? CameraScreen {
+                            cameraScreen.returnFromEditor()
+                        }
                     }
                 }, openFileGallery: {
                     self?.presentFileMediaPickerOptions(editingMessage: true)

@@ -22,7 +22,6 @@ import ChatTimerScreen
 import PremiumUI
 import ICloudResources
 import LegacyComponents
-import LegacyCamera
 import StoryFooterPanelComponent
 import TelegramPresentationData
 import LegacyInstantVideoController
@@ -2735,92 +2734,63 @@ final class StoryItemSetContainerSendMessage: @unchecked(Sendable) {
                 return
             }
 
-            // Legacy TGAttachmentCameraView still needs presentedLegacyCamera for the carousel preview transition.
-            guard let legacyCameraView = cameraView as? TGAttachmentCameraView else {
-                return
-            }
-
-            var enablePhoto = true
-            var enableVideo = true
-
-            if let callManager = component.context.sharedContext.callManager, callManager.hasActiveCall {
-                enableVideo = false
-            }
-
-            var bannedSendPhotos: (Int32, Bool)?
-            var bannedSendVideos: (Int32, Bool)?
-
-            if case let .channel(channel) = peer {
-                if let value = channel.hasBannedPermission(.banSendPhotos) {
-                    bannedSendPhotos = value
-                }
-                if let value = channel.hasBannedPermission(.banSendVideos) {
-                    bannedSendVideos = value
-                }
-            } else if case let .legacyGroup(group) = peer {
-                if group.hasBannedPermission(.banSendPhotos) {
-                    bannedSendPhotos = (Int32.max, false)
-                }
-                if group.hasBannedPermission(.banSendVideos) {
-                    bannedSendVideos = (Int32.max, false)
-                }
-            }
-
-            if bannedSendPhotos != nil {
-                enablePhoto = false
-            }
-            if bannedSendVideos != nil {
-                enableVideo = false
-            }
-
-            let storeCapturedMedia = peer.id.namespace != Namespaces.Peer.SecretChat
-
-            presentedLegacyCamera(context: component.context, peer: peer, chatLocation: .peer(id: peer.id), cameraView: legacyCameraView, menuController: nil, parentController: parentController, attachmentController: self.attachmentController, editingMedia: false, saveCapturedPhotos: storeCapturedMedia, mediaGrouping: true, initialCaption: inputText, hasSchedule: peer.id.namespace != Namespaces.Peer.SecretChat, enablePhoto: enablePhoto, enableVideo: enableVideo, sendMessagesWithSignals: { [weak self, weak view] signals, silentPosting, scheduleTime, parameters in
-                guard let self, let view else {
-                    return
-                }
-                self.presentPaidMessageAlertIfNeeded(view: view, completion: { [weak self, weak view] in
+            // Any remaining preview type (including legacy TGAttachmentCameraView): present
+            // Swift CameraScreen without a live holder. Carousel detach/reattach transition is dropped.
+            var returnToCameraImpl: (() -> Void)?
+            let cameraScreen = component.context.sharedContext.makeCameraScreen(
+                context: component.context,
+                mode: .sticker,
+                cameraHolder: nil,
+                transitionIn: nil,
+                transitionOut: { _ in nil },
+                completion: { [weak self, weak view] result, commit in
                     guard let self, let view else {
+                        returnToCameraImpl?()
                         return
                     }
-                    self.enqueueMediaMessages(view: view, peer: peer, replyToMessageId: replyToMessageId, replyToStoryId: replyToStoryId, signals: signals, silentPosting: silentPosting, scheduleTime: scheduleTime > 0 ? scheduleTime : nil, parameters: parameters)
-                    if !inputText.string.isEmpty {
-                        self.clearInputText(view: view)
-                    }
-                })
-            }, recognizedQRCode: { _ in
-            }, presentSchedulePicker: { [weak self, weak view] _, done in
-                guard let self, let view else {
-                    return
+                    var didSend = false
+                    let _ = (component.context.sharedContext.legacyCameraCapturedMediaSignals(
+                        fromCameraScreenResult: result,
+                        initialCaption: inputText,
+                        sendPaidMessageStars: 0
+                    )
+                    |> deliverOnMainQueue).start(next: { [weak self, weak view] signals in
+                        guard let self, let view else {
+                            return
+                        }
+                        didSend = true
+                        self.presentPaidMessageAlertIfNeeded(view: view, completion: { [weak self, weak view] in
+                            guard let self, let view else {
+                                return
+                            }
+                            self.enqueueMediaMessages(view: view, peer: peer, replyToMessageId: replyToMessageId, replyToStoryId: replyToStoryId, signals: signals, silentPosting: false, scheduleTime: nil, parameters: nil)
+                            if !inputText.string.isEmpty {
+                                self.clearInputText(view: view)
+                            }
+                            commit()
+                            self.attachmentController?.dismiss(animated: false, completion: nil)
+                        })
+                    }, completed: {
+                        if !didSend {
+                            returnToCameraImpl?()
+                        }
+                    })
+                },
+                transitionedOut: nil
+            )
+
+            if let presentCameraScreen {
+                presentCameraScreen(cameraScreen)
+            } else {
+                parentController.push(cameraScreen)
+            }
+
+            returnToCameraImpl = { [weak cameraScreen] in
+                if let cameraScreen = cameraScreen as? CameraScreen {
+                    cameraScreen.returnFromEditor()
                 }
-                self.presentScheduleTimePicker(view: view, peer: peer, style: .media, completion: { time, repeatPeriod, silentPosting in
-                    done(time, silentPosting)
-                })
-            }, presentTimerPicker: { [weak self, weak view] done in
-                guard let self, let view else {
-                    return
-                }
-                self.presentTimerPicker(view: view, peer: peer, style: .media, completion: { time in
-                    done(time)
-                })
-            }, getCaptionPanelView: { [weak self, weak view] in
-                guard let self, let view else {
-                    return nil
-                }
-                return self.getCaptionPanelView(view: view, peer: peer)
-            }, photoToolbarView: { [context = component.context] backButton, doneButton, solidBackground, hasSendStarsButton in
-                return makeMediaPickerPhotoToolbarView(context: context, backButton: backButton, doneButton: doneButton, solidBackground: solidBackground, hasSendStarsButton: hasSendStarsButton)
-            }, dismissedWithResult: { [weak self] in
-                guard let self else {
-                    return
-                }
-                self.attachmentController?.dismiss(animated: false, completion: nil)
-            }, finishedTransitionIn: { [weak self] in
-                guard let self else {
-                    return
-                }
-                self.attachmentController?.scrollToTop?()
-            })
+            }
+            self.attachmentController?.scrollToTop?()
         })
     }
 

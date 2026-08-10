@@ -146,11 +146,11 @@ picker preview tile and the non-`CameraHolder` `openCamera` fallback now open
 `context.sharedContext.makeCameraScreen` and map basic modern photo/video/asset
 results back into the existing `enqueueMediaMessages` legacy-signal pipeline
 via `SharedAccountContext.legacyCameraCapturedMediaSignals(fromCameraScreenResult:)`.
-Story reply camera uses the same bridge (no `CameraScreen` import — that would
-cycle with `StoryContainerScreen`). Edit-media attachment-menu camera, Passport
-attach camera, and `LegacyAttachmentMenu` carousel still use
-`presentedLegacyCamera` / `TGCameraController`. Schedule/silent/timer/QR on the
-flipped paths remain a temporary gap (send immediately).
+Story reply and edit-media cameras also use `makeCameraScreen`.
+`presentedLegacyCamera` has **no remaining Swift call sites**. Remaining necks:
+Passport `TGCameraController` intents, `LegacyAttachmentMenu` carousel /
+`TGCameraController.resultSignals`, and `presentedLegacyShortcutCamera`.
+Schedule/silent/timer/QR on flipped paths remain a temporary gap (send immediately).
 
 ## Phase 1 — Passport (pilot cluster) — DONE 2026-08-10
 
@@ -194,16 +194,17 @@ side-by-side comparison on device photos.
 |---|---|
 | `MediaPickerUI/Sources/MediaPickerScreen.swift` | DONE for the grid preview: `TGAttachmentCameraView` dead branch deleted; Swift `CameraSimplePreviewView` is the only preview path. |
 | `ChatControllerOpenAttachmentMenu.openCamera` | DONE: both `CameraHolder` and non-holder paths present `makeCameraScreen(.sticker)` and convert results via `legacyCameraCapturedMediaSignals(fromCameraScreenResult:)`. Schedule/silent/timer/QR not yet on CameraScreen completion (send immediately). |
-| `ChatControllerOpenAttachmentMenu` edit-media `legacyAttachmentMenu` `openCamera` (~1289) | LEGACY: kept on `presentedLegacyCamera`. Needs `TGAttachmentCameraView` + `TGMenuSheetController` transition owned by `LegacyAttachmentMenu`; flipping without that transition breaks the edit-media carousel → camera handoff. |
-| `StoryItemSetContainerViewSendMessage` | PARTIAL: `CameraHolder` / nil paths use `makeCameraScreen` + AccountContext result bridge (no `CameraScreen` import). `TGAttachmentCameraView` taps still call `presentedLegacyCamera` for carousel transition. |
+| `ChatControllerOpenAttachmentMenu` edit-media `legacyAttachmentMenu` `openCamera` | DONE: dismisses menu sheet and presents `makeCameraScreen`; drops carousel transition. |
+| `StoryItemSetContainerViewSendMessage` | DONE: all preview types use `makeCameraScreen` + AccountContext result bridge. Dropped `LegacyCamera` module dep. |
 | `PassportUI/SecureIdAttachmentMenu` | LEGACY: still uses `TGCameraController` for Passport-specific intents (`PassportId`, multiple, selfie/document crop). |
 | `LegacyMediaPickerUI/LegacyAttachmentMenu` | LEGACY: still owns the carousel camera, `PGCamera.cameraAvailable()`, and editor-result conversion via `TGCameraController.resultSignals`. |
-| `TelegramUI/Components/LegacyCamera/LegacyCamera.swift` | LEGACY SHIM: still has live callers from edit-media camera, story `TGAttachmentCameraView` path, Passport (indirect), and shortcut share camera. |
+| `TelegramRootController` shortcut share | LEGACY: `presentedLegacyShortcutCamera` still wraps `TGCameraController` → share sheet. |
+| `TelegramUI/Components/LegacyCamera/LegacyCamera.swift` | SHIM: `presentedLegacyCamera` has no Swift callers; `presentedLegacyShortcutCamera` still live. |
 
 No camera ObjC files are deletion-safe yet: `TGCameraController`, `PGCamera`,
 `TGAttachmentCameraView`, `TGAttachmentCarouselItemView`, and camera view/control
-headers are still referenced by the live surfaces above and by internal
-`LegacyComponents` users such as avatar/video-message capture.
+headers are still referenced by Passport, LegacyAttachmentMenu carousel,
+shortcut camera, and internal LC users (avatar / video-message capture).
 
 | Step | Work |
 |---|---|

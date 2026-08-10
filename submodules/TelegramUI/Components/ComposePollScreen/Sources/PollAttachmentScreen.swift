@@ -9,7 +9,6 @@ import LegacyComponents
 import LegacyUI
 import AttachmentUI
 import MediaPickerUI
-import LegacyCamera
 import LegacyMediaPickerUI
 import LocationUI
 import AttachmentFileController

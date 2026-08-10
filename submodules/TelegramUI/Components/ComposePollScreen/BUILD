@@ -46,7 +46,6 @@ swift_library(
         "//submodules/LegacyUI",
         "//submodules/AttachmentUI",
         "//submodules/MediaPickerUI",
-        "//submodules/TelegramUI/Components/LegacyCamera",
         "//submodules/LegacyMediaPickerUI",
         "//submodules/LocationUI",
         "//submodules/TelegramUI/Components/AttachmentFileController",
