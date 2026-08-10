@@ -8,7 +8,6 @@ typedef enum {
     TGViewControllerStyleBlack = 1
 } TGViewControllerStyle;
 
-@class TGLabel;
 @class TGNavigationController;
 
 typedef enum {

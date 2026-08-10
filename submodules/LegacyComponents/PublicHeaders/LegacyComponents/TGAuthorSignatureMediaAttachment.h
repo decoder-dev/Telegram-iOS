@@ -2,7 +2,6 @@
 
 @class TGImageMediaAttachment;
 @class TGDocumentMediaAttachment;
-@class TGWebPageMediaAttachment;
 
 #define TGAuthorSignatureMediaAttachmentType ((int)0x157b8516)
 

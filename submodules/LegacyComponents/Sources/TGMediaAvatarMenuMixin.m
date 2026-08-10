@@ -6,7 +6,6 @@
 #import <LegacyComponents/PGCamera.h>
 
 #import <LegacyComponents/TGMenuSheetController.h>
-#import "TGOverlayFormsheetWindow.h"
 
 #import <LegacyComponents/TGCameraPreviewView.h>
 #import <LegacyComponents/TGAttachmentCameraView.h>

@@ -10,7 +10,6 @@
 #import <LegacyComponents/TGForwardedMessageMediaAttachment.h>
 #import <LegacyComponents/TGDocumentMediaAttachment.h>
 #import <LegacyComponents/TGReplyMessageMediaAttachment.h>
-#import <LegacyComponents/TGWebPageMediaAttachment.h>
 #import <LegacyComponents/TGReplyMarkupAttachment.h>
 #import <LegacyComponents/TGMessageEntitiesAttachment.h>
 #import <LegacyComponents/TGAuthorSignatureMediaAttachment.h>
