@@ -23,6 +23,26 @@ struct SecureIdMRZ {
     var optional2: String?
     var mrz: String?
 
+    init(documentType: String? = nil, documentSubtype: String? = nil, issuingCountry: String? = nil, firstName: String, middleName: String? = nil, lastName: String, nativeFirstName: String? = nil, nativeMiddleName: String? = nil, nativeLastName: String? = nil, documentNumber: String? = nil, nationality: String? = nil, birthDate: Date? = nil, gender: String? = nil, expiryDate: Date? = nil, optional1: String? = nil, optional2: String? = nil, mrz: String? = nil) {
+        self.documentType = documentType
+        self.documentSubtype = documentSubtype
+        self.issuingCountry = issuingCountry
+        self.firstName = firstName
+        self.middleName = middleName
+        self.lastName = lastName
+        self.nativeFirstName = nativeFirstName
+        self.nativeMiddleName = nativeMiddleName
+        self.nativeLastName = nativeLastName
+        self.documentNumber = documentNumber
+        self.nationality = nationality
+        self.birthDate = birthDate
+        self.gender = gender
+        self.expiryDate = expiryDate
+        self.optional1 = optional1
+        self.optional2 = optional2
+        self.mrz = mrz
+    }
+
     static func parseBarcodePayload(_ data: String) -> SecureIdMRZ? {
         if data.isEmpty {
             return nil
@@ -220,28 +240,6 @@ struct SecureIdMRZ {
         }
 
         return nil
-    }
-}
-
-private extension SecureIdMRZ {
-    init(documentType: String? = nil, documentSubtype: String? = nil, issuingCountry: String? = nil, firstName: String, middleName: String? = nil, lastName: String, nativeFirstName: String? = nil, nativeMiddleName: String? = nil, nativeLastName: String? = nil, documentNumber: String? = nil, nationality: String? = nil, birthDate: Date? = nil, gender: String? = nil, expiryDate: Date? = nil, optional1: String? = nil, optional2: String? = nil, mrz: String? = nil) {
-        self.documentType = documentType
-        self.documentSubtype = documentSubtype
-        self.issuingCountry = issuingCountry
-        self.firstName = firstName
-        self.middleName = middleName
-        self.lastName = lastName
-        self.nativeFirstName = nativeFirstName
-        self.nativeMiddleName = nativeMiddleName
-        self.nativeLastName = nativeLastName
-        self.documentNumber = documentNumber
-        self.nationality = nationality
-        self.birthDate = birthDate
-        self.gender = gender
-        self.expiryDate = expiryDate
-        self.optional1 = optional1
-        self.optional2 = optional2
-        self.mrz = mrz
     }
 }
 

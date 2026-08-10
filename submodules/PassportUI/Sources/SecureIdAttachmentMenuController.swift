@@ -149,7 +149,7 @@ private func processedSecureIdAttachmentItems(signal: SSignal) -> Signal<[Telegr
                         subscriber.putCompletion()
                     })
                     return ActionDisposable {
-                        disposable?.dispose()
+                        disposable.dispose()
                     }
                 }
         }
@@ -206,25 +206,24 @@ private func recognizedResources(postbox: Postbox, resources: [TelegramMediaReso
         }
         |> last
         let recognized = image
-        |> mapToSignal { image -> Signal<SecureIdRecognizedDocumentData?, NoError> in
-            if let image = image {
-                return Signal { subscriber in
-                    let disposable = SecureIdOCR.recognizeData(in: image, shouldBeDriversLicense: shouldBeDriversLicense).start(next: { value in
-                        if let value {
-                            subscriber.putNext(secureIdRecognizedDocumentData(from: value))
-                            subscriber.putCompletion()
-                        } else {
-                            subscriber.putNext(nil)
-                            subscriber.putCompletion()
-                        }
-                    }, completed: nil)
-                    
-                    return ActionDisposable {
-                        disposable.dispose()
-                    }
-                }
-            } else {
+        |> mapToSignal { maybeImage -> Signal<SecureIdRecognizedDocumentData?, NoError> in
+            guard let uiImage = maybeImage else {
                 return .single(nil)
+            }
+            return Signal { subscriber in
+                let disposable = SecureIdOCR.recognizeData(in: uiImage, shouldBeDriversLicense: shouldBeDriversLicense).start(next: { value in
+                    if let value {
+                        subscriber.putNext(secureIdRecognizedDocumentData(from: value))
+                        subscriber.putCompletion()
+                    } else {
+                        subscriber.putNext(nil)
+                        subscriber.putCompletion()
+                    }
+                }, completed: nil)
+
+                return ActionDisposable {
+                    disposable.dispose()
+                }
             }
         }
         signals.append(recognized)

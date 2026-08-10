@@ -50,7 +50,7 @@ func presentSecureIdAttachmentMenuImpl(presentationData: PresentationData, conte
         guard let carouselItem else {
             return
         }
-        uploadAction(secureIdAttachmentResultSignal(editingContext: carouselItem.editingContext, selectionContext: carouselItem.selectionContext, currentItem: currentItem as? TGMediaEditableItem), {
+        uploadAction(secureIdAttachmentResultSignal(editingContext: carouselItem.editingContext, selectionContext: carouselItem.selectionContext, currentItem: currentItem), {
             controller?.dismiss(animated: true)
         })
     }
@@ -112,7 +112,7 @@ private func displaySecureIdAttachmentMediaPicker(parentController: TGViewContro
             guard let controller else {
                 return
             }
-            uploadAction(secureIdAttachmentResultSignal(editingContext: editingContext, selectionContext: controller.selectionContext, currentItem: currentItem as? TGMediaEditableItem), {
+            uploadAction(secureIdAttachmentResultSignal(editingContext: editingContext, selectionContext: controller.selectionContext, currentItem: currentItem), {
                 controller.dismissalBlock?()
             })
         }
@@ -358,7 +358,7 @@ private func secureIdAttachmentResultSignal(editingContext: TGMediaEditingContex
                         return SSignal.fail(nil)
                     }
                     if let image = result as? UIImage {
-                        image.edited = true
+                        image.setEdited(true)
                         return SSignal.single(image)
                     }
                     return SSignal.complete()
