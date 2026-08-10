@@ -1,6 +1,7 @@
 import Foundation
 import TelegramCore
 import SwiftSignalKit
+import Postbox
 
 public enum ForkTranslationBackend: String, Codable {
     case `default`
@@ -493,7 +494,9 @@ public enum ForkRegexMessageFilters {
     }
 
     /// Match the same useful payload AyuGram exposes to filters: message text plus inline-button
-    /// titles and links. The resulting input is still bounded by `matches` before ICU sees it.
+    /// titles and links, plus a trailing `<type>N</type>` tag (AyuGram Android's
+    /// `MessageObject.TYPE_*` constants). The resulting input is still bounded by `matches`
+    /// before ICU sees it.
     public static func matches(message: EngineMessage, regexes: [NSRegularExpression]? = nil) -> Bool {
         var input = message.text
         for attribute in message.attributes {
@@ -518,7 +521,56 @@ public enum ForkRegexMessageFilters {
                 }
             }
         }
+        input.append("\n<type>")
+        input.append(String(ayuMessageTypeConstant(for: message)))
+        input.append("</type>")
         return matches(input, regexes: regexes)
+    }
+
+    /// Approximate AyuGram Android `MessageObject.TYPE_*` constant for `<type>N</type>` filters.
+    /// Not a byte-for-byte port of `MessageObject.updateMessageType()` — just enough of the common
+    /// cases (photo/video/round-video/voice/gif/sticker/music/file/geo/contact/poll) that
+    /// AyuGram-style `<type>N</type>` patterns copied from another client remain useful here.
+    private static func ayuMessageTypeConstant(for message: EngineMessage) -> Int {
+        for media in message.media {
+            if media is TelegramMediaImage {
+                return 1 // TYPE_PHOTO
+            }
+            if let file = media as? TelegramMediaFile {
+                if file.isVoice {
+                    return 2 // TYPE_VOICE
+                }
+                if file.isInstantVideo {
+                    return 5 // TYPE_ROUND_VIDEO
+                }
+                if file.isVideo {
+                    return 3 // TYPE_VIDEO
+                }
+                if file.isAnimated {
+                    return 8 // TYPE_GIF
+                }
+                if file.isAnimatedSticker {
+                    return 15 // TYPE_ANIMATED_STICKER
+                }
+                if file.isSticker {
+                    return 13 // TYPE_STICKER
+                }
+                if file.isMusic {
+                    return 14 // TYPE_MUSIC
+                }
+                return 9 // TYPE_FILE
+            }
+            if media is TelegramMediaMap {
+                return 4 // TYPE_GEO
+            }
+            if media is TelegramMediaContact {
+                return 12 // TYPE_CONTACT
+            }
+            if media is TelegramMediaPoll {
+                return 17 // TYPE_POLL
+            }
+        }
+        return 0 // TYPE_TEXT
     }
 }
 
