@@ -205,25 +205,16 @@ private func recognizedResources(postbox: Postbox, resources: [TelegramMediaReso
             }
         }
         |> last
+        // `last` wraps the value in an extra Optional; the upstream already emits UIImage?,
+        // so the type here is UIImage?? and needs two unwraps.
         let recognized = image
-        |> mapToSignal { maybeImage -> Signal<SecureIdRecognizedDocumentData?, NoError> in
-            guard let uiImage = maybeImage else {
+        |> mapToSignal { lastImage -> Signal<SecureIdRecognizedDocumentData?, NoError> in
+            guard let lastImage, let uiImage = lastImage else {
                 return .single(nil)
             }
-            return Signal { subscriber in
-                let disposable = SecureIdOCR.recognizeData(in: uiImage, shouldBeDriversLicense: shouldBeDriversLicense).start(next: { value in
-                    if let value {
-                        subscriber.putNext(secureIdRecognizedDocumentData(from: value))
-                        subscriber.putCompletion()
-                    } else {
-                        subscriber.putNext(nil)
-                        subscriber.putCompletion()
-                    }
-                }, completed: nil)
-
-                return ActionDisposable {
-                    disposable.dispose()
-                }
+            return SecureIdOCR.recognizeData(in: uiImage, shouldBeDriversLicense: shouldBeDriversLicense)
+            |> map { value in
+                value.flatMap(secureIdRecognizedDocumentData(from:))
             }
         }
         signals.append(recognized)
