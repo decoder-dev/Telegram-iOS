@@ -285,6 +285,7 @@ side-by-side comparison on device photos.
 | `ChatControllerOpenAttachmentMenu` edit-media `legacyAttachmentMenu` `openCamera` | DONE: dismisses menu sheet and presents `makeCameraScreen`; drops carousel transition. |
 | `StoryItemSetContainerViewSendMessage` | DONE: all preview types use `makeCameraScreen` + AccountContext result bridge. Dropped `LegacyCamera` module dep. |
 | `PassportUI/SecureIdAttachmentMenu` | BLOCKED / LEGACY: still uses `TGCameraController` for Passport-specific intents (`PassportId`, multiple, selfie/document crop). Not flippable to `SecureIdScanController` (MRZ-only) or current `CameraScreen` modes — see “Passport attach camera — gap” above. No dead Passport intent branches to delete. |
+| `Utils/VolumeButtons` | DONE: no longer imports LegacyComponents / `PGCameraVolumeButtonHandler` (Swift notification + AVCaptureEventInteraction / `MPVolumeControllerSystemDataSource`). ObjC camera still uses the handler internally. |
 | `LegacyMediaPickerUI/LegacyAttachmentMenu` | LEGACY: still owns the carousel camera, `PGCamera.cameraAvailable()`, and editor-result conversion via `TGCameraController.resultSignals`. |
 | `TelegramRootController` shortcut share | DONE: `openRootCamera` uses `makeCameraScreen` + share sheet via legacy enqueue signals. `LegacyCamera` module deleted. Left intentionally — no share/generic `CameraScreenMode`. |
 | `TelegramUI/Components/LegacyCamera/LegacyCamera.swift` | SHIM: only ``presentedLegacyShortcutCamera` (deleted)` remains (`presentedLegacyCamera` deleted). |

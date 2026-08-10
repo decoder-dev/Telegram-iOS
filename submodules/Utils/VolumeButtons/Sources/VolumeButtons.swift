@@ -2,38 +2,125 @@ import Foundation
 import UIKit
 import AVKit
 import SwiftSignalKit
-import MediaPlayer
-import LegacyComponents
 import AccountContext
 
-private protocol VolumeButtonHandlerImpl {
+private protocol VolumeButtonHandlerImpl: AnyObject {
 }
 
-private final class LegacyHandlerImpl: VolumeButtonHandlerImpl {
-    private let handler: PGCameraVolumeButtonHandler
-    
-    init(
-        context: SharedAccountContext,
-        performAction: @escaping (VolumeButtonsListener.Action) -> Void
-    ) {
-        self.handler = PGCameraVolumeButtonHandler(
-            isCameraSpecific: false,
-            eventView: context.mainWindow?.viewController?.view,
-            upButtonPressedBlock: {
-                performAction(.up)
-            }, upButtonReleasedBlock: {
-                performAction(.upRelease)
-            }, downButtonPressedBlock: {
-                performAction(.down)
-            }, downButtonReleasedBlock: {
-                performAction(.downRelease)
-            }
+/// Observes private UIApplication volume-button notifications (same hashes as
+/// `PGCameraVolumeButtonHandler`) without linking LegacyComponents.
+private final class NotificationVolumeHandlerImpl: VolumeButtonHandlerImpl {
+    private let performAction: (VolumeButtonsListener.Action) -> Void
+    private var enabled: Bool = false
+
+    init(performAction: @escaping (VolumeButtonsListener.Action) -> Void) {
+        self.performAction = performAction
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(self.handleNotification(_:)),
+            name: nil,
+            object: nil
         )
-        self.handler.enabled = true
+        self.setEnabled(true)
     }
-    
+
     deinit {
-        self.handler.enabled = false
+        self.setEnabled(false)
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    private func setEnabled(_ enabled: Bool) {
+        self.enabled = enabled
+        // Best-effort: mirror ObjC Freedom hook that turns on volume-button
+        // monitoring. Absence of the private selector is fine — notifications
+        // still arrive on many OS versions once another client enables them.
+        let app = UIApplication.shared
+        let selector = NSSelectorFromString("setWantsVolumeButtonEvents:")
+        if app.responds(to: selector) {
+            app.perform(selector, with: enabled ? true : false)
+        }
+    }
+
+    @objc private func handleNotification(_ notification: Notification) {
+        guard self.enabled else {
+            return
+        }
+        let name = notification.name.rawValue
+        let nameLength = name.count
+        guard nameLength == 46 || nameLength == 44 || nameLength == 42 || nameLength == 21 else {
+            return
+        }
+        switch Self.murmurHash32(name) {
+        case 0xaeae3258: // _UIApplicationVolumeDownButtonDownNotification
+            self.performAction(.down)
+        case 0x784c165e: // _UIApplicationVolumeDownButtonUpNotification
+            self.performAction(.downRelease)
+        case 0xba416d8e: // _UIApplicationVolumeUpButtonDownNotification
+            self.performAction(.up)
+        case 0x4074ecfb: // _UIApplicationVolumeUpButtonUpNotification
+            self.performAction(.upRelease)
+        case Int32(bitPattern: 0xf8df4808): // SystemVolumeDidChange
+            if let reason = notification.userInfo?["Reason"] as? String, reason == "ExplicitVolumeChange" {
+                DispatchQueue.main.async {
+                    self.performAction(.up)
+                }
+            }
+        default:
+            break
+        }
+    }
+
+    /// MurmurHash3 x86_32 with seed -137723950 — matches `legacy_murMurHash32`.
+    private static func murmurHash32(_ string: String) -> Int32 {
+        let data = Array(string.utf8)
+        let length = data.count
+        let nblocks = length / 4
+        var h1: UInt32 = UInt32(bitPattern: -137723950)
+
+        let c1: UInt32 = 0xcc9e2d51
+        let c2: UInt32 = 0x1b873593
+
+        for i in 0 ..< nblocks {
+            let i4 = i * 4
+            var k1 = UInt32(data[i4])
+                | (UInt32(data[i4 + 1]) << 8)
+                | (UInt32(data[i4 + 2]) << 16)
+                | (UInt32(data[i4 + 3]) << 24)
+            k1 &*= c1
+            k1 = (k1 << 15) | (k1 >> 17)
+            k1 &*= c2
+
+            h1 ^= k1
+            h1 = (h1 << 13) | (h1 >> 19)
+            h1 = h1 &* 5 &+ 0xe6546b64
+        }
+
+        var k1: UInt32 = 0
+        let tailIndex = nblocks * 4
+        switch length & 3 {
+        case 3:
+            k1 ^= UInt32(data[tailIndex + 2]) << 16
+            fallthrough
+        case 2:
+            k1 ^= UInt32(data[tailIndex + 1]) << 8
+            fallthrough
+        case 1:
+            k1 ^= UInt32(data[tailIndex])
+            k1 &*= c1
+            k1 = (k1 << 15) | (k1 >> 17)
+            k1 &*= c2
+            h1 ^= k1
+        default:
+            break
+        }
+
+        h1 ^= UInt32(length)
+        h1 ^= h1 >> 16
+        h1 &*= 0x85ebca6b
+        h1 ^= h1 >> 13
+        h1 &*= 0xc2b2ae35
+        h1 ^= h1 >> 16
+        return Int32(bitPattern: h1)
     }
 }
 
@@ -41,7 +128,7 @@ private final class LegacyHandlerImpl: VolumeButtonHandlerImpl {
 private final class AVCaptureEventHandlerImpl: VolumeButtonHandlerImpl {
     private weak var context: SharedAccountContext?
     private let interaction: AVCaptureEventInteraction
-    
+
     init(
         context: SharedAccountContext,
         performAction: @escaping (VolumeButtonsListener.Action) -> Void
@@ -76,10 +163,27 @@ private final class AVCaptureEventHandlerImpl: VolumeButtonHandlerImpl {
         self.interaction.isEnabled = true
         context.mainWindow?.viewController?.view.addInteraction(self.interaction)
     }
-    
+
     deinit {
         self.interaction.isEnabled = false
         self.context?.mainWindow?.viewController?.view.removeInteraction(self.interaction)
+    }
+}
+
+/// iOS 17.2+ non-camera path: same private `MPVolumeControllerSystemDataSource`
+/// that `PGCameraVolumeButtonHandler` instantiates, plus notification listening.
+@available(iOS 17.2, *)
+private final class SystemVolumeDataSourceHandlerImpl: VolumeButtonHandlerImpl {
+    private let notificationHandler: NotificationVolumeHandlerImpl
+    private var dataSource: NSObject?
+
+    init(performAction: @escaping (VolumeButtonsListener.Action) -> Void) {
+        self.notificationHandler = NotificationVolumeHandlerImpl(performAction: performAction)
+        // "MPVolumeControllerSystemDataSource" encoded the same way as ObjC (+1 / -1).
+        let className = String(bytes: "NQWpmvnfDpouspmmfsTztufnEbubTpvsdf".utf8.map { UInt8(($0 &- 1) & 0xff) }, encoding: .utf8)
+        if let className, let cls = NSClassFromString(className) as? NSObject.Type {
+            self.dataSource = cls.init()
+        }
     }
 }
 
@@ -87,56 +191,56 @@ public class VolumeButtonsListener {
     private final class ListenerReference {
         let id: Int
         weak var listener: VolumeButtonsListener?
-        
+
         init(id: Int, listener: VolumeButtonsListener) {
             self.id = id
             self.listener = listener
         }
     }
-    
+
     fileprivate enum Action {
         case up
         case upRelease
         case down
         case downRelease
     }
-        
+
     private final class SharedContext: NSObject {
         private var handler: VolumeButtonHandlerImpl?
         private var cameraSpecificHandler: VolumeButtonHandlerImpl?
-        
+
         private weak var sharedAccountContext: SharedAccountContext?
-        
+
         private var nextListenerId: Int = 0
         private var listeners: [ListenerReference] = []
-        
+
         override init() {
             super.init()
         }
-        
+
         func add(listener: VolumeButtonsListener) -> Int {
             self.sharedAccountContext = listener.sharedAccountContext
-            
+
             let id = self.nextListenerId
             self.nextListenerId += 1
-            
+
             self.listeners.append(ListenerReference(id: id, listener: listener))
             self.updateListeners()
-            
+
             return id
         }
-        
+
         func update(id: Int) {
             self.updateListeners()
         }
-        
+
         func remove(id: Int) {
             if let index = self.listeners.firstIndex(where: { $0.id == id }) {
                 self.listeners.remove(at: index)
                 self.updateListeners()
             }
         }
-        
+
         private func performAction(_ action: Action, isCameraSpecific: Bool) {
             for i in (0 ..< self.listeners.count).reversed() {
                 if let listener = self.listeners[i].listener, listener.isActive, listener.isCameraSpecific == isCameraSpecific {
@@ -153,11 +257,11 @@ public class VolumeButtonsListener {
                 }
             }
         }
-        
+
         private func updateListeners() {
             var isGeneralActive = false
             var isCameraSpecificActive = false
-            
+
             for i in (0 ..< self.listeners.count).reversed() {
                 if let listener = self.listeners[i].listener {
                     if listener.isActive {
@@ -175,23 +279,22 @@ public class VolumeButtonsListener {
                     self.listeners.remove(at: i)
                 }
             }
-            
+
             if isGeneralActive {
                 if self.handler == nil {
-                    if let sharedAccountContext = self.sharedAccountContext {
-                        let performAction: (VolumeButtonsListener.Action) -> Void = { [weak self] action in
-                            self?.performAction(action, isCameraSpecific: false)
-                        }
-                        self.handler = LegacyHandlerImpl(
-                            context: sharedAccountContext,
-                            performAction: performAction
-                        )
+                    let performAction: (VolumeButtonsListener.Action) -> Void = { [weak self] action in
+                        self?.performAction(action, isCameraSpecific: false)
+                    }
+                    if #available(iOS 17.2, *) {
+                        self.handler = SystemVolumeDataSourceHandlerImpl(performAction: performAction)
+                    } else {
+                        self.handler = NotificationVolumeHandlerImpl(performAction: performAction)
                     }
                 }
             } else {
                 self.handler = nil
             }
-            
+
             if isCameraSpecificActive {
                 if self.cameraSpecificHandler == nil {
                     if let sharedAccountContext = self.sharedAccountContext {
@@ -204,7 +307,7 @@ public class VolumeButtonsListener {
                                 performAction: performAction
                             )
                         } else {
-                            self.cameraSpecificHandler = nil
+                            self.cameraSpecificHandler = NotificationVolumeHandlerImpl(performAction: performAction)
                         }
                     }
                 }
@@ -213,24 +316,24 @@ public class VolumeButtonsListener {
             }
         }
     }
-    
+
     fileprivate let sharedAccountContext: SharedAccountContext
     fileprivate let isCameraSpecific: Bool
-    
+
     private static var sharedContext: SharedContext = {
         return SharedContext()
     }()
-    
+
     fileprivate let upPressed: () -> Void
     fileprivate let upReleased: () -> Void
     fileprivate let downPressed: () -> Void
     fileprivate let downReleased: () -> Void
-    
+
     private var index: Int?
-    
+
     fileprivate var isActive: Bool = false
     private var disposable: Disposable?
-    
+
     public init(
         sharedContext: SharedAccountContext,
         isCameraSpecific: Bool,
@@ -246,9 +349,9 @@ public class VolumeButtonsListener {
         self.upReleased = upReleased
         self.downPressed = downPressed
         self.downReleased = downReleased
-        
+
         self.index = VolumeButtonsListener.sharedContext.add(listener: self)
-                
+
         self.disposable = (shouldBeActive
         |> distinctUntilChanged
         |> deliverOnMainQueue).start(next: { [weak self] value in
@@ -259,7 +362,7 @@ public class VolumeButtonsListener {
             VolumeButtonsListener.sharedContext.update(id: index)
         })
     }
-    
+
     deinit {
         if let index = self.index {
             VolumeButtonsListener.sharedContext.remove(id: index)
