@@ -45,6 +45,8 @@ private class SimpleCapturePreviewLayer: AVCaptureVideoPreviewLayer {
 
 
 public class CameraSimplePreviewView: UIView {
+    private var appliedVideoOrientation: AVCaptureVideoOrientation?
+
     func updateOrientation() {
         guard self.videoPreviewLayer.connection?.isVideoOrientationSupported == true else {
             return
@@ -56,6 +58,10 @@ public class CameraSimplePreviewView: UIView {
             statusBarOrientation = UIApplication.shared.statusBarOrientation
         }
         let videoOrientation = statusBarOrientation.videoOrientation
+        guard self.appliedVideoOrientation != videoOrientation else {
+            return
+        }
+        self.appliedVideoOrientation = videoOrientation
         self.videoPreviewLayer.connection?.videoOrientation = videoOrientation
         self.videoPreviewLayer.removeAllAnimations()
     }

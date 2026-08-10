@@ -418,12 +418,26 @@ private final class MediaPickerPhotoToolbarComponent: Component {
             return self.centerButtonViews[tab.rawValue]?.view
         }
 
+        fileprivate func setActionHandlers(
+            cancelPressed: (() -> Void)?,
+            donePressed: (() -> Void)?,
+            doneLongPressed: ((Any?) -> Void)?,
+            tabPressed: ((TGPhotoEditorTab) -> Void)?
+        ) {
+            self.cancelPressed = cancelPressed
+            self.donePressed = donePressed
+            self.doneLongPressed = doneLongPressed
+            self.tabPressed = tabPressed
+        }
+
         func update(component: MediaPickerPhotoToolbarComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
             self.component = component
-            self.cancelPressed = component.cancelPressed
-            self.donePressed = component.donePressed
-            self.doneLongPressed = component.doneLongPressed
-            self.tabPressed = component.tabPressed
+            self.setActionHandlers(
+                cancelPressed: component.cancelPressed,
+                donePressed: component.donePressed,
+                doneLongPressed: component.doneLongPressed,
+                tabPressed: component.tabPressed
+            )
 
             let accentColor = UIColor(rgb: 0xffd300) //presentationData.theme.list.itemAccentColor
             let selectedIconColor = UIColor.white //(rgb: 0xffd300)
@@ -902,25 +916,26 @@ final class MediaPickerPhotoToolbarView: UIView, TGPhotoToolbarViewProtocol {
     private let rootView = ComponentView<Empty>()
 
     private var transitionedOut = false
+    private var lastUpdatedSize: CGSize = .zero
 
     var cancelPressed: (() -> Void)? {
         didSet {
-            self.update(transition: .immediate)
+            self.syncActionHandlers()
         }
     }
     var donePressed: (() -> Void)? {
         didSet {
-            self.update(transition: .immediate)
+            self.syncActionHandlers()
         }
     }
     var doneLongPressed: ((Any?) -> Void)? {
         didSet {
-            self.update(transition: .immediate)
+            self.syncActionHandlers()
         }
     }
     var tabPressed: ((TGPhotoEditorTab) -> Void)? {
         didSet {
-            self.update(transition: .immediate)
+            self.syncActionHandlers()
         }
     }
 
@@ -998,8 +1013,14 @@ final class MediaPickerPhotoToolbarView: UIView, TGPhotoToolbarViewProtocol {
     override func layoutSubviews() {
         super.layoutSubviews()
 
-        self.update(transition: .immediate)
-        self.updateRootFrame(transition: .immediate)
+        // Rebuild content only when the toolbar size changes. Rebuilding the
+        // ComponentFlow tree on every layout pass (gallery scroll / highlight
+        // churn) was the main lag source after the Swift toolbar migration.
+        if self.bounds.size != self.lastUpdatedSize {
+            self.update(transition: .immediate)
+        } else {
+            self.updateRootFrame(transition: .immediate)
+        }
     }
 
     func transitionIn(animated: Bool) {
@@ -1122,8 +1143,18 @@ final class MediaPickerPhotoToolbarView: UIView, TGPhotoToolbarViewProtocol {
         }
     }
 
+    private func syncActionHandlers() {
+        (self.rootView.view as? MediaPickerPhotoToolbarComponent.View)?.setActionHandlers(
+            cancelPressed: self.cancelPressed,
+            donePressed: self.donePressed,
+            doneLongPressed: self.doneLongPressed,
+            tabPressed: self.tabPressed
+        )
+    }
+
     private func update(transition: ComponentTransition) {
         let size = self.bounds.size
+        self.lastUpdatedSize = size
         let _ = self.rootView.update(
             transition: transition,
             component: AnyComponent(
@@ -1157,7 +1188,7 @@ final class MediaPickerPhotoToolbarView: UIView, TGPhotoToolbarViewProtocol {
                 )
             ),
             environment: {},
-            forceUpdate: true,
+            forceUpdate: false,
             containerSize: size
         )
 
@@ -1165,6 +1196,7 @@ final class MediaPickerPhotoToolbarView: UIView, TGPhotoToolbarViewProtocol {
             if view.superview == nil {
                 self.addSubview(view)
             }
+            self.syncActionHandlers()
             self.updateRootFrame(transition: transition)
         }
     }

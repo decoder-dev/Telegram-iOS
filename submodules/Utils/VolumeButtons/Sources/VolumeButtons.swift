@@ -32,7 +32,10 @@ private final class NotificationVolumeHandlerImpl: NSObject, VolumeButtonHandler
         )
         self.setEnabled(true)
 
-        try? AVAudioSession.sharedInstance().setActive(true)
+        // Do not eagerly AVAudioSession.setActive(true) — that contends with
+        // chat media playback and was a regression vs the ObjC handler. KVO
+        // still works once the session is active for other reasons; private
+        // volume-button notifications remain the primary path.
         self.volumeObservation = AVAudioSession.sharedInstance().observe(\.outputVolume, options: [.old, .new]) { [weak self] _, change in
             guard let self, self.enabled else {
                 return

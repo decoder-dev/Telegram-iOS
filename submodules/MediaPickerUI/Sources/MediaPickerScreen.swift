@@ -741,11 +741,13 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
                 let setupCamera = {
                     let camera = Camera(
                         configuration: Camera.Configuration(
-                            preset: .hd1920x1080,
+                            // Grid tile only needs a lightweight preview; full-res
+                            // 1080p capture while scrolling the picker was a clear lag source.
+                            preset: .hd1280x720,
                             position: cameraPosition,
                             isDualEnabled: false,
                             audio: false,
-                            photo: true,
+                            photo: false,
                             metadata: false
                         ),
                         previewView: cameraPreviewView,

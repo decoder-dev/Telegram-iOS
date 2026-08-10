@@ -11,7 +11,9 @@ private final class SecureIdScanPreviewView: UIView, AVCaptureVideoDataOutputSam
     private let previewLayer: AVCaptureVideoPreviewLayer
     private let videoOutput = AVCaptureVideoDataOutput()
     private let sessionQueue = DispatchQueue(label: "PassportUI.SecureIdScan")
+    private let ciContext = CIContext(options: [.useSoftwareRenderer: false])
     private var latestImage: UIImage?
+    private var captureNextFrame = false
     private var ocrDisposable: Disposable?
     private var pollTimer: SwiftSignalKit.Timer?
     private var isRunning = false
@@ -24,6 +26,9 @@ private final class SecureIdScanPreviewView: UIView, AVCaptureVideoDataOutputSam
         self.previewLayer.videoGravity = .resizeAspectFill
         self.layer.addSublayer(self.previewLayer)
         self.videoOutput.alwaysDiscardsLateVideoFrames = true
+        self.videoOutput.videoSettings = [
+            kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_420YpCbCr8BiPlanarFullRange
+        ]
         self.videoOutput.setSampleBufferDelegate(self, queue: self.sessionQueue)
         self.configureSession()
     }
@@ -38,7 +43,13 @@ private final class SecureIdScanPreviewView: UIView, AVCaptureVideoDataOutputSam
 
     private func configureSession() {
         self.session.beginConfiguration()
-        self.session.sessionPreset = .photo
+        // Live MRZ OCR does not need photo-resolution frames — that was a
+        // major battery/CPU regression vs ObjC's gated captureNextFrame path.
+        if self.session.canSetSessionPreset(.hd1280x720) {
+            self.session.sessionPreset = .hd1280x720
+        } else {
+            self.session.sessionPreset = .vga640x480
+        }
         defer { self.session.commitConfiguration() }
 
         guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
@@ -74,6 +85,8 @@ private final class SecureIdScanPreviewView: UIView, AVCaptureVideoDataOutputSam
         self.ocrDisposable?.dispose()
         self.ocrDisposable = nil
         self.sessionQueue.async {
+            self.latestImage = nil
+            self.captureNextFrame = false
             if self.session.isRunning {
                 self.session.stopRunning()
             }
@@ -89,49 +102,79 @@ private final class SecureIdScanPreviewView: UIView, AVCaptureVideoDataOutputSam
     }
 
     private func pollFrame() {
-        guard self.isRunning, let image = self.latestImage else {
-            self.schedulePoll(after: 0.45)
+        guard self.isRunning else {
             return
         }
-        self.ocrDisposable?.dispose()
-        self.ocrDisposable = (SecureIdOCR.recognizeData(in: image, shouldBeDriversLicense: false)
-        |> deliverOnMainQueue).start(next: { [weak self] value in
+        // Request a single frame conversion instead of paying CI cost on every buffer.
+        self.sessionQueue.async { [weak self] in
+            self?.captureNextFrame = true
+        }
+        Queue.mainQueue().after(0.08) { [weak self] in
+            self?.consumeCapturedFrameForOCR()
+        }
+    }
+
+    private func consumeCapturedFrameForOCR() {
+        guard self.isRunning else {
+            return
+        }
+        self.sessionQueue.async { [weak self] in
             guard let self else {
                 return
             }
-            if let value {
-                self.stop()
-                self.finishedWithMRZ?(value)
-            } else if self.isRunning {
-                self.schedulePoll(after: 0.45)
+            let image = self.latestImage
+            self.latestImage = nil
+            Queue.mainQueue().async {
+                guard let image else {
+                    self.schedulePoll(after: 0.45)
+                    return
+                }
+                self.ocrDisposable?.dispose()
+                self.ocrDisposable = (SecureIdOCR.recognizeData(in: image, shouldBeDriversLicense: false, recognitionLevel: .fast)
+                |> deliverOnMainQueue).start(next: { [weak self] value in
+                    guard let self else {
+                        return
+                    }
+                    if let value {
+                        self.stop()
+                        self.finishedWithMRZ?(value)
+                    } else if self.isRunning {
+                        self.schedulePoll(after: 0.55)
+                    }
+                })
             }
-        })
+        }
+    }
+
+    private func makeDownscaledImage(from pixelBuffer: CVPixelBuffer) -> UIImage? {
+        let width = CVPixelBufferGetWidth(pixelBuffer)
+        let height = CVPixelBufferGetHeight(pixelBuffer)
+        let maxSide = 960
+        let scale = min(1.0, CGFloat(maxSide) / CGFloat(max(width, height)))
+        let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
+        let scaled: CIImage
+        if scale < 1.0 {
+            scaled = ciImage.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
+        } else {
+            scaled = ciImage
+        }
+        guard let cgImage = self.ciContext.createCGImage(scaled, from: scaled.extent) else {
+            return nil
+        }
+        return UIImage(cgImage: cgImage, scale: 1.0, orientation: .right)
     }
 
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        guard let image = UIImage(sampleBuffer: sampleBuffer) else {
+        guard self.captureNextFrame, let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
             return
         }
-        self.latestImage = image
+        self.captureNextFrame = false
+        self.latestImage = self.makeDownscaledImage(from: pixelBuffer)
     }
 
     override func layoutSubviews() {
         super.layoutSubviews()
         self.previewLayer.frame = self.bounds
-    }
-}
-
-private extension UIImage {
-    convenience init?(sampleBuffer: CMSampleBuffer) {
-        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
-            return nil
-        }
-        let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
-        let context = CIContext(options: nil)
-        guard let cgImage = context.createCGImage(ciImage, from: ciImage.extent) else {
-            return nil
-        }
-        self.init(cgImage: cgImage, scale: 1.0, orientation: .right)
     }
 }
 

@@ -5,9 +5,24 @@ import Vision
 import SwiftSignalKit
 
 enum SecureIdOCR {
-    static func recognizeData(in image: UIImage, shouldBeDriversLicense: Bool) -> Signal<SecureIdMRZ?, NoError> {
-        let initial = shouldBeDriversLicense ? recognizeBarcode(in: image) : recognizeMRZ(in: image)
-        let fallback = shouldBeDriversLicense ? recognizeMRZ(in: image) : recognizeBarcode(in: image)
+    enum RecognitionLevel {
+        case fast
+        case accurate
+
+        @available(iOS 13.0, *)
+        var visionLevel: VNRequestTextRecognitionLevel {
+            switch self {
+            case .fast:
+                return .fast
+            case .accurate:
+                return .accurate
+            }
+        }
+    }
+
+    static func recognizeData(in image: UIImage, shouldBeDriversLicense: Bool, recognitionLevel: RecognitionLevel = .accurate) -> Signal<SecureIdMRZ?, NoError> {
+        let initial = shouldBeDriversLicense ? recognizeBarcode(in: image) : recognizeMRZ(in: image, recognitionLevel: recognitionLevel)
+        let fallback = shouldBeDriversLicense ? recognizeMRZ(in: image, recognitionLevel: recognitionLevel) : recognizeBarcode(in: image)
         return initial
         |> mapToSignal { value -> Signal<SecureIdMRZ?, NoError> in
             if let value {
@@ -17,7 +32,7 @@ enum SecureIdOCR {
         }
     }
 
-    private static func recognizeMRZ(in image: UIImage) -> Signal<SecureIdMRZ?, NoError> {
+    private static func recognizeMRZ(in image: UIImage, recognitionLevel: RecognitionLevel) -> Signal<SecureIdMRZ?, NoError> {
         guard let cgImage = image.cgImage else {
             return .single(nil)
         }
@@ -31,7 +46,7 @@ enum SecureIdOCR {
                     subscriber.putNext(parseRecognizedMRZLines(strings))
                     subscriber.putCompletion()
                 }
-                request.recognitionLevel = .accurate
+                request.recognitionLevel = recognitionLevel.visionLevel
                 request.usesLanguageCorrection = false
                 request.recognitionLanguages = ["en-US"]
                 request.preferBackgroundProcessing = true
