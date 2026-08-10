@@ -120,7 +120,8 @@ private final class NotificationVolumeHandlerImpl: NSObject, VolumeButtonHandler
         let data = Array(string.utf8)
         let length = data.count
         let nblocks = length / 4
-        var h1: UInt32 = UInt32(bitPattern: -137723950)
+        // Seed -137723950 as UInt32 bits (avoid UInt32(bitPattern:) — TelegramCore also extends it).
+        var h1: UInt32 = 0xf7c8c0d2
 
         let c1: UInt32 = 0xcc9e2d51
         let c2: UInt32 = 0x1b873593
