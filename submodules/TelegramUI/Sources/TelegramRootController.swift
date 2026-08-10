@@ -20,7 +20,7 @@ import CameraScreen
 import MediaEditorScreen
 import LegacyComponents
 import LegacyMediaPickerUI
-import LegacyCamera
+import ShareController
 import AvatarNode
 import LocalMediaResources
 import ImageCompression
@@ -293,7 +293,69 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
             return
         }
         controller.view.endEditing(true)
-        presentedLegacyShortcutCamera(context: self.context, saveCapturedMedia: false, saveEditedPhotos: false, mediaGrouping: true, parentController: controller)
+
+        var returnToCameraImpl: (() -> Void)?
+        let cameraScreen = self.context.sharedContext.makeCameraScreen(
+            context: self.context,
+            mode: .sticker,
+            cameraHolder: nil,
+            transitionIn: nil,
+            transitionOut: { _ in nil },
+            completion: { [weak self, weak controller] result, commit in
+                guard let self, let controller else {
+                    returnToCameraImpl?()
+                    return
+                }
+                var didPresentShare = false
+                let _ = (self.context.sharedContext.legacyCameraCapturedMediaSignals(
+                    fromCameraScreenResult: result,
+                    initialCaption: NSAttributedString(),
+                    sendPaidMessageStars: 0
+                )
+                |> deliverOnMainQueue).start(next: { [weak self, weak controller] signals in
+                    guard let self, let controller else {
+                        return
+                    }
+                    didPresentShare = true
+                    commit()
+                    let context = self.context
+                    controller.present(context.sharedContext.makeShareController(context: context, params: ShareControllerParams(subject: .fromExternal(1, { peerIds, _, _, text, account, silently in
+                        guard let account = account as? ShareControllerAppAccountContext else {
+                            return .single(.done)
+                        }
+                        return legacyAssetPickerEnqueueMessages(context: context, account: account.context.account, signals: signals)
+                        |> `catch` { _ -> Signal<[LegacyAssetPickerEnqueueMessage], ShareControllerError> in
+                            return .single([])
+                        }
+                        |> mapToSignal { messages -> Signal<ShareControllerExternalStatus, ShareControllerError> in
+                            let resultSignals = peerIds.map({ peerId in
+                                return enqueueMessages(account: account.context.account, peerId: peerId, messages: messages.map { $0.message })
+                                |> castError(ShareControllerError.self)
+                                |> mapToSignal { _ -> Signal<ShareControllerExternalStatus, ShareControllerError> in
+                                    return .complete()
+                                }
+                            })
+                            return combineLatest(resultSignals)
+                            |> mapToSignal { _ -> Signal<ShareControllerExternalStatus, ShareControllerError> in
+                                return .complete()
+                            }
+                            |> then(.single(ShareControllerExternalStatus.done))
+                        }
+                    }), showInChat: nil, externalShare: false)), in: .window(.root))
+                }, completed: {
+                    if !didPresentShare {
+                        returnToCameraImpl?()
+                    }
+                })
+            },
+            transitionedOut: nil
+        )
+        controller.push(cameraScreen)
+        returnToCameraImpl = { [weak cameraScreen] in
+            if let cameraScreen = cameraScreen as? CameraScreen {
+                cameraScreen.returnFromEditor()
+            }
+        }
     }
     
     public func openAppIcon() {
