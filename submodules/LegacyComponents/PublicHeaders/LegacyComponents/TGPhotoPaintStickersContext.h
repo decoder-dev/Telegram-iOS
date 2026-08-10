@@ -2,6 +2,7 @@
 #import <UIKit/UIKit.h>
 #import <CoreMedia/CoreMedia.h>
 #import <LegacyComponents/TGPhotoToolbarViewProtocol.h>
+#import <LegacyComponents/TGMediaEditingContext.h>
 
 @class TGPaintingData;
 @class TGStickerMaskDescription;
