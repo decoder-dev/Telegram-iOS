@@ -6,8 +6,6 @@
 
 #import <LegacyComponents/PGPhotoEditorValues.h>
 
-#import <LegacyComponents/TGPhotoPaintStickerEntity.h>
-#import <LegacyComponents/TGPhotoPaintTextEntity.h>
 
 #import "PGTintTool.h"
 #import "PGCurvesTool.h"

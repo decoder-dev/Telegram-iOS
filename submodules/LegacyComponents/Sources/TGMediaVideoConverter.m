@@ -12,7 +12,6 @@
 #import <LegacyComponents/TGPhotoEditorUtils.h>
 #import "PGPhotoEditor.h"
 #import <LegacyComponents/TGPaintUtils.h>
-#import <LegacyComponents/TGPhotoPaintEntity.h>
 
 #import <LegacyComponents/TGVideoEditAdjustments.h>
 #import <LegacyComponents/TGPaintingData.h>

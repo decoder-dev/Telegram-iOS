@@ -3,7 +3,6 @@
 #import <SSignalKit/SQueue.h>
 
 #import <LegacyComponents/TGPaintUtils.h>
-#import <LegacyComponents/TGPhotoPaintStickerEntity.h>
 
 #import <LegacyComponents/TGMediaEditingContext.h>
 

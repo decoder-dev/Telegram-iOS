@@ -208,10 +208,7 @@
 #import <LegacyComponents/TGPhotoEditorTabController.h>
 #import <LegacyComponents/TGPhotoEditorToolView.h>
 #import <LegacyComponents/TGPhotoEditorUtils.h>
-#import <LegacyComponents/TGPhotoPaintEntity.h>
-#import <LegacyComponents/TGPhotoPaintStickerEntity.h>
 #import <LegacyComponents/TGPhotoPaintStickersContext.h>
-#import <LegacyComponents/TGPhotoPaintTextEntity.h>
 #import <LegacyComponents/TGPhotoToolbarView.h>
 #import <LegacyComponents/TGPhotoVideoEditor.h>
 #import <LegacyComponents/TGPluralization.h>
