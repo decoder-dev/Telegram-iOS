@@ -2,7 +2,6 @@
 #import <UIKit/UIKit.h>
 
 #import <LegacyComponents/LegacyComponentsAccessChecker.h>
-#import <LegacyComponents/LegacyHTTPRequestOperation.h>
 
 @class SSignal;
 @class SThreadPool;

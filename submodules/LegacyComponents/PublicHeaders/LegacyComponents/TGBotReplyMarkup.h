@@ -2,8 +2,6 @@
 
 #import <LegacyComponents/PSCoding.h>
 
-#import <LegacyComponents/TGBotReplyMarkupRow.h>
-
 @interface TGBotReplyMarkup : NSObject <NSCoding, PSCoding>
 
 @property (nonatomic, readonly) int32_t userId;

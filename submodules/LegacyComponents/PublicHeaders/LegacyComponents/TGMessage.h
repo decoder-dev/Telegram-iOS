@@ -6,21 +6,13 @@
 #import <LegacyComponents/TGMediaAttachment.h>
 #import <LegacyComponents/TGImageMediaAttachment.h>
 #import <LegacyComponents/TGLocationMediaAttachment.h>
-#import <LegacyComponents/TGLocalMessageMetaMediaAttachment.h>
 #import <LegacyComponents/TGVideoMediaAttachment.h>
-#import <LegacyComponents/TGContactMediaAttachment.h>
 #import <LegacyComponents/TGForwardedMessageMediaAttachment.h>
-#import <LegacyComponents/TGUnsupportedMediaAttachment.h>
 #import <LegacyComponents/TGDocumentMediaAttachment.h>
-#import <LegacyComponents/TGAudioMediaAttachment.h>
 #import <LegacyComponents/TGReplyMessageMediaAttachment.h>
 #import <LegacyComponents/TGWebPageMediaAttachment.h>
 #import <LegacyComponents/TGReplyMarkupAttachment.h>
 #import <LegacyComponents/TGMessageEntitiesAttachment.h>
-#import <LegacyComponents/TGBotContextResultAttachment.h>
-#import <LegacyComponents/TGViaUserAttachment.h>
-#import <LegacyComponents/TGGameMediaAttachment.h>
-#import <LegacyComponents/TGInvoiceMediaAttachment.h>
 #import <LegacyComponents/TGAuthorSignatureMediaAttachment.h>
 
 #import <LegacyComponents/TGMessageViewCountContentProperty.h>

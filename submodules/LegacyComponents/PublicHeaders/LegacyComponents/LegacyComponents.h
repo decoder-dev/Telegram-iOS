@@ -10,7 +10,6 @@
 #import <LegacyComponents/LegacyComponentsAccessChecker.h>
 #import <LegacyComponents/LegacyComponentsContext.h>
 #import <LegacyComponents/LegacyComponentsGlobals.h>
-#import <LegacyComponents/LegacyHTTPRequestOperation.h>
 #import <LegacyComponents/lmdb.h>
 #import <LegacyComponents/NSInputStream+TL.h>
 #import <LegacyComponents/NSObject+TGLock.h>
@@ -47,14 +46,10 @@
 #import <LegacyComponents/TGAnimationBlockDelegate.h>
 #import <LegacyComponents/TGAttachmentCameraView.h>
 #import <LegacyComponents/TGAttachmentCarouselItemView.h>
-#import <LegacyComponents/TGAudioMediaAttachment.h>
 #import <LegacyComponents/TGAudioWaveform.h>
 #import <LegacyComponents/TGAuthorSignatureMediaAttachment.h>
 #import <LegacyComponents/TGBackdropView.h>
-#import <LegacyComponents/TGBotContextResultAttachment.h>
 #import <LegacyComponents/TGBotReplyMarkup.h>
-#import <LegacyComponents/TGBotReplyMarkupButton.h>
-#import <LegacyComponents/TGBotReplyMarkupRow.h>
 #import <LegacyComponents/TGCameraCapturedPhoto.h>
 #import <LegacyComponents/TGCameraCapturedVideo.h>
 #import <LegacyComponents/TGCameraController.h>
@@ -73,7 +68,6 @@
 #import <LegacyComponents/TGChannelAdminRights.h>
 #import <LegacyComponents/TGChannelBannedRights.h>
 #import <LegacyComponents/TGCheckButtonView.h>
-#import <LegacyComponents/TGContactMediaAttachment.h>
 #import <LegacyComponents/TGConversation.h>
 #import <LegacyComponents/TGDatabaseMessageDraft.h>
 #import <LegacyComponents/TGDataResource.h>
@@ -91,7 +85,6 @@
 #import <LegacyComponents/TGFont.h>
 #import <LegacyComponents/TGForwardedMessageMediaAttachment.h>
 #import <LegacyComponents/TGFullscreenContainerView.h>
-#import <LegacyComponents/TGGameMediaAttachment.h>
 #import <LegacyComponents/TGGifConverter.h>
 #import <LegacyComponents/TGHacks.h>
 #import <LegacyComponents/TGIconSwitchView.h>
@@ -104,13 +97,11 @@
 #import <LegacyComponents/TGImageUtils.h>
 #import <LegacyComponents/TGImageView.h>
 #import <LegacyComponents/TGInstantPage.h>
-#import <LegacyComponents/TGInvoiceMediaAttachment.h>
 #import <LegacyComponents/TGKeyCommand.h>
 #import <LegacyComponents/TGKeyCommandController.h>
 #import <LegacyComponents/TGLabel.h>
 #import <LegacyComponents/TGLiveUploadInterface.h>
 #import <LegacyComponents/TGLocalization.h>
-#import <LegacyComponents/TGLocalMessageMetaMediaAttachment.h>
 #import <LegacyComponents/TGLocationMediaAttachment.h>
 #import <LegacyComponents/TGMediaAsset+TGMediaEditableItem.h>
 #import <LegacyComponents/TGMediaAsset.h>
@@ -237,14 +228,11 @@
 #import <LegacyComponents/TGSecretTimerMenu.h>
 #import <LegacyComponents/TGStaticBackdropAreaData.h>
 #import <LegacyComponents/TGStaticBackdropImageData.h>
-#import <LegacyComponents/TGStickerPack.h>
 #import <LegacyComponents/TGStickerPackReference.h>
 #import <LegacyComponents/TGStringUtils.h>
 #import <LegacyComponents/TGTextCheckingResult.h>
 #import <LegacyComponents/TGTimerTarget.h>
 #import <LegacyComponents/TGTooltipView.h>
-#import <LegacyComponents/TGUnsupportedMediaAttachment.h>
-#import <LegacyComponents/TGViaUserAttachment.h>
 #import <LegacyComponents/TGVideoCameraGLRenderer.h>
 #import <LegacyComponents/TGVideoCameraGLView.h>
 #import <LegacyComponents/TGVideoCameraMovieRecorder.h>
@@ -257,7 +245,6 @@
 #import <LegacyComponents/TGVideoMessageScrubber.h>
 #import <LegacyComponents/TGViewController+TGRecursiveEnumeration.h>
 #import <LegacyComponents/TGViewController.h>
-#import <LegacyComponents/TGWebDocument.h>
 #import <LegacyComponents/TGWebPageMediaAttachment.h>
 #import <LegacyComponents/UICollectionView+Utils.h>
 #import <LegacyComponents/UIControl+HitTestEdgeInsets.h>
