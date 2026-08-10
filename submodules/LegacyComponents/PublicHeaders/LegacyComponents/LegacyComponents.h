@@ -25,7 +25,6 @@
 #import <LegacyComponents/POPAnimationEvent.h>
 #import <LegacyComponents/POPAnimationTracer.h>
 #import <LegacyComponents/POPBasicAnimation.h>
-#import <LegacyComponents/POPGeometry.h>
 #import <LegacyComponents/POPPropertyAnimation.h>
 #import <LegacyComponents/POPSpringAnimation.h>
 #import <LegacyComponents/PSCoding.h>
@@ -153,7 +152,6 @@
 #import <LegacyComponents/TGMessageEntityUrl.h>
 #import <LegacyComponents/TGMessageImageViewOverlayView.h>
 #import <LegacyComponents/TGMessageViewCountContentProperty.h>
-#import <LegacyComponents/TGModernBarButton.h>
 #import <LegacyComponents/TGModernButton.h>
 #import <LegacyComponents/TGModernCache.h>
 #import <LegacyComponents/TGModernConversationInputMicButton.h>
@@ -191,7 +189,6 @@
 #import <LegacyComponents/TGPhotoAvatarCropView.h>
 #import <LegacyComponents/TGPhotoCaptionInputMixin.h>
 #import <LegacyComponents/TGPhotoEditorAnimation.h>
-#import <LegacyComponents/TGPhotoEditorButton.h>
 #import <LegacyComponents/TGPhotoEditorController.h>
 #import <LegacyComponents/TGPhotoEditorInterfaceAssets.h>
 #import <LegacyComponents/TGPhotoEditorSliderView.h>

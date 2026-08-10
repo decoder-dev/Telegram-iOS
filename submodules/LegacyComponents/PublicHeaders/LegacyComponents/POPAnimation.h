@@ -10,7 +10,6 @@
 #import <Foundation/NSObject.h>
 
 #import <LegacyComponents/POPAnimationTracer.h>
-#import <LegacyComponents/POPGeometry.h>
 
 @class CAMediaTimingFunction;
 

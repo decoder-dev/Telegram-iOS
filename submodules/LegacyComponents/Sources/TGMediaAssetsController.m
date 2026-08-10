@@ -18,7 +18,6 @@
 #import <LegacyComponents/TGGifConverter.h>
 #import <CommonCrypto/CommonDigest.h>
 
-#import <LegacyComponents/TGModernBarButton.h>
 #import <LegacyComponents/TGMediaPickerToolbarView.h>
 
 #import <LegacyComponents/TGMediaAsset+TGMediaEditableItem.h>

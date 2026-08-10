@@ -17,7 +17,6 @@
 #import <LegacyComponents/TGMediaAssetImageSignals.h>
 #import <LegacyComponents/TGMediaAssetFetchResultChange.h>
 
-#import <LegacyComponents/TGModernBarButton.h>
 
 #import <LegacyComponents/TGMediaAsset+TGMediaEditableItem.h>
 #import <LegacyComponents/TGPhotoEditorController.h>
@@ -34,8 +33,6 @@
     SMetaDisposable *_assetsDisposable;
     
     TGMediaAssetFetchResult *_fetchResult;
-    
-    TGModernBarButton *_searchBarButton;
     
     TGMediaPickerModernGalleryMixin *_galleryMixin;
     TGMediaPickerModernGalleryMixin *_previewGalleryMixin;

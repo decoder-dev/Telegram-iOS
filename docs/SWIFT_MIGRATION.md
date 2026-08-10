@@ -26,7 +26,7 @@ Where the non-Swift lines actually live:
 | Component | Lines | Nature |
 |---|---|---|
 | `third-party/` + `submodules/ffmpeg/` | majority of C | vendored libraries / codecs |
-| `submodules/LegacyComponents/` | ~145,000 | app ObjC, ~359 `.m` files — migration target |
+| `submodules/LegacyComponents/` | ~145,000 | app ObjC, ~313 `.m` + 23 `.mm` files — migration target |
 | `submodules/MtProtoKit/` | ~29,000 | protocol + transport |
 | `submodules/AsyncDisplayKit/` | ~18,000 | vendored Texture fork |
 | `submodules/TgVoipWebrtc/` | thin wrapper | over tgcalls (C++) |
@@ -138,7 +138,7 @@ sites over, deleting the old subtree — rather than translating files.
 ### Recommended order
 
 1. **Delete dead code.** Ongoing hygiene (see Phase 0 in the execution plan).
-   `matrix.m` is already gone. Re-run reachability on the remaining ~359 `.m`
+   `matrix.m` is already gone. Re-run reachability on the remaining ~313 `.m`
    files and the internal-only headers before each cluster.
 2. **Passport.** Five entry points with one call site each — by a wide margin
    the cheapest complete cluster to replace, and a real end-to-end rehearsal of

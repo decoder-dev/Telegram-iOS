@@ -31,7 +31,6 @@
 #import <LegacyComponents/TGPhotoEditorTabController.h>
 #import <LegacyComponents/TGPhotoToolbarViewProtocol.h>
 #import <LegacyComponents/TGPhotoToolbarViewFactory.h>
-#import <LegacyComponents/TGPhotoEditorButton.h>
 #import <LegacyComponents/TGCheckButtonView.h>
 #import "TGMediaPickerPhotoCounterButton.h"
 #import "TGMediaPickerPhotoStripView.h"

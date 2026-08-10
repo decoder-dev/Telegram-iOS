@@ -185,6 +185,35 @@ DefaultInterfaceView; remaining `TGCamera*` chrome is still reachable through
 `TGCameraController` (Passport + carousel). `LegacyComponents` is now **316**
 `.m` + **24** `.mm` files and **233** public headers.
 
+**2026-08-10 fifth wave** — same root-based reachability (external Swift/ObjC
+roots → BFS; `#import` / `@class` / comments do not count), plus
+selector/API-level checks so C-function and category units are not false-
+positived the way `UIScrollView+TGHacks` was:
+
+- `TGPhotoEditorButton` — only stale `#import`s in the umbrella and
+  `TGMediaPickerGalleryInterfaceView`; never constructed.
+- `TGModernBarButton` — only an unassigned ivar on
+  `TGMediaAssetsPickerController` plus unused imports; never constructed.
+  Removed the ivar with the class.
+- `POPGeometry` (+ public header) — the `NSValue (POP)` category is entirely
+  behind `#if !TARGET_OS_IPHONE`; the iOS `.mm` compiled to an empty TU.
+  UIKit already provides `valueWithCGPoint:` / `CGPointValue` et al. Dropped
+  the now-useless imports from `POPAnimation.h` / `POPAnimationRuntime.mm`.
+
+Checked and deliberately **kept** (abandonments this wave): `Freedom` /
+`FreedomUIKit` (live via `freedomInit` / `freedomUIKitTest3` from
+`TGHacks`), `TGTooltipView` / `TGMenuView` (typed only through
+`.tooltipView` / `.menuView` properties — class-name scan lies),
+`NSObject+TGLock` (macros), `UIScrollView+TGHacks` /
+`UIControl+HitTestEdgeInsets`, POP tracer/event (internal `[tracer …]`
+call sites gated on a lazily created tracer; stripping needs a wider POP
+edit), and all `TGCamera*` / `PGCamera*` / live gallery /
+`TGPhotoEditor*` tools/controller/slider necks.
+
+After this wave (and the intervening Phase 3 toolbar / ToolButtonsView
+delete that took 316→315 `.m`), `LegacyComponents` is **313** `.m` +
+**23** `.mm` files and **230** public headers.
+
 **Exit:** Continuous; run a pass before each numbered phase.
 
 ## Phase 2 — Camera (finish the parallel migration) — IN PROGRESS
