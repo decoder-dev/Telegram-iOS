@@ -16,7 +16,6 @@
 
 #import <LegacyComponents/TGModernGalleryContainerView.h>
 #import <LegacyComponents/TGModernGalleryInterfaceView.h>
-#import <LegacyComponents/TGModernGalleryDefaultInterfaceView.h>
 
 #import <LegacyComponents/TGModernGalleryModel.h>
 
@@ -494,8 +493,7 @@ static bool TGModernGalleryViewHasFirstResponder(UIView *view) {
     _visibleItemViews = [[NSMutableArray alloc] init];
     
     UIView<TGModernGalleryInterfaceView> *interfaceView = [_model createInterfaceView];
-    if (interfaceView == nil)
-        interfaceView = [[TGModernGalleryDefaultInterfaceView alloc] initWithFrame:CGRectZero];
+    NSAssert(interfaceView != nil, @"gallery model must provide an interface view");
     interfaceView.safeAreaInset = [self calculatedSafeAreaInset];
     
     CGSize previewSize = CGSizeZero;

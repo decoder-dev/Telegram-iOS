@@ -1,7 +1,5 @@
 #import <LegacyComponents/TGModernBarButton.h>
 
-#import <LegacyComponents/TGModernBackToolbarButton.h>
-
 @interface TGModernBarButton ()
 {
     UIImageView *_iconView;

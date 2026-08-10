@@ -27,7 +27,7 @@ Fork-relevant ObjC surface:
 
 | Component | Notes |
 |---|---|
-| `LegacyComponents` | ~145k LOC, **322** `.m` files — primary target |
+| `LegacyComponents` | ~144k LOC, **316** `.m` files — primary target |
 | `MtProtoKit` | protocol/transport — low priority, shared with upstream |
 | `SSignalKit` | dies for free once LegacyComponents no longer needs it |
 | `AsyncDisplayKit` / `ffmpeg` / `TgVoipWebrtc` | vendored — do not migrate |
@@ -161,10 +161,29 @@ headers (~144k LOC).
 subtree another phase is actively editing — delete them as part of that phase's
 commit rather than as hygiene):
 
-- ~~`TGCameraFlashActiveView`~~ — deleted (Phase 2 hygiene).
+- ~~`TGCameraFlashActiveView`~~ — deleted (Phase 2 hygiene). Orphan
+  `CameraFlashActive` / `CameraFlashButton` bundle PNGs removed in the Phase 5
+  wave (FlashControl uses the asset-catalog `Camera/Flash` image).
 - ~~`TGModernGalleryImageItem` / `TGModernGalleryImageItemView`~~ — deleted
   (Phase 5 hygiene). Kept `TGModernGalleryImageItemImageView` /
   `TGModernGalleryImageItemContainerView` (still used by zoomable gallery).
+- ~~`TGModernGalleryDefaultInterfaceView`~~ (+ `TGModernBackToolbarButton` /
+  `TGModernToolbarButton`) — deleted (Phase 5 hygiene, second pass). Only
+  consumer was `TGModernGalleryController`'s nil-`createInterfaceView`
+  fallback; the live gallery always uses `TGMediaPickerGalleryModel` →
+  `TGMediaPickerGalleryInterfaceView`. Controller now asserts a non-nil
+  interface. Kept `TGModernGalleryDefaultHeaderView` /
+  `DefaultFooterView` / `DefaultFooterAccessoryView` protocols (still in live
+  controller / item-view signatures; MediaPicker never supplies concrete
+  views for them).
+
+**2026-08-10 Phase 5 hygiene (second pass):** root-based reachability from
+Swift external refs (`LegacyMediaPickerGallery`, Passport attach camera) plus
+live LC gallery roots (`TGMediaPickerGallery*`, `TGModernGalleryController`,
+zoomable views). No further ModernGallery / MediaPicker `.m` islands beyond
+DefaultInterfaceView; remaining `TGCamera*` chrome is still reachable through
+`TGCameraController` (Passport + carousel). `LegacyComponents` is now **316**
+`.m` + **24** `.mm` files and **233** public headers.
 
 **Exit:** Continuous; run a pass before each numbered phase.
 
@@ -370,6 +389,13 @@ context in `LegacyMediaPickerUI`).
 
 **Neck:** `MediaPickerUI` + `LegacyMediaPickerUI` still lean on
 `TGMediaPickerGallery*`, `TGModernGallery*`, send action sheets, asset types.
+
+**2026-08-10 hygiene:** deleted unreachable `TGModernGalleryImageItem` /
+`ImageItemView`, then `TGModernGalleryDefaultInterfaceView` (+ its only
+dependents `TGModernBackToolbarButton` / `TGModernToolbarButton`) and orphan
+flash bundle PNGs. Live gallery path unchanged (`TGMediaPickerGallery*` +
+zoomable ImageItemImageView/ContainerView). No further zero-ref ModernGallery
+/ MediaPicker ObjC islands remain without flipping the live neck.
 
 | Step | Work |
 |---|---|

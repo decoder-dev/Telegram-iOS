@@ -153,7 +153,6 @@
 #import <LegacyComponents/TGMessageEntityUrl.h>
 #import <LegacyComponents/TGMessageImageViewOverlayView.h>
 #import <LegacyComponents/TGMessageViewCountContentProperty.h>
-#import <LegacyComponents/TGModernBackToolbarButton.h>
 #import <LegacyComponents/TGModernBarButton.h>
 #import <LegacyComponents/TGModernButton.h>
 #import <LegacyComponents/TGModernCache.h>
@@ -163,7 +162,6 @@
 #import <LegacyComponents/TGModernGalleryDefaultFooterAccessoryView.h>
 #import <LegacyComponents/TGModernGalleryDefaultFooterView.h>
 #import <LegacyComponents/TGModernGalleryDefaultHeaderView.h>
-#import <LegacyComponents/TGModernGalleryDefaultInterfaceView.h>
 #import <LegacyComponents/TGModernGalleryEditableItem.h>
 #import <LegacyComponents/TGModernGalleryEditableItemView.h>
 #import <LegacyComponents/TGModernGalleryImageItemContainerView.h>
@@ -180,7 +178,6 @@
 #import <LegacyComponents/TGModernGalleryZoomableItemView.h>
 #import <LegacyComponents/TGModernGalleryZoomableScrollView.h>
 #import <LegacyComponents/TGModernGalleryZoomableScrollViewSwipeGestureRecognizer.h>
-#import <LegacyComponents/TGModernToolbarButton.h>
 #import <LegacyComponents/TGNavigationBar.h>
 #import <LegacyComponents/TGNavigationController.h>
 #import <LegacyComponents/TGObserverProxy.h>

@@ -5,7 +5,6 @@
 #import <LegacyComponents/TGImageUtils.h>
 #import <LegacyComponents/TGHacks.h>
 
-#import <LegacyComponents/TGModernGalleryDefaultInterfaceView.h>
 #import <LegacyComponents/TGModernGalleryScrollView.h>
 
 #import <LegacyComponents/TGModernGalleryZoomableScrollViewSwipeGestureRecognizer.h>
