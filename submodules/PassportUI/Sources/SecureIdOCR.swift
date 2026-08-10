@@ -16,12 +16,12 @@ enum SecureIdOCR {
             return fallback
         }
     }
-    
+
     private static func recognizeMRZ(in image: UIImage) -> Signal<SecureIdMRZ?, NoError> {
         guard let cgImage = image.cgImage else {
             return .single(nil)
         }
-        
+
         return Signal { subscriber in
             if #available(iOS 13.0, *) {
                 let request = VNRecognizeTextRequest { request, _ in
@@ -35,12 +35,12 @@ enum SecureIdOCR {
                 request.usesLanguageCorrection = false
                 request.recognitionLanguages = ["en-US"]
                 request.preferBackgroundProcessing = true
-                
+
                 Queue.concurrentDefaultQueue().async {
                     let handler = VNImageRequestHandler(cgImage: cgImage, orientation: image.cgImagePropertyOrientation, options: [:])
                     try? handler.perform([request])
                 }
-                
+
                 return ActionDisposable {
                     request.cancel()
                 }
@@ -51,12 +51,12 @@ enum SecureIdOCR {
             }
         }
     }
-    
+
     private static func recognizeBarcode(in image: UIImage) -> Signal<SecureIdMRZ?, NoError> {
         guard #available(iOS 11.0, *), let cgImage = image.cgImage else {
             return .single(nil)
         }
-        
+
         return Signal { subscriber in
             let request = VNDetectBarcodesRequest { request, _ in
                 var result: SecureIdMRZ?
@@ -73,12 +73,12 @@ enum SecureIdOCR {
                 subscriber.putCompletion()
             }
             request.preferBackgroundProcessing = true
-            
+
             Queue.concurrentDefaultQueue().async {
                 let handler = VNImageRequestHandler(cgImage: cgImage, orientation: image.cgImagePropertyOrientation, options: [:])
                 try? handler.perform([request])
             }
-            
+
             return ActionDisposable {
                 if #available(iOS 13.0, *) {
                     request.cancel()
@@ -86,14 +86,14 @@ enum SecureIdOCR {
             }
         }
     }
-    
+
     private static func parseRecognizedMRZLines(_ strings: [String]) -> SecureIdMRZ? {
         let candidateLines = strings
             .flatMap { $0.components(separatedBy: .newlines) }
             .map(normalizeMRZLine)
             .filter { !$0.isEmpty }
             .flatMap(expandedCandidateLines)
-        
+
         for index in candidateLines.indices where index + 1 < candidateLines.count {
             if let result = SecureIdMRZ.parseLines([candidateLines[index], candidateLines[index + 1]]) {
                 return result
@@ -106,7 +106,7 @@ enum SecureIdOCR {
         }
         return nil
     }
-    
+
     private static func expandedCandidateLines(_ line: String) -> [String] {
         var result: [String] = []
         if line.count == 44 || line.count == 30 {
@@ -124,7 +124,7 @@ enum SecureIdOCR {
         }
         return result
     }
-    
+
     private static func normalizeMRZLine(_ string: String) -> String {
         var result = ""
         for scalar in string.uppercased().unicodeScalars {

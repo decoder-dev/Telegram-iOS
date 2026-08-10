@@ -22,12 +22,12 @@ struct SecureIdMRZ {
     var optional1: String?
     var optional2: String?
     var mrz: String?
-    
+
     static func parseBarcodePayload(_ data: String) -> SecureIdMRZ? {
         if data.isEmpty {
             return nil
         }
-        
+
         if data.contains("ANSI ") {
             var fields: [String: String] = [:]
             data.enumerateLines { line, _ in
@@ -38,7 +38,7 @@ struct SecureIdMRZ {
             if fields.isEmpty {
                 return nil
             }
-            
+
             var result = SecureIdMRZ(documentType: "DL", issuingCountry: fields["DCG"], firstName: fields["DAC"] ?? fields["DCT"] ?? "", middleName: fields["DAD"], lastName: fields["DCS"] ?? fields["DAB"] ?? "", documentNumber: fields["DCF"])
             switch fields["DBC"] {
             case "1":
@@ -48,7 +48,7 @@ struct SecureIdMRZ {
             default:
                 break
             }
-            
+
             let formatter = DateFormatter()
             formatter.timeZone = TimeZone(secondsFromGMT: 0)
             formatter.locale = Locale(identifier: "en_US_POSIX")
@@ -61,7 +61,7 @@ struct SecureIdMRZ {
             }
             return result
         }
-        
+
         let allowed = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=")
         if data.rangeOfCharacter(from: allowed.inverted) != nil {
             return nil
@@ -77,7 +77,7 @@ struct SecureIdMRZ {
         if components.count < 7 {
             return nil
         }
-        
+
         var result = SecureIdMRZ(
             documentType: "DL",
             issuingCountry: "RUS",
@@ -90,7 +90,7 @@ struct SecureIdMRZ {
             documentNumber: components[0],
             nationality: "RUS"
         )
-        
+
         let formatter = DateFormatter()
         formatter.timeZone = TimeZone(secondsFromGMT: 0)
         formatter.locale = Locale(identifier: "en_US_POSIX")
@@ -103,13 +103,13 @@ struct SecureIdMRZ {
         }
         return result
     }
-    
+
     static func parseLines(_ lines: [String]) -> SecureIdMRZ? {
         if lines.count == 2 {
             guard lines[0].count == secureIdTD23Length, lines[1].count == secureIdTD23Length else {
                 return nil
             }
-            
+
             var result = SecureIdMRZ(
                 documentType: lines[0].substring(from: 0, length: 1),
                 documentSubtype: clean(lines[0].substring(from: 1, length: 1)),
@@ -117,42 +117,42 @@ struct SecureIdMRZ {
                 firstName: "",
                 lastName: ""
             )
-            
+
             let fullName = lines[0].substring(from: 5, length: 39).trimmingCharacters(in: CharacterSet(charactersIn: secureIdEmpty))
             let names = fullName.components(separatedBy: "<<")
             result.lastName = nameString(names.first ?? "")
             result.firstName = nameString(names.last ?? "")
-            
+
             let documentNumber = ensureNumber(lines[1].substring(from: 0, length: 9))
             let documentNumberCheck = Int(ensureNumber(lines[1].substring(from: 9, length: 1))) ?? 0
             if isDataValid(documentNumber, check: documentNumberCheck) {
                 result.documentNumber = documentNumber
             }
-            
+
             result.nationality = lines[1].substring(from: 10, length: 3)
-            
+
             let birthDate = ensureNumber(lines[1].substring(from: 13, length: 6))
             let birthDateCheck = Int(ensureNumber(lines[1].substring(from: 19, length: 1))) ?? 0
             if isDataValid(birthDate, check: birthDateCheck) {
                 result.birthDate = dateFromString(birthDate)
             }
-            
+
             let gender = lines[1].substring(from: 20, length: 1)
             result.gender = gender == secureIdEmpty ? nil : gender
-            
+
             let expiryDate = ensureNumber(lines[1].substring(from: 21, length: 6))
             let expiryDateCheck = Int(ensureNumber(lines[1].substring(from: 27, length: 1))) ?? 0
             if isDataValid(expiryDate, check: expiryDateCheck) {
                 result.expiryDate = dateFromString(expiryDate)
             }
-            
+
             let optional1 = lines[1].substring(from: 28, length: 14)
             let optional1CheckString = ensureNumber(lines[1].substring(from: 42, length: 1))
             let optional1Check = optional1CheckString == secureIdEmpty ? 0 : (Int(optional1CheckString) ?? 0)
             if isDataValid(optional1, check: optional1Check) {
                 result.optional1 = clean(optional1)
             }
-            
+
             let data = "\(documentNumber)\(documentNumberCheck)\(birthDate)\(birthDateCheck)\(expiryDate)\(expiryDateCheck)\(optional1)\(optional1CheckString)"
             let dataCheck = Int(ensureNumber(lines[1].substring(from: 43, length: 1))) ?? 0
             if isDataValid(data, check: dataCheck) {
@@ -160,11 +160,11 @@ struct SecureIdMRZ {
                     let nativeLastName = transliterateRussianMRZString(result.lastName)
                     result.nativeLastName = nativeLastName
                     result.lastName = transliterateRussianName(nativeLastName)
-                    
+
                     let nativeFirstName = transliterateRussianMRZString(result.firstName)
                     result.nativeFirstName = nativeFirstName
                     result.firstName = transliterateRussianName(nativeFirstName)
-                    
+
                     if let documentNumber = result.documentNumber {
                         result.documentNumber = documentNumber.substring(from: 0, length: 3) + optional1.substring(from: 0, length: 1) + documentNumber.substring(from: 3, length: documentNumber.count - 3)
                     }
@@ -176,7 +176,7 @@ struct SecureIdMRZ {
             guard lines[0].count == secureIdTD1Length, lines[1].count == secureIdTD1Length, lines[2].count == secureIdTD1Length else {
                 return nil
             }
-            
+
             var result = SecureIdMRZ(
                 documentType: lines[0].substring(from: 0, length: 1),
                 documentSubtype: clean(lines[0].substring(from: 1, length: 1)),
@@ -184,7 +184,7 @@ struct SecureIdMRZ {
                 firstName: "",
                 lastName: ""
             )
-            
+
             let documentNumber = ensureNumber(lines[0].substring(from: 5, length: 9))
             let documentNumberCheck = Int(ensureNumber(lines[0].substring(from: 14, length: 1))) ?? 0
             if isDataValid(documentNumber, check: documentNumberCheck) {
@@ -192,25 +192,25 @@ struct SecureIdMRZ {
             }
             let optional1 = lines[0].substring(from: 15, length: 15)
             result.optional1 = clean(optional1)
-            
+
             let birthDate = ensureNumber(lines[1].substring(from: 0, length: 6))
             let birthDateCheck = Int(lines[1].substring(from: 6, length: 1)) ?? 0
             if isDataValid(birthDate, check: birthDateCheck) {
                 result.birthDate = dateFromString(birthDate)
             }
-            
+
             let gender = lines[1].substring(from: 7, length: 1)
             result.gender = gender == secureIdEmpty ? nil : gender
-            
+
             let expiryDate = ensureNumber(lines[1].substring(from: 8, length: 6))
             let expiryDateCheck = Int(ensureNumber(lines[1].substring(from: 14, length: 1))) ?? 0
             if isDataValid(expiryDate, check: expiryDateCheck) {
                 result.expiryDate = dateFromString(expiryDate)
             }
-            
+
             result.nationality = lines[1].substring(from: 15, length: 3)
             result.optional2 = lines[1].substring(from: 18, length: 11)
-            
+
             let fullName = ensureAlpha(lines[2]).trimmingCharacters(in: CharacterSet(charactersIn: secureIdEmpty))
             let names = fullName.components(separatedBy: "<<")
             result.lastName = nameString(names.first ?? "")
@@ -218,7 +218,7 @@ struct SecureIdMRZ {
             result.mrz = lines.joined(separator: "\n")
             return result
         }
-        
+
         return nil
     }
 }

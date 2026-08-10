@@ -33,10 +33,10 @@ func presentSecureIdAttachmentMenuImpl(presentationData: PresentationData, conte
     }
     controller.dismissesByOutsideTap = true
     controller.hasSwipeGesture = true
-    
+
     var itemViews: [UIView] = []
     var underlyingViews: [UIView] = []
-    
+
     let carouselItem = TGAttachmentCarouselItemView(context: context, camera: true, selfPortrait: intent == .selfie, forProfilePhoto: false, assetType: TGMediaAssetPhotoType, saveEditedPhotos: false, allowGrouping: false, allowSelection: intent == .multiple, allowEditing: true, document: true, selectionLimit: 10)!
     carouselItem.onlyCrop = true
     carouselItem.parentController = parentController
@@ -55,7 +55,7 @@ func presentSecureIdAttachmentMenuImpl(presentationData: PresentationData, conte
         })
     }
     itemViews.append(carouselItem)
-    
+
     let galleryItem = TGMenuSheetButtonItemView(title: presentationData.strings.Common_ChoosePhoto, type: TGMenuSheetButtonTypeDefault, fontSize: 20.0, action: { [weak controller, weak parentController] in
         guard let parentController else {
             return
@@ -65,7 +65,7 @@ func presentSecureIdAttachmentMenuImpl(presentationData: PresentationData, conte
     })!
     itemViews.append(galleryItem)
     underlyingViews.append(galleryItem)
-    
+
     if intent != .selfie {
         let iCloudItem = TGMenuSheetButtonItemView(title: presentationData.strings.Conversation_FileICloudDrive, type: TGMenuSheetButtonTypeDefault, fontSize: 20.0, action: { [weak controller, weak parentController] in
             guard let parentController else {
@@ -77,20 +77,20 @@ func presentSecureIdAttachmentMenuImpl(presentationData: PresentationData, conte
         itemViews.append(iCloudItem)
         underlyingViews.append(iCloudItem)
     }
-    
+
     carouselItem.underlyingViews = underlyingViews
     carouselItem.remainingHeight = TGMenuSheetButtonItemViewHeight * CGFloat(itemViews.count - 1)
-    
+
     let cancelItem = TGMenuSheetButtonItemView(title: presentationData.strings.Common_Cancel, type: TGMenuSheetButtonTypeCancel, fontSize: 20.0, action: { [weak controller] in
         controller?.dismiss(animated: true)
     })!
     itemViews.append(cancelItem)
-    
+
     controller.permittedArrowDirections = [.up, .down]
     controller.forceFullScreen = true
     controller.setItemViews(itemViews)
     controller.present(in: parentController, sourceView: nil, animated: true)
-    
+
     return controller
 }
 
@@ -98,7 +98,7 @@ private func displaySecureIdAttachmentMediaPicker(parentController: TGViewContro
     if !LegacyComponentsGlobals.provider().accessChecker().checkPhotoAuthorizationStatus(for: TGPhotoAccessIntentRead, alertDismissCompletion: nil) {
         return
     }
-    
+
     let showMediaPicker: (TGMediaAssetGroup?) -> Void = { [weak parentController] group in
         guard let parentController else {
             return
@@ -128,7 +128,7 @@ private func displaySecureIdAttachmentMediaPicker(parentController: TGViewContro
         }
         parentController.present(controller, animated: true)
     }
-    
+
     if TGMediaAssetsLibrary.authorizationStatus() == TGMediaLibraryAuthorizationStatusNotDetermined {
         TGMediaAssetsLibrary.requestAuthorization(for: TGMediaAssetAnyType, completion: { _, group in
             if !LegacyComponentsGlobals.provider().accessChecker().checkPhotoAuthorizationStatus(for: TGPhotoAccessIntentRead, alertDismissCompletion: nil) {
@@ -150,7 +150,7 @@ private func displaySecureIdAttachmentCamera(cameraView: TGAttachmentCameraView?
     if context.currentlyInSplitView() {
         return
     }
-    
+
     let windowManager = context.makeOverlayWindowManager()
     let cameraIntent: TGCameraControllerIntent
     switch intent {
@@ -161,7 +161,7 @@ private func displaySecureIdAttachmentCamera(cameraView: TGAttachmentCameraView?
     default:
         cameraIntent = TGCameraControllerPassportIntent
     }
-    
+
     let controller: TGCameraController
     if let cameraView, let previewView = cameraView.previewView() {
         if intent == .selfie {
@@ -172,21 +172,21 @@ private func displaySecureIdAttachmentCamera(cameraView: TGAttachmentCameraView?
         controller = TGCameraController(context: windowManager?.context(), saveEditedPhotos: false, saveCapturedMedia: false, intent: cameraIntent)
     }
     controller.shouldStoreCapturedAssets = false
-    
+
     guard let controllerWindow = TGCameraControllerWindow(manager: windowManager, parentController: parentController, contentController: controller) else {
         return
     }
     controllerWindow.isHidden = false
     controllerWindow.clipsToBounds = true
-    
+
     let screenSize = parentController.view.bounds.size
     controllerWindow.frame = UIDevice.current.userInterfaceIdiom == .phone ? CGRect(origin: .zero, size: screenSize) : context.fullscreenBounds()
-    
+
     var startFrame = CGRect(x: 0.0, y: screenSize.height, width: screenSize.width, height: screenSize.height)
     if let cameraView, let previewView = cameraView.previewView() {
         startFrame = UIDevice.current.userInterfaceIdiom == .pad ? .zero : controller.view.convert(previewView.frame, from: cameraView)
     }
-    
+
     cameraView?.detachPreviewView()
     controller.beginTransitionIn(from: startFrame)
     controller.beginTransitionOut = { [weak controller, weak cameraView] in
@@ -226,22 +226,22 @@ private func presentSecureIdICloudPicker(parentController: TGViewController, upl
 
 private final class SecureIdDocumentPickerDelegate: NSObject, UIDocumentPickerDelegate {
     private let completion: ([URL]) -> Void
-    
+
     init(completion: @escaping ([URL]) -> Void) {
         self.completion = completion
         super.init()
     }
-    
+
     func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
         self.completion(urls)
         controller.secureIdDelegate = nil
     }
-    
+
     func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentAt url: URL) {
         self.completion([url])
         controller.secureIdDelegate = nil
     }
-    
+
     func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
         self.completion([])
         controller.secureIdDelegate = nil
@@ -263,7 +263,7 @@ private extension UIDocumentPickerViewController {
 
 private struct SecureIdICloudFileDescription {
     let urlData: String
-    
+
     init?(url: URL) {
         guard url.startAccessingSecurityScopedResource() else {
             return nil
@@ -328,7 +328,7 @@ private func secureIdAttachmentResultSignal(editingContext: TGMediaEditingContex
     if selectedItems.isEmpty, let currentItem {
         selectedItems.append(currentItem)
     }
-    
+
     for item in selectedItems {
         var inlineSignal: SSignal?
         if let asset = item as? TGMediaAsset {
@@ -339,7 +339,7 @@ private func secureIdAttachmentResultSignal(editingContext: TGMediaEditingContex
         guard let inlineSignal else {
             continue
         }
-        
+
         let imageSignal: SSignal
         if let editingContext {
             imageSignal = editingContext.imageSignal(for: item, withUpdates: true)
@@ -369,7 +369,7 @@ private func secureIdAttachmentResultSignal(editingContext: TGMediaEditingContex
         } else {
             imageSignal = inlineSignal
         }
-        
+
         signal = signal.then(imageSignal.catch { _ in
             return inlineSignal
         }.map { value in
@@ -382,7 +382,7 @@ private func secureIdAttachmentResultSignal(editingContext: TGMediaEditingContex
             let thumbnailSide = 60.0 * UIScreenScale
             let thumbnailSize = scaledImage?.size.aspectFitted(CGSize(width: thumbnailSide, height: thumbnailSide)) ?? .zero
             let thumbnailImage = scaledImage.flatMap { TGScaleImageToPixelSize($0, thumbnailSize) }
-            
+
             var result: [String: Any] = [:]
             if let scaledImage {
                 result["image"] = scaledImage
