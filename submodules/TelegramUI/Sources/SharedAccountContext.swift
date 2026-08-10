@@ -4108,7 +4108,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
                 return .complete()
             }
 
-            let signals = legacyCameraCapturedMediaSignals(media)
+            let signals = LegacyMediaPickerUI.legacyCameraCapturedMediaSignals(media)
             if signals.isEmpty {
                 return .complete()
             }
