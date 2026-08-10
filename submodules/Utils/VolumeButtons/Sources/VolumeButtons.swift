@@ -1,7 +1,9 @@
 import Foundation
 import UIKit
+import AVFoundation
 import AVKit
 import SwiftSignalKit
+import MediaPlayer
 import AccountContext
 
 private protocol VolumeButtonHandlerImpl: AnyObject {
@@ -9,12 +11,19 @@ private protocol VolumeButtonHandlerImpl: AnyObject {
 
 /// Observes private UIApplication volume-button notifications (same hashes as
 /// `PGCameraVolumeButtonHandler`) without linking LegacyComponents.
-private final class NotificationVolumeHandlerImpl: VolumeButtonHandlerImpl {
+/// Falls back to `AVAudioSession.outputVolume` KVO when those notifications are quiet.
+private final class NotificationVolumeHandlerImpl: NSObject, VolumeButtonHandlerImpl {
     private let performAction: (VolumeButtonsListener.Action) -> Void
     private var enabled: Bool = false
+    private var volumeObservation: NSKeyValueObservation?
+    private var lastVolume: Float
+    private var ignoreKvoUntil: CFAbsoluteTime = 0
 
     init(performAction: @escaping (VolumeButtonsListener.Action) -> Void) {
         self.performAction = performAction
+        self.lastVolume = AVAudioSession.sharedInstance().outputVolume
+        super.init()
+
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(self.handleNotification(_:)),
@@ -22,10 +31,36 @@ private final class NotificationVolumeHandlerImpl: VolumeButtonHandlerImpl {
             object: nil
         )
         self.setEnabled(true)
+
+        try? AVAudioSession.sharedInstance().setActive(true)
+        self.volumeObservation = AVAudioSession.sharedInstance().observe(\.outputVolume, options: [.old, .new]) { [weak self] _, change in
+            guard let self, self.enabled else {
+                return
+            }
+            if CFAbsoluteTimeGetCurrent() < self.ignoreKvoUntil {
+                if let newValue = change.newValue {
+                    self.lastVolume = newValue
+                }
+                return
+            }
+            guard let oldValue = change.oldValue ?? Optional(self.lastVolume), let newValue = change.newValue, oldValue != newValue else {
+                return
+            }
+            self.lastVolume = newValue
+            // KVO cannot observe release; emit a synthetic release so the public API stays complete.
+            if newValue > oldValue {
+                self.performAction(.up)
+                self.performAction(.upRelease)
+            } else {
+                self.performAction(.down)
+                self.performAction(.downRelease)
+            }
+        }
     }
 
     deinit {
         self.setEnabled(false)
+        self.volumeObservation?.invalidate()
         NotificationCenter.default.removeObserver(self)
     }
 
@@ -37,7 +72,7 @@ private final class NotificationVolumeHandlerImpl: VolumeButtonHandlerImpl {
         let app = UIApplication.shared
         let selector = NSSelectorFromString("setWantsVolumeButtonEvents:")
         if app.responds(to: selector) {
-            app.perform(selector, with: enabled ? true : false)
+            app.perform(selector, with: NSNumber(value: enabled))
         }
     }
 
@@ -52,15 +87,20 @@ private final class NotificationVolumeHandlerImpl: VolumeButtonHandlerImpl {
         }
         switch Self.murmurHash32(name) {
         case 0xaeae3258: // _UIApplicationVolumeDownButtonDownNotification
+            self.suppressKvoEcho()
             self.performAction(.down)
         case 0x784c165e: // _UIApplicationVolumeDownButtonUpNotification
+            self.suppressKvoEcho()
             self.performAction(.downRelease)
         case 0xba416d8e: // _UIApplicationVolumeUpButtonDownNotification
+            self.suppressKvoEcho()
             self.performAction(.up)
         case 0x4074ecfb: // _UIApplicationVolumeUpButtonUpNotification
+            self.suppressKvoEcho()
             self.performAction(.upRelease)
-        case Int32(bitPattern: 0xf8df4808): // SystemVolumeDidChange
+        case -119584760: // SystemVolumeDidChange (4175382536 as Int32)
             if let reason = notification.userInfo?["Reason"] as? String, reason == "ExplicitVolumeChange" {
+                self.suppressKvoEcho()
                 DispatchQueue.main.async {
                     self.performAction(.up)
                 }
@@ -68,6 +108,11 @@ private final class NotificationVolumeHandlerImpl: VolumeButtonHandlerImpl {
         default:
             break
         }
+    }
+
+    private func suppressKvoEcho() {
+        self.ignoreKvoUntil = CFAbsoluteTimeGetCurrent() + 0.15
+        self.lastVolume = AVAudioSession.sharedInstance().outputVolume
     }
 
     /// MurmurHash3 x86_32 with seed -137723950 — matches `legacy_murMurHash32`.
@@ -171,7 +216,7 @@ private final class AVCaptureEventHandlerImpl: VolumeButtonHandlerImpl {
 }
 
 /// iOS 17.2+ non-camera path: same private `MPVolumeControllerSystemDataSource`
-/// that `PGCameraVolumeButtonHandler` instantiates, plus notification listening.
+/// that `PGCameraVolumeButtonHandler` instantiates, plus notification / KVO listening.
 @available(iOS 17.2, *)
 private final class SystemVolumeDataSourceHandlerImpl: VolumeButtonHandlerImpl {
     private let notificationHandler: NotificationVolumeHandlerImpl
