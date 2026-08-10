@@ -102,9 +102,14 @@ per-file scan can break):
 ## Phase 2 — Camera (finish the parallel migration) — IN PROGRESS
 
 **2026-08-10:** Media picker default asset mode now uses the Swift
-`CameraSimplePreviewView` path instead of `TGAttachmentCameraView`.
-`presentedLegacyCamera` / chat attach menu and Passport attach camera intents
-still use `TGCameraController` until those send-signal pipelines are flipped.
+`CameraSimplePreviewView` path instead of `TGAttachmentCameraView`; the dead
+legacy preview branch in `MediaPickerUI` was removed. Chat's default media
+picker preview tile now opens `context.sharedContext.makeCameraScreen` and maps
+basic modern photo/video/asset results back into the existing
+`enqueueMediaMessages` legacy-signal pipeline. Direct chat camera opens,
+edit-media attachment menu camera, story reply camera, and Passport attach
+camera still use `presentedLegacyCamera` / `TGCameraController` until their
+schedule/timer/caption/QR/document-intent gaps are closed.
 
 ## Phase 1 — Passport (pilot cluster) — DONE 2026-08-10
 
@@ -141,6 +146,22 @@ side-by-side comparison on device photos.
 **Neck today:** `LegacyCamera`, `LegacyAttachmentMenu`,
 `ChatControllerOpenAttachmentMenu`, stories send path still reference
 `TGCameraController` / `PGCamera` / `TGAttachmentCameraView`.
+
+**2026-08-10 partial flip inventory:**
+
+| Surface | Status |
+|---|---|
+| `MediaPickerUI/Sources/MediaPickerScreen.swift` | DONE for the grid preview: `TGAttachmentCameraView` dead branch deleted; Swift `CameraSimplePreviewView` is the only preview path. |
+| `ChatControllerOpenAttachmentMenu.openCamera` from the default media picker preview tile | PARTIAL: `CameraHolder` now routes through `makeCameraScreen(.sticker)` and converts basic `CameraScreenImpl.Result` photo/video/asset outputs into legacy enqueue signals. Direct `openCamera()` and edit-media attachment-menu camera remain on `presentedLegacyCamera` to preserve schedule/timer/caption/QR behavior. |
+| `StoryItemSetContainerViewSendMessage` | LEGACY: still calls `presentedLegacyCamera`; non-legacy preview taps fall back to the legacy camera. Importing `CameraScreenImpl.Result` here would create a `CameraScreen` <-> stories component cycle, so this needs an API-level bridge before a safe flip. |
+| `PassportUI/SecureIdAttachmentMenu` | LEGACY: still uses `TGCameraController` for Passport-specific intents (`PassportId`, multiple, selfie/document crop). |
+| `LegacyMediaPickerUI/LegacyAttachmentMenu` | LEGACY: still owns the carousel camera, `PGCamera.cameraAvailable()`, and editor-result conversion via `TGCameraController.resultSignals`. |
+| `TelegramUI/Components/LegacyCamera/LegacyCamera.swift` | LEGACY SHIM: still has live callers from direct chat camera, edit-media camera, story reply camera, and shortcut share camera. |
+
+No camera ObjC files are deletion-safe yet: `TGCameraController`, `PGCamera`,
+`TGAttachmentCameraView`, `TGAttachmentCarouselItemView`, and camera view/control
+headers are still referenced by the live surfaces above and by internal
+`LegacyComponents` users such as avatar/video-message capture.
 
 | Step | Work |
 |---|---|

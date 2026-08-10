@@ -323,7 +323,6 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
         fileprivate let bottomEdgeEffectView: EdgeEffectView
         
         fileprivate let cameraWrapperView: UIView
-        fileprivate var cameraView: TGAttachmentCameraView?
         
         fileprivate var modernCamera: Camera?
         fileprivate var modernCameraView: CameraSimplePreviewView?
@@ -665,9 +664,7 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
                 
                 if let self {
                     var cameraView: UIView?
-                    if let view = self.cameraView {
-                        cameraView = view
-                    } else if let _ = self.modernCameraView {
+                    if let _ = self.modernCameraView {
                         cameraView = self.cameraWrapperView
                     }
                     if let cameraView {
@@ -698,7 +695,6 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
                 self.avatarEditorPreviewView = avatarEditorPreviewView
             }
             
-            var useLegacyCamera = false
             var useModernCamera = false
             if case .assets(nil, .default) = controller.subject {
                 // Phase 2: prefer Swift Camera preview in the media picker grid.
@@ -712,31 +708,7 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
                 }
             }
             
-            if useLegacyCamera {
-                let enableAnimations = self.controller?.context.sharedContext.energyUsageSettings.fullTranslucency ?? true
-  
-                let cameraView = TGAttachmentCameraView(forSelfPortrait: false, videoModeByDefault: controller.bannedSendPhotos != nil && controller.bannedSendVideos == nil)!
-                cameraView.clipsToBounds = true
-                cameraView.removeCorners()
-                cameraView.pressed = { [weak self, weak cameraView] in
-                    if let strongSelf = self, !strongSelf.openingMedia {
-                        strongSelf.dismissInput()
-                        strongSelf.controller?.openCamera?(strongSelf.cameraView)
-                        
-                        if !enableAnimations {
-                            cameraView?.startPreview()
-                        }
-                    }
-                }
-                self.cameraView = cameraView
-                
-                if enableAnimations {
-                    cameraView.startPreview()
-                }
-                
-                self.gridNode.scrollView.addSubview(cameraView)
-                self.gridNode.addSubnode(self.cameraActivateAreaNode)
-            } else if useModernCamera, !Camera.isIpad {
+            if useModernCamera, !Camera.isIpad {
                 #if !targetEnvironment(simulator)
                 var cameraPosition: Camera.Position = .back
                 if case .assets(nil, .createAvatar) = controller.subject {
@@ -899,13 +871,7 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
         
         func updateIsCameraActive() {
             let isCameraActive = !self.isSuspended && !self.hasGallery && self.isCameraPreviewVisible
-            if let cameraView = self.cameraView {
-                if isCameraActive {
-                    cameraView.resumePreview()
-                } else {
-                    cameraView.pausePreview()
-                }
-            } else if let camera = self.modernCamera, let cameraView = self.modernCameraView {
+            if let camera = self.modernCamera, let cameraView = self.modernCameraView {
                 if isCameraActive {
                     cameraView.isEnabled = true
                     camera.startCapture()
@@ -1721,7 +1687,7 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
             
             var cutoutRects: [CGRect] = []
             var cameraRect: CGRect? = CGRect(origin: CGPoint(x: layout.safeInsets.left, y: 0.0), size: CGSize(width: itemWidth, height: itemWidth * 2.0 + 1.0))
-            if self.cameraView == nil && self.modernCameraView == nil {
+            if self.modernCameraView == nil {
                 cameraRect = nil
             }
                         
@@ -1884,14 +1850,7 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
                 selectionTransition.updateFrame(node: selectionNode, frame: innerBounds)
             }
             
-            var cameraView: UIView?
-            if let view = self.cameraView {
-                cameraView = view
-            } else if let view = self.modernCameraView {
-                cameraView = view
-            }
-            
-            if let cameraView {
+            if let cameraView = self.modernCameraView {
                 if let cameraRect = cameraRect {
                     if cameraView.superview == self.cameraWrapperView {
                         transition.updateFrame(view: self.cameraWrapperView, frame: cameraRect)

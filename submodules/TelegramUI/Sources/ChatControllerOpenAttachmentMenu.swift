@@ -16,6 +16,7 @@ import ChatPresentationInterfaceState
 import LegacyComponents
 import LegacyUI
 import AttachmentUI
+import Camera
 import MediaPickerUI
 import LegacyCamera
 import LegacyMediaPickerUI
@@ -39,6 +40,45 @@ import RichTextAttachmentScreen
 import RichTextEditorMessageConversion
 import ChatRichTextEditorComposer
 import Postbox
+
+private func legacyCameraCapturedMediaSignals(
+    from resultSignal: Signal<CameraScreenImpl.Result, NoError>,
+    initialCaption: NSAttributedString,
+    sendPaidMessageStars: Int64
+) -> Signal<[Any], NoError> {
+    let price = sendPaidMessageStars == 0 ? nil : sendPaidMessageStars
+    return resultSignal
+    |> mapToSignal { result -> Signal<[Any], NoError> in
+        let media: [LegacyCameraCapturedMedia]
+        switch result {
+        case .pendingImage:
+            return .complete()
+        case let .image(image):
+            guard image.additionalImage == nil else {
+                return .complete()
+            }
+            media = [.photo(image: image.image, caption: initialCaption, price: price)]
+        case let .video(video):
+            guard video.additionalVideoPath == nil, let coverImage = video.coverImage else {
+                return .complete()
+            }
+            media = [.video(path: video.videoPath, previewImage: coverImage, coverImage: video.coverImage, duration: video.duration, caption: initialCaption, price: price)]
+        case let .asset(asset):
+            media = [.asset(asset, caption: initialCaption, price: price)]
+        case let .assets(assets):
+            media = assets.map { .asset($0, caption: initialCaption, price: price) }
+        case .draft, .videoCollage:
+            return .complete()
+        }
+
+        let signals = legacyCameraCapturedMediaSignals(media)
+        if signals.isEmpty {
+            return .complete()
+        }
+        return .single(signals)
+    }
+    |> take(1)
+}
 
 extension ChatControllerImpl {
     enum AttachMenuSubject {
@@ -1608,11 +1648,13 @@ extension ChatControllerImpl {
             }
         }
         let mediaPickerContext = controller.mediaPickerContext
-        controller.openCamera = { [weak self] cameraView in
+        controller.openCamera = { [weak self, weak controller] cameraView in
             if let cameraView = cameraView as? TGAttachmentCameraView {
                 self?.openCamera(cameraView: cameraView)
             } else {
-                self?.openCamera(cameraView: nil)
+                self?.openCamera(cameraView: cameraView, presentCameraScreen: { [weak controller] cameraScreen in
+                    controller?.push(cameraScreen)
+                })
             }
         }
         controller.presentSchedulePicker = { [weak self] media, done in
@@ -2010,7 +2052,7 @@ extension ChatControllerImpl {
         }) as? TGCaptionPanelView
     }
 
-    func openCamera(cameraView: TGAttachmentCameraView? = nil) {
+    func openCamera(cameraView: Any? = nil, presentCameraScreen: ((ViewController) -> Void)? = nil) {
         let _ = (self.context.sharedContext.accountManager.transaction { transaction -> GeneratedMediaStoreSettings in
             let entry = transaction.getSharedData(ApplicationSpecificSharedDataKeys.generatedMediaStoreSettings)?.get(GeneratedMediaStoreSettings.self)
             return entry ?? GeneratedMediaStoreSettings.defaultSettings
@@ -2063,8 +2105,73 @@ extension ChatControllerImpl {
             }
             let inputText = strongSelf.presentationInterfaceState.interfaceState.effectiveInputState.inputText
 
+            if let cameraHolder = cameraView as? CameraHolder {
+                var returnToCameraImpl: (() -> Void)?
+                let sendPaidMessageStars = strongSelf.presentationInterfaceState.sendPaidMessageStars?.value ?? 0
+                let cameraScreen = strongSelf.context.sharedContext.makeCameraScreen(
+                    context: strongSelf.context,
+                    mode: .sticker,
+                    cameraHolder: cameraHolder,
+                    transitionIn: CameraScreenTransitionIn(
+                        sourceView: cameraHolder.parentView,
+                        sourceRect: cameraHolder.parentView.bounds,
+                        sourceCornerRadius: 0.0,
+                        useFillAnimation: false
+                    ),
+                    transitionOut: { _ in
+                        return CameraScreenTransitionOut(
+                            destinationView: cameraHolder.parentView,
+                            destinationRect: cameraHolder.parentView.bounds,
+                            destinationCornerRadius: 0.0
+                        )
+                    },
+                    completion: { [weak self] result, commit in
+                        guard let resultSignal = result as? Signal<CameraScreenImpl.Result, NoError> else {
+                            returnToCameraImpl?()
+                            return
+                        }
+
+                        var didSend = false
+                        let _ = (legacyCameraCapturedMediaSignals(from: resultSignal, initialCaption: inputText, sendPaidMessageStars: sendPaidMessageStars)
+                        |> deliverOnMainQueue).startStandalone(next: { [weak self] signals in
+                            guard let strongSelf = self else {
+                                return
+                            }
+                            didSend = true
+                            strongSelf.enqueueMediaMessages(signals: signals, silentPosting: false, scheduleTime: nil, completion: {
+                                commit()
+                            })
+                            if !inputText.string.isEmpty {
+                                strongSelf.clearInputText()
+                            }
+                            strongSelf.attachmentController?.dismiss(animated: false, completion: nil)
+                        }, completed: {
+                            if !didSend {
+                                returnToCameraImpl?()
+                            }
+                        })
+                    },
+                    transitionedOut: { [weak cameraHolder] in
+                        cameraHolder?.restore()
+                    }
+                )
+
+                if let presentCameraScreen {
+                    presentCameraScreen(cameraScreen)
+                } else {
+                    strongSelf.push(cameraScreen)
+                }
+
+                returnToCameraImpl = { [weak cameraScreen] in
+                    if let cameraScreen = cameraScreen as? CameraScreen {
+                        cameraScreen.returnFromEditor()
+                    }
+                }
+                return
+            }
+
             let cameraPeer: EnginePeer? = strongSelf.presentationInterfaceState.renderedPeer?.peer.map { EnginePeer($0) }
-            presentedLegacyCamera(context: strongSelf.context, peer: cameraPeer, chatLocation: strongSelf.chatLocation, cameraView: cameraView, menuController: nil, parentController: strongSelf, attachmentController: self?.attachmentController, editingMedia: false, saveCapturedPhotos: storeCapturedMedia, mediaGrouping: true, initialCaption: inputText, hasSchedule: hasSchedule, enablePhoto: enablePhoto, enableVideo: enableVideo, sendPaidMessageStars: strongSelf.presentationInterfaceState.sendPaidMessageStars?.value ?? 0, sendMessagesWithSignals: { [weak self] signals, silentPosting, scheduleTime, parameters in
+            presentedLegacyCamera(context: strongSelf.context, peer: cameraPeer, chatLocation: strongSelf.chatLocation, cameraView: cameraView as? TGAttachmentCameraView, menuController: nil, parentController: strongSelf, attachmentController: self?.attachmentController, editingMedia: false, saveCapturedPhotos: storeCapturedMedia, mediaGrouping: true, initialCaption: inputText, hasSchedule: hasSchedule, enablePhoto: enablePhoto, enableVideo: enableVideo, sendPaidMessageStars: strongSelf.presentationInterfaceState.sendPaidMessageStars?.value ?? 0, sendMessagesWithSignals: { [weak self] signals, silentPosting, scheduleTime, parameters in
                 if let strongSelf = self {
                     strongSelf.enqueueMediaMessages(signals: signals, silentPosting: silentPosting, scheduleTime: scheduleTime > 0 ? scheduleTime : nil, parameters: parameters)
                     if !inputText.string.isEmpty {

@@ -319,6 +319,58 @@ public func legacyAssetPickerItemGenerator() -> ((Any?, NSAttributedString?, Str
     }
 }
 
+public enum LegacyCameraCapturedMedia {
+    case photo(image: UIImage, caption: NSAttributedString?, price: Int64?)
+    case video(path: String, previewImage: UIImage, coverImage: UIImage?, duration: Double, caption: NSAttributedString?, price: Int64?)
+    case asset(PHAsset, caption: NSAttributedString?, price: Int64?)
+}
+
+public func legacyCameraCapturedMediaSignals(_ media: [LegacyCameraCapturedMedia]) -> [Any] {
+    let generator = legacyAssetPickerItemGenerator()
+    return media.compactMap { item -> Any? in
+        let description = NSMutableDictionary()
+        let caption: NSAttributedString?
+
+        switch item {
+        case let .photo(image, itemCaption, price):
+            description["type"] = "capturedPhoto"
+            description["image"] = image
+            if let price {
+                description["price"] = price
+            }
+            caption = itemCaption
+        case let .video(path, previewImage, coverImage, duration, itemCaption, price):
+            description["type"] = "cameraVideo"
+            description["url"] = path
+            description["previewImage"] = previewImage
+            description["duration"] = duration as NSNumber
+            if let coverImage {
+                description["coverImage"] = coverImage
+            }
+            if let price {
+                description["price"] = price
+            }
+            caption = itemCaption
+        case let .asset(asset, itemCaption, price):
+            if asset.mediaType == .video {
+                description["type"] = "video"
+            } else {
+                description["type"] = "cloudPhoto"
+            }
+            description["asset"] = TGMediaAsset(phAsset: asset)
+            if let price {
+                description["price"] = price
+            }
+            caption = itemCaption
+        }
+
+        guard let item = generator(description, caption, nil, nil) else {
+            return nil
+        }
+        return SSignal.single(item)
+    }
+}
+
 public func legacyEnqueueGifMessage(account: Account, data: Data, correlationId: Int64? = nil) -> Signal<EnqueueMessage, Void> {
     return Signal { subscriber in
         if let previewImage = UIImage(data: data) {

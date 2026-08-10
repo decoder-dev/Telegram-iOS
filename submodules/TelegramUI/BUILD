@@ -253,6 +253,7 @@ swift_library(
         "//submodules/Components/ReactionListContextMenuContent:ReactionListContextMenuContent",
         "//submodules/Components/ReactionImageComponent:ReactionImageComponent",
         "//submodules/TabBarUI:TabBarUI",
+        "//submodules/Camera",
         "//submodules/SoftwareVideo:SoftwareVideo",
         "//submodules/ManagedFile:ManagedFile",
         "//submodules/FetchManagerImpl:FetchManagerImpl",
