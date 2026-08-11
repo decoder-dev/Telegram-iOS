@@ -493,7 +493,19 @@ static NSMutableData *executeGenerationCode(id<EncryptionProvider> provider, NSD
                       "S \"\\x01\\x00\"\n"
                       "[\n"
                       "G 2\n"
-                      "S \"\\x00\\x00\"\n"
+                      // These 4 literal zero bytes are load-bearing, not padding: the first 2 are
+                      // ext_data_length=0 for the fake GREASE extension opened by `G 2`, and the
+                      // *second* 2 double as the extension_type (0x0000 = server_name) of the real
+                      // SNI extension that follows. A prior change here shrank this to 2 bytes
+                      // (matching neither reading) to "fix" empty SNI; verified byte-for-byte against
+                      // a standalone TLS-record parser (see docs/PERFORMANCE_AUDIT.md), 2 zero bytes
+                      // makes the parser consume the whole extension_type+extension_data_length as a
+                      // single zero-length GREASE extension, so the domain that follows is no longer
+                      // prefixed by extension_type 0x0000 at all -- it reappears mislabeled as
+                      // extension_type 0x0010 (ALPN) with garbage-looking data, i.e. server_name is
+                      // absent from the ClientHello entirely. Restoring 4 bytes makes the parser see
+                      // ext[0] = empty GREASE extension, ext[1] = server_name with the domain intact.
+                      "S \"\\x00\\x00\\x00\\x00\"\n"
                       "[\n"
                       "[\n"
                       "S \"\\x00\"\n"
