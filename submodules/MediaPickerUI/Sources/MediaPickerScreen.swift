@@ -747,7 +747,16 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
                             position: cameraPosition,
                             isDualEnabled: false,
                             audio: false,
-                            photo: false,
+                            // Keep the photo output attached even though the grid tile itself never
+                            // calls takePhoto(): `cameraTapped()` below hands this exact `Camera`
+                            // instance to CameraScreenImpl via `CameraHolder`, and CameraScreenImpl
+                            // reuses it as-is (`camera = cameraHolder.camera`) for the real capture —
+                            // it never reconfigures it. With `photo: false` the AVCapturePhotoOutput
+                            // is never added to the session, so the shutter button's `takePhoto()` in
+                            // that follow-on screen calls `capturePhotoWithSettings:delegate:` on an
+                            // output that isn't part of the session, which is a hard AVFoundation
+                            // crash (NSInvalidArgumentException), not just a failed capture.
+                            photo: true,
                             metadata: false
                         ),
                         previewView: cameraPreviewView,
