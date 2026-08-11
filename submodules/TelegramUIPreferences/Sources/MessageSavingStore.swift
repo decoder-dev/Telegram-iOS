@@ -307,8 +307,37 @@ public enum MessageSavingStore {
         if !self.observerInstalled {
             self.observerInstalled = true
             // Process-lifetime singleton observer — deliberately never removed.
+            //
+            // `object:` notifications from UIApplication are posted synchronously on the thread
+            // that triggered them, which for app-lifecycle transitions is the main thread; with
+            // `queue: nil` the handler itself also runs there. `flush()` does a full JSON encode
+            // of the whole record list plus an atomic file write, so calling it directly here —
+            // as opposed to `exportMessageSavingDatabase`'s deliberate synchronous call before it
+            // reads the file back — would stall the main run loop for however long that encode
+            // takes, right as the app is trying to background (e.g. a swipe-to-home hitch).
+            // `beginBackgroundTask` buys the process extra run time so the write still lands even
+            // if iOS decides to suspend before the async block would otherwise have run.
             NotificationCenter.default.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: nil, using: { _ in
-                MessageSavingStore.flush()
+                var backgroundTaskId = UIBackgroundTaskIdentifier.invalid
+                // Both places that can end the task hop onto `queue` first, so the expiration
+                // handler (which the system can call on an arbitrary thread) and the normal
+                // completion below can never both call `endBackgroundTask` for the same id —
+                // doing that twice is an API-misuse assertion, not just a harmless no-op.
+                backgroundTaskId = UIApplication.shared.beginBackgroundTask(withName: "MessageSavingStore.flush") {
+                    queue.async {
+                        if backgroundTaskId != .invalid {
+                            UIApplication.shared.endBackgroundTask(backgroundTaskId)
+                            backgroundTaskId = .invalid
+                        }
+                    }
+                }
+                queue.async {
+                    MessageSavingStore.flush()
+                    if backgroundTaskId != .invalid {
+                        UIApplication.shared.endBackgroundTask(backgroundTaskId)
+                        backgroundTaskId = .invalid
+                    }
+                }
             })
         }
         let _ = MessageSavingBridge.append.swap({ record in
