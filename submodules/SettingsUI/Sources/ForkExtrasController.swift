@@ -8,7 +8,6 @@ import TelegramUIPreferences
 import ItemListUI
 import PresentationDataUtils
 import AccountContext
-import UniformTypeIdentifiers
 
 /// Document-picker bridge for MessageSaving JSON import (AyuGram DB import parity).
 private final class ForkExtrasMessageSavingImportPresenter: NSObject, UIDocumentPickerDelegate {
@@ -21,10 +20,9 @@ private final class ForkExtrasMessageSavingImportPresenter: NSObject, UIDocument
         self.replace = replace
         self.context = context
         self.present = present
-        // .folder alongside .json/.data: bare records.json or a full exportBundle() folder.
-        // asCopy must be false — UIDocumentPicker cannot copy directories; we rely on the
-        // security-scoped URL below instead.
-        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.json, .data, .folder], asCopy: false)
+        // iOS 13-compatible picker API. Includes JSON, generic data, and folders so we can import
+        // either a bare records.json or a full exportBundle() directory.
+        let picker = UIDocumentPickerViewController(documentTypes: ["public.json", "public.data", "public.folder"], in: .open)
         picker.delegate = self
         picker.allowsMultipleSelection = false
         guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
