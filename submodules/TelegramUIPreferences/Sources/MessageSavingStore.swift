@@ -641,6 +641,11 @@ public enum MessageSavingStore {
             return .failure(.invalidData)
         }
 
+        let result = importJSONData(data, replace: replace)
+        guard case .success = result else {
+            return result
+        }
+
         let dest = MessageSavingBridge.savedAttachmentsDirectory
         if replace {
             if let existing = try? FileManager.default.contentsOfDirectory(at: dest, includingPropertiesForKeys: nil) {
@@ -648,11 +653,6 @@ public enum MessageSavingStore {
                     try? FileManager.default.removeItem(at: file)
                 }
             }
-        }
-
-        let result = importJSONData(data, replace: replace)
-        guard case .success = result else {
-            return result
         }
 
         if let attachmentsURL, let files = try? FileManager.default.contentsOfDirectory(at: attachmentsURL, includingPropertiesForKeys: nil) {

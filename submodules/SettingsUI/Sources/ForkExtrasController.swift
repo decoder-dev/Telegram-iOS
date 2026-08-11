@@ -20,9 +20,9 @@ private final class ForkExtrasMessageSavingImportPresenter: NSObject, UIDocument
         self.replace = replace
         self.context = context
         self.present = present
-        // iOS 13-compatible picker API. Includes JSON, generic data, and folders so we can import
+        // iOS 13-compatible picker API. Includes JSON and folders so we can import
         // either a bare records.json or a full exportBundle() directory.
-        let picker = UIDocumentPickerViewController(documentTypes: ["public.json", "public.data", "public.folder"], in: .open)
+        let picker = UIDocumentPickerViewController(documentTypes: ["public.json", "public.folder"], in: .open)
         picker.delegate = self
         picker.allowsMultipleSelection = false
         guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
@@ -1457,6 +1457,9 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
             // Folder URL: AirDrop / "Save to Files" accept it. Import the folder itself (not a
             // zip — the picker does not open archives).
             let activity = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+            activity.completionWithItemsHandler = { _, _, _, _ in
+                try? FileManager.default.removeItem(at: url)
+            }
             guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
                 return
             }
