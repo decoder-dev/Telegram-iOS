@@ -5,7 +5,14 @@ import SwiftSignalKit
 /// AyuGram Android parity: copy attachments into a durable folder outside the Telegram cache
 /// (`Download/AyuGram/Saved Attachments` on Android → Application Support here).
 enum MessageSavingAttachments {
-    static var directoryURL: URL {
+    /// `scheduleCopy`/`existingCopyPath` are documented to do only "path arithmetic plus a
+    /// directory listing" on the caller's thread — which is sometimes a Postbox transaction
+    /// thread (see `MessageSavingBridge.preserveMediaIfNeeded`). A `createDirectory` mkdir/stat
+    /// syscall on every single access broke that invariant: a bulk delete of hundreds of
+    /// messages meant hundreds of redundant mkdir calls under the database lock. Swift
+    /// initializes a `static let` at most once (thread-safely), so this creates the directory a
+    /// single time per process and every later access is a plain property read.
+    private static let cachedDirectoryURL: URL = {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? FileManager.default.temporaryDirectory
         let dir = base
@@ -13,6 +20,10 @@ enum MessageSavingAttachments {
             .appendingPathComponent("Saved Attachments", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
+    }()
+
+    static var directoryURL: URL {
+        return cachedDirectoryURL
     }
 
     /// Stable across launches, unlike String.hashValue which is per-process seeded.
