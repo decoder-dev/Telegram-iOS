@@ -172,6 +172,61 @@ choosing what work to shed requires first knowing what it costs.
    `thermalState >= .serious` (lower decode target, pause non-visible
    animations) is a real lever; the state is already available for it.
 
+## Network audit addendum (2026-08-11)
+
+Not part of the original thermal/CPU pass above, but found while auditing the same fork
+commits for regressions: `submodules/MtProtoKit/Sources/MTTcpConnection.m`'s Fake-TLS
+ClientHello generator (`executeGenerationCode`) had its `S "\x00\x00\x00\x00"` literal (right
+after `G 2`, the SNI extension's lead-in) shrunk to `S "\x00\x00"` by the proxy-fixes commit
+that claimed to fix "empty SNI" (issue #1912). This is **checkable without Xcode or a
+device**: the byte layout is deterministic given the DSL interpreter's own rules (`[`/`]` push
+a 2-byte length placeholder and patch it on pop; `G N` writes `grease[N]` twice, and
+`grease[N]`'s low nibble is forced to `0xA`, so it can never be `0x00`). Re-implementing the
+interpreter faithfully in a standalone script and feeding its output through a minimal TLS
+ClientHello parser shows:
+
+- With 4 zero bytes (upstream shape): `ext[0]` = an empty `0x?A?A`-typed GREASE extension,
+  `ext[1]` = `type=0x0000 (server_name)`, correctly containing the domain. Valid SNI.
+- With 2 zero bytes (this fork's "fix"): the parser consumes both zero bytes as
+  `ext_data_length=0` for the GREASE extension, so `extension_type=0x0000` for server_name is
+  never written at all — the domain bytes that follow are misread as a mislabeled
+  `extension_type=0x0010` (ALPN) blob. **No `server_name` extension exists in the ClientHello.**
+
+So the 2-byte version doesn't fix "empty SNI" — it removes SNI outright, which is a strictly
+worse regression for exactly the scenario ("ee"-secret / domain-fronted MTProxy) the original
+fix was supposed to help. Reverted to 4 bytes; see the comment at the call site for the full
+byte-accounting.
+
+## Follow-up audit (2026-08-11): three more findings, fixed
+
+1. **Crash risk: grid camera preview reused for capture with no photo output attached.**
+   `submodules/MediaPickerUI/Sources/MediaPickerScreen.swift`'s in-grid camera tile was built
+   with `photo: false` to shrink the preview-only session, but `cameraTapped()` hands that exact
+   `Camera` instance through `CameraHolder` into `CameraScreenImpl`, which reuses it as-is for
+   the real capture rather than reconfiguring it. With no `AVCapturePhotoOutput` attached, the
+   shutter's `takePhoto()` calls `capturePhoto(with:delegate:)` on an output that was never added
+   to the session — an `NSInvalidArgumentException`, not a soft failure. Restored `photo: true`;
+   the 720p/no-audio preset from the same migration is unaffected and still cheaper than the
+   1080p/full-`.photo`-preset session it replaced.
+2. **Per-access `createDirectory` under the Postbox transaction lock.**
+   `submodules/TelegramCore/Sources/MessageSaving/MessageSavingAttachments.swift`'s
+   `directoryURL` called `FileManager.createDirectory` (a mkdir+stat syscall) on every single
+   read, and callers include `MessageSavingBridge.preserveMediaIfNeeded`, which runs on a
+   Postbox transaction thread — so a bulk delete of hundreds of messages meant hundreds of
+   redundant mkdir calls serialized behind the database lock. Moved the directory creation into
+   a `static let` initializer, which Swift runs at most once per process; every later access is
+   now a plain property read.
+3. **Main-thread JSON encode + atomic write on backgrounding.**
+   `submodules/TelegramUIPreferences/Sources/MessageSavingStore.swift`'s `installBridge()`
+   registered its `UIApplication.didEnterBackgroundNotification` observer with `queue: nil`,
+   which runs the handler synchronously on the main thread, and the handler called `flush()` —
+   a full `JSONEncoder().encode` of the entire record list plus an atomic file write — directly
+   on it. That's exactly the swipe-to-home hitch this document is auditing for. Left `flush()`
+   itself synchronous (call sites like `exportMessageSavingDatabase` rely on the write having
+   landed before they read the file back), but the backgrounding observer now hops onto the
+   store's own serial queue before calling it, wrapped in a `beginBackgroundTask` so the write
+   still gets to finish even if iOS suspends the app before the async hop would otherwise run.
+
 ## Priority order
 
 | # | Item | Status |
@@ -183,8 +238,12 @@ choosing what work to shed requires first knowing what it costs.
 | 5 | Un-invalidated timers / display links | fixed where found |
 | 6 | `thermalState` observer | added |
 | 7 | MetricKit subscriber | added |
-| 8 | Signposts on suspected paths | not started |
-| 9 | Thermal-aware throttling | blocked on 6–8 |
-| 10 | Indexed store instead of JSON | deferred pending measurement |
-| 11 | Global-queue → serial-queue audit | deferred pending measurement |
-| 12 | Media pipeline | not touched by design |
+| 8 | Fake-TLS SNI byte-count regression | fixed (see network addendum) |
+| 9 | Grid camera capture crash (`photo: false` reuse) | fixed |
+| 10 | Per-access `createDirectory` under transaction lock | fixed |
+| 11 | Main-thread flush on backgrounding | fixed |
+| 12 | Signposts on suspected paths | not started |
+| 13 | Thermal-aware throttling | blocked on 6, 12 |
+| 14 | Indexed store instead of JSON | deferred pending measurement |
+| 15 | Global-queue → serial-queue audit | deferred pending measurement |
+| 16 | Media pipeline | not touched by design |

@@ -100,6 +100,11 @@ Settings → Support footer shows `Telegram VERSION (BUILD)` and `decoder-dev`. 
 | MTProxy Fake-TLS SNI (empty `server_name` bug) | `MTTcpConnection.m` ClientHello DSL |
 | Auto-rotate saved proxies on connection issues | Settings → Proxy → **Auto-rotate Proxies** |
 
+The Fake-TLS SNI fix above initially shrank a literal byte run in the ClientHello DSL from 4
+zero bytes to 2, which byte-for-byte analysis showed removes the `server_name` extension from
+the ClientHello entirely (see `docs/PERFORMANCE_AUDIT.md` § "Network audit addendum") rather
+than fixing it; restored to 4 bytes.
+
 ## What CI cannot do without your Apple certs
 
 - Produce a universally installable IPA
