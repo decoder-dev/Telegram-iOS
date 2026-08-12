@@ -238,11 +238,44 @@ jobs:
             TAG="v${APP_VERSION}-${BUILD_NUMBER}"
           fi
           NOTES="$(mktemp)"
+          # Prefer the matching ## [TAG] section from CHANGELOG.md; else git log since previous tag.
+          CHANGELOG_BODY="$(mktemp)"
+          if [[ -f CHANGELOG.md ]]; then
+            python3 - "$TAG" CHANGELOG.md "$CHANGELOG_BODY" <<'PY'
+          import re, sys
+          tag, path, out = sys.argv[1], sys.argv[2], sys.argv[3]
+          text = open(path, encoding="utf-8").read()
+          # ## [v12.9.2-3845] or ## v12.9.2-3845 …
+          pat = re.compile(
+              r"^##\s*\[?" + re.escape(tag) + r"\]?[^\n]*\n(.*?)(?=^##\s|\Z)",
+              re.M | re.S,
+          )
+          m = pat.search(text)
+          body = (m.group(1).strip() if m else "")
+          open(out, "w", encoding="utf-8").write(body)
+          PY
+          fi
+          if [[ ! -s "$CHANGELOG_BODY" ]]; then
+            PREV="$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null || true)"
+            if [[ -n "$PREV" ]]; then
+              {
+                echo "### Commits since ${PREV}"
+                echo
+                git log --pretty=format:'- %s (%h)' "${PREV}..${TAG}"
+                echo
+              } > "$CHANGELOG_BODY"
+            else
+              echo "_No CHANGELOG.md section for ${TAG} and no previous tag._" > "$CHANGELOG_BODY"
+            fi
+          fi
           cat > "$NOTES" <<EOF
           Telegram iOS ${APP_VERSION} (${BUILD_NUMBER}) — sideload IPA
 
           Fake-signed \`release_arm64\` build for re-signing with Sideloadly / AltStore.
           This is **not** App Store–installable as-is.
+
+          ### Changelog
+          $(cat "$CHANGELOG_BODY")
 
           ### Install (E-Sign / Sideloadly)
           1. Change the Bundle ID when signing (avoids clashing with App Store Telegram).

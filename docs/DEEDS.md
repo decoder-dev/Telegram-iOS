@@ -2,23 +2,24 @@
 
 Кратко: что сделано в последних PR, что трогали, что **намеренно не ломали**.
 
-## Готово к review / merge
+Пользовательский changelog по тегам релизов: [`CHANGELOG.md`](../CHANGELOG.md)
+(секция тега попадает в GitHub Release notes при сборке IPA).
 
-### [#28](https://github.com/decoder-dev/Telegram-iOS/pull/28) — AyuForward «со второго раза»
+## Готово / в master
+
+### AyuForward «со второго раза»
 
 - **Баг:** первый Forward noforwards/deleted/TTL часто `.Failed`, второй проходил.
 - **Почему:** `.standalone` media reference не умеет самочиниться при `FILE_REFERENCE_EXPIRED`.
 - **Фикс:** как у обычного forward — `.message(MessageReference(sourceMessage), …)`.
 - **Не ломаем:** обычный forward; путь через Saved Attachments; уже закэшированное медиа.
 
-### [#29](https://github.com/decoder-dev/Telegram-iOS/pull/29) — Liquid Glass + план «не жрать»
+### Liquid Glass + план «не жрать»
 
-- Только docs (`LIQUID_GLASS_AND_PERF.md` + pointer в `PERFORMANCE_AUDIT.md`).
-- Рантайм не менялся.
+- Docs (`LIQUID_GLASS_AND_PERF.md` + pointer в `PERFORMANCE_AUDIT.md`).
 - Glass: добивать fork chrome/чипы, **не** пузыри и не каждую строку чата.
-- Heat: следующий рычаг — гасить только *proactive* Save Media при thermal/LPM.
 
-### Этот PR — thermal/LPM gate на proactive fetch
+### Thermal/LPM gate на proactive fetch
 
 - В `MessageSavingBridge.preserveMediaIfNeeded` не стартуем `startFetch`, если Low Power Mode или thermal `.serious`/`.critical`.
 - **Сохраняются:** Save Deleted / Save Edits, `saveMedia` copy при удалении, retry `copyIfAvailable` если файл уже в кэше, ручной toggle Proactive Save Media.
