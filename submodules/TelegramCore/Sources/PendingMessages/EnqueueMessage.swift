@@ -617,8 +617,10 @@ private func forwardedMessageToBeReuploaded(transaction: Transaction, id: Messag
     }
 }
 
-/// Build a standalone media reference for AyuForward / secret-chat reupload, remapping to local MediaIds
-/// so PendingMessageManager uploads instead of calling forwardMessages.
+/// Build a media reference for AyuForward reupload, remapping to local MediaIds so PendingMessageManager
+/// uploads instead of calling forwardMessages. Prefers a `.message` back-reference over `.standalone` so a
+/// stale/expired file reference on the not-yet-locally-cached source resource can still self-heal via
+/// `revalidateMediaResourceReference` (see the inner comment below for why this matters).
 private func ayuForwardMediaReference(account: Account, sourceMessage: Message) -> AnyMediaReference? {
     // Locally deleted: prefer durable Saved Attachments before remapping stale cloud media ids.
     if sourceMessage.isLocallyDeleted {
@@ -631,7 +633,35 @@ private func ayuForwardMediaReference(account: Account, sourceMessage: Message) 
     }
     for media in sourceMessage.media {
         if media is TelegramMediaImage || media is TelegramMediaFile {
-            return .standalone(media: convertMediaForAyuForward(media, mediaBox: account.postbox.mediaBox))
+            let convertedMedia = convertMediaForAyuForward(media, mediaBox: account.postbox.mediaBox)
+            // Keep a back-reference to the source message rather than going `.standalone`.
+            //
+            // When the source resource isn't in mediaBox yet (mediaBox.completedResourcePath == nil
+            // inside convertMediaForAyuForward), the *original* cloud resource — with its embedded
+            // fileReference bytes — is kept as-is and PendingMessageManager has to fetch it over the
+            // network before it can reupload. Telegram's file references expire, and the generic
+            // fetch layer (MultipartFetch/FetchV2) knows how to transparently refresh an expired one
+            // via `revalidateMediaResourceReference` — but only if it can trace the resource back to
+            // a message/peer. `revalidateMediaResourceReference`'s `.standalone` branch only handles
+            // sticker-pack attributes and otherwise fails outright, so a `.standalone` reference here
+            // turns a normally self-healing FILE_REFERENCE_EXPIRED into a hard failure: the whole
+            // enqueued message gets marked .Failed on the spot.
+            //
+            // That is why AyuForward-reuploaded sends have needed a manual second "Forward" tap to go
+            // through: the first attempt fails outright on a stale reference, and by the second
+            // attempt mediaBox usually already has the bytes cached (from the failed attempt's own
+            // partial fetch, or from the user reopening the message), so `completedResourcePath`
+            // succeeds and the zero-copy local-file branch is used instead, needing no fetch at all.
+            //
+            // Wiring a `.message` reference here (mirroring the vanilla-forward path's
+            // `augmentMediaWithReference(.message(message: MessageReference(sourceMessage), media:))`)
+            // lets `revalidateMediaResourceReference` hit its `.message` branch, refetch the source
+            // message, and patch in a fresh reference within the *same* send attempt.
+            let messageReference = MessageReference(sourceMessage)
+            if messageReference.peer != nil {
+                return .message(message: messageReference, media: convertedMedia)
+            }
+            return .standalone(media: convertedMedia)
         }
     }
     // Cloud media gone / unsupported — fall back to Saved Attachments / mediaPath.
