@@ -243,7 +243,16 @@ byte-accounting.
 | 10 | Per-access `createDirectory` under transaction lock | fixed |
 | 11 | Main-thread flush on backgrounding | fixed |
 | 12 | Signposts on suspected paths | not started |
-| 13 | Thermal-aware throttling | blocked on 6, 12 |
+| 13 | Thermal-aware throttling | ready to wire (observer exists; see below) |
 | 14 | Indexed store instead of JSON | deferred pending measurement |
 | 15 | Global-queue → serial-queue audit | deferred pending measurement |
 | 16 | Media pipeline | not touched by design |
+
+## Liquid Glass + next thermal levers
+
+Product/sequencing notes (what to glass-ify on fork screens, what *not* to
+blur, how to shed optional Save Media work when hot, VoIP vs MTProxy limits)
+live in [`LIQUID_GLASS_AND_PERF.md`](LIQUID_GLASS_AND_PERF.md). Item 13 above
+is no longer blocked on building the observer — only on choosing the work to
+shed (proactive Save Media / export QoS first; capturer downscale only with
+signposts).
