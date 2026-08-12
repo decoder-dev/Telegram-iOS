@@ -70,7 +70,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
     /// AyuGram Local Telegram Premium: unlock client-side Premium-gated UX (stealth mode, HD stories,
     /// sticker/emoji cosmetics) without touching the account's real Premium status. Default off — opt-in.
     public var localPremium: Bool
-    /// AyuGram Message Filters: hide sponsored / recommended ads in chats.
+    /// Hide sponsored / recommended ads in chats. This fork keeps ads off; the
+    /// value is retained for prefs compatibility and is forced `true` at runtime.
     public var hideAds: Bool
     /// AyuGram Message Filters: hide messages (and typing) from blocked users.
     public var hideBlockedMessages: Bool
@@ -126,7 +127,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
             ayuForward: true,
             bypassDownloadRestrictions: true,
             localPremium: false,
-            hideAds: false,
+            hideAds: true,
             hideBlockedMessages: false,
             allowSecretScreenshots: true,
             expireTtlButton: true,
@@ -174,7 +175,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         ayuForward: Bool = true,
         bypassDownloadRestrictions: Bool = true,
         localPremium: Bool = false,
-        hideAds: Bool = false,
+        hideAds: Bool = true,
         hideBlockedMessages: Bool = false,
         allowSecretScreenshots: Bool = true,
         expireTtlButton: Bool = true,
@@ -270,7 +271,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.ayuForward = try container.decodeIfPresent(Bool.self, forKey: "ayuForward") ?? true
         self.bypassDownloadRestrictions = try container.decodeIfPresent(Bool.self, forKey: "bypassDownloadRestrictions") ?? true
         self.localPremium = try container.decodeIfPresent(Bool.self, forKey: "localPremium") ?? false
-        self.hideAds = try container.decodeIfPresent(Bool.self, forKey: "hideAds") ?? false
+        self.hideAds = try container.decodeIfPresent(Bool.self, forKey: "hideAds") ?? true
         self.hideBlockedMessages = try container.decodeIfPresent(Bool.self, forKey: "hideBlockedMessages") ?? false
         self.allowSecretScreenshots = try container.decodeIfPresent(Bool.self, forKey: "allowSecretScreenshots") ?? true
         self.expireTtlButton = try container.decodeIfPresent(Bool.self, forKey: "expireTtlButton") ?? true

@@ -104,20 +104,22 @@ public enum ForkGhostScheduleSettings {
 /// Bool flags read on scroll / bubble-layout paths. Atomic so Postbox/UI queues never race.
 public enum ForkExtrasHotFlags {
     public struct State: Equatable {
-        public var hideAds: Bool = false
+        /// Always `true` in this fork — sponsored/recommended ads are client-disabled.
+        public var hideAds: Bool = true
         public var hideBlockedMessages: Bool = false
         public var hideReactionsBar: Bool = false
         public var compactChatList: Bool = false
         public var compactMessagePreview: Bool = false
 
         public init(
-            hideAds: Bool = false,
+            hideAds: Bool = true,
             hideBlockedMessages: Bool = false,
             hideReactionsBar: Bool = false,
             compactChatList: Bool = false,
             compactMessagePreview: Bool = false
         ) {
-            self.hideAds = hideAds
+            // Ads stay off regardless of the prefs value passed in.
+            self.hideAds = true
             self.hideBlockedMessages = hideBlockedMessages
             self.hideReactionsBar = hideReactionsBar
             self.compactChatList = compactChatList
@@ -132,12 +134,15 @@ public enum ForkExtrasHotFlags {
     }
 
     public static func update(_ next: State) {
-        let _ = state.swap(next)
+        var forced = next
+        forced.hideAds = true
+        let _ = state.swap(forced)
     }
 
+    /// Fork policy: never surface sponsored/recommended messages.
     public static var hideAds: Bool {
-        get { return state.with { $0.hideAds } }
-        set { let _ = state.modify { var s = $0; s.hideAds = newValue; return s } }
+        get { return true }
+        set { /* permanently on */ }
     }
     public static var hideBlockedMessages: Bool {
         get { return state.with { $0.hideBlockedMessages } }

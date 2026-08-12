@@ -1166,7 +1166,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         ForkKeepBannedChatsSettings.enabled = settings.keepBannedChats
         ForkGhostScheduleSettings.enabled = settings.ghostScheduleMessages
         ForkExtrasHotFlags.update(ForkExtrasHotFlags.State(
-            hideAds: settings.hideAds,
+            hideAds: true,
             hideBlockedMessages: settings.hideBlockedMessages,
             hideReactionsBar: settings.hideReactionsBar,
             compactChatList: settings.compactChatList,

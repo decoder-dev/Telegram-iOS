@@ -130,7 +130,7 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.LocalPremium": "Local Telegram Premium",
             "ForkExtras.LocalPremiumFooter": "Unlock client-side Premium UX on this device: Story Stealth Mode, HD stories, sticker/emoji cosmetics. Does not buy real Premium or change your badge for others.",
             "ForkExtras.HideAds": "Hide Ads",
-            "ForkExtras.HideAdsFooter": "Hide sponsored and recommended messages in chats (AyuGram Message Filters).",
+            "ForkExtras.HideAdsFooter": "Sponsored and recommended messages are permanently disabled in this build.",
             "ForkExtras.HideBlockedMessages": "Hide Blocked Users",
             "ForkExtras.HideBlockedMessagesFooter": "Hide messages and typing from users you've blocked.",
             "ForkExtras.GhostScheduleMessages": "Schedule Messages (Ghost)",
@@ -224,7 +224,7 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.LocalPremium": "Локальный Telegram Premium",
             "ForkExtras.LocalPremiumFooter": "Клиентские функции Premium на этом устройстве: stealth историй, HD, косметика стикеров/эмодзи. Не покупает Premium и не меняет ваш значок для других.",
             "ForkExtras.HideAds": "Скрыть рекламу",
-            "ForkExtras.HideAdsFooter": "Скрывать спонсорские и рекомендованные сообщения в чатах (фильтры AyuGram).",
+            "ForkExtras.HideAdsFooter": "Спонсорские и рекомендованные сообщения в этой сборке отключены навсегда.",
             "ForkExtras.HideBlockedMessages": "Скрыть заблокированных",
             "ForkExtras.HideBlockedMessagesFooter": "Скрывать сообщения и набор текста от заблокированных пользователей.",
             "ForkExtras.GhostScheduleMessages": "Отложенная отправка (призрак)",
@@ -589,7 +589,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     case messageSavingDbFooter
     case localPremium(Bool)
     case localPremiumFooter
-    case hideAds(Bool)
+    case hideAds
     case hideAdsFooter
     case hideBlockedMessages(Bool)
     case hideBlockedMessagesFooter
@@ -936,9 +936,10 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             })
         case .localPremiumFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.localPremiumFooter), sectionId: self.section)
-        case let .hideAds(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.hideAds, value: value, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateHideAds(value)
+        case .hideAds:
+            // Ads are hard-disabled in this fork; the switch stays locked on.
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.hideAds, value: true, enableInteractiveChanges: false, enabled: false, displayLocked: true, sectionId: self.section, style: .blocks, updated: { _ in
+                arguments.updateHideAds(true)
             })
         case .hideAdsFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.hideAdsFooter), sectionId: self.section)
@@ -1046,7 +1047,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings) -> [ForkE
         .exportMessageSavingDatabase,
         .importMessageSavingDatabase,
         .messageSavingDbFooter,
-        .hideAds(settings.hideAds),
+        .hideAds,
         .hideAdsFooter,
         .hideBlockedMessages(settings.hideBlockedMessages),
         .hideBlockedMessagesFooter,
@@ -1372,10 +1373,10 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
                 return updated
             }.start())
         },
-        updateHideAds: { value in
+        updateHideAds: { _ in
             updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
                 var updated = current
-                updated.hideAds = value
+                updated.hideAds = true
                 return updated
             }.start())
         },

@@ -1918,7 +1918,7 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
         let messageFilterSettings: Signal<MessageFilterSettingsFingerprint, NoError> = forkExtrasSettings(accountManager: context.sharedContext.accountManager)
         |> map { settings -> MessageFilterSettingsFingerprint in
             return MessageFilterSettingsFingerprint(
-                hideAds: settings.hideAds,
+                hideAds: true,
                 hideBlockedMessages: settings.hideBlockedMessages,
                 regexEnabled: settings.regexMessageFiltersEnabled,
                 regexCaseInsensitive: settings.regexMessageFiltersCaseInsensitive,
