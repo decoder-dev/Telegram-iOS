@@ -3,10 +3,13 @@
 Все notable-изменения этого форка. Формат loosely [Keep a Changelog](https://keepachangelog.com/).
 Тег релиза = `v{app}-{tagSuffix}` (например `v12.9.2-3845`); CI кладёт секцию тега в GitHub Release notes.
 
-## [Unreleased]
+## [v12.9.2-3846] — 2026-08-12
 
 ### Changed
 - **Ads:** спонсорские / recommended сообщения отключены навсегда в клиенте (не запрашиваются и не вставляются в историю). Тогл в Extras заблокирован во «вкл».
+
+### Also includes (from v12.9.2-3845, if that build was still in flight)
+- AyuForward first-tap fix; thermal/LPM skip for proactive Save Media fetch; Liquid Glass / perf docs; per-release CHANGELOG in GitHub Release notes.
 
 ## [v12.9.2-3845] — 2026-08-12
 
@@ -20,6 +23,7 @@
 - `docs/LIQUID_GLASS_AND_PERF.md` — что брать из Liquid Glass iOS 26 и как дальше резать «жратву».
 - `docs/DEEDS.md` — опись недавних PR.
 - Обновлён `docs/PERFORMANCE_AUDIT.md`.
+- `CHANGELOG.md` + inject into CI release notes.
 
 ## [v12.9.2-3844] — 2026-08-11
 
