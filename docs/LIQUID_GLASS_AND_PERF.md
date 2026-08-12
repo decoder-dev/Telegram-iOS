@@ -72,17 +72,18 @@ Ordered by expected impact vs invasiveness. Prefer the top of the list.
 
 ### 1. Shed optional fork work when thermally stressed / Low Power Mode
 
-`ForkPerformanceTelemetry.isThermallyStressed` is already synchronous. Wire it
-(and `ProcessInfo.processInfo.isLowPowerModeEnabled`) into:
+**Done (safe subset):** `MessageSavingBridge.preserveMediaIfNeeded` skips the
+opportunistic `startFetch` when `ProcessInfo` reports Low Power Mode or
+thermal `.serious`/`.critical`. On-delete / on-edit saves and
+copy-if-already-cached retries are unchanged. (Uses `ProcessInfo` directly in
+TelegramCore so there is no UIKit / `ForkPerformanceTelemetry` dependency.)
 
-- **proactive Save Media** — skip opportunistic attachment copies when
-  `.serious`/`.critical` or LPM; keep on-delete / on-edit saves.
+Still open:
+
 - **MessageSaving export** — refuse or warn + run only on a utility queue
   with a lower QoS when stressed.
 - **Heavy fork retries** — lengthen backoff when stressed instead of hammering.
-
-This is the highest-value *fork-owned* thermal lever: it removes optional I/O
-the user did not explicitly request right now.
+- Call-side capturer downscale — only with signposts.
 
 ### 2. Calls are the real heater — do not expect MTProxy to help
 

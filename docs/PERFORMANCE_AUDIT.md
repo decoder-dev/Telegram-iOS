@@ -243,7 +243,7 @@ byte-accounting.
 | 10 | Per-access `createDirectory` under transaction lock | fixed |
 | 11 | Main-thread flush on backgrounding | fixed |
 | 12 | Signposts on suspected paths | not started |
-| 13 | Thermal-aware throttling | ready to wire (observer exists; see below) |
+| 13 | Thermal-aware throttling | partial: proactive Save Media fetch skips on thermal/LPM |
 | 14 | Indexed store instead of JSON | deferred pending measurement |
 | 15 | Global-queue → serial-queue audit | deferred pending measurement |
 | 16 | Media pipeline | not touched by design |

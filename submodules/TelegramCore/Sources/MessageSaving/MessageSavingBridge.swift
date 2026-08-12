@@ -368,7 +368,22 @@ public enum MessageSavingBridge {
         // finishPreserve cannot race ahead of activeFetchDisposables registration (which would
         // leak the fetch disposable).
         preserveQueue.async {
-            if current.proactiveSaveMedia {
+            // Opportunistic network fetch only. Delete/edit saves and copy-if-already-cached
+            // retries below are unchanged. Skip the fetch when the system is already shedding
+            // work (thermal serious/critical or Low Power Mode) so we do not add decode/IO heat.
+            let shouldProactiveFetch: Bool = {
+                guard current.proactiveSaveMedia else { return false }
+                if ProcessInfo.processInfo.isLowPowerModeEnabled {
+                    return false
+                }
+                switch ProcessInfo.processInfo.thermalState {
+                case .serious, .critical:
+                    return false
+                default:
+                    return true
+                }
+            }()
+            if shouldProactiveFetch {
                 if let disposable = MessageSavingAttachments.startFetch(message: message, mediaBox: mediaBox) {
                     log("preserve: started proactive fetch for \(message.id.id)")
                     let _ = activeFetchDisposables.modify { current -> [PreserveKey: Disposable] in
@@ -377,6 +392,8 @@ public enum MessageSavingBridge {
                         return updated
                     }
                 }
+            } else if current.proactiveSaveMedia {
+                log("preserve: skipped proactive fetch for \(message.id.id) (thermal/LPM)")
             }
             retryPreserve(message: message, accountPeerId: accountPeerId, mediaBox: mediaBox, key: key, attemptsRemaining: 7, delay: 0.0)
         }
