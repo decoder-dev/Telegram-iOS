@@ -32,9 +32,20 @@ enum PeerInfoMember: Equatable {
         case let .channelMember(participant, _):
             return participant.peer
         case let .legacyGroupMember(peer, _, _, _, _, _):
-            return EnginePeer(peer.peers[peer.peerId]!)
+            return EnginePeer(peer.peer!)
         case let .account(peer):
             return peer.peer!
+        }
+    }
+    
+    var hasResolvedPeer: Bool {
+        switch self {
+        case .channelMember:
+            return true
+        case let .legacyGroupMember(peer, _, _, _, _, _):
+            return peer.peer != nil
+        case let .account(peer):
+            return peer.peer != nil
         }
     }
     
@@ -297,20 +308,17 @@ private final class PeerInfoMembersContextImpl {
         let hideBlocked = ForkExtrasHotFlags.hideBlockedMessages
         let accountPeerId = self.context.account.peerId
         let blockedPeerIds: Set<PeerId> = hideBlocked ? ForkBlockedPeersFilter.snapshot(accountPeerId: accountPeerId).peerIds : []
-        let removingMemberIds = self.removingMemberIds
-        let visibleMembers: [PeerInfoMember]
-        if removingMemberIds.isEmpty && blockedPeerIds.isEmpty {
-            visibleMembers = self.members
-        } else {
-            visibleMembers = self.members.filter { member in
-                if removingMemberIds[member.id] != nil {
-                    return false
-                }
-                if hideBlocked, member.id != accountPeerId, blockedPeerIds.contains(member.id) {
-                    return false
-                }
-                return true
+        let visibleMembers = self.members.filter { member in
+            if !member.hasResolvedPeer {
+                return false
             }
+            if removingMemberIds[member.id] != nil {
+                return false
+            }
+            if hideBlocked, member.id != accountPeerId, blockedPeerIds.contains(member.id) {
+                return false
+            }
+            return true
         }
         self.stateValue.set(.single(PeerInfoMembersState(canAddMembers: self.canAddMembers, members: visibleMembers, dataState: self.dataState)))
     }

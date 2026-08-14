@@ -2268,7 +2268,7 @@ public final class PeerInfoVisualMediaPaneNode: ASDisplayNode, PeerInfoPaneNode,
                 )
 
                 var itemNode: ListViewItemNode?
-                messageItem.nodeConfiguredForParams(async: { f in f() }, params: ListViewItemLayoutParams(width: size.width, leftInset: 0.0, rightInset: 0.0, availableHeight: 0.0), synchronousLoads: false, previousItem: nil, nextItem: nil, completion: { node, apply in
+                messageItem.nodeConfiguredForParams(async: { f in f() }, params: ListViewItemLayoutParams(width: size.width, leftInset: 0.0, rightInset: 0.0, availableHeight: 0.0), synchronousLoads: true, previousItem: nil, nextItem: nil, completion: { node, apply in
                     itemNode = node
                     apply().1(ListViewItemApply(isOnScreen: true))
                 })
@@ -2276,7 +2276,7 @@ public final class PeerInfoVisualMediaPaneNode: ASDisplayNode, PeerInfoPaneNode,
                 if let itemNode = itemNode {
                     fixedItemHeight = itemNode.contentSize.height
                 } else {
-                    preconditionFailure()
+                    fixedItemHeight = 50.0
                 }
                 isList = true
             default:

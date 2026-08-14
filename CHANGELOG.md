@@ -3,6 +3,11 @@
 Все notable-изменения этого форка. Формат loosely [Keep a Changelog](https://keepachangelog.com/).
 Тег релиза = `v{app}-{tagSuffix}` (например `v12.9.2-3845`); CI кладёт секцию тега в GitHub Release notes.
 
+## [Unreleased]
+
+### Fixed
+- **Profile:** intermittent crash when opening a user profile or Settings — adjacent media panes (Files/Music/Voice) no longer hit `preconditionFailure` during async row-height measurement; pane tabs with missing context are skipped instead of force-unwrapping.
+
 ## [v12.9.2-3846] — 2026-08-12
 
 ### Changed
