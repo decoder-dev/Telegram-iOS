@@ -12,6 +12,10 @@
 #   • or push a version tag: git tag vX.Y.Z && git push --tags
 #
 # Optional secrets: TELEGRAM_API_ID / TELEGRAM_API_HASH
+# Optional Bazel remote cache (L2, used with the GitHub disk cache):
+#   TELEGRAM_BAZEL_CACHE_HOST (e.g. grpcs://remote.buildbuddy.io)
+#   TELEGRAM_BAZEL_REMOTE_HEADER (e.g. x-buildbuddy-api-key=…)
+# Tag pushes stay on macos-26 (3 cores). workflow_dispatch can pick macos-26-xlarge.
 
 name: Build sideload IPA
 
@@ -24,6 +28,13 @@ on:
         description: Publish / update a GitHub Release with the IPA
         type: boolean
         default: true
+      runner:
+        description: Mac runner (macos-26 = 3 cores included; macos-26-xlarge = paid 5-core M2)
+        type: choice
+        options:
+          - macos-26
+          - macos-26-xlarge
+        default: macos-26
 
 concurrency:
   group: telegram-ios-ipa
@@ -35,8 +46,9 @@ permissions:
 jobs:
   build:
     # Xcode 27 preview IPA crashed on device — stay on macos-26 / Xcode 26.2.
-    name: Build IPA (macos-26)
-    runs-on: macos-26
+    # Standard macos-26 is 3 cores; xlarge is paid and the real compile-time lever.
+    name: Build IPA (${{ inputs.runner || 'macos-26' }})
+    runs-on: ${{ inputs.runner || 'macos-26' }}
     timeout-minutes: 240
 
     env:
@@ -44,6 +56,7 @@ jobs:
       BAZEL_USER_ROOT: /private/var/tmp/_bazel_telegram_ios
       BAZEL_CACHE_DIR: ${{ github.workspace }}/.telegram-bazel-cache
       BAZEL_REPO_CACHE: ${{ github.workspace }}/.telegram-bazel-repo-cache
+      BAZEL_DISK_CACHE_MAX_SIZE: 8G
 
     steps:
       - uses: actions/checkout@v5
@@ -119,6 +132,9 @@ jobs:
             bazel-turbo-
             bazel-
 
+      - name: Report Bazel cache size
+        run: du -sh "$BAZEL_CACHE_DIR" "$BAZEL_REPO_CACHE" 2>/dev/null || echo "cache dirs empty"
+
       - name: Write sideload configuration
         env:
           TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
@@ -164,6 +180,9 @@ jobs:
           echo "Telegram ${APP_VERSION} (${BUILD_NUMBER})"
 
       - name: Archive sideload iPhone application
+        env:
+          TELEGRAM_BAZEL_CACHE_HOST: ${{ secrets.TELEGRAM_BAZEL_CACHE_HOST }}
+          BAZEL_REMOTE_HEADER: ${{ secrets.TELEGRAM_BAZEL_REMOTE_HEADER }}
         run: |
           set -euo pipefail
           mkdir -p "$BAZEL_CACHE_DIR" "$BAZEL_REPO_CACHE" artifacts build/artifacts
@@ -171,11 +190,19 @@ jobs:
           python3 build-system/Make/ImportCertificates.py \
             --path build-system/fake-codesigning/certs
 
+          CACHE_ARGS=(--cacheDir="$BAZEL_CACHE_DIR")
+          if [[ -n "${TELEGRAM_BAZEL_CACHE_HOST:-}" ]]; then
+            CACHE_ARGS+=(--cacheHost="$TELEGRAM_BAZEL_CACHE_HOST")
+            echo "Using remote Bazel cache host"
+          else
+            echo "No TELEGRAM_BAZEL_CACHE_HOST — GitHub Actions disk cache only"
+          fi
+
           set -o pipefail
           python3 -u build-system/Make/Make.py \
             --overrideXcodeVersion \
             --bazelUserRoot="$BAZEL_USER_ROOT" \
-            --cacheDir="$BAZEL_CACHE_DIR" \
+            "${CACHE_ARGS[@]}" \
             build \
             --configurationPath=build-system/ci-configuration.json \
             --codesigningInformationPath=build-system/fake-codesigning \
@@ -186,6 +213,8 @@ jobs:
             --ciFast \
             --outputBuildArtifactsPath=build/artifacts \
             2>&1 | tee release-build.log
+
+          du -sh "$BAZEL_CACHE_DIR" "$BAZEL_REPO_CACHE" 2>/dev/null || true
 
       - name: Report compiler errors
         if: failure()

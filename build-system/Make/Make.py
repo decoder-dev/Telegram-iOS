@@ -36,6 +36,7 @@ class BazelCommandLine:
         self.bazel_user_root = bazel_user_root
         self.lock = False
         self.remote_cache = None
+        self.remote_cache_headers = []
         self.cache_dir = None
         self.additional_args = None
         self.build_number = None
@@ -114,8 +115,35 @@ class BazelCommandLine:
     def add_remote_cache(self, host):
         self.remote_cache = host
 
+    def add_remote_cache_header(self, header):
+        if header:
+            self.remote_cache_headers.append(header)
+
     def add_cache_dir(self, path):
         self.cache_dir = path
+
+    def get_cache_arguments(self):
+        # Disk and remote caches can be combined: local CAS is L1, HTTP/gRPC is L2
+        # (upstream GitLab uses --cacheHost; GitHub Actions historically only packed --disk_cache).
+        combined_arguments = []
+        if self.cache_dir is not None:
+            combined_arguments += [
+                '--disk_cache={path}'.format(path=self.cache_dir)
+            ]
+            max_size = os.environ.get('BAZEL_DISK_CACHE_MAX_SIZE')
+            if max_size:
+                combined_arguments += [
+                    '--experimental_disk_cache_gc_max_size={}'.format(max_size),
+                ]
+        if self.remote_cache is not None:
+            combined_arguments += [
+                '--remote_cache={}'.format(self.remote_cache),
+                '--experimental_remote_downloader={}'.format(self.remote_cache),
+                '--remote_local_fallback',
+            ]
+            for header in self.remote_cache_headers:
+                combined_arguments += ['--remote_header={}'.format(header)]
+        return combined_arguments
 
     def add_additional_args(self, additional_args):
         self.additional_args = additional_args
@@ -279,15 +307,7 @@ class BazelCommandLine:
         combined_arguments += self.common_debug_args
         combined_arguments += self.get_define_arguments()
 
-        if self.remote_cache is not None:
-            combined_arguments += [
-                '--remote_cache={}'.format(self.remote_cache),
-                '--experimental_remote_downloader={}'.format(self.remote_cache)
-            ]
-        elif self.cache_dir is not None:
-            combined_arguments += [
-                '--disk_cache={path}'.format(path=self.cache_dir)
-            ]
+        combined_arguments += self.get_cache_arguments()
 
         if self.continue_on_error:
             combined_arguments += ['--keep_going']
@@ -349,15 +369,7 @@ class BazelCommandLine:
         combined_arguments += self.get_define_arguments()
         combined_arguments += self.get_additional_build_arguments()
 
-        if self.remote_cache is not None:
-            combined_arguments += [
-                '--remote_cache={}'.format(self.remote_cache),
-                '--experimental_remote_downloader={}'.format(self.remote_cache)
-            ]
-        elif self.cache_dir is not None:
-            combined_arguments += [
-                '--disk_cache={path}'.format(path=self.cache_dir)
-            ]
+        combined_arguments += self.get_cache_arguments()
 
         combined_arguments += self.configuration_args
         if self.profile_swift:
@@ -384,15 +396,7 @@ class BazelCommandLine:
         combined_arguments += self.get_define_arguments()
         combined_arguments += self.get_additional_build_arguments()
 
-        if self.remote_cache is not None:
-            combined_arguments += [
-                '--remote_cache={}'.format(self.remote_cache),
-                '--experimental_remote_downloader={}'.format(self.remote_cache)
-            ]
-        elif self.cache_dir is not None:
-            combined_arguments += [
-                '--disk_cache={path}'.format(path=self.cache_dir)
-            ]
+        combined_arguments += self.get_cache_arguments()
 
         combined_arguments += self.configuration_args
 
@@ -414,15 +418,7 @@ class BazelCommandLine:
 
         combined_arguments += self.get_define_arguments()
 
-        if self.remote_cache is not None:
-            combined_arguments += [
-                '--remote_cache={}'.format(self.remote_cache),
-                '--experimental_remote_downloader={}'.format(self.remote_cache)
-            ]
-        elif self.cache_dir is not None:
-            combined_arguments += [
-                '--disk_cache={path}'.format(path=self.cache_dir)
-            ]
+        combined_arguments += self.get_cache_arguments()
 
         # Add user-provided query arguments
         combined_arguments += query_args
@@ -457,15 +453,7 @@ class BazelCommandLine:
         combined_arguments += self.get_define_arguments()
         combined_arguments += self.get_additional_build_arguments()
 
-        if self.remote_cache is not None:
-            combined_arguments += [
-                '--remote_cache={}'.format(self.remote_cache),
-                '--experimental_remote_downloader={}'.format(self.remote_cache)
-            ]
-        elif self.cache_dir is not None:
-            combined_arguments += [
-                '--disk_cache={path}'.format(path=self.cache_dir)
-            ]
+        combined_arguments += self.get_cache_arguments()
 
         combined_arguments += self.configuration_args
 
@@ -581,6 +569,16 @@ def resolve_configuration(base_path, bazel_command_line: BazelCommandLine, argum
         file.write('])\n')
 
 
+def configure_bazel_cache(bazel_command_line, arguments):
+    if getattr(arguments, 'cacheDir', None):
+        bazel_command_line.add_cache_dir(arguments.cacheDir)
+    if getattr(arguments, 'cacheHost', None):
+        bazel_command_line.add_remote_cache(arguments.cacheHost)
+    header = getattr(arguments, 'remoteCacheHeader', None) or os.environ.get('BAZEL_REMOTE_HEADER')
+    if header:
+        bazel_command_line.add_remote_cache_header(header)
+
+
 def generate_project(bazel, arguments):
     bazel_command_line = BazelCommandLine(
         bazel=bazel,
@@ -589,10 +587,7 @@ def generate_project(bazel, arguments):
         bazel_user_root=arguments.bazelUserRoot
     )
 
-    if arguments.cacheDir is not None:
-        bazel_command_line.add_cache_dir(arguments.cacheDir)
-    elif arguments.cacheHost is not None:
-        bazel_command_line.add_remote_cache(arguments.cacheHost)
+    configure_bazel_cache(bazel_command_line, arguments)
 
     bazel_command_line.set_continue_on_error(arguments.continueOnError)
 
@@ -711,10 +706,7 @@ def build(bazel, arguments):
     if arguments.lock:
         bazel_command_line.set_lock(True)
 
-    if arguments.cacheDir is not None:
-        bazel_command_line.add_cache_dir(arguments.cacheDir)
-    elif arguments.cacheHost is not None:
-        bazel_command_line.add_remote_cache(arguments.cacheHost)
+    configure_bazel_cache(bazel_command_line, arguments)
 
     resolve_configuration(
         base_path=os.getcwd(),
@@ -796,10 +788,7 @@ def test(bazel, arguments):
         bazel_user_root=arguments.bazelUserRoot
     )
 
-    if arguments.cacheDir is not None:
-        bazel_command_line.add_cache_dir(arguments.cacheDir)
-    elif arguments.cacheHost is not None:
-        bazel_command_line.add_remote_cache(arguments.cacheHost)
+    configure_bazel_cache(bazel_command_line, arguments)
 
     resolve_configuration(
         base_path=os.getcwd(),
@@ -822,10 +811,7 @@ def query(bazel, arguments):
         bazel_user_root=arguments.bazelUserRoot
     )
 
-    if arguments.cacheDir is not None:
-        bazel_command_line.add_cache_dir(arguments.cacheDir)
-    elif arguments.cacheHost is not None:
-        bazel_command_line.add_remote_cache(arguments.cacheHost)
+    configure_bazel_cache(bazel_command_line, arguments)
 
     # Resolve configuration if needed
     if arguments.configurationPath is not None:
@@ -852,10 +838,7 @@ def build_spm(bazel, arguments):
         bazel_user_root=arguments.bazelUserRoot
     )
 
-    if arguments.cacheDir is not None:
-        bazel_command_line.add_cache_dir(arguments.cacheDir)
-    elif arguments.cacheHost is not None:
-        bazel_command_line.add_remote_cache(arguments.cacheHost)
+    configure_bazel_cache(bazel_command_line, arguments)
 
     resolve_configuration(
         base_path=os.getcwd(),
@@ -982,18 +965,23 @@ if __name__ == '__main__':
         metavar='arguments'
     )
 
-    cacheTypeGroup = parser.add_mutually_exclusive_group()
-    cacheTypeGroup.add_argument(
+    parser.add_argument(
         '--cacheHost',
         required=False,
-        help='Use remote build artifact cache to speed up rebuilds (See https://github.com/buchgr/bazel-remote).',
+        help='Remote build cache (HTTP/gRPC, e.g. bazel-remote or BuildBuddy). Can be combined with --cacheDir.',
         metavar='grpc://host:9092'
     )
-    cacheTypeGroup.add_argument(
+    parser.add_argument(
         '--cacheDir',
         required=False,
-        help='Cache build artifacts in a local directory to speed up rebuilds.',
+        help='Local disk cache directory (L1). Can be combined with --cacheHost.',
         metavar='path'
+    )
+    parser.add_argument(
+        '--remoteCacheHeader',
+        required=False,
+        help='Header for --cacheHost auth (e.g. x-buildbuddy-api-key=…). Also reads BAZEL_REMOTE_HEADER.',
+        metavar='Name=value'
     )
 
     subparsers = parser.add_subparsers(dest='commandName', help='Commands')

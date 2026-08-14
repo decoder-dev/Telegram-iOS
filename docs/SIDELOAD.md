@@ -27,6 +27,33 @@ also supply real Apple profiles):
 - `TELEGRAM_API_ID`
 - `TELEGRAM_API_HASH`
 
+## CI build time (Bazel cache vs CPU)
+
+The GitHub Actions Bazel cache is already warm: last green IPA restored **~905 MB
+in ~40 s**, then Bazel ran **~36 min** on the standard `macos-26` runner
+(`CPUS=3`, `--jobs=3`, critical path ~28 min). Swapping `actions/cache` for
+another blob store will not cut that compile. What actually helps:
+
+| Lever | Effect | Cost |
+|--------|--------|------|
+| Keep `actions/cache` of `--disk_cache` (current) | Avoids a cold compile; restore is ~40 s | Included |
+| `TELEGRAM_BAZEL_CACHE_HOST` (BuildBuddy / bazel-remote) | HTTP/gRPC L2 cache; shares with your Mac via `--cacheHost`; survives GHA eviction | Free tier or a small VPS |
+| `macos-26-xlarge` (workflow_dispatch → runner) | 5-core M2 vs 3 cores; same cache | Paid GitHub larger runner |
+| Self-hosted Mac with a persistent disk | Keeps `output_user_root` warm (GHA cannot); fastest incremental | Your hardware |
+| Local `~/telegram-bazel-cache` | Already the right cache for a developer Mac | None |
+
+Make.py accepts `--cacheDir` and `--cacheHost` together (local L1 + remote L2).
+Upstream GitLab uses `--cacheHost="$TELEGRAM_BAZEL_CACHE_HOST"` the same way.
+
+To point CI at BuildBuddy (or bazel-remote):
+
+1. Repo → Settings → Secrets: `TELEGRAM_BAZEL_CACHE_HOST` =
+   `grpcs://remote.buildbuddy.io` (or `http://your-bazel-remote:9092`).
+2. Optional `TELEGRAM_BAZEL_REMOTE_HEADER` =
+   `x-buildbuddy-api-key=YOUR_KEY` (also honored as env `BAZEL_REMOTE_HEADER`).
+3. Re-run **Build sideload IPA**. Tag pushes stay on 3-core `macos-26` unless you
+   dispatch with runner `macos-26-xlarge`.
+
 ## Why E-Sign / free certs used to black-screen
 
 Telegram stores its database under an **App Group** (`group.<bundleId>`).
