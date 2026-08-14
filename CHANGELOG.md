@@ -4,6 +4,14 @@
 Тег релиза = `v{app}-{tagSuffix}` (например `v12.9.2-3845`); CI кладёт секцию тега в GitHub Release notes.
 Теги `*-pre` публикуются как GitHub **pre-release** (не Latest).
 
+## [v12.9.2-3848-pre] — 2026-08-14
+
+Pre-release: photo editor stability + fix отправки документов с устройства. Sideload smoke, не Latest.
+
+### Fixed
+- **Files picker:** Attach → File → документ с «На iPhone» / Files больше не пропадает молча — `startAccessingSecurityScopedResource() == false` не считается отказом (sandbox URL после `.import`); picker в режиме `.import`; алерт если файл так и не собрался.
+- *(includes v12.9.2-3847-pre)* photo editor / camera crashes, async texture load, draft decode, cutout bounds.
+
 ## [v12.9.2-3847-pre] — 2026-08-14
 
 Pre-release: стабильность редактора фото / камеры. Для sideload-проверки на устройстве, не Latest.
