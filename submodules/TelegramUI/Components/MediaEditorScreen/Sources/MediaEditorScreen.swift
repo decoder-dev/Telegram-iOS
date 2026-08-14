@@ -8414,9 +8414,7 @@ public final class MediaEditorScreenImpl: ViewController, MediaEditorScreen, UID
                         }
                     }
                 }
-                guard let (_, mainItem) = maxDurationItem else {
-                    exportSubject = .complete()
-                } else {
+                if let (_, mainItem) = maxDurationItem {
                     switch mainItem.content {
                     case let .video(path, _):
                         exportSubject = .single(.video(asset: AVURLAsset(url: NSURL(fileURLWithPath: path) as URL), isStory: true))
@@ -8436,6 +8434,8 @@ public final class MediaEditorScreenImpl: ViewController, MediaEditorScreen, UID
                     default:
                         exportSubject = .complete()
                     }
+                } else {
+                    exportSubject = .complete()
                 }
             case let .image(image, _, _, _, _):
                 exportSubject = .single(.image(image: image))
