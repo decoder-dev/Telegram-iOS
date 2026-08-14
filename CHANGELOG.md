@@ -3,6 +3,11 @@
 Все notable-изменения этого форка. Формат loosely [Keep a Changelog](https://keepachangelog.com/).
 Тег релиза = `v{app}-{tagSuffix}` (например `v12.9.2-3845`); CI кладёт секцию тега в GitHub Release notes.
 
+## [Unreleased]
+
+### Fixed
+- **Forward:** пересылка из личного чата с первого раза — панель пересылки и подсветка в целевом чате больше не теряются из‑за гонки при открытии нового `ChatController`.
+
 ## [v12.9.2-3846] — 2026-08-12
 
 ### Changed

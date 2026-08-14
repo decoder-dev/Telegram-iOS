@@ -17,12 +17,34 @@ import ChatListUI
 
 extension ChatControllerImpl {
     func forwardMessages(messageIds: [EngineMessage.Id], options: ChatInterfaceForwardOptionsState? = nil, resetCurrent: Bool = false) {
-        let _ = (self.context.engine.data.get(EngineDataMap(
-            messageIds.map(TelegramEngine.EngineData.Item.Messages.Message.init)
-        ))
-        |> deliverOnMainQueue).startStandalone(next: { [weak self] messages in
-            let sortedMessages = messages.values.compactMap { $0?._asMessage() }.sorted { lhs, rhs in
-                return lhs.id < rhs.id
+        let postbox = self.context.account.postbox
+        let resolvedMessages: Signal<[EngineRawMessage], NoError> = postbox.transaction { transaction -> [EngineRawMessage] in
+            messageIds.compactMap { transaction.getMessage($0) }
+        }
+        |> mapToSignal { [weak self] localMessages -> Signal<[EngineRawMessage], NoError> in
+            if localMessages.count == messageIds.count {
+                return .single(localMessages.sorted { $0.id < $1.id })
+            }
+            guard let self else {
+                return .single(localMessages.sorted { $0.id < $1.id })
+            }
+            return self.context.engine.data.get(EngineDataMap(
+                messageIds.map(TelegramEngine.EngineData.Item.Messages.Message.init)
+            ))
+            |> map { messages in
+                let sortedMessages = messages.values.compactMap { $0?._asMessage() }.sorted { lhs, rhs in
+                    return lhs.id < rhs.id
+                }
+                if !sortedMessages.isEmpty {
+                    return sortedMessages
+                }
+                return localMessages.sorted { $0.id < $1.id }
+            }
+        }
+        let _ = (resolvedMessages
+        |> deliverOnMainQueue).startStandalone(next: { [weak self] sortedMessages in
+            guard !sortedMessages.isEmpty else {
+                return
             }
             self?.forwardMessages(messages: sortedMessages, options: options, resetCurrent: resetCurrent)
         })
@@ -457,7 +479,8 @@ extension ChatControllerImpl {
                                         isChatPinnedMessages = true
                                     }
                                     if !isChatPinnedMessages {
-                                        maybeChat.updateChatPresentationInterfaceState(animated: false, interactive: true, { $0.updatedInterfaceState({ $0.withUpdatedForwardMessageIds(messages.map { $0.id }).withoutSelectionState() }) })
+                                        let forwardOptionsState = ChatInterfaceForwardOptionsState(hideNames: !hasNotOwnMessages, hideCaptions: false, unhideNamesOnCaptionChange: false)
+                                        maybeChat.updateChatPresentationInterfaceState(animated: false, interactive: true, { $0.updatedInterfaceState({ $0.withUpdatedForwardMessageIds(messages.map { $0.id }).withUpdatedForwardOptionsState(forwardOptionsState).withoutSelectionState() }) })
                                         strongSelf.dismiss()
                                         strongController.dismiss()
                                         return
@@ -467,8 +490,24 @@ extension ChatControllerImpl {
                         }
                     }
 
+                    let forwardMessageIds = messages.map { $0.id }
+                    let forwardOptionsState = ChatInterfaceForwardOptionsState(hideNames: !hasNotOwnMessages, hideCaptions: false, unhideNamesOnCaptionChange: false)
+                    let applyForwardStateToTargetChat: (ChatController) -> Void = { chatController in
+                        guard let targetChat = chatController as? ChatControllerImpl else {
+                            return
+                        }
+                        targetChat.updateChatPresentationInterfaceState(animated: false, interactive: true, { state in
+                            state.updatedInterfaceState({ interfaceState in
+                                interfaceState
+                                    .withUpdatedForwardMessageIds(forwardMessageIds)
+                                    .withUpdatedForwardOptionsState(forwardOptionsState)
+                                    .withoutSelectionState()
+                            })
+                        })
+                    }
+
                     let _ = (ChatInterfaceState.update(engine: strongSelf.context.engine, peerId: peerId, threadId: threadId, { currentState in
-                        return currentState.withUpdatedForwardMessageIds(messages.map { $0.id }).withUpdatedForwardOptionsState(ChatInterfaceForwardOptionsState(hideNames: !hasNotOwnMessages, hideCaptions: false, unhideNamesOnCaptionChange: false))
+                        return currentState.withUpdatedForwardMessageIds(forwardMessageIds).withUpdatedForwardOptionsState(forwardOptionsState)
                     })
                     |> deliverOnMainQueue).startStandalone(completed: {
                         if let strongSelf = self {
@@ -491,10 +530,15 @@ extension ChatControllerImpl {
                                     }
                                     navigationController.setViewControllers(viewControllers, animated: false)
                                     
+                                    applyForwardStateToTargetChat(chatController)
+                                    
                                     strongSelf.controllerNavigationDisposable.set((chatController.ready.get()
                                     |> SwiftSignalKit.filter { $0 }
                                     |> take(1)
-                                    |> deliverOnMainQueue).startStrict(next: { [weak navigationController] _ in
+                                    |> deliverOnMainQueue).startStrict(next: { [weak navigationController, weak chatController] _ in
+                                        if let chatController {
+                                            applyForwardStateToTargetChat(chatController)
+                                        }
                                         viewControllers.removeAll(where: { $0 is PeerSelectionController })
                                         navigationController?.setViewControllers(viewControllers, animated: true)
                                     }))
