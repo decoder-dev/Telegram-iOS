@@ -3689,7 +3689,17 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         }, setupReply: { [weak self] messageId in
             self?.interfaceInteraction?.setupReplyMessage(messageId, nil, { _, f in f() })
         }, setupEditMessage: { [weak self] messageId in
-            self?.interfaceInteraction?.setupEditMessage(messageId, { _ in })
+            guard let self else {
+                return
+            }
+            guard let message = self.chatDisplayNode.historyNode.messageInCurrentHistoryView(messageId)?._asMessage() else {
+                return
+            }
+            let limits = self.context.currentLimitsConfiguration.with { EngineConfiguration.Limits($0) }
+            guard canEditMessage(context: self.context, limitsConfiguration: limits, message: message) else {
+                return
+            }
+            self.interfaceInteraction?.setupEditMessage(messageId, { _ in })
         }, canSetupReply: { [weak self] message in
             if Namespaces.Message.allEphemeral.contains(message.id.namespace) {
                 if !message.flags.contains(.Incoming) {

@@ -838,29 +838,46 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
     }
     
     public func updateAvailableFilters(_ availableFilters: [ChatListContainerNodeFilter], limit: Int32?) {
-        if self.availableFilters != availableFilters {
-            let apply: () -> Void = { [weak self] in
-                guard let strongSelf = self else {
-                    return
-                }
-                strongSelf.availableFilters = availableFilters
-                strongSelf.filtersLimit = limit
-                if let (layout, navigationBarHeight, visualNavigationHeight, originalNavigationHeight, cleanNavigationBarHeight, insets, isReorderingFilters, isEditing, inlineNavigationLocation, inlineNavigationTransitionFraction, storiesInset) = strongSelf.validLayout {
-                    strongSelf.update(layout: layout, navigationBarHeight: navigationBarHeight, visualNavigationHeight: visualNavigationHeight, originalNavigationHeight: originalNavigationHeight, cleanNavigationBarHeight: cleanNavigationBarHeight, insets: insets, isReorderingFilters: isReorderingFilters, isEditing: isEditing, inlineNavigationLocation: inlineNavigationLocation, inlineNavigationTransitionFraction: inlineNavigationTransitionFraction, storiesInset: storiesInset, transition: .immediate)
-                }
+        let selectedMissing = !availableFilters.contains(where: { $0.id == self.selectedId })
+        if self.availableFilters == availableFilters && self.filtersLimit == limit && !selectedMissing {
+            return
+        }
+        if self.pendingItemNode != nil {
+            self.pendingItemNode?.2.dispose()
+            self.pendingItemNode = nil
+        }
+        let applyLayout: () -> Void = { [weak self] in
+            guard let strongSelf = self else {
+                return
             }
-            if !availableFilters.contains(where: { $0.id == self.selectedId }) {
-                let fallbackId = availableFilters.first?.id ?? .all
-                if fallbackId != self.selectedId, availableFilters.contains(where: { $0.id == fallbackId }) {
-                    self.switchToFilter(id: fallbackId, animated: false, completion: {
-                        apply()
-                    })
-                } else {
-                    apply()
-                }
-            } else {
-                apply()
+            if let (layout, navigationBarHeight, visualNavigationHeight, originalNavigationHeight, cleanNavigationBarHeight, insets, isReorderingFilters, isEditing, inlineNavigationLocation, inlineNavigationTransitionFraction, storiesInset) = strongSelf.validLayout {
+                strongSelf.update(layout: layout, navigationBarHeight: navigationBarHeight, visualNavigationHeight: visualNavigationHeight, originalNavigationHeight: originalNavigationHeight, cleanNavigationBarHeight: cleanNavigationBarHeight, insets: insets, isReorderingFilters: isReorderingFilters, isEditing: isEditing, inlineNavigationLocation: inlineNavigationLocation, inlineNavigationTransitionFraction: inlineNavigationTransitionFraction, storiesInset: storiesInset, transition: .immediate)
             }
+        }
+        // Apply the new list first so switchToFilter can resolve fallback ids that
+        // are not yet in the previous availableFilters (Hide All Chats on first load).
+        self.availableFilters = availableFilters
+        self.filtersLimit = limit
+        if selectedMissing, let fallbackId = availableFilters.first?.id, fallbackId != self.selectedId {
+            self.switchToFilter(id: fallbackId, animated: false, completion: {
+                applyLayout()
+            })
+        } else {
+            applyLayout()
+        }
+    }
+    
+    public func switchToAvailableFilter(preferring id: ChatListFilterTabEntryId = .all, animated: Bool = false, completion: (() -> Void)? = nil) {
+        let target: ChatListFilterTabEntryId
+        if self.availableFilters.contains(where: { $0.id == id }) {
+            target = id
+        } else {
+            target = self.availableFilters.first?.id ?? .all
+        }
+        if target != self.selectedId, self.availableFilters.contains(where: { $0.id == target }) {
+            self.switchToFilter(id: target, animated: animated, completion: completion)
+        } else {
+            completion?()
         }
     }
     
@@ -1124,6 +1141,21 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
                     if let itemNode = self.itemNodes.removeValue(forKey: id) {
                         itemNode.removeFromSupernode()
                     }
+                }
+            }
+        } else {
+            var removeIds: [ChatListFilterTabEntryId] = []
+            for (id, _) in self.itemNodes {
+                if id == self.selectedId {
+                    continue
+                }
+                if !self.availableFilters.contains(where: { $0.id == id }) {
+                    removeIds.append(id)
+                }
+            }
+            for id in removeIds {
+                if let itemNode = self.itemNodes.removeValue(forKey: id) {
+                    itemNode.removeFromSupernode()
                 }
             }
         }
