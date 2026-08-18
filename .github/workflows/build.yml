@@ -237,6 +237,14 @@ jobs:
           else
             TAG="v${APP_VERSION}-${BUILD_NUMBER}"
           fi
+          PRE_BANNER=""
+          TITLE="Telegram ${APP_VERSION} (${BUILD_NUMBER}) sideload"
+          RELEASE_FLAGS=()
+          if [[ "$TAG" == *-pre ]]; then
+            PRE_BANNER="⚠️ **Pre-release** for device testing. Not marked Latest."
+            TITLE="Telegram ${APP_VERSION} (${BUILD_NUMBER}) sideload pre-release"
+            RELEASE_FLAGS=(--prerelease --latest=false)
+          fi
           NOTES="$(mktemp)"
           # Prefer the matching ## [TAG] section from CHANGELOG.md; else git log since previous tag.
           CHANGELOG_BODY="$(mktemp)"
@@ -270,7 +278,7 @@ jobs:
           fi
           cat > "$NOTES" <<EOF
           Telegram iOS ${APP_VERSION} (${BUILD_NUMBER}) — sideload IPA
-
+          ${PRE_BANNER}
           Fake-signed \`release_arm64\` build for re-signing with Sideloadly / AltStore.
           This is **not** App Store–installable as-is.
 
@@ -293,11 +301,12 @@ jobs:
           EOF
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$IPA" --clobber
-            gh release edit "$TAG" --title "Telegram ${APP_VERSION} (${BUILD_NUMBER}) sideload" --notes-file "$NOTES"
+            gh release edit "$TAG" --title "$TITLE" --notes-file "$NOTES" "${RELEASE_FLAGS[@]}"
           else
             gh release create "$TAG" "$IPA" \
-              --title "Telegram ${APP_VERSION} (${BUILD_NUMBER}) sideload" \
-              --notes-file "$NOTES"
+              --title "$TITLE" \
+              --notes-file "$NOTES" \
+              "${RELEASE_FLAGS[@]}"
           fi
 
       - name: Upload sideload IPA artifact
