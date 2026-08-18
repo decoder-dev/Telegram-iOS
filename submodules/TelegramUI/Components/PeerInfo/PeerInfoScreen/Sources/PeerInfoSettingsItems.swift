@@ -151,9 +151,11 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
             interaction.openSettings(.profile)
         }))
         
-        if !settings.proxySettings.servers.isEmpty {
+        if !settings.proxySettings.servers.isEmpty || settings.proxySettings.autoFetchPublicMtProxy {
             let proxyType: String
-            if settings.proxySettings.enabled, let activeServer = settings.proxySettings.activeServer {
+            if settings.proxySettings.autoFetchPublicMtProxy, settings.proxySettings.enabled {
+                proxyType = Locale.preferredLanguages.first?.hasPrefix("ru") == true ? "Авто" : "Auto"
+            } else if settings.proxySettings.enabled, let activeServer = settings.proxySettings.activeServer {
                 switch activeServer.connection {
                 case .mtp:
                     proxyType = presentationData.strings.SocksProxySetup_ProxyTelegram

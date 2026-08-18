@@ -647,12 +647,18 @@ private func dataAndStorageControllerEntries(context: AccountContext, state: Dat
     }
     
     let proxyValue: String
-    if let proxySettings = data.proxySettings, let activeServer = proxySettings.activeServer, proxySettings.enabled {
-        switch activeServer.connection {
-            case .socks5:
-                proxyValue = presentationData.strings.ChatSettings_ConnectionType_UseSocks5
-            case .mtp:
-                proxyValue = presentationData.strings.SocksProxySetup_ProxyTelegram
+    if let proxySettings = data.proxySettings, proxySettings.enabled {
+        if proxySettings.autoFetchPublicMtProxy {
+            proxyValue = Locale.preferredLanguages.first?.hasPrefix("ru") == true ? "Авто" : "Auto"
+        } else if let activeServer = proxySettings.activeServer {
+            switch activeServer.connection {
+                case .socks5:
+                    proxyValue = presentationData.strings.ChatSettings_ConnectionType_UseSocks5
+                case .mtp:
+                    proxyValue = presentationData.strings.SocksProxySetup_ProxyTelegram
+            }
+        } else {
+            proxyValue = presentationData.strings.GroupInfo_SharedMediaNone
         }
     } else {
         proxyValue = presentationData.strings.GroupInfo_SharedMediaNone

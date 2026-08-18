@@ -86,10 +86,10 @@ public struct ProxySettings: Codable, Equatable {
     public var automaticServers: [ProxyServerSettings]
     
     public static var defaultSettings: ProxySettings {
-        return ProxySettings(enabled: false, servers: [], activeServer: nil, useForCalls: false, useLocalDNSForProxyHosts: false, autoRotateProxies: false, autoFetchPublicMtProxy: false, automaticServers: [])
+        return ProxySettings(enabled: false, servers: [], activeServer: nil, useForCalls: false, useLocalDNSForProxyHosts: false, autoRotateProxies: false, autoFetchPublicMtProxy: true, automaticServers: [])
     }
     
-    public init(enabled: Bool, servers: [ProxyServerSettings], activeServer: ProxyServerSettings?, useForCalls: Bool, useLocalDNSForProxyHosts: Bool = false, autoRotateProxies: Bool = false, autoFetchPublicMtProxy: Bool = false, automaticServers: [ProxyServerSettings] = []) {
+    public init(enabled: Bool, servers: [ProxyServerSettings], activeServer: ProxyServerSettings?, useForCalls: Bool, useLocalDNSForProxyHosts: Bool = false, autoRotateProxies: Bool = false, autoFetchPublicMtProxy: Bool = true, automaticServers: [ProxyServerSettings] = []) {
         self.enabled = enabled
         self.servers = servers
         self.activeServer = activeServer
@@ -109,7 +109,11 @@ public struct ProxySettings: Codable, Equatable {
         self.useForCalls = ((try? container.decode(Int32.self, forKey: "useForCalls")) ?? 0) != 0
         self.useLocalDNSForProxyHosts = ((try? container.decode(Int32.self, forKey: "useLocalDNSForProxyHosts")) ?? 0) != 0
         self.autoRotateProxies = ((try? container.decode(Int32.self, forKey: "autoRotateProxies")) ?? 0) != 0
-        self.autoFetchPublicMtProxy = ((try? container.decode(Int32.self, forKey: "autoFetchPublicMtProxy")) ?? 0) != 0
+        if let stored = try? container.decode(Int32.self, forKey: "autoFetchMtProxy") {
+            self.autoFetchPublicMtProxy = stored != 0
+        } else {
+            self.autoFetchPublicMtProxy = true
+        }
         self.automaticServers = (try? container.decode([ProxyServerSettings].self, forKey: "automaticServers")) ?? []
     }
     
@@ -123,6 +127,7 @@ public struct ProxySettings: Codable, Equatable {
         try container.encode((self.useLocalDNSForProxyHosts ? 1 : 0) as Int32, forKey: "useLocalDNSForProxyHosts")
         try container.encode((self.autoRotateProxies ? 1 : 0) as Int32, forKey: "autoRotateProxies")
         try container.encode((self.autoFetchPublicMtProxy ? 1 : 0) as Int32, forKey: "autoFetchPublicMtProxy")
+        try container.encode((self.autoFetchPublicMtProxy ? 1 : 0) as Int32, forKey: "autoFetchMtProxy")
         try container.encode(self.automaticServers, forKey: "automaticServers")
     }
     
