@@ -383,7 +383,11 @@ private func proxySettingsControllerEntries(theme: PresentationTheme, strings: P
     entries.append(.addServer(theme, strings.SocksProxySetup_AddProxy, state.editing))
     var index = 0
     var existingServers = Set<ProxyServerSettings>()
+    let automatic = Set(proxySettings.automaticServers)
     for server in proxySettings.servers {
+        if automatic.contains(server), server != proxySettings.activeServer {
+            continue
+        }
         if !existingServers.insert(server).inserted {
             continue
         }
@@ -597,7 +601,9 @@ public func proxySettingsController(accountManager: AccountManager<TelegramAccou
     
     let statusesContext = ProxyServersStatuses(network: network, servers: proxySettings.get()
     |> map { proxySettings -> [ProxyServerSettings] in
-        return proxySettings.servers
+        return proxySettings.servers.filter { server in
+            !proxySettings.automaticServers.contains(server) || server == proxySettings.activeServer
+        }
     })
     
     let signal = combineLatest(updatedPresentationData, statePromise.get(), proxySettings.get(), statusesContext.statuses(), network.connectionStatus)
@@ -710,6 +716,9 @@ public func proxySettingsController(accountManager: AccountManager<TelegramAccou
             |> deliverOnMainQueue).start(next: { settings in
                 var result = ""
                 for server in settings.servers {
+                    if settings.automaticServers.contains(server), server != settings.activeServer {
+                        continue
+                    }
                     if !result.isEmpty {
                         result += "\n\n"
                     }
