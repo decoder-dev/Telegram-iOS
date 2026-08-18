@@ -2,8 +2,11 @@
 
 Все notable-изменения этого форка. Формат loosely [Keep a Changelog](https://keepachangelog.com/).
 Тег релиза = `v{app}-{tagSuffix}` (например `v12.9.2-3845`); CI кладёт секцию тега в GitHub Release notes.
+Теги `*-pre` публикуются как GitHub **pre-release** (не Latest).
 
-## [Unreleased]
+## [v12.9.2-3850-pre] — 2026-08-18
+
+Pre-release: Auto MTProxy + фикс отправки файлов/музыки с устройства. Sideload smoke, не Latest.
 
 ### Added
 - **Авто MTProxy:** opt-in подтягивание публичного списка MTProxy, пробы RTT и переключение на самый быстрый живой сервер. Тогл в Extras и в Настройки → Данные и память → Прокси. Свои вручную добавленные прокси не затираются; выключение снимает только авто-список. Это чужие ноды: чаты они не читают, IP видят.
