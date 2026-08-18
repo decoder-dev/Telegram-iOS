@@ -561,7 +561,7 @@ public class ContactsController: ViewController {
     private func deactivateSearch(animated: Bool) {
         self.contactsNode.deactivateSearch(placeholderNode: self.searchContentNode()?.placeholderNode, animated: animated)
         self.updateTabBarSearchState(ViewController.TabBarSearchState(isActive: false), transition: .animated(duration: 0.5, curve: .spring))
-        (self.parent as? TabBarController)?.updateIsTabBarHidden(false, transition: .animated(duration: 0.5, curve: .spring))
+        (self.parent as? TabBarController)?.updateIsTabBarHidden(ForkExtrasHotFlags.hideTabBar, transition: .animated(duration: 0.5, curve: .spring))
         self.requestLayout(transition: .animated(duration: 0.5, curve: .spring))
     }
     

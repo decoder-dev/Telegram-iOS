@@ -1952,7 +1952,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
 
         let extras = context.sharedContext.immediateForkExtrasSettings
         let extrasMenuIsRussian = (Locale.preferredLanguages.first ?? "").hasPrefix("ru")
-        if extras.saveToCloudMenu, message.id.peerId != context.account.peerId, message.id.namespace == Namespaces.Message.Cloud {
+        if extras.saveToCloudMenu, message.id.peerId != context.account.peerId, message.id.namespace == Namespaces.Message.Cloud, !isCopyProtected || ForkAyuForwardSettings.enabled {
             let saveTitle = extrasMenuIsRussian ? "В Избранное" : "Save to Saved Messages"
             actions.append(.action(ContextMenuActionItem(text: saveTitle, icon: { theme in
                 return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Fave"), color: theme.actionSheet.primaryTextColor)

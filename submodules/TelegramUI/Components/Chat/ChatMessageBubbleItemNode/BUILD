@@ -33,7 +33,6 @@ swift_library(
         "//submodules/Markdown",
         "//submodules/WallpaperBackgroundNode",
         "//submodules/ChatPresentationInterfaceState",
-        "//submodules/ChatInterfaceState",
         "//submodules/ChatMessageBackground",
         "//submodules/TelegramUI/Components/AnimationCache",
         "//submodules/TelegramUI/Components/MultiAnimationRenderer",

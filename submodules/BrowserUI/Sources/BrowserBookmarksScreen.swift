@@ -112,6 +112,7 @@ public final class BrowserBookmarksScreen: ViewController {
             }, openCheckoutOrReceipt: { _, _ in
             }, openSearch: {
             }, setupReply: { _ in
+            }, setupEditMessage: { _ in
             }, canSetupReply: { _ in
                 return .none
             }, canSendMessages: {
