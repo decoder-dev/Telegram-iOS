@@ -833,6 +833,8 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
         
     override public func asyncLayout() -> (_ item: ChatMessageItem, _ params: ListViewItemLayoutParams, _ mergedTop: ChatMessageMerge, _ mergedBottom: ChatMessageMerge, _ dateHeaderAtBottom: ChatMessageHeaderSpec) -> (ListViewItemNodeLayout, (ListViewItemUpdateAnimation, ListViewItemApply, Bool) -> Void) {
         var displaySize = CGSize(width: 180.0, height: 180.0)
+        let stickerScale = CGFloat(max(50, min(150, ForkExtrasHotFlags.stickerSizePercent))) / 100.0
+        displaySize = CGSize(width: displaySize.width * stickerScale, height: displaySize.height * stickerScale)
         let telegramFile = self.telegramFile
         let emojiFile = self.emojiFile
         let telegramDice = self.telegramDice

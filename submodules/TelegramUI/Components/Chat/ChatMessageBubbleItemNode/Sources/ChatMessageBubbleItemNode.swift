@@ -24,6 +24,7 @@ import Markdown
 import TelegramStringFormatting
 import WallpaperBackgroundNode
 import ChatPresentationInterfaceState
+import ChatInterfaceState
 import ChatMessageBackground
 import AnimationCache
 import MultiAnimationRenderer
@@ -5758,7 +5759,24 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
                 } else if case .tap = gesture {
                     item.controllerInteraction.clickThroughMessage(self.view, location)
                 } else if case .doubleTap = gesture {
-                    if canAddMessageReactions(message: EngineMessage(item.message)) {
+                    if ForkExtrasHotFlags.doubleTapToEdit, item.message.author?.id == item.context.account.peerId, item.message.id.namespace == Namespaces.Message.Cloud {
+                        var entities: [MessageTextEntity] = []
+                        for attribute in item.message.attributes {
+                            if let attribute = attribute as? TextEntitiesMessageAttribute {
+                                entities = attribute.entities
+                                break
+                            }
+                        }
+                        let inputText = chatInputStateStringWithAppliedEntities(item.message.text, entities: entities)
+                        let editInputState = ChatTextInputState(inputText: inputText)
+                        item.controllerInteraction.updatePresentationState { state in
+                            return state.updatedInterfaceState { interfaceState in
+                                return interfaceState.withUpdatedEditMessage(ChatEditMessageState(messageId: item.message.id, inputState: editInputState, disableUrlPreviews: [], inputTextMaxLength: 4096, mediaCaptionIsAbove: nil))
+                            }.updatedInputMode({ _ in
+                                return .text
+                            })
+                        }
+                    } else if canAddMessageReactions(message: EngineMessage(item.message)) {
                         item.controllerInteraction.updateMessageReaction(item.message, .default, false, nil)
                     }
                 }

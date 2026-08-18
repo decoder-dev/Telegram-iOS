@@ -89,6 +89,30 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var regexMessageFilterPatterns: [String]
     /// AyuGram Ghost Schedule Messages: delay-send via scheduled messages when full Ghost Mode is on.
     public var ghostScheduleMessages: Bool
+    /// Hide the "All Chats" folder tab when other folders exist.
+    public var hideAllChats: Bool
+    /// Restore the last opened chat-list folder after launch / account switch.
+    public var rememberLastFolder: Bool
+    /// Hide the root tab bar (Chats / Contacts / Settings).
+    public var hideTabBar: Bool
+    /// Append seconds to message timestamps in chat.
+    public var showMessageSeconds: Bool
+    /// Use a wider bubble fill factor (channel / group posts).
+    public var wideChannelPosts: Bool
+    /// Sticker display size as a percent of the default 184pt (50...150).
+    public var stickerSizePercent: Int32
+    /// Double-tap an outgoing message to edit instead of reacting.
+    public var doubleTapToEdit: Bool
+    /// Always offer Translate in the message menu, even if chat-level translate is off.
+    public var quickTranslateButton: Bool
+    /// Extra context-menu item: copy a message into Saved Messages.
+    public var saveToCloudMenu: Bool
+    /// Extra context-menu item: start selection of loaded messages from the same author.
+    public var selectFromAuthor: Bool
+    /// Larger FetchV2 parts / more in-flight chunks for faster downloads.
+    public var downloadSpeedBoost: Bool
+    /// Outgoing photo send quality: 0 = Telegram default (1280), 1 = better (1920), 2 = maximum (2560).
+    public var outgoingPhotoQuality: Int32
 
     public static var defaultSettings: ForkExtrasSettings {
         return ForkExtrasSettings(
@@ -135,7 +159,19 @@ public struct ForkExtrasSettings: Codable, Equatable {
             regexMessageFiltersEnabled: false,
             regexMessageFiltersCaseInsensitive: true,
             regexMessageFilterPatterns: [],
-            ghostScheduleMessages: false
+            ghostScheduleMessages: false,
+            hideAllChats: false,
+            rememberLastFolder: false,
+            hideTabBar: false,
+            showMessageSeconds: false,
+            wideChannelPosts: false,
+            stickerSizePercent: 100,
+            doubleTapToEdit: false,
+            quickTranslateButton: false,
+            saveToCloudMenu: true,
+            selectFromAuthor: true,
+            downloadSpeedBoost: false,
+            outgoingPhotoQuality: 0
         )
     }
 
@@ -183,7 +219,19 @@ public struct ForkExtrasSettings: Codable, Equatable {
         regexMessageFiltersEnabled: Bool = false,
         regexMessageFiltersCaseInsensitive: Bool = true,
         regexMessageFilterPatterns: [String] = [],
-        ghostScheduleMessages: Bool = false
+        ghostScheduleMessages: Bool = false,
+        hideAllChats: Bool = false,
+        rememberLastFolder: Bool = false,
+        hideTabBar: Bool = false,
+        showMessageSeconds: Bool = false,
+        wideChannelPosts: Bool = false,
+        stickerSizePercent: Int32 = 100,
+        doubleTapToEdit: Bool = false,
+        quickTranslateButton: Bool = false,
+        saveToCloudMenu: Bool = true,
+        selectFromAuthor: Bool = true,
+        downloadSpeedBoost: Bool = false,
+        outgoingPhotoQuality: Int32 = 0
     ) {
         self.ghostMode = ghostMode
         self.ghostDontReadMessages = ghostDontReadMessages
@@ -229,6 +277,18 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.regexMessageFiltersCaseInsensitive = regexMessageFiltersCaseInsensitive
         self.regexMessageFilterPatterns = regexMessageFilterPatterns
         self.ghostScheduleMessages = ghostScheduleMessages
+        self.hideAllChats = hideAllChats
+        self.rememberLastFolder = rememberLastFolder
+        self.hideTabBar = hideTabBar
+        self.showMessageSeconds = showMessageSeconds
+        self.wideChannelPosts = wideChannelPosts
+        self.stickerSizePercent = min(150, max(50, stickerSizePercent))
+        self.doubleTapToEdit = doubleTapToEdit
+        self.quickTranslateButton = quickTranslateButton
+        self.saveToCloudMenu = saveToCloudMenu
+        self.selectFromAuthor = selectFromAuthor
+        self.downloadSpeedBoost = downloadSpeedBoost
+        self.outgoingPhotoQuality = min(2, max(0, outgoingPhotoQuality))
     }
 
     public init(from decoder: Decoder) throws {
@@ -246,7 +306,6 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.instantPasscodeLock = try container.decodeIfPresent(Bool.self, forKey: "instantPasscodeLock") ?? false
         self.hideMentionNotifications = try container.decodeIfPresent(Bool.self, forKey: "hideMentionNotifications") ?? false
         self.hidePinnedNotifications = try container.decodeIfPresent(Bool.self, forKey: "hidePinnedNotifications") ?? false
-        // formattingPanel removed — ignore if present in older prefs.
         self.sessionKeychainBackup = try container.decodeIfPresent(Bool.self, forKey: "sessionKeychainBackup") ?? true
         self.compactChatList = try container.decodeIfPresent(Bool.self, forKey: "compactChatList") ?? false
         self.compactMessagePreview = try container.decodeIfPresent(Bool.self, forKey: "compactMessagePreview") ?? false
@@ -280,6 +339,18 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.regexMessageFiltersCaseInsensitive = try container.decodeIfPresent(Bool.self, forKey: "regexMessageFiltersCaseInsensitive") ?? true
         self.regexMessageFilterPatterns = try container.decodeIfPresent([String].self, forKey: "regexMessageFilterPatterns") ?? []
         self.ghostScheduleMessages = try container.decodeIfPresent(Bool.self, forKey: "ghostScheduleMessages") ?? false
+        self.hideAllChats = try container.decodeIfPresent(Bool.self, forKey: "hideAllChats") ?? false
+        self.rememberLastFolder = try container.decodeIfPresent(Bool.self, forKey: "rememberLastFolder") ?? false
+        self.hideTabBar = try container.decodeIfPresent(Bool.self, forKey: "hideTabBar") ?? false
+        self.showMessageSeconds = try container.decodeIfPresent(Bool.self, forKey: "showMessageSeconds") ?? false
+        self.wideChannelPosts = try container.decodeIfPresent(Bool.self, forKey: "wideChannelPosts") ?? false
+        self.stickerSizePercent = min(150, max(50, try container.decodeIfPresent(Int32.self, forKey: "stickerSizePercent") ?? 100))
+        self.doubleTapToEdit = try container.decodeIfPresent(Bool.self, forKey: "doubleTapToEdit") ?? false
+        self.quickTranslateButton = try container.decodeIfPresent(Bool.self, forKey: "quickTranslateButton") ?? false
+        self.saveToCloudMenu = try container.decodeIfPresent(Bool.self, forKey: "saveToCloudMenu") ?? true
+        self.selectFromAuthor = try container.decodeIfPresent(Bool.self, forKey: "selectFromAuthor") ?? true
+        self.downloadSpeedBoost = try container.decodeIfPresent(Bool.self, forKey: "downloadSpeedBoost") ?? false
+        self.outgoingPhotoQuality = min(2, max(0, try container.decodeIfPresent(Int32.self, forKey: "outgoingPhotoQuality") ?? 0))
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -329,6 +400,18 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.regexMessageFiltersCaseInsensitive, forKey: "regexMessageFiltersCaseInsensitive")
         try container.encode(self.regexMessageFilterPatterns, forKey: "regexMessageFilterPatterns")
         try container.encode(self.ghostScheduleMessages, forKey: "ghostScheduleMessages")
+        try container.encode(self.hideAllChats, forKey: "hideAllChats")
+        try container.encode(self.rememberLastFolder, forKey: "rememberLastFolder")
+        try container.encode(self.hideTabBar, forKey: "hideTabBar")
+        try container.encode(self.showMessageSeconds, forKey: "showMessageSeconds")
+        try container.encode(self.wideChannelPosts, forKey: "wideChannelPosts")
+        try container.encode(self.stickerSizePercent, forKey: "stickerSizePercent")
+        try container.encode(self.doubleTapToEdit, forKey: "doubleTapToEdit")
+        try container.encode(self.quickTranslateButton, forKey: "quickTranslateButton")
+        try container.encode(self.saveToCloudMenu, forKey: "saveToCloudMenu")
+        try container.encode(self.selectFromAuthor, forKey: "selectFromAuthor")
+        try container.encode(self.downloadSpeedBoost, forKey: "downloadSpeedBoost")
+        try container.encode(self.outgoingPhotoQuality, forKey: "outgoingPhotoQuality")
     }
 
     /// Whether message/reaction read receipts should be suppressed right now.
@@ -363,6 +446,16 @@ public struct ForkExtrasSettings: Codable, Equatable {
         }
         updated.regexMessageFilterPatterns = patterns
         return (updated, true)
+    }
+}
+
+/// Last opened chat-list folder. Stored in UserDefaults so swiping folders does not rewrite AccountManager prefs.
+public enum ForkLastChatListFilter {
+    private static let key = "ForkExtras.lastChatListFilterId"
+    /// `0` = All Chats, otherwise the folder id.
+    public static var storedId: Int32 {
+        get { Int32(UserDefaults.standard.integer(forKey: key)) }
+        set { UserDefaults.standard.set(Int(newValue), forKey: key) }
     }
 }
 

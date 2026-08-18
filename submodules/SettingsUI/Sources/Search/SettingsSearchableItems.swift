@@ -4611,10 +4611,20 @@ public func handleSettingsPathUrl(context: AccountContext, path: String, navigat
     switch path {
     case "ayu":
         forkExtrasFocus = .top
-    case "ayu/saving":
+    case "ayu/saving", "ayu/ninja":
         forkExtrasFocus = .messageSaving
     case "ayu/filters":
         forkExtrasFocus = .messageFilters
+    case "ayu/ghost":
+        forkExtrasFocus = .ghost
+    case "ayu/privacy":
+        forkExtrasFocus = .privacy
+    case "ayu/interface":
+        forkExtrasFocus = .interface
+    case "ayu/chat":
+        forkExtrasFocus = .chat
+    case "ayu/network":
+        forkExtrasFocus = .network
     default:
         forkExtrasFocus = nil
     }
