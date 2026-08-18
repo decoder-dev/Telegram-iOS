@@ -959,7 +959,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
     
     return dataSignal
     |> deliverOnMainQueue
-    |> map { data, updatingMessageMedia, infoSummaryData, appConfig, isMessageRead, messageViewsPrivacyTips, availableReactions, translationSettings, loggingSettings, notificationSoundList, accountPeer -> ContextController.Items in
+    |> map { (data, updatingMessageMedia, infoSummaryData, appConfig, isMessageRead, messageViewsPrivacyTips, availableReactions, translationSettings, loggingSettings, notificationSoundList, accountPeer: EnginePeer?) -> ContextController.Items in
         let isPremium = accountPeer?.isPremium ?? false
 
         var actions: [ContextMenuItem] = []
@@ -1969,7 +1969,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
             actions.append(.action(ContextMenuActionItem(text: selectTitle, icon: { theme in
                 return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Select"), color: theme.actionSheet.primaryTextColor)
             }, action: { _, f in
-                var ids: [MessageId] = [message.id]
+                var ids: [EngineMessage.Id] = [message.id]
                 if let chatNode = controllerInteraction.chatControllerNode() as? ChatControllerNode {
                     chatNode.historyNode.forEachItemNode { node in
                         if let itemNode = node as? ChatMessageItemView, let item = itemNode.item, item.message.author?.id == authorId {
