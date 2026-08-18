@@ -4088,14 +4088,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                 resolvedItems = []
             }
             
-            let firstItem = countAndFilterItems.1.first?.0 ?? .allChats
-            let firstItemEntryId: ChatListFilterTabEntryId
-            switch firstItem {
-                case .allChats:
-                    firstItemEntryId = .all
-                case let .filter(id, _, _, _):
-                    firstItemEntryId = .filter(id)
-            }
+            let firstItemEntryId = resolvedItems.first?.id ?? .all
             
             var selectedEntryId = !strongSelf.initializedFilters ? firstItemEntryId : strongSelf.chatListDisplayNode.mainContainerNode.currentItemFilter
             if !strongSelf.initializedFilters, ForkExtrasHotFlags.rememberLastFolder {
@@ -4163,16 +4156,24 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
             if isPremium == nil && items.isEmpty {
                 strongSelf.mainReady.set(strongSelf.chatListDisplayNode.mainContainerNode.currentItemNode.ready)
             } else if !strongSelf.initializedFilters {
-                if selectedEntryId != strongSelf.chatListDisplayNode.mainContainerNode.currentItemFilter {
-                    strongSelf.chatListDisplayNode.mainContainerNode.switchToFilter(id: selectedEntryId, animated: false, completion: { [weak self] in
-                        if let strongSelf = self {
-                            strongSelf.mainReady.set(strongSelf.chatListDisplayNode.mainContainerNode.currentItemNode.ready)
-                        }
-                    })
-                } else {
+                strongSelf.initializedFilters = true
+                let setMainReady: () -> Void = { [weak strongSelf] in
+                    guard let strongSelf else {
+                        return
+                    }
                     strongSelf.mainReady.set(strongSelf.chatListDisplayNode.mainContainerNode.currentItemNode.ready)
                 }
-                strongSelf.initializedFilters = true
+                let currentFilter = strongSelf.chatListDisplayNode.mainContainerNode.currentItemFilter
+                if selectedEntryId != currentFilter, availableFilters.contains(where: { $0.id == selectedEntryId }) {
+                    strongSelf.chatListDisplayNode.mainContainerNode.switchToFilter(id: selectedEntryId, animated: false, completion: {
+                        setMainReady()
+                    })
+                    Queue.mainQueue().after(1.0, {
+                        setMainReady()
+                    })
+                } else {
+                    setMainReady()
+                }
             }
             
             let animated = strongSelf.didSetupTabs

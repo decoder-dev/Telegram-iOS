@@ -252,10 +252,17 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
         self.rootTabController = tabBarController
         self.pushViewController(tabBarController, animated: false)
         self.hideTabBarDisposable?.dispose()
+        var appliedHideTabBar = false
         self.hideTabBarDisposable = (forkExtrasSettings(accountManager: self.context.sharedContext.accountManager)
         |> map { $0.hideTabBar }
         |> distinctUntilChanged
         |> deliverOnMainQueue).startStrict(next: { [weak self] hidden in
+            if !appliedHideTabBar {
+                appliedHideTabBar = true
+                if !hidden {
+                    return
+                }
+            }
             (self?.rootTabController as? TabBarControllerImpl)?.updateIsTabBarHidden(hidden, transition: .animated(duration: 0.25, curve: .easeInOut))
         })
     }
