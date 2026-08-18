@@ -3,8 +3,11 @@ import Postbox
 import SwiftSignalKit
 import MtProtoKit
 
-/// Public MTProxy list used by WhiteGram-style auto-fetch (refreshed by the list publisher).
-private let automaticMtProxyListURL = "https://raw.githubusercontent.com/SoliSpirit/mtproto/master/all_proxies.txt"
+/// Public MTProxy lists used by WhiteGram-style auto-fetch (refreshed by the publishers).
+private let automaticMtProxyListURLs = [
+    "https://raw.githubusercontent.com/SoliSpirit/mtproto/master/all_proxies.txt",
+    "https://raw.githubusercontent.com/kort0881/telegram-proxy-collector/main/proxy_all.txt",
+]
 private let automaticMtProxyRefreshInterval: Double = 10.0 * 60.0
 private let automaticMtProxySelectionDelay: Double = 1.0
 private let automaticMtProxyConnectionFallbackDelay: Double = 12.0
@@ -54,9 +57,10 @@ private func automaticMtProxyHostIsDomainName(_ host: String) -> Bool {
     return true
 }
 
-private func fetchAutomaticMtProxyListText() -> Signal<String, NoError> {
+private func fetchAutomaticMtProxyListText(urlString: String) -> Signal<String, NoError> {
     return Signal { subscriber in
-        guard let url = URL(string: automaticMtProxyListURL) else {
+        guard let url = URL(string: urlString) else {
+            subscriber.putNext("")
             subscriber.putCompletion()
             return EmptyDisposable
         }
@@ -66,6 +70,8 @@ private func fetchAutomaticMtProxyListText() -> Signal<String, NoError> {
         let task = URLSession.shared.dataTask(with: request, completionHandler: { data, _, _ in
             if let data, let text = String(data: data, encoding: .utf8), !text.isEmpty {
                 subscriber.putNext(text)
+            } else {
+                subscriber.putNext("")
             }
             subscriber.putCompletion()
         })
@@ -115,6 +121,42 @@ private func parseAutomaticMtProxyServers(_ text: String) -> [ProxyServerSetting
         }
     }
     return result
+}
+
+private func mergeAutomaticMtProxyServers(_ lists: [[ProxyServerSettings]]) -> [ProxyServerSettings] {
+    var seen = Set<ProxyServerSettings>()
+    var result: [ProxyServerSettings] = []
+    var indices = Array(repeating: 0, count: lists.count)
+    var progressed = true
+    while progressed && result.count < automaticMtProxyStoredLimit {
+        progressed = false
+        for i in 0 ..< lists.count {
+            var index = indices[i]
+            while index < lists[i].count {
+                let server = lists[i][index]
+                index += 1
+                if seen.insert(server).inserted {
+                    result.append(server)
+                    progressed = true
+                    break
+                }
+            }
+            indices[i] = index
+            if result.count >= automaticMtProxyStoredLimit {
+                break
+            }
+        }
+    }
+    return result
+}
+
+private func fetchAutomaticMtProxyServers() -> Signal<[ProxyServerSettings], NoError> {
+    let fetches = automaticMtProxyListURLs.map { urlString in
+        fetchAutomaticMtProxyListText(urlString: urlString)
+        |> map(parseAutomaticMtProxyServers)
+    }
+    return combineLatest(fetches)
+    |> map(mergeAutomaticMtProxyServers)
 }
 
 private func automaticMtProxySortedAvailable(_ candidates: [ProxyServerSettings], statuses: [ProxyServerSettings: ProxyServerStatus], excluding excluded: ProxyServerSettings? = nil) -> [ProxyServerSettings] {
@@ -226,8 +268,7 @@ private final class AutomaticMtProxyContext {
             return
         }
         self.fetchDisposable?.dispose()
-        self.fetchDisposable = (fetchAutomaticMtProxyListText()
-        |> map(parseAutomaticMtProxyServers)
+        self.fetchDisposable = (fetchAutomaticMtProxyServers()
         |> deliverOn(self.queue)).start(next: { [weak self] servers in
             guard let self, self.currentSettings.autoFetchPublicMtProxy, !servers.isEmpty else {
                 return
