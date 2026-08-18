@@ -445,14 +445,14 @@ private func proxySettingsControllerEntries(theme: PresentationTheme, strings: P
         autoRotateTitle = "Автосмена прокси"
         autoRotateInfo = "При проблемах с соединением переключаться на следующий сохранённый прокси."
         autoFetchTitle = "Авто MTProxy"
-        autoFetchInfo = "Скачивать публичный список MTProxy, мерить задержку и переключаться на самый быстрый живой. Это чужие серверы: они не читают чаты, но видят ваш IP. Свои прокси не удаляются."
+        autoFetchInfo = "Скачивать публичные списки MTProxy (SoliSpirit и kort0881), мерить задержку и переключаться на самый быстрый живой. Это чужие серверы: они не читают чаты, но видят ваш IP. Свои прокси не удаляются."
     } else {
         useLocalDNSTitle = "Local DNS for Proxy"
         useLocalDNSInfo = "Resolve proxy hostnames via system DNS instead of Google DoH (avoids DoH timeouts)."
         autoRotateTitle = "Auto-rotate Proxies"
         autoRotateInfo = "When the active proxy has connection issues, switch to the next saved proxy."
         autoFetchTitle = "Auto MTProxy"
-        autoFetchInfo = "Download a public MTProxy list, probe latency, and fail over to the fastest live server. These are third-party nodes: they cannot read chats, but they see your IP. Manually added proxies are kept."
+        autoFetchInfo = "Download public MTProxy lists (SoliSpirit and kort0881), probe latency, and fail over to the fastest live server. These are third-party nodes: they cannot read chats, but they see your IP. Manually added proxies are kept."
     }
     entries.append(.useLocalDNS(theme, useLocalDNSTitle, proxySettings.useLocalDNSForProxyHosts))
     entries.append(.useLocalDNSInfo(theme, useLocalDNSInfo))
