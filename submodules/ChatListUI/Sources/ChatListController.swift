@@ -779,11 +779,17 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                 }
             }
             self.reloadFilters()
+            var isFirstExtrasFoldersUpdate = true
             self.extrasFoldersDisposable.set((forkExtrasSettings(accountManager: self.context.sharedContext.accountManager)
             |> map { ($0.hideAllChats, $0.rememberLastFolder) }
-            |> distinctUntilChanged
-            |> drop(1)
+            |> distinctUntilChanged(isEqual: { lhs, rhs in
+                return lhs.0 == rhs.0 && lhs.1 == rhs.1
+            })
             |> deliverOnMainQueue).startStrict(next: { [weak self] _ in
+                if isFirstExtrasFoldersUpdate {
+                    isFirstExtrasFoldersUpdate = false
+                    return
+                }
                 self?.reloadFilters()
             }))
         }
