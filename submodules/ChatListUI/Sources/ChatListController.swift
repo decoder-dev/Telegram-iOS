@@ -153,6 +153,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
     private let stateDisposable = MetaDisposable()
     private let filterDisposable = MetaDisposable()
     private let extrasFoldersDisposable = MetaDisposable()
+    private var skipExtrasFoldersReload = false
     private let featuredFiltersDisposable = MetaDisposable()
     private var processedFeaturedFilters = false
     
@@ -779,18 +780,24 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                 }
             }
             self.reloadFilters()
-            var isFirstExtrasFoldersUpdate = true
-            self.extrasFoldersDisposable.set((forkExtrasSettings(accountManager: self.context.sharedContext.accountManager)
-            |> map { ($0.hideAllChats, $0.rememberLastFolder) }
+            self.skipExtrasFoldersReload = true
+            let extrasFoldersSignal: Signal<(Bool, Bool), NoError> = forkExtrasSettings(accountManager: self.context.sharedContext.accountManager)
+            |> map { settings -> (Bool, Bool) in
+                return (settings.hideAllChats, settings.rememberLastFolder)
+            }
             |> distinctUntilChanged(isEqual: { lhs, rhs in
                 return lhs.0 == rhs.0 && lhs.1 == rhs.1
             })
+            self.extrasFoldersDisposable.set((extrasFoldersSignal
             |> deliverOnMainQueue).startStrict(next: { [weak self] _ in
-                if isFirstExtrasFoldersUpdate {
-                    isFirstExtrasFoldersUpdate = false
+                guard let self else {
                     return
                 }
-                self?.reloadFilters()
+                if self.skipExtrasFoldersReload {
+                    self.skipExtrasFoldersReload = false
+                    return
+                }
+                self.reloadFilters()
             }))
         }
         
