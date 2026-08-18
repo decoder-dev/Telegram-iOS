@@ -457,7 +457,19 @@ public func legacyAssetPickerEnqueueMessages(
                                     var randomId: Int64 = 0
                                     arc4random_buf(&randomId, 8)
                                     let tempFilePath = NSTemporaryDirectory() + "\(randomId).jpeg"
-                                    let maxSize = item.forceHd ? CGSize(width: 2560.0, height: 2560.0) : CGSize(width: 1280.0, height: 1280.0)
+                                    let maxSize: CGSize
+                                    let jpegQuality: Float
+                                    let extrasQuality = ForkExtrasHotFlags.outgoingPhotoQuality
+                                    if item.forceHd || extrasQuality >= 2 {
+                                        maxSize = CGSize(width: 2560.0, height: 2560.0)
+                                        jpegQuality = extrasQuality >= 2 || item.forceHd ? 0.85 : 0.75
+                                    } else if extrasQuality >= 1 {
+                                        maxSize = CGSize(width: 1920.0, height: 1920.0)
+                                        jpegQuality = 0.75
+                                    } else {
+                                        maxSize = CGSize(width: 1280.0, height: 1280.0)
+                                        jpegQuality = 0.6
+                                    }
                                     let scaledSize = image.size.aspectFittedOrSmaller(maxSize)
                                 
                                     if let scaledImage = TGScaleImageToPixelSize(image, scaledSize) {
@@ -465,7 +477,7 @@ public func legacyAssetPickerEnqueueMessages(
                                         defer {
                                             EngineTempBox.shared.dispose(tempFile)
                                         }
-                                        if let scaledImageData = compressImageToJPEG(scaledImage, quality: 0.6, tempFilePath: tempFile.path) {
+                                        if let scaledImageData = compressImageToJPEG(scaledImage, quality: jpegQuality, tempFilePath: tempFile.path) {
                                             let _ = try? scaledImageData.write(to: URL(fileURLWithPath: tempFilePath))
 
                                             let resource = LocalFileReferenceMediaResource(localFilePath: tempFilePath, randomId: randomId)

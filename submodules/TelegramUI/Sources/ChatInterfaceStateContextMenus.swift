@@ -1453,7 +1453,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
                     showTranslateIfTopical = true
                 }
                 
-                var (canTranslate, _) = canTranslateText(context: context, text: messageText, showTranslate: translationSettings.showTranslate, showTranslateIfTopical: showTranslateIfTopical, ignoredLanguages: translationSettings.ignoredLanguages)
+                var (canTranslate, _) = canTranslateText(context: context, text: messageText, showTranslate: translationSettings.showTranslate || ForkExtrasHotFlags.quickTranslateButton, showTranslateIfTopical: showTranslateIfTopical, ignoredLanguages: translationSettings.ignoredLanguages)
                 if let peerId = chatPresentationInterfaceState.chatLocation.peerId, peerId.namespace == Namespaces.Peer.SecretChat {
                     canTranslate = false
                 }
@@ -1948,6 +1948,41 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
                     f(.dismissWithoutContent)
                 })))
             }
+        }
+
+        let extras = context.sharedContext.immediateForkExtrasSettings
+        let extrasMenuIsRussian = (Locale.preferredLanguages.first ?? "").hasPrefix("ru")
+        if extras.saveToCloudMenu, message.id.peerId != context.account.peerId, message.id.namespace == Namespaces.Message.Cloud {
+            let saveTitle = extrasMenuIsRussian ? "В Избранное" : "Save to Saved Messages"
+            actions.append(.action(ContextMenuActionItem(text: saveTitle, icon: { theme in
+                return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Fave"), color: theme.actionSheet.primaryTextColor)
+            }, action: { _, f in
+                let ids = (selectAll || isImage ? messages : [message]).map { message -> EnqueueMessage in
+                    return .forward(source: message.id, threadId: nil, grouping: .auto, attributes: [], correlationId: nil)
+                }
+                let _ = enqueueMessages(account: context.account, peerId: context.account.peerId, messages: ids).startStandalone()
+                f(.dismissWithoutContent)
+            })))
+        }
+        if extras.selectFromAuthor, data.canSelect, let authorId = message.author?.id {
+            let selectTitle = extrasMenuIsRussian ? "Выбрать от автора" : "Select from Author"
+            actions.append(.action(ContextMenuActionItem(text: selectTitle, icon: { theme in
+                return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Select"), color: theme.actionSheet.primaryTextColor)
+            }, action: { _, f in
+                var ids: [MessageId] = [message.id]
+                if let chatNode = controllerInteraction.chatControllerNode() as? ChatControllerNode {
+                    chatNode.historyNode.forEachItemNode { node in
+                        if let itemNode = node as? ChatMessageItemView, let item = itemNode.item, item.message.author?.id == authorId {
+                            if !ids.contains(item.message.id) {
+                                ids.append(item.message.id)
+                            }
+                        }
+                    }
+                }
+                interfaceInteraction.beginMessageSelection(ids, { transition in
+                    f(.custom(transition))
+                })
+            })))
         }
         
         if data.messageActions.options.contains(.report) {

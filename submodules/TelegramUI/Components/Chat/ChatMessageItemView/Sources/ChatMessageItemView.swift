@@ -36,6 +36,10 @@ public func chatMessageItemLayoutConstants(_ constants: (ChatMessageItemLayoutCo
     result.text.bubbleInsets.left = textInset
     result.text.bubbleInsets.right = textInset
     result.instantVideo.dimensions = params.width > 320.0 ? constants.1.instantVideo.dimensions : constants.0.instantVideo.dimensions
+    if ForkExtrasHotFlags.wideChannelPosts {
+        result.bubble.maximumWidthFill.freeMaximumFillFactor = min(0.97, result.bubble.maximumWidthFill.freeMaximumFillFactor + 0.12)
+        result.bubble.maximumWidthFill.compactInset = max(8.0, result.bubble.maximumWidthFill.compactInset - 16.0)
+    }
     return result
 }
 

@@ -110,13 +110,37 @@ public enum ForkExtrasHotFlags {
         public var hideReactionsBar: Bool = false
         public var compactChatList: Bool = false
         public var compactMessagePreview: Bool = false
+        public var hideAllChats: Bool = false
+        public var rememberLastFolder: Bool = false
+        public var hideTabBar: Bool = false
+        public var showMessageSeconds: Bool = false
+        public var wideChannelPosts: Bool = false
+        public var stickerSizePercent: Int32 = 100
+        public var doubleTapToEdit: Bool = false
+        public var quickTranslateButton: Bool = false
+        public var saveToCloudMenu: Bool = true
+        public var selectFromAuthor: Bool = true
+        public var downloadSpeedBoost: Bool = false
+        public var outgoingPhotoQuality: Int32 = 0
 
         public init(
             hideAds: Bool = true,
             hideBlockedMessages: Bool = false,
             hideReactionsBar: Bool = false,
             compactChatList: Bool = false,
-            compactMessagePreview: Bool = false
+            compactMessagePreview: Bool = false,
+            hideAllChats: Bool = false,
+            rememberLastFolder: Bool = false,
+            hideTabBar: Bool = false,
+            showMessageSeconds: Bool = false,
+            wideChannelPosts: Bool = false,
+            stickerSizePercent: Int32 = 100,
+            doubleTapToEdit: Bool = false,
+            quickTranslateButton: Bool = false,
+            saveToCloudMenu: Bool = true,
+            selectFromAuthor: Bool = true,
+            downloadSpeedBoost: Bool = false,
+            outgoingPhotoQuality: Int32 = 0
         ) {
             // Ads stay off regardless of the prefs value passed in.
             self.hideAds = true
@@ -124,6 +148,18 @@ public enum ForkExtrasHotFlags {
             self.hideReactionsBar = hideReactionsBar
             self.compactChatList = compactChatList
             self.compactMessagePreview = compactMessagePreview
+            self.hideAllChats = hideAllChats
+            self.rememberLastFolder = rememberLastFolder
+            self.hideTabBar = hideTabBar
+            self.showMessageSeconds = showMessageSeconds
+            self.wideChannelPosts = wideChannelPosts
+            self.stickerSizePercent = stickerSizePercent
+            self.doubleTapToEdit = doubleTapToEdit
+            self.quickTranslateButton = quickTranslateButton
+            self.saveToCloudMenu = saveToCloudMenu
+            self.selectFromAuthor = selectFromAuthor
+            self.downloadSpeedBoost = downloadSpeedBoost
+            self.outgoingPhotoQuality = outgoingPhotoQuality
         }
     }
 
@@ -159,6 +195,54 @@ public enum ForkExtrasHotFlags {
     public static var compactMessagePreview: Bool {
         get { return state.with { $0.compactMessagePreview } }
         set { let _ = state.modify { var s = $0; s.compactMessagePreview = newValue; return s } }
+    }
+    public static var hideAllChats: Bool {
+        get { return state.with { $0.hideAllChats } }
+        set { let _ = state.modify { var s = $0; s.hideAllChats = newValue; return s } }
+    }
+    public static var rememberLastFolder: Bool {
+        get { return state.with { $0.rememberLastFolder } }
+        set { let _ = state.modify { var s = $0; s.rememberLastFolder = newValue; return s } }
+    }
+    public static var hideTabBar: Bool {
+        get { return state.with { $0.hideTabBar } }
+        set { let _ = state.modify { var s = $0; s.hideTabBar = newValue; return s } }
+    }
+    public static var showMessageSeconds: Bool {
+        get { return state.with { $0.showMessageSeconds } }
+        set { let _ = state.modify { var s = $0; s.showMessageSeconds = newValue; return s } }
+    }
+    public static var wideChannelPosts: Bool {
+        get { return state.with { $0.wideChannelPosts } }
+        set { let _ = state.modify { var s = $0; s.wideChannelPosts = newValue; return s } }
+    }
+    public static var stickerSizePercent: Int32 {
+        get { return state.with { $0.stickerSizePercent } }
+        set { let _ = state.modify { var s = $0; s.stickerSizePercent = newValue; return s } }
+    }
+    public static var doubleTapToEdit: Bool {
+        get { return state.with { $0.doubleTapToEdit } }
+        set { let _ = state.modify { var s = $0; s.doubleTapToEdit = newValue; return s } }
+    }
+    public static var quickTranslateButton: Bool {
+        get { return state.with { $0.quickTranslateButton } }
+        set { let _ = state.modify { var s = $0; s.quickTranslateButton = newValue; return s } }
+    }
+    public static var saveToCloudMenu: Bool {
+        get { return state.with { $0.saveToCloudMenu } }
+        set { let _ = state.modify { var s = $0; s.saveToCloudMenu = newValue; return s } }
+    }
+    public static var selectFromAuthor: Bool {
+        get { return state.with { $0.selectFromAuthor } }
+        set { let _ = state.modify { var s = $0; s.selectFromAuthor = newValue; return s } }
+    }
+    public static var downloadSpeedBoost: Bool {
+        get { return state.with { $0.downloadSpeedBoost } }
+        set { let _ = state.modify { var s = $0; s.downloadSpeedBoost = newValue; return s } }
+    }
+    public static var outgoingPhotoQuality: Int32 {
+        get { return state.with { $0.outgoingPhotoQuality } }
+        set { let _ = state.modify { var s = $0; s.outgoingPhotoQuality = newValue; return s } }
     }
 }
 

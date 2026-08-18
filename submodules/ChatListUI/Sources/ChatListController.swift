@@ -152,6 +152,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
     
     private let stateDisposable = MetaDisposable()
     private let filterDisposable = MetaDisposable()
+    private let extrasFoldersDisposable = MetaDisposable()
     private let featuredFiltersDisposable = MetaDisposable()
     private var processedFeaturedFilters = false
     
@@ -764,12 +765,27 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                 guard let strongSelf = self else {
                     return
                 }
+                if ForkExtrasHotFlags.rememberLastFolder {
+                    switch filter {
+                    case .all:
+                        ForkLastChatListFilter.storedId = 0
+                    case let .filter(id):
+                        ForkLastChatListFilter.storedId = id
+                    }
+                }
                 
                 if let navigationBarView = strongSelf.chatListDisplayNode.navigationBarView.view as? ChatListNavigationBar.View, let headerPanelsView = navigationBarView.headerPanels as? HeaderPanelContainerComponent.View, let tabsView = headerPanelsView.tabs as? HorizontalTabsComponent.View {
                     tabsView.updateTabSwitchFraction(fraction: fraction, isDragging: strongSelf.chatListDisplayNode.mainContainerNode.isSwitchingCurrentItemFilterByDragging, transition: ComponentTransition(transition))
                 }
             }
             self.reloadFilters()
+            self.extrasFoldersDisposable.set((forkExtrasSettings(accountManager: self.context.sharedContext.accountManager)
+            |> map { ($0.hideAllChats, $0.rememberLastFolder) }
+            |> distinctUntilChanged
+            |> drop(1)
+            |> deliverOnMainQueue).startStrict(next: { [weak self] _ in
+                self?.reloadFilters()
+            }))
         }
         
         self.storiesPostingAvailabilityDisposable = (self.context.engine.data.subscribe(TelegramEngine.EngineData.Item.Configuration.ApplicationSpecificPreference(key: PreferencesKeys.appConfiguration))
@@ -820,6 +836,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
         self.presentationDataDisposable?.dispose()
         self.stateDisposable.dispose()
         self.filterDisposable.dispose()
+        self.extrasFoldersDisposable.dispose()
         self.featuredFiltersDisposable.dispose()
         self.activeDownloadsDisposable?.dispose()
         self.selectAddMemberDisposable.dispose()
@@ -4028,9 +4045,20 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
             let (_, items) = countAndFilterItems
             var filterItems: [ChatListFilterTabEntry] = []
             
+            let hasFolderFilters = items.contains(where: {
+                if case .filter = $0.0 {
+                    return true
+                }
+                return false
+            })
+            let hideAllChatsTab = ForkExtrasHotFlags.hideAllChats && hasFolderFilters
+            
             for (filter, unreadCount, hasUnmutedUnread) in items {
                 switch filter {
                     case .allChats:
+                        if hideAllChatsTab {
+                            continue
+                        }
                         if let isPremium = isPremium, !isPremium && filterItems.count > 0 {
                             filterItems.insert(.all(unreadCount: 0), at: 0)
                         } else {
@@ -4057,6 +4085,14 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
             }
             
             var selectedEntryId = !strongSelf.initializedFilters ? firstItemEntryId : strongSelf.chatListDisplayNode.mainContainerNode.currentItemFilter
+            if !strongSelf.initializedFilters, ForkExtrasHotFlags.rememberLastFolder {
+                let storedId = ForkLastChatListFilter.storedId
+                if storedId == 0 {
+                    selectedEntryId = .all
+                } else if resolvedItems.contains(where: { $0.id == .filter(storedId) }) {
+                    selectedEntryId = .filter(storedId)
+                }
+            }
             var resetCurrentEntry = false
             if !resolvedItems.contains(where: { $0.id == selectedEntryId }) {
                 resetCurrentEntry = true
@@ -4072,10 +4108,18 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                         }
                     }
                     if !found {
-                        selectedEntryId = .all
+                        if hideAllChatsTab, let firstId = resolvedItems.first?.id {
+                            selectedEntryId = firstId
+                        } else {
+                            selectedEntryId = .all
+                        }
                     }
                 } else {
-                    selectedEntryId = .all
+                    if hideAllChatsTab, let firstId = resolvedItems.first?.id {
+                        selectedEntryId = firstId
+                    } else {
+                        selectedEntryId = .all
+                    }
                 }
             }
             let filtersLimit = isPremium == false ? limits.maxFoldersCount : nil
@@ -4085,6 +4129,9 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
             for item in items {
                 switch item.0 {
                     case .allChats:
+                        if hideAllChatsTab {
+                            continue
+                        }
                         hasAllChats = true
                         if let isPremium = isPremium, !isPremium && availableFilters.count > 0 {
                             availableFilters.insert(.all, at: 0)
@@ -4095,7 +4142,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                         availableFilters.append(.filter(item.0))
                 }
             }
-            if !hasAllChats {
+            if !hasAllChats && !hideAllChatsTab {
                 availableFilters.insert(.all, at: 0)
             }
             strongSelf.chatListDisplayNode.mainContainerNode.updateAvailableFilters(availableFilters, limit: filtersLimit)
