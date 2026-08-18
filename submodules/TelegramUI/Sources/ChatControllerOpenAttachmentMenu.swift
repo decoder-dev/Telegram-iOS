@@ -551,7 +551,7 @@ extension ChatControllerImpl {
                         let controller = strongSelf.context.sharedContext.makeAttachmentFileController(context: strongSelf.context, updatedPresentationData: strongSelf.updatedPresentationData, audio: true, bannedSendMedia: bannedSendFiles, presentGallery: {
                         }, presentFiles: { [weak self, weak attachmentController] in
                             attachmentController?.dismiss(animated: true)
-                            self?.presentICloudFileGallery(documentTypes: ["public.mp3", "public.mpeg-4-audio", "public.aac-audio", "org.xiph.flac"])
+                            self?.presentICloudFileGallery(documentTypes: ["public.audio", "public.mp3", "public.mpeg-4-audio", "public.aac-audio", "org.xiph.flac", "public.wav", "public.aiff-audio", "org.xiph.ogg"])
                         }, presentDocumentScanner: nil, send: { [weak self] mediaReferences, silentPosting, scheduleTime, caption in
                             guard let self else {
                                 return
@@ -1428,7 +1428,7 @@ extension ChatControllerImpl {
             let (accountPeer, limits, premiumLimits) = result
             let isPremium = accountPeer?.isPremium ?? false
 
-            strongSelf.present(legacyICloudFilePicker(theme: strongSelf.presentationData.theme, hasMultiselection: true, documentTypes: documentTypes, completion: { [weak self] urls in
+            strongSelf.present(legacyICloudFilePicker(theme: strongSelf.presentationData.theme, mode: .import, hasMultiselection: true, documentTypes: documentTypes, completion: { [weak self] urls in
                 if let strongSelf = self, !urls.isEmpty {
                     var signals: [Signal<ICloudFileDescription?, NoError>] = []
                     for url in urls {
@@ -1469,7 +1469,7 @@ extension ChatControllerImpl {
                                 for item in results {
                                     if let item = item {
                                         let pathExtension = (item.fileName as NSString).pathExtension.lowercased()
-                                        if ["mp3", "m4a"].contains(pathExtension) {
+                                        if ["mp3", "m4a", "aac", "flac", "wav", "ogg", "opus", "aiff", "aif"].contains(pathExtension) {
                                             fileTypes.music = true
                                         } else {
                                             fileTypes.other = true
@@ -1525,6 +1525,8 @@ extension ChatControllerImpl {
                                         strongSelf.sendMessages(messages, postpone: postpone)
                                     })
                                 }
+                            } else if !urls.isEmpty {
+                                strongSelf.present(textAlertController(context: strongSelf.context, updatedPresentationData: strongSelf.updatedPresentationData, title: nil, text: strongSelf.presentationData.strings.Login_UnknownError, actions: [TextAlertAction(type: .defaultAction, title: strongSelf.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
                             }
                         }
                     }))

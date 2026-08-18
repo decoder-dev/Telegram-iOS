@@ -5240,7 +5240,7 @@ public final class MediaEditorScreenImpl: ViewController, MediaEditorScreen, UID
         
         func presentAudioFilePicker() {
             var isSettingTrack = false
-            self.controller?.present(legacyICloudFilePicker(theme: self.presentationData.theme, mode: .import, documentTypes: ["public.mp3", "public.mpeg-4-audio", "public.aac-audio", "org.xiph.flac"], forceDarkTheme: true, dismissed: { [weak self] in
+            self.controller?.present(legacyICloudFilePicker(theme: self.presentationData.theme, mode: .import, documentTypes: ["public.audio", "public.mp3", "public.mpeg-4-audio", "public.aac-audio", "org.xiph.flac", "public.wav", "public.aiff-audio", "org.xiph.ogg"], forceDarkTheme: true, dismissed: { [weak self] in
                 if let self {
                     Queue.mainQueue().after(0.1) {
                         if !isSettingTrack {
