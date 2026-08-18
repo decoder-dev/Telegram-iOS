@@ -80,18 +80,24 @@ public struct ProxySettings: Codable, Equatable {
     public var useLocalDNSForProxyHosts: Bool
     /// On sustained proxy connection issues, round-robin to the next saved server.
     public var autoRotateProxies: Bool
+    /// Fetch public MTProxy servers, probe RTT, and fail over to the fastest live one.
+    public var autoFetchPublicMtProxy: Bool
+    /// Servers last pulled by auto-fetch (kept separate from manually added entries).
+    public var automaticServers: [ProxyServerSettings]
     
     public static var defaultSettings: ProxySettings {
-        return ProxySettings(enabled: false, servers: [], activeServer: nil, useForCalls: false, useLocalDNSForProxyHosts: false, autoRotateProxies: false)
+        return ProxySettings(enabled: false, servers: [], activeServer: nil, useForCalls: false, useLocalDNSForProxyHosts: false, autoRotateProxies: false, autoFetchPublicMtProxy: false, automaticServers: [])
     }
     
-    public init(enabled: Bool, servers: [ProxyServerSettings], activeServer: ProxyServerSettings?, useForCalls: Bool, useLocalDNSForProxyHosts: Bool = false, autoRotateProxies: Bool = false) {
+    public init(enabled: Bool, servers: [ProxyServerSettings], activeServer: ProxyServerSettings?, useForCalls: Bool, useLocalDNSForProxyHosts: Bool = false, autoRotateProxies: Bool = false, autoFetchPublicMtProxy: Bool = false, automaticServers: [ProxyServerSettings] = []) {
         self.enabled = enabled
         self.servers = servers
         self.activeServer = activeServer
         self.useForCalls = useForCalls
         self.useLocalDNSForProxyHosts = useLocalDNSForProxyHosts
         self.autoRotateProxies = autoRotateProxies
+        self.autoFetchPublicMtProxy = autoFetchPublicMtProxy
+        self.automaticServers = automaticServers
     }
     
     public init(from decoder: Decoder) throws {
@@ -103,6 +109,8 @@ public struct ProxySettings: Codable, Equatable {
         self.useForCalls = ((try? container.decode(Int32.self, forKey: "useForCalls")) ?? 0) != 0
         self.useLocalDNSForProxyHosts = ((try? container.decode(Int32.self, forKey: "useLocalDNSForProxyHosts")) ?? 0) != 0
         self.autoRotateProxies = ((try? container.decode(Int32.self, forKey: "autoRotateProxies")) ?? 0) != 0
+        self.autoFetchPublicMtProxy = ((try? container.decode(Int32.self, forKey: "autoFetchPublicMtProxy")) ?? 0) != 0
+        self.automaticServers = (try? container.decode([ProxyServerSettings].self, forKey: "automaticServers")) ?? []
     }
     
     public func encode(to encoder: Encoder) throws {
@@ -114,6 +122,8 @@ public struct ProxySettings: Codable, Equatable {
         try container.encode((self.useForCalls ? 1 : 0) as Int32, forKey: "useForCalls")
         try container.encode((self.useLocalDNSForProxyHosts ? 1 : 0) as Int32, forKey: "useLocalDNSForProxyHosts")
         try container.encode((self.autoRotateProxies ? 1 : 0) as Int32, forKey: "autoRotateProxies")
+        try container.encode((self.autoFetchPublicMtProxy ? 1 : 0) as Int32, forKey: "autoFetchPublicMtProxy")
+        try container.encode(self.automaticServers, forKey: "automaticServers")
     }
     
     public var effectiveActiveServer: ProxyServerSettings? {
@@ -121,6 +131,24 @@ public struct ProxySettings: Codable, Equatable {
             return activeServer
         } else {
             return nil
+        }
+    }
+    
+    /// Enable or disable public MTProxy auto-fetch. Turning off removes only auto-pulled servers.
+    public mutating func setAutoFetchPublicMtProxy(_ enabled: Bool) {
+        self.autoFetchPublicMtProxy = enabled
+        if enabled {
+            self.enabled = true
+            return
+        }
+        let automatic = Set(self.automaticServers)
+        if !automatic.isEmpty {
+            self.servers = self.servers.filter { !automatic.contains($0) }
+        }
+        self.automaticServers = []
+        if let active = self.activeServer, automatic.contains(active) {
+            self.activeServer = self.servers.first
+            self.enabled = self.activeServer != nil
         }
     }
 }

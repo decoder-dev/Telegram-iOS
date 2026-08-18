@@ -85,6 +85,8 @@ public class UnauthorizedAccount {
         return self.serviceNotificationPipe.signal()
     }
     
+    private let managedDisposables = DisposableSet()
+    
     public var masterDatacenterId: Int32 {
         return Int32(self.network.mtProto.datacenterId)
     }
@@ -210,6 +212,18 @@ public class UnauthorizedAccount {
         })
         
         self.stateManager.reset()
+        self.managedDisposables.add(managedAutomaticMtProxy(accountManager: accountManager, network: network).start())
+        self.managedDisposables.add((accountManager.sharedData(keys: [SharedDataKeys.proxySettings])
+        |> map { sharedData -> ProxySettings in
+            return sharedData.entries[SharedDataKeys.proxySettings]?.get(ProxySettings.self) ?? .defaultSettings
+        }
+        |> distinctUntilChanged).start(next: { settings in
+            applySharedProxySettingsToNetwork(settings: settings, network: network)
+        }))
+    }
+    
+    deinit {
+        self.managedDisposables.dispose()
     }
     
     public func changedMasterDatacenterId(accountManager: AccountManager<TelegramAccountManagerTypes>, masterDatacenterId: Int32) -> Signal<UnauthorizedAccount, NoError> {
@@ -1489,32 +1503,12 @@ public class Account {
             return sharedData.entries[SharedDataKeys.proxySettings]?.get(ProxySettings.self) ?? .defaultSettings
         }
         |> distinctUntilChanged).start(next: { settings in
-            let previousForceLocalDNS = network.context.forceLocalDNS
-            network.context.forceLocalDNS = settings.useLocalDNSForProxyHosts
-            let updated = settings.effectiveActiveServer.flatMap { activeServer -> MTSocksProxySettings? in
-                return activeServer.mtProxySettings
-            }
-            network.context.updateApiEnvironment { environment in
-                let current = environment?.socksProxySettings
-                let updateNetwork: Bool
-                if previousForceLocalDNS != settings.useLocalDNSForProxyHosts {
-                    updateNetwork = true
-                } else if let current = current, let updated = updated {
-                    updateNetwork = !current.isEqual(updated)
-                } else {
-                    updateNetwork = (current != nil) != (updated != nil)
-                }
-                if updateNetwork {
-                    network.dropConnectionStatus()
-                    return environment?.withUpdatedSocksProxySettings(updated)
-                } else {
-                    return nil
-                }
-            }
+            applySharedProxySettingsToNetwork(settings: settings, network: network)
         }))
         
         if !supplementary {
             self.managedOperationsDisposable.add(managedProxyFailover(accountManager: accountManager, network: network).start())
+            self.managedOperationsDisposable.add(managedAutomaticMtProxy(accountManager: accountManager, network: network).start())
             
             let mediaBox = postbox.mediaBox
             let _ = (accountManager.sharedData(keys: [SharedDataKeys.cacheStorageSettings])

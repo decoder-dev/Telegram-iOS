@@ -129,6 +129,8 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.EditedMessageMarkFooter": "Replaces Telegram's \"edited\" label. Leave empty for the default.",
             "ForkExtras.LocalPremium": "Local Telegram Premium",
             "ForkExtras.LocalPremiumFooter": "Unlock client-side Premium UX on this device: Story Stealth Mode, HD stories, sticker/emoji cosmetics. Does not buy real Premium or change your badge for others.",
+            "ForkExtras.AutoFetchMtProxy": "Auto MTProxy",
+            "ForkExtras.AutoFetchMtProxyFooter": "Download a public MTProxy list, probe latency, and fail over to the fastest live server. Third-party nodes cannot read chats, but they see your IP. Manually added proxies are kept.",
             "ForkExtras.HideAds": "Hide Ads",
             "ForkExtras.HideAdsFooter": "Sponsored and recommended messages are permanently disabled in this build.",
             "ForkExtras.HideBlockedMessages": "Hide Blocked Users",
@@ -223,6 +225,8 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.EditedMessageMarkFooter": "Вместо метки «изменено». Пусто — стандарт Telegram.",
             "ForkExtras.LocalPremium": "Локальный Telegram Premium",
             "ForkExtras.LocalPremiumFooter": "Клиентские функции Premium на этом устройстве: stealth историй, HD, косметика стикеров/эмодзи. Не покупает Premium и не меняет ваш значок для других.",
+            "ForkExtras.AutoFetchMtProxy": "Авто MTProxy",
+            "ForkExtras.AutoFetchMtProxyFooter": "Скачивать публичный список MTProxy, мерить задержку и переключаться на самый быстрый живой. Чужие серверы не читают чаты, но видят ваш IP. Свои прокси не удаляются.",
             "ForkExtras.HideAds": "Скрыть рекламу",
             "ForkExtras.HideAdsFooter": "Спонсорские и рекомендованные сообщения в этой сборке отключены навсегда.",
             "ForkExtras.HideBlockedMessages": "Скрыть заблокированных",
@@ -334,6 +338,8 @@ private enum ForkExtrasLocalizedString {
     static var editedMessageMarkFooter: String { string(forKey: "ForkExtras.EditedMessageMarkFooter") }
     static var localPremium: String { string(forKey: "ForkExtras.LocalPremium") }
     static var localPremiumFooter: String { string(forKey: "ForkExtras.LocalPremiumFooter") }
+    static var autoFetchMtProxy: String { string(forKey: "ForkExtras.AutoFetchMtProxy") }
+    static var autoFetchMtProxyFooter: String { string(forKey: "ForkExtras.AutoFetchMtProxyFooter") }
     static var hideAds: String { string(forKey: "ForkExtras.HideAds") }
     static var hideAdsFooter: String { string(forKey: "ForkExtras.HideAdsFooter") }
     static var hideBlockedMessages: String { string(forKey: "ForkExtras.HideBlockedMessages") }
@@ -403,6 +409,7 @@ private final class ForkExtrasControllerArguments {
     let updateDeletedMessageMark: (String) -> Void
     let updateEditedMessageMark: (String) -> Void
     let updateLocalPremium: (Bool) -> Void
+    let updateAutoFetchMtProxy: (Bool) -> Void
     let updateHideAds: (Bool) -> Void
     let updateHideBlockedMessages: (Bool) -> Void
     let updateGhostScheduleMessages: (Bool) -> Void
@@ -450,6 +457,7 @@ private final class ForkExtrasControllerArguments {
         updateDeletedMessageMark: @escaping (String) -> Void,
         updateEditedMessageMark: @escaping (String) -> Void,
         updateLocalPremium: @escaping (Bool) -> Void,
+        updateAutoFetchMtProxy: @escaping (Bool) -> Void,
         updateHideAds: @escaping (Bool) -> Void,
         updateHideBlockedMessages: @escaping (Bool) -> Void,
         updateGhostScheduleMessages: @escaping (Bool) -> Void,
@@ -496,6 +504,7 @@ private final class ForkExtrasControllerArguments {
         self.updateDeletedMessageMark = updateDeletedMessageMark
         self.updateEditedMessageMark = updateEditedMessageMark
         self.updateLocalPremium = updateLocalPremium
+        self.updateAutoFetchMtProxy = updateAutoFetchMtProxy
         self.updateHideAds = updateHideAds
         self.updateHideBlockedMessages = updateHideBlockedMessages
         self.updateGhostScheduleMessages = updateGhostScheduleMessages
@@ -524,6 +533,7 @@ private enum ForkExtrasSection: Int32 {
     case messageFilters
     case smallThings
     case premium
+    case proxy
 }
 
 private enum ForkExtrasEntry: ItemListNodeEntry {
@@ -589,6 +599,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     case messageSavingDbFooter
     case localPremium(Bool)
     case localPremiumFooter
+    case autoFetchMtProxy(Bool)
+    case autoFetchMtProxyFooter
     case hideAds
     case hideAdsFooter
     case hideBlockedMessages(Bool)
@@ -632,6 +644,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return ForkExtrasSection.smallThings.rawValue
         case .localPremium, .localPremiumFooter:
             return ForkExtrasSection.premium.rawValue
+        case .autoFetchMtProxy, .autoFetchMtProxyFooter:
+            return ForkExtrasSection.proxy.rawValue
         }
     }
 
@@ -714,6 +728,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case .keepBannedChatsFooter: return 73
         case .localPremium: return 74
         case .localPremiumFooter: return 75
+        case .autoFetchMtProxy: return 76
+        case .autoFetchMtProxyFooter: return 77
         }
     }
 
@@ -936,6 +952,12 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             })
         case .localPremiumFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.localPremiumFooter), sectionId: self.section)
+        case let .autoFetchMtProxy(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.autoFetchMtProxy, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateAutoFetchMtProxy(value)
+            })
+        case .autoFetchMtProxyFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.autoFetchMtProxyFooter), sectionId: self.section)
         case .hideAds:
             // Ads are hard-disabled in this fork; the switch stays locked on.
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.hideAds, value: true, enableInteractiveChanges: false, enabled: false, displayLocked: true, sectionId: self.section, style: .blocks, updated: { _ in
@@ -985,7 +1007,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     }
 }
 
-private func forkExtrasControllerEntries(settings: ForkExtrasSettings) -> [ForkExtrasEntry] {
+private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetchPublicMtProxy: Bool) -> [ForkExtrasEntry] {
     var entries: [ForkExtrasEntry] = [
         .ghostDontReadMessages(settings.ghostDontReadMessages),
         .ghostDontReadStories(settings.ghostDontReadStories),
@@ -1069,6 +1091,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings) -> [ForkE
         .keepBannedChatsFooter,
         .localPremium(settings.localPremium),
         .localPremiumFooter,
+        .autoFetchMtProxy(autoFetchPublicMtProxy),
+        .autoFetchMtProxyFooter,
     ])
     return entries
 }
@@ -1373,6 +1397,13 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
                 return updated
             }.start())
         },
+        updateAutoFetchMtProxy: { value in
+            let _ = updateProxySettingsInteractively(accountManager: context.sharedContext.accountManager, { current in
+                var current = current
+                current.setAutoFetchPublicMtProxy(value)
+                return current
+            }).start()
+        },
         updateHideAds: { _ in
             updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
                 var updated = current
@@ -1487,11 +1518,13 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
 
     let signal = combineLatest(
         context.sharedContext.presentationData,
-        forkExtrasSettings(accountManager: context.sharedContext.accountManager)
+        forkExtrasSettings(accountManager: context.sharedContext.accountManager),
+        context.sharedContext.accountManager.sharedData(keys: [SharedDataKeys.proxySettings])
     )
     |> deliverOnMainQueue
-    |> map { presentationData, settings -> (ItemListControllerState, (ItemListNodeState, Any)) in
-        let entries = forkExtrasControllerEntries(settings: settings)
+    |> map { presentationData, settings, sharedData -> (ItemListControllerState, (ItemListNodeState, Any)) in
+        let proxySettings = sharedData.entries[SharedDataKeys.proxySettings]?.get(ProxySettings.self) ?? .defaultSettings
+        let entries = forkExtrasControllerEntries(settings: settings, autoFetchPublicMtProxy: proxySettings.autoFetchPublicMtProxy)
         let focusedSection: ItemListSectionId?
         switch focus {
         case .top:

@@ -25,6 +25,16 @@ func managedProxyFailover(accountManager: AccountManager<TelegramAccountManagerT
     |> mapToSignal { settings, connectionStatus -> Signal<Never, NoError> in
         network.context.forceLocalDNS = settings.useLocalDNSForProxyHosts
         
+        // RTT-based auto-fetch owns failover while it is on.
+        guard !settings.autoFetchPublicMtProxy else {
+            let _ = state.modify { s in
+                s.issueSince = nil
+                s.lastActive = nil
+                return s
+            }
+            return .complete()
+        }
+        
         guard settings.autoRotateProxies, settings.enabled, settings.servers.count > 1 else {
             let _ = state.modify { s in
                 s.issueSince = nil
