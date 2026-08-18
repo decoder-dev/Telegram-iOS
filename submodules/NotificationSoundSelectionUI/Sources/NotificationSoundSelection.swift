@@ -497,54 +497,52 @@ public func presentCustomNotificationSoundFilePicker(context: AccountContext, co
     let settings = NotificationSoundSettings.extract(from: context.currentAppConfiguration.with({ $0 }))
     
     let presentationData = context.sharedContext.currentPresentationData.with { $0 }
-    controller.present(legacyICloudFilePicker(theme: presentationData.theme, documentTypes: ["public.mp3"], completion: { urls in
+    controller.present(legacyICloudFilePicker(theme: presentationData.theme, mode: .import, documentTypes: ["public.mp3"], completion: { urls in
         guard !urls.isEmpty, let url = urls.first else {
             Logger.shared.log("NotificationSoundSelection", "url is nil")
             
             return
         }
         
-        if !url.startAccessingSecurityScopedResource() {
+        let scopedAccess = url.startAccessingSecurityScopedResource()
+        if !scopedAccess && !FileManager.default.isReadableFile(atPath: url.path) {
             Logger.shared.log("NotificationSoundSelection", "startAccessingSecurityScopedResource failed")
             return
         }
         
+        let stopScopedAccessIfNeeded = {
+            if scopedAccess {
+                url.stopAccessingSecurityScopedResource()
+            }
+        }
+        
         let coordinator = NSFileCoordinator(filePresenter: nil)
         var error: NSError?
-        coordinator.coordinate(readingItemAt: url, options: .forUploading, error: &error, byAccessor: { souceUrl in
+        coordinator.coordinate(readingItemAt: url, options: .forUploading, error: &error, byAccessor: { sourceUrl in
             let fileName = url.lastPathComponent
-            
-            var maybeUrl: URL?
             let tempFile = EngineTempBox.shared.tempFile(fileName: "file.mp3")
             do {
-                try FileManager.default.copyItem(at: url, to: URL(fileURLWithPath: tempFile.path))
-                maybeUrl = URL(fileURLWithPath: tempFile.path)
+                try FileManager.default.copyItem(at: sourceUrl, to: URL(fileURLWithPath: tempFile.path))
             } catch let e {
                 Logger.shared.log("NotificationSoundSelection", "copy file error \(e)")
                 EngineTempBox.shared.dispose(tempFile)
-                souceUrl.stopAccessingSecurityScopedResource()
+                stopScopedAccessIfNeeded()
                 return
             }
             
-            guard let url = maybeUrl else {
-                Logger.shared.log("NotificationSoundSelection", "temp url is nil")
-                EngineTempBox.shared.dispose(tempFile)
-                souceUrl.stopAccessingSecurityScopedResource()
-                return
-            }
+            stopScopedAccessIfNeeded()
+            
+            let copiedUrl = URL(fileURLWithPath: tempFile.path)
             
             Queue.mainQueue().async {
                 do {
-                    let asset = AVAsset(url: url)
+                    let asset = AVAsset(url: copiedUrl)
                     
-                    let data = try Data(contentsOf: url)
+                    let data = try Data(contentsOf: copiedUrl)
                     
                     if data.count > settings.maxSize {
                         presentUndo(.info(title: presentationData.strings.Notifications_UploadError_TooLarge_Title, text: presentationData.strings.Notifications_UploadError_TooLarge_Text(dataSizeString(Int64(settings.maxSize), formatting: DataSizeStringFormatting(presentationData: presentationData))).string, timeout: nil, customUndoText: nil))
-                        
-                        souceUrl.stopAccessingSecurityScopedResource()
                         EngineTempBox.shared.dispose(tempFile)
-                        
                         return
                     }
                     
@@ -565,25 +563,16 @@ public func presentCustomNotificationSoundFilePicker(context: AccountContext, co
                     }
                     
                     loadValues(asset: asset, retryCount: 0, completion: {
-                        var duration = 0.0
-                        
                         guard let track = asset.tracks(withMediaType: .audio).first else {
                             Logger.shared.log("NotificationSoundSelection", "track is nil")
-                            
-                            url.stopAccessingSecurityScopedResource()
                             EngineTempBox.shared.dispose(tempFile)
-                            
                             return
                         }
                         
-                        duration = track.timeRange.duration.seconds
-
-                        if duration.isZero {
+                        let duration = track.timeRange.duration.seconds
+                        if !duration.isFinite || duration <= 0.0 {
                             Logger.shared.log("NotificationSoundSelection", "duration is zero")
-                            
-                            souceUrl.stopAccessingSecurityScopedResource()
                             EngineTempBox.shared.dispose(tempFile)
-                            
                             return
                         }
                         
@@ -591,8 +580,6 @@ public func presentCustomNotificationSoundFilePicker(context: AccountContext, co
                         
                         Queue.mainQueue().async {
                             if duration > Double(settings.maxDuration) {
-                                souceUrl.stopAccessingSecurityScopedResource()
-                                
                                 presentUndo(.info(title: presentationData.strings.Notifications_UploadError_TooLong_Title(fileName).string, text: presentationData.strings.Notifications_UploadError_TooLong_Text(stringForDuration(Int32(settings.maxDuration))).string, timeout: nil, customUndoText: nil))
                             } else {
                                 Logger.shared.log("NotificationSoundSelection", "Uploading sound")
@@ -604,22 +591,19 @@ public func presentCustomNotificationSoundFilePicker(context: AccountContext, co
                                     presentUndo(.notificationSoundAdded(title: presentationData.strings.Notifications_UploadSuccess_Title, text: presentationData.strings.Notifications_UploadSuccess_Text(fileName).string, action: nil))
                                 }, error: { _ in
                                     Logger.shared.log("NotificationSoundSelection", "Upload error")
-                                    
-                                    souceUrl.stopAccessingSecurityScopedResource()
-                                }, completed: {
-                                    souceUrl.stopAccessingSecurityScopedResource()
                                 }))
                             }
                         }
                     })
                 } catch let e {
                     Logger.shared.log("NotificationSoundSelection", "Error: \(e)")
+                    EngineTempBox.shared.dispose(tempFile)
                 }
             }
         })
         
         if let error = error {
-            url.stopAccessingSecurityScopedResource()
+            stopScopedAccessIfNeeded()
             Logger.shared.log("NotificationSoundSelection", "Error: \(error)")
         }
     }), in: .window(.root))
