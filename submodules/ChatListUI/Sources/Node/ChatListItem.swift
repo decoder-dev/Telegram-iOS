@@ -4131,7 +4131,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
             
             let titleSpacing: CGFloat = -1.0
             let authorSpacing: CGFloat = -3.0
-            var itemHeight: CGFloat = (compactChatList ? 6.0 : 8.0) * 2.0 + 1.0
+            var itemHeight: CGFloat = (compactChatList ? 6.0 : 10.0) * 2.0 + 1.0
             itemHeight -= 21.0
             if case let .peer(peerData) = item.content, let customMessageListData = peerData.customMessageListData, customMessageListData.commandPrefix != nil {
                 itemHeight += measureLayout.size.height * 2.0
