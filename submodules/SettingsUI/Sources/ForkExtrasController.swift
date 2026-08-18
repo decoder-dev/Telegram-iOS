@@ -107,7 +107,7 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.CompactChatList": "Compact Chat List",
             "ForkExtras.CompactMessagePreview": "Compact Message Preview",
             "ForkExtras.CompactFolderNames": "Compact Folder Names",
-            "ForkExtras.UIDensityFooter": "Reduce row heights, preview line count, and folder tab label size.",
+            "ForkExtras.UIDensityFooter": "Tighter list spacing. Rows stay at least 44 pt so they remain easy to tap.",
             "ForkExtras.HideReactionsBar": "Hide Reactions",
             "ForkExtras.HideReactionsBarFooter": "Hide the reaction bar under messages.",
             "ForkExtras.ShowDC": "Show Data Center & Registration Date",
@@ -178,7 +178,7 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.ClearDeleted": "Clear Deleted",
             "ForkExtras.NoDeleted": "No deleted messages saved yet.",
             "ForkExtras.NoEdits": "No previous versions saved.",
-            "ForkExtras.HubFooter": "Fork extras, grouped like AyuGram. Ghost is invisibility; Ninja is save, filters and bypass.",
+            "ForkExtras.HubFooter": "Each row opens a grouped Settings list. Navigation, sheets and switches follow iOS conventions.",
             "ForkExtras.HubNinja": "Ninja",
             "ForkExtras.HubNinjaLabel": "Save, filters, bypass",
             "ForkExtras.HubGhost": "Ghost",
@@ -196,14 +196,14 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.RememberLastFolder": "Remember Last Folder",
             "ForkExtras.RememberLastFolderFooter": "Open the last used folder after launch or switching accounts.",
             "ForkExtras.HideTabBar": "Hide Tab Bar",
-            "ForkExtras.HideTabBarFooter": "Hide the bottom Chats / Contacts / Settings bar.",
+            "ForkExtras.HideTabBarFooter": "Hides Chats / Contacts / Settings at the bottom of iPhone. iPad always keeps the tab bar.",
             "ForkExtras.ShowMessageSeconds": "Seconds in Timestamps",
             "ForkExtras.ShowMessageSecondsFooter": "Show hours:minutes:seconds on message times.",
             "ForkExtras.WideChannelPosts": "Wide Channel Posts",
             "ForkExtras.WideChannelPostsFooter": "Let bubbles use more of the screen width.",
             "ForkExtras.StickerSize": "Sticker Size",
             "ForkExtras.DoubleTapToEdit": "Double-Tap to Edit",
-            "ForkExtras.DoubleTapToEditFooter": "Double-tap your own message to edit it instead of reacting.",
+            "ForkExtras.DoubleTapToEditFooter": "Double-tap your own message to edit it. Edit is also in the message menu.",
             "ForkExtras.QuickTranslate": "Quick Translate",
             "ForkExtras.QuickTranslateFooter": "Always show Translate in the message menu.",
             "ForkExtras.SaveToCloud": "Save to Saved Messages",
@@ -242,7 +242,7 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.CompactChatList": "Компактный список чатов",
             "ForkExtras.CompactMessagePreview": "Компактное превью сообщений",
             "ForkExtras.CompactFolderNames": "Компактные названия папок",
-            "ForkExtras.UIDensityFooter": "Уменьшить высоту строк, число строк превью и размер названий папок.",
+            "ForkExtras.UIDensityFooter": "Плотнее список. Строки не ниже 44 pt, чтобы их было удобно нажимать.",
             "ForkExtras.HideReactionsBar": "Скрыть реакции",
             "ForkExtras.HideReactionsBarFooter": "Скрыть панель реакций под сообщениями.",
             "ForkExtras.ShowDC": "Показать DC и дату регистрации",
@@ -313,7 +313,7 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.ClearDeleted": "Очистить удалённые",
             "ForkExtras.NoDeleted": "Пока нет сохранённых удалённых сообщений.",
             "ForkExtras.NoEdits": "Предыдущих версий нет.",
-            "ForkExtras.HubFooter": "Дополнения форка по разделам. Невидимка — офлайн и прочтения; ниндзя — сохранение, фильтры и обход.",
+            "ForkExtras.HubFooter": "Каждая строка открывает grouped-список как в Настройках iOS: навигация, шиты и переключатели системные.",
             "ForkExtras.HubNinja": "Ниндзя",
             "ForkExtras.HubNinjaLabel": "Сохранение, фильтры, обход",
             "ForkExtras.HubGhost": "Невидимка",
@@ -331,14 +331,14 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.RememberLastFolder": "Запоминать последнюю папку",
             "ForkExtras.RememberLastFolderFooter": "Открывать последнюю папку после запуска или смены аккаунта.",
             "ForkExtras.HideTabBar": "Скрыть панель вкладок",
-            "ForkExtras.HideTabBarFooter": "Скрыть нижнюю панель Чаты / Контакты / Настройки.",
+            "ForkExtras.HideTabBarFooter": "На iPhone прячет Чаты / Контакты / Настройки снизу. На iPad панель вкладок всегда на месте.",
             "ForkExtras.ShowMessageSeconds": "Секунды во времени",
             "ForkExtras.ShowMessageSecondsFooter": "Показывать часы:минуты:секунды у сообщений.",
             "ForkExtras.WideChannelPosts": "Широкие посты",
             "ForkExtras.WideChannelPostsFooter": "Пузыри занимают больше ширины экрана.",
             "ForkExtras.StickerSize": "Размер стикеров",
             "ForkExtras.DoubleTapToEdit": "Двойной тап — править",
-            "ForkExtras.DoubleTapToEditFooter": "Двойной тап по своему сообщению открывает правку вместо реакции.",
+            "ForkExtras.DoubleTapToEditFooter": "Двойной тап по своему сообщению открывает правку. Правка также есть в меню сообщения.",
             "ForkExtras.QuickTranslate": "Быстрый перевод",
             "ForkExtras.QuickTranslateFooter": "Всегда показывать «Перевести» в меню сообщения.",
             "ForkExtras.SaveToCloud": "В Избранное",
@@ -989,27 +989,27 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         let arguments = arguments as! ForkExtrasControllerArguments
         switch self {
         case .hubNinja:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.hubNinja, label: ForkExtrasLocalizedString.hubNinjaLabel, sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.savedMessages, title: ForkExtrasLocalizedString.hubNinja, label: ForkExtrasLocalizedString.hubNinjaLabel, sectionId: self.section, style: .blocks, action: {
                 arguments.openCategory(.ninja)
             })
         case .hubGhost:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.hubGhost, label: ForkExtrasLocalizedString.hubGhostLabel, sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.stories, title: ForkExtrasLocalizedString.hubGhost, label: ForkExtrasLocalizedString.hubGhostLabel, sectionId: self.section, style: .blocks, action: {
                 arguments.openCategory(.ghost)
             })
         case .hubPrivacy:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.hubPrivacy, label: ForkExtrasLocalizedString.hubPrivacyLabel, sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.security, title: ForkExtrasLocalizedString.hubPrivacy, label: ForkExtrasLocalizedString.hubPrivacyLabel, sectionId: self.section, style: .blocks, action: {
                 arguments.openCategory(.privacy)
             })
         case .hubInterface:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.hubInterface, label: ForkExtrasLocalizedString.hubInterfaceLabel, sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.appearance, title: ForkExtrasLocalizedString.hubInterface, label: ForkExtrasLocalizedString.hubInterfaceLabel, sectionId: self.section, style: .blocks, action: {
                 arguments.openCategory(.interface)
             })
         case .hubChat:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.hubChat, label: ForkExtrasLocalizedString.hubChatLabel, sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.privateChats, title: ForkExtrasLocalizedString.hubChat, label: ForkExtrasLocalizedString.hubChatLabel, sectionId: self.section, style: .blocks, action: {
                 arguments.openCategory(.chat)
             })
         case .hubNetwork:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.hubNetwork, label: ForkExtrasLocalizedString.hubNetworkLabel, sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.proxy, title: ForkExtrasLocalizedString.hubNetwork, label: ForkExtrasLocalizedString.hubNetworkLabel, sectionId: self.section, style: .blocks, action: {
                 arguments.openCategory(.network)
             })
         case .hubFooter:
@@ -1107,7 +1107,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
                 arguments.updateShowProfileId(value)
             })
         case let .accentSaturation(percent):
-            return ItemListDisclosureItem(presentationData: presentationData, title: ForkExtrasLocalizedString.accentSaturation, label: "\(percent)%", sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.accentSaturation, label: "\(percent)%", sectionId: self.section, style: .blocks, action: {
                 arguments.openAccentSaturation()
             })
         case .privacyFooter:
@@ -1136,7 +1136,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             case .system:
                 label = ForkExtrasLocalizedString.backendSystem
             }
-            return ItemListDisclosureItem(presentationData: presentationData, title: ForkExtrasLocalizedString.translationBackend, label: label, sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.translationBackend, label: label, sectionId: self.section, style: .blocks, action: {
                 arguments.openTranslationBackend()
             })
         case let .transcriptionBackend(backend):
@@ -1147,7 +1147,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             case .apple:
                 label = ForkExtrasLocalizedString.backendApple
             }
-            return ItemListDisclosureItem(presentationData: presentationData, title: ForkExtrasLocalizedString.transcriptionBackend, label: label, sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.transcriptionBackend, label: label, sectionId: self.section, style: .blocks, action: {
                 arguments.openTranscriptionBackend()
             })
         case .translationFooter:
@@ -1308,7 +1308,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case .wideChannelPostsFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.wideChannelPostsFooter), sectionId: self.section)
         case let .stickerSize(percent):
-            return ItemListDisclosureItem(presentationData: presentationData, title: ForkExtrasLocalizedString.stickerSize, label: "\(percent)%", sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.stickerSize, label: "\(percent)%", sectionId: self.section, style: .blocks, action: {
                 arguments.openStickerSize()
             })
         case let .doubleTapToEdit(value):
@@ -1351,7 +1351,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             default:
                 label = ForkExtrasLocalizedString.outgoingPhotoQualityDefault
             }
-            return ItemListDisclosureItem(presentationData: presentationData, title: ForkExtrasLocalizedString.outgoingPhotoQuality, label: label, sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.outgoingPhotoQuality, label: label, sectionId: self.section, style: .blocks, action: {
                 arguments.openOutgoingPhotoQuality()
             })
         case .outgoingPhotoQualityFooter:
@@ -1552,12 +1552,13 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
     var presentControllerImpl: ((ViewController) -> Void)?
     var pushControllerImpl: ((ViewController) -> Void)?
 
-    func presentPicker(title: String, options: [(String, () -> Void)]) {
+    func presentPicker(title: String, options: [(String, () -> Void)], destructiveTitles: Set<String> = []) {
         let presentationData = context.sharedContext.currentPresentationData.with { $0 }
         let actionSheet = ActionSheetController(presentationData: presentationData)
         var items: [ActionSheetItem] = [ActionSheetTextItem(title: title)]
         for (optionTitle, action) in options {
-            items.append(ActionSheetButtonItem(title: optionTitle, action: { [weak actionSheet] in
+            let color: ActionSheetButtonColor = destructiveTitles.contains(optionTitle) ? .destructive : .accent
+            items.append(ActionSheetButtonItem(title: optionTitle, color: color, action: { [weak actionSheet] in
                 actionSheet?.dismissAnimated()
                 action()
             }))
@@ -1947,7 +1948,8 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
                     (ForkExtrasLocalizedString.importMessageSavingReplace, {
                         ForkExtrasMessageSavingImportPresenter.shared.present(replace: true, context: context, present: { presentControllerImpl?($0) })
                     }),
-                ]
+                ],
+                destructiveTitles: [ForkExtrasLocalizedString.importMessageSavingReplace]
             )
         },
         openCategory: { category in

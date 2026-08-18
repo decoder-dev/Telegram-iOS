@@ -208,6 +208,11 @@ public enum ForkExtrasHotFlags {
         get { return state.with { $0.hideTabBar } }
         set { let _ = state.modify { var s = $0; s.hideTabBar = newValue; return s } }
     }
+
+    /// HIG: the tab bar is primary navigation. iPad always keeps it.
+    public static func hidesTabBar(_ enabled: Bool = ForkExtrasHotFlags.hideTabBar, isPad: Bool) -> Bool {
+        return enabled && !isPad
+    }
     public static var showMessageSeconds: Bool {
         get { return state.with { $0.showMessageSeconds } }
         set { let _ = state.modify { var s = $0; s.showMessageSeconds = newValue; return s } }
