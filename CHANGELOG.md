@@ -4,6 +4,13 @@
 Тег релиза = `v{app}-{tagSuffix}` (например `v12.9.2-3845`); CI кладёт секцию тега в GitHub Release notes.
 Теги `*-pre` публикуются как GitHub **pre-release** (не Latest).
 
+## [Unreleased]
+
+### Changed
+- Extra и список чатов ближе к **Apple HIG** (платформенное поведение, не чужой визуал): grouped Extra с иконками Settings, стекла на disclosure, destructive «Заменить» при импорте БД.
+- «Скрыть tab bar» на iPad больше не прячет панель вкладок (на iPadOS tab bar — основная навигация).
+- Компактный список чатов не сжимает строки ниже 44 pt.
+
 ## [v12.9.2-3855-pre] — 2026-08-18
 
 Pre-release: hardening extras crash paths. Sideload smoke, не Latest.

@@ -301,7 +301,7 @@ private final class ItemNode: ASDisplayNode {
         self.shortTitleActiveNode.visibility = title.enableAnimations
         
         if themeUpdated || titleUpdated {
-            let titleFontSize: CGFloat = self.context.sharedContext.immediateForkExtrasSettings.compactFolderNames ? 12.0 : 14.0
+            let titleFontSize: CGFloat = self.context.sharedContext.immediateForkExtrasSettings.compactFolderNames ? 13.0 : 14.0
             self.titleNode.attributedText = title.attributedString(font: Font.medium(titleFontSize), textColor: presentationData.theme.chat.inputPanel.panelControlColor)
             self.titleActiveNode.attributedText = title.attributedString(font: Font.medium(titleFontSize), textColor: presentationData.theme.chat.inputPanel.panelControlColor)
 

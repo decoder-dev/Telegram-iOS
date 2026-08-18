@@ -254,7 +254,7 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
         self.hideTabBarDisposable?.dispose()
         var appliedHideTabBar = false
         self.hideTabBarDisposable = (forkExtrasSettings(accountManager: self.context.sharedContext.accountManager)
-        |> map { $0.hideTabBar }
+        |> map { ForkExtrasHotFlags.hidesTabBar($0.hideTabBar, isPad: UIDevice.current.userInterfaceIdiom == .pad) }
         |> distinctUntilChanged
         |> deliverOnMainQueue).startStrict(next: { [weak self] hidden in
             if !appliedHideTabBar {
