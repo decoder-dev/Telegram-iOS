@@ -30,3 +30,28 @@ public func updateProxySettingsInteractively(transaction: AccountManagerModifier
     })
     return hasChanges
 }
+
+func applySharedProxySettingsToNetwork(settings: ProxySettings, network: Network) {
+    let previousForceLocalDNS = network.context.forceLocalDNS
+    network.context.forceLocalDNS = settings.useLocalDNSForProxyHosts
+    let updated = settings.effectiveActiveServer.flatMap { activeServer -> MTSocksProxySettings? in
+        return activeServer.mtProxySettings
+    }
+    network.context.updateApiEnvironment { environment in
+        let current = environment?.socksProxySettings
+        let updateNetwork: Bool
+        if previousForceLocalDNS != settings.useLocalDNSForProxyHosts {
+            updateNetwork = true
+        } else if let current = current, let updated = updated {
+            updateNetwork = !current.isEqual(updated)
+        } else {
+            updateNetwork = (current != nil) != (updated != nil)
+        }
+        if updateNetwork {
+            network.dropConnectionStatus()
+            return environment?.withUpdatedSocksProxySettings(updated)
+        } else {
+            return nil
+        }
+    }
+}
