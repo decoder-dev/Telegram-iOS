@@ -871,7 +871,7 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
             var imageBottomPadding: CGFloat = 0.0
             var imageHorizontalOffset: CGFloat = 0.0
             if !(telegramFile?.videoThumbnails.isEmpty ?? true) {
-                displaySize = CGSize(width: 240.0, height: 240.0)
+                displaySize = CGSize(width: 240.0 * stickerScale, height: 240.0 * stickerScale)
                 imageVerticalInset = -20.0
                 imageHorizontalOffset = 12.0
             }

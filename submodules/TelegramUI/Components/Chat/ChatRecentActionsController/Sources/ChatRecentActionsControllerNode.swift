@@ -751,6 +751,7 @@ final class ChatRecentActionsControllerNode: ViewControllerTracingNode {
         }, openCheckoutOrReceipt: { _, _ in
         }, openSearch: {
         }, setupReply: { _ in
+        }, setupEditMessage: { _ in
         }, canSetupReply: { _ in
             return .none
         }, canSendMessages: {

@@ -2544,6 +2544,8 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             },
             setupReply: { _ in
             },
+            setupEditMessage: { _ in
+            },
             canSetupReply: { _ in
                 return .none
             },

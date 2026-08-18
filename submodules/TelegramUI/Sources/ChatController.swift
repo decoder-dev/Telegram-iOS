@@ -3688,6 +3688,8 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         }, openSearch: {
         }, setupReply: { [weak self] messageId in
             self?.interfaceInteraction?.setupReplyMessage(messageId, nil, { _, f in f() })
+        }, setupEditMessage: { [weak self] messageId in
+            self?.interfaceInteraction?.setupEditMessage(messageId, { _ in })
         }, canSetupReply: { [weak self] message in
             if Namespaces.Message.allEphemeral.contains(message.id.namespace) {
                 if !message.flags.contains(.Incoming) {
