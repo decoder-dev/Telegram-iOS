@@ -4,6 +4,13 @@
 Тег релиза = `v{app}-{tagSuffix}` (например `v12.9.2-3845`); CI кладёт секцию тега в GitHub Release notes.
 Теги `*-pre` публикуются как GitHub **pre-release** (не Latest).
 
+## [v12.9.2-3854-pre] — 2026-08-18
+
+Pre-release: фикс белого экрана при запуске. Sideload smoke, не Latest.
+
+### Fixed
+- Запуск больше не зависает на белом экране, если чат-лист не успевает стать ready (скрытие «Все чаты» / смена папки / `switchToFilter` без completion). Через 2.5 с UI всё равно показывается.
+
 ## [v12.9.2-3853-pre] — 2026-08-18
 
 Pre-release: Extra по разделам + фичи из Swiftgram. Sideload smoke, не Latest.

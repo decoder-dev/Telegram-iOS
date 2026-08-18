@@ -850,9 +850,14 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
                 }
             }
             if !availableFilters.contains(where: { $0.id == self.selectedId }) {
-                self.switchToFilter(id: .all, completion: {
+                let fallbackId = availableFilters.first?.id ?? .all
+                if fallbackId != self.selectedId, availableFilters.contains(where: { $0.id == fallbackId }) {
+                    self.switchToFilter(id: fallbackId, animated: false, completion: {
+                        apply()
+                    })
+                } else {
                     apply()
-                })
+                }
             } else {
                 apply()
             }
@@ -874,6 +879,9 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
         if id != self.selectedId, let index = self.availableFilters.firstIndex(where: { $0.id == id }) {
             if let itemNode = self.itemNodes[id] {
                 guard let (layout, navigationBarHeight, visualNavigationHeight, originalNavigationHeight, cleanNavigationBarHeight, insets, isReorderingFilters, isEditing, inlineNavigationLocation, inlineNavigationTransitionFraction, storiesInset) = self.validLayout else {
+                    self.selectedId = id
+                    self.applyItemNodeAsCurrent(id: id, itemNode: itemNode)
+                    completion?()
                     return
                 }
                 
@@ -1006,7 +1014,11 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
                     }
                     return
                 }
+            } else {
+                completion?()
             }
+        } else {
+            completion?()
         }
     }
     
