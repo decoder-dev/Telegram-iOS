@@ -76,7 +76,7 @@ public struct ICloudFileDescription {
     public let audioMetadata: AudioMetadata?
 }
 
-private let audioFileExtensions: Set<String> = ["mp3", "m4a", "aac", "flac"]
+private let audioFileExtensions: Set<String> = ["mp3", "m4a", "aac", "flac", "wav", "ogg", "opus", "aiff", "aif"]
 
 private func validatedAudioArtworkData(_ data: Data?) -> Data? {
     guard let data, UIImage(data: data) != nil else {
@@ -121,73 +121,113 @@ private func audioArtworkData(from asset: AVURLAsset) -> Data? {
     return nil
 }
 
+/// `startAccessingSecurityScopedResource()` returning false is not access denied:
+/// on iOS it also means the URL does not need a security scope (sandbox copies from
+/// UIDocumentPicker `.import`, already-readable local files). Only stop access when
+/// we actually started it.
+private func withSecurityScopedAccess<T>(_ url: URL, _ body: () -> T?) -> T? {
+    let scopedAccess = url.startAccessingSecurityScopedResource()
+    defer {
+        if scopedAccess {
+            url.stopAccessingSecurityScopedResource()
+        }
+    }
+    return body()
+}
+
+private func bookmarkDataForFile(url: URL) -> Data? {
+    if let data = try? url.bookmarkData(options: [], includingResourceValuesForKeys: nil, relativeTo: nil) {
+        return data
+    }
+    return try? url.bookmarkData(options: .suitableForBookmarkFile, includingResourceValuesForKeys: nil, relativeTo: nil)
+}
+
+private func fileSizeForUrl(_ url: URL) -> Int? {
+    if let values = try? url.resourceValues(forKeys: [.fileSizeKey, .totalFileSizeKey]) {
+        if let size = values.fileSize ?? values.totalFileSize {
+            return size
+        }
+    }
+    if let attrs = try? FileManager.default.attributesOfItem(atPath: url.path), let size = attrs[.size] as? NSNumber {
+        return size.intValue
+    }
+    return nil
+}
+
+private func displayFileName(for url: URL) -> String {
+    let lastComponent = url.lastPathComponent
+    if lastComponent.isEmpty {
+        return "file"
+    }
+    return (lastComponent as NSString).removingPercentEncoding ?? lastComponent
+}
+
+private func finiteAudioDurationSeconds(_ asset: AVURLAsset) -> Int? {
+    let seconds = CMTimeGetSeconds(asset.duration)
+    guard seconds.isFinite, seconds > 0.0, seconds < Double(Int.max) else {
+        return nil
+    }
+    return Int(seconds)
+}
+
+private func commonAudioTitleAndPerformer(from asset: AVURLAsset) -> (title: String?, performer: String?) {
+    let title = AVMetadataItem.metadataItems(from: asset.commonMetadata, withKey: AVMetadataKey.commonKeyTitle, keySpace: AVMetadataKeySpace.common).first?.stringValue
+    let performer = AVMetadataItem.metadataItems(from: asset.commonMetadata, withKey: AVMetadataKey.commonKeyArtist, keySpace: AVMetadataKeySpace.common).first?.stringValue
+    return (title, performer)
+}
+
+private func vorbisTitleAndPerformer(from asset: AVURLAsset) -> (title: String?, performer: String?) {
+    var title: String?
+    var performer: String?
+    let vorbisComment = AVMetadataFormat(rawValue: "org.xiph.vorbis-comment")
+    if asset.availableMetadataFormats.contains(vorbisComment) {
+        for item in asset.metadata(forFormat: vorbisComment) {
+            if item.commonKey == AVMetadataKey.commonKeyTitle {
+                title = item.stringValue
+            }
+            if item.commonKey == AVMetadataKey.commonKeyArtist {
+                performer = item.stringValue
+            }
+        }
+    }
+    return (title, performer)
+}
+
 private func descriptionWithUrl(_ url: URL) -> ICloudFileDescription? {
     if #available(iOSApplicationExtension 9.0, iOS 9.0, *) {
-        guard url.startAccessingSecurityScopedResource() else {
-            return nil
-        }
-        
-        guard let urlData = try? url.bookmarkData(options: URL.BookmarkCreationOptions.suitableForBookmarkFile, includingResourceValuesForKeys: nil, relativeTo: nil) else {
-            return nil
-        }
-        
-        guard let values = try? url.resourceValues(forKeys: Set([.fileSizeKey])), let fileSize = values.fileSize else {
-            return nil
-        }
-        
-        guard let fileName = (url.lastPathComponent as NSString).removingPercentEncoding else {
-            return nil
-        }
-        
-        var audioMetadata: ICloudFileDescription.AudioMetadata?
-        let fileExtension = url.pathExtension.lowercased()
-        var hasAudioArtwork = false
-        let audioAsset: AVURLAsset?
-        if audioFileExtensions.contains(fileExtension) {
-            let asset = AVURLAsset(url: url)
-            audioAsset = asset
-            hasAudioArtwork = audioArtworkData(from: asset) != nil
-        } else {
-            audioAsset = nil
-        }
-        if ["mp3", "m4a"].contains(fileExtension), let asset = audioAsset {
-            let title = AVMetadataItem.metadataItems(from: asset.commonMetadata, withKey: AVMetadataKey.commonKeyTitle, keySpace: AVMetadataKeySpace.common).first?.stringValue
-            let performer = AVMetadataItem.metadataItems(from: asset.commonMetadata, withKey: AVMetadataKey.commonKeyArtist, keySpace: AVMetadataKeySpace.common).first?.stringValue
-            let duration = CMTimeGetSeconds(asset.duration)
-            if duration > 0 {
-                audioMetadata = ICloudFileDescription.AudioMetadata(title: title, performer: performer, duration: Int(duration), hasAudioArtwork: hasAudioArtwork)
+        return withSecurityScopedAccess(url) {
+            guard let urlData = bookmarkDataForFile(url: url) else {
+                return nil
             }
-        } else if fileExtension == "flac", let asset = audioAsset {
-            var title: String?
-            var performer: String?
-            let vorbisComment = AVMetadataFormat(rawValue: "org.xiph.vorbis-comment")
-            if asset.availableMetadataFormats.contains(vorbisComment) {
-                let items = asset.metadata(forFormat: vorbisComment)
-                for item in items {
-                    if item.commonKey == AVMetadataKey.commonKeyTitle {
-                        title = item.stringValue
+            
+            guard let fileSize = fileSizeForUrl(url) else {
+                return nil
+            }
+            
+            let fileName = displayFileName(for: url)
+            
+            var audioMetadata: ICloudFileDescription.AudioMetadata?
+            let fileExtension = url.pathExtension.lowercased()
+            var hasAudioArtwork = false
+            if audioFileExtensions.contains(fileExtension) {
+                let asset = AVURLAsset(url: url)
+                hasAudioArtwork = audioArtworkData(from: asset) != nil
+                if let duration = finiteAudioDurationSeconds(asset) {
+                    var titleAndPerformer = commonAudioTitleAndPerformer(from: asset)
+                    if titleAndPerformer.title == nil && titleAndPerformer.performer == nil && (fileExtension == "flac" || fileExtension == "ogg" || fileExtension == "opus") {
+                        titleAndPerformer = vorbisTitleAndPerformer(from: asset)
                     }
-                    if item.commonKey == AVMetadataKey.commonKeyArtist {
-                        performer = item.stringValue
-                    }
+                    audioMetadata = ICloudFileDescription.AudioMetadata(title: titleAndPerformer.title, performer: titleAndPerformer.performer, duration: duration, hasAudioArtwork: hasAudioArtwork)
                 }
             }
-            let duration = CMTimeGetSeconds(asset.duration)
-            if duration > 0 {
-                audioMetadata = ICloudFileDescription.AudioMetadata(title: title, performer: performer, duration: Int(duration), hasAudioArtwork: hasAudioArtwork)
-            }
+            
+            return ICloudFileDescription(
+                urlData: urlData.base64EncodedString(),
+                fileName: fileName,
+                fileSize: fileSize,
+                audioMetadata: audioMetadata
+            )
         }
-        
-        let result = ICloudFileDescription(
-            urlData: urlData.base64EncodedString(),
-            fileName: fileName,
-            fileSize: fileSize,
-            audioMetadata: audioMetadata
-        )
-        
-        url.stopAccessingSecurityScopedResource()
-        
-        return result
     } else {
         return nil
     }
@@ -197,6 +237,13 @@ public func iCloudFileDescription(_ url: URL) -> Signal<ICloudFileDescription?, 
     return Signal { subscriber in
         var isRemote = false
         var isCurrent = true
+        
+        let scopedAccess = url.startAccessingSecurityScopedResource()
+        defer {
+            if scopedAccess {
+                url.stopAccessingSecurityScopedResource()
+            }
+        }
         
         if let values = try? url.resourceValues(forKeys: Set([URLResourceKey.ubiquitousItemDownloadingStatusKey])), let status = values.ubiquitousItemDownloadingStatus {
             isRemote = true
@@ -251,15 +298,54 @@ public func iCloudFileDescription(_ url: URL) -> Signal<ICloudFileDescription?, 
     }
 }
 
-private final class ICloudFileResourceCopyItem: EngineRawMediaResourceDataFetchCopyLocalItem {
+private final class SecurityScopedAccess {
     private let url: URL
+    private let lock = NSLock()
+    private var active: Bool
     
-    init(url: URL) {
+    init(url: URL, active: Bool) {
         self.url = url
+        self.active = active
+    }
+    
+    func transfer() -> Bool {
+        self.lock.lock()
+        defer {
+            self.lock.unlock()
+        }
+        let wasActive = self.active
+        self.active = false
+        return wasActive
+    }
+    
+    func stop() {
+        self.lock.lock()
+        let shouldStop = self.active
+        self.active = false
+        self.lock.unlock()
+        if shouldStop {
+            self.url.stopAccessingSecurityScopedResource()
+        }
     }
     
     deinit {
-        self.url.stopAccessingSecurityScopedResource()
+        self.stop()
+    }
+}
+
+private final class ICloudFileResourceCopyItem: EngineRawMediaResourceDataFetchCopyLocalItem {
+    private let url: URL
+    private let holdsScopedAccess: Bool
+    
+    init(url: URL, holdsScopedAccess: Bool) {
+        self.url = url
+        self.holdsScopedAccess = holdsScopedAccess
+    }
+    
+    deinit {
+        if self.holdsScopedAccess {
+            self.url.stopAccessingSecurityScopedResource()
+        }
     }
     
     func copyTo(url: URL) -> Bool {
@@ -288,6 +374,14 @@ public func fetchICloudFileResource(resource: ICloudFileResource) -> Signal<Engi
             return EmptyDisposable
         }
         
+        let scopedAccess = url.startAccessingSecurityScopedResource()
+        guard scopedAccess || FileManager.default.isReadableFile(atPath: url.path) else {
+            subscriber.putCompletion()
+            return EmptyDisposable
+        }
+        
+        let access = SecurityScopedAccess(url: url, active: scopedAccess)
+        
         var isRemote = false
         var isCurrent = true
         
@@ -298,13 +392,11 @@ public func fetchICloudFileResource(resource: ICloudFileResource) -> Signal<Engi
             }
         }
         
-        guard url.startAccessingSecurityScopedResource() else {
-            subscriber.putCompletion()
-            return EmptyDisposable
-        }
-        
         let complete = {
             if resource.thumbnail {
+                defer {
+                    access.stop()
+                }
                 let tempFile = EngineTempBox.shared.tempFile(fileName: "thumb.jpg")
                 var data = Data()
                 let fileExtension = url.pathExtension.lowercased()
@@ -323,13 +415,12 @@ public func fetchICloudFileResource(resource: ICloudFileResource) -> Signal<Engi
                     subscriber.putNext(.moveTempFile(file: tempFile))
                 }
             } else {
-                subscriber.putNext(.copyLocalItem(ICloudFileResourceCopyItem(url: url)))
+                subscriber.putNext(.copyLocalItem(ICloudFileResourceCopyItem(url: url, holdsScopedAccess: access.transfer())))
             }
             subscriber.putCompletion()
         }
         
         if !isRemote || isCurrent {
-            //url.stopAccessingSecurityScopedResource()
             complete()
             return EmptyDisposable
         }
@@ -338,15 +429,16 @@ public func fetchICloudFileResource(resource: ICloudFileResource) -> Signal<Engi
         let fileAccessIntent = NSFileAccessIntent.readingIntent(with: url, options: [.withoutChanges])
         fileCoordinator.coordinate(with: [fileAccessIntent], queue: OperationQueue.main, byAccessor: { error in
             if error == nil {
-                //url.stopAccessingSecurityScopedResource()
                 complete()
             } else {
+                access.stop()
                 subscriber.putCompletion()
             }
         })
         
         return ActionDisposable {
             fileCoordinator.cancel()
+            access.stop()
         }
     }
 }
