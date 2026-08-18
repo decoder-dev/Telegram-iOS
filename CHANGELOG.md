@@ -4,6 +4,15 @@
 Тег релиза = `v{app}-{tagSuffix}` (например `v12.9.2-3845`); CI кладёт секцию тега в GitHub Release notes.
 Теги `*-pre` публикуются как GitHub **pre-release** (не Latest).
 
+## [Unreleased]
+
+### Fixed
+- iPad: Extra → экспорт/импорт БД сохранённых сообщений и шаринг вложений больше не падают из‑за `UIActivityViewController` / document picker без popover.
+- Отправка фото (качество 1920/2560): не крашит на `PHImageResultIsDegradedKey` и `TGScaleImageToPixelSize`.
+- Удаление / превью стикера при нулевых bounds больше не ловит `UIGraphicsGetCurrentContext()`.
+- Двойной тап «править» не открывает редактор для стикеров, опросов и просроченных сообщений.
+- Скрытие «Все чаты»: переключение папки не зависает на `.all`, leftover-папка убирается, пункт «Все чаты» в меню скрыт.
+
 ## [v12.9.2-3854-pre] — 2026-08-18
 
 Pre-release: фикс белого экрана при запуске. Sideload smoke, не Latest.

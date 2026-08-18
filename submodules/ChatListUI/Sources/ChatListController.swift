@@ -4094,7 +4094,11 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
             if !strongSelf.initializedFilters, ForkExtrasHotFlags.rememberLastFolder {
                 let storedId = ForkLastChatListFilter.storedId
                 if storedId == 0 {
-                    selectedEntryId = .all
+                    if hideAllChatsTab {
+                        selectedEntryId = firstItemEntryId
+                    } else {
+                        selectedEntryId = .all
+                    }
                 } else if resolvedItems.contains(where: { $0.id == .filter(storedId) }) {
                     selectedEntryId = .filter(storedId)
                 }
@@ -4104,8 +4108,8 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                 resetCurrentEntry = true
                 if let tabContainerData = strongSelf.tabContainerData {
                     var found = false
-                    if let index = tabContainerData.0.firstIndex(where: { $0.id == selectedEntryId }) {
-                        for i in (0 ..< index - 1).reversed() {
+                    if let index = tabContainerData.0.firstIndex(where: { $0.id == selectedEntryId }), index > 0 {
+                        for i in (0 ... index - 1).reversed() {
                             if resolvedItems.contains(where: { $0.id == tabContainerData.0[i].id }) {
                                 selectedEntryId = tabContainerData.0[i].id
                                 found = true
@@ -4114,18 +4118,10 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                         }
                     }
                     if !found {
-                        if hideAllChatsTab, let firstId = resolvedItems.first?.id {
-                            selectedEntryId = firstId
-                        } else {
-                            selectedEntryId = .all
-                        }
+                        selectedEntryId = firstItemEntryId
                     }
                 } else {
-                    if hideAllChatsTab, let firstId = resolvedItems.first?.id {
-                        selectedEntryId = firstId
-                    } else {
-                        selectedEntryId = .all
-                    }
+                    selectedEntryId = firstItemEntryId
                 }
             }
             let filtersLimit = isPremium == false ? limits.maxFoldersCount : nil
@@ -4154,6 +4150,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
             strongSelf.chatListDisplayNode.mainContainerNode.updateAvailableFilters(availableFilters, limit: filtersLimit)
             
             if isPremium == nil && items.isEmpty {
+                strongSelf.initializedFilters = true
                 strongSelf.mainReady.set(strongSelf.chatListDisplayNode.mainContainerNode.currentItemNode.ready)
             } else if !strongSelf.initializedFilters {
                 strongSelf.initializedFilters = true
@@ -4241,7 +4238,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                 if strongSelf.chatListDisplayNode.inlineStackContainerNode != nil {
                     strongSelf.setInlineChatList(location: nil)
                 }
-                strongSelf.chatListDisplayNode.mainContainerNode.switchToFilter(id: updatedFilter.flatMap { .filter($0.id) } ?? .all)
+                strongSelf.chatListDisplayNode.mainContainerNode.switchToAvailableFilter(preferring: updatedFilter.flatMap { .filter($0.id) } ?? .all, animated: false)
             }
         })
     }
@@ -4342,7 +4339,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                 self.setInlineChatList(location: nil)
             }
             if self.chatListDisplayNode.mainContainerNode.currentItemNode.chatListFilter?.id != folderId {
-                self.chatListDisplayNode.mainContainerNode.switchToFilter(id: .filter(folderId), completion: {
+                self.chatListDisplayNode.mainContainerNode.switchToAvailableFilter(preferring: .filter(folderId), completion: {
                     completion()
                 })
             } else {
@@ -4624,7 +4621,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
             }
             
             if strongSelf.chatListDisplayNode.mainContainerNode.currentItemNode.chatListFilter?.id == id {
-                strongSelf.chatListDisplayNode.mainContainerNode.switchToFilter(id: .all, completion: {
+                strongSelf.chatListDisplayNode.mainContainerNode.switchToAvailableFilter(completion: {
                     commit()
                 })
             } else {
@@ -4702,8 +4699,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                                         return
                                     }
                                     if self.chatListDisplayNode.mainContainerNode.currentItemNode.chatListFilter?.id == id {
-                                        self.chatListDisplayNode.mainContainerNode.switchToFilter(id: .all, completion: {
-                                        })
+                                        self.chatListDisplayNode.mainContainerNode.switchToAvailableFilter()
                                     }
                                 }
                             )
@@ -6403,7 +6399,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                 })
             })))
             
-            if strongSelf.chatListDisplayNode.effectiveContainerNode.currentItemNode.chatListFilter != nil {
+            if strongSelf.chatListDisplayNode.effectiveContainerNode.currentItemNode.chatListFilter != nil, !ForkExtrasHotFlags.hideAllChats {
                 items.append(.action(ContextMenuActionItem(text: strongSelf.presentationData.strings.ChatList_FolderAllChats, icon: { theme in
                     return nil
                 }, action: { c, f in

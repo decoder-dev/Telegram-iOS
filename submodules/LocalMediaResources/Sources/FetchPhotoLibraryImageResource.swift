@@ -176,7 +176,15 @@ public func fetchPhotoLibraryResource(localIdentifier: String, width: Int32?, he
                             }
                         }
                         if let image = image {
-                            if let info = info, let degraded = info[PHImageResultIsDegradedKey], (degraded as AnyObject).boolValue!{
+                            let isDegraded: Bool
+                            if let degradedValue = info?[PHImageResultIsDegradedKey] as? Bool {
+                                isDegraded = degradedValue
+                            } else if let degradedNumber = info?[PHImageResultIsDegradedKey] as? NSNumber {
+                                isDegraded = degradedNumber.boolValue
+                            } else {
+                                isDegraded = false
+                            }
+                            if isDegraded {
 
                             } else {
 #if DEBUG

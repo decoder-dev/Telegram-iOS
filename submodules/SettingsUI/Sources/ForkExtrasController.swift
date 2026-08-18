@@ -9,6 +9,31 @@ import ItemListUI
 import PresentationDataUtils
 import AccountContext
 
+private func forkExtrasAnchorPopover(_ controller: UIViewController, window: UIWindow?) {
+    guard let window, let popover = controller.popoverPresentationController else {
+        return
+    }
+    popover.sourceView = window
+    popover.sourceRect = CGRect(origin: CGPoint(x: window.bounds.width / 2.0, y: window.bounds.size.height - 1.0), size: CGSize(width: 1.0, height: 1.0))
+    popover.permittedArrowDirections = []
+}
+
+private func forkExtrasKeyWindow() -> UIWindow? {
+    let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+    for scene in scenes {
+        if let window = scene.windows.first(where: { $0.isKeyWindow }) {
+            return window
+        }
+    }
+    return scenes.first?.windows.first
+}
+
+private func forkExtrasPresentNativeController(_ controller: UIViewController, context: AccountContext) {
+    let window = context.sharedContext.mainWindow?.viewController?.view.window ?? forkExtrasKeyWindow()
+    forkExtrasAnchorPopover(controller, window: window)
+    context.sharedContext.applicationBindings.presentNativeController(controller)
+}
+
 /// Document-picker bridge for MessageSaving JSON import (AyuGram DB import parity).
 private final class ForkExtrasMessageSavingImportPresenter: NSObject, UIDocumentPickerDelegate {
     static let shared = ForkExtrasMessageSavingImportPresenter()
@@ -25,14 +50,7 @@ private final class ForkExtrasMessageSavingImportPresenter: NSObject, UIDocument
         let picker = UIDocumentPickerViewController(documentTypes: ["public.json", "public.folder"], in: .open)
         picker.delegate = self
         picker.allowsMultipleSelection = false
-        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
-            return
-        }
-        var presenter = scene.windows.first(where: { $0.isKeyWindow })?.rootViewController
-        while let presented = presenter?.presentedViewController {
-            presenter = presented
-        }
-        presenter?.present(picker, animated: true)
+        forkExtrasPresentNativeController(picker, context: context)
     }
 
     func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
@@ -1917,14 +1935,7 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
             activity.completionWithItemsHandler = { _, _, _, _ in
                 try? FileManager.default.removeItem(at: url)
             }
-            guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
-                return
-            }
-            var presenter = scene.windows.first(where: { $0.isKeyWindow })?.rootViewController
-            while let presented = presenter?.presentedViewController {
-                presenter = presented
-            }
-            presenter?.present(activity, animated: true)
+            forkExtrasPresentNativeController(activity, context: context)
         },
         importMessageSavingDatabase: {
             presentPicker(
