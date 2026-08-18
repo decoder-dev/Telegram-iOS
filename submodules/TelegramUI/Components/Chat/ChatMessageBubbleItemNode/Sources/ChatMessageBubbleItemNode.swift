@@ -3965,12 +3965,12 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
         let backgroundType: ChatMessageBackgroundType
         if hideBackground {
             backgroundType = .none
+        } else if !item.presentationData.chatBubbleCorners.hasTails {
+            backgroundType = incoming ? .incoming(.Extracted) : .outgoing(.Extracted)
         } else if !incoming {
             backgroundType = .outgoing(mergeType)
         } else {
             if case let .messageOptions(_, _, info) = item.associatedData.subject, case let .link(link) = info, link.isCentered {
-                backgroundType = .incoming(.Extracted)
-            } else if !item.presentationData.chatBubbleCorners.hasTails {
                 backgroundType = .incoming(.Extracted)
             } else {
                 backgroundType = .incoming(mergeType)

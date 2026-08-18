@@ -78,6 +78,16 @@ public struct PresentationChatBubbleCorners: Equatable, Hashable {
     }
 }
 
+/// Apple HIG / iMessage geometry for every chat: continuous corners, no comic tails.
+public func higChatBubbleCorners(from settings: PresentationChatBubbleSettings) -> PresentationChatBubbleCorners {
+    return PresentationChatBubbleCorners(
+        mainRadius: max(CGFloat(settings.mainRadius), 18.0),
+        auxiliaryRadius: max(CGFloat(settings.auxiliaryRadius), 10.0),
+        mergeBubbleCorners: settings.mergeBubbleCorners,
+        hasTails: false
+    )
+}
+
 public final class PresentationData: Equatable {
     public let strings: PresentationStrings
     public let theme: PresentationTheme
@@ -425,7 +435,7 @@ public func currentPresentationDataAndSettings(accountManager: AccountManager<Te
         
         let (chatFontSize, listsFontSize) = resolveFontSize(settings: themeSettings)
         
-        let chatBubbleCorners = PresentationChatBubbleCorners(mainRadius: CGFloat(themeSettings.chatBubbleSettings.mainRadius), auxiliaryRadius: CGFloat(themeSettings.chatBubbleSettings.auxiliaryRadius), mergeBubbleCorners: themeSettings.chatBubbleSettings.mergeBubbleCorners)
+        let chatBubbleCorners = higChatBubbleCorners(from: themeSettings.chatBubbleSettings)
         
         return InitialPresentationDataAndSettings(presentationData: PresentationData(strings: stringsValue, theme: theme, autoNightModeTriggered: autoNightModeTriggered, chatWallpaper: effectiveChatWallpaper, chatFontSize: chatFontSize, chatBubbleCorners: chatBubbleCorners, listsFontSize: listsFontSize, dateTimeFormat: dateTimeFormat, nameDisplayOrder: nameDisplayOrder, nameSortOrder: nameSortOrder, reduceMotion: themeSettings.reduceMotion, largeEmoji: themeSettings.largeEmoji), automaticMediaDownloadSettings: automaticMediaDownloadSettings, autodownloadSettings: autodownloadSettings, callListSettings: callListSettings, inAppNotificationSettings: inAppNotificationSettings, mediaInputSettings: mediaInputSettings, mediaDisplaySettings: mediaDisplaySettings, stickerSettings: stickerSettings, chatSettings: chatSettings, experimentalUISettings: experimentalUISettings)
     }
@@ -832,7 +842,7 @@ public func updatedPresentationData(accountManager: AccountManager<TelegramAccou
                         
                         let (chatFontSize, listsFontSize) = resolveFontSize(settings: themeSettings)
                         
-                        let chatBubbleCorners = PresentationChatBubbleCorners(mainRadius: CGFloat(themeSettings.chatBubbleSettings.mainRadius), auxiliaryRadius: CGFloat(themeSettings.chatBubbleSettings.auxiliaryRadius), mergeBubbleCorners: themeSettings.chatBubbleSettings.mergeBubbleCorners)
+                        let chatBubbleCorners = higChatBubbleCorners(from: themeSettings.chatBubbleSettings)
                         
                         return PresentationData(strings: stringsValue, theme: themeValue, autoNightModeTriggered: autoNightModeTriggered, chatWallpaper: effectiveChatWallpaper, chatFontSize: chatFontSize, chatBubbleCorners: chatBubbleCorners, listsFontSize: listsFontSize, dateTimeFormat: dateTimeFormat, nameDisplayOrder: nameDisplayOrder, nameSortOrder: nameSortOrder, reduceMotion: themeSettings.reduceMotion, largeEmoji: themeSettings.largeEmoji)
                     }
@@ -867,7 +877,7 @@ public func defaultPresentationData() -> PresentationData {
     
     let (chatFontSize, listsFontSize) = resolveFontSize(settings: themeSettings)
     
-    let chatBubbleCorners = PresentationChatBubbleCorners(mainRadius: CGFloat(themeSettings.chatBubbleSettings.mainRadius), auxiliaryRadius: CGFloat(themeSettings.chatBubbleSettings.auxiliaryRadius), mergeBubbleCorners: themeSettings.chatBubbleSettings.mergeBubbleCorners)
+    let chatBubbleCorners = higChatBubbleCorners(from: themeSettings.chatBubbleSettings)
     
     return PresentationData(strings: defaultPresentationStrings, theme: defaultPresentationTheme, autoNightModeTriggered: false, chatWallpaper: defaultPresentationTheme.chat.defaultWallpaper, chatFontSize: chatFontSize, chatBubbleCorners: chatBubbleCorners, listsFontSize: listsFontSize, dateTimeFormat: dateTimeFormat, nameDisplayOrder: nameDisplayOrder, nameSortOrder: nameSortOrder, reduceMotion: themeSettings.reduceMotion, largeEmoji: themeSettings.largeEmoji)
 }

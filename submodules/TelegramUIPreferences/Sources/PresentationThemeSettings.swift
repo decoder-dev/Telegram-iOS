@@ -558,7 +558,7 @@ public struct PresentationChatBubbleSettings: Codable, Equatable {
     public var auxiliaryRadius: Int32
     public var mergeBubbleCorners: Bool
     
-    public static var `default`: PresentationChatBubbleSettings = PresentationChatBubbleSettings(mainRadius: 16, auxiliaryRadius: 8, mergeBubbleCorners: true)
+    public static var `default`: PresentationChatBubbleSettings = PresentationChatBubbleSettings(mainRadius: 18, auxiliaryRadius: 10, mergeBubbleCorners: true)
     
     public init(mainRadius: Int32, auxiliaryRadius: Int32, mergeBubbleCorners: Bool) {
         self.mainRadius = mainRadius
