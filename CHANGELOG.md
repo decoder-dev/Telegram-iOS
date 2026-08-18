@@ -4,7 +4,9 @@
 Тег релиза = `v{app}-{tagSuffix}` (например `v12.9.2-3845`); CI кладёт секцию тега в GitHub Release notes.
 Теги `*-pre` публикуются как GitHub **pre-release** (не Latest).
 
-## [Unreleased]
+## [v12.9.2-3855-pre] — 2026-08-18
+
+Pre-release: hardening extras crash paths. Sideload smoke, не Latest.
 
 ### Fixed
 - iPad: Extra → экспорт/импорт БД сохранённых сообщений и шаринг вложений больше не падают из‑за `UIActivityViewController` / document picker без popover.
