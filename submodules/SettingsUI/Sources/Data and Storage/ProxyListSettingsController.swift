@@ -378,14 +378,14 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
 private func proxySettingsControllerEntries(theme: PresentationTheme, strings: PresentationStrings, state: ProxySettingsControllerState, proxySettings: ProxySettings, statuses: [ProxyServerSettings: ProxyServerStatus], connectionStatus: ConnectionStatus) -> [ProxySettingsControllerEntry] {
     var entries: [ProxySettingsControllerEntry] = []
 
-    entries.append(.enabled(theme, strings.ChatSettings_ConnectionType_UseProxy, proxySettings.enabled, proxySettings.servers.isEmpty))
+    entries.append(.enabled(theme, strings.ChatSettings_ConnectionType_UseProxy, proxySettings.enabled, proxySettings.servers.isEmpty && !proxySettings.autoFetchPublicMtProxy))
     entries.append(.serversHeader(theme, strings.SocksProxySetup_SavedProxies))
     entries.append(.addServer(theme, strings.SocksProxySetup_AddProxy, state.editing))
     var index = 0
     var existingServers = Set<ProxyServerSettings>()
     let automatic = Set(proxySettings.automaticServers)
     for server in proxySettings.servers {
-        if automatic.contains(server), server != proxySettings.activeServer {
+        if automatic.contains(server) {
             continue
         }
         if !existingServers.insert(server).inserted {
@@ -449,14 +449,14 @@ private func proxySettingsControllerEntries(theme: PresentationTheme, strings: P
         autoRotateTitle = "Автосмена прокси"
         autoRotateInfo = "При проблемах с соединением переключаться на следующий сохранённый прокси."
         autoFetchTitle = "Авто MTProxy"
-        autoFetchInfo = "Скачивать публичные списки MTProxy (SoliSpirit и kort0881), мерить задержку и переключаться на самый быстрый живой. Это чужие серверы: они не читают чаты, но видят ваш IP. Свои прокси не удаляются."
+        autoFetchInfo = "Сам скачивает публичные списки и держит соединение на самом быстром живом MTProxy. В списке сохранённых авто-серверы не показываются. Чужие ноды не читают чаты, но видят IP."
     } else {
         useLocalDNSTitle = "Local DNS for Proxy"
         useLocalDNSInfo = "Resolve proxy hostnames via system DNS instead of Google DoH (avoids DoH timeouts)."
         autoRotateTitle = "Auto-rotate Proxies"
         autoRotateInfo = "When the active proxy has connection issues, switch to the next saved proxy."
         autoFetchTitle = "Auto MTProxy"
-        autoFetchInfo = "Download public MTProxy lists (SoliSpirit and kort0881), probe latency, and fail over to the fastest live server. These are third-party nodes: they cannot read chats, but they see your IP. Manually added proxies are kept."
+        autoFetchInfo = "Automatically downloads public lists and keeps the connection on the fastest live MTProxy. Auto servers are not shown in the saved list. Third-party nodes cannot read chats, but they see your IP."
     }
     entries.append(.useLocalDNS(theme, useLocalDNSTitle, proxySettings.useLocalDNSForProxyHosts))
     entries.append(.useLocalDNSInfo(theme, useLocalDNSInfo))
@@ -601,9 +601,7 @@ public func proxySettingsController(accountManager: AccountManager<TelegramAccou
     
     let statusesContext = ProxyServersStatuses(network: network, servers: proxySettings.get()
     |> map { proxySettings -> [ProxyServerSettings] in
-        return proxySettings.servers.filter { server in
-            !proxySettings.automaticServers.contains(server) || server == proxySettings.activeServer
-        }
+        return proxySettings.servers.filter { !proxySettings.automaticServers.contains($0) }
     })
     
     let signal = combineLatest(updatedPresentationData, statePromise.get(), proxySettings.get(), statusesContext.statuses(), network.connectionStatus)
@@ -716,7 +714,7 @@ public func proxySettingsController(accountManager: AccountManager<TelegramAccou
             |> deliverOnMainQueue).start(next: { settings in
                 var result = ""
                 for server in settings.servers {
-                    if settings.automaticServers.contains(server), server != settings.activeServer {
+                    if settings.automaticServers.contains(server) {
                         continue
                     }
                     if !result.isEmpty {

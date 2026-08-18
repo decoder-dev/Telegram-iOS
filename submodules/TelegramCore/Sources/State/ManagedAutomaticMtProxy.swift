@@ -222,6 +222,7 @@ private final class AutomaticMtProxyContext {
     private var excludedActiveServer: ProxyServerSettings?
     private var lastStoredAutomaticServers: [ProxyServerSettings] = []
     private var cachedFetchedServers: [ProxyServerSettings] = []
+    private var didReceiveSettings = false
     
     init(accountManager: AccountManager<TelegramAccountManagerTypes>, network: Network) {
         self.accountManager = accountManager
@@ -239,6 +240,8 @@ private final class AutomaticMtProxyContext {
             guard let self else {
                 return
             }
+            let isInitial = !self.didReceiveSettings
+            self.didReceiveSettings = true
             let wasEnabled = self.currentSettings.autoFetchPublicMtProxy
             self.currentSettings = settings
             if settings.autoFetchPublicMtProxy {
@@ -255,7 +258,7 @@ private final class AutomaticMtProxyContext {
                 }
                 let probe = Array(probeSource.prefix(automaticMtProxyProbeLimit))
                 self.candidateServers.set(.single(probe))
-                if !wasEnabled {
+                if isInitial || !wasEnabled {
                     self.restartAutoFetch(with: probe)
                 }
             } else {
@@ -367,17 +370,9 @@ private final class AutomaticMtProxyContext {
             let manualSet = Set(manual)
             let newAutomatic = fetched.filter { !manualSet.contains($0) }
             settings.automaticServers = newAutomatic
-            let visibleAuto: ProxyServerSettings?
-            if let active = settings.activeServer, newAutomatic.contains(active) {
-                visibleAuto = active
-            } else {
-                visibleAuto = newAutomatic.first
-                settings.activeServer = visibleAuto
-            }
-            if let visibleAuto {
-                settings.servers = [visibleAuto] + manual.filter { $0 != visibleAuto }
-            } else {
-                settings.servers = manual
+            settings.servers = manual
+            if settings.activeServer == nil || !(settings.activeServer.map(newAutomatic.contains) ?? false) {
+                settings.activeServer = newAutomatic.first
             }
             settings.enabled = true
             return settings
@@ -490,11 +485,10 @@ private final class AutomaticMtProxyContext {
                 return settings
             }
             let automatic = Set(settings.automaticServers)
-            let manual = settings.servers.filter { !automatic.contains($0) && $0 != best }
+            settings.servers = settings.servers.filter { !automatic.contains($0) && $0 != best }
             if !settings.automaticServers.contains(best) {
                 settings.automaticServers.insert(best, at: 0)
             }
-            settings.servers = [best] + manual
             settings.activeServer = best
             settings.enabled = true
             return settings
