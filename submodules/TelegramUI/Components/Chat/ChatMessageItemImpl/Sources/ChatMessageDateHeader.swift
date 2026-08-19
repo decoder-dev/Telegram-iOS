@@ -876,7 +876,8 @@ public final class ChatMessageDateHeaderNodeImpl: ListViewItemHeaderNode, ChatMe
 }
 
 private func avatarHeaderSize() -> CGFloat {
-    return 34.0
+    // Messages draws the group-chat avatar at 33pt.
+    return 33.0
 }
 
 public final class ChatMessageAvatarHeader: ListViewItemHeader {
