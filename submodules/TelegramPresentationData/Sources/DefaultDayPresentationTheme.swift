@@ -576,13 +576,6 @@ public func makeDefaultDayPresentationTheme(extendingThemeReference: Presentatio
         storyUnseenPrivateColors: PresentationThemeGradientColors(topColor: UIColor(rgb: 0x7CD636), bottomColor: UIColor(rgb: 0x26B470)),
         storySeenColors: PresentationThemeGradientColors(topColor: UIColor(rgb: 0xD8D8E1), bottomColor: UIColor(rgb: 0xD8D8E1))
     )
-    
-    let bubbleStrokeColor: UIColor
-    if day {
-        bubbleStrokeColor = serviceBackgroundColor.withMultiplied(hue: 0.999, saturation: 1.667, brightness: 1.1).withAlphaComponent(0.2)
-    } else {
-        bubbleStrokeColor = UIColor(white: 0.0, alpha: 0.2)
-    }
 
     let message = PresentationThemeChatMessage(
         incoming: PresentationThemePartedColors(
