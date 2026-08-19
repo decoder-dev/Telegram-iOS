@@ -808,7 +808,8 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
             // Matches the chat list, which dropped this inset: a 16 pt card here left white
             // stripes down both sides of Calls and Contacts while chats ran full width.
             let higCardInset: CGFloat = 0.0
-            let higCardRadius: CGFloat = higCardInset > 0.0 ? 20.0 : 0.0
+            // Rows are full width, so there is no card to round.
+            let higCardRadius: CGFloat = 0.0
             
             if currentItem?.presentationData.theme !== item.presentationData.theme {
                 updatedTheme = item.presentationData.theme
@@ -2010,17 +2011,7 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
                             
                             var topHighlightInset: CGFloat = (first || !nodeLayout.insets.top.isZero) ? 0.0 : separatorHeight
                             topHighlightInset -= nodeLayout.insets.top
-                            var maskedCorners: CACornerMask = []
-                            if higCardRadius > 0.0 {
-                                if first || firstWithHeader {
-                                    maskedCorners.insert(.layerMinXMinYCorner)
-                                    maskedCorners.insert(.layerMaxXMinYCorner)
-                                }
-                                if last {
-                                    maskedCorners.insert(.layerMinXMaxYCorner)
-                                    maskedCorners.insert(.layerMaxXMaxYCorner)
-                                }
-                            }
+                            let maskedCorners: CACornerMask = []
                             strongSelf.backgroundNode.cornerRadius = higCardRadius
                             strongSelf.backgroundNode.layer.maskedCorners = maskedCorners
                             strongSelf.backgroundNode.clipsToBounds = higCardRadius > 0.0
