@@ -302,7 +302,7 @@ public func archiveSettingsController(context: AccountContext) -> ViewController
             ArchiveLockSession.shared.relock()
             sessionUnlockedPromise.set(false)
             Queue.mainQueue().after(0.3, {
-                dismissOpenArchiveControllers(from: navigationControllerImpl?())
+                dismissOpenArchiveControllers(from: navigationControllerImpl?(), context: context)
             })
         }
     )

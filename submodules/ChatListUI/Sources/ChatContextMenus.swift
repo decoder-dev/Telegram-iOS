@@ -58,7 +58,7 @@ func archiveContextMenuItems(context: AccountContext, group: EngineChatList.Grou
             if ArchiveLockSession.shared.isUnlocked {
                 items.append(.action(ContextMenuActionItem(text: ArchiveLockLocalizedString.lockArchiveAction, icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Lock"), color: theme.contextMenu.primaryColor) }, action: { [weak chatListController] _, f in
                     ArchiveLockSession.shared.relock()
-                    dismissOpenArchiveControllers(from: chatListController?.navigationController)
+                    dismissOpenArchiveControllers(from: chatListController?.navigationController, context: context)
                     f(.default)
                 })))
             }
@@ -411,7 +411,7 @@ func chatContextMenuItems(context: AccountContext, peerId: EnginePeer.Id, promoI
                             }
                         }
                         
-                        let archiveEnabled = !isSavedMessages && peerId != EnginePeer.Id(namespace: Namespaces.Peer.CloudUser, id: EnginePeer.Id.Id._internalFromInt64Value(777000)) && peerId == context.account.peerId
+                        let archiveEnabled = !isSavedMessages && peerId != EnginePeer.Id(namespace: Namespaces.Peer.CloudUser, id: EnginePeer.Id.Id._internalFromInt64Value(777000)) && peerId != context.account.peerId
                         if let group = peerGroup {
                             if archiveEnabled {
                                 let isArchived = group == .archive
@@ -419,7 +419,7 @@ func chatContextMenuItems(context: AccountContext, peerId: EnginePeer.Id, promoI
                                     if isArchived {
                                         let _ = (context.engine.peers.updatePeersGroupIdInteractively(peerIds: [peerId], groupId: .root)
                                                  |> deliverOnMainQueue).startStandalone(completed: {
-                                            lockArchiveAfterUnarchive(navigationController: chatListController?.navigationController)
+                                            lockArchiveAfterUnarchive(navigationController: chatListController?.navigationController, context: context)
                                             f(.default)
                                         })
                                     } else {
@@ -429,6 +429,7 @@ func chatContextMenuItems(context: AccountContext, peerId: EnginePeer.Id, promoI
                                         } else {
                                             let _ = (context.engine.peers.updatePeersGroupIdInteractively(peerIds: [peerId], groupId: .archive)
                                                      |> deliverOnMainQueue).startStandalone(completed: {
+                                                clearStaleArchiveNotifications(context: context, peerIds: [peerId])
                                                 f(.default)
                                             })
                                         }

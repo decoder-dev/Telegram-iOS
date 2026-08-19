@@ -1937,6 +1937,36 @@ public final class ChatListNode: ListViewImpl {
             }
         }
         
+        struct MessageFilterSettingsFingerprint: Equatable {
+            var hideBlockedMessages: Bool
+            var regexEnabled: Bool
+            var regexCaseInsensitive: Bool
+            var regexPatterns: [String]
+            var blockedRevision: UInt64
+        }
+        let messageFilterSettings: Signal<MessageFilterSettingsFingerprint, NoError> = combineLatest(
+            forkExtrasSettings(accountManager: context.sharedContext.accountManager)
+            |> map { settings -> (Bool, Bool, Bool, [String]) in
+                return (settings.hideBlockedMessages, settings.regexMessageFiltersEnabled, settings.regexMessageFiltersCaseInsensitive, settings.regexMessageFilterPatterns)
+            },
+            ForkBlockedPeersFilter.updates
+        )
+        |> map { extras, blockedRevision -> MessageFilterSettingsFingerprint in
+            return MessageFilterSettingsFingerprint(
+                hideBlockedMessages: extras.0,
+                regexEnabled: extras.1,
+                regexCaseInsensitive: extras.2,
+                regexPatterns: extras.3,
+                blockedRevision: blockedRevision
+            )
+        }
+        |> distinctUntilChanged
+        
+        let chatListViewUpdateForFilters = combineLatest(chatListViewUpdate, messageFilterSettings)
+        |> map { update, _ -> (ChatListNodeViewUpdate, ChatListFilter?) in
+            return update
+        }
+        
         let previousState = Atomic<ChatListNodeState>(value: self.currentState)
         let previousView = Atomic<ChatListNodeView?>(value: nil)
         let previousHideArchivedFolderByDefault = Atomic<Bool?>(value: nil)
@@ -2193,7 +2223,7 @@ public final class ChatListNode: ListViewImpl {
             displayArchiveIntro,
             storageInfo,
             savedMessagesPeer,
-            chatListViewUpdate,
+            chatListViewUpdateForFilters,
             self.statePromise.get(),
             contacts,
             chatListFilters,

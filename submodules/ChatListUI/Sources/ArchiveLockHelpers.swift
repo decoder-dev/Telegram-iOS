@@ -40,7 +40,7 @@ private func clearDeliveredNotifications(forPeerIds peerIds: Set<Int64>) {
     }
     UNUserNotificationCenter.current().getDeliveredNotifications(completionHandler: { notifications in
         let matchingIdentifiers = notifications.compactMap { notification -> String? in
-            guard let peerIdString = notification.request.content.userInfo["peerId"] as? String, let peerIdValue = Int64(peerIdString), peerIds.contains(peerIdValue) else {
+            guard let peerIdValue = notificationPeerIdValue(notification.request.content.userInfo), peerIds.contains(peerIdValue) else {
                 return nil
             }
             return notification.request.identifier
@@ -52,11 +52,35 @@ private func clearDeliveredNotifications(forPeerIds peerIds: Set<Int64>) {
     })
 }
 
-/// Sweep currently-delivered notifications for every peer presently in the Archive. Call this
-/// right after Archive password-protection turns on, since chats already archived at that point
-/// need their pre-existing notifications cleared too, not just future ones.
-public func clearStaleArchiveNotifications(context: AccountContext) {
+private func notificationPeerIdValue(_ userInfo: [AnyHashable: Any]) -> Int64? {
+    if let peerId = userInfo["peerId"] as? Int64 {
+        return peerId
+    }
+    if let number = userInfo["peerId"] as? NSNumber {
+        return number.int64Value
+    }
+    if let peerIdString = userInfo["peerId"] as? String {
+        return Int64(peerIdString)
+    }
+    return nil
+}
+
+/// Sweep currently-delivered notifications for peers in a password-protected Archive.
+/// Call after password-protection turns on, and after moving chats into Archive while a password is set.
+public func clearStaleArchiveNotifications(context: AccountContext, peerIds: [EnginePeer.Id]? = nil) {
     let _ = (context.account.postbox.transaction { transaction -> Set<Int64> in
+        let settings = transaction.getPreferencesEntry(key: ApplicationSpecificPreferencesKeys.chatArchiveSettings)?.get(ChatArchiveSettings.self) ?? .default
+        guard settings.isPasswordConfigured else {
+            return []
+        }
+        if let peerIds {
+            return Set(peerIds.compactMap { peerId -> Int64? in
+                guard archiveNotificationShouldRedact(transaction: transaction, peerId: peerId) else {
+                    return nil
+                }
+                return peerId.toInt64()
+            })
+        }
         return Set(transaction.chatListGetAllPeerIds(groupId: Namespaces.PeerGroup.archive).map { $0.toInt64() })
     }
     |> deliverOnMainQueue).startStandalone(next: { peerIds in
@@ -67,7 +91,7 @@ public func clearStaleArchiveNotifications(context: AccountContext) {
 /// Align server-side keepArchivedUnmuted with local force-mute: unmuted
 /// archived chats (if any) should stay in Archive rather than auto-unarchiving.
 func alignKeepArchivedUnmutedIfNeeded(context: AccountContext) {
-    guard ArchiveLockSession.shared.claimKeepArchivedAlign() else {
+    guard ArchiveLockSession.shared.claimKeepArchivedAlign(accountPeerId: context.account.peerId) else {
         return
     }
     let _ = (context.engine.data.get(TelegramEngine.EngineData.Item.Configuration.GlobalPrivacy())
@@ -195,7 +219,7 @@ private func presentArchivePasswordAlert(
                 cooldownAlert.addAction(UIAlertAction(title: strings.Common_OK, style: .cancel, handler: { _ in
                     onCancel()
                 }))
-                presentUIAlert(context: context, alert: cooldownAlert)
+                presentUIAlert(context: context, alert: cooldownAlert, onUnavailableHost: onCancel)
                 return
             }
         }
@@ -255,26 +279,28 @@ private func presentArchivePasswordAlert(
                                 }
                             }
                         }))
-                        presentUIAlert(context: context, alert: confirm)
+                        presentUIAlert(context: context, alert: confirm, onUnavailableHost: onCancel)
                     }
                 }
             } else {
                 onCancel()
             }
         }))
-        presentUIAlert(context: context, alert: alert)
+        presentUIAlert(context: context, alert: alert, onUnavailableHost: onCancel)
     }
     
     show(messageOverride: nil)
 }
 
-private func presentUIAlert(context: AccountContext, alert: UIAlertController) {
+private func presentUIAlert(context: AccountContext, alert: UIAlertController, onUnavailableHost: @escaping () -> Void) {
     if let host = context.sharedContext.applicationBindings.getTopWindow()?.rootViewController {
         var presenter = host
         while let presented = presenter.presentedViewController {
             presenter = presented
         }
         presenter.present(alert, animated: true)
+    } else {
+        onUnavailableHost()
     }
 }
 
@@ -367,7 +393,6 @@ public func removeArchivePassword(context: AccountContext, present: @escaping (V
                 let _ = updateChatArchiveSettings(engine: context.engine) { current in
                     current.clearingLegacyPasswordHash().withUpdatedIsPasswordConfigured(false)
                 }.startStandalone()
-                ArchiveLockSession.shared.relock()
                 completion(true)
             },
             onCancel: {
@@ -380,7 +405,7 @@ public func removeArchivePassword(context: AccountContext, present: @escaping (V
 /// Mute every peer currently in the archive that is not already muted forever.
 /// Runs at most once per process lifetime.
 public func muteAllArchivedChatsIfNeeded(context: AccountContext) {
-    guard ArchiveLockSession.shared.claimMuteSweep() else {
+    guard ArchiveLockSession.shared.claimMuteSweep(accountPeerId: context.account.peerId) else {
         return
     }
     alignKeepArchivedUnmutedIfNeeded(context: context)
@@ -414,51 +439,61 @@ public func muteAllArchivedChats(context: AccountContext) {
     }).startStandalone()
 }
 
-/// Pop any Archive chat-list controllers currently on the navigation stack.
+/// Pop Archive chat-list controllers and any open chats whose peer currently lives in Archive.
 /// Safe to call multiple times; never animates (avoids races with swipe/context completions).
-public func dismissOpenArchiveControllers(from navigationController: UINavigationController?) {
+public func dismissOpenArchiveControllers(from navigationController: UINavigationController?, context: AccountContext? = nil) {
     guard let navigationController else {
         return
     }
-    // Must run on main; callers may bounce from signal completions.
-    let work = {
-        let controllers = navigationController.viewControllers
-        let filtered = controllers.filter { controller in
-            if let chatList = controller as? ChatListControllerImpl {
-                if case .chatList(groupId: .archive) = chatList.location {
+    let apply: (Set<EnginePeer.Id>) -> Void = { archivedPeerIds in
+        let work = {
+            let controllers = navigationController.viewControllers
+            let filtered = controllers.filter { controller in
+                if let chatList = controller as? ChatListControllerImpl {
+                    if case .chatList(groupId: .archive) = chatList.location {
+                        return false
+                    }
+                }
+                if let chat = controller as? ChatController, let peerId = chat.chatLocation.peerId, archivedPeerIds.contains(peerId) {
                     return false
                 }
+                return true
             }
-            return true
+            guard filtered.count != controllers.count else {
+                return
+            }
+            // Prefer a single pop when only the top controller is leaving — cheaper and less
+            // crash-prone than replacing the whole stack mid-transition.
+            if controllers.count == filtered.count + 1 {
+                navigationController.popViewController(animated: false)
+            } else {
+                navigationController.setViewControllers(filtered, animated: false)
+            }
         }
-        guard filtered.count != controllers.count else {
-            return
-        }
-        // Prefer a single pop when Archive is on top — cheaper and less crash-prone
-        // than replacing the whole stack mid-transition.
-        if controllers.count == filtered.count + 1,
-           let top = controllers.last as? ChatListControllerImpl,
-           case .chatList(groupId: .archive) = top.location {
-            navigationController.popViewController(animated: false)
+        if Queue.mainQueue().isCurrent() {
+            work()
         } else {
-            navigationController.setViewControllers(filtered, animated: false)
+            Queue.mainQueue().async(work)
         }
     }
-    if Queue.mainQueue().isCurrent() {
-        work()
+    if let context {
+        let _ = (context.account.postbox.transaction { transaction -> Set<EnginePeer.Id> in
+            return Set(transaction.chatListGetAllPeerIds(groupId: Namespaces.PeerGroup.archive))
+        }
+        |> deliverOnMainQueue).startStandalone(next: apply)
     } else {
-        Queue.mainQueue().async(work)
+        apply([])
     }
 }
 
 /// After moving a chat out of Archive: hide the folder again, clear the
 /// password session, and leave the Archive screen. Unarchived peers become
 /// searchable again automatically (search filters on live group membership).
-public func lockArchiveAfterUnarchive(navigationController: UINavigationController?) {
+public func lockArchiveAfterUnarchive(navigationController: UINavigationController?, context: AccountContext? = nil) {
     ArchiveLockSession.shared.relock()
     // Defer navigation mutation until after the unarchive swipe/context
     // completion finishes — tearing down Archive VC synchronously was crashing.
     Queue.mainQueue().after(0.3, {
-        dismissOpenArchiveControllers(from: navigationController)
+        dismissOpenArchiveControllers(from: navigationController, context: context)
     })
 }

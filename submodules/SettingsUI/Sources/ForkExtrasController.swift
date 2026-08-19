@@ -196,7 +196,7 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.RememberLastFolder": "Remember Last Folder",
             "ForkExtras.RememberLastFolderFooter": "Open the last used folder after launch or switching accounts.",
             "ForkExtras.HideTabBar": "Hide Tab Bar",
-            "ForkExtras.HideTabBarFooter": "Hides Chats / Contacts / Settings at the bottom of iPhone. iPad always keeps the tab bar.",
+            "ForkExtras.HideTabBarFooter": "Hides Chats / Contacts / Settings at the bottom of iPhone. Settings stays in the chat list header. iPad always keeps the tab bar.",
             "ForkExtras.ShowMessageSeconds": "Seconds in Timestamps",
             "ForkExtras.ShowMessageSecondsFooter": "Show hours:minutes:seconds on message times.",
             "ForkExtras.WideChannelPosts": "Wide Channel Posts",
@@ -331,7 +331,7 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.RememberLastFolder": "Запоминать последнюю папку",
             "ForkExtras.RememberLastFolderFooter": "Открывать последнюю папку после запуска или смены аккаунта.",
             "ForkExtras.HideTabBar": "Скрыть панель вкладок",
-            "ForkExtras.HideTabBarFooter": "На iPhone прячет Чаты / Контакты / Настройки снизу. На iPad панель вкладок всегда на месте.",
+            "ForkExtras.HideTabBarFooter": "На iPhone прячет Чаты / Контакты / Настройки снизу. Настройки остаются в шапке списка чатов. На iPad панель вкладок всегда на месте.",
             "ForkExtras.ShowMessageSeconds": "Секунды во времени",
             "ForkExtras.ShowMessageSecondsFooter": "Показывать часы:минуты:секунды у сообщений.",
             "ForkExtras.WideChannelPosts": "Широкие посты",
@@ -1424,14 +1424,18 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .hideAllChatsFooter,
             .rememberLastFolder(settings.rememberLastFolder),
             .rememberLastFolderFooter,
-            .hideTabBar(settings.hideTabBar),
-            .hideTabBarFooter,
+        ]
+        if UIDevice.current.userInterfaceIdiom != .pad {
+            entries.append(.hideTabBar(settings.hideTabBar))
+            entries.append(.hideTabBarFooter)
+        }
+        entries.append(contentsOf: [
             .showMessageSeconds(settings.showMessageSeconds),
             .showMessageSecondsFooter,
             .wideChannelPosts(settings.wideChannelPosts),
             .wideChannelPostsFooter,
             .stickerSize(settings.stickerSizePercent),
-        ]
+        ])
     case .chat:
         entries = [
             .confirmBeforeCall(settings.confirmBeforeCall),

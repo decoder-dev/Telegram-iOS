@@ -67,6 +67,7 @@ public final class AppLockContextImpl: AppLockContext {
     
     private var lastActiveTimestamp: Double?
     private var lastActiveValue: Bool = false
+    private var lastForegroundValue: Bool = true
     
     public init(rootPath: String, window: Window1?, rootController: UIViewController?, applicationBindings: TelegramApplicationBindings, accountManager: AccountManager<TelegramAccountManagerTypes>, presentationDataSignal: Signal<PresentationData, NoError>, lockIconInitialFrame: @escaping () -> CGRect?) {
         assert(Queue.mainQueue().isCurrent())
@@ -90,9 +91,10 @@ public final class AppLockContextImpl: AppLockContext {
             accountManager.sharedData(keys: Set([ApplicationSpecificSharedDataKeys.presentationPasscodeSettings, ApplicationSpecificSharedDataKeys.forkExtrasSettings])),
             presentationDataSignal,
             applicationBindings.applicationIsActive,
+            applicationBindings.applicationInForeground,
             self.currentState.get()
         )
-        |> deliverOnMainQueue).startStrict(next: { [weak self] accessChallengeData, sharedData, presentationData, appInForeground, state in
+        |> deliverOnMainQueue).startStrict(next: { [weak self] accessChallengeData, sharedData, presentationData, appIsActive, appInForeground, state in
             guard let strongSelf = self else {
                 return
             }
@@ -103,7 +105,7 @@ public final class AppLockContextImpl: AppLockContext {
             let timestamp = CFAbsoluteTimeGetCurrent()
             var becameActiveRecently = false
             var justEnteredBackground = false
-            if appInForeground {
+            if appIsActive {
                 if !strongSelf.lastActiveValue {
                     strongSelf.lastActiveValue = true
                     strongSelf.lastActiveTimestamp = timestamp
@@ -119,10 +121,14 @@ public final class AppLockContextImpl: AppLockContext {
                     }
                 }
             } else {
-                if strongSelf.lastActiveValue {
-                    justEnteredBackground = true
-                }
                 strongSelf.lastActiveValue = false
+            }
+            
+            if appInForeground {
+                strongSelf.lastForegroundValue = true
+            } else if strongSelf.lastForegroundValue {
+                justEnteredBackground = true
+                strongSelf.lastForegroundValue = false
             }
             
             var shouldDisplayCoveringView = false
@@ -137,13 +143,13 @@ public final class AppLockContextImpl: AppLockContext {
                 strongSelf.autolockTimeout.set(nil)
                 strongSelf.autolockReportTimeout.set(nil)
             } else {
-                if let _ = passcodeSettings.autolockTimeout, !appInForeground {
+                if let _ = passcodeSettings.autolockTimeout, !appIsActive {
                     shouldDisplayCoveringView = true
                 }
                 
-                // Instant lock only on the active→background edge.
-                // Calling lock() on every combineLatest tick while backgrounded
-                // re-enters this pipeline and burns CPU (device heat).
+                // Instant lock only on the true background edge (applicationDidEnterBackground).
+                // Resign-active (Control Center, permission sheets) must not hard-lock and
+                // dismiss pickers. Covering view still uses isActive for a privacy overlay.
                 if justEnteredBackground && forkExtras.instantPasscodeLock {
                     strongSelf.lock()
                     shouldDisplayCoveringView = true
@@ -151,7 +157,7 @@ public final class AppLockContextImpl: AppLockContext {
                     shouldDisplayCoveringView = true
                 }
                 
-                if !appInForeground {
+                if !appIsActive {
                     if let autolockTimeout = passcodeSettings.autolockTimeout {
                         strongSelf.autolockReportTimeout.set(autolockTimeout)
                     } else if state.isManuallyLocked {
@@ -165,7 +171,7 @@ public final class AppLockContextImpl: AppLockContext {
                 
                 strongSelf.autolockTimeout.set(passcodeSettings.autolockTimeout)
                 
-                if isLocked(passcodeSettings: passcodeSettings, state: state, isApplicationActive: appInForeground) {
+                if isLocked(passcodeSettings: passcodeSettings, state: state, isApplicationActive: appIsActive) {
                     isCurrentlyLocked = true
                     
                     let biometrics: PasscodeEntryControllerBiometricsMode
@@ -176,7 +182,7 @@ public final class AppLockContextImpl: AppLockContext {
                     }
                     
                     if let passcodeController = strongSelf.passcodeController {
-                        if becameActiveRecently, case .enabled = biometrics, appInForeground {
+                        if becameActiveRecently, case .enabled = biometrics, appIsActive {
                             passcodeController.requestBiometrics()
                         }
                         passcodeController.ensureInputFocused()
@@ -188,7 +194,7 @@ public final class AppLockContextImpl: AppLockContext {
                                 return CGRect()
                             }
                         }))
-                        if becameActiveRecently, appInForeground {
+                        if becameActiveRecently, appIsActive {
                             passcodeController.presentationCompleted = { [weak passcodeController] in
                                 if case .enabled = biometrics {
                                     passcodeController?.requestBiometrics()
@@ -214,8 +220,8 @@ public final class AppLockContextImpl: AppLockContext {
                 }
             }
             
-            strongSelf.updateTimestampRenewTimer(shouldRun: appInForeground && !isCurrentlyLocked)
-            strongSelf.isCurrentlyLockedPromise.set(.single(!appInForeground || isCurrentlyLocked))
+            strongSelf.updateTimestampRenewTimer(shouldRun: appIsActive && !isCurrentlyLocked)
+            strongSelf.isCurrentlyLockedPromise.set(.single(!appIsActive || isCurrentlyLocked))
             
             if shouldDisplayCoveringView {
                 if strongSelf.coveringView == nil, let window = strongSelf.window {
