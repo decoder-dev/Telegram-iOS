@@ -5,16 +5,22 @@ import MtProtoKit
 
 /// Public MTProxy lists used by WhiteGram-style auto-fetch (refreshed by the publishers).
 /// SoliSpirit: worldwide. kort0881: RU-only (`proxy_ru.txt`). dubblebyte: worldwide.
+/// Chumbayoumba: RU whitelist-focused, and published as `host:port:secret` rather than as
+/// proxy links — `parseAutomaticMtProxyServers` reads both shapes.
+///
+/// Grim1313/mtproto-for-telegram was considered and left out: byte-for-byte the same list as
+/// SoliSpirit, so it would cost a request per refresh and contribute nothing.
 private let automaticMtProxyListURLs = [
     "https://raw.githubusercontent.com/SoliSpirit/mtproto/master/all_proxies.txt",
     "https://raw.githubusercontent.com/kort0881/telegram-proxy-collector/main/proxy_ru.txt",
     "https://raw.githubusercontent.com/dubblebyte/free-mtproto-proxies/main/all_proxies.txt",
+    "https://raw.githubusercontent.com/Chumbayoumba/free-telegram-proxy-russia-2026/main/proxies.txt",
 ]
 private let automaticMtProxyRefreshInterval: Double = 10.0 * 60.0
 private let automaticMtProxySelectionDelay: Double = 0.2
 private let automaticMtProxyConnectionFallbackDelay: Double = 6.0
-private let automaticMtProxyProbeLimit = 20
-private let automaticMtProxyStoredLimit = 20
+private let automaticMtProxyProbeLimit = 32
+private let automaticMtProxyStoredLimit = 40
 
 private func automaticMtProxyHostIsIPAddress(_ host: String) -> Bool {
     let normalizedHost = host.trimmingCharacters(in: CharacterSet(charactersIn: "[]"))
@@ -84,13 +90,72 @@ private func fetchAutomaticMtProxyListText(urlString: String) -> Signal<String, 
     }
 }
 
+/// A FakeTLS ("ee") secret carries the SNI the proxy will present, so the connection looks like
+/// an ordinary TLS handshake with that domain. Under a whitelist — where only a permitted set of
+/// destinations passes at all — that is the shape most likely to get through, so these are
+/// probed and offered first. `MTProxySecretType2.serialize` writes `0xEE` + 16 key bytes +
+/// the domain, hence the marker check here.
+private func automaticMtProxyIsFakeTLS(_ server: ProxyServerSettings) -> Bool {
+    guard case let .mtp(secret) = server.connection else {
+        return false
+    }
+    return secret.count >= 18 && secret.first == 0xee
+}
+
+/// Stable partition, FakeTLS first. Order inside each tier is the publisher's own, which is
+/// usually freshness- or latency-ordered.
+private func automaticMtProxyPreferFakeTLS(_ servers: [ProxyServerSettings]) -> [ProxyServerSettings] {
+    return servers.filter(automaticMtProxyIsFakeTLS) + servers.filter { !automaticMtProxyIsFakeTLS($0) }
+}
+
+/// One `host:port:secret` triple, the format half the public lists publish instead of proxy
+/// links. Returns nil for anything that is not exactly that (log lines, hashes, timestamps).
+private func parseAutomaticMtProxyTriple(_ token: String) -> ProxyServerSettings? {
+    // Split from the right: an IPv6 host contains colons of its own, and the last two fields
+    // are always port and secret.
+    let parts = token.components(separatedBy: ":")
+    guard parts.count >= 3 else {
+        return nil
+    }
+    let secretString = parts[parts.count - 1]
+    let portString = parts[parts.count - 2]
+    let host = parts[0 ..< (parts.count - 2)].joined(separator: ":").trimmingCharacters(in: CharacterSet(charactersIn: "."))
+    guard let port = Int32(portString), port > 0, port <= 65535 else {
+        return nil
+    }
+    guard let parsedSecret = MTProxySecret.parse(secretString) else {
+        return nil
+    }
+    guard automaticMtProxyHostIsUsable(host) else {
+        return nil
+    }
+    return ProxyServerSettings(host: host, port: port, connection: .mtp(secret: parsedSecret.serialize()))
+}
+
+/// Both shapes of host are kept. An earlier revision took domain names only, on the theory that
+/// a whitelist lets named hosts through and bare addresses never; in practice that dropped the
+/// large majority of every public list — they are overwhelmingly IP-literal — and left the auto
+/// pool nearly empty, which is the opposite of working under a whitelist. Reachability is what
+/// decides here, and reachability is measured: `ProxyServersStatuses` probes each candidate and
+/// only servers that answered are ever activated. Ordering (FakeTLS first) carries the
+/// whitelist preference instead of an outright ban.
+private func automaticMtProxyHostIsUsable(_ host: String) -> Bool {
+    return automaticMtProxyHostIsDomainName(host) || automaticMtProxyHostIsIPAddress(host)
+}
+
 private func parseAutomaticMtProxyServers(_ text: String) -> [ProxyServerSettings] {
     var result: [ProxyServerSettings] = []
     var seen = Set<ProxyServerSettings>()
     let separators = CharacterSet.whitespacesAndNewlines.union(CharacterSet(charactersIn: "\"'<>"))
     for rawToken in text.components(separatedBy: separators) {
         let token = rawToken.trimmingCharacters(in: CharacterSet(charactersIn: ".,;()[]{}"))
+        if token.isEmpty || token.hasPrefix("#") {
+            continue
+        }
         guard token.hasPrefix("https://t.me/proxy?") || token.hasPrefix("http://t.me/proxy?") || token.hasPrefix("tg://proxy?") else {
+            if let server = parseAutomaticMtProxyTriple(token), seen.insert(server).inserted {
+                result.append(server)
+            }
             continue
         }
         guard let components = URLComponents(string: token), let queryItems = components.queryItems else {
@@ -115,14 +180,14 @@ private func parseAutomaticMtProxyServers(_ text: String) -> [ProxyServerSetting
                 break
             }
         }
-        if let host, automaticMtProxyHostIsDomainName(host), let port, port > 0, port <= 65535, let secret {
+        if let host, automaticMtProxyHostIsUsable(host), let port, port > 0, port <= 65535, let secret {
             let server = ProxyServerSettings(host: host, port: port, connection: .mtp(secret: secret))
             if seen.insert(server).inserted {
                 result.append(server)
             }
         }
     }
-    return result
+    return automaticMtProxyPreferFakeTLS(result)
 }
 
 private func mergeAutomaticMtProxyServers(_ lists: [[ProxyServerSettings]]) -> [ProxyServerSettings] {
@@ -149,7 +214,11 @@ private func mergeAutomaticMtProxyServers(_ lists: [[ProxyServerSettings]]) -> [
             }
         }
     }
-    return result
+    // Round-robin across the sources keeps one publisher from filling the pool, but it also
+    // re-interleaves the tiers each list arrived in, so restate the FakeTLS preference on the
+    // merged pool — it decides both what gets probed first and what is offered when nothing has
+    // answered yet.
+    return automaticMtProxyPreferFakeTLS(result)
 }
 
 private struct AutomaticMtProxyFetchState {
