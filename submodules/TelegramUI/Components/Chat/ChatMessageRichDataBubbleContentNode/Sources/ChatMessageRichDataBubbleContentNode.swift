@@ -658,8 +658,6 @@ public class ChatMessageRichDataBubbleContentNode: ChatMessageBubbleContentNode 
                     } else {
                         displayStatus = false
                     }
-                } else if !item.presentationData.chatBubbleCorners.hasTails {
-                    displayStatus = false
                 } else if case let .messageOptions(_, _, info) = item.associatedData.subject, case let .link(link) = info, link.isCentered {
                     displayStatus = false
                 }

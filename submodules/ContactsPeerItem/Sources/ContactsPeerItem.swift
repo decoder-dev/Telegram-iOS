@@ -1780,7 +1780,7 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
                                 }
                                 
                                 let actionButtonSize = CGSize(width: titleLayout.size.width + 13.0 * 2.0, height: 28.0)
-                                let actionButtonFrame = CGRect(origin: CGPoint(x: params.width - params.rightInset - 12.0 - actionButtonSize.width, y: floorToScreenPixels((nodeLayout.contentSize.height - actionButtonSize.height) / 2.0)), size: actionButtonSize)
+                                let actionButtonFrame = CGRect(origin: CGPoint(x: params.width - params.rightInset - higCardInset - 12.0 - actionButtonSize.width, y: floorToScreenPixels((nodeLayout.contentSize.height - actionButtonSize.height) / 2.0)), size: actionButtonSize)
                                 actionButtonBackgroundNode.frame = actionButtonFrame
                                 actionButtonNode.frame = actionButtonFrame
                                 
@@ -1842,7 +1842,7 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
                                             continue
                                         }
                                         actionButtonNode.setImage(actionButton.image, for: .normal)
-                                        transition.updateFrame(node: actionButtonNode, frame: CGRect(origin: CGPoint(x: revealOffset + params.width - params.rightInset - 12.0 - actionButtonImage.size.width - offset, y: floor((nodeLayout.contentSize.height - actionButtonImage.size.height) / 2.0)), size: actionButtonImage.size))
+                                        transition.updateFrame(node: actionButtonNode, frame: CGRect(origin: CGPoint(x: revealOffset + params.width - params.rightInset - higCardInset - 12.0 - actionButtonImage.size.width - offset, y: floor((nodeLayout.contentSize.height - actionButtonImage.size.height) / 2.0)), size: actionButtonImage.size))
                                         
                                         actionButtonNode.isEnabled = item.enabled
                                         actionButtonNode.alpha = item.enabled ? 1.0 : 0.4
@@ -1865,7 +1865,7 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
                                 if let arrowButtonNode = strongSelf.arrowButtonNode {
                                     arrowButtonNode.setImage(arrowButtonImage, for: .normal)
                                     
-                                    transition.updateFrame(node: arrowButtonNode, frame: CGRect(origin: CGPoint(x: params.width - params.rightInset - 12.0 - arrowButtonImage.size.width, y: floor((nodeLayout.contentSize.height - arrowButtonImage.size.height) / 2.0)), size: arrowButtonImage.size))
+                                    transition.updateFrame(node: arrowButtonNode, frame: CGRect(origin: CGPoint(x: params.width - params.rightInset - higCardInset - 12.0 - arrowButtonImage.size.width, y: floor((nodeLayout.contentSize.height - arrowButtonImage.size.height) / 2.0)), size: arrowButtonImage.size))
                                 }
                             } else if let arrowButtonNode = strongSelf.arrowButtonNode {
                                 strongSelf.arrowButtonNode = nil
@@ -1892,7 +1892,7 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
                                 badgeBackgroundNode.image = currentBadgeBackgroundImage
                                 
                                 badgeBackgroundWidth = max(badgeTextLayout.size.width + 10.0, currentBadgeBackgroundImage.size.width)
-                                var badgeBackgroundFrame = CGRect(x: revealOffset + params.width - params.rightInset - badgeBackgroundWidth - additionalRightInset - 6.0, y: floor((nodeLayout.contentSize.height - currentBadgeBackgroundImage.size.height) / 2.0), width: badgeBackgroundWidth, height: currentBadgeBackgroundImage.size.height)
+                                var badgeBackgroundFrame = CGRect(x: revealOffset + params.width - params.rightInset - higCardInset - badgeBackgroundWidth - additionalRightInset - 6.0, y: floor((nodeLayout.contentSize.height - currentBadgeBackgroundImage.size.height) / 2.0), width: badgeBackgroundWidth, height: currentBadgeBackgroundImage.size.height)
                                 
                                 if let arrowButtonImage = arrowButtonImage {
                                     badgeBackgroundFrame.origin.x -= arrowButtonImage.size.width + 6.0
@@ -1954,7 +1954,7 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
                                     rightInset = 8.0
                                 }
                                 
-                                var rightLabelTextFrame = CGRect(x: revealOffset + params.width - params.rightInset - rightInset - rightLabelTextLayout.size.width, y: floor((nodeLayout.contentSize.height - rightLabelTextLayout.size.height) / 2.0), width: rightLabelTextLayout.size.width, height: rightLabelTextLayout.size.height)
+                                var rightLabelTextFrame = CGRect(x: revealOffset + params.width - params.rightInset - higCardInset - rightInset - rightLabelTextLayout.size.width, y: floor((nodeLayout.contentSize.height - rightLabelTextLayout.size.height) / 2.0), width: rightLabelTextLayout.size.width, height: rightLabelTextLayout.size.height)
                                 if strongSelf.labelBadgeNode.image != nil {
                                     rightLabelTextFrame.origin.x -= 6.0
                                 }
