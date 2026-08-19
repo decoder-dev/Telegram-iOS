@@ -675,7 +675,7 @@ public func makeDefaultDarkPresentationTheme(extendingThemeReference: Presentati
         panelControlDestructiveColor: UIColor(rgb: 0xff3b30),
         inputBackgroundColor: UIColor(rgb: 0x000000),
         inputStrokeColor: UIColor(rgb: 0xffffff, alpha: 0.16),
-        inputPlaceholderColor: UIColor(rgb: 0xffffff, alpha: 0.48),
+        inputPlaceholderColor: UIColor(rgb: 0xffffff, alpha: 0.62),
         inputTextColor: UIColor(rgb: 0xffffff),
         inputControlColor: UIColor(rgb: 0xffffff, alpha: 0.5),
         actionControlFillColor: UIColor(rgb: 0x3478F6),

@@ -3282,7 +3282,8 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             self.slowmodePlaceholderNode?.isHidden = true
         }
         
-        var nextButtonTopRight = CGPoint(x: textInputContainerBackgroundFrame.width - accessoryButtonInset, y: textInputContainerBackgroundFrame.height - minimalInputHeight)
+        let accessoryControlSize: CGFloat = 40.0
+        var nextButtonTopRight = CGPoint(x: textInputContainerBackgroundFrame.width - accessoryButtonInset, y: textInputContainerBackgroundFrame.height - accessoryControlSize)
         if self.extendedSearchLayout {
             nextButtonTopRight.x -= 46.0
         } else if hasSlowmodeButton {
@@ -3290,9 +3291,9 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             nextButtonTopRight.x -= sendActionButtonsSize.width
         }
         for (item, button) in self.accessoryItemButtons.reversed() {
-            let buttonSize = CGSize(width: button.buttonWidth, height: minimalInputHeight)
+            let buttonSize = CGSize(width: button.buttonWidth, height: accessoryControlSize)
             button.updateLayout(item: item, size: buttonSize)
-            let buttonFrame = CGRect(origin: CGPoint(x: nextButtonTopRight.x - buttonSize.width, y: nextButtonTopRight.y + floor((minimalInputHeight - buttonSize.height) / 2.0)), size: buttonSize)
+            let buttonFrame = CGRect(origin: CGPoint(x: nextButtonTopRight.x - buttonSize.width, y: nextButtonTopRight.y), size: buttonSize)
             if button.superview == nil {
                 self.textInputContainerBackgroundView.contentView.addSubview(button)
                 button.frame = buttonFrame.offsetBy(dx: -additionalOffset, dy: 0.0)
