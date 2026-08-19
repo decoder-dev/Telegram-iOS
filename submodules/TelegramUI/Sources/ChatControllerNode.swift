@@ -2458,10 +2458,7 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
             scrollToTop = true
         }
         
-        var contentBottomInset: CGFloat = inputPanelsHeight + inputPanelsInset
-        if previewing {
-        } else {
-        }
+        let contentBottomInset: CGFloat = inputPanelsHeight + inputPanelsInset
         
         if let scrollContainerNode = self.scrollContainerNode {
             transition.updateFrame(node: scrollContainerNode, frame: CGRect(origin: CGPoint(), size: layout.size))
