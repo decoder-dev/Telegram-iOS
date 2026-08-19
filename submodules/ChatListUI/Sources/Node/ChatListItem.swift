@@ -2661,15 +2661,9 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
             
             // if changed, adjust setupItem accordingly
             var avatarDiameter = min(52.0, floor(item.presentationData.fontSize.baseDisplaySize * 52.0 / 17.0))
-            let higChatListCardInset: CGFloat = {
-                if !useChatListLayout || item.useCommunityViewLayout || item.interaction.isInlineMode {
-                    return 0.0
-                }
-                if case let .peer(peerData) = item.content, peerData.customMessageListData != nil {
-                    return 0.0
-                }
-                return 0.0
-            }()
+            // Rows run full width; kept as a named constant because the layout arithmetic below
+            // and ChatListItemNode.insets both read it.
+            let higChatListCardInset: CGFloat = 0.0
             let avatarLeftEdgeInset: CGFloat = item.useCommunityViewLayout ? 10.0 : (16.0 + higChatListCardInset)
             let avatarLeftInset: CGFloat
             
