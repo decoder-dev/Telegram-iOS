@@ -6688,7 +6688,11 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
             } else {
                 themeSettings = PresentationThemeSettings.defaultSettings
             }
-            return themeSettings
+            // Through the same normalization the presentation-data pipeline applies, so the chat's
+            // own theme resolution agrees with the theme the rest of the app is actually showing.
+            // Reading the raw stored settings here would resolve against whatever theme the user
+            // last picked before the picker was removed.
+            return forkNormalizedThemeSettings(themeSettings)
         }
         
         let accountManager = context.sharedContext.accountManager
