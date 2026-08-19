@@ -2458,6 +2458,8 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
             scrollToTop = true
         }
         
+        // The composer sits flush against the bottom, so the content inset is just the panels.
+        // The previewing branch used to add 11 pt here; removing that left this constant.
         let contentBottomInset: CGFloat = inputPanelsHeight + inputPanelsInset
         
         if let scrollContainerNode = self.scrollContainerNode {
