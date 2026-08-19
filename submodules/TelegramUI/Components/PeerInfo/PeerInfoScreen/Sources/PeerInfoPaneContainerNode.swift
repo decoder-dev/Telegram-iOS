@@ -1210,7 +1210,7 @@ final class PeerInfoPaneContainerNode: ASDisplayNode, ASGestureRecognizerDelegat
                         return
                     }
                     pane.isAnimatingOut = false
-                    if let (_, _, _, _, _, _, _, _, data, _, _, _) = strongSelf.currentParams {
+                    if let (_, _, _, _, _, _, _, _, data, _, _, _, _, _) = strongSelf.currentParams {
                         if let availablePanes = data?.availablePanes, let currentPaneKey = strongSelf.currentPaneKey, let currentIndex = availablePanes.firstIndex(of: currentPaneKey), let paneIndex = availablePanes.firstIndex(of: key), abs(paneIndex - currentIndex) <= 1 {
                         } else {
                             if let pane = strongSelf.currentPanes.removeValue(forKey: key) {
