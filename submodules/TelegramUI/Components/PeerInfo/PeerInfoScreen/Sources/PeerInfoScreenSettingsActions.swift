@@ -143,12 +143,6 @@ extension PeerInfoScreenNode {
             push(dataAndStorageController(context: self.context))
         case .appearance:
             push(themeSettingsController(context: self.context))
-        case .appIcon:
-            // Same screen, opened at its icon section. The Appearance row is gone from Settings —
-            // theme, bubble colour and corner radius are fixed by the fork — but the app ships
-            // alternate icons and that picker lived inside it, so it keeps its own entry point
-            // rather than disappearing with the screen.
-            push(themeSettingsController(context: self.context, focusOnItemTag: .icon))
         case .language:
             push(LocalizationListController(context: self.context))
         case .premium:

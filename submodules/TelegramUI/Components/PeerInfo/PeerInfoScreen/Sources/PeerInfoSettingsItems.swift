@@ -238,16 +238,16 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
     items[.advanced]!.append(PeerInfoScreenDisclosureItem(id: 2, text: presentationData.strings.Settings_ChatSettings, icon: PresentationResourcesSettings.dataAndStorage, action: {
         interaction.openSettings(.dataAndStorage)
     }))
-    // No Appearance row. Messages has no theme picker: it is light or dark because the system is,
-    // and the bubble is blue either way. Everything that screen offered is now either fixed by the
-    // fork (theme, bubble colour, corner radius) or reachable elsewhere, and leaving a picker whose
-    // controls no longer change anything is worse than not having it.
+    // The Appearance row is gone: Messages has no theme picker, and the theme, bubble colour and
+    // corner radius are all fixed by the fork now, so the picker had nothing left to pick.
     //
-    // `.appearance` itself is kept alive in PeerInfoScreenSettingsActions: Settings search and
-    // `tg://settings/theme` deep links still resolve to it, and the App Icon row below pushes it
-    // directly at its icon section.
-    items[.advanced]!.append(PeerInfoScreenDisclosureItem(id: 3, text: presentationData.strings.Appearance_AppIcon, icon: PresentationResourcesSettings.appearance, action: {
-        interaction.openSettings(.appIcon)
+    // The screen itself survives, trimmed to the controls that do still change something —
+    // wallpaper, name colour, text size, bubble settings, app icon — and retitled "Customization".
+    // This row carries that title rather than naming one of its rows, so the label matches the
+    // screen it opens. `.appearance` also stays reachable from Settings search and
+    // `tg://settings/theme`.
+    items[.advanced]!.append(PeerInfoScreenDisclosureItem(id: 3, text: forkCustomizationSettingsTitle(presentationData.strings), icon: PresentationResourcesSettings.appearance, action: {
+        interaction.openSettings(.appearance)
     }))
 
     items[.advanced]!.append(PeerInfoScreenDisclosureItem(id: 6, label: .text(data.isPowerSavingEnabled == true ? presentationData.strings.Settings_PowerSavingOn : presentationData.strings.Settings_PowerSavingOff), text: presentationData.strings.Settings_PowerSaving, icon: PresentationResourcesSettings.powerSaving, action: {
