@@ -6,6 +6,17 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3879-pre] — 2026-08-19
+
+Pre-release: fix chat folder switch duplication (regression).
+
+### Fixed
+- Переключение папок (Personal → All Chats и др.): дублирование чатов и «ломанный» экран.
+- Регрессия `e2ed9433a3`: соседние preloaded-вкладки снова пагинировали в фоне (`isActiveForFolderPagination` default true).
+- Apply-time guard по `locationGeneration` — stale transitions отбрасываются при apply.
+- `deactivateFolderPagination()` сбрасывает `.navigation` при уходе с вкладки.
+- Tab tap (`animated: false`) больше не форсит spring-slide.
+
 ## [v12.9.2-3878-pre] — 2026-08-19
 
 Pre-release: brighter chat list search placeholder.
