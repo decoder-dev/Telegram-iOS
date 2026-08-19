@@ -6,6 +6,14 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3876-pre] — 2026-08-19
+
+Pre-release: composer accessory row alignment + brighter placeholder.
+
+### Fixed
+- Timer / emoji / sticker кнопки в поле ввода: 40×40 pt, выровнены по нижнему ряду вместе с микрофоном и скрепкой (раньше 32 pt и «плавали» при многострочном тексте).
+- Placeholder «Сообщение» в тёмной теме ярче (62% белого вместо 48%).
+
 ## [v12.9.2-3875-pre] — 2026-08-19
 
 Pre-release: OLED-профиль (iOS Contacts), экран «Кастомизация». Sideload smoke, не Latest.
