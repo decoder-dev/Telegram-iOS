@@ -36,7 +36,13 @@ final class PeerInfoScreenItemSectionContainerNode: ASDisplayNode {
     }
     
     func update(context: AccountContext, width: CGFloat, safeInsets: UIEdgeInsets, hasCorners: Bool, presentationData: PresentationData, items: [PeerInfoScreenItem], transition: ContainedViewLayoutTransition) -> CGFloat {
-        self.backgroundNode.backgroundColor = presentationData.theme.list.itemBlocksBackgroundColor
+        let cardBackgroundColor: UIColor
+        if presentationData.theme.overallDarkAppearance {
+            cardBackgroundColor = UIColor(rgb: 0x1C1C1E)
+        } else {
+            cardBackgroundColor = presentationData.theme.list.itemBlocksBackgroundColor
+        }
+        self.backgroundNode.backgroundColor = cardBackgroundColor
         self.topSeparatorNode.backgroundColor = presentationData.theme.list.itemBlocksSeparatorColor
         self.bottomSeparatorNode.backgroundColor = presentationData.theme.list.itemBlocksSeparatorColor
         
