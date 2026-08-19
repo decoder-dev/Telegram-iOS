@@ -1659,7 +1659,12 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         self.validLayout = (width, leftInset, rightInset, bottomInset, additionalSideInsets, maxHeight, maxOverlayHeight, metrics, isSecondary, isMediaInputExpanded, deviceMetrics)
         
         // OLED dark: composer controls sit on pure black; a hairline stroke keeps the field readable.
-        let composerFillColor = interfaceState.theme.overallDarkAppearance ? UIColor(rgb: 0x000000) : UIColor(rgb: 0xE9E9EB)
+        // #1C1C1E in dark, not pure black. The rest of the OLED pass paints surfaces that sit on the
+        // app's own background, where black on black is the point. The composer does not: it sits on
+        // the chat wallpaper, and on a dark one — a blackboard, a night photo — pure black makes the
+        // field, the attachment button and the mic vanish into it, leaving only a hairline stroke.
+        // #1C1C1E is Messages' own composer colour and stays legible over any wallpaper.
+        let composerFillColor = interfaceState.theme.overallDarkAppearance ? UIColor(rgb: 0x1C1C1E) : UIColor(rgb: 0xE9E9EB)
         let defaultGlassTintColor: GlassBackgroundView.TintColor = .init(kind: .custom(style: .default, color: composerFillColor))
         let defaultGlassTintWithInnerColor: GlassBackgroundView.TintColor = .init(kind: .custom(style: .default, color: composerFillColor), innerColor: interfaceState.theme.list.itemCheckColors.fillColor)
         

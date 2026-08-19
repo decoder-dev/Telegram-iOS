@@ -3422,7 +3422,16 @@ public final class ChatListNode: ListViewImpl {
         if let (transition, completion) = self.enqueuedTransition {
             self.enqueuedTransition = nil
             
-            guard transition.locationGeneration == self.chatListLocationGeneration, self.isActiveForFolderPagination else {
+            // Staleness only. `isActiveForFolderPagination` must NOT gate this: it says "this tab may
+            // ask the server for more chats", not "this tab may draw". Gating the apply on it made a
+            // tab that is not currently on screen throw its transition away — and `enqueuedTransition`
+            // is cleared first, so the content is gone, not deferred. Switching to that tab then
+            // showed whatever was last drawn, which is why every folder rendered the same list.
+            //
+            // Tab activation does not recover it either: `reconcileLocationOnTabActivation` only
+            // re-requests when the location is `.navigation`, so a tab sitting on `.initial` never
+            // asked again.
+            guard transition.locationGeneration == self.chatListLocationGeneration else {
                 completion()
                 return
             }
