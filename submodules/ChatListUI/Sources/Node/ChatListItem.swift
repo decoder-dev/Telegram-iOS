@@ -2100,7 +2100,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                 }
             }
             
-            var avatarDiameter = min(60.0, floor(item.presentationData.fontSize.baseDisplaySize * 60.0 / 17.0))
+            var avatarDiameter = min(52.0, floor(item.presentationData.fontSize.baseDisplaySize * 52.0 / 17.0))
             
             if case let .peer(peerData) = item.content, let customMessageListData = peerData.customMessageListData, customMessageListData.commandPrefix != nil {
                 avatarDiameter = 40.0
@@ -2126,7 +2126,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
             } else if avatarPeer.smallProfileImage != nil && overrideImage == nil {
                 self.avatarNode.setPeerV2(context: item.context, theme: item.presentationData.theme, peer: avatarPeer, overrideImage: overrideImage, emptyColor: item.presentationData.theme.list.mediaPlaceholderColor, clipStyle: avatarClipStyle, synchronousLoad: synchronousLoads, displayDimensions: CGSize(width: avatarDiameter, height: avatarDiameter))
             } else {
-                self.avatarNode.setPeer(context: item.context, theme: item.presentationData.theme, peer: avatarPeer, overrideImage: overrideImage, emptyColor: item.presentationData.theme.list.mediaPlaceholderColor, clipStyle: avatarClipStyle, synchronousLoad: synchronousLoads, displayDimensions: CGSize(width: 60.0, height: 60.0))
+                self.avatarNode.setPeer(context: item.context, theme: item.presentationData.theme, peer: avatarPeer, overrideImage: overrideImage, emptyColor: item.presentationData.theme.list.mediaPlaceholderColor, clipStyle: avatarClipStyle, synchronousLoad: synchronousLoads, displayDimensions: CGSize(width: avatarDiameter, height: avatarDiameter))
             }
             
             if peer.isPremium && peer.id != item.context.account.peerId {
@@ -2167,7 +2167,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                                 strongSelf.avatarNode.contentNode.addSubnode(videoNode)
                                 strongSelf.avatarVideoNode = videoNode
                             }
-                            videoNode.update(peer: peer, photo: photo, size: CGSize(width: 60.0, height: 60.0))
+                            videoNode.update(peer: peer, photo: photo, size: CGSize(width: avatarDiameter, height: avatarDiameter))
                             
                             if strongSelf.hierarchyTrackingLayer == nil {
                                 let hierarchyTrackingLayer = HierarchyTrackingLayer()
@@ -2226,7 +2226,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
     }
     
     class func insets(first: Bool, last: Bool, firstWithHeader: Bool) -> UIEdgeInsets {
-        return UIEdgeInsets(top: firstWithHeader ? 29.0 : 0.0, left: 0.0, bottom: 0.0, right: 0.0)
+        return UIEdgeInsets(top: firstWithHeader ? 29.0 : (first ? 8.0 : 0.0), left: 0.0, bottom: last ? 12.0 : 0.0, right: 0.0)
     }
     
     override public func setHighlighted(_ highlighted: Bool, at point: CGPoint, animated: Bool) {
@@ -2256,7 +2256,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
     
     func updateIsHighlighted(transition: ContainedViewLayoutTransition) {
         let highlightProgress: CGFloat = self.item?.interaction.highlightedChatLocation?.progress ?? 1.0
-        transition.updateCornerRadius(node: self.highlightedBackgroundNode, cornerRadius: self.isRevealOptionsActive ? 26.0 : 0.0)
+        transition.updateCornerRadius(node: self.highlightedBackgroundNode, cornerRadius: self.isRevealOptionsActive ? 26.0 : self.backgroundNode.cornerRadius)
         self.updateSeparatorAlpha(transition: transition)
         
         if self.reallyHighlighted {
@@ -2647,8 +2647,17 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
             let enableChatListPhotos = true
             
             // if changed, adjust setupItem accordingly
-            var avatarDiameter = min(60.0, floor(item.presentationData.fontSize.baseDisplaySize * 60.0 / 17.0))
-            let avatarLeftEdgeInset: CGFloat = item.useCommunityViewLayout ? 10.0 : 16.0
+            var avatarDiameter = min(52.0, floor(item.presentationData.fontSize.baseDisplaySize * 52.0 / 17.0))
+            let higChatListCardInset: CGFloat = {
+                if !useChatListLayout || item.useCommunityViewLayout || item.interaction.isInlineMode {
+                    return 0.0
+                }
+                if case let .peer(peerData) = item.content, peerData.customMessageListData != nil {
+                    return 0.0
+                }
+                return 16.0
+            }()
+            let avatarLeftEdgeInset: CGFloat = item.useCommunityViewLayout ? 10.0 : (16.0 + higChatListCardInset)
             let avatarLeftInset: CGFloat
             
             if case let .peer(peerData) = item.content, let customMessageListData = peerData.customMessageListData, customMessageListData.commandPrefix != nil {
@@ -3762,7 +3771,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
             
             let layoutOffset: CGFloat = 0.0
             
-            let rawContentWidth = params.width - leftInset - params.rightInset - 18.0 - editingOffset
+            let rawContentWidth = params.width - leftInset - params.rightInset - 18.0 - higChatListCardInset - editingOffset
             
             let (dateLayout, dateApply) = dateLayout(TextNodeLayoutArguments(attributedString: dateAttributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: rawContentWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
@@ -4142,8 +4151,13 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                 itemHeight += titleSpacing
                 itemHeight += authorSpacing
             }
-            // HIG: interactive rows are at least 44 pt, including compact extras density.
+            // HIG: interactive rows are at least 44 pt; regular chat rows match the ~76 pt mockup (52 pt avatar + 12 pt padding).
             itemHeight = max(itemHeight, 44.0)
+            if !compactChatList, case let .peer(peerData) = item.content, peerData.customMessageListData == nil {
+                itemHeight = max(itemHeight, avatarDiameter + 24.0)
+            } else if !compactChatList, case .groupReference = item.content {
+                itemHeight = max(itemHeight, avatarDiameter + 24.0)
+            }
                         
             let rawContentRect = CGRect(origin: CGPoint(x: 2.0, y: layoutOffset + floor(item.presentationData.fontSize.itemListBaseFontSize * 8.0 / 17.0)), size: CGSize(width: rawContentWidth, height: itemHeight - 12.0 - 9.0))
             
@@ -5463,25 +5477,27 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                         titleBadge.textNode.removeFromSupernode()
                     }
                     
+                    let higCardInset: CGFloat = higChatListCardInset
+                    let higCardRadius: CGFloat = higCardInset > 0.0 ? 28.0 : 0.0
                     let leftSeparatorInset: CGFloat
                     let rightSeparatorInset: CGFloat
                     let hideCommunitySeparator = item.useCommunityViewLayout && last
                     if case let .groupReference(groupReferenceData) = item.content, groupReferenceData.hiddenByDefault {
-                        leftSeparatorInset = 0.0
-                        rightSeparatorInset = 0.0
+                        leftSeparatorInset = higCardInset
+                        rightSeparatorInset = higCardInset
                     } else if item.useCommunityViewLayout {
                         leftSeparatorInset = editingOffset + leftInset + rawContentRect.origin.x
                         rightSeparatorInset = 16.0
                     } else if (!nextIsPinned && isPinned) || last {
-                        leftSeparatorInset = 0.0
-                        rightSeparatorInset = 0.0
+                        leftSeparatorInset = higCardInset
+                        rightSeparatorInset = higCardInset
                     } else {
                         leftSeparatorInset = editingOffset + leftInset + rawContentRect.origin.x
-                        rightSeparatorInset = 16.0
+                        rightSeparatorInset = 16.0 + higCardInset
                     }
                     
                     transition.updateFrame(node: strongSelf.separatorNode, frame: CGRect(origin: CGPoint(x: leftSeparatorInset, y: layoutOffset + itemHeight - separatorHeight), size: CGSize(width: params.width - leftSeparatorInset - rightSeparatorInset, height: separatorHeight)))
-                    strongSelf.separatorNode.isHidden = hideCommunitySeparator
+                    strongSelf.separatorNode.isHidden = hideCommunitySeparator || last
                     if let inlineNavigationLocation = item.interaction.inlineNavigationLocation {
                         strongSelf.updateSeparatorAlpha(transition: transition, inlineNavigationProgress: inlineNavigationLocation.progress)
                     } else {
@@ -5494,7 +5510,22 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                         }
                     }
                     
-                    transition.updateFrame(node: strongSelf.backgroundNode, frame: CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: CGSize(width: layout.contentSize.width, height: itemHeight)))
+                    let backgroundFrame = CGRect(origin: CGPoint(x: higCardInset, y: 0.0), size: CGSize(width: layout.contentSize.width - higCardInset * 2.0, height: itemHeight))
+                    transition.updateFrame(node: strongSelf.backgroundNode, frame: backgroundFrame)
+                    var maskedCorners: CACornerMask = []
+                    if higCardRadius > 0.0 {
+                        if first {
+                            maskedCorners.insert(.layerMinXMinYCorner)
+                            maskedCorners.insert(.layerMaxXMinYCorner)
+                        }
+                        if last {
+                            maskedCorners.insert(.layerMinXMaxYCorner)
+                            maskedCorners.insert(.layerMaxXMaxYCorner)
+                        }
+                    }
+                    strongSelf.backgroundNode.cornerRadius = higCardRadius
+                    strongSelf.backgroundNode.layer.maskedCorners = maskedCorners
+                    strongSelf.backgroundNode.clipsToBounds = higCardRadius > 0.0
                     let backgroundColor: UIColor
                     let highlightedBackgroundColor: UIColor
                     if item.selected {
@@ -5511,9 +5542,10 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                     } else {
                         if case let .peer(peerData) = item.content, peerData.customMessageListData != nil {
                             backgroundColor = .clear
+                        } else if higCardInset > 0.0 {
+                            backgroundColor = theme.itemBackgroundColor
                         } else {
                             backgroundColor = .clear
-                            //backgroundColor = theme.itemBackgroundColor
                         }
                         highlightedBackgroundColor = theme.itemHighlightedBackgroundColor
                     }
@@ -5532,8 +5564,9 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                     
                     strongSelf.highlightedBackgroundNode.backgroundColor = highlightedBackgroundColor
                     let topNegativeInset: CGFloat = 0.0
-                    strongSelf.highlightedBackgroundNode.frame = CGRect(origin: CGPoint(x: strongSelf.revealOffset, y: layoutOffset - separatorHeight - topNegativeInset), size: CGSize(width: layout.contentSize.width, height: layout.contentSize.height + separatorHeight + topNegativeInset))
-                    transition.updateCornerRadius(node: strongSelf.highlightedBackgroundNode, cornerRadius: strongSelf.isRevealOptionsActive ? 26.0 : 0.0)
+                    strongSelf.highlightedBackgroundNode.frame = CGRect(origin: CGPoint(x: strongSelf.revealOffset + higCardInset, y: layoutOffset - separatorHeight - topNegativeInset), size: CGSize(width: layout.contentSize.width - higCardInset * 2.0, height: layout.contentSize.height + separatorHeight + topNegativeInset))
+                    strongSelf.highlightedBackgroundNode.layer.maskedCorners = maskedCorners
+                    transition.updateCornerRadius(node: strongSelf.highlightedBackgroundNode, cornerRadius: strongSelf.isRevealOptionsActive ? 26.0 : higCardRadius)
                     
                     if let peerPresence = peerPresence {
                         strongSelf.peerPresenceManager?.reset(presence: EnginePeer.Presence(status: peerPresence.status, lastActivity: 0), isOnline: online)
