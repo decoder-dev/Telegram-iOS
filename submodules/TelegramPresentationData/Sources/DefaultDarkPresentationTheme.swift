@@ -517,13 +517,13 @@ public func makeDefaultDarkPresentationTheme(extendingThemeReference: Presentati
         storySeenColors: PresentationThemeGradientColors(topColor: UIColor(rgb: 0x48484A), bottomColor: UIColor(rgb: 0x48484A))
     )
 
-    let incomingBubbleAlpha: CGFloat = 1.0
+    let incomingBubbleAlpha: CGFloat = 0.9
     
     let message = PresentationThemeChatMessage(
         incoming: PresentationThemePartedColors(
             bubble: PresentationThemeBubbleColor(
                 withWallpaper: PresentationThemeBubbleColorComponents(
-                    fill: [UIColor(rgb: 0x2C2C2E, alpha: incomingBubbleAlpha)],
+                    fill: [UIColor(rgb: 0x1D1D1D, alpha: incomingBubbleAlpha)],
                     highlightedFill: UIColor(rgb: 0xffffff, alpha: 0.35),
                     stroke: .clear,
                     shadow: nil,
@@ -561,8 +561,8 @@ public func makeDefaultDarkPresentationTheme(extendingThemeReference: Presentati
         outgoing: PresentationThemePartedColors(
             bubble: PresentationThemeBubbleColor(
                 withWallpaper: PresentationThemeBubbleColorComponents(
-                    fill: [UIColor(rgb: 0x3478F6)],
-                    highlightedFill: UIColor(rgb: 0x2C6AE8),
+                    fill: [UIColor(rgb: 0x61BCF9), UIColor(rgb: 0x0088ff)],
+                    highlightedFill: UIColor(rgb: 0x61BCF9),
                     stroke: .clear,
                     shadow: nil,
                     reactionInactiveBackground: UIColor(rgb: 0xffffff, alpha: 0.1),
