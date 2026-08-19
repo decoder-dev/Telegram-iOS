@@ -2684,7 +2684,9 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                 } else if !useChatListLayout {
                     avatarLeftInset = 50.0
                 } else {
-                    avatarLeftInset = 24.0 + avatarDiameter + higChatListCardInset
+                    // 16pt to the avatar + 52pt avatar + 6pt gap puts text and separator at
+                    // 74pt, the Messages alignment. rawContentRect adds the remaining 2pt.
+                    avatarLeftInset = 20.0 + avatarDiameter + higChatListCardInset
                 }
             }
             
