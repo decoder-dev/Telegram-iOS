@@ -6,6 +6,9 @@
 
 ## [Unreleased]
 
+### Changed
+- **Весь интерфейс** на том же HIG-языке, что и чаты: iOS blue `#3478F6` (таб, бейджи, send, action sheet, чекбоксы), grouped-карточки Settings/Extra (скругление 20 pt, холст чёрный / `#F2F2F7` днём), контакты и звонки — аватар 52 pt и карточки как список чатов.
+
 ## [v12.9.2-3856-pre] — 2026-08-19
 
 Pre-release: iOS Messages HIG look на все чаты. Sideload smoke, не Latest.
