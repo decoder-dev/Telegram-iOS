@@ -373,10 +373,18 @@ private final class AutomaticMtProxyContext {
             let newAutomatic = fetched.filter { !manualSet.contains($0) }
             settings.automaticServers = newAutomatic
             settings.servers = manual
-            if settings.activeServer == nil || !(settings.activeServer.map(newAutomatic.contains) ?? false) {
+            // Never take a server the user picked themselves. Without this, a refresh moves
+            // traffic off their own proxy on every fetch and on every launch, because a manual
+            // server is by definition not in newAutomatic.
+            let activeIsManual = settings.activeServer.map(manualSet.contains) ?? false
+            if !activeIsManual, settings.activeServer == nil || !(settings.activeServer.map(newAutomatic.contains) ?? false) {
                 settings.activeServer = newAutomatic.first
+                // Only switch the proxy on when this code is the one that chose the server.
+                // Unconditionally enabling here re-enabled a proxy the user had turned off.
+                if settings.activeServer != nil {
+                    settings.enabled = true
+                }
             }
-            settings.enabled = true
             return settings
         }).start()
         

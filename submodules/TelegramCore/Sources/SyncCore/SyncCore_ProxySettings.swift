@@ -86,10 +86,10 @@ public struct ProxySettings: Codable, Equatable {
     public var automaticServers: [ProxyServerSettings]
     
     public static var defaultSettings: ProxySettings {
-        return ProxySettings(enabled: false, servers: [], activeServer: nil, useForCalls: false, useLocalDNSForProxyHosts: false, autoRotateProxies: false, autoFetchPublicMtProxy: true, automaticServers: [])
+        return ProxySettings(enabled: false, servers: [], activeServer: nil, useForCalls: false, useLocalDNSForProxyHosts: false, autoRotateProxies: false, autoFetchPublicMtProxy: false, automaticServers: [])
     }
     
-    public init(enabled: Bool, servers: [ProxyServerSettings], activeServer: ProxyServerSettings?, useForCalls: Bool, useLocalDNSForProxyHosts: Bool = false, autoRotateProxies: Bool = false, autoFetchPublicMtProxy: Bool = true, automaticServers: [ProxyServerSettings] = []) {
+    public init(enabled: Bool, servers: [ProxyServerSettings], activeServer: ProxyServerSettings?, useForCalls: Bool, useLocalDNSForProxyHosts: Bool = false, autoRotateProxies: Bool = false, autoFetchPublicMtProxy: Bool = false, automaticServers: [ProxyServerSettings] = []) {
         self.enabled = enabled
         self.servers = servers
         self.activeServer = activeServer
@@ -112,7 +112,10 @@ public struct ProxySettings: Codable, Equatable {
         if let stored = try? container.decode(Int32.self, forKey: "autoFetchMtProxy") {
             self.autoFetchPublicMtProxy = stored != 0
         } else {
-            self.autoFetchPublicMtProxy = true
+            // No stored value means the user never opted in — including every account upgrading
+            // from a build without this feature. Defaulting to true here would route their
+            // traffic through a public proxy they never chose, on the first launch after update.
+            self.autoFetchPublicMtProxy = false
         }
         self.automaticServers = (try? container.decode([ProxyServerSettings].self, forKey: "automaticServers")) ?? []
     }
