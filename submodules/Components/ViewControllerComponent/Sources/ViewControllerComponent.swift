@@ -288,13 +288,13 @@ open class ViewControllerComponentContainer: ViewController {
         case .none:
             navigationBarPresentationData = nil
         case .transparent:
-            navigationBarPresentationData = NavigationBarPresentationData(presentationData: presentationData, hideBackground: true, hideBadge: false, hideSeparator: true, style: .glass)
+            navigationBarPresentationData = NavigationBarPresentationData(presentationData: presentationData, hideBackground: true, hideBadge: false, hideSeparator: true, style: .legacy)
         case .default:
-            navigationBarPresentationData = NavigationBarPresentationData(presentationData: presentationData, hideBackground: false, hideBadge: false, hideSeparator: true, style: .glass, edgeEffectColor: self.baseNavigationColors == .blocks ? self.presentationData.theme.list.itemBlocksBackgroundColor : nil)
+            navigationBarPresentationData = NavigationBarPresentationData(presentationData: presentationData, hideBackground: true, hideBadge: false, hideSeparator: true, style: .legacy)
         }
         super.init(navigationBarPresentationData: navigationBarPresentationData)
         
-        self._hasGlassStyle = true
+        self._hasGlassStyle = false
         
         self.setupPresentationData(effectiveUpdatedPresentationData, navigationBarAppearance: navigationBarAppearance, statusBarStyle: statusBarStyle, presentationMode: presentationMode)
     }
@@ -320,9 +320,9 @@ open class ViewControllerComponentContainer: ViewController {
         case .none:
             navigationBarPresentationData = nil
         case .transparent:
-            navigationBarPresentationData = NavigationBarPresentationData(presentationData: presentationData, hideBackground: true, hideBadge: false, hideSeparator: true, style: .glass)
+            navigationBarPresentationData = NavigationBarPresentationData(presentationData: presentationData, hideBackground: true, hideBadge: false, hideSeparator: true, style: .legacy)
         case .default:
-            navigationBarPresentationData = NavigationBarPresentationData(presentationData: presentationData, hideBackground: false, hideBadge: false, hideSeparator: true, style: .glass, edgeEffectColor: self.baseNavigationColors == .blocks ? self.presentationData.theme.list.itemBlocksBackgroundColor : nil)
+            navigationBarPresentationData = NavigationBarPresentationData(presentationData: presentationData, hideBackground: true, hideBadge: false, hideSeparator: true, style: .legacy)
         }
         super.init(navigationBarPresentationData: navigationBarPresentationData)
         
@@ -368,9 +368,9 @@ open class ViewControllerComponentContainer: ViewController {
                 case .none:
                     navigationBarPresentationData = nil
                 case .transparent:
-                    navigationBarPresentationData = NavigationBarPresentationData(presentationData: presentationData, hideBackground: true, hideBadge: false, hideSeparator: true, style: .glass)
+                    navigationBarPresentationData = NavigationBarPresentationData(presentationData: presentationData, hideBackground: true, hideBadge: false, hideSeparator: true, style: .legacy)
                 case .default:
-                    navigationBarPresentationData = NavigationBarPresentationData(presentationData: presentationData, hideBackground: false, hideBadge: false, hideSeparator: true, style: .glass, edgeEffectColor: strongSelf.baseNavigationColors == .blocks ? strongSelf.presentationData.theme.list.itemBlocksBackgroundColor : nil)
+                    navigationBarPresentationData = NavigationBarPresentationData(presentationData: presentationData, hideBackground: true, hideBadge: false, hideSeparator: true, style: .legacy)
                 }
                 if let navigationBarPresentationData {
                     strongSelf.navigationBar?.updatePresentationData(navigationBarPresentationData, transition: .immediate)

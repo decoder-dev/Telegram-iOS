@@ -60,9 +60,9 @@ final class BotCheckoutInfoController: ViewController {
         
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
         
-        super.init(navigationBarPresentationData: NavigationBarPresentationData(presentationData: self.presentationData, style: .glass))
+        super.init(navigationBarPresentationData: NavigationBarPresentationData(presentationData: self.presentationData, hideBackground: true, hideBadge: false, hideSeparator: true, style: .legacy))
         
-        self._hasGlassStyle = true
+        self._hasGlassStyle = false
         self.statusBar.statusBarStyle = self.presentationData.theme.rootController.statusBarStyle.style
         
         self.doneItem = UIBarButtonItem(title: "___done", style: .done, target: self, action: #selector(self.donePressed))

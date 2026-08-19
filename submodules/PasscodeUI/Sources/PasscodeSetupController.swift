@@ -34,7 +34,7 @@ public final class PasscodeSetupController: ViewController {
         self.mode = mode
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
         
-        super.init(navigationBarPresentationData: NavigationBarPresentationData(presentationData: self.presentationData, style: .glass))
+        super.init(navigationBarPresentationData: NavigationBarPresentationData(presentationData: self.presentationData, hideBackground: true, hideBadge: false, hideSeparator: true, style: .legacy))
         
         self.supportedOrientations = ViewControllerSupportedOrientations(regularSize: .all, compactSize: .portrait)
         self.statusBar.statusBarStyle = self.presentationData.theme.rootController.statusBarStyle.style
