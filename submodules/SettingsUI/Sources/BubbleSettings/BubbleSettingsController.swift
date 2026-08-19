@@ -257,7 +257,7 @@ private final class BubbleSettingsControllerNode: ASDisplayNode, ASScrollViewDel
     }
     
     func updatePresentationThemeSettings(_ presentationThemeSettings: PresentationThemeSettings) {
-        let chatBubbleCorners = PresentationChatBubbleCorners(mainRadius: CGFloat(presentationThemeSettings.chatBubbleSettings.mainRadius), auxiliaryRadius: CGFloat(presentationThemeSettings.chatBubbleSettings.auxiliaryRadius), mergeBubbleCorners: presentationThemeSettings.chatBubbleSettings.mergeBubbleCorners)
+        let chatBubbleCorners = higChatBubbleCorners(from: presentationThemeSettings.chatBubbleSettings)
         
         self.presentationData = self.presentationData.withChatBubbleCorners(chatBubbleCorners)
         self.toolbarNode.updatePresentationData(presentationData: self.presentationData)
