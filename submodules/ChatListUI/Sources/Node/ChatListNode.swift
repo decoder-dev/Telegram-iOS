@@ -3825,7 +3825,11 @@ public final class ChatListNode: ListViewImpl {
         }
     }
     
-    func deactivateFolderPagination() {
+    public func activateFolderPagination() {
+        self.isActiveForFolderPagination = true
+    }
+    
+    public func deactivateFolderPagination() {
         self.isActiveForFolderPagination = false
         if case .navigation = self.currentLocation {
             self.setChatListLocation(.initial(count: 50, filter: self.chatListFilter))
