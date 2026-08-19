@@ -247,6 +247,7 @@ final class PeerSelectionControllerNode: ASDisplayNode {
         } else {
             self.mainContainerNode = nil
             self.chatListNode = ChatListNode(context: context, location: chatListLocation, previewing: false, fillPreloadItems: false, mode: chatListMode, theme: self.presentationData.theme, fontSize: presentationData.listsFontSize, strings: presentationData.strings, dateTimeFormat: presentationData.dateTimeFormat, nameSortOrder: presentationData.nameSortOrder, nameDisplayOrder: presentationData.nameDisplayOrder, animationCache: self.animationCache, animationRenderer: self.animationRenderer, disableAnimations: true, isInlineMode: false, autoSetReady: true, isMainTab: false)
+            self.chatListNode?.isActiveForFolderPagination = true
             if let multipleSelectionLimit = controller.multipleSelectionLimit {
                 self.chatListNode?.selectionLimit = multipleSelectionLimit
             }

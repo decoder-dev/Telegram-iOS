@@ -177,7 +177,7 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
             previousItemNode.listNode.addedVisibleChatsWithPeerIds = nil
             previousItemNode.listNode.didBeginSelectingChats = nil
             previousItemNode.listNode.canExpandHiddenItems = nil
-            previousItemNode.listNode.isActiveForFolderPagination = false
+            previousItemNode.listNode.deactivateFolderPagination()
             
             previousItemNode.accessibilityElementsHidden = true
         }
@@ -906,7 +906,7 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
                 
                 self.selectedId = id
                 self.applyItemNodeAsCurrent(id: id, itemNode: itemNode)
-                let transition: ContainedViewLayoutTransition = .animated(duration: 0.35, curve: .spring)
+                let transition: ContainedViewLayoutTransition = animated ? .animated(duration: 0.35, curve: .spring) : .immediate
                 self.update(layout: layout, navigationBarHeight: navigationBarHeight, visualNavigationHeight: visualNavigationHeight, originalNavigationHeight: originalNavigationHeight, cleanNavigationBarHeight: cleanNavigationBarHeight, insets: insets, isReorderingFilters: isReorderingFilters, isEditing: isEditing, inlineNavigationLocation: inlineNavigationLocation, inlineNavigationTransitionFraction: inlineNavigationTransitionFraction, storiesInset: storiesInset, transition: transition)
                 self.currentItemFilterUpdated?(self.currentItemFilter, self.transitionFraction, transition, false)
                 self.pinnedHeaderDisplayFractionUpdated?(transition)
@@ -922,6 +922,7 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
                 }, openArchiveSettings: { [weak self] in
                     self?.openArchiveSettings()
                 }, autoSetReady: !animated, isMainTab: index == 0)
+                itemNode.listNode.isActiveForFolderPagination = false
                 self.pendingItemNode?.2.dispose()
                 let disposable = MetaDisposable()
                 self.pendingItemNode = (id, itemNode, disposable)
@@ -1077,6 +1078,7 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
                         self?.openArchiveSettings()
                     }, autoSetReady: false, isMainTab: i == 0)
                     itemNode.listNode.tempTopInset = self.tempTopInset
+                    itemNode.listNode.isActiveForFolderPagination = false
                     self.itemNodes[id] = itemNode
                 }
             }
@@ -1115,6 +1117,7 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
                 }
                 
                 itemNode.listNode.isMainTab.set(self.availableFilters.firstIndex(where: { $0.id == id }) == 0)
+                itemNode.listNode.isActiveForFolderPagination = (id == self.selectedId)
                 itemNode.updateLayout(size: layout.size, insets: insets, visualNavigationHeight: visualNavigationHeight, originalNavigationHeight: originalNavigationHeight, inlineNavigationLocation: inlineNavigationLocation, inlineNavigationTransitionFraction: itemInlineNavigationTransitionFraction, storiesInset: storiesInset, transition: nodeTransition)
                 if let scrollingOffset = self.scrollingOffset {
                     itemNode.updateScrollingOffset(navigationHeight: scrollingOffset.navigationHeight, offset: scrollingOffset.offset, transition: nodeTransition)

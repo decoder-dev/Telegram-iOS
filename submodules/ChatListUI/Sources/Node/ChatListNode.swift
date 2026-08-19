@@ -48,6 +48,7 @@ struct ChatListNodeListViewTransition {
     let stationaryItemRange: (Int, Int)?
     let adjustScrollToFirstItem: Bool
     let animateCrossfade: Bool
+    let locationGeneration: Int
 }
 
 final class ChatListHighlightedLocation: Equatable {
@@ -1171,9 +1172,10 @@ private func mappedChatListNodeViewListTransition(
     mode: ChatListNodeMode,
     isPeerEnabled: ((EnginePeer) -> Bool)?,
     presentationData: ChatListPresentationData,
-    transition: ChatListNodeViewTransition
+    transition: ChatListNodeViewTransition,
+    locationGeneration: Int
 ) -> ChatListNodeListViewTransition {
-    return ChatListNodeListViewTransition(chatListView: transition.chatListView, deleteItems: transition.deleteItems, insertItems: mappedInsertEntries(context: context, nodeInteraction: nodeInteraction, location: location, isPremium: isPremium, filterData: filterData, chatListFilters: chatListFilters, mode: mode, isPeerEnabled: isPeerEnabled, entries: transition.insertEntries, presentationData: presentationData), updateItems: mappedUpdateEntries(context: context, nodeInteraction: nodeInteraction, location: location, isPremium: isPremium, filterData: filterData, chatListFilters: chatListFilters, mode: mode, isPeerEnabled: isPeerEnabled, entries: transition.updateEntries, presentationData: presentationData), options: transition.options, scrollToItem: transition.scrollToItem, stationaryItemRange: transition.stationaryItemRange, adjustScrollToFirstItem: transition.adjustScrollToFirstItem, animateCrossfade: transition.animateCrossfade)
+    return ChatListNodeListViewTransition(chatListView: transition.chatListView, deleteItems: transition.deleteItems, insertItems: mappedInsertEntries(context: context, nodeInteraction: nodeInteraction, location: location, isPremium: isPremium, filterData: filterData, chatListFilters: chatListFilters, mode: mode, isPeerEnabled: isPeerEnabled, entries: transition.insertEntries, presentationData: presentationData), updateItems: mappedUpdateEntries(context: context, nodeInteraction: nodeInteraction, location: location, isPremium: isPremium, filterData: filterData, chatListFilters: chatListFilters, mode: mode, isPeerEnabled: isPeerEnabled, entries: transition.updateEntries, presentationData: presentationData), options: transition.options, scrollToItem: transition.scrollToItem, stationaryItemRange: transition.stationaryItemRange, adjustScrollToFirstItem: transition.adjustScrollToFirstItem, animateCrossfade: transition.animateCrossfade, locationGeneration: locationGeneration)
 }
 
 private final class ChatListOpaqueTransactionState {
@@ -1300,16 +1302,9 @@ public final class ChatListNode: ListViewImpl {
     
     private var currentLocation: ChatListNodeLocation?
     private var chatListLocationGeneration: Int = 0
-    /// Gates `displayedItemRangeChanged` — pagination, history preload and story-peer refresh.
-    ///
-    /// Defaults to true. `ChatListContainerNode` turns it off on the tab being switched away from
-    /// and back on for the one becoming current, which is the folder-duplication fix; but not every
-    /// `ChatListNode` lives in that container. `PeerSelectionControllerNode` (Forward to…) and
-    /// `ContactMultiselectionControllerNode` (add members) build one directly and never call
-    /// `reconcileLocationOnTabActivation`, so defaulting to false left those lists stuck on their
-    /// first window — scrolling down simply ran out of chats. True is also what every list did
-    /// before the gate existed, so this only ever narrows behaviour relative to that.
-    var isActiveForFolderPagination: Bool = true
+    /// Defaults to false. Only the visible folder tab (or standalone lists that opt in) may paginate;
+    /// adjacent preloaded tabs must stay false or background pagination corrupts their item state.
+    var isActiveForFolderPagination: Bool = false
     public private(set) var chatListFilter: ChatListFilter? {
         didSet {
             self.chatListFilterValue.set(.single(self.chatListFilter))
@@ -2735,7 +2730,7 @@ public final class ChatListNode: ListViewImpl {
             let presentationData = state.presentationData
             
             return preparedChatListNodeViewTransition(from: previousView, to: processedView, reason: reason, previewing: previewing, disableAnimations: disableAnimations, scrollPosition: updatedScrollPosition, searchMode: searchMode, forceAllUpdated: forceAllUpdated)
-            |> map({ mappedChatListNodeViewListTransition(context: context, nodeInteraction: nodeInteraction, location: location, isPremium: accountIsPremium, filterData: filterData, chatListFilters: chatListFilters, mode: mode, isPeerEnabled: isPeerEnabled, presentationData: presentationData, transition: $0) })
+            |> map({ mappedChatListNodeViewListTransition(context: context, nodeInteraction: nodeInteraction, location: location, isPremium: accountIsPremium, filterData: filterData, chatListFilters: chatListFilters, mode: mode, isPeerEnabled: isPeerEnabled, presentationData: presentationData, transition: $0, locationGeneration: locationGeneration) })
             |> runOn(prepareOnMainQueue ? Queue.mainQueue() : viewProcessingQueue)
         }
         
@@ -3427,6 +3422,11 @@ public final class ChatListNode: ListViewImpl {
         if let (transition, completion) = self.enqueuedTransition {
             self.enqueuedTransition = nil
             
+            guard transition.locationGeneration == self.chatListLocationGeneration, self.isActiveForFolderPagination else {
+                completion()
+                return
+            }
+            
             let completion: (ListViewDisplayedItemRange) -> Void = { [weak self] visibleRange in
                 if let strongSelf = self {
                     strongSelf.chatListView = transition.chatListView
@@ -3822,6 +3822,13 @@ public final class ChatListNode: ListViewImpl {
         } else {
             let location: ChatListNodeLocation = .scroll(index: .chatList(.absoluteUpperBound), sourceIndex: .chatList(.absoluteLowerBound), scrollPosition: .top(additionalDelta), animated: animated, filter: self.chatListFilter)
             self.setChatListLocation(location)
+        }
+    }
+    
+    func deactivateFolderPagination() {
+        self.isActiveForFolderPagination = false
+        if case .navigation = self.currentLocation {
+            self.setChatListLocation(.initial(count: 50, filter: self.chatListFilter))
         }
     }
     
