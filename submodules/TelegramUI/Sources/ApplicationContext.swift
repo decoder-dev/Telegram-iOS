@@ -204,7 +204,6 @@ final class AuthorizedApplicationContext {
                             return
                         }
                         if let tabController = strongSelf.rootController.rootTabController, let selectedController = tabController.selectedController {
-
                             if let index = strongSelf.rootController.viewControllers.lastIndex(where: { controller in
                                 guard let controller = controller as? ViewController else {
                                     return false
