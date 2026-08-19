@@ -2287,7 +2287,7 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
             self.overlayContextPanelNode = nil
         }
         
-        let inputPanelsInset: CGFloat = 0.0
+        let inputPanelsInset: CGFloat = 8.0
         let accessoryPanelsInset: CGFloat = 8.0
         var inputPanelsHeight: CGFloat = 0.0
         
@@ -2458,9 +2458,11 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
             scrollToTop = true
         }
         
-        // The composer sits flush against the bottom, so the content inset is just the panels.
-        // The previewing branch used to add 11 pt here; removing that left this constant.
-        let contentBottomInset: CGFloat = inputPanelsHeight + inputPanelsInset
+        var contentBottomInset: CGFloat = inputPanelsHeight + inputPanelsInset
+        if previewing {
+        } else {
+            contentBottomInset += 11.0
+        }
         
         if let scrollContainerNode = self.scrollContainerNode {
             transition.updateFrame(node: scrollContainerNode, frame: CGRect(origin: CGPoint(), size: layout.size))
