@@ -2225,8 +2225,11 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
         self.insets = nodeLayout.insets
     }
     
-    class func insets(first: Bool, last: Bool, firstWithHeader: Bool) -> UIEdgeInsets {
-        return UIEdgeInsets(top: firstWithHeader ? 29.0 : (first ? 8.0 : 0.0), left: 0.0, bottom: last ? 12.0 : 0.0, right: 0.0)
+    class func insets(first: Bool, last: Bool, firstWithHeader: Bool, useHigCardInsets: Bool = false) -> UIEdgeInsets {
+        if useHigCardInsets {
+            return UIEdgeInsets(top: firstWithHeader ? 29.0 : (first ? 8.0 : 0.0), left: 0.0, bottom: last ? 12.0 : 0.0, right: 0.0)
+        }
+        return UIEdgeInsets(top: firstWithHeader ? 29.0 : 0.0, left: 0.0, bottom: 0.0, right: 0.0)
     }
     
     override public func setHighlighted(_ highlighted: Bool, at point: CGPoint, animated: Bool) {
@@ -4152,7 +4155,9 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                 itemHeight += authorSpacing
             }
             // HIG: interactive rows are at least 44 pt; regular chat rows match the ~76 pt mockup (52 pt avatar + 12 pt padding).
+            // Compact / overlay rows still have to clear the avatar, or the 52 pt circle clips the 44 pt min height.
             itemHeight = max(itemHeight, 44.0)
+            itemHeight = max(itemHeight, avatarDiameter + 8.0)
             if !compactChatList, case let .peer(peerData) = item.content, peerData.customMessageListData == nil {
                 itemHeight = max(itemHeight, avatarDiameter + 24.0)
             } else if !compactChatList, case .groupReference = item.content {
@@ -4161,7 +4166,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                         
             let rawContentRect = CGRect(origin: CGPoint(x: 2.0, y: layoutOffset + floor(item.presentationData.fontSize.itemListBaseFontSize * 8.0 / 17.0)), size: CGSize(width: rawContentWidth, height: itemHeight - 12.0 - 9.0))
             
-            let insets = ChatListItemNode.insets(first: first, last: last, firstWithHeader: firstWithHeader)
+            let insets = ChatListItemNode.insets(first: first, last: last, firstWithHeader: firstWithHeader, useHigCardInsets: higChatListCardInset > 0.0)
             var heightOffset: CGFloat = 0.0
             if item.hiddenOffset {
                 heightOffset = -itemHeight
@@ -4247,7 +4252,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                     var crossfadeContent = false
                     if let selectableControlSizeAndApply = selectableControlSizeAndApply {
                         let selectableControlSize = CGSize(width: selectableControlSizeAndApply.0, height: layout.contentSize.height)
-                        let selectableControlFrame = CGRect(origin: CGPoint(x: params.leftInset + revealOffset, y: layoutOffset), size: selectableControlSize)
+                        let selectableControlFrame = CGRect(origin: CGPoint(x: params.leftInset + revealOffset + higChatListCardInset, y: layoutOffset), size: selectableControlSize)
                         if strongSelf.selectableControlNode == nil {
                             crossfadeContent = true
                             let selectableControlNode = selectableControlSizeAndApply.1(selectableControlSize, false)
@@ -4274,7 +4279,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                     
                     var animateBadges = animateContent
                     if let reorderControlSizeAndApply = reorderControlSizeAndApply {
-                        let reorderControlFrame = CGRect(origin: CGPoint(x: params.width + revealOffset - params.rightInset - reorderControlSizeAndApply.0, y: layoutOffset), size: CGSize(width: reorderControlSizeAndApply.0, height: layout.contentSize.height))
+                        let reorderControlFrame = CGRect(origin: CGPoint(x: params.width + revealOffset - params.rightInset - higChatListCardInset - reorderControlSizeAndApply.0, y: layoutOffset), size: CGSize(width: reorderControlSizeAndApply.0, height: layout.contentSize.height))
                         if strongSelf.reorderControlNode == nil {
                             let reorderControlNode = reorderControlSizeAndApply.1(layout.contentSize.height, false, .immediate)
                             strongSelf.reorderControlNode = reorderControlNode
@@ -5714,7 +5719,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
         transition.updateBounds(node: self.contextContainer, bounds: self.contextContainer.frame.offsetBy(dx: -offset, dy: 0.0))
 
         let highlightedBackgroundFrame = self.highlightedBackgroundNode.frame
-        transition.updateFrame(node: self.highlightedBackgroundNode, frame: CGRect(origin: CGPoint(x: offset, y: highlightedBackgroundFrame.minY), size: highlightedBackgroundFrame.size))
+        transition.updateFrame(node: self.highlightedBackgroundNode, frame: CGRect(origin: CGPoint(x: offset + self.backgroundNode.frame.minX, y: highlightedBackgroundFrame.minY), size: highlightedBackgroundFrame.size))
     }
 
     override public func revealOptionsActiveStateUpdated(isActive: Bool, transition: ContainedViewLayoutTransition) {
