@@ -21,10 +21,17 @@ func managedProxyFailover(accountManager: AccountManager<TelegramAccountManagerT
         return sharedData.entries[SharedDataKeys.proxySettings]?.get(ProxySettings.self) ?? .defaultSettings
     }
     
-    return combineLatest(queue: .mainQueue(), settingsSignal, network.connectionStatus)
+    // Off the main queue on purpose. This re-evaluates on every `connectionStatus` emission, and
+    // those arrive in bursts whenever the link is unsettled — exactly when the main thread is
+    // busiest. Nothing in the body needs the main thread: `state` is atomic and
+    // `updateProxySettingsInteractively` is a signal.
+    return combineLatest(queue: Queue(), settingsSignal, network.connectionStatus)
     |> mapToSignal { settings, connectionStatus -> Signal<Never, NoError> in
-        network.context.forceLocalDNS = settings.useLocalDNSForProxyHosts
-        
+        // `forceLocalDNS` is not set here. Account.swift owns it — it applies the value on distinct
+        // proxy-settings changes and forces the network to pick it up, whereas this signal fires on
+        // every connection-status tick, so the write was both redundant and a repeated cross-queue
+        // poke at MTContext for a value that had not changed.
+
         // RTT-based auto-fetch owns failover while it is on.
         guard !settings.autoFetchPublicMtProxy else {
             let _ = state.modify { s in
