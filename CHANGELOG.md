@@ -6,6 +6,17 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3877-pre] — 2026-08-19
+
+Pre-release: OLED profile card layout (Contacts-style).
+
+### Changed
+- **Профиль (OLED):** кнопки действий (звонок / mute / search / more) вынесены из шапки в первую карточку `#1C1C1E` — 48×48 pt круги `#2C2C2E`.
+- Шапка: только avatar + имя + статус на чёрном фоне.
+- Info-карточка: подписи полей ярче (`#AEAEB2`, iOS tertiary label).
+- Табы + контент (медиа, подарки…) в одной карточке `#1C1C1E` с inset как у Settings.
+- id / dc / registered — одна строка footer мелким текстом вместо отдельных rows.
+
 ## [v12.9.2-3876-pre] — 2026-08-19
 
 Pre-release: composer accessory row alignment + brighter placeholder.
