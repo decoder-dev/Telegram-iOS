@@ -330,7 +330,9 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
             let dateFont = Font.regular(floor(item.presentationData.fontSize.itemListBaseFontSize * 15.0 / 17.0))
             let avatarDiameter = min(52.0, floor(item.presentationData.fontSize.itemListBaseFontSize * 52.0 / 17.0))
             let multipleAvatarDiameter = min(30.0, floor(item.presentationData.fontSize.itemListBaseFontSize * 30.0 / 17.0))
-            let higCardInset: CGFloat = item.style == .plain ? 16.0 : 0.0
+            // Matches the chat list, which dropped this inset: a 16 pt card here left white
+            // stripes down both sides of Calls and Contacts while chats ran full width.
+            let higCardInset: CGFloat = 0.0
             let higCardRadius: CGFloat = higCardInset > 0.0 ? 20.0 : 0.0
             
             let editingOffset: CGFloat
@@ -870,7 +872,9 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
             }
             
             let avatarDiameter = min(52.0, floor(item.presentationData.fontSize.itemListBaseFontSize * 52.0 / 17.0))
-            let higCardInset: CGFloat = item.style == .plain ? 16.0 : 0.0
+            // Matches the chat list, which dropped this inset: a 16 pt card here left white
+            // stripes down both sides of Calls and Contacts while chats ran full width.
+            let higCardInset: CGFloat = 0.0
             let leftInset: CGFloat = 16.0 + avatarDiameter + 12.0 + params.leftInset + higCardInset + editingOffset
             let rightInset: CGFloat = 13.0 + params.rightInset + higCardInset
             var infoIconRightInset: CGFloat = rightInset - 1.0

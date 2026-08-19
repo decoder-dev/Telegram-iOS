@@ -734,7 +734,7 @@ public func makeDefaultDayPresentationTheme(extendingThemeReference: Presentatio
         ),
         infoPrimaryTextColor: UIColor(rgb: 0x000000),
         infoLinkTextColor: UIColor(rgb: 0x004bad),
-        outgoingCheckColor: UIColor(rgb: 0xffffff, alpha: 0.85),
+        outgoingCheckColor: UIColor(rgb: 0x19c700),
         mediaDateAndStatusFillColor: UIColor(white: 0.0, alpha: 0.3),
         mediaDateAndStatusTextColor: UIColor(rgb: 0xffffff),
         shareButtonFillColor: PresentationThemeVariableColor(withWallpaper: serviceBackgroundColor, withoutWallpaper: UIColor(rgb: 0x748391, alpha: 0.45)),
