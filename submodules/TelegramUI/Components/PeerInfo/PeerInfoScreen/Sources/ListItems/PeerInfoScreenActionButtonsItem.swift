@@ -81,6 +81,13 @@ private final class PeerInfoScreenActionButtonsItemNode: PeerInfoScreenItemNode 
                     self?.item?.performAction(buttonNode.key, buttonNode, gesture)
                 })
                 self.buttonNodes[buttonKey] = buttonNode
+                // The button draws its icon and label; its background circle lives in a separate
+                // view the owner is expected to place. PeerInfoHeaderNode does that explicitly
+                // (`buttonsMaskView.addSubview`), and this item did not — the frame was being set
+                // on a view that was in no hierarchy, and the cleanup path below calls
+                // `removeFromSuperview` on it, so the #2C2C2E circles simply never rendered.
+                // Below the button node, so the icon stays on top.
+                self.view.insertSubview(buttonNode.backgroundContainerView, at: 0)
                 self.addSubnode(buttonNode)
             }
             
