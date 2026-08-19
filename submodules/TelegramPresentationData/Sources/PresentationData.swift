@@ -80,10 +80,12 @@ public struct PresentationChatBubbleCorners: Equatable, Hashable {
 
 /// Apple HIG / iMessage geometry for every chat: continuous corners, no comic tails.
 public func higChatBubbleCorners(from settings: PresentationChatBubbleSettings) -> PresentationChatBubbleCorners {
-    // iMessage: mainRadius = 18pt for capsule-style bubbles
     return PresentationChatBubbleCorners(
-        mainRadius: max(CGFloat(settings.mainRadius), 18.0),
-        auxiliaryRadius: max(CGFloat(settings.auxiliaryRadius), 6.0),
+        // Pinned to Messages geometry rather than floored against the stored setting: the
+        // defaults are 20/10, so a floor would never reach 18/4. This makes the radius sliders
+        // in Bubble Settings inert, which is the cost of matching Messages exactly.
+        mainRadius: 18.0,
+        auxiliaryRadius: 4.0,
         mergeBubbleCorners: settings.mergeBubbleCorners,
         hasTails: false
     )
