@@ -514,12 +514,15 @@ public final class ChatListNavigationBar: Component {
                 
                 if (component.activeSearch != nil) != (headerContentView.alpha == 0.0) {
                     headerContentView.alpha = component.activeSearch != nil ? 0.0 : 1.0
+                    self.headerBackgroundContainer.alpha = component.activeSearch != nil ? 0.0 : 1.0
                     
                     if !transition.animation.isImmediate {
                         if component.activeSearch != nil {
                             headerContentView.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.14)
+                            self.headerBackgroundContainer.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.14)
                         } else {
                             headerContentView.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.3)
+                            self.headerBackgroundContainer.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.3)
                         }
                     }
                 }
