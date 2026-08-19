@@ -643,7 +643,7 @@ final class TextSizeSelectionController: ViewController {
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
         self.presentationThemeSettings = presentationThemeSettings
         
-        super.init(navigationBarPresentationData: NavigationBarPresentationData(presentationTheme: self.presentationData.theme, presentationStrings: self.presentationData.strings, hideBackground: true, hideBadge: false, hideSeparator: true, style: .legacy))
+        super.init(navigationBarPresentationData: NavigationBarPresentationData(theme: NavigationBarTheme(rootControllerTheme: self.presentationData.theme, hideBackground: true, hideSeparator: true, style: .legacy), strings: NavigationBarStrings(presentationStrings: self.presentationData.strings)))
         self._hasGlassStyle = false
         
         self.blocksBackgroundWhenInOverlay = true
