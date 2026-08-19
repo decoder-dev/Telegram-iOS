@@ -80,9 +80,10 @@ public struct PresentationChatBubbleCorners: Equatable, Hashable {
 
 /// Apple HIG / iMessage geometry for every chat: continuous corners, no comic tails.
 public func higChatBubbleCorners(from settings: PresentationChatBubbleSettings) -> PresentationChatBubbleCorners {
+    // iMessage: mainRadius = 18pt for capsule-style bubbles
     return PresentationChatBubbleCorners(
-        mainRadius: max(CGFloat(settings.mainRadius), 20.0),
-        auxiliaryRadius: max(CGFloat(settings.auxiliaryRadius), 10.0),
+        mainRadius: max(CGFloat(settings.mainRadius), 18.0),
+        auxiliaryRadius: max(CGFloat(settings.auxiliaryRadius), 6.0),
         mergeBubbleCorners: settings.mergeBubbleCorners,
         hasTails: false
     )
