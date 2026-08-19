@@ -1300,7 +1300,16 @@ public final class ChatListNode: ListViewImpl {
     
     private var currentLocation: ChatListNodeLocation?
     private var chatListLocationGeneration: Int = 0
-    var isActiveForFolderPagination: Bool = false
+    /// Gates `displayedItemRangeChanged` — pagination, history preload and story-peer refresh.
+    ///
+    /// Defaults to true. `ChatListContainerNode` turns it off on the tab being switched away from
+    /// and back on for the one becoming current, which is the folder-duplication fix; but not every
+    /// `ChatListNode` lives in that container. `PeerSelectionControllerNode` (Forward to…) and
+    /// `ContactMultiselectionControllerNode` (add members) build one directly and never call
+    /// `reconcileLocationOnTabActivation`, so defaulting to false left those lists stuck on their
+    /// first window — scrolling down simply ran out of chats. True is also what every list did
+    /// before the gate existed, so this only ever narrows behaviour relative to that.
+    var isActiveForFolderPagination: Bool = true
     public private(set) var chatListFilter: ChatListFilter? {
         didSet {
             self.chatListFilterValue.set(.single(self.chatListFilter))
