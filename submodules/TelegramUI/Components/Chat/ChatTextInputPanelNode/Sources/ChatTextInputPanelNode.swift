@@ -2527,8 +2527,15 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
                 }
             }
             
-            sendActionButtonsSize = self.sendActionButtons.updateLayout(size: CGSize(width: 40.0, height: minimalHeight), isMediaInputExpanded: isMediaInputExpanded, showTitle: showTitle, currentMessageEffectId: presentationInterfaceState.interfaceState.sendMessageEffect, transition: transition, interfaceState: presentationInterfaceState)
-            mediaActionButtonsSize = self.mediaActionButtons.updateLayout(size: CGSize(width: 40.0, height: minimalHeight), isMediaInputExpanded: isMediaInputExpanded, showTitle: false, currentMessageEffectId: presentationInterfaceState.interfaceState.sendMessageEffect, transition: transition, interfaceState: presentationInterfaceState)
+            // 40 pt tall, not the field's height. The node draws its background as a rounded rect of
+            // exactly this size with `cornerRadius = height * 0.5`, so handing it the field height
+            // (52 pt after the Messages-sized field) made the mic and send buttons 40×52 ovals next
+            // to the round 40×40 attachment button on the other side. Both frames are bottom-anchored
+            // (`maxY - size.height`), so a square here sits on the field's baseline exactly like the
+            // attachment button does.
+            let actionButtonsSize = CGSize(width: 40.0, height: 40.0)
+            sendActionButtonsSize = self.sendActionButtons.updateLayout(size: actionButtonsSize, isMediaInputExpanded: isMediaInputExpanded, showTitle: showTitle, currentMessageEffectId: presentationInterfaceState.interfaceState.sendMessageEffect, transition: transition, interfaceState: presentationInterfaceState)
+            mediaActionButtonsSize = self.mediaActionButtons.updateLayout(size: actionButtonsSize, isMediaInputExpanded: isMediaInputExpanded, showTitle: false, currentMessageEffectId: presentationInterfaceState.interfaceState.sendMessageEffect, transition: transition, interfaceState: presentationInterfaceState)
         }
         
         var starReactionButtonSize: CGSize?
