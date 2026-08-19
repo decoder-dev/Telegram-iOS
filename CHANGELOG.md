@@ -6,6 +6,13 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3878-pre] — 2026-08-19
+
+Pre-release: brighter chat list search placeholder.
+
+### Fixed
+- «Поиск» в списке чатов (тёмная тема): placeholder и лупа ярче — 62% белого, как в композере.
+
 ## [v12.9.2-3877-pre] — 2026-08-19
 
 Pre-release: OLED profile card layout (Contacts-style).

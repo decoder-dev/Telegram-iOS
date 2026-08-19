@@ -380,9 +380,9 @@ public func makeDefaultDarkPresentationTheme(extendingThemeReference: Presentati
         accentColor: UIColor(rgb: 0x3478F6),
         inputFillColor: UIColor(rgb: 0x000000),
         inputTextColor: UIColor(rgb: 0xffffff),
-        inputPlaceholderTextColor: UIColor(rgb: 0x8f8f8f),
-        inputIconColor: UIColor(rgb: 0x8f8f8f),
-        inputClearButtonColor: UIColor(rgb: 0x8f8f8f),
+        inputPlaceholderTextColor: UIColor(rgb: 0xffffff, alpha: 0.62),
+        inputIconColor: UIColor(rgb: 0xffffff, alpha: 0.62),
+        inputClearButtonColor: UIColor(rgb: 0xffffff, alpha: 0.62),
         separatorColor: UIColor(rgb: 0x545458, alpha: 0.55)
     )
 
