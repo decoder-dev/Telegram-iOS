@@ -23,14 +23,16 @@ final class PeerInfoScreenCommentItem: PeerInfoScreenItem {
     let text: String
     let attributedPrefix: NSAttributedString?
     let useAccentLinkColor: Bool
+    let isDimFooter: Bool
     let linkAction: ((LinkAction) -> Void)?
     
-    init(id: AnyHashable, icon: Icon? = nil, text: String, attributedPrefix: NSAttributedString? = nil, useAccentLinkColor: Bool = true, linkAction: ((LinkAction) -> Void)? = nil) {
+    init(id: AnyHashable, icon: Icon? = nil, text: String, attributedPrefix: NSAttributedString? = nil, useAccentLinkColor: Bool = true, isDimFooter: Bool = false, linkAction: ((LinkAction) -> Void)? = nil) {
         self.id = id
         self.icon = icon
         self.text = text
         self.attributedPrefix = attributedPrefix
         self.useAccentLinkColor = useAccentLinkColor
+        self.isDimFooter = isDimFooter
         self.linkAction = linkAction
     }
     
@@ -89,7 +91,7 @@ private final class PeerInfoScreenCommentItemNode: PeerInfoScreenItemNode {
         self.presentationData = presentationData
         
         let sideInset: CGFloat = 16.0 + safeInsets.left
-        let verticalInset: CGFloat = 7.0
+        let verticalInset: CGFloat = item.isDimFooter ? 10.0 : 7.0
         
         self.textNode.maximumNumberOfLines = 0
         self.textNode.arguments = TextNodeWithEntities.Arguments(
@@ -100,8 +102,8 @@ private final class PeerInfoScreenCommentItemNode: PeerInfoScreenItemNode {
             attemptSynchronous: false
         )
         
-        let textFont = Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize)
-        let textColor = presentationData.theme.list.freeTextColor
+        let textFont = Font.regular(item.isDimFooter ? 12.0 : presentationData.listsFontSize.itemListBaseHeaderFontSize)
+        let textColor = item.isDimFooter ? peerInfoOledCardFooterColor : presentationData.theme.list.freeTextColor
         
         var text = item.text
         text = text.replacingOccurrences(of: " >]", with: "\u{00A0}>]")
