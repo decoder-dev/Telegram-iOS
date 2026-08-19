@@ -730,7 +730,16 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         case .inline, .standard(.embedded):
             navigationBarPresentationData = nil
         default:
-            navigationBarPresentationData = NavigationBarPresentationData(presentationData: self.presentationData, hideBackground: true, hideBadge: false, style: .legacy)
+            // Glass buttons over a bar with no background of its own. `.legacy` here was what
+            // gave the chat a plain "‹ Back" label floating on the wallpaper next to a glass
+            // title capsule — the two halves of the same bar drawn in two different styles.
+            // `.glass` puts the chevron in its own capsule and drops the label (NavigationBarImpl
+            // blanks the back title in glass mode), which is what Messages shows.
+            //
+            // `hideBackground: true` is kept, and is what separates this from the pre-fork state:
+            // in glass mode NavigationBarImpl never adds `backgroundNode` at all, so the bar has
+            // no fill and the wallpaper still runs underneath — only the capsules are glass.
+            navigationBarPresentationData = NavigationBarPresentationData(presentationData: self.presentationData, hideBackground: true, hideBadge: false, style: .glass, glassStyle: .default)
         }
         
         self.moreBarButton = MoreHeaderButton(color: self.presentationData.theme.chat.inputPanel.panelControlColor)
@@ -7250,10 +7259,13 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         let presentationTheme: PresentationTheme
         if let forcedNavigationBarTheme = self.forcedNavigationBarTheme {
             presentationTheme = forcedNavigationBarTheme
-            navigationBarTheme = NavigationBarTheme(rootControllerTheme: forcedNavigationBarTheme, hideBackground: true, hideBadge: true, edgeEffectColor: .clear, style: .legacy)
+            // Must match the style chosen in init — NavigationBarImpl builds its glass views once,
+            // at init, from that style, so handing it a `.legacy` theme later leaves the capsules
+            // in place but stops maintaining them.
+            navigationBarTheme = NavigationBarTheme(rootControllerTheme: forcedNavigationBarTheme, hideBackground: true, hideBadge: true, edgeEffectColor: .clear, style: .glass, glassStyle: self.presentationInterfaceState.preferredGlassType == .clear ? .clear : .default)
         } else {
             presentationTheme = self.presentationData.theme
-            navigationBarTheme = NavigationBarTheme(rootControllerTheme: self.presentationData.theme, hideBackground: true, hideBadge: false, edgeEffectColor: .clear, style: .legacy)
+            navigationBarTheme = NavigationBarTheme(rootControllerTheme: self.presentationData.theme, hideBackground: true, hideBadge: false, edgeEffectColor: .clear, style: .glass, glassStyle: self.presentationInterfaceState.preferredGlassType == .clear ? .clear : .default)
         }
         
         self.navigationBar?.updatePresentationData(NavigationBarPresentationData(theme: navigationBarTheme, strings: NavigationBarStrings(presentationStrings: self.presentationData.strings)), transition: .immediate)

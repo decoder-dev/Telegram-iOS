@@ -804,7 +804,11 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
             let statusFont = Font.regular(floor(item.presentationData.fontSize.itemListBaseFontSize * statusFontSize / 17.0))
             
             let badgeFont = Font.regular(14.0)
-            let avatarDiameter = min(52.0, floor(item.presentationData.fontSize.itemListBaseFontSize * 52.0 / 17.0))
+            // 44 pt, not the chat list's 52. This item backs search results, Contacts and Calls,
+            // and Messages draws those rows smaller than conversation rows — at 52 the row floor
+            // below forced 68 pt and search results looked padded out. Text lands at 16 + 44 + 12
+            // = 72 pt, within 2 pt of the chat list's 74, so the two lists still line up.
+            let avatarDiameter = min(44.0, floor(item.presentationData.fontSize.itemListBaseFontSize * 44.0 / 17.0))
             // Matches the chat list, which dropped this inset: a 16 pt card here left white
             // stripes down both sides of Calls and Contacts while chats ran full width.
             let higCardInset: CGFloat = 0.0
@@ -1218,7 +1222,11 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
                 statusHeightComponent = -1.0 + statusLayout.size.height
             }
             
-            let nodeLayout = ListViewItemNodeLayout(contentSize: CGSize(width: params.width, height: max(44.0, avatarDiameter + 16.0, verticalInset * 2.0 + titleLayout.size.height + statusHeightComponent)), insets: UIEdgeInsets(top: firstWithHeader ? 29.0 : 0.0, left: 0.0, bottom: 0.0, right: 0.0))
+            // 6 pt of clearance above and below the avatar rather than 8: the avatar is what sets
+            // the row height here (text alone needs less), so this term is the row's padding, and
+            // 8 pt on a 52 pt avatar was what made search results read as oversized. 44 + 12 = 56,
+            // the standard two-line iOS row.
+            let nodeLayout = ListViewItemNodeLayout(contentSize: CGSize(width: params.width, height: max(44.0, avatarDiameter + 12.0, verticalInset * 2.0 + titleLayout.size.height + statusHeightComponent)), insets: UIEdgeInsets(top: firstWithHeader ? 29.0 : 0.0, left: 0.0, bottom: 0.0, right: 0.0))
             
             let titleFrame: CGRect
             if statusAttributedString != nil {
