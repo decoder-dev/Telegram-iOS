@@ -1658,15 +1658,14 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         let previousAdditionalSideInsets = self.validLayout?.4
         self.validLayout = (width, leftInset, rightInset, bottomInset, additionalSideInsets, maxHeight, maxOverlayHeight, metrics, isSecondary, isMediaInputExpanded, deviceMetrics)
         
-        let defaultGlassTintColor: GlassBackgroundView.TintColor
-        let defaultGlassTintWithInnerColor: GlassBackgroundView.TintColor
-        if case .clear = interfaceState.preferredGlassType {
-            defaultGlassTintColor = .init(kind: .clear)
-            defaultGlassTintWithInnerColor = .init(kind: .clear, innerColor: interfaceState.theme.list.itemCheckColors.fillColor)
-        } else {
-            defaultGlassTintColor = .init(kind: .panel)
-            defaultGlassTintWithInnerColor = .init(kind: .panel, innerColor: interfaceState.theme.list.itemCheckColors.fillColor)
-        }
+        // Messages keeps the composer a flat neutral that belongs to the theme, not to whatever
+        // is behind it. The .panel tint is white at 70% over a live blur, so on a coloured
+        // wallpaper the field and the round buttons pick the wallpaper up — green over a green
+        // background. An opaque fill covers the blur and leaves the composer the same in every
+        // chat: #E9E9EB in light, matching the incoming bubble, and #1C1C1E in dark.
+        let composerFillColor = interfaceState.theme.overallDarkAppearance ? UIColor(rgb: 0x1C1C1E) : UIColor(rgb: 0xE9E9EB)
+        let defaultGlassTintColor: GlassBackgroundView.TintColor = .init(kind: .custom(style: .default, color: composerFillColor))
+        let defaultGlassTintWithInnerColor: GlassBackgroundView.TintColor = .init(kind: .custom(style: .default, color: composerFillColor), innerColor: interfaceState.theme.list.itemCheckColors.fillColor)
         
         var leftInset = leftInset
         var rightInset = rightInset

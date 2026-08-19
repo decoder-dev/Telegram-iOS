@@ -309,12 +309,12 @@ public final class ChatTextInputActionButtonsNode: ASDisplayNode, ChatSendMessag
         var innerSize = size
         innerSize.width = 40.0 + 3.0 * 2.0
         
-        let defaultGlassTintColor: GlassBackgroundView.TintColor
-        if case .clear = interfaceState.preferredGlassType {
-            defaultGlassTintColor = .init(kind: .clear)
-        } else {
-            defaultGlassTintColor = .init(kind: .panel)
-        }
+        // Same reasoning as the composer field in ChatTextInputPanelNode: the .panel tint is white
+        // at 70% over a live blur, so on a coloured wallpaper the round send/mic button picks the
+        // wallpaper up. Messages keeps this control a flat neutral that follows the theme, not the
+        // background behind it.
+        let composerFillColor = interfaceState.theme.overallDarkAppearance ? UIColor(rgb: 0x1C1C1E) : UIColor(rgb: 0xE9E9EB)
+        let defaultGlassTintColor: GlassBackgroundView.TintColor = .init(kind: .custom(style: .default, color: composerFillColor))
         
         var starsAmount: Int64?
         if let sendPaidMessageStars = interfaceState.sendPaidMessageStars, interfaceState.interfaceState.editMessage == nil {
