@@ -20,6 +20,9 @@ objc_library(
         "-DHAVE_PKCRYPT",
         "-DHAVE_STDINT_H",
         "-DHAVE_WZAES",
+        # CI emits clang -Wunused-but-set-variable for locals in upstream code;
+        # suppress to keep logs clean.
+        "-Wno-unused-but-set-variable",
     ],
     sdk_frameworks = [
       "Foundation",
