@@ -762,7 +762,8 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
                                 if strongSelf.typeIconNode.image !== outgoingIcon {
                                     strongSelf.typeIconNode.image = outgoingIcon
                                 }
-                                transition.updateFrameAdditive(node: strongSelf.typeIconNode, frame: CGRect(origin: CGPoint(x: revealOffset + max(higCardInset + 2.0, leftInset - 79.0), y: floor((nodeLayout.contentSize.height - outgoingIcon.size.height) / 2.0)), size: outgoingIcon.size))
+                                let typeIconOrigin = CGPoint(x: revealOffset + max(higCardInset + 2.0, avatarFrame.minX - 6.0 - outgoingIcon.size.width), y: floor(avatarFrame.midY - outgoingIcon.size.height / 2.0))
+                                transition.updateFrameAdditive(node: strongSelf.typeIconNode, frame: CGRect(origin: typeIconOrigin, size: outgoingIcon.size))
                             }
                             strongSelf.typeIconNode.isHidden = !hasOutgoing
                             
@@ -892,7 +893,15 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
             
             transition.updateFrameAdditive(node: self.dateNode, frame: CGRect(origin: CGPoint(x: editingOffset + revealOffset + self.bounds.size.width - dateRightInset - self.dateNode.bounds.size.width, y: self.dateNode.frame.minY), size: self.dateNode.bounds.size))
             
-            transition.updateFrameAdditive(node: self.typeIconNode, frame: CGRect(origin: CGPoint(x: revealOffset + max(higCardInset + 2.0, leftInset - 79.0), y: self.typeIconNode.frame.minY), size: self.typeIconNode.bounds.size))
+            if let outgoingIcon = self.typeIconNode.image {
+                let typeIconOrigin = CGPoint(x: revealOffset + max(higCardInset + 2.0, avatarFrame.minX - 6.0 - outgoingIcon.size.width), y: floor(avatarFrame.midY - outgoingIcon.size.height / 2.0))
+                transition.updateFrameAdditive(node: self.typeIconNode, frame: CGRect(origin: typeIconOrigin, size: outgoingIcon.size))
+            } else {
+                var typeIconFrame = self.typeIconNode.frame
+                typeIconFrame.origin.x = revealOffset + max(higCardInset + 2.0, avatarFrame.minX - 6.0 - typeIconFrame.width)
+                typeIconFrame.origin.y = floor(avatarFrame.midY - typeIconFrame.height / 2.0)
+                transition.updateFrameAdditive(node: self.typeIconNode, frame: typeIconFrame)
+            }
                         
             transition.updateFrameAdditive(node: self.infoButtonNode, frame: CGRect(origin: CGPoint(x: revealOffset + self.bounds.size.width - infoIconRightInset - self.infoButtonNode.bounds.width, y: self.infoButtonNode.frame.minY), size: self.infoButtonNode.bounds.size))
         }

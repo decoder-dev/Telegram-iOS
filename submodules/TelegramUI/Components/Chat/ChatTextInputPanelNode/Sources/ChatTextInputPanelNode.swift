@@ -1658,12 +1658,8 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         let previousAdditionalSideInsets = self.validLayout?.4
         self.validLayout = (width, leftInset, rightInset, bottomInset, additionalSideInsets, maxHeight, maxOverlayHeight, metrics, isSecondary, isMediaInputExpanded, deviceMetrics)
         
-        // Messages keeps the composer a flat neutral that belongs to the theme, not to whatever
-        // is behind it. The .panel tint is white at 70% over a live blur, so on a coloured
-        // wallpaper the field and the round buttons pick the wallpaper up — green over a green
-        // background. An opaque fill covers the blur and leaves the composer the same in every
-        // chat: #E9E9EB in light, matching the incoming bubble, and #1C1C1E in dark.
-        let composerFillColor = interfaceState.theme.overallDarkAppearance ? UIColor(rgb: 0x1C1C1E) : UIColor(rgb: 0xE9E9EB)
+        // OLED dark: composer controls sit on pure black; a hairline stroke keeps the field readable.
+        let composerFillColor = interfaceState.theme.overallDarkAppearance ? UIColor(rgb: 0x000000) : UIColor(rgb: 0xE9E9EB)
         let defaultGlassTintColor: GlassBackgroundView.TintColor = .init(kind: .custom(style: .default, color: composerFillColor))
         let defaultGlassTintWithInnerColor: GlassBackgroundView.TintColor = .init(kind: .custom(style: .default, color: composerFillColor), innerColor: interfaceState.theme.list.itemCheckColors.fillColor)
         
@@ -3439,7 +3435,9 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             }
         }
         
-        var mediaActionButtonsFrame = CGRect(origin: CGPoint(x: textInputContainerBackgroundFrame.maxX + 6.0, y: textInputContainerBackgroundFrame.maxY - mediaActionButtonsSize.height), size: mediaActionButtonsSize)
+        let composerControlsBaselineY = textInputFrame.maxY
+        
+        var mediaActionButtonsFrame = CGRect(origin: CGPoint(x: textInputContainerBackgroundFrame.maxX + 6.0, y: composerControlsBaselineY - mediaActionButtonsSize.height), size: mediaActionButtonsSize)
         if inputHasText || self.extendedSearchLayout || hasMediaDraft || interfaceState.interfaceState.forwardMessageIds != nil || hasSlowmodeButton || isEditingMedia {
             mediaActionButtonsFrame.origin.x = width + 8.0
         }
@@ -3450,7 +3448,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         
         var nextRightActionButtonX: CGFloat = textInputContainerBackgroundFrame.maxX + 6.0
         if let liveMicrophoneButtonView = self.liveMicrophoneButton?.view, let liveMicrophoneButtonSize {
-            var liveMicrophoneButtonFrame = CGRect(origin: CGPoint(x: nextRightActionButtonX, y: textInputContainerBackgroundFrame.maxY - liveMicrophoneButtonSize.height), size: liveMicrophoneButtonSize)
+            var liveMicrophoneButtonFrame = CGRect(origin: CGPoint(x: nextRightActionButtonX, y: composerControlsBaselineY - liveMicrophoneButtonSize.height), size: liveMicrophoneButtonSize)
             nextRightActionButtonX += 6.0 + liveMicrophoneButtonSize.width
             if inputHasText || self.extendedSearchLayout || hasMediaDraft {
                 liveMicrophoneButtonFrame.origin.x = width + 8.0
@@ -3468,7 +3466,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         }
         
         if let starReactionButtonView = self.starReactionButton?.view, let starReactionButtonSize {
-            var starReactionButtonFrame = CGRect(origin: CGPoint(x: nextRightActionButtonX, y: textInputContainerBackgroundFrame.maxY - starReactionButtonSize.height), size: starReactionButtonSize)
+            var starReactionButtonFrame = CGRect(origin: CGPoint(x: nextRightActionButtonX, y: composerControlsBaselineY - starReactionButtonSize.height), size: starReactionButtonSize)
             nextRightActionButtonX += 6.0 + starReactionButtonSize.width
             if inputHasText || self.extendedSearchLayout || hasMediaDraft {
                 starReactionButtonFrame.origin.x = width + 8.0
@@ -3485,7 +3483,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             transition.updateFrame(view: starReactionButtonView, frame: starReactionButtonFrame)
         }
         
-        var sendActionButtonsFrame = CGRect(origin: CGPoint(x: textInputContainerBackgroundFrame.maxX - sendActionButtonsSize.width, y: textInputContainerBackgroundFrame.maxY - sendActionButtonsSize.height), size: sendActionButtonsSize)
+        var sendActionButtonsFrame = CGRect(origin: CGPoint(x: textInputContainerBackgroundFrame.maxX - sendActionButtonsSize.width, y: composerControlsBaselineY - sendActionButtonsSize.height), size: sendActionButtonsSize)
         
         let sendActionsScale: CGFloat
         if inputHasText || hasMediaDraft || hasForward || isEditingMedia {
