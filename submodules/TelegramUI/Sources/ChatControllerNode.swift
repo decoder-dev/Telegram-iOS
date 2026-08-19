@@ -2287,7 +2287,7 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
             self.overlayContextPanelNode = nil
         }
         
-        let inputPanelsInset: CGFloat = 8.0
+        let inputPanelsInset: CGFloat = 0.0
         let accessoryPanelsInset: CGFloat = 8.0
         var inputPanelsHeight: CGFloat = 0.0
         
@@ -2461,7 +2461,6 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
         var contentBottomInset: CGFloat = inputPanelsHeight + inputPanelsInset
         if previewing {
         } else {
-            contentBottomInset += 11.0
         }
         
         if let scrollContainerNode = self.scrollContainerNode {

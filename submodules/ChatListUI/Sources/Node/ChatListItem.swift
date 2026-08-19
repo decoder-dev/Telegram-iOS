@@ -2668,7 +2668,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                 if case let .peer(peerData) = item.content, peerData.customMessageListData != nil {
                     return 0.0
                 }
-                return 16.0
+                return 0.0
             }()
             let avatarLeftEdgeInset: CGFloat = item.useCommunityViewLayout ? 10.0 : (16.0 + higChatListCardInset)
             let avatarLeftInset: CGFloat
