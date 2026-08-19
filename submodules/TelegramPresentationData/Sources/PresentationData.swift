@@ -91,6 +91,30 @@ public func higChatBubbleCorners(from settings: PresentationChatBubbleSettings) 
     )
 }
 
+/// The fork ships two themes and no picker — the Appearance row is gone from Settings — so the
+/// system's light/dark setting has to be what decides, the way any app without a theme setting
+/// behaves. Stored settings are left on disk untouched; this rewrites only the copy each read
+/// hands to the rest of the pipeline, so nothing is destroyed and removing this function restores
+/// whatever the user last chose.
+///
+/// Three fields carry it: `theme` is the light choice, `automaticThemeSwitchSetting.theme` the dark
+/// one, and the `.system` trigger is what makes `automaticThemeShouldSwitchNow` follow the OS.
+/// `force` stays false — with a `.system` trigger, forcing it would pin the app to dark.
+///
+/// Left alone deliberately: `themeSpecificAccentColors` (the accent still colours buttons, links
+/// and checkmarks; only the bubble is pinned, in the theme builders) and `themeSpecificChatWallpapers`,
+/// so per-chat and custom wallpapers survive.
+public func forkNormalizedThemeSettings(_ settings: PresentationThemeSettings) -> PresentationThemeSettings {
+    var settings = settings
+    settings.theme = .builtin(.day)
+    settings.automaticThemeSwitchSetting = AutomaticThemeSwitchSetting(
+        force: false,
+        trigger: .system,
+        theme: .builtin(.night)
+    )
+    return settings
+}
+
 public final class PresentationData: Equatable {
     public let strings: PresentationStrings
     public let theme: PresentationTheme
@@ -329,12 +353,13 @@ public func currentPresentationDataAndSettings(accountManager: AccountManager<Te
             localizationSettings = nil
         }
         
-        let themeSettings: PresentationThemeSettings
+        var themeSettings: PresentationThemeSettings
         if let current = internalData.presentationThemeSettings?.get(PresentationThemeSettings.self) {
             themeSettings = current
         } else {
             themeSettings = PresentationThemeSettings.defaultSettings
         }
+        themeSettings = forkNormalizedThemeSettings(themeSettings)
         
         let automaticMediaDownloadSettings: MediaAutoDownloadSettings
         if let value = internalData.automaticMediaDownloadSettings?.get(MediaAutoDownloadSettings.self) {
@@ -738,12 +763,13 @@ public func chatServiceBackgroundColor(wallpaper: TelegramWallpaper, mediaBox: M
 public func updatedPresentationData(accountManager: AccountManager<TelegramAccountManagerTypes>, applicationInForeground: Signal<Bool, NoError>, systemUserInterfaceStyle: Signal<WindowUserInterfaceStyle, NoError>) -> Signal<PresentationData, NoError> {
     return combineLatest(accountManager.sharedData(keys: [SharedDataKeys.localizationSettings, ApplicationSpecificSharedDataKeys.presentationThemeSettings, ApplicationSpecificSharedDataKeys.contactSynchronizationSettings]), systemUserInterfaceStyle)
     |> mapToSignal { sharedData, systemUserInterfaceStyle -> Signal<PresentationData, NoError> in
-        let themeSettings: PresentationThemeSettings
+        var themeSettings: PresentationThemeSettings
         if let current = sharedData.entries[ApplicationSpecificSharedDataKeys.presentationThemeSettings]?.get(PresentationThemeSettings.self) {
             themeSettings = current
         } else {
             themeSettings = PresentationThemeSettings.defaultSettings
         }
+        themeSettings = forkNormalizedThemeSettings(themeSettings)
         
         let contactSettings: ContactSynchronizationSettings = sharedData.entries[ApplicationSpecificSharedDataKeys.contactSynchronizationSettings]?.get(ContactSynchronizationSettings.self) ?? ContactSynchronizationSettings.defaultSettings
         

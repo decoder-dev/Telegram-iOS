@@ -71,7 +71,22 @@ public func customizeDefaultDayTheme(theme: PresentationTheme, editing: Bool, ti
     var outgoingAccent: UIColor?
     var suggestedWallpaper: TelegramWallpaper?
     
-    var bubbleColors = bubbleColors  
+    var bubbleColors = bubbleColors
+    // Day's outgoing bubble is iOS blue, full stop. Messages has one bubble colour, and letting a
+    // stored accent repaint it is what left this fork showing violet bubbles on a theme that is
+    // otherwise a faithful copy — the theme default is only consulted when no accent is saved, so
+    // anyone who had ever touched the colour picker never saw the blue at all.
+    //
+    // The cost, stated plainly: the bubble-colour half of the accent picker is now inert on Day.
+    // The accent still drives buttons, links, checkmarks and the rest of the chrome. This is the
+    // same trade already made for the corner radius in `higChatBubbleCorners`.
+    //
+    // Classic is deliberately left alone — it is no longer offered in the picker, but anyone still
+    // on it keeps the colours they chose. So are gift and chat themes: those come through with
+    // `editing: false` and carry colours the sender picked, which are not ours to overwrite.
+    if day && editing {
+        bubbleColors = [UIColor(rgb: 0x007AFF).rgb]
+    }
     if bubbleColors.isEmpty, editing {
         if day {
             let accentColor = accentColor ?? defaultDayAccentColor

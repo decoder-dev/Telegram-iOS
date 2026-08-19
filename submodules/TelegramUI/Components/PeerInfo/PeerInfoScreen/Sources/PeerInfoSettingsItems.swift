@@ -238,10 +238,15 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
     items[.advanced]!.append(PeerInfoScreenDisclosureItem(id: 2, text: presentationData.strings.Settings_ChatSettings, icon: PresentationResourcesSettings.dataAndStorage, action: {
         interaction.openSettings(.dataAndStorage)
     }))
-    items[.advanced]!.append(PeerInfoScreenDisclosureItem(id: 3, text: presentationData.strings.Settings_Appearance, icon: PresentationResourcesSettings.appearance, action: {
-        interaction.openSettings(.appearance)
-    }))
-    
+    // No Appearance row. Messages has no theme picker: it is light or dark because the system is,
+    // and the bubble is blue either way. Everything that screen offered is now either fixed by the
+    // fork (theme, bubble colour, corner radius) or reachable elsewhere, and leaving a picker whose
+    // controls no longer change anything is worse than not having it.
+    //
+    // `.appearance` itself is kept alive in PeerInfoScreenSettingsActions: Settings search and
+    // `tg://settings/theme` deep links still resolve to it, and the App Icon row still pushes it
+    // directly (TelegramRootController, focusOnItemTag: .icon).
+
     items[.advanced]!.append(PeerInfoScreenDisclosureItem(id: 6, label: .text(data.isPowerSavingEnabled == true ? presentationData.strings.Settings_PowerSavingOn : presentationData.strings.Settings_PowerSavingOff), text: presentationData.strings.Settings_PowerSaving, icon: PresentationResourcesSettings.powerSaving, action: {
         interaction.openSettings(.powerSaving)
     }))
