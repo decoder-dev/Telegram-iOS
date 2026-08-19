@@ -526,6 +526,16 @@ private struct NotificationContent: CustomStringConvertible {
         self.isLockedMessage = isLockedMessage
     }
 
+    mutating func redactLockedArchive(genericText: String) {
+        self.title = genericText
+        self.subtitle = nil
+        self.body = genericText
+        self.isLockedMessage = genericText
+        self.senderPerson = nil
+        self.senderImage = nil
+        self.customEmoji = []
+    }
+
     var description: String {
         var string = "{"
         string += " title: \(String(describing: self.title))\n"
@@ -1506,6 +1516,17 @@ private final class NotificationServiceHandler {
                         case let .poll(peerId, initialContent, messageId, reportDelivery, enableInlineEmoji):
                             Logger.shared.log("NotificationService \(episode)", "Will poll")
                             if let stateManager = strongSelf.stateManager {
+                                let archiveRedactSignal = stateManager.postbox.transaction { transaction -> Bool in
+                                    return archiveNotificationShouldRedact(transaction: transaction, peerId: peerId)
+                                }
+                                let _ = archiveRedactSignal.start(next: { shouldRedact in
+                                    if shouldRedact {
+                                        var content = initialContent
+                                        content.redactLockedArchive(genericText: genericArchiveMessageText)
+                                        updateCurrentContent(content)
+                                    }
+                                })
+                                
                                 let shouldKeepConnection = stateManager.network.shouldKeepConnection
                                 
                                 let pollCompletion: (NotificationContent, Media?) -> Void = { content, customMedia in
@@ -2011,7 +2032,7 @@ private final class NotificationServiceHandler {
                                     }
                                 }
 
-                                let pollWithUpdatedContent: Signal<(NotificationContent, Media?), NoError>
+                                var pollWithUpdatedContent: Signal<(NotificationContent, Media?), NoError>
                                 if interactionAuthorId != nil || messageId != nil {
                                     pollWithUpdatedContent = stateManager.postbox.transaction { transaction -> (NotificationContent, Media?) in
                                         var content = initialContent
@@ -2117,8 +2138,24 @@ private final class NotificationServiceHandler {
                                         }
                                     }
                                 } else {
-                                    pollWithUpdatedContent = pollSignal
-                                    |> map { _ -> (NotificationContent, Media?) in }
+                                    pollWithUpdatedContent = combineLatest(pollSignal, archiveRedactSignal)
+                                    |> map { _, shouldRedact -> (NotificationContent, Media?) in
+                                        var content = initialContent
+                                        if shouldRedact {
+                                            content.redactLockedArchive(genericText: genericArchiveMessageText)
+                                        }
+                                        return (content, nil)
+                                    }
+                                }
+                                
+                                pollWithUpdatedContent = combineLatest(pollWithUpdatedContent, archiveRedactSignal)
+                                |> map { contentAndMedia, shouldRedact -> (NotificationContent, Media?) in
+                                    guard shouldRedact else {
+                                        return contentAndMedia
+                                    }
+                                    var content = contentAndMedia.0
+                                    content.redactLockedArchive(genericText: genericArchiveMessageText)
+                                    return (content, nil)
                                 }
                                 
                                 let reportDeliverySignal: Signal<Bool, NoError>
@@ -2143,6 +2180,17 @@ private final class NotificationServiceHandler {
                         case let .pollStories(peerId, initialContent, storyId, isReaction):
                             Logger.shared.log("NotificationService \(episode)", "Will poll stories for \(peerId) isReaction: \(isReaction)")
                             if let stateManager = strongSelf.stateManager {
+                                let archiveRedactSignal = stateManager.postbox.transaction { transaction -> Bool in
+                                    return archiveNotificationShouldRedact(transaction: transaction, peerId: peerId)
+                                }
+                                let _ = archiveRedactSignal.start(next: { shouldRedact in
+                                    if shouldRedact {
+                                        var content = initialContent
+                                        content.redactLockedArchive(genericText: genericArchiveMessageText)
+                                        updateCurrentContent(content)
+                                    }
+                                })
+                                
                                 let pollCompletion: (NotificationContent) -> Void = { content in
                                     let content = content
 
@@ -2364,7 +2412,7 @@ private final class NotificationServiceHandler {
                                     }
                                 }
 
-                                let pollWithUpdatedContent: Signal<NotificationContent, NoError>
+                                var pollWithUpdatedContent: Signal<NotificationContent, NoError>
                                 if interactionAuthorId != nil || messageId != nil {
                                     pollWithUpdatedContent = stateManager.postbox.transaction { transaction -> NotificationContent in
                                         var content = initialContent
@@ -2409,7 +2457,24 @@ private final class NotificationServiceHandler {
                                         return content
                                     }
                                 } else {
-                                    pollWithUpdatedContent = .complete()
+                                    pollWithUpdatedContent = archiveRedactSignal
+                                    |> map { shouldRedact -> NotificationContent in
+                                        var content = initialContent
+                                        if shouldRedact {
+                                            content.redactLockedArchive(genericText: genericArchiveMessageText)
+                                        }
+                                        return content
+                                    }
+                                }
+                                
+                                pollWithUpdatedContent = combineLatest(pollWithUpdatedContent, archiveRedactSignal)
+                                |> map { content, shouldRedact -> NotificationContent in
+                                    guard shouldRedact else {
+                                        return content
+                                    }
+                                    var redacted = content
+                                    redacted.redactLockedArchive(genericText: genericArchiveMessageText)
+                                    return redacted
                                 }
                                 
                                 

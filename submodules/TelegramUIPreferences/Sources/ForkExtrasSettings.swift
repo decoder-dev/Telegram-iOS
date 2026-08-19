@@ -451,11 +451,35 @@ public struct ForkExtrasSettings: Codable, Equatable {
 
 /// Last opened chat-list folder. Stored in UserDefaults so swiping folders does not rewrite AccountManager prefs.
 public enum ForkLastChatListFilter {
-    private static let key = "ForkExtras.lastChatListFilterId"
+    private static let legacyKey = "ForkExtras.lastChatListFilterId"
+    
+    private static func key(accountPeerId: EnginePeer.Id) -> String {
+        return "ForkExtras.lastChatListFilterId.\(accountPeerId.toInt64())"
+    }
+    
     /// `0` = All Chats, otherwise the folder id.
-    public static var storedId: Int32 {
-        get { Int32(UserDefaults.standard.integer(forKey: key)) }
-        set { UserDefaults.standard.set(Int(newValue), forKey: key) }
+    public static func storedId(accountPeerId: EnginePeer.Id) -> Int32 {
+        let accountKey = key(accountPeerId: accountPeerId)
+        if UserDefaults.standard.object(forKey: accountKey) != nil {
+            return Int32(UserDefaults.standard.integer(forKey: accountKey))
+        }
+        // One-shot migrate the pre-account-scoped value so a single-account install keeps its folder.
+        if UserDefaults.standard.object(forKey: legacyKey) != nil {
+            let migrated = Int32(UserDefaults.standard.integer(forKey: legacyKey))
+            UserDefaults.standard.set(Int(migrated), forKey: accountKey)
+            UserDefaults.standard.removeObject(forKey: legacyKey)
+            return migrated
+        }
+        return 0
+    }
+    
+    public static func setStoredId(_ id: Int32, accountPeerId: EnginePeer.Id) {
+        let accountKey = key(accountPeerId: accountPeerId)
+        let current = storedId(accountPeerId: accountPeerId)
+        guard current != id else {
+            return
+        }
+        UserDefaults.standard.set(Int(id), forKey: accountKey)
     }
 }
 

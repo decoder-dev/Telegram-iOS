@@ -3823,7 +3823,7 @@ extension ChatControllerImpl {
             }
             let _ = (strongSelf.context.engine.peers.updatePeersGroupIdInteractively(peerIds: [peerId], groupId: .root)
             |> deliverOnMainQueue).startStandalone(completed: {
-                lockArchiveAfterUnarchive(navigationController: strongSelf.navigationController)
+                lockArchiveAfterUnarchive(navigationController: strongSelf.navigationController, context: strongSelf.context)
             })
         }, openLinkEditing: { [weak self] in
             if let strongSelf = self {

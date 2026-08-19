@@ -3983,7 +3983,16 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
             } else if case let .forum(peerId) = item.chatListLocation {
                 chatPeerId = peerId
             }
-            if let inputActivities = inputActivities, !inputActivities.isEmpty, let chatPeerId {
+            let displayedInputActivities: [(EnginePeer, PeerInputActivity)]?
+            if ForkExtrasHotFlags.hideBlockedMessages, let activities = inputActivities {
+                let accountPeerId = item.context.account.peerId
+                displayedInputActivities = activities.filter { activityPeer, _ in
+                    activityPeer.id == accountPeerId || !ForkBlockedPeersFilter.contains(accountPeerId: accountPeerId, peerId: activityPeer.id)
+                }
+            } else {
+                displayedInputActivities = inputActivities
+            }
+            if let inputActivities = displayedInputActivities, !inputActivities.isEmpty, let chatPeerId {
                 let (size, apply) = inputActivitiesLayout(CGSize(width: rawContentWidth - badgeSize, height: 40.0), item.presentationData, item.presentationData.theme.chatList.messageTextColor, chatPeerId, inputActivities)
                 inputActivitiesSize = size
                 inputActivitiesApply = apply
@@ -5129,7 +5138,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                     }
                     
                     var animateInputActivitiesFrame = false
-                    let inputActivities = inputActivities?.filter({
+                    let inputActivities = displayedInputActivities?.filter({
                         switch $0.1 {
                             case .speakingInGroupCall, .seeingEmojiInteraction:
                                 return false

@@ -3296,6 +3296,8 @@ private func peerIdFromNotification(_ notification: UNNotification) -> (peerId: 
     
     if let peerId = notification.request.content.userInfo["peerId"] as? Int64 {
         return (PeerId(peerId), threadId)
+    } else if let number = notification.request.content.userInfo["peerId"] as? NSNumber {
+        return (PeerId(number.int64Value), threadId)
     } else if let peerIdString = notification.request.content.userInfo["peerId"] as? String, let peerId = Int64(peerIdString) {
         return (PeerId(peerId), threadId)
     } else {

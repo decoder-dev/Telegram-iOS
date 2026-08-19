@@ -2589,6 +2589,13 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                         }
                         return (peers: resultPeers, unread: unread, recentlySearchedPeerIds: Set())
                     }
+                    |> mapToSignal { result -> Signal<(peers: [EngineRenderedPeer], unread: [EnginePeer.Id: (Int32, Bool)], recentlySearchedPeerIds: Set<EnginePeer.Id>), NoError> in
+                        return context.account.postbox.transaction { transaction in
+                            let peers = result.peers.filter { !archiveNotificationShouldRedact(transaction: transaction, peerId: $0.peerId) }
+                            let allowed = Set(peers.map(\.peerId))
+                            return (peers: peers, unread: result.unread.filter { allowed.contains($0.key) }, recentlySearchedPeerIds: result.recentlySearchedPeerIds)
+                        }
+                    }
                 }
             } else if let query, key == .apps {
                 foundLocalPeers = combineLatest(
@@ -4215,8 +4222,13 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
             let localChannels = isChannelsTabExpandedValue.get()
             |> mapToSignal { isChannelsTabExpanded -> Signal<LocalChannels, NoError> in
                 return context.engine.messages.getAllLocalChannels(count: isChannelsTabExpanded ? 500 : 5)
-                |> map { peerIds -> LocalChannels in
-                    return LocalChannels(peerIds: peerIds, isExpanded: isChannelsTabExpanded)
+                |> mapToSignal { peerIds -> Signal<LocalChannels, NoError> in
+                    return context.account.postbox.transaction { transaction -> LocalChannels in
+                        return LocalChannels(
+                            peerIds: peerIds.filter { !archiveNotificationShouldRedact(transaction: transaction, peerId: $0) },
+                            isExpanded: isChannelsTabExpanded
+                        )
+                    }
                 }
             }
 
