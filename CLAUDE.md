@@ -85,6 +85,39 @@ A standalone watchOS Telegram client (developed in the separate `~/build/tgwatch
 
 **Status:** verified with **development** signing on `debug_arm64` only. Open follow-ups before App Store shipping: secure timestamp (drop `codesign --timestamp=none`), distribution profile (`get-task-allow=false`), `release_arm64` + `altool --validate-app`, and committing a `Package.resolved` for hermetic remote-SwiftPM resolution.
 
+## Appearance is fixed, not configurable
+
+The fork targets the iOS Messages look, and the pieces that define it are pinned in
+code rather than left to settings. Treat these as invariants — several of them were
+"fixed" more than once because a stored setting silently overrode the default.
+
+- **Two themes, chosen by the system.** `forkNormalizedThemeSettings`
+  (`TelegramPresentationData/Sources/PresentationData.swift`) rewrites the copy of
+  `PresentationThemeSettings` that each read hands downstream: `theme = .builtin(.day)`,
+  `automaticThemeSwitchSetting = (force: false, trigger: .system, theme: .builtin(.night))`.
+  Stored settings on disk are never mutated, so deleting that one function restores
+  whatever the user last chose. Any *new* code path that builds a theme from
+  `presentationThemeSettings` must route through it — `ChatController` and
+  `InstantPageController` already do; the wallpaper, QR and media-editor screens
+  deliberately do not, since they preview a theme rather than display the app's.
+- **Outgoing bubble is `#007AFF`.** Pinned inside `customizeDefaultDayTheme` and
+  `customizeDefaultDarkPresentationTheme`, gated on `editing` so gift and chat themes
+  (which arrive with `editing: false`) keep the colours their sender chose. The theme
+  *defaults* are not enough on their own: they are only consulted when no accent is
+  stored, and Night expands the default accent `0x3e88f7` into a blue→violet gradient.
+- **Bubble radius is 18/4 with no tails** — `higChatBubbleCorners`, same file.
+- Consequence, and it is intended: the bubble-colour half of the accent picker and the
+  radius sliders do nothing on the shipped themes. The accent still drives buttons,
+  links and checkmarks.
+- **There is no Appearance row in Settings.** `PeerInfoSettingsItems.swift` has an App
+  Icon row instead, which pushes the same controller focused on `.icon`. The
+  `.appearance` destination stays wired so Settings search and `tg://settings/theme`
+  keep working.
+- **Composer controls are 40 pt circles.** The mic, send and attachment buttons all
+  derive their background from a size the caller passes; handing them the input field's
+  height produces ovals. See the comments in `ChatTextInputPanelNode` and
+  `ChatTextInputActionButtonsNode`.
+
 ## View frame ownership
 
 A view does not control its own `frame`. The parent (or a layout system) sets the frame; the view positions its own subviews against `self.bounds` in response.
