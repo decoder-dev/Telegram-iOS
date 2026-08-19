@@ -286,6 +286,8 @@ class CallListGroupCallItemNode: ItemListRevealOptionsItemNode {
             
             let titleFont = Font.medium(item.presentationData.fontSize.itemListBaseFontSize)
             let avatarDiameter = min(52.0, floor(item.presentationData.fontSize.itemListBaseFontSize * 52.0 / 17.0))
+            let higCardInset: CGFloat = item.style == .plain ? 16.0 : 0.0
+            let higCardRadius: CGFloat = higCardInset > 0.0 ? 20.0 : 0.0
             
             let editingOffset: CGFloat
             if item.editing {
@@ -294,8 +296,8 @@ class CallListGroupCallItemNode: ItemListRevealOptionsItemNode {
                 editingOffset = 0.0
             }
             
-            var leftInset: CGFloat = 16.0 + avatarDiameter + 12.0 + params.leftInset
-            let rightInset: CGFloat = 13.0 + params.rightInset
+            var leftInset: CGFloat = 16.0 + avatarDiameter + 12.0 + params.leftInset + higCardInset
+            let rightInset: CGFloat = 13.0 + params.rightInset + higCardInset
             var infoIconRightInset: CGFloat = rightInset
             
             let insets: UIEdgeInsets
@@ -381,7 +383,7 @@ class CallListGroupCallItemNode: ItemListRevealOptionsItemNode {
                                         strongSelf.bottomStripeNode.removeFromSupernode()
                                     }
                                     
-                                    transition.updateFrameAdditive(node: strongSelf.bottomStripeNode, frame: CGRect(origin: CGPoint(x: leftInset, y: contentSize.height - separatorHeight), size: CGSize(width: params.width - leftInset, height: separatorHeight)))
+                                    transition.updateFrameAdditive(node: strongSelf.bottomStripeNode, frame: CGRect(origin: CGPoint(x: leftInset, y: contentSize.height - separatorHeight), size: CGSize(width: max(0.0, params.width - leftInset - higCardInset), height: separatorHeight)))
                                 case .blocks:
                                     if strongSelf.backgroundNode.supernode == nil {
                                         strongSelf.insertSubnode(strongSelf.backgroundNode, at: 0)
@@ -416,7 +418,7 @@ class CallListGroupCallItemNode: ItemListRevealOptionsItemNode {
                             
                             strongSelf.indicatorNode.color = item.presentationData.theme.chatList.checkmarkColor
                             let indicatorSize: CGFloat = 22.0
-                            transition.updateFrameAdditive(node: strongSelf.indicatorNode, frame: CGRect(origin: CGPoint(x: avatarFrame.minX - 6.0 - indicatorSize, y: floor(avatarFrame.midY - indicatorSize / 2.0)), size: CGSize(width: indicatorSize, height: indicatorSize)))
+                            transition.updateFrameAdditive(node: strongSelf.indicatorNode, frame: CGRect(origin: CGPoint(x: max(higCardInset + 2.0, avatarFrame.minX - 6.0 - indicatorSize), y: floor(avatarFrame.midY - indicatorSize / 2.0)), size: CGSize(width: indicatorSize, height: indicatorSize)))
                             
                             let _ = titleApply()
                             transition.updateFrameAdditive(node: strongSelf.titleNode, frame: CGRect(origin: CGPoint(x: revealOffset + leftInset, y: verticalInset), size: titleLayout.size))
@@ -436,8 +438,24 @@ class CallListGroupCallItemNode: ItemListRevealOptionsItemNode {
                             
                             var topHighlightInset: CGFloat = (first || !nodeLayout.insets.top.isZero) ? 0.0 : separatorHeight
                             topHighlightInset -= nodeLayout.insets.top
-                            strongSelf.backgroundNode.frame = CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: CGSize(width: nodeLayout.contentSize.width, height: nodeLayout.contentSize.height))
-                            strongSelf.highlightedBackgroundNode.frame = CGRect(origin: CGPoint(x: 0.0, y: -nodeLayout.insets.top - topHighlightInset), size: CGSize(width: nodeLayout.size.width, height: nodeLayout.size.height + topHighlightInset))
+                            var maskedCorners: CACornerMask = []
+                            if higCardRadius > 0.0 {
+                                if first || firstWithHeader {
+                                    maskedCorners.insert(.layerMinXMinYCorner)
+                                    maskedCorners.insert(.layerMaxXMinYCorner)
+                                }
+                                if last {
+                                    maskedCorners.insert(.layerMinXMaxYCorner)
+                                    maskedCorners.insert(.layerMaxXMaxYCorner)
+                                }
+                            }
+                            strongSelf.backgroundNode.cornerRadius = higCardRadius
+                            strongSelf.backgroundNode.layer.maskedCorners = maskedCorners
+                            strongSelf.backgroundNode.clipsToBounds = higCardRadius > 0.0
+                            strongSelf.backgroundNode.frame = CGRect(origin: CGPoint(x: higCardInset, y: 0.0), size: CGSize(width: nodeLayout.contentSize.width - higCardInset * 2.0, height: nodeLayout.contentSize.height))
+                            strongSelf.highlightedBackgroundNode.frame = CGRect(origin: CGPoint(x: higCardInset, y: -nodeLayout.insets.top - topHighlightInset), size: CGSize(width: nodeLayout.size.width - higCardInset * 2.0, height: nodeLayout.size.height + topHighlightInset))
+                            strongSelf.highlightedBackgroundNode.cornerRadius = higCardRadius
+                            strongSelf.highlightedBackgroundNode.layer.maskedCorners = maskedCorners
                             
                             strongSelf.updateLayout(size: nodeLayout.contentSize, leftInset: params.leftInset, rightInset: params.rightInset)
                             

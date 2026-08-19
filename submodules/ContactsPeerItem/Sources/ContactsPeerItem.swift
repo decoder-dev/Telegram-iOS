@@ -1983,9 +1983,9 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
                                 
                                 switch item.selectionPosition {
                                     case .left:
-                                        updatedSelectionNode.frame = CGRect(origin: CGPoint(x: params.leftInset + 17.0, y: floor((nodeLayout.contentSize.height - 22.0) / 2.0)), size: CGSize(width: 22.0, height: 22.0))
+                                        updatedSelectionNode.frame = CGRect(origin: CGPoint(x: params.leftInset + 17.0 + higCardInset, y: floor((nodeLayout.contentSize.height - 22.0) / 2.0)), size: CGSize(width: 22.0, height: 22.0))
                                     case .right:
-                                        updatedSelectionNode.frame = CGRect(origin: CGPoint(x: params.width - params.rightInset - 22.0 - 17.0, y: floor((nodeLayout.contentSize.height - 22.0) / 2.0)), size: CGSize(width: 22.0, height: 22.0))
+                                        updatedSelectionNode.frame = CGRect(origin: CGPoint(x: params.width - params.rightInset - 22.0 - 17.0 - higCardInset, y: floor((nodeLayout.contentSize.height - 22.0) / 2.0)), size: CGSize(width: 22.0, height: 22.0))
                                 }
                                 
                                 if !hadSelectionNode {

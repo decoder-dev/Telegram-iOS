@@ -344,7 +344,7 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
             }
             
             var leftInset: CGFloat = 16.0 + avatarDiameter + 12.0 + params.leftInset + higCardInset
-            let rightInset: CGFloat = 13.0 + params.rightInset
+            let rightInset: CGFloat = 13.0 + params.rightInset + higCardInset
             var infoIconRightInset: CGFloat = rightInset - 1.0
             
             let insets: UIEdgeInsets
@@ -365,7 +365,7 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
                     insets = itemListNeighborsGroupedInsets(neighbors, params)
             }
             
-            var dateRightInset: CGFloat = 46.0 + params.rightInset
+            var dateRightInset: CGFloat = 46.0 + params.rightInset + higCardInset
             if item.editing {
                 leftInset += editingOffset
                 dateRightInset += 5.0
@@ -605,7 +605,7 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
                             }
                             
                             if let editableControlSizeAndApply = editableControlSizeAndApply {
-                                let editableControlFrame = CGRect(origin: CGPoint(x: params.leftInset + revealOffset, y: 0.0), size: CGSize(width: editableControlSizeAndApply.0, height: nodeLayout.contentSize.height))
+                                let editableControlFrame = CGRect(origin: CGPoint(x: params.leftInset + revealOffset + higCardInset, y: 0.0), size: CGSize(width: editableControlSizeAndApply.0, height: nodeLayout.contentSize.height))
                                 if strongSelf.editableControlNode == nil {
                                     let editableControlNode = editableControlSizeAndApply.1(nodeLayout.contentSize.height)
                                     editableControlNode.tapped = {
@@ -649,7 +649,7 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
                                     if strongSelf.maskNode.supernode != nil {
                                         strongSelf.maskNode.removeFromSupernode()
                                     }
-                                    transition.updateFrameAdditive(node: strongSelf.bottomStripeNode, frame: CGRect(origin: CGPoint(x: leftInset, y: contentSize.height - separatorHeight), size: CGSize(width: params.width - leftInset - separatorRightInset, height: separatorHeight)))
+                                    transition.updateFrameAdditive(node: strongSelf.bottomStripeNode, frame: CGRect(origin: CGPoint(x: leftInset, y: contentSize.height - separatorHeight), size: CGSize(width: max(0.0, params.width - leftInset - separatorRightInset - higCardInset), height: separatorHeight)))
                                 case .blocks:
                                     if strongSelf.backgroundNode.supernode == nil {
                                         strongSelf.insertSubnode(strongSelf.backgroundNode, at: 0)
@@ -759,7 +759,7 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
                                 if strongSelf.typeIconNode.image !== outgoingIcon {
                                     strongSelf.typeIconNode.image = outgoingIcon
                                 }
-                                transition.updateFrameAdditive(node: strongSelf.typeIconNode, frame: CGRect(origin: CGPoint(x: revealOffset + leftInset - 79.0, y: floor((nodeLayout.contentSize.height - outgoingIcon.size.height) / 2.0)), size: outgoingIcon.size))
+                                transition.updateFrameAdditive(node: strongSelf.typeIconNode, frame: CGRect(origin: CGPoint(x: revealOffset + max(higCardInset + 2.0, leftInset - 79.0), y: floor((nodeLayout.contentSize.height - outgoingIcon.size.height) / 2.0)), size: outgoingIcon.size))
                             }
                             strongSelf.typeIconNode.isHidden = !hasOutgoing
                             
@@ -863,24 +863,26 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
             if let editableControlNode = self.editableControlNode {
                 editingOffset = editableControlNode.bounds.size.width
                 var editableControlFrame = editableControlNode.frame
-                editableControlFrame.origin.x = params.leftInset + offset
+                editableControlFrame.origin.x = params.leftInset + offset + (item.style == .plain ? 16.0 : 0.0)
                 transition.updateFrame(node: editableControlNode, frame: editableControlFrame)
             } else {
                 editingOffset = 0.0
             }
             
-            let leftInset: CGFloat = 86.0 + params.leftInset + editingOffset
-            let rightInset: CGFloat = 13.0 + params.rightInset
+            let avatarDiameter = min(52.0, floor(item.presentationData.fontSize.itemListBaseFontSize * 52.0 / 17.0))
+            let higCardInset: CGFloat = item.style == .plain ? 16.0 : 0.0
+            let leftInset: CGFloat = 16.0 + avatarDiameter + 12.0 + params.leftInset + higCardInset + editingOffset
+            let rightInset: CGFloat = 13.0 + params.rightInset + higCardInset
             var infoIconRightInset: CGFloat = rightInset - 1.0
             
-            var dateRightInset: CGFloat = 46.0 + params.rightInset
+            var dateRightInset: CGFloat = 46.0 + params.rightInset + higCardInset
             if item.editing {
                 dateRightInset += 5.0
                 infoIconRightInset -= 36.0
             }
             
             var avatarFrame = self.avatarNode.frame
-            avatarFrame.origin.x = revealOffset + leftInset - 52.0
+            avatarFrame.origin.x = revealOffset + leftInset - avatarDiameter - 12.0
             transition.updateFrameAdditive(node: self.avatarNode, frame: avatarFrame)
             
             if let conferenceAvatarListNode = self.conferenceAvatarListNode {
@@ -895,7 +897,7 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
             
             transition.updateFrameAdditive(node: self.dateNode, frame: CGRect(origin: CGPoint(x: editingOffset + revealOffset + self.bounds.size.width - dateRightInset - self.dateNode.bounds.size.width, y: self.dateNode.frame.minY), size: self.dateNode.bounds.size))
             
-            transition.updateFrameAdditive(node: self.typeIconNode, frame: CGRect(origin: CGPoint(x: revealOffset + leftInset - 81.0, y: self.typeIconNode.frame.minY), size: self.typeIconNode.bounds.size))
+            transition.updateFrameAdditive(node: self.typeIconNode, frame: CGRect(origin: CGPoint(x: revealOffset + max(higCardInset + 2.0, leftInset - 79.0), y: self.typeIconNode.frame.minY), size: self.typeIconNode.bounds.size))
                         
             transition.updateFrameAdditive(node: self.infoButtonNode, frame: CGRect(origin: CGPoint(x: revealOffset + self.bounds.size.width - infoIconRightInset - self.infoButtonNode.bounds.width, y: self.infoButtonNode.frame.minY), size: self.infoButtonNode.bounds.size))
         }
