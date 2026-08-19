@@ -762,7 +762,11 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
                                 if strongSelf.typeIconNode.image !== outgoingIcon {
                                     strongSelf.typeIconNode.image = outgoingIcon
                                 }
-                                let typeIconOrigin = CGPoint(x: revealOffset + max(higCardInset + 2.0, avatarFrame.minX - 6.0 - outgoingIcon.size.width), y: floor(avatarFrame.midY - outgoingIcon.size.height / 2.0))
+                                // `revealOffset` applies to the card-inset floor only. `avatarFrame.minX`
+                                // already carries it (see where avatarFrame is built), so adding it
+                                // outside the max counted it twice and slid the icon at double the
+                                // row's speed during a reveal swipe — invisible at rest, wrong mid-swipe.
+                                let typeIconOrigin = CGPoint(x: max(revealOffset + higCardInset + 2.0, avatarFrame.minX - 6.0 - outgoingIcon.size.width), y: floor(avatarFrame.midY - outgoingIcon.size.height / 2.0))
                                 transition.updateFrameAdditive(node: strongSelf.typeIconNode, frame: CGRect(origin: typeIconOrigin, size: outgoingIcon.size))
                             }
                             strongSelf.typeIconNode.isHidden = !hasOutgoing
@@ -893,12 +897,15 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
             
             transition.updateFrameAdditive(node: self.dateNode, frame: CGRect(origin: CGPoint(x: editingOffset + revealOffset + self.bounds.size.width - dateRightInset - self.dateNode.bounds.size.width, y: self.dateNode.frame.minY), size: self.dateNode.bounds.size))
             
+            // Same double-count as in the layout closure: `avatarFrame` here is the frame just
+            // assigned above, which already includes `revealOffset`. Only the card-inset floor needs
+            // it added.
             if let outgoingIcon = self.typeIconNode.image {
-                let typeIconOrigin = CGPoint(x: revealOffset + max(higCardInset + 2.0, avatarFrame.minX - 6.0 - outgoingIcon.size.width), y: floor(avatarFrame.midY - outgoingIcon.size.height / 2.0))
+                let typeIconOrigin = CGPoint(x: max(revealOffset + higCardInset + 2.0, avatarFrame.minX - 6.0 - outgoingIcon.size.width), y: floor(avatarFrame.midY - outgoingIcon.size.height / 2.0))
                 transition.updateFrameAdditive(node: self.typeIconNode, frame: CGRect(origin: typeIconOrigin, size: outgoingIcon.size))
             } else {
                 var typeIconFrame = self.typeIconNode.frame
-                typeIconFrame.origin.x = revealOffset + max(higCardInset + 2.0, avatarFrame.minX - 6.0 - typeIconFrame.width)
+                typeIconFrame.origin.x = max(revealOffset + higCardInset + 2.0, avatarFrame.minX - 6.0 - typeIconFrame.width)
                 typeIconFrame.origin.y = floor(avatarFrame.midY - typeIconFrame.height / 2.0)
                 transition.updateFrameAdditive(node: self.typeIconNode, frame: typeIconFrame)
             }
