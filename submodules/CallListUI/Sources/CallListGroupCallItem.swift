@@ -286,7 +286,9 @@ class CallListGroupCallItemNode: ItemListRevealOptionsItemNode {
             
             let titleFont = Font.medium(item.presentationData.fontSize.itemListBaseFontSize)
             let avatarDiameter = min(52.0, floor(item.presentationData.fontSize.itemListBaseFontSize * 52.0 / 17.0))
-            let higCardInset: CGFloat = item.style == .plain ? 16.0 : 0.0
+            // Matches the chat list, which dropped this inset: a 16 pt card here left white
+            // stripes down both sides of Calls and Contacts while chats ran full width.
+            let higCardInset: CGFloat = 0.0
             let higCardRadius: CGFloat = higCardInset > 0.0 ? 20.0 : 0.0
             
             let editingOffset: CGFloat

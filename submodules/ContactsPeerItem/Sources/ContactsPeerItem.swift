@@ -805,7 +805,9 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
             
             let badgeFont = Font.regular(14.0)
             let avatarDiameter = min(52.0, floor(item.presentationData.fontSize.itemListBaseFontSize * 52.0 / 17.0))
-            let higCardInset: CGFloat = (item.style == .plain && !item.hideBackground) ? 16.0 : 0.0
+            // Matches the chat list, which dropped this inset: a 16 pt card here left white
+            // stripes down both sides of Calls and Contacts while chats ran full width.
+            let higCardInset: CGFloat = 0.0
             let higCardRadius: CGFloat = higCardInset > 0.0 ? 20.0 : 0.0
             
             if currentItem?.presentationData.theme !== item.presentationData.theme {
