@@ -2630,7 +2630,10 @@ private func layoutList(
 
     let checkboxColors = InstantPageV2CheckboxColors(
         background: context.theme.panelAccentColor,
-        stroke: context.theme.pageBackgroundColor,
+        // `pageBackgroundColor` is often `.clear` for Telegram message previews, so
+        // using it would make the tick invisible. `panelPrimaryColor` is the
+        // correct contrast color for the preview bubble.
+        stroke: context.theme.panelPrimaryColor,
         border: context.theme.controlColor
     )
     // Track maxIndexWidth for ALL marker kinds (ordered + unordered, all three shapes), not

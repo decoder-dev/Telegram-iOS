@@ -57,7 +57,9 @@ final class InstantPageChecklistMarkerItem: InstantPageItem {
 private func instantPageChecklistMarkerTheme(theme: InstantPageTheme) -> CheckNodeTheme {
     return CheckNodeTheme(
         backgroundColor: theme.panelAccentColor,
-        strokeColor: theme.pageBackgroundColor,
+        // `pageBackgroundColor` is `.clear` for message previews, so the tick
+        // would become invisible. Use the panel's primary color instead.
+        strokeColor: theme.panelPrimaryColor,
         borderColor: theme.controlColor,
         overlayBorder: false,
         hasInset: false,
