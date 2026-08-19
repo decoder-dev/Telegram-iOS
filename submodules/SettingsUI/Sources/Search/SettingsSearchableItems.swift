@@ -13,6 +13,7 @@ import CallListUI
 import ChatListUI
 import NotificationSoundSelectionUI
 import PresentationDataUtils
+import TelegramPresentationData
 import PhoneNumberFormat
 import AccountUtils
 import InstantPageCache
@@ -3892,6 +3893,7 @@ private func energySavingSearchableItems(context: AccountContext) -> [SettingsSe
 private func appearanceSearchableItems(context: AccountContext) -> [SettingsSearchableItem] {
     let icon: SettingsSearchableItemIcon = .appearance
     let strings = context.sharedContext.currentPresentationData.with { $0 }.strings
+    let customizationTitle = forkCustomizationSettingsTitle(strings)
     
     let presentAppearanceSettings: (AccountContext, (SettingsSearchableItemPresentation, ViewController?) -> Void, ThemeSettingsEntryTag?) -> Void = { context, present, itemTag in
         present(.push, themeSettingsController(context: context, focusOnItemTag: itemTag))
@@ -3900,7 +3902,7 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
     var items: [SettingsSearchableItem] = [
         SettingsSearchableItem(
             id: "appearance",
-            title: strings.Settings_Appearance,
+            title: customizationTitle,
             alternate: synonyms(strings.SettingsSearch_Synonyms_Appearance_Title),
             icon: icon,
             breadcrumbs: [],
@@ -3913,7 +3915,7 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
             title: strings.Settings_ChatBackground,
             alternate: synonyms(strings.SettingsSearch_Synonyms_Appearance_ChatBackground),
             icon: icon,
-            breadcrumbs: [strings.Settings_Appearance],
+            breadcrumbs: [customizationTitle],
             present: { context, _, present in
                 present(.push, ThemeGridController(context: context))
             }
@@ -3921,7 +3923,7 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
         SettingsSearchableItem(
             id: "appearance/wallpapers/edit",
             icon: icon,
-            breadcrumbs: [strings.Settings_Appearance, strings.Settings_ChatBackground],
+            breadcrumbs: [customizationTitle, strings.Settings_ChatBackground],
             isVisible: false,
             present: { context, _, present in
                 present(.push, ThemeGridController(context: context, forceEdit: true))
@@ -3932,7 +3934,7 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
             title: strings.Wallpaper_SetColor,
             alternate: synonyms(strings.SettingsSearch_Synonyms_Appearance_ChatBackground_SetColor),
             icon: icon,
-            breadcrumbs: [strings.Settings_Appearance, strings.Settings_ChatBackground],
+            breadcrumbs: [customizationTitle, strings.Settings_ChatBackground],
             present: { context, _, present in
                 
                 present(.push, ThemeColorsGridController(context: context))
@@ -3943,7 +3945,7 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
             title: strings.Wallpaper_SetCustomBackground,
             alternate: synonyms(strings.SettingsSearch_Synonyms_Appearance_ChatBackground_Custom),
             icon: icon,
-            breadcrumbs: [strings.Settings_Appearance, strings.Settings_ChatBackground],
+            breadcrumbs: [customizationTitle, strings.Settings_ChatBackground],
             present: { context, _, present in
                 presentCustomWallpaperPicker(context: context, present: { controller in
                     present(.immediate, controller)
@@ -3955,7 +3957,7 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
         SettingsSearchableItem(
             id: "appearance/night-mode",
             icon: icon,
-            breadcrumbs: [strings.Settings_Appearance],
+            breadcrumbs: [customizationTitle],
             isVisible: false,
             present: { context, _, present in
                 presentAppearanceSettings(context, present, .nightMode)
@@ -3966,7 +3968,8 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
             title: strings.Appearance_AutoNightTheme,
             alternate: synonyms(strings.SettingsSearch_Synonyms_Appearance_AutoNightTheme),
             icon: icon,
-            breadcrumbs: [strings.Settings_Appearance],
+            breadcrumbs: [customizationTitle],
+            isVisible: false,
             present: { context, _, present in
                 present(.push, themeAutoNightSettingsController(context: context))
             }
@@ -3976,7 +3979,8 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
             title: strings.Themes_Title,
             alternate: synonyms(strings.SettingsSearch_Synonyms_Appearance_ColorTheme),
             icon: icon,
-            breadcrumbs: [strings.Settings_Appearance],
+            breadcrumbs: [customizationTitle],
+            isVisible: false,
             present: { context, _, present in
                 let controller = themePickerController(context: context)
                 present(.push, controller)
@@ -3987,7 +3991,8 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
             title: strings.Themes_EditCurrentTheme,
             alternate: [],
             icon: icon,
-            breadcrumbs: [strings.Settings_Appearance, strings.Themes_Title],
+            breadcrumbs: [customizationTitle, strings.Themes_Title],
+            isVisible: false,
             present: { context, _, present in
                 let controller = themePickerController(context: context, focusOnItemTag: .edit)
                 present(.push, controller)
@@ -3998,7 +4003,8 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
             title: strings.Themes_CreateNewTheme,
             alternate: [],
             icon: icon,
-            breadcrumbs: [strings.Settings_Appearance, strings.Themes_Title],
+            breadcrumbs: [customizationTitle, strings.Themes_Title],
+            isVisible: false,
             present: { context, navigationController, present in
                 let _ = (context.sharedContext.accountManager.transaction { transaction -> PresentationThemeReference in
                     let settings = transaction.getSharedData(ApplicationSpecificSharedDataKeys.presentationThemeSettings)?.get(PresentationThemeSettings.self) ?? PresentationThemeSettings.defaultSettings
@@ -4034,7 +4040,7 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
             title: strings.Appearance_TextSizeSetting,
             alternate: synonyms(strings.SettingsSearch_Synonyms_Appearance_TextSize),
             icon: icon,
-            breadcrumbs: [strings.Settings_Appearance],
+            breadcrumbs: [customizationTitle],
             present: { context, _, present in
                 let _ = (context.sharedContext.accountManager.sharedData(keys: Set([ApplicationSpecificSharedDataKeys.presentationThemeSettings]))
                 |> take(1)
@@ -4047,7 +4053,7 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
         SettingsSearchableItem(
             id: "appearance/text-size/use-system",
             icon: icon,
-            breadcrumbs: [strings.Settings_Appearance],
+            breadcrumbs: [customizationTitle],
             isVisible: false,
             present: { context, _, present in
                 let _ = (context.sharedContext.accountManager.sharedData(keys: Set([ApplicationSpecificSharedDataKeys.presentationThemeSettings]))
@@ -4063,7 +4069,7 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
             title: strings.Appearance_BubbleCornersSetting,
             alternate: [],
             icon: icon,
-            breadcrumbs: [strings.Settings_Appearance],
+            breadcrumbs: [customizationTitle],
             present: { context, _, present in
                 let _ = (context.sharedContext.accountManager.sharedData(keys: Set([ApplicationSpecificSharedDataKeys.presentationThemeSettings]))
                 |> take(1)
@@ -4078,7 +4084,7 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
             title: strings.Appearance_AppIcon.capitalized,
             alternate: [],
             icon: icon,
-            breadcrumbs: [strings.Settings_Appearance],
+            breadcrumbs: [customizationTitle],
             present: { context, _, present in
                 presentAppearanceSettings(context, present, .icon)
             }
@@ -4088,7 +4094,7 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
             title: strings.Appearance_Animations.capitalized,
             alternate: [],
             icon: icon,
-            breadcrumbs: [strings.Settings_Appearance],
+            breadcrumbs: [customizationTitle],
             present: { context, _, present in
                 let controller = energySavingSettingsScreen(context: context)
                 present(.push, controller)
@@ -4098,7 +4104,7 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
             id: "appearance/tap-for-next-media",
             title: strings.Appearance_ShowNextMediaOnTap,
             icon: icon,
-            breadcrumbs: [strings.Settings_Appearance],
+            breadcrumbs: [customizationTitle],
             isVisible: false,
             present: { context, _, present in
                 presentAppearanceSettings(context, present, .tapForNextMedia)
@@ -4112,7 +4118,7 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
                 id: "appearance/send-with-cmd-enter",
                 title: strings.Appearance_SendWithCmdEnter,
                 icon: icon,
-                breadcrumbs: [strings.Settings_Appearance],
+                breadcrumbs: [customizationTitle],
                 isVisible: false,
                 present: { context, _, present in
                     presentAppearanceSettings(context, present, .sendWithCmdEnter)

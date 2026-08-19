@@ -115,6 +115,15 @@ public func forkNormalizedThemeSettings(_ settings: PresentationThemeSettings) -
     return settings
 }
 
+public func forkCustomizationSettingsTitle(_ strings: PresentationStrings) -> String {
+    switch strings.primaryComponent.languageCode {
+    case "ru", "uk", "be":
+        return "Кастомизация"
+    default:
+        return "Customization"
+    }
+}
+
 public final class PresentationData: Equatable {
     public let strings: PresentationStrings
     public let theme: PresentationTheme

@@ -3217,8 +3217,8 @@ Unused sets are archived when you add more.";
 
 "MediaPicker.LivePhotoDescription" = "The live photo will be sent as a GIF.";
 
-"Settings.Appearance" = "Appearance";
-"Appearance.Title" = "Appearance";
+"Settings.Appearance" = "Customization";
+"Appearance.Title" = "Customization";
 "Appearance.Preview" = "CHAT PREVIEW";
 "Appearance.ColorTheme" = "COLOR THEME";
 "Appearance.ThemeDayClassic" = "Day Classic";
