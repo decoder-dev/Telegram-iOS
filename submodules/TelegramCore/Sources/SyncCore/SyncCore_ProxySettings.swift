@@ -129,7 +129,8 @@ public struct ProxySettings: Codable, Equatable {
         try container.encode((self.useForCalls ? 1 : 0) as Int32, forKey: "useForCalls")
         try container.encode((self.useLocalDNSForProxyHosts ? 1 : 0) as Int32, forKey: "useLocalDNSForProxyHosts")
         try container.encode((self.autoRotateProxies ? 1 : 0) as Int32, forKey: "autoRotateProxies")
-        try container.encode((self.autoFetchPublicMtProxy ? 1 : 0) as Int32, forKey: "autoFetchPublicMtProxy")
+        // Key name is "autoFetchMtProxy" because that is what init(from:) reads; a second copy
+        // under "autoFetchPublicMtProxy" was written here and never read by anything.
         try container.encode((self.autoFetchPublicMtProxy ? 1 : 0) as Int32, forKey: "autoFetchMtProxy")
         try container.encode(self.automaticServers, forKey: "automaticServers")
     }
