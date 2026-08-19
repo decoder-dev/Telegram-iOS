@@ -1452,6 +1452,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
     
     private let backgroundNode: ASDisplayNode
     private let highlightedBackgroundNode: ASDisplayNode
+    private var cardMaskedCorners: CACornerMask = []
     
     let contextContainer: ContextControllerSourceNode
     let mainContentContainerNode: ASDisplayNode
@@ -2257,8 +2258,17 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
         return reallyHighlighted
     }
     
+    private func applyHighlightedBackgroundCorners(revealActive: Bool) {
+        if revealActive {
+            self.highlightedBackgroundNode.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner, .layerMinXMaxYCorner, .layerMaxXMaxYCorner]
+        } else {
+            self.highlightedBackgroundNode.layer.maskedCorners = self.cardMaskedCorners
+        }
+    }
+    
     func updateIsHighlighted(transition: ContainedViewLayoutTransition) {
         let highlightProgress: CGFloat = self.item?.interaction.highlightedChatLocation?.progress ?? 1.0
+        self.applyHighlightedBackgroundCorners(revealActive: self.isRevealOptionsActive)
         transition.updateCornerRadius(node: self.highlightedBackgroundNode, cornerRadius: self.isRevealOptionsActive ? 26.0 : self.backgroundNode.cornerRadius)
         self.updateSeparatorAlpha(transition: transition)
         
@@ -2674,7 +2684,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                 } else if !useChatListLayout {
                     avatarLeftInset = 50.0
                 } else {
-                    avatarLeftInset = 24.0 + avatarDiameter
+                    avatarLeftInset = 24.0 + avatarDiameter + higChatListCardInset
                 }
             }
             
@@ -5531,6 +5541,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                     strongSelf.backgroundNode.cornerRadius = higCardRadius
                     strongSelf.backgroundNode.layer.maskedCorners = maskedCorners
                     strongSelf.backgroundNode.clipsToBounds = higCardRadius > 0.0
+                    strongSelf.cardMaskedCorners = maskedCorners
                     let backgroundColor: UIColor
                     let highlightedBackgroundColor: UIColor
                     if item.selected {
@@ -5570,7 +5581,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                     strongSelf.highlightedBackgroundNode.backgroundColor = highlightedBackgroundColor
                     let topNegativeInset: CGFloat = 0.0
                     strongSelf.highlightedBackgroundNode.frame = CGRect(origin: CGPoint(x: strongSelf.revealOffset + higCardInset, y: layoutOffset - separatorHeight - topNegativeInset), size: CGSize(width: layout.contentSize.width - higCardInset * 2.0, height: layout.contentSize.height + separatorHeight + topNegativeInset))
-                    strongSelf.highlightedBackgroundNode.layer.maskedCorners = maskedCorners
+                    strongSelf.applyHighlightedBackgroundCorners(revealActive: strongSelf.isRevealOptionsActive)
                     transition.updateCornerRadius(node: strongSelf.highlightedBackgroundNode, cornerRadius: strongSelf.isRevealOptionsActive ? 26.0 : higCardRadius)
                     
                     if let peerPresence = peerPresence {
