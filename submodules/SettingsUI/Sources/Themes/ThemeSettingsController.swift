@@ -1126,13 +1126,19 @@ public func themeSettingsController(context: AccountContext, focusOnItemTag: The
             themeReference = settings.theme
         }
         
+        // Messages offers one light look and one dark look, and neither is tinted: white with
+        // grey/blue bubbles, black with grey/blue bubbles. The two tinted built-ins — Classic
+        // (blue-green wallpaper) and Tinted Night (navy) — are what makes this app read as "a
+        // Telegram theme" rather than as Messages, so they are no longer offered.
+        //
+        // A user already on one of them keeps it: the `availableThemes` fallback just below
+        // re-adds the current theme when it is not in this list, so the row stays selectable
+        // until they pick Day or Night, and nothing switches under them on upgrade.
         var defaultThemes: [PresentationThemeReference] = []
         if presentationData.autoNightModeTriggered {
-            defaultThemes.append(contentsOf: [.builtin(.nightAccent), .builtin(.night)])
+            defaultThemes.append(contentsOf: [.builtin(.night)])
         } else {
             defaultThemes.append(contentsOf: [
-                .builtin(.dayClassic),
-                .builtin(.nightAccent),
                 .builtin(.day),
                 .builtin(.night)
             ])

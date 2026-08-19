@@ -585,7 +585,9 @@ public func themeAutoNightSettingsController(context: AccountContext) -> ViewCon
     |> map { presentationData, sharedData, cloudThemes, stagingSettings -> (ItemListControllerState, (ItemListNodeState, Any)) in
         let settings = sharedData.entries[ApplicationSpecificSharedDataKeys.presentationThemeSettings]?.get(PresentationThemeSettings.self) ?? PresentationThemeSettings.defaultSettings
         
-        let defaultThemes: [PresentationThemeReference] = [.builtin(.night), .builtin(.nightAccent)]
+        // Only the pure-black night theme is offered, matching the trimmed list on the main
+        // Appearance screen — Tinted Night is not a look Messages has.
+        let defaultThemes: [PresentationThemeReference] = [.builtin(.night)]
         let cloudThemes: [PresentationThemeReference] = cloudThemes.map { .cloud(PresentationCloudTheme(theme: $0, resolvedWallpaper: nil, creatorAccountId: $0.isCreator ? context.account.id : nil)) }
         
         var availableThemes = defaultThemes
