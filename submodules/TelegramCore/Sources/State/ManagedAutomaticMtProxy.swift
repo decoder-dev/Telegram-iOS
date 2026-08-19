@@ -4,9 +4,11 @@ import SwiftSignalKit
 import MtProtoKit
 
 /// Public MTProxy lists used by WhiteGram-style auto-fetch (refreshed by the publishers).
+/// SoliSpirit: worldwide. kort0881: RU-only (`proxy_ru.txt`). dubblebyte: worldwide.
 private let automaticMtProxyListURLs = [
     "https://raw.githubusercontent.com/SoliSpirit/mtproto/master/all_proxies.txt",
-    "https://raw.githubusercontent.com/kort0881/telegram-proxy-collector/main/proxy_all.txt",
+    "https://raw.githubusercontent.com/kort0881/telegram-proxy-collector/main/proxy_ru.txt",
+    "https://raw.githubusercontent.com/dubblebyte/free-mtproto-proxies/main/all_proxies.txt",
 ]
 private let automaticMtProxyRefreshInterval: Double = 10.0 * 60.0
 private let automaticMtProxySelectionDelay: Double = 0.2

@@ -6,6 +6,9 @@
 
 ## [Unreleased]
 
+### Changed
+- **Авто MTProxy:** kort0881 берётся только RU-список (`proxy_ru.txt` вместо `proxy_all.txt`); добавлен [dubblebyte/free-mtproto-proxies](https://github.com/dubblebyte/free-mtproto-proxies). SoliSpirit `all_proxies.txt` без изменений. По-прежнему только доменные MTProxy (IP отбрасываются).
+
 ## [v12.9.2-3858-pre] — 2026-08-19
 
 Pre-release: extras без обходов + время на HIG-пузырях. Sideload smoke, не Latest.
