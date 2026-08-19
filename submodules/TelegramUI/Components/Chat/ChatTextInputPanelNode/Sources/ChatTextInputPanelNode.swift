@@ -77,18 +77,19 @@ private func calclulateTextFieldMinHeight(_ presentationInterfaceState: ChatPres
         baseFontSize = 17.0
     }
     var result: CGFloat
+    // iMessage-style: field capsule height 36pt at default size, scaling with font
     if baseFontSize.isEqual(to: 26.0) {
-        result = 42.0
+        result = 46.0
     } else if baseFontSize.isEqual(to: 23.0) {
-        result = 38.0
-    } else if baseFontSize.isEqual(to: 17.0) {
-        result = 31.0
-    } else if baseFontSize.isEqual(to: 19.0) {
-        result = 33.0
+        result = 42.0
     } else if baseFontSize.isEqual(to: 21.0) {
-        result = 35.0
+        result = 39.0
+    } else if baseFontSize.isEqual(to: 19.0) {
+        result = 37.0
+    } else if baseFontSize.isEqual(to: 17.0) {
+        result = 36.0
     } else {
-        result = 31.0
+        result = 36.0
     }
     
     return result
@@ -707,7 +708,8 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         self.presentationInterfaceState = presentationInterfaceState
         self.presentationContext = presentationContext
         
-        self.textInputViewInternalInsets = UIEdgeInsets(top: 5.0, left: 12.0, bottom: 4.0, right: 11.0)
+        // iMessage: 8pt vertical padding around text to match capsule input field
+        self.textInputViewInternalInsets = UIEdgeInsets(top: 8.0, left: 12.0, bottom: 8.0, right: 11.0)
 
         var hasSpoilers = true
         var hasQuotes = true
@@ -1405,7 +1407,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
     
     private func textFieldMaxHeight(_ maxHeight: CGFloat, metrics: LayoutMetrics, bottomInset: CGFloat) -> CGFloat {
         let textFieldInsets = self.textFieldInsets(metrics: metrics, bottomInset: bottomInset)
-        return max(33.0, maxHeight - (textFieldInsets.top + textFieldInsets.bottom + self.textInputViewInternalInsets.top + self.textInputViewInternalInsets.bottom))
+        return max(36.0, maxHeight - (textFieldInsets.top + textFieldInsets.bottom + self.textInputViewInternalInsets.top + self.textInputViewInternalInsets.bottom))
     }
     
     private func calculateTextFieldMetrics(width: CGFloat, sendActionControlsWidth: CGFloat, maxHeight: CGFloat, metrics: LayoutMetrics, bottomInset: CGFloat, interfaceState: ChatPresentationInterfaceState) -> (accessoryButtonsWidth: CGFloat, textFieldHeight: CGFloat, isOverflow: Bool) {
@@ -1431,7 +1433,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
                 break
             }
         }
-        var textFieldMinHeight: CGFloat = 35.0
+        var textFieldMinHeight: CGFloat = 36.0
         var textInputViewRealInsets = UIEdgeInsets()
         if let presentationInterfaceState = self.presentationInterfaceState {
             textFieldMinHeight = calclulateTextFieldMinHeight(presentationInterfaceState, metrics: metrics)
@@ -1497,7 +1499,8 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
     
     override public func minimalHeight(interfaceState: ChatPresentationInterfaceState, metrics: LayoutMetrics) -> CGFloat {
         let textFieldMinHeight = calclulateTextFieldMinHeight(interfaceState, metrics: metrics)
-        let minimalHeight: CGFloat = 14.0 + textFieldMinHeight
+        // iMessage: 8pt top + 8pt bottom around the field capsule
+        let minimalHeight: CGFloat = 16.0 + textFieldMinHeight
         return minimalHeight
     }
 
@@ -2369,7 +2372,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             }
         }
         
-        var textFieldMinHeight: CGFloat = 33.0
+        var textFieldMinHeight: CGFloat = 36.0
         if let presentationInterfaceState = self.presentationInterfaceState {
             textFieldMinHeight = calclulateTextFieldMinHeight(presentationInterfaceState, metrics: metrics)
         }
