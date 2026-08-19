@@ -19,8 +19,21 @@ private let automaticMtProxyListURLs = [
 private let automaticMtProxyRefreshInterval: Double = 10.0 * 60.0
 private let automaticMtProxySelectionDelay: Double = 0.2
 private let automaticMtProxyConnectionFallbackDelay: Double = 6.0
-private let automaticMtProxyProbeLimit = 32
+/// Kept at 20 deliberately. Every candidate here is an outbound TCP probe, and they all go out
+/// at once — over a VPN, where the probes share one already-loaded tunnel, widening this makes
+/// the measurements worse as well as costlier. The stored pool is larger so a whitelist still has
+/// something to fall back to.
+private let automaticMtProxyProbeLimit = 20
 private let automaticMtProxyStoredLimit = 40
+/// A switch tears down and re-establishes every MTProto connection, so it has to be worth it:
+/// the candidate must be at least this much faster than the server in use. The old rule was an
+/// absolute 50 ms, which on a link with ordinary jitter (a VPN, mobile data) is inside the noise
+/// — the pool would reshuffle on nearly every probe round and the app would spend its time
+/// reconnecting rather than loading anything.
+private let automaticMtProxySwitchRttFactor: Double = 0.7
+/// And no more often than this, unless the server in use has actually failed (`excludedActiveServer`,
+/// which bypasses both of these).
+private let automaticMtProxyMinimumSwitchInterval: Double = 60.0
 
 private func automaticMtProxyHostIsIPAddress(_ host: String) -> Bool {
     let normalizedHost = host.trimmingCharacters(in: CharacterSet(charactersIn: "[]"))
@@ -292,6 +305,9 @@ private final class AutomaticMtProxyContext {
     private var currentStatuses: [ProxyServerSettings: ProxyServerStatus] = [:]
     private var excludedActiveServer: ProxyServerSettings?
     private var lastStoredAutomaticServers: [ProxyServerSettings] = []
+    /// When the last voluntary (not failure-driven) proxy switch happened. Confined to `self.queue`
+    /// like the rest of this class's state.
+    private var lastVoluntarySwitchTimestamp: Double = 0.0
     private var cachedFetchedServers: [ProxyServerSettings] = []
     private var didReceiveSettings = false
     
@@ -397,6 +413,9 @@ private final class AutomaticMtProxyContext {
     private func restartAutoFetch(with probe: [ProxyServerSettings]) {
         self.excludedActiveServer = nil
         self.lastStoredAutomaticServers = []
+        // Turning the feature on is the user asking for a pick right now — don't make them wait
+        // out a dwell interval left over from the previous session.
+        self.lastVoluntarySwitchTimestamp = 0.0
         self.selectionTimer?.invalidate()
         self.selectionTimer = nil
         self.connectionFallbackTimer?.invalidate()
@@ -548,11 +567,20 @@ private final class AutomaticMtProxyContext {
         if let active = self.currentSettings.activeServer, active == best {
             return
         }
-        if let active = self.currentSettings.activeServer, self.excludedActiveServer != active,
-           case let .available(activeRtt)? = self.currentStatuses[active],
-           case let .available(bestRtt)? = self.currentStatuses[best],
-           bestRtt + 0.05 >= activeRtt {
-            return
+        // Everything below is about a *voluntary* move: the server in use still answers, another
+        // one just measured faster. A server that has actually failed is in `excludedActiveServer`
+        // and skips all of it, so failover stays as immediate as it was.
+        if let active = self.currentSettings.activeServer, self.excludedActiveServer != active {
+            let now = CFAbsoluteTimeGetCurrent()
+            if now - self.lastVoluntarySwitchTimestamp < automaticMtProxyMinimumSwitchInterval {
+                return
+            }
+            if case let .available(activeRtt)? = self.currentStatuses[active],
+               case let .available(bestRtt)? = self.currentStatuses[best],
+               bestRtt >= activeRtt * automaticMtProxySwitchRttFactor {
+                return
+            }
+            self.lastVoluntarySwitchTimestamp = now
         }
         self.applyAutomaticActiveServer(best)
     }
