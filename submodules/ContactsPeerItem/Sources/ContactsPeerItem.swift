@@ -804,13 +804,15 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
             let statusFont = Font.regular(floor(item.presentationData.fontSize.itemListBaseFontSize * statusFontSize / 17.0))
             
             let badgeFont = Font.regular(14.0)
-            let avatarDiameter = min(40.0, floor(item.presentationData.fontSize.itemListBaseFontSize * 40.0 / 17.0))
+            let avatarDiameter = min(52.0, floor(item.presentationData.fontSize.itemListBaseFontSize * 52.0 / 17.0))
+            let higCardInset: CGFloat = (item.style == .plain && !item.hideBackground) ? 16.0 : 0.0
+            let higCardRadius: CGFloat = higCardInset > 0.0 ? 20.0 : 0.0
             
             if currentItem?.presentationData.theme !== item.presentationData.theme {
                 updatedTheme = item.presentationData.theme
             }
-            var leftInset: CGFloat = 65.0 + params.leftInset
-            var rightInset: CGFloat = 10.0 + params.rightInset
+            var leftInset: CGFloat = 16.0 + avatarDiameter + 12.0 + params.leftInset + higCardInset
+            var rightInset: CGFloat = 10.0 + params.rightInset + higCardInset
             
             if case .thread = item.peer {
                 leftInset -= 13.0
@@ -1213,7 +1215,7 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
                 statusHeightComponent = -1.0 + statusLayout.size.height
             }
             
-            let nodeLayout = ListViewItemNodeLayout(contentSize: CGSize(width: params.width, height: verticalInset * 2.0 + titleLayout.size.height + statusHeightComponent), insets: UIEdgeInsets(top: firstWithHeader ? 29.0 : 0.0, left: 0.0, bottom: 0.0, right: 0.0))
+            let nodeLayout = ListViewItemNodeLayout(contentSize: CGSize(width: params.width, height: max(44.0, avatarDiameter + 16.0, verticalInset * 2.0 + titleLayout.size.height + statusHeightComponent)), insets: UIEdgeInsets(top: firstWithHeader ? 29.0 : 0.0, left: 0.0, bottom: 0.0, right: 0.0))
             
             let titleFrame: CGRect
             if statusAttributedString != nil {
@@ -1311,7 +1313,7 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
                                             overrideImage = .deletedIcon
                                         }
                                         
-                                        var displayDimensions = CGSize(width: 60.0, height: 60.0)
+                                        var displayDimensions = CGSize(width: avatarDiameter, height: avatarDiameter)
                                         let clipStyle: AvatarNodeClipStyle
                                         if case .app(true) = item.peerMode {
                                             clipStyle = .roundedRect
@@ -1389,7 +1391,7 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
                                     strongSelf.topSeparatorNode.backgroundColor = item.presentationData.theme.list.itemPlainSeparatorColor
                                     strongSelf.separatorNode.backgroundColor = item.presentationData.theme.list.itemPlainSeparatorColor
                                     if !item.hideBackground {
-                                        strongSelf.backgroundNode.backgroundColor = item.presentationData.theme.list.plainBackgroundColor
+                                        strongSelf.backgroundNode.backgroundColor = item.presentationData.theme.chatList.itemBackgroundColor
                                     }
                                 case .blocks:
                                     if !item.hideBackground {
@@ -1431,7 +1433,7 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
                                 avatarSize = CGSize(width: avatarDiameter, height: avatarDiameter)
                             }
                             
-                            let avatarFrame = CGRect(origin: CGPoint(x: revealOffset + leftInset - 50.0, y: floor((nodeLayout.contentSize.height - avatarSize.height) / 2.0)), size: avatarSize)
+                            let avatarFrame = CGRect(origin: CGPoint(x: revealOffset + leftInset - avatarSize.width - 12.0, y: floor((nodeLayout.contentSize.height - avatarSize.height) / 2.0)), size: avatarSize)
                             
                             strongSelf.avatarNode.frame = CGRect(origin: CGPoint(), size: avatarFrame.size)
                             
@@ -2006,11 +2008,27 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
                             
                             var topHighlightInset: CGFloat = (first || !nodeLayout.insets.top.isZero) ? 0.0 : separatorHeight
                             topHighlightInset -= nodeLayout.insets.top
-                            strongSelf.backgroundNode.frame = CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: CGSize(width: nodeLayout.contentSize.width, height: nodeLayout.contentSize.height))
+                            var maskedCorners: CACornerMask = []
+                            if higCardRadius > 0.0 {
+                                if first || firstWithHeader {
+                                    maskedCorners.insert(.layerMinXMinYCorner)
+                                    maskedCorners.insert(.layerMaxXMinYCorner)
+                                }
+                                if last {
+                                    maskedCorners.insert(.layerMinXMaxYCorner)
+                                    maskedCorners.insert(.layerMaxXMaxYCorner)
+                                }
+                            }
+                            strongSelf.backgroundNode.cornerRadius = higCardRadius
+                            strongSelf.backgroundNode.layer.maskedCorners = maskedCorners
+                            strongSelf.backgroundNode.clipsToBounds = higCardRadius > 0.0
+                            strongSelf.backgroundNode.frame = CGRect(origin: CGPoint(x: higCardInset, y: 0.0), size: CGSize(width: nodeLayout.contentSize.width - higCardInset * 2.0, height: nodeLayout.contentSize.height))
                             strongSelf.maskNode.frame = strongSelf.backgroundNode.frame.insetBy(dx: params.leftInset, dy: 0.0)
-                            strongSelf.highlightedBackgroundNode.frame = CGRect(origin: CGPoint(x: 0.0, y: -nodeLayout.insets.top - topHighlightInset), size: CGSize(width: nodeLayout.size.width, height: nodeLayout.size.height + topHighlightInset))
+                            strongSelf.highlightedBackgroundNode.frame = CGRect(origin: CGPoint(x: higCardInset, y: -nodeLayout.insets.top - topHighlightInset), size: CGSize(width: nodeLayout.size.width - higCardInset * 2.0, height: nodeLayout.size.height + topHighlightInset))
+                            strongSelf.highlightedBackgroundNode.cornerRadius = higCardRadius
+                            strongSelf.highlightedBackgroundNode.layer.maskedCorners = maskedCorners
                             strongSelf.topSeparatorNode.frame = CGRect(origin: CGPoint(x: 0.0, y: -min(nodeLayout.insets.top, separatorHeight)), size: CGSize(width: nodeLayout.contentSize.width, height: separatorHeight))
-                            strongSelf.separatorNode.frame = CGRect(origin: CGPoint(x: leftInset, y: nodeLayout.contentSize.height - separatorHeight), size: CGSize(width: max(0.0, nodeLayout.size.width - leftInset - separatorRightInset), height: separatorHeight))
+                            strongSelf.separatorNode.frame = CGRect(origin: CGPoint(x: leftInset, y: nodeLayout.contentSize.height - separatorHeight), size: CGSize(width: max(0.0, nodeLayout.size.width - leftInset - separatorRightInset - higCardInset), height: separatorHeight))
                             if !item.alwaysShowLastSeparator && item.style != .blocks {
                                 strongSelf.separatorNode.isHidden = last
                             }

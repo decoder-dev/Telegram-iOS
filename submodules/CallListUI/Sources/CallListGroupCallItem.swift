@@ -285,7 +285,7 @@ class CallListGroupCallItemNode: ItemListRevealOptionsItemNode {
             }
             
             let titleFont = Font.medium(item.presentationData.fontSize.itemListBaseFontSize)
-            let avatarDiameter = min(40.0, floor(item.presentationData.fontSize.itemListBaseFontSize * 40.0 / 17.0))
+            let avatarDiameter = min(52.0, floor(item.presentationData.fontSize.itemListBaseFontSize * 52.0 / 17.0))
             
             let editingOffset: CGFloat
             if item.editing {
@@ -294,7 +294,7 @@ class CallListGroupCallItemNode: ItemListRevealOptionsItemNode {
                 editingOffset = 0.0
             }
             
-            var leftInset: CGFloat = 46.0 + avatarDiameter + params.leftInset
+            var leftInset: CGFloat = 16.0 + avatarDiameter + 12.0 + params.leftInset
             let rightInset: CGFloat = 13.0 + params.rightInset
             var infoIconRightInset: CGFloat = rightInset
             
@@ -305,7 +305,7 @@ class CallListGroupCallItemNode: ItemListRevealOptionsItemNode {
             
             switch item.style {
                 case .plain:
-                    itemBackgroundColor = item.presentationData.theme.list.plainBackgroundColor
+                    itemBackgroundColor = item.presentationData.theme.chatList.itemBackgroundColor
                     itemSeparatorColor = item.presentationData.theme.list.itemPlainSeparatorColor
                     insets = itemListNeighborsPlainInsets(neighbors)
                 case .blocks:
@@ -334,7 +334,7 @@ class CallListGroupCallItemNode: ItemListRevealOptionsItemNode {
             
             let verticalInset: CGFloat = 11.0
             
-            let nodeLayout = ListViewItemNodeLayout(contentSize: CGSize(width: params.width, height: titleLayout.size.height + verticalInset * 2.0), insets: UIEdgeInsets(top: firstWithHeader ? 29.0 : 0.0, left: 0.0, bottom: 0.0, right: 0.0))
+            let nodeLayout = ListViewItemNodeLayout(contentSize: CGSize(width: params.width, height: max(44.0, avatarDiameter + 16.0, titleLayout.size.height + verticalInset * 2.0)), insets: UIEdgeInsets(top: firstWithHeader ? 29.0 : 0.0, left: 0.0, bottom: 0.0, right: 0.0))
             
             let contentSize = nodeLayout.contentSize
             
@@ -411,7 +411,7 @@ class CallListGroupCallItemNode: ItemListRevealOptionsItemNode {
                                     transition.updateFrameAdditive(node: strongSelf.bottomStripeNode, frame: CGRect(origin: CGPoint(x: bottomStripeInset, y: contentSize.height - separatorHeight), size: CGSize(width: nodeLayout.size.width - bottomStripeInset, height: separatorHeight)))
                             }
                             
-                            let avatarFrame = CGRect(origin: CGPoint(x: revealOffset + leftInset - 52.0, y: floor((contentSize.height - avatarDiameter) / 2.0)), size: CGSize(width: avatarDiameter, height: avatarDiameter))
+                            let avatarFrame = CGRect(origin: CGPoint(x: revealOffset + leftInset - avatarDiameter - 12.0, y: floor((contentSize.height - avatarDiameter) / 2.0)), size: CGSize(width: avatarDiameter, height: avatarDiameter))
                             transition.updateFrameAdditive(node: strongSelf.avatarNode, frame: avatarFrame)
                             
                             strongSelf.indicatorNode.color = item.presentationData.theme.chatList.checkmarkColor
