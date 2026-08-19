@@ -788,7 +788,7 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
                             strongSelf.backgroundNode.layer.maskedCorners = maskedCorners
                             strongSelf.backgroundNode.clipsToBounds = higCardRadius > 0.0
                             strongSelf.backgroundNode.frame = CGRect(origin: CGPoint(x: higCardInset, y: 0.0), size: CGSize(width: nodeLayout.contentSize.width - higCardInset * 2.0, height: nodeLayout.contentSize.height))
-                            strongSelf.containerNode.frame = CGRect(origin: CGPoint(), size: strongSelf.backgroundNode.frame.size)
+                            strongSelf.containerNode.frame = CGRect(origin: CGPoint(), size: nodeLayout.contentSize)
                             strongSelf.highlightedBackgroundNode.frame = CGRect(origin: CGPoint(x: higCardInset, y: -nodeLayout.insets.top - topHighlightInset), size: CGSize(width: nodeLayout.size.width - higCardInset * 2.0, height: nodeLayout.size.height + topHighlightInset))
                             strongSelf.highlightedBackgroundNode.cornerRadius = higCardRadius
                             strongSelf.highlightedBackgroundNode.layer.maskedCorners = maskedCorners
