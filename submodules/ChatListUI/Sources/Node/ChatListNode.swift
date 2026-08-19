@@ -1299,6 +1299,8 @@ public final class ChatListNode: ListViewImpl {
     }
     
     private var currentLocation: ChatListNodeLocation?
+    private var chatListLocationGeneration: Int = 0
+    var isActiveForFolderPagination: Bool = false
     public private(set) var chatListFilter: ChatListFilter? {
         didSet {
             self.chatListFilterValue.set(.single(self.chatListFilter))
@@ -1930,10 +1932,14 @@ public final class ChatListNode: ListViewImpl {
         
         let chatListViewUpdate = self.chatListLocation.get()
         |> distinctUntilChanged
-        |> mapToSignal { listLocation -> Signal<(ChatListNodeViewUpdate, ChatListFilter?), NoError> in
+        |> mapToSignal { [weak self] listLocation -> Signal<(ChatListNodeViewUpdate, ChatListFilter?, Int), NoError> in
+            guard let strongSelf = self else {
+                return .complete()
+            }
+            let locationGeneration = strongSelf.chatListLocationGeneration
             return chatListViewForLocation(chatListLocation: location, location: listLocation, account: context.account, shouldLoadCanMessagePeer: shouldLoadCanMessagePeer)
             |> map { update in
-                return (update, listLocation.filter)
+                return (update, listLocation.filter, locationGeneration)
             }
         }
         
@@ -1963,7 +1969,7 @@ public final class ChatListNode: ListViewImpl {
         |> distinctUntilChanged
         
         let chatListViewUpdateForFilters = combineLatest(chatListViewUpdate, messageFilterSettings)
-        |> map { update, _ -> (ChatListNodeViewUpdate, ChatListFilter?) in
+        |> map { update, _ -> (ChatListNodeViewUpdate, ChatListFilter?, Int) in
             return update
         }
         
@@ -2229,8 +2235,14 @@ public final class ChatListNode: ListViewImpl {
             chatListFilters,
             accountIsPremium
         )
-        |> mapToQueue { (hideArchivedFolderByDefault, archiveFolderPresentation, displayArchiveIntro, storageInfo, savedMessagesPeer, updateAndFilter, state, contacts, chatListFilters, accountIsPremium) -> Signal<ChatListNodeListViewTransition, NoError> in
-            let (update, filter) = updateAndFilter
+        |> mapToQueue { [weak self] (hideArchivedFolderByDefault, archiveFolderPresentation, displayArchiveIntro, storageInfo, savedMessagesPeer, updateAndFilter, state, contacts, chatListFilters, accountIsPremium) -> Signal<ChatListNodeListViewTransition, NoError> in
+            guard let strongSelf = self else {
+                return .complete()
+            }
+            let (update, filter, locationGeneration) = updateAndFilter
+            if locationGeneration != strongSelf.chatListLocationGeneration {
+                return .complete()
+            }
             
             let previousHideArchivedFolderByDefaultValue = previousHideArchivedFolderByDefault.swap(hideArchivedFolderByDefault)
             let previousArchiveFolderPresentationValue = previousArchiveFolderPresentation.swap(archiveFolderPresentation)
@@ -2689,9 +2701,11 @@ public final class ChatListNode: ListViewImpl {
                 searchMode = true
             }
             
+            var forceAllUpdated = false
             if filter != previousView?.filter {
                 disableAnimations = true
                 updatedScrollPosition = nil
+                forceAllUpdated = true
             }
             
             let filterData = filter.flatMap { filter -> ChatListItemFilterData? in
@@ -2702,7 +2716,6 @@ public final class ChatListNode: ListViewImpl {
                 }
             }
             
-            var forceAllUpdated = false
             let previousChatListFiltersValue = previousChatListFilters.swap(chatListFilters)
             if chatListFilters != previousChatListFiltersValue {
                 forceAllUpdated = true
@@ -2725,7 +2738,7 @@ public final class ChatListNode: ListViewImpl {
         }
         
         self.displayedItemRangeChanged = { [weak self] range, transactionOpaqueState in
-            if let strongSelf = self, let chatListView = (transactionOpaqueState as? ChatListOpaqueTransactionState)?.chatListView {
+            if let strongSelf = self, strongSelf.isActiveForFolderPagination, let chatListView = (transactionOpaqueState as? ChatListOpaqueTransactionState)?.chatListView {
                 let originalList = chatListView.originalList
                 if let range = range.loadedRange {
                     var location: ChatListNodeLocation?
@@ -3803,8 +3816,16 @@ public final class ChatListNode: ListViewImpl {
         }
     }
     
+    func reconcileLocationOnTabActivation() {
+        self.isActiveForFolderPagination = true
+        if case .navigation = self.currentLocation {
+            self.setChatListLocation(.initial(count: 50, filter: self.chatListFilter))
+        }
+    }
+    
     private func setChatListLocation(_ location: ChatListNodeLocation) {
         self.currentLocation = location
+        self.chatListLocationGeneration &+= 1
         self.chatListLocation.set(location)
     }
     

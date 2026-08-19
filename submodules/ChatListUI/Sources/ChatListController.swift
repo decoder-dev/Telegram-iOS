@@ -152,6 +152,8 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
     
     private let stateDisposable = MetaDisposable()
     private let filterDisposable = MetaDisposable()
+    private let selectTabDisposable = MetaDisposable()
+    private var selectTabGeneration: Int = 0
     private let extrasFoldersDisposable = MetaDisposable()
     private var skipExtrasFoldersReload = false
     private let featuredFiltersDisposable = MetaDisposable()
@@ -4228,9 +4230,11 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
             }
         }
         
-        let _ = (self.context.engine.peers.currentChatListFilters()
-        |> deliverOnMainQueue).startStandalone(next: { [weak self] filters in
-            guard let strongSelf = self else {
+        self.selectTabGeneration &+= 1
+        let generation = self.selectTabGeneration
+        self.selectTabDisposable.set((self.context.engine.peers.currentChatListFilters()
+        |> deliverOnMainQueue).startStrict(next: { [weak self] filters in
+            guard let strongSelf = self, generation == strongSelf.selectTabGeneration else {
                 return
             }
             let updatedFilter: ChatListFilter?
@@ -4261,7 +4265,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                 }
                 strongSelf.chatListDisplayNode.mainContainerNode.switchToAvailableFilter(preferring: updatedFilter.flatMap { .filter($0.id) } ?? .all, animated: false)
             }
-        })
+        }))
     }
     
     private func readAllInFilter(id: Int32) {

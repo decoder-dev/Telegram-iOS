@@ -177,11 +177,13 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
             previousItemNode.listNode.addedVisibleChatsWithPeerIds = nil
             previousItemNode.listNode.didBeginSelectingChats = nil
             previousItemNode.listNode.canExpandHiddenItems = nil
+            previousItemNode.listNode.isActiveForFolderPagination = false
             
             previousItemNode.accessibilityElementsHidden = true
         }
         self.currentItemNodeValue = itemNode
         itemNode.accessibilityElementsHidden = false
+        itemNode.listNode.reconcileLocationOnTabActivation()
         
         itemNode.listNode.activateSearch = { [weak self] in
             self?.activateSearch?()
@@ -607,12 +609,6 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
                 for (id, itemNode) in self.itemNodes {
                     if id != selectedId {
                         itemNode.emptyNode?.restartAnimation()
-                        
-                        if let controller = self.controller, let chatListDisplayNode = controller.displayNode as? ChatListControllerNode, let navigationBarComponentView = chatListDisplayNode.navigationBarView.view as? ChatListNavigationBar.View, let clippedScrollOffset = navigationBarComponentView.clippedScrollOffset {
-                            let scrollOffset = clippedScrollOffset
-                            
-                            let _ = itemNode.listNode.scrollToOffsetFromTop(scrollOffset, animated: false)
-                        }
                     }
                 }
                 
