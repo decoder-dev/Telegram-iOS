@@ -545,11 +545,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         }
         
         let actionButtonKeys: [PeerInfoHeaderButtonKey] = (self.isSettings || self.isMyProfile) ? [] : peerInfoHeaderActionButtons(peer: peer, isSecretChat: isSecretChat, isContact: isContact)
-        // Empty everywhere now: the action buttons are drawn by PeerInfoScreenActionButtonsItem, the
-        // first card under the header, as icon-only circles. Keeping this list populated would draw
-        // them twice. It stays a list rather than being deleted because the header still asks it
-        // whether a button row exists, to size the cover and reserve room below the name.
-        let buttonKeys: [PeerInfoHeaderButtonKey] = []
+        let buttonKeys: [PeerInfoHeaderButtonKey] = (self.isSettings || self.isMyProfile) ? [] : peerInfoHeaderButtons(peer: peer, cachedData: cachedData, isOpenedFromChat: self.isOpenedFromChat, isExpanded: true, videoCallsEnabled: width > 320.0 && self.videoCallsEnabled, isSecretChat: isSecretChat, isContact: isContact, threadInfo: threadData?.info)
         
         let backgroundCoverSubject: PeerInfoCoverComponent.Subject?
         var backgroundCoverAnimateIn = false
@@ -2016,11 +2012,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
                 } else if peer?.id == self.context.account.peerId && !self.isMyProfile {
                     expandablePart = 0.0
                 } else {
-                    // 99 pt is the room the action-buttons row needs inside the header. With the row
-                    // moved to its own card that space would be a gap between the status and the
-                    // card, so reserve what a header without buttons needs — the same 20 pt the
-                    // settings and my-profile branch just above uses.
-                    expandablePart += buttonKeys.isEmpty ? 20.0 : 99.0
+                    expandablePart += 99.0
                 }
             }
             expandablePart += bottomInset
@@ -2330,10 +2322,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
             }
         }
         
-        // `max(1,)` because the row is empty now — the buttons live in a card below. Dividing by a
-        // zero count yields an infinite width; the loop that would use it does not run, but an
-        // infinity in a CGSize is one refactor away from reaching a frame.
-        let buttonWidth = (width - buttonSideInset * 2.0 + buttonSpacing) / CGFloat(max(1, buttonKeys.count)) - buttonSpacing
+        let buttonWidth = (width - buttonSideInset * 2.0 + buttonSpacing) / CGFloat(buttonKeys.count) - buttonSpacing
         let buttonSize = CGSize(width: buttonWidth, height: 58.0)
         var buttonRightOrigin = CGPoint(x: width - buttonSideInset, y: backgroundHeight - bottomInset - 16.0 - buttonSize.height)
         if !actionButtonKeys.isEmpty {
@@ -2343,14 +2332,8 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         transition.updateFrameAdditive(node: self.buttonsBackgroundNode, frame: CGRect(origin: CGPoint(x: 0.0, y: buttonRightOrigin.y), size: CGSize(width: width, height: buttonSize.height + 40.0)))
         self.buttonsBackgroundNode.update(size: self.buttonsBackgroundNode.bounds.size, transition: transition)
         self.buttonsBackgroundNode.updateColor(color: contentButtonBackgroundColor, enableBlur: true, transition: transition)
-        if buttonKeys.isEmpty {
-            // This is the blurred strip the button row sits on. With the row gone it would be an
-            // empty panel across the header.
-            self.buttonsBackgroundNode.alpha = 0.0
-        } else if isReduceTransparencyEnabled() {
+        if isReduceTransparencyEnabled() {
             self.buttonsBackgroundNode.alpha = 0.1
-        } else {
-            self.buttonsBackgroundNode.alpha = 1.0
         }
         
         for buttonKey in buttonKeys.reversed() {

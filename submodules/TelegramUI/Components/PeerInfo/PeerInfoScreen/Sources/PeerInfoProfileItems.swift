@@ -26,7 +26,6 @@ enum InfoSection: Int, CaseIterable {
     case groupLocation
     case calls
     case personalChannel
-    case peerInfoActions
     case peerInfo
     case balances
     case permissions
@@ -59,36 +58,6 @@ func infoItems(
     for section in InfoSection.allCases {
         items[section] = []
     }
-
-    // The action buttons live in their own card under the header rather than inside it, as icon-only
-    // circles. Only this row moved; the header, the cover and everything below are stock.
-    if !isMyProfile {
-        let isSecretChat = data.peer?.id.namespace == Namespaces.Peer.SecretChat
-        let headerButtonKeys = peerInfoHeaderButtons(
-            peer: data.peer,
-            cachedData: data.cachedData,
-            isOpenedFromChat: isOpenedFromChat,
-            isExpanded: true,
-            videoCallsEnabled: true,
-            isSecretChat: isSecretChat,
-            isContact: data.isContact,
-            threadInfo: data.threadData?.info
-        )
-        if !headerButtonKeys.isEmpty {
-            items[.peerInfoActions]!.append(PeerInfoScreenActionButtonsItem(
-                buttonKeys: headerButtonKeys,
-                highlightedButton: nil,
-                peer: data.peer,
-                peerNotificationSettings: data.peerNotificationSettings,
-                threadNotificationSettings: data.threadNotificationSettings,
-                globalNotificationSettings: data.globalNotificationSettings,
-                performAction: { key, buttonNode, gesture in
-                    interaction.performHeaderButtonAction?(key, buttonNode, gesture)
-                }
-            ))
-        }
-    }
-
     
     let bioContextAction: (ASDisplayNode, ContextGesture?, CGPoint?) -> Void = { node, gesture, _ in
         interaction.openBioContextMenu(node, gesture)
