@@ -3,11 +3,14 @@ import UIKit
 import Display
 import AsyncDisplayKit
 import TelegramCore
+import ContextUI
 import SwiftSignalKit
 import AccountContext
 import StatisticsUI
 
 final class PeerInfoInteraction {
+    var performHeaderButtonAction: ((PeerInfoHeaderButtonKey, PeerInfoHeaderButtonNode?, ContextGesture?) -> Void)?
+
     let openChat: (EnginePeer.Id?) -> Void
     let openUsername: (String, Bool, Promise<Bool>?) -> Void
     let openPhone: (String, ASDisplayNode, ContextGesture?, Promise<Bool>?) -> Void

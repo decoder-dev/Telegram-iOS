@@ -1518,7 +1518,12 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
         self.headerNode.performButtonAction = { [weak self] key, buttonNode, gesture in
             self?.performButtonAction(key: key, buttonNode: buttonNode, gesture: gesture)
         }
-        
+        // The action buttons moved into a list card, so they reach the same handler through the
+        // interaction rather than through the header node.
+        self.interaction.performHeaderButtonAction = { [weak self] key, buttonNode, gesture in
+            self?.performButtonAction(key: key, buttonNode: buttonNode, gesture: gesture)
+        }
+
         self.headerNode.displaySavedMusic = { [weak self] in
             self?.displaySavedMusic()
         }
