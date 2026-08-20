@@ -118,14 +118,29 @@ public func fetchPhotoLibraryResource(localIdentifier: String, width: Int32?, he
             option.isSynchronous = false
                         
             let size: CGSize
+            let photoQualityLevel: Int32
+            let extrasQuality = ForkExtrasHotFlags.outgoingPhotoQuality
             if let width, let height {
                 size = CGSize(width: CGFloat(width), height: CGFloat(height))
+                photoQualityLevel = extrasQuality
+            } else if hd || extrasQuality >= 2 {
+                size = CGSize(width: 2560.0, height: 2560.0)
+                photoQualityLevel = max(extrasQuality, 2)
+            } else if extrasQuality >= 1 {
+                size = CGSize(width: 1920.0, height: 1920.0)
+                photoQualityLevel = extrasQuality
             } else {
-                if hd {
-                    size = CGSize(width: 2560.0, height: 2560.0)
-                } else {
-                    size = CGSize(width: 1280.0, height: 1280.0)
-                }
+                size = CGSize(width: 1280.0, height: 1280.0)
+                photoQualityLevel = extrasQuality
+            }
+            let jpegQuality: Float
+            switch photoQualityLevel {
+            case 2:
+                jpegQuality = 0.85
+            case 1:
+                jpegQuality = 0.75
+            default:
+                jpegQuality = 0.6
             }
             
             var targetSize = PHImageManagerMaximumSize
@@ -161,7 +176,15 @@ public func fetchPhotoLibraryResource(localIdentifier: String, width: Int32?, he
                             }
                         }
                         if let image = image {
-                            if let info = info, let degraded = info[PHImageResultIsDegradedKey], (degraded as AnyObject).boolValue!{
+                            let isDegraded: Bool
+                            if let degradedValue = info?[PHImageResultIsDegradedKey] as? Bool {
+                                isDegraded = degradedValue
+                            } else if let degradedNumber = info?[PHImageResultIsDegradedKey] as? NSNumber {
+                                isDegraded = degradedNumber.boolValue
+                            } else {
+                                isDegraded = false
+                            }
+                            if isDegraded {
 
                             } else {
 #if DEBUG
@@ -182,7 +205,7 @@ public func fetchPhotoLibraryResource(localIdentifier: String, width: Int32?, he
                                     defer {
                                         EngineTempBox.shared.dispose(tempFile)
                                     }
-                                    if let scaledImage = scaledImage, let data = compressImageToJPEG(scaledImage, quality: 0.6, tempFilePath: tempFile.path) {
+                                    if let scaledImage = scaledImage, let data = compressImageToJPEG(scaledImage, quality: jpegQuality, tempFilePath: tempFile.path) {
     #if DEBUG
                                         print("compression completion \((CACurrentMediaTime() - startTime) * 1000.0) ms")
     #endif

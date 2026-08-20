@@ -113,13 +113,16 @@ public final class InstantPageController: ViewController {
                 } else {
                     settings = InstantPagePresentationSettings.defaultSettings
                 }
-                let themeSettings: PresentationThemeSettings
+                var themeSettings: PresentationThemeSettings
                 if let current = sharedData.entries[ApplicationSpecificSharedDataKeys.presentationThemeSettings]?.get(PresentationThemeSettings.self) {
                     themeSettings = current
                 } else {
                     themeSettings = PresentationThemeSettings.defaultSettings
                 }
-                
+                // Same normalization the presentation-data pipeline applies, so the article reader's
+                // auto theme follows the app rather than the theme stored before the picker went away.
+                themeSettings = forkNormalizedThemeSettings(themeSettings)
+
                 strongSelf.settings = settings
                 strongSelf.themeSettings = themeSettings
                 if strongSelf.isNodeLoaded {

@@ -378,8 +378,7 @@ public func legacyEnqueueGifMessage(account: Account, data: Data, correlationId:
             var previewRepresentations: [TelegramMediaImageRepresentation] = []
             
             let thumbnailSize = dimensions.aspectFitted(CGSize(width: 320.0, height: 320.0))
-            let thumbnailImage = TGScaleImageToPixelSize(previewImage, thumbnailSize)!
-            if let thumbnailData = thumbnailImage.jpegData(compressionQuality: 0.4) {
+            if let thumbnailImage = TGScaleImageToPixelSize(previewImage, thumbnailSize), let thumbnailData = thumbnailImage.jpegData(compressionQuality: 0.4) {
                 let resource = LocalFileMediaResource(fileId: Int64.random(in: Int64.min ... Int64.max))
                 account.postbox.mediaBox.storeResourceData(resource.id, data: thumbnailData)
                 previewRepresentations.append(TelegramMediaImageRepresentation(dimensions: PixelDimensions(thumbnailSize), resource: resource, progressiveSizes: [], immediateThumbnailData: nil, hasVideo: false, isPersonal: false))
@@ -438,7 +437,11 @@ public func legacyAssetPickerEnqueueMessages(
             
             var paidMessage: EnqueuePaidMessage?
             
-            outer: for item in (anyValues as! NSArray) {
+            guard let values = anyValues as? NSArray else {
+                subscriber.putError(Void())
+                return
+            }
+            outer: for item in values {
                 if let item = (item as? NSDictionary)?.object(forKey: "item") as? LegacyAssetItemWrapper {
                     switch item.item {
                         case let .image(data, thumbnail, caption, stickers, video, adjustments):
@@ -446,8 +449,7 @@ public func legacyAssetPickerEnqueueMessages(
                             if let thumbnail = thumbnail {
                                 let resource = LocalFileMediaResource(fileId: Int64.random(in: Int64.min ... Int64.max))
                                 let thumbnailSize = thumbnail.size.aspectFitted(CGSize(width: 320.0, height: 320.0))
-                                let thumbnailImage = TGScaleImageToPixelSize(thumbnail, thumbnailSize)!
-                                if let thumbnailData = thumbnailImage.jpegData(compressionQuality: 0.4) {
+                                if let thumbnailImage = TGScaleImageToPixelSize(thumbnail, thumbnailSize), let thumbnailData = thumbnailImage.jpegData(compressionQuality: 0.4) {
                                     account.postbox.mediaBox.storeResourceData(resource.id, data: thumbnailData)
                                     representations.append(TelegramMediaImageRepresentation(dimensions: PixelDimensions(thumbnailSize), resource: resource, progressiveSizes: [], immediateThumbnailData: nil, hasVideo: false, isPersonal: false))
                                 }
@@ -457,7 +459,19 @@ public func legacyAssetPickerEnqueueMessages(
                                     var randomId: Int64 = 0
                                     arc4random_buf(&randomId, 8)
                                     let tempFilePath = NSTemporaryDirectory() + "\(randomId).jpeg"
-                                    let maxSize = item.forceHd ? CGSize(width: 2560.0, height: 2560.0) : CGSize(width: 1280.0, height: 1280.0)
+                                    let maxSize: CGSize
+                                    let jpegQuality: Float
+                                    let extrasQuality = ForkExtrasHotFlags.outgoingPhotoQuality
+                                    if item.forceHd || extrasQuality >= 2 {
+                                        maxSize = CGSize(width: 2560.0, height: 2560.0)
+                                        jpegQuality = extrasQuality >= 2 || item.forceHd ? 0.85 : 0.75
+                                    } else if extrasQuality >= 1 {
+                                        maxSize = CGSize(width: 1920.0, height: 1920.0)
+                                        jpegQuality = 0.75
+                                    } else {
+                                        maxSize = CGSize(width: 1280.0, height: 1280.0)
+                                        jpegQuality = 0.6
+                                    }
                                     let scaledSize = image.size.aspectFittedOrSmaller(maxSize)
                                 
                                     if let scaledImage = TGScaleImageToPixelSize(image, scaledSize) {
@@ -465,7 +479,7 @@ public func legacyAssetPickerEnqueueMessages(
                                         defer {
                                             EngineTempBox.shared.dispose(tempFile)
                                         }
-                                        if let scaledImageData = compressImageToJPEG(scaledImage, quality: 0.6, tempFilePath: tempFile.path) {
+                                        if let scaledImageData = compressImageToJPEG(scaledImage, quality: jpegQuality, tempFilePath: tempFile.path) {
                                             let _ = try? scaledImageData.write(to: URL(fileURLWithPath: tempFilePath))
 
                                             let resource = LocalFileReferenceMediaResource(localFilePath: tempFilePath, randomId: randomId)
@@ -589,7 +603,10 @@ public func legacyAssetPickerEnqueueMessages(
                                         ]
                                         for sizeSide in sizes {
                                             for format in formats {
-                                                for quality in qualities[format.rawValue]! {
+                                                guard let formatQualities = qualities[format.rawValue] else {
+                                                    continue
+                                                }
+                                                for quality in formatQualities {
                                                     var randomId: Int64 = 0
                                                     arc4random_buf(&randomId, 8)
                                                     let resource = PhotoLibraryMediaResource(
@@ -743,8 +760,7 @@ public func legacyAssetPickerEnqueueMessages(
                                     if let thumbnail = thumbnail {
                                         let resource = LocalFileMediaResource(fileId: Int64.random(in: Int64.min ... Int64.max))
                                         let thumbnailSize = thumbnail.size.aspectFitted(CGSize(width: 320.0, height: 320.0))
-                                        let thumbnailImage = TGScaleImageToPixelSize(thumbnail, thumbnailSize)!
-                                        if let thumbnailData = thumbnailImage.jpegData(compressionQuality: 0.4) {
+                                        if let thumbnailImage = TGScaleImageToPixelSize(thumbnail, thumbnailSize), let thumbnailData = thumbnailImage.jpegData(compressionQuality: 0.4) {
                                             account.postbox.mediaBox.storeResourceData(resource.id, data: thumbnailData)
                                             previewRepresentations.append(TelegramMediaImageRepresentation(dimensions: PixelDimensions(thumbnailSize), resource: resource, progressiveSizes: [], immediateThumbnailData: nil, hasVideo: false, isPersonal: false))
                                         }
@@ -894,8 +910,7 @@ public func legacyAssetPickerEnqueueMessages(
                             if let thumbnail = thumbnail {
                                 let resource = LocalFileMediaResource(fileId: Int64.random(in: Int64.min ... Int64.max))
                                 let thumbnailSize = finalDimensions.aspectFitted(CGSize(width: 320.0, height: 320.0))
-                                let thumbnailImage = TGScaleImageToPixelSize(thumbnail, thumbnailSize)!
-                                if let thumbnailData = thumbnailImage.jpegData(compressionQuality: 0.4) {
+                                if let thumbnailImage = TGScaleImageToPixelSize(thumbnail, thumbnailSize), let thumbnailData = thumbnailImage.jpegData(compressionQuality: 0.4) {
                                     account.postbox.mediaBox.storeResourceData(resource.id, data: thumbnailData)
                                     previewRepresentations.append(TelegramMediaImageRepresentation(dimensions: PixelDimensions(thumbnailSize), resource: resource, progressiveSizes: [], immediateThumbnailData: nil, hasVideo: false, isPersonal: false))
                                 }
@@ -906,8 +921,7 @@ public func legacyAssetPickerEnqueueMessages(
                                 let resource = LocalFileMediaResource(fileId: Int64.random(in: Int64.min ... Int64.max))
                                 let maxSide: CGFloat = 1280.0
                                 let coverSize = cover.size.aspectFitted(CGSize(width: maxSide, height: maxSide))
-                                let coverImage = TGScaleImageToPixelSize(cover, coverSize)!
-                                if let coverData = coverImage.jpegData(compressionQuality: 0.87) {
+                                if let coverImage = TGScaleImageToPixelSize(cover, coverSize), let coverData = coverImage.jpegData(compressionQuality: 0.87) {
                                     account.postbox.mediaBox.storeResourceData(resource.id, data: coverData)
                                     videoCover = TelegramMediaImage(
                                         imageId: EngineMedia.Id(namespace: 0, id: 0),

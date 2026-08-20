@@ -89,6 +89,7 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
     
     private var applicationInFocusDisposable: Disposable?
     private var storyUploadEventsDisposable: Disposable?
+    private var hideTabBarDisposable: Disposable?
     
     override public var minimizedContainer: MinimizedContainer? {
         didSet {
@@ -147,6 +148,7 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
         self.presentationDataDisposable?.dispose()
         self.applicationInFocusDisposable?.dispose()
         self.storyUploadEventsDisposable?.dispose()
+        self.hideTabBarDisposable?.dispose()
     }
     
     public func getContactsController() -> ViewController? {
@@ -249,6 +251,20 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
         self.accountSettingsController = accountSettingsController
         self.rootTabController = tabBarController
         self.pushViewController(tabBarController, animated: false)
+        self.hideTabBarDisposable?.dispose()
+        var appliedHideTabBar = false
+        self.hideTabBarDisposable = (forkExtrasSettings(accountManager: self.context.sharedContext.accountManager)
+        |> map { ForkExtrasHotFlags.hidesTabBar($0.hideTabBar, isPad: UIDevice.current.userInterfaceIdiom == .pad) }
+        |> distinctUntilChanged
+        |> deliverOnMainQueue).startStrict(next: { [weak self] hidden in
+            if !appliedHideTabBar {
+                appliedHideTabBar = true
+                if !hidden {
+                    return
+                }
+            }
+            (self?.rootTabController as? TabBarControllerImpl)?.updateIsTabBarHidden(hidden, transition: .animated(duration: 0.25, curve: .easeInOut))
+        })
     }
         
     public func updateRootControllers(showCallsTab: Bool) {

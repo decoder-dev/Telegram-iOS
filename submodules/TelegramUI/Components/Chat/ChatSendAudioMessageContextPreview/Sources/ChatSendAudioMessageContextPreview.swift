@@ -437,6 +437,7 @@ public final class ChatSendGroupMediaMessageContextPreview: UIView, ChatSendMess
         }, presentGlobalOverlayController: { _, _ in }, callPeer: { _, _ in }, openConferenceCall: { _ in
         }, longTap: { _, _ in }, todoItemLongTap: { _, _ in }, pollOptionLongTap: { _, _ in
         }, openCheckoutOrReceipt: { _, _ in }, openSearch: { }, setupReply: { _ in
+        }, setupEditMessage: { _ in
         }, canSetupReply: { _ in
             return .none
         }, canSendMessages: {

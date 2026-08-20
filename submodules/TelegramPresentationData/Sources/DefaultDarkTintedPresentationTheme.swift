@@ -279,7 +279,7 @@ public func customizeDefaultDarkTintedPresentationTheme(theme: PresentationTheme
     var highlightedOutgoingBubbleColor: UIColor?
     
     if !bubbleColors.isEmpty {
-        outgoingBubbleFillColors = bubbleColors.map(UIColor.init(rgb:))
+        outgoingBubbleFillColors = [UIColor(rgb: bubbleColors.last ?? bubbleColors[0])]
      
         let lightnessColor = UIColor(rgb: bubbleColors[0]).mixedWith(UIColor(rgb: bubbleColors.last ?? bubbleColors[0]), alpha: 0.5)
         if lightnessColor.lightness > 0.7 {
@@ -300,7 +300,7 @@ public func customizeDefaultDarkTintedPresentationTheme(theme: PresentationTheme
         highlightedOutgoingBubbleColor = outgoingBubbleFillColors?.first?.withMultiplied(hue: 1.019, saturation: 0.609, brightness: 0.63)
     }
 
-    let incomingFillColor = mainBackgroundColor?.withMultipliedAlpha(0.9)
+    let incomingFillColor = UIColor(rgb: 0x2C2C2E)
     
     chat = chat.withUpdated(
         defaultWallpaper: defaultWallpaper,
@@ -309,7 +309,7 @@ public func customizeDefaultDarkTintedPresentationTheme(theme: PresentationTheme
             incoming: chat.message.incoming.withUpdated(
                 bubble: chat.message.incoming.bubble.withUpdated(
                     withWallpaper: chat.message.outgoing.bubble.withWallpaper.withUpdated(
-                        fill: incomingFillColor.flatMap({ [$0] }),
+                        fill: [incomingFillColor],
                         highlightedFill: highlightedIncomingBubbleColor,
                         stroke: mainBackgroundColor,
                         reactionInactiveBackground: UIColor(rgb: 0xffffff, alpha: 0.07),
@@ -320,7 +320,7 @@ public func customizeDefaultDarkTintedPresentationTheme(theme: PresentationTheme
                         reactionActiveMediaPlaceholder: UIColor(rgb: 0x000000, alpha: 0.1)
                     ),
                     withoutWallpaper: chat.message.outgoing.bubble.withoutWallpaper.withUpdated(
-                        fill: incomingFillColor.flatMap({ [$0] }),
+                        fill: [incomingFillColor],
                         highlightedFill: highlightedIncomingBubbleColor,
                         stroke: mainBackgroundColor,
                         reactionInactiveBackground: UIColor(rgb: 0xffffff, alpha: 0.07),
@@ -530,7 +530,7 @@ public func makeDefaultDarkTintedPresentationTheme(extendingThemeReference: Pres
     
     let outgoingBubbleFillGradientColor = accentColor.withMultiplied(hue: 1.019, saturation: 0.731, brightness: 0.59)
 
-    let outgoingBubbleFillColors: [UIColor] = [outgoingBubbleFillGradientColor.withMultiplied(hue: 0.966, saturation: 0.61, brightness: 0.98), outgoingBubbleFillGradientColor]
+    let outgoingBubbleFillColors: [UIColor] = [outgoingBubbleFillGradientColor]
 
     let outgoingScamColor = UIColor(rgb: 0xffffff)
     let outgoingPrimaryTextColor = UIColor(rgb: 0xffffff)
@@ -727,9 +727,9 @@ public func makeDefaultDarkTintedPresentationTheme(extendingThemeReference: Pres
     )
     
     let buttonStrokeColor = accentColor.withMultiplied(hue: 1.014, saturation: 0.56, brightness: 0.64).withAlphaComponent(0.15)
-    let incomingFillColor = mainBackgroundColor.withMultipliedAlpha(0.9)
+    let incomingFillColor = UIColor(rgb: 0x2C2C2E)
     
-    let incomingBubbleAlpha: CGFloat = 0.9
+    let incomingBubbleAlpha: CGFloat = 1.0
     
     let message = PresentationThemeChatMessage(
         incoming: PresentationThemePartedColors(

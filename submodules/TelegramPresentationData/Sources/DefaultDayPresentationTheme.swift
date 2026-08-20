@@ -53,7 +53,7 @@ public func dateFillNeedsBlur(theme: PresentationTheme, wallpaper: TelegramWallp
 
 public let defaultServiceBackgroundColor = UIColor(rgb: 0x000000, alpha: 0.2)
 public let defaultPresentationTheme = makeDefaultDayPresentationTheme(serviceBackgroundColor: defaultServiceBackgroundColor, day: false, preview: false)
-public let defaultDayAccentColor = UIColor(rgb: 0x0088ff)
+public let defaultDayAccentColor = UIColor(rgb: 0x3478F6)
 
 public func customizeDefaultDayTheme(theme: PresentationTheme, editing: Bool, title: String?, accentColor: UIColor?, outgoingAccentColor: UIColor?, backgroundColors: [UInt32], bubbleColors: [UInt32], animateBubbleColors: Bool?, wallpaper forcedWallpaper: TelegramWallpaper? = nil, serviceBackgroundColor: UIColor?) -> PresentationTheme {
     if (theme.referenceTheme != .day && theme.referenceTheme != .dayClassic) {
@@ -71,7 +71,22 @@ public func customizeDefaultDayTheme(theme: PresentationTheme, editing: Bool, ti
     var outgoingAccent: UIColor?
     var suggestedWallpaper: TelegramWallpaper?
     
-    var bubbleColors = bubbleColors  
+    var bubbleColors = bubbleColors
+    // Day's outgoing bubble is iOS blue, full stop. Messages has one bubble colour, and letting a
+    // stored accent repaint it is what left this fork showing violet bubbles on a theme that is
+    // otherwise a faithful copy — the theme default is only consulted when no accent is saved, so
+    // anyone who had ever touched the colour picker never saw the blue at all.
+    //
+    // The cost, stated plainly: the bubble-colour half of the accent picker is now inert on Day.
+    // The accent still drives buttons, links, checkmarks and the rest of the chrome. This is the
+    // same trade already made for the corner radius in `higChatBubbleCorners`.
+    //
+    // Classic is deliberately left alone — it is no longer offered in the picker, but anyone still
+    // on it keeps the colours they chose. So are gift and chat themes: those come through with
+    // `editing: false` and carry colours the sender picked, which are not ours to overwrite.
+    if day && editing {
+        bubbleColors = [UIColor(rgb: 0x007AFF).rgb]
+    }
     if bubbleColors.isEmpty, editing {
         if day {
             let accentColor = accentColor ?? defaultDayAccentColor
@@ -470,8 +485,8 @@ public func makeDefaultDayPresentationTheme(extendingThemeReference: Presentatio
     )
     
     let list = PresentationThemeList(
-        blocksBackgroundColor: UIColor(rgb: 0xefeff4),
-        modalBlocksBackgroundColor: UIColor(rgb: 0xefeff4),
+        blocksBackgroundColor: UIColor(rgb: 0xF2F2F7),
+        modalBlocksBackgroundColor: UIColor(rgb: 0xF2F2F7),
         plainBackgroundColor: UIColor(rgb: 0xffffff),
         modalPlainBackgroundColor: UIColor(rgb: 0xffffff),
         itemPrimaryTextColor: UIColor(rgb: 0x000000),
@@ -540,7 +555,7 @@ public func makeDefaultDayPresentationTheme(extendingThemeReference: Presentatio
         backgroundColor: UIColor(rgb: 0xffffff),
         itemSeparatorColor: UIColor(rgb: 0xc8c7cc),
         itemBackgroundColor: UIColor(rgb: 0xffffff),
-        pinnedItemBackgroundColor: UIColor(rgb: 0xf7f7f7),
+        pinnedItemBackgroundColor: UIColor(rgb: 0xffffff),
         itemHighlightedBackgroundColor: UIColor(rgb: 0xe5e5ea),
         pinnedItemHighlightedBackgroundColor: UIColor(rgb: 0xe5e5ea),
         itemSelectedBackgroundColor: UIColor(rgb: 0xe9f0fa),
@@ -576,7 +591,7 @@ public func makeDefaultDayPresentationTheme(extendingThemeReference: Presentatio
         storyUnseenPrivateColors: PresentationThemeGradientColors(topColor: UIColor(rgb: 0x7CD636), bottomColor: UIColor(rgb: 0x26B470)),
         storySeenColors: PresentationThemeGradientColors(topColor: UIColor(rgb: 0xD8D8E1), bottomColor: UIColor(rgb: 0xD8D8E1))
     )
-    
+
     let bubbleStrokeColor: UIColor
     if day {
         bubbleStrokeColor = serviceBackgroundColor.withMultiplied(hue: 0.999, saturation: 1.667, brightness: 1.1).withAlphaComponent(0.2)
@@ -588,8 +603,8 @@ public func makeDefaultDayPresentationTheme(extendingThemeReference: Presentatio
         incoming: PresentationThemePartedColors(
             bubble: PresentationThemeBubbleColor(
                 withWallpaper: PresentationThemeBubbleColorComponents(
-                    fill: [UIColor(rgb: 0xffffff)],
-                    highlightedFill: UIColor(rgb: 0xd9f4ff),
+                    fill: [UIColor(rgb: 0xE9E9EB)],
+                    highlightedFill: UIColor(rgb: 0xDCDCDE),
                     stroke: bubbleStrokeColor,
                     shadow: nil,
                     reactionInactiveBackground: defaultDayAccentColor.withMultipliedAlpha(0.1),
@@ -604,8 +619,8 @@ public func makeDefaultDayPresentationTheme(extendingThemeReference: Presentatio
                     reactionActiveMediaPlaceholder: UIColor(rgb: 0xffffff, alpha: 0.2)
                 ),
                 withoutWallpaper: PresentationThemeBubbleColorComponents(
-                    fill: [UIColor(rgb: 0xffffff)],
-                    highlightedFill: UIColor(rgb: 0xd9f4ff),
+                    fill: [UIColor(rgb: 0xE9E9EB)],
+                    highlightedFill: UIColor(rgb: 0xDCDCDE),
                     stroke: bubbleStrokeColor,
                     shadow: nil,
                     reactionInactiveBackground: defaultDayAccentColor.withMultipliedAlpha(0.1),
@@ -643,13 +658,13 @@ public func makeDefaultDayPresentationTheme(extendingThemeReference: Presentatio
         outgoing: PresentationThemePartedColors(
             bubble: PresentationThemeBubbleColor(
                 withWallpaper: PresentationThemeBubbleColorComponents(
-                    fill: [UIColor(rgb: 0xe1ffc7)],
-                    highlightedFill: UIColor(rgb: 0xbaff93),
+                    fill: [UIColor(rgb: 0x007AFF)],
+                    highlightedFill: UIColor(rgb: 0x0062CC),
                     stroke: bubbleStrokeColor,
                     shadow: nil,
-                    reactionInactiveBackground: UIColor(rgb: 0x3fc33b).withMultipliedAlpha(0.12),
-                    reactionInactiveForeground: UIColor(rgb: 0x3fc33b),
-                    reactionActiveBackground: UIColor(rgb: 0x3fc33b),
+                    reactionInactiveBackground: UIColor(rgb: 0xffffff, alpha: 0.12),
+                    reactionInactiveForeground: UIColor(rgb: 0xffffff),
+                    reactionActiveBackground: UIColor(rgb: 0xffffff),
                     reactionActiveForeground: .clear,
                     reactionStarsInactiveBackground: UIColor(rgb: 0xFEF1D4, alpha: 1.0),
                     reactionStarsInactiveForeground: UIColor(rgb: 0xD3720A),
@@ -659,13 +674,13 @@ public func makeDefaultDayPresentationTheme(extendingThemeReference: Presentatio
                     reactionActiveMediaPlaceholder: UIColor(rgb: 0xffffff, alpha: 0.2)
                 ),
                 withoutWallpaper: PresentationThemeBubbleColorComponents(
-                    fill: [UIColor(rgb: 0xe1ffc7)],
-                    highlightedFill: UIColor(rgb: 0xbaff93),
+                    fill: [UIColor(rgb: 0x007AFF)],
+                    highlightedFill: UIColor(rgb: 0x0062CC),
                     stroke: bubbleStrokeColor,
                     shadow: nil,
-                    reactionInactiveBackground: UIColor(rgb: 0x3fc33b).withMultipliedAlpha(0.12),
-                    reactionInactiveForeground: UIColor(rgb: 0x3fc33b),
-                    reactionActiveBackground: UIColor(rgb: 0x3fc33b),
+                    reactionInactiveBackground: UIColor(rgb: 0xffffff, alpha: 0.12),
+                    reactionInactiveForeground: UIColor(rgb: 0xffffff),
+                    reactionActiveBackground: UIColor(rgb: 0xffffff),
                     reactionActiveForeground: .clear,
                     reactionStarsInactiveBackground: UIColor(rgb: 0xFEF1D4, alpha: 1.0),
                     reactionStarsInactiveForeground: UIColor(rgb: 0xD3720A),
@@ -675,29 +690,29 @@ public func makeDefaultDayPresentationTheme(extendingThemeReference: Presentatio
                     reactionActiveMediaPlaceholder: UIColor(rgb: 0xffffff, alpha: 0.2)
                 )
             ),
-            primaryTextColor: UIColor(rgb: 0x000000),
-            secondaryTextColor: UIColor(rgb: 0x008c09, alpha: 0.8),
-            linkTextColor: UIColor(rgb: 0x004bad),
-            linkHighlightColor: defaultDayAccentColor.withAlphaComponent(0.3),
-            scamColor: UIColor(rgb: 0xff3b30),
-            textHighlightColor: UIColor(rgb: 0xffe438),
-            accentTextColor: UIColor(rgb: 0x00a700),
-            accentControlColor: UIColor(rgb: 0x3fc33b),
-            accentControlDisabledColor: UIColor(rgb: 0x3fc33b).withAlphaComponent(0.7),
-            mediaActiveControlColor: UIColor(rgb: 0x3fc33b),
-            mediaInactiveControlColor: UIColor(rgb: 0x93d987),
-            mediaControlInnerBackgroundColor: UIColor(rgb: 0xe1ffc7),
-            pendingActivityColor: UIColor(rgb: 0x42b649),
-            fileTitleColor: UIColor(rgb: 0x3faa3c),
-            fileDescriptionColor: UIColor(rgb: 0x6fb26a),
-            fileDurationColor: UIColor(rgb: 0x008c09, alpha: 0.8),
-            mediaPlaceholderColor: UIColor(rgb: 0xd2f2b6),
-            polls: PresentationThemeChatBubblePolls(radioButton: UIColor(rgb: 0x93d987), radioProgress: UIColor(rgb: 0x3fc33b), highlight: UIColor(rgb: 0x3fc33b).withAlphaComponent(0.08), separator: UIColor(rgb: 0x93d987), bar: UIColor(rgb: 0x00A700), barIconForeground: .white, barPositive: UIColor(rgb: 0x00A700), barNegative: UIColor(rgb: 0x00A700)),
+            primaryTextColor: UIColor(rgb: 0xffffff),
+            secondaryTextColor: UIColor(rgb: 0xffffff, alpha: 0.65),
+            linkTextColor: UIColor(rgb: 0xffffff),
+            linkHighlightColor: UIColor(rgb: 0xffffff, alpha: 0.3),
+            scamColor: UIColor(rgb: 0xffffff),
+            textHighlightColor: UIColor(rgb: 0xffc738),
+            accentTextColor: UIColor(rgb: 0xffffff),
+            accentControlColor: UIColor(rgb: 0xffffff),
+            accentControlDisabledColor: UIColor(rgb: 0xffffff).withAlphaComponent(0.5),
+            mediaActiveControlColor: UIColor(rgb: 0xffffff),
+            mediaInactiveControlColor: UIColor(rgb: 0xffffff, alpha: 0.65),
+            mediaControlInnerBackgroundColor: .clear,
+            pendingActivityColor: UIColor(rgb: 0xffffff, alpha: 0.65),
+            fileTitleColor: UIColor(rgb: 0xffffff),
+            fileDescriptionColor: UIColor(rgb: 0xffffff, alpha: 0.65),
+            fileDurationColor: UIColor(rgb: 0xffffff, alpha: 0.65),
+            mediaPlaceholderColor: UIColor(rgb: 0x0077d9),
+            polls: PresentationThemeChatBubblePolls(radioButton: UIColor(rgb: 0xffffff, alpha: 0.65), radioProgress: UIColor(rgb: 0xffffff), highlight: UIColor(rgb: 0xffffff, alpha: 0.12), separator: UIColor(rgb: 0xffffff, alpha: 0.65), bar: UIColor(rgb: 0xffffff), barIconForeground: .clear, barPositive: UIColor(rgb: 0xffffff), barNegative: UIColor(rgb: 0xffffff)),
             actionButtonsFillColor: PresentationThemeVariableColor(withWallpaper: serviceBackgroundColor, withoutWallpaper: UIColor(rgb: 0x596e89, alpha: 0.35)),
             actionButtonsStrokeColor: PresentationThemeVariableColor(color: .clear),
             actionButtonsTextColor: PresentationThemeVariableColor(color: UIColor(rgb: 0xffffff)),
-            textSelectionColor: UIColor(rgb: 0xbbde9f),
-            textSelectionKnobColor: UIColor(rgb: 0x3fc33b)),
+            textSelectionColor: UIColor(rgb: 0xffffff, alpha: 0.2),
+            textSelectionKnobColor: UIColor(rgb: 0xffffff)),
         freeform: PresentationThemeBubbleColor(
             withWallpaper: PresentationThemeBubbleColorComponents(
                 fill: [UIColor(rgb: 0xffffff)],
@@ -734,7 +749,7 @@ public func makeDefaultDayPresentationTheme(extendingThemeReference: Presentatio
         ),
         infoPrimaryTextColor: UIColor(rgb: 0x000000),
         infoLinkTextColor: UIColor(rgb: 0x004bad),
-        outgoingCheckColor: UIColor(rgb: 0x19c700),
+        outgoingCheckColor: UIColor(white: 1.0, alpha: 0.7),
         mediaDateAndStatusFillColor: UIColor(white: 0.0, alpha: 0.3),
         mediaDateAndStatusTextColor: UIColor(rgb: 0xffffff),
         shareButtonFillColor: PresentationThemeVariableColor(withWallpaper: serviceBackgroundColor, withoutWallpaper: UIColor(rgb: 0x748391, alpha: 0.45)),
@@ -752,9 +767,9 @@ public func makeDefaultDayPresentationTheme(extendingThemeReference: Presentatio
         incoming: PresentationThemePartedColors(
             bubble: PresentationThemeBubbleColor(
                 withWallpaper: PresentationThemeBubbleColorComponents(
-                    fill: [UIColor(rgb: 0xffffff)],
-                    highlightedFill: UIColor(rgb: 0xdadade),
-                    stroke: UIColor(rgb: 0xffffff),
+                    fill: [UIColor(rgb: 0xE9E9EB)],
+                    highlightedFill: UIColor(rgb: 0xDCDCDE),
+                    stroke: UIColor(rgb: 0xE9E9EB),
                     shadow: nil,
                     reactionInactiveBackground: defaultDayAccentColor.withMultipliedAlpha(0.1),
                     reactionInactiveForeground: defaultDayAccentColor,
@@ -768,9 +783,9 @@ public func makeDefaultDayPresentationTheme(extendingThemeReference: Presentatio
                     reactionActiveMediaPlaceholder: UIColor(rgb: 0xffffff, alpha: 0.2)
                 ),
                 withoutWallpaper: PresentationThemeBubbleColorComponents(
-                    fill: [UIColor(rgb: 0xf1f1f4)],
-                    highlightedFill: UIColor(rgb: 0xdadade),
-                    stroke: UIColor(rgb: 0xf1f1f4),
+                    fill: [UIColor(rgb: 0xE9E9EB)],
+                    highlightedFill: UIColor(rgb: 0xDCDCDE),
+                    stroke: UIColor(rgb: 0xE9E9EB),
                     shadow: nil,
                     reactionInactiveBackground: .clear,
                     reactionInactiveForeground: defaultDayAccentColor,
@@ -810,8 +825,8 @@ public func makeDefaultDayPresentationTheme(extendingThemeReference: Presentatio
         outgoing: PresentationThemePartedColors(
             bubble: PresentationThemeBubbleColor(
                 withWallpaper: PresentationThemeBubbleColorComponents(
-                    fill: [UIColor(rgb: 0x57b2e0), defaultDayAccentColor],
-                    highlightedFill: UIColor(rgb: 0x57b2e0).withMultipliedBrightnessBy(0.7),
+                    fill: [UIColor(rgb: 0x007AFF)],
+                    highlightedFill: UIColor(rgb: 0x0062CC),
                     stroke: .clear,
                     shadow: nil,
                     reactionInactiveBackground: UIColor(rgb: 0xffffff, alpha: 0.12),
@@ -826,8 +841,8 @@ public func makeDefaultDayPresentationTheme(extendingThemeReference: Presentatio
                     reactionActiveMediaPlaceholder: UIColor(rgb: 0xffffff, alpha: 0.2)
                 ),
                 withoutWallpaper: PresentationThemeBubbleColorComponents(
-                    fill: [UIColor(rgb: 0x57b2e0), defaultDayAccentColor],
-                    highlightedFill: UIColor(rgb: 0x57b2e0).withMultipliedBrightnessBy(0.7),
+                    fill: [UIColor(rgb: 0x007AFF)],
+                    highlightedFill: UIColor(rgb: 0x0062CC),
                     stroke: .clear,
                     shadow: nil,
                     reactionInactiveBackground: UIColor(rgb: 0xffffff, alpha: 0.12),
@@ -901,7 +916,7 @@ public func makeDefaultDayPresentationTheme(extendingThemeReference: Presentatio
         ),
         infoPrimaryTextColor: UIColor(rgb: 0x000000),
         infoLinkTextColor: UIColor(rgb: 0x004bad),
-        outgoingCheckColor: UIColor(rgb: 0xffffff),
+        outgoingCheckColor: UIColor(white: 1.0, alpha: 0.7),
         mediaDateAndStatusFillColor: UIColor(rgb: 0x000000, alpha: 0.3),
         mediaDateAndStatusTextColor: UIColor(rgb: 0xffffff),
         shareButtonFillColor: PresentationThemeVariableColor(withWallpaper: serviceBackgroundColor, withoutWallpaper: UIColor(rgb: 0xffffff, alpha: 0.8)),

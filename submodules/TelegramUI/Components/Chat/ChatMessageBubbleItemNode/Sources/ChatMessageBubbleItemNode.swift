@@ -3965,12 +3965,12 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
         let backgroundType: ChatMessageBackgroundType
         if hideBackground {
             backgroundType = .none
+        } else if !item.presentationData.chatBubbleCorners.hasTails {
+            backgroundType = incoming ? .incoming(.Extracted) : .outgoing(.Extracted)
         } else if !incoming {
             backgroundType = .outgoing(mergeType)
         } else {
             if case let .messageOptions(_, _, info) = item.associatedData.subject, case let .link(link) = info, link.isCentered {
-                backgroundType = .incoming(.Extracted)
-            } else if !item.presentationData.chatBubbleCorners.hasTails {
                 backgroundType = .incoming(.Extracted)
             } else {
                 backgroundType = .incoming(mergeType)
@@ -5735,14 +5735,42 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
         super.animateFrameTransition(progress, currentValue)
     }
     
+    private func beginDoubleTapEditIfNeeded(message: Message, item: ChatMessageItem) -> Bool {
+        guard ForkExtrasHotFlags.doubleTapToEdit else {
+            return false
+        }
+        switch message.id.namespace {
+        case Namespaces.Message.Cloud, Namespaces.Message.ScheduledCloud, Namespaces.Message.QuickReplyCloud:
+            break
+        default:
+            return false
+        }
+        if message.media.contains(where: { $0 is TelegramMediaAction }) {
+            return false
+        }
+        let isOwn = message.author?.id == item.context.account.peerId || !message.flags.contains(.Incoming)
+        guard isOwn else {
+            return false
+        }
+        item.controllerInteraction.setupEditMessage(message.id)
+        return true
+    }
+    
     @objc private func tapLongTapOrDoubleTapGesture(_ recognizer: TapLongTapOrDoubleTapGestureRecognizer) {
         switch recognizer.state {
         case .ended:
             if let (gesture, location) = recognizer.lastRecognizedGestureAndLocation, let item = self.item {
-                if let action = self.gestureRecognized(gesture: gesture, location: location, recognizer: nil) {
-                    if case .doubleTap = gesture {
-                        self.mainContainerNode.cancelGesture()
+                if case .doubleTap = gesture {
+                    self.mainContainerNode.cancelGesture()
+                    var editMessage = item.message
+                    if let action = self.gestureRecognized(gesture: gesture, location: location, recognizer: nil), case let .openContextMenu(openContextMenu) = action {
+                        editMessage = openContextMenu.tapMessage
                     }
+                    if self.beginDoubleTapEditIfNeeded(message: editMessage, item: item) {
+                        return
+                    }
+                }
+                if let action = self.gestureRecognized(gesture: gesture, location: location, recognizer: nil) {
                     switch action {
                     case let .action(f):
                         f.action()

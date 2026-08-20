@@ -532,7 +532,7 @@ public class ItemListPermanentInviteLinkItemNode: ListViewItemNode, ItemListItem
                         color: buttonBackgroundColor,
                         foreground: buttonForegroundColor,
                         pressedColor: buttonBackgroundColor.withMultipliedAlpha(0.8),
-                        cornerRadius: item.systemStyle == .glass ? 26.0 : 11.0
+                        cornerRadius: item.systemStyle == .glass ? 26.0 : 20.0
                     )
                     
                     let copyButtonTitle = item.presentationData.strings.InviteLink_CopyShort

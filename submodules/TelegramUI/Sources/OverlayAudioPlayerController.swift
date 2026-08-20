@@ -9,6 +9,7 @@ import UndoUI
 import AttachmentFileController
 import LegacyMediaPickerUI
 import ICloudResources
+import PresentationDataUtils
 
 final class OverlayAudioPlayerControllerImpl: ViewController, OverlayAudioPlayerController {
     private let context: AccountContext
@@ -166,14 +167,19 @@ final class OverlayAudioPlayerControllerImpl: ViewController, OverlayAudioPlayer
                         }
                         dismissImpl?()
                         let presentationData = self.context.sharedContext.currentPresentationData.with { $0 }
-                        let controller = legacyICloudFilePicker(theme: presentationData.theme, mode: .default, documentTypes: ["public.mp3", "public.mpeg-4-audio", "public.aac-audio", "org.xiph.flac"], completion: { [weak self] urls in
+                        let controller = legacyICloudFilePicker(theme: presentationData.theme, mode: .import, documentTypes: ["public.audio", "public.mp3", "public.mpeg-4-audio", "public.aac-audio", "org.xiph.flac", "public.wav", "public.aiff-audio", "org.xiph.ogg"], completion: { [weak self] urls in
                             guard let self, let url = urls.first else {
                                 return
                             }
                             
                             let _ = (iCloudFileDescription(url)
                             |> deliverOnMainQueue).start(next: { [weak self] item in
-                                guard let self, let item else {
+                                guard let self else {
+                                    return
+                                }
+                                guard let item else {
+                                    let presentationData = self.context.sharedContext.currentPresentationData.with { $0 }
+                                    self.present(textAlertController(context: self.context, title: nil, text: presentationData.strings.Login_UnknownError, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})]), in: .window(.root))
                                     return
                                 }
                                 let fileId = Int64.random(in: Int64.min ... Int64.max)

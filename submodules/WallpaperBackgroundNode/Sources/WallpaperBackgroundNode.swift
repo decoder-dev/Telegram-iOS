@@ -1338,7 +1338,7 @@ public final class WallpaperBackgroundNodeImpl: ASDisplayNode, WallpaperBackgrou
                 self.wallpaperDisposable.set(nil)
                 updateContentStats(WallpaperContentStats(isDark: calculateWallpaperBrightness(from: gradientColors) <= 0.3, isSaturated: calculateWallpaperSaturation(from: gradientColors) > 0.35))
             } else {
-                self.contentNode.backgroundColor = .white
+                self.contentNode.backgroundColor = self.bubbleTheme?.chatList.backgroundColor ?? .white
                 if let image = chatControllerBackgroundImage(theme: nil, wallpaper: wallpaper, mediaBox: self.context.sharedContext.accountManager.mediaBox, knockoutMode: false) {
                     self.contentNode.contents = image.cgImage
                     self.blurredBackgroundContents = generateBlurredContents(image: image, dimColor: wallpaperDimColor)

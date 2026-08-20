@@ -449,7 +449,18 @@ open class TabBarControllerImpl: ViewController, TabBarController {
             }
         }
         self.controllers = controllers
-        
+
+        // `_selectedIndex` is only ever clamped by its own setter, against the controller list as
+        // it stood at the time. Assigning a shorter list here can leave it pointing past the end:
+        // the branch above skips its remap precisely when the index is already stale, and a nil
+        // `selectedIndex` argument then leaves it untouched. Nothing reads it out of bounds today
+        // — `updateSelectedIndex` checks — but `selectedIndex` is public and callers do subscript
+        // `controllers` with it (AuthorizedApplicationContext does, on the launch and
+        // account-switch path). Clamp it here so the invariant holds at the source.
+        if let selectedIndex = self._selectedIndex, selectedIndex >= self.controllers.count {
+            self._selectedIndex = self.controllers.isEmpty ? nil : self.controllers.count - 1
+        }
+
         let tabBarItems = self.controllers.map({ TabBarNodeItem(item: $0.tabBarItem, contextActionType: $0.tabBarItemContextActionType) })
         
         self.tabBarControllerNode.updateTabBarItems(items: tabBarItems)

@@ -112,6 +112,7 @@ public final class BrowserBookmarksScreen: ViewController {
             }, openCheckoutOrReceipt: { _, _ in
             }, openSearch: {
             }, setupReply: { _ in
+            }, setupEditMessage: { _ in
             }, canSetupReply: { _ in
                 return .none
             }, canSendMessages: {
@@ -391,9 +392,9 @@ public final class BrowserBookmarksScreen: ViewController {
         self.openUrl = openUrl
         self.addBookmark = addBookmark
         
-        super.init(navigationBarPresentationData: NavigationBarPresentationData(presentationData: self.presentationData, style: .glass))
+        super.init(navigationBarPresentationData: NavigationBarPresentationData(presentationData: self.presentationData, hideBackground: true, hideBadge: false, hideSeparator: true, style: .legacy))
         
-        self._hasGlassStyle = true
+        self._hasGlassStyle = false
                 
         self.navigationPresentation = .modal
         self.supportedOrientations = ViewControllerSupportedOrientations(regularSize: .all, compactSize: .portrait)
@@ -456,7 +457,7 @@ public final class BrowserBookmarksScreen: ViewController {
     
     private func updateThemeAndStrings() {
         self.statusBar.statusBarStyle = self.presentationData.theme.rootController.statusBarStyle.style
-        self.navigationBar?.updatePresentationData(NavigationBarPresentationData(presentationData: self.presentationData, style: .glass), transition: .immediate)
+        self.navigationBar?.updatePresentationData(NavigationBarPresentationData(presentationData: self.presentationData, hideBackground: true, hideBadge: false, hideSeparator: true, style: .legacy), transition: .immediate)
         self.searchContentNode?.updateThemeAndPlaceholder(theme: self.presentationData.theme, placeholder: self.presentationData.strings.Common_Search)
     }
     

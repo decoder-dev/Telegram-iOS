@@ -138,10 +138,14 @@ public func messageSavingEditsController(context: AccountContext, messageId: Eng
 private func messageSavingPresentAttachmentShare(path: String) {
     let url = URL(fileURLWithPath: path)
     let activity = UIActivityViewController(activityItems: [url], applicationActivities: nil)
-    guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
-        return
+    let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+    let window = scenes.flatMap { $0.windows }.first(where: { $0.isKeyWindow }) ?? scenes.first?.windows.first
+    if let window, let popover = activity.popoverPresentationController {
+        popover.sourceView = window
+        popover.sourceRect = CGRect(origin: CGPoint(x: window.bounds.width / 2.0, y: window.bounds.size.height - 1.0), size: CGSize(width: 1.0, height: 1.0))
+        popover.permittedArrowDirections = []
     }
-    var presenter = scene.windows.first(where: { $0.isKeyWindow })?.rootViewController
+    var presenter = window?.rootViewController
     while let presented = presenter?.presentedViewController {
         presenter = presented
     }

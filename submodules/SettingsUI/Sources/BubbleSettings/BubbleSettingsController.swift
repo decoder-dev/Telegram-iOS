@@ -257,7 +257,7 @@ private final class BubbleSettingsControllerNode: ASDisplayNode, ASScrollViewDel
     }
     
     func updatePresentationThemeSettings(_ presentationThemeSettings: PresentationThemeSettings) {
-        let chatBubbleCorners = PresentationChatBubbleCorners(mainRadius: CGFloat(presentationThemeSettings.chatBubbleSettings.mainRadius), auxiliaryRadius: CGFloat(presentationThemeSettings.chatBubbleSettings.auxiliaryRadius), mergeBubbleCorners: presentationThemeSettings.chatBubbleSettings.mergeBubbleCorners)
+        let chatBubbleCorners = higChatBubbleCorners(from: presentationThemeSettings.chatBubbleSettings)
         
         self.presentationData = self.presentationData.withChatBubbleCorners(chatBubbleCorners)
         self.toolbarNode.updatePresentationData(presentationData: self.presentationData)
@@ -320,9 +320,9 @@ final class BubbleSettingsController: ViewController {
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
         self.presentationThemeSettings = presentationThemeSettings
         
-        super.init(navigationBarPresentationData: NavigationBarPresentationData(presentationTheme: self.presentationData.theme, presentationStrings: self.presentationData.strings, style: .glass))
+        super.init(navigationBarPresentationData: NavigationBarPresentationData(theme: NavigationBarTheme(rootControllerTheme: self.presentationData.theme, hideBackground: true, hideSeparator: true, style: .legacy), strings: NavigationBarStrings(presentationStrings: self.presentationData.strings)))
         
-        self._hasGlassStyle = true
+        self._hasGlassStyle = false
         
         self.blocksBackgroundWhenInOverlay = true
         self.acceptsFocusWhenInOverlay = true

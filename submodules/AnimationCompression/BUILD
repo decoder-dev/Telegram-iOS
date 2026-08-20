@@ -70,7 +70,11 @@ objc_library(
         "DctHuffman/Sources/**/*.mm",
         "DctHuffman/Sources/**/*.h",
     ], allow_empty=True),
-    copts = [],
+    # CI emits clang -Wunused-but-set-variable for some local intermediates in
+    # upstream code; suppress here so CI logs stay clean.
+    copts = [
+        "-Wno-unused-but-set-variable",
+    ],
     hdrs = glob([
         "DctHuffman/PublicHeaders/**/*.h",
     ]),

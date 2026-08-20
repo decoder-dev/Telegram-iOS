@@ -181,6 +181,7 @@ final class OverlayAudioPlayerControllerNode: ViewControllerTracingNode, ASGestu
         }, openCheckoutOrReceipt: { _, _ in
         }, openSearch: {
         }, setupReply: { _ in
+        }, setupEditMessage: { _ in
         }, canSetupReply: { _ in
             return .none
         }, canSendMessages: {

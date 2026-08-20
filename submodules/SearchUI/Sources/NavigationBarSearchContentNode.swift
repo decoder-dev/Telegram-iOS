@@ -139,7 +139,7 @@ public class NavigationBarSearchContentNode: NavigationBarContentNode {
             fillColor = fillColor.withMultipliedBrightnessBy(0.8)
         }
         
-        let backgroundColor = self.theme?.chatList.regularSearchBarColor ?? .clear
+        let backgroundColor = self.theme?.list.plainBackgroundColor ?? self.theme?.chatList.regularSearchBarColor ?? .clear
         let controlColor = self.theme?.chat.inputPanel.panelControlColor ?? .black
         
         let placeholderString = NSAttributedString(string: self.placeholder, font: searchBarFont, textColor: textColor)

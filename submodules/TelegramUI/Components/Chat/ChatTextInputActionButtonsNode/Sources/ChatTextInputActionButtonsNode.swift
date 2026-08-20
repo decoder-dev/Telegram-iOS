@@ -309,12 +309,11 @@ public final class ChatTextInputActionButtonsNode: ASDisplayNode, ChatSendMessag
         var innerSize = size
         innerSize.width = 40.0 + 3.0 * 2.0
         
-        let defaultGlassTintColor: GlassBackgroundView.TintColor
-        if case .clear = interfaceState.preferredGlassType {
-            defaultGlassTintColor = .init(kind: .clear)
-        } else {
-            defaultGlassTintColor = .init(kind: .panel)
-        }
+        // The same theme colour the field uses (see ChatTextInputPanelNode). The mic and send circles
+        // sit next to the capsule and have to be the same material as it — a separate pair of
+        // literals here is how they drifted apart from it in the first place.
+        let composerFillColor = interfaceState.theme.chat.inputPanel.inputBackgroundColor
+        let defaultGlassTintColor: GlassBackgroundView.TintColor = .init(kind: .custom(style: .default, color: composerFillColor))
         
         var starsAmount: Int64?
         if let sendPaidMessageStars = interfaceState.sendPaidMessageStars, interfaceState.interfaceState.editMessage == nil {
@@ -399,7 +398,14 @@ public final class ChatTextInputActionButtonsNode: ASDisplayNode, ChatSendMessag
             }
         }
         
-        let sendButtonBackgroundFrame = CGRect(origin: CGPoint(), size: innerSize).insetBy(dx: 3.0, dy: 3.0)
+        // The horizontal inset is fixed at 3 pt because `innerSize.width` is 40 + 3 pt of padding on
+        // each side. The vertical one has to be derived instead: insetting by a flat 3 pt only
+        // yields a square when the caller passes a height exactly 6 pt larger than the width, and
+        // nothing guarantees that — with the field's own height it produced a 40×46 ellipse, and
+        // with a 40 pt box a 40×34 one. Deriving it keeps the button 40 pt tall, and so a circle,
+        // for any height at or above 40. A titled send button (paid messages, slowmode) is a wider
+        // pill by design and stays one; only its height is pinned.
+        let sendButtonBackgroundFrame = CGRect(origin: CGPoint(), size: innerSize).insetBy(dx: 3.0, dy: max(0.0, (innerSize.height - 40.0) * 0.5))
         
         let slowmodeInset: CGFloat = 4.0
         

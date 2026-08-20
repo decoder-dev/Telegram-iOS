@@ -730,7 +730,16 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         case .inline, .standard(.embedded):
             navigationBarPresentationData = nil
         default:
-            navigationBarPresentationData = NavigationBarPresentationData(presentationData: self.presentationData, hideBackground: false, hideBadge: false, style: .glass, glassStyle: .default)
+            // Glass buttons over a bar with no background of its own. `.legacy` here was what
+            // gave the chat a plain "‹ Back" label floating on the wallpaper next to a glass
+            // title capsule — the two halves of the same bar drawn in two different styles.
+            // `.glass` puts the chevron in its own capsule and drops the label (NavigationBarImpl
+            // blanks the back title in glass mode), which is what Messages shows.
+            //
+            // `hideBackground: true` is kept, and is what separates this from the pre-fork state:
+            // in glass mode NavigationBarImpl never adds `backgroundNode` at all, so the bar has
+            // no fill and the wallpaper still runs underneath — only the capsules are glass.
+            navigationBarPresentationData = NavigationBarPresentationData(presentationData: self.presentationData, hideBackground: true, hideBadge: false, style: .glass, glassStyle: .default)
         }
         
         self.moreBarButton = MoreHeaderButton(color: self.presentationData.theme.chat.inputPanel.panelControlColor)
@@ -738,7 +747,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         
         super.init(context: context, navigationBarPresentationData: navigationBarPresentationData)
         
-        self._hasGlassStyle = true
+        self._hasGlassStyle = false
         
         self.automaticallyControlPresentationContextLayout = false
         self.blocksBackgroundWhenInOverlay = true
@@ -3688,6 +3697,18 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         }, openSearch: {
         }, setupReply: { [weak self] messageId in
             self?.interfaceInteraction?.setupReplyMessage(messageId, nil, { _, f in f() })
+        }, setupEditMessage: { [weak self] messageId in
+            guard let self else {
+                return
+            }
+            guard let message = self.chatDisplayNode.historyNode.messageInCurrentHistoryView(messageId)?._asMessage() else {
+                return
+            }
+            let limits = self.context.currentLimitsConfiguration.with { EngineConfiguration.Limits($0) }
+            guard canEditMessage(context: self.context, limitsConfiguration: limits, message: message) else {
+                return
+            }
+            self.interfaceInteraction?.setupEditMessage(messageId, { _ in })
         }, canSetupReply: { [weak self] message in
             if Namespaces.Message.allEphemeral.contains(message.id.namespace) {
                 if !message.flags.contains(.Incoming) {
@@ -6667,7 +6688,11 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
             } else {
                 themeSettings = PresentationThemeSettings.defaultSettings
             }
-            return themeSettings
+            // Through the same normalization the presentation-data pipeline applies, so the chat's
+            // own theme resolution agrees with the theme the rest of the app is actually showing.
+            // Reading the raw stored settings here would resolve against whatever theme the user
+            // last picked before the picker was removed.
+            return forkNormalizedThemeSettings(themeSettings)
         }
         
         let accountManager = context.sharedContext.accountManager
@@ -7238,10 +7263,13 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         let presentationTheme: PresentationTheme
         if let forcedNavigationBarTheme = self.forcedNavigationBarTheme {
             presentationTheme = forcedNavigationBarTheme
-            navigationBarTheme = NavigationBarTheme(rootControllerTheme: forcedNavigationBarTheme, hideBackground: false, hideBadge: true, edgeEffectColor: .clear, style: .glass, glassStyle: self.presentationInterfaceState.preferredGlassType == .clear ? .clear : .default)
+            // Must match the style chosen in init — NavigationBarImpl builds its glass views once,
+            // at init, from that style, so handing it a `.legacy` theme later leaves the capsules
+            // in place but stops maintaining them.
+            navigationBarTheme = NavigationBarTheme(rootControllerTheme: forcedNavigationBarTheme, hideBackground: true, hideBadge: true, edgeEffectColor: .clear, style: .glass, glassStyle: self.presentationInterfaceState.preferredGlassType == .clear ? .clear : .default)
         } else {
             presentationTheme = self.presentationData.theme
-            navigationBarTheme = NavigationBarTheme(rootControllerTheme: self.presentationData.theme, hideBackground: false, hideBadge: false, edgeEffectColor: .clear, style: .glass, glassStyle: self.presentationInterfaceState.preferredGlassType == .clear ? .clear : .default)
+            navigationBarTheme = NavigationBarTheme(rootControllerTheme: self.presentationData.theme, hideBackground: true, hideBadge: false, edgeEffectColor: .clear, style: .glass, glassStyle: self.presentationInterfaceState.preferredGlassType == .clear ? .clear : .default)
         }
         
         self.navigationBar?.updatePresentationData(NavigationBarPresentationData(theme: navigationBarTheme, strings: NavigationBarStrings(presentationStrings: self.presentationData.strings)), transition: .immediate)

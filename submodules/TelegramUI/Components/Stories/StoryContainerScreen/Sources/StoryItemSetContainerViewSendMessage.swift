@@ -2387,7 +2387,7 @@ final class StoryItemSetContainerSendMessage: @unchecked(Sendable) {
 
             let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
 
-            component.controller()?.present(legacyICloudFilePicker(theme: presentationData.theme, hasMultiselection: true, completion: { [weak self, weak view] urls in
+            component.controller()?.present(legacyICloudFilePicker(theme: presentationData.theme, mode: .import, hasMultiselection: true, completion: { [weak self, weak view] urls in
                 if let strongSelf = self, let view, !urls.isEmpty {
                     var signals: [Signal<ICloudFileDescription?, NoError>] = []
                     for url in urls {
@@ -2426,7 +2426,7 @@ final class StoryItemSetContainerSendMessage: @unchecked(Sendable) {
                                 for item in results {
                                     if let item = item {
                                         let pathExtension = (item.fileName as NSString).pathExtension.lowercased()
-                                        if ["mp3", "m4a"].contains(pathExtension) {
+                                        if ["mp3", "m4a", "aac", "flac", "wav", "ogg", "opus", "aiff", "aif"].contains(pathExtension) {
                                             fileTypes.music = true
                                         } else {
                                             fileTypes.other = true
@@ -2469,6 +2469,8 @@ final class StoryItemSetContainerSendMessage: @unchecked(Sendable) {
                                     }
                                     strongSelf.sendMessages(view: view, peer: peer, messages: messages)
                                 })
+                            } else if !urls.isEmpty, let controller = component.controller() {
+                                controller.present(textAlertController(context: component.context, title: nil, text: presentationData.strings.Login_UnknownError, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})]), in: .window(.root))
                             }
                         }
                     }))

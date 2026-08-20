@@ -176,6 +176,7 @@ public final class AlertWebpagePreviewComponent: Component {
                     openCheckoutOrReceipt: { _, _ in },
                     openSearch: {},
                     setupReply: { _ in },
+                    setupEditMessage: { _ in },
                     canSetupReply: { _ in
                         return .none
                     },

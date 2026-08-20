@@ -400,7 +400,35 @@ private final class ThemeSettingsAccentColorIconItemNode : ListViewItemNode {
                                 topColor = UIColor(rgb: 0x466f95)
                                 bottomColor = topColor
                             }
+                        } else if case .builtin(.day) = item.themeReference {
+                            // Day derives its bubble from the accent: see customizeDefaultDayTheme,
+                            // which builds [accent×(0.966, 0.61, 0.98), accent] when the accent
+                            // carries no explicit bubble colours of its own.
+                            if let accentColor = item.color?.accentColor {
+                                bottomColor = accentColor
+                                topColor = accentColor.withMultiplied(hue: 0.966, saturation: 0.61, brightness: 0.98)
+                            } else {
+                                fillColor = defaultDayAccentColor
+                                strokeColor = fillColor
+                                topColor = fillColor
+                                bottomColor = topColor
+                            }
+                        } else if case .builtin(.night) = item.themeReference {
+                            // Night is not accent-derived: unless the accent carries explicit bubble
+                            // colours — handled by the `plainBubbleColors` branch above — the outgoing
+                            // fill stays the theme's own. Show that, so the swatch does not promise a
+                            // bubble colour that picking it will not produce.
+                            fillColor = item.color?.accentColor ?? UIColor(rgb: 0x007AFF)
+                            strokeColor = fillColor
+                            topColor = UIColor(rgb: 0x007AFF)
+                            bottomColor = topColor
                         }
+
+                        // Both built-ins fell through this chain entirely until now, leaving every
+                        // colour nil — `generateFillImage(color: .clear)` and a clear centre, i.e. an
+                        // invisible swatch, which on the black theme reads as a single black blob.
+                        // That was survivable while Classic and Tinted Night were the themes people
+                        // used; trimming the picker to Day and Night made it the only thing on screen.
                         
                         strongSelf.fillNode.image = generateFillImage(color: fillColor ?? .clear)
                         strongSelf.ringNode.image = generateRingImage(color: strokeColor ?? .clear)

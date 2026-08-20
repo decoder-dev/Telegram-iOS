@@ -95,7 +95,7 @@ public final class ChatMessageDateHeader: ListViewItemHeader {
     public let stickDirection: ListViewItemHeaderStickDirection
     public let stickOverInsets: Bool = true
     
-    public let height: CGFloat = 34.0
+    public let height: CGFloat = 40.0
 
     public func combinesWith(other: ListViewItemHeader) -> Bool {
         if let other = other as? ChatMessageDateHeader, other.id == self.id {
@@ -316,7 +316,7 @@ private final class ChatMessageDateContentNode: ASDisplayNode {
         }
         self.addSubnode(self.labelNode)
                 
-        let titleFont = Font.medium(min(18.0, floor(presentationData.fontSize.baseDisplaySize * 13.0 / 17.0)))
+        let titleFont = Font.medium(min(18.0, floor(presentationData.fontSize.baseDisplaySize * 12.0 / 17.0)))
         
         let attributedString = NSAttributedString(string: text, font: titleFont, textColor: bubbleVariableColor(variableColor: presentationData.theme.theme.chat.serviceMessage.dateTextColor, wallpaper: presentationData.theme.wallpaper))
         let labelLayout = TextNode.asyncLayout(self.labelNode)
@@ -337,7 +337,7 @@ private final class ChatMessageDateContentNode: ASDisplayNode {
         self.backgroundNode.updateColor(color: selectDateFillStaticColor(theme: presentationData.theme.theme, wallpaper: presentationData.theme.wallpaper), enableBlur: fullTranslucency && dateFillNeedsBlur(theme: presentationData.theme.theme, wallpaper: presentationData.theme.wallpaper), transition: .immediate)
         self.stickBackgroundNode.image = graphics.dateFloatingBackground
         
-        let titleFont = Font.medium(min(18.0, floor(presentationData.fontSize.baseDisplaySize * 13.0 / 17.0)))
+        let titleFont = Font.medium(min(18.0, floor(presentationData.fontSize.baseDisplaySize * 12.0 / 17.0)))
         
         let attributedString = NSAttributedString(string: self.text, font: titleFont, textColor: bubbleVariableColor(variableColor: presentationData.theme.theme.chat.serviceMessage.dateTextColor, wallpaper: presentationData.theme.wallpaper))
         let labelLayout = TextNode.asyncLayout(self.labelNode)
@@ -355,13 +355,13 @@ private final class ChatMessageDateContentNode: ASDisplayNode {
     }
     
     func update(size: CGSize, leftInset: CGFloat, rightInset: CGFloat, transition: ContainedViewLayoutTransition) {
-        let chatDateSize: CGFloat = 22.0
-        let chatDateInset: CGFloat = 6.0
+        let chatDateSize: CGFloat = 28.0
+        let chatDateInset: CGFloat = 10.0
         
         let labelSize = self.labelNode.bounds.size
         let backgroundSize = CGSize(width: labelSize.width + chatDateInset * 2.0, height: chatDateSize)
         
-        let backgroundFrame = CGRect(origin: CGPoint(x: leftInset + floorToScreenPixels((size.width - leftInset - rightInset - backgroundSize.width) / 2.0), y: (size.height - chatDateSize) / 2.0), size: backgroundSize)
+        let backgroundFrame = CGRect(origin: CGPoint(x: leftInset + floorToScreenPixels((size.width - leftInset - rightInset - backgroundSize.width) / 2.0), y: 8.0), size: backgroundSize)
         
         transition.updateFrame(node: self.stickBackgroundNode, frame: CGRect(origin: CGPoint(), size: backgroundFrame.size))
         transition.updateFrame(node: self.backgroundNode, frame: backgroundFrame)
@@ -504,7 +504,7 @@ private final class ChatMessagePeerContentNode: ASDisplayNode {
         }
         self.addSubnode(self.labelNode)
                 
-        let titleFont = Font.medium(min(18.0, floor(presentationData.fontSize.baseDisplaySize * 13.0 / 17.0)))
+        let titleFont = Font.medium(min(18.0, floor(presentationData.fontSize.baseDisplaySize * 12.0 / 17.0)))
         
         let attributedString = NSAttributedString(string: text, font: titleFont, textColor: bubbleVariableColor(variableColor: presentationData.theme.theme.chat.serviceMessage.dateTextColor, wallpaper: presentationData.theme.wallpaper))
         let labelLayout = TextNode.asyncLayout(self.labelNode)
@@ -529,7 +529,7 @@ private final class ChatMessagePeerContentNode: ASDisplayNode {
         self.backgroundNode.updateColor(color: selectDateFillStaticColor(theme: presentationData.theme.theme, wallpaper: presentationData.theme.wallpaper), enableBlur: fullTranslucency && dateFillNeedsBlur(theme: presentationData.theme.theme, wallpaper: presentationData.theme.wallpaper), transition: .immediate)
         self.stickBackgroundNode.image = graphics.dateFloatingBackground
         
-        let titleFont = Font.medium(min(18.0, floor(presentationData.fontSize.baseDisplaySize * 13.0 / 17.0)))
+        let titleFont = Font.medium(min(18.0, floor(presentationData.fontSize.baseDisplaySize * 12.0 / 17.0)))
         
         let attributedString = NSAttributedString(string: self.text, font: titleFont, textColor: bubbleVariableColor(variableColor: presentationData.theme.theme.chat.serviceMessage.dateTextColor, wallpaper: presentationData.theme.wallpaper))
         let labelLayout = TextNode.asyncLayout(self.labelNode)
@@ -547,8 +547,8 @@ private final class ChatMessagePeerContentNode: ASDisplayNode {
     }
     
     func update(size: CGSize, leftInset: CGFloat, rightInset: CGFloat, transition: ContainedViewLayoutTransition) {
-        let chatDateSize: CGFloat = 22.0
-        let chatDateInset: CGFloat = 6.0
+        let chatDateSize: CGFloat = 28.0
+        let chatDateInset: CGFloat = 10.0
         let arrowInset: CGFloat = 5.0
         let arrowSpacing: CGFloat = arrowInset + 6.0
         
@@ -565,7 +565,7 @@ private final class ChatMessagePeerContentNode: ASDisplayNode {
         let labelSize = self.labelNode.bounds.size
         let backgroundSize = CGSize(width: avatarInset + avatarDiameter + avatarSpacing + labelSize.width + chatDateInset + arrowSpacing, height: chatDateSize)
         
-        let backgroundFrame = CGRect(origin: CGPoint(x: leftInset + floorToScreenPixels((size.width - leftInset - rightInset - backgroundSize.width) / 2.0), y: (size.height - chatDateSize) / 2.0), size: backgroundSize)
+        let backgroundFrame = CGRect(origin: CGPoint(x: leftInset + floorToScreenPixels((size.width - leftInset - rightInset - backgroundSize.width) / 2.0), y: 8.0), size: backgroundSize)
         
         let iconFrame = CGRect(origin: CGPoint(x: backgroundFrame.minX + avatarInset, y: backgroundFrame.origin.y + floorToScreenPixels((backgroundSize.height - avatarDiameter) / 2.0)), size: CGSize(width: avatarDiameter, height: avatarDiameter))
         
@@ -876,7 +876,8 @@ public final class ChatMessageDateHeaderNodeImpl: ListViewItemHeaderNode, ChatMe
 }
 
 private func avatarHeaderSize() -> CGFloat {
-    return 34.0
+    // Messages draws the group-chat avatar at 33pt.
+    return 33.0
 }
 
 public final class ChatMessageAvatarHeader: ListViewItemHeader {

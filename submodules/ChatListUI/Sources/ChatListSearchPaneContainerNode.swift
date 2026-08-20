@@ -442,7 +442,7 @@ final class ChatListSearchPaneContainerNode: ASDisplayNode, ASGestureRecognizerD
         case .forum, .savedMessagesChats:
             self.backgroundColor = .clear
         default:
-            self.backgroundColor = presentationData.theme.list.itemBlocksBackgroundColor
+            self.backgroundColor = presentationData.theme.chatList.backgroundColor
         }
         let paneFrame = CGRect(origin: CGPoint(), size: CGSize(width: size.width, height: size.height))
         

@@ -388,7 +388,7 @@ public struct PresentationResourcesItemList {
                     corners.insert(.bottomLeft)
                     corners.insert(.bottomRight)
                 }
-                let cornerRadius: CGFloat = glass ? 26.0 : 11.0
+                let cornerRadius: CGFloat = glass ? 26.0 : 20.0
                 let path = UIBezierPath(roundedRect: bounds, byRoundingCorners: corners, cornerRadii: CGSize(width: cornerRadius, height: cornerRadius))
                 context.addPath(path.cgPath)
                 context.fillPath()

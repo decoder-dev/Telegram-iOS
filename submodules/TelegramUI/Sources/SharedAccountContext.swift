@@ -1170,7 +1170,19 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             hideBlockedMessages: settings.hideBlockedMessages,
             hideReactionsBar: settings.hideReactionsBar,
             compactChatList: settings.compactChatList,
-            compactMessagePreview: settings.compactMessagePreview
+            compactMessagePreview: settings.compactMessagePreview,
+            hideAllChats: settings.hideAllChats,
+            rememberLastFolder: settings.rememberLastFolder,
+            hideTabBar: settings.hideTabBar,
+            showMessageSeconds: settings.showMessageSeconds,
+            wideChannelPosts: settings.wideChannelPosts,
+            stickerSizePercent: settings.stickerSizePercent,
+            doubleTapToEdit: settings.doubleTapToEdit,
+            quickTranslateButton: settings.quickTranslateButton,
+            saveToCloudMenu: settings.saveToCloudMenu,
+            selectFromAuthor: settings.selectFromAuthor,
+            downloadSpeedBoost: settings.downloadSpeedBoost,
+            outgoingPhotoQuality: settings.outgoingPhotoQuality
         ))
         ForkRegexMessageFilters.apply(
             enabled: settings.regexMessageFiltersEnabled,
@@ -2531,6 +2543,8 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             openSearch: {
             },
             setupReply: { _ in
+            },
+            setupEditMessage: { _ in
             },
             canSetupReply: { _ in
                 return .none

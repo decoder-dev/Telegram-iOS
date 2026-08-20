@@ -77,18 +77,19 @@ private func calclulateTextFieldMinHeight(_ presentationInterfaceState: ChatPres
         baseFontSize = 17.0
     }
     var result: CGFloat
+    // iMessage-style: field capsule height 36pt at default size, scaling with font
     if baseFontSize.isEqual(to: 26.0) {
-        result = 42.0
+        result = 46.0
     } else if baseFontSize.isEqual(to: 23.0) {
-        result = 38.0
-    } else if baseFontSize.isEqual(to: 17.0) {
-        result = 31.0
-    } else if baseFontSize.isEqual(to: 19.0) {
-        result = 33.0
+        result = 42.0
     } else if baseFontSize.isEqual(to: 21.0) {
-        result = 35.0
+        result = 39.0
+    } else if baseFontSize.isEqual(to: 19.0) {
+        result = 37.0
+    } else if baseFontSize.isEqual(to: 17.0) {
+        result = 36.0
     } else {
-        result = 31.0
+        result = 36.0
     }
     
     return result
@@ -707,6 +708,12 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         self.presentationInterfaceState = presentationInterfaceState
         self.presentationContext = presentationContext
         
+        // 5/4, not 8/8. These two numbers plus `calclulateTextFieldMinHeight` (36 at the default font
+        // size) are the whole capsule height: 8/8 made it 52 pt next to 40 pt round buttons, so the
+        // field sat visibly taller and higher than the attachment and mic it is supposed to line up
+        // with. 5/4 puts it at 45 pt — a touch taller than the buttons, which is the proportion the
+        // reference shows. The 1 pt asymmetry is deliberate and carries the text baseline; it is the
+        // split this panel used before the capsule was resized.
         self.textInputViewInternalInsets = UIEdgeInsets(top: 5.0, left: 12.0, bottom: 4.0, right: 11.0)
 
         var hasSpoilers = true
@@ -1405,7 +1412,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
     
     private func textFieldMaxHeight(_ maxHeight: CGFloat, metrics: LayoutMetrics, bottomInset: CGFloat) -> CGFloat {
         let textFieldInsets = self.textFieldInsets(metrics: metrics, bottomInset: bottomInset)
-        return max(33.0, maxHeight - (textFieldInsets.top + textFieldInsets.bottom + self.textInputViewInternalInsets.top + self.textInputViewInternalInsets.bottom))
+        return max(36.0, maxHeight - (textFieldInsets.top + textFieldInsets.bottom + self.textInputViewInternalInsets.top + self.textInputViewInternalInsets.bottom))
     }
     
     private func calculateTextFieldMetrics(width: CGFloat, sendActionControlsWidth: CGFloat, maxHeight: CGFloat, metrics: LayoutMetrics, bottomInset: CGFloat, interfaceState: ChatPresentationInterfaceState) -> (accessoryButtonsWidth: CGFloat, textFieldHeight: CGFloat, isOverflow: Bool) {
@@ -1431,7 +1438,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
                 break
             }
         }
-        var textFieldMinHeight: CGFloat = 35.0
+        var textFieldMinHeight: CGFloat = 36.0
         var textInputViewRealInsets = UIEdgeInsets()
         if let presentationInterfaceState = self.presentationInterfaceState {
             textFieldMinHeight = calclulateTextFieldMinHeight(presentationInterfaceState, metrics: metrics)
@@ -1497,7 +1504,8 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
     
     override public func minimalHeight(interfaceState: ChatPresentationInterfaceState, metrics: LayoutMetrics) -> CGFloat {
         let textFieldMinHeight = calclulateTextFieldMinHeight(interfaceState, metrics: metrics)
-        let minimalHeight: CGFloat = 14.0 + textFieldMinHeight
+        // iMessage: 8pt top + 8pt bottom around the field capsule
+        let minimalHeight: CGFloat = 16.0 + textFieldMinHeight
         return minimalHeight
     }
 
@@ -1655,15 +1663,17 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         let previousAdditionalSideInsets = self.validLayout?.4
         self.validLayout = (width, leftInset, rightInset, bottomInset, additionalSideInsets, maxHeight, maxOverlayHeight, metrics, isSecondary, isMediaInputExpanded, deviceMetrics)
         
-        let defaultGlassTintColor: GlassBackgroundView.TintColor
-        let defaultGlassTintWithInnerColor: GlassBackgroundView.TintColor
-        if case .clear = interfaceState.preferredGlassType {
-            defaultGlassTintColor = .init(kind: .clear)
-            defaultGlassTintWithInnerColor = .init(kind: .clear, innerColor: interfaceState.theme.list.itemCheckColors.fillColor)
-        } else {
-            defaultGlassTintColor = .init(kind: .panel)
-            defaultGlassTintWithInnerColor = .init(kind: .panel, innerColor: interfaceState.theme.list.itemCheckColors.fillColor)
-        }
+        // The theme's own input colour, not a pair of literals. In Day that is white at 80%, which is
+        // what makes the field read as a translucent system input with the wallpaper tinting through
+        // instead of a flat opaque slab; in Night it is the dark equivalent. Both are already the
+        // colour the attachment caption field and the recording preview use, so the whole composer
+        // family stays consistent, and a theme edit lands here without touching this file.
+        //
+        // It is a tint, not a fill: `.custom` hands it to the glass material, so alpha below 1 keeps
+        // the blur underneath doing its work.
+        let composerFillColor = interfaceState.theme.chat.inputPanel.inputBackgroundColor
+        let defaultGlassTintColor: GlassBackgroundView.TintColor = .init(kind: .custom(style: .default, color: composerFillColor))
+        let defaultGlassTintWithInnerColor: GlassBackgroundView.TintColor = .init(kind: .custom(style: .default, color: composerFillColor), innerColor: interfaceState.theme.list.itemCheckColors.fillColor)
         
         var leftInset = leftInset
         var rightInset = rightInset
@@ -2369,7 +2379,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             }
         }
         
-        var textFieldMinHeight: CGFloat = 33.0
+        var textFieldMinHeight: CGFloat = 36.0
         if let presentationInterfaceState = self.presentationInterfaceState {
             textFieldMinHeight = calclulateTextFieldMinHeight(presentationInterfaceState, metrics: metrics)
         }
@@ -2525,8 +2535,15 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
                 }
             }
             
-            sendActionButtonsSize = self.sendActionButtons.updateLayout(size: CGSize(width: 40.0, height: minimalHeight), isMediaInputExpanded: isMediaInputExpanded, showTitle: showTitle, currentMessageEffectId: presentationInterfaceState.interfaceState.sendMessageEffect, transition: transition, interfaceState: presentationInterfaceState)
-            mediaActionButtonsSize = self.mediaActionButtons.updateLayout(size: CGSize(width: 40.0, height: minimalHeight), isMediaInputExpanded: isMediaInputExpanded, showTitle: false, currentMessageEffectId: presentationInterfaceState.interfaceState.sendMessageEffect, transition: transition, interfaceState: presentationInterfaceState)
+            // 40 pt tall, not the field's height. The node draws its background as a rounded rect of
+            // exactly this size with `cornerRadius = height * 0.5`, so handing it the field height
+            // (52 pt after the Messages-sized field) made the mic and send buttons 40×52 ovals next
+            // to the round 40×40 attachment button on the other side. Both frames are bottom-anchored
+            // (`maxY - size.height`), so a square here sits on the field's baseline exactly like the
+            // attachment button does.
+            let actionButtonsSize = CGSize(width: 40.0, height: 40.0)
+            sendActionButtonsSize = self.sendActionButtons.updateLayout(size: actionButtonsSize, isMediaInputExpanded: isMediaInputExpanded, showTitle: showTitle, currentMessageEffectId: presentationInterfaceState.interfaceState.sendMessageEffect, transition: transition, interfaceState: presentationInterfaceState)
+            mediaActionButtonsSize = self.mediaActionButtons.updateLayout(size: actionButtonsSize, isMediaInputExpanded: isMediaInputExpanded, showTitle: false, currentMessageEffectId: presentationInterfaceState.interfaceState.sendMessageEffect, transition: transition, interfaceState: presentationInterfaceState)
         }
         
         var starReactionButtonSize: CGSize?
@@ -3277,7 +3294,8 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             self.slowmodePlaceholderNode?.isHidden = true
         }
         
-        var nextButtonTopRight = CGPoint(x: textInputContainerBackgroundFrame.width - accessoryButtonInset, y: textInputContainerBackgroundFrame.height - minimalInputHeight)
+        let accessoryControlSize: CGFloat = 40.0
+        var nextButtonTopRight = CGPoint(x: textInputContainerBackgroundFrame.width - accessoryButtonInset, y: textInputContainerBackgroundFrame.height - accessoryControlSize)
         if self.extendedSearchLayout {
             nextButtonTopRight.x -= 46.0
         } else if hasSlowmodeButton {
@@ -3285,9 +3303,9 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             nextButtonTopRight.x -= sendActionButtonsSize.width
         }
         for (item, button) in self.accessoryItemButtons.reversed() {
-            let buttonSize = CGSize(width: button.buttonWidth, height: minimalInputHeight)
+            let buttonSize = CGSize(width: button.buttonWidth, height: accessoryControlSize)
             button.updateLayout(item: item, size: buttonSize)
-            let buttonFrame = CGRect(origin: CGPoint(x: nextButtonTopRight.x - buttonSize.width, y: nextButtonTopRight.y + floor((minimalInputHeight - buttonSize.height) / 2.0)), size: buttonSize)
+            let buttonFrame = CGRect(origin: CGPoint(x: nextButtonTopRight.x - buttonSize.width, y: nextButtonTopRight.y), size: buttonSize)
             if button.superview == nil {
                 self.textInputContainerBackgroundView.contentView.addSubview(button)
                 button.frame = buttonFrame.offsetBy(dx: -additionalOffset, dy: 0.0)
@@ -3430,7 +3448,9 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             }
         }
         
-        var mediaActionButtonsFrame = CGRect(origin: CGPoint(x: textInputContainerBackgroundFrame.maxX + 6.0, y: textInputContainerBackgroundFrame.maxY - mediaActionButtonsSize.height), size: mediaActionButtonsSize)
+        let composerControlsBaselineY = textInputFrame.maxY
+        
+        var mediaActionButtonsFrame = CGRect(origin: CGPoint(x: textInputContainerBackgroundFrame.maxX + 6.0, y: composerControlsBaselineY - mediaActionButtonsSize.height), size: mediaActionButtonsSize)
         if inputHasText || self.extendedSearchLayout || hasMediaDraft || interfaceState.interfaceState.forwardMessageIds != nil || hasSlowmodeButton || isEditingMedia {
             mediaActionButtonsFrame.origin.x = width + 8.0
         }
@@ -3441,7 +3461,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         
         var nextRightActionButtonX: CGFloat = textInputContainerBackgroundFrame.maxX + 6.0
         if let liveMicrophoneButtonView = self.liveMicrophoneButton?.view, let liveMicrophoneButtonSize {
-            var liveMicrophoneButtonFrame = CGRect(origin: CGPoint(x: nextRightActionButtonX, y: textInputContainerBackgroundFrame.maxY - liveMicrophoneButtonSize.height), size: liveMicrophoneButtonSize)
+            var liveMicrophoneButtonFrame = CGRect(origin: CGPoint(x: nextRightActionButtonX, y: composerControlsBaselineY - liveMicrophoneButtonSize.height), size: liveMicrophoneButtonSize)
             nextRightActionButtonX += 6.0 + liveMicrophoneButtonSize.width
             if inputHasText || self.extendedSearchLayout || hasMediaDraft {
                 liveMicrophoneButtonFrame.origin.x = width + 8.0
@@ -3459,7 +3479,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         }
         
         if let starReactionButtonView = self.starReactionButton?.view, let starReactionButtonSize {
-            var starReactionButtonFrame = CGRect(origin: CGPoint(x: nextRightActionButtonX, y: textInputContainerBackgroundFrame.maxY - starReactionButtonSize.height), size: starReactionButtonSize)
+            var starReactionButtonFrame = CGRect(origin: CGPoint(x: nextRightActionButtonX, y: composerControlsBaselineY - starReactionButtonSize.height), size: starReactionButtonSize)
             nextRightActionButtonX += 6.0 + starReactionButtonSize.width
             if inputHasText || self.extendedSearchLayout || hasMediaDraft {
                 starReactionButtonFrame.origin.x = width + 8.0
@@ -3476,7 +3496,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             transition.updateFrame(view: starReactionButtonView, frame: starReactionButtonFrame)
         }
         
-        var sendActionButtonsFrame = CGRect(origin: CGPoint(x: textInputContainerBackgroundFrame.maxX - sendActionButtonsSize.width, y: textInputContainerBackgroundFrame.maxY - sendActionButtonsSize.height), size: sendActionButtonsSize)
+        var sendActionButtonsFrame = CGRect(origin: CGPoint(x: textInputContainerBackgroundFrame.maxX - sendActionButtonsSize.width, y: composerControlsBaselineY - sendActionButtonsSize.height), size: sendActionButtonsSize)
         
         let sendActionsScale: CGFloat
         if inputHasText || hasMediaDraft || hasForward || isEditingMedia {

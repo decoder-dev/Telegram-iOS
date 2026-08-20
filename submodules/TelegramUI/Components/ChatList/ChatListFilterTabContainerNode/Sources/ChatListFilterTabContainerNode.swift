@@ -301,12 +301,12 @@ private final class ItemNode: ASDisplayNode {
         self.shortTitleActiveNode.visibility = title.enableAnimations
         
         if themeUpdated || titleUpdated {
-            let titleFontSize: CGFloat = self.context.sharedContext.immediateForkExtrasSettings.compactFolderNames ? 12.0 : 14.0
-            self.titleNode.attributedText = title.attributedString(font: Font.medium(titleFontSize), textColor: presentationData.theme.chat.inputPanel.panelControlColor)
-            self.titleActiveNode.attributedText = title.attributedString(font: Font.medium(titleFontSize), textColor: presentationData.theme.chat.inputPanel.panelControlColor)
+            let titleFontSize: CGFloat = self.context.sharedContext.immediateForkExtrasSettings.compactFolderNames ? 13.0 : 14.0
+            self.titleNode.attributedText = title.attributedString(font: Font.medium(titleFontSize), textColor: presentationData.theme.list.itemSecondaryTextColor)
+            self.titleActiveNode.attributedText = title.attributedString(font: Font.medium(titleFontSize), textColor: presentationData.theme.list.itemCheckColors.foregroundColor)
 
-            self.shortTitleNode.attributedText = shortTitle.attributedString(font: Font.medium(titleFontSize), textColor: presentationData.theme.chat.inputPanel.panelControlColor)
-            self.shortTitleActiveNode.attributedText = shortTitle.attributedString(font: Font.medium(titleFontSize), textColor: presentationData.theme.chat.inputPanel.panelControlColor)
+            self.shortTitleNode.attributedText = shortTitle.attributedString(font: Font.medium(titleFontSize), textColor: presentationData.theme.list.itemSecondaryTextColor)
+            self.shortTitleActiveNode.attributedText = shortTitle.attributedString(font: Font.medium(titleFontSize), textColor: presentationData.theme.list.itemCheckColors.foregroundColor)
         }
         
         if unreadCount != 0 {
@@ -705,7 +705,7 @@ public final class ChatListFilterTabContainerNode: ASDisplayNode {
         self.backgroundContainerView.update(size: backgroundSize, isDark: presentationData.theme.overallDarkAppearance, transition: ComponentTransition(transition))
         
         transition.updateFrame(view: self.backgroundView, frame: CGRect(origin: CGPoint(), size: backgroundSize))
-        self.backgroundView.update(size: backgroundSize, cornerRadius: backgroundSize.height * 0.5, isDark: presentationData.theme.overallDarkAppearance, tintColor: .init(kind: .panel), isInteractive: true, transition: ComponentTransition(transition))
+        self.backgroundView.update(size: backgroundSize, cornerRadius: backgroundSize.height * 0.5, isDark: presentationData.theme.overallDarkAppearance, tintColor: .init(kind: .panel), isInteractive: false, isVisible: false, transition: ComponentTransition(transition))
         
         var isEditing = isEditing
         if isReordering {
@@ -716,8 +716,8 @@ public final class ChatListFilterTabContainerNode: ASDisplayNode {
         let previousScrollBounds = self.scrollNode.bounds
         let previousContentWidth = self.scrollNode.view.contentSize.width
         
-        if self.currentParams?.presentationData.theme !== presentationData.theme {
-            self.selectedBackgroundNode.image = generateStretchableFilledCircleImage(diameter: 36.0, color: presentationData.theme.chatList.itemHighlightedBackgroundColor)
+        if self.selectedBackgroundNode.image == nil || self.currentParams?.presentationData.theme !== presentationData.theme {
+            self.selectedBackgroundNode.image = generateStretchableFilledCircleImage(diameter: 36.0, color: UIColor(rgb: 0x3478F6))
         }
         
         if isReordering {

@@ -265,19 +265,25 @@ private struct SecureIdICloudFileDescription {
     let urlData: String
 
     init?(url: URL) {
-        guard url.startAccessingSecurityScopedResource() else {
-            return nil
-        }
+        let scopedAccess = url.startAccessingSecurityScopedResource()
         defer {
-            url.stopAccessingSecurityScopedResource()
+            if scopedAccess {
+                url.stopAccessingSecurityScopedResource()
+            }
         }
-        guard let bookmarkData = try? url.bookmarkData(options: .suitableForBookmarkFile, includingResourceValuesForKeys: nil, relativeTo: nil) else {
+        if !scopedAccess && !FileManager.default.isReadableFile(atPath: url.path) {
             return nil
         }
-        guard (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) != nil else {
+        let bookmarkData = (try? url.bookmarkData(options: [], includingResourceValuesForKeys: nil, relativeTo: nil))
+            ?? (try? url.bookmarkData(options: .suitableForBookmarkFile, includingResourceValuesForKeys: nil, relativeTo: nil))
+        guard let bookmarkData else {
             return nil
         }
-        guard url.lastPathComponent.removingPercentEncoding != nil else {
+        var hasSize = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) != nil
+        if !hasSize, let attrs = try? FileManager.default.attributesOfItem(atPath: url.path) {
+            hasSize = attrs[.size] != nil
+        }
+        guard hasSize else {
             return nil
         }
         self.urlData = bookmarkData.base64EncodedString()
@@ -308,13 +314,20 @@ func fetchSecureIdICloudFile(with url: URL) -> Signal<URL?, NoError> {
         }
         return Signal { subscriber in
             var bookmarkIsStale = false
-            guard let resolvedURL = try? URL(resolvingBookmarkData: urlData, options: [], relativeTo: nil, bookmarkDataIsStale: &bookmarkIsStale), resolvedURL.startAccessingSecurityScopedResource() else {
+            guard let resolvedURL = try? URL(resolvingBookmarkData: urlData, options: [], relativeTo: nil, bookmarkDataIsStale: &bookmarkIsStale) else {
+                subscriber.putCompletion()
+                return EmptyDisposable
+            }
+            let scopedAccess = resolvedURL.startAccessingSecurityScopedResource()
+            guard scopedAccess || FileManager.default.isReadableFile(atPath: resolvedURL.path) else {
                 subscriber.putCompletion()
                 return EmptyDisposable
             }
             let targetURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("icloud_doc\(Int.random(in: 0 ... Int.max))")
             let _ = try? FileManager.default.copyItem(at: resolvedURL, to: targetURL)
-            resolvedURL.stopAccessingSecurityScopedResource()
+            if scopedAccess {
+                resolvedURL.stopAccessingSecurityScopedResource()
+            }
             subscriber.putNext(targetURL)
             subscriber.putCompletion()
             return EmptyDisposable

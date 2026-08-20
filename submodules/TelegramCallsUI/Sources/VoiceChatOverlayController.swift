@@ -427,7 +427,7 @@ public final class VoiceChatOverlayController: ViewController {
             }
         }
         if let tabBarController = controllers.last as? TabBarController {
-            if let chatListController = tabBarController.controllers[tabBarController.selectedIndex] as? ChatListController, chatListController.isSearchActive {
+            if let chatListController = tabBarController.selectedController as? ChatListController, chatListController.isSearchActive {
                 hidden = true
             }
         }

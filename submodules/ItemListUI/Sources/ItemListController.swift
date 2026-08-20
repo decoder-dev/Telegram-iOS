@@ -283,12 +283,12 @@ open class ItemListController: ViewController, KeyShortcutResponder, Presentable
         self.presentationData = presentationData
         self.hideNavigationBarBackground = hideNavigationBarBackground
         
-        super.init(navigationBarPresentationData: NavigationBarPresentationData(theme: NavigationBarTheme(rootControllerTheme: presentationData.theme, hideBackground: hideNavigationBarBackground, hideSeparator: hideNavigationBarBackground, style: .glass), strings: NavigationBarStrings(presentationStrings: presentationData.strings)))
+        super.init(navigationBarPresentationData: NavigationBarPresentationData(theme: NavigationBarTheme(rootControllerTheme: presentationData.theme, hideBackground: true, hideSeparator: true, style: .legacy), strings: NavigationBarStrings(presentationStrings: presentationData.strings)))
         
         self.isOpaqueWhenInOverlay = true
         self.blocksBackgroundWhenInOverlay = true
         self.automaticallyControlPresentationContextLayout = false
-        self._hasGlassStyle = true
+        self._hasGlassStyle = false
         
         self.statusBar.statusBarStyle = presentationData.theme.rootController.statusBarStyle.style
         
@@ -557,7 +557,7 @@ open class ItemListController: ViewController, KeyShortcutResponder, Presentable
                     if strongSelf.presentationData != controllerState.presentationData || isFirstTime {
                         strongSelf.presentationData = controllerState.presentationData
                         
-                        strongSelf.navigationBar?.updatePresentationData(NavigationBarPresentationData(theme: NavigationBarTheme(rootControllerTheme: strongSelf.presentationData.theme, hideBackground: strongSelf.hideNavigationBarBackground, hideSeparator: strongSelf.hideNavigationBarBackground, edgeEffectColor: state.0.style == .blocks ? strongSelf.presentationData.theme.list.blocksBackgroundColor : strongSelf.presentationData.theme.list.plainBackgroundColor, style: .glass), strings: NavigationBarStrings(presentationStrings: strongSelf.presentationData.strings)), transition: .immediate)
+                        strongSelf.navigationBar?.updatePresentationData(NavigationBarPresentationData(theme: NavigationBarTheme(rootControllerTheme: strongSelf.presentationData.theme, hideBackground: true, hideSeparator: true, style: .legacy), strings: NavigationBarStrings(presentationStrings: strongSelf.presentationData.strings)), transition: .immediate)
                         strongSelf.statusBar.updateStatusBarStyle(strongSelf.presentationData.theme.rootController.statusBarStyle.style, animated: true)
                         
                         strongSelf.segmentedTitleView?.theme = controllerState.presentationData.theme

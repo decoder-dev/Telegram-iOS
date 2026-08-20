@@ -172,6 +172,7 @@ public final class PeerInfoChatListPaneNode: ASDisplayNode, PeerInfoPaneNode, AS
             autoSetReady: false,
             isMainTab: nil
         )
+        self.chatListNode.activateFolderPagination()
         self.chatListNode.synchronousDrawingWhenNotAnimated = true
         
         super.init()

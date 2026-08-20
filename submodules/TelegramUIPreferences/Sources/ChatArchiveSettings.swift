@@ -96,8 +96,8 @@ public final class ArchiveLockSession {
     private let lock = NSLock()
     private var unlocked = false
     private var revealed = false
-    private var didMuteSweep = false
-    private var didAlignKeepArchived = false
+    private var muteSweepAccountIds = Set<Int64>()
+    private var keepArchivedAlignAccountIds = Set<Int64>()
     private var backgroundDisposable: Disposable?
     private var collapseGeneration: Int = 0
     private let relockedPipe = ValuePipe<Void>()
@@ -197,25 +197,27 @@ public final class ArchiveLockSession {
         }
     }
     
-    /// Returns true the first time per process; used to mute existing archived chats once.
-    public func claimMuteSweep() -> Bool {
+    /// Returns true the first time per account in this process; used to mute existing archived chats once.
+    public func claimMuteSweep(accountPeerId: EnginePeer.Id) -> Bool {
+        let id = accountPeerId.toInt64()
         self.lock.lock()
         defer { self.lock.unlock() }
-        if self.didMuteSweep {
+        if self.muteSweepAccountIds.contains(id) {
             return false
         }
-        self.didMuteSweep = true
+        self.muteSweepAccountIds.insert(id)
         return true
     }
     
-    /// Returns true the first time per process; used to align keepArchivedUnmuted with force-mute.
-    public func claimKeepArchivedAlign() -> Bool {
+    /// Returns true the first time per account in this process; used to align keepArchivedUnmuted with force-mute.
+    public func claimKeepArchivedAlign(accountPeerId: EnginePeer.Id) -> Bool {
+        let id = accountPeerId.toInt64()
         self.lock.lock()
         defer { self.lock.unlock() }
-        if self.didAlignKeepArchived {
+        if self.keepArchivedAlignAccountIds.contains(id) {
             return false
         }
-        self.didAlignKeepArchived = true
+        self.keepArchivedAlignAccountIds.insert(id)
         return true
     }
     

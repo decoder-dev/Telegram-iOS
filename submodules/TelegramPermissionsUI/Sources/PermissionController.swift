@@ -40,7 +40,7 @@ public final class PermissionController: ViewController {
 //        if splashScreen {
 //            navigationBarPresentationData = NavigationBarPresentationData(theme: NavigationBarTheme(overallDarkAppearance: self.presentationData.theme.overallDarkAppearance, buttonColor: self.presentationData.theme.rootController.navigationBar.accentTextColor, disabledButtonColor: self.presentationData.theme.rootController.navigationBar.disabledButtonColor, primaryTextColor: self.presentationData.theme.rootController.navigationBar.primaryTextColor, backgroundColor: .clear, enableBackgroundBlur: false, separatorColor: .clear, badgeBackgroundColor: .clear, badgeStrokeColor: .clear, badgeTextColor: .clear, style: .glass), strings: NavigationBarStrings(presentationStrings: self.presentationData.strings))
 //        } else {
-        let navigationBarPresentationData = NavigationBarPresentationData(presentationData: self.presentationData, style: .glass)
+        let navigationBarPresentationData = NavigationBarPresentationData(presentationData: self.presentationData, hideBackground: true, hideBadge: false, hideSeparator: true, style: .legacy)
 //        }
         
         super.init(navigationBarPresentationData: navigationBarPresentationData)
@@ -92,7 +92,7 @@ public final class PermissionController: ViewController {
 //        if self.splashScreen {
 //            navigationBarPresentationData = NavigationBarPresentationData(theme: NavigationBarTheme(overallDarkAppearance: self.presentationData.theme.overallDarkAppearance, buttonColor: self.presentationData.theme.rootController.navigationBar.accentTextColor, disabledButtonColor: self.presentationData.theme.rootController.navigationBar.disabledButtonColor, primaryTextColor: self.presentationData.theme.rootController.navigationBar.primaryTextColor, backgroundColor: .clear, enableBackgroundBlur: false, separatorColor: .clear, badgeBackgroundColor: .clear, badgeStrokeColor: .clear, badgeTextColor: .clear), strings: NavigationBarStrings(presentationStrings: self.presentationData.strings))
 //        } else {
-        let navigationBarPresentationData = NavigationBarPresentationData(presentationData: self.presentationData, style: .glass)
+        let navigationBarPresentationData = NavigationBarPresentationData(presentationData: self.presentationData, hideBackground: true, hideBadge: false, hideSeparator: true, style: .legacy)
 //        }
         
         self.navigationBar?.updatePresentationData(navigationBarPresentationData, transition: .immediate)

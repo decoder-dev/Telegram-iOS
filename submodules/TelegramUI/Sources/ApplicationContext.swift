@@ -203,9 +203,7 @@ final class AuthorizedApplicationContext {
                         guard !locked else {
                             return
                         }
-                        if let tabController = strongSelf.rootController.rootTabController {
-                            let selectedController = tabController.controllers[tabController.selectedIndex]
-                            
+                        if let tabController = strongSelf.rootController.rootTabController, let selectedController = tabController.selectedController {
                             if let index = strongSelf.rootController.viewControllers.lastIndex(where: { controller in
                                 guard let controller = controller as? ViewController else {
                                     return false
@@ -251,13 +249,16 @@ final class AuthorizedApplicationContext {
         if self.rootController.rootTabController == nil {
             self.rootController.addRootControllers(showCallsTab: self.showCallsTab)
         }
-        if let tabsController = self.rootController.viewControllers.first as? TabBarController, !tabsController.controllers.isEmpty, tabsController.selectedIndex >= 0 {
-            let controller = tabsController.controllers[tabsController.selectedIndex]
+        // Runs on launch and on every account switch, where the controller list is rebuilt. The
+        // conditions here used to bound the subscript from below and rule out an empty list, but
+        // never from above.
+        if let tabsController = self.rootController.viewControllers.first as? TabBarController, let controller = tabsController.selectedController {
             let combinedReady = combineLatest(tabsController.ready.get(), controller.ready.get())
             |> map { $0 && $1 }
             |> filter { $0 }
             |> take(1)
-            self.isReady.set(combinedReady)
+            self.isReady.set(combinedReady
+            |> timeout(2.5, queue: Queue.mainQueue(), alternate: .single(true)))
         } else {
             self.isReady.set(.single(true))
         }
