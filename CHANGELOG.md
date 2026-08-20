@@ -7,12 +7,9 @@
 ## [Unreleased]
 
 ### Fixed
-- **Папки (финальный фикс):** pagination gate больше не блокирует отрисовку в `dequeueTransition` — только `locationGeneration` (staleness). Pagination по-прежнему только у видимого таба через `displayedItemRangeChanged`.
-- Разделены `pauseFolderPagination()` (layout, без сброса scroll) и `deactivateFolderPagination()` (switch-out, сброс `.navigation` → `.initial`).
-- Pan-switch: `applyItemNodeAsCurrent` до `update()`, чтобы callbacks/pagination переключались до layout.
-- Evicted adjacent tab nodes вызывают `deactivateFolderPagination()` перед удалением.
-- Composer fill в dark: `#1C1C1E` вместо pure black (виден на тёмных обоях).
-- OLED profile action buttons: фон `#2C2C2E` circle снова рендерится.
+- **Папки (корень бага):** apply-time staleness guard в `dequeueTransition` убран — transition это diff против `previousView`, который уже advanced на бэкграунде; skip apply оставлял UI на N−1 при следующем diff N→N+1 → дубли/дыры. Staleness только в `mapToQueue` (до `previousView.swap`). Убраны location-reset на switch in/out. Остаётся только pagination gate в `displayedItemRangeChanged`.
+- Разделены `pauseFolderPagination()` / `deactivateFolderPagination()`; pan-switch: `applyItemNodeAsCurrent` до `update()`; eviction cleanup.
+- Composer fill в dark: `#1C1C1E`. OLED profile action button circles.
 
 ## [v12.9.2-3881-pre] — 2026-08-19
 
