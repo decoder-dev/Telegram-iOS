@@ -48,7 +48,6 @@ struct ChatListNodeListViewTransition {
     let stationaryItemRange: (Int, Int)?
     let adjustScrollToFirstItem: Bool
     let animateCrossfade: Bool
-    let locationGeneration: Int
 }
 
 final class ChatListHighlightedLocation: Equatable {
@@ -1172,10 +1171,9 @@ private func mappedChatListNodeViewListTransition(
     mode: ChatListNodeMode,
     isPeerEnabled: ((EnginePeer) -> Bool)?,
     presentationData: ChatListPresentationData,
-    transition: ChatListNodeViewTransition,
-    locationGeneration: Int
+    transition: ChatListNodeViewTransition
 ) -> ChatListNodeListViewTransition {
-    return ChatListNodeListViewTransition(chatListView: transition.chatListView, deleteItems: transition.deleteItems, insertItems: mappedInsertEntries(context: context, nodeInteraction: nodeInteraction, location: location, isPremium: isPremium, filterData: filterData, chatListFilters: chatListFilters, mode: mode, isPeerEnabled: isPeerEnabled, entries: transition.insertEntries, presentationData: presentationData), updateItems: mappedUpdateEntries(context: context, nodeInteraction: nodeInteraction, location: location, isPremium: isPremium, filterData: filterData, chatListFilters: chatListFilters, mode: mode, isPeerEnabled: isPeerEnabled, entries: transition.updateEntries, presentationData: presentationData), options: transition.options, scrollToItem: transition.scrollToItem, stationaryItemRange: transition.stationaryItemRange, adjustScrollToFirstItem: transition.adjustScrollToFirstItem, animateCrossfade: transition.animateCrossfade, locationGeneration: locationGeneration)
+    return ChatListNodeListViewTransition(chatListView: transition.chatListView, deleteItems: transition.deleteItems, insertItems: mappedInsertEntries(context: context, nodeInteraction: nodeInteraction, location: location, isPremium: isPremium, filterData: filterData, chatListFilters: chatListFilters, mode: mode, isPeerEnabled: isPeerEnabled, entries: transition.insertEntries, presentationData: presentationData), updateItems: mappedUpdateEntries(context: context, nodeInteraction: nodeInteraction, location: location, isPremium: isPremium, filterData: filterData, chatListFilters: chatListFilters, mode: mode, isPeerEnabled: isPeerEnabled, entries: transition.updateEntries, presentationData: presentationData), options: transition.options, scrollToItem: transition.scrollToItem, stationaryItemRange: transition.stationaryItemRange, adjustScrollToFirstItem: transition.adjustScrollToFirstItem, animateCrossfade: transition.animateCrossfade)
 }
 
 private final class ChatListOpaqueTransactionState {
@@ -2244,10 +2242,15 @@ public final class ChatListNode: ListViewImpl {
                 return .complete()
             }
             let (update, filter, locationGeneration) = updateAndFilter
+            // The only place a stale update may be dropped. It has to be here, above
+            // `previousView.swap` further down: bail out now and the diff base is untouched, so the
+            // next transition is still computed against the view the list is actually showing. Do it
+            // any later — in particular at apply time — and the bookkeeping says a transition was
+            // applied that never was, and every subsequent diff lands on the wrong rows.
             if locationGeneration != strongSelf.chatListLocationGeneration {
                 return .complete()
             }
-            
+
             let previousHideArchivedFolderByDefaultValue = previousHideArchivedFolderByDefault.swap(hideArchivedFolderByDefault)
             let previousArchiveFolderPresentationValue = previousArchiveFolderPresentation.swap(archiveFolderPresentation)
             
@@ -2730,7 +2733,7 @@ public final class ChatListNode: ListViewImpl {
             let presentationData = state.presentationData
             
             return preparedChatListNodeViewTransition(from: previousView, to: processedView, reason: reason, previewing: previewing, disableAnimations: disableAnimations, scrollPosition: updatedScrollPosition, searchMode: searchMode, forceAllUpdated: forceAllUpdated)
-            |> map({ mappedChatListNodeViewListTransition(context: context, nodeInteraction: nodeInteraction, location: location, isPremium: accountIsPremium, filterData: filterData, chatListFilters: chatListFilters, mode: mode, isPeerEnabled: isPeerEnabled, presentationData: presentationData, transition: $0, locationGeneration: locationGeneration) })
+            |> map({ mappedChatListNodeViewListTransition(context: context, nodeInteraction: nodeInteraction, location: location, isPremium: accountIsPremium, filterData: filterData, chatListFilters: chatListFilters, mode: mode, isPeerEnabled: isPeerEnabled, presentationData: presentationData, transition: $0) })
             |> runOn(prepareOnMainQueue ? Queue.mainQueue() : viewProcessingQueue)
         }
         
@@ -3422,20 +3425,21 @@ public final class ChatListNode: ListViewImpl {
         if let (transition, completion) = self.enqueuedTransition {
             self.enqueuedTransition = nil
             
-            // Staleness only. `isActiveForFolderPagination` must NOT gate this: it says "this tab may
-            // ask the server for more chats", not "this tab may draw". Gating the apply on it made a
-            // tab that is not currently on screen throw its transition away — and `enqueuedTransition`
-            // is cleared first, so the content is gone, not deferred. Switching to that tab then
-            // showed whatever was last drawn, which is why every folder rendered the same list.
+            // NOTHING may drop a transition here. Every transition is a *diff* against
+            // `previousView`, and `previousView` is advanced while the transition is computed, on the
+            // background queue — by the time one reaches this method the bookkeeping already says it
+            // was applied. Skipping the apply leaves the list showing state N-1 while the next diff
+            // is computed as N → N+1, so it deletes and inserts at indices that do not match what is
+            // on screen. That is precisely the duplicated and mangled rows this whole line of fixes
+            // was chasing: the guard that lived here caused the bug it was added to fix, and every
+            // later attempt made it worse by adding more `setChatListLocation` calls, each of which
+            // bumps the generation and so drops more in-flight transitions.
             //
-            // Tab activation does not recover it either: `reconcileLocationOnTabActivation` only
-            // re-requests when the location is `.navigation`, so a tab sitting on `.initial` never
-            // asked again.
-            guard transition.locationGeneration == self.chatListLocationGeneration else {
-                completion()
-                return
-            }
-            
+            // `enqueueTransition`'s `preconditionFailure` on a double enqueue is the same invariant
+            // stated from the other side: transitions are strictly serialised and each one must be
+            // consumed. Staleness is already handled where it is safe to handle it — in the
+            // `mapToQueue` above, which returns before `previousView.swap`, so a dropped update
+            // never advances the diff base.
             let completion: (ListViewDisplayedItemRange) -> Void = { [weak self] visibleRange in
                 if let strongSelf = self {
                     strongSelf.chatListView = transition.chatListView
@@ -3842,19 +3846,25 @@ public final class ChatListNode: ListViewImpl {
     func pauseFolderPagination() {
         self.isActiveForFolderPagination = false
     }
-    
+
+    /// None of these reset the location any more.
+    ///
+    /// They used to call `setChatListLocation(.initial(50))` on switch-out and again on switch-in, to
+    /// force a tab back to a clean window. That was a workaround for the duplication caused by the
+    /// apply-time staleness guard, and it cost two things: the tab lost its scroll position every
+    /// time you left or entered it, and each call bumped `chatListLocationGeneration`, which drops
+    /// whatever updates were in flight. With the guard gone the workaround is not just unnecessary,
+    /// it is the wrong direction — upstream never resets here.
+    ///
+    /// It is also redundant on its own terms: only `displayedItemRangeChanged` moves a list to a
+    /// `.navigation` location, and that is exactly what the pagination gate switches off, so a tab
+    /// that was never active cannot be sitting on one.
     public func deactivateFolderPagination() {
         self.isActiveForFolderPagination = false
-        if case .navigation = self.currentLocation {
-            self.setChatListLocation(.initial(count: 50, filter: self.chatListFilter))
-        }
     }
-    
+
     func reconcileLocationOnTabActivation() {
         self.activateFolderPagination()
-        if case .navigation = self.currentLocation {
-            self.setChatListLocation(.initial(count: 50, filter: self.chatListFilter))
-        }
     }
     
     private func setChatListLocation(_ location: ChatListNodeLocation) {
