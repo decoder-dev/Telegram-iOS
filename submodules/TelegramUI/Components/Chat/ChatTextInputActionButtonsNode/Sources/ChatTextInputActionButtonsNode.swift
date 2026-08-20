@@ -202,7 +202,7 @@ public final class ChatTextInputActionButtonsNode: ASDisplayNode, ChatSendMessag
         self.sendContainerNode.layer.allowsGroupOpacity = true
         
         self.sendButtonBackgroundView = UIImageView()
-        self.sendButtonBackgroundView.image = generateStretchableFilledCircleImage(diameter: 34.0, color: .white)?.withRenderingMode(.alwaysTemplate)
+        self.sendButtonBackgroundView.image = generateStretchableFilledCircleImage(diameter: 40.0, color: .white)?.withRenderingMode(.alwaysTemplate)
         self.sendButton = HighlightTrackingButtonNode(pointerStyle: nil)
         
         self.textNode = ImmediateAnimatedCountLabelNode()
@@ -281,8 +281,8 @@ public final class ChatTextInputActionButtonsNode: ASDisplayNode, ChatSendMessag
             strongSelf.sendButtonLongPressed?(strongSelf, recognizer)
         }
         
-        self.micButtonPointerInteraction = PointerInteraction(view: self.micButton, style: .circle(36.0))
-        self.sendButtonPointerInteraction = PointerInteraction(view: self.sendButton.view, customInteractionView: self.sendButtonBackgroundView, style: .lift)
+        self.micButtonPointerInteraction = PointerInteraction(view: self.micButton, style: .circle(40.0))
+        self.sendButtonPointerInteraction = PointerInteraction(view: self.sendButton.view, customInteractionView: self.sendButtonBackgroundView, style: .circle(40.0))
     }
     
     public func updateTheme(theme: PresentationTheme, wallpaper: TelegramWallpaper) {

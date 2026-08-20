@@ -2266,7 +2266,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
                         self.sendActionButtons.sendButton.setImage(PresentationResourcesChat.chatInputPanelApplyIconImage(interfaceState.theme), for: [])
                     } else {
                         if isScheduledMessages {
-                            self.sendActionButtons.sendButton.setImage(PresentationResourcesChat.chatInputPanelScheduleButtonImage(interfaceState.theme), for: [])
+                            self.sendActionButtons.sendButton.setImage(PresentationResourcesChat.chatInputPanelScheduleIconImage(interfaceState.theme), for: [])
                         } else {
                             self.sendActionButtons.sendButton.setImage(PresentationResourcesChat.chatInputPanelSendIconImage(interfaceState.theme), for: [])
                         }
@@ -3566,11 +3566,18 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         let sendActionsScale: CGFloat = sendOccupiesActionSlot ? 1.0 : 0.001
         let mediaActionsScale: CGFloat = micOccupiesActionSlot ? 1.0 : 0.001
         
-        transition.updateTransformScale(node: self.sendActionButtons, scale: CGPoint(x: sendActionsScale, y: sendActionsScale))
+        // Same clock as `updateActionButtons` alpha — parent layout often arrives as a 0.4s
+        // spring (capsule growth), which made the morph read as "fade, then grow".
+        let actionSlotMorphTransition: ContainedViewLayoutTransition = transition.isAnimated ? .animated(duration: 0.18, curve: .easeInOut) : .immediate
+        actionSlotMorphTransition.updateTransformScale(node: self.sendActionButtons, scale: CGPoint(x: sendActionsScale, y: sendActionsScale))
         transition.updatePosition(node: self.sendActionButtons, position: sendActionButtonsFrame.center)
         transition.updateBounds(node: self.sendActionButtons, bounds: CGRect(origin: CGPoint(), size: sendActionButtonsFrame.size))
         
-        transition.updateTransformScale(node: self.mediaActionButtons, scale: CGPoint(x: mediaActionsScale, y: mediaActionsScale))
+        actionSlotMorphTransition.updateTransformScale(node: self.mediaActionButtons, scale: CGPoint(x: mediaActionsScale, y: mediaActionsScale))
+        
+        // Scaled-away partner still sits in the shared slot; without this mid-morph hits leak.
+        self.sendActionButtons.isUserInteractionEnabled = sendOccupiesActionSlot
+        self.mediaActionButtons.isUserInteractionEnabled = micOccupiesActionSlot
         
         self.mediaActionButtonsSlotFrame = micOccupiesActionSlot ? mediaActionButtonsFrame : nil
         

@@ -6,12 +6,16 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3890-pre] — 2026-08-20
+
+Pre-release: close remaining idealism regressions (composer morph/assets, themes, lists).
+
 ### Fixed
-- **Build:** `ChatListNode` filter map type leftover after folders staleness drop (`Int` third tuple member) — compile break.
-- **Composer:** `sendOccupiesActionSlot` matches alpha path — business-link Apply visible when empty; send not scaled into boost-slowmode band; paid-stars pill width reserved before first keystroke; tooltip slot respects `mediaActionButtons.isHidden`.
-- **Night/Day base themes:** outgoing secondary (and related) `white@0.8` on default early-exit path (was only customize); Night outgoing media control well `.clear`; chrome separators `@0.8` (nav/tab/search/panel/history).
-- **Calls:** avatar 44 pt to match Contacts/search (changelog claim).
-- **Contacts:** thread rows no longer shift the whole column −13 pt.
+- **Build:** `ChatListNode` filter map type leftover after folders staleness drop.
+- **Composer:** `sendOccupiesActionSlot` matches keepSend/slowmode/search; paid-stars width reserved early; tooltip respects mic `isHidden`; scheduled send uses icon (not filled disc) on blue well; mic↔send morph scale+alpha both `0.18 easeInOut`; slot hit-gating; pointer circles 40pt; send/apply/schedule icons + stretchable disc on 40pt canvas.
+- **Night/Day base themes:** outgoing secondary `white@0.8` on default path; Night chrome separators `@0.8`; outgoing media well `.clear`; Night waveform inactive `@0.65`.
+- **Calls:** avatar 44 pt; **Contacts:** thread rows keep shared left column.
+- **Media bubbles:** rename `.emptyWallpaper` → `.whenNoHeader` (header-only rule unchanged).
 
 ## [v12.9.2-3889-pre] — 2026-08-20
 

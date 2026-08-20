@@ -363,6 +363,8 @@ public struct PresentationResourcesChat {
     }
     
     public static func chatInputPanelSendButtonImage(_ theme: PresentationTheme) -> UIImage? {
+        // Filled 33pt disc+arrow for LegacyComponents / Instant Video only. The Messages
+        // composer uses `chatInputPanelSendIconImage` on a separate 40pt blue well.
         return theme.image(PresentationResourceKey.chatInputPanelSendButtonImage.rawValue, { theme in
             return generateImage(CGSize(width: 33.0, height: 33.0), rotatedContext: { size, context in
                 context.clear(CGRect(origin: CGPoint(), size: size))
@@ -382,7 +384,8 @@ public struct PresentationResourcesChat {
     
     public static func chatInputPanelSendIconImage(_ theme: PresentationTheme) -> UIImage? {
         return theme.image(PresentationResourceKey.chatInputPanelSendIconImage.rawValue, { theme in
-            return generateImage(CGSize(width: 34.0, height: 34.0), rotatedContext: { size, context in
+            // 40 pt canvas matches the Messages composer disc; the glyph is centred inside.
+            return generateImage(CGSize(width: 40.0, height: 40.0), rotatedContext: { size, context in
                 UIGraphicsPushContext(context)
                 defer {
                     UIGraphicsPopContext()
@@ -421,7 +424,8 @@ public struct PresentationResourcesChat {
     
     public static func chatInputPanelApplyIconImage(_ theme: PresentationTheme) -> UIImage? {
         return theme.image(PresentationResourceKey.chatInputPanelApplyIconImage.rawValue, { theme in
-            return generateImage(CGSize(width: 33.0, height: 33.0), rotatedContext: { size, context in
+            // 40 pt canvas; SVG paths were authored for 33 — offset so the check stays centred.
+            return generateImage(CGSize(width: 40.0, height: 40.0), rotatedContext: { size, context in
                 context.clear(CGRect(origin: CGPoint(), size: size))
                 let color: UIColor
                 if [.day, .night].contains(theme.referenceTheme.baseTheme) && !theme.chat.message.outgoing.bubble.withWallpaper.hasSingleFillColor {
@@ -434,6 +438,7 @@ public struct PresentationResourcesChat {
                 context.setLineWidth(2.0)
                 context.setLineCap(.round)
                 context.setLineJoin(.round)
+                context.translateBy(x: (size.width - 33.0) * 0.5, y: (size.height - 33.0) * 0.5)
                 let _ = try? drawSvgPath(context, path: "M9.33333333,17.2686567 L14.1849216,22.120245 L14.1849216,22.120245 C14.2235835,22.1589069 14.2862668,22.1589069 14.3249287,22.120245 C14.3261558,22.1190179 14.3273504,22.1177588 14.3285113,22.1164689 L24.3333333,11 S ")
             })
         })
@@ -460,7 +465,7 @@ public struct PresentationResourcesChat {
     
     public static func chatInputPanelScheduleIconImage(_ theme: PresentationTheme) -> UIImage? {
         return theme.image(PresentationResourceKey.chatInputPanelScheduleIconImage.rawValue, { theme in
-            return generateImage(CGSize(width: 33.0, height: 33.0), rotatedContext: { size, context in
+            return generateImage(CGSize(width: 40.0, height: 40.0), rotatedContext: { size, context in
                 context.clear(CGRect(origin: CGPoint(), size: size))
                 
                 let imageRect = CGRect(origin: CGPoint(), size: size)

@@ -184,7 +184,9 @@ public func customizeDefaultDarkPresentationTheme(theme: PresentationTheme, edit
             // 2.02:1 and the timestamp stops being readable. 0.8 puts it at 3.08:1 while still
             // reading as secondary next to the 1.0 primary text.
             outgoingSecondaryTextColor = UIColor(rgb: 0xffffff, alpha: 0.8)
-            outgoingInactiveControlColor = UIColor(rgb: 0xffffff, alpha: 0.5)
+            // 0.65 matches Day's waveform split: inactive reads by distance from the played
+            // part, not absolute legibility — 0.5 on #007AFF was a step too dim.
+            outgoingInactiveControlColor = UIColor(rgb: 0xffffff, alpha: 0.65)
             outgoingLinkTextColor = UIColor(rgb: 0xffffff)
             outgoingScamColor = UIColor(rgb: 0xffffff)
             outgoingCheckColor = UIColor(rgb: 0xffffff)

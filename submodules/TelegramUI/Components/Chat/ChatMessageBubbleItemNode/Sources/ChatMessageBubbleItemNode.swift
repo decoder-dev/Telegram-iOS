@@ -2323,7 +2323,7 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
                 switch properties.hidesBackground {
                     case .never:
                         backgroundHiding = .never
-                    case .emptyWallpaper:
+                    case .whenNoHeader:
                         if backgroundHiding == nil {
                             backgroundHiding = properties.hidesBackground
                         }
@@ -3030,7 +3030,7 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
             switch backgroundHiding {
                 case .never:
                     hideBackground = false
-                case .emptyWallpaper:
+                case .whenNoHeader:
                     // Wallpaper no longer decides this — only whether there is a header to hold.
                     //
                     // Stock keeps the bubble behind media on any non-solid wallpaper, so a photo
