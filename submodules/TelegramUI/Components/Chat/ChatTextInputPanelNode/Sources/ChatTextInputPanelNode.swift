@@ -4641,9 +4641,12 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         var hideMicButton = false
         var hideMicButtonBackground = false
         
-        if self.customRightAction != nil {
-            self.mediaActionButtons.isHidden = true
-        }
+        // Assigned both ways. A custom right action (stars / .empty) owns the right slot, so the
+        // mic node is taken out entirely rather than just faded — but `customRightAction` can go
+        // back to nil on a node that already has it set, and a one-way `= true` left the
+        // microphone gone for good once that happened. Everything below drives the mic by alpha
+        // and scale, which is bidirectional already; this gate has to match.
+        self.mediaActionButtons.isHidden = self.customRightAction != nil
         
         var mediaInputIsActive = false
         var keepSendButtonEnabled = self.keepSendButtonEnabled
