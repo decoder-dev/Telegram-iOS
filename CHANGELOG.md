@@ -7,9 +7,7 @@
 ## [Unreleased]
 
 ### Changed
-- **Профиль:** action-button card откатан — снова stock header с подписями.
-- **Dark theme:** grouped cards / search fields `#1C1C1E` вместо `#000` (Settings/профиль/поиск снова видны на OLED-фоне).
-- **Composer:** translucent theme-driven fill; capsule height aligned with 40pt buttons.
+- **Night palette cleanup (P0–P3):** surfaces `#000` / `#1C1C1E` / `#2C2C2E`; accent и bubble один `#007AFF`; secondary gray `#8E8E93`; destructive `#FF3B30`. Убраны legacy `#0F0F0F` / `#141414` / `#1C1C1D` / `#1F1F1F` / `#3478F6` / `#EB5545`.
 
 ## [v12.9.2-3881-pre] — 2026-08-19
 
