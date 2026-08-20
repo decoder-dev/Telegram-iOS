@@ -327,7 +327,6 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
     /// the same width layout will, exactly as it already does for `leftMenuInset` and
     /// `rightSlowModeInset`.
     private var currentTextFieldInsets = UIEdgeInsets(top: 0.0, left: 8.0, bottom: 0.0, right: 8.0)
-    private var currentTextInputBackgroundWidthOffset: CGFloat = 0.0
     
     private var enableBounceAnimations: Bool = false
     // Rich-input configuration from the server flag `ios_rich_input_mode` (Double): 0 / absent (default) is the
@@ -2490,7 +2489,6 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             transition = .animated(duration: 0.3, curve: .easeInOut)
         }
         
-        let textInputBackgroundWidthOffset: CGFloat = 0.0
         var attachmentButtonX: CGFloat = hideOffset.x + leftInset + leftMenuInset + 8.0
         
         var leftButtonsWidth: CGFloat = 40.0 + 6.0
@@ -2672,6 +2670,14 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         }
         if mediaRecordingState != nil {
             textFieldInsets.left = 8.0
+        }
+        if !displayMediaButton {
+            // Same parking condition as `attachmentButtonX` above, which sends the button to
+            // `-8 - leftButtonsWidth` for `!displayMediaButton` as well as while recording. Only
+            // the recording half had a matching branch here, so in the one state that sets
+            // `displayMediaButton = false` — the business-link composer — the capsule went on
+            // reserving 46 pt for a button parked off-screen and opened a gap on its left.
+            textFieldInsets.left = max(8.0, textFieldInsets.left - (40.0 + 6.0))
         }
         if let customLeftAction = self.customLeftAction {
             switch customLeftAction {
@@ -3360,8 +3366,6 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
                 break
             }
         }
-        
-        self.currentTextInputBackgroundWidthOffset = textInputBackgroundWidthOffset
         
         let textPlaceholderSize: CGSize
         let textPlaceholderMaxWidth: CGFloat = max(1.0, nextButtonTopRight.x - 12.0)
@@ -4847,14 +4851,20 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
     }
     
     private func updateTextHeight(animated: Bool) {
-        if let (width, leftInset, rightInset, bottomInset, additionalSideInsets, maxHeight, _, metrics, _, _, deviceMetrics) = self.validLayout, let interfaceState = self.presentationInterfaceState {
+        if let (width, leftInset, rightInset, bottomInset, _, maxHeight, _, metrics, _, _, deviceMetrics) = self.validLayout, let interfaceState = self.presentationInterfaceState {
             var leftInset = leftInset
             var rightInset = rightInset
             let compactBottomSideInset = self.compactBottomSideInset(bottomInset: bottomInset, deviceMetrics: deviceMetrics)
             leftInset += compactBottomSideInset
             rightInset += compactBottomSideInset
             
-            let baseWidth = width - leftInset - self.leftMenuInset - rightInset - self.rightSlowModeInset + self.currentTextInputBackgroundWidthOffset - additionalSideInsets.right
+            // Character for character the same expression `updateLayout` uses, because this
+            // measures the same field. It used to carry two extra terms:
+            // `currentTextInputBackgroundWidthOffset`, which is fed from a hardcoded 0.0 and has
+            // been dead for as long as it has existed, and `- additionalSideInsets.right`, which
+            // double-counts — `currentTextFieldInsets` already carries that inset, and carries it
+            // as the third that `updateLayout` actually applies rather than the whole of it.
+            let baseWidth = width - leftInset - self.leftMenuInset - rightInset - self.rightSlowModeInset
             let (_, textFieldHeight, _) = self.calculateTextFieldMetrics(width: baseWidth, textFieldInsets: self.currentTextFieldInsets, maxHeight: maxHeight, metrics: metrics, bottomInset: bottomInset, interfaceState: interfaceState)
             let panelHeight = self.panelHeight(textFieldHeight: textFieldHeight, metrics: metrics, bottomInset: bottomInset)
             if !self.bounds.size.height.isEqual(to: panelHeight) {

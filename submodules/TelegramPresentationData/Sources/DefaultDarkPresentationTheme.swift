@@ -472,19 +472,25 @@ public func makeDefaultDarkPresentationTheme(extendingThemeReference: Presentati
             foregroundColor: UIColor(rgb: 0xffffff)
         ),
         controlSecondaryColor: UIColor(rgb: 0xffffff, alpha: 0.5),
+        // Filled, like itemInputField, not black-on-black. Every consumer of these two draws the
+        // field as `generateStretchableFilledCircleImage(color: backgroundColor)` and never reads
+        // `strokeColor` — SecureIdAuthPasswordOptionContentNode for the Passport password box and
+        // TwoFactorAuthDataInputScreen for both cloud-password fields — so flattening the fill to
+        // #000000 left those boxes invisible on this theme's black page, visible only in the
+        // failure state, which paints its own red tint. Greys match itemInputField too.
         freeInputField: PresentationInputFieldTheme(
-            backgroundColor: UIColor(rgb: 0x000000),
+            backgroundColor: UIColor(rgb: 0x1C1C1E),
             strokeColor: UIColor(rgb: 0xffffff, alpha: 0.12),
-            placeholderColor: UIColor(rgb: 0x98989e),
+            placeholderColor: UIColor(rgb: 0x8E8E93),
             primaryColor: UIColor(rgb: 0xffffff),
-            controlColor: UIColor(rgb: 0x98989e)
+            controlColor: UIColor(rgb: 0x8E8E93)
         ),
         freePlainInputField: PresentationInputFieldTheme(
-            backgroundColor: UIColor(rgb: 0x000000),
+            backgroundColor: UIColor(rgb: 0x1C1C1E),
             strokeColor: UIColor(rgb: 0xffffff, alpha: 0.12),
-            placeholderColor: UIColor(rgb: 0x98989e),
+            placeholderColor: UIColor(rgb: 0x8E8E93),
             primaryColor: UIColor(rgb: 0xffffff),
-            controlColor: UIColor(rgb: 0x98989e)
+            controlColor: UIColor(rgb: 0x8E8E93)
         ),
         mediaPlaceholderColor: UIColor(rgb: 0xffffff).mixedWith(UIColor(rgb: 0x1C1C1E), alpha: 0.9),
         scrollIndicatorColor: UIColor(rgb: 0xffffff, alpha: 0.5),
