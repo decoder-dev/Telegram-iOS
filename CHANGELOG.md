@@ -6,7 +6,15 @@
 
 ## [Unreleased]
 
-## [v12.9.2-3879-pre] — 2026-08-19
+### Fixed
+- **Папки (финальный фикс):** pagination gate больше не блокирует отрисовку в `dequeueTransition` — только `locationGeneration` (staleness). Pagination по-прежнему только у видимого таба через `displayedItemRangeChanged`.
+- Разделены `pauseFolderPagination()` (layout, без сброса scroll) и `deactivateFolderPagination()` (switch-out, сброс `.navigation` → `.initial`).
+- Pan-switch: `applyItemNodeAsCurrent` до `update()`, чтобы callbacks/pagination переключались до layout.
+- Evicted adjacent tab nodes вызывают `deactivateFolderPagination()` перед удалением.
+- Composer fill в dark: `#1C1C1E` вместо pure black (виден на тёмных обоях).
+- OLED profile action buttons: фон `#2C2C2E` circle снова рендерится.
+
+## [v12.9.2-3881-pre] — 2026-08-19
 
 Pre-release: fix chat folder switch duplication (regression).
 

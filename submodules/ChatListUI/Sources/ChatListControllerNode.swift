@@ -749,6 +749,9 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
                 }
                 self.transitionFraction = 0.0
                 let transition: ContainedViewLayoutTransition = .animated(duration: 0.45, curve: .spring)
+                if let switchToId = applyNodeAsCurrent, let itemNode = self.itemNodes[switchToId] {
+                    self.applyItemNodeAsCurrent(id: switchToId, itemNode: itemNode)
+                }
                 self.disableItemNodeOperationsWhileAnimating = true
                 self.update(layout: layout, navigationBarHeight: navigationBarHeight, visualNavigationHeight: visualNavigationHeight, originalNavigationHeight: originalNavigationHeight, cleanNavigationBarHeight: cleanNavigationBarHeight, insets: insets, isReorderingFilters: isReorderingFilters, isEditing: isEditing, inlineNavigationLocation: inlineNavigationLocation, inlineNavigationTransitionFraction: inlineNavigationTransitionFraction, storiesInset: storiesInset, transition: transition)
                 DispatchQueue.main.async {
@@ -756,10 +759,6 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
                     if let (layout, navigationBarHeight, visualNavigationHeight, originalNavigationHeight, cleanNavigationBarHeight, insets, isReorderingFilters, isEditing, inlineNavigationLocation, inlineNavigationTransitionFraction, storiesInset) = self.validLayout {
                         self.update(layout: layout, navigationBarHeight: navigationBarHeight, visualNavigationHeight: visualNavigationHeight, originalNavigationHeight: originalNavigationHeight, cleanNavigationBarHeight: cleanNavigationBarHeight, insets: insets, isReorderingFilters: isReorderingFilters, isEditing: isEditing, inlineNavigationLocation: inlineNavigationLocation, inlineNavigationTransitionFraction: inlineNavigationTransitionFraction, storiesInset: storiesInset, transition: .immediate)
                     }
-                }
-                                    
-                if let switchToId = applyNodeAsCurrent, let itemNode = self.itemNodes[switchToId] {
-                    self.applyItemNodeAsCurrent(id: switchToId, itemNode: itemNode)
                 }
                 self.isSwitchingCurrentItemFilterByDragging = false
                 self.currentItemFilterUpdated?(self.currentItemFilter, self.transitionFraction, transition, false)
@@ -922,7 +921,7 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
                 }, openArchiveSettings: { [weak self] in
                     self?.openArchiveSettings()
                 }, autoSetReady: !animated, isMainTab: index == 0)
-                itemNode.listNode.isActiveForFolderPagination = false
+                itemNode.listNode.pauseFolderPagination()
                 self.pendingItemNode?.2.dispose()
                 let disposable = MetaDisposable()
                 self.pendingItemNode = (id, itemNode, disposable)
@@ -1078,7 +1077,7 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
                         self?.openArchiveSettings()
                     }, autoSetReady: false, isMainTab: i == 0)
                     itemNode.listNode.tempTopInset = self.tempTopInset
-                    itemNode.listNode.isActiveForFolderPagination = false
+                    itemNode.listNode.pauseFolderPagination()
                     self.itemNodes[id] = itemNode
                 }
             }
@@ -1117,7 +1116,11 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
                 }
                 
                 itemNode.listNode.isMainTab.set(self.availableFilters.firstIndex(where: { $0.id == id }) == 0)
-                itemNode.listNode.isActiveForFolderPagination = (id == self.selectedId)
+                if id == self.selectedId {
+                    itemNode.listNode.activateFolderPagination()
+                } else {
+                    itemNode.listNode.pauseFolderPagination()
+                }
                 itemNode.updateLayout(size: layout.size, insets: insets, visualNavigationHeight: visualNavigationHeight, originalNavigationHeight: originalNavigationHeight, inlineNavigationLocation: inlineNavigationLocation, inlineNavigationTransitionFraction: itemInlineNavigationTransitionFraction, storiesInset: storiesInset, transition: nodeTransition)
                 if let scrollingOffset = self.scrollingOffset {
                     itemNode.updateScrollingOffset(navigationHeight: scrollingOffset.navigationHeight, offset: scrollingOffset.offset, transition: nodeTransition)
@@ -1138,6 +1141,7 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
             if !self.disableItemNodeOperationsWhileAnimating {
                 for id in removeIds {
                     if let itemNode = self.itemNodes.removeValue(forKey: id) {
+                        itemNode.listNode.deactivateFolderPagination()
                         itemNode.removeFromSupernode()
                     }
                 }
@@ -1154,6 +1158,7 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
             }
             for id in removeIds {
                 if let itemNode = self.itemNodes.removeValue(forKey: id) {
+                    itemNode.listNode.deactivateFolderPagination()
                     itemNode.removeFromSupernode()
                 }
             }

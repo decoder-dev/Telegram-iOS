@@ -1304,7 +1304,7 @@ public final class ChatListNode: ListViewImpl {
     private var chatListLocationGeneration: Int = 0
     /// Defaults to false. Only the visible folder tab (or standalone lists that opt in) may paginate;
     /// adjacent preloaded tabs must stay false or background pagination corrupts their item state.
-    var isActiveForFolderPagination: Bool = false
+    private(set) var isActiveForFolderPagination: Bool = false
     public private(set) var chatListFilter: ChatListFilter? {
         didSet {
             self.chatListFilterValue.set(.single(self.chatListFilter))
@@ -3838,6 +3838,11 @@ public final class ChatListNode: ListViewImpl {
         self.isActiveForFolderPagination = true
     }
     
+    /// Flip pagination off without resetting scroll location. Used from layout passes on off-screen tabs.
+    func pauseFolderPagination() {
+        self.isActiveForFolderPagination = false
+    }
+    
     public func deactivateFolderPagination() {
         self.isActiveForFolderPagination = false
         if case .navigation = self.currentLocation {
@@ -3846,7 +3851,7 @@ public final class ChatListNode: ListViewImpl {
     }
     
     func reconcileLocationOnTabActivation() {
-        self.isActiveForFolderPagination = true
+        self.activateFolderPagination()
         if case .navigation = self.currentLocation {
             self.setChatListLocation(.initial(count: 50, filter: self.chatListFilter))
         }
