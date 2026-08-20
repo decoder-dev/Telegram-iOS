@@ -3510,11 +3510,12 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         
         transition.updateTransformScale(node: self.mediaActionButtons, scale: CGPoint(x: mediaActionsScale, y: mediaActionsScale))
         
-        // Send must sit above mic in the shared slot so hits reach the blue disc; mic above when empty.
-        if sendOccupiesActionSlot {
-            self.glassBackgroundContainer.contentView.insertSubview(self.sendActionButtons.view, aboveSubview: self.mediaActionButtons.view)
-        } else if !isMediaRecording {
+        // Send must sit above mic in the shared slot so hits reach the blue disc; mic above when
+        // empty or while recording (lock/stop live on the media node).
+        if isMediaRecording || !sendOccupiesActionSlot {
             self.glassBackgroundContainer.contentView.insertSubview(self.mediaActionButtons.view, aboveSubview: self.sendActionButtons.view)
+        } else {
+            self.glassBackgroundContainer.contentView.insertSubview(self.sendActionButtons.view, aboveSubview: self.mediaActionButtons.view)
         }
         
         if let (rect, containerSize) = self.absoluteRect {
