@@ -6,6 +6,19 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3889-pre] — 2026-08-20
+
+Pre-release: composer measure/wrap fix, full-bleed separators, media bubble rule, password fields.
+
+### Fixed
+- **Composer:** высота поля считается с тем же right inset, что и layout (текст и рост панели снова вместе); `updateTextHeight` / `updateLayout` — одна формула ширины; business-link не резервирует пустой attach-слот.
+- **Folders:** selection pill index bound к `selectionFrames`.
+- **Lists:** separators в chat/Calls/Contacts до правого края.
+- **Night:** cloud-password / free input fields снова `#1C1C1E` (не чёрное на чёрном); placeholder `#636366`.
+
+### Changed
+- **Media bubbles:** рамка вокруг фото не зависит от wallpaper — только если нужен header (reply/author); иначе floating date.
+
 ## [v12.9.2-3888-pre] — 2026-08-20
 
 Pre-release: Messages composer + follow-up polish (Calls column, contrast, icons).
