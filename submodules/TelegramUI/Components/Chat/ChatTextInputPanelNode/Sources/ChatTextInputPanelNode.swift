@@ -232,6 +232,16 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
     public let textPlaceholderNode: ImmediateTextNodeWithEntities
     
     private let glassBackgroundContainer: GlassBackgroundContainerView
+
+    /// The mic's rect while it actually occupies the shared right-hand action slot, or nil when
+    /// send owns that slot (or the slot is parked off-screen for search/slowmode).
+    ///
+    /// `frameForInputActionButton()` cannot read `mediaActionButtons.frame` for this any more.
+    /// The mic used to be moved to `width + 8` when send took over, so a bounds check was enough;
+    /// it now stays in place and is collapsed with a scale transform, which makes its `frame`
+    /// degenerate to a sub-point rect at the slot centre — still inside the bounds, so the old
+    /// check passed and tooltips anchored to an invisible control.
+    private var mediaActionButtonsSlotFrame: CGRect?
     
     public var textLockIconNode: ASImageNode?
     public var contextPlaceholderNode: TextNode?
@@ -3501,8 +3511,9 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         // Same slot as mic: outside the capsule with a 6 pt gap (Messages). Scale morphs in place.
         let sendActionButtonsFrame = CGRect(origin: CGPoint(x: textInputContainerBackgroundFrame.maxX + 6.0, y: composerControlsBaselineY - sendActionButtonsSize.height), size: sendActionButtonsSize)
         
+        let micOccupiesActionSlot = !(sendOccupiesActionSlot || self.extendedSearchLayout || hasSlowmodeButton)
         let sendActionsScale: CGFloat = sendOccupiesActionSlot ? 1.0 : 0.001
-        let mediaActionsScale: CGFloat = (sendOccupiesActionSlot || self.extendedSearchLayout || hasSlowmodeButton) ? 0.001 : 1.0
+        let mediaActionsScale: CGFloat = micOccupiesActionSlot ? 1.0 : 0.001
         
         transition.updateTransformScale(node: self.sendActionButtons, scale: CGPoint(x: sendActionsScale, y: sendActionsScale))
         transition.updatePosition(node: self.sendActionButtons, position: sendActionButtonsFrame.center)
@@ -3510,12 +3521,18 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         
         transition.updateTransformScale(node: self.mediaActionButtons, scale: CGPoint(x: mediaActionsScale, y: mediaActionsScale))
         
+        self.mediaActionButtonsSlotFrame = micOccupiesActionSlot ? mediaActionButtonsFrame : nil
+        
         // Send must sit above mic in the shared slot so hits reach the blue disc; mic above when
-        // empty or while recording (lock/stop live on the media node).
-        if isMediaRecording || !sendOccupiesActionSlot {
-            self.glassBackgroundContainer.contentView.insertSubview(self.mediaActionButtons.view, aboveSubview: self.sendActionButtons.view)
-        } else {
-            self.glassBackgroundContainer.contentView.insertSubview(self.sendActionButtons.view, aboveSubview: self.mediaActionButtons.view)
+        // empty or while recording (lock/stop live on the media node). Only reorder when the two
+        // are actually inverted: this runs on every layout pass, and an unconditional
+        // `insertSubview` re-indexes the view on every keystroke for nothing.
+        let actionSlotContentView = self.glassBackgroundContainer.contentView
+        let micBelongsOnTop = isMediaRecording || !sendOccupiesActionSlot
+        let actionSlotTopView = micBelongsOnTop ? self.mediaActionButtons.view : self.sendActionButtons.view
+        let actionSlotBottomView = micBelongsOnTop ? self.sendActionButtons.view : self.mediaActionButtons.view
+        if let topIndex = actionSlotContentView.subviews.firstIndex(of: actionSlotTopView), let bottomIndex = actionSlotContentView.subviews.firstIndex(of: actionSlotBottomView), topIndex < bottomIndex {
+            actionSlotContentView.insertSubview(actionSlotTopView, aboveSubview: actionSlotBottomView)
         }
         
         if let (rect, containerSize) = self.absoluteRect {
@@ -5874,10 +5891,10 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
     }
     
     public func frameForInputActionButton() -> CGRect? {
-        if !self.mediaActionButtons.alpha.isZero && self.mediaActionButtons.frame.minX < self.bounds.width {
-            return self.mediaActionButtons.frame.insetBy(dx: 0.0, dy: -4.0)
+        guard let slotFrame = self.mediaActionButtonsSlotFrame, !self.mediaActionButtons.alpha.isZero else {
+            return nil
         }
-        return nil
+        return slotFrame.insetBy(dx: 0.0, dy: -4.0)
     }
     
     public func frameForStickersButton() -> CGRect? {

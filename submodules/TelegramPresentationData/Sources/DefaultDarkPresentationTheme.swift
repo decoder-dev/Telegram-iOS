@@ -146,6 +146,10 @@ public func customizeDefaultDarkPresentationTheme(theme: PresentationTheme, edit
     var outgoingLinkTextColor: UIColor?
     var outgoingScamColor: UIColor?
     var outgoingCheckColor: UIColor?
+    // Kept apart from `outgoingSecondaryTextColor`: the waveform's unplayed part is a graphic that
+    // reads by its distance from the played part, so it stays dim even though secondary *text* was
+    // brightened for legibility on the pinned #007AFF bubble.
+    var outgoingInactiveControlColor: UIColor?
    
     if !bubbleColors.isEmpty {
         var topBubbleColor = UIColor(rgb: bubbleColors[0])
@@ -169,12 +173,18 @@ public func customizeDefaultDarkPresentationTheme(theme: PresentationTheme, edit
         if lightnessColor.lightness > 0.735 {
             outgoingPrimaryTextColor = UIColor(rgb: 0x000000)
             outgoingSecondaryTextColor = UIColor(rgb: 0x000000, alpha: 0.5)
+            outgoingInactiveControlColor = UIColor(rgb: 0x000000, alpha: 0.5)
             outgoingLinkTextColor = UIColor(rgb: 0x000000)
             outgoingScamColor = UIColor(rgb: 0x000000)
             outgoingCheckColor = UIColor(rgb: 0x000000, alpha: 0.5)
         } else {
             outgoingPrimaryTextColor = UIColor(rgb: 0xffffff)
-            outgoingSecondaryTextColor = UIColor(rgb: 0xffffff, alpha: 0.5)
+            // 0.8, not the stock 0.5: that alpha was tuned against the stock outgoing bubble,
+            // which is darker. The fork pins the bubble to #007AFF, where white at 0.5 lands at
+            // 2.02:1 and the timestamp stops being readable. 0.8 puts it at 3.08:1 while still
+            // reading as secondary next to the 1.0 primary text.
+            outgoingSecondaryTextColor = UIColor(rgb: 0xffffff, alpha: 0.8)
+            outgoingInactiveControlColor = UIColor(rgb: 0xffffff, alpha: 0.5)
             outgoingLinkTextColor = UIColor(rgb: 0xffffff)
             outgoingScamColor = UIColor(rgb: 0xffffff)
             outgoingCheckColor = UIColor(rgb: 0xffffff)
@@ -268,7 +278,7 @@ public func customizeDefaultDarkPresentationTheme(theme: PresentationTheme, edit
                 accentTextColor: outgoingPrimaryTextColor,
                 accentControlColor: outgoingPrimaryTextColor,
                 mediaActiveControlColor: outgoingPrimaryTextColor,
-                mediaInactiveControlColor: outgoingSecondaryTextColor,
+                mediaInactiveControlColor: outgoingInactiveControlColor,
                 mediaControlInnerBackgroundColor: outgoingBubbleFillColors?.first,
                 pendingActivityColor: outgoingSecondaryTextColor,
                 fileTitleColor: outgoingPrimaryTextColor,
@@ -431,8 +441,10 @@ public func makeDefaultDarkPresentationTheme(extendingThemeReference: Presentati
         itemBlocksBackgroundColor: UIColor(rgb: 0x1c1c1e),
         itemModalBlocksBackgroundColor: UIColor(rgb: 0x1c1c1e),
         itemHighlightedBackgroundColor: UIColor(rgb: 0x2C2C2E),
-        itemBlocksSeparatorColor: UIColor(rgb: 0x545458, alpha: 0.55),
-        itemPlainSeparatorColor: UIColor(rgb: 0x545458, alpha: 0.55),
+        // 0.8, not Apple's 0.55. That value assumes a #1C1C1E ground; this theme puts plain lists
+        // and the chat list on pure black, where 0.55 falls to 1.55:1 and the hairline disappears.
+        itemBlocksSeparatorColor: UIColor(rgb: 0x545458, alpha: 0.8),
+        itemPlainSeparatorColor: UIColor(rgb: 0x545458, alpha: 0.8),
         disclosureArrowColor: UIColor(rgb: 0xffffff, alpha: 0.28),
         sectionHeaderTextColor: UIColor(rgb: 0x8E8E93),
         freeTextColor: UIColor(rgb: 0x8E8E93),
@@ -485,7 +497,7 @@ public func makeDefaultDarkPresentationTheme(extendingThemeReference: Presentati
 
     let chatList = PresentationThemeChatList(
         backgroundColor: UIColor(rgb: 0x000000),
-        itemSeparatorColor: UIColor(rgb: 0x545458, alpha: 0.55),
+        itemSeparatorColor: UIColor(rgb: 0x545458, alpha: 0.8),
         itemBackgroundColor: UIColor(rgb: 0x000000),
         pinnedItemBackgroundColor: UIColor(rgb: 0x000000),
         itemHighlightedBackgroundColor: UIColor(rgb: 0x2C2C2E),

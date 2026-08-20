@@ -63,6 +63,18 @@ private func callListNeighbors(item: ListViewItem, topItem: ListViewItem?, botto
     return ItemListNeighbors(top: topNeighbor, bottom: bottomNeighbor)
 }
 
+/// Width of the glyph column left of the avatar in every Calls row.
+///
+/// `CallListCallItem` draws a 20 pt direction arrow there and `CallListGroupCallItem` a 22 pt
+/// voice-chat indicator, and both kinds of row appear in the same list. Reserving the space
+/// per-row — only when a glyph is actually present, or at each glyph's own width — gave incoming
+/// calls, outgoing calls and group calls three different avatar origins (16, 42 and 44 pt), so the
+/// avatars no longer formed a column. One slot, reserved unconditionally by both items, with each
+/// glyph centred inside it.
+let callListTypeIconSlotWidth: CGFloat = 22.0
+/// Gap between that slot and the avatar.
+let callListTypeIconSlotSpacing: CGFloat = 6.0
+
 class CallListCallItem: ListViewItem {
     let presentationData: ItemListPresentationData
     let systemStyle: ItemListSystemStyle
@@ -346,7 +358,7 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
                 editingOffset = 0.0
             }
             
-            var leftInset: CGFloat = 16.0 + avatarDiameter + 12.0 + params.leftInset + higCardInset
+            var leftInset: CGFloat = 16.0 + callListTypeIconSlotWidth + callListTypeIconSlotSpacing + avatarDiameter + 12.0 + params.leftInset + higCardInset
             let rightInset: CGFloat = 13.0 + params.rightInset + higCardInset
             var infoIconRightInset: CGFloat = rightInset - 1.0
             
@@ -461,13 +473,6 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
                         break inner
                     }
                 }
-            }
-            
-            // Reserve a slot left of the avatar for the outgoing type icon. The 52 pt avatar sits at
-            // x=16; without this the icon is clamped into that 16 pt margin and overlaps the photo.
-            if hasOutgoing {
-                let typeIconWidth = PresentationResourcesCallList.outgoingIcon(item.presentationData.theme)?.size.width ?? 20.0
-                leftInset += typeIconWidth + 6.0
             }
             
             if let peer = item.topMessage.peers[item.topMessage.id.peerId] {
@@ -769,10 +774,9 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
                                 if strongSelf.typeIconNode.image !== outgoingIcon {
                                     strongSelf.typeIconNode.image = outgoingIcon
                                 }
-                                // Space for the icon is reserved in leftInset when hasOutgoing; place
-                                // it flush left of the avatar with a 6 pt gap — never clamp into the
-                                // avatar's own margin.
-                                let typeIconOrigin = CGPoint(x: avatarFrame.minX - 6.0 - outgoingIcon.size.width, y: floor(avatarFrame.midY - outgoingIcon.size.height / 2.0))
+                                // The slot is always reserved in leftInset; centre the glyph in it
+                                // so a 20 pt arrow and a 22 pt group indicator share one column.
+                                let typeIconOrigin = CGPoint(x: avatarFrame.minX - callListTypeIconSlotSpacing - callListTypeIconSlotWidth + floor((callListTypeIconSlotWidth - outgoingIcon.size.width) / 2.0), y: floor(avatarFrame.midY - outgoingIcon.size.height / 2.0))
                                 transition.updateFrameAdditive(node: strongSelf.typeIconNode, frame: CGRect(origin: typeIconOrigin, size: outgoingIcon.size))
                             }
                             strongSelf.typeIconNode.isHidden = !hasOutgoing
@@ -877,10 +881,7 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
             // Matches the chat list, which dropped this inset: a 16 pt card here left white
             // stripes down both sides of Calls and Contacts while chats ran full width.
             let higCardInset: CGFloat = 0.0
-            var leftInset: CGFloat = 16.0 + avatarDiameter + 12.0 + params.leftInset + higCardInset + editingOffset
-            if !self.typeIconNode.isHidden, let outgoingIcon = self.typeIconNode.image {
-                leftInset += outgoingIcon.size.width + 6.0
-            }
+            let leftInset: CGFloat = 16.0 + callListTypeIconSlotWidth + callListTypeIconSlotSpacing + avatarDiameter + 12.0 + params.leftInset + higCardInset + editingOffset
             let rightInset: CGFloat = 13.0 + params.rightInset + higCardInset
             var infoIconRightInset: CGFloat = rightInset - 1.0
             
@@ -906,16 +907,10 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
             
             transition.updateFrameAdditive(node: self.dateNode, frame: CGRect(origin: CGPoint(x: editingOffset + revealOffset + self.bounds.size.width - dateRightInset - self.dateNode.bounds.size.width, y: self.dateNode.frame.minY), size: self.dateNode.bounds.size))
             
-            // Same reserved-slot rule as the layout closure: place left of the avatar, no clamp.
-            if let outgoingIcon = self.typeIconNode.image {
-                let typeIconOrigin = CGPoint(x: avatarFrame.minX - 6.0 - outgoingIcon.size.width, y: floor(avatarFrame.midY - outgoingIcon.size.height / 2.0))
-                transition.updateFrameAdditive(node: self.typeIconNode, frame: CGRect(origin: typeIconOrigin, size: outgoingIcon.size))
-            } else {
-                var typeIconFrame = self.typeIconNode.frame
-                typeIconFrame.origin.x = avatarFrame.minX - 6.0 - typeIconFrame.width
-                typeIconFrame.origin.y = floor(avatarFrame.midY - typeIconFrame.height / 2.0)
-                transition.updateFrameAdditive(node: self.typeIconNode, frame: typeIconFrame)
-            }
+            // Same reserved-slot rule as the layout closure: centred in the slot, never clamped.
+            let typeIconSize = self.typeIconNode.image?.size ?? self.typeIconNode.frame.size
+            let typeIconOrigin = CGPoint(x: avatarFrame.minX - callListTypeIconSlotSpacing - callListTypeIconSlotWidth + floor((callListTypeIconSlotWidth - typeIconSize.width) / 2.0), y: floor(avatarFrame.midY - typeIconSize.height / 2.0))
+            transition.updateFrameAdditive(node: self.typeIconNode, frame: CGRect(origin: typeIconOrigin, size: typeIconSize))
                         
             transition.updateFrameAdditive(node: self.infoButtonNode, frame: CGRect(origin: CGPoint(x: revealOffset + self.bounds.size.width - infoIconRightInset - self.infoButtonNode.bounds.width, y: self.infoButtonNode.frame.minY), size: self.infoButtonNode.bounds.size))
         }

@@ -99,7 +99,7 @@ private final class OverlayStatusControllerNode: ViewControllerTracingNode {
                 self.contentController = .genericSuccess(controller, increasedDelay)
                 isUserInteractionEnabled = false
             case let .starSuccess(text):
-                self.contentController = .genericSuccess(ProxyWindowController(light: style == .light, text: text, icon: UIImage(bundleImageName: "Star"), isShield: false, showCheck: false), false)
+                self.contentController = .genericSuccess(ProxyWindowController(light: style == .light, text: text, icon: UIImage(bundleImageName: "Call/Star"), isShield: false, showCheck: false), false)
         }
         
         super.init()

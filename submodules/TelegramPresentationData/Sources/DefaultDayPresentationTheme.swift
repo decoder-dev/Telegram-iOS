@@ -243,12 +243,18 @@ public func customizeDefaultDayTheme(theme: PresentationTheme, editing: Bool, ti
             }
         } else {
             outgoingPrimaryTextColor = UIColor(rgb: 0xffffff)
-            outgoingSecondaryTextColor = UIColor(rgb: 0xffffff, alpha: 0.65)
+            // 0.8, not the stock 0.65: that alpha was tuned against the stock outgoing bubble,
+            // which is darker. The fork pins the bubble to #007AFF, where white at 0.65 lands at
+            // 2.50:1 and the timestamp stops being readable. 0.8 puts it at 3.08:1 while still
+            // reading as secondary next to the 1.0 primary text.
+            outgoingSecondaryTextColor = UIColor(rgb: 0xffffff, alpha: 0.8)
             outgoingAccentTextColor = outgoingPrimaryTextColor
             outgoingLinkTextColor = UIColor(rgb: 0xffffff)
             outgoingScamColor = outgoingPrimaryTextColor
             outgoingControlColor = outgoingPrimaryTextColor
-            outgoingInactiveControlColor = outgoingSecondaryTextColor
+            // Left at the old 0.65: the waveform's unplayed part is a graphic that reads by its
+            // distance from the played part, not by absolute legibility.
+            outgoingInactiveControlColor = UIColor(rgb: 0xffffff, alpha: 0.65)
             outgoingPendingActivityColor = outgoingSecondaryTextColor
             outgoingFileTitleColor = outgoingPrimaryTextColor
             outgoingFileDescriptionColor = outgoingSecondaryTextColor

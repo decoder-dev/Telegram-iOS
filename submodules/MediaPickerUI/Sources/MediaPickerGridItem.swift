@@ -18,6 +18,28 @@ import MediaEditor
 import RadialStatusNode
 import MediaAssetsContext
 
+/// Video / slo-mo / time-lapse badges for the picker grid.
+///
+/// The four call sites below used to ask for `Media Editor/MediaVideo`, `…/MediaSlomo` and
+/// `…/MediaTimelapse`. No imageset by any of those names ships in the app — the only `MediaVideo`
+/// in the tree belongs to the watchOS target — so every video thumbnail rendered its duration with
+/// an empty 19 pt square where the glyph belongs. These are the same three symbols Photos itself
+/// uses for the same three subtypes, so take them from SF Symbols instead of inventing artwork.
+private enum MediaTypeBadge: String {
+    case video = "video.fill"
+    case slomo = "slowmo"
+    case timelapse = "timelapse"
+}
+
+/// Sized to sit inside the 19×19 `typeIconNode`, which centres whatever it is given. Returned
+/// already tinted white and `.alwaysOriginal`, because that node draws with
+/// `displayWithoutProcessing` and so applies no tint of its own.
+private func mediaTypeBadgeImage(_ badge: MediaTypeBadge) -> UIImage? {
+    let configuration = UIImage.SymbolConfiguration(pointSize: 12.0, weight: .semibold)
+    return UIImage(systemName: badge.rawValue, withConfiguration: configuration)?
+        .withTintColor(.white, renderingMode: .alwaysOriginal)
+}
+
 private let leftShadowImage: UIImage = {
     let baseImage = UIImage(bundleImageName: "Peer Info/MediaGridShadow")!
     let image = generateImage(baseImage.size, rotatedContext: { size, context in
@@ -370,7 +392,7 @@ final class MediaPickerGridItemNode: GridItemNode {
             }
             
             if draft.isVideo {
-                self.typeIconNode.image = UIImage(bundleImageName: "Media Editor/MediaVideo")
+                self.typeIconNode.image = mediaTypeBadgeImage(.video)
                 
                 self.durationNode.attributedText = NSAttributedString(string: stringForDuration(Int32(draft.duration ?? 0.0)), font: Font.semibold(11.0), textColor: .white)
                 
@@ -556,11 +578,11 @@ final class MediaPickerGridItemNode: GridItemNode {
             var duration: String?
             if asset.mediaType == .video {
                 if asset.mediaSubtypes.contains(.videoHighFrameRate) {
-                    typeIcon = UIImage(bundleImageName: "Media Editor/MediaSlomo")
+                    typeIcon = mediaTypeBadgeImage(.slomo)
                 } else if asset.mediaSubtypes.contains(.videoTimelapse) {
-                    typeIcon = UIImage(bundleImageName: "Media Editor/MediaTimelapse")
+                    typeIcon = mediaTypeBadgeImage(.timelapse)
                 } else {
-                    typeIcon = UIImage(bundleImageName: "Media Editor/MediaVideo")
+                    typeIcon = mediaTypeBadgeImage(.video)
                 }
                 duration = stringForDuration(Int32(asset.duration))
             } else {
