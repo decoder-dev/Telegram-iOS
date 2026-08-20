@@ -7,12 +7,9 @@
 ## [Unreleased]
 
 ### Changed
-- **Composer:** translucent theme-driven fill (`inputBackgroundColor`), capsule height back in line with 40pt buttons (insets 5/4). Dark: `#1C1C1E` @ 90%.
-- **Профиль:** OLED card redesign откатан; action buttons — icon circles в отдельной карточке под шапкой (theme colours, light+dark).
-
-### Fixed
-- **Папки (корень бага):** apply-time staleness guard в `dequeueTransition` убран — transition это diff против `previousView`, который уже advanced на бэкграунде; skip apply оставлял UI на N−1 при следующем diff N→N+1 → дубли/дыры. Staleness только в `mapToQueue` (до `previousView.swap`). Убраны location-reset на switch in/out. Остаётся только pagination gate в `displayedItemRangeChanged`.
-- Разделены `pauseFolderPagination()` / `deactivateFolderPagination()`; pan-switch: `applyItemNodeAsCurrent` до `update()`; eviction cleanup.
+- **Профиль:** action-button card откатан — снова stock header с подписями.
+- **Dark theme:** grouped cards / search fields `#1C1C1E` вместо `#000` (Settings/профиль/поиск снова видны на OLED-фоне).
+- **Composer:** translucent theme-driven fill; capsule height aligned with 40pt buttons.
 
 ## [v12.9.2-3881-pre] — 2026-08-19
 
