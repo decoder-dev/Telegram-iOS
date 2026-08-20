@@ -708,13 +708,10 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         self.presentationInterfaceState = presentationInterfaceState
         self.presentationContext = presentationContext
         
-        // 5/4, not 8/8. These two numbers plus `calclulateTextFieldMinHeight` (36 at the default font
-        // size) are the whole capsule height: 8/8 made it 52 pt next to 40 pt round buttons, so the
-        // field sat visibly taller and higher than the attachment and mic it is supposed to line up
-        // with. 5/4 puts it at 45 pt — a touch taller than the buttons, which is the proportion the
-        // reference shows. The 1 pt asymmetry is deliberate and carries the text baseline; it is the
-        // split this panel used before the capsule was resized.
-        self.textInputViewInternalInsets = UIEdgeInsets(top: 5.0, left: 12.0, bottom: 4.0, right: 11.0)
+        // Capsule height = textFieldMinHeight (36) + vertical insets. Side circles are 40×40, so the
+        // capsule must also be 40 — anything taller bottom-flushes the buttons and makes the field
+        // sit above the attachment/mic baseline. 2/2 is the Messages proportion.
+        self.textInputViewInternalInsets = UIEdgeInsets(top: 2.0, left: 12.0, bottom: 2.0, right: 11.0)
 
         var hasSpoilers = true
         var hasQuotes = true
@@ -1504,8 +1501,8 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
     
     override public func minimalHeight(interfaceState: ChatPresentationInterfaceState, metrics: LayoutMetrics) -> CGFloat {
         let textFieldMinHeight = calclulateTextFieldMinHeight(interfaceState, metrics: metrics)
-        // iMessage: 8pt top + 8pt bottom around the field capsule
-        let minimalHeight: CGFloat = 16.0 + textFieldMinHeight
+        // Must match panelHeight(textFieldHeight:) for the empty field — same vertical insets.
+        let minimalHeight: CGFloat = textFieldMinHeight + self.textInputViewInternalInsets.top + self.textInputViewInternalInsets.bottom
         return minimalHeight
     }
 

@@ -1540,7 +1540,7 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
                                     environment: {},
                                     containerSize: CGSize(width: 32.0, height: 32.0)
                                 )
-                                transition.updateFrame(view: avatarIconView, frame: CGRect(origin: CGPoint(x: revealOffset + leftInset - 43.0, y: floor((nodeLayout.contentSize.height - iconSize.height) / 2.0)), size: iconSize))
+                                transition.updateFrame(view: avatarIconView, frame: CGRect(origin: CGPoint(x: avatarFrame.minX + floor((avatarFrame.width - iconSize.width) / 2.0), y: floor((nodeLayout.contentSize.height - iconSize.height) / 2.0)), size: iconSize))
 
                                 strongSelf.avatarNodeContainer.isHidden = true
                             } else if let avatarIconView = strongSelf.avatarIconView {

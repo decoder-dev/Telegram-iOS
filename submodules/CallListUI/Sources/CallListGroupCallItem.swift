@@ -299,7 +299,10 @@ class CallListGroupCallItemNode: ItemListRevealOptionsItemNode {
                 editingOffset = 0.0
             }
             
-            var leftInset: CGFloat = 16.0 + avatarDiameter + 12.0 + params.leftInset + higCardInset
+            // Voice-chat indicator sits left of the 52 pt avatar. Reserve its slot in leftInset —
+            // without it a clamp pins the 22 pt glyph into the 16 pt margin and under the photo.
+            let indicatorSize: CGFloat = 22.0
+            var leftInset: CGFloat = 16.0 + indicatorSize + 6.0 + avatarDiameter + 12.0 + params.leftInset + higCardInset
             let rightInset: CGFloat = 13.0 + params.rightInset + higCardInset
             var infoIconRightInset: CGFloat = rightInset
             
@@ -419,9 +422,8 @@ class CallListGroupCallItemNode: ItemListRevealOptionsItemNode {
                             let avatarFrame = CGRect(origin: CGPoint(x: revealOffset + leftInset - avatarDiameter - 12.0, y: floor((contentSize.height - avatarDiameter) / 2.0)), size: CGSize(width: avatarDiameter, height: avatarDiameter))
                             transition.updateFrameAdditive(node: strongSelf.avatarNode, frame: avatarFrame)
                             
-                            strongSelf.indicatorNode.color = item.presentationData.theme.chatList.checkmarkColor
-                            let indicatorSize: CGFloat = 22.0
-                            transition.updateFrameAdditive(node: strongSelf.indicatorNode, frame: CGRect(origin: CGPoint(x: max(higCardInset + 2.0, avatarFrame.minX - 6.0 - indicatorSize), y: floor(avatarFrame.midY - indicatorSize / 2.0)), size: CGSize(width: indicatorSize, height: indicatorSize)))
+                            strongSelf.indicatorNode.color = item.presentationData.theme.list.itemAccentColor
+                            transition.updateFrameAdditive(node: strongSelf.indicatorNode, frame: CGRect(origin: CGPoint(x: avatarFrame.minX - 6.0 - indicatorSize, y: floor(avatarFrame.midY - indicatorSize / 2.0)), size: CGSize(width: indicatorSize, height: indicatorSize)))
                             
                             let _ = titleApply()
                             transition.updateFrameAdditive(node: strongSelf.titleNode, frame: CGRect(origin: CGPoint(x: revealOffset + leftInset, y: verticalInset), size: titleLayout.size))

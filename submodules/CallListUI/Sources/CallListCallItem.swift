@@ -463,6 +463,13 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
                 }
             }
             
+            // Reserve a slot left of the avatar for the outgoing type icon. The 52 pt avatar sits at
+            // x=16; without this the icon is clamped into that 16 pt margin and overlaps the photo.
+            if hasOutgoing {
+                let typeIconWidth = PresentationResourcesCallList.outgoingIcon(item.presentationData.theme)?.size.width ?? 20.0
+                leftInset += typeIconWidth + 6.0
+            }
+            
             if let peer = item.topMessage.peers[item.topMessage.id.peerId] {
                 if conferenceAvatars.count > 1 {
                     var peersString = ""
@@ -762,11 +769,10 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
                                 if strongSelf.typeIconNode.image !== outgoingIcon {
                                     strongSelf.typeIconNode.image = outgoingIcon
                                 }
-                                // `revealOffset` applies to the card-inset floor only. `avatarFrame.minX`
-                                // already carries it (see where avatarFrame is built), so adding it
-                                // outside the max counted it twice and slid the icon at double the
-                                // row's speed during a reveal swipe — invisible at rest, wrong mid-swipe.
-                                let typeIconOrigin = CGPoint(x: max(revealOffset + higCardInset + 2.0, avatarFrame.minX - 6.0 - outgoingIcon.size.width), y: floor(avatarFrame.midY - outgoingIcon.size.height / 2.0))
+                                // Space for the icon is reserved in leftInset when hasOutgoing; place
+                                // it flush left of the avatar with a 6 pt gap — never clamp into the
+                                // avatar's own margin.
+                                let typeIconOrigin = CGPoint(x: avatarFrame.minX - 6.0 - outgoingIcon.size.width, y: floor(avatarFrame.midY - outgoingIcon.size.height / 2.0))
                                 transition.updateFrameAdditive(node: strongSelf.typeIconNode, frame: CGRect(origin: typeIconOrigin, size: outgoingIcon.size))
                             }
                             strongSelf.typeIconNode.isHidden = !hasOutgoing
@@ -871,7 +877,10 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
             // Matches the chat list, which dropped this inset: a 16 pt card here left white
             // stripes down both sides of Calls and Contacts while chats ran full width.
             let higCardInset: CGFloat = 0.0
-            let leftInset: CGFloat = 16.0 + avatarDiameter + 12.0 + params.leftInset + higCardInset + editingOffset
+            var leftInset: CGFloat = 16.0 + avatarDiameter + 12.0 + params.leftInset + higCardInset + editingOffset
+            if !self.typeIconNode.isHidden, let outgoingIcon = self.typeIconNode.image {
+                leftInset += outgoingIcon.size.width + 6.0
+            }
             let rightInset: CGFloat = 13.0 + params.rightInset + higCardInset
             var infoIconRightInset: CGFloat = rightInset - 1.0
             
@@ -897,15 +906,13 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
             
             transition.updateFrameAdditive(node: self.dateNode, frame: CGRect(origin: CGPoint(x: editingOffset + revealOffset + self.bounds.size.width - dateRightInset - self.dateNode.bounds.size.width, y: self.dateNode.frame.minY), size: self.dateNode.bounds.size))
             
-            // Same double-count as in the layout closure: `avatarFrame` here is the frame just
-            // assigned above, which already includes `revealOffset`. Only the card-inset floor needs
-            // it added.
+            // Same reserved-slot rule as the layout closure: place left of the avatar, no clamp.
             if let outgoingIcon = self.typeIconNode.image {
-                let typeIconOrigin = CGPoint(x: max(revealOffset + higCardInset + 2.0, avatarFrame.minX - 6.0 - outgoingIcon.size.width), y: floor(avatarFrame.midY - outgoingIcon.size.height / 2.0))
+                let typeIconOrigin = CGPoint(x: avatarFrame.minX - 6.0 - outgoingIcon.size.width, y: floor(avatarFrame.midY - outgoingIcon.size.height / 2.0))
                 transition.updateFrameAdditive(node: self.typeIconNode, frame: CGRect(origin: typeIconOrigin, size: outgoingIcon.size))
             } else {
                 var typeIconFrame = self.typeIconNode.frame
-                typeIconFrame.origin.x = max(revealOffset + higCardInset + 2.0, avatarFrame.minX - 6.0 - typeIconFrame.width)
+                typeIconFrame.origin.x = avatarFrame.minX - 6.0 - typeIconFrame.width
                 typeIconFrame.origin.y = floor(avatarFrame.midY - typeIconFrame.height / 2.0)
                 transition.updateFrameAdditive(node: self.typeIconNode, frame: typeIconFrame)
             }
