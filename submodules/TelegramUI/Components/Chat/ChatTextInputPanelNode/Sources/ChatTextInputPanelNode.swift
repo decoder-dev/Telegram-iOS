@@ -1309,7 +1309,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         
         if let presentationInterfaceState = self.presentationInterfaceState {
             richTextInputNode.refreshTextInputTypingAttributes(textColor: presentationInterfaceState.theme.chat.inputPanel.primaryTextColor, baseFontSize: baseFontSize)
-            richTextInputNode.textContainerInset = calculateTextFieldRealInsets(presentationInterfaceState: presentationInterfaceState, accessoryButtonsWidth: accessoryButtonsWidth, actionControlsWidth: self.sendActionButtons.frame.width)
+            richTextInputNode.textContainerInset = calculateTextFieldRealInsets(presentationInterfaceState: presentationInterfaceState, accessoryButtonsWidth: accessoryButtonsWidth, actionControlsWidth: 0.0)
         }
         
         if let textInputNodeLayout = self.textInputNodeLayout, let richTextInputNode = self.richTextInputNode {
@@ -2613,7 +2613,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         }
         
         let baseWidth = width - leftInset - leftMenuInset - rightInset - rightSlowModeInset
-        let (accessoryButtonsWidth, textFieldHeight, isTextFieldOverflow) = self.calculateTextFieldMetrics(width: baseWidth, sendActionControlsWidth: sendActionButtonsSize.width, maxHeight: maxHeight, metrics: metrics, bottomInset: bottomInset, interfaceState: interfaceState)
+        let (accessoryButtonsWidth, textFieldHeight, isTextFieldOverflow) = self.calculateTextFieldMetrics(width: baseWidth, sendActionControlsWidth: 0.0, maxHeight: maxHeight, metrics: metrics, bottomInset: bottomInset, interfaceState: interfaceState)
         var panelHeight = self.panelHeight(textFieldHeight: textFieldHeight, metrics: metrics, bottomInset: bottomInset)
         if displayBotStartButton {
             panelHeight += 27.0
@@ -2652,19 +2652,25 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         if additionalSideInsets.right > 0.0 {
             textFieldInsets.right += additionalSideInsets.right / 3.0
         }
-        if inputHasText || self.extendedSearchLayout || hasMediaDraft || hasForward || hasSlowmodeButton || isEditingMedia {
+        // Always reserve the right action slot (mic OR send OR stars/live-mic). Capsule width must
+        // stay stable across mic↔send so the field does not jump when the first character appears;
+        // send sits outside the capsule with the same 6 pt gap as mic (Messages layout).
+        if self.extendedSearchLayout {
+            textFieldInsets.right = 8.0
+        } else if let customRightAction = self.customRightAction, case .empty = customRightAction {
+            textFieldInsets.right = 8.0
+        } else if hasSlowmodeButton {
+            // Slowmode control is laid out separately on the right edge.
+        } else if let starReactionButtonSize, let liveMicrophoneButtonSize {
+            textFieldInsets.right = 8.0 + starReactionButtonSize.width + 6.0 + liveMicrophoneButtonSize.width + 6.0
+        } else if let starReactionButtonSize {
+            textFieldInsets.right = 8.0 + starReactionButtonSize.width + 6.0
+        } else if let liveMicrophoneButtonSize {
+            textFieldInsets.right = 8.0 + liveMicrophoneButtonSize.width + 6.0
+        } else if inputHasText || hasMediaDraft || hasForward || isEditingMedia {
+            textFieldInsets.right = 8.0 + sendActionButtonsSize.width + 6.0
         } else {
-            if let customRightAction = self.customRightAction, case .empty = customRightAction {
-                textFieldInsets.right = 8.0
-            } else if let starReactionButtonSize, let liveMicrophoneButtonSize {
-                textFieldInsets.right = 14.0 + starReactionButtonSize.width + 6.0 + liveMicrophoneButtonSize.width
-            } else if let starReactionButtonSize {
-                textFieldInsets.right = 14.0 + starReactionButtonSize.width
-            } else if let liveMicrophoneButtonSize {
-                textFieldInsets.right = 14.0 + liveMicrophoneButtonSize.width + 6.0 + liveMicrophoneButtonSize.width
-            } else {
-                textFieldInsets.right = 54.0
-            }
+            textFieldInsets.right = 8.0 + mediaActionButtonsSize.width + 6.0
         }
         if mediaRecordingState != nil {
             textFieldInsets.left = 8.0
@@ -3028,16 +3034,10 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
 
         var textInputViewRealInsets = UIEdgeInsets()
         if let presentationInterfaceState = self.presentationInterfaceState {
-            // Only reserve the action-control slot on the right when the send button is actually shown
-            // (same condition that scales it in / shifts the accessory buttons below). When the input is
-            // empty the send button is hidden (scaled to ~0), so reserving its width over-insets the field;
-            // the right inset then only needs to clear the in-field accessory buttons.
-            let sendButtonShown = inputHasText || hasMediaDraft || hasForward || isEditingMedia
-            textInputViewRealInsets = calculateTextFieldRealInsets(presentationInterfaceState: presentationInterfaceState, accessoryButtonsWidth: accessoryButtonsWidth, actionControlsWidth: sendButtonShown ? effectiveActionButtonsSize.width : 0.0)
-            if !sendButtonShown {
-                // Empty state: the accessory-button clearance alone still over-insets slightly; trim 10pt more.
-                textInputViewRealInsets.right = max(0.0, textInputViewRealInsets.right - 10.0)
-            }
+            // Send/mic sit outside the capsule; only in-field accessories need right clearance.
+            textInputViewRealInsets = calculateTextFieldRealInsets(presentationInterfaceState: presentationInterfaceState, accessoryButtonsWidth: accessoryButtonsWidth, actionControlsWidth: 0.0)
+            // Accessory-button clearance alone still over-insets slightly; trim 10pt more.
+            textInputViewRealInsets.right = max(0.0, textInputViewRealInsets.right - 10.0)
         }
         
         var contentHeight: CGFloat = 0.0
@@ -3295,10 +3295,9 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         var nextButtonTopRight = CGPoint(x: textInputContainerBackgroundFrame.width - accessoryButtonInset, y: textInputContainerBackgroundFrame.height - accessoryControlSize)
         if self.extendedSearchLayout {
             nextButtonTopRight.x -= 46.0
-        } else if hasSlowmodeButton {
-        } else if inputHasText || hasMediaDraft || hasForward || isEditingMedia {
-            nextButtonTopRight.x -= sendActionButtonsSize.width
         }
+        // Send is outside the capsule (maxX + 6); emoji/input accessories stay flush inside —
+        // do not subtract send width (that was only needed when send overlaid the pill).
         for (item, button) in self.accessoryItemButtons.reversed() {
             let buttonSize = CGSize(width: button.buttonWidth, height: accessoryControlSize)
             button.updateLayout(item: item, size: buttonSize)
@@ -3493,14 +3492,16 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             transition.updateFrame(view: starReactionButtonView, frame: starReactionButtonFrame)
         }
         
-        var sendActionButtonsFrame = CGRect(origin: CGPoint(x: textInputContainerBackgroundFrame.maxX - sendActionButtonsSize.width, y: composerControlsBaselineY - sendActionButtonsSize.height), size: sendActionButtonsSize)
+        // Same slot as mic / stars / live-mic: outside the capsule with a 6 pt gap. Never overlay
+        // the pill (old stock `maxX - width` looked like the blue disc eating the rounded end).
+        var sendActionButtonsFrame = CGRect(origin: CGPoint(x: textInputContainerBackgroundFrame.maxX + 6.0, y: composerControlsBaselineY - sendActionButtonsSize.height), size: sendActionButtonsSize)
         
         let sendActionsScale: CGFloat
         if inputHasText || hasMediaDraft || hasForward || isEditingMedia {
             sendActionsScale = 1.0
         } else {
+            // Scale in place in the reserved right slot — do not recenter for an overlay.
             sendActionsScale = 0.001
-            sendActionButtonsFrame.origin.x += (sendActionButtonsSize.width - 3.0 * 2.0) * 0.5 - 3.0
         }
         
         transition.updateTransformScale(node: self.sendActionButtons, scale: CGPoint(x: sendActionsScale, y: sendActionsScale))
@@ -4804,7 +4805,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             rightInset += compactBottomSideInset
             
             let baseWidth = width - leftInset - self.leftMenuInset - rightInset - self.rightSlowModeInset + self.currentTextInputBackgroundWidthOffset - additionalSideInsets.right
-            let (_, textFieldHeight, _) = self.calculateTextFieldMetrics(width: baseWidth, sendActionControlsWidth: self.sendActionButtons.bounds.width, maxHeight: maxHeight, metrics: metrics, bottomInset: bottomInset, interfaceState: interfaceState)
+            let (_, textFieldHeight, _) = self.calculateTextFieldMetrics(width: baseWidth, sendActionControlsWidth: 0.0, maxHeight: maxHeight, metrics: metrics, bottomInset: bottomInset, interfaceState: interfaceState)
             let panelHeight = self.panelHeight(textFieldHeight: textFieldHeight, metrics: metrics, bottomInset: bottomInset)
             if !self.bounds.size.height.isEqual(to: panelHeight) {
                 self.updateHeight(animated)
@@ -5871,7 +5872,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
     
     public func frameForInputActionButton() -> CGRect? {
         if !self.mediaActionButtons.alpha.isZero && self.mediaActionButtons.frame.minX < self.bounds.width {
-            return self.mediaActionButtons.frame.insetBy(dx: 0.0, dy: -4.0).offsetBy(dx: -3.0, dy: 0.0)
+            return self.mediaActionButtons.frame.insetBy(dx: 0.0, dy: -4.0)
         }
         return nil
     }

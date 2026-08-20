@@ -6,6 +6,9 @@
 
 ## [Unreleased]
 
+### Fixed
+- **Composer:** send больше не накладывается на правый край капсулы — тот же слот `maxX + 6`, что у mic; ширина поля стабильна при mic↔send; emoji внутри pill без лишнего сдвига.
+
 ## [v12.9.2-3887-pre] — 2026-08-20
 
 Pre-release: idealism — no overlaps, one accent, composer 40pt.
