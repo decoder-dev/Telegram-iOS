@@ -6,7 +6,18 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3887-pre] — 2026-08-20
+
+Pre-release: idealism — no overlaps, one accent, composer 40pt.
+
+### Fixed
+- **Calls:** исходящая иконка и voice-chat индикатор больше не залезают под 52pt аватар (резерв слота в `leftInset`).
+- **Contacts:** иконка треда центрируется на `avatarFrame` (убран magic `-43`).
+- **Composer:** капсула `2/2` → 40pt вровень с кругами attach/mic; `minimalHeight` из тех же insets.
+
 ### Changed
+- **Day accent / folder pill:** `#3478F6` → `#007AFF` (один системный синий с bubble).
+- **Night:** входящие ссылки/акценты и chat-list checkmarks `#007AFF`; elevated `#313131` → `#2C2C2E`.
 - **Night palette cleanup (P0–P3):** surfaces `#000` / `#1C1C1E` / `#2C2C2E`; accent и bubble один `#007AFF`; secondary gray `#8E8E93`; destructive `#FF3B30`. Убраны legacy `#0F0F0F` / `#141414` / `#1C1C1D` / `#1F1F1F` / `#3478F6` / `#EB5545`.
 
 ## [v12.9.2-3881-pre] — 2026-08-19
