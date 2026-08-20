@@ -1581,7 +1581,6 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
             updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
                 var updated = current
                 updated.ghostDontReadMessages = value
-                updated.ghostMode = updated.ghostDontReadMessages && updated.ghostDontSendOnline && updated.ghostDontSendTyping
                 return updated
             }.start())
         },
@@ -1596,7 +1595,6 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
             updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
                 var updated = current
                 updated.ghostDontSendOnline = value
-                updated.ghostMode = updated.ghostDontReadMessages && updated.ghostDontSendOnline && updated.ghostDontSendTyping
                 return updated
             }.start())
         },
@@ -1604,7 +1602,6 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
             updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
                 var updated = current
                 updated.ghostDontSendTyping = value
-                updated.ghostMode = updated.ghostDontReadMessages && updated.ghostDontSendOnline && updated.ghostDontSendTyping
                 return updated
             }.start())
         },

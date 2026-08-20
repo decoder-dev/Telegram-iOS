@@ -17,7 +17,6 @@ public enum ForkTranscriptionBackend: String, Codable {
 public struct ForkExtrasSettings: Codable, Equatable {
     /// Legacy single Ghost Mode toggle. Still encoded for older builds; granular flags are source of truth.
     /// When true in old prefs (no granular keys), it seeds dont-read / dont-online / dont-typing.
-    public var ghostMode: Bool
     /// AyuGram: Don't Read Messages — suppress read receipts / seen reactions while browsing.
     public var ghostDontReadMessages: Bool
     /// AyuGram: Don't Read Stories — suppress story view increments.
@@ -116,7 +115,6 @@ public struct ForkExtrasSettings: Codable, Equatable {
 
     public static var defaultSettings: ForkExtrasSettings {
         return ForkExtrasSettings(
-            ghostMode: false,
             ghostDontReadMessages: false,
             ghostDontReadStories: false,
             ghostDontSendOnline: false,
@@ -176,7 +174,6 @@ public struct ForkExtrasSettings: Codable, Equatable {
     }
 
     public init(
-        ghostMode: Bool,
         ghostDontReadMessages: Bool,
         ghostDontReadStories: Bool,
         ghostDontSendOnline: Bool,
@@ -233,7 +230,6 @@ public struct ForkExtrasSettings: Codable, Equatable {
         downloadSpeedBoost: Bool = false,
         outgoingPhotoQuality: Int32 = 0
     ) {
-        self.ghostMode = ghostMode
         self.ghostDontReadMessages = ghostDontReadMessages
         self.ghostDontReadStories = ghostDontReadStories
         self.ghostDontSendOnline = ghostDontSendOnline
@@ -301,8 +297,6 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.ghostGoOfflineAutomatically = try container.decodeIfPresent(Bool.self, forKey: "ghostGoOfflineAutomatically") ?? false
         self.ghostReadOnInteract = try container.decodeIfPresent(Bool.self, forKey: "ghostReadOnInteract") ?? false
         self.ghostAlertBeforeOpeningStory = try container.decodeIfPresent(Bool.self, forKey: "ghostAlertBeforeOpeningStory") ?? false
-        // Keep legacy field in sync so older readers / encodings stay coherent.
-        self.ghostMode = self.ghostDontReadMessages && self.ghostDontSendOnline && self.ghostDontSendTyping
         self.instantPasscodeLock = try container.decodeIfPresent(Bool.self, forKey: "instantPasscodeLock") ?? false
         self.hideMentionNotifications = try container.decodeIfPresent(Bool.self, forKey: "hideMentionNotifications") ?? false
         self.hidePinnedNotifications = try container.decodeIfPresent(Bool.self, forKey: "hidePinnedNotifications") ?? false
@@ -356,7 +350,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: StringCodingKey.self)
         // Legacy: true only when the original three core flags are all on.
-        try container.encode(self.ghostDontReadMessages && self.ghostDontSendOnline && self.ghostDontSendTyping, forKey: "ghostMode")
+        try container.encode(self.ghostMode, forKey: "ghostMode")
         try container.encode(self.ghostDontReadMessages, forKey: "ghostDontReadMessages")
         try container.encode(self.ghostDontReadStories, forKey: "ghostDontReadStories")
         try container.encode(self.ghostDontSendOnline, forKey: "ghostDontSendOnline")
@@ -420,8 +414,20 @@ public struct ForkExtrasSettings: Codable, Equatable {
     }
 
     /// Full Ghost Mode (AyuGram): dont-read + dont-online + dont-typing.
+    ///
+    /// The single definition. `ghostMode` was a stored mirror of this expression, re-derived by
+    /// hand in six places — decode, encode, the memberwise init and three settings mutations —
+    /// and read by nothing: Ghost Mode itself is driven from the three raw flags in
+    /// `SharedAccountContext`. A stored copy of a derived value is only ever one forgotten
+    /// assignment away from disagreeing with what it mirrors, so it is computed now.
     public var isFullGhostMode: Bool {
         return self.ghostDontReadMessages && self.ghostDontSendOnline && self.ghostDontSendTyping
+    }
+
+    /// Legacy encoding key, kept so a build that predates the three separate ghost flags still
+    /// reads a coherent value out of the stored blob. Never a source of truth.
+    public var ghostMode: Bool {
+        return self.isFullGhostMode
     }
 
     /// AyuGram "Add filter": escape selected text as a literal regex pattern, enable filters, append if new.

@@ -256,13 +256,17 @@ private func convertForwardedMediaForSecretChat(_ media: Media) -> Media {
 private func convertMediaForAyuForward(_ media: Media, mediaBox: MediaBox) -> Media {
     if let file = media as? TelegramMediaFile {
         let resource: TelegramMediaResource
+        // One size for both. The filesystem fallback used to be handed to the resource while the
+        // file below kept `file.size`, so a file that arrived without a size produced a resource
+        // that knew how big it was and a TelegramMediaFile that did not.
+        var resolvedSize = file.size
         if let path = mediaBox.completedResourcePath(file.resource) {
-            let size = file.size ?? ((try? FileManager.default.attributesOfItem(atPath: path)[.size] as? NSNumber)?.int64Value)
+            resolvedSize = file.size ?? ((try? FileManager.default.attributesOfItem(atPath: path)[.size] as? NSNumber)?.int64Value)
             resource = LocalFileReferenceMediaResource(
                 localFilePath: path,
                 randomId: Int64.random(in: Int64.min ... Int64.max),
                 isUniquelyReferencedTemporaryFile: false,
-                size: size
+                size: resolvedSize
             )
         } else {
             resource = file.resource
@@ -275,7 +279,7 @@ private func convertMediaForAyuForward(_ media: Media, mediaBox: MediaBox) -> Me
             videoThumbnails: file.videoThumbnails,
             immediateThumbnailData: file.immediateThumbnailData,
             mimeType: file.mimeType,
-            size: file.size,
+            size: resolvedSize,
             attributes: file.attributes,
             alternativeRepresentations: []
         )
