@@ -708,8 +708,13 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         self.presentationInterfaceState = presentationInterfaceState
         self.presentationContext = presentationContext
         
-        // iMessage: 8pt vertical padding around text to match capsule input field
-        self.textInputViewInternalInsets = UIEdgeInsets(top: 8.0, left: 12.0, bottom: 8.0, right: 11.0)
+        // 5/4, not 8/8. These two numbers plus `calclulateTextFieldMinHeight` (36 at the default font
+        // size) are the whole capsule height: 8/8 made it 52 pt next to 40 pt round buttons, so the
+        // field sat visibly taller and higher than the attachment and mic it is supposed to line up
+        // with. 5/4 puts it at 45 pt — a touch taller than the buttons, which is the proportion the
+        // reference shows. The 1 pt asymmetry is deliberate and carries the text baseline; it is the
+        // split this panel used before the capsule was resized.
+        self.textInputViewInternalInsets = UIEdgeInsets(top: 5.0, left: 12.0, bottom: 4.0, right: 11.0)
 
         var hasSpoilers = true
         var hasQuotes = true
@@ -1658,13 +1663,15 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         let previousAdditionalSideInsets = self.validLayout?.4
         self.validLayout = (width, leftInset, rightInset, bottomInset, additionalSideInsets, maxHeight, maxOverlayHeight, metrics, isSecondary, isMediaInputExpanded, deviceMetrics)
         
-        // OLED dark: composer controls sit on pure black; a hairline stroke keeps the field readable.
-        // #1C1C1E in dark, not pure black. The rest of the OLED pass paints surfaces that sit on the
-        // app's own background, where black on black is the point. The composer does not: it sits on
-        // the chat wallpaper, and on a dark one — a blackboard, a night photo — pure black makes the
-        // field, the attachment button and the mic vanish into it, leaving only a hairline stroke.
-        // #1C1C1E is Messages' own composer colour and stays legible over any wallpaper.
-        let composerFillColor = interfaceState.theme.overallDarkAppearance ? UIColor(rgb: 0x1C1C1E) : UIColor(rgb: 0xE9E9EB)
+        // The theme's own input colour, not a pair of literals. In Day that is white at 80%, which is
+        // what makes the field read as a translucent system input with the wallpaper tinting through
+        // instead of a flat opaque slab; in Night it is the dark equivalent. Both are already the
+        // colour the attachment caption field and the recording preview use, so the whole composer
+        // family stays consistent, and a theme edit lands here without touching this file.
+        //
+        // It is a tint, not a fill: `.custom` hands it to the glass material, so alpha below 1 keeps
+        // the blur underneath doing its work.
+        let composerFillColor = interfaceState.theme.chat.inputPanel.inputBackgroundColor
         let defaultGlassTintColor: GlassBackgroundView.TintColor = .init(kind: .custom(style: .default, color: composerFillColor))
         let defaultGlassTintWithInnerColor: GlassBackgroundView.TintColor = .init(kind: .custom(style: .default, color: composerFillColor), innerColor: interfaceState.theme.list.itemCheckColors.fillColor)
         

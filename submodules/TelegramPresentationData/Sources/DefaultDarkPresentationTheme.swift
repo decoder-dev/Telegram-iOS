@@ -673,7 +673,13 @@ public func makeDefaultDarkPresentationTheme(extendingThemeReference: Presentati
         panelControlColor: UIColor(rgb: 0xffffff),
         panelControlDisabledColor: UIColor(rgb: 0x808080, alpha: 0.5),
         panelControlDestructiveColor: UIColor(rgb: 0xff3b30),
-        inputBackgroundColor: UIColor(rgb: 0x000000),
+        // Translucent, not pure black. This colour is a tint on the composer's glass material, and
+        // that material sits on the chat wallpaper rather than on the app background — the rest of
+        // the OLED pass is about surfaces where black on black is the point, this one is not. At
+        // #000000 the field, the attachment button and the mic disappeared into any dark wallpaper
+        // and left just the hairline stroke. #1C1C1E at 90% is the iOS dark input: still black
+        // enough to read as OLED, translucent enough that the wallpaper shows it has edges.
+        inputBackgroundColor: UIColor(rgb: 0x1C1C1E, alpha: 0.9),
         inputStrokeColor: UIColor(rgb: 0xffffff, alpha: 0.16),
         inputPlaceholderColor: UIColor(rgb: 0xffffff, alpha: 0.62),
         inputTextColor: UIColor(rgb: 0xffffff),
