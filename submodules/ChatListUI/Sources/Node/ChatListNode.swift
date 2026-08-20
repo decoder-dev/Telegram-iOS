@@ -1966,7 +1966,7 @@ public final class ChatListNode: ListViewImpl {
         |> distinctUntilChanged
         
         let chatListViewUpdateForFilters = combineLatest(chatListViewUpdate, messageFilterSettings)
-        |> map { update, _ -> (ChatListNodeViewUpdate, ChatListFilter?, Int) in
+        |> map { update, _ -> (ChatListNodeViewUpdate, ChatListFilter?) in
             return update
         }
         

@@ -821,9 +821,9 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
             var leftInset: CGFloat = 16.0 + avatarDiameter + 12.0 + params.leftInset + higCardInset
             var rightInset: CGFloat = 10.0 + params.rightInset + higCardInset
             
-            if case .thread = item.peer {
-                leftInset -= 13.0
-            }
+            // Thread rows keep the same left column as peer rows: the 32 pt topic glyph is
+            // centred in the 44 pt avatar frame. Shrinking leftInset by 13 pulled the whole
+            // column (and the icon) left of neighbouring Contacts rows.
             
             let updatedSelectionNode: CheckNode?
             var isSelected = false

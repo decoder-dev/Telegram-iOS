@@ -2543,16 +2543,12 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         var mediaActionButtonsSize = CGSize(width: 40.0, height: 40.0)
         var sendActionButtonsSize = CGSize(width: 40.0, height: 40.0)
         if let presentationInterfaceState = self.presentationInterfaceState {
+            // Reserve the paid-stars pill width even while send is still scaled away. Gating on
+            // `sendContainerNode.alpha` meant the first keystroke both revealed send and widened
+            // the right slot, so the capsule jumped left under the caret.
             var showTitle = false
-            if !self.sendActionButtons.sendContainerNode.alpha.isZero {
-                if let _ = presentationInterfaceState.sendPaidMessageStars {
-                    showTitle = true
-                } else if case let .customChatContents(customChatContents) = interfaceState.subject {
-                    switch customChatContents.kind {
-                    default:
-                        break
-                    }
-                }
+            if presentationInterfaceState.sendPaidMessageStars != nil {
+                showTitle = true
             }
             
             // 40 pt tall, not the field's height. The node draws its background as a rounded rect of
@@ -3492,7 +3488,31 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         // two separate controls. Still park off-screen for search/slowmode where send is not the
         // partner control, and while recording so the lock/stop chrome stays hittable alone.
         let isMediaRecording = interfaceState.inputTextPanelState.mediaRecordingState != nil
-        let sendOccupiesActionSlot = (inputHasText || hasMediaDraft || hasForward || isEditingMedia) && !isMediaRecording
+        // Must match `updateActionButtons`: business-link Apply / keepSend / media-draft force send
+        // into the slot even with empty text; slowmode and extended search never share with send.
+        var keepSendForActionSlot = self.keepSendButtonEnabled
+        var mediaInputIsActiveForActionSlot = false
+        if let presentationInterfaceState = self.presentationInterfaceState {
+            if case .media = presentationInterfaceState.inputMode {
+                mediaInputIsActiveForActionSlot = true
+            }
+            if case let .customChatContents(customChatContents) = presentationInterfaceState.subject {
+                if case .businessLinkSetup = customChatContents.kind {
+                    keepSendForActionSlot = true
+                }
+            }
+            if presentationInterfaceState.interfaceState.mediaDraftState != nil {
+                keepSendForActionSlot = true
+            }
+            if let editMessageState = presentationInterfaceState.editMessageState, case let .media(value) = editMessageState.content, !value.isEmpty {
+                keepSendForActionSlot = true
+            }
+            if presentationInterfaceState.interfaceState.forwardMessageIds != nil {
+                keepSendForActionSlot = true
+            }
+        }
+        let sendWantsActionSlot = (inputHasText || hasMediaDraft || hasForward || isEditingMedia || (keepSendForActionSlot && !mediaInputIsActiveForActionSlot)) && !self.extendedSearchLayout && !hasSlowmodeButton
+        let sendOccupiesActionSlot = sendWantsActionSlot && !isMediaRecording
         var mediaActionButtonsFrame = CGRect(origin: CGPoint(x: textInputContainerBackgroundFrame.maxX + 6.0, y: composerControlsBaselineY - mediaActionButtonsSize.height), size: mediaActionButtonsSize)
         if self.extendedSearchLayout || hasSlowmodeButton {
             mediaActionButtonsFrame.origin.x = width + 8.0
@@ -4748,7 +4768,9 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
                 }
             }
             
-            if (hasText || keepSendButtonEnabled && !mediaInputIsActive && !hasSlowModeButton) {
+            // Parentheses matter: `hasText || keep && !slow` left send at alpha 1 under boost
+            // slowmode (scaled-in disc sitting in the slowmode band). Gate the whole show path.
+            if (hasText || (keepSendButtonEnabled && !mediaInputIsActive)) && !hasSlowModeButton {
                 if self.sendActionButtons.sendContainerNode.alpha.isZero && self.rightSlowModeInset.isZero {
                     alphaTransition.updateAlpha(node: self.sendActionButtons.sendContainerNode, alpha: 1.0)
                     if let sendButtonRadialStatusNode = self.sendActionButtons.sendButtonRadialStatusNode {
@@ -5931,7 +5953,9 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
     }
     
     public func frameForInputActionButton() -> CGRect? {
-        guard let slotFrame = self.mediaActionButtonsSlotFrame, !self.mediaActionButtons.alpha.isZero else {
+        // `isHidden` is set when a custom right action (stars / .empty) owns the slot — alpha alone
+        // stayed 1.0 and tooltips still pointed at the invisible mic.
+        guard let slotFrame = self.mediaActionButtonsSlotFrame, !self.mediaActionButtons.alpha.isZero, !self.mediaActionButtons.isHidden else {
             return nil
         }
         return slotFrame.insetBy(dx: 0.0, dy: -4.0)

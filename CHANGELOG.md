@@ -6,6 +6,13 @@
 
 ## [Unreleased]
 
+### Fixed
+- **Build:** `ChatListNode` filter map type leftover after folders staleness drop (`Int` third tuple member) — compile break.
+- **Composer:** `sendOccupiesActionSlot` matches alpha path — business-link Apply visible when empty; send not scaled into boost-slowmode band; paid-stars pill width reserved before first keystroke; tooltip slot respects `mediaActionButtons.isHidden`.
+- **Night/Day base themes:** outgoing secondary (and related) `white@0.8` on default early-exit path (was only customize); Night outgoing media control well `.clear`; chrome separators `@0.8` (nav/tab/search/panel/history).
+- **Calls:** avatar 44 pt to match Contacts/search (changelog claim).
+- **Contacts:** thread rows no longer shift the whole column −13 pt.
+
 ## [v12.9.2-3889-pre] — 2026-08-20
 
 Pre-release: composer measure/wrap fix, full-bleed separators, media bubble rule, password fields.
