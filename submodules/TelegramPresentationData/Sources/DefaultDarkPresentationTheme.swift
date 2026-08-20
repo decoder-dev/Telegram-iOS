@@ -437,7 +437,12 @@ public func makeDefaultDarkPresentationTheme(extendingThemeReference: Presentati
         itemAccentColor: UIColor(rgb: 0x007AFF),
         itemHighlightedColor: UIColor(rgb: 0x28b772),
         itemDestructiveColor: UIColor(rgb: 0xFF3B30),
-        itemPlaceholderTextColor: UIColor(rgb: 0x8E8E93),
+        // Dimmer than itemSecondaryTextColor on purpose. The palette sweep set all three of
+        // secondary, disabled and placeholder to #8E8E93, which made an empty field's prompt
+        // indistinguishable from a filled field's real secondary label. Day keeps them apart
+        // (#8E8E93 vs #C8C8CE, roughly half the contrast); this mirrors that ratio on a #1C1C1E
+        // card — 5.22:1 for secondary against 2.84:1 here.
+        itemPlaceholderTextColor: UIColor(rgb: 0x636366),
         itemBlocksBackgroundColor: UIColor(rgb: 0x1c1c1e),
         itemModalBlocksBackgroundColor: UIColor(rgb: 0x1c1c1e),
         itemHighlightedBackgroundColor: UIColor(rgb: 0x2C2C2E),

@@ -2617,11 +2617,6 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             }
         }
         
-        var effectiveActionButtonsSize = starReactionButtonSize ?? mediaActionButtonsSize
-        if let liveMicrophoneButtonSize {
-            effectiveActionButtonsSize.width += 6.0 + liveMicrophoneButtonSize.width
-        }
-        
         let baseWidth = width - leftInset - leftMenuInset - rightInset - rightSlowModeInset
         let (accessoryButtonsWidth, textFieldHeight, isTextFieldOverflow) = self.calculateTextFieldMetrics(width: baseWidth, sendActionControlsWidth: 0.0, maxHeight: maxHeight, metrics: metrics, bottomInset: bottomInset, interfaceState: interfaceState)
         var panelHeight = self.panelHeight(textFieldHeight: textFieldHeight, metrics: metrics, bottomInset: bottomInset)
@@ -2662,25 +2657,32 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         if additionalSideInsets.right > 0.0 {
             textFieldInsets.right += additionalSideInsets.right / 3.0
         }
-        // Always reserve the right action slot (mic OR send OR stars/live-mic). Capsule width must
-        // stay stable across mic↔send so the field does not jump when the first character appears;
-        // send sits outside the capsule with the same 6 pt gap as mic (Messages layout).
+        // One slot outside the capsule, 6 pt from it, 8 pt from the panel edge. Mic, send, the
+        // stars button and the live-mic button all live in it and never at the same time: stars
+        // and live-mic park off-screen as soon as there is text, which is exactly when send takes
+        // over from mic. Reserve the widest possible occupant so the capsule keeps one width
+        // through every handoff instead of resizing under the text as the user types.
+        //
+        // Deriving the reservation from whichever control happens to be showing is what broke
+        // `.empty`: it means "no custom right control", not "no send button" — the story and
+        // camera composers set it and still show send — so its flat 8 pt (correct only while send
+        // overlaid the pill's right end) left the button hanging ~38 pt past the panel edge once
+        // send moved outside the capsule.
+        var rightActionSlotWidth = max(mediaActionButtonsSize.width, sendActionButtonsSize.width)
+        if let starReactionButtonSize, let liveMicrophoneButtonSize {
+            rightActionSlotWidth = max(rightActionSlotWidth, starReactionButtonSize.width + 6.0 + liveMicrophoneButtonSize.width)
+        } else if let starReactionButtonSize {
+            rightActionSlotWidth = max(rightActionSlotWidth, starReactionButtonSize.width)
+        } else if let liveMicrophoneButtonSize {
+            rightActionSlotWidth = max(rightActionSlotWidth, liveMicrophoneButtonSize.width)
+        }
         if self.extendedSearchLayout {
-            textFieldInsets.right = 8.0
-        } else if let customRightAction = self.customRightAction, case .empty = customRightAction {
+            // Clear button is drawn inside the capsule; nothing sits outside it.
             textFieldInsets.right = 8.0
         } else if hasSlowmodeButton {
             // Slowmode control is laid out separately on the right edge.
-        } else if let starReactionButtonSize, let liveMicrophoneButtonSize {
-            textFieldInsets.right = 8.0 + starReactionButtonSize.width + 6.0 + liveMicrophoneButtonSize.width + 6.0
-        } else if let starReactionButtonSize {
-            textFieldInsets.right = 8.0 + starReactionButtonSize.width + 6.0
-        } else if let liveMicrophoneButtonSize {
-            textFieldInsets.right = 8.0 + liveMicrophoneButtonSize.width + 6.0
-        } else if inputHasText || hasMediaDraft || hasForward || isEditingMedia {
-            textFieldInsets.right = 8.0 + sendActionButtonsSize.width + 6.0
         } else {
-            textFieldInsets.right = 8.0 + mediaActionButtonsSize.width + 6.0
+            textFieldInsets.right = 8.0 + rightActionSlotWidth + 6.0
         }
         if mediaRecordingState != nil {
             textFieldInsets.left = 8.0
@@ -3121,7 +3123,11 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         }
         
         if let _ = interfaceState.interfaceState.mediaDraftState {
-            let mediaPreviewPanelFrame = CGRect(origin: CGPoint(x: 0.0, y: contentHeight), size: CGSize(width: textInputWidth - effectiveActionButtonsSize.width - 8.0, height: 40.0))
+            // Full capsule width less a trailing pad. This used to also subtract the action
+            // buttons' width because send was drawn inside the pill's right end and the waveform
+            // had to clear it; send now sits outside the capsule, so that reservation only left
+            // ~46 pt of dead space at the end of every recorded-voice preview.
+            let mediaPreviewPanelFrame = CGRect(origin: CGPoint(x: 0.0, y: contentHeight), size: CGSize(width: max(0.0, textInputWidth - 8.0), height: 40.0))
             var mediaPreviewPanelTransition = transition
             
             let mediaPreviewPanelNode: ChatRecordingPreviewInputPanelNodeImpl
@@ -3461,7 +3467,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         // two separate controls. Still park off-screen for search/slowmode where send is not the
         // partner control, and while recording so the lock/stop chrome stays hittable alone.
         let isMediaRecording = interfaceState.inputTextPanelState.mediaRecordingState != nil
-        let sendOccupiesActionSlot = (inputHasText || hasMediaDraft || interfaceState.interfaceState.forwardMessageIds != nil || isEditingMedia) && !isMediaRecording
+        let sendOccupiesActionSlot = (inputHasText || hasMediaDraft || hasForward || isEditingMedia) && !isMediaRecording
         var mediaActionButtonsFrame = CGRect(origin: CGPoint(x: textInputContainerBackgroundFrame.maxX + 6.0, y: composerControlsBaselineY - mediaActionButtonsSize.height), size: mediaActionButtonsSize)
         if self.extendedSearchLayout || hasSlowmodeButton {
             mediaActionButtonsFrame.origin.x = width + 8.0
