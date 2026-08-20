@@ -364,7 +364,9 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
             
             let insets: UIEdgeInsets
             let separatorHeight = UIScreenPixel
-            let separatorRightInset: CGFloat = item.systemStyle == .glass ? 16.0 : 0.0
+            // Trailing edge, not inset — matches the chat list. iOS tables inset row separators
+            // on the leading side only; a gap at both ends reads as an unfinished line.
+            let separatorRightInset: CGFloat = 0.0
             
             let itemBackgroundColor: UIColor
             let itemSeparatorColor: UIColor

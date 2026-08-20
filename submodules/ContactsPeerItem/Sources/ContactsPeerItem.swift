@@ -2013,7 +2013,9 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
                             }
                             
                             let separatorHeight = UIScreenPixel
-                            let separatorRightInset: CGFloat = item.systemStyle == .glass ? 16.0 : 0.0
+                            // Trailing edge, not inset — matches the chat list. iOS tables inset row separators
+                            // on the leading side only; a gap at both ends reads as an unfinished line.
+                            let separatorRightInset: CGFloat = 0.0
                             
                             strongSelf.maskNode.image = hasCorners ? PresentationResourcesItemList.cornersImage(item.presentationData.theme, top: hasTopCorners, bottom: hasBottomCorners, glass: item.systemStyle == .glass) : nil
                             

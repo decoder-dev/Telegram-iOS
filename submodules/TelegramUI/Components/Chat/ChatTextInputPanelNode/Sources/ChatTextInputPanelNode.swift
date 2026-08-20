@@ -322,6 +322,11 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
     private var validLayout: (CGFloat, CGFloat, CGFloat, CGFloat, UIEdgeInsets, CGFloat, CGFloat, LayoutMetrics, Bool, Bool, DeviceMetrics)?
     private var leftMenuInset: CGFloat = 0.0
     private var rightSlowModeInset: CGFloat = 0.0
+    /// The insets `updateLayout` last resolved for the capsule, including the right-hand action
+    /// slot. `updateTextHeight` re-measures the field height outside a layout pass and has to use
+    /// the same width layout will, exactly as it already does for `leftMenuInset` and
+    /// `rightSlowModeInset`.
+    private var currentTextFieldInsets = UIEdgeInsets(top: 0.0, left: 8.0, bottom: 0.0, right: 8.0)
     private var currentTextInputBackgroundWidthOffset: CGFloat = 0.0
     
     private var enableBounceAnimations: Bool = false
@@ -1422,10 +1427,8 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         return max(36.0, maxHeight - (textFieldInsets.top + textFieldInsets.bottom + self.textInputViewInternalInsets.top + self.textInputViewInternalInsets.bottom))
     }
     
-    private func calculateTextFieldMetrics(width: CGFloat, sendActionControlsWidth: CGFloat, maxHeight: CGFloat, metrics: LayoutMetrics, bottomInset: CGFloat, interfaceState: ChatPresentationInterfaceState) -> (accessoryButtonsWidth: CGFloat, textFieldHeight: CGFloat, isOverflow: Bool) {
+    private func calculateTextFieldMetrics(width: CGFloat, textFieldInsets: UIEdgeInsets, maxHeight: CGFloat, metrics: LayoutMetrics, bottomInset: CGFloat, interfaceState: ChatPresentationInterfaceState) -> (accessoryButtonsWidth: CGFloat, textFieldHeight: CGFloat, isOverflow: Bool) {
         let maxHeight = max(maxHeight, 40.0)
-        
-        let textFieldInsets = self.textFieldInsets(metrics: metrics, bottomInset: bottomInset)
         let fieldMaxHeight = self.textFieldMaxHeight(maxHeight, metrics: metrics, bottomInset: bottomInset)
         
         var accessoryButtonsWidth: CGFloat = 0.0
@@ -1452,7 +1455,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         }
         
         if let presentationInterfaceState = self.presentationInterfaceState {
-            textInputViewRealInsets = calculateTextFieldRealInsets(presentationInterfaceState: presentationInterfaceState, accessoryButtonsWidth: accessoryButtonsWidth, actionControlsWidth: sendActionControlsWidth)
+            textInputViewRealInsets = self.resolvedTextInputRealInsets(presentationInterfaceState: presentationInterfaceState, accessoryButtonsWidth: accessoryButtonsWidth)
         }
         
         var hasSendAsButton = false
@@ -1485,6 +1488,18 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         }
         
         return (accessoryButtonsWidth, textFieldHeight, isOverflow)
+    }
+    
+    /// Right clearance for the text itself, inside the capsule.
+    ///
+    /// Shared by the measure pass and the layout pass so the two cannot drift: the measure pass
+    /// used to skip the 10 pt trim that layout applied, which alone made every measured line
+    /// 10 pt narrower than the real one. `actionControlsWidth` is 0 because send and mic sit
+    /// outside the capsule now — only the in-field accessory buttons need clearing.
+    private func resolvedTextInputRealInsets(presentationInterfaceState: ChatPresentationInterfaceState, accessoryButtonsWidth: CGFloat) -> UIEdgeInsets {
+        var insets = calculateTextFieldRealInsets(presentationInterfaceState: presentationInterfaceState, accessoryButtonsWidth: accessoryButtonsWidth, actionControlsWidth: 0.0)
+        insets.right = max(0.0, insets.right - 10.0)
+        return insets
     }
     
     private func textFieldInsets(metrics: LayoutMetrics, bottomInset: CGFloat) -> UIEdgeInsets {
@@ -2617,42 +2632,13 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             }
         }
         
-        let baseWidth = width - leftInset - leftMenuInset - rightInset - rightSlowModeInset
-        let (accessoryButtonsWidth, textFieldHeight, isTextFieldOverflow) = self.calculateTextFieldMetrics(width: baseWidth, sendActionControlsWidth: 0.0, maxHeight: maxHeight, metrics: metrics, bottomInset: bottomInset, interfaceState: interfaceState)
-        var panelHeight = self.panelHeight(textFieldHeight: textFieldHeight, metrics: metrics, bottomInset: bottomInset)
-        if displayBotStartButton {
-            panelHeight += 27.0
-        }
-        
-        var menuButtonOriginY: CGFloat
-        if displayBotStartButton {
-            menuButtonOriginY = floorToScreenPixels((minimalHeight - menuButtonHeight) / 2.0)
-        } else {
-            menuButtonOriginY = panelHeight - minimalHeight + floorToScreenPixels((minimalHeight - menuButtonHeight) / 2.0)
-            if accessoryPanel != nil {
-                menuButtonOriginY += 52.0
-            }
-        }
-        
-        let menuButtonFrame = CGRect(x: leftInset + 8.0, y: menuButtonOriginY, width: menuButtonExpanded ? menuButtonWidth : menuCollapsedButtonWidth, height: menuButtonHeight)
-        transition.updateFrameAsPositionAndBounds(node: self.menuButton, frame: menuButtonFrame)
-        transition.updateFrame(view: self.menuButtonBackgroundView, frame: CGRect(origin: CGPoint(), size: menuButtonFrame.size))
-        self.menuButtonBackgroundView.update(size: menuButtonFrame.size, cornerRadius: menuButtonFrame.height * 0.5, isDark: interfaceState.theme.overallDarkAppearance, tintColor: defaultGlassTintWithInnerColor, transition: ComponentTransition(transition))
-        transition.updateFrame(node: self.menuButtonClippingNode, frame: CGRect(origin: CGPoint(x: 19.0, y: 0.0), size: CGSize(width: menuButtonWidth - 19.0, height: menuButtonFrame.height)))
-        var menuButtonTitleTransition = transition
-        if buttonTitleUpdated {
-            menuButtonTitleTransition = .immediate
-        }
-        menuButtonTitleTransition.updateFrame(node: self.menuButtonTextNode, frame: CGRect(origin: CGPoint(x: 16.0, y: 11.0), size: menuTextSize))
-        transition.updateAlpha(node: self.menuButtonTextNode, alpha: menuButtonExpanded ? 1.0 : 0.0)
-        transition.updateFrame(node: self.menuButtonIconNode, frame: CGRect(x: 7.0, y: 7.0, width: 26.0, height: 26.0))
-        
-        let showMenuButton = hasMenuButton && interfaceState.interfaceState.mediaDraftState == nil
-        transition.updateTransformScale(node: self.menuButton, scale: showMenuButton ? 1.0 : 0.001)
-        transition.updateAlpha(node: self.menuButton, alpha: showMenuButton ? 1.0 : 0.0)
-        
-        self.menuButton.isUserInteractionEnabled = hasMenuButton
-        
+        // Resolved before the height measurement below, not after it. `calculateTextFieldMetrics`
+        // works out how tall the field has to be by measuring the text at the width it will get,
+        // so it needs the *final* insets — it used to call `textFieldInsets(metrics:)` itself and
+        // get the base 8 pt right inset, while layout went on to widen that to 54 pt for the
+        // action slot. It measured a line 46 pt wider than the field actually is, so text that
+        // wrapped onto a second line for real still measured as one, and the panel did not grow
+        // to meet it.
         var textFieldInsets = self.textFieldInsets(metrics: metrics, bottomInset: bottomInset)
         if additionalSideInsets.right > 0.0 {
             textFieldInsets.right += additionalSideInsets.right / 3.0
@@ -2699,6 +2685,44 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
                 break
             }
         }
+        self.currentTextFieldInsets = textFieldInsets
+        
+        let baseWidth = width - leftInset - leftMenuInset - rightInset - rightSlowModeInset
+        let (accessoryButtonsWidth, textFieldHeight, isTextFieldOverflow) = self.calculateTextFieldMetrics(width: baseWidth, textFieldInsets: textFieldInsets, maxHeight: maxHeight, metrics: metrics, bottomInset: bottomInset, interfaceState: interfaceState)
+        var panelHeight = self.panelHeight(textFieldHeight: textFieldHeight, metrics: metrics, bottomInset: bottomInset)
+        if displayBotStartButton {
+            panelHeight += 27.0
+        }
+        
+        var menuButtonOriginY: CGFloat
+        if displayBotStartButton {
+            menuButtonOriginY = floorToScreenPixels((minimalHeight - menuButtonHeight) / 2.0)
+        } else {
+            menuButtonOriginY = panelHeight - minimalHeight + floorToScreenPixels((minimalHeight - menuButtonHeight) / 2.0)
+            if accessoryPanel != nil {
+                menuButtonOriginY += 52.0
+            }
+        }
+        
+        let menuButtonFrame = CGRect(x: leftInset + 8.0, y: menuButtonOriginY, width: menuButtonExpanded ? menuButtonWidth : menuCollapsedButtonWidth, height: menuButtonHeight)
+        transition.updateFrameAsPositionAndBounds(node: self.menuButton, frame: menuButtonFrame)
+        transition.updateFrame(view: self.menuButtonBackgroundView, frame: CGRect(origin: CGPoint(), size: menuButtonFrame.size))
+        self.menuButtonBackgroundView.update(size: menuButtonFrame.size, cornerRadius: menuButtonFrame.height * 0.5, isDark: interfaceState.theme.overallDarkAppearance, tintColor: defaultGlassTintWithInnerColor, transition: ComponentTransition(transition))
+        transition.updateFrame(node: self.menuButtonClippingNode, frame: CGRect(origin: CGPoint(x: 19.0, y: 0.0), size: CGSize(width: menuButtonWidth - 19.0, height: menuButtonFrame.height)))
+        var menuButtonTitleTransition = transition
+        if buttonTitleUpdated {
+            menuButtonTitleTransition = .immediate
+        }
+        menuButtonTitleTransition.updateFrame(node: self.menuButtonTextNode, frame: CGRect(origin: CGPoint(x: 16.0, y: 11.0), size: menuTextSize))
+        transition.updateAlpha(node: self.menuButtonTextNode, alpha: menuButtonExpanded ? 1.0 : 0.0)
+        transition.updateFrame(node: self.menuButtonIconNode, frame: CGRect(x: 7.0, y: 7.0, width: 26.0, height: 26.0))
+        
+        let showMenuButton = hasMenuButton && interfaceState.interfaceState.mediaDraftState == nil
+        transition.updateTransformScale(node: self.menuButton, scale: showMenuButton ? 1.0 : 0.001)
+        transition.updateAlpha(node: self.menuButton, alpha: showMenuButton ? 1.0 : 0.0)
+        
+        self.menuButton.isUserInteractionEnabled = hasMenuButton
+        
         
         var audioRecordingItemsAlpha: CGFloat = 1.0
         if interfaceState.interfaceState.mediaDraftState != nil {
@@ -3046,10 +3070,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
 
         var textInputViewRealInsets = UIEdgeInsets()
         if let presentationInterfaceState = self.presentationInterfaceState {
-            // Send/mic sit outside the capsule; only in-field accessories need right clearance.
-            textInputViewRealInsets = calculateTextFieldRealInsets(presentationInterfaceState: presentationInterfaceState, accessoryButtonsWidth: accessoryButtonsWidth, actionControlsWidth: 0.0)
-            // Accessory-button clearance alone still over-insets slightly; trim 10pt more.
-            textInputViewRealInsets.right = max(0.0, textInputViewRealInsets.right - 10.0)
+            textInputViewRealInsets = self.resolvedTextInputRealInsets(presentationInterfaceState: presentationInterfaceState, accessoryButtonsWidth: accessoryButtonsWidth)
         }
         
         var contentHeight: CGFloat = 0.0
@@ -4834,7 +4855,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             rightInset += compactBottomSideInset
             
             let baseWidth = width - leftInset - self.leftMenuInset - rightInset - self.rightSlowModeInset + self.currentTextInputBackgroundWidthOffset - additionalSideInsets.right
-            let (_, textFieldHeight, _) = self.calculateTextFieldMetrics(width: baseWidth, sendActionControlsWidth: 0.0, maxHeight: maxHeight, metrics: metrics, bottomInset: bottomInset, interfaceState: interfaceState)
+            let (_, textFieldHeight, _) = self.calculateTextFieldMetrics(width: baseWidth, textFieldInsets: self.currentTextFieldInsets, maxHeight: maxHeight, metrics: metrics, bottomInset: bottomInset, interfaceState: interfaceState)
             let panelHeight = self.panelHeight(textFieldHeight: textFieldHeight, metrics: metrics, bottomInset: bottomInset)
             if !self.bounds.size.height.isEqual(to: panelHeight) {
                 self.updateHeight(animated)
