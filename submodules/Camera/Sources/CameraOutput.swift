@@ -116,6 +116,19 @@ final class CameraOutput: NSObject {
 
     private var roundVideoFilter: CameraRoundLegacyVideoFilter?
     private let semaphore = DispatchSemaphore(value: 1)
+    /// Guards the round-video composition state: currentPosition, lastSwitchTimestamp,
+    /// needsCrossfadeTransition, crossfadeTransitionStart and lastSampleTimestamp.
+    ///
+    /// Separate from `semaphore`, which guards the audio/video offset state and the format cache,
+    /// because `processRoundVideoSampleBuffer` takes that one internally — holding it across the
+    /// composition branch would deadlock on a non-recursive semaphore. The two field sets do not
+    /// overlap, and this lock is never held across a call that takes `semaphore`, so the two
+    /// cannot form a cycle.
+    ///
+    /// Needed at all because in dual-camera round-video mode two threads run this branch on the
+    /// same instance: the master's own videoQueue, and the additional output's videoQueue reaching
+    /// the master through `masterOutput.processVideoRecording(...)`.
+    private let compositionSemaphore = DispatchSemaphore(value: 1)
     private var roundVideoFormatDescriptionCache: [RoundVideoFormatDescriptionCacheEntry] = []
     
     private let videoQueue = DispatchQueue(label: "", qos: .userInitiated)
@@ -555,21 +568,37 @@ final class CameraOutput: NSObject {
                     || (transitionFactor > 0.0 && transitionFactor < 1.0) {
                     if let processedSampleBuffer = self.processRoundVideoSampleBuffer(sampleBuffer, additional: fromAdditionalOutput, transitionFactor: transitionFactor) {
                         let presentationTime = CMSampleBufferGetPresentationTimeStamp(processedSampleBuffer)
+                        // Read, compare, append and write as one step. Two camera threads could
+                        // otherwise both read the same lastSampleTimestamp, both pass the check and
+                        // both append, putting out-of-order frames into the recording. The append is
+                        // inside the section on purpose — leaving it out puts the interleaving back.
+                        // `processRoundVideoSampleBuffer` has already returned here, so its own
+                        // `semaphore` is released and these two never nest.
+                        self.compositionSemaphore.wait()
                         if let lastSampleTimestamp = self.lastSampleTimestamp, lastSampleTimestamp > presentationTime {
                             
                         } else {
                             videoRecorder.appendSampleBuffer(processedSampleBuffer)
                             self.lastSampleTimestamp = presentationTime
                         }
+                        self.compositionSemaphore.signal()
                     }
                 }
             } else {
                 var additional = self.currentPosition == .front
                 var transitionFactor = self.currentPosition == .front ? 1.0 : 0.0
                 if self.lastSwitchTimestamp > 0.0 {
-                    if self.needsCrossfadeTransition {
+                    // Check and clear as one step, then take the other lock outside this section:
+                    // both threads could otherwise see the flag set, both clear it, and both arm a
+                    // crossfade. Sequential, never nested.
+                    self.compositionSemaphore.wait()
+                    let shouldArmCrossfade = self.needsCrossfadeTransition
+                    if shouldArmCrossfade {
                         self.needsCrossfadeTransition = false
                         self.crossfadeTransitionStart = currentTimestamp + 0.03
+                    }
+                    self.compositionSemaphore.signal()
+                    if shouldArmCrossfade {
                         self.semaphore.wait()
                         self.needsSwitchSampleOffset = true
                         self.semaphore.signal()
@@ -583,7 +612,9 @@ final class CameraOutput: NSObject {
                     } else if currentTimestamp - self.lastSwitchTimestamp < 0.05 {
                         additional = !additional
                         transitionFactor = 1.0 - transitionFactor
+                        self.compositionSemaphore.wait()
                         self.needsCrossfadeTransition = true
+                        self.compositionSemaphore.signal()
                     }
                 }
                 if let processedSampleBuffer = self.processRoundVideoSampleBuffer(sampleBuffer, additional: additional, transitionFactor: transitionFactor) {
@@ -675,8 +706,12 @@ final class CameraOutput: NSObject {
     private var lastSwitchTimestamp: Double = 0.0
    
     func markPositionChange(position: Camera.Position) {
+        // Called when the user flips the camera, off both capture queues, while they are reading
+        // these two on every frame.
+        self.compositionSemaphore.wait()
         self.currentPosition = position
         self.lastSwitchTimestamp = CACurrentMediaTime()
+        self.compositionSemaphore.signal()
         
         if let videoRecorder = self.videoRecorder {
             videoRecorder.markPositionChange(position: position)
