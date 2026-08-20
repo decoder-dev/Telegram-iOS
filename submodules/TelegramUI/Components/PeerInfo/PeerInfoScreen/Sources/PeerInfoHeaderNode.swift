@@ -547,10 +547,6 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         let actionButtonKeys: [PeerInfoHeaderButtonKey] = (self.isSettings || self.isMyProfile) ? [] : peerInfoHeaderActionButtons(peer: peer, isSecretChat: isSecretChat, isContact: isContact)
         let buttonKeys: [PeerInfoHeaderButtonKey] = (self.isSettings || self.isMyProfile) ? [] : peerInfoHeaderButtons(peer: peer, cachedData: cachedData, isOpenedFromChat: self.isOpenedFromChat, isExpanded: true, videoCallsEnabled: width > 320.0 && self.videoCallsEnabled, isSecretChat: isSecretChat, isContact: isContact, threadInfo: threadData?.info)
         
-        let useOledProfileStyle = presentationData.theme.overallDarkAppearance && !self.isSettings && !self.isMyProfile
-        let useOledCardLayout = useOledProfileStyle
-        let headerButtonKeys = useOledCardLayout ? [] : buttonKeys
-        
         let backgroundCoverSubject: PeerInfoCoverComponent.Subject?
         var backgroundCoverAnimateIn = false
         var backgroundDefaultHeight: CGFloat = 254.0
@@ -563,7 +559,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
                 }
                 self.didSetupBackgroundCover = true
             }
-            if !headerButtonKeys.isEmpty {
+            if !buttonKeys.isEmpty {
                 backgroundDefaultHeight = 327.0
                 if metrics.isTablet {
                     backgroundDefaultHeight += 60.0
@@ -577,15 +573,6 @@ final class PeerInfoHeaderNode: ASDisplayNode {
             }
         } else {
             backgroundCoverSubject = nil
-        }
-        
-        var effectiveBackgroundCoverSubject = backgroundCoverSubject
-        if useOledProfileStyle {
-            if case .status = backgroundCoverSubject {
-            } else {
-                effectiveBackgroundCoverSubject = .custom(UIColor(rgb: 0x000000), UIColor(rgb: 0x000000), nil, nil)
-                hasBackground = false
-            }
         }
         
         var currentSavedMusic: TelegramMediaFile?
@@ -656,21 +643,13 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         
         let avatarFrame = CGRect(origin: CGPoint(x: floor((width - avatarSize) / 2.0), y: statusBarHeight + 22.0), size: CGSize(width: avatarSize, height: avatarSize))
         
-        let regularNavigationContentsAccentColor: UIColor
+        let regularNavigationContentsAccentColor: UIColor = peer?.effectiveProfileColor != nil ? .white : presentationData.theme.list.itemAccentColor
         let collapsedHeaderNavigationContentsAccentColor = presentationData.theme.list.itemAccentColor
         let expandedAvatarNavigationContentsAccentColor: UIColor = .white
         
-        let regularNavigationContentsPrimaryColor: UIColor
+        let regularNavigationContentsPrimaryColor: UIColor = peer?.effectiveProfileColor != nil ? .white : presentationData.theme.list.itemPrimaryTextColor
         let collapsedHeaderNavigationContentsPrimaryColor = presentationData.theme.list.itemPrimaryTextColor
         let expandedAvatarNavigationContentsPrimaryColor: UIColor = .white
-        
-        if useOledProfileStyle {
-            regularNavigationContentsAccentColor = presentationData.theme.list.itemAccentColor
-            regularNavigationContentsPrimaryColor = presentationData.theme.list.itemPrimaryTextColor
-        } else {
-            regularNavigationContentsAccentColor = peer?.effectiveProfileColor != nil ? .white : presentationData.theme.list.itemAccentColor
-            regularNavigationContentsPrimaryColor = peer?.effectiveProfileColor != nil ? .white : presentationData.theme.list.itemPrimaryTextColor
-        }
         
         let regularContentButtonBackgroundColor: UIColor
         let collapsedHeaderContentButtonBackgroundColor = presentationData.theme.list.itemBlocksBackgroundColor
@@ -680,23 +659,13 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         let collapsedHeaderButtonBackgroundColor: UIColor = .clear
         let expandedAvatarHeaderButtonBackgroundColor: UIColor = UIColor(white: 0.0, alpha: 0.5)
         
-        let regularContentButtonForegroundColor: UIColor
+        let regularContentButtonForegroundColor: UIColor = peer?.effectiveProfileColor != nil ? UIColor.white : presentationData.theme.list.itemAccentColor
         let collapsedHeaderContentButtonForegroundColor = presentationData.theme.list.itemAccentColor
         let expandedAvatarContentButtonForegroundColor: UIColor = .white
         
-        if useOledProfileStyle {
-            regularContentButtonForegroundColor = .white
-        } else {
-            regularContentButtonForegroundColor = peer?.effectiveProfileColor != nil ? UIColor.white : presentationData.theme.list.itemAccentColor
-        }
-        
         var hasCoverColor = false
         let regularNavigationContentsSecondaryColor: UIColor
-        if useOledProfileStyle {
-            regularNavigationContentsSecondaryColor = presentationData.theme.list.itemSecondaryTextColor
-            regularContentButtonBackgroundColor = UIColor(rgb: 0x2C2C2E)
-            regularHeaderButtonBackgroundColor = UIColor(rgb: 0x2C2C2E)
-        } else if let emojiStatus = peer?.emojiStatus, case let .starGift(_, _, _, _, _, innerColor, outerColor, _, _) = emojiStatus.content {
+        if let emojiStatus = peer?.emojiStatus, case let .starGift(_, _, _, _, _, innerColor, outerColor, _, _) = emojiStatus.content {
             let mainColor = UIColor(rgb: UInt32(bitPattern: innerColor))
             let secondaryColor = UIColor(rgb: UInt32(bitPattern: outerColor))
             regularNavigationContentsSecondaryColor = UIColor(white: 1.0, alpha: 0.6).blitOver(mainColor.withMultiplied(hue: 1.0, saturation: 2.2, brightness: 1.5), alpha: 1.0)
@@ -2297,10 +2266,6 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         let buttonSpacing: CGFloat = 8.0
         let buttonSideInset = max(16.0, containerInset)
         
-        let useCircularHeaderButtons = useOledProfileStyle && !headerButtonKeys.isEmpty
-        let circularButtonDiameter: CGFloat = 52.0
-        let circularButtonSpacing: CGFloat = 20.0
-        
         let actionButtonWidth = (width - buttonSideInset * 2.0 + buttonSpacing) / CGFloat(actionButtonKeys.count) - buttonSpacing
         let actionButtonSize = CGSize(width: actionButtonWidth, height: 40.0)
         var actionButtonRightOrigin = CGPoint(x: width - buttonSideInset, y: backgroundHeight - 16.0 - actionButtonSize.height)
@@ -2357,34 +2322,21 @@ final class PeerInfoHeaderNode: ASDisplayNode {
             }
         }
         
-        let buttonWidth = useCircularHeaderButtons ? circularButtonDiameter : (width - buttonSideInset * 2.0 + buttonSpacing) / CGFloat(max(1, headerButtonKeys.count)) - buttonSpacing
-        let buttonSize = CGSize(width: buttonWidth, height: useCircularHeaderButtons ? circularButtonDiameter : 58.0)
+        let buttonWidth = (width - buttonSideInset * 2.0 + buttonSpacing) / CGFloat(buttonKeys.count) - buttonSpacing
+        let buttonSize = CGSize(width: buttonWidth, height: 58.0)
         var buttonRightOrigin = CGPoint(x: width - buttonSideInset, y: backgroundHeight - bottomInset - 16.0 - buttonSize.height)
         if !actionButtonKeys.isEmpty {
             buttonRightOrigin.y += actionButtonSize.height + 24.0
         }
         
-        if useCircularHeaderButtons {
-            transition.updateAlpha(node: self.buttonsBackgroundNode, alpha: 0.0)
-        } else {
-            transition.updateFrameAdditive(node: self.buttonsBackgroundNode, frame: CGRect(origin: CGPoint(x: 0.0, y: buttonRightOrigin.y), size: CGSize(width: width, height: buttonSize.height + 40.0)))
-            self.buttonsBackgroundNode.update(size: self.buttonsBackgroundNode.bounds.size, transition: transition)
-            self.buttonsBackgroundNode.updateColor(color: contentButtonBackgroundColor, enableBlur: true, transition: transition)
-            if isReduceTransparencyEnabled() {
-                self.buttonsBackgroundNode.alpha = 0.1
-            } else {
-                transition.updateAlpha(node: self.buttonsBackgroundNode, alpha: 1.0)
-            }
+        transition.updateFrameAdditive(node: self.buttonsBackgroundNode, frame: CGRect(origin: CGPoint(x: 0.0, y: buttonRightOrigin.y), size: CGSize(width: width, height: buttonSize.height + 40.0)))
+        self.buttonsBackgroundNode.update(size: self.buttonsBackgroundNode.bounds.size, transition: transition)
+        self.buttonsBackgroundNode.updateColor(color: contentButtonBackgroundColor, enableBlur: true, transition: transition)
+        if isReduceTransparencyEnabled() {
+            self.buttonsBackgroundNode.alpha = 0.1
         }
         
-        var circularButtonLeftOrigin: CGFloat = 0.0
-        if useCircularHeaderButtons {
-            let totalButtonsWidth = CGFloat(headerButtonKeys.count) * circularButtonDiameter + CGFloat(max(0, headerButtonKeys.count - 1)) * circularButtonSpacing
-            circularButtonLeftOrigin = floor((width - totalButtonsWidth) / 2.0)
-        }
-        
-        let orderedButtonKeys: [PeerInfoHeaderButtonKey] = useCircularHeaderButtons ? headerButtonKeys : headerButtonKeys.reversed()
-        for buttonKey in orderedButtonKeys {
+        for buttonKey in buttonKeys.reversed() {
             let buttonNode: PeerInfoHeaderButtonNode
             var wasAdded = false
             if let current = self.buttonNodes[buttonKey] {
@@ -2399,13 +2351,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
                 self.buttonsMaskView.addSubview(buttonNode.backgroundContainerView)
             }
             
-            let buttonFrame: CGRect
-            if useCircularHeaderButtons {
-                buttonFrame = CGRect(origin: CGPoint(x: circularButtonLeftOrigin, y: buttonRightOrigin.y), size: buttonSize)
-                circularButtonLeftOrigin += circularButtonDiameter + circularButtonSpacing
-            } else {
-                buttonFrame = CGRect(origin: CGPoint(x: buttonRightOrigin.x - buttonSize.width, y: buttonRightOrigin.y), size: buttonSize)
-            }
+            let buttonFrame = CGRect(origin: CGPoint(x: buttonRightOrigin.x - buttonSize.width, y: buttonRightOrigin.y), size: buttonSize)
             let buttonTransition: ContainedViewLayoutTransition = wasAdded ? .immediate : transition
             
             if additive {
@@ -2415,34 +2361,69 @@ final class PeerInfoHeaderNode: ASDisplayNode {
             }
             buttonTransition.updateFrame(view: buttonNode.backgroundContainerView, frame: buttonFrame.offsetBy(dx: 0.0, dy: -buttonFrame.minY))
             
-            let buttonContent = peerInfoHeaderButtonContent(
-                key: buttonKey,
-                presentationData: presentationData,
-                peer: peer,
-                peerNotificationSettings: peerNotificationSettings,
-                threadNotificationSettings: threadNotificationSettings,
-                globalNotificationSettings: globalNotificationSettings
-            )
-            let buttonText = buttonContent.text
-            let buttonIcon = buttonContent.icon
+            let buttonText: String
+            let buttonIcon: PeerInfoHeaderButtonIcon
+            switch buttonKey {
+            case .message:
+                buttonText = presentationData.strings.PeerInfo_ButtonMessage
+                buttonIcon = .message
+            case .discussion:
+                buttonText = presentationData.strings.PeerInfo_ButtonDiscuss
+                buttonIcon = .message
+            case .call:
+                buttonText = presentationData.strings.PeerInfo_ButtonCall
+                buttonIcon = .call
+            case .videoCall:
+                buttonText = presentationData.strings.PeerInfo_ButtonVideoCall
+                buttonIcon = .videoCall
+            case .voiceChat:
+                if case let .channel(channel) = peer, case .broadcast = channel.info {
+                    buttonText = presentationData.strings.PeerInfo_ButtonLiveStream
+                } else {
+                    buttonText = presentationData.strings.PeerInfo_ButtonVoiceChat
+                }
+                buttonIcon = .voiceChat
+            case .mute:
+                let chatIsMuted = peerInfoIsChatMuted(peer: peer, peerNotificationSettings: peerNotificationSettings, threadNotificationSettings: threadNotificationSettings, globalNotificationSettings: globalNotificationSettings)
+                if chatIsMuted {
+                    buttonText = presentationData.strings.PeerInfo_ButtonUnmute
+                    buttonIcon = .unmute
+                } else {
+                    buttonText = presentationData.strings.PeerInfo_ButtonMute
+                    buttonIcon = .mute
+                }
+            case .more:
+                buttonText = presentationData.strings.PeerInfo_ButtonMore
+                buttonIcon = .more
+            case .addMember:
+                buttonText = presentationData.strings.PeerInfo_ButtonAddMember
+                buttonIcon = .addMember
+            case .search:
+                buttonText = presentationData.strings.PeerInfo_ButtonSearch
+                buttonIcon = .search
+            case .leave:
+                buttonText = presentationData.strings.PeerInfo_ButtonLeave
+                buttonIcon = .leave
+            case .stop:
+                buttonText = presentationData.strings.PeerInfo_ButtonStop
+                buttonIcon = .stop
+            case .addContact:
+                fatalError()
+            }
             
             var isActive = true
             if let highlightedButton = state.highlightedButton {
                 isActive = buttonKey == highlightedButton
             }
             
-            buttonNode.update(size: buttonFrame.size, text: buttonText, icon: buttonIcon, isActive: isActive, presentationData: presentationData, backgroundColor: contentButtonBackgroundColor, foregroundColor: contentButtonForegroundColor, fraction: useCircularHeaderButtons ? 1.0 : 1.0 - innerButtonsTransitionFraction, circularStyle: useCircularHeaderButtons, transition: buttonTransition)
+            buttonNode.update(size: buttonFrame.size, text: buttonText, icon: buttonIcon, isActive: isActive, presentationData: presentationData, backgroundColor: contentButtonBackgroundColor, foregroundColor: contentButtonForegroundColor, fraction: 1.0 - innerButtonsTransitionFraction, transition: buttonTransition)
             
             if wasAdded {
                 buttonNode.alpha = 0.0
                 buttonNode.backgroundContainerView.alpha = 0.0
             }
             transition.updateAlpha(node: buttonNode, alpha: buttonsTransitionFraction)
-            if useCircularHeaderButtons {
-                transition.updateAlpha(layer: buttonNode.backgroundContainerView.layer, alpha: 0.0)
-            } else {
-                transition.updateAlpha(layer: buttonNode.backgroundContainerView.layer, alpha: buttonsTransitionFraction)
-            }
+            transition.updateAlpha(layer: buttonNode.backgroundContainerView.layer, alpha: buttonsTransitionFraction)
             
             if case .mute = buttonKey, buttonNode.containerNode.alpha.isZero, additive {
                 if case let .animated(duration, curve) = transition {
@@ -2453,13 +2434,11 @@ final class PeerInfoHeaderNode: ASDisplayNode {
             } else {
                 transition.updateAlpha(node: buttonNode.containerNode, alpha: 1.0)
             }
-            if !useCircularHeaderButtons {
-                buttonRightOrigin.x -= buttonSize.width + buttonSpacing
-            }
+            buttonRightOrigin.x -= buttonSize.width + buttonSpacing
         }
         
         for key in self.buttonNodes.keys {
-            if !headerButtonKeys.contains(key) {
+            if !buttonKeys.contains(key) {
                 if let buttonNode = self.buttonNodes[key] {
                     self.buttonNodes.removeValue(forKey: key)
                     transition.updateAlpha(layer: buttonNode.backgroundContainerView.layer, alpha: 0.0)
@@ -2509,14 +2488,14 @@ final class PeerInfoHeaderNode: ASDisplayNode {
             transition: ComponentTransition(transition),
             component: AnyComponent(PeerInfoCoverComponent(
                 context: self.context,
-                subject: effectiveBackgroundCoverSubject,
+                subject: backgroundCoverSubject,
                 files: [:],
                 isDark: presentationData.theme.overallDarkAppearance,
                 avatarCenter: apparentAvatarFrame.center.offsetBy(dx: bannerInset, dy: 0.0),
                 avatarSize: apparentAvatarFrame.size,
                 avatarScale: avatarScale,
                 defaultHeight: backgroundDefaultHeight,
-                gradientCenter: CGPoint(x: 0.5, y: headerButtonKeys.isEmpty ? 0.5 : 0.45),
+                gradientCenter: CGPoint(x: 0.5, y: buttonKeys.isEmpty ? 0.5 : 0.45),
                 avatarTransitionFraction: max(0.0, min(1.0, titleCollapseFraction + transitionFraction * 2.0)),
                 patternTransitionFraction: buttonsTransitionFraction * backgroundTransitionFraction
             )),
@@ -2561,7 +2540,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
                     topLeftButtonsSize: CGSize(width: (self.isSettings ? 57.0 : 47.0), height: 46.0),
                     topRightButtonsSize: CGSize(width: 76.0 + (self.isMyProfile ? 38.0 : 0.0), height: 46.0),
                     titleWidth: max(140.0, titleFrame.width) + 42.0,
-                    bottomHeight: !headerButtonKeys.isEmpty ? 81.0 : 30.0,
+                    bottomHeight: !buttonKeys.isEmpty ? 81.0 : 30.0,
                     action: { [weak self] gift in
                         guard let self, case let .unique(gift) = gift.gift else {
                             return

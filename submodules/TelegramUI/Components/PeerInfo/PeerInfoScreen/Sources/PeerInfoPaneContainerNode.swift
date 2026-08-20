@@ -593,8 +593,7 @@ final class PeerInfoPaneContainerNode: ASDisplayNode, ASGestureRecognizerDelegat
     
     private let tabsBackgroundContainer: GlassBackgroundContainerView
     private let tabsBackgroundView: GlassBackgroundView
-    private let cardBackgroundNode: ASDisplayNode
-    private var tabsContainer = ComponentView<Empty>()
+    private let tabsContainer = ComponentView<Empty>()
     private var didJustReorderTabs = false
     
     private var actionPanel: ComponentView<Empty>?
@@ -602,7 +601,7 @@ final class PeerInfoPaneContainerNode: ASDisplayNode, ASGestureRecognizerDelegat
     let isReady = Promise<Bool>()
     var didSetIsReady = false
     
-    private var currentParams: (size: CGSize, sideInset: CGFloat, bottomInset: CGFloat, topInset: CGFloat, deviceMetrics: DeviceMetrics, visibleHeight: CGFloat, expansionFraction: CGFloat, presentationData: PresentationData, data: PeerInfoScreenData?, areTabsHidden: Bool, disableTabSwitching: Bool, navigationHeight: CGFloat, useOledCardLayout: Bool, cardSideInset: CGFloat)?
+    private var currentParams: (size: CGSize, sideInset: CGFloat, bottomInset: CGFloat, topInset: CGFloat, deviceMetrics: DeviceMetrics, visibleHeight: CGFloat, expansionFraction: CGFloat, presentationData: PresentationData, data: PeerInfoScreenData?, areTabsHidden: Bool, disableTabSwitching: Bool, navigationHeight: CGFloat)?
     
     private(set) var currentPaneKey: PeerInfoPaneKey?
     var pendingSwitchToPaneKey: PeerInfoPaneKey?
@@ -672,15 +671,11 @@ final class PeerInfoPaneContainerNode: ASDisplayNode, ASGestureRecognizerDelegat
         
         self.tabsBackgroundContainer = GlassBackgroundContainerView()
         self.tabsBackgroundView = GlassBackgroundView()
-        self.cardBackgroundNode = ASDisplayNode()
-        self.cardBackgroundNode.isLayerBacked = true
-        self.cardBackgroundNode.isHidden = true
         
         self.headerContainer = SparseContainerView()
         
         super.init()
         
-        self.addSubnode(self.cardBackgroundNode)
         self.tabsBackgroundContainer.contentView.addSubview(self.tabsBackgroundView)
         self.headerContainer.addSubview(self.tabsBackgroundContainer)
     }
@@ -764,7 +759,7 @@ final class PeerInfoPaneContainerNode: ASDisplayNode, ASGestureRecognizerDelegat
             
             cancelContextGestures(view: self.view)
         case .changed:
-            if let (size, sideInset, topInset, bottomInset, deviceMetrics, visibleHeight, expansionFraction, presentationData, data, areTabsHidden, disableTabSwitching, navigationHeight, useOledCardLayout, cardSideInset) = self.currentParams, let availablePanes = data?.availablePanes, availablePanes.count > 1, let currentPaneKey = self.currentPaneKey, let currentIndex = availablePanes.firstIndex(of: currentPaneKey) {
+            if let (size, sideInset, topInset, bottomInset, deviceMetrics, visibleHeight, expansionFraction, presentationData, data, areTabsHidden, disableTabSwitching, navigationHeight) = self.currentParams, let availablePanes = data?.availablePanes, availablePanes.count > 1, let currentPaneKey = self.currentPaneKey, let currentIndex = availablePanes.firstIndex(of: currentPaneKey) {
                 let translation = recognizer.translation(in: self.view)
                 var transitionFraction = translation.x / size.width
                 if currentIndex <= 0 {
@@ -779,13 +774,13 @@ final class PeerInfoPaneContainerNode: ASDisplayNode, ASGestureRecognizerDelegat
 //                print(transitionFraction)
                 self.paneTransitionPromise.set(transitionFraction)
                 
-                self.update(size: size, sideInset: sideInset, topInset: topInset, bottomInset: bottomInset, deviceMetrics: deviceMetrics, visibleHeight: visibleHeight, expansionFraction: expansionFraction, presentationData: presentationData, data: data, areTabsHidden: areTabsHidden, disableTabSwitching: disableTabSwitching, navigationHeight: navigationHeight, useOledCardLayout: useOledCardLayout, cardSideInset: cardSideInset, transition: .immediate)
+                self.update(size: size, sideInset: sideInset, topInset: topInset, bottomInset: bottomInset, deviceMetrics: deviceMetrics, visibleHeight: visibleHeight, expansionFraction: expansionFraction, presentationData: presentationData, data: data, areTabsHidden: areTabsHidden, disableTabSwitching: disableTabSwitching, navigationHeight: navigationHeight, transition: .immediate)
                 self.currentPaneUpdated?(false)
             }
         case .cancelled, .ended:
             self.isDraggingTabs = false
             
-            if let (size, sideInset, topInset, bottomInset, deviceMetrics, visibleHeight, expansionFraction, presentationData, data, areTabsHidden, disableTabSwitching, navigationHeight, useOledCardLayout, cardSideInset) = self.currentParams, let availablePanes = data?.availablePanes, availablePanes.count > 1, let currentPaneKey = self.currentPaneKey, let currentIndex = availablePanes.firstIndex(of: currentPaneKey) {
+            if let (size, sideInset, topInset, bottomInset, deviceMetrics, visibleHeight, expansionFraction, presentationData, data, areTabsHidden, disableTabSwitching, navigationHeight) = self.currentParams, let availablePanes = data?.availablePanes, availablePanes.count > 1, let currentPaneKey = self.currentPaneKey, let currentIndex = availablePanes.firstIndex(of: currentPaneKey) {
                 let translation = recognizer.translation(in: self.view)
                 let velocity = recognizer.velocity(in: self.view)
                 var directionIsToRight: Bool?
@@ -809,7 +804,7 @@ final class PeerInfoPaneContainerNode: ASDisplayNode, ASGestureRecognizerDelegat
                     }
                 }
                 self.transitionFraction = 0.0
-                self.update(size: size, sideInset: sideInset, topInset: topInset, bottomInset: bottomInset, deviceMetrics: deviceMetrics, visibleHeight: visibleHeight, expansionFraction: expansionFraction, presentationData: presentationData, data: data, areTabsHidden: areTabsHidden, disableTabSwitching: disableTabSwitching, navigationHeight: navigationHeight, useOledCardLayout: useOledCardLayout, cardSideInset: cardSideInset, transition: .animated(duration: 0.35, curve: .spring))
+                self.update(size: size, sideInset: sideInset, topInset: topInset, bottomInset: bottomInset, deviceMetrics: deviceMetrics, visibleHeight: visibleHeight, expansionFraction: expansionFraction, presentationData: presentationData, data: data, areTabsHidden: areTabsHidden, disableTabSwitching: disableTabSwitching, navigationHeight: navigationHeight, transition: .animated(duration: 0.35, curve: .spring))
                 self.currentPaneUpdated?(false)
 
                 self.currentPaneStatusPromise.set(self.currentPane?.node.status ?? .single(nil))
@@ -918,7 +913,7 @@ final class PeerInfoPaneContainerNode: ASDisplayNode, ASGestureRecognizerDelegat
         self.parentController?.presentInGlobalOverlay(contextController)
     }
     
-    func update(size: CGSize, sideInset: CGFloat, topInset: CGFloat, bottomInset: CGFloat, deviceMetrics: DeviceMetrics, visibleHeight: CGFloat, expansionFraction: CGFloat, presentationData: PresentationData, data: PeerInfoScreenData?, areTabsHidden: Bool, disableTabSwitching: Bool, navigationHeight: CGFloat, useOledCardLayout: Bool = false, cardSideInset: CGFloat = 0.0, transition: ContainedViewLayoutTransition) {
+    func update(size: CGSize, sideInset: CGFloat, topInset: CGFloat, bottomInset: CGFloat, deviceMetrics: DeviceMetrics, visibleHeight: CGFloat, expansionFraction: CGFloat, presentationData: PresentationData, data: PeerInfoScreenData?, areTabsHidden: Bool, disableTabSwitching: Bool, navigationHeight: CGFloat, transition: ContainedViewLayoutTransition) {
         let previousAvailablePanes = self.currentAvailablePanes
         let availablePanes = data?.availablePanes ?? []
         self.currentAvailablePanes = data?.availablePanes
@@ -962,31 +957,16 @@ final class PeerInfoPaneContainerNode: ASDisplayNode, ASGestureRecognizerDelegat
             currentIndex = nil
         }
         
-        self.currentParams = (size, sideInset, topInset, bottomInset, deviceMetrics, visibleHeight, expansionFraction, presentationData, data, areTabsHidden, disableTabSwitching, navigationHeight, useOledCardLayout, cardSideInset)
-        
-        let effectiveCardSideInset = useOledCardLayout && cardSideInset > 0.0 ? cardSideInset : 0.0
-        let effectiveSideInset = sideInset + effectiveCardSideInset
+        self.currentParams = (size, sideInset, topInset, bottomInset, deviceMetrics, visibleHeight, expansionFraction, presentationData, data, areTabsHidden, disableTabSwitching, navigationHeight)
         
         let backgroundColor: UIColor
-        if useOledCardLayout && cardSideInset > 0.0 {
-            backgroundColor = .clear
-            self.cardBackgroundNode.isHidden = false
-            self.cardBackgroundNode.backgroundColor = peerInfoOledCardBackgroundColor
-            self.cardBackgroundNode.cornerRadius = 10.0
-            if #available(iOS 11.0, *) {
-                self.cardBackgroundNode.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
-            }
-            transition.updateFrame(node: self.cardBackgroundNode, frame: CGRect(origin: CGPoint(x: effectiveCardSideInset, y: 0.0), size: CGSize(width: max(0.0, size.width - effectiveCardSideInset * 2.0), height: size.height)))
+        if self.currentPaneKey == .gifts {
+            backgroundColor = presentationData.theme.list.blocksBackgroundColor
         } else {
-            self.cardBackgroundNode.isHidden = true
-            if self.currentPaneKey == .gifts {
-                backgroundColor = presentationData.theme.list.blocksBackgroundColor
+            if self.currentPaneKey == .stories || self.currentPaneKey == .storyArchive {
+                backgroundColor = presentationData.theme.list.blocksBackgroundColor.mixedWith(presentationData.theme.list.plainBackgroundColor, alpha: expansionFraction)
             } else {
-                if self.currentPaneKey == .stories || self.currentPaneKey == .storyArchive {
-                    backgroundColor = presentationData.theme.list.blocksBackgroundColor.mixedWith(presentationData.theme.list.plainBackgroundColor, alpha: expansionFraction)
-                } else {
-                    backgroundColor = presentationData.theme.list.blocksBackgroundColor
-                }
+                backgroundColor = presentationData.theme.list.blocksBackgroundColor
             }
         }
         
@@ -1082,12 +1062,12 @@ final class PeerInfoPaneContainerNode: ASDisplayNode, ASGestureRecognizerDelegat
                             guard let strongSelf = self else {
                                 return
                             }
-                            if let (size, sideInset, topInset, bottomInset, deviceMetrics, visibleHeight, expansionFraction, presentationData, data, areTabsHidden, disableTabSwitching, navigationHeight, useOledCardLayout, cardSideInset) = strongSelf.currentParams {
+                            if let (size, sideInset, topInset, bottomInset, deviceMetrics, visibleHeight, expansionFraction, presentationData, data, areTabsHidden, disableTabSwitching, navigationHeight) = strongSelf.currentParams {
                                 var transition: ContainedViewLayoutTransition = .immediate
                                 if strongSelf.pendingSwitchToPaneKey == key && strongSelf.currentPaneKey != nil {
                                     transition = .animated(duration: 0.4, curve: .spring)
                                 }
-                                strongSelf.update(size: size, sideInset: sideInset, topInset: topInset, bottomInset: bottomInset, deviceMetrics: deviceMetrics, visibleHeight: visibleHeight, expansionFraction: expansionFraction, presentationData: presentationData, data: data, areTabsHidden: areTabsHidden, disableTabSwitching: disableTabSwitching, navigationHeight: navigationHeight, useOledCardLayout: useOledCardLayout, cardSideInset: cardSideInset, transition: transition)
+                                strongSelf.update(size: size, sideInset: sideInset, topInset: topInset, bottomInset: bottomInset, deviceMetrics: deviceMetrics, visibleHeight: visibleHeight, expansionFraction: expansionFraction, presentationData: presentationData, data: data, areTabsHidden: areTabsHidden, disableTabSwitching: disableTabSwitching, navigationHeight: navigationHeight, transition: transition)
                             }
                         }
                         if leftScope {
@@ -1128,14 +1108,14 @@ final class PeerInfoPaneContainerNode: ASDisplayNode, ASGestureRecognizerDelegat
                 )
                 self.pendingPanes[key] = pane
                 pane.pane.node.frame = paneFrame
-                pane.pane.update(size: paneFrame.size, topInset: topInset + effectiveTabsHeight, sideInset: effectiveSideInset, bottomInset: bottomInset, deviceMetrics: deviceMetrics, visibleHeight: visibleHeight, isScrollingLockedAtTop: isScrollingLockedAtTop, expandProgress: expansionFraction, navigationHeight: navigationHeight, presentationData: presentationData, synchronous: true, transition: .immediate)
+                pane.pane.update(size: paneFrame.size, topInset: topInset + effectiveTabsHeight, sideInset: sideInset, bottomInset: bottomInset, deviceMetrics: deviceMetrics, visibleHeight: visibleHeight, isScrollingLockedAtTop: isScrollingLockedAtTop, expandProgress: expansionFraction, navigationHeight: navigationHeight, presentationData: presentationData, synchronous: true, transition: .immediate)
                 let paneNode = pane.pane.node
                 pane.pane.node.tabBarOffsetUpdated = { [weak self, weak paneNode] transition in
                     guard let strongSelf = self, let paneNode = paneNode, let currentPane = strongSelf.currentPane, paneNode === currentPane.node else {
                         return
                     }
-                    if let (size, sideInset, topInset, bottomInset, deviceMetrics, visibleHeight, expansionFraction, presentationData, data, areTabsHidden, disableTabSwitching, navigationHeight, useOledCardLayout, cardSideInset) = strongSelf.currentParams {
-                        strongSelf.update(size: size, sideInset: sideInset, topInset: topInset, bottomInset: bottomInset, deviceMetrics: deviceMetrics, visibleHeight: visibleHeight, expansionFraction: expansionFraction, presentationData: presentationData, data: data, areTabsHidden: areTabsHidden, disableTabSwitching: disableTabSwitching, navigationHeight: navigationHeight, useOledCardLayout: useOledCardLayout, cardSideInset: cardSideInset, transition: transition)
+                    if let (size, sideInset, topInset, bottomInset, deviceMetrics, visibleHeight, expansionFraction, presentationData, data, areTabsHidden, disableTabSwitching, navigationHeight) = strongSelf.currentParams {
+                        strongSelf.update(size: size, sideInset: sideInset, topInset: topInset, bottomInset: bottomInset, deviceMetrics: deviceMetrics, visibleHeight: visibleHeight, expansionFraction: expansionFraction, presentationData: presentationData, data: data, areTabsHidden: areTabsHidden, disableTabSwitching: disableTabSwitching, navigationHeight: navigationHeight, transition: transition)
                     }
                 }
                 leftScope = true
@@ -1144,7 +1124,7 @@ final class PeerInfoPaneContainerNode: ASDisplayNode, ASGestureRecognizerDelegat
         
         for (key, pane) in self.pendingPanes {
             pane.pane.node.frame = paneFrame
-            pane.pane.update(size: paneFrame.size, topInset: effectiveTabsHeight + topInset, sideInset: effectiveSideInset, bottomInset: bottomInset, deviceMetrics: deviceMetrics, visibleHeight: visibleHeight, isScrollingLockedAtTop: isScrollingLockedAtTop, expandProgress: expansionFraction, navigationHeight: navigationHeight, presentationData: presentationData, synchronous: self.currentPaneKey == nil, transition: .immediate)
+            pane.pane.update(size: paneFrame.size, topInset: effectiveTabsHeight + topInset, sideInset: sideInset, bottomInset: bottomInset, deviceMetrics: deviceMetrics, visibleHeight: visibleHeight, isScrollingLockedAtTop: isScrollingLockedAtTop, expandProgress: expansionFraction, navigationHeight: navigationHeight, presentationData: presentationData, synchronous: self.currentPaneKey == nil, transition: .immediate)
             
             if pane.isReady {
                 self.pendingPanes.removeValue(forKey: key)
@@ -1210,7 +1190,7 @@ final class PeerInfoPaneContainerNode: ASDisplayNode, ASGestureRecognizerDelegat
                         return
                     }
                     pane.isAnimatingOut = false
-                    if let (_, _, _, _, _, _, _, _, data, _, _, _, _, _) = strongSelf.currentParams {
+                    if let (_, _, _, _, _, _, _, _, data, _, _, _) = strongSelf.currentParams {
                         if let availablePanes = data?.availablePanes, let currentPaneKey = strongSelf.currentPaneKey, let currentIndex = availablePanes.firstIndex(of: currentPaneKey), let paneIndex = availablePanes.firstIndex(of: key), abs(paneIndex - currentIndex) <= 1 {
                         } else {
                             if let pane = strongSelf.currentPanes.removeValue(forKey: key) {
@@ -1240,7 +1220,7 @@ final class PeerInfoPaneContainerNode: ASDisplayNode, ASGestureRecognizerDelegat
                         paneCompletion()
                     })
                 }
-                pane.update(size: paneFrame.size, topInset: effectiveTabsHeight + topInset, sideInset: effectiveSideInset, bottomInset: bottomInset, deviceMetrics: deviceMetrics, visibleHeight: visibleHeight, isScrollingLockedAtTop: isScrollingLockedAtTop, expandProgress: expansionFraction, navigationHeight: navigationHeight, presentationData: presentationData, synchronous: paneWasAdded, transition: paneTransition)
+                pane.update(size: paneFrame.size, topInset: effectiveTabsHeight + topInset, sideInset: sideInset, bottomInset: bottomInset, deviceMetrics: deviceMetrics, visibleHeight: visibleHeight, isScrollingLockedAtTop: isScrollingLockedAtTop, expandProgress: expansionFraction, navigationHeight: navigationHeight, presentationData: presentationData, synchronous: paneWasAdded, transition: paneTransition)
             }
         }
 
@@ -1275,7 +1255,7 @@ final class PeerInfoPaneContainerNode: ASDisplayNode, ASGestureRecognizerDelegat
             }
         }
         
-        let tabsSideInset: CGFloat = effectiveSideInset + 16.0
+        let tabsSideInset: CGFloat = sideInset + 16.0
         
         let tabsContainerSize = CGSize(width: size.width - tabsSideInset * 2.0, height: tabsHeight)
         let tabsContainerEffectiveSize = self.tabsContainer.update(
@@ -1355,8 +1335,8 @@ final class PeerInfoPaneContainerNode: ASDisplayNode, ASGestureRecognizerDelegat
                             if self.currentPanes[paneKey] != nil {
                                 self.currentPaneKey = paneKey
                                 
-                                if let (size, sideInset, topInset, bottomInset, deviceMetrics, visibleHeight, expansionFraction, presentationData, data, areTabsHidden, disableTabSwitching, navigationHeight, useOledCardLayout, cardSideInset) = self.currentParams {
-                                    self.update(size: size, sideInset: sideInset, topInset: topInset, bottomInset: bottomInset, deviceMetrics: deviceMetrics, visibleHeight: visibleHeight, expansionFraction: expansionFraction, presentationData: presentationData, data: data, areTabsHidden: areTabsHidden, disableTabSwitching: disableTabSwitching, navigationHeight: navigationHeight, useOledCardLayout: useOledCardLayout, cardSideInset: cardSideInset, transition: .animated(duration: 0.4, curve: .spring))
+                                if let (size, sideInset, topInset, bottomInset, deviceMetrics, visibleHeight, expansionFraction, presentationData, data, areTabsHidden, disableTabSwitching, navigationHeight) = self.currentParams {
+                                    self.update(size: size, sideInset: sideInset, topInset: topInset, bottomInset: bottomInset, deviceMetrics: deviceMetrics, visibleHeight: visibleHeight, expansionFraction: expansionFraction, presentationData: presentationData, data: data, areTabsHidden: areTabsHidden, disableTabSwitching: disableTabSwitching, navigationHeight: navigationHeight, transition: .animated(duration: 0.4, curve: .spring))
                                     
                                     self.currentPaneUpdated?(true)
                                     
@@ -1368,8 +1348,8 @@ final class PeerInfoPaneContainerNode: ASDisplayNode, ASGestureRecognizerDelegat
                                 self.pendingSwitchToPaneKey = paneKey
                                 self.expandOnSwitch = true
                                 
-                                if let (size, sideInset, topInset, bottomInset, deviceMetrics, visibleHeight, expansionFraction, presentationData, data, areTabsHidden, disableTabSwitching, navigationHeight, useOledCardLayout, cardSideInset) = self.currentParams {
-                                    self.update(size: size, sideInset: sideInset, topInset: topInset, bottomInset: bottomInset, deviceMetrics: deviceMetrics, visibleHeight: visibleHeight, expansionFraction: expansionFraction, presentationData: presentationData, data: data, areTabsHidden: areTabsHidden, disableTabSwitching: disableTabSwitching, navigationHeight: navigationHeight, useOledCardLayout: useOledCardLayout, cardSideInset: cardSideInset, transition: .animated(duration: 0.4, curve: .spring))
+                                if let (size, sideInset, topInset, bottomInset, deviceMetrics, visibleHeight, expansionFraction, presentationData, data, areTabsHidden, disableTabSwitching, navigationHeight) = self.currentParams {
+                                    self.update(size: size, sideInset: sideInset, topInset: topInset, bottomInset: bottomInset, deviceMetrics: deviceMetrics, visibleHeight: visibleHeight, expansionFraction: expansionFraction, presentationData: presentationData, data: data, areTabsHidden: areTabsHidden, disableTabSwitching: disableTabSwitching, navigationHeight: navigationHeight, transition: .animated(duration: 0.4, curve: .spring))
                                 }
                             }
                         },
@@ -1391,28 +1371,14 @@ final class PeerInfoPaneContainerNode: ASDisplayNode, ASGestureRecognizerDelegat
             containerSize: tabsContainerSize
         )
         
-        let tabContainerFrameOriginX: CGFloat
-        if useOledCardLayout && cardSideInset > 0.0 {
-            tabContainerFrameOriginX = tabsSideInset
-        } else {
-            tabContainerFrameOriginX = floorToScreenPixels((size.width - tabsContainerEffectiveSize.width) / 2.0)
-        }
+        let tabContainerFrameOriginX = floorToScreenPixels((size.width - tabsContainerEffectiveSize.width) / 2.0)
         let tabContainerFrame = CGRect(origin: CGPoint(x: tabContainerFrameOriginX, y: 10.0), size: tabsContainerEffectiveSize)
         
         transition.updateFrame(view: self.tabsBackgroundContainer, frame: tabContainerFrame)
         self.tabsBackgroundContainer.update(size: tabContainerFrame.size, isDark: presentationData.theme.overallDarkAppearance, transition: ComponentTransition(transition))
         
         transition.updateFrame(view: self.tabsBackgroundView, frame: CGRect(origin: CGPoint(), size: tabContainerFrame.size))
-        let tabsTintColor: GlassBackgroundView.TintColor
-        if useOledCardLayout && cardSideInset > 0.0 {
-            tabsTintColor = .init(kind: .custom(style: .default, color: .clear))
-        } else if presentationData.theme.overallDarkAppearance {
-            tabsTintColor = .init(kind: .custom(style: .default, color: UIColor(rgb: 0x1C1C1E)))
-        } else {
-            tabsTintColor = .init(kind: .panel)
-        }
-        let tabsCornerRadius = (useOledCardLayout && cardSideInset > 0.0) ? 0.0 : tabContainerFrame.height * 0.5
-        self.tabsBackgroundView.update(size: tabContainerFrame.size, cornerRadius: tabsCornerRadius, isDark: presentationData.theme.overallDarkAppearance, tintColor: tabsTintColor, transition: ComponentTransition(transition))
+        self.tabsBackgroundView.update(size: tabContainerFrame.size, cornerRadius: tabContainerFrame.height * 0.5, isDark: presentationData.theme.overallDarkAppearance, tintColor: .init(kind: .panel), transition: ComponentTransition(transition))
         
         ComponentTransition(transition).setAlpha(view: self.tabsBackgroundContainer, alpha: tabsAlpha)
         
@@ -1429,7 +1395,7 @@ final class PeerInfoPaneContainerNode: ASDisplayNode, ASGestureRecognizerDelegat
         for (_, pane) in self.pendingPanes {
             let paneTransition: ContainedViewLayoutTransition = .immediate
             paneTransition.updateFrame(node: pane.pane.node, frame: paneFrame)
-            pane.pane.update(size: paneFrame.size, topInset: effectiveTabsHeight + topInset, sideInset: effectiveSideInset, bottomInset: bottomInset, deviceMetrics: deviceMetrics, visibleHeight: visibleHeight, isScrollingLockedAtTop: isScrollingLockedAtTop, expandProgress: expansionFraction, navigationHeight: navigationHeight, presentationData: presentationData, synchronous: true, transition: paneTransition)
+            pane.pane.update(size: paneFrame.size, topInset: effectiveTabsHeight + topInset, sideInset: sideInset, bottomInset: bottomInset, deviceMetrics: deviceMetrics, visibleHeight: visibleHeight, isScrollingLockedAtTop: isScrollingLockedAtTop, expandProgress: expansionFraction, navigationHeight: navigationHeight, presentationData: presentationData, synchronous: true, transition: paneTransition)
         }
         
         var removeKeys: [PeerInfoPaneKey] = []

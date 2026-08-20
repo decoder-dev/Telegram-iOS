@@ -6,7 +6,6 @@ import TelegramCore
 import SwiftSignalKit
 import AccountContext
 import StatisticsUI
-import ContextUI
 
 final class PeerInfoInteraction {
     let openChat: (EnginePeer.Id?) -> Void
@@ -87,8 +86,6 @@ final class PeerInfoInteraction {
     let displayAutoTranslateLocked: () -> Void
     let editingOpenBusinessChatBots: () -> Void
     let getController: () -> ViewController?
-    
-    var performHeaderButtonAction: ((PeerInfoHeaderButtonKey, PeerInfoHeaderButtonNode?, ContextGesture?) -> Void)?
     
     init(
         openUsername: @escaping (String, Bool, Promise<Bool>?) -> Void,

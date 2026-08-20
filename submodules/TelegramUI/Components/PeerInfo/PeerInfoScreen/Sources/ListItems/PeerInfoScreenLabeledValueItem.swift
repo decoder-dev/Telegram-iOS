@@ -503,7 +503,7 @@ private final class PeerInfoScreenLabeledValueItemNode: PeerInfoScreenItemNode {
         self.expandNode.attributedText = NSAttributedString(string: presentationData.strings.PeerInfo_BioExpand, font: Font.regular(17.0), textColor: presentationData.theme.list.itemAccentColor)
         let expandSize = self.expandNode.updateLayout(CGSize(width: width, height: 100.0))
         
-        self.labelNode.attributedText = NSAttributedString(string: item.label, font: Font.regular(14.0), textColor: peerInfoUsesOledCardLayout(presentationData: presentationData, isSettings: false, isMyProfile: false) && !item.label.isEmpty ? peerInfoOledCardLabelColor : presentationData.theme.list.itemPrimaryTextColor)
+        self.labelNode.attributedText = NSAttributedString(string: item.label, font: Font.regular(14.0), textColor: presentationData.theme.list.itemPrimaryTextColor)
         
         self.rightLabelNode.attributedText = NSAttributedString(string: item.rightLabel ?? "", font: Font.regular(14.0), textColor: presentationData.theme.list.itemSecondaryTextColor)
         

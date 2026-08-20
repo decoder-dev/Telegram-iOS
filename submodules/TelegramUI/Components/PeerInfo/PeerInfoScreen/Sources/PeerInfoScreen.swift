@@ -1518,9 +1518,6 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
         self.headerNode.performButtonAction = { [weak self] key, buttonNode, gesture in
             self?.performButtonAction(key: key, buttonNode: buttonNode, gesture: gesture)
         }
-        self.interaction.performHeaderButtonAction = { [weak self] key, buttonNode, gesture in
-            self?.performButtonAction(key: key, buttonNode: buttonNode, gesture: gesture)
-        }
         
         self.headerNode.displaySavedMusic = { [weak self] in
             self?.displaySavedMusic()
@@ -5823,9 +5820,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
     
     private func updateBackgroundColor() {
         let color: UIColor
-        if peerInfoUsesOledCardLayout(presentationData: self.presentationData, isSettings: self.isSettings, isMyProfile: self.isMyProfile) {
-            color = UIColor(rgb: 0x000000)
-        } else if self.paneContainerNode.currentPaneKey == .gifts {
+        if self.paneContainerNode.currentPaneKey == .gifts {
             color = self.presentationData.theme.list.blocksBackgroundColor
         } else {
             color = self.presentationData.theme.list.blocksBackgroundColor.mixedWith(self.presentationData.theme.list.plainBackgroundColor, alpha: self.effectiveAreaExpansionFraction)
@@ -5907,14 +5902,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                         
             let navigationBarHeight: CGFloat = !self.isSettings && layout.isModalOverlay ? 68.0 : 60.0
             let paneContainerTopInset = navigationBarHeight + (layout.statusBarHeight ?? 0.0)
-            let useOledCardLayout = peerInfoUsesOledCardLayout(presentationData: self.presentationData, isSettings: self.isSettings, isMyProfile: self.isMyProfile)
-            let paneCardSideInset: CGFloat
-            if layout.size.width >= 320.0 {
-                paneCardSideInset = max(16.0, floor((layout.size.width - 674.0) / 2.0))
-            } else {
-                paneCardSideInset = 0.0
-            }
-            self.paneContainerNode.update(size: self.paneContainerNode.bounds.size, sideInset: layout.safeInsets.left, topInset: paneContainerTopInset, bottomInset: bottomInset, deviceMetrics: layout.deviceMetrics, visibleHeight: visibleHeight, expansionFraction: self.initialExpandPanes ? 1.0 : effectiveAreaExpansionFraction, presentationData: self.presentationData, data: self.data, areTabsHidden: self.headerNode.customNavigationContentNode != nil, disableTabSwitching: disableTabSwitching, navigationHeight: navigationHeight, useOledCardLayout: useOledCardLayout, cardSideInset: paneCardSideInset, transition: transition)
+            self.paneContainerNode.update(size: self.paneContainerNode.bounds.size, sideInset: layout.safeInsets.left, topInset: paneContainerTopInset, bottomInset: bottomInset, deviceMetrics: layout.deviceMetrics, visibleHeight: visibleHeight, expansionFraction: self.initialExpandPanes ? 1.0 : effectiveAreaExpansionFraction, presentationData: self.presentationData, data: self.data, areTabsHidden: self.headerNode.customNavigationContentNode != nil, disableTabSwitching: disableTabSwitching, navigationHeight: navigationHeight, transition: transition)
           
             transition.updateFrame(node: self.headerNode.navigationButtonContainer, frame: CGRect(origin: CGPoint(x: layout.safeInsets.left, y: layout.statusBarHeight ?? 0.0), size: CGSize(width: layout.size.width - layout.safeInsets.left * 2.0, height: navigationBarHeight)))
             var searchBarContainerY: CGFloat = layout.statusBarHeight ?? 0.0

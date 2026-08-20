@@ -50,7 +50,6 @@ final class PeerInfoHeaderButtonNode: HighlightableButtonNode {
     private var theme: PresentationTheme?
     private var icon: PeerInfoHeaderButtonIcon?
     private var isActive: Bool?
-    private var circularStyle: Bool = false
     
     let backgroundContainerView: UIView
     let backgroundView: UIView
@@ -127,18 +126,16 @@ final class PeerInfoHeaderButtonNode: HighlightableButtonNode {
         self.action(self, nil)
     }
     
-    func update(size: CGSize, text: String, icon: PeerInfoHeaderButtonIcon, isActive: Bool, presentationData: PresentationData, backgroundColor: UIColor, foregroundColor: UIColor, fraction: CGFloat, circularStyle: Bool = false, transition: ContainedViewLayoutTransition) {
+    func update(size: CGSize, text: String, icon: PeerInfoHeaderButtonIcon, isActive: Bool, presentationData: PresentationData, backgroundColor: UIColor, foregroundColor: UIColor, fraction: CGFloat, transition: ContainedViewLayoutTransition) {
         let previousIcon = self.icon
         let themeUpdated = self.theme != presentationData.theme
         let iconUpdated = self.icon != icon
         let isActiveUpdated = self.isActive != isActive
-        let circularStyleUpdated = self.circularStyle != circularStyle
         self.isActive = isActive
-        self.circularStyle = circularStyle
         
-        let iconSize = CGSize(width: circularStyle ? 24.0 : 40.0, height: circularStyle ? 24.0 : 40.0)
+        let iconSize = CGSize(width: 40.0, height: 40.0)
         
-        if themeUpdated || iconUpdated || circularStyleUpdated {
+        if themeUpdated || iconUpdated {
             self.theme = presentationData.theme
             self.icon = icon
             
@@ -263,32 +260,25 @@ final class PeerInfoHeaderButtonNode: HighlightableButtonNode {
         self.accessibilityLabel = text
         let titleSize = self.textNode.updateLayout(CGSize(width: 120.0, height: .greatestFiniteMagnitude))
         
-        let effectiveFraction = circularStyle ? 1.0 : fraction
-        
         transition.updateFrame(node: self.containerNode, frame: CGRect(origin: CGPoint(), size: size))
-        transition.updateFrame(node: self.contentNode, frame: CGRect(origin: CGPoint(x: 0.0, y: size.height * 0.5 * (1.0 - effectiveFraction)), size: size))
-        transition.updateAlpha(node: self.contentNode, alpha: effectiveFraction)
+        transition.updateFrame(node: self.contentNode, frame: CGRect(origin: CGPoint(x: 0.0, y: size.height * 0.5 * (1.0 - fraction)), size: size))
+        transition.updateAlpha(node: self.contentNode, alpha: fraction)
         
-        let backgroundY: CGFloat = circularStyle ? 0.0 : size.height * (1.0 - effectiveFraction)
-        let backgroundFrame = CGRect(origin: CGPoint(x: 0.0, y: backgroundY), size: CGSize(width: size.width, height: circularStyle ? size.height : max(0.0, size.height - backgroundY)))
+        let backgroundY: CGFloat = size.height * (1.0 - fraction)
+        let backgroundFrame = CGRect(origin: CGPoint(x: 0.0, y: backgroundY), size: CGSize(width: size.width, height: max(0.0, size.height - backgroundY)))
+        //transition.updateFrame(node: self.backgroundNode, frame: backgroundFrame)
         transition.updateFrame(view: self.backgroundView, frame: backgroundFrame)
-        transition.updateBackgroundColor(layer: self.backgroundView.layer, color: backgroundColor)
         
-        transition.updateSublayerTransformScale(node: self.contentNode, scale: 1.0 * effectiveFraction + 0.001 * (1.0 - effectiveFraction))
+        transition.updateSublayerTransformScale(node: self.contentNode, scale: 1.0 * fraction + 0.001 * (1.0 - fraction))
         
-        let cornerRadius = circularStyle ? size.width * 0.5 : min(16.0, backgroundFrame.height * 0.5)
-        transition.updateCornerRadius(layer: self.backgroundView.layer, cornerRadius: cornerRadius)
-        
-        let iconY = circularStyle ? floor((size.height - iconSize.height) / 2.0) : 1.0
-        transition.updateFrame(node: self.iconNode, frame: CGRect(origin: CGPoint(x: floor((size.width - iconSize.width) / 2.0), y: iconY), size: iconSize))
+        transition.updateCornerRadius(layer: self.backgroundView.layer, cornerRadius: min(16.0, backgroundFrame.height * 0.5))
+        //self.backgroundNode.update(size: backgroundFrame.size, cornerRadius: min(11.0, backgroundFrame.height * 0.5), transition: transition)
+        //self.backgroundNode.updateColor(color: backgroundColor, transition: transition)
+        transition.updateFrame(node: self.iconNode, frame: CGRect(origin: CGPoint(x: floor((size.width - iconSize.width) / 2.0), y: 1.0), size: iconSize))
         if let animatedIconView = self.animatedIcon?.view {
-            transition.updateFrame(view: animatedIconView, frame: CGRect(origin: CGPoint(x: floor((size.width - iconSize.width) / 2.0), y: iconY), size: iconSize))
+            transition.updateFrame(view: animatedIconView, frame: CGRect(origin: CGPoint(x: floor((size.width - iconSize.width) / 2.0), y: 1.0), size: iconSize))
         }
-        if circularStyle {
-            transition.updateAlpha(node: self.textNode, alpha: 0.0)
-        } else {
-            transition.updateFrameAdditiveToCenter(node: self.textNode, frame: CGRect(origin: CGPoint(x: floor((size.width - titleSize.width) / 2.0), y: size.height - titleSize.height - 9.0), size: titleSize))
-        }
+        transition.updateFrameAdditiveToCenter(node: self.textNode, frame: CGRect(origin: CGPoint(x: floor((size.width - titleSize.width) / 2.0), y: size.height - titleSize.height - 9.0), size: titleSize))
         
         self.referenceNode.frame = self.containerNode.bounds
     }

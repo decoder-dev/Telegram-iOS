@@ -26,7 +26,6 @@ enum InfoSection: Int, CaseIterable {
     case groupLocation
     case calls
     case personalChannel
-    case peerInfoActions
     case peerInfo
     case balances
     case permissions
@@ -58,34 +57,6 @@ func infoItems(
     var items: [InfoSection: [PeerInfoScreenItem]] = [:]
     for section in InfoSection.allCases {
         items[section] = []
-    }
-    
-    let useOledCardLayout = peerInfoUsesOledCardLayout(presentationData: presentationData, isSettings: false, isMyProfile: isMyProfile)
-    if useOledCardLayout {
-        let isSecretChat = data.peer?.id.namespace == Namespaces.Peer.SecretChat
-        let headerButtonKeys = peerInfoHeaderButtons(
-            peer: data.peer,
-            cachedData: data.cachedData,
-            isOpenedFromChat: isOpenedFromChat,
-            isExpanded: true,
-            videoCallsEnabled: true,
-            isSecretChat: isSecretChat,
-            isContact: data.isContact,
-            threadInfo: data.threadData?.info
-        )
-        if !headerButtonKeys.isEmpty {
-            items[.peerInfoActions]!.append(PeerInfoScreenActionButtonsItem(
-                buttonKeys: headerButtonKeys,
-                highlightedButton: nil,
-                peer: data.peer,
-                peerNotificationSettings: data.peerNotificationSettings,
-                threadNotificationSettings: data.threadNotificationSettings,
-                globalNotificationSettings: data.globalNotificationSettings,
-                performAction: { key, buttonNode, gesture in
-                    interaction.performHeaderButtonAction?(key, buttonNode, gesture)
-                }
-            ))
-        }
     }
     
     let bioContextAction: (ASDisplayNode, ContextGesture?, CGPoint?) -> Void = { node, gesture, _ in
@@ -933,23 +904,32 @@ func infoItems(
     }
 
     let forkExtras = context.sharedContext.immediateForkExtrasSettings
-    var footerParts: [String] = []
     if forkExtras.showProfileId {
-        footerParts.append("id \(data.peer?.id.id._internalGetInt64Value() ?? 0)")
+        let idText = "\(data.peer?.id.id._internalGetInt64Value() ?? 0)"
+        items[.peerInfoTrailing]!.append(PeerInfoScreenLabeledValueItem(id: AnyHashable("fork_profile_id"), label: "id", text: idText, textColor: .primary, action: nil, longTapAction: { sourceNode in
+            interaction.openPeerInfoContextMenu(.genericCopy(idText), sourceNode, nil)
+        }, requestLayout: { _ in
+            interaction.requestLayout(false)
+        }))
     }
     if forkExtras.showDC, let smallProfileImage = data.peer?.smallProfileImage, let cloudResource = smallProfileImage.resource as? CloudPeerPhotoSizeMediaResource {
-        footerParts.append("dc \(cloudResource.datacenterId)")
+        let dcText = "\(cloudResource.datacenterId)"
+        items[.peerInfoTrailing]!.append(PeerInfoScreenLabeledValueItem(id: AnyHashable("fork_dc"), label: "dc", text: dcText, textColor: .primary, action: nil, longTapAction: { sourceNode in
+            interaction.openPeerInfoContextMenu(.genericCopy(dcText), sourceNode, nil)
+        }, requestLayout: { _ in
+            interaction.requestLayout(false)
+        }))
     }
+    // Gated by the same showDC toggle (both are "extra diagnostic info" rows) rather than a
+    // dedicated setting. Only surfaces a registration date Telegram's own server already
+    // supplied for this peer (PeerStatusSettings.registrationDate) — no third-party lookup
+    // service, so this row simply doesn't appear for peers the server didn't annotate.
     if forkExtras.showDC, let cachedUserData = data.cachedData as? CachedUserData, let registrationDate = cachedUserData.peerStatusSettings?.registrationDate {
-        footerParts.append("registered \(registrationDate)")
-    }
-    if !footerParts.isEmpty {
-        items[.peerInfoTrailing]!.append(PeerInfoScreenCommentItem(
-            id: AnyHashable("fork_profile_footer"),
-            text: footerParts.joined(separator: " · "),
-            useAccentLinkColor: false,
-            isDimFooter: useOledCardLayout
-        ))
+        items[.peerInfoTrailing]!.append(PeerInfoScreenLabeledValueItem(id: AnyHashable("fork_reg_date"), label: "registered", text: registrationDate, textColor: .primary, action: nil, longTapAction: { sourceNode in
+            interaction.openPeerInfoContextMenu(.genericCopy(registrationDate), sourceNode, nil)
+        }, requestLayout: { _ in
+            interaction.requestLayout(false)
+        }))
     }
 
     var result: [(AnyHashable, [PeerInfoScreenItem])] = []
