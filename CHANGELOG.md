@@ -6,15 +6,18 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3888-pre] — 2026-08-20
+
+Pre-release: Messages composer + follow-up polish (Calls column, contrast, icons).
+
 ### Fixed
-- **Composer:** send больше не накладывается на правый край капсулы — тот же слот `maxX + 6`, что у mic; ширина поля стабильна при mic↔send; emoji внутри pill без лишнего сдвига.
-- **Composer:** `frameForInputActionButton` после same-slot morph — слот через `mediaActionButtonsSlotFrame`, иначе tooltip на невидимый mic; z-order swap только при реальной инверсии.
-- **Calls:** одна колонка аватаров — общий слот 22pt для исходящей стрелки и voice-chat индикатора.
-- **Icons:** `Call/Star` в rating HUD; video/slo-mo/timelapse badges в picker через SF Symbols (`video.fill` / `slowmo` / `timelapse`).
+- **Composer:** send снаружи капсулы (`maxX + 6`); same-slot mic↔send morph; слот через `mediaActionButtonsSlotFrame`; z-order только при инверсии; `isHidden` mic двусторонний; правый слот резервируется всегда (в т.ч. story reply / `.empty`).
+- **Calls:** одна колонка аватаров — общий слот 22pt.
+- **Icons:** `Call/Star` в rating HUD; video/slo-mo/timelapse badges через SF Symbols.
 
 ### Changed
-- **Composer (Messages):** слева Plus вместо скрепки; mic↔send — same-slot scale/crossfade без fly-in и blur; Telegram long-press / video note / bots / slowmode / paid send сохранены.
-- **Outgoing on #007AFF:** secondary text/ticks `white@0.8` (было 0.5/0.65); waveform inactive отдельно; Night list hairlines `#545458@0.8` на чёрном фоне.
+- **Composer (Messages):** Plus слева вместо скрепки; Telegram long-press / video note / bots / slowmode / paid send сохранены.
+- **Outgoing on #007AFF:** secondary `white@0.8`; waveform inactive отдельно; Night hairlines `@0.8`; placeholder Night `#636366`.
 
 ## [v12.9.2-3887-pre] — 2026-08-20
 
