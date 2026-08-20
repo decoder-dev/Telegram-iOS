@@ -3446,8 +3446,14 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         
         let composerControlsBaselineY = textInputFrame.maxY
         
+        // Mic and send share one right-hand slot (Messages). Keep mic parked here even when send
+        // is showing — fade/scale handles the handoff; sliding off-screen made the morph feel like
+        // two separate controls. Still park off-screen for search/slowmode where send is not the
+        // partner control, and while recording so the lock/stop chrome stays hittable alone.
+        let isMediaRecording = interfaceState.inputTextPanelState.mediaRecordingState != nil
+        let sendOccupiesActionSlot = (inputHasText || hasMediaDraft || interfaceState.interfaceState.forwardMessageIds != nil || isEditingMedia) && !isMediaRecording
         var mediaActionButtonsFrame = CGRect(origin: CGPoint(x: textInputContainerBackgroundFrame.maxX + 6.0, y: composerControlsBaselineY - mediaActionButtonsSize.height), size: mediaActionButtonsSize)
-        if inputHasText || self.extendedSearchLayout || hasMediaDraft || interfaceState.interfaceState.forwardMessageIds != nil || hasSlowmodeButton || isEditingMedia {
+        if self.extendedSearchLayout || hasSlowmodeButton {
             mediaActionButtonsFrame.origin.x = width + 8.0
         }
         transition.updateFrame(node: self.mediaActionButtons, frame: mediaActionButtonsFrame)
@@ -3492,22 +3498,25 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             transition.updateFrame(view: starReactionButtonView, frame: starReactionButtonFrame)
         }
         
-        // Same slot as mic / stars / live-mic: outside the capsule with a 6 pt gap. Never overlay
-        // the pill (old stock `maxX - width` looked like the blue disc eating the rounded end).
-        var sendActionButtonsFrame = CGRect(origin: CGPoint(x: textInputContainerBackgroundFrame.maxX + 6.0, y: composerControlsBaselineY - sendActionButtonsSize.height), size: sendActionButtonsSize)
+        // Same slot as mic: outside the capsule with a 6 pt gap (Messages). Scale morphs in place.
+        let sendActionButtonsFrame = CGRect(origin: CGPoint(x: textInputContainerBackgroundFrame.maxX + 6.0, y: composerControlsBaselineY - sendActionButtonsSize.height), size: sendActionButtonsSize)
         
-        let sendActionsScale: CGFloat
-        if inputHasText || hasMediaDraft || hasForward || isEditingMedia {
-            sendActionsScale = 1.0
-        } else {
-            // Scale in place in the reserved right slot — do not recenter for an overlay.
-            sendActionsScale = 0.001
-        }
+        let sendActionsScale: CGFloat = sendOccupiesActionSlot ? 1.0 : 0.001
+        let mediaActionsScale: CGFloat = (sendOccupiesActionSlot || self.extendedSearchLayout || hasSlowmodeButton) ? 0.001 : 1.0
         
         transition.updateTransformScale(node: self.sendActionButtons, scale: CGPoint(x: sendActionsScale, y: sendActionsScale))
         transition.updatePosition(node: self.sendActionButtons, position: sendActionButtonsFrame.center)
-        
         transition.updateBounds(node: self.sendActionButtons, bounds: CGRect(origin: CGPoint(), size: sendActionButtonsFrame.size))
+        
+        transition.updateTransformScale(node: self.mediaActionButtons, scale: CGPoint(x: mediaActionsScale, y: mediaActionsScale))
+        
+        // Send must sit above mic in the shared slot so hits reach the blue disc; mic above when empty.
+        if sendOccupiesActionSlot {
+            self.glassBackgroundContainer.contentView.insertSubview(self.sendActionButtons.view, aboveSubview: self.mediaActionButtons.view)
+        } else if !isMediaRecording {
+            self.glassBackgroundContainer.contentView.insertSubview(self.mediaActionButtons.view, aboveSubview: self.sendActionButtons.view)
+        }
+        
         if let (rect, containerSize) = self.absoluteRect {
             self.sendActionButtons.updateAbsoluteRect(CGRect(x: rect.origin.x + sendActionButtonsFrame.origin.x, y: rect.origin.y + sendActionButtonsFrame.origin.y, width: sendActionButtonsFrame.width, height: sendActionButtonsFrame.height), within: containerSize, transition: transition)
         }
@@ -4602,10 +4611,8 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
     }
     
     private func updateActionButtons(hasText: Bool, transition: ContainedViewLayoutTransition) {
-        let alphaTransition: ContainedViewLayoutTransition = transition.isAnimated ? .animated(duration: 0.2, curve: .easeInOut) : .immediate
-        let blurTransitionIn: ComponentTransition = transition.isAnimated ? .easeInOut(duration: 0.18) : .immediate
-        let blurTransitionOut: ComponentTransition = transition.isAnimated ? .easeInOut(duration: 0.18) : .immediate
-        let sendButtonBlurOut: CGFloat = 4.0
+        // Messages-like same-slot morph: short crossfade, no paper-plane fly-in, no blur wash.
+        let alphaTransition: ContainedViewLayoutTransition = transition.isAnimated ? .animated(duration: 0.18, curve: .easeInOut) : .immediate
         
         var hideMicButton = false
         var hideMicButtonBackground = false
@@ -4663,8 +4670,6 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
                     }
                 })
                 
-                blurTransitionOut.setBlur(layer: self.sendActionButtons.sendContainerNode.layer, radius: sendButtonBlurOut)
-                
                 if let sendButtonRadialStatusNode = self.sendActionButtons.sendButtonRadialStatusNode {
                     alphaTransition.updateAlpha(node: sendButtonRadialStatusNode, alpha: 0.0)
                 }
@@ -4694,8 +4699,6 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             if (hasText || keepSendButtonEnabled && !mediaInputIsActive && !hasSlowModeButton) {
                 if self.sendActionButtons.sendContainerNode.alpha.isZero && self.rightSlowModeInset.isZero {
                     alphaTransition.updateAlpha(node: self.sendActionButtons.sendContainerNode, alpha: 1.0)
-                    blurTransitionIn.setBlur(layer: self.sendActionButtons.sendContainerNode.layer, radius: 0.0)
-                    transition.animatePositionAdditive(layer: self.sendActionButtons.sendButton.imageNode.layer, offset: CGPoint(x: -22.0, y: 18.0))
                     if let sendButtonRadialStatusNode = self.sendActionButtons.sendButtonRadialStatusNode {
                         alphaTransition.updateAlpha(node: sendButtonRadialStatusNode, alpha: 1.0)
                     }
@@ -4709,7 +4712,6 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
                             strongSelf.applyUpdateSendButtonIcon()
                         }
                     })
-                    blurTransitionOut.setBlur(layer: self.sendActionButtons.sendContainerNode.layer, radius: sendButtonBlurOut)
                     if let sendButtonRadialStatusNode = self.sendActionButtons.sendButtonRadialStatusNode {
                         alphaTransition.updateAlpha(node: sendButtonRadialStatusNode, alpha: 0.0)
                     }

@@ -508,7 +508,18 @@ public struct PresentationResourcesChat {
     
     public static func chatInputPanelAttachmentButtonImage(_ theme: PresentationTheme) -> UIImage? {
         return theme.image(PresentationResourceKey.chatInputPanelAttachmentButtonImage.rawValue, { theme in
-            return generateTintedImage(image: UIImage(bundleImageName: "Chat/Input/Text/IconAttachment"), color: .white)?.withRenderingMode(.alwaysTemplate)
+            // Messages-style Plus in the left glass circle (was a paperclip). Template-tinted by
+            // the panel to `panelControlColor`. Edit/delete modes keep their own assets.
+            let side: CGFloat = 22.0
+            let thickness: CGFloat = 2.5
+            return generateImage(CGSize(width: side, height: side), rotatedContext: { size, context in
+                context.clear(CGRect(origin: CGPoint(), size: size))
+                context.setFillColor(UIColor.white.cgColor)
+                let radius = thickness * 0.5
+                context.addPath(CGPath(roundedRect: CGRect(x: 0.0, y: (size.height - thickness) * 0.5, width: size.width, height: thickness), cornerWidth: radius, cornerHeight: radius, transform: nil))
+                context.addPath(CGPath(roundedRect: CGRect(x: (size.width - thickness) * 0.5, y: 0.0, width: thickness, height: size.height), cornerWidth: radius, cornerHeight: radius, transform: nil))
+                context.fillPath()
+            })?.withRenderingMode(.alwaysTemplate)
         })
     }
     

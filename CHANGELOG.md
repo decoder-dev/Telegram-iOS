@@ -9,6 +9,9 @@
 ### Fixed
 - **Composer:** send больше не накладывается на правый край капсулы — тот же слот `maxX + 6`, что у mic; ширина поля стабильна при mic↔send; emoji внутри pill без лишнего сдвига.
 
+### Changed
+- **Composer (Messages):** слева Plus вместо скрепки; mic↔send — same-slot scale/crossfade без fly-in и blur; Telegram long-press / video note / bots / slowmode / paid send сохранены.
+
 ## [v12.9.2-3887-pre] — 2026-08-20
 
 Pre-release: idealism — no overlaps, one accent, composer 40pt.
