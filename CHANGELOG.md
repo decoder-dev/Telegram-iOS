@@ -6,6 +6,15 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3898-pre] — 2026-08-21
+
+Pre-release: full premium Телеграм icon gallery (20 icons).
+
+### Changed
+- **App icons:** every alternate icon restyled as premium (gradient disc + metal ring); primary Icon Composer adds a light ring.
+- **Premium gallery:** +8 variants — Night, Rose, Emerald, Sunset, Ice, Carbon, Royal, Aurora (11 Premium* total).
+- **Appearance:** all 20 icons listed with `isPremium`; no longer hidden when server Premium is disabled.
+
 ## [v12.9.2-3897-pre] — 2026-08-21
 
 Pre-release: Russian **Телеграм** rebrand + full custom icon set (incl. Premium).
