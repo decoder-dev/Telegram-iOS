@@ -58,6 +58,20 @@ public final class MessageMediaPlaylistItem: SharedMediaPlaylistItem {
         self.id = PeerMessagesMediaPlaylistItemId(messageId: message.id, messageIndex: message.index)
         self.message = message
         self.isSavedMusic = isSavedMusic
+
+        // Force both lazy properties here, while this object is still private to the constructing
+        // thread. A Swift instance `lazy var` has no synchronisation, and these two are read from
+        // two queues: `arePlaylistItemsEqual` reaches them from the `distinctUntilChanged` at
+        // MediaManager.swift:217, which runs on the producing queue *before* the pipeline's
+        // `deliverOnMainQueue`, while the UI readers — MediaNavigationAccessoryHeaderNode,
+        // OverlayAudioPlayerControlsNode — reach them on main. Two threads racing the first access
+        // can both run the initialiser, or one can observe a half-written value.
+        //
+        // Costs nothing: exactly three items exist per state update (current, previous, next) and
+        // `arePlaylistItemsEqual` reads both properties on all three anyway. The work is the same,
+        // it just happens somewhere single-threaded.
+        _ = self.playbackData
+        _ = self.displayData
     }
     
     public var stableId: AnyHashable {
