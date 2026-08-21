@@ -2733,9 +2733,14 @@ public final class ChatListNode: ListViewImpl {
         }
         
         self.displayedItemRangeChanged = { [weak self] range, transactionOpaqueState in
-            if let strongSelf = self, strongSelf.isActiveForFolderPagination, let chatListView = (transactionOpaqueState as? ChatListOpaqueTransactionState)?.chatListView {
+            if let strongSelf = self, let chatListView = (transactionOpaqueState as? ChatListOpaqueTransactionState)?.chatListView {
                 let originalList = chatListView.originalList
-                if let range = range.loadedRange {
+                // Only the tab the user is actually on advances its location: an off-screen tab
+                // moving itself to `.navigation` is paginating work nobody asked for. Everything
+                // below — story stats, the hidden-item reveal reset — is not pagination and runs
+                // for every tab, as upstream does; gating the whole callback on this flag was
+                // wider than the pause it is named for.
+                if strongSelf.isActiveForFolderPagination, let range = range.loadedRange {
                     var location: ChatListNodeLocation?
                     if range.firstIndex < 5, let lastItem = originalList.items.last, originalList.hasLater {
                         location = .navigation(index: lastItem.index, filter: strongSelf.chatListFilter)

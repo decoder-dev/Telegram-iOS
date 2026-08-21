@@ -619,6 +619,17 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
                 for (id, itemNode) in self.itemNodes {
                     if id != selectedId {
                         itemNode.emptyNode?.restartAnimation()
+                        
+                        // Align the tab we may be about to swipe into with the scroll offset the
+                        // navigation bar is currently showing. `switchToFilter` already does this
+                        // for the tap path; without it here, tapping and swiping to the same tab
+                        // land on different scroll positions and the nav bar's collapse state does
+                        // not match the list underneath it.
+                        if let controller = self.controller, let chatListDisplayNode = controller.displayNode as? ChatListControllerNode, let navigationBarComponentView = chatListDisplayNode.navigationBarView.view as? ChatListNavigationBar.View, let clippedScrollOffset = navigationBarComponentView.clippedScrollOffset {
+                            let scrollOffset = clippedScrollOffset
+                            
+                            let _ = itemNode.listNode.scrollToOffsetFromTop(scrollOffset, animated: false)
+                        }
                     }
                 }
                 
