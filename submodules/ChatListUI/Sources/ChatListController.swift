@@ -4263,7 +4263,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                 if strongSelf.chatListDisplayNode.inlineStackContainerNode != nil {
                     strongSelf.setInlineChatList(location: nil)
                 }
-                strongSelf.chatListDisplayNode.mainContainerNode.switchToAvailableFilter(preferring: updatedFilter.flatMap { .filter($0.id) } ?? .all, animated: false)
+                strongSelf.chatListDisplayNode.mainContainerNode.switchToAvailableFilter(preferring: updatedFilter.flatMap { .filter($0.id) } ?? .all)
             }
         }))
     }
