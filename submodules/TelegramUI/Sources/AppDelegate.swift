@@ -327,6 +327,11 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
     private var recaptchaClientsBySiteKey: [String: Promise<RecaptchaClient>] = [:]
         
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        // First statement in the launch path, before anything that can fault. Returns whatever the
+        // previous launch left behind if it died; held until a logger exists further down.
+        let previousLaunchCrashRecord = ForkLaunchBreadcrumbs.install()
+        ForkLaunchBreadcrumbs.mark(.didFinishLaunchingBegan)
+
         precondition(!testIsLaunched)
         testIsLaunched = true
         
@@ -747,6 +752,10 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         let logsPath = rootPath + "/logs/app-logs"
         let _ = try? FileManager.default.createDirectory(atPath: logsPath, withIntermediateDirectories: true, attributes: nil)
         Logger.setSharedLogger(Logger(rootPath: rootPath, basePath: logsPath))
+        ForkLaunchBreadcrumbs.mark(.loggerReady)
+        if let previousLaunchCrashRecord {
+            Logger.shared.log("Launch", previousLaunchCrashRecord)
+        }
 
         // Observation only — records thermal transitions and MetricKit payloads so a heat report
         // can be diagnosed from the log instead of requiring Instruments on a device. Must come
@@ -1034,6 +1043,8 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         })
         
         let accountManager = AccountManager<TelegramAccountManagerTypes>(basePath: rootPath + "/accounts-metadata", isTemporary: false, isReadOnly: false, useCaches: true, removeDatabaseOnError: true)
+
+        ForkLaunchBreadcrumbs.mark(.accountManagerOpened)
         self.accountManager = accountManager
 
         telegramUIDeclareEncodables()
@@ -1133,6 +1144,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                 }
             }, appDelegate: self, testingEnvironment: isUITest)
             
+            ForkLaunchBreadcrumbs.mark(.sharedContextReady)
             presentationDataPromise.set(sharedContext.presentationData)
             
             sharedContext.presentGlobalController = { [weak self] c, a in
@@ -1369,6 +1381,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
 
                     self.mainWindow.debugAction = nil
                     self.mainWindow.viewController = context.rootController
+                    ForkLaunchBreadcrumbs.mark(.rootControllerReady)
                     
                     if firstTime {
                         let layer = context.rootController.view.layer
@@ -1713,6 +1726,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             }
         })
                 
+        ForkLaunchBreadcrumbs.mark(.didFinishLaunchingReturned)
         return true
     }
     
@@ -2027,6 +2041,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
     }
 
     func applicationDidBecomeActive(_ application: UIApplication) {
+        ForkLaunchBreadcrumbs.mark(.didBecomeActive)
         self.isInForegroundValue = true
         self.isInForegroundPromise.set(true)
         self.isActiveValue = true
