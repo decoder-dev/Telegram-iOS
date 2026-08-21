@@ -2233,7 +2233,9 @@ public final class ChatListNode: ListViewImpl {
             accountIsPremium
         )
         |> mapToQueue { [weak self] (hideArchivedFolderByDefault, archiveFolderPresentation, displayArchiveIntro, storageInfo, savedMessagesPeer, updateAndFilter, state, contacts, chatListFilters, accountIsPremium) -> Signal<ChatListNodeListViewTransition, NoError> in
-            guard let strongSelf = self else {
+            // Weak-self gate only — the generation/staleness guard that used to touch `self`
+            // was dropped; binding `strongSelf` here tripped [#no-usage] under release Swift.
+            guard self != nil else {
                 return .complete()
             }
             let (update, filter) = updateAndFilter
