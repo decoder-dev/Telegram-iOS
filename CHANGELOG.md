@@ -6,6 +6,15 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3897-pre] — 2026-08-21
+
+Pre-release: Russian **Телеграм** rebrand + full custom icon set (incl. Premium).
+
+### Changed
+- **Display name:** home screen / share → `Телеграм` (BUILD, xcconfigs, ar/ko overrides).
+- **App icons:** all alternate + default + Icon Composer assets replaced with a custom paper-plane family (Blue / Classic / Filled / Black / White / New1–2).
+- **Premium icons:** custom Gold, Turbo (pink→violet + gold plane), Premium Black (gold plane + ring); unlocked in Appearance for everyone (WhiteFilled no longer internal-only).
+
 ## [v12.9.2-3896-pre] — 2026-08-21
 
 Pre-release: fix photo-send jetsam / heat.

@@ -1,4 +1,4 @@
-APP_NAME=ZalupaGram
+APP_NAME=Телеграм
 APP_BUNDLE_ID=fork.telegram.Fork
 APP_SPECIFIC_URL_SCHEME=tgfork
 

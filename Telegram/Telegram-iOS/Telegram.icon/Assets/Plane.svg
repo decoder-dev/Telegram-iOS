@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024px" height="1024px" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>Plane</title>
+    <g id="Plane" stroke="none" fill="none" fill-rule="nonzero">
+        <path id="PlanePath" fill="#FFFFFF" d="M268,520 L710,345 L655,680 L560,690 L470,625 L590,455 L405,555 L300,555 Z"></path>
+    </g>
+</svg>
