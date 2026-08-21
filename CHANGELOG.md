@@ -11,7 +11,7 @@
 Pre-release: close remaining idealism regressions (composer morph/assets, themes, lists).
 
 ### Fixed
-- **Build:** `ChatListNode` filter map type leftover after folders staleness drop.
+- **Build:** `ChatListNode` filter map type leftover after folders staleness drop; unused `strongSelf` after guard drop (`#no-usage` under release).
 - **Composer:** `sendOccupiesActionSlot` matches keepSend/slowmode/search; paid-stars width reserved early; tooltip respects mic `isHidden`; scheduled send uses icon (not filled disc) on blue well; mic↔send morph scale+alpha both `0.18 easeInOut`; slot hit-gating; pointer circles 40pt; send/apply/schedule icons + stretchable disc on 40pt canvas.
 - **Night/Day base themes:** outgoing secondary `white@0.8` on default path; Night chrome separators `@0.8`; outgoing media well `.clear`; Night waveform inactive `@0.65`.
 - **Calls:** avatar 44 pt; **Contacts:** thread rows keep shared left column.
