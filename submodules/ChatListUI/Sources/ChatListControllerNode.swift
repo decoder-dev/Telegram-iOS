@@ -876,7 +876,11 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
         }
     }
     
-    public func switchToAvailableFilter(preferring id: ChatListFilterTabEntryId = .all, animated: Bool = false, completion: (() -> Void)? = nil) {
+    /// `switchToFilter` that first resolves `id` against the filters actually on screen, so a
+    /// caller asking for `.all` still lands somewhere when All Chats is hidden. `animated` mirrors
+    /// `switchToFilter`'s own default: upstream reaches every one of these call sites through
+    /// `switchToFilter(id:)` with animation on.
+    public func switchToAvailableFilter(preferring id: ChatListFilterTabEntryId = .all, animated: Bool = true, completion: (() -> Void)? = nil) {
         let target: ChatListFilterTabEntryId
         if self.availableFilters.contains(where: { $0.id == id }) {
             target = id
@@ -944,10 +948,9 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
                     // Register the node before making it current. `applyItemNodeAsCurrent` alone
                     // leaves `currentItemNodeValue` pointing at a node `itemNodes` does not know
                     // about, and any layout pass landing in that window builds a *second* node for
-                    // the same filter (`update(layout:)` keys off `itemNodes[id] == nil`) — the
-                    // duplicated folder screen. Tapping a tab takes exactly this path
-                    // (`selectTab` -> `switchToAvailableFilter(animated: false)`); swiping never
-                    // does, which is why only tapping duplicated.
+                    // the same filter (`update(layout:)` keys off `itemNodes[id] == nil`). The
+                    // window is real, not a single frame: `autoSetReady` only marks the node ready
+                    // once its first history transition arrives from Postbox.
                     self.installItemNode(id: id, itemNode: itemNode)
                     self.selectedId = id
                     self.applyItemNodeAsCurrent(id: id, itemNode: itemNode)
