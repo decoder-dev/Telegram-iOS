@@ -271,6 +271,12 @@ extension PeerInfoScreenNode {
             self.interaction.editingOpenNameColorSetup()
         case .powerSaving:
             push(energySavingSettingsScreen(context: self.context))
+        case .debug:
+            // Same screen `tg://settings/debug` opens. It was reachable only through that deep
+            // link, which is not something you can find without already knowing it exists.
+            if let controller = self.context.sharedContext.makeDebugSettingsController(context: self.context) {
+                push(controller)
+            }
         case .businessSetup:
             guard let controller = self.controller, !controller.presentAccountFrozenInfoIfNeeded() else {
                 return

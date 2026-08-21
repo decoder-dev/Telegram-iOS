@@ -1596,17 +1596,18 @@ private func debugControllerEntries(context: AccountContext?, sharedContext: Sha
         entries.append(.forceClearGlass(experimentalSettings.forceClearGlass))
         entries.append(.debugRipple(experimentalSettings.debugRipple))
         entries.append(.debugRichText(experimentalSettings.forceNewTextInput))
-        #if DEBUG
+        // Shown unconditionally. This screen is reached from a Settings row now, and reaching it
+        // at all is the opt-in; hiding half of its rows behind the build type only means the
+        // fork's App Store-configured build - is_appstore_build is true, so appBuildType resolves
+        // to .public - opens a Developer Mode screen with pieces missing.
+        //
+        // Gated here rather than by flipping appBuildType, which has three other readers: a
+        // commented-out no-op in ChatListNode, the video quality debug overlay, and the default
+        // for automatic call-reflector benchmarking in AppDelegate. That last one starts periodic
+        // network work, which is not something a Settings row should switch on as a side effect.
         entries.append(.browserExperiment(experimentalSettings.browserExperiment))
-        #else
-        if sharedContext.applicationBindings.appBuildType == .internal {
-            entries.append(.browserExperiment(experimentalSettings.browserExperiment))
-        }
-        #endif
         entries.append(.allForumsHaveTabs(experimentalSettings.allForumsHaveTabs))
-        if case .internal = sharedContext.applicationBindings.appBuildType {
-            entries.append(.enableReactionOverrides(experimentalSettings.enableReactionOverrides))
-        }
+        entries.append(.enableReactionOverrides(experimentalSettings.enableReactionOverrides))
         entries.append(.restorePurchases(presentationData.theme))
         
         entries.append(.logTranslationRecognition(experimentalSettings.logLanguageRecognition))
