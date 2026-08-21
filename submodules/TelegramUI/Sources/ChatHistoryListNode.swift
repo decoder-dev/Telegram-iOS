@@ -1936,11 +1936,19 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
         }
         // Coalesce blocked-list page loads: switchToLatest cancels prior delayed emissions so a
         // 200-peer fetch does not rebuild every open history 20 times.
+        //
+        // Revision 0 is the promise's seed — it means no blocked-list update has happened in this
+        // process yet, so there is nothing to coalesce. It must not be delayed: `combineLatest`
+        // holds its first output until *both* inputs have produced one, so delaying the seed puts
+        // the full 0.25s in front of the first history transition of every chat that is opened.
         let historyViewUpdateForBlocked = historyViewUpdate
         historyViewUpdate = combineLatest(
             historyViewUpdateForBlocked,
             ForkBlockedPeersFilter.updates
             |> map { revision -> Signal<UInt64, NoError> in
+                if revision == 0 {
+                    return .single(revision)
+                }
                 return .single(revision)
                 |> delay(0.25, queue: Queue.mainQueue())
             }
