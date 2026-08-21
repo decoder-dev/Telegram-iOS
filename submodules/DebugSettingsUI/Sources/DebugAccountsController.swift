@@ -79,7 +79,7 @@ private enum DebugAccountsControllerEntry: ItemListNodeEntry {
                     arguments.switchAccount(record.id)
                 })
             case .loginNewAccount:
-                return ItemListActionItem(presentationData: presentationData, systemStyle: .glass, title: "Login to another account", kind: .generic, alignment: .natural, sectionId: self.section, style: .blocks, action: {
+                return ItemListActionItem(presentationData: presentationData, systemStyle: .glass, title: DebugLocalizedString.loginAnotherAccount, kind: .generic, alignment: .natural, sectionId: self.section, style: .blocks, action: {
                     arguments.loginNewAccount()
                 })
         }
@@ -117,7 +117,7 @@ public func debugAccountsController(context: AccountContext, accountManager: Acc
         }
         controller.setItemGroups([
             ActionSheetItemGroup(items: [
-                ActionSheetButtonItem(title: "Production", color: .accent, action: {
+                ActionSheetButtonItem(title: DebugLocalizedString.production, color: .accent, action: {
                     dismissAction()
                     
                     if case .internal = context.sharedContext.applicationBindings.appBuildType {
@@ -128,7 +128,7 @@ public func debugAccountsController(context: AccountContext, accountManager: Acc
                         #endif
                     }
                 }),
-                ActionSheetButtonItem(title: "Test", color: .accent, action: {
+                ActionSheetButtonItem(title: DebugLocalizedString.test, color: .accent, action: {
                     dismissAction()
                     context.sharedContext.beginNewAuth(testingEnvironment: true)
                 })
@@ -140,7 +140,7 @@ public func debugAccountsController(context: AccountContext, accountManager: Acc
     
     let signal = combineLatest(context.sharedContext.presentationData, accountManager.accountRecords())
         |> map { presentationData, view -> (ItemListControllerState, (ItemListNodeState, Any)) in
-            let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .text("Accounts"), leftNavigationButton: nil, rightNavigationButton: nil, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back))
+            let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .text(DebugLocalizedString.accountsTitle), leftNavigationButton: nil, rightNavigationButton: nil, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back))
             let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: debugAccountsControllerEntries(view: view, presentationData: presentationData), style: .blocks)
             
             return (controllerState, (listState, arguments))

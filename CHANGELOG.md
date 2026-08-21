@@ -6,6 +6,14 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3892-pre] — 2026-08-21
+
+Pre-release: Russian Developer Mode / Debug menus; fix Message Saving localisation build break.
+
+### Fixed
+- **Build:** `MessageSavingHistoryController` localisation after `ForkPresentationLanguage` (was referencing missing `translations`).
+- **Debug / Developer Mode:** all menu titles and action sheets follow app language (RU/EN) via `DebugLocalizedString`.
+
 ## [v12.9.2-3891-pre] — 2026-08-21
 
 Pre-release: performance/folder/Ghost Mode follow-ups; commit history authored as decoder-dev (Claude trailers stripped).
