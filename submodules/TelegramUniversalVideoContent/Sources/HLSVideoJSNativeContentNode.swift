@@ -1306,14 +1306,14 @@ final class HLSVideoJSNativeContentNode: ASDisplayNode, UniversalVideoContentNod
                         
                         self.hasRequestedPlayerLoad = true
                         SharedHLSVideoJSContext.shared.jsContext?.evaluateJavaScript("""
-                        window.hlsPlayer_instances[\(self.instanceId)].playerSetCapAutoLevel(\(self.resolveCurrentLevelIndex() ?? -1));
-                        window.hlsPlayer_instances[\(self.instanceId)].playerLoad(\(effectiveSelectedLevelIndex));
+                        window.hlsPlayer_instances[\(self.instanceId)]?.playerSetCapAutoLevel(\(self.resolveCurrentLevelIndex() ?? -1));
+                        window.hlsPlayer_instances[\(self.instanceId)]?.playerLoad(\(effectiveSelectedLevelIndex));
                         """)
                     }
                 }
             }
-            
-            SharedHLSVideoJSContext.shared.jsContext?.evaluateJavaScript("window.hlsPlayer_instances[\(self.instanceId)].playerSetBaseRate(\(self.requestedBaseRate));")
+
+            SharedHLSVideoJSContext.shared.jsContext?.evaluateJavaScript("window.hlsPlayer_instances[\(self.instanceId)]?.playerSetBaseRate(\(self.requestedBaseRate));")
         }
         
         self.updateStatus()
@@ -1497,7 +1497,7 @@ final class HLSVideoJSNativeContentNode: ASDisplayNode, UniversalVideoContentNod
         assert(Queue.mainQueue().isCurrent())
         self.seekId += 1
         
-        SharedHLSVideoJSContext.shared.jsContext?.evaluateJavaScript("window.hlsPlayer_instances[\(self.instanceId)].playerSeek(\(timestamp));")
+        SharedHLSVideoJSContext.shared.jsContext?.evaluateJavaScript("window.hlsPlayer_instances[\(self.instanceId)]?.playerSeek(\(timestamp));")
     }
     
     func playOnceWithSound(playAndRecord: Bool, seek: MediaPlayerSeek, actionAtEnd: MediaPlayerPlayOnceWithSoundActionAtEnd) {
@@ -1579,7 +1579,7 @@ final class HLSVideoJSNativeContentNode: ASDisplayNode, UniversalVideoContentNod
     func setBaseRate(_ baseRate: Double) {
         self.requestedBaseRate = baseRate
         if self.playerIsReady {
-            SharedHLSVideoJSContext.shared.jsContext?.evaluateJavaScript("window.hlsPlayer_instances[\(self.instanceId)].playerSetBaseRate(\(self.requestedBaseRate));")
+            SharedHLSVideoJSContext.shared.jsContext?.evaluateJavaScript("window.hlsPlayer_instances[\(self.instanceId)]?.playerSetBaseRate(\(self.requestedBaseRate));")
         }
         self.updateStatus()
     }
@@ -1604,7 +1604,7 @@ final class HLSVideoJSNativeContentNode: ASDisplayNode, UniversalVideoContentNod
     private func updateInternalQualityLevel() {
         if self.playerIsReady {
             SharedHLSVideoJSContext.shared.jsContext?.evaluateJavaScript("""
-            window.hlsPlayer_instances[\(self.instanceId)].playerSetCapAutoLevel(\(self.resolveCurrentLevelIndex() ?? -1));
+            window.hlsPlayer_instances[\(self.instanceId)]?.playerSetCapAutoLevel(\(self.resolveCurrentLevelIndex() ?? -1));
             """)
         }
     }
@@ -1628,7 +1628,7 @@ final class HLSVideoJSNativeContentNode: ASDisplayNode, UniversalVideoContentNod
         
         if self.playerIsReady {
             SharedHLSVideoJSContext.shared.jsContext?.evaluateJavaScript("""
-            window.hlsPlayer_instances[\(self.instanceId)].playerSetLevel(\(self.requestedLevelIndex ?? -1));
+            window.hlsPlayer_instances[\(self.instanceId)]?.playerSetLevel(\(self.requestedLevelIndex ?? -1));
             """)
         }
     }
