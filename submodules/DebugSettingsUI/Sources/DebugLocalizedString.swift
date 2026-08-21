@@ -25,6 +25,7 @@ enum DebugLocalizedString {
             "sendStorageStats": "Send Storage Stats",
             "viaTelegram": "Via Telegram",
             "viaEmail": "Via Email",
+            "saveArchive": "Save Archive (Zip)",
             "accounts": "Accounts",
             "logToFile": "Log to File",
             "logToConsole": "Log to Console",
@@ -103,6 +104,7 @@ enum DebugLocalizedString {
             "sendStorageStats": "Отправить статистику хранилища",
             "viaTelegram": "Через Telegram",
             "viaEmail": "По email",
+            "saveArchive": "Сохранить архив (Zip)",
             "accounts": "Аккаунты",
             "logToFile": "Лог в файл",
             "logToConsole": "Лог в консоль",
@@ -197,6 +199,7 @@ enum DebugLocalizedString {
     static var sendStorageStats: String { string("sendStorageStats") }
     static var viaTelegram: String { string("viaTelegram") }
     static var viaEmail: String { string("viaEmail") }
+    static var saveArchive: String { string("saveArchive") }
     static var accounts: String { string("accounts") }
     static var logToFile: String { string("logToFile") }
     static var logToConsole: String { string("logToConsole") }

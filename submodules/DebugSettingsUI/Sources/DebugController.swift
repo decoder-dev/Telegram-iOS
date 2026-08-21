@@ -762,7 +762,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                         
                         items.append(ActionSheetButtonItem(title: DebugLocalizedString.viaEmail, color: .accent, action: { [weak actionSheet] in
                             actionSheet?.dismissAnimated()
-                            
+
                             let composeController = MFMailComposeViewController()
                             composeController.mailComposeDelegate = arguments.mailComposeDelegate
                             composeController.setSubject("Telegram Logs")
@@ -772,6 +772,26 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                                 }
                             }
                             arguments.getRootController()?.present(composeController, animated: true, completion: nil)
+                        }))
+                        items.append(ActionSheetButtonItem(title: DebugLocalizedString.saveArchive, color: .accent, action: { [weak actionSheet] in
+                            actionSheet?.dismissAnimated()
+
+                            let tempZip = EngineTempBox.shared.tempFile(fileName: "Log-iOS-Critical.zip")
+                            SSZipArchive.createZipFile(atPath: tempZip.path, withFilesAtPaths: logs.map { $0.1 })
+
+                            guard let rootController = arguments.getRootController() else {
+                                EngineTempBox.shared.dispose(tempZip)
+                                return
+                            }
+                            let activityController = UIActivityViewController(activityItems: [URL(fileURLWithPath: tempZip.path)], applicationActivities: nil)
+                            activityController.completionWithItemsHandler = { _, _, _, _ in
+                                EngineTempBox.shared.dispose(tempZip)
+                            }
+                            if let popoverPresentationController = activityController.popoverPresentationController {
+                                popoverPresentationController.sourceView = rootController.view
+                                popoverPresentationController.sourceRect = CGRect(origin: CGPoint(x: rootController.view.bounds.width / 2.0, y: rootController.view.bounds.height - 1.0), size: CGSize(width: 1.0, height: 1.0))
+                            }
+                            rootController.present(activityController, animated: true, completion: nil)
                         }))
                         actionSheet.setItemGroups([ActionSheetItemGroup(items: items), ActionSheetItemGroup(items: [
                             ActionSheetButtonItem(title: presentationData.strings.Common_Cancel, color: .accent, font: .bold, action: { [weak actionSheet] in
