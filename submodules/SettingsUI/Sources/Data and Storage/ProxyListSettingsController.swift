@@ -4,6 +4,7 @@ import Display
 import SwiftSignalKit
 import TelegramCore
 import TelegramPresentationData
+import TelegramUIPreferences
 import MtProtoKit
 import ItemListUI
 import PresentationDataUtils
@@ -441,7 +442,7 @@ private func proxySettingsControllerEntries(theme: PresentationTheme, strings: P
     let autoRotateInfo: String
     let autoFetchTitle: String
     let autoFetchInfo: String
-    let preferRussian = Locale.preferredLanguages.first?.hasPrefix("ru") == true
+    let preferRussian = ForkPresentationLanguage.prefersRussianStrings
         || strings.primaryComponent.languageCode.hasPrefix("ru")
     if preferRussian {
         useLocalDNSTitle = "Локальный DNS для прокси"

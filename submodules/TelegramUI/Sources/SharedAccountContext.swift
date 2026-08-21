@@ -457,6 +457,10 @@ public final class SharedAccountContextImpl: SharedAccountContext {
                     }
                     return next
                 }
+                // Unconditional, not inside `stringsUpdated`: that flag compares against the
+                // value seeded from initialPresentationDataAndSettings, so the very first emission
+                // can match and skip, leaving the override nil for the rest of the session.
+                ForkPresentationLanguage.languageCode = next.strings.primaryComponent.languageCode
                 if stringsUpdated {
                     updateLegacyLocalization(strings: next.strings)
                 }

@@ -244,6 +244,11 @@ private func messageSavingHistoryController(
 }
 
 private func messageSavingLocalizedString(key: String, en: String, ru: String) -> String {
+    // The app's language first — Telegram's own setting is independent of the device's.
+    // The device list stays as the fallback for the window before the first push.
+    if let appLanguage = ForkPresentationLanguage.languageCode, translations[appLanguage] != nil {
+        return appLanguage
+    }
     let candidates = Locale.preferredLanguages + Bundle.main.preferredLocalizations
     for candidate in candidates {
         let code = String(candidate.prefix(2)).lowercased()
