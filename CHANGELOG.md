@@ -6,6 +6,16 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3893-pre] — 2026-08-21
+
+Pre-release: HLS seek crash fix; Save Archive for critical logs.
+
+### Fixed
+- **HLS player:** seek-after-teardown JS exception (`playerNotifySeekedOnNextStatusUpdate` on destroyed instance) — optional chaining on the deferred `onSeeked` callback.
+
+### Added
+- **Debug → Send Critical Logs:** «Save Archive (Zip)» / «Сохранить архив (Zip)» — zip + system share sheet.
+
 ## [v12.9.2-3892-pre] — 2026-08-21
 
 Pre-release: Russian Developer Mode / Debug menus; fix Message Saving localisation build break.
