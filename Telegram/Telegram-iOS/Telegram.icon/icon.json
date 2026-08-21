@@ -17,6 +17,33 @@
           ],
           "fill-specializations" : [
             {
+              "value" : {
+                "solid" : "srgb:0.88039,0.02353,0.00000,1.00000"
+              }
+            },
+            {
+              "appearance" : "dark",
+              "value" : {
+                "solid" : "srgb:0.88039,0.02353,0.00000,1.00000"
+              }
+            }
+          ],
+          "glass" : false,
+          "image-name" : "Slash.svg",
+          "name" : "Slash"
+        },
+        {
+          "blend-mode-specializations" : [
+            {
+              "value" : "normal"
+            },
+            {
+              "appearance" : "dark",
+              "value" : "normal"
+            }
+          ],
+          "fill-specializations" : [
+            {
               "appearance" : "dark",
               "value" : "automatic"
             }
@@ -51,15 +78,15 @@
             {
               "value" : {
                 "linear-gradient" : [
-                  "display-p3:0.98039,0.29020,0.47059,1.00000",
-                  "srgb:0.56078,0.14118,0.78824,1.00000"
+                  "srgb:0.07059,0.07059,0.07059,1.00000",
+                  "srgb:0.00000,0.00000,0.00000,1.00000"
                 ]
               }
             },
             {
               "appearance" : "dark",
               "value" : {
-                "automatic-gradient" : "srgb:0.89020,0.18039,0.45098,1.00000"
+                "automatic-gradient" : "srgb:0.00000,0.00000,0.00000,1.00000"
               }
             }
           ],

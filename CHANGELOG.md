@@ -6,6 +6,13 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3895-pre] — 2026-08-21
+
+Pre-release: brutal ZalupaGram icon.
+
+### Changed
+- **App icon:** heavier slab **Z**, near-black disc, blood-red cut slash (Icon Composer Mark + Slash layers; PNG sets refreshed).
+
 ## [v12.9.2-3894-pre] — 2026-08-21
 
 Pre-release: rebrand to **ZalupaGram** + new app icon.
