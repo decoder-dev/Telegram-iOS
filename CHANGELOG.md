@@ -6,6 +6,15 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3896-pre] — 2026-08-21
+
+Pre-release: fix photo-send jetsam / heat.
+
+### Fixed
+- **Photo send OOM:** outgoing library encode no longer requests `PHImageManagerMaximumSize` (full-sensor RGBA, often 40–100+ MB) before downscale — asks Photos for the encode target size instead; worker pool 3→2; Max quality capped at 1920; thermal/LPM sheds to 1280.
+- **Heat (Message Saving):** `proactiveSaveMedia` defaults off; one-shot migration turns it off for existing installs that inherited the old default-on.
+- **Crash hardening:** remove force-unwrap on Lanczos filter and `image.cgImage` in outgoing media thumbnail prep.
+
 ## [v12.9.2-3895-pre] — 2026-08-21
 
 Pre-release: brutal ZalupaGram icon.

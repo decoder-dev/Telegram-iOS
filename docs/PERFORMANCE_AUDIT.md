@@ -133,6 +133,18 @@ and the spec is explicit that a thermal claim needs evidence.
   Untouched deliberately — see `SWIFT_MIGRATION.md` for why guessing here is
   worse than doing nothing.
 
+## Follow-up (2026-08-21): photo-send jetsam
+
+**structural, fixed.** `fetchPhotoLibraryResource` always requested
+`PHImageManagerMaximumSize`, decoded the full sensor buffer on a 3-wide
+worker pool, then vImage-downscaled to 1280/1920/2560. A single 48 MP HEIC
+is tens of megabytes of RGBA; three concurrent sends jetsam the process —
+this matches the report of crashes when sending photos plus sustained heat
+from Message Saving's default-on `proactiveSaveMedia` gallery fetches.
+
+Changes: request the encode `size` from Photos; 2 workers; Max≤1920;
+thermal/LPM shed to 1280; `proactiveSaveMedia` default + migration off.
+
 ## Instrumentation: what to add to turn this into numbers
 
 The app currently has **two** `OSSignposter` instances in the whole tree

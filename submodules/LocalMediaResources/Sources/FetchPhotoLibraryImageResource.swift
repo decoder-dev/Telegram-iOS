@@ -21,7 +21,9 @@ private func resizedImage(_ image: UIImage, for size: CGSize) -> UIImage? {
         if cgImage.bitsPerComponent == 10, let ciImage = CIImage(image: image, options: [.applyOrientationProperty: true, .toneMapHDRtoSDR: true]) {
             let scaleX = size.width / ciImage.extent.width
             
-            let filter = CIFilter(name: "CILanczosScaleTransform")!
+            guard let filter = CIFilter(name: "CILanczosScaleTransform") else {
+                return nil
+            }
             filter.setValue(ciImage, forKey: kCIInputImageKey)
             filter.setValue(scaleX, forKey: kCIInputScaleKey)
             filter.setValue(1.0, forKey: kCIInputAspectRatioKey)
@@ -102,7 +104,9 @@ extension UIImage.Orientation {
     }
 }
 
-private let fetchPhotoWorkers = ThreadPool(threadCount: 3, threadPriority: 0.2)
+// Two workers — three concurrent full-frame decodes jetsam on large HEICs even
+// after requesting a bounded targetSize (below). Priority stays low so scroll wins.
+private let fetchPhotoWorkers = ThreadPool(threadCount: 2, threadPriority: 0.2)
 
 public func fetchPhotoLibraryResource(localIdentifier: String, width: Int32?, height: Int32?, format: MediaImageFormat?, quality: Int32?, hd: Bool, useExif: Bool) -> Signal<EngineMediaResourceDataFetchResult, EngineMediaResourceDataFetchError> {
     return Signal { subscriber in
@@ -120,11 +124,29 @@ public func fetchPhotoLibraryResource(localIdentifier: String, width: Int32?, he
             let size: CGSize
             let photoQualityLevel: Int32
             let extrasQuality = ForkExtrasHotFlags.outgoingPhotoQuality
+            let thermallyStressed: Bool = {
+                if ProcessInfo.processInfo.isLowPowerModeEnabled {
+                    return true
+                }
+                switch ProcessInfo.processInfo.thermalState {
+                case .serious, .critical:
+                    return true
+                default:
+                    return false
+                }
+            }()
             if let width, let height {
                 size = CGSize(width: CGFloat(width), height: CGFloat(height))
                 photoQualityLevel = extrasQuality
+            } else if thermallyStressed {
+                // Shed Max/Better when the device is already hot — send still works,
+                // just closer to the default 1280 encode.
+                size = CGSize(width: 1280.0, height: 1280.0)
+                photoQualityLevel = 0
             } else if hd || extrasQuality >= 2 {
-                size = CGSize(width: 2560.0, height: 2560.0)
+                // Cap Max at 1920: 2560×2560 RGBA is ~25 MB after decode and was a
+                // common jetsam contributor when several photos encoded together.
+                size = CGSize(width: 1920.0, height: 1920.0)
                 photoQualityLevel = max(extrasQuality, 2)
             } else if extrasQuality >= 1 {
                 size = CGSize(width: 1920.0, height: 1920.0)
@@ -136,32 +158,20 @@ public func fetchPhotoLibraryResource(localIdentifier: String, width: Int32?, he
             let jpegQuality: Float
             switch photoQualityLevel {
             case 2:
-                jpegQuality = 0.85
+                jpegQuality = thermallyStressed ? 0.6 : 0.85
             case 1:
                 jpegQuality = 0.75
             default:
                 jpegQuality = 0.6
             }
             
-            var targetSize = PHImageManagerMaximumSize
-            //TODO: figure out how to manually read and resize some weird 10-bit heif photos from third-party cameras
-            if useExif, min(asset.pixelWidth, asset.pixelHeight) > 3800 {
-                func encodeText(string: String, key: Int16) -> String {
-                    let nsString = string as NSString
-                    let result = NSMutableString()
-                    for i in 0 ..< nsString.length {
-                        var c: unichar = nsString.character(at: i)
-                        c = unichar(Int16(c) + key)
-                        result.append(NSString(characters: &c, length: 1) as String)
-                    }
-                    return result as String
-                }
-                if let values = asset.value(forKeyPath: encodeText(string: "jnbhfQspqfsujft", key: -1)) as? [String: Any] {
-                    if let depth = values["Depth"] as? Int, depth == 10 {
-                        targetSize = size
-                    }
-                }
-            }
+            // CRITICAL: never request PHImageManagerMaximumSize for outgoing encode.
+            // A modern phone photo is often 40–100+ MB as RGBA; three of those concurrent
+            // (previous worker pool size) jetsams the app on send. Upstream still uses
+            // MaximumSize and only switched to `size` for a rare 10-bit HEIF path — we
+            // always ask for the encode target and let Photos downsample.
+            let _ = useExif // retained for API parity with callers / PhotoLibraryMediaResource
+            let targetSize = size
             
             queue.addTask(ThreadPoolTask({ _ in
                 let startTime = CACurrentMediaTime()

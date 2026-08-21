@@ -143,7 +143,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
             saveMessagesHistory: true,
             saveForBots: false,
             saveMedia: true,
-            proactiveSaveMedia: true,
+            proactiveSaveMedia: false,
             deletedMessageMark: MessageSavingBridge.defaultDeletedMark,
             editedMessageMark: "",
             ayuForward: true,
@@ -202,7 +202,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         saveMessagesHistory: Bool,
         saveForBots: Bool,
         saveMedia: Bool = true,
-        proactiveSaveMedia: Bool = true,
+        proactiveSaveMedia: Bool = false,
         deletedMessageMark: String = MessageSavingBridge.defaultDeletedMark,
         editedMessageMark: String = "",
         ayuForward: Bool = true,
@@ -318,7 +318,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.saveMessagesHistory = try container.decodeIfPresent(Bool.self, forKey: "saveMessagesHistory") ?? true
         self.saveForBots = try container.decodeIfPresent(Bool.self, forKey: "saveForBots") ?? false
         self.saveMedia = try container.decodeIfPresent(Bool.self, forKey: "saveMedia") ?? true
-        self.proactiveSaveMedia = try container.decodeIfPresent(Bool.self, forKey: "proactiveSaveMedia") ?? true
+        // Default off: proactive gallery fetch on every open was a major thermal/IO load.
+        self.proactiveSaveMedia = try container.decodeIfPresent(Bool.self, forKey: "proactiveSaveMedia") ?? false
         self.deletedMessageMark = try container.decodeIfPresent(String.self, forKey: "deletedMessageMark") ?? MessageSavingBridge.defaultDeletedMark
         self.editedMessageMark = try container.decodeIfPresent(String.self, forKey: "editedMessageMark") ?? ""
         self.ayuForward = try container.decodeIfPresent(Bool.self, forKey: "ayuForward") ?? true
