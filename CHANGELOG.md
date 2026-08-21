@@ -6,6 +6,10 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3901] — 2026-08-21
+
+Release: 3900 + AppDelegate `icons` `let` (same unused-var under `-c opt`).
+
 ## [v12.9.2-3900] — 2026-08-21
 
 Release: same as 3899 + SettingsUI build fix (`appIcons` `let`).
