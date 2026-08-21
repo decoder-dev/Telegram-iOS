@@ -51,8 +51,8 @@
             {
               "value" : {
                 "linear-gradient" : [
-                  "display-p3:0.21569,0.68627,0.89020,1.00000",
-                  "srgb:0.11373,0.57647,0.82353,1.00000"
+                  "display-p3:0.27451,0.72549,0.96078,1.00000",
+                  "srgb:0.07843,0.47059,0.86275,1.00000"
                 ]
               }
             },
@@ -64,15 +64,6 @@
             }
           ],
           "glass" : true,
-          "hidden-specializations" : [
-            {
-              "value" : false
-            },
-            {
-              "idiom" : "watchOS",
-              "value" : false
-            }
-          ],
           "image-name" : "Oval.svg",
           "name" : "Oval",
           "position-specializations" : [
@@ -87,21 +78,32 @@
               }
             }
           ]
+        },
+        {
+          "blend-mode-specializations" : [
+            {
+              "value" : "normal"
+            }
+          ],
+          "fill-specializations" : [
+            {
+              "value" : {
+                "solid" : "srgb:0.78431,0.90196,1.00000,1.00000"
+              }
+            },
+            {
+              "appearance" : "dark",
+              "value" : {
+                "solid" : "srgb:0.60000,0.80000,1.00000,1.00000"
+              }
+            }
+          ],
+          "glass" : false,
+          "image-name" : "Ring.svg",
+          "name" : "Ring"
         }
       ],
       "lighting" : "combined",
-      "position-specializations" : [
-        {
-          "idiom" : "watchOS",
-          "value" : {
-            "scale" : 1,
-            "translation-in-points" : [
-              0,
-              0
-            ]
-          }
-        }
-      ],
       "shadow" : {
         "kind" : "layer-color",
         "opacity" : 1

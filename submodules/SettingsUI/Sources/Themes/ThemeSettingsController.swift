@@ -513,10 +513,10 @@ public func themeSettingsController(context: AccountContext, focusOnItemTag: The
         currentAppIcon = appIcons.filter { $0.isDefault }.first
     }
     
-    let premiumConfiguration = PremiumConfiguration.with(appConfiguration: context.currentAppConfiguration.with { $0 })
-    if premiumConfiguration.isPremiumDisabled || context.account.testingEnvironment {
-        appIcons = appIcons.filter { !$0.isPremium } 
-    }
+    // Fork ships a full premium-styled icon set already in the bundle; every entry is
+    // marked isPremium for the Appearance crown, but they must stay visible even when
+    // server-side Premium is disabled / testingEnvironment would otherwise strip them.
+    let _ = PremiumConfiguration.with(appConfiguration: context.currentAppConfiguration.with { $0 })
     
     let availableAppIcons: Signal<[PresentationAppIcon], NoError> = .single(appIcons)
     let currentAppIconName = ValuePromise<String?>()

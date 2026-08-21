@@ -982,20 +982,27 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         }, getAvailableAlternateIcons: {
             if #available(iOS 10.3, *) {
                 var icons = [
-                    PresentationAppIcon(name: "BlueIcon", imageName: "BlueIcon", isDefault: buildConfig.isAppStoreBuild),
-                    PresentationAppIcon(name: "New2", imageName: "New2"),
-                    PresentationAppIcon(name: "New1", imageName: "New1"),
-                    PresentationAppIcon(name: "BlackIcon", imageName: "BlackIcon"),
-                    PresentationAppIcon(name: "BlueClassicIcon", imageName: "BlueClassicIcon"),
-                    PresentationAppIcon(name: "BlackClassicIcon", imageName: "BlackClassicIcon"),
-                    PresentationAppIcon(name: "BlueFilledIcon", imageName: "BlueFilledIcon"),
-                    PresentationAppIcon(name: "BlackFilledIcon", imageName: "BlackFilledIcon")
+                    PresentationAppIcon(name: "BlueIcon", imageName: "BlueIcon", isDefault: buildConfig.isAppStoreBuild, isPremium: true),
+                    PresentationAppIcon(name: "BlueClassicIcon", imageName: "BlueClassicIcon", isPremium: true),
+                    PresentationAppIcon(name: "BlueFilledIcon", imageName: "BlueFilledIcon", isPremium: true),
+                    PresentationAppIcon(name: "BlackIcon", imageName: "BlackIcon", isPremium: true),
+                    PresentationAppIcon(name: "BlackClassicIcon", imageName: "BlackClassicIcon", isPremium: true),
+                    PresentationAppIcon(name: "BlackFilledIcon", imageName: "BlackFilledIcon", isPremium: true),
+                    PresentationAppIcon(name: "WhiteFilledIcon", imageName: "WhiteFilledIcon", isPremium: true),
+                    PresentationAppIcon(name: "New1", imageName: "New1", isPremium: true),
+                    PresentationAppIcon(name: "New2", imageName: "New2", isPremium: true),
+                    PresentationAppIcon(name: "Premium", imageName: "Premium", isPremium: true),
+                    PresentationAppIcon(name: "PremiumTurbo", imageName: "PremiumTurbo", isPremium: true),
+                    PresentationAppIcon(name: "PremiumBlack", imageName: "PremiumBlack", isPremium: true),
+                    PresentationAppIcon(name: "PremiumNight", imageName: "PremiumNight", isPremium: true),
+                    PresentationAppIcon(name: "PremiumRose", imageName: "PremiumRose", isPremium: true),
+                    PresentationAppIcon(name: "PremiumEmerald", imageName: "PremiumEmerald", isPremium: true),
+                    PresentationAppIcon(name: "PremiumSunset", imageName: "PremiumSunset", isPremium: true),
+                    PresentationAppIcon(name: "PremiumIce", imageName: "PremiumIce", isPremium: true),
+                    PresentationAppIcon(name: "PremiumCarbon", imageName: "PremiumCarbon", isPremium: true),
+                    PresentationAppIcon(name: "PremiumRoyal", imageName: "PremiumRoyal", isPremium: true),
+                    PresentationAppIcon(name: "PremiumAurora", imageName: "PremiumAurora", isPremium: true),
                 ]
-                icons.append(PresentationAppIcon(name: "WhiteFilledIcon", imageName: "WhiteFilledIcon"))
-                
-                icons.append(PresentationAppIcon(name: "Premium", imageName: "Premium", isPremium: true))
-                icons.append(PresentationAppIcon(name: "PremiumTurbo", imageName: "PremiumTurbo", isPremium: true))
-                icons.append(PresentationAppIcon(name: "PremiumBlack", imageName: "PremiumBlack", isPremium: true))
                 
                 return icons
             } else {
