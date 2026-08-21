@@ -506,7 +506,7 @@ public func themeSettingsController(context: AccountContext, focusOnItemTag: The
     let _ = context.engine.themes.wallpapers().start()
     
     let currentAppIcon: PresentationAppIcon?
-    var appIcons = context.sharedContext.applicationBindings.getAvailableAlternateIcons()
+    let appIcons = context.sharedContext.applicationBindings.getAvailableAlternateIcons()
     if let alternateIconName = context.sharedContext.applicationBindings.getAlternateIconName() {
         currentAppIcon = appIcons.filter { $0.name == alternateIconName }.first
     } else {
@@ -514,9 +514,8 @@ public func themeSettingsController(context: AccountContext, focusOnItemTag: The
     }
     
     // Fork ships a full premium-styled icon set already in the bundle; every entry is
-    // marked isPremium for the Appearance crown, but they must stay visible even when
-    // server-side Premium is disabled / testingEnvironment would otherwise strip them.
-    let _ = PremiumConfiguration.with(appConfiguration: context.currentAppConfiguration.with { $0 })
+    // marked isPremium for the Appearance crown. Do not strip them when server-side
+    // Premium is disabled (stock filtered `!$0.isPremium` here).
     
     let availableAppIcons: Signal<[PresentationAppIcon], NoError> = .single(appIcons)
     let currentAppIconName = ValuePromise<String?>()
