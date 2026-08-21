@@ -528,6 +528,11 @@ public enum ForkRegexMessageFilters {
 
     /// Cap matching input to keep pathological patterns from burning CPU/heat on huge messages.
     private static let maxMatchUTF16Length = 4096
+    /// Per-part budgets for the input `matches(message:)` synthesises. They must sum to less than
+    /// `maxMatchUTF16Length` (plus room for the short `<type>N</type>` tail) so that every part —
+    /// most importantly the trailing tag — lands inside the window ICU actually searches.
+    private static let maxMessageTextMatchUTF16Length = 3072
+    private static let maxButtonPayloadMatchUTF16Length = 768
     /// Soft cap so a huge pasted list cannot explode compile / match cost.
     private static let maxPatterns = 64
 
@@ -622,33 +627,57 @@ public enum ForkRegexMessageFilters {
     /// `MessageObject.TYPE_*` constants). The resulting input is still bounded by `matches`
     /// before ICU sees it.
     public static func matches(message: EngineMessage, regexes: [NSRegularExpression]? = nil) -> Bool {
-        var input = message.text
+        var buttons = ""
         for attribute in message.attributes {
             guard let replyMarkup = attribute as? ReplyMarkupMessageAttribute else {
                 continue
             }
             for row in replyMarkup.rows {
                 for button in row.buttons {
-                    input.append("\n<button>")
-                    input.append(button.title)
+                    buttons.append("\n<button>")
+                    buttons.append(button.title)
                     switch button.action {
                     case let .url(url):
-                        input.append("\n")
-                        input.append(url)
+                        buttons.append("\n")
+                        buttons.append(url)
                     case let .urlAuth(url, _):
-                        input.append("\n")
-                        input.append(url)
+                        buttons.append("\n")
+                        buttons.append(url)
                     default:
                         break
                     }
-                    input.append("</button>")
+                    buttons.append("</button>")
                 }
             }
         }
+        // Bound the text and button payloads separately, before concatenating. `matches(_:)` only
+        // searches the first `maxMatchUTF16Length` UTF-16 units, so bounding at the end would let a
+        // long message push the `<type>N</type>` tag — the whole point of the synthesised input —
+        // past the search window and silently disable every `<type>` filter on exactly the
+        // messages a user is most likely to filter.
+        var input = boundedPrefix(message.text, utf16Limit: maxMessageTextMatchUTF16Length)
+        input.append(boundedPrefix(buttons, utf16Limit: maxButtonPayloadMatchUTF16Length))
         input.append("\n<type>")
         input.append(String(ayuMessageTypeConstant(for: message)))
         input.append("</type>")
         return matches(input, regexes: regexes)
+    }
+
+    /// UTF-16-bounded prefix that never splits a composed character sequence (or a surrogate pair).
+    private static func boundedPrefix(_ text: String, utf16Limit: Int) -> String {
+        let nsText = text as NSString
+        guard nsText.length > utf16Limit else {
+            return text
+        }
+        var end = utf16Limit
+        let composed = nsText.rangeOfComposedCharacterSequence(at: end)
+        if composed.location < end {
+            end = composed.location
+        }
+        guard end > 0 else {
+            return ""
+        }
+        return nsText.substring(to: end)
     }
 
     /// Approximate AyuGram Android `MessageObject.TYPE_*` constant for `<type>N</type>` filters.
