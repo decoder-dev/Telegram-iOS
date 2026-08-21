@@ -151,6 +151,11 @@ public func ensureArchiveUnlocked(
             let _ = (LocalAuth.auth(reason: ArchiveLockLocalizedString.biometricReason)
             |> deliverOnMainQueue).start(next: { success, _ in
                 if success {
+                    // Same reset the password path does on success. Both outcomes mean the owner
+                    // proved who they are, and the counter throttles guessing, not the owner — but
+                    // only one of the two was clearing it, so unlocking with Face ID left the
+                    // cooldown standing and the next password entry could still be refused.
+                    ArchivePasswordKeychain.clearFailureState(peerId: context.account.peerId)
                     ArchiveLockSession.shared.unlock()
                     completion(.unlocked)
                 } else {
