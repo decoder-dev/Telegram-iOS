@@ -258,6 +258,13 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
     items[.advanced]!.append(PeerInfoScreenDisclosureItem(id: 4, label: .text(languageName.isEmpty ? presentationData.strings.Localization_LanguageName : languageName), text: presentationData.strings.Settings_AppLanguage, icon: PresentationResourcesSettings.language, action: {
         interaction.openSettings(.language)
     }))
+
+    // The debug screen. It has always existed but was reachable only through the
+    // `tg://settings/debug` deep link, which is not something anyone finds without being told it
+    // is there. Last row of the section, after the everyday settings.
+    items[.advanced]!.append(PeerInfoScreenDisclosureItem(id: 7, text: forkDeveloperModeSettingsTitle(presentationData.strings), icon: PresentationResourcesSettings.developerMode, action: {
+        interaction.openSettings(.debug)
+    }))
     
     let premiumConfiguration = PremiumConfiguration.with(appConfiguration: context.currentAppConfiguration.with { $0 })
     let isPremiumDisabled = premiumConfiguration.isPremiumDisabled
