@@ -6,6 +6,20 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3899] — 2026-08-21
+
+Release: **Телеграм** — premium icons, photo-send stability, crash fixes.
+
+### Changed
+- **Display name:** home screen → **Телеграм**.
+- **App icons:** full custom premium gallery (**20** icons) — Blue/Classic/Filled/Black/White/New1–2 plus Premium Gold, Turbo, Black, Night, Rose, Emerald, Sunset, Ice, Carbon, Royal, Aurora. All unlocked in Appearance.
+
+### Fixed
+- **Photo send jetsam/OOM:** encode no longer loads `PHImageManagerMaximumSize`; Max≤1920; thermal shed to 1280; workers 3→2; `proactiveSaveMedia` off by default (+ migration).
+- **Camera photo strip:** `Invalid batch updates` crash — reload when model/view counts diverge.
+- **HLS player:** optional chaining on remaining `hlsPlayer_instances` JS call sites (seek/load/rate/level).
+- **Modal present:** `presentWithContext:` ignores nil generator (avatar menu after dealloc).
+
 ## [v12.9.2-3898-pre] — 2026-08-21
 
 Pre-release: full premium Телеграм icon gallery (20 icons).
