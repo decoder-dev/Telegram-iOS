@@ -6,6 +6,10 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3900] — 2026-08-21
+
+Release: same as 3899 + SettingsUI build fix (`appIcons` `let`).
+
 ## [v12.9.2-3899] — 2026-08-21
 
 Release: **Телеграм** — premium icons, photo-send stability, crash fixes.
