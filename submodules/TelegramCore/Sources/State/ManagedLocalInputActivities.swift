@@ -577,7 +577,19 @@ private func actionFromActivity(_ activity: PeerInputActivity?) -> Api.SendMessa
 
 private func requestActivity(postbox: Postbox, network: Network, accountPeerId: PeerId, peerId: PeerId, threadId: Int64?, activity: PeerInputActivity?) -> Signal<Void, NoError> {
     if ForkGhostModeSettings.suppressOutgoingActivity {
-        return .complete()
+        // Everything except the group-call speaking indicator. This function is the single
+        // chokepoint for outgoing activity, which is why the gate belongs here — but
+        // `.speakingInGroupCall` also passes through it, driving the live "is talking" highlight
+        // other participants see (acquired in PresentationGroupCall). Suppressing that does not
+        // hide typing, it breaks a running voice chat: the setting is about not advertising that
+        // you are composing a message, not about going silent in a call you already joined.
+        var isGroupCallSpeaking = false
+        if let activity, case .speakingInGroupCall = activity {
+            isGroupCallSpeaking = true
+        }
+        if !isGroupCallSpeaking {
+            return .complete()
+        }
     }
     return postbox.transaction { transaction -> Signal<Void, NoError> in
         if let peer = transaction.getPeer(peerId) {
