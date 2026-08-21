@@ -6,6 +6,21 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3891-pre] — 2026-08-21
+
+Pre-release: performance/folder/Ghost Mode follow-ups; commit history authored as decoder-dev (Claude trailers stripped).
+
+### Fixed
+- **Chat open:** drop the 250ms blocked-peers debounce on revision 0 so first history paint is not delayed.
+- **Folders:** animated switch path; avoid stacked lists on tab tap; undo leftover pagination/scroll sync from earlier duplication attempts.
+- **Regex filters:** long messages no longer silently disable every `<type>` filter.
+- **Ghost Mode:** no longer mutes you in voice chats; archive Face ID unlock clears cooldown.
+- **i18n:** fork strings follow app language, not device language.
+- **Stability:** CDN key length + snapshot-gated state; dual-camera round-video races; playlist lazy vars across queues; launch breadcrumbs for crash diagnosis.
+
+### Added
+- **Developer Mode** Settings row and screen.
+
 ## [v12.9.2-3890-pre] — 2026-08-20
 
 Pre-release: close remaining idealism regressions (composer morph/assets, themes, lists).
