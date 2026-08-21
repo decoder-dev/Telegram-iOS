@@ -6,6 +6,14 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3894-pre] — 2026-08-21
+
+Pre-release: rebrand to **ZalupaGram** + new app icon.
+
+### Changed
+- **Display name:** home-screen / share extension name is `ZalupaGram` (`CFBundleDisplayName` / `CFBundleName`, App Store + Fork xcconfigs, ar/ko InfoPlist overrides).
+- **App icon:** paper-plane mark replaced with a bold white **Z** monogram on a magenta→violet circle (`Telegram.icon` Mark.svg + BlueIcon / DefaultAppIcon PNG sets).
+
 ## [v12.9.2-3893-pre] — 2026-08-21
 
 Pre-release: HLS seek crash fix; Save Archive for critical logs.
