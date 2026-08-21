@@ -3,6 +3,7 @@ import UIKit
 import Display
 import AccountContext
 import TelegramPresentationData
+import TelegramUIPreferences
 import TelegramCore
 import PhoneNumberFormat
 import ItemListUI
@@ -154,7 +155,7 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
         if !settings.proxySettings.servers.isEmpty || settings.proxySettings.autoFetchPublicMtProxy {
             let proxyType: String
             if settings.proxySettings.autoFetchPublicMtProxy, settings.proxySettings.enabled {
-                proxyType = Locale.preferredLanguages.first?.hasPrefix("ru") == true ? "Авто" : "Auto"
+                proxyType = ForkPresentationLanguage.prefersRussianStrings ? "Авто" : "Auto"
             } else if settings.proxySettings.enabled, let activeServer = settings.proxySettings.activeServer {
                 switch activeServer.connection {
                 case .mtp:
