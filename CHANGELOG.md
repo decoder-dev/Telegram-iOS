@@ -6,6 +6,24 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3903-pre] — 2026-08-22
+
+Pre-release: WEB proxy hardening (async sidecar, fail-closed, no catalog); proxy UI polish; crash fixes.
+
+### Added
+- **WEB proxy:** async sidecar bootstrap (no 45s UI/network thread block); automatic network re-apply when sidecar becomes ready or fails at runtime.
+
+### Changed
+- **WEB proxy:** removed catalog/lists — masking sites are added manually (Add Proxy menu or `tg://webproxy` link).
+- **WEB proxy:** localized labels via `SocksProxySetup.ProxyWeb` / `MaskingSite`; WEB list rows hide `:443`; preview sheet skips ping row for WEB.
+- **Proxy list:** single “Add Proxy” action (SOCKS5 / MTProxy / WEB in action sheet).
+
+### Fixed
+- **WEB proxy:** fail-closed when sidecar fails on first enable; `stop()`/`start()` race; exhaustive `.webProxy` URL switches.
+- **Calls list:** conference declined calls show missed icon.
+- **Bag:** mutation-during-enumeration crash in `Bag.enumerateItems` (NSBag/SBag/MTBag/DeviceProximityBag).
+- **Settings:** Proxy row always visible even with no servers configured.
+
 ## [v12.9.2-3902-pre] — 2026-08-22
 
 Pre-release: WEB proxy (tproxy-server) with masking-site picker; calls list icons; crash fixes.
