@@ -972,6 +972,15 @@ public final class ChatTextInputPanelComponent: Component {
                 case .empty:
                     panelNode.customRightAction = .empty
                 case let .liveMicrophone(call):
+                    // Deliberately the *secondary* slot, even though this is the primary switch:
+                    // `ChatTextInputPanelNode` only ever reads `.liveMicrophone` out of
+                    // `customSecondaryRightAction`, so the primary slot cannot render one. Assigning
+                    // the primary slot here instead would hide the mic — the node drops it for any
+                    // non-nil `customRightAction` — and draw nothing in its place.
+                    //
+                    // Nothing exercises this today: the only `.liveMicrophone` producer builds a
+                    // `secondaryRightAction`. It stays as the one routing that would work, rather
+                    // than as a branch that reads correctly and behaves wrongly.
                     panelNode.customSecondaryRightAction = .liveMicrophone(call: call, action: { sourceView in
                         rightAction.action(sourceView)
                     })

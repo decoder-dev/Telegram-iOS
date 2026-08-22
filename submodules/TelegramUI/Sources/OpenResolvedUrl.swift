@@ -569,6 +569,11 @@ func openResolvedUrlImpl(
         
             let controller = ProxyServerPreviewScreen(context: context, server: server)
             navigationController?.pushViewController(controller)
+        case let .webProxy(host, secret):
+            let server = ProxyServerSettings(host: host, port: 443, connection: .web(secret: secret))
+            dismissInput()
+            let controller = ProxyServerPreviewScreen(context: context, server: server)
+            navigationController?.pushViewController(controller)
         case let .confirmationCode(code):
             if let topController = navigationController?.topViewController as? AuthorizationSequenceCodeEntryController {
                 topController.applyConfirmationCode(code)

@@ -434,6 +434,9 @@ static id<LegacyComponentsContext> _defaultContext = nil;
 
 - (void)presentWithContext:(UIViewController *(^)(id<LegacyComponentsContext>))generator {
     UIViewController *controller = generator(_context);
+    if (controller == nil) {
+        return;
+    }
     [self presentViewController:controller animated:true completion:nil];
 }
 

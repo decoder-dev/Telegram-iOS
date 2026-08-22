@@ -17,7 +17,6 @@ public enum ForkTranscriptionBackend: String, Codable {
 public struct ForkExtrasSettings: Codable, Equatable {
     /// Legacy single Ghost Mode toggle. Still encoded for older builds; granular flags are source of truth.
     /// When true in old prefs (no granular keys), it seeds dont-read / dont-online / dont-typing.
-    public var ghostMode: Bool
     /// AyuGram: Don't Read Messages — suppress read receipts / seen reactions while browsing.
     public var ghostDontReadMessages: Bool
     /// AyuGram: Don't Read Stories — suppress story view increments.
@@ -116,7 +115,6 @@ public struct ForkExtrasSettings: Codable, Equatable {
 
     public static var defaultSettings: ForkExtrasSettings {
         return ForkExtrasSettings(
-            ghostMode: false,
             ghostDontReadMessages: false,
             ghostDontReadStories: false,
             ghostDontSendOnline: false,
@@ -145,7 +143,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
             saveMessagesHistory: true,
             saveForBots: false,
             saveMedia: true,
-            proactiveSaveMedia: true,
+            proactiveSaveMedia: false,
             deletedMessageMark: MessageSavingBridge.defaultDeletedMark,
             editedMessageMark: "",
             ayuForward: true,
@@ -176,7 +174,6 @@ public struct ForkExtrasSettings: Codable, Equatable {
     }
 
     public init(
-        ghostMode: Bool,
         ghostDontReadMessages: Bool,
         ghostDontReadStories: Bool,
         ghostDontSendOnline: Bool,
@@ -205,7 +202,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         saveMessagesHistory: Bool,
         saveForBots: Bool,
         saveMedia: Bool = true,
-        proactiveSaveMedia: Bool = true,
+        proactiveSaveMedia: Bool = false,
         deletedMessageMark: String = MessageSavingBridge.defaultDeletedMark,
         editedMessageMark: String = "",
         ayuForward: Bool = true,
@@ -233,7 +230,6 @@ public struct ForkExtrasSettings: Codable, Equatable {
         downloadSpeedBoost: Bool = false,
         outgoingPhotoQuality: Int32 = 0
     ) {
-        self.ghostMode = ghostMode
         self.ghostDontReadMessages = ghostDontReadMessages
         self.ghostDontReadStories = ghostDontReadStories
         self.ghostDontSendOnline = ghostDontSendOnline
@@ -301,8 +297,6 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.ghostGoOfflineAutomatically = try container.decodeIfPresent(Bool.self, forKey: "ghostGoOfflineAutomatically") ?? false
         self.ghostReadOnInteract = try container.decodeIfPresent(Bool.self, forKey: "ghostReadOnInteract") ?? false
         self.ghostAlertBeforeOpeningStory = try container.decodeIfPresent(Bool.self, forKey: "ghostAlertBeforeOpeningStory") ?? false
-        // Keep legacy field in sync so older readers / encodings stay coherent.
-        self.ghostMode = self.ghostDontReadMessages && self.ghostDontSendOnline && self.ghostDontSendTyping
         self.instantPasscodeLock = try container.decodeIfPresent(Bool.self, forKey: "instantPasscodeLock") ?? false
         self.hideMentionNotifications = try container.decodeIfPresent(Bool.self, forKey: "hideMentionNotifications") ?? false
         self.hidePinnedNotifications = try container.decodeIfPresent(Bool.self, forKey: "hidePinnedNotifications") ?? false
@@ -324,7 +318,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.saveMessagesHistory = try container.decodeIfPresent(Bool.self, forKey: "saveMessagesHistory") ?? true
         self.saveForBots = try container.decodeIfPresent(Bool.self, forKey: "saveForBots") ?? false
         self.saveMedia = try container.decodeIfPresent(Bool.self, forKey: "saveMedia") ?? true
-        self.proactiveSaveMedia = try container.decodeIfPresent(Bool.self, forKey: "proactiveSaveMedia") ?? true
+        // Default off: proactive gallery fetch on every open was a major thermal/IO load.
+        self.proactiveSaveMedia = try container.decodeIfPresent(Bool.self, forKey: "proactiveSaveMedia") ?? false
         self.deletedMessageMark = try container.decodeIfPresent(String.self, forKey: "deletedMessageMark") ?? MessageSavingBridge.defaultDeletedMark
         self.editedMessageMark = try container.decodeIfPresent(String.self, forKey: "editedMessageMark") ?? ""
         self.ayuForward = try container.decodeIfPresent(Bool.self, forKey: "ayuForward") ?? true
@@ -356,7 +351,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: StringCodingKey.self)
         // Legacy: true only when the original three core flags are all on.
-        try container.encode(self.ghostDontReadMessages && self.ghostDontSendOnline && self.ghostDontSendTyping, forKey: "ghostMode")
+        try container.encode(self.ghostMode, forKey: "ghostMode")
         try container.encode(self.ghostDontReadMessages, forKey: "ghostDontReadMessages")
         try container.encode(self.ghostDontReadStories, forKey: "ghostDontReadStories")
         try container.encode(self.ghostDontSendOnline, forKey: "ghostDontSendOnline")
@@ -420,8 +415,20 @@ public struct ForkExtrasSettings: Codable, Equatable {
     }
 
     /// Full Ghost Mode (AyuGram): dont-read + dont-online + dont-typing.
+    ///
+    /// The single definition. `ghostMode` was a stored mirror of this expression, re-derived by
+    /// hand in six places — decode, encode, the memberwise init and three settings mutations —
+    /// and read by nothing: Ghost Mode itself is driven from the three raw flags in
+    /// `SharedAccountContext`. A stored copy of a derived value is only ever one forgotten
+    /// assignment away from disagreeing with what it mirrors, so it is computed now.
     public var isFullGhostMode: Bool {
         return self.ghostDontReadMessages && self.ghostDontSendOnline && self.ghostDontSendTyping
+    }
+
+    /// Legacy encoding key, kept so a build that predates the three separate ghost flags still
+    /// reads a coherent value out of the stored blob. Never a source of truth.
+    public var ghostMode: Bool {
+        return self.isFullGhostMode
     }
 
     /// AyuGram "Add filter": escape selected text as a literal regex pattern, enable filters, append if new.
@@ -522,6 +529,11 @@ public enum ForkRegexMessageFilters {
 
     /// Cap matching input to keep pathological patterns from burning CPU/heat on huge messages.
     private static let maxMatchUTF16Length = 4096
+    /// Per-part budgets for the input `matches(message:)` synthesises. They must sum to less than
+    /// `maxMatchUTF16Length` (plus room for the short `<type>N</type>` tail) so that every part —
+    /// most importantly the trailing tag — lands inside the window ICU actually searches.
+    private static let maxMessageTextMatchUTF16Length = 3072
+    private static let maxButtonPayloadMatchUTF16Length = 768
     /// Soft cap so a huge pasted list cannot explode compile / match cost.
     private static let maxPatterns = 64
 
@@ -616,33 +628,57 @@ public enum ForkRegexMessageFilters {
     /// `MessageObject.TYPE_*` constants). The resulting input is still bounded by `matches`
     /// before ICU sees it.
     public static func matches(message: EngineMessage, regexes: [NSRegularExpression]? = nil) -> Bool {
-        var input = message.text
+        var buttons = ""
         for attribute in message.attributes {
             guard let replyMarkup = attribute as? ReplyMarkupMessageAttribute else {
                 continue
             }
             for row in replyMarkup.rows {
                 for button in row.buttons {
-                    input.append("\n<button>")
-                    input.append(button.title)
+                    buttons.append("\n<button>")
+                    buttons.append(button.title)
                     switch button.action {
                     case let .url(url):
-                        input.append("\n")
-                        input.append(url)
+                        buttons.append("\n")
+                        buttons.append(url)
                     case let .urlAuth(url, _):
-                        input.append("\n")
-                        input.append(url)
+                        buttons.append("\n")
+                        buttons.append(url)
                     default:
                         break
                     }
-                    input.append("</button>")
+                    buttons.append("</button>")
                 }
             }
         }
+        // Bound the text and button payloads separately, before concatenating. `matches(_:)` only
+        // searches the first `maxMatchUTF16Length` UTF-16 units, so bounding at the end would let a
+        // long message push the `<type>N</type>` tag — the whole point of the synthesised input —
+        // past the search window and silently disable every `<type>` filter on exactly the
+        // messages a user is most likely to filter.
+        var input = boundedPrefix(message.text, utf16Limit: maxMessageTextMatchUTF16Length)
+        input.append(boundedPrefix(buttons, utf16Limit: maxButtonPayloadMatchUTF16Length))
         input.append("\n<type>")
         input.append(String(ayuMessageTypeConstant(for: message)))
         input.append("</type>")
         return matches(input, regexes: regexes)
+    }
+
+    /// UTF-16-bounded prefix that never splits a composed character sequence (or a surrogate pair).
+    private static func boundedPrefix(_ text: String, utf16Limit: Int) -> String {
+        let nsText = text as NSString
+        guard nsText.length > utf16Limit else {
+            return text
+        }
+        var end = utf16Limit
+        let composed = nsText.rangeOfComposedCharacterSequence(at: end)
+        if composed.location < end {
+            end = composed.location
+        }
+        guard end > 0 else {
+            return ""
+        }
+        return nsText.substring(to: end)
     }
 
     /// Approximate AyuGram Android `MessageObject.TYPE_*` constant for `<type>N</type>` filters.

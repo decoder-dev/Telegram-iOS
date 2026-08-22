@@ -356,6 +356,11 @@ private enum ForkExtrasLocalizedString {
     ]
     
     private static func languageCode() -> String {
+        // The app's language first — Telegram's own setting is independent of the device's.
+        // The device list stays as the fallback for the window before the first push.
+        if let appLanguage = ForkPresentationLanguage.languageCode, translations[appLanguage] != nil {
+            return appLanguage
+        }
         let candidates = Locale.preferredLanguages + Bundle.main.preferredLocalizations
         for candidate in candidates {
             let code = String(candidate.prefix(2)).lowercased()
@@ -1581,7 +1586,6 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
             updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
                 var updated = current
                 updated.ghostDontReadMessages = value
-                updated.ghostMode = updated.ghostDontReadMessages && updated.ghostDontSendOnline && updated.ghostDontSendTyping
                 return updated
             }.start())
         },
@@ -1596,7 +1600,6 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
             updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
                 var updated = current
                 updated.ghostDontSendOnline = value
-                updated.ghostMode = updated.ghostDontReadMessages && updated.ghostDontSendOnline && updated.ghostDontSendTyping
                 return updated
             }.start())
         },
@@ -1604,7 +1607,6 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
             updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
                 var updated = current
                 updated.ghostDontSendTyping = value
-                updated.ghostMode = updated.ghostDontReadMessages && updated.ghostDontSendOnline && updated.ghostDontSendTyping
                 return updated
             }.start())
         },

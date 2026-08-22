@@ -1,11 +1,13 @@
 import Foundation
 import AppBundle
+import TelegramUIPreferences
 
 /// Localized Archive-lock copy.
 ///
 /// Telegram's in-app language often differs from the main bundle locale
-/// (`NSLocalizedString` stays on English). Prefer an explicit RU/EN table keyed
-/// by the device preferred language, then fall back to `en.lproj`.
+/// (`NSLocalizedString` stays on English), and from the device language too. Prefer an explicit
+/// RU/EN table keyed by the app's own presentation language, then by the device's, then fall back
+/// to `en.lproj`.
 public enum ArchiveLockLocalizedString {
     private static let translations: [String: [String: String]] = [
         "en": [
@@ -71,6 +73,11 @@ public enum ArchiveLockLocalizedString {
     ]
     
     private static func languageCode() -> String {
+        // The app's language first — Telegram's own setting is independent of the device's.
+        // The device list stays as the fallback for the window before the first push.
+        if let appLanguage = ForkPresentationLanguage.languageCode, translations[appLanguage] != nil {
+            return appLanguage
+        }
         let candidates = Locale.preferredLanguages + Bundle.main.preferredLocalizations
         for candidate in candidates {
             let code = String(candidate.prefix(2)).lowercased()

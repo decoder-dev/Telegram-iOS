@@ -53,7 +53,7 @@ public func dateFillNeedsBlur(theme: PresentationTheme, wallpaper: TelegramWallp
 
 public let defaultServiceBackgroundColor = UIColor(rgb: 0x000000, alpha: 0.2)
 public let defaultPresentationTheme = makeDefaultDayPresentationTheme(serviceBackgroundColor: defaultServiceBackgroundColor, day: false, preview: false)
-public let defaultDayAccentColor = UIColor(rgb: 0x3478F6)
+public let defaultDayAccentColor = UIColor(rgb: 0x007AFF)
 
 public func customizeDefaultDayTheme(theme: PresentationTheme, editing: Bool, title: String?, accentColor: UIColor?, outgoingAccentColor: UIColor?, backgroundColors: [UInt32], bubbleColors: [UInt32], animateBubbleColors: Bool?, wallpaper forcedWallpaper: TelegramWallpaper? = nil, serviceBackgroundColor: UIColor?) -> PresentationTheme {
     if (theme.referenceTheme != .day && theme.referenceTheme != .dayClassic) {
@@ -243,12 +243,18 @@ public func customizeDefaultDayTheme(theme: PresentationTheme, editing: Bool, ti
             }
         } else {
             outgoingPrimaryTextColor = UIColor(rgb: 0xffffff)
-            outgoingSecondaryTextColor = UIColor(rgb: 0xffffff, alpha: 0.65)
+            // 0.8, not the stock 0.65: that alpha was tuned against the stock outgoing bubble,
+            // which is darker. The fork pins the bubble to #007AFF, where white at 0.65 lands at
+            // 2.50:1 and the timestamp stops being readable. 0.8 puts it at 3.08:1 while still
+            // reading as secondary next to the 1.0 primary text.
+            outgoingSecondaryTextColor = UIColor(rgb: 0xffffff, alpha: 0.8)
             outgoingAccentTextColor = outgoingPrimaryTextColor
             outgoingLinkTextColor = UIColor(rgb: 0xffffff)
             outgoingScamColor = outgoingPrimaryTextColor
             outgoingControlColor = outgoingPrimaryTextColor
-            outgoingInactiveControlColor = outgoingSecondaryTextColor
+            // Left at the old 0.65: the waveform's unplayed part is a graphic that reads by its
+            // distance from the played part, not by absolute legibility.
+            outgoingInactiveControlColor = UIColor(rgb: 0xffffff, alpha: 0.65)
             outgoingPendingActivityColor = outgoingSecondaryTextColor
             outgoingFileTitleColor = outgoingPrimaryTextColor
             outgoingFileDescriptionColor = outgoingSecondaryTextColor
@@ -691,7 +697,7 @@ public func makeDefaultDayPresentationTheme(extendingThemeReference: Presentatio
                 )
             ),
             primaryTextColor: UIColor(rgb: 0xffffff),
-            secondaryTextColor: UIColor(rgb: 0xffffff, alpha: 0.65),
+            secondaryTextColor: UIColor(rgb: 0xffffff, alpha: 0.8),
             linkTextColor: UIColor(rgb: 0xffffff),
             linkHighlightColor: UIColor(rgb: 0xffffff, alpha: 0.3),
             scamColor: UIColor(rgb: 0xffffff),
@@ -702,12 +708,12 @@ public func makeDefaultDayPresentationTheme(extendingThemeReference: Presentatio
             mediaActiveControlColor: UIColor(rgb: 0xffffff),
             mediaInactiveControlColor: UIColor(rgb: 0xffffff, alpha: 0.65),
             mediaControlInnerBackgroundColor: .clear,
-            pendingActivityColor: UIColor(rgb: 0xffffff, alpha: 0.65),
+            pendingActivityColor: UIColor(rgb: 0xffffff, alpha: 0.8),
             fileTitleColor: UIColor(rgb: 0xffffff),
-            fileDescriptionColor: UIColor(rgb: 0xffffff, alpha: 0.65),
-            fileDurationColor: UIColor(rgb: 0xffffff, alpha: 0.65),
+            fileDescriptionColor: UIColor(rgb: 0xffffff, alpha: 0.8),
+            fileDurationColor: UIColor(rgb: 0xffffff, alpha: 0.8),
             mediaPlaceholderColor: UIColor(rgb: 0x0077d9),
-            polls: PresentationThemeChatBubblePolls(radioButton: UIColor(rgb: 0xffffff, alpha: 0.65), radioProgress: UIColor(rgb: 0xffffff), highlight: UIColor(rgb: 0xffffff, alpha: 0.12), separator: UIColor(rgb: 0xffffff, alpha: 0.65), bar: UIColor(rgb: 0xffffff), barIconForeground: .clear, barPositive: UIColor(rgb: 0xffffff), barNegative: UIColor(rgb: 0xffffff)),
+            polls: PresentationThemeChatBubblePolls(radioButton: UIColor(rgb: 0xffffff, alpha: 0.8), radioProgress: UIColor(rgb: 0xffffff), highlight: UIColor(rgb: 0xffffff, alpha: 0.12), separator: UIColor(rgb: 0xffffff, alpha: 0.8), bar: UIColor(rgb: 0xffffff), barIconForeground: .clear, barPositive: UIColor(rgb: 0xffffff), barNegative: UIColor(rgb: 0xffffff)),
             actionButtonsFillColor: PresentationThemeVariableColor(withWallpaper: serviceBackgroundColor, withoutWallpaper: UIColor(rgb: 0x596e89, alpha: 0.35)),
             actionButtonsStrokeColor: PresentationThemeVariableColor(color: .clear),
             actionButtonsTextColor: PresentationThemeVariableColor(color: UIColor(rgb: 0xffffff)),
@@ -858,7 +864,7 @@ public func makeDefaultDayPresentationTheme(extendingThemeReference: Presentatio
                 )
             ),
             primaryTextColor: UIColor(rgb: 0xffffff),
-            secondaryTextColor: UIColor(rgb: 0xffffff, alpha: 0.65),
+            secondaryTextColor: UIColor(rgb: 0xffffff, alpha: 0.8),
             linkTextColor: UIColor(rgb: 0xffffff),
             linkHighlightColor: UIColor(rgb: 0xffffff, alpha: 0.3),
             scamColor: UIColor(rgb: 0xffffff),
@@ -869,12 +875,12 @@ public func makeDefaultDayPresentationTheme(extendingThemeReference: Presentatio
             mediaActiveControlColor: UIColor(rgb: 0xffffff),
             mediaInactiveControlColor: UIColor(rgb: 0xffffff, alpha: 0.65),
             mediaControlInnerBackgroundColor: .clear,
-            pendingActivityColor: UIColor(rgb: 0xffffff, alpha: 0.65),
+            pendingActivityColor: UIColor(rgb: 0xffffff, alpha: 0.8),
             fileTitleColor: UIColor(rgb: 0xffffff),
-            fileDescriptionColor: UIColor(rgb: 0xffffff, alpha: 0.65),
-            fileDurationColor: UIColor(rgb: 0xffffff, alpha: 0.65),
+            fileDescriptionColor: UIColor(rgb: 0xffffff, alpha: 0.8),
+            fileDurationColor: UIColor(rgb: 0xffffff, alpha: 0.8),
             mediaPlaceholderColor: UIColor(rgb: 0x0077d9),
-            polls: PresentationThemeChatBubblePolls(radioButton: UIColor(rgb: 0xffffff, alpha: 0.65), radioProgress: UIColor(rgb: 0xffffff), highlight: UIColor(rgb: 0xffffff, alpha: 0.12), separator: UIColor(rgb: 0xffffff, alpha: 0.65), bar: UIColor(rgb: 0xffffff), barIconForeground: .clear, barPositive: UIColor(rgb: 0xffffff), barNegative: UIColor(rgb: 0xffffff)),
+            polls: PresentationThemeChatBubblePolls(radioButton: UIColor(rgb: 0xffffff, alpha: 0.8), radioProgress: UIColor(rgb: 0xffffff), highlight: UIColor(rgb: 0xffffff, alpha: 0.12), separator: UIColor(rgb: 0xffffff, alpha: 0.8), bar: UIColor(rgb: 0xffffff), barIconForeground: .clear, barPositive: UIColor(rgb: 0xffffff), barNegative: UIColor(rgb: 0xffffff)),
             actionButtonsFillColor: PresentationThemeVariableColor(withWallpaper: serviceBackgroundColor, withoutWallpaper: UIColor(rgb: 0xffffff, alpha: 0.8)),
             actionButtonsStrokeColor: PresentationThemeVariableColor(withWallpaper: .clear, withoutWallpaper: defaultDayAccentColor),
             actionButtonsTextColor: PresentationThemeVariableColor(withWallpaper: UIColor(rgb: 0xffffff), withoutWallpaper: defaultDayAccentColor),

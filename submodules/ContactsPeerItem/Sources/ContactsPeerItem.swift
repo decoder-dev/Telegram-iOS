@@ -821,9 +821,9 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
             var leftInset: CGFloat = 16.0 + avatarDiameter + 12.0 + params.leftInset + higCardInset
             var rightInset: CGFloat = 10.0 + params.rightInset + higCardInset
             
-            if case .thread = item.peer {
-                leftInset -= 13.0
-            }
+            // Thread rows keep the same left column as peer rows: the 32 pt topic glyph is
+            // centred in the 44 pt avatar frame. Shrinking leftInset by 13 pulled the whole
+            // column (and the icon) left of neighbouring Contacts rows.
             
             let updatedSelectionNode: CheckNode?
             var isSelected = false
@@ -1540,7 +1540,7 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
                                     environment: {},
                                     containerSize: CGSize(width: 32.0, height: 32.0)
                                 )
-                                transition.updateFrame(view: avatarIconView, frame: CGRect(origin: CGPoint(x: revealOffset + leftInset - 43.0, y: floor((nodeLayout.contentSize.height - iconSize.height) / 2.0)), size: iconSize))
+                                transition.updateFrame(view: avatarIconView, frame: CGRect(origin: CGPoint(x: avatarFrame.minX + floor((avatarFrame.width - iconSize.width) / 2.0), y: floor((nodeLayout.contentSize.height - iconSize.height) / 2.0)), size: iconSize))
 
                                 strongSelf.avatarNodeContainer.isHidden = true
                             } else if let avatarIconView = strongSelf.avatarIconView {
@@ -2013,7 +2013,9 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
                             }
                             
                             let separatorHeight = UIScreenPixel
-                            let separatorRightInset: CGFloat = item.systemStyle == .glass ? 16.0 : 0.0
+                            // Trailing edge, not inset — matches the chat list. iOS tables inset row separators
+                            // on the leading side only; a gap at both ends reads as an unfinished line.
+                            let separatorRightInset: CGFloat = 0.0
                             
                             strongSelf.maskNode.image = hasCorners ? PresentationResourcesItemList.cornersImage(item.presentationData.theme, top: hasTopCorners, bottom: hasBottomCorners, glass: item.systemStyle == .glass) : nil
                             

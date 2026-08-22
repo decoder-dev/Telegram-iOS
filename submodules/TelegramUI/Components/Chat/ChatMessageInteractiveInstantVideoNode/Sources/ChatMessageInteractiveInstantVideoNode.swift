@@ -2012,13 +2012,20 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
         
         animateToFile.waveformView?.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.2, delay: 0.1)
         
-        if let videoNode = self.videoNode, let targetNode = animateToFile.statusNode, let videoSnapshotView = videoNode.view.snapshotView(afterScreenUpdates: false) {
-            videoSnapshotView.frame = videoNode.bounds
-            videoNode.view.insertSubview(videoSnapshotView, at: 1)
-            videoSnapshotView.alpha = 0.0
-            videoSnapshotView.layer.animateAlpha(from: 1.0, to: 0.0, duration: duration, completion: { [weak videoSnapshotView] _ in
-                videoSnapshotView?.removeFromSuperview()
-            })
+        if let videoNode = self.videoNode, let targetNode = animateToFile.statusNode {
+            // The crossfade snapshot is a nicety, and `snapshotView(afterScreenUpdates:)` returns
+            // nil for a zero-sized or off-screen view. It used to gate this entire block, so a nil
+            // there also skipped the state transition below: `isHidden` and `canAttachContent`
+            // never flipped, leaving the node disagreeing with the layout it had already been
+            // animated into. Only the snapshot depends on the snapshot now.
+            if let videoSnapshotView = videoNode.view.snapshotView(afterScreenUpdates: false) {
+                videoSnapshotView.frame = videoNode.bounds
+                videoNode.view.insertSubview(videoSnapshotView, at: 1)
+                videoSnapshotView.alpha = 0.0
+                videoSnapshotView.layer.animateAlpha(from: 1.0, to: 0.0, duration: duration, completion: { [weak videoSnapshotView] _ in
+                    videoSnapshotView?.removeFromSuperview()
+                })
+            }
             
             let targetFrame = targetNode.view.convert(targetNode.bounds, to: self.view)
             animator.animatePosition(layer: videoNode.layer, from: videoNode.position, to: targetFrame.center, completion: { _ in

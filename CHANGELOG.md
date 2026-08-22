@@ -6,7 +6,196 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3904-pre] — 2026-08-22
+
+Pre-release: high-detail Телеграм icon family + custom **Patriot** alternate icon.
+
+### Added
+- **PatriotPlaneIcon:** 21st alternate app icon — cartoon soldier in tactical armor launching a paper plane; Russian flag backdrop; sleeve chevron (tricolor + **РФ**); localized label «Патриот» / Patriot in Appearance.
+
 ### Changed
+- **App icons:** procedural generator upgrade — multi-stop gradient disc, metallic ring, layered plane (shadow/fold/wing/crease), supersampling; all **20** standard alternates + default assets regenerated.
+
+## [v12.9.2-3903-pre] — 2026-08-22
+
+Pre-release: WEB proxy hardening (async sidecar, fail-closed, no catalog); proxy UI polish; crash fixes.
+
+### Added
+- **WEB proxy:** async sidecar bootstrap (no 45s UI/network thread block); automatic network re-apply when sidecar becomes ready or fails at runtime.
+
+### Changed
+- **WEB proxy:** removed catalog/lists — masking sites are added manually (Add Proxy menu or `tg://webproxy` link).
+- **WEB proxy:** localized labels via `SocksProxySetup.ProxyWeb` / `MaskingSite`; WEB list rows hide `:443`; preview sheet skips ping row for WEB.
+- **Proxy list:** single “Add Proxy” action (SOCKS5 / MTProxy / WEB in action sheet).
+
+### Fixed
+- **WEB proxy:** fail-closed when sidecar fails on first enable; `stop()`/`start()` race; exhaustive `.webProxy` URL switches.
+- **Calls list:** conference declined calls show missed icon.
+- **Bag:** mutation-during-enumeration crash in `Bag.enumerateItems` (NSBag/SBag/MTBag/DeviceProximityBag).
+- **Settings:** Proxy row always visible even with no servers configured.
+
+## [v12.9.2-3902-pre] — 2026-08-22
+
+Pre-release: WEB proxy (tproxy-server) with masking-site picker; calls list icons; crash fixes.
+
+### Added
+- **WEB proxy:** tproxy-server HTTPS carrier + loopback sidecar; `tg://webproxy?server=…&secret=…` links; masking-site catalog; separate Add SOCKS5 / MTProxy / WEB actions in proxy settings.
+
+### Changed
+- **Proxy auto-fetch:** stays **MTProxy-only**; WEB and SOCKS are manual; auto-rotate skips WEB and auto-pulled servers.
+
+### Fixed
+- **MTContext:** mutation-during-enumeration crash in listener broadcasts.
+- **Calls:** UB/heap overflow in video-clone sink (nil `cloneRenderer`) and odd-length call-tone buffer.
+- **Calls list:** incoming and missed rows now show directional type icons (mirrored outgoing PDFs; missed tinted destructive red).
+- **WEB proxy:** release build + fail-closed sidecar configure on startup failure.
+
+## [v12.9.2-3901] — 2026-08-21
+
+Release: 3900 + AppDelegate `icons` `let` (same unused-var under `-c opt`).
+
+## [v12.9.2-3900] — 2026-08-21
+
+Release: same as 3899 + SettingsUI build fix (`appIcons` `let`).
+
+## [v12.9.2-3899] — 2026-08-21
+
+Release: **Телеграм** — premium icons, photo-send stability, crash fixes.
+
+### Changed
+- **Display name:** home screen → **Телеграм**.
+- **App icons:** full custom premium gallery (**20** icons) — Blue/Classic/Filled/Black/White/New1–2 plus Premium Gold, Turbo, Black, Night, Rose, Emerald, Sunset, Ice, Carbon, Royal, Aurora. All unlocked in Appearance.
+
+### Fixed
+- **Photo send jetsam/OOM:** encode no longer loads `PHImageManagerMaximumSize`; Max≤1920; thermal shed to 1280; workers 3→2; `proactiveSaveMedia` off by default (+ migration).
+- **Camera photo strip:** `Invalid batch updates` crash — reload when model/view counts diverge.
+- **HLS player:** optional chaining on remaining `hlsPlayer_instances` JS call sites (seek/load/rate/level).
+- **Modal present:** `presentWithContext:` ignores nil generator (avatar menu after dealloc).
+
+## [v12.9.2-3898-pre] — 2026-08-21
+
+Pre-release: full premium Телеграм icon gallery (20 icons).
+
+### Changed
+- **App icons:** every alternate icon restyled as premium (gradient disc + metal ring); primary Icon Composer adds a light ring.
+- **Premium gallery:** +8 variants — Night, Rose, Emerald, Sunset, Ice, Carbon, Royal, Aurora (11 Premium* total).
+- **Appearance:** all 20 icons listed with `isPremium`; no longer hidden when server Premium is disabled.
+
+## [v12.9.2-3897-pre] — 2026-08-21
+
+Pre-release: Russian **Телеграм** rebrand + full custom icon set (incl. Premium).
+
+### Changed
+- **Display name:** home screen / share → `Телеграм` (BUILD, xcconfigs, ar/ko overrides).
+- **App icons:** all alternate + default + Icon Composer assets replaced with a custom paper-plane family (Blue / Classic / Filled / Black / White / New1–2).
+- **Premium icons:** custom Gold, Turbo (pink→violet + gold plane), Premium Black (gold plane + ring); unlocked in Appearance for everyone (WhiteFilled no longer internal-only).
+
+## [v12.9.2-3896-pre] — 2026-08-21
+
+Pre-release: fix photo-send jetsam / heat.
+
+### Fixed
+- **Photo send OOM:** outgoing library encode no longer requests `PHImageManagerMaximumSize` (full-sensor RGBA, often 40–100+ MB) before downscale — asks Photos for the encode target size instead; worker pool 3→2; Max quality capped at 1920; thermal/LPM sheds to 1280.
+- **Heat (Message Saving):** `proactiveSaveMedia` defaults off; one-shot migration turns it off for existing installs that inherited the old default-on.
+- **Crash hardening:** remove force-unwrap on Lanczos filter and `image.cgImage` in outgoing media thumbnail prep.
+
+## [v12.9.2-3895-pre] — 2026-08-21
+
+Pre-release: brutal ZalupaGram icon.
+
+### Changed
+- **App icon:** heavier slab **Z**, near-black disc, blood-red cut slash (Icon Composer Mark + Slash layers; PNG sets refreshed).
+
+## [v12.9.2-3894-pre] — 2026-08-21
+
+Pre-release: rebrand to **ZalupaGram** + new app icon.
+
+### Changed
+- **Display name:** home-screen / share extension name is `ZalupaGram` (`CFBundleDisplayName` / `CFBundleName`, App Store + Fork xcconfigs, ar/ko InfoPlist overrides).
+- **App icon:** paper-plane mark replaced with a bold white **Z** monogram on a magenta→violet circle (`Telegram.icon` Mark.svg + BlueIcon / DefaultAppIcon PNG sets).
+
+## [v12.9.2-3893-pre] — 2026-08-21
+
+Pre-release: HLS seek crash fix; Save Archive for critical logs.
+
+### Fixed
+- **HLS player:** seek-after-teardown JS exception (`playerNotifySeekedOnNextStatusUpdate` on destroyed instance) — optional chaining on the deferred `onSeeked` callback.
+
+### Added
+- **Debug → Send Critical Logs:** «Save Archive (Zip)» / «Сохранить архив (Zip)» — zip + system share sheet.
+
+## [v12.9.2-3892-pre] — 2026-08-21
+
+Pre-release: Russian Developer Mode / Debug menus; fix Message Saving localisation build break.
+
+### Fixed
+- **Build:** `MessageSavingHistoryController` localisation after `ForkPresentationLanguage` (was referencing missing `translations`).
+- **Debug / Developer Mode:** all menu titles and action sheets follow app language (RU/EN) via `DebugLocalizedString`.
+
+## [v12.9.2-3891-pre] — 2026-08-21
+
+Pre-release: performance/folder/Ghost Mode follow-ups; commit history authored as decoder-dev (Claude trailers stripped).
+
+### Fixed
+- **Chat open:** drop the 250ms blocked-peers debounce on revision 0 so first history paint is not delayed.
+- **Folders:** animated switch path; avoid stacked lists on tab tap; undo leftover pagination/scroll sync from earlier duplication attempts.
+- **Regex filters:** long messages no longer silently disable every `<type>` filter.
+- **Ghost Mode:** no longer mutes you in voice chats; archive Face ID unlock clears cooldown.
+- **i18n:** fork strings follow app language, not device language.
+- **Stability:** CDN key length + snapshot-gated state; dual-camera round-video races; playlist lazy vars across queues; launch breadcrumbs for crash diagnosis.
+
+### Added
+- **Developer Mode** Settings row and screen.
+
+## [v12.9.2-3890-pre] — 2026-08-20
+
+Pre-release: close remaining idealism regressions (composer morph/assets, themes, lists).
+
+### Fixed
+- **Build:** `ChatListNode` filter map type leftover after folders staleness drop; unused `strongSelf` after guard drop (`#no-usage` under release).
+- **Composer:** `sendOccupiesActionSlot` matches keepSend/slowmode/search; paid-stars width reserved early; tooltip respects mic `isHidden`; scheduled send uses icon (not filled disc) on blue well; mic↔send morph scale+alpha both `0.18 easeInOut`; slot hit-gating; pointer circles 40pt; send/apply/schedule icons + stretchable disc on 40pt canvas.
+- **Night/Day base themes:** outgoing secondary `white@0.8` on default path; Night chrome separators `@0.8`; outgoing media well `.clear`; Night waveform inactive `@0.65`.
+- **Calls:** avatar 44 pt; **Contacts:** thread rows keep shared left column.
+- **Media bubbles:** rename `.emptyWallpaper` → `.whenNoHeader` (header-only rule unchanged).
+
+## [v12.9.2-3889-pre] — 2026-08-20
+
+Pre-release: composer measure/wrap fix, full-bleed separators, media bubble rule, password fields.
+
+### Fixed
+- **Composer:** высота поля считается с тем же right inset, что и layout (текст и рост панели снова вместе); `updateTextHeight` / `updateLayout` — одна формула ширины; business-link не резервирует пустой attach-слот.
+- **Folders:** selection pill index bound к `selectionFrames`.
+- **Lists:** separators в chat/Calls/Contacts до правого края.
+- **Night:** cloud-password / free input fields снова `#1C1C1E` (не чёрное на чёрном); placeholder `#636366`.
+
+### Changed
+- **Media bubbles:** рамка вокруг фото не зависит от wallpaper — только если нужен header (reply/author); иначе floating date.
+
+## [v12.9.2-3888-pre] — 2026-08-20
+
+Pre-release: Messages composer + follow-up polish (Calls column, contrast, icons).
+
+### Fixed
+- **Composer:** send снаружи капсулы (`maxX + 6`); same-slot mic↔send morph; слот через `mediaActionButtonsSlotFrame`; z-order только при инверсии; `isHidden` mic двусторонний; правый слот резервируется всегда (в т.ч. story reply / `.empty`).
+- **Calls:** одна колонка аватаров — общий слот 22pt.
+- **Icons:** `Call/Star` в rating HUD; video/slo-mo/timelapse badges через SF Symbols.
+
+### Changed
+- **Composer (Messages):** Plus слева вместо скрепки; Telegram long-press / video note / bots / slowmode / paid send сохранены.
+- **Outgoing on #007AFF:** secondary `white@0.8`; waveform inactive отдельно; Night hairlines `@0.8`; placeholder Night `#636366`.
+
+## [v12.9.2-3887-pre] — 2026-08-20
+
+Pre-release: idealism — no overlaps, one accent, composer 40pt.
+
+### Fixed
+- **Calls:** исходящая иконка и voice-chat индикатор больше не залезают под 52pt аватар (резерв слота в `leftInset`).
+- **Contacts:** иконка треда центрируется на `avatarFrame` (убран magic `-43`).
+- **Composer:** капсула `2/2` → 40pt вровень с кругами attach/mic; `minimalHeight` из тех же insets.
+
+### Changed
+- **Day accent / folder pill:** `#3478F6` → `#007AFF` (один системный синий с bubble).
+- **Night:** входящие ссылки/акценты и chat-list checkmarks `#007AFF`; elevated `#313131` → `#2C2C2E`.
 - **Night palette cleanup (P0–P3):** surfaces `#000` / `#1C1C1E` / `#2C2C2E`; accent и bubble один `#007AFF`; secondary gray `#8E8E93`; destructive `#FF3B30`. Убраны legacy `#0F0F0F` / `#141414` / `#1C1C1D` / `#1F1F1F` / `#3478F6` / `#EB5545`.
 
 ## [v12.9.2-3881-pre] — 2026-08-19

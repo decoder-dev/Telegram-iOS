@@ -810,9 +810,13 @@ private final class FetchImpl {
                         } else {
                             var partIv = cdnData.encryptionIv
                             let partIvCount = partIv.count
-                            // A CDN-supplied IV shorter than 4 bytes would make the memcpy
-                            // below write out of bounds (partIvCount - 4 going negative).
-                            guard partIvCount >= 4 else {
+                            // `MTAesCtrDecrypt` hands both buffers straight to `MTAesCtr` with a hardcoded
+                            // `keyLength:32`, and the initializer reads a full AES block from the IV.
+                            // Neither field is validated anywhere upstream of here and both come from
+                            // the CDN redirect, so a short one is an out-of-bounds read inside
+                            // MtProtoKit's C layer. The old `>= 4` guard covered only the memcpy below;
+                            // an IV of 4 to 15 bytes passed it and still under-ran the block read.
+                            guard partIvCount == 16, cdnData.encryptionKey.count == 32 else {
                                 return .failure
                             }
                             partIv.withUnsafeMutableBytes { rawBytes -> Void in

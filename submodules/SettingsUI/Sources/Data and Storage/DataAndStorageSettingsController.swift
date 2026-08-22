@@ -649,13 +649,15 @@ private func dataAndStorageControllerEntries(context: AccountContext, state: Dat
     let proxyValue: String
     if let proxySettings = data.proxySettings, proxySettings.enabled {
         if proxySettings.autoFetchPublicMtProxy {
-            proxyValue = Locale.preferredLanguages.first?.hasPrefix("ru") == true ? "Авто" : "Auto"
+            proxyValue = ForkPresentationLanguage.prefersRussianStrings ? "Авто" : "Auto"
         } else if let activeServer = proxySettings.activeServer {
             switch activeServer.connection {
                 case .socks5:
                     proxyValue = presentationData.strings.ChatSettings_ConnectionType_UseSocks5
                 case .mtp:
                     proxyValue = presentationData.strings.SocksProxySetup_ProxyTelegram
+                case .web:
+                    proxyValue = presentationData.strings.SocksProxySetup_ProxyWeb
             }
         } else {
             proxyValue = presentationData.strings.GroupInfo_SharedMediaNone

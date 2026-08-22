@@ -1233,7 +1233,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
             messageId: message.id.id,
             namespace: message.id.namespace
            ) {
-            actions.append(.action(ContextMenuActionItem(text: "Edit History", icon: { theme in
+            actions.append(.action(ContextMenuActionItem(text: forkEditHistoryMenuTitle(chatPresentationInterfaceState.strings), icon: { theme in
                 return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Edit"), color: theme.actionSheet.primaryTextColor)
             }, action: { [weak controllerInteraction] c, _ in
                 c?.dismiss(result: .dismissWithoutContent, completion: nil)
@@ -1951,7 +1951,17 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
         }
 
         let extras = context.sharedContext.immediateForkExtrasSettings
-        let extrasMenuIsRussian = (Locale.preferredLanguages.first ?? "").hasPrefix("ru")
+        // The app's language, not the device's. Telegram carries its own language setting
+        // independent of iOS, so reading Locale.preferredLanguages gave English menu entries in a
+        // Russian app whenever the two disagreed. Same source and same language set the fork's
+        // other custom titles use.
+        let extrasMenuIsRussian: Bool
+        switch chatPresentationInterfaceState.strings.primaryComponent.languageCode {
+        case "ru", "uk", "be":
+            extrasMenuIsRussian = true
+        default:
+            extrasMenuIsRussian = false
+        }
         if extras.saveToCloudMenu, message.id.peerId != context.account.peerId, message.id.namespace == Namespaces.Message.Cloud, !isCopyProtected || ForkAyuForwardSettings.enabled {
             let saveTitle = extrasMenuIsRussian ? "В Избранное" : "Save to Saved Messages"
             actions.append(.action(ContextMenuActionItem(text: saveTitle, icon: { theme in

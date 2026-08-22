@@ -213,13 +213,18 @@ public class UnauthorizedAccount {
         
         self.stateManager.reset()
         self.managedDisposables.add(managedAutomaticMtProxy(accountManager: accountManager, network: network).start())
+        let latestProxySettings = Atomic<ProxySettings>(value: .defaultSettings)
         self.managedDisposables.add((accountManager.sharedData(keys: [SharedDataKeys.proxySettings])
         |> map { sharedData -> ProxySettings in
             return sharedData.entries[SharedDataKeys.proxySettings]?.get(ProxySettings.self) ?? .defaultSettings
         }
         |> distinctUntilChanged).start(next: { settings in
+            let _ = latestProxySettings.swap(settings)
             applySharedProxySettingsToNetwork(settings: settings, network: network)
         }))
+        registerWebProxySidecarReapply(network: network, currentSettings: {
+            latestProxySettings.with { $0 }
+        })
     }
     
     deinit {
@@ -1498,13 +1503,18 @@ public class Account {
                 strongSelf._importantTasksRunning.set(value)
             }
         }))
+        let latestProxySettings = Atomic<ProxySettings>(value: .defaultSettings)
         self.managedOperationsDisposable.add((accountManager.sharedData(keys: [SharedDataKeys.proxySettings])
         |> map { sharedData -> ProxySettings in
             return sharedData.entries[SharedDataKeys.proxySettings]?.get(ProxySettings.self) ?? .defaultSettings
         }
         |> distinctUntilChanged).start(next: { settings in
+            let _ = latestProxySettings.swap(settings)
             applySharedProxySettingsToNetwork(settings: settings, network: network)
         }))
+        registerWebProxySidecarReapply(network: network, currentSettings: {
+            latestProxySettings.with { $0 }
+        })
         
         if !supplementary {
             self.managedOperationsDisposable.add(managedProxyFailover(accountManager: accountManager, network: network).start())

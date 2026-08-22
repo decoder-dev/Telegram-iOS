@@ -1935,7 +1935,7 @@ public class AttachmentTextInputPanelNode: ASDisplayNode, TGCaptionPanelView, AS
                     self.actionButtons.setImage(PresentationResourcesChat.chatInputPanelApplyIconImage(interfaceState.theme))
                 } else {
                     if case .scheduledMessages = interfaceState.subject {
-                        self.actionButtons.setImage(PresentationResourcesChat.chatInputPanelScheduleButtonImage(interfaceState.theme))
+                        self.actionButtons.setImage(PresentationResourcesChat.chatInputPanelScheduleIconImage(interfaceState.theme))
                     } else {
                         self.actionButtons.setImage(PresentationResourcesChat.chatInputPanelSendIconImage(interfaceState.theme))
                     }

@@ -1,0 +1,43 @@
+import Foundation
+import SwiftSignalKit
+
+/// The language the app is actually presenting in.
+///
+/// The fork carries several of its own string tables — the Archive lock, the extras settings
+/// screen, the saved-messages history screen, a few menu entries — because those strings have no
+/// entry in the localisation catalogue. Every one of them picked Russian or English by reading
+/// `Locale.preferredLanguages`, which is the *device* language.
+///
+/// Telegram carries its own language setting, independent of iOS. So a user running iOS in English
+/// with Telegram set to Russian got the fork's screens in English among Russian ones, and the
+/// reverse for the opposite pairing. This holds the presentation language instead, pushed here
+/// from `SharedAccountContext` whenever the presentation data changes, the same way the fork's
+/// other cross-module values are pushed down.
+///
+/// Nil until the first push, which is why every reader still falls back to its old device-language
+/// lookup rather than assuming a value is present.
+public enum ForkPresentationLanguage {
+    private static let value = Atomic<String?>(value: nil)
+
+    /// Two-letter code of the app's current language, or nil before the first push.
+    public static var languageCode: String? {
+        get {
+            return self.value.with { $0 }
+        }
+        set {
+            let _ = self.value.swap(newValue.map { String($0.prefix(2)).lowercased() })
+        }
+    }
+
+    /// True when the app is presenting in a language that should get the fork's Russian strings.
+    /// Falls back to the device language while the override is still nil.
+    public static var prefersRussianStrings: Bool {
+        let code = self.languageCode ?? String((Locale.preferredLanguages.first ?? "en").prefix(2)).lowercased()
+        switch code {
+        case "ru", "uk", "be":
+            return true
+        default:
+            return false
+        }
+    }
+}

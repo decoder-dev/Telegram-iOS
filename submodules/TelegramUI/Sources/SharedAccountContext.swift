@@ -457,6 +457,10 @@ public final class SharedAccountContextImpl: SharedAccountContext {
                     }
                     return next
                 }
+                // Unconditional, not inside `stringsUpdated`: that flag compares against the
+                // value seeded from initialPresentationDataAndSettings, so the very first emission
+                // can match and skip, leaving the override nil for the rest of the session.
+                ForkPresentationLanguage.languageCode = next.strings.primaryComponent.languageCode
                 if stringsUpdated {
                     updateLegacyLocalization(strings: next.strings)
                 }
@@ -559,6 +563,22 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         }
         |> distinctUntilChanged
         |> deliverOnMainQueue).start(next: { [weak self] settings in
+            var settings = settings
+            // One-shot: older builds defaulted proactiveSaveMedia ON, which starts
+            // gallery fetches whenever media is opened — sustained heat under normal use.
+            // Flip it off once; the user can re-enable in Extras → Message Saving.
+            let migrationKey = "Fork.thermalSafety.proactiveSaveMediaOff.v1"
+            if !UserDefaults.standard.bool(forKey: migrationKey) {
+                UserDefaults.standard.set(true, forKey: migrationKey)
+                if settings.proactiveSaveMedia {
+                    settings.proactiveSaveMedia = false
+                    let _ = (updateForkExtrasSettingsInteractively(accountManager: accountManager) { current in
+                        var updated = current
+                        updated.proactiveSaveMedia = false
+                        return updated
+                    }).start()
+                }
+            }
             let _ = immediateForkExtrasSettingsValue.swap(settings)
             // Single owner of NSE projection (change-gated inside sync).
             ForkExtrasNotificationBridge.sync(settings)

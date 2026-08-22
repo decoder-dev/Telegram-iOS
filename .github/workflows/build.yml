@@ -239,11 +239,14 @@ jobs:
           fi
           PRE_BANNER=""
           TITLE="Telegram ${APP_VERSION} (${BUILD_NUMBER}) sideload"
-          RELEASE_FLAGS=()
+          # Do not expand an empty array under `set -u` — bash treats
+          # "${RELEASE_FLAGS[@]}" as unbound when the array has no elements
+          # (breaks non-*-pre / Latest releases).
+          RELEASE_EXTRA_ARGS=()
           if [[ "$TAG" == *-pre ]]; then
             PRE_BANNER="⚠️ **Pre-release** for device testing. Not marked Latest."
             TITLE="Telegram ${APP_VERSION} (${BUILD_NUMBER}) sideload pre-release"
-            RELEASE_FLAGS=(--prerelease --latest=false)
+            RELEASE_EXTRA_ARGS=(--prerelease --latest=false)
           fi
           NOTES="$(mktemp)"
           # Prefer the matching ## [TAG] section from CHANGELOG.md; else git log since previous tag.
@@ -301,12 +304,23 @@ jobs:
           EOF
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$IPA" --clobber
-            gh release edit "$TAG" --title "$TITLE" --notes-file "$NOTES" "${RELEASE_FLAGS[@]}"
+            if ((${#RELEASE_EXTRA_ARGS[@]})); then
+              gh release edit "$TAG" --title "$TITLE" --notes-file "$NOTES" "${RELEASE_EXTRA_ARGS[@]}"
+            else
+              gh release edit "$TAG" --title "$TITLE" --notes-file "$NOTES" --latest
+            fi
           else
-            gh release create "$TAG" "$IPA" \
-              --title "$TITLE" \
-              --notes-file "$NOTES" \
-              "${RELEASE_FLAGS[@]}"
+            if ((${#RELEASE_EXTRA_ARGS[@]})); then
+              gh release create "$TAG" "$IPA" \
+                --title "$TITLE" \
+                --notes-file "$NOTES" \
+                "${RELEASE_EXTRA_ARGS[@]}"
+            else
+              gh release create "$TAG" "$IPA" \
+                --title "$TITLE" \
+                --notes-file "$NOTES" \
+                --latest
+            fi
           fi
 
       - name: Upload sideload IPA artifact

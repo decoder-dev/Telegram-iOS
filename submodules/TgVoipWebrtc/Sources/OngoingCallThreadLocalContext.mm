@@ -93,7 +93,7 @@
 - (std::shared_ptr<tgcalls::CallAudioTone>)asTone {
     std::vector<int16_t> data;
     data.resize(_samples.length / 2);
-    memcpy(data.data(), _samples.bytes, _samples.length);
+    memcpy(data.data(), _samples.bytes, data.size() * sizeof(int16_t));
     
     return std::make_shared<tgcalls::CallAudioTone>(std::move(data), (int)_sampleRate, (int)_loopCount);
 }
@@ -2970,7 +2970,10 @@ useReferenceImpl:(bool)useReferenceImpl {
                 }
                 
                 std::shared_ptr<rtc::VideoSinkInterface<webrtc::VideoFrame>> sink = [remoteRenderer getSink];
-                std::shared_ptr<rtc::VideoSinkInterface<webrtc::VideoFrame>> cloneSink = [cloneRenderer getSink];
+                std::shared_ptr<rtc::VideoSinkInterface<webrtc::VideoFrame>> cloneSink;
+                if (cloneRenderer) {
+                    cloneSink = [cloneRenderer getSink];
+                }
                 
                 [queue dispatch:^{
                     __strong GroupCallThreadLocalContext *strongSelf = weakSelf;

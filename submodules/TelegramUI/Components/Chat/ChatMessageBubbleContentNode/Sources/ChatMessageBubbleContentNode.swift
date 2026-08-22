@@ -15,7 +15,9 @@ import SwiftSignalKit
 
 public enum ChatMessageBubbleContentBackgroundHiding {
     case never
-    case emptyWallpaper
+    /// Hide the bubble behind media/map when there is no header to hold (reply/author).
+    /// Name is historical (`emptyWallpaper`); wallpaper no longer participates in the decision.
+    case whenNoHeader
     case always
 }
 

@@ -462,8 +462,24 @@ public func legacyAssetPickerEnqueueMessages(
                                     let maxSize: CGSize
                                     let jpegQuality: Float
                                     let extrasQuality = ForkExtrasHotFlags.outgoingPhotoQuality
-                                    if item.forceHd || extrasQuality >= 2 {
-                                        maxSize = CGSize(width: 2560.0, height: 2560.0)
+                                    let thermallyStressed: Bool = {
+                                        if ProcessInfo.processInfo.isLowPowerModeEnabled {
+                                            return true
+                                        }
+                                        switch ProcessInfo.processInfo.thermalState {
+                                        case .serious, .critical:
+                                            return true
+                                        default:
+                                            return false
+                                        }
+                                    }()
+                                    // Match FetchPhotoLibraryImageResource: Max capped at 1920;
+                                    // under thermal stress fall back to the default 1280 encode.
+                                    if thermallyStressed {
+                                        maxSize = CGSize(width: 1280.0, height: 1280.0)
+                                        jpegQuality = 0.6
+                                    } else if item.forceHd || extrasQuality >= 2 {
+                                        maxSize = CGSize(width: 1920.0, height: 1920.0)
                                         jpegQuality = extrasQuality >= 2 || item.forceHd ? 0.85 : 0.75
                                     } else if extrasQuality >= 1 {
                                         maxSize = CGSize(width: 1920.0, height: 1920.0)

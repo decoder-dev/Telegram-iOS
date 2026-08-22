@@ -147,6 +147,16 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
     private var didSetupContentOffset = false
     private var isSettingUpContentOffset = false
     
+    /// Register `itemNode` as *the* node for `id`, evicting any other node already registered for
+    /// it. Overwriting `self.itemNodes[id]` on its own is not enough: the displaced node keeps its
+    /// supernode, and the removal sweep in `update(layout:)` only ever walks `self.itemNodes`.
+    private func installItemNode(id: ChatListFilterTabEntryId, itemNode: ChatListContainerItemNode) {
+        if let existingItemNode = self.itemNodes[id], existingItemNode !== itemNode {
+            existingItemNode.removeFromSupernode()
+        }
+        self.itemNodes[id] = itemNode
+    }
+    
     private func applyItemNodeAsCurrent(id: ChatListFilterTabEntryId, itemNode: ChatListContainerItemNode) {
         if let previousItemNode = self.currentItemNodeValue {
             previousItemNode.listNode.activateSearch = nil
@@ -609,6 +619,17 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
                 for (id, itemNode) in self.itemNodes {
                     if id != selectedId {
                         itemNode.emptyNode?.restartAnimation()
+                        
+                        // Align the tab we may be about to swipe into with the scroll offset the
+                        // navigation bar is currently showing. `switchToFilter` already does this
+                        // for the tap path; without it here, tapping and swiping to the same tab
+                        // land on different scroll positions and the nav bar's collapse state does
+                        // not match the list underneath it.
+                        if let controller = self.controller, let chatListDisplayNode = controller.displayNode as? ChatListControllerNode, let navigationBarComponentView = chatListDisplayNode.navigationBarView.view as? ChatListNavigationBar.View, let clippedScrollOffset = navigationBarComponentView.clippedScrollOffset {
+                            let scrollOffset = clippedScrollOffset
+                            
+                            let _ = itemNode.listNode.scrollToOffsetFromTop(scrollOffset, animated: false)
+                        }
                     }
                 }
                 
@@ -837,8 +858,12 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
         if self.availableFilters == availableFilters && self.filtersLimit == limit && !selectedMissing {
             return
         }
-        if self.pendingItemNode != nil {
-            self.pendingItemNode?.2.dispose()
+        // Only abandon an in-flight switch when its target is gone. Cancelling unconditionally
+        // strands `currentItemNodeValue` on a node that will never be installed (the `!animated`
+        // path makes it current before its `ready` fires), and the next layout pass then builds a
+        // replacement — leaving the abandoned one on screen.
+        if let pendingItemNode = self.pendingItemNode, !availableFilters.contains(where: { $0.id == pendingItemNode.0 }) {
+            pendingItemNode.2.dispose()
             self.pendingItemNode = nil
         }
         let applyLayout: () -> Void = { [weak self] in
@@ -862,7 +887,11 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
         }
     }
     
-    public func switchToAvailableFilter(preferring id: ChatListFilterTabEntryId = .all, animated: Bool = false, completion: (() -> Void)? = nil) {
+    /// `switchToFilter` that first resolves `id` against the filters actually on screen, so a
+    /// caller asking for `.all` still lands somewhere when All Chats is hidden. `animated` mirrors
+    /// `switchToFilter`'s own default: upstream reaches every one of these call sites through
+    /// `switchToFilter(id:)` with animation on.
+    public func switchToAvailableFilter(preferring id: ChatListFilterTabEntryId = .all, animated: Bool = true, completion: (() -> Void)? = nil) {
         let target: ChatListFilterTabEntryId
         if self.availableFilters.contains(where: { $0.id == id }) {
             target = id
@@ -927,6 +956,13 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
                 self.pendingItemNode = (id, itemNode, disposable)
                 
                 if !animated {
+                    // Register the node before making it current. `applyItemNodeAsCurrent` alone
+                    // leaves `currentItemNodeValue` pointing at a node `itemNodes` does not know
+                    // about, and any layout pass landing in that window builds a *second* node for
+                    // the same filter (`update(layout:)` keys off `itemNodes[id] == nil`). The
+                    // window is real, not a single frame: `autoSetReady` only marks the node ready
+                    // once its first history transition arrives from Postbox.
+                    self.installItemNode(id: id, itemNode: itemNode)
                     self.selectedId = id
                     self.applyItemNodeAsCurrent(id: id, itemNode: itemNode)
                     self.currentItemFilterUpdated?(self.currentItemFilter, self.transitionFraction, .immediate, false)
@@ -950,7 +986,7 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
                     }
                     
                     guard let (layout, navigationBarHeight, visualNavigationHeight, originalNavigationHeight, cleanNavigationBarHeight, insets, isReorderingFilters, isEditing, inlineNavigationLocation, inlineNavigationTransitionFraction, storiesInset) = strongSelf.validLayout else {
-                        strongSelf.itemNodes[id] = itemNode
+                        strongSelf.installItemNode(id: id, itemNode: itemNode)
                         strongSelf.addSubnode(itemNode)
                         
                         strongSelf.selectedId = id
@@ -991,7 +1027,7 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
                             }
                         }
                         
-                        strongSelf.itemNodes[id] = itemNode
+                        strongSelf.installItemNode(id: id, itemNode: itemNode)
                         strongSelf.addSubnode(itemNode)
                         
                         let itemFrame = CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: layout.size)
@@ -1066,7 +1102,11 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
                 let id = self.availableFilters[i].id
                 validNodeIds.append(id)
                 
-                if self.itemNodes[id] == nil && self.enableAdjacentFilterLoading && !self.disableItemNodeOperationsWhileAnimating {
+                // `pendingItemNode` is a node for `id` that is built but not yet installed. Building
+                // another one here would put two nodes on screen for one filter: the pending node
+                // wins the `itemNodes` entry when it lands, and the loser stays parented because
+                // `removeIds` below only walks `itemNodes`.
+                if self.itemNodes[id] == nil && self.pendingItemNode?.0 != id && self.enableAdjacentFilterLoading && !self.disableItemNodeOperationsWhileAnimating {
                     let itemNode = ChatListContainerItemNode(context: self.context, controller: self.controller, location: self.location, filter: self.availableFilters[i].filter, chatListMode: self.chatListMode, previewing: self.previewing, isInlineMode: self.isInlineMode, controlsHistoryPreload: self.controlsHistoryPreload, presentationData: self.presentationData, animationCache: self.animationCache, animationRenderer: self.animationRenderer, becameEmpty: { [weak self] filter in
                         self?.filterBecameEmpty(filter)
                     }, emptyAction: { [weak self] filter in

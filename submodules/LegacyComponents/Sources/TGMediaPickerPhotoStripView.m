@@ -120,8 +120,16 @@
 
 - (void)insertItemAtIndex:(NSInteger)index
 {
+    NSInteger currentCount = [_collectionView numberOfItemsInSection:0];
+    NSInteger expectedCount = [self collectionView:_collectionView numberOfItemsInSection:0];
+    if (expectedCount != currentCount + 1)
+    {
+        [self reloadData];
+        return;
+    }
+
     NSIndexPath *indexPath = [NSIndexPath indexPathForRow:index inSection:0];
-    
+
     [UIView performWithoutAnimation:^
     {
         [_collectionView performBatchUpdates:^
@@ -149,6 +157,14 @@
 
 - (void)deleteItemAtIndex:(NSInteger)index
 {
+    NSInteger currentCount = [_collectionView numberOfItemsInSection:0];
+    NSInteger expectedCount = [self collectionView:_collectionView numberOfItemsInSection:0];
+    if (expectedCount != currentCount - 1)
+    {
+        [self reloadData];
+        return;
+    }
+
     [_collectionView performBatchUpdates:^
     {
         [_collectionView deleteItemsAtIndexPaths:@[ [NSIndexPath indexPathForRow:index inSection:0] ]];

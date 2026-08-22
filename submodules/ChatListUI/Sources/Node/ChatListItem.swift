@@ -5519,7 +5519,11 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                         rightSeparatorInset = higCardInset
                     } else {
                         leftSeparatorInset = editingOffset + leftInset + rawContentRect.origin.x
-                        rightSeparatorInset = 16.0 + higCardInset
+                        // Trailing edge, not inset. Telegram insets row separators 16 pt on the right;
+                    // iOS tables — and Messages, which this fork follows — inset only on the leading
+                    // side and run the hairline to the trailing edge. A gap on both sides reads as an
+                    // unfinished line rather than a divider.
+                        rightSeparatorInset = higCardInset
                     }
                     
                     transition.updateFrame(node: strongSelf.separatorNode, frame: CGRect(origin: CGPoint(x: leftSeparatorInset, y: layoutOffset + itemHeight - separatorHeight), size: CGSize(width: params.width - leftSeparatorInset - rightSeparatorInset, height: separatorHeight)))

@@ -1108,8 +1108,9 @@ static void copyKeychainDictionaryKey(NSString * _Nonnull group, NSString * _Non
         if (publicKeys != nil) {
             _datacenterPublicKeysById[@(datacenterId)] = publicKeys;
             [_keychain setObject:_datacenterPublicKeysById forKey:@"datacenterPublicKeysById" group:@"ephemeral"];
-            
-            for (MTWeakContextChangeListener *value in _changeListeners) {
+
+            NSArray<MTWeakContextChangeListener *> *changeListeners = [[NSArray alloc] initWithArray:_changeListeners];
+            for (MTWeakContextChangeListener *value in changeListeners) {
                 id<MTContextChangeListener> listener = value.target;
                 if (listener) {
                     if ([listener respondsToSelector:@selector(contextDatacenterPublicKeysUpdated:datacenterId:publicKeys:)]) {
@@ -1124,7 +1125,8 @@ static void copyKeychainDictionaryKey(NSString * _Nonnull group, NSString * _Non
 - (void)publicKeysForDatacenterWithIdRequired:(NSInteger)datacenterId {
     [[MTContext contextQueue] dispatchOnQueue:^{
         if (_fetchPublicKeysActions[@(datacenterId)] == nil) {
-            for (MTWeakContextChangeListener *value in _changeListeners) {
+            NSArray<MTWeakContextChangeListener *> *changeListeners = [[NSArray alloc] initWithArray:_changeListeners];
+            for (MTWeakContextChangeListener *value in changeListeners) {
                 id<MTContextChangeListener> listener = value.target;
                 if (!listener) {
                     continue;
@@ -1241,7 +1243,8 @@ static void copyKeychainDictionaryKey(NSString * _Nonnull group, NSString * _Non
             MTDatacenterAddressSet *addressSet = [[MTDatacenterAddressSet alloc] initWithAddressList:addressList];
             MTSignal *discoverSignal = [MTDiscoverConnectionSignals discoverSchemeWithContext:self datacenterId:datacenterId addressList:addressSet.addressList media:media isProxy:isProxy];
             MTSignal *conditionSignal = [MTSignal single:@(true)];
-            for (MTWeakContextChangeListener *value in _changeListeners) {
+            NSArray<MTWeakContextChangeListener *> *changeListeners = [[NSArray alloc] initWithArray:_changeListeners];
+            for (MTWeakContextChangeListener *value in changeListeners) {
                 id<MTContextChangeListener> listener = value.target;
                 if (!listener) {
                     continue;

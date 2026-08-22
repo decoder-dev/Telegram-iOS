@@ -280,19 +280,21 @@ private final class ProxyServerPreviewSheetContent: CombinedComponent {
                         
             tableItems.append(.init(
                 id: "server",
-                title: strings.SocksProxySetup_Hostname,
+                title: component.server.connection.isWebProxy ? strings.SocksProxySetup_MaskingSite : strings.SocksProxySetup_Hostname,
                 component: AnyComponent(
                     MultilineTextComponent(text: .plain(NSAttributedString(string: component.server.host, font: tableFont, textColor: tableTextColor)))
                 )
             ))
             
-            tableItems.append(.init(
-                id: "port",
-                title: strings.SocksProxySetup_Port,
-                component: AnyComponent(
-                    MultilineTextComponent(text: .plain(NSAttributedString(string: "\(component.server.port)", font: tableFont, textColor: tableTextColor)))
-                )
-            ))
+            if !component.server.connection.isWebProxy {
+                tableItems.append(.init(
+                    id: "port",
+                    title: strings.SocksProxySetup_Port,
+                    component: AnyComponent(
+                        MultilineTextComponent(text: .plain(NSAttributedString(string: "\(component.server.port)", font: tableFont, textColor: tableTextColor)))
+                    )
+                ))
+            }
             
             switch component.server.connection {
             case let .socks5(username, password):
@@ -314,7 +316,7 @@ private final class ProxyServerPreviewSheetContent: CombinedComponent {
                         )
                     ))
                 }
-            case .mtp:
+            case .mtp, .web:
                 tableItems.append(.init(
                     id: "secret",
                     title: strings.SocksProxySetup_Secret,
@@ -324,6 +326,7 @@ private final class ProxyServerPreviewSheetContent: CombinedComponent {
                 ))
             }
             
+            if !component.server.connection.isWebProxy {
             var statusText = strings.SocksProxySetup_CheckStatus
             var statusColor = tableLinkColor
             var statusIsActive = true
@@ -358,6 +361,7 @@ private final class ProxyServerPreviewSheetContent: CombinedComponent {
                     )
                 )
             ))
+            }
             let table = table.update(
                 component: TableComponent(
                     theme: environment.theme,

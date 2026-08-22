@@ -108,6 +108,8 @@ public func openUserGeneratedUrl(
     } else if let parsedUrl = parseInternalUrl(sharedContext: context.sharedContext, context: context, query: url) {
         if case .proxy = parsedUrl {
             concealed = true
+        } else if case .webProxy = parsedUrl {
+            concealed = true
         }
     }
 

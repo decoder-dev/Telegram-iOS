@@ -244,12 +244,11 @@ private func messageSavingHistoryController(
 }
 
 private func messageSavingLocalizedString(key: String, en: String, ru: String) -> String {
-    let candidates = Locale.preferredLanguages + Bundle.main.preferredLocalizations
-    for candidate in candidates {
-        let code = String(candidate.prefix(2)).lowercased()
-        if code == "ru" {
-            return ru
-        }
+    // `key` kept for call-site readability / future catalogue lookup.
+    let _ = key
+    // App language first (Telegram's setting ≠ device language).
+    if ForkPresentationLanguage.prefersRussianStrings {
+        return ru
     }
     return en
 }

@@ -329,6 +329,15 @@ alternate_icon_folders = [
     "Premium",
     "PremiumBlack",
     "PremiumTurbo",
+    "PremiumNight",
+    "PremiumRose",
+    "PremiumEmerald",
+    "PremiumSunset",
+    "PremiumIce",
+    "PremiumCarbon",
+    "PremiumRoyal",
+    "PremiumAurora",
+    "PatriotPlaneIcon",
 ]
 
 composer_icon_folders = ["Telegram"]
@@ -629,7 +638,7 @@ plist_fragment(
     template =
     """
     <key>CFBundleDisplayName</key>
-    <string>Telegram</string>
+    <string>Телеграм</string>
     """
 )
 
@@ -1573,11 +1582,11 @@ plist_fragment(
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleDisplayName</key>
-    <string>Telegram</string>
+    <string>Телеграм</string>
     <key>CFBundleIdentifier</key>
     <string>{telegram_bundle_id}</string>
     <key>CFBundleName</key>
-    <string>Telegram</string>
+    <string>Телеграм</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleSignature</key>

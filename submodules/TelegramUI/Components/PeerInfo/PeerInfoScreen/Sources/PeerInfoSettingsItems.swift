@@ -3,6 +3,7 @@ import UIKit
 import Display
 import AccountContext
 import TelegramPresentationData
+import TelegramUIPreferences
 import TelegramCore
 import PhoneNumberFormat
 import ItemListUI
@@ -151,24 +152,24 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
             interaction.openSettings(.profile)
         }))
         
-        if !settings.proxySettings.servers.isEmpty || settings.proxySettings.autoFetchPublicMtProxy {
-            let proxyType: String
-            if settings.proxySettings.autoFetchPublicMtProxy, settings.proxySettings.enabled {
-                proxyType = Locale.preferredLanguages.first?.hasPrefix("ru") == true ? "Авто" : "Auto"
-            } else if settings.proxySettings.enabled, let activeServer = settings.proxySettings.activeServer {
-                switch activeServer.connection {
-                case .mtp:
-                    proxyType = presentationData.strings.SocksProxySetup_ProxyTelegram
-                case .socks5:
-                    proxyType = presentationData.strings.SocksProxySetup_ProxySocks5
-                }
-            } else {
-                proxyType = presentationData.strings.Settings_ProxyDisabled
+        let proxyType: String
+        if settings.proxySettings.autoFetchPublicMtProxy, settings.proxySettings.enabled {
+            proxyType = ForkPresentationLanguage.prefersRussianStrings ? "Авто" : "Auto"
+        } else if settings.proxySettings.enabled, let activeServer = settings.proxySettings.activeServer {
+            switch activeServer.connection {
+            case .mtp:
+                proxyType = presentationData.strings.SocksProxySetup_ProxyTelegram
+            case .socks5:
+                proxyType = presentationData.strings.SocksProxySetup_ProxySocks5
+            case .web:
+                proxyType = presentationData.strings.SocksProxySetup_ProxyWeb
             }
-            items[.proxy]!.append(PeerInfoScreenDisclosureItem(id: 0, label: .text(proxyType), text: presentationData.strings.Settings_Proxy, icon: PresentationResourcesSettings.proxy, action: {
-                interaction.openSettings(.proxy)
-            }))
+        } else {
+            proxyType = presentationData.strings.Settings_ProxyDisabled
         }
+        items[.proxy]!.append(PeerInfoScreenDisclosureItem(id: 0, label: .text(proxyType), text: presentationData.strings.Settings_Proxy, icon: PresentationResourcesSettings.proxy, action: {
+            interaction.openSettings(.proxy)
+        }))
     }
     
     var appIndex = 1000
@@ -257,6 +258,13 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
     let languageName = presentationData.strings.primaryComponent.localizedName
     items[.advanced]!.append(PeerInfoScreenDisclosureItem(id: 4, label: .text(languageName.isEmpty ? presentationData.strings.Localization_LanguageName : languageName), text: presentationData.strings.Settings_AppLanguage, icon: PresentationResourcesSettings.language, action: {
         interaction.openSettings(.language)
+    }))
+
+    // The debug screen. It has always existed but was reachable only through the
+    // `tg://settings/debug` deep link, which is not something anyone finds without being told it
+    // is there. Last row of the section, after the everyday settings.
+    items[.advanced]!.append(PeerInfoScreenDisclosureItem(id: 7, text: forkDeveloperModeSettingsTitle(presentationData.strings), icon: PresentationResourcesSettings.developerMode, action: {
+        interaction.openSettings(.debug)
     }))
     
     let premiumConfiguration = PremiumConfiguration.with(appConfiguration: context.currentAppConfiguration.with { $0 })

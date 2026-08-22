@@ -133,6 +133,18 @@ and the spec is explicit that a thermal claim needs evidence.
   Untouched deliberately — see `SWIFT_MIGRATION.md` for why guessing here is
   worse than doing nothing.
 
+## Follow-up (2026-08-21): photo-send jetsam
+
+**structural, fixed.** `fetchPhotoLibraryResource` always requested
+`PHImageManagerMaximumSize`, decoded the full sensor buffer on a 3-wide
+worker pool, then vImage-downscaled to 1280/1920/2560. A single 48 MP HEIC
+is tens of megabytes of RGBA; three concurrent sends jetsam the process —
+this matches the report of crashes when sending photos plus sustained heat
+from Message Saving's default-on `proactiveSaveMedia` gallery fetches.
+
+Changes: request the encode `size` from Photos; 2 workers; Max≤1920;
+thermal/LPM shed to 1280; `proactiveSaveMedia` default + migration off.
+
 ## Instrumentation: what to add to turn this into numbers
 
 The app currently has **two** `OSSignposter` instances in the whole tree
@@ -227,6 +239,119 @@ byte-accounting.
    store's own serial queue before calling it, wrapped in a `beginBackgroundTask` so the write
    still gets to finish even if iOS suspends the app before the async hop would otherwise run.
 
+## Latency pass (2026-08-21): the signal graph, not the work
+
+Every prior round of this document looked for *work being done* — encodes, file
+copies, syscalls under a lock. This round looked at a different axis: places
+where the fork changed the **shape of a signal graph** so that a screen waits on
+something it does not need. Work that is never done costs nothing; a screen that
+waits 250ms costs 250ms whether or not anyone is doing work during it.
+
+The baseline used throughout is `TelegramMessenger/Telegram-iOS` master, fetched
+as the `telegram-official` remote, so "upstream does X" below is a checked
+statement rather than a recollection.
+
+### 12. 250ms in front of the first history transition of every chat — **structural, fixed**
+
+`ChatHistoryListNode` composes the blocked-peers revision into the history
+pipeline so an open chat re-filters when the blocked list changes. The revision
+signal is debounced by 0.25s and flattened with `switchToLatest`, which is
+correct for its stated purpose: a 200-peer blocked-list fetch bumps the revision
+repeatedly, and each superseded delay is cancelled, so the history rebuilds once
+instead of twenty times.
+
+The debounce also applied to the promise's seed value. `ForkBlockedPeersFilter.updates`
+is a `ValuePromise<UInt64>(0)`; `ValuePromise.get()` delivers the current value
+to a new subscriber synchronously, and `delay` arms its timer *before*
+subscribing to the source. `combineLatest` produces nothing until both of its
+inputs have produced something. The result: opening any chat — with the feature
+off, with no blocked peers, on a cold or warm start — parked the first history
+transition behind a quarter-second timer whose entire purpose is to coalesce
+updates that had not happened.
+
+Revision 0 is now passed through undelayed. It means "no blocked-list update has
+happened in this process", so there is nothing to coalesce; every revision from
+a real update is >= 1 and still debounced.
+
+This is the largest single latency item found in any round of this document, and
+unlike most entries here its size *is* known — the delay is a literal in the
+source.
+
+### 13. Chat-list first paint gated on an AccountManager read — **not measured, not changed**
+
+`ChatListNode` applies the same fingerprint pattern to `chatListViewUpdate`,
+combining it with `forkExtrasSettings(accountManager:)`. There is no artificial
+delay on this one, but it does mean the chat list's first view update now waits
+for an `accountManager.sharedData` subscription to deliver, where upstream waits
+only on Postbox.
+
+Left alone deliberately. The account manager is already open and its shared-data
+view already resident by the time a chat list is built — the added wait should be
+a queue hop, not a disk read. The obvious "fix", seeding the pipeline from
+`immediateForkExtrasSettings`, would let the list paint with default settings and
+correct itself a frame later; for a user who has Hide Blocked Messages on, that
+is a flash of content the setting exists to hide. Not a trade worth making for an
+unmeasured sub-millisecond gain.
+
+### 14. Liquid Glass is not a fork cost — **ruled out**
+
+Worth recording because it is the intuitive suspect and it is wrong.
+`GlassBackgroundComponent`, `LensTransitionContainer`, `HorizontalTabsComponent`
+and `HeaderPanelContainerComponent` are byte-identical to upstream — `git diff
+telegram-official/master` reports no changes in any of them. Whatever the glass
+navigation costs, the fork neither added it nor made it worse, and tuning it is
+an upstream-behaviour change, not a regression fix.
+
+`ListView.swift` and `ListViewItemNode.swift` are likewise untouched: the
+per-frame scrolling engine is upstream's.
+
+### 15. Hot-flag design holds up — **checked, no change**
+
+The fork's own per-row and per-message reads were the thing most likely to have
+gone wrong, and they have not. Everything on a layout path reads
+`ForkExtrasHotFlags` — a struct of `Bool`/`Int32` with no reference-counted
+fields, behind one uncontended lock — rather than `immediateForkExtrasSettings`,
+which copies the whole 58-field settings struct including two `String`s and an
+array. The split is real and consistently observed:
+
+- `ChatListItem.swift:72`, `ChatListItem.swift:2386`, `ChatHistoryEntriesForView.swift:145`,
+  `StringForMessageTimestampStatus.swift:110`, `ChatMessageItemView.swift:39`,
+  `ChatMessage{,Animated}StickerItemNode` — all hot flags.
+- The full-settings copy appears only on interaction paths: context-menu build,
+  call initiation, profile screen, translate screen.
+
+Two full-settings reads sit slightly closer to a hot path than the rest —
+`ChatMessageInteractiveFileNode.swift:367` runs per voice/file message layout,
+and `ChatTextInputPanelNode.swift:5486` runs per typed character. Both are one
+uncontended lock plus three retains. Noted, not changed: the cost is real but
+too small to justify touching either path without a measurement.
+
+`ChatHistoryEntriesForView` and `ChatListItem` both take their filter snapshots
+once and reuse them, rather than per message — the expensive shape was already
+avoided.
+
+### 16. Two conditional costs, documented not fixed — **not measured**
+
+Both are inert at default settings and only appear for users who turn the
+feature on, which is why neither was acted on without a trace.
+
+- **`ForkChatListMessageFilterCache` evicts wholesale.** At 1024 entries it calls
+  `removeAll(keepingCapacity: true)` — no LRU, no partial eviction. Keys embed
+  the blocked-list and regex revisions, so entries from superseded revisions stay
+  resident and consume the budget until the next wipe. For a chat list under
+  ~500 rows this never triggers; past it, scrolling the full list repeatedly
+  thrashes fill/wipe/fill. Only reachable with Hide Blocked Messages or regex
+  filters enabled — with both off, `forkShouldHideChatListMessage` returns before
+  the cache is touched.
+- **`PeerNameColors` re-derives saturation per call.** `sgSaturationAdjusted`
+  early-returns when the slider is at 100 (the default), so the common case is a
+  static `Int32` read. Below 100 it runs up to three `getHue`/`UIColor(hue:)`
+  round-trips per call, at 26 call sites, with no memoization — per row, per
+  message. A cache keyed by (palette index, dark, subject, percent) would remove
+  it entirely; not added, because the palette differs per `PeerNameColors`
+  instance and a static cache keyed on the index alone would collide across
+  instances. Needs a per-instance cache, which needs a build to verify.
+
 ## Priority order
 
 | # | Item | Status |
@@ -247,6 +372,11 @@ byte-accounting.
 | 14 | Indexed store instead of JSON | deferred pending measurement |
 | 15 | Global-queue → serial-queue audit | deferred pending measurement |
 | 16 | Media pipeline | not touched by design |
+| 17 | 250ms delay before first history transition | fixed (structural) |
+| 18 | Chat-list first paint gated on AccountManager | not changed (reasoned) |
+| 19 | Liquid Glass as a fork cost | ruled out (identical to upstream) |
+| 20 | Filter-cache wholesale eviction | documented, conditional |
+| 21 | `PeerNameColors` saturation memoization | documented, conditional |
 
 ## Liquid Glass + next thermal levers
 

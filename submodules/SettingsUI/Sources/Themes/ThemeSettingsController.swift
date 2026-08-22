@@ -462,7 +462,12 @@ private func themeSettingsControllerEntries(
     
     if !availableAppIcons.isEmpty {
         entries.append(.iconHeader(presentationData.theme, strings.Appearance_AppIcon.uppercased()))
-        entries.append(.iconItem(presentationData.theme, presentationData.strings, availableAppIcons, isPremium, currentAppIconName))
+        // Always unlocked. Alternate app icons ship inside the bundle and are applied with
+        // `UIApplication.setAlternateIconName`; nothing about them is requested from, granted by
+        // or recorded on the server, so the Premium marker on some of them gated an asset this
+        // build already contains. Passing the account's real flag here is what drew the padlock
+        // badge over those icons. See `selectAppIcon` for the other half.
+        entries.append(.iconItem(presentationData.theme, presentationData.strings, availableAppIcons, true, currentAppIconName))
     }
     
     entries.append(.otherHeader(presentationData.theme, strings.Appearance_Other.uppercased()))
@@ -501,17 +506,16 @@ public func themeSettingsController(context: AccountContext, focusOnItemTag: The
     let _ = context.engine.themes.wallpapers().start()
     
     let currentAppIcon: PresentationAppIcon?
-    var appIcons = context.sharedContext.applicationBindings.getAvailableAlternateIcons()
+    let appIcons = context.sharedContext.applicationBindings.getAvailableAlternateIcons()
     if let alternateIconName = context.sharedContext.applicationBindings.getAlternateIconName() {
         currentAppIcon = appIcons.filter { $0.name == alternateIconName }.first
     } else {
         currentAppIcon = appIcons.filter { $0.isDefault }.first
     }
     
-    let premiumConfiguration = PremiumConfiguration.with(appConfiguration: context.currentAppConfiguration.with { $0 })
-    if premiumConfiguration.isPremiumDisabled || context.account.testingEnvironment {
-        appIcons = appIcons.filter { !$0.isPremium } 
-    }
+    // Fork ships a full premium-styled icon set already in the bundle; every entry is
+    // marked isPremium for the Appearance crown. Do not strip them when server-side
+    // Premium is disabled (stock filtered `!$0.isPremium` here).
     
     let availableAppIcons: Signal<[PresentationAppIcon], NoError> = .single(appIcons)
     let currentAppIconName = ValuePromise<String?>()
@@ -598,24 +602,12 @@ public func themeSettingsController(context: AccountContext, focusOnItemTag: The
             return current.withUpdatedShowNextMediaOnTap(value)
         }).start()
     }, selectAppIcon: { icon in
-        let _ = (context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: context.account.peerId))
-        |> deliverOnMainQueue).start(next: { peer in
-            let isPremium = peer?.isPremium ?? false
-            if icon.isPremium && !isPremium {
-                var replaceImpl: ((ViewController) -> Void)?
-                let controller = PremiumDemoScreen(context: context, subject: .appIcons, source: .other, action: {
-                    let controller = PremiumIntroScreen(context: context, source: .appIcons)
-                    replaceImpl?(controller)
-                })
-                replaceImpl = { [weak controller] c in
-                    controller?.replace(with: c)
-                }
-                pushControllerImpl?(controller)
-            } else {
-                currentAppIconName.set(icon.name)
-                context.sharedContext.applicationBindings.requestSetAlternateIconName(icon.isDefault ? nil : icon.name, { _ in
-                })
-            }
+        // Applied directly, with no premium check. The peer lookup that used to wrap this existed
+        // only to decide between applying the icon and pushing the paywall instead; the apply
+        // itself is `UIApplication.setAlternateIconName` against an asset already in the bundle,
+        // so there is nothing here for an entitlement to gate.
+        currentAppIconName.set(icon.name)
+        context.sharedContext.applicationBindings.requestSetAlternateIconName(icon.isDefault ? nil : icon.name, { _ in
         })
     }, editTheme: { theme in
         let controller = editThemeController(context: context, mode: .edit(theme), navigateToChat: { peerId in

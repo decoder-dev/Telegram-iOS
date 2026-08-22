@@ -202,7 +202,7 @@ public final class ChatTextInputActionButtonsNode: ASDisplayNode, ChatSendMessag
         self.sendContainerNode.layer.allowsGroupOpacity = true
         
         self.sendButtonBackgroundView = UIImageView()
-        self.sendButtonBackgroundView.image = generateStretchableFilledCircleImage(diameter: 34.0, color: .white)?.withRenderingMode(.alwaysTemplate)
+        self.sendButtonBackgroundView.image = generateStretchableFilledCircleImage(diameter: 40.0, color: .white)?.withRenderingMode(.alwaysTemplate)
         self.sendButton = HighlightTrackingButtonNode(pointerStyle: nil)
         
         self.textNode = ImmediateAnimatedCountLabelNode()
@@ -281,8 +281,8 @@ public final class ChatTextInputActionButtonsNode: ASDisplayNode, ChatSendMessag
             strongSelf.sendButtonLongPressed?(strongSelf, recognizer)
         }
         
-        self.micButtonPointerInteraction = PointerInteraction(view: self.micButton, style: .circle(36.0))
-        self.sendButtonPointerInteraction = PointerInteraction(view: self.sendButton.view, customInteractionView: self.sendButtonBackgroundView, style: .lift)
+        self.micButtonPointerInteraction = PointerInteraction(view: self.micButton, style: .circle(40.0))
+        self.sendButtonPointerInteraction = PointerInteraction(view: self.sendButton.view, customInteractionView: self.sendButtonBackgroundView, style: .circle(40.0))
     }
     
     public func updateTheme(theme: PresentationTheme, wallpaper: TelegramWallpaper) {
@@ -306,8 +306,10 @@ public final class ChatTextInputActionButtonsNode: ASDisplayNode, ChatSendMessag
     public func updateLayout(size: CGSize, isMediaInputExpanded: Bool, showTitle: Bool, currentMessageEffectId: Int64?, transition: ContainedViewLayoutTransition, interfaceState: ChatPresentationInterfaceState) -> CGSize {
         self.validLayout = size
         
-        var innerSize = size
-        innerSize.width = 40.0 + 3.0 * 2.0
+        // Returned size is the visible control. Circles stay 40×40 like attach/mic; only a titled
+        // paid-send pill grows wider. (The old 40+3+3 return existed so send could overlay the
+        // capsule; send now sits outside with a 6 pt gap, so padding would mis-reserve the slot.)
+        var resultSize = size
         
         // The same theme colour the field uses (see ChatTextInputPanelNode). The mic and send circles
         // sit next to the capsule and have to be the same material as it — a separate pair of
@@ -356,9 +358,9 @@ public final class ChatTextInputActionButtonsNode: ASDisplayNode, ChatSendMessag
             let textSize = self.textNode.updateLayout(size: CGSize(width: 100.0, height: 100.0), animated: transition.isAnimated)
             let buttonInset: CGFloat = 14.0
             if showTitle {
-                innerSize.width = textSize.width + buttonInset * 2.0
+                resultSize.width = textSize.width + buttonInset * 2.0
             }
-            transition.updateFrame(node: self.textNode, frame: CGRect(origin: CGPoint(x: showTitle ? 5.0 + 7.0 : floorToScreenPixels((innerSize.width - textSize.width) / 2.0), y: floorToScreenPixels((size.height - textSize.height) / 2.0)), size: textSize))
+            transition.updateFrame(node: self.textNode, frame: CGRect(origin: CGPoint(x: showTitle ? 5.0 + 7.0 : floorToScreenPixels((resultSize.width - textSize.width) / 2.0), y: floorToScreenPixels((size.height - textSize.height) / 2.0)), size: textSize))
         } else {
             self.textNode.isHidden = true
         }
@@ -398,14 +400,9 @@ public final class ChatTextInputActionButtonsNode: ASDisplayNode, ChatSendMessag
             }
         }
         
-        // The horizontal inset is fixed at 3 pt because `innerSize.width` is 40 + 3 pt of padding on
-        // each side. The vertical one has to be derived instead: insetting by a flat 3 pt only
-        // yields a square when the caller passes a height exactly 6 pt larger than the width, and
-        // nothing guarantees that — with the field's own height it produced a 40×46 ellipse, and
-        // with a 40 pt box a 40×34 one. Deriving it keeps the button 40 pt tall, and so a circle,
-        // for any height at or above 40. A titled send button (paid messages, slowmode) is a wider
-        // pill by design and stays one; only its height is pinned.
-        let sendButtonBackgroundFrame = CGRect(origin: CGPoint(), size: innerSize).insetBy(dx: 3.0, dy: max(0.0, (innerSize.height - 40.0) * 0.5))
+        // Fill the returned size as a circle (or titled pill). Same rule as micBackgroundView:
+        // the visible disc is the node size — no extra inset padding.
+        let sendButtonBackgroundFrame = CGRect(origin: CGPoint(x: 0.0, y: max(0.0, (resultSize.height - 40.0) * 0.5)), size: CGSize(width: resultSize.width, height: min(40.0, resultSize.height)))
         
         let slowmodeInset: CGFloat = 4.0
         
@@ -500,13 +497,13 @@ public final class ChatTextInputActionButtonsNode: ASDisplayNode, ChatSendMessag
             })
         }
         
-        transition.updateFrame(layer: self.sendButton.layer, frame: CGRect(origin: CGPoint(), size: innerSize))
-        let sendContainerFrame = CGRect(origin: CGPoint(), size: innerSize)
+        transition.updateFrame(layer: self.sendButton.layer, frame: CGRect(origin: CGPoint(), size: resultSize))
+        let sendContainerFrame = CGRect(origin: CGPoint(), size: resultSize)
         transition.updatePosition(node: self.sendContainerNode, position: sendContainerFrame.center)
         transition.updateBounds(node: self.sendContainerNode, bounds: CGRect(origin: CGPoint(), size: sendContainerFrame.size))
         
-        let backgroundSize = CGSize(width: innerSize.width, height: 40.0)
-        let backgroundFrame = CGRect(origin: CGPoint(x: showTitle ? 5.0 + UIScreenPixel : floorToScreenPixels((size.width - backgroundSize.width) / 2.0), y: floorToScreenPixels((size.height - backgroundSize.height) / 2.0)), size: backgroundSize)
+        let backgroundSize = CGSize(width: resultSize.width, height: 40.0)
+        let backgroundFrame = CGRect(origin: CGPoint(x: showTitle ? 5.0 + UIScreenPixel : floorToScreenPixels((resultSize.width - backgroundSize.width) / 2.0), y: floorToScreenPixels((size.height - backgroundSize.height) / 2.0)), size: backgroundSize)
         
         transition.updateFrame(view: self.expandMediaInputButton, frame: CGRect(origin: CGPoint(), size: size))
         transition.updateFrame(view: self.expandMediaInputButtonBackgroundView, frame: CGRect(origin: CGPoint(), size: size))
@@ -540,7 +537,7 @@ public final class ChatTextInputActionButtonsNode: ASDisplayNode, ChatSendMessag
             })
         }
         
-        return innerSize
+        return resultSize
     }
     
     private func updateSlowmodeProgress() {

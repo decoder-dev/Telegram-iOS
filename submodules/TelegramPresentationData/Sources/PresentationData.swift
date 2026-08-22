@@ -115,6 +115,28 @@ public func forkNormalizedThemeSettings(_ settings: PresentationThemeSettings) -
     return settings
 }
 
+/// Title for the message context-menu entry that opens a message's saved edit history.
+public func forkEditHistoryMenuTitle(_ strings: PresentationStrings) -> String {
+    switch strings.primaryComponent.languageCode {
+    case "ru", "uk", "be":
+        return "История изменений"
+    default:
+        return "Edit History"
+    }
+}
+
+/// Title for the Settings row that opens the debug screen. No entry exists for this in the
+/// localisation catalogue, so it follows the same bilingual pattern as the fork's other custom
+/// Settings strings.
+public func forkDeveloperModeSettingsTitle(_ strings: PresentationStrings) -> String {
+    switch strings.primaryComponent.languageCode {
+    case "ru", "uk", "be":
+        return "Режим разработчика"
+    default:
+        return "Developer Mode"
+    }
+}
+
 public func forkCustomizationSettingsTitle(_ strings: PresentationStrings) -> String {
     switch strings.primaryComponent.languageCode {
     case "ru", "uk", "be":

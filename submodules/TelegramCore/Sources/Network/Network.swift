@@ -479,8 +479,8 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
             apiEnvironment.disableUpdates = supplementary
             apiEnvironment = apiEnvironment.withUpdatedLangPackCode(languageCode ?? "en")
             
-            if let effectiveActiveServer = proxySettings?.effectiveActiveServer {
-                apiEnvironment = apiEnvironment.withUpdatedSocksProxySettings(effectiveActiveServer.mtProxySettings)
+            if let effectiveActiveServer = proxySettings?.effectiveActiveServer, let mtProxySettings = effectiveActiveServer.mtProxySettings {
+                apiEnvironment = apiEnvironment.withUpdatedSocksProxySettings(mtProxySettings)
             }
             
             apiEnvironment = apiEnvironment.withUpdatedNetworkSettings((networkSettings ?? NetworkSettings.defaultSettings).mtNetworkSettings)

@@ -63,6 +63,18 @@ private func callListNeighbors(item: ListViewItem, topItem: ListViewItem?, botto
     return ItemListNeighbors(top: topNeighbor, bottom: bottomNeighbor)
 }
 
+/// Width of the glyph column left of the avatar in every Calls row.
+///
+/// `CallListCallItem` draws a 20 pt direction arrow there and `CallListGroupCallItem` a 22 pt
+/// voice-chat indicator, and both kinds of row appear in the same list. Reserving the space
+/// per-row — only when a glyph is actually present, or at each glyph's own width — gave incoming
+/// calls, outgoing calls and group calls three different avatar origins (16, 42 and 44 pt), so the
+/// avatars no longer formed a column. One slot, reserved unconditionally by both items, with each
+/// glyph centred inside it.
+let callListTypeIconSlotWidth: CGFloat = 22.0
+/// Gap between that slot and the avatar.
+let callListTypeIconSlotSpacing: CGFloat = 6.0
+
 class CallListCallItem: ListViewItem {
     let presentationData: ItemListPresentationData
     let systemStyle: ItemListSystemStyle
@@ -328,7 +340,7 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
             let titleFont = Font.medium(item.presentationData.fontSize.itemListBaseFontSize)
             let statusFont = Font.regular(floor(item.presentationData.fontSize.itemListBaseFontSize * 14.0 / 17.0))
             let dateFont = Font.regular(floor(item.presentationData.fontSize.itemListBaseFontSize * 15.0 / 17.0))
-            let avatarDiameter = min(52.0, floor(item.presentationData.fontSize.itemListBaseFontSize * 52.0 / 17.0))
+            let avatarDiameter = min(44.0, floor(item.presentationData.fontSize.itemListBaseFontSize * 44.0 / 17.0))
             let multipleAvatarDiameter = min(30.0, floor(item.presentationData.fontSize.itemListBaseFontSize * 30.0 / 17.0))
             // Matches the chat list, which dropped this inset: a 16 pt card here left white
             // stripes down both sides of Calls and Contacts while chats ran full width.
@@ -346,13 +358,15 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
                 editingOffset = 0.0
             }
             
-            var leftInset: CGFloat = 16.0 + avatarDiameter + 12.0 + params.leftInset + higCardInset
+            var leftInset: CGFloat = 16.0 + callListTypeIconSlotWidth + callListTypeIconSlotSpacing + avatarDiameter + 12.0 + params.leftInset + higCardInset
             let rightInset: CGFloat = 13.0 + params.rightInset + higCardInset
             var infoIconRightInset: CGFloat = rightInset - 1.0
             
             let insets: UIEdgeInsets
             let separatorHeight = UIScreenPixel
-            let separatorRightInset: CGFloat = item.systemStyle == .glass ? 16.0 : 0.0
+            // Trailing edge, not inset — matches the chat list. iOS tables inset row separators
+            // on the leading side only; a gap at both ends reads as an unfinished line.
+            let separatorRightInset: CGFloat = 0.0
             
             let itemBackgroundColor: UIColor
             let itemSeparatorColor: UIColor
@@ -388,12 +402,6 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
             
             var hadDuration = false
             var callDuration: Int32?
-            
-            var isConference = false
-            var conferenceIsDeclined = false
-            
-            let _ = isConference
-            let _ = conferenceIsDeclined
 
             var conferenceAvatars: [EnginePeer] = []
             
@@ -419,8 +427,6 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
                                 callDuration = nil
                             }
                         } else if case let .conferenceCall(conferenceCall) = action.action {
-                            isConference = true
-
                             if let peer = message.peers[message.id.peerId], !conferenceAvatars.contains(where: { $0.id == peer.id }) {
                                 conferenceAvatars.append(EnginePeer(peer))
                             }
@@ -443,7 +449,7 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
                                 let currentTime = Int32(Date().timeIntervalSince1970)
                                 if conferenceCall.flags.contains(.isMissed) {
                                     titleColor = item.presentationData.theme.list.itemDestructiveColor
-                                    conferenceIsDeclined = true
+                                    hasMissed = true
                                 } else if message.timestamp < currentTime - missedTimeout {
                                     titleColor = item.presentationData.theme.list.itemDestructiveColor
                                     hasMissed = true
@@ -569,11 +575,18 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
             
             let nodeLayout = ListViewItemNodeLayout(contentSize: CGSize(width: params.width, height: max(44.0, avatarDiameter + 16.0, titleLayout.size.height + titleSpacing + statusLayout.size.height + verticalInset * 2.0)), insets: UIEdgeInsets(top: firstWithHeader ? 29.0 : 0.0, left: 0.0, bottom: 0.0, right: 0.0))
             
-            let outgoingVoiceIcon = PresentationResourcesCallList.outgoingIcon(item.presentationData.theme)
-            let outgoingVideoIcon = PresentationResourcesCallList.outgoingVideoIcon(item.presentationData.theme)
             let infoIcon = PresentationResourcesCallList.infoButton(item.presentationData.theme)
-            
-            let outgoingIcon = isVideo ? outgoingVideoIcon : outgoingVoiceIcon
+
+            let typeIcon: UIImage?
+            if hasMissed {
+                typeIcon = isVideo ? PresentationResourcesCallList.missedVideoIcon(item.presentationData.theme) : PresentationResourcesCallList.missedIcon(item.presentationData.theme)
+            } else if hasOutgoing {
+                typeIcon = isVideo ? PresentationResourcesCallList.outgoingVideoIcon(item.presentationData.theme) : PresentationResourcesCallList.outgoingIcon(item.presentationData.theme)
+            } else if hasIncoming {
+                typeIcon = isVideo ? PresentationResourcesCallList.incomingVideoIcon(item.presentationData.theme) : PresentationResourcesCallList.incomingIcon(item.presentationData.theme)
+            } else {
+                typeIcon = nil
+            }
             
             let contentSize = nodeLayout.contentSize
             
@@ -758,18 +771,16 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
                             let _ = dateApply()
                             transition.updateFrameAdditive(node: strongSelf.dateNode, frame: CGRect(origin: CGPoint(x: editingOffset + revealOffset + params.width - dateRightInset - dateLayout.size.width, y: floor((nodeLayout.contentSize.height - dateLayout.size.height) / 2.0) + 2.0), size: dateLayout.size))
                             
-                            if let outgoingIcon = outgoingIcon {
-                                if strongSelf.typeIconNode.image !== outgoingIcon {
-                                    strongSelf.typeIconNode.image = outgoingIcon
+                            if let typeIcon = typeIcon {
+                                if strongSelf.typeIconNode.image !== typeIcon {
+                                    strongSelf.typeIconNode.image = typeIcon
                                 }
-                                // `revealOffset` applies to the card-inset floor only. `avatarFrame.minX`
-                                // already carries it (see where avatarFrame is built), so adding it
-                                // outside the max counted it twice and slid the icon at double the
-                                // row's speed during a reveal swipe — invisible at rest, wrong mid-swipe.
-                                let typeIconOrigin = CGPoint(x: max(revealOffset + higCardInset + 2.0, avatarFrame.minX - 6.0 - outgoingIcon.size.width), y: floor(avatarFrame.midY - outgoingIcon.size.height / 2.0))
-                                transition.updateFrameAdditive(node: strongSelf.typeIconNode, frame: CGRect(origin: typeIconOrigin, size: outgoingIcon.size))
+                                // The slot is always reserved in leftInset; centre the glyph in it
+                                // so a 20 pt arrow and a 22 pt group indicator share one column.
+                                let typeIconOrigin = CGPoint(x: avatarFrame.minX - callListTypeIconSlotSpacing - callListTypeIconSlotWidth + floor((callListTypeIconSlotWidth - typeIcon.size.width) / 2.0), y: floor(avatarFrame.midY - typeIcon.size.height / 2.0))
+                                transition.updateFrameAdditive(node: strongSelf.typeIconNode, frame: CGRect(origin: typeIconOrigin, size: typeIcon.size))
                             }
-                            strongSelf.typeIconNode.isHidden = !hasOutgoing
+                            strongSelf.typeIconNode.isHidden = typeIcon == nil
                             
                             if let infoIcon = infoIcon {
                                 if updatedInfoIcon {
@@ -867,11 +878,11 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
                 editingOffset = 0.0
             }
             
-            let avatarDiameter = min(52.0, floor(item.presentationData.fontSize.itemListBaseFontSize * 52.0 / 17.0))
+            let avatarDiameter = min(44.0, floor(item.presentationData.fontSize.itemListBaseFontSize * 44.0 / 17.0))
             // Matches the chat list, which dropped this inset: a 16 pt card here left white
             // stripes down both sides of Calls and Contacts while chats ran full width.
             let higCardInset: CGFloat = 0.0
-            let leftInset: CGFloat = 16.0 + avatarDiameter + 12.0 + params.leftInset + higCardInset + editingOffset
+            let leftInset: CGFloat = 16.0 + callListTypeIconSlotWidth + callListTypeIconSlotSpacing + avatarDiameter + 12.0 + params.leftInset + higCardInset + editingOffset
             let rightInset: CGFloat = 13.0 + params.rightInset + higCardInset
             var infoIconRightInset: CGFloat = rightInset - 1.0
             
@@ -897,18 +908,10 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
             
             transition.updateFrameAdditive(node: self.dateNode, frame: CGRect(origin: CGPoint(x: editingOffset + revealOffset + self.bounds.size.width - dateRightInset - self.dateNode.bounds.size.width, y: self.dateNode.frame.minY), size: self.dateNode.bounds.size))
             
-            // Same double-count as in the layout closure: `avatarFrame` here is the frame just
-            // assigned above, which already includes `revealOffset`. Only the card-inset floor needs
-            // it added.
-            if let outgoingIcon = self.typeIconNode.image {
-                let typeIconOrigin = CGPoint(x: max(revealOffset + higCardInset + 2.0, avatarFrame.minX - 6.0 - outgoingIcon.size.width), y: floor(avatarFrame.midY - outgoingIcon.size.height / 2.0))
-                transition.updateFrameAdditive(node: self.typeIconNode, frame: CGRect(origin: typeIconOrigin, size: outgoingIcon.size))
-            } else {
-                var typeIconFrame = self.typeIconNode.frame
-                typeIconFrame.origin.x = max(revealOffset + higCardInset + 2.0, avatarFrame.minX - 6.0 - typeIconFrame.width)
-                typeIconFrame.origin.y = floor(avatarFrame.midY - typeIconFrame.height / 2.0)
-                transition.updateFrameAdditive(node: self.typeIconNode, frame: typeIconFrame)
-            }
+            // Same reserved-slot rule as the layout closure: centred in the slot, never clamped.
+            let typeIconSize = self.typeIconNode.image?.size ?? self.typeIconNode.frame.size
+            let typeIconOrigin = CGPoint(x: avatarFrame.minX - callListTypeIconSlotSpacing - callListTypeIconSlotWidth + floor((callListTypeIconSlotWidth - typeIconSize.width) / 2.0), y: floor(avatarFrame.midY - typeIconSize.height / 2.0))
+            transition.updateFrameAdditive(node: self.typeIconNode, frame: CGRect(origin: typeIconOrigin, size: typeIconSize))
                         
             transition.updateFrameAdditive(node: self.infoButtonNode, frame: CGRect(origin: CGPoint(x: revealOffset + self.bounds.size.width - infoIconRightInset - self.infoButtonNode.bounds.width, y: self.infoButtonNode.frame.minY), size: self.infoButtonNode.bounds.size))
         }

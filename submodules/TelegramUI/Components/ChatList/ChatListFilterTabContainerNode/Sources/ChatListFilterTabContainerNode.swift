@@ -717,7 +717,7 @@ public final class ChatListFilterTabContainerNode: ASDisplayNode {
         let previousContentWidth = self.scrollNode.view.contentSize.width
         
         if self.selectedBackgroundNode.image == nil || self.currentParams?.presentationData.theme !== presentationData.theme {
-            self.selectedBackgroundNode.image = generateStretchableFilledCircleImage(diameter: 36.0, color: UIColor(rgb: 0x3478F6))
+            self.selectedBackgroundNode.image = generateStretchableFilledCircleImage(diameter: 36.0, color: presentationData.theme.list.itemAccentColor)
         }
         
         if isReordering {
@@ -938,16 +938,27 @@ public final class ChatListFilterTabContainerNode: ASDisplayNode {
                 return CGRect(x: floorToScreenPixels(toValue.origin.x * t + fromValue.origin.x * (1.0 - t)), y: floorToScreenPixels(toValue.origin.y * t + fromValue.origin.y * (1.0 - t)), width: floorToScreenPixels(toValue.size.width * t + fromValue.size.width * (1.0 - t)), height: floorToScreenPixels(toValue.size.height * t + fromValue.size.height * (1.0 - t)))
             }
             
-            if currentIndex != 0 && transitionFraction > 0.0 {
-                let currentFrame = selectionFrames[currentIndex]
-                let previousFrame = selectionFrames[currentIndex - 1]
-                selectedFrame = interpolateFrame(from: currentFrame, to: previousFrame, t: abs(transitionFraction))
-            } else if currentIndex != filters.count - 1 && transitionFraction < 0.0 {
-                let currentFrame = selectionFrames[currentIndex]
-                let previousFrame = selectionFrames[currentIndex + 1]
-                selectedFrame = interpolateFrame(from: currentFrame, to: previousFrame, t: abs(transitionFraction))
-            } else {
-                selectedFrame = selectionFrames[currentIndex]
+            // Hardening, not a fixed crash — every bound is now against selectionFrames, the array
+            // actually being indexed, rather than `filters`, which is a different array from the
+            // one `currentIndex` came from (reorderedFilters). Today the two always have the same
+            // length: the reconciliation above rebuilds reorderedItemIds to exactly the set of
+            // `filters` ids, and the loop that fills selectionFrames can only skip an entry whose
+            // item node is missing, which the loop before it has just created for every entry. So
+            // the old bound was correct by a chain of three invariants in three separate places,
+            // none of them stated. Any one of them drifting turns this into an out-of-range read
+            // during a folder drag; bounding against the array being indexed cannot drift.
+            if currentIndex < selectionFrames.count {
+                if currentIndex != 0 && transitionFraction > 0.0 {
+                    let currentFrame = selectionFrames[currentIndex]
+                    let previousFrame = selectionFrames[currentIndex - 1]
+                    selectedFrame = interpolateFrame(from: currentFrame, to: previousFrame, t: abs(transitionFraction))
+                } else if currentIndex != selectionFrames.count - 1 && transitionFraction < 0.0 {
+                    let currentFrame = selectionFrames[currentIndex]
+                    let previousFrame = selectionFrames[currentIndex + 1]
+                    selectedFrame = interpolateFrame(from: currentFrame, to: previousFrame, t: abs(transitionFraction))
+                } else {
+                    selectedFrame = selectionFrames[currentIndex]
+                }
             }
         }
         
