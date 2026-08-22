@@ -386,13 +386,8 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
                 return ProxySettingsActionItem(presentationData: presentationData, systemStyle: .glass, title: entry.host, icon: .add, sectionId: self.section, editing: false, action: {
                     arguments.addCatalogServer(entry)
                 })
-            case let .server(_, theme, strings, settings, active, status, editing, enabled, isAutomatic):
-                var label = status.text
-                if isAutomatic {
-                    let autoSuffix = ForkPresentationLanguage.prefersRussianStrings ? " · авто" : " · auto"
-                    label += autoSuffix
-                }
-                return ProxySettingsServerItem(theme: theme, strings: strings, systemStyle: .glass, server: settings, activity: status.activity, active: active, color: enabled ? .accent : .secondary, label: label, labelAccent: status.textActive, editing: editing, sectionId: self.section, action: {
+            case let .server(_, theme, strings, settings, active, status, editing, enabled, _):
+                return ProxySettingsServerItem(theme: theme, strings: strings, systemStyle: .glass, server: settings, activity: status.activity, active: active, color: enabled ? .accent : .secondary, label: status.text, labelAccent: status.textActive, editing: editing, sectionId: self.section, action: {
                     arguments.activateServer(settings)
                 }, infoAction: {
                     arguments.editServer(settings)
@@ -456,10 +451,12 @@ private func proxySettingsControllerEntries(theme: PresentationTheme, strings: P
     var existingServers = Set<ProxyServerSettings>()
     let automatic = Set(proxySettings.automaticServers)
     for server in proxySettings.servers {
+        if automatic.contains(server) {
+            continue
+        }
         if !existingServers.insert(server).inserted {
             continue
         }
-        let isAutomatic = automatic.contains(server)
         let status: ProxyServerStatus = statuses[server] ?? .checking
         let displayStatus: DisplayProxyServerStatus
         if proxySettings.enabled && server == proxySettings.activeServer {
@@ -503,7 +500,7 @@ private func proxySettingsControllerEntries(theme: PresentationTheme, strings: P
             }
             }
         }
-        entries.append(.server(index, theme, strings, server, server == proxySettings.activeServer, displayStatus, ProxySettingsServerItemEditing(editable: !isAutomatic, editing: state.editing, revealed: state.revealedServer == server), proxySettings.enabled, isAutomatic))
+        entries.append(.server(index, theme, strings, server, server == proxySettings.activeServer, displayStatus, ProxySettingsServerItemEditing(editable: true, editing: state.editing, revealed: state.revealedServer == server), proxySettings.enabled, false))
         index += 1
     }
     if !existingServers.isEmpty {
@@ -524,14 +521,14 @@ private func proxySettingsControllerEntries(theme: PresentationTheme, strings: P
         autoRotateTitle = "Автосмена прокси"
         autoRotateInfo = "При проблемах с соединением переключаться на следующий сохранённый прокси."
         autoFetchTitle = "Авто MTProxy"
-        autoFetchInfo = "Сам скачивает публичные списки и держит соединение на самом быстром живом MTProxy. В списке сохранённых авто-серверы не показываются. Чужие ноды не читают чаты, но видят IP."
+        autoFetchInfo = "Скачивает публичные MTProxy-списки и держит соединение на самом быстром живом сервере. Только MTProxy; WEB- и SOCKS-прокси настраиваются вручную. Чужие ноды не читают чаты, но видят IP."
     } else {
         useLocalDNSTitle = "Local DNS for Proxy"
         useLocalDNSInfo = "Resolve proxy hostnames via system DNS instead of Google DoH (avoids DoH timeouts)."
         autoRotateTitle = "Auto-rotate Proxies"
         autoRotateInfo = "When the active proxy has connection issues, switch to the next saved proxy."
         autoFetchTitle = "Auto MTProxy"
-        autoFetchInfo = "Automatically downloads public lists and keeps the connection on the fastest live MTProxy. Auto servers are not shown in the saved list. Third-party nodes cannot read chats, but they see your IP."
+        autoFetchInfo = "Downloads public MTProxy lists and keeps the connection on the fastest live server. MTProxy only — WEB and SOCKS proxies are configured manually. Third-party nodes cannot read chats, but they see your IP."
     }
     entries.append(.useLocalDNS(theme, useLocalDNSTitle, proxySettings.useLocalDNSForProxyHosts))
     entries.append(.useLocalDNSInfo(theme, useLocalDNSInfo))
