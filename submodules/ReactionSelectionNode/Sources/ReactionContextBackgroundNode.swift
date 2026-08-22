@@ -248,7 +248,10 @@ final class ReactionContextBackgroundNode: ASDisplayNode {
         
         if let glass = self.glass, let glassBackgroundView = self.glassBackgroundView {
             var glassBackgroundFrame = contentBounds.insetBy(dx: 10.0, dy: 10.0)
-            glassBackgroundFrame.size.height -= 8.0
+            // Reserve space for the bubble-tail only when it is actually shown.
+            if displayTail {
+                glassBackgroundFrame.size.height -= 8.0
+            }
             transition.updateFrame(view: glassBackgroundView.container, frame: glassBackgroundFrame, beginWithCurrentState: true)
             transition.updateFrame(view: glassBackgroundView.view, frame: CGRect(origin: CGPoint(), size: glassBackgroundFrame.size), beginWithCurrentState: true)
             let glassTintColor: GlassBackgroundView.TintColor
@@ -258,7 +261,8 @@ final class ReactionContextBackgroundNode: ASDisplayNode {
                 glassTintColor = .init(kind: .panel)
             }
             glassBackgroundView.container.update(size: glassBackgroundFrame.size, isDark: glass.isDark, transition: ComponentTransition(transition))
-            glassBackgroundView.view.update(size: glassBackgroundFrame.size, cornerRadius: 23.0, isDark: true, tintColor: glassTintColor, transition: ComponentTransition(transition))
+            let glassCornerRadius = min(23.0, glassBackgroundFrame.height / 2.0)
+            glassBackgroundView.view.update(size: glassBackgroundFrame.size, cornerRadius: glassCornerRadius, isDark: true, tintColor: glassTintColor, transition: ComponentTransition(transition))
             
             transition.updateFrame(view: self.backgroundTintView, frame: CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: CGSize(width: contentBounds.width, height: contentBounds.height)).insetBy(dx: -10.0, dy: -10.0))
         } else {

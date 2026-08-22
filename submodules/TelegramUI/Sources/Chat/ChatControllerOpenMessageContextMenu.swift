@@ -317,19 +317,8 @@ extension ChatControllerImpl {
                 
                 self.canReadHistory.set(false)
                 
-                var hideReactionPanelTail = false
-                for media in message.media {
-                    if let action = media as? TelegramMediaAction {
-                        switch action.action {
-                        case .phoneCall:
-                            break
-                        case .conferenceCall:
-                            break
-                        default:
-                            hideReactionPanelTail = true
-                        }
-                    }
-                }
+                // Always hide the reaction bubble-tail for chat long-press (iMessage Tapbacks look).
+                let hideReactionPanelTail = true
                 
                 var isSecret = self.presentationInterfaceState.copyProtectionEnabled || self.presentationInterfaceState.myCopyProtectionEnabled || self.chatLocation.peerId?.namespace == Namespaces.Peer.SecretChat
                 if ForkSecretScreenshotSettings.allow,

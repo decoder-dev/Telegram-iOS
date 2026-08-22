@@ -807,7 +807,7 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
         var contentTopInset: CGFloat = topInset
         var removedReactionContextNode: ReactionContextNode?
         
-        if let reactionItems = self.actionsStackNode.topReactionItems, !reactionItems.reactionItems.isEmpty, let controller = self.getController() as? ContextControllerImpl {
+        if let reactionItems = self.actionsStackNode.topReactionItems, !reactionItems.reactionItems.isEmpty, self.getController() is ContextControllerImpl {
             let reactionContextNode: ReactionContextNode
             if let current = self.reactionContextNode {
                 reactionContextNode = current
@@ -816,7 +816,7 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
                     context: reactionItems.context,
                     animationCache: reactionItems.animationCache,
                     presentationData: presentationData,
-                    //style: .glass(isTinted: false),
+                    style: .glass(isTinted: false),
                     items: reactionItems.reactionItems,
                     selectedItems: reactionItems.selectedReactionItems,
                     title: reactionItems.reactionsTitle,
@@ -844,7 +844,8 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
                         strongSelf.requestUpdateOverlayWantsToBeBelowKeyboard(transition)
                     }
                 )
-                reactionContextNode.displayTail = !controller.hideReactionPanelTail
+                // iMessage-style Tapbacks: glass pill without Telegram bubble-tail.
+                reactionContextNode.displayTail = false
                 self.reactionContextNode = reactionContextNode
                 self.addSubnode(reactionContextNode)
                 

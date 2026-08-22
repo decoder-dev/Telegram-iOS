@@ -127,8 +127,14 @@ private let largeCircleSize: CGFloat = 16.0
 private let smallCircleSize: CGFloat = 8.0
 
 private final class ExpandItemView: UIView {
+    enum Style {
+        case inlineArrow
+        case externalSmile
+    }
+    
     private let arrowView: UIImageView
     let tintView: UIView
+    private var style: Style = .inlineArrow
     
     override init(frame: CGRect) {
         self.tintView = UIView()
@@ -146,8 +152,27 @@ private final class ExpandItemView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
     
+    func updateStyle(_ style: Style, theme: PresentationTheme) {
+        self.style = style
+        switch style {
+        case .inlineArrow:
+            self.arrowView.image = generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/ReactionExpandArrow"), color: .white)
+            self.backgroundColor = theme.chat.inputMediaPanel.panelContentControlVibrantOverlayColor.mixedWith(theme.contextMenu.backgroundColor.withMultipliedAlpha(0.4), alpha: 0.5)
+        case .externalSmile:
+            // iMessage-style separate emoji picker control under the reaction pill.
+            self.arrowView.image = generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Smile"), color: theme.contextMenu.primaryColor)
+            self.backgroundColor = theme.contextMenu.backgroundColor.withMultipliedAlpha(theme.overallDarkAppearance ? 0.92 : 0.96)
+            self.layer.borderWidth = 0.5 / UIScreenScale
+            self.layer.borderColor = theme.contextMenu.sectionSeparatorColor.cgColor
+            self.layer.shadowColor = UIColor.black.cgColor
+            self.layer.shadowOpacity = theme.overallDarkAppearance ? 0.35 : 0.18
+            self.layer.shadowRadius = 8.0
+            self.layer.shadowOffset = CGSize(width: 0.0, height: 2.0)
+        }
+    }
+    
     func updateTheme(theme: PresentationTheme) {
-        self.backgroundColor = theme.chat.inputMediaPanel.panelContentControlVibrantOverlayColor.mixedWith(theme.contextMenu.backgroundColor.withMultipliedAlpha(0.4), alpha: 0.5)
+        self.updateStyle(self.style, theme: theme)
     }
     
     func update(size: CGSize, transition: ContainedViewLayoutTransition) {
@@ -155,7 +180,17 @@ private final class ExpandItemView: UIView {
         transition.updateCornerRadius(layer: self.tintView.layer, cornerRadius: size.width / 2.0)
         
         if let image = self.arrowView.image {
-            transition.updateFrame(view: self.arrowView, frame: CGRect(origin: CGPoint(x: floorToScreenPixels((size.width - image.size.width) / 2.0), y: floorToScreenPixels(size.height - size.width + (size.width - image.size.height) / 2.0 + 1.0)), size: image.size))
+            let iconSize: CGSize
+            switch self.style {
+            case .inlineArrow:
+                iconSize = image.size
+                transition.updateFrame(view: self.arrowView, frame: CGRect(origin: CGPoint(x: floorToScreenPixels((size.width - iconSize.width) / 2.0), y: floorToScreenPixels(size.height - size.width + (size.width - iconSize.height) / 2.0 + 1.0)), size: iconSize))
+            case .externalSmile:
+                let maxSide = min(18.0, min(size.width, size.height) - 10.0)
+                let aspect = image.size.width > 0.0 ? (image.size.height / image.size.width) : 1.0
+                iconSize = CGSize(width: maxSide, height: floor(maxSide * aspect))
+                transition.updateFrame(view: self.arrowView, frame: CGRect(origin: CGPoint(x: floorToScreenPixels((size.width - iconSize.width) / 2.0), y: floorToScreenPixels((size.height - iconSize.height) / 2.0)), size: iconSize))
+            }
         }
     }
 }
@@ -352,6 +387,8 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
     private var disappearingVisibleItemNodes: [Int: ReactionItemNode] = [:]
     private var visibleItemMaskNodes: [Int: ASDisplayNode] = [:]
     private let expandItemView: ExpandItemView?
+    private let usesExternalExpandButton: Bool
+    private let reactionStyle: Style
     
     private let title: String?
     private let reactionsLocked: Bool
@@ -400,7 +437,12 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
     
     private var contentTopInset: CGFloat = 0.0
     public var contentHeight: CGFloat {
-        return self.contentTopInset + self.currentContentHeight
+        var height = self.contentTopInset + self.currentContentHeight
+        if self.usesExternalExpandButton && !self.isExpanded && self.expandItemView != nil {
+            // Reserve space for the iMessage-style emoji control under the pill.
+            height += 22.0
+        }
+        return height
     }
     
     private var currentContentHeight: CGFloat = 46.0
@@ -498,6 +540,13 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
     public init(context: AccountContext, animationCache: AnimationCache, presentationData: PresentationData, style: Style = .legacy, items: [ReactionContextItem], selectedItems: Set<AnyHashable>, title: String? = nil, reactionsLocked: Bool, alwaysAllowPremiumReactions: Bool, allPresetReactionsAreAvailable: Bool, getEmojiContent: ((AnimationCache, MultiAnimationRenderer) -> Signal<EmojiPagerContentComponent, NoError>)?, isExpandedUpdated: @escaping (ContainedViewLayoutTransition) -> Void, requestLayout: @escaping (ContainedViewLayoutTransition) -> Void, requestUpdateOverlayWantsToBeBelowKeyboard: @escaping (ContainedViewLayoutTransition) -> Void) {
         self.context = context
         self.presentationData = presentationData
+        self.reactionStyle = style
+        switch style {
+        case .glass:
+            self.usesExternalExpandButton = true
+        case .legacy:
+            self.usesExternalExpandButton = false
+        }
         self.items = items
         self.selectedItems = selectedItems
         self.getEmojiContent = getEmojiContent
@@ -587,9 +636,14 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
         if getEmojiContent != nil && !self.reactionsLocked {
             let expandItemView = ExpandItemView()
             self.expandItemView = expandItemView
-            
-            self.contentContainer.view.addSubview(expandItemView)
-            self.contentTintContainer.view.addSubview(expandItemView.tintView)
+            if self.usesExternalExpandButton {
+                expandItemView.updateStyle(.externalSmile, theme: presentationData.theme)
+                // Parent views assigned after super.init below.
+            } else {
+                expandItemView.updateStyle(.inlineArrow, theme: presentationData.theme)
+                self.contentContainer.view.addSubview(expandItemView)
+                self.contentTintContainer.view.addSubview(expandItemView.tintView)
+            }
         } else {
             self.expandItemView = nil
         }
@@ -612,6 +666,13 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
         
         self.addSubnode(self.contentContainer)
         self.addSubnode(self.previewingItemContainer)
+        
+        if self.usesExternalExpandButton, let expandItemView = self.expandItemView {
+            // Sibling of the glass pill — mirrors iMessage's emoji control under Tapbacks.
+            self.view.addSubview(expandItemView)
+            self.view.insertSubview(expandItemView.tintView, belowSubview: expandItemView)
+            expandItemView.tintView.isHidden = true
+        }
         
         if let titleLabelView = self.titleLabelView {
             titleLabelView.action = { [weak self] in
@@ -1152,7 +1213,7 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
                         }
                     }
                     
-                    if !self.reactionsLocked && self.getEmojiContent != nil && i == itemLayout.visibleItemCount - 1 {
+                    if !self.usesExternalExpandButton && !self.reactionsLocked && self.getEmojiContent != nil && i == itemLayout.visibleItemCount - 1 {
                         itemFrame.origin.x -= (1.0 - compressionFactor) * selectionItemFrame.width * 0.5
                         selectionItemFrame.origin.x -= (1.0 - compressionFactor) * selectionItemFrame.width * 0.5
                         itemNode.isUserInteractionEnabled = false
@@ -1190,7 +1251,7 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
                         itemNode.appear(animated: !self.context.sharedContext.currentPresentationData.with({ $0 }).reduceMotion && !self.reduceMotion)
                     }
                     
-                    if !self.reactionsLocked, self.getEmojiContent != nil, i == itemLayout.visibleItemCount - 1, let itemNode = itemNode as? ReactionNode {
+                    if !self.usesExternalExpandButton, !self.reactionsLocked, self.getEmojiContent != nil, i == itemLayout.visibleItemCount - 1, let itemNode = itemNode as? ReactionNode {
                         let itemScale: CGFloat = 0.001 * (1.0 - compressionFactor) + normalItemScale * compressionFactor
                         let alphaFraction = min(compressionFactor, 0.2) / 0.2
                         transition.updateSublayerTransformScale(node: itemNode, scale: itemScale)
@@ -1214,7 +1275,7 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
             }
         }
         
-        if let expandItemView = self.expandItemView {
+        if let expandItemView = self.expandItemView, !self.usesExternalExpandButton {
             let expandItemSize: CGFloat
             let expandTintOffset: CGFloat
             if self.highlightedReaction != nil {
@@ -1267,7 +1328,12 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
     
     private func updateLayout(size: CGSize, insets: UIEdgeInsets, anchorRect: CGRect, centerAligned: Bool, isCoveredByInput: Bool, isAnimatingOut: Bool, forceUpdate: Bool = false, transition: ContainedViewLayoutTransition, animateInFromAnchorRect: CGRect?, animateOutToAnchorRect: CGRect?, animateReactionHighlight: Bool = false) {
         if let expandItemView = self.expandItemView {
-            expandItemView.updateTheme(theme: self.presentationData.theme)
+            switch self.reactionStyle {
+            case .glass:
+                expandItemView.updateStyle(.externalSmile, theme: self.presentationData.theme)
+            case .legacy:
+                expandItemView.updateStyle(.inlineArrow, theme: self.presentationData.theme)
+            }
         }
         
         self.validLayout = (size, insets, anchorRect, isCoveredByInput, centerAligned)
@@ -1284,7 +1350,8 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
         var completeContentWidth: CGFloat
         
         if !self.reactionsLocked && self.getEmojiContent != nil {
-            let totalItemSlotCount = self.items.count + 1
+            // Inline expand steals one slot; external (iMessage) smile control sits outside the pill.
+            let totalItemSlotCount = self.items.count + (self.usesExternalExpandButton ? 0 : 1)
             
             var maxRowItemCount = Int(floor((size.width - sideInset * 2.0 - externalSideInset * 2.0 - itemSpacing) / (itemSize + itemSpacing)))
             
@@ -1376,6 +1443,27 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
         transition.updateFrame(node: self.scrollNode, frame: scrollFrame, beginWithCurrentState: true)
         transition.updateFrame(node: self.previewingItemContainer, frame: visualBackgroundFrame, beginWithCurrentState: true)
         self.scrollNode.view.contentSize = CGSize(width: completeContentWidth, height: scrollFrame.size.height)
+        
+        if self.usesExternalExpandButton, let expandItemView = self.expandItemView {
+            let expandItemSize: CGFloat = self.highlightedReaction != nil ? floor(32.0 * 0.9) : 32.0
+            var expandFrame = CGRect(
+                origin: CGPoint(
+                    x: visualBackgroundFrame.maxX - expandItemSize - 4.0,
+                    y: visualBackgroundFrame.maxY - floor(expandItemSize * 0.35)
+                ),
+                size: CGSize(width: expandItemSize, height: expandItemSize)
+            )
+            if self.isExpanded {
+                expandFrame.origin.y = visualBackgroundFrame.maxY + 6.0
+                transition.updateAlpha(layer: expandItemView.layer, alpha: 0.0)
+            } else {
+                transition.updateAlpha(layer: expandItemView.layer, alpha: 1.0)
+            }
+            transition.updateFrame(view: expandItemView, frame: expandFrame)
+            expandItemView.update(size: expandFrame.size, transition: transition)
+            // Keep the smile control above the reaction pill for hit-testing.
+            self.view.bringSubviewToFront(expandItemView)
+        }
         
         self.updateScrolling(transition: transition)
         
@@ -2471,7 +2559,7 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
                 guard let itemNode = self.visibleItemNodes[i] else {
                     continue
                 }
-                if let itemLayout = self.itemLayout, !self.reactionsLocked, self.getEmojiContent != nil, i == itemLayout.visibleItemCount - 1 {
+                if let itemLayout = self.itemLayout, !self.usesExternalExpandButton, !self.reactionsLocked, self.getEmojiContent != nil, i == itemLayout.visibleItemCount - 1 {
                     itemNode.appear(animated: false)
                     continue
                 }
