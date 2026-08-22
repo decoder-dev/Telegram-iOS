@@ -331,6 +331,7 @@ private final class ProxyServerPreviewSheetContent: CombinedComponent {
                 ))
             }
             
+            if !component.server.connection.isWebProxy {
             var statusText = strings.SocksProxySetup_CheckStatus
             var statusColor = tableLinkColor
             var statusIsActive = true
@@ -365,6 +366,7 @@ private final class ProxyServerPreviewSheetContent: CombinedComponent {
                     )
                 )
             ))
+            }
             let table = table.update(
                 component: TableComponent(
                     theme: environment.theme,

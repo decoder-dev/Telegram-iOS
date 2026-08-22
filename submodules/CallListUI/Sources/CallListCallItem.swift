@@ -404,10 +404,6 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
             var callDuration: Int32?
             
             var isConference = false
-            var conferenceIsDeclined = false
-            
-            let _ = isConference
-            let _ = conferenceIsDeclined
 
             var conferenceAvatars: [EnginePeer] = []
             
@@ -457,7 +453,7 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
                                 let currentTime = Int32(Date().timeIntervalSince1970)
                                 if conferenceCall.flags.contains(.isMissed) {
                                     titleColor = item.presentationData.theme.list.itemDestructiveColor
-                                    conferenceIsDeclined = true
+                                    hasMissed = true
                                 } else if message.timestamp < currentTime - missedTimeout {
                                     titleColor = item.presentationData.theme.list.itemDestructiveColor
                                     hasMissed = true

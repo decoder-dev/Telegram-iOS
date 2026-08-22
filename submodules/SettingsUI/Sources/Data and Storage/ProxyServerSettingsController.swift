@@ -406,14 +406,7 @@ func proxyServerSettingsController(sharedContext: SharedAccountContext, context:
     var shareImpl: (() -> Void)?
     
     let catalogPromise = Promise<[WebProxyCatalogEntry]>([])
-    catalogPromise.set(accountManager.sharedData(keys: [SharedDataKeys.proxySettings])
-    |> map { sharedData -> Bool in
-        (sharedData.entries[SharedDataKeys.proxySettings]?.get(ProxySettings.self) ?? ProxySettings.defaultSettings).autoFetchPublicMtProxy
-    }
-    |> distinctUntilChanged
-    |> mapToSignal { autoFetch -> Signal<[WebProxyCatalogEntry], NoError> in
-        autoFetch ? fetchWebProxyCatalog() : .single([])
-    })
+    catalogPromise.set(fetchWebProxyCatalog())
     
     let arguments = ProxyServerSettingsControllerArguments(updateState: { f in
         updateState(f)

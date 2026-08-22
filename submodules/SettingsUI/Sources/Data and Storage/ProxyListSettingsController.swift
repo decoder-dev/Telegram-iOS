@@ -663,12 +663,7 @@ public func proxySettingsController(accountManager: AccountManager<TelegramAccou
     })
     
     let catalogPromise = Promise<[WebProxyCatalogEntry]>([])
-    catalogPromise.set(proxySettings.get()
-    |> map { $0.autoFetchPublicMtProxy }
-    |> distinctUntilChanged
-    |> mapToSignal { autoFetch -> Signal<[WebProxyCatalogEntry], NoError> in
-        autoFetch ? fetchWebProxyCatalog() : .single([])
-    })
+    catalogPromise.set(fetchWebProxyCatalog())
     
     let signal = combineLatest(updatedPresentationData, statePromise.get(), proxySettings.get(), statusesContext.statuses(), network.connectionStatus, catalogPromise.get())
     |> map { presentationData, state, proxySettings, statuses, connectionStatus, webCatalog -> (ItemListControllerState, (ItemListNodeState, Any)) in

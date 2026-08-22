@@ -73,6 +73,8 @@ public final class WebProxyManager {
 
             return self.start(configuration: server)
         } else {
+            self.startLock.lock()
+            defer { self.startLock.unlock() }
             self.stop()
             return true
         }

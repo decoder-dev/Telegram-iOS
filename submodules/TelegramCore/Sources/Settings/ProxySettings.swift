@@ -55,10 +55,24 @@ func applySharedProxySettingsToNetwork(settings: ProxySettings, network: Network
 
     network.context.updateApiEnvironment { environment in
         let current = environment?.socksProxySettings
-        // If a WEB proxy is selected but its local sidecar failed to start, fail closed:
-        // keep whatever proxy is already in effect instead of silently falling back to a
-        // direct, unproxied connection.
-        let updated = (isActiveWebProxy && resolvedProxySettings == nil) ? current : resolvedProxySettings
+        let updated: MTSocksProxySettings?
+        if isActiveWebProxy {
+            if let resolvedProxySettings = resolvedProxySettings {
+                updated = resolvedProxySettings
+            } else if let current = current {
+                // Sidecar failed while switching proxies — keep the previous endpoint
+                // rather than falling back to a direct connection.
+                updated = current
+            } else if let activeServer = activeServer, case let .web(secret) = activeServer.connection {
+                // First enable with a dead sidecar: route to an unreachable loopback port
+                // with the MTProxy code path so traffic never goes out unproxied.
+                updated = MTSocksProxySettings(ip: "127.0.0.1", port: 1, username: nil, password: nil, secret: secret)
+            } else {
+                updated = nil
+            }
+        } else {
+            updated = resolvedProxySettings
+        }
         let updateNetwork: Bool
         if previousForceLocalDNS != settings.useLocalDNSForProxyHosts {
             updateNetwork = true
