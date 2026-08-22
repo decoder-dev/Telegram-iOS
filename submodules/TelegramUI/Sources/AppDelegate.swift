@@ -1002,6 +1002,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                     PresentationAppIcon(name: "PremiumCarbon", imageName: "PremiumCarbon", isPremium: true),
                     PresentationAppIcon(name: "PremiumRoyal", imageName: "PremiumRoyal", isPremium: true),
                     PresentationAppIcon(name: "PremiumAurora", imageName: "PremiumAurora", isPremium: true),
+                    PresentationAppIcon(name: "PatriotPlaneIcon", imageName: "PatriotPlaneIcon", isPremium: true),
                 ]
                 
                 return icons
