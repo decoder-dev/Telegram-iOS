@@ -59,7 +59,7 @@ public final class WebProxyManager {
     /// Returns true when the loopback endpoint is already available for this configuration.
     @discardableResult
     public func configure(activeWebProxy server: WebProxyConfiguration?) -> Bool {
-        if server == nil {
+        guard let server else {
             self.startLock.lock()
             defer { self.startLock.unlock() }
             self.startGeneration &+= 1
