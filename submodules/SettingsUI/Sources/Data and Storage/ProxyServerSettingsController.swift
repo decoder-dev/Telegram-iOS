@@ -12,27 +12,16 @@ import UrlEscaping
 import UrlHandling
 import QrCodeUI
 import WebProxyTransport
-import TelegramUIPreferences
-
-private func webProxyModeTitle() -> String {
-    return ForkPresentationLanguage.prefersRussianStrings ? "WEB-прокси" : "WEB Proxy"
-}
-
-private func webProxyMaskingSiteTitle() -> String {
-    return ForkPresentationLanguage.prefersRussianStrings ? "Сайт маскировки" : "Masking site"
-}
 
 private final class ProxyServerSettingsControllerArguments {
     let updateState: ((ProxyServerSettingsControllerState) -> ProxyServerSettingsControllerState) -> Void
     let share: () -> Void
     let usePasteboardSettings: () -> Void
-    let selectCatalogEntry: (WebProxyCatalogEntry) -> Void
     
-    init(updateState: @escaping ((ProxyServerSettingsControllerState) -> ProxyServerSettingsControllerState) -> Void, share: @escaping () -> Void, usePasteboardSettings: @escaping () -> Void, selectCatalogEntry: @escaping (WebProxyCatalogEntry) -> Void) {
+    init(updateState: @escaping ((ProxyServerSettingsControllerState) -> ProxyServerSettingsControllerState) -> Void, share: @escaping () -> Void, usePasteboardSettings: @escaping () -> Void) {
         self.updateState = updateState
         self.share = share
         self.usePasteboardSettings = usePasteboardSettings
-        self.selectCatalogEntry = selectCatalogEntry
     }
 }
 
@@ -52,10 +41,6 @@ private enum ProxySettingsEntry: ItemListNodeEntry {
     case modeMtp(PresentationTheme, String, Bool)
     case modeWeb(PresentationTheme, String, Bool)
     
-    case webCatalogHeader(PresentationTheme, String)
-    case webCatalogSite(PresentationTheme, WebProxyCatalogEntry, Bool)
-    case webCatalogFooter(PresentationTheme, String)
-    
     case connectionHeader(PresentationTheme, String)
     case connectionServer(PresentationTheme, PresentationStrings, String, String)
     case connectionPort(PresentationTheme, PresentationStrings, String, String)
@@ -73,8 +58,6 @@ private enum ProxySettingsEntry: ItemListNodeEntry {
                 return ProxySettingsSection.pasteboard.rawValue
             case .modeSocks5, .modeMtp, .modeWeb:
                 return ProxySettingsSection.mode.rawValue
-            case .webCatalogHeader, .webCatalogSite, .webCatalogFooter:
-                return ProxySettingsSection.connection.rawValue
             case .connectionHeader, .connectionServer, .connectionPort:
                 return ProxySettingsSection.connection.rawValue
             case .credentialsHeader, .credentialsUsername, .credentialsPassword, .credentialsSecret:
@@ -96,12 +79,6 @@ private enum ProxySettingsEntry: ItemListNodeEntry {
                 return 3
             case .modeWeb:
                 return 11
-            case .webCatalogHeader:
-                return 13
-            case .webCatalogSite(_, let entry, _):
-                return 1000 + Int32(bitPattern: UInt32(truncatingIfNeeded: abs(entry.host.hashValue) % 10000))
-            case .webCatalogFooter:
-                return 15
             case .connectionHeader:
                 return 4
             case .connectionServer:
@@ -159,14 +136,6 @@ private enum ProxySettingsEntry: ItemListNodeEntry {
                         return state
                     }
                 })
-            case let .webCatalogHeader(_, text):
-                return ItemListSectionHeaderItem(presentationData: presentationData, text: text, sectionId: self.section)
-            case let .webCatalogSite(_, entry, selected):
-                return ItemListCheckboxItem(presentationData: presentationData, systemStyle: .glass, title: entry.host, style: .left, checked: selected, zeroSeparatorInsets: false, sectionId: self.section, action: {
-                    arguments.selectCatalogEntry(entry)
-                })
-            case let .webCatalogFooter(_, text):
-                return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section)
             case let .connectionHeader(_, text):
                 return ItemListSectionHeaderItem(presentationData: presentationData, text: text, sectionId: self.section)
             case let .connectionServer(_, _, placeholder, text):
@@ -276,15 +245,7 @@ private struct ProxyServerSettingsControllerState: Equatable {
     }
 }
 
-private func webProxyCatalogHeaderTitle() -> String {
-    return ForkPresentationLanguage.prefersRussianStrings ? "ГОТОВЫЕ САЙТЫ МАСКИРОВКИ" : "READY MASKING SITES"
-}
-
-private func webProxyCatalogFooterTitle() -> String {
-    return ForkPresentationLanguage.prefersRussianStrings ? "Или укажите свой домен с tproxy-server ниже." : "Or enter your own tproxy-server domain below."
-}
-
-private func proxyServerSettingsControllerEntries(presentationData: PresentationData, state: ProxyServerSettingsControllerState, pasteboardSettings: ProxyServerSettings?, webCatalog: [WebProxyCatalogEntry]) -> [ProxySettingsEntry] {
+private func proxyServerSettingsControllerEntries(presentationData: PresentationData, state: ProxyServerSettingsControllerState, pasteboardSettings: ProxyServerSettings?) -> [ProxySettingsEntry] {
     var entries: [ProxySettingsEntry] = []
     
     if let _ = pasteboardSettings {
@@ -293,20 +254,10 @@ private func proxyServerSettingsControllerEntries(presentationData: Presentation
     
     entries.append(.modeSocks5(presentationData.theme, presentationData.strings.SocksProxySetup_ProxySocks5, state.mode == .socks5))
     entries.append(.modeMtp(presentationData.theme, presentationData.strings.SocksProxySetup_ProxyTelegram, state.mode == .mtp))
-    entries.append(.modeWeb(presentationData.theme, webProxyModeTitle(), state.mode == .web))
-    
-    if state.mode == .web, !webCatalog.isEmpty {
-        entries.append(.webCatalogHeader(presentationData.theme, webProxyCatalogHeaderTitle()))
-        for entry in webCatalog {
-            let secretString = MTProxySecret.parseData(entry.secret)?.serializeToString() ?? hexString(entry.secret)
-            let selected = state.host.lowercased() == entry.host.lowercased() && state.secret == secretString
-            entries.append(.webCatalogSite(presentationData.theme, entry, selected))
-        }
-        entries.append(.webCatalogFooter(presentationData.theme, webProxyCatalogFooterTitle()))
-    }
+    entries.append(.modeWeb(presentationData.theme, presentationData.strings.SocksProxySetup_ProxyWeb, state.mode == .web))
     
     entries.append(.connectionHeader(presentationData.theme, presentationData.strings.SocksProxySetup_Connection.uppercased()))
-    let serverPlaceholder = state.mode == .web ? webProxyMaskingSiteTitle() : presentationData.strings.SocksProxySetup_Hostname
+    let serverPlaceholder = state.mode == .web ? presentationData.strings.SocksProxySetup_MaskingSite : presentationData.strings.SocksProxySetup_Hostname
     entries.append(.connectionServer(presentationData.theme, presentationData.strings, serverPlaceholder, state.host))
     if state.mode != .web {
         entries.append(.connectionPort(presentationData.theme, presentationData.strings, presentationData.strings.SocksProxySetup_Port, state.port))
@@ -405,9 +356,6 @@ func proxyServerSettingsController(sharedContext: SharedAccountContext, context:
     
     var shareImpl: (() -> Void)?
     
-    let catalogPromise = Promise<[WebProxyCatalogEntry]>([])
-    catalogPromise.set(fetchWebProxyCatalog())
-    
     let arguments = ProxyServerSettingsControllerArguments(updateState: { f in
         updateState(f)
     }, share: {
@@ -434,20 +382,11 @@ func proxyServerSettingsController(sharedContext: SharedAccountContext, context:
                 return state
             }
         }
-    }, selectCatalogEntry: { entry in
-        updateState { state in
-            var state = state
-            state.mode = .web
-            state.port = "443"
-            state.host = entry.host
-            state.secret = MTProxySecret.parseData(entry.secret)?.serializeToString() ?? hexString(entry.secret)
-            return state
-        }
     })
     
-    let signal = combineLatest(updatedPresentationData, statePromise.get(), catalogPromise.get())
+    let signal = combineLatest(updatedPresentationData, statePromise.get())
     |> deliverOnMainQueue
-    |> map { presentationData, state, webCatalog -> (ItemListControllerState, (ItemListNodeState, Any)) in
+    |> map { presentationData, state -> (ItemListControllerState, (ItemListNodeState, Any)) in
         var presentationData = presentationData
         let updatedTheme = presentationData.theme.withModalBlocksBackground()
         presentationData = presentationData.withUpdated(theme: updatedTheme)
@@ -483,7 +422,7 @@ func proxyServerSettingsController(sharedContext: SharedAccountContext, context:
         })
         
         let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .text(presentationData.strings.SocksProxySetup_Title), leftNavigationButton: leftNavigationButton, rightNavigationButton: rightNavigationButton, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back), animateChanges: false)
-        let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: proxyServerSettingsControllerEntries(presentationData: presentationData, state: state, pasteboardSettings: pasteboardSettings, webCatalog: webCatalog), style: .blocks, emptyStateItem: nil, animateChanges: false)
+        let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: proxyServerSettingsControllerEntries(presentationData: presentationData, state: state, pasteboardSettings: pasteboardSettings), style: .blocks, emptyStateItem: nil, animateChanges: false)
         
         return (controllerState, (listState, arguments))
     }

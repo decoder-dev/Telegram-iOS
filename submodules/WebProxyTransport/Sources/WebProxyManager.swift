@@ -23,15 +23,16 @@ public final class WebProxyManager {
         }
     }
     
+    /// Called on the main queue when the sidecar endpoint becomes ready, fails to start, or stops at runtime.
+    public var onSidecarEvent: (() -> Void)?
+    
     private let lock = NSLock()
-    // Serializes start(configuration:), which blocks for up to 45s. Without this, two
-    // overlapping configure() calls for a changing configuration would both pass the
-    // fast-path check (self.configuration is only updated once a start finishes) and
-    // race to bootstrap their own sidecar in parallel.
     private let startLock = NSLock()
     private var sidecar: WebProxySidecar?
     private var configuration: WebProxyConfiguration?
     private var endpoint: LoopbackEndpoint?
+    private var startingConfiguration: WebProxyConfiguration?
+    private var startGeneration: UInt64 = 0
     
     private init() {
     }
@@ -48,84 +49,131 @@ public final class WebProxyManager {
         return self.configuration
     }
     
-    /// Starts or reuses the sidecar for the given WEB proxy. Returns false on failure (fail-closed).
+    public func isReady(for configuration: WebProxyConfiguration) -> Bool {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        return self.configuration == configuration && self.endpoint != nil
+    }
+    
+    /// Starts or reuses the sidecar for the given WEB proxy without blocking the caller.
+    /// Returns true when the loopback endpoint is already available for this configuration.
     @discardableResult
     public func configure(activeWebProxy server: WebProxyConfiguration?) -> Bool {
+        if server == nil {
+            self.startLock.lock()
+            defer { self.startLock.unlock() }
+            self.startGeneration &+= 1
+            self.startingConfiguration = nil
+            self.stopLocked()
+            return true
+        }
+        
         self.lock.lock()
         if server == self.configuration, self.endpoint != nil {
             self.lock.unlock()
             return true
         }
         self.lock.unlock()
-
-        if let server = server {
-            self.startLock.lock()
-            defer { self.startLock.unlock() }
-
-            // Another call may have already started this exact configuration while we
-            // were waiting for startLock.
-            self.lock.lock()
-            if server == self.configuration, self.endpoint != nil {
-                self.lock.unlock()
-                return true
-            }
-            self.lock.unlock()
-
-            return self.start(configuration: server)
-        } else {
-            self.startLock.lock()
-            defer { self.startLock.unlock() }
-            self.stop()
-            return true
+        
+        self.scheduleStart(configuration: server)
+        return self.isReady(for: server)
+    }
+    
+    private func scheduleStart(configuration: WebProxyConfiguration) {
+        self.startLock.lock()
+        self.startGeneration &+= 1
+        let generation = self.startGeneration
+        self.startingConfiguration = configuration
+        self.startLock.unlock()
+        
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            self?.startAsync(configuration: configuration, generation: generation)
         }
     }
-
-    public func stop() {
+    
+    private func startAsync(configuration: WebProxyConfiguration, generation: UInt64) {
+        guard let bridgeCapability = WebProxyBridgeCapability.derive(hostname: configuration.hostname, secret: configuration.secret) else {
+            self.finishStart(generation: generation, configuration: configuration, sidecar: nil, result: .failure(WebProxyHttpCarrierError.sessionCreationFailed))
+            return
+        }
+        
+        let sidecar = WebProxySidecar()
+        sidecar.start(hostname: configuration.hostname, secret: configuration.secret, bridgeCapability: bridgeCapability) { [weak self] result in
+            self?.finishStart(generation: generation, configuration: configuration, sidecar: sidecar, result: result)
+        }
+    }
+    
+    private func finishStart(generation: UInt64, configuration: WebProxyConfiguration, sidecar: WebProxySidecar?, result: Result<WebProxySidecar.Endpoint, Error>) {
+        self.startLock.lock()
+        let stillCurrent = generation == self.startGeneration && self.startingConfiguration == configuration
+        self.startLock.unlock()
+        
+        guard stillCurrent else {
+            sidecar?.stop()
+            return
+        }
+        
+        switch result {
+        case let .success(endpoint):
+            self.lock.lock()
+            self.sidecar?.stop()
+            self.sidecar = sidecar
+            self.configuration = configuration
+            self.endpoint = LoopbackEndpoint(host: endpoint.host, port: endpoint.port)
+            sidecar?.setFailureHandler { [weak self] in
+                self?.handleSidecarFailure()
+            }
+            self.lock.unlock()
+            
+            self.startLock.lock()
+            if self.startingConfiguration == configuration {
+                self.startingConfiguration = nil
+            }
+            self.startLock.unlock()
+            
+            self.notifySidecarEvent()
+        case .failure:
+            sidecar?.stop()
+            self.startLock.lock()
+            if generation == self.startGeneration {
+                self.startingConfiguration = nil
+            }
+            self.startLock.unlock()
+            
+            self.lock.lock()
+            if self.configuration == configuration {
+                self.stopLocked()
+            }
+            self.lock.unlock()
+            
+            self.notifySidecarEvent()
+        }
+    }
+    
+    private func handleSidecarFailure() {
+        self.startLock.lock()
+        self.startGeneration &+= 1
+        self.startingConfiguration = nil
+        self.startLock.unlock()
+        
         self.lock.lock()
+        self.stopLocked()
+        self.lock.unlock()
+        
+        self.notifySidecarEvent()
+    }
+    
+    private func stopLocked() {
         self.sidecar?.stop()
         self.sidecar = nil
         self.configuration = nil
         self.endpoint = nil
-        self.lock.unlock()
     }
     
-    private func start(configuration: WebProxyConfiguration) -> Bool {
-        guard let bridgeCapability = WebProxyBridgeCapability.derive(hostname: configuration.hostname, secret: configuration.secret) else {
-            self.stop()
-            return false
+    private func notifySidecarEvent() {
+        let handler = self.onSidecarEvent
+        DispatchQueue.main.async {
+            handler?()
         }
-        
-        let sidecar = WebProxySidecar()
-        let semaphore = DispatchSemaphore(value: 0)
-        var startResult: Result<WebProxySidecar.Endpoint, Error>?
-        
-        sidecar.start(hostname: configuration.hostname, secret: configuration.secret, bridgeCapability: bridgeCapability) { result in
-            startResult = result
-            semaphore.signal()
-        }
-        
-        let waitResult = semaphore.wait(timeout: .now() + 45.0)
-        if waitResult == .timedOut {
-            sidecar.stop()
-            self.stop()
-            return false
-        }
-        
-        guard case let .success(endpoint) = startResult else {
-            sidecar.stop()
-            self.stop()
-            return false
-        }
-        
-        self.lock.lock()
-        self.sidecar?.stop()
-        self.sidecar = sidecar
-        self.configuration = configuration
-        self.endpoint = LoopbackEndpoint(host: endpoint.host, port: endpoint.port)
-        sidecar.setFailureHandler { [weak self] in
-            self?.stop()
-        }
-        self.lock.unlock()
-        return true
     }
 }

@@ -16,11 +16,6 @@ import TableComponent
 import PresentationDataUtils
 import BundleIconComponent
 import OverlayStatusController
-import TelegramUIPreferences
-
-private func webProxyMaskingSiteTitle() -> String {
-    return ForkPresentationLanguage.prefersRussianStrings ? "Сайт маскировки" : "Masking site"
-}
 
 private final class ProxyServerPreviewSheetContent: CombinedComponent {
     typealias EnvironmentType = ViewControllerComponentContainer.Environment
@@ -285,7 +280,7 @@ private final class ProxyServerPreviewSheetContent: CombinedComponent {
                         
             tableItems.append(.init(
                 id: "server",
-                title: component.server.connection.isWebProxy ? webProxyMaskingSiteTitle() : strings.SocksProxySetup_Hostname,
+                title: component.server.connection.isWebProxy ? strings.SocksProxySetup_MaskingSite : strings.SocksProxySetup_Hostname,
                 component: AnyComponent(
                     MultilineTextComponent(text: .plain(NSAttributedString(string: component.server.host, font: tableFont, textColor: tableTextColor)))
                 )

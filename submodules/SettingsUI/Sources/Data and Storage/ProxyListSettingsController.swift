@@ -15,7 +15,6 @@ import UrlEscaping
 private final class ProxySettingsControllerArguments {
     let toggleEnabled: (Bool) -> Void
     let presentAddProxyMenu: () -> Void
-    let addCatalogServer: (WebProxyCatalogEntry) -> Void
     let activateServer: (ProxyServerSettings) -> Void
     let editServer: (ProxyServerSettings) -> Void
     let removeServer: (ProxyServerSettings) -> Void
@@ -26,10 +25,9 @@ private final class ProxySettingsControllerArguments {
     let toggleAutoFetch: (Bool) -> Void
     let shareProxyList: () -> Void
 
-    init(toggleEnabled: @escaping (Bool) -> Void, presentAddProxyMenu: @escaping () -> Void, addCatalogServer: @escaping (WebProxyCatalogEntry) -> Void, activateServer: @escaping (ProxyServerSettings) -> Void, editServer: @escaping (ProxyServerSettings) -> Void, removeServer: @escaping (ProxyServerSettings) -> Void, setServerWithRevealedOptions: @escaping (ProxyServerSettings?, ProxyServerSettings?) -> Void, toggleUseForCalls: @escaping (Bool) -> Void, toggleUseLocalDNS: @escaping (Bool) -> Void, toggleAutoRotate: @escaping (Bool) -> Void, toggleAutoFetch: @escaping (Bool) -> Void, shareProxyList: @escaping () -> Void) {
+    init(toggleEnabled: @escaping (Bool) -> Void, presentAddProxyMenu: @escaping () -> Void, activateServer: @escaping (ProxyServerSettings) -> Void, editServer: @escaping (ProxyServerSettings) -> Void, removeServer: @escaping (ProxyServerSettings) -> Void, setServerWithRevealedOptions: @escaping (ProxyServerSettings?, ProxyServerSettings?) -> Void, toggleUseForCalls: @escaping (Bool) -> Void, toggleUseLocalDNS: @escaping (Bool) -> Void, toggleAutoRotate: @escaping (Bool) -> Void, toggleAutoFetch: @escaping (Bool) -> Void, shareProxyList: @escaping () -> Void) {
         self.toggleEnabled = toggleEnabled
         self.presentAddProxyMenu = presentAddProxyMenu
-        self.addCatalogServer = addCatalogServer
         self.activateServer = activateServer
         self.editServer = editServer
         self.removeServer = removeServer
@@ -86,8 +84,6 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
     case enabled(PresentationTheme, String, Bool, Bool)
     case serversHeader(PresentationTheme, String)
     case addProxy(PresentationTheme, String, Bool)
-    case webCatalogHeader(PresentationTheme, String)
-    case webCatalogServer(PresentationTheme, WebProxyCatalogEntry)
     case server(Int, PresentationTheme, PresentationStrings, ProxyServerSettings, Bool, DisplayProxyServerStatus, ProxySettingsServerItemEditing, Bool, Bool)
     case shareProxyList(PresentationTheme, String)
     case useLocalDNS(PresentationTheme, String, Bool)
@@ -103,7 +99,7 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
         switch self {
             case .enabled:
                 return ProxySettingsControllerSection.enabled.rawValue
-            case .serversHeader, .addProxy, .webCatalogHeader, .webCatalogServer, .server:
+            case .serversHeader, .addProxy, .server:
                 return ProxySettingsControllerSection.servers.rawValue
             case .shareProxyList:
                 return ProxySettingsControllerSection.share.rawValue
@@ -122,10 +118,6 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
                 return .index(1)
             case .addProxy:
                 return .index(2)
-            case .webCatalogHeader:
-                return .index(14)
-            case let .webCatalogServer(_, entry):
-                return .server(entry.host, 443, .web(secret: entry.secret))
             case let .server(_, _, _, settings, _, _, _, _, _):
                 return .server(settings.host, settings.port, settings.connection)
             case .shareProxyList:
@@ -165,18 +157,6 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
                 }
             case let .addProxy(lhsTheme, lhsText, lhsEditing):
                 if case let .addProxy(rhsTheme, rhsText, rhsEditing) = rhs, lhsTheme === rhsTheme, lhsText == rhsText, lhsEditing == rhsEditing {
-                    return true
-                } else {
-                    return false
-                }
-            case let .webCatalogHeader(lhsTheme, lhsText):
-                if case let .webCatalogHeader(rhsTheme, rhsText) = rhs, lhsTheme === rhsTheme, lhsText == rhsText {
-                    return true
-                } else {
-                    return false
-                }
-            case let .webCatalogServer(lhsTheme, lhsEntry):
-                if case let .webCatalogServer(rhsTheme, rhsEntry) = rhs, lhsTheme === rhsTheme, lhsEntry == rhsEntry {
                     return true
                 } else {
                     return false
@@ -260,7 +240,7 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
                     default:
                         return true
                 }
-            case .addProxy, .webCatalogHeader, .webCatalogServer:
+            case .addProxy:
                 switch rhs {
                     case .enabled:
                         return false
@@ -269,7 +249,7 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
                 }
             case let .server(lhsIndex, _, _, _, _, _, _, _, _):
                 switch rhs {
-                    case .enabled, .serversHeader, .addProxy, .webCatalogHeader, .webCatalogServer:
+                    case .enabled, .serversHeader, .addProxy:
                         return false
                     case let .server(rhsIndex, _, _, _, _, _, _, _, _):
                         return lhsIndex < rhsIndex
@@ -278,56 +258,56 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
                 }
             case .shareProxyList:
                 switch rhs {
-                    case .enabled, .serversHeader, .addProxy, .webCatalogHeader, .webCatalogServer, .server, .shareProxyList:
+                    case .enabled, .serversHeader, .addProxy, .server, .shareProxyList:
                         return false
                     default:
                         return true
             }
             case .useLocalDNS:
                 switch rhs {
-                    case .enabled, .serversHeader, .addProxy, .webCatalogHeader, .webCatalogServer, .server, .shareProxyList, .useLocalDNS:
+                    case .enabled, .serversHeader, .addProxy, .server, .shareProxyList, .useLocalDNS:
                         return false
                     default:
                         return true
                 }
             case .useLocalDNSInfo:
                 switch rhs {
-                    case .enabled, .serversHeader, .addProxy, .webCatalogHeader, .webCatalogServer, .server, .shareProxyList, .useLocalDNS, .useLocalDNSInfo:
+                    case .enabled, .serversHeader, .addProxy, .server, .shareProxyList, .useLocalDNS, .useLocalDNSInfo:
                         return false
                     default:
                         return true
                 }
             case .autoRotate:
                 switch rhs {
-                    case .enabled, .serversHeader, .addProxy, .webCatalogHeader, .webCatalogServer, .server, .shareProxyList, .useLocalDNS, .useLocalDNSInfo, .autoRotate:
+                    case .enabled, .serversHeader, .addProxy, .server, .shareProxyList, .useLocalDNS, .useLocalDNSInfo, .autoRotate:
                         return false
                     default:
                         return true
                 }
             case .autoRotateInfo:
                 switch rhs {
-                    case .enabled, .serversHeader, .addProxy, .webCatalogHeader, .webCatalogServer, .server, .shareProxyList, .useLocalDNS, .useLocalDNSInfo, .autoRotate, .autoRotateInfo:
+                    case .enabled, .serversHeader, .addProxy, .server, .shareProxyList, .useLocalDNS, .useLocalDNSInfo, .autoRotate, .autoRotateInfo:
                         return false
                     default:
                         return true
                 }
             case .autoFetch:
                 switch rhs {
-                    case .enabled, .serversHeader, .addProxy, .webCatalogHeader, .webCatalogServer, .server, .shareProxyList, .useLocalDNS, .useLocalDNSInfo, .autoRotate, .autoRotateInfo, .autoFetch:
+                    case .enabled, .serversHeader, .addProxy, .server, .shareProxyList, .useLocalDNS, .useLocalDNSInfo, .autoRotate, .autoRotateInfo, .autoFetch:
                         return false
                     default:
                         return true
                 }
             case .autoFetchInfo:
                 switch rhs {
-                    case .enabled, .serversHeader, .addProxy, .webCatalogHeader, .webCatalogServer, .server, .shareProxyList, .useLocalDNS, .useLocalDNSInfo, .autoRotate, .autoRotateInfo, .autoFetch, .autoFetchInfo:
+                    case .enabled, .serversHeader, .addProxy, .server, .shareProxyList, .useLocalDNS, .useLocalDNSInfo, .autoRotate, .autoRotateInfo, .autoFetch, .autoFetchInfo:
                         return false
                     default:
                         return true
                 }
             case .useForCalls:
                 switch rhs {
-                    case .enabled, .serversHeader, .addProxy, .webCatalogHeader, .webCatalogServer, .server, .shareProxyList, .useLocalDNS, .useLocalDNSInfo, .autoRotate, .autoRotateInfo, .autoFetch, .autoFetchInfo, .useForCalls:
+                    case .enabled, .serversHeader, .addProxy, .server, .shareProxyList, .useLocalDNS, .useLocalDNSInfo, .autoRotate, .autoRotateInfo, .autoFetch, .autoFetchInfo, .useForCalls:
                         return false
                     default:
                         return true
@@ -353,12 +333,6 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
             case let .addProxy(_, text, editing):
                 return ProxySettingsActionItem(presentationData: presentationData, systemStyle: .glass, title: text, icon: .add, sectionId: self.section, editing: editing, action: {
                     arguments.presentAddProxyMenu()
-                })
-            case let .webCatalogHeader(_, text):
-                return ItemListSectionHeaderItem(presentationData: presentationData, text: text, sectionId: self.section)
-            case let .webCatalogServer(_, entry):
-                return ProxySettingsActionItem(presentationData: presentationData, systemStyle: .glass, title: entry.host, icon: .add, sectionId: self.section, editing: false, action: {
-                    arguments.addCatalogServer(entry)
                 })
             case let .server(_, theme, strings, settings, active, status, editing, enabled, _):
                 return ProxySettingsServerItem(theme: theme, strings: strings, systemStyle: .glass, server: settings, activity: status.activity, active: active, color: enabled ? .accent : .secondary, label: status.text, labelAccent: status.textActive, editing: editing, sectionId: self.section, action: {
@@ -402,25 +376,12 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
     }
 }
 
-private func proxyListWebCatalogHeaderTitle() -> String {
-    return ForkPresentationLanguage.prefersRussianStrings ? "WEB-ПРОКСИ ИЗ КАТАЛОГА" : "WEB PROXIES FROM CATALOG"
-}
-
-private func proxySettingsControllerEntries(theme: PresentationTheme, strings: PresentationStrings, state: ProxySettingsControllerState, proxySettings: ProxySettings, statuses: [ProxyServerSettings: ProxyServerStatus], connectionStatus: ConnectionStatus, webCatalog: [WebProxyCatalogEntry]) -> [ProxySettingsControllerEntry] {
+private func proxySettingsControllerEntries(theme: PresentationTheme, strings: PresentationStrings, state: ProxySettingsControllerState, proxySettings: ProxySettings, statuses: [ProxyServerSettings: ProxyServerStatus], connectionStatus: ConnectionStatus) -> [ProxySettingsControllerEntry] {
     var entries: [ProxySettingsControllerEntry] = []
 
     entries.append(.enabled(theme, strings.ChatSettings_ConnectionType_UseProxy, proxySettings.enabled, proxySettings.servers.isEmpty && !proxySettings.autoFetchPublicMtProxy))
     entries.append(.serversHeader(theme, strings.SocksProxySetup_SavedProxies))
-    let addProxyTitle = ForkPresentationLanguage.prefersRussianStrings ? "Добавить прокси" : "Add Proxy"
-    entries.append(.addProxy(theme, addProxyTitle, state.editing))
-    let savedServers = Set(proxySettings.servers)
-    let unaddedWebCatalog = webCatalog.filter { !savedServers.contains($0.settings) }
-    if !unaddedWebCatalog.isEmpty {
-        entries.append(.webCatalogHeader(theme, proxyListWebCatalogHeaderTitle()))
-        for entry in unaddedWebCatalog {
-            entries.append(.webCatalogServer(theme, entry))
-        }
-    }
+    entries.append(.addProxy(theme, strings.SocksProxySetup_AddProxy, state.editing))
     var index = 0
     var existingServers = Set<ProxyServerSettings>()
     let automatic = Set(proxySettings.automaticServers)
@@ -455,7 +416,7 @@ private func proxySettingsControllerEntries(theme: PresentationTheme, strings: P
                 case .mtp:
                     text = strings.SocksProxySetup_ProxyTelegram
                 case .web:
-                    text = ForkPresentationLanguage.prefersRussianStrings ? "WEB-прокси" : "WEB Proxy"
+                    text = strings.SocksProxySetup_ProxyWeb
             }
             if server.connection.isWebProxy {
                 displayStatus = DisplayProxyServerStatus(activity: false, text: text, textActive: false)
@@ -574,17 +535,6 @@ public func proxySettingsController(accountManager: AccountManager<TelegramAccou
         }).start()
     }, presentAddProxyMenu: {
         presentAddProxyMenuImpl?()
-    }, addCatalogServer: { entry in
-        let _ = updateProxySettingsInteractively(accountManager: accountManager, { current in
-            var current = current
-            let server = entry.settings
-            if !current.servers.contains(server) {
-                current.servers.append(server)
-            }
-            current.activeServer = server
-            current.enabled = true
-            return current
-        }).start()
     }, activateServer: { server in
         let _ = updateProxySettingsInteractively(accountManager: accountManager, { current in
             var current = current
@@ -662,11 +612,8 @@ public func proxySettingsController(accountManager: AccountManager<TelegramAccou
         return proxySettings.servers.filter { !proxySettings.automaticServers.contains($0) }
     })
     
-    let catalogPromise = Promise<[WebProxyCatalogEntry]>([])
-    catalogPromise.set(fetchWebProxyCatalog())
-    
-    let signal = combineLatest(updatedPresentationData, statePromise.get(), proxySettings.get(), statusesContext.statuses(), network.connectionStatus, catalogPromise.get())
-    |> map { presentationData, state, proxySettings, statuses, connectionStatus, webCatalog -> (ItemListControllerState, (ItemListNodeState, Any)) in
+    let signal = combineLatest(updatedPresentationData, statePromise.get(), proxySettings.get(), statusesContext.statuses(), network.connectionStatus)
+    |> map { presentationData, state, proxySettings, statuses, connectionStatus -> (ItemListControllerState, (ItemListNodeState, Any)) in
         var presentationData = presentationData
         let updatedTheme = presentationData.theme.withModalBlocksBackground()
         presentationData = presentationData.withUpdated(theme: updatedTheme)
@@ -700,7 +647,7 @@ public func proxySettingsController(accountManager: AccountManager<TelegramAccou
         }
         
         let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .text(presentationData.strings.SocksProxySetup_Title), leftNavigationButton: leftNavigationButton, rightNavigationButton: rightNavigationButton, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back))
-        let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: proxySettingsControllerEntries(theme: presentationData.theme, strings: presentationData.strings, state: state, proxySettings: proxySettings, statuses: statuses, connectionStatus: connectionStatus, webCatalog: webCatalog), style: .blocks, ensureVisibleItemTag: focusOnItemTag)
+        let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: proxySettingsControllerEntries(theme: presentationData.theme, strings: presentationData.strings, state: state, proxySettings: proxySettings, statuses: statuses, connectionStatus: connectionStatus), style: .blocks, ensureVisibleItemTag: focusOnItemTag)
         
         return (controllerState, (listState, arguments))
     }
@@ -824,7 +771,7 @@ public func proxySettingsController(accountManager: AccountManager<TelegramAccou
                 actionSheet?.dismissAnimated()
                 addServer(.mtp)
             }),
-            ActionSheetButtonItem(title: ForkPresentationLanguage.prefersRussianStrings ? "WEB-прокси" : "WEB Proxy", color: .accent, action: { [weak actionSheet] in
+            ActionSheetButtonItem(title: presentationData.strings.SocksProxySetup_ProxyWeb, color: .accent, action: { [weak actionSheet] in
                 actionSheet?.dismissAnimated()
                 addServer(.web)
             })

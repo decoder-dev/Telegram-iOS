@@ -19,7 +19,8 @@ extension ProxyServerSettings {
                 return MTSocksProxySettings(ip: self.host, port: UInt16(clamping: self.port), username: nil, password: nil, secret: secret)
             case let .web(secret):
                 let configuration = WebProxyConfiguration(hostname: self.host, secret: secret)
-                guard WebProxyManager.shared.configure(activeWebProxy: configuration),
+                WebProxyManager.shared.configure(activeWebProxy: configuration)
+                guard WebProxyManager.shared.isReady(for: configuration),
                       let endpoint = WebProxyManager.shared.activeLoopbackEndpoint else {
                     return nil
                 }
@@ -87,5 +88,14 @@ func applySharedProxySettingsToNetwork(settings: ProxySettings, network: Network
         } else {
             return nil
         }
+    }
+}
+
+public func registerWebProxySidecarReapply(network: Network, currentSettings: @escaping () -> ProxySettings) {
+    WebProxyManager.shared.onSidecarEvent = { [weak network] in
+        guard let network = network else {
+            return
+        }
+        applySharedProxySettingsToNetwork(settings: currentSettings(), network: network)
     }
 }
