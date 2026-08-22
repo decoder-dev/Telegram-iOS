@@ -11,6 +11,16 @@ import AccountContext
 import UrlEscaping
 import UrlHandling
 import QrCodeUI
+import WebProxyTransport
+import TelegramUIPreferences
+
+private func webProxyModeTitle() -> String {
+    return ForkPresentationLanguage.prefersRussianStrings ? "WEB-прокси" : "WEB Proxy"
+}
+
+private func webProxyMaskingSiteTitle() -> String {
+    return ForkPresentationLanguage.prefersRussianStrings ? "Сайт маскировки" : "Masking site"
+}
 
 private final class ProxyServerSettingsControllerArguments {
     let updateState: ((ProxyServerSettingsControllerState) -> ProxyServerSettingsControllerState) -> Void
@@ -38,6 +48,7 @@ private enum ProxySettingsEntry: ItemListNodeEntry {
     
     case modeSocks5(PresentationTheme, String, Bool)
     case modeMtp(PresentationTheme, String, Bool)
+    case modeWeb(PresentationTheme, String, Bool)
     
     case connectionHeader(PresentationTheme, String)
     case connectionServer(PresentationTheme, PresentationStrings, String, String)
@@ -54,7 +65,7 @@ private enum ProxySettingsEntry: ItemListNodeEntry {
         switch self {
             case .usePasteboardSettings, .usePasteboardInfo:
                 return ProxySettingsSection.pasteboard.rawValue
-            case .modeSocks5, .modeMtp:
+            case .modeSocks5, .modeMtp, .modeWeb:
                 return ProxySettingsSection.mode.rawValue
             case .connectionHeader, .connectionServer, .connectionPort:
                 return ProxySettingsSection.connection.rawValue
@@ -75,6 +86,8 @@ private enum ProxySettingsEntry: ItemListNodeEntry {
                 return 2
             case .modeMtp:
                 return 3
+            case .modeWeb:
+                return 11
             case .connectionHeader:
                 return 4
             case .connectionServer:
@@ -120,6 +133,15 @@ private enum ProxySettingsEntry: ItemListNodeEntry {
                     arguments.updateState { state in
                         var state = state
                         state.mode = .mtp
+                        return state
+                    }
+                })
+            case let .modeWeb(_, text, value):
+                return ItemListCheckboxItem(presentationData: presentationData, systemStyle: .glass, title: text, style: .left, checked: value, zeroSeparatorInsets: false, sectionId: self.section, action: {
+                    arguments.updateState { state in
+                        var state = state
+                        state.mode = .web
+                        state.port = "443"
                         return state
                     }
                 })
@@ -178,6 +200,7 @@ private enum ProxySettingsEntry: ItemListNodeEntry {
 private enum ProxyServerSettingsControllerMode {
     case socks5
     case mtp
+    case web
 }
 
 private struct ProxyServerSettingsControllerState: Equatable {
@@ -189,17 +212,26 @@ private struct ProxyServerSettingsControllerState: Equatable {
     var secret: String
     
     var isComplete: Bool {
-        if self.host.isEmpty || self.port.isEmpty || Int(self.port) == nil {
+        if self.host.isEmpty {
             return false
         }
         switch self.mode {
             case .socks5:
-                break
-            case .mtp:
-                let secretIsValid = MTProxySecret.parse(self.secret) != nil
-                if !secretIsValid {
+                if self.port.isEmpty || Int(self.port) == nil {
                     return false
                 }
+            case .mtp, .web:
+                if MTProxySecret.parse(self.secret) == nil {
+                    return false
+                }
+                if self.mode == .web && !WebProxyHostname.isValid(self.host.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()) {
+                    return false
+                }
+        }
+        if self.mode != .web {
+            if self.port.isEmpty || Int(self.port) == nil {
+                return false
+            }
         }
         return true
     }
@@ -214,17 +246,21 @@ private func proxyServerSettingsControllerEntries(presentationData: Presentation
     
     entries.append(.modeSocks5(presentationData.theme, presentationData.strings.SocksProxySetup_ProxySocks5, state.mode == .socks5))
     entries.append(.modeMtp(presentationData.theme, presentationData.strings.SocksProxySetup_ProxyTelegram, state.mode == .mtp))
+    entries.append(.modeWeb(presentationData.theme, webProxyModeTitle(), state.mode == .web))
     
     entries.append(.connectionHeader(presentationData.theme, presentationData.strings.SocksProxySetup_Connection.uppercased()))
-    entries.append(.connectionServer(presentationData.theme, presentationData.strings, presentationData.strings.SocksProxySetup_Hostname, state.host))
-    entries.append(.connectionPort(presentationData.theme, presentationData.strings, presentationData.strings.SocksProxySetup_Port, state.port))
+    let serverPlaceholder = state.mode == .web ? webProxyMaskingSiteTitle() : presentationData.strings.SocksProxySetup_Hostname
+    entries.append(.connectionServer(presentationData.theme, presentationData.strings, serverPlaceholder, state.host))
+    if state.mode != .web {
+        entries.append(.connectionPort(presentationData.theme, presentationData.strings, presentationData.strings.SocksProxySetup_Port, state.port))
+    }
     
     switch state.mode {
         case .socks5:
             entries.append(.credentialsHeader(presentationData.theme, presentationData.strings.SocksProxySetup_Credentials))
             entries.append(.credentialsUsername(presentationData.theme, presentationData.strings, presentationData.strings.SocksProxySetup_Username, state.username))
             entries.append(.credentialsPassword(presentationData.theme, presentationData.strings, presentationData.strings.SocksProxySetup_Password, state.password))
-        case .mtp:
+        case .mtp, .web:
             entries.append(.credentialsHeader(presentationData.theme, presentationData.strings.SocksProxySetup_RequiredCredentials))
             entries.append(.credentialsSecret(presentationData.theme, presentationData.strings, presentationData.strings.SocksProxySetup_SecretPlaceholder, state.secret))
     }
@@ -235,18 +271,27 @@ private func proxyServerSettingsControllerEntries(presentationData: Presentation
 }
 
 private func proxyServerSettings(with state: ProxyServerSettingsControllerState) -> ProxyServerSettings? {
-    if state.isComplete, let port = Int32(state.port) {
-        switch state.mode {
-            case .socks5:
-                return ProxyServerSettings(host: state.host, port: port, connection: .socks5(username: state.username.isEmpty ? nil : state.username, password: state.password.isEmpty ? nil : state.password))
-            case .mtp:
-                let parsedSecret = MTProxySecret.parse(state.secret)
-                if let parsedSecret = parsedSecret {
-                    return ProxyServerSettings(host: state.host, port: port, connection: .mtp(secret: parsedSecret.serialize()))
-                }
-        }
+    guard state.isComplete else {
+        return nil
     }
-    return nil
+    switch state.mode {
+        case .socks5:
+            guard let port = Int32(state.port) else {
+                return nil
+            }
+            return ProxyServerSettings(host: state.host, port: port, connection: .socks5(username: state.username.isEmpty ? nil : state.username, password: state.password.isEmpty ? nil : state.password))
+        case .mtp:
+            guard let port = Int32(state.port), let parsedSecret = MTProxySecret.parse(state.secret) else {
+                return nil
+            }
+            return ProxyServerSettings(host: state.host, port: port, connection: .mtp(secret: parsedSecret.serialize()))
+        case .web:
+            guard let parsedSecret = MTProxySecret.parse(state.secret) else {
+                return nil
+            }
+            let host = state.host.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            return ProxyServerSettings(host: host, port: 443, connection: .web(secret: parsedSecret.serialize()))
+    }
 }
 
 public func proxyServerSettingsController(context: AccountContext, currentSettings: ProxyServerSettings? = nil) -> ViewController {
@@ -269,9 +314,15 @@ func proxyServerSettingsController(sharedContext: SharedAccountContext, context:
             case let .mtp(secret):
                 currentSecret = hexString(secret)
                 currentMode = .mtp
+            case let .web(secret):
+                currentSecret = hexString(secret)
+                currentMode = .web
         }
     } else {
-        if let proxy = parseProxyUrl(sharedContext: sharedContext, url: UIPasteboard.general.string ?? "") {
+        let pasteboardUrl = UIPasteboard.general.string ?? ""
+        if let webProxy = parseWebProxyUrl(sharedContext: sharedContext, url: pasteboardUrl) {
+            pasteboardSettings = ProxyServerSettings(host: webProxy.host, port: 443, connection: .web(secret: webProxy.secret))
+        } else if let proxy = parseProxyUrl(sharedContext: sharedContext, url: pasteboardUrl) {
             if let secret = proxy.secret, let parsedSecret = MTProxySecret.parseData(secret) {
                 pasteboardSettings = ProxyServerSettings(host: proxy.host, port: proxy.port, connection: .mtp(secret: parsedSecret.serialize()))
             } else {
@@ -309,6 +360,10 @@ func proxyServerSettingsController(sharedContext: SharedAccountContext, context:
                         state.password = password ?? ""
                     case let .mtp(secret):
                         state.mode = .mtp
+                        state.secret = hexString(secret)
+                    case let .web(secret):
+                        state.mode = .web
+                        state.port = "443"
                         state.secret = hexString(secret)
                 }
                 return state

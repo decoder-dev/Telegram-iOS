@@ -25,6 +25,9 @@ public struct ParsedSecureIdUrl {
 }
 
 public func parseProxyUrl(sharedContext: SharedAccountContext, url: URL) -> ProxyServerSettings? {
+    if let webProxy = parseWebProxyUrl(sharedContext: sharedContext, url: url.absoluteString) {
+        return ProxyServerSettings(host: webProxy.host, port: 443, connection: .web(secret: webProxy.secret))
+    }
     guard let proxy = parseProxyUrl(sharedContext: sharedContext, url: url.absoluteString) else {
         return nil
     }
@@ -574,6 +577,15 @@ func openExternalUrlImpl(context: AccountContext, urlContext: OpenURLContext, ur
                             queryItems.append(URLQueryItem(name: "host", value: secretHost))
                         }
                         convertedUrl = makeTelegramUrl("/proxy", queryItems: queryItems)
+                    }
+                case "webproxy":
+                    let server = params["server"] ?? params["host"]
+                    let secret = params["secret"]
+                    if let server, !server.isEmpty, let secret {
+                        convertedUrl = makeTelegramUrl("/webproxy", queryItems: [
+                            URLQueryItem(name: "server", value: server),
+                            URLQueryItem(name: "secret", value: secret)
+                        ])
                     }
                 case "passport", "oauth", "resolve":
                     if isOAuthUrl(parsedUrl) {

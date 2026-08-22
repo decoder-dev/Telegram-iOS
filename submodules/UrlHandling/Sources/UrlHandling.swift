@@ -136,6 +136,7 @@ public enum ParsedInternalUrl {
     case joinCall(String)
     case localization(String)
     case proxy(host: String, port: Int32, username: String?, password: String?, secret: Data?)
+    case webProxy(host: String, secret: Data?)
     case internalInstantView(url: String)
     case confirmationCode(Int)
     case cancelAccountReset(phone: String, hash: String)
@@ -220,7 +221,7 @@ public func parseInternalUrl(sharedContext: SharedAccountContext, context: Accou
                         if let queryItems = components.queryItems {
                             for queryItem in queryItems {
                                 if let value = queryItem.value {
-                                    if queryItem.name == "server" || queryItem.name == "proxy" {
+                                    if queryItem.name == "server" || queryItem.name == "proxy" || queryItem.name == "host" {
                                         server = value
                                     } else if queryItem.name == "port" {
                                         port = value
@@ -240,6 +241,25 @@ public func parseInternalUrl(sharedContext: SharedAccountContext, context: Accou
                         
                         if let server = server, !server.isEmpty, let port = port, let portValue = Int32(port) {
                             return .proxy(host: server, port: portValue, username: user, password: pass, secret: secret)
+                        }
+                    } else if peerName == "webproxy" {
+                        var server: String?
+                        var secret: Data?
+                        if let queryItems = components.queryItems {
+                            for queryItem in queryItems {
+                                if let value = queryItem.value {
+                                    if queryItem.name == "server" || queryItem.name == "host" {
+                                        server = value
+                                    } else if queryItem.name == "secret" {
+                                        if let parsedSecret = MTProxySecret.parse(value) {
+                                            secret = parsedSecret.serialize()
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        if let server = server, !server.isEmpty {
+                            return .webProxy(host: server, secret: secret)
                         }
                     } else if peerName == "iv" {
                         var url: String?
@@ -1252,6 +1272,8 @@ private func resolveInternalUrl(context: AccountContext, url: ParsedInternalUrl)
             return .single(.result(.localization(identifier)))
         case let .proxy(host, port, username, password, secret):
             return .single(.result(.proxy(host: host, port: port, username: username, password: password, secret: secret)))
+        case let .webProxy(host, secret):
+            return .single(.result(.webProxy(host: host, secret: secret)))
         case let .internalInstantView(url):
             return resolveInstantViewUrl(account: context.account, url: url)
             |> map { result in
@@ -1416,6 +1438,9 @@ public func parseProxyUrl(sharedContext: SharedAccountContext, url: String) -> (
                 if let internalUrl = parseInternalUrl(sharedContext: sharedContext, context: nil, query: String(url[basePrefix.endIndex...])), case let .proxy(host, port, username, password, secret) = internalUrl {
                     return (host, port, username, password, secret)
                 }
+                if let internalUrl = parseInternalUrl(sharedContext: sharedContext, context: nil, query: String(url[basePrefix.endIndex...])), case let .webProxy(host, secret) = internalUrl, let secret = secret {
+                    return (host, 443, nil, nil, secret)
+                }
             }
         }
     }
@@ -1423,8 +1448,31 @@ public func parseProxyUrl(sharedContext: SharedAccountContext, url: String) -> (
         if let internalUrl = parseInternalUrl(sharedContext: sharedContext, context: nil, query: host + "?" + query), case let .proxy(host, port, username, password, secret) = internalUrl {
             return (host, port, username, password, secret)
         }
+        if let internalUrl = parseInternalUrl(sharedContext: sharedContext, context: nil, query: host + "?" + query), case let .webProxy(host, secret) = internalUrl, let secret = secret {
+            return (host, 443, nil, nil, secret)
+        }
     }
     
+    return nil
+}
+
+public func parseWebProxyUrl(sharedContext: SharedAccountContext, url: String) -> (host: String, secret: Data)? {
+    let schemes = ["http://", "https://", ""]
+    for basePath in baseTelegramMePaths {
+        for scheme in schemes {
+            let basePrefix = scheme + basePath + "/"
+            if url.lowercased().hasPrefix(basePrefix) {
+                if let internalUrl = parseInternalUrl(sharedContext: sharedContext, context: nil, query: String(url[basePrefix.endIndex...])), case let .webProxy(host, secret) = internalUrl, let secret = secret {
+                    return (host, secret)
+                }
+            }
+        }
+    }
+    if let parsedUrl = URL(string: url), parsedUrl.scheme == "tg", let host = parsedUrl.host, let query = parsedUrl.query {
+        if let internalUrl = parseInternalUrl(sharedContext: sharedContext, context: nil, query: host + "?" + query), case let .webProxy(host, secret) = internalUrl, let secret = secret {
+            return (host, secret)
+        }
+    }
     return nil
 }
 

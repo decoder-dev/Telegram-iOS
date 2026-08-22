@@ -16,6 +16,11 @@ import TableComponent
 import PresentationDataUtils
 import BundleIconComponent
 import OverlayStatusController
+import TelegramUIPreferences
+
+private func webProxyMaskingSiteTitle() -> String {
+    return ForkPresentationLanguage.prefersRussianStrings ? "Сайт маскировки" : "Masking site"
+}
 
 private final class ProxyServerPreviewSheetContent: CombinedComponent {
     typealias EnvironmentType = ViewControllerComponentContainer.Environment
@@ -280,19 +285,21 @@ private final class ProxyServerPreviewSheetContent: CombinedComponent {
                         
             tableItems.append(.init(
                 id: "server",
-                title: strings.SocksProxySetup_Hostname,
+                title: component.server.connection.isWebProxy ? webProxyMaskingSiteTitle() : strings.SocksProxySetup_Hostname,
                 component: AnyComponent(
                     MultilineTextComponent(text: .plain(NSAttributedString(string: component.server.host, font: tableFont, textColor: tableTextColor)))
                 )
             ))
             
-            tableItems.append(.init(
-                id: "port",
-                title: strings.SocksProxySetup_Port,
-                component: AnyComponent(
-                    MultilineTextComponent(text: .plain(NSAttributedString(string: "\(component.server.port)", font: tableFont, textColor: tableTextColor)))
-                )
-            ))
+            if !component.server.connection.isWebProxy {
+                tableItems.append(.init(
+                    id: "port",
+                    title: strings.SocksProxySetup_Port,
+                    component: AnyComponent(
+                        MultilineTextComponent(text: .plain(NSAttributedString(string: "\(component.server.port)", font: tableFont, textColor: tableTextColor)))
+                    )
+                ))
+            }
             
             switch component.server.connection {
             case let .socks5(username, password):
@@ -314,7 +321,7 @@ private final class ProxyServerPreviewSheetContent: CombinedComponent {
                         )
                     ))
                 }
-            case .mtp:
+            case .mtp, .web:
                 tableItems.append(.init(
                     id: "secret",
                     title: strings.SocksProxySetup_Secret,

@@ -42,7 +42,7 @@ func managedProxyFailover(accountManager: AccountManager<TelegramAccountManagerT
             return .complete()
         }
         
-        guard settings.autoRotateProxies, settings.enabled, settings.servers.count > 1 else {
+        guard settings.autoRotateProxies, settings.enabled else {
             let _ = state.modify { s in
                 s.issueSince = nil
                 s.lastActive = nil
@@ -50,7 +50,16 @@ func managedProxyFailover(accountManager: AccountManager<TelegramAccountManagerT
             }
             return .complete()
         }
-        guard let active = settings.activeServer else {
+        let rotatableServers = settings.servers.filter { !$0.connection.isWebProxy }
+        guard rotatableServers.count > 1 else {
+            let _ = state.modify { s in
+                s.issueSince = nil
+                s.lastActive = nil
+                return s
+            }
+            return .complete()
+        }
+        guard let active = settings.activeServer, !active.connection.isWebProxy else {
             let _ = state.modify { s in
                 s.issueSince = nil
                 s.lastActive = nil
@@ -91,10 +100,10 @@ func managedProxyFailover(accountManager: AccountManager<TelegramAccountManagerT
             return .complete()
         }
         
-        guard let index = settings.servers.firstIndex(of: active) else {
+        guard let index = rotatableServers.firstIndex(of: active) else {
             return .complete()
         }
-        let next = settings.servers[(index + 1) % settings.servers.count]
+        let next = rotatableServers[(index + 1) % rotatableServers.count]
         if next == active {
             return .complete()
         }
