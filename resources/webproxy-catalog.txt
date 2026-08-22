@@ -1,0 +1,7 @@
+# WEB proxy catalog for Telegram-iOS fork.
+# One link per line: tg://webproxy?server=MASKING_SITE&secret=HEX
+# or https://t.me/webproxy?server=MASKING_SITE&secret=HEX
+#
+# MASKING_SITE must run tproxy-server (https://github.com/john-preston/tproxy-server).
+# Example (replace with your deployment):
+# tg://webproxy?server=proxy.example.com&secret=dd0123456789abcdef0123456789abcdef
