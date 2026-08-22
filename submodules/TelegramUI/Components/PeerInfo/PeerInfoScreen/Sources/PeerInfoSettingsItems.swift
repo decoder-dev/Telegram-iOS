@@ -152,26 +152,24 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
             interaction.openSettings(.profile)
         }))
         
-        if !settings.proxySettings.servers.isEmpty || settings.proxySettings.autoFetchPublicMtProxy {
-            let proxyType: String
-            if settings.proxySettings.autoFetchPublicMtProxy, settings.proxySettings.enabled {
-                proxyType = ForkPresentationLanguage.prefersRussianStrings ? "Авто" : "Auto"
-            } else if settings.proxySettings.enabled, let activeServer = settings.proxySettings.activeServer {
-                switch activeServer.connection {
-                case .mtp:
-                    proxyType = presentationData.strings.SocksProxySetup_ProxyTelegram
-                case .socks5:
-                    proxyType = presentationData.strings.SocksProxySetup_ProxySocks5
-                case .web:
-                    proxyType = ForkPresentationLanguage.prefersRussianStrings ? "WEB-прокси" : "WEB Proxy"
-                }
-            } else {
-                proxyType = presentationData.strings.Settings_ProxyDisabled
+        let proxyType: String
+        if settings.proxySettings.autoFetchPublicMtProxy, settings.proxySettings.enabled {
+            proxyType = ForkPresentationLanguage.prefersRussianStrings ? "Авто" : "Auto"
+        } else if settings.proxySettings.enabled, let activeServer = settings.proxySettings.activeServer {
+            switch activeServer.connection {
+            case .mtp:
+                proxyType = presentationData.strings.SocksProxySetup_ProxyTelegram
+            case .socks5:
+                proxyType = presentationData.strings.SocksProxySetup_ProxySocks5
+            case .web:
+                proxyType = ForkPresentationLanguage.prefersRussianStrings ? "WEB-прокси" : "WEB Proxy"
             }
-            items[.proxy]!.append(PeerInfoScreenDisclosureItem(id: 0, label: .text(proxyType), text: presentationData.strings.Settings_Proxy, icon: PresentationResourcesSettings.proxy, action: {
-                interaction.openSettings(.proxy)
-            }))
+        } else {
+            proxyType = presentationData.strings.Settings_ProxyDisabled
         }
+        items[.proxy]!.append(PeerInfoScreenDisclosureItem(id: 0, label: .text(proxyType), text: presentationData.strings.Settings_Proxy, icon: PresentationResourcesSettings.proxy, action: {
+            interaction.openSettings(.proxy)
+        }))
     }
     
     var appIndex = 1000
