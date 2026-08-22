@@ -39,7 +39,8 @@
 {
     if (block)
     {
-        for (id item in _items)
+        NSArray *items = [[NSArray alloc] initWithArray:_items];
+        for (id item in items)
         {
             block(item);
         }
