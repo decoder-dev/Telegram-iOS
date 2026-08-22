@@ -1,7 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg width="1024px" height="1024px" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<svg width="1024px" height="1024px" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
     <title>Plane</title>
-    <g id="Plane" stroke="none" fill="none" fill-rule="nonzero">
-        <path id="PlanePath" fill="#FFFFFF" d="M268,520 L710,345 L655,680 L560,690 L470,625 L590,455 L405,555 L300,555 Z"></path>
+    <defs>
+        <linearGradient id="planeBody" x1="28%" y1="22%" x2="72%" y2="88%">
+            <stop offset="0%" stop-color="#FFFFFF"/>
+            <stop offset="55%" stop-color="#F4F8FF"/>
+            <stop offset="100%" stop-color="#D8E4F5"/>
+        </linearGradient>
+        <linearGradient id="planeFold" x1="55%" y1="30%" x2="78%" y2="72%">
+            <stop offset="0%" stop-color="#E8EEF8"/>
+            <stop offset="100%" stop-color="#B8C8DE"/>
+        </linearGradient>
+        <linearGradient id="planeWing" x1="20%" y1="45%" x2="48%" y2="62%">
+            <stop offset="0%" stop-color="#FFFFFF"/>
+            <stop offset="100%" stop-color="#EAF0FA"/>
+        </linearGradient>
+        <filter id="planeShadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="8" dy="12" stdDeviation="10" flood-color="#000000" flood-opacity="0.22"/>
+        </filter>
+    </defs>
+    <g id="Plane" filter="url(#planeShadow)">
+        <path fill="url(#planeWing)" d="M268,520 L405,555 L300,555 Z"/>
+        <path fill="url(#planeBody)" d="M268,520 L710,345 L655,680 L560,690 L470,625 L590,455 L405,555 L300,555 Z"/>
+        <path fill="url(#planeFold)" d="M590,455 L710,345 L655,680 L560,690 L470,625 Z"/>
+        <path fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" opacity="0.65" d="M590,455 L710,345"/>
     </g>
 </svg>

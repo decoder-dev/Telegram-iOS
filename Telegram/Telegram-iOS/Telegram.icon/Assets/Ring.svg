@@ -1,7 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg width="1024px" height="1024px" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
     <title>Ring</title>
-    <g id="Ring" stroke="none" fill="none" fill-rule="nonzero">
-        <circle fill="#C8E6FF" cx="512" cy="512" r="480"></circle>
+    <defs>
+        <radialGradient id="ringMetal" cx="50%" cy="36%" r="58%">
+            <stop offset="0%" stop-color="#F2FAFF"/>
+            <stop offset="38%" stop-color="#C8E6FF"/>
+            <stop offset="72%" stop-color="#9ECBF0"/>
+            <stop offset="100%" stop-color="#6EAAD8"/>
+        </radialGradient>
+        <linearGradient id="ringSheen" x1="18%" y1="12%" x2="82%" y2="88%">
+            <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.75"/>
+            <stop offset="45%" stop-color="#FFFFFF" stop-opacity="0.08"/>
+            <stop offset="100%" stop-color="#000000" stop-opacity="0.12"/>
+        </linearGradient>
+    </defs>
+    <g id="Ring">
+        <circle fill="url(#ringMetal)" cx="512" cy="512" r="480"/>
+        <circle fill="url(#ringSheen)" cx="512" cy="512" r="480"/>
     </g>
 </svg>
