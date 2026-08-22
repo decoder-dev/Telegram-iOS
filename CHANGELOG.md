@@ -6,6 +6,14 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3905-pre] — 2026-08-22
+
+Pre-release: iMessage-style Tapbacks reaction panel on message long-press.
+
+### Changed
+- **Reactions (long-press):** glass capsule pill without Telegram bubble-tail; expand control moved under the trailing edge as a separate smile button (`Chat/Context Menu/Smile`).
+- **Tapbacks sizing:** ~52pt pill, 32pt emoji, 4pt spacing, max 7 visible reactions, secondary 30pt smile with 6pt gap; stretch-to-expand pan disabled in glass mode.
+
 ## [v12.9.2-3904-pre] — 2026-08-22
 
 Pre-release: high-detail Телеграм icon family + custom **Patriot** alternate icon.

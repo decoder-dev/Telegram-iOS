@@ -1477,6 +1477,9 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
         }
         
         let contentHeight = verticalInset * 2.0 + rowHeight
+        if !self.isExpanded {
+            self.currentContentHeight = contentHeight
+        }
         
         var backgroundInsets = insets
         backgroundInsets.left += sideInset
@@ -3344,7 +3347,9 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
         self.extensionDistance = 0.0
         self.visibleExtensionDistance = 0.0
         self.contentTopInset = self.titleLabelHeight ?? 0.0
-        self.currentContentHeight = 46.0
+        self.currentContentHeight = self.usesExternalExpandButton
+            ? (Self.tapbacksVerticalInset * 2.0 + Self.tapbacksRowHeight)
+            : 46.0
         self.isExpanded = false
         self.isCollapsing = true
         self.isExpandedUpdated(.animated(duration: 0.4, curve: .spring))
