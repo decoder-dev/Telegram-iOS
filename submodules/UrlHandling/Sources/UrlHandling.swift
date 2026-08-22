@@ -1273,6 +1273,9 @@ private func resolveInternalUrl(context: AccountContext, url: ParsedInternalUrl)
         case let .proxy(host, port, username, password, secret):
             return .single(.result(.proxy(host: host, port: port, username: username, password: password, secret: secret)))
         case let .webProxy(host, secret):
+            guard let secret = secret else {
+                return .single(.result(nil))
+            }
             return .single(.result(.webProxy(host: host, secret: secret)))
         case let .internalInstantView(url):
             return resolveInstantViewUrl(account: context.account, url: url)

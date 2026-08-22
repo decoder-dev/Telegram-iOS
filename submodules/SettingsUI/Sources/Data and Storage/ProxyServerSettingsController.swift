@@ -161,8 +161,8 @@ private enum ProxySettingsEntry: ItemListNodeEntry {
                 })
             case let .webCatalogHeader(_, text):
                 return ItemListSectionHeaderItem(presentationData: presentationData, text: text, sectionId: self.section)
-            case let .webCatalogSite(_, entry, _):
-                return ItemListCheckboxItem(presentationData: presentationData, systemStyle: .glass, title: entry.host, style: .left, checked: value, zeroSeparatorInsets: false, sectionId: self.section, action: {
+            case let .webCatalogSite(_, entry, selected):
+                return ItemListCheckboxItem(presentationData: presentationData, systemStyle: .glass, title: entry.host, style: .left, checked: selected, zeroSeparatorInsets: false, sectionId: self.section, action: {
                     arguments.selectCatalogEntry(entry)
                 })
             case let .webCatalogFooter(_, text):
@@ -406,7 +406,14 @@ func proxyServerSettingsController(sharedContext: SharedAccountContext, context:
     var shareImpl: (() -> Void)?
     
     let catalogPromise = Promise<[WebProxyCatalogEntry]>([])
-    catalogPromise.set(fetchWebProxyCatalog())
+    catalogPromise.set(accountManager.sharedData(keys: [SharedDataKeys.proxySettings])
+    |> map { sharedData -> Bool in
+        (sharedData.entries[SharedDataKeys.proxySettings]?.get(ProxySettings.self) ?? ProxySettings.defaultSettings).autoFetchPublicMtProxy
+    }
+    |> distinctUntilChanged
+    |> mapToSignal { autoFetch -> Signal<[WebProxyCatalogEntry], NoError> in
+        autoFetch ? fetchWebProxyCatalog() : .single([])
+    })
     
     let arguments = ProxyServerSettingsControllerArguments(updateState: { f in
         updateState(f)

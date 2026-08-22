@@ -42,20 +42,23 @@ public func updateProxySettingsInteractively(transaction: AccountManagerModifier
 func applySharedProxySettingsToNetwork(settings: ProxySettings, network: Network) {
     let previousForceLocalDNS = network.context.forceLocalDNS
     network.context.forceLocalDNS = settings.useLocalDNSForProxyHosts
-    
-    if let activeServer = settings.effectiveActiveServer, activeServer.connection.isWebProxy {
-        if case let .web(secret) = activeServer.connection {
-            let _ = WebProxyManager.shared.configure(activeWebProxy: WebProxyConfiguration(hostname: activeServer.host, secret: secret))
-        }
-    } else {
+
+    let activeServer = settings.effectiveActiveServer
+    let isActiveWebProxy = activeServer?.connection.isWebProxy ?? false
+    if !isActiveWebProxy {
         WebProxyManager.shared.configure(activeWebProxy: nil)
     }
-    
-    let updated = settings.effectiveActiveServer.flatMap { activeServer -> MTSocksProxySettings? in
-        return activeServer.mtProxySettings
-    }
+
+    // mtProxySettings configures (or reuses) the WEB proxy sidecar as a side effect;
+    // calling it here as well as above would start it twice.
+    let resolvedProxySettings = activeServer?.mtProxySettings
+
     network.context.updateApiEnvironment { environment in
         let current = environment?.socksProxySettings
+        // If a WEB proxy is selected but its local sidecar failed to start, fail closed:
+        // keep whatever proxy is already in effect instead of silently falling back to a
+        // direct, unproxied connection.
+        let updated = (isActiveWebProxy && resolvedProxySettings == nil) ? current : resolvedProxySettings
         let updateNetwork: Bool
         if previousForceLocalDNS != settings.useLocalDNSForProxyHosts {
             updateNetwork = true

@@ -441,9 +441,11 @@ private func proxySettingsControllerEntries(theme: PresentationTheme, strings: P
     entries.append(.addProxySocks5(theme, "\(addSuffix) SOCKS5", state.editing))
     entries.append(.addProxyMtp(theme, "\(addSuffix) \(strings.SocksProxySetup_ProxyTelegram)", state.editing))
     entries.append(.addProxyWeb(theme, "\(addSuffix) \(ForkPresentationLanguage.prefersRussianStrings ? "WEB-прокси" : "WEB Proxy")", state.editing))
-    if !webCatalog.isEmpty {
+    let savedServers = Set(proxySettings.servers)
+    let unaddedWebCatalog = webCatalog.filter { !savedServers.contains($0.settings) }
+    if !unaddedWebCatalog.isEmpty {
         entries.append(.webCatalogHeader(theme, proxyListWebCatalogHeaderTitle()))
-        for entry in webCatalog {
+        for entry in unaddedWebCatalog {
             entries.append(.webCatalogServer(theme, entry))
         }
     }
@@ -688,7 +690,12 @@ public func proxySettingsController(accountManager: AccountManager<TelegramAccou
     })
     
     let catalogPromise = Promise<[WebProxyCatalogEntry]>([])
-    catalogPromise.set(fetchWebProxyCatalog())
+    catalogPromise.set(proxySettings.get()
+    |> map { $0.autoFetchPublicMtProxy }
+    |> distinctUntilChanged
+    |> mapToSignal { autoFetch -> Signal<[WebProxyCatalogEntry], NoError> in
+        autoFetch ? fetchWebProxyCatalog() : .single([])
+    })
     
     let signal = combineLatest(updatedPresentationData, statePromise.get(), proxySettings.get(), statusesContext.statuses(), network.connectionStatus, catalogPromise.get())
     |> map { presentationData, state, proxySettings, statuses, connectionStatus, webCatalog -> (ItemListControllerState, (ItemListNodeState, Any)) in

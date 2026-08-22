@@ -9,9 +9,6 @@ swift_library(
     copts = [
         "-warnings-as-errors",
     ],
-    deps = [
-        "//submodules/SSignalKit/SwiftSignalKit:SwiftSignalKit",
-    ],
     visibility = [
         "//visibility:public",
     ],

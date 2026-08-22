@@ -24,10 +24,14 @@ public final class WebProxyManager {
     }
     
     private let lock = NSLock()
+    // Serializes start(configuration:), which blocks for up to 45s. Without this, two
+    // overlapping configure() calls for a changing configuration would both pass the
+    // fast-path check (self.configuration is only updated once a start finishes) and
+    // race to bootstrap their own sidecar in parallel.
+    private let startLock = NSLock()
     private var sidecar: WebProxySidecar?
     private var configuration: WebProxyConfiguration?
     private var endpoint: LoopbackEndpoint?
-    private var isStarting = false
     
     private init() {
     }
@@ -53,22 +57,33 @@ public final class WebProxyManager {
             return true
         }
         self.lock.unlock()
-        
+
         if let server = server {
+            self.startLock.lock()
+            defer { self.startLock.unlock() }
+
+            // Another call may have already started this exact configuration while we
+            // were waiting for startLock.
+            self.lock.lock()
+            if server == self.configuration, self.endpoint != nil {
+                self.lock.unlock()
+                return true
+            }
+            self.lock.unlock()
+
             return self.start(configuration: server)
         } else {
             self.stop()
             return true
         }
     }
-    
+
     public func stop() {
         self.lock.lock()
         self.sidecar?.stop()
         self.sidecar = nil
         self.configuration = nil
         self.endpoint = nil
-        self.isStarting = false
         self.lock.unlock()
     }
     
@@ -105,7 +120,6 @@ public final class WebProxyManager {
         self.sidecar = sidecar
         self.configuration = configuration
         self.endpoint = LoopbackEndpoint(host: endpoint.host, port: endpoint.port)
-        self.isStarting = false
         sidecar.setFailureHandler { [weak self] in
             self?.stop()
         }
