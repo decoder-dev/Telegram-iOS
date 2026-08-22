@@ -229,7 +229,7 @@ private final class ExpandItemView: UIView {
                 iconSize = image.size
                 transition.updateFrame(view: self.arrowView, frame: CGRect(origin: CGPoint(x: floorToScreenPixels((size.width - iconSize.width) / 2.0), y: floorToScreenPixels(size.height - size.width + (size.width - iconSize.height) / 2.0 + 1.0)), size: iconSize))
             case .externalSmile:
-                let maxSide = min(18.0, min(size.width, size.height) - 12.0)
+                let maxSide = min(15.0, min(size.width, size.height) - 10.0)
                 let aspect = image.size.width > 0.0 ? (image.size.height / image.size.width) : 1.0
                 iconSize = CGSize(width: maxSide, height: floor(maxSide * aspect))
                 transition.updateFrame(view: self.arrowView, frame: CGRect(origin: CGPoint(x: floorToScreenPixels((size.width - iconSize.width) / 2.0), y: floorToScreenPixels((size.height - iconSize.height) / 2.0)), size: iconSize))
@@ -482,11 +482,22 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
     public var contentHeight: CGFloat {
         var height = self.contentTopInset + self.currentContentHeight
         if self.usesExternalExpandButton && !self.isExpanded && self.expandItemView != nil {
-            // Pill + gap + smile control under Tapbacks (iMessage).
-            height += 8.0 + 36.0
+            // Pill + gap + secondary smile control (Tapbacks proportions).
+            height += Self.tapbacksSmileGap + Self.tapbacksSmileSize
         }
         return height
     }
+    
+    /// iMessage Tapbacks-scale metrics for the glass reaction pill + external smile.
+    private static let tapbacksItemSize: CGFloat = 32.0
+    private static let tapbacksItemSpacing: CGFloat = 4.0
+    private static let tapbacksSideInset: CGFloat = 8.0
+    private static let tapbacksVerticalInset: CGFloat = 10.0
+    private static let tapbacksRowHeight: CGFloat = 32.0
+    private static let tapbacksSmileSize: CGFloat = 30.0
+    private static let tapbacksSmileGap: CGFloat = 6.0
+    private static let tapbacksSmileTrailingInset: CGFloat = 4.0
+    private static let tapbacksMaxVisibleItems: Int = 7
     
     private var currentContentHeight: CGFloat = 46.0
     public private(set) var isExpanded: Bool = false
@@ -1383,11 +1394,25 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
         self.validLayout = (size, insets, anchorRect, isCoveredByInput, centerAligned)
         
         let externalSideInset: CGFloat = 4.0
-        let sideInset: CGFloat = self.usesExternalExpandButton ? 10.0 : 6.0
-        let itemSpacing: CGFloat = self.usesExternalExpandButton ? 6.0 : 8.0
-        var itemSize: CGFloat = self.usesExternalExpandButton ? 34.0 : 36.0
-        let verticalInset: CGFloat = self.usesExternalExpandButton ? 11.0 : 13.0
-        let rowHeight: CGFloat = self.usesExternalExpandButton ? 28.0 : 30.0
+        let sideInset: CGFloat
+        let itemSpacing: CGFloat
+        var itemSize: CGFloat
+        let verticalInset: CGFloat
+        let rowHeight: CGFloat
+        if self.usesExternalExpandButton {
+            // Balanced Tapbacks proportions: ~52pt pill, 32pt emoji, secondary 30pt smile.
+            sideInset = Self.tapbacksSideInset
+            itemSpacing = Self.tapbacksItemSpacing
+            itemSize = Self.tapbacksItemSize
+            verticalInset = Self.tapbacksVerticalInset
+            rowHeight = Self.tapbacksRowHeight
+        } else {
+            sideInset = 6.0
+            itemSpacing = 8.0
+            itemSize = 36.0
+            verticalInset = 13.0
+            rowHeight = 30.0
+        }
         
         var itemCount: Int
         var visibleContentWidth: CGFloat
@@ -1399,12 +1424,13 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
             
             var maxRowItemCount = Int(floor((size.width - sideInset * 2.0 - externalSideInset * 2.0 - itemSpacing) / (itemSize + itemSpacing)))
             
-            if maxRowItemCount < 8 {
-                itemSize = floor((size.width - sideInset * 2.0 - externalSideInset * 2.0 - itemSpacing - 8 * itemSpacing) / 8.0)
+            let preferredMaxVisible = self.usesExternalExpandButton ? Self.tapbacksMaxVisibleItems : 8
+            if maxRowItemCount < preferredMaxVisible {
+                itemSize = floor((size.width - sideInset * 2.0 - externalSideInset * 2.0 - itemSpacing - CGFloat(preferredMaxVisible) * itemSpacing) / CGFloat(preferredMaxVisible))
                 maxRowItemCount = Int(floor((size.width - sideInset * 2.0 - externalSideInset * 2.0 - itemSpacing) / (itemSize + itemSpacing)))
             }
             
-            maxRowItemCount = min(maxRowItemCount, 8)
+            maxRowItemCount = min(maxRowItemCount, preferredMaxVisible)
             itemCount = min(totalItemSlotCount, maxRowItemCount)
             if self.isExpanded {
                 itemCount = maxRowItemCount
@@ -1489,17 +1515,17 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
         self.scrollNode.view.contentSize = CGSize(width: completeContentWidth, height: scrollFrame.size.height)
         
         if self.usesExternalExpandButton, let expandItemView = self.expandItemView {
-            let expandItemSize: CGFloat = self.highlightedReaction != nil ? floor(36.0 * 0.92) : 36.0
-            // Sit clearly under the trailing edge of the pill (iMessage Tapbacks).
+            let expandItemSize: CGFloat = self.highlightedReaction != nil ? floor(Self.tapbacksSmileSize * 0.94) : Self.tapbacksSmileSize
+            // Secondary control under the trailing edge — slightly smaller than reaction glyphs.
             var expandFrame = CGRect(
                 origin: CGPoint(
-                    x: visualBackgroundFrame.maxX - expandItemSize - 2.0,
-                    y: visualBackgroundFrame.maxY + 8.0
+                    x: visualBackgroundFrame.maxX - expandItemSize - Self.tapbacksSmileTrailingInset,
+                    y: visualBackgroundFrame.maxY + Self.tapbacksSmileGap
                 ),
                 size: CGSize(width: expandItemSize, height: expandItemSize)
             )
             if self.isExpanded {
-                expandFrame.origin.y = visualBackgroundFrame.maxY + 8.0
+                expandFrame.origin.y = visualBackgroundFrame.maxY + Self.tapbacksSmileGap
                 transition.updateAlpha(layer: expandItemView.layer, alpha: 0.0)
             } else {
                 transition.updateAlpha(layer: expandItemView.layer, alpha: 1.0)
@@ -3402,8 +3428,16 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
             }
         }
         if let closestItem = closestItem, let closestItemNode = self.visibleItemNodes[closestItem.index] as? ReactionNode {
-            if let expandItemView = self.expandItemView, expandItemView.frame.insetBy(dx: -20.0, dy: -20.0).contains(scrollPoint) {
-                return nil
+            if let expandItemView = self.expandItemView {
+                let expandFrameInView: CGRect
+                if self.usesExternalExpandButton {
+                    expandFrameInView = expandItemView.frame
+                } else {
+                    expandFrameInView = self.view.convert(expandItemView.frame, from: expandItemView.superview)
+                }
+                if expandFrameInView.insetBy(dx: -20.0, dy: -20.0).contains(point) {
+                    return nil
+                }
             }
             return closestItemNode.item
         }
