@@ -6,6 +6,22 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3902-pre] — 2026-08-22
+
+Pre-release: WEB proxy (tproxy-server) with masking-site picker; calls list icons; crash fixes.
+
+### Added
+- **WEB proxy:** tproxy-server HTTPS carrier + loopback sidecar; `tg://webproxy?server=…&secret=…` links; masking-site catalog; separate Add SOCKS5 / MTProxy / WEB actions in proxy settings.
+
+### Changed
+- **Proxy auto-fetch:** stays **MTProxy-only**; WEB and SOCKS are manual; auto-rotate skips WEB and auto-pulled servers.
+
+### Fixed
+- **MTContext:** mutation-during-enumeration crash in listener broadcasts.
+- **Calls:** UB/heap overflow in video-clone sink (nil `cloneRenderer`) and odd-length call-tone buffer.
+- **Calls list:** incoming and missed rows now show directional type icons (mirrored outgoing PDFs; missed tinted destructive red).
+- **WEB proxy:** release build + fail-closed sidecar configure on startup failure.
+
 ## [v12.9.2-3901] — 2026-08-21
 
 Release: 3900 + AppDelegate `icons` `let` (same unused-var under `-c opt`).
