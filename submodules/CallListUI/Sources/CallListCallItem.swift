@@ -402,8 +402,6 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
             
             var hadDuration = false
             var callDuration: Int32?
-            
-            var isConference = false
 
             var conferenceAvatars: [EnginePeer] = []
             
@@ -429,8 +427,6 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
                                 callDuration = nil
                             }
                         } else if case let .conferenceCall(conferenceCall) = action.action {
-                            isConference = true
-
                             if let peer = message.peers[message.id.peerId], !conferenceAvatars.contains(where: { $0.id == peer.id }) {
                                 conferenceAvatars.append(EnginePeer(peer))
                             }
