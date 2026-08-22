@@ -583,11 +583,18 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
             
             let nodeLayout = ListViewItemNodeLayout(contentSize: CGSize(width: params.width, height: max(44.0, avatarDiameter + 16.0, titleLayout.size.height + titleSpacing + statusLayout.size.height + verticalInset * 2.0)), insets: UIEdgeInsets(top: firstWithHeader ? 29.0 : 0.0, left: 0.0, bottom: 0.0, right: 0.0))
             
-            let outgoingVoiceIcon = PresentationResourcesCallList.outgoingIcon(item.presentationData.theme)
-            let outgoingVideoIcon = PresentationResourcesCallList.outgoingVideoIcon(item.presentationData.theme)
             let infoIcon = PresentationResourcesCallList.infoButton(item.presentationData.theme)
-            
-            let outgoingIcon = isVideo ? outgoingVideoIcon : outgoingVoiceIcon
+
+            let typeIcon: UIImage?
+            if hasMissed {
+                typeIcon = isVideo ? PresentationResourcesCallList.missedVideoIcon(item.presentationData.theme) : PresentationResourcesCallList.missedIcon(item.presentationData.theme)
+            } else if hasOutgoing {
+                typeIcon = isVideo ? PresentationResourcesCallList.outgoingVideoIcon(item.presentationData.theme) : PresentationResourcesCallList.outgoingIcon(item.presentationData.theme)
+            } else if hasIncoming {
+                typeIcon = isVideo ? PresentationResourcesCallList.incomingVideoIcon(item.presentationData.theme) : PresentationResourcesCallList.incomingIcon(item.presentationData.theme)
+            } else {
+                typeIcon = nil
+            }
             
             let contentSize = nodeLayout.contentSize
             
@@ -772,16 +779,16 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
                             let _ = dateApply()
                             transition.updateFrameAdditive(node: strongSelf.dateNode, frame: CGRect(origin: CGPoint(x: editingOffset + revealOffset + params.width - dateRightInset - dateLayout.size.width, y: floor((nodeLayout.contentSize.height - dateLayout.size.height) / 2.0) + 2.0), size: dateLayout.size))
                             
-                            if let outgoingIcon = outgoingIcon {
-                                if strongSelf.typeIconNode.image !== outgoingIcon {
-                                    strongSelf.typeIconNode.image = outgoingIcon
+                            if let typeIcon = typeIcon {
+                                if strongSelf.typeIconNode.image !== typeIcon {
+                                    strongSelf.typeIconNode.image = typeIcon
                                 }
                                 // The slot is always reserved in leftInset; centre the glyph in it
                                 // so a 20 pt arrow and a 22 pt group indicator share one column.
-                                let typeIconOrigin = CGPoint(x: avatarFrame.minX - callListTypeIconSlotSpacing - callListTypeIconSlotWidth + floor((callListTypeIconSlotWidth - outgoingIcon.size.width) / 2.0), y: floor(avatarFrame.midY - outgoingIcon.size.height / 2.0))
-                                transition.updateFrameAdditive(node: strongSelf.typeIconNode, frame: CGRect(origin: typeIconOrigin, size: outgoingIcon.size))
+                                let typeIconOrigin = CGPoint(x: avatarFrame.minX - callListTypeIconSlotSpacing - callListTypeIconSlotWidth + floor((callListTypeIconSlotWidth - typeIcon.size.width) / 2.0), y: floor(avatarFrame.midY - typeIcon.size.height / 2.0))
+                                transition.updateFrameAdditive(node: strongSelf.typeIconNode, frame: CGRect(origin: typeIconOrigin, size: typeIcon.size))
                             }
-                            strongSelf.typeIconNode.isHidden = !hasOutgoing
+                            strongSelf.typeIconNode.isHidden = typeIcon == nil
                             
                             if let infoIcon = infoIcon {
                                 if updatedInfoIcon {

@@ -307,6 +307,10 @@ public enum PresentationResourceKey: Int32 {
         
     case callListOutgoingIcon
     case callListOutgoingVideoIcon
+    case callListIncomingIcon
+    case callListIncomingVideoIcon
+    case callListMissedIcon
+    case callListMissedVideoIcon
     case callListInfoButton
     
     case genericSearchBarLoupeImage
