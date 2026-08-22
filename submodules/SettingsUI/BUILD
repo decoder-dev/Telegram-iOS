@@ -142,6 +142,7 @@ swift_library(
         "//submodules/TelegramUI/Components/ListSectionComponent",
         "//submodules/TelegramUI/Components/ListActionItemComponent",
         "//submodules/Utils/DeviceModel",
+        "//submodules/WebProxyTransport:WebProxyTransport",
     ],
     visibility = [
         "//visibility:public",

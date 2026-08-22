@@ -415,7 +415,12 @@ private func proxySettingsControllerEntries(theme: PresentationTheme, strings: P
                     text = strings.ChatSettings_ConnectionType_UseSocks5
                 case .mtp:
                     text = strings.SocksProxySetup_ProxyTelegram
+                case .web:
+                    text = ForkPresentationLanguage.prefersRussianStrings ? "WEB-прокси" : "WEB Proxy"
             }
+            if server.connection.isWebProxy {
+                displayStatus = DisplayProxyServerStatus(activity: false, text: text, textActive: false)
+            } else {
             switch status {
                 case .notAvailable:
                     text = text + ", " + strings.SocksProxySetup_ProxyStatusUnavailable
@@ -427,6 +432,7 @@ private func proxySettingsControllerEntries(theme: PresentationTheme, strings: P
                     let pingTime: Int = Int(rtt * 1000.0)
                     text = text + ", \(strings.SocksProxySetup_ProxyStatusPing("\(pingTime)").string)"
                     displayStatus = DisplayProxyServerStatus(activity: false, text: text, textActive: false)
+            }
             }
         }
         entries.append(.server(index, theme, strings, server, server == proxySettings.activeServer, displayStatus, ProxySettingsServerItemEditing(editable: true, editing: state.editing, revealed: state.revealedServer == server), proxySettings.enabled))
@@ -733,6 +739,10 @@ public func proxySettingsController(accountManager: AccountManager<TelegramAccou
                         if let username = username, let password = password {
                             string += "&user=\((username as NSString).addingPercentEncoding(withAllowedCharacters: CharacterSet.urlQueryValueAllowed) ?? "")&pass=\((password as NSString).addingPercentEncoding(withAllowedCharacters: CharacterSet.urlQueryValueAllowed) ?? "")"
                         }
+                    case let .web(secret):
+                        let secret = MTProxySecret.parseData(secret)?.serializeToString() ?? ""
+                        string = "https://t.me/webproxy?server=\(server.host)"
+                        string += "&secret=\((secret as NSString).addingPercentEncoding(withAllowedCharacters: CharacterSet.urlQueryValueAllowed) ?? "")"
                     }
                     
                     result += string

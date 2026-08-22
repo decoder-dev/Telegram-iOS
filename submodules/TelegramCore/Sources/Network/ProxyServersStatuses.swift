@@ -14,8 +14,20 @@ private final class ProxyServerItemContext {
     var value: ProxyServerStatus = .checking
     
     init(queue: Queue, context: MTContext, datacenterId: Int, server: ProxyServerSettings, updated: @escaping (ProxyServerStatus) -> Void) {
+        if server.connection.isWebProxy {
+            queue.async {
+                updated(.notAvailable)
+            }
+            return
+        }
+        guard let settings = server.mtProxySettings else {
+            queue.async {
+                updated(.notAvailable)
+            }
+            return
+        }
         self.disposable = (Signal<ProxyServerStatus, NoError> { subscriber in
-            let disposable = MTProxyConnectivity.pingProxy(with: context, datacenterId: datacenterId, settings: server.mtProxySettings).start(next: { next in
+            let disposable = MTProxyConnectivity.pingProxy(with: context, datacenterId: datacenterId, settings: settings).start(next: { next in
                 if let next = next as? MTProxyConnectivityStatus {
                     if !next.reachable {
                         subscriber.putNext(.notAvailable)

@@ -2,6 +2,7 @@ import Foundation
 import Postbox
 import SwiftSignalKit
 import MtProtoKit
+import WebProxyTransport
 
 public func updateProxySettingsInteractively(accountManager: AccountManager<TelegramAccountManagerTypes>, _ f: @escaping (ProxySettings) -> ProxySettings) -> Signal<Bool, NoError> {
     return accountManager.transaction { transaction -> Bool in
@@ -10,12 +11,19 @@ public func updateProxySettingsInteractively(accountManager: AccountManager<Tele
 }
 
 extension ProxyServerSettings {
-    var mtProxySettings: MTSocksProxySettings {
+    var mtProxySettings: MTSocksProxySettings? {
         switch self.connection {
             case let .socks5(username, password):
                 return MTSocksProxySettings(ip: self.host, port: UInt16(clamping: self.port), username: username, password: password, secret: nil)
             case let .mtp(secret):
                 return MTSocksProxySettings(ip: self.host, port: UInt16(clamping: self.port), username: nil, password: nil, secret: secret)
+            case let .web(secret):
+                let configuration = WebProxyConfiguration(hostname: self.host, secret: secret)
+                guard WebProxyManager.shared.configure(activeWebProxy: configuration),
+                      let endpoint = WebProxyManager.shared.activeLoopbackEndpoint else {
+                    return nil
+                }
+                return MTSocksProxySettings(ip: endpoint.host, port: endpoint.port, username: nil, password: nil, secret: secret)
         }
     }
 }
@@ -34,6 +42,15 @@ public func updateProxySettingsInteractively(transaction: AccountManagerModifier
 func applySharedProxySettingsToNetwork(settings: ProxySettings, network: Network) {
     let previousForceLocalDNS = network.context.forceLocalDNS
     network.context.forceLocalDNS = settings.useLocalDNSForProxyHosts
+    
+    if let activeServer = settings.effectiveActiveServer, activeServer.connection.isWebProxy {
+        if case let .web(secret) = activeServer.connection {
+            let _ = WebProxyManager.shared.configure(activeWebProxy: WebProxyConfiguration(hostname: activeServer.host, secret: secret))
+        }
+    } else {
+        WebProxyManager.shared.configure(activeWebProxy: nil)
+    }
+    
     let updated = settings.effectiveActiveServer.flatMap { activeServer -> MTSocksProxySettings? in
         return activeServer.mtProxySettings
     }
