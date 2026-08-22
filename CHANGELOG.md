@@ -6,6 +6,16 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3904-pre] — 2026-08-22
+
+Pre-release: high-detail Телеграм icon family + custom **Patriot** alternate icon.
+
+### Added
+- **PatriotPlaneIcon:** 21st alternate app icon — cartoon soldier in tactical armor launching a paper plane; Russian flag backdrop; sleeve chevron (tricolor + **РФ**); localized label «Патриот» / Patriot in Appearance.
+
+### Changed
+- **App icons:** procedural generator upgrade — multi-stop gradient disc, metallic ring, layered plane (shadow/fold/wing/crease), supersampling; all **20** standard alternates + default assets regenerated.
+
 ## [v12.9.2-3903-pre] — 2026-08-22
 
 Pre-release: WEB proxy hardening (async sidecar, fail-closed, no catalog); proxy UI polish; crash fixes.
