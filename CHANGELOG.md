@@ -6,6 +6,9 @@
 
 ## [Unreleased]
 
+### Fixed
+- **Reactions (Tapbacks):** long-press shows a compact pill + context menu (not the legacy in-place emoji blob); smile opens a bottom-docked emoji picker like iMessage instead of the center circle overlay.
+
 ## [v12.9.2-3905-pre] — 2026-08-22
 
 Pre-release: iMessage-style Tapbacks reaction panel on message long-press.
