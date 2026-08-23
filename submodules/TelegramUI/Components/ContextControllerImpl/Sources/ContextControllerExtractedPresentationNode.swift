@@ -696,7 +696,13 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
     private var currentReactionsPositionLock: CGFloat?
     
     private func setCurrentReactionsPositionLock() {
-        self.currentReactionsPositionLock = self.proposedReactionsPositionLock
+        if let reactionContextNode = self.reactionContextNode, !reactionContextNode.isExpanded {
+            // Collapsing back releases the lock, otherwise the actions stay faded out and the content
+            // stays pinned to the expanded position forever.
+            self.currentReactionsPositionLock = nil
+        } else {
+            self.currentReactionsPositionLock = self.proposedReactionsPositionLock
+        }
     }
     
     private func getCurrentReactionsPositionLock() -> CGFloat? {
