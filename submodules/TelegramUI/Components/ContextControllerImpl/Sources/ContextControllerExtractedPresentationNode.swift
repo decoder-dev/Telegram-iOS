@@ -909,6 +909,9 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
                     }
                 }
                 
+                // The Tapbacks sheet docks to the bottom, so it needs to know about a keyboard
+                // standing on that same strip — its own search field raises one.
+                reactionContextNode.containerKeyboardHeight = layout.inputHeight ?? 0.0
                 reactionContextNode.updateLayout(size: layout.size, insets: UIEdgeInsets(top: topInset, left: layout.safeInsets.left, bottom: layout.intrinsicInsets.bottom, right: layout.safeInsets.right), anchorRect: CGRect(origin: CGPoint(x: 0.0, y: layout.size.height), size: CGSize(width: 1.0, height: 1.0)), isCoveredByInput: false, isAnimatingOut: false, transition: .immediate)
             }
             contentTopInset += reactionContextNode.contentHeight + 18.0
@@ -1185,6 +1188,7 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
                     isCoveredByInput = true
                 }
                 
+                reactionContextNode.containerKeyboardHeight = layout.inputHeight ?? 0.0
                 reactionContextNode.updateLayout(size: layout.size, insets: UIEdgeInsets(top: topInset, left: layout.safeInsets.left, bottom: layout.intrinsicInsets.bottom, right: layout.safeInsets.right), anchorRect: reactionAnchorRect, isCoveredByInput: isCoveredByInput, isAnimatingOut: isAnimatingOut, transition: reactionContextNodeTransition)
                 
                 if reactionContextNode.alwaysAllowPremiumReactions || reactionContextNode.usesTapbacksStyle {
