@@ -1253,9 +1253,16 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
     }
     
     public func wantsDisplayBelowKeyboard() -> Bool {
-        if self.usesExternalExpandButton && self.isExpanded {
-            return true
-        }
+        // The Tapbacks sheet used to answer `true` for as long as it was open, which put the whole
+        // context menu in the navigation controller's below-keyboard container. That container is
+        // laid out at full screen height — it is the same layout, only a different parent — so a
+        // sheet docked to the bottom ended up drawn behind a keyboard sitting on the very strip of
+        // screen it occupies. With the chat's field still first responder from before the long
+        // press, which is the usual case, the keyboard covered the emoji grid outright.
+        //
+        // Opening the sheet dismisses the keyboard instead (see `expand()`). What is left is the
+        // stock rule below: only the search field, once it has raised a keyboard of its own, asks
+        // to sit under it — and it has to, or the user would be typing into a hidden field.
         if let emojiView = self.reactionSelectionComponentHost?.findTaggedView(tag: EmojiPagerContentComponent.Tag(id: AnyHashable("emoji"))) as? EmojiPagerContentComponent.View {
             return emojiView.wantsDisplayBelowKeyboard()
         } else if let stickersView = self.reactionSelectionComponentHost?.findTaggedView(tag: EmojiPagerContentComponent.Tag(id: AnyHashable("stickers"))) as? EmojiPagerContentComponent.View {
@@ -3752,6 +3759,14 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
         self.hapticFeedback?.tap()
         
         self.longPressRecognizer?.isEnabled = false
+        
+        if self.usesExternalExpandButton {
+            // The sheet docks to the bottom of the screen, which is where the keyboard lives. The
+            // first responder here is the chat's own input field, left over from before the long
+            // press — outside this node's hierarchy, so it takes the window to reach it. iMessage
+            // puts the keyboard away when its emoji sheet opens; so does this.
+            self.view.window?.endEditing(true)
+        }
         
         // The bottom sheet always opens at its resting height, whatever the last drag left behind.
         self.tapbacksPickerIsExpanded = false
