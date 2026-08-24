@@ -203,6 +203,13 @@ private final class CameraContext {
     }
     
     func stopCapture(invalidate: Bool = false) {
+        // Mirrors startCapture's guard. AVCaptureSession.stopRunning() is a synchronous, expensive
+        // call, and callers driven by layout/scroll can reach here on every frame — MediaPicker's
+        // visibleItemsUpdated did exactly that, logging ~120 no-op stops per second while the
+        // camera cell was scrolled out of view. An invalidate still has to run its teardown.
+        guard self.session.session.isRunning || invalidate else {
+            return
+        }
         Logger.shared.log("CameraContext", "stopCapture(invalidate: \(invalidate))")
         if invalidate {
             self.mainDeviceContext?.device.resetZoom()

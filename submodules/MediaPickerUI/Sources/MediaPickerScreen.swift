@@ -371,6 +371,8 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
         fileprivate var isSuspended = false
         fileprivate var hasGallery = false
         private var isCameraPreviewVisible = true
+        /// Last value actually handed to the camera, so repeated no-op updates are skipped.
+        private var appliedIsCameraActive: Bool?
         
         private var validLayout: (ContainerViewLayout, CGFloat)?
         
@@ -883,6 +885,12 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
         func updateIsCameraActive() {
             let isCameraActive = !self.isSuspended && !self.hasGallery && self.isCameraPreviewVisible
             if let camera = self.modernCamera, let cameraView = self.modernCameraView {
+                // visibleItemsUpdated drives this on every scroll frame, so only act on an actual
+                // change: otherwise each frame dispatched another capture-session start/stop.
+                guard self.appliedIsCameraActive != isCameraActive else {
+                    return
+                }
+                self.appliedIsCameraActive = isCameraActive
                 if isCameraActive {
                     cameraView.isEnabled = true
                     camera.startCapture()
