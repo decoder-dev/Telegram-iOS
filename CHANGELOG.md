@@ -6,6 +6,15 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3910-pre] — 2026-08-24
+
+Pre-release: composer text centring + draggable Tapbacks emoji sheet.
+
+### Fixed
+- **Composer:** placeholder and typed text are vertically centred in the 36pt input capsule (insets derived from capsule height, not stock 31pt constants).
+- **Reactions (Tapbacks):** the bottom emoji sheet grabber is draggable — two stops (resting and near full-screen), flick settle, pull-down dismiss; pan ignores touches below the header so the grid still scrolls.
+- **Reactions (Tapbacks):** pulling down slides the sheet off-screen 1:1 instead of shrinking it under the finger.
+
 ## [v12.9.2-3909-pre] — 2026-08-24
 
 Pre-release: archive lock only with password, Extras in Settings, recent-emoji toggle, WEB proxy protocol gaps.
