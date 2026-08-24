@@ -6,6 +6,14 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3908-pre] — 2026-08-24
+
+Pre-release: build fix for Tapbacks panel + media-picker camera stop thrash.
+
+### Fixed
+- **Reactions (Tapbacks):** compile failure — `displayTail` now reads `hideReactionPanelTail` through `getController()` (the restored `controller` binding was out of scope).
+- **Media picker:** scrolling no longer calls `stopCapture` on every frame when the camera cell is off-screen; `stopCapture` also skips `AVCaptureSession.stopRunning()` when the session is already stopped.
+
 ## [v12.9.2-3907-pre] — 2026-08-24
 
 Pre-release: Tapbacks idealism + WEB proxy multi-account / Russian labels.
