@@ -1146,7 +1146,11 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
                         pickerDockStyle = EmojiStatusSelectionComponent.BottomDockStyle(
                             cornerRadius: ReactionContextNode.tapbacksPickerCornerRadius,
                             isDark: strongSelf.presentationData.theme.overallDarkAppearance,
-                            bottomInset: strongSelf.validLayout?.1.bottom ?? 0.0
+                            // Same gutter the layout pass uses, not the raw safe-area inset: with the
+                            // search keyboard up there is no home indicator to clear, and an emoji
+                            // refresh landing here would otherwise reintroduce a strip of empty sheet
+                            // between the grid and the keyboard.
+                            bottomInset: strongSelf.tapbacksPickerBottomGutter(insets: strongSelf.validLayout?.1 ?? UIEdgeInsets())
                         )
                         pickerDismiss = {
                             guard let strongSelf = self else {
