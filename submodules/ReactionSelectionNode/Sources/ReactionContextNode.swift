@@ -194,13 +194,15 @@ private final class ExpandItemView: UIView {
             self.arrowView.image = generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/ReactionExpandArrow"), color: .white)
             self.backgroundColor = theme.chat.inputMediaPanel.panelContentControlVibrantOverlayColor.mixedWith(theme.contextMenu.backgroundColor.withMultipliedAlpha(0.4), alpha: 0.5)
         case .externalSmile:
-            // Separate iMessage-style emoji control under the reaction pill.
+            // Separate iMessage-style emoji control under the reaction pill: a Messages surface
+            // (#FFFFFF / #2C2C2E) carrying a secondary-gray glyph, not a primary-contrast control.
             self.highlightView.isHidden = false
-            self.arrowView.image = generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Smile"), color: theme.contextMenu.primaryColor)
+            self.highlightView.backgroundColor = theme.overallDarkAppearance ? UIColor(white: 1.0, alpha: 0.12) : UIColor(white: 0.0, alpha: 0.08)
+            self.arrowView.image = generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Smile"), color: theme.list.itemSecondaryTextColor)
             if theme.overallDarkAppearance {
-                self.backgroundColor = UIColor(white: 0.18, alpha: 0.92)
+                self.backgroundColor = UIColor(rgb: 0x2C2C2E, alpha: 0.92)
             } else {
-                self.backgroundColor = UIColor(white: 1.0, alpha: 0.94)
+                self.backgroundColor = UIColor(rgb: 0xFFFFFF, alpha: 0.94)
             }
             self.layer.borderWidth = 0.5 / UIScreenScale
             self.layer.borderColor = (theme.overallDarkAppearance ? UIColor.white.withAlphaComponent(0.12) : UIColor.black.withAlphaComponent(0.08)).cgColor
@@ -519,6 +521,13 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
     private static let tapbacksSmileTrailingInset: CGFloat = 4.0
     private static let tapbacksMaxVisibleItems: Int = 7
     private static let tapbacksPickerCornerRadius: CGFloat = 20.0
+    
+    /// The docked sheet is a Messages surface (`#FFFFFF` / `#1C1C1E`) kept translucent so the frosted
+    /// blur reads through it; `contextMenu.backgroundColor` is the Telegram panel tint (`#F9F9F9` /
+    /// `#252525`) and tracks neither.
+    private var tapbacksPickerBackgroundColor: UIColor {
+        return self.presentationData.theme.list.itemBlocksBackgroundColor.withMultipliedAlpha(0.9)
+    }
     
     /// Height of the iMessage-style bottom sheet: header + a comfortable emoji grid + the home
     /// indicator gutter, clamped so it never eats the anchored message on short screens.
@@ -955,7 +964,7 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
                             deviceMetrics: DeviceMetrics.iPhone13,
                             emojiContent: isBottomDocked ? strongSelf.tapbacksPickerContent(emojiContent) : emojiContent,
                             color: nil,
-                            backgroundColor: isBottomDocked ? strongSelf.presentationData.theme.contextMenu.backgroundColor : .clear,
+                            backgroundColor: isBottomDocked ? strongSelf.tapbacksPickerBackgroundColor : .clear,
                             separatorColor: strongSelf.presentationData.theme.list.itemPlainSeparatorColor.withMultipliedAlpha(0.5),
                             hideTopPanel: hideTopPanel,
                             disableTopPanel: strongSelf.alwaysAllowPremiumReactions || strongSelf.hideExpandedTopPanel,
@@ -1751,7 +1760,7 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
                         deviceMetrics: DeviceMetrics.iPhone13,
                         emojiContent: tapbacksBottomPickerActive ? self.tapbacksPickerContent(emojiContent) : emojiContent,
                         color: nil,
-                        backgroundColor: tapbacksBottomPickerActive ? self.presentationData.theme.contextMenu.backgroundColor : .clear,
+                        backgroundColor: tapbacksBottomPickerActive ? self.tapbacksPickerBackgroundColor : .clear,
                         separatorColor: self.presentationData.theme.list.itemPlainSeparatorColor.withMultipliedAlpha(0.5),
                         hideTopPanel: hideTopPanel,
                         disableTopPanel: self.alwaysAllowPremiumReactions || tapbacksBottomPickerActive,

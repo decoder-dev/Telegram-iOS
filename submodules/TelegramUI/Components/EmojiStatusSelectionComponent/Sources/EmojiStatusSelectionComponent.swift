@@ -52,10 +52,8 @@ private func randomGenericReactionEffect(context: AccountContext) -> Signal<Stri
     }
 }
 
-private func generateSheetCloseIcon(isDark: Bool) -> UIImage? {
+private func generateSheetCloseIcon(backgroundColor: UIColor, foregroundColor: UIColor) -> UIImage? {
     let size = CGSize(width: 30.0, height: 30.0)
-    let backgroundColor = isDark ? UIColor(white: 1.0, alpha: 0.12) : UIColor(white: 0.0, alpha: 0.07)
-    let foregroundColor = isDark ? UIColor(white: 1.0, alpha: 0.55) : UIColor(white: 0.0, alpha: 0.45)
     return generateImage(size, rotatedContext: { size, context in
         context.clear(CGRect(origin: CGPoint(), size: size))
         context.setFillColor(backgroundColor.cgColor)
@@ -179,7 +177,7 @@ public final class EmojiStatusSelectionComponent: Component {
         private var sheetBackgroundView: BlurredBackgroundView?
         private var sheetGrabberView: UIView?
         private var sheetCloseButton: UIButton?
-        private var sheetCloseIconIsDark: Bool?
+        private var sheetCloseIconTheme: PresentationTheme?
         
         private var component: EmojiStatusSelectionComponent?
         private weak var state: EmptyComponentState?
@@ -210,7 +208,7 @@ public final class EmojiStatusSelectionComponent: Component {
             self.component?.dismiss?()
         }
         
-        private func updateBottomDock(dock: EmojiStatusSelectionComponent.BottomDockStyle?, backgroundColor: UIColor, hasDismiss: Bool, availableSize: CGSize) {
+        private func updateBottomDock(dock: EmojiStatusSelectionComponent.BottomDockStyle?, theme: PresentationTheme, backgroundColor: UIColor, hasDismiss: Bool, availableSize: CGSize) {
             guard let dock else {
                 if let sheetBackgroundView = self.sheetBackgroundView {
                     self.sheetBackgroundView = nil
@@ -224,7 +222,7 @@ public final class EmojiStatusSelectionComponent: Component {
                     self.sheetCloseButton = nil
                     sheetCloseButton.removeFromSuperview()
                 }
-                self.sheetCloseIconIsDark = nil
+                self.sheetCloseIconTheme = nil
                 return
             }
             
@@ -251,7 +249,7 @@ public final class EmojiStatusSelectionComponent: Component {
                 self.sheetGrabberView = grabberView
                 self.addSubview(grabberView)
             }
-            grabberView.backgroundColor = dock.isDark ? UIColor(white: 1.0, alpha: 0.22) : UIColor(white: 0.0, alpha: 0.16)
+            grabberView.backgroundColor = theme.list.itemPrimaryTextColor.withMultipliedAlpha(dock.isDark ? 0.2 : 0.07)
             let grabberSize = CGSize(width: 36.0, height: 5.0)
             grabberView.frame = CGRect(origin: CGPoint(x: floor((availableSize.width - grabberSize.width) / 2.0), y: 8.0), size: grabberSize)
             
@@ -264,9 +262,9 @@ public final class EmojiStatusSelectionComponent: Component {
                 self.sheetCloseButton = closeButton
                 self.addSubview(closeButton)
             }
-            if self.sheetCloseIconIsDark != dock.isDark {
-                self.sheetCloseIconIsDark = dock.isDark
-                closeButton.setImage(generateSheetCloseIcon(isDark: dock.isDark), for: .normal)
+            if self.sheetCloseIconTheme !== theme {
+                self.sheetCloseIconTheme = theme
+                closeButton.setImage(generateSheetCloseIcon(backgroundColor: UIColor(rgb: 0x808084, alpha: 0.1), foregroundColor: theme.list.itemSecondaryTextColor), for: .normal)
             }
             let closeButtonSize = CGSize(width: 30.0, height: 30.0)
             closeButton.isHidden = !hasDismiss
@@ -292,7 +290,7 @@ public final class EmojiStatusSelectionComponent: Component {
             self.component = component
             self.state = state
             
-            self.updateBottomDock(dock: dock, backgroundColor: component.backgroundColor, hasDismiss: component.dismiss != nil, availableSize: availableSize)
+            self.updateBottomDock(dock: dock, theme: component.theme, backgroundColor: component.backgroundColor, hasDismiss: component.dismiss != nil, availableSize: availableSize)
             
             let headerHeight: CGFloat = dock == nil ? 0.0 : EmojiStatusSelectionComponent.bottomDockHeaderHeight
             let contentSize = CGSize(width: availableSize.width, height: max(1.0, availableSize.height - headerHeight - (dock?.bottomInset ?? 0.0)))

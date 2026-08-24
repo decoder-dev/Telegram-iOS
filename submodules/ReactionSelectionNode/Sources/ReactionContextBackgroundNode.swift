@@ -273,7 +273,9 @@ final class ReactionContextBackgroundNode: ASDisplayNode {
             }
             glassBackgroundView.container.update(size: glassBackgroundFrame.size, isDark: glass.isDark, transition: ComponentTransition(transition))
             let glassCornerRadius = displayTail ? min(23.0, glassBackgroundFrame.height / 2.0) : (glassBackgroundFrame.height / 2.0)
-            glassBackgroundView.view.update(size: glassBackgroundFrame.size, cornerRadius: glassCornerRadius, isDark: true, tintColor: glassTintColor, transition: ComponentTransition(transition))
+            // Same appearance as the container above it — hardcoding dark glass leaves the Tapbacks
+            // pill rendering as a dark capsule on the Day theme.
+            glassBackgroundView.view.update(size: glassBackgroundFrame.size, cornerRadius: glassCornerRadius, isDark: glass.isDark, tintColor: glassTintColor, transition: ComponentTransition(transition))
             
             transition.updateFrame(view: self.backgroundTintView, frame: CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: CGSize(width: contentBounds.width, height: contentBounds.height)).insetBy(dx: -10.0, dy: -10.0))
         } else {
