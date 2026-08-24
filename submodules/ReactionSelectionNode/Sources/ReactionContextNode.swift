@@ -613,9 +613,10 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
     
     @objc private func tapbacksPickerPanGesture(_ recognizer: UIPanGestureRecognizer) {
         guard self.isTapbacksBottomPickerActive, let (size, insets, _, _, _) = self.validLayout else {
-            // The sheet went away underneath the gesture. Drop the offset so a later layout cannot
-            // pick up a stale one.
+            // The sheet went away underneath the gesture. Drop the offsets so neither a later
+            // layout nor a later drag can pick up a stale one.
             self.tapbacksPickerDragOffset = 0.0
+            self.tapbacksPickerDragStartOffset = 0.0
             return
         }
         let collapsed = self.tapbacksPickerCollapsedHeight(size: size, bottomInset: insets.bottom)
@@ -623,9 +624,21 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
         
         switch recognizer.state {
         case .began:
-            self.tapbacksPickerDragOffset = 0.0
+            // Caught mid-settle, the drag has to start from where the sheet is on screen rather
+            // than from the stop it was animating to, or the first movement snaps it to that stop.
+            // `size.height - top` inverts the layout for both the resized and the slid-down range,
+            // which is every position a settle animation can be passing through.
+            let resting = self.tapbacksPickerIsExpanded ? expanded : collapsed
+            var startOffset: CGFloat = 0.0
+            if let componentView = self.reactionSelectionComponentHost?.view,
+               componentView.layer.animation(forKey: "position") != nil || componentView.layer.animation(forKey: "bounds") != nil,
+               let presentation = componentView.layer.presentation() {
+                startOffset = resting - (size.height - presentation.frame.minY)
+            }
+            self.tapbacksPickerDragStartOffset = startOffset
+            self.tapbacksPickerDragOffset = startOffset
         case .changed:
-            self.tapbacksPickerDragOffset = recognizer.translation(in: self.view).y
+            self.tapbacksPickerDragOffset = self.tapbacksPickerDragStartOffset + recognizer.translation(in: self.view).y
             self.requestLayout(.immediate)
         case .cancelled:
             // Interrupted rather than released — by a call banner, a rotation, the system taking
@@ -636,7 +649,7 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
             self.tapbacksPickerDragOffset = 0.0
             self.requestLayout(.animated(duration: 0.4, curve: .spring))
         case .ended:
-            let translation = recognizer.translation(in: self.view).y
+            let translation = self.tapbacksPickerDragStartOffset + recognizer.translation(in: self.view).y
             let velocity = recognizer.velocity(in: self.view).y
             let wasExpanded = self.tapbacksPickerIsExpanded
             let currentHeight = (wasExpanded ? expanded : collapsed) - translation
@@ -770,6 +783,9 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
     /// it from there. Both reset every time the sheet opens, so it always starts collapsed.
     private var tapbacksPickerIsExpanded: Bool = false
     private var tapbacksPickerDragOffset: CGFloat = 0.0
+    /// Where the sheet actually was when the current drag started, as an offset from its resting
+    /// stop. Non-zero only when the drag interrupted the settle animation.
+    private var tapbacksPickerDragStartOffset: CGFloat = 0.0
     private var horizontalExpandStartLocation: CGPoint?
     private var horizontalExpandDistance: CGFloat = 0.0
     
