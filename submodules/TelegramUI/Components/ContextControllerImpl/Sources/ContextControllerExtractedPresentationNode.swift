@@ -823,6 +823,7 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
                     animationCache: reactionItems.animationCache,
                     presentationData: presentationData,
                     style: .glass(isTinted: false),
+                    usesTapbacksLayout: true,
                     items: reactionItems.reactionItems,
                     selectedItems: reactionItems.selectedReactionItems,
                     title: reactionItems.reactionsTitle,
@@ -850,8 +851,10 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
                         strongSelf.requestUpdateOverlayWantsToBeBelowKeyboard(transition)
                     }
                 )
-                // iMessage-style Tapbacks: glass pill without Telegram bubble-tail.
-                reactionContextNode.displayTail = false
+                // iMessage-style Tapbacks: glass pill without Telegram bubble-tail. The chat caller
+                // asks for that via hideReactionPanelTail; hardcoding false here instead would strip
+                // the tail from every other context menu too, and leave the flag dead plumbing.
+                reactionContextNode.displayTail = !controller.hideReactionPanelTail
                 self.reactionContextNode = reactionContextNode
                 self.addSubnode(reactionContextNode)
                 

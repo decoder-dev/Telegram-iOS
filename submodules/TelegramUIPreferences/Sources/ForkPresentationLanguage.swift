@@ -41,3 +41,22 @@ public enum ForkPresentationLanguage {
         }
     }
 }
+
+/// Strings for the fork's WEB proxy, shared by the proxy list, the add/edit form, the settings row
+/// and the proxy preview sheet.
+///
+/// These deliberately do not go through `presentationData.strings`: the repository only ships
+/// `en.lproj/Localizable.strings`, every other locale is served by Telegram at runtime, and a
+/// fork-private key is never in that server-side catalogue. Routing them through `strings` compiles
+/// fine but silently falls back to English for Russian users — which is exactly what happened.
+public enum ForkWebProxyStrings {
+    /// Connection-type name, e.g. the "WEB Proxy" row and the add-proxy menu entry.
+    public static var proxyType: String {
+        return ForkPresentationLanguage.prefersRussianStrings ? "WEB-прокси" : "WEB Proxy"
+    }
+
+    /// Field label for the tproxy-server domain the traffic is disguised as.
+    public static var maskingSite: String {
+        return ForkPresentationLanguage.prefersRussianStrings ? "Сайт маскировки" : "Masking site"
+    }
+}

@@ -91,14 +91,17 @@ func applySharedProxySettingsToNetwork(settings: ProxySettings, network: Network
     }
 }
 
-public func registerWebProxySidecarReapply(network: Network, currentSettings: @escaping () -> ProxySettings) -> Disposable {
+/// `currentSettings` returns nil until the account's shared-data subscription has delivered real
+/// settings. Reapplying a placeholder in that window would look like "no active server" and tear
+/// down the process-wide sidecar out from under every other account.
+public func registerWebProxySidecarReapply(network: Network, currentSettings: @escaping () -> ProxySettings?) -> Disposable {
     // Every account Network must observe sidecar readiness. A single overwritten
     // callback left secondary accounts stuck on the fail-closed 127.0.0.1:1 route.
     let token = WebProxyManager.shared.addSidecarEventHandler { [weak network] in
-        guard let network = network else {
+        guard let network = network, let settings = currentSettings() else {
             return
         }
-        applySharedProxySettingsToNetwork(settings: currentSettings(), network: network)
+        applySharedProxySettingsToNetwork(settings: settings, network: network)
     }
     return ActionDisposable {
         WebProxyManager.shared.removeSidecarEventHandler(token)

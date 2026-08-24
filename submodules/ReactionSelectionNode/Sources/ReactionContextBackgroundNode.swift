@@ -211,12 +211,13 @@ final class ReactionContextBackgroundNode: ASDisplayNode {
             backgroundMaskNodeFrame = backgroundMaskNodeFrame.offsetBy(dx: 0.0, dy: (updatedHeight - backgroundMaskNodeFrame.height) * 0.5)
         }
         
-        transition.updateCornerRadius(layer: self.backgroundClippingLayer, cornerRadius: min(46.0 / 2.0, backgroundFrame.height / 2.0))
-        
-        // Fully capsule when the bubble-tail is hidden (iMessage Tapbacks look).
-        if !displayTail {
-            transition.updateCornerRadius(layer: self.backgroundClippingLayer, cornerRadius: backgroundFrame.height / 2.0)
-        }
+        // Fully capsule when the bubble-tail is hidden (iMessage Tapbacks look). Resolve the radius
+        // first and apply it once: setting it twice makes an animated resize start its corner-radius
+        // animation from the intermediate value the layer never actually had.
+        let backgroundCornerRadius = displayTail
+            ? min(46.0 / 2.0, backgroundFrame.height / 2.0)
+            : backgroundFrame.height / 2.0
+        transition.updateCornerRadius(layer: self.backgroundClippingLayer, cornerRadius: backgroundCornerRadius)
         
         let largeCircleFrame: CGRect
         let smallCircleFrame: CGRect

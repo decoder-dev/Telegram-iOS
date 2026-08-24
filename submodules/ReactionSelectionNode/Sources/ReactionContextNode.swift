@@ -135,6 +135,9 @@ private final class ExpandItemView: UIView {
     private let arrowView: UIImageView
     let tintView: UIView
     private var style: Style = .inlineArrow
+    /// Style/theme actually applied, so repeated layout passes skip the tinted-image render.
+    private var appliedStyle: Style?
+    private var appliedTheme: PresentationTheme?
     private let highlightView = UIView()
     
     override init(frame: CGRect) {
@@ -186,6 +189,13 @@ private final class ExpandItemView: UIView {
     
     func updateStyle(_ style: Style, theme: PresentationTheme) {
         self.style = style
+        // updateLayout calls this on every pass; re-rendering the tinted glyph and rewriting the
+        // shadow/border layer properties each time is pure waste when nothing changed.
+        if self.appliedStyle == style, self.appliedTheme === theme {
+            return
+        }
+        self.appliedStyle = style
+        self.appliedTheme = theme
         switch style {
         case .inlineArrow:
             self.layer.borderWidth = 0.0
@@ -495,14 +505,19 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
     public private(set) var isAnimatingOutToReaction: Bool = false
     
     private var contentTopInset: CGFloat = 0.0
-    public var contentHeight: CGFloat {
-        var height = self.contentTopInset + self.currentContentHeight
+    /// Vertical band the external Tapbacks smile occupies below the pill, or 0 when there is no such
+    /// button. `calculateBackgroundFrame` reserves it so the pill is lifted off the anchored message
+    /// by exactly this much — otherwise the button would be drawn over the message's top edge.
+    private var tapbacksSmileAllowance: CGFloat {
         if self.usesExternalExpandButton && self.expandItemView != nil {
-            // Pill + gap + secondary smile control (Tapbacks proportions). The allowance is kept while
-            // the bottom picker is open too, otherwise the anchored message jumps by that amount.
-            height += Self.tapbacksSmileGap + Self.tapbacksSmileSize
+            return Self.tapbacksSmileGap + Self.tapbacksSmileSize
         }
-        return height
+        return 0.0
+    }
+    public var contentHeight: CGFloat {
+        // Pill + gap + secondary smile control (Tapbacks proportions). The allowance is kept while
+        // the bottom picker is open too, otherwise the anchored message jumps by that amount.
+        return self.contentTopInset + self.currentContentHeight + self.tapbacksSmileAllowance
     }
     
     /// The Tapbacks emoji picker docks to the bottom of the container instead of expanding the pill in place.
@@ -683,13 +698,16 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
         case glass(isTinted: Bool)
     }
     
-    public init(context: AccountContext, animationCache: AnimationCache, presentationData: PresentationData, style: Style = .legacy, items: [ReactionContextItem], selectedItems: Set<AnyHashable>, title: String? = nil, reactionsLocked: Bool, alwaysAllowPremiumReactions: Bool, allPresetReactionsAreAvailable: Bool, getEmojiContent: ((AnimationCache, MultiAnimationRenderer) -> Signal<EmojiPagerContentComponent, NoError>)?, isExpandedUpdated: @escaping (ContainedViewLayoutTransition) -> Void, requestLayout: @escaping (ContainedViewLayoutTransition) -> Void, requestUpdateOverlayWantsToBeBelowKeyboard: @escaping (ContainedViewLayoutTransition) -> Void) {
+    public init(context: AccountContext, animationCache: AnimationCache, presentationData: PresentationData, style: Style = .legacy, usesTapbacksLayout: Bool = false, items: [ReactionContextItem], selectedItems: Set<AnyHashable>, title: String? = nil, reactionsLocked: Bool, alwaysAllowPremiumReactions: Bool, allPresetReactionsAreAvailable: Bool, getEmojiContent: ((AnimationCache, MultiAnimationRenderer) -> Signal<EmojiPagerContentComponent, NoError>)?, isExpandedUpdated: @escaping (ContainedViewLayoutTransition) -> Void, requestLayout: @escaping (ContainedViewLayoutTransition) -> Void, requestUpdateOverlayWantsToBeBelowKeyboard: @escaping (ContainedViewLayoutTransition) -> Void) {
         self.context = context
         self.presentationData = presentationData
         self.reactionStyle = style
+        // Tapbacks (external smile + bottom-docked picker) is opt-in rather than implied by .glass:
+        // the story viewer and the video-chat bar were already .glass before Tapbacks existed, and
+        // they have no room for a floating button or a bottom sheet.
         switch style {
         case .glass:
-            self.usesExternalExpandButton = true
+            self.usesExternalExpandButton = usesTapbacksLayout
         case .legacy:
             self.usesExternalExpandButton = false
         }
@@ -1100,7 +1118,11 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
         var contentSize = contentSize
         contentSize.width = max(46.0, contentSize.width)
         contentSize.height = self.contentTopInset + self.currentContentHeight
-        
+        // Position the pill as if it were this much taller, then hand back the pill-sized frame: the
+        // smile hangs in the reserved band between the pill's bottom edge and the anchored message.
+        let smileAllowance = self.tapbacksSmileAllowance
+        contentSize.height += smileAllowance
+
         let sideInset: CGFloat
         if self.forceTailToRight {
             sideInset = insets.left
@@ -1146,9 +1168,11 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
             cloudSourcePoint = max(rect.minX + 46.0 / 2.0, anchorRect.minX)
         }
         
+        rect.size.height -= smileAllowance
+
         var visualRect = rect
         visualRect.size.height += self.extensionDistance
-        
+
         return (rect, visualRect, isLeftAligned, cloudSourcePoint)
     }
     
@@ -1611,7 +1635,10 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
         }
         
         let contentHeight = verticalInset * 2.0 + rowHeight
-        if !self.isExpanded {
+        // Only the Tapbacks pill derives its collapsed height from the row metrics. The legacy bar
+        // has always been a fixed 46pt (its item layout below still hardcodes that), so adopting
+        // 13*2+30 = 56 here would leave every non-glass reaction bar 10pt taller than its contents.
+        if self.usesExternalExpandButton, !self.isExpanded {
             self.currentContentHeight = contentHeight
         }
         
@@ -1682,7 +1709,11 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
             )
             // The smile belongs to the pill: while the picker is docked at the bottom the pill is faded
             // out, so the smile has to go with it instead of floating over empty space.
-            transition.updateAlpha(layer: expandItemView.layer, alpha: self.isExpanded ? 0.0 : 1.0)
+            // animateOut already runs its own fade and then re-enters updateLayout with .immediate —
+            // writing the alpha back to 1.0 here would pop the button opaque mid-dismissal.
+            if !self.isAnimatingOut {
+                transition.updateAlpha(layer: expandItemView.layer, alpha: self.isExpanded ? 0.0 : 1.0)
+            }
             transition.updateFrame(view: expandItemView, frame: expandFrame)
             expandItemView.update(size: expandFrame.size, transition: transition)
             self.view.bringSubviewToFront(expandItemView)
@@ -1700,7 +1731,15 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
         
         if self.usesExternalExpandButton {
             transition.updateAlpha(node: self.backgroundNode, alpha: tapbacksBottomPickerActive ? 0.0 : 1.0)
-            transition.updateAlpha(node: self.scrollNode, alpha: tapbacksBottomPickerActive ? 0.0 : 1.0)
+            // Hide only once the fade has actually played — setting isHidden in the same pass takes
+            // effect immediately and would drop the reactions in one frame while the capsule fades.
+            transition.updateAlpha(node: self.scrollNode, alpha: tapbacksBottomPickerActive ? 0.0 : 1.0, completion: { [weak self] completed in
+                guard let self, completed, tapbacksBottomPickerActive, self.isTapbacksBottomPickerActive else {
+                    return
+                }
+                self.scrollNode.isHidden = true
+                self.mirrorContentScrollView.isHidden = true
+            })
         }
         
         self.updateScrolling(transition: transition)
@@ -1774,7 +1813,10 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
                         backgroundColor: tapbacksBottomPickerActive ? self.tapbacksPickerBackgroundColor : .clear,
                         separatorColor: self.presentationData.theme.list.itemPlainSeparatorColor.withMultipliedAlpha(0.5),
                         hideTopPanel: hideTopPanel,
-                        disableTopPanel: self.alwaysAllowPremiumReactions || tapbacksBottomPickerActive,
+                        // Must agree with the emoji-content refresh above (hideExpandedTopPanel
+                        // included), otherwise the two passes disagree and the grid jumps by the
+                        // top panel's height while the picker is open.
+                        disableTopPanel: self.alwaysAllowPremiumReactions || self.hideExpandedTopPanel || tapbacksBottomPickerActive,
                         bottomDockStyle: pickerDockStyle,
                         hideTopPanelUpdated: { [weak self] hideTopPanel, transition in
                             guard let strongSelf = self else {
@@ -1877,10 +1919,9 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
                             expandItemView.tintView.alpha = 0.0
                             expandItemView.tintView.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.2)
                             expandItemView.tintView.layer.animateScale(from: 1.0, to: 0.0, duration: 0.2, removeOnCompletion: false)
-                        } else if tapbacksBottomPickerActive {
-                            self.scrollNode.isHidden = true
-                            self.mirrorContentScrollView.isHidden = true
                         }
+                        // The Tapbacks path leaves the hiding to the scrollNode fade above, so the
+                        // reactions cross-fade into the docked picker instead of blinking out.
                         animateIn = true
                     }
                     
@@ -3576,11 +3617,18 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
         self.hapticFeedback?.tap()
         
         self.view.endEditing(true)
-        
+
+        // Non-Tapbacks styles collapse on their way out, and callers (e.g. the sticker peek) rely on
+        // collapse() disarming the preview even when the node was never expanded — so this has to stay
+        // ahead of the guard, as it was before Tapbacks.
+        if !self.usesExternalExpandButton {
+            self.longPressRecognizer?.isEnabled = false
+        }
+
         guard self.isExpanded else {
             return
         }
-        
+
         // Tapbacks collapses back to a live pill rather than to a dismissing menu, so the
         // long-press preview has to come back with it; every other style is on its way out.
         self.longPressRecognizer?.isEnabled = self.usesExternalExpandButton && !self.allPresetReactionsAreAvailable

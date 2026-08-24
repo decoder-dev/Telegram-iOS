@@ -213,7 +213,8 @@ public class UnauthorizedAccount {
         
         self.stateManager.reset()
         self.managedDisposables.add(managedAutomaticMtProxy(accountManager: accountManager, network: network).start())
-        let latestProxySettings = Atomic<ProxySettings>(value: .defaultSettings)
+        // nil until the first real emission — see registerWebProxySidecarReapply.
+        let latestProxySettings = Atomic<ProxySettings?>(value: nil)
         self.managedDisposables.add((accountManager.sharedData(keys: [SharedDataKeys.proxySettings])
         |> map { sharedData -> ProxySettings in
             return sharedData.entries[SharedDataKeys.proxySettings]?.get(ProxySettings.self) ?? .defaultSettings
@@ -1503,7 +1504,8 @@ public class Account {
                 strongSelf._importantTasksRunning.set(value)
             }
         }))
-        let latestProxySettings = Atomic<ProxySettings>(value: .defaultSettings)
+        // nil until the first real emission — see registerWebProxySidecarReapply.
+        let latestProxySettings = Atomic<ProxySettings?>(value: nil)
         self.managedOperationsDisposable.add((accountManager.sharedData(keys: [SharedDataKeys.proxySettings])
         |> map { sharedData -> ProxySettings in
             return sharedData.entries[SharedDataKeys.proxySettings]?.get(ProxySettings.self) ?? .defaultSettings

@@ -6,6 +6,7 @@ import TelegramCore
 import SwiftSignalKit
 import AccountContext
 import TelegramPresentationData
+import TelegramUIPreferences
 import ComponentFlow
 import ViewControllerComponent
 import SheetComponent
@@ -280,7 +281,7 @@ private final class ProxyServerPreviewSheetContent: CombinedComponent {
                         
             tableItems.append(.init(
                 id: "server",
-                title: component.server.connection.isWebProxy ? strings.SocksProxySetup_MaskingSite : strings.SocksProxySetup_Hostname,
+                title: component.server.connection.isWebProxy ? ForkWebProxyStrings.maskingSite : strings.SocksProxySetup_Hostname,
                 component: AnyComponent(
                     MultilineTextComponent(text: .plain(NSAttributedString(string: component.server.host, font: tableFont, textColor: tableTextColor)))
                 )

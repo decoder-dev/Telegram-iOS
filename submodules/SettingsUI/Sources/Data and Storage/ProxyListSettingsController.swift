@@ -416,7 +416,7 @@ private func proxySettingsControllerEntries(theme: PresentationTheme, strings: P
                 case .mtp:
                     text = strings.SocksProxySetup_ProxyTelegram
                 case .web:
-                    text = strings.SocksProxySetup_ProxyWeb
+                    text = ForkWebProxyStrings.proxyType
             }
             if server.connection.isWebProxy {
                 displayStatus = DisplayProxyServerStatus(activity: false, text: text, textActive: false)
@@ -771,7 +771,7 @@ public func proxySettingsController(accountManager: AccountManager<TelegramAccou
                 actionSheet?.dismissAnimated()
                 addServer(.mtp)
             }),
-            ActionSheetButtonItem(title: presentationData.strings.SocksProxySetup_ProxyWeb, color: .accent, action: { [weak actionSheet] in
+            ActionSheetButtonItem(title: ForkWebProxyStrings.proxyType, color: .accent, action: { [weak actionSheet] in
                 actionSheet?.dismissAnimated()
                 addServer(.web)
             })

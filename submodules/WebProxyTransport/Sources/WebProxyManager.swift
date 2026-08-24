@@ -28,7 +28,13 @@ public final class WebProxyManager {
     /// Upper bound on a sidecar bootstrap (30s bridge request + 90s session creation), after which
     /// an in-flight start is no longer treated as live and a fresh one may supersede it.
     private static let startTimeout: Double = 180.0
-    
+    /// Backoff bounds after a failed bootstrap. A failure notifies every account, and each one
+    /// re-applies its proxy settings, which lands straight back in `scheduleStart` — without a
+    /// cooldown that is an unbounded retry loop, and a hot one when `derive` fails synchronously
+    /// (invalid hostname or empty secret), spinning global-queue → main-queue at full speed.
+    private static let minimumRetryInterval: Double = 5.0
+    private static let maximumRetryInterval: Double = 60.0
+
     private let lock = NSLock()
     private let startLock = NSLock()
     private var sidecar: WebProxySidecar?
@@ -37,6 +43,9 @@ public final class WebProxyManager {
     private var startingConfiguration: WebProxyConfiguration?
     private var startingSince: Double = 0.0
     private var startGeneration: UInt64 = 0
+    private var lastFailedConfiguration: WebProxyConfiguration?
+    private var lastFailureTime: Double = 0.0
+    private var consecutiveFailureCount: Int = 0
     
     private var nextSidecarEventToken: SidecarEventToken = 0
     private var sidecarEventHandlers: [SidecarEventToken: () -> Void] = [:]
@@ -88,6 +97,10 @@ public final class WebProxyManager {
             self.startLock.lock()
             self.startGeneration &+= 1
             self.startingConfiguration = nil
+            // Turning the proxy off is an explicit user action — don't make re-enabling the same
+            // server wait out a cooldown left over from an earlier failure.
+            self.lastFailedConfiguration = nil
+            self.consecutiveFailureCount = 0
             self.startLock.unlock()
             
             self.lock.lock()
@@ -116,6 +129,18 @@ public final class WebProxyManager {
             // HTTPS bootstrap and restarting the wait from zero for all of them.
             self.startLock.unlock()
             return
+        }
+        if self.lastFailedConfiguration == configuration, self.consecutiveFailureCount > 0 {
+            let backoff = min(
+                WebProxyManager.maximumRetryInterval,
+                WebProxyManager.minimumRetryInterval * pow(2.0, Double(self.consecutiveFailureCount - 1))
+            )
+            if CFAbsoluteTimeGetCurrent() - self.lastFailureTime < backoff {
+                // Still cooling down after a failed bootstrap of this very configuration. The next
+                // settings re-apply (foreground, network change, edit) will try again.
+                self.startLock.unlock()
+                return
+            }
         }
         self.startGeneration &+= 1
         let generation = self.startGeneration
@@ -166,8 +191,10 @@ public final class WebProxyManager {
             if self.startingConfiguration == configuration {
                 self.startingConfiguration = nil
             }
+            self.lastFailedConfiguration = nil
+            self.consecutiveFailureCount = 0
             self.startLock.unlock()
-            
+
             self.notifySidecarEvent()
         case .failure:
             sidecar?.stop()
@@ -175,6 +202,13 @@ public final class WebProxyManager {
             if generation == self.startGeneration {
                 self.startingConfiguration = nil
             }
+            if self.lastFailedConfiguration == configuration {
+                self.consecutiveFailureCount += 1
+            } else {
+                self.lastFailedConfiguration = configuration
+                self.consecutiveFailureCount = 1
+            }
+            self.lastFailureTime = CFAbsoluteTimeGetCurrent()
             self.startLock.unlock()
             
             self.lock.lock()

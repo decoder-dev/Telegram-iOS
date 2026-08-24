@@ -5,6 +5,7 @@ import SwiftSignalKit
 import TelegramCore
 import MtProtoKit
 import TelegramPresentationData
+import TelegramUIPreferences
 import ItemListUI
 import PresentationDataUtils
 import AccountContext
@@ -254,10 +255,10 @@ private func proxyServerSettingsControllerEntries(presentationData: Presentation
     
     entries.append(.modeSocks5(presentationData.theme, presentationData.strings.SocksProxySetup_ProxySocks5, state.mode == .socks5))
     entries.append(.modeMtp(presentationData.theme, presentationData.strings.SocksProxySetup_ProxyTelegram, state.mode == .mtp))
-    entries.append(.modeWeb(presentationData.theme, presentationData.strings.SocksProxySetup_ProxyWeb, state.mode == .web))
+    entries.append(.modeWeb(presentationData.theme, ForkWebProxyStrings.proxyType, state.mode == .web))
     
     entries.append(.connectionHeader(presentationData.theme, presentationData.strings.SocksProxySetup_Connection.uppercased()))
-    let serverPlaceholder = state.mode == .web ? presentationData.strings.SocksProxySetup_MaskingSite : presentationData.strings.SocksProxySetup_Hostname
+    let serverPlaceholder = state.mode == .web ? ForkWebProxyStrings.maskingSite : presentationData.strings.SocksProxySetup_Hostname
     entries.append(.connectionServer(presentationData.theme, presentationData.strings, serverPlaceholder, state.host))
     if state.mode != .web {
         entries.append(.connectionPort(presentationData.theme, presentationData.strings, presentationData.strings.SocksProxySetup_Port, state.port))
