@@ -295,7 +295,11 @@ public final class EmojiStatusSelectionComponent: Component {
             let headerHeight: CGFloat = dock == nil ? 0.0 : EmojiStatusSelectionComponent.bottomDockHeaderHeight
             let contentSize = CGSize(width: availableSize.width, height: max(1.0, availableSize.height - headerHeight - (dock?.bottomInset ?? 0.0)))
             
-            let topPanelHeight: CGFloat = component.hideTopPanel ? 0.0 : 42.0
+            // A disabled panel is rendered with zero height by the pager, so reserving the 42pt band
+            // for it would leave an empty strip of Telegram chrome and clip the grid's first row
+            // behind it.
+            let isTopPanelHidden = component.hideTopPanel || component.disableTopPanel
+            let topPanelHeight: CGFloat = isTopPanelHidden ? 0.0 : 42.0
             
             var forceUpdate = false
             if let _ = transition.userData(PagerComponentForceUpdate.self) {
@@ -368,8 +372,8 @@ public final class EmojiStatusSelectionComponent: Component {
                 transition.setFrame(view: self.panelBackgroundView, frame: CGRect(origin: CGPoint(x: 0.0, y: headerHeight), size: CGSize(width: keyboardSize.width, height: topPanelHeight)))
                 self.panelBackgroundView.update(size: self.panelBackgroundView.bounds.size, transition: transition.containedViewLayoutTransition)
                 
-                transition.setFrame(view: self.panelSeparatorView, frame: CGRect(origin: CGPoint(x: 0.0, y: headerHeight + (component.hideTopPanel ? -UIScreenPixel : topPanelHeight)), size: CGSize(width: keyboardSize.width, height: UIScreenPixel)))
-                transition.setAlpha(view: self.panelSeparatorView, alpha: component.hideTopPanel ? 0.0 : 1.0)
+                transition.setFrame(view: self.panelSeparatorView, frame: CGRect(origin: CGPoint(x: 0.0, y: headerHeight + (isTopPanelHidden ? -UIScreenPixel : topPanelHeight)), size: CGSize(width: keyboardSize.width, height: UIScreenPixel)))
+                transition.setAlpha(view: self.panelSeparatorView, alpha: isTopPanelHidden ? 0.0 : 1.0)
             }
             
             return availableSize
