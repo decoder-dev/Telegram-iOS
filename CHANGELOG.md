@@ -12,6 +12,8 @@
 ### Fixed
 - **Reactions (Tapbacks):** the reaction pill can be swiped left/right again — its scroll content was sized to the visible slots only, so reactions past the 7th were unreachable. The row is also vertically centred in the capsule and laid out with the Tapbacks spacing it is measured with.
 - **WEB proxy:** sidecar readiness is broadcast to every loaded account Network (was a single overwritten callback), so enabling WEB proxy no longer leaves other multi-account sessions stuck on the fail-closed loopback.
+- **WEB proxy:** a start already in flight for the same server is reused instead of superseded. Each account resolves the same shared proxy settings, so with several accounts every extra `configure` tore down a sidecar midway through its HTTPS bootstrap and restarted the wait for all of them.
+- **WEB proxy:** disabling the proxy no longer mutates the sidecar/endpoint state under the wrong lock, which could race a concurrent readiness callback.
 
 ## [v12.9.2-3906-pre] — 2026-08-24
 
