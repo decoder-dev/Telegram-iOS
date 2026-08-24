@@ -6,10 +6,15 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3906-pre] — 2026-08-24
+
+Pre-release: Tapbacks long-press + bottom emoji picker bugfixes (iMessage-like).
+
 ### Fixed
 - **Reactions (Tapbacks):** long-press shows a compact pill + context menu (not the legacy in-place emoji blob); smile opens a bottom-docked emoji picker like iMessage instead of the center circle overlay.
 - **Reactions (Tapbacks):** the bottom-docked emoji picker was not receiving taps at all — hit-testing stopped at the pill container, so no emoji could be picked; tapping outside the picker now dismisses instead of being swallowed.
 - **Reactions (Tapbacks):** the smile button no longer floats over empty space while the picker is open, the anchored message no longer jumps by the smile's height when the picker opens, and the picker slides back down (not up) when it closes.
+- **Reactions (Tapbacks):** collapse restores context-menu position lock / smile panel state so the menu does not stay faded or pinned after closing the picker.
 
 ## [v12.9.2-3905-pre] — 2026-08-22
 
