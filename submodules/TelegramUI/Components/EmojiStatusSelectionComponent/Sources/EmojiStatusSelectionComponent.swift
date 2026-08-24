@@ -251,7 +251,7 @@ public final class EmojiStatusSelectionComponent: Component {
             }
             grabberView.backgroundColor = theme.list.itemPrimaryTextColor.withMultipliedAlpha(dock.isDark ? 0.2 : 0.07)
             let grabberSize = CGSize(width: 36.0, height: 5.0)
-            grabberView.frame = CGRect(origin: CGPoint(x: floor((availableSize.width - grabberSize.width) / 2.0), y: 8.0), size: grabberSize)
+            grabberView.frame = CGRect(origin: CGPoint(x: floor((availableSize.width - grabberSize.width) / 2.0), y: 5.0), size: grabberSize)
             
             let closeButton: UIButton
             if let current = self.sheetCloseButton {
@@ -266,12 +266,16 @@ public final class EmojiStatusSelectionComponent: Component {
                 self.sheetCloseIconTheme = theme
                 closeButton.setImage(generateSheetCloseIcon(backgroundColor: UIColor(rgb: 0x808084, alpha: 0.1), foregroundColor: theme.list.itemSecondaryTextColor), for: .normal)
             }
-            let closeButtonSize = CGSize(width: 30.0, height: 30.0)
+            // The 30pt circle is the visual size; the button itself is grown to the 44pt minimum hit
+            // target around it, so the trailing inset is measured from the circle, not the frame.
+            let closeIconSize = CGSize(width: 30.0, height: 30.0)
+            let closeButtonSize = CGSize(width: 44.0, height: 44.0)
+            let closeIconInset = floor((closeButtonSize.width - closeIconSize.width) / 2.0)
             closeButton.isHidden = !hasDismiss
             closeButton.frame = CGRect(
                 origin: CGPoint(
-                    x: availableSize.width - closeButtonSize.width - 14.0,
-                    y: floor((EmojiStatusSelectionComponent.bottomDockHeaderHeight - closeButtonSize.height) / 2.0) + 3.0
+                    x: availableSize.width - 16.0 - closeIconSize.width - closeIconInset,
+                    y: floor((EmojiStatusSelectionComponent.bottomDockHeaderHeight - closeButtonSize.height) / 2.0)
                 ),
                 size: closeButtonSize
             )

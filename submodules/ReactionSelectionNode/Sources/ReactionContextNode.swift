@@ -204,7 +204,7 @@ private final class ExpandItemView: UIView {
             } else {
                 self.backgroundColor = UIColor(rgb: 0xFFFFFF, alpha: 0.94)
             }
-            self.layer.borderWidth = 0.5 / UIScreenScale
+            self.layer.borderWidth = UIScreenPixel
             self.layer.borderColor = (theme.overallDarkAppearance ? UIColor.white.withAlphaComponent(0.12) : UIColor.black.withAlphaComponent(0.08)).cgColor
             self.layer.shadowColor = UIColor.black.cgColor
             self.layer.shadowOpacity = theme.overallDarkAppearance ? 0.45 : 0.22
@@ -518,7 +518,8 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
     private static let tapbacksRowHeight: CGFloat = 32.0
     private static let tapbacksSmileSize: CGFloat = 30.0
     private static let tapbacksSmileGap: CGFloat = 6.0
-    private static let tapbacksSmileTrailingInset: CGFloat = 4.0
+    /// Matches the pill's own side inset so the smile's trailing edge lines up with the reaction row's.
+    private static let tapbacksSmileTrailingInset: CGFloat = ReactionContextNode.tapbacksSideInset
     private static let tapbacksMaxVisibleItems: Int = 7
     private static let tapbacksPickerCornerRadius: CGFloat = 20.0
     
