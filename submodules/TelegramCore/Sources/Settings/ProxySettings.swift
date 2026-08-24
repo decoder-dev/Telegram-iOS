@@ -10,6 +10,20 @@ public func updateProxySettingsInteractively(accountManager: AccountManager<Tele
     }
 }
 
+/// Whether a hostname is usable as a WEB proxy relay: a real multi-label DNS name, never an IP
+/// literal or one of WHATWG's numeric shorthands for one. Re-exported from `WebProxyTransport` so
+/// the settings editor and the `tg://webproxy` link parser validate against the same rule the
+/// carrier does, instead of saving a proxy that can only fail later.
+public func isValidWebProxyHostname(_ host: String) -> Bool {
+    return WebProxyHostname.isValid(host)
+}
+
+/// Whether an MTProxy secret is one a WEB proxy can use. `ee` TLS-emulation secrets are not:
+/// the relay speaks raw bytes to a stock MTProxy and adds no inner TLS-emulation record.
+public func isSupportedWebProxySecret(_ secret: Data) -> Bool {
+    return WebProxySecret.isSupported(secret)
+}
+
 extension ProxyServerSettings {
     var mtProxySettings: MTSocksProxySettings? {
         switch self.connection {

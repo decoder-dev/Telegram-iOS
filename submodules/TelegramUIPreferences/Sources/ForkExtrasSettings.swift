@@ -39,6 +39,9 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var compactMessagePreview: Bool
     public var compactFolderNames: Bool
     public var hideReactionsBar: Bool
+    /// Whether recently-used emoji feed the reaction picker. Off leaves the picker's top group as
+    /// the standard reaction set — or, in a channel that limits reactions, exactly that set.
+    public var useRecentEmojiInReactions: Bool
     public var showDC: Bool
     public var showProfileId: Bool
     public var accentColorSaturation: Int32
@@ -130,6 +133,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
             compactMessagePreview: false,
             compactFolderNames: false,
             hideReactionsBar: false,
+            useRecentEmojiInReactions: true,
             showDC: false,
             showProfileId: false,
             accentColorSaturation: 100,
@@ -189,6 +193,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         compactMessagePreview: Bool,
         compactFolderNames: Bool,
         hideReactionsBar: Bool,
+        useRecentEmojiInReactions: Bool,
         showDC: Bool,
         showProfileId: Bool,
         accentColorSaturation: Int32,
@@ -245,6 +250,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.compactMessagePreview = compactMessagePreview
         self.compactFolderNames = compactFolderNames
         self.hideReactionsBar = hideReactionsBar
+        self.useRecentEmojiInReactions = useRecentEmojiInReactions
         self.showDC = showDC
         self.showProfileId = showProfileId
         self.accentColorSaturation = accentColorSaturation
@@ -305,6 +311,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.compactMessagePreview = try container.decodeIfPresent(Bool.self, forKey: "compactMessagePreview") ?? false
         self.compactFolderNames = try container.decodeIfPresent(Bool.self, forKey: "compactFolderNames") ?? false
         self.hideReactionsBar = try container.decodeIfPresent(Bool.self, forKey: "hideReactionsBar") ?? false
+        self.useRecentEmojiInReactions = try container.decodeIfPresent(Bool.self, forKey: "useRecentEmojiInReactions") ?? true
         self.showDC = try container.decodeIfPresent(Bool.self, forKey: "showDC") ?? false
         self.showProfileId = try container.decodeIfPresent(Bool.self, forKey: "showProfileId") ?? false
         self.accentColorSaturation = try container.decodeIfPresent(Int32.self, forKey: "accentColorSaturation") ?? 100
@@ -367,6 +374,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.compactMessagePreview, forKey: "compactMessagePreview")
         try container.encode(self.compactFolderNames, forKey: "compactFolderNames")
         try container.encode(self.hideReactionsBar, forKey: "hideReactionsBar")
+        try container.encode(self.useRecentEmojiInReactions, forKey: "useRecentEmojiInReactions")
         try container.encode(self.showDC, forKey: "showDC")
         try container.encode(self.showProfileId, forKey: "showProfileId")
         try container.encode(self.accentColorSaturation, forKey: "accentColorSaturation")

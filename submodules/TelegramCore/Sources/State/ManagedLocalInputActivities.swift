@@ -108,6 +108,9 @@ public enum ForkExtrasHotFlags {
         public var hideAds: Bool = true
         public var hideBlockedMessages: Bool = false
         public var hideReactionsBar: Bool = false
+        /// Fork: "Use recent emoji in reactions" (Customization). Read where the reaction picker's
+        /// item groups are assembled; off means the picker never pulls the recent-reactions list.
+        public var useRecentEmojiInReactions: Bool = true
         public var compactChatList: Bool = false
         public var compactMessagePreview: Bool = false
         public var hideAllChats: Bool = false
@@ -127,6 +130,7 @@ public enum ForkExtrasHotFlags {
             hideAds: Bool = true,
             hideBlockedMessages: Bool = false,
             hideReactionsBar: Bool = false,
+            useRecentEmojiInReactions: Bool = true,
             compactChatList: Bool = false,
             compactMessagePreview: Bool = false,
             hideAllChats: Bool = false,
@@ -146,6 +150,7 @@ public enum ForkExtrasHotFlags {
             self.hideAds = true
             self.hideBlockedMessages = hideBlockedMessages
             self.hideReactionsBar = hideReactionsBar
+            self.useRecentEmojiInReactions = useRecentEmojiInReactions
             self.compactChatList = compactChatList
             self.compactMessagePreview = compactMessagePreview
             self.hideAllChats = hideAllChats
@@ -187,6 +192,10 @@ public enum ForkExtrasHotFlags {
     public static var hideReactionsBar: Bool {
         get { return state.with { $0.hideReactionsBar } }
         set { let _ = state.modify { var s = $0; s.hideReactionsBar = newValue; return s } }
+    }
+    public static var useRecentEmojiInReactions: Bool {
+        get { return state.with { $0.useRecentEmojiInReactions } }
+        set { let _ = state.modify { var s = $0; s.useRecentEmojiInReactions = newValue; return s } }
     }
     public static var compactChatList: Bool {
         get { return state.with { $0.compactChatList } }

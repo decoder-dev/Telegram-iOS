@@ -5,6 +5,7 @@ public enum WebProxyHttpCarrierError: Error {
     case bridgeRequestFailed
     case bootstrapTokenMissing
     case sessionCreationFailed
+    case welcomeMissing
     case uplinkRejected
     case downlinkRejected
     case carrierClosed
@@ -21,9 +22,23 @@ final class WebProxyHttpCarrier {
     private var downCursor: String = "0"
     private var upSequence: Int = 1
     private var closed = false
+    /// The relay must open with `WELCOME` before any stream traffic. Until it does, an ordinary
+    /// 200 from a site that is not a relay at all is indistinguishable from a working carrier —
+    /// which is how a mistyped hostname used to sit in `connecting` forever.
+    private var awaitingWelcome = true
     
-    private var uplinkQueue: [Data] = []
+    /// One buffer rather than a queue of batches: consecutive `sendFrames` calls are concatenated
+    /// frame streams, so while a POST is in flight the next one can carry everything that piled up
+    /// behind it. Without this a 64 KiB socket read became its own round trip, which is what made
+    /// the carrier RTT-bound on uploads.
+    private var uplinkBuffer = Data()
     private var uplinkRunning = false
+    
+    /// Matches the hosted bridge's 2 MiB batch. Anything above it waits for the next POST.
+    private static let maximumUplinkBatchSize = 2 * 1024 * 1024
+    /// Hard ceiling on data queued for the carrier. Past this the carrier fails instead of growing
+    /// without bound: `AbstractSocket`-style writes have no backpressure to push back with.
+    private static let maximumUplinkBufferSize = 64 * 1024 * 1024
     
     var onDownlinkBatch: ((Data) -> Void)?
     var onFailure: ((Error) -> Void)?
@@ -76,7 +91,11 @@ final class WebProxyHttpCarrier {
             guard !self.closed, !self.sessionToken.isEmpty else {
                 return
             }
-            self.uplinkQueue.append(batch)
+            if self.uplinkBuffer.count + batch.count > WebProxyHttpCarrier.maximumUplinkBufferSize {
+                self.fail(WebProxyHttpCarrierError.uplinkRejected)
+                return
+            }
+            self.uplinkBuffer.append(batch)
             self.runUplinkIfNeeded()
         }
     }
@@ -183,16 +202,68 @@ final class WebProxyHttpCarrier {
         self.sessionToken = token
         self.downCursor = response.value(forHTTPHeaderField: "X-Down-Cursor") ?? "0"
         if let body = responseData, !body.isEmpty {
-            _ = try WebProxyFrameCodec.decodeBatch(body)
+            let frames = try WebProxyFrameCodec.decodeBatch(body)
+            try self.consumeWelcome(in: frames)
+            // Frames trailing the handshake are ordinary downlink; the reader ignores `WELCOME`.
+            self.onDownlinkBatch?(body)
         }
     }
     
+    /// The first relay frame of the session must be `WELCOME` on stream zero.
+    private func consumeWelcome(in frames: [WebProxyFrame]) throws {
+        guard self.awaitingWelcome else {
+            return
+        }
+        guard let first = frames.first, first.type == .welcome, first.streamId == 0 else {
+            throw WebProxyHttpCarrierError.welcomeMissing
+        }
+        self.awaitingWelcome = false
+    }
+    
+    /// Largest prefix of `buffer` that ends on a frame boundary and is at most `limit` bytes.
+    /// A carrier message has to carry whole frames, so a batch can only be cut here.
+    static func frameBoundaryOffset(in buffer: Data, notExceeding limit: Int) -> Int {
+        var offset = 0
+        var lastBoundary = 0
+        while offset + 8 <= buffer.count {
+            let base = buffer.startIndex + offset
+            let payloadSize = (Int(buffer[base + 4]) << 24) | (Int(buffer[base + 5]) << 16) | (Int(buffer[base + 6]) << 8) | Int(buffer[base + 7])
+            let end = offset + 8 + payloadSize
+            if end > buffer.count {
+                break
+            }
+            if end > limit {
+                break
+            }
+            lastBoundary = end
+            offset = end
+        }
+        // A single frame larger than the limit still has to go out whole, so never return zero
+        // while there is a complete frame to send.
+        if lastBoundary == 0 {
+            return buffer.count
+        }
+        return lastBoundary
+    }
+    
     private func runUplinkIfNeeded() {
-        if self.uplinkRunning || self.closed || self.sessionToken.isEmpty || self.uplinkQueue.isEmpty {
+        if self.uplinkRunning || self.closed || self.sessionToken.isEmpty || self.uplinkBuffer.isEmpty {
             return
         }
         self.uplinkRunning = true
-        let batch = self.uplinkQueue.removeFirst()
+        // Split on a frame boundary: a POST body must contain whole frames, so the cut point is the
+        // last frame header that ends at or before the batch limit.
+        let batch: Data
+        let splitOffset = WebProxyHttpCarrier.frameBoundaryOffset(in: self.uplinkBuffer, notExceeding: WebProxyHttpCarrier.maximumUplinkBatchSize)
+        if splitOffset >= self.uplinkBuffer.count {
+            batch = self.uplinkBuffer
+            self.uplinkBuffer = Data()
+        } else {
+            batch = Data(self.uplinkBuffer.prefix(splitOffset))
+            // Re-based rather than kept as a slice: the buffer is appended to and re-sliced on
+            // every turn, and a slice's non-zero start index is easy to index past by mistake.
+            self.uplinkBuffer = Data(self.uplinkBuffer.dropFirst(splitOffset))
+        }
         let sequence = self.upSequence
         self.upSequence += 1
         
@@ -215,7 +286,7 @@ final class WebProxyHttpCarrier {
             self.queue.async {
                 defer {
                     self.uplinkRunning = false
-                    if !self.uplinkQueue.isEmpty {
+                    if !self.uplinkBuffer.isEmpty {
                         self.runUplinkIfNeeded()
                     }
                 }
@@ -276,6 +347,14 @@ final class WebProxyHttpCarrier {
                       let data = data, !data.isEmpty else {
                     self.fail(WebProxyHttpCarrierError.downlinkRejected)
                     return
+                }
+                if self.awaitingWelcome {
+                    do {
+                        try self.consumeWelcome(in: WebProxyFrameCodec.decodeBatch(data))
+                    } catch {
+                        self.fail(WebProxyHttpCarrierError.welcomeMissing)
+                        return
+                    }
                 }
                 self.downCursor = nextCursor
                 self.onDownlinkBatch?(data)

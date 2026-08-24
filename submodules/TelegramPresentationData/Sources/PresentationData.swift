@@ -125,6 +125,25 @@ public func forkEditHistoryMenuTitle(_ strings: PresentationStrings) -> String {
     }
 }
 
+/// Customization row: whether recently-used emoji feed the reaction picker.
+public func forkUseRecentEmojiInReactionsTitle(_ strings: PresentationStrings) -> String {
+    switch strings.primaryComponent.languageCode {
+    case "ru", "uk", "be":
+        return "Недавние эмодзи в реакциях"
+    default:
+        return "Recent Emoji in Reactions"
+    }
+}
+
+public func forkUseRecentEmojiInReactionsInfo(_ strings: PresentationStrings) -> String {
+    switch strings.primaryComponent.languageCode {
+    case "ru", "uk", "be":
+        return "Показывать недавно использованные эмодзи при выборе реакции. Если выключено, доступны только стандартные реакции и те, что разрешены в канале."
+    default:
+        return "Offer recently used emoji when picking a reaction. When off, only the standard reactions — and whichever ones a channel allows — are available."
+    }
+}
+
 /// Title for the Settings row that opens the fork's Extras screen. It used to sit inside Privacy
 /// and Security, which is not where anyone looks for it — it now lives in the main Settings list
 /// next to Developer Mode, and shares the same bilingual pattern.

@@ -362,7 +362,12 @@ public func topMessageReactions(context: AccountContext, message: EngineRawMessa
                         continue
                     }
                 case .all:
-                    break
+                    // Fork: "Recent Emoji in Reactions" (Customization). Off keeps the reaction bar
+                    // on the standard set. A channel that explicitly allows a custom reaction still
+                    // gets it — that is the `.set` branch above, which this deliberately skips.
+                    if !ForkExtrasHotFlags.useRecentEmojiInReactions {
+                        continue
+                    }
                 }
                 
                 if existingIds.contains(.custom(file.fileId.id)) {

@@ -40,6 +40,7 @@ private final class ThemeSettingsControllerArguments {
     let openStickersAndEmoji: () -> Void
     let toggleSendWithCmdEnter: (Bool) -> Void
     let toggleShowNextMediaOnTap: (Bool) -> Void
+    let toggleUseRecentEmojiInReactions: (Bool) -> Void
     let selectAppIcon: (PresentationAppIcon) -> Void
     let editTheme: (PresentationCloudTheme) -> Void
     let themeContextAction: (Bool, PresentationThemeReference, ASDisplayNode, ContextGesture?) -> Void
@@ -61,6 +62,7 @@ private final class ThemeSettingsControllerArguments {
         openStickersAndEmoji: @escaping () -> Void,
         toggleSendWithCmdEnter: @escaping (Bool) -> Void,
         toggleShowNextMediaOnTap: @escaping (Bool) -> Void,
+        toggleUseRecentEmojiInReactions: @escaping (Bool) -> Void,
         selectAppIcon: @escaping (PresentationAppIcon) -> Void,
         editTheme: @escaping (PresentationCloudTheme) -> Void,
         themeContextAction: @escaping (Bool, PresentationThemeReference, ASDisplayNode, ContextGesture?) -> Void,
@@ -81,6 +83,7 @@ private final class ThemeSettingsControllerArguments {
         self.openStickersAndEmoji = openStickersAndEmoji
         self.toggleSendWithCmdEnter = toggleSendWithCmdEnter
         self.toggleShowNextMediaOnTap = toggleShowNextMediaOnTap
+        self.toggleUseRecentEmojiInReactions = toggleUseRecentEmojiInReactions
         self.selectAppIcon = selectAppIcon
         self.editTheme = editTheme
         self.themeContextAction = themeContextAction
@@ -108,6 +111,7 @@ public enum ThemeSettingsEntryTag: ItemListItemTag {
     case animations
     case sendWithCmdEnter
     case tapForNextMedia
+    case useRecentEmojiInReactions
     case nightMode
     case edit
     
@@ -139,6 +143,8 @@ private enum ThemeSettingsControllerEntry: ItemListNodeEntry {
     case sendWithCmdEnter(PresentationTheme, String, Bool)
     case showNextMediaOnTap(PresentationTheme, String, Bool)
     case showNextMediaOnTapInfo(PresentationTheme, String)
+    case useRecentEmojiInReactions(PresentationTheme, String, Bool)
+    case useRecentEmojiInReactionsInfo(PresentationTheme, String)
     
     var section: ItemListSectionId {
         switch self {
@@ -152,7 +158,7 @@ private enum ThemeSettingsControllerEntry: ItemListNodeEntry {
                 return ThemeSettingsControllerSection.icon.rawValue
             case .powerSaving, .stickersAndEmoji:
                 return ThemeSettingsControllerSection.message.rawValue
-            case .otherHeader, .sendWithCmdEnter, .showNextMediaOnTap, .showNextMediaOnTapInfo:
+            case .otherHeader, .sendWithCmdEnter, .showNextMediaOnTap, .showNextMediaOnTapInfo, .useRecentEmojiInReactions, .useRecentEmojiInReactionsInfo:
                 return ThemeSettingsControllerSection.other.rawValue
         }
     }
@@ -195,6 +201,10 @@ private enum ThemeSettingsControllerEntry: ItemListNodeEntry {
             return 16
         case .showNextMediaOnTapInfo:
             return 17
+        case .useRecentEmojiInReactions:
+            return 18
+        case .useRecentEmojiInReactionsInfo:
+            return 19
         }
     }
     
@@ -302,6 +312,18 @@ private enum ThemeSettingsControllerEntry: ItemListNodeEntry {
                 } else {
                     return false
                 }
+            case let .useRecentEmojiInReactions(lhsTheme, lhsTitle, lhsValue):
+                if case let .useRecentEmojiInReactions(rhsTheme, rhsTitle, rhsValue) = rhs, lhsTheme === rhsTheme, lhsTitle == rhsTitle, lhsValue == rhsValue {
+                    return true
+                } else {
+                    return false
+                }
+            case let .useRecentEmojiInReactionsInfo(lhsTheme, lhsText):
+                if case let .useRecentEmojiInReactionsInfo(rhsTheme, rhsText) = rhs, lhsTheme === rhsTheme, lhsText == rhsText {
+                    return true
+                } else {
+                    return false
+                }
             case let .showNextMediaOnTapInfo(lhsTheme, lhsText):
                 if case let .showNextMediaOnTapInfo(rhsTheme, rhsText) = rhs, lhsTheme === rhsTheme, lhsText == rhsText {
                     return true
@@ -394,6 +416,12 @@ private enum ThemeSettingsControllerEntry: ItemListNodeEntry {
                 }, tag: ThemeSettingsEntryTag.tapForNextMedia)
             case let .showNextMediaOnTapInfo(_, text):
                 return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section)
+            case let .useRecentEmojiInReactions(_, title, value):
+                return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: title, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                    arguments.toggleUseRecentEmojiInReactions(value)
+                }, tag: ThemeSettingsEntryTag.useRecentEmojiInReactions)
+            case let .useRecentEmojiInReactionsInfo(_, text):
+                return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section)
         }
     }
 }
@@ -403,6 +431,7 @@ private func themeSettingsControllerEntries(
     presentationThemeSettings: PresentationThemeSettings,
     chatSettings: ChatSettings,
     mediaSettings: MediaDisplaySettings,
+    forkExtras: ForkExtrasSettings,
     themeReference: PresentationThemeReference,
     availableThemes: [PresentationThemeReference],
     availableAppIcons: [PresentationAppIcon],
@@ -476,6 +505,8 @@ private func themeSettingsControllerEntries(
     }
     entries.append(.showNextMediaOnTap(presentationData.theme, strings.Appearance_ShowNextMediaOnTap, mediaSettings.showNextMediaOnTap))
     entries.append(.showNextMediaOnTapInfo(presentationData.theme, strings.Appearance_ShowNextMediaOnTapInfo))
+    entries.append(.useRecentEmojiInReactions(presentationData.theme, forkUseRecentEmojiInReactionsTitle(strings), forkExtras.useRecentEmojiInReactions))
+    entries.append(.useRecentEmojiInReactionsInfo(presentationData.theme, forkUseRecentEmojiInReactionsInfo(strings)))
     
     return entries
 }
@@ -600,6 +631,12 @@ public func themeSettingsController(context: AccountContext, focusOnItemTag: The
     }, toggleShowNextMediaOnTap: { value in
         let _ = updateMediaDisplaySettingsInteractively(accountManager: context.sharedContext.accountManager, { current in
             return current.withUpdatedShowNextMediaOnTap(value)
+        }).start()
+    }, toggleUseRecentEmojiInReactions: { value in
+        let _ = updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager, { current in
+            var current = current
+            current.useRecentEmojiInReactions = value
+            return current
         }).start()
     }, selectAppIcon: { icon in
         // Applied directly, with no premium check. The peer lookup that used to wrap this existed
@@ -1068,6 +1105,7 @@ public func themeSettingsController(context: AccountContext, focusOnItemTag: The
             ApplicationSpecificSharedDataKeys.presentationThemeSettings,
             ApplicationSpecificSharedDataKeys.chatSettings,
             ApplicationSpecificSharedDataKeys.mediaDisplaySettings,
+            ApplicationSpecificSharedDataKeys.forkExtrasSettings,
             SharedDataKeys.chatThemes
         ]),
         cloudThemes.get(),
@@ -1082,6 +1120,7 @@ public func themeSettingsController(context: AccountContext, focusOnItemTag: The
         let settings = sharedData.entries[ApplicationSpecificSharedDataKeys.presentationThemeSettings]?.get(PresentationThemeSettings.self) ?? PresentationThemeSettings.defaultSettings
         let chatSettings = sharedData.entries[ApplicationSpecificSharedDataKeys.chatSettings]?.get(ChatSettings.self) ?? ChatSettings.defaultSettings
         let mediaSettings = sharedData.entries[ApplicationSpecificSharedDataKeys.mediaDisplaySettings]?.get(MediaDisplaySettings.self) ?? MediaDisplaySettings.defaultSettings
+        let forkExtras = sharedData.entries[ApplicationSpecificSharedDataKeys.forkExtrasSettings]?.get(ForkExtrasSettings.self) ?? ForkExtrasSettings.defaultSettings
         
         let isPremium = peerView.peers[peerView.peerId]?.isPremium ?? false
         
@@ -1126,7 +1165,7 @@ public func themeSettingsController(context: AccountContext, focusOnItemTag: The
         chatThemes.insert(.builtin(.dayClassic), at: 0)
         
         let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .text(forkCustomizationSettingsTitle(presentationData.strings)), leftNavigationButton: nil, rightNavigationButton: nil, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back))
-        let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: themeSettingsControllerEntries(presentationData: presentationData, presentationThemeSettings: settings, chatSettings: chatSettings, mediaSettings: mediaSettings, themeReference: themeReference, availableThemes: availableThemes, availableAppIcons: availableAppIcons, currentAppIconName: currentAppIconName, isPremium: isPremium, chatThemes: chatThemes, animatedEmojiStickers: animatedEmojiStickers, accountPeer: accountPeer, nameColors: context.peerNameColors), style: .blocks, ensureVisibleItemTag: focusOnItemTag, animateChanges: false)
+        let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: themeSettingsControllerEntries(presentationData: presentationData, presentationThemeSettings: settings, chatSettings: chatSettings, mediaSettings: mediaSettings, forkExtras: forkExtras, themeReference: themeReference, availableThemes: availableThemes, availableAppIcons: availableAppIcons, currentAppIconName: currentAppIconName, isPremium: isPremium, chatThemes: chatThemes, animatedEmojiStickers: animatedEmojiStickers, accountPeer: accountPeer, nameColors: context.peerNameColors), style: .blocks, ensureVisibleItemTag: focusOnItemTag, animateChanges: false)
         
         return (controllerState, (listState, arguments))
     }

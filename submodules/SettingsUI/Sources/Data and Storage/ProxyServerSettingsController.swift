@@ -298,8 +298,18 @@ private func proxyServerSettings(with state: ProxyServerSettingsControllerState)
             guard let parsedSecret = MTProxySecret.parse(state.secret) else {
                 return nil
             }
+            // A WEB proxy is a relay hostname reached over HTTPS on 443 with a plain or `dd`
+            // MTProxy secret. Rejecting an IP literal or an `ee` TLS-emulation secret here keeps
+            // Save disabled instead of storing a proxy that can only fail at connect time.
+            let secret = parsedSecret.serialize()
+            guard isSupportedWebProxySecret(secret) else {
+                return nil
+            }
             let host = state.host.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-            return ProxyServerSettings(host: host, port: 443, connection: .web(secret: parsedSecret.serialize()))
+            guard isValidWebProxyHostname(host) else {
+                return nil
+            }
+            return ProxyServerSettings(host: host, port: 443, connection: .web(secret: secret))
     }
 }
 

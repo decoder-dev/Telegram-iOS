@@ -258,8 +258,15 @@ public func parseInternalUrl(sharedContext: SharedAccountContext, context: Accou
                                 }
                             }
                         }
-                        if let server = server, !server.isEmpty {
-                            return .webProxy(host: server, secret: secret)
+                        // Same rule the WEB editor and the carrier apply: a real DNS relay name
+                        // and a plain or `dd` secret. A link failing either is not a WEB proxy
+                        // link, so it falls through rather than opening a preview for something
+                        // that could never connect.
+                        if let server = server, !server.isEmpty, isValidWebProxyHostname(server.lowercased()) {
+                            if let secret, !isSupportedWebProxySecret(secret) {
+                                return nil
+                            }
+                            return .webProxy(host: server.lowercased(), secret: secret)
                         }
                     } else if peerName == "iv" {
                         var url: String?

@@ -1189,6 +1189,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             hideAds: true,
             hideBlockedMessages: settings.hideBlockedMessages,
             hideReactionsBar: settings.hideReactionsBar,
+            useRecentEmojiInReactions: settings.useRecentEmojiInReactions,
             compactChatList: settings.compactChatList,
             compactMessagePreview: settings.compactMessagePreview,
             hideAllChats: settings.hideAllChats,

@@ -75,6 +75,18 @@ public extension EmojiPagerContentComponent {
         
         let strings = context.sharedContext.currentPresentationData.with({ $0 }).strings
         
+        // Fork: "Recent Emoji in Reactions" (Customization). Turning it off narrows the reaction
+        // picker to the standard reaction set — and, in a channel that limits reactions, to exactly
+        // the set that channel allows. That is both halves of the setting: the recently-used list
+        // is not requested below, and the custom-emoji packs are dropped here, since leaving the
+        // packs in would still put non-standard reactions one tap away.
+        //
+        // Read once per picker rather than subscribed: the picker is rebuilt each time it opens, so
+        // a toggle mid-session takes effect on the next open.
+        let allowsRecentEmojiInReactions = ForkExtrasHotFlags.useRecentEmojiInReactions
+        let isReactionPickerSubject = [.reaction(onlyTop: false), .quickReaction].contains(subject)
+        let areCustomEmojiEnabled = areCustomEmojiEnabled && !(isReactionPickerSubject && !allowsRecentEmojiInReactions)
+        
         struct PeerSpecificPackData: Equatable {
             var info: StickerPackCollectionInfo.Accessor
             var items: [StickerPackItem]
@@ -159,7 +171,12 @@ public extension EmojiPagerContentComponent {
             |> take(1)
         } else if [.reaction(onlyTop: false), .quickReaction].contains(subject) {
             orderedItemListCollectionIds.append(Namespaces.OrderedItemList.CloudTopReactions)
-            orderedItemListCollectionIds.append(Namespaces.OrderedItemList.CloudRecentReactions)
+            // With the setting off the recent list is never requested, so the picker's top group
+            // falls back to the standard reaction set. The group also loses its "Recently used"
+            // title and its clear button, both already derived from whether a recent list came back.
+            if allowsRecentEmojiInReactions {
+                orderedItemListCollectionIds.append(Namespaces.OrderedItemList.CloudRecentReactions)
+            }
         } else if case .messageTag = subject {
             orderedItemListCollectionIds.append(Namespaces.OrderedItemList.CloudDefaultTagReactions)
         } else if case .topicIcon = subject {

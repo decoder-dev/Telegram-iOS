@@ -4109,6 +4109,15 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
             present: { context, _, present in
                 presentAppearanceSettings(context, present, .tapForNextMedia)
             }
+        ),
+        SettingsSearchableItem(
+            id: "appearance/recent-emoji-in-reactions",
+            title: forkUseRecentEmojiInReactionsTitle(strings),
+            icon: icon,
+            breadcrumbs: [customizationTitle],
+            present: { context, _, present in
+                presentAppearanceSettings(context, present, .useRecentEmojiInReactions)
+            }
         )
     ]
     
