@@ -537,6 +537,10 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
     private static let tapbacksSmileTrailingInset: CGFloat = ReactionContextNode.tapbacksSideInset
     private static let tapbacksMaxVisibleItems: Int = 7
     private static let tapbacksPickerCornerRadius: CGFloat = 20.0
+    /// Gap left above the fully expanded sheet, below the safe-area top.
+    private static let tapbacksPickerExpandedTopGap: CGFloat = 16.0
+    private static let tapbacksPickerFlickVelocity: CGFloat = 300.0
+    private static let tapbacksPickerDismissVelocity: CGFloat = 800.0
     
     /// The docked sheet is a Messages surface (`#FFFFFF` / `#1C1C1E`) kept translucent so the frosted
     /// blur reads through it; `contextMenu.backgroundColor` is the Telegram panel tint (`#F9F9F9` /
@@ -545,11 +549,101 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
         return self.presentationData.theme.list.itemBlocksBackgroundColor.withMultipliedAlpha(0.9)
     }
     
-    /// Height of the iMessage-style bottom sheet: header + a comfortable emoji grid + the home
-    /// indicator gutter, clamped so it never eats the anchored message on short screens.
-    private func tapbacksPickerHeight(size: CGSize, bottomInset: CGFloat) -> CGFloat {
+    /// Resting height of the iMessage-style bottom sheet: header + a comfortable emoji grid + the
+    /// home indicator gutter, clamped so it never eats the anchored message on short screens.
+    private func tapbacksPickerCollapsedHeight(size: CGSize, bottomInset: CGFloat) -> CGFloat {
         let gridHeight = min(max(240.0, floor(size.height * 0.38)), 340.0)
         return EmojiStatusSelectionComponent.bottomDockHeaderHeight + gridHeight + bottomInset
+    }
+    
+    /// The stop the grabber drags the sheet up to. It stays clear of the status bar so it is still
+    /// obvious what the sheet is sitting on top of, and so there is somewhere to tap to get out.
+    private func tapbacksPickerExpandedHeight(size: CGSize, insets: UIEdgeInsets) -> CGFloat {
+        return max(
+            self.tapbacksPickerCollapsedHeight(size: size, bottomInset: insets.bottom),
+            size.height - insets.top - Self.tapbacksPickerExpandedTopGap
+        )
+    }
+    
+    /// The height to lay the sheet out at: the stop it is resting at, moved by however far the
+    /// grabber drag has taken it. Past either stop the drag is damped, so the sheet stays under the
+    /// finger without growing off-screen or collapsing to nothing before the release decides.
+    private func tapbacksPickerHeight(size: CGSize, insets: UIEdgeInsets) -> CGFloat {
+        let collapsed = self.tapbacksPickerCollapsedHeight(size: size, bottomInset: insets.bottom)
+        let expanded = self.tapbacksPickerExpandedHeight(size: size, insets: insets)
+        let resting = self.tapbacksPickerIsExpanded ? expanded : collapsed
+        // Dragging up is a negative translation and has to make the sheet taller.
+        var height = resting - self.tapbacksPickerDragOffset
+        if height > expanded {
+            height = expanded + (height - expanded) * 0.15
+        } else if height < collapsed {
+            height = collapsed - (collapsed - height) * 0.25
+        }
+        return max(EmojiStatusSelectionComponent.bottomDockHeaderHeight + insets.bottom, height)
+    }
+    
+    /// Drags the Tapbacks sheet between its two stops. Only the 44pt header drags — the recognizer
+    /// fails anywhere else, so the emoji grid below keeps its own scrolling untouched.
+    private final class TapbacksSheetPanGestureRecognizer: UIPanGestureRecognizer {
+        var headerHeight: CGFloat = 0.0
+        
+        override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent) {
+            if let touch = touches.first, let view = self.view, touch.location(in: view).y > self.headerHeight {
+                self.state = .failed
+                return
+            }
+            super.touchesBegan(touches, with: event)
+        }
+    }
+    
+    @objc private func tapbacksPickerPanGesture(_ recognizer: UIPanGestureRecognizer) {
+        guard self.isTapbacksBottomPickerActive, let (size, insets, _, _, _) = self.validLayout else {
+            return
+        }
+        let collapsed = self.tapbacksPickerCollapsedHeight(size: size, bottomInset: insets.bottom)
+        let expanded = self.tapbacksPickerExpandedHeight(size: size, insets: insets)
+        
+        switch recognizer.state {
+        case .began:
+            self.tapbacksPickerDragOffset = 0.0
+        case .changed:
+            self.tapbacksPickerDragOffset = recognizer.translation(in: self.view).y
+            self.requestLayout(.immediate)
+        case .ended, .cancelled:
+            let translation = recognizer.translation(in: self.view).y
+            let velocity = recognizer.velocity(in: self.view).y
+            let wasExpanded = self.tapbacksPickerIsExpanded
+            let currentHeight = (wasExpanded ? expanded : collapsed) - translation
+            self.tapbacksPickerDragOffset = 0.0
+            
+            // A decisive flick wins outright; a slow drag settles to whichever stop it ended nearer.
+            let shouldExpand: Bool
+            if velocity < -Self.tapbacksPickerFlickVelocity {
+                shouldExpand = true
+            } else if velocity > Self.tapbacksPickerFlickVelocity {
+                shouldExpand = false
+            } else {
+                shouldExpand = abs(currentHeight - expanded) < abs(currentHeight - collapsed)
+            }
+            
+            // Pulled down off the collapsed stop: the sheet is on its way out, which is what this
+            // gesture does to every other sheet in the app.
+            if !wasExpanded, !shouldExpand, (currentHeight < collapsed - 40.0) || (velocity > Self.tapbacksPickerDismissVelocity) {
+                self.collapse()
+                return
+            }
+            
+            self.tapbacksPickerIsExpanded = shouldExpand
+            if self.hapticFeedback == nil {
+                self.hapticFeedback = HapticFeedback()
+            }
+            if shouldExpand != wasExpanded {
+                self.hapticFeedback?.tap()
+            }
+            self.requestLayout(.animated(duration: 0.4, curve: .spring))
+        default:
+            break
+        }
     }
     
     /// The grid inside the bottom sheet is a flat surface, not the round context-menu panel: drop
@@ -635,6 +729,10 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
     private let stableEmptyResultEmojiDisposable = MetaDisposable()
     
     private var horizontalExpandRecognizer: UIPanGestureRecognizer?
+    /// Which stop the Tapbacks bottom sheet is resting at, and how far the grabber drag has moved
+    /// it from there. Both reset every time the sheet opens, so it always starts collapsed.
+    private var tapbacksPickerIsExpanded: Bool = false
+    private var tapbacksPickerDragOffset: CGFloat = 0.0
     private var horizontalExpandStartLocation: CGPoint?
     private var horizontalExpandDistance: CGFloat = 0.0
     
@@ -1787,7 +1885,7 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
                 }
                 
                 let pickerContainerWidth = tapbacksBottomPickerActive ? size.width : actualBackgroundFrame.width
-                let pickerContainerHeight = tapbacksBottomPickerActive ? self.tapbacksPickerHeight(size: size, bottomInset: insets.bottom) : self.emojiContentHeight
+                let pickerContainerHeight = tapbacksBottomPickerActive ? self.tapbacksPickerHeight(size: size, insets: insets) : self.emojiContentHeight
                 
                 var pickerDockStyle: EmojiStatusSelectionComponent.BottomDockStyle?
                 var pickerDismiss: (() -> Void)?
@@ -1850,6 +1948,14 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
                                 self.view.insertSubview(componentView, belowSubview: expandItemView)
                             } else {
                                 self.view.addSubview(componentView)
+                            }
+                            // The grabber in the sheet header is the affordance for this; it is a
+                            // plain view with no interaction of its own, so the drag lives here.
+                            // Re-parenting can bring an already-equipped view back through here.
+                            if !(componentView.gestureRecognizers?.contains(where: { $0 is TapbacksSheetPanGestureRecognizer }) ?? false) {
+                                let panRecognizer = TapbacksSheetPanGestureRecognizer(target: self, action: #selector(self.tapbacksPickerPanGesture(_:)))
+                                panRecognizer.headerHeight = EmojiStatusSelectionComponent.bottomDockHeaderHeight
+                                componentView.addGestureRecognizer(panRecognizer)
                             }
                         } else {
                             self.contentContainer.view.insertSubview(componentView, belowSubview: self.scrollNode.view)
@@ -3591,6 +3697,10 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
         
         self.longPressRecognizer?.isEnabled = false
         
+        // The bottom sheet always opens at its resting height, whatever the last drag left behind.
+        self.tapbacksPickerIsExpanded = false
+        self.tapbacksPickerDragOffset = 0.0
+        
         self.animateFromExtensionDistance = self.contentTopInset * 2.0 + self.extensionDistance
         self.extensionDistance = 0.0
         self.visibleExtensionDistance = 0.0
@@ -3632,6 +3742,9 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
         // Tapbacks collapses back to a live pill rather than to a dismissing menu, so the
         // long-press preview has to come back with it; every other style is on its way out.
         self.longPressRecognizer?.isEnabled = self.usesExternalExpandButton && !self.allPresetReactionsAreAvailable
+        
+        self.tapbacksPickerIsExpanded = false
+        self.tapbacksPickerDragOffset = 0.0
         
         self.animateFromExtensionDistance = 0.0
         self.extensionDistance = 0.0

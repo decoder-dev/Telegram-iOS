@@ -71,28 +71,30 @@ public let chatTextInputMinFontSize: CGFloat = 5.0
 
 private let minInputFontSize = chatTextInputMinFontSize
 
+/// Height of the empty capsule: iMessage-style 36pt at the default text size, growing with it.
+///
+/// Shared with `calculateTextFieldRealInsets`, which centres one line of text inside exactly this
+/// height. The two were independent constants once, and drifted the moment the capsule grew.
+private func textFieldCapsuleHeight(baseFontSize: CGFloat) -> CGFloat {
+    if baseFontSize.isEqual(to: 26.0) {
+        return 46.0
+    } else if baseFontSize.isEqual(to: 23.0) {
+        return 42.0
+    } else if baseFontSize.isEqual(to: 21.0) {
+        return 39.0
+    } else if baseFontSize.isEqual(to: 19.0) {
+        return 37.0
+    } else {
+        return 36.0
+    }
+}
+
 private func calclulateTextFieldMinHeight(_ presentationInterfaceState: ChatPresentationInterfaceState, metrics: LayoutMetrics) -> CGFloat {
     var baseFontSize = max(minInputFontSize, presentationInterfaceState.fontSize.baseDisplaySize)
     if "".isEmpty {
         baseFontSize = 17.0
     }
-    var result: CGFloat
-    // iMessage-style: field capsule height 36pt at default size, scaling with font
-    if baseFontSize.isEqual(to: 26.0) {
-        result = 46.0
-    } else if baseFontSize.isEqual(to: 23.0) {
-        result = 42.0
-    } else if baseFontSize.isEqual(to: 21.0) {
-        result = 39.0
-    } else if baseFontSize.isEqual(to: 19.0) {
-        result = 37.0
-    } else if baseFontSize.isEqual(to: 17.0) {
-        result = 36.0
-    } else {
-        result = 36.0
-    }
-    
-    return result
+    return textFieldCapsuleHeight(baseFontSize: baseFontSize)
 }
 
 private func calculateTextFieldRealInsets(presentationInterfaceState: ChatPresentationInterfaceState, accessoryButtonsWidth: CGFloat, actionControlsWidth: CGFloat) -> UIEdgeInsets {
@@ -100,21 +102,20 @@ private func calculateTextFieldRealInsets(presentationInterfaceState: ChatPresen
     if "".isEmpty {
         baseFontSize = 17.0
     }
-    let top: CGFloat
-    let bottom: CGFloat
-    if baseFontSize.isEqual(to: 14.0) {
-        top = 2.0
-        bottom = 1.0
-    } else if baseFontSize.isEqual(to: 15.0) {
-        top = 1.0
-        bottom = 1.0
-    } else if baseFontSize.isEqual(to: 16.0) {
-        top = 0.5
-        bottom = 0.0
-    } else {
-        top = 0.0
-        bottom = 0.0
-    }
+    // Vertical insets centre one line of text in the capsule: the capsule is
+    // `textFieldCapsuleHeight`, the line is the font's line height, and what is left over is split
+    // between them. The half-point upward bias is inherited from stock, which has always set the
+    // text a hair high.
+    //
+    // This was a fixed 4.5/5.5 pair, sized for the 31pt capsule stock ships. The fork grew the
+    // capsule to 36pt and left the pair alone, so all 6pt of the extra room ended up below the
+    // text: the placeholder and the typed text sat ~3pt above centre, against 40pt buttons on
+    // either side that are centred exactly.
+    //
+    // Growing these is safe for multi-line: `textHeightForWidth` measures with the very same
+    // insets, so a taller pair makes the field taller rather than clipping the last line.
+    let lineHeight = Font.regular(baseFontSize).lineHeight
+    let verticalInset = max(0.0, textFieldCapsuleHeight(baseFontSize: baseFontSize) - lineHeight) / 2.0
     
     var right: CGFloat = 0.0
     right += max(0.0, accessoryButtonsWidth - 14.0)
@@ -122,7 +123,7 @@ private func calculateTextFieldRealInsets(presentationInterfaceState: ChatPresen
         right += actionControlsWidth - 10.0
     }
     
-    return UIEdgeInsets(top: 4.5 + top, left: 0.0, bottom: 5.5 + bottom, right: right)
+    return UIEdgeInsets(top: max(0.0, verticalInset - 0.5), left: 0.0, bottom: verticalInset + 0.5, right: right)
 }
 
 public enum ChatTextInputPanelPasteData {
