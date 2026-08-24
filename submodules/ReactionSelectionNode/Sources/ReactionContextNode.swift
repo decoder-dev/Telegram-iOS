@@ -565,21 +565,27 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
         )
     }
     
-    /// The height to lay the sheet out at: the stop it is resting at, moved by however far the
-    /// grabber drag has taken it. Past either stop the drag is damped, so the sheet stays under the
-    /// finger without growing off-screen or collapsing to nothing before the release decides.
-    private func tapbacksPickerHeight(size: CGSize, insets: UIEdgeInsets) -> CGFloat {
+    /// Where to lay the sheet out: the stop it is resting at, moved by however far the grabber drag
+    /// has taken it.
+    ///
+    /// Between the two stops the drag changes the sheet's height, so more of the grid comes into
+    /// view as it rises; above the top stop that is damped hard, since there is nowhere left to go.
+    /// Below the resting stop the sheet stops shrinking and slides down the screen instead, one to
+    /// one with the finger — a sheet on its way out should look like it is leaving, and shrinking
+    /// it there would drop grid rows a few at a time instead.
+    private func tapbacksPickerGeometry(size: CGSize, insets: UIEdgeInsets) -> (height: CGFloat, bottomOverscroll: CGFloat) {
         let collapsed = self.tapbacksPickerCollapsedHeight(size: size, bottomInset: insets.bottom)
         let expanded = self.tapbacksPickerExpandedHeight(size: size, insets: insets)
         let resting = self.tapbacksPickerIsExpanded ? expanded : collapsed
         // Dragging up is a negative translation and has to make the sheet taller.
-        var height = resting - self.tapbacksPickerDragOffset
-        if height > expanded {
-            height = expanded + (height - expanded) * 0.15
-        } else if height < collapsed {
-            height = collapsed - (collapsed - height) * 0.25
+        let rawHeight = resting - self.tapbacksPickerDragOffset
+        if rawHeight > expanded {
+            return (expanded + (rawHeight - expanded) * 0.15, 0.0)
+        } else if rawHeight < collapsed {
+            return (collapsed, collapsed - rawHeight)
+        } else {
+            return (rawHeight, 0.0)
         }
-        return max(EmojiStatusSelectionComponent.bottomDockHeaderHeight + insets.bottom, height)
     }
     
     /// Drags the Tapbacks sheet between its two stops. Only the 44pt header drags — the recognizer
@@ -626,9 +632,11 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
                 shouldExpand = abs(currentHeight - expanded) < abs(currentHeight - collapsed)
             }
             
-            // Pulled down off the collapsed stop: the sheet is on its way out, which is what this
-            // gesture does to every other sheet in the app.
-            if !wasExpanded, !shouldExpand, (currentHeight < collapsed - 40.0) || (velocity > Self.tapbacksPickerDismissVelocity) {
+            // Thrown down hard from either stop, or dragged well below the resting one: the sheet
+            // closes back to the reaction pill, the same thing its close button does. Distance only
+            // counts from the resting stop — from the top stop a slow drag down has a stop of its
+            // own to land on first.
+            if !shouldExpand, (velocity > Self.tapbacksPickerDismissVelocity) || (!wasExpanded && currentHeight < collapsed - 40.0) {
                 self.collapse()
                 return
             }
@@ -1885,7 +1893,10 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
                 }
                 
                 let pickerContainerWidth = tapbacksBottomPickerActive ? size.width : actualBackgroundFrame.width
-                let pickerContainerHeight = tapbacksBottomPickerActive ? self.tapbacksPickerHeight(size: size, insets: insets) : self.emojiContentHeight
+                let pickerGeometry: (height: CGFloat, bottomOverscroll: CGFloat) = tapbacksBottomPickerActive
+                    ? self.tapbacksPickerGeometry(size: size, insets: insets)
+                    : (height: self.emojiContentHeight, bottomOverscroll: 0.0)
+                let pickerContainerHeight = pickerGeometry.height
                 
                 var pickerDockStyle: EmojiStatusSelectionComponent.BottomDockStyle?
                 var pickerDismiss: (() -> Void)?
@@ -2034,7 +2045,7 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
                     let componentFrame: CGRect
                     if tapbacksBottomPickerActive {
                         componentFrame = CGRect(
-                            origin: CGPoint(x: 0.0, y: size.height - pickerContainerHeight),
+                            origin: CGPoint(x: 0.0, y: size.height - pickerContainerHeight + pickerGeometry.bottomOverscroll),
                             size: CGSize(width: pickerContainerWidth, height: pickerContainerHeight)
                         )
                     } else {
