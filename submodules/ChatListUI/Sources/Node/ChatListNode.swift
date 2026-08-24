@@ -2000,7 +2000,19 @@ public final class ChatListNode: ListViewImpl {
         
         // Secret archive: omit until Settings ×10; on auto-close keep the row briefly
         // (`.collapsing`) so ChatListItem can play the official 0.4s spring hide.
-        let archiveFolderPresentation = ArchiveLockSession.shared.folderPresentationSignal
+        //
+        // Only an account that actually has an Archive password gets that treatment — without one
+        // the Archive is a stock Archive and is simply always listed. The two are combined here
+        // rather than inside `ArchiveLockSession` on purpose: `combineLatest` withholds the first
+        // emission until the stored password state is known, so an unprotected account never
+        // renders the omitted state first and then animates the folder row back in.
+        let archiveFolderPresentation = combineLatest(
+            ArchiveLockSession.shared.folderPresentationSignal,
+            archivePasswordProtectionSignal(context: context)
+        )
+        |> map { (presentation, isPasswordProtected) -> ArchiveFolderPresentation in
+            return isPasswordProtected ? presentation : .expanded
+        }
         |> distinctUntilChanged
         
         let displayArchiveIntro: Signal<Bool, NoError>

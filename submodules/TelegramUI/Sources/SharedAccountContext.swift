@@ -2078,6 +2078,10 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         return controller
     }
     
+    public func makeForkExtrasController(context: AccountContext) -> ViewController {
+        return forkExtrasController(context: context)
+    }
+    
     public func openCreateGroupCallUI(context: AccountContext, peerIds: [EnginePeer.Id], parentController: ViewController) {
         let _ = (context.engine.data.get(
             EngineDataList(peerIds.map(TelegramEngine.EngineData.Item.Peer.Peer.init(id:)))

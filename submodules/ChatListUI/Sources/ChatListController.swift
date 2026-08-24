@@ -286,10 +286,11 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                 
         super.init(context: context, navigationBarPresentationData: nil)
 
-        // Bind early on root too so Settings×10 reveal clears when the app backgrounds.
+        // Bind early on root too so Settings×10 reveal clears when the app backgrounds, and so the
+        // session knows whether this account has an Archive password before the list first renders.
         // Relock also has to pop an already-open archived ChatController, not only the Archive list.
         if case .chatList = location {
-            ArchiveLockSession.shared.bindBackgroundRelock(applicationIsActive: context.sharedContext.applicationBindings.applicationIsActive)
+            bindArchiveLockSession(context: context)
             self.archiveLockDisposable.set((ArchiveLockSession.shared.relockedSignal
             |> deliverOnMainQueue).startStrict(next: { [weak self] _ in
                 guard let self else {

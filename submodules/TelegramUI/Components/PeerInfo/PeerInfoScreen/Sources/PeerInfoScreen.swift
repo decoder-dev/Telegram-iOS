@@ -190,6 +190,7 @@ enum PeerInfoSettingsSection {
     case stars
     case ton
     case debug
+    case forkExtras
 }
 
 enum PeerInfoReportType {

@@ -260,6 +260,13 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
         interaction.openSettings(.language)
     }))
 
+    // The fork's own settings. This used to be a row inside Privacy and Security, which is not
+    // where anyone looks for it — none of what it holds is a privacy setting. It sits here with
+    // Developer Mode instead, the two fork-specific screens together at the end of the section.
+    items[.advanced]!.append(PeerInfoScreenDisclosureItem(id: 8, text: forkExtrasSettingsTitle(presentationData.strings), icon: PresentationResourcesSettings.forkExtras, action: {
+        interaction.openSettings(.forkExtras)
+    }))
+
     // The debug screen. It has always existed but was reachable only through the
     // `tg://settings/debug` deep link, which is not something anyone finds without being told it
     // is there. Last row of the section, after the everyday settings.

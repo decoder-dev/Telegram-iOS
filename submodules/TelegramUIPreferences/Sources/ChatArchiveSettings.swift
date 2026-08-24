@@ -87,6 +87,10 @@ public enum ArchiveFolderPresentation: Equatable {
 /// - `isRevealed`: folder row visible (10 taps on Settings).
 /// - `isUnlocked`: password accepted for this process.
 /// Both clear on background / Lock Now / after unarchiving a chat.
+///
+/// Both gates only exist to protect a password that is actually set. An account with no Archive
+/// password has a stock Telegram Archive — always in the chat list, opened without a prompt — so
+/// every gate here reads through `passwordConfigured` rather than the raw flag.
 public final class ArchiveLockSession {
     public static let shared = ArchiveLockSession()
     
@@ -96,6 +100,17 @@ public final class ArchiveLockSession {
     private let lock = NSLock()
     private var unlocked = false
     private var revealed = false
+    /// Whether the currently bound account has an Archive password. Pushed in by
+    /// `bindPasswordProtection`; false until the first push, which is the fail-closed direction
+    /// (the folder stays omitted) rather than the leaky one.
+    private var passwordConfigured = false
+    /// False until the bound account's stored password state has actually been read once. The
+    /// first value is the account's existing state, not a change the user just made, so it must
+    /// not play the hide animation — a protected account has to start out omitted, not collapse
+    /// into omitted while the chat list is still appearing.
+    private var passwordStateResolved = false
+    private var passwordBindingAccountId: Int64?
+    private var passwordDisposable: Disposable?
     private var muteSweepAccountIds = Set<Int64>()
     private var keepArchivedAlignAccountIds = Set<Int64>()
     private var backgroundDisposable: Disposable?
@@ -112,11 +127,19 @@ public final class ArchiveLockSession {
         return self.unlocked
     }
     
-    /// Whether the Archive folder may appear in the main chat list.
+    /// Whether the Archive folder may appear in the main chat list. With no password there is
+    /// nothing to hide, so the folder is always available and the 10-tap gesture is a no-op.
     public var isRevealed: Bool {
         self.lock.lock()
         defer { self.lock.unlock() }
-        return self.revealed
+        return !self.passwordConfigured || self.revealed
+    }
+    
+    /// Whether the currently bound account has an Archive password set.
+    public var isPasswordConfigured: Bool {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        return self.passwordConfigured
     }
     
     /// Fires whenever the session is re-locked (Lock Now / background / unarchive).
@@ -160,6 +183,11 @@ public final class ArchiveLockSession {
     }
     
     public func relock() {
+        // With no password there is no lock to re-apply, and re-locking has side effects the
+        // stock Archive must not get: it pops an open Archive screen and hides the folder row.
+        guard self.isPasswordConfigured else {
+            return
+        }
         var shouldNotifyRelock = false
         var shouldNotifyReveal = false
         var collapseGeneration = 0
@@ -177,23 +205,104 @@ public final class ArchiveLockSession {
         self.lock.unlock()
         if shouldNotifyReveal {
             self.revealedPromise.set(false)
-            // Keep the row briefly so ChatList can play the official spring collapse,
-            // then omit so pull-to-reveal stays unavailable while locked.
-            self.folderPresentationPromise.set(.collapsing)
-            Queue.mainQueue().after(ArchiveLockSession.collapseAnimationDuration, { [weak self] in
-                guard let self else {
-                    return
-                }
-                self.lock.lock()
-                let stillCurrent = self.collapseGeneration == collapseGeneration && !self.revealed
-                self.lock.unlock()
-                if stillCurrent {
-                    self.folderPresentationPromise.set(.omitted)
-                }
-            })
+            self.beginFolderCollapse(generation: collapseGeneration)
         }
         if shouldNotifyRelock || shouldNotifyReveal {
             self.relockedPipe.putNext(Void())
+        }
+    }
+    
+    /// Keep the folder row briefly so ChatList can play the official spring collapse, then omit it
+    /// so pull-to-reveal stays unavailable while locked. Must be called without holding `lock`;
+    /// `generation` is the value `collapseGeneration` was bumped to by the caller, so a reveal that
+    /// lands mid-collapse cancels the trailing omit instead of racing it.
+    private func beginFolderCollapse(generation: Int) {
+        self.folderPresentationPromise.set(.collapsing)
+        Queue.mainQueue().after(ArchiveLockSession.collapseAnimationDuration, { [weak self] in
+            guard let self else {
+                return
+            }
+            self.lock.lock()
+            let stillCurrent = self.collapseGeneration == generation && !self.revealed
+            self.lock.unlock()
+            if stillCurrent {
+                self.folderPresentationPromise.set(.omitted)
+            }
+        })
+    }
+    
+    /// Tracks whether `accountPeerId` has an Archive password.
+    ///
+    /// The flag gates every lock behaviour, so it must never be left describing a previous
+    /// account: binding for a different account replaces the existing subscription rather than
+    /// adding to it, and a late value from the superseded one is dropped by the account check in
+    /// `updatePasswordConfigured`.
+    public func bindPasswordProtection(accountPeerId: EnginePeer.Id, isPasswordConfigured: Signal<Bool, NoError>) {
+        let accountId = accountPeerId.toInt64()
+        self.lock.lock()
+        if self.passwordBindingAccountId == accountId {
+            self.lock.unlock()
+            return
+        }
+        let previousDisposable = self.passwordDisposable
+        // Claim the slot with a placeholder before subscribing, so a second caller for this same
+        // account takes the early return above instead of starting a duplicate subscription.
+        self.passwordBindingAccountId = accountId
+        self.passwordDisposable = EmptyDisposable
+        self.passwordStateResolved = false
+        self.lock.unlock()
+        previousDisposable?.dispose()
+        
+        let disposable = (isPasswordConfigured
+        |> distinctUntilChanged
+        |> deliverOnMainQueue).startStrict(next: { [weak self] value in
+            self?.updatePasswordConfigured(value, accountId: accountId)
+        })
+        
+        var isObsolete = false
+        self.lock.lock()
+        if self.passwordBindingAccountId == accountId {
+            self.passwordDisposable = disposable
+        } else {
+            isObsolete = true
+        }
+        self.lock.unlock()
+        if isObsolete {
+            disposable.dispose()
+        }
+    }
+    
+    private func updatePasswordConfigured(_ value: Bool, accountId: Int64) {
+        var collapseGeneration = 0
+        var shouldCollapseFolder = false
+        self.lock.lock()
+        guard self.passwordBindingAccountId == accountId else {
+            self.lock.unlock()
+            return
+        }
+        let wasResolved = self.passwordStateResolved
+        self.passwordStateResolved = true
+        let didChange = self.passwordConfigured != value
+        self.passwordConfigured = value
+        if didChange, value {
+            // The folder was on screen unconditionally while the account was unprotected, and any
+            // reveal earned back then belongs to that unprotected state — drop it so the freshly
+            // protected Archive starts hidden behind the 10-tap gesture again.
+            self.revealed = false
+            self.collapseGeneration &+= 1
+            collapseGeneration = self.collapseGeneration
+            // Only a password the user just set hides a folder that was visible a moment ago. The
+            // first read of an already-protected account has nothing to hide, and animating there
+            // would flash the row on screen at launch.
+            shouldCollapseFolder = wasResolved
+        }
+        let effectiveRevealed = !value || self.revealed
+        self.lock.unlock()
+        // `unlocked` is deliberately left alone: `setArchivePassword` unlocks the session as part
+        // of the same flow, and this push lands after it.
+        self.revealedPromise.set(effectiveRevealed)
+        if shouldCollapseFolder {
+            self.beginFolderCollapse(generation: collapseGeneration)
         }
     }
     

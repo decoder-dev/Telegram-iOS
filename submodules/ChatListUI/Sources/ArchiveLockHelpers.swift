@@ -88,6 +88,31 @@ public func clearStaleArchiveNotifications(context: AccountContext, peerIds: [En
     })
 }
 
+/// Whether this account's Archive is password-protected, re-evaluated whenever the archive
+/// preferences change. `setArchivePassword` / `removeArchivePassword` both write
+/// `isPasswordConfigured` alongside the Keychain, so the preference is what makes this reactive
+/// while `archiveIsPasswordProtected` stays the authority on the answer.
+public func archivePasswordProtectionSignal(context: AccountContext) -> Signal<Bool, NoError> {
+    let peerId = context.account.peerId
+    return context.engine.data.subscribe(
+        TelegramEngine.EngineData.Item.Configuration.ApplicationSpecificPreference(key: ApplicationSpecificPreferencesKeys.chatArchiveSettings)
+    )
+    |> map { preference -> Bool in
+        let settings = preference?.get(ChatArchiveSettings.self) ?? .default
+        return archiveIsPasswordProtected(peerId: peerId, settings: settings)
+    }
+    |> distinctUntilChanged
+}
+
+/// Wires the shared `ArchiveLockSession` to this account: re-lock on background, and keep its
+/// notion of "this account has an Archive password" current. Without the latter every gate stays
+/// fail-closed, which would hide the Archive from accounts that never set a password.
+/// Both bindings are idempotent, so call this from anywhere that is about to consult the session.
+public func bindArchiveLockSession(context: AccountContext) {
+    ArchiveLockSession.shared.bindBackgroundRelock(applicationIsActive: context.sharedContext.applicationBindings.applicationIsActive)
+    ArchiveLockSession.shared.bindPasswordProtection(accountPeerId: context.account.peerId, isPasswordConfigured: archivePasswordProtectionSignal(context: context))
+}
+
 /// Align server-side keepArchivedUnmuted with local force-mute: unmuted
 /// archived chats (if any) should stay in Archive rather than auto-unarchiving.
 func alignKeepArchivedUnmutedIfNeeded(context: AccountContext) {
@@ -110,7 +135,7 @@ public func ensureArchiveUnlocked(
     present: @escaping (ViewController) -> Void,
     completion: @escaping (ArchiveUnlockResult) -> Void
 ) {
-    ArchiveLockSession.shared.bindBackgroundRelock(applicationIsActive: context.sharedContext.applicationBindings.applicationIsActive)
+    bindArchiveLockSession(context: context)
     
     let _ = (context.engine.data.get(
         TelegramEngine.EngineData.Item.Configuration.ApplicationSpecificPreference(key: ApplicationSpecificPreferencesKeys.chatArchiveSettings)
@@ -175,7 +200,7 @@ public func ensureArchivedPeerAccessible(
     present: @escaping (ViewController) -> Void,
     completion: @escaping (ArchiveUnlockResult) -> Void
 ) {
-    ArchiveLockSession.shared.bindBackgroundRelock(applicationIsActive: context.sharedContext.applicationBindings.applicationIsActive)
+    bindArchiveLockSession(context: context)
     
     let _ = (combineLatest(
         context.engine.data.get(TelegramEngine.EngineData.Item.Messages.ChatListGroup(id: peerId)),
@@ -495,6 +520,11 @@ public func dismissOpenArchiveControllers(from navigationController: UINavigatio
 /// password session, and leave the Archive screen. Unarchived peers become
 /// searchable again automatically (search filters on live group membership).
 public func lockArchiveAfterUnarchive(navigationController: UINavigationController?, context: AccountContext? = nil) {
+    // Without a password the Archive behaves like the stock one: unarchiving a chat from inside it
+    // removes that row and nothing else — it must not hide the folder or close the screen.
+    guard ArchiveLockSession.shared.isPasswordConfigured else {
+        return
+    }
     ArchiveLockSession.shared.relock()
     // Defer navigation mutation until after the unarchive swipe/context
     // completion finishes — tearing down Archive VC synchronously was crashing.

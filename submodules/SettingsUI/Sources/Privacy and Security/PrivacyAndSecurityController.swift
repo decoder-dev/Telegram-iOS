@@ -37,7 +37,6 @@ private final class PrivacyAndSecurityControllerArguments {
     let openBirthdayPrivacy: () -> Void
     let openSavedMusicPrivacy: () -> Void
     let openPasscode: () -> Void
-    let openForkExtras: () -> Void
     let openTwoStepVerification: (TwoStepVerificationAccessConfiguration?) -> Void
     let openPasskeys: () -> Void
     let openActiveSessions: () -> Void
@@ -50,7 +49,7 @@ private final class PrivacyAndSecurityControllerArguments {
     let openMessagePrivacy: () -> Void
     let openGiftsPrivacy: () -> Void
     
-    init(account: Account, openBlockedUsers: @escaping () -> Void, openLastSeenPrivacy: @escaping () -> Void, openGroupsPrivacy: @escaping () -> Void, openVoiceCallPrivacy: @escaping () -> Void, openProfilePhotoPrivacy: @escaping () -> Void, openForwardPrivacy: @escaping () -> Void, openPhoneNumberPrivacy: @escaping () -> Void, openVoiceMessagePrivacy: @escaping () -> Void, openBioPrivacy: @escaping () -> Void, openBirthdayPrivacy: @escaping () -> Void, openSavedMusicPrivacy: @escaping () -> Void, openPasscode: @escaping () -> Void, openForkExtras: @escaping () -> Void, openTwoStepVerification: @escaping (TwoStepVerificationAccessConfiguration?) -> Void, openPasskeys: @escaping () -> Void, openActiveSessions: @escaping () -> Void, toggleArchiveAndMuteNonContacts: @escaping (Bool) -> Void, setupAccountAutoremove: @escaping () -> Void, setupMessageAutoremove: @escaping () -> Void, openDataSettings: @escaping () -> Void, openBrowserSelection: @escaping () -> Void, openEmailSettings: @escaping (String?) -> Void, openMessagePrivacy: @escaping () -> Void, openGiftsPrivacy: @escaping () -> Void) {
+    init(account: Account, openBlockedUsers: @escaping () -> Void, openLastSeenPrivacy: @escaping () -> Void, openGroupsPrivacy: @escaping () -> Void, openVoiceCallPrivacy: @escaping () -> Void, openProfilePhotoPrivacy: @escaping () -> Void, openForwardPrivacy: @escaping () -> Void, openPhoneNumberPrivacy: @escaping () -> Void, openVoiceMessagePrivacy: @escaping () -> Void, openBioPrivacy: @escaping () -> Void, openBirthdayPrivacy: @escaping () -> Void, openSavedMusicPrivacy: @escaping () -> Void, openPasscode: @escaping () -> Void, openTwoStepVerification: @escaping (TwoStepVerificationAccessConfiguration?) -> Void, openPasskeys: @escaping () -> Void, openActiveSessions: @escaping () -> Void, toggleArchiveAndMuteNonContacts: @escaping (Bool) -> Void, setupAccountAutoremove: @escaping () -> Void, setupMessageAutoremove: @escaping () -> Void, openDataSettings: @escaping () -> Void, openBrowserSelection: @escaping () -> Void, openEmailSettings: @escaping (String?) -> Void, openMessagePrivacy: @escaping () -> Void, openGiftsPrivacy: @escaping () -> Void) {
         self.account = account
         self.openBlockedUsers = openBlockedUsers
         self.openLastSeenPrivacy = openLastSeenPrivacy
@@ -64,7 +63,6 @@ private final class PrivacyAndSecurityControllerArguments {
         self.openBirthdayPrivacy = openBirthdayPrivacy
         self.openSavedMusicPrivacy = openSavedMusicPrivacy
         self.openPasscode = openPasscode
-        self.openForkExtras = openForkExtras
         self.openTwoStepVerification = openTwoStepVerification
         self.openPasskeys = openPasskeys
         self.openActiveSessions = openActiveSessions
@@ -122,7 +120,6 @@ private enum PrivacyAndSecurityEntry: ItemListNodeEntry {
     case giftsAutoSavePrivacy(PresentationTheme, String, String)
     case selectivePrivacyInfo(PresentationTheme, String)
     case passcode(PresentationTheme, String, Bool, String)
-    case forkExtras(PresentationTheme, String)
     case twoStepVerification(PresentationTheme, String, String, TwoStepVerificationAccessConfiguration?)
     case passkeys(PresentationTheme, String, String)
     case loginEmail(PresentationTheme, String, String?)
@@ -142,7 +139,7 @@ private enum PrivacyAndSecurityEntry: ItemListNodeEntry {
     
     var section: ItemListSectionId {
         switch self {
-        case .blockedPeers, .activeSessions, .passcode, .forkExtras, .twoStepVerification, .passkeys, .messageAutoremoveTimeout, .messageAutoremoveInfo:
+        case .blockedPeers, .activeSessions, .passcode, .twoStepVerification, .passkeys, .messageAutoremoveTimeout, .messageAutoremoveInfo:
             return PrivacyAndSecuritySection.general.rawValue
         case .loginEmail, .loginEmailInfo:
             return PrivacyAndSecuritySection.loginEmail.rawValue
@@ -167,8 +164,6 @@ private enum PrivacyAndSecurityEntry: ItemListNodeEntry {
                 return 2
             case .passcode:
                 return 3
-            case .forkExtras:
-                return 4
             case .twoStepVerification:
                 return 5
             case .passkeys:
@@ -332,12 +327,6 @@ private enum PrivacyAndSecurityEntry: ItemListNodeEntry {
                 }
             case let .passcode(lhsTheme, lhsText, lhsHasFaceId, lhsValue):
                 if case let .passcode(rhsTheme, rhsText, rhsHasFaceId, rhsValue) = rhs, lhsTheme === rhsTheme, lhsText == rhsText, lhsHasFaceId == rhsHasFaceId, lhsValue == rhsValue {
-                    return true
-                } else {
-                    return false
-                }
-            case let .forkExtras(lhsTheme, lhsText):
-                if case let .forkExtras(rhsTheme, rhsText) = rhs, lhsTheme === rhsTheme, lhsText == rhsText {
                     return true
                 } else {
                     return false
@@ -510,10 +499,6 @@ private enum PrivacyAndSecurityEntry: ItemListNodeEntry {
                 let _ = hasFaceId
                 return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.faceId, title: text, label: value, sectionId: self.section, style: .blocks, action: {
                     arguments.openPasscode()
-                })
-            case let .forkExtras(_, text):
-                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.forkExtras, title: text, label: "", sectionId: self.section, style: .blocks, action: {
-                    arguments.openForkExtras()
                 })
             case let .twoStepVerification(_, text, value, data):
                 return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.lockOrange, title: text, label: value, sectionId: self.section, style: .blocks, action: {
@@ -703,14 +688,6 @@ private func privacyAndSecurityControllerEntries(
     } else {
         entries.append(.passcode(presentationData.theme, presentationData.strings.PrivacySettings_Passcode, false, passcodeValue))
     }
-    
-    let forkExtrasTitle: String
-    if presentationData.strings.baseLanguageCode.hasPrefix("ru") {
-        forkExtrasTitle = "Дополнительно"
-    } else {
-        forkExtrasTitle = "Extras"
-    }
-    entries.append(.forkExtras(presentationData.theme, forkExtrasTitle))
     
     var twoStepAuthString = ""
     if let hasTwoStepAuth = hasTwoStepAuth {
@@ -1297,8 +1274,6 @@ public func privacyAndSecurityController(
                 pushControllerImpl?(controller, true)
             }
         })
-    }, openForkExtras: {
-        pushControllerImpl?(forkExtrasController(context: context), true)
     }, openTwoStepVerification: { data in
         let _ = (context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: context.account.peerId))
         |> deliverOnMainQueue).start(next: { peer in

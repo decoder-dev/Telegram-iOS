@@ -125,6 +125,18 @@ public func forkEditHistoryMenuTitle(_ strings: PresentationStrings) -> String {
     }
 }
 
+/// Title for the Settings row that opens the fork's Extras screen. It used to sit inside Privacy
+/// and Security, which is not where anyone looks for it — it now lives in the main Settings list
+/// next to Developer Mode, and shares the same bilingual pattern.
+public func forkExtrasSettingsTitle(_ strings: PresentationStrings) -> String {
+    switch strings.primaryComponent.languageCode {
+    case "ru", "uk", "be":
+        return "Дополнительно"
+    default:
+        return "Extras"
+    }
+}
+
 /// Title for the Settings row that opens the debug screen. No entry exists for this in the
 /// localisation catalogue, so it follows the same bilingual pattern as the fork's other custom
 /// Settings strings.

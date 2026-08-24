@@ -1613,6 +1613,8 @@ public protocol SharedAccountContext: AnyObject {
     
     func makeDebugSettingsController(context: AccountContext?) -> ViewController?
     
+    func makeForkExtrasController(context: AccountContext) -> ViewController
+    
     func openCreateGroupCallUI(context: AccountContext, peerIds: [EnginePeer.Id], parentController: ViewController)
     
     func makeNewContactScreen(context: AccountContext, peer: EnginePeer?, firstName: String?, lastName: String?, phoneNumber: String?, shareViaException: Bool, completion: @escaping (EnginePeer?, DeviceContactStableId?, DeviceContactExtendedData?) -> Void) -> ViewController

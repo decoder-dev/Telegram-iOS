@@ -277,6 +277,8 @@ extension PeerInfoScreenNode {
             if let controller = self.context.sharedContext.makeDebugSettingsController(context: self.context) {
                 push(controller)
             }
+        case .forkExtras:
+            push(self.context.sharedContext.makeForkExtrasController(context: self.context))
         case .businessSetup:
             guard let controller = self.controller, !controller.presentAccountFrozenInfoIfNeeded() else {
                 return
