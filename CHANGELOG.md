@@ -6,6 +6,19 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3909-pre] — 2026-08-24
+
+Pre-release: archive lock only with password, Extras in Settings, recent-emoji toggle, WEB proxy protocol gaps.
+
+### Changed
+- **Archive:** the folder is hidden only when an archive password is configured; unprotected accounts always see Archive in the chat list.
+- **Settings:** Extras (Дополнительно) moved from Privacy and Security to the main Settings list (above Developer Mode); Extras uses the Effect icon.
+- **Reactions:** new **Recent Emoji in Reactions** toggle in Customization (default on); off limits pickers to the standard reaction set.
+- **WEB proxy:** flow control (`WINDOW` credit), batched uplink, `WELCOME`/`BYE`/`PONG` handling, rejection of `ee` secrets and IP-literal hostnames.
+
+### Fixed
+- **Archive lock:** password binding keyed on account record id (survives relogin); protection signal reads Keychain or Postbox mirror; relock uses `isLockActive`; Settings×10 haptic skipped when no password is set.
+
 ## [v12.9.2-3908-pre] — 2026-08-24
 
 Pre-release: build fix for Tapbacks panel + media-picker camera stop thrash.
