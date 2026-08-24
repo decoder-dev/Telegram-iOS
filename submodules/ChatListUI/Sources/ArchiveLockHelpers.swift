@@ -90,8 +90,14 @@ public func clearStaleArchiveNotifications(context: AccountContext, peerIds: [En
 
 /// Whether this account's Archive is password-protected, re-evaluated whenever the archive
 /// preferences change. `setArchivePassword` / `removeArchivePassword` both write
-/// `isPasswordConfigured` alongside the Keychain, so the preference is what makes this reactive
-/// while `archiveIsPasswordProtected` stays the authority on the answer.
+/// `isPasswordConfigured` alongside the Keychain, so the preference is what makes this reactive.
+///
+/// Both sources are consulted, and either one alone means protected. The Keychain is the authority
+/// but its items are `WhenUnlockedThisDeviceOnly`, so a read that lands while the device is locked
+/// — a preference write from a background push, say — answers "no password" for a protected
+/// account, and this signal decides whether the Archive folder is listed at all. The Postbox mirror
+/// is readable in that state and holds it closed; the Keychain covers the reverse case, an account
+/// that set its password before the mirror existed and has not been migrated yet.
 public func archivePasswordProtectionSignal(context: AccountContext) -> Signal<Bool, NoError> {
     let peerId = context.account.peerId
     return context.engine.data.subscribe(
@@ -99,6 +105,9 @@ public func archivePasswordProtectionSignal(context: AccountContext) -> Signal<B
     )
     |> map { preference -> Bool in
         let settings = preference?.get(ChatArchiveSettings.self) ?? .default
+        if settings.isPasswordConfigured {
+            return true
+        }
         return archiveIsPasswordProtected(peerId: peerId, settings: settings)
     }
     |> distinctUntilChanged
@@ -110,7 +119,7 @@ public func archivePasswordProtectionSignal(context: AccountContext) -> Signal<B
 /// Both bindings are idempotent, so call this from anywhere that is about to consult the session.
 public func bindArchiveLockSession(context: AccountContext) {
     ArchiveLockSession.shared.bindBackgroundRelock(applicationIsActive: context.sharedContext.applicationBindings.applicationIsActive)
-    ArchiveLockSession.shared.bindPasswordProtection(accountPeerId: context.account.peerId, isPasswordConfigured: archivePasswordProtectionSignal(context: context))
+    ArchiveLockSession.shared.bindPasswordProtection(accountId: context.account.id.int64, isPasswordConfigured: archivePasswordProtectionSignal(context: context))
 }
 
 /// Align server-side keepArchivedUnmuted with local force-mute: unmuted
@@ -522,7 +531,7 @@ public func dismissOpenArchiveControllers(from navigationController: UINavigatio
 public func lockArchiveAfterUnarchive(navigationController: UINavigationController?, context: AccountContext? = nil) {
     // Without a password the Archive behaves like the stock one: unarchiving a chat from inside it
     // removes that row and nothing else — it must not hide the folder or close the screen.
-    guard ArchiveLockSession.shared.isPasswordConfigured else {
+    guard ArchiveLockSession.shared.isLockActive else {
         return
     }
     ArchiveLockSession.shared.relock()

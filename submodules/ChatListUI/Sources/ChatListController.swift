@@ -1651,7 +1651,8 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
             }
             
             if case .archive = groupId {
-                // Folder is omitted until Settings × 10; refuse stray opens.
+                // A password-protected folder is omitted until Settings × 10; refuse stray opens.
+                // Without a password `isRevealed` is always true and the folder opens normally.
                 guard ArchiveLockSession.shared.isRevealed else {
                     self.chatListDisplayNode.mainContainerNode.currentItemNode.clearHighlightAnimated(true)
                     return

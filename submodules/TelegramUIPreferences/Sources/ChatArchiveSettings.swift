@@ -142,6 +142,15 @@ public final class ArchiveLockSession {
         return self.passwordConfigured
     }
     
+    /// Whether the lock is in force at all. `unlocked` is the belt to `passwordConfigured`'s braces:
+    /// it can only be set by a password flow, and it is cleared when the password is removed, so it
+    /// still reads true in the brief window after launch before the stored password state arrives.
+    public var isLockActive: Bool {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        return self.passwordConfigured || self.unlocked
+    }
+    
     /// Fires whenever the session is re-locked (Lock Now / background / unarchive).
     public var relockedSignal: Signal<Void, NoError> {
         return self.relockedPipe.signal()
@@ -185,7 +194,7 @@ public final class ArchiveLockSession {
     public func relock() {
         // With no password there is no lock to re-apply, and re-locking has side effects the
         // stock Archive must not get: it pops an open Archive screen and hides the folder row.
-        guard self.isPasswordConfigured else {
+        guard self.isLockActive else {
             return
         }
         var shouldNotifyRelock = false
@@ -231,14 +240,17 @@ public final class ArchiveLockSession {
         })
     }
     
-    /// Tracks whether `accountPeerId` has an Archive password.
+    /// Tracks whether the bound account has an Archive password.
+    ///
+    /// `accountId` is the account *record* id rather than the peer id: logging out and back into
+    /// the same account produces a new record against a new postbox, and keying on the peer id
+    /// would keep the subscription to the discarded one and freeze the flag at its last value.
     ///
     /// The flag gates every lock behaviour, so it must never be left describing a previous
     /// account: binding for a different account replaces the existing subscription rather than
-    /// adding to it, and a late value from the superseded one is dropped by the account check in
+    /// adding to it, and a late value from the superseded one is dropped by the id check in
     /// `updatePasswordConfigured`.
-    public func bindPasswordProtection(accountPeerId: EnginePeer.Id, isPasswordConfigured: Signal<Bool, NoError>) {
-        let accountId = accountPeerId.toInt64()
+    public func bindPasswordProtection(accountId: Int64, isPasswordConfigured: Signal<Bool, NoError>) {
         self.lock.lock()
         if self.passwordBindingAccountId == accountId {
             self.lock.unlock()
@@ -284,6 +296,11 @@ public final class ArchiveLockSession {
         self.passwordStateResolved = true
         let didChange = self.passwordConfigured != value
         self.passwordConfigured = value
+        if didChange, !value {
+            // The password is gone, so nothing is unlocked any more. Leaving the flag set would
+            // keep `isLockActive` true and re-lock a now-stock Archive on the next background.
+            self.unlocked = false
+        }
         if didChange, value {
             // The folder was on screen unconditionally while the account was unprotected, and any
             // reveal earned back then belongs to that unprotected state — drop it so the freshly

@@ -171,7 +171,9 @@ public struct PresentationResourcesSettings {
     public static let passkeys = renderSettingsIcon(name: "Item List/Icons/Key", backgroundColors: [colorViolet])
     public static let timer = renderSettingsIcon(name: "Item List/Icons/Timer", backgroundColors: [colorPurple])
     public static let email = renderSettingsIcon(name: "Item List/Icons/Email", backgroundColors: [colorViolet])
-    public static let forkExtras = renderSettingsIcon(name: "Item List/Icons/Settings", backgroundColors: [colorTeal])
+    // Not the gear: `developerMode` already uses that glyph, and the two rows are now neighbours in
+    // the main Settings list, where they would have read as one item drawn twice.
+    public static let forkExtras = renderSettingsIcon(name: "Item List/Icons/Effect", backgroundColors: [colorTeal])
         
     public static let premium = generateImage(CGSize(width: 30.0, height: 30.0), contextGenerator: { size, context in
         let bounds = CGRect(origin: CGPoint(), size: size)
