@@ -25,12 +25,17 @@ public final class WebProxyManager {
     
     public typealias SidecarEventToken = UInt64
     
+    /// Upper bound on a sidecar bootstrap (30s bridge request + 90s session creation), after which
+    /// an in-flight start is no longer treated as live and a fresh one may supersede it.
+    private static let startTimeout: Double = 180.0
+    
     private let lock = NSLock()
     private let startLock = NSLock()
     private var sidecar: WebProxySidecar?
     private var configuration: WebProxyConfiguration?
     private var endpoint: LoopbackEndpoint?
     private var startingConfiguration: WebProxyConfiguration?
+    private var startingSince: Double = 0.0
     private var startGeneration: UInt64 = 0
     
     private var nextSidecarEventToken: SidecarEventToken = 0
@@ -81,10 +86,13 @@ public final class WebProxyManager {
     public func configure(activeWebProxy server: WebProxyConfiguration?) -> Bool {
         guard let server else {
             self.startLock.lock()
-            defer { self.startLock.unlock() }
             self.startGeneration &+= 1
             self.startingConfiguration = nil
+            self.startLock.unlock()
+            
+            self.lock.lock()
             self.stopLocked()
+            self.lock.unlock()
             return true
         }
         
@@ -101,9 +109,18 @@ public final class WebProxyManager {
     
     private func scheduleStart(configuration: WebProxyConfiguration) {
         self.startLock.lock()
+        if self.startingConfiguration == configuration, CFAbsoluteTimeGetCurrent() - self.startingSince < WebProxyManager.startTimeout {
+            // Every account resolves the same shared proxy settings, so with several accounts
+            // this is called once per Network for one and the same server. Re-scheduling would
+            // supersede the in-flight start, tearing down a sidecar that is midway through its
+            // HTTPS bootstrap and restarting the wait from zero for all of them.
+            self.startLock.unlock()
+            return
+        }
         self.startGeneration &+= 1
         let generation = self.startGeneration
         self.startingConfiguration = configuration
+        self.startingSince = CFAbsoluteTimeGetCurrent()
         self.startLock.unlock()
         
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
