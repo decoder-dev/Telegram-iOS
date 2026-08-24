@@ -928,13 +928,6 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
                         emojiTransition = ComponentTransition(animation: .curve(duration: 0.4, curve: .spring)).withUserData(contentAnimation)
                     }
                     
-                    var hideTopPanel = false
-                    if strongSelf.isReactionSearchActive {
-                        hideTopPanel = true
-                    } else if strongSelf.alwaysAllowPremiumReactions || strongSelf.hideExpandedTopPanel {
-                        hideTopPanel = true
-                    }
-                    
                     // The docked Tapbacks sheet keeps its own chrome and geometry here too — falling
                     // back to the inline-panel defaults would strip the frosted sheet on every
                     // emoji-content refresh.
@@ -942,6 +935,18 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
                     // the flag is already false but the view is still on screen, and flipping it back
                     // to the round-panel content would re-warp the grid mid-dismissal.
                     let isBottomDocked = strongSelf.usesExternalExpandButton
+                    
+                    var hideTopPanel = false
+                    if strongSelf.isReactionSearchActive {
+                        hideTopPanel = true
+                    } else if strongSelf.alwaysAllowPremiumReactions || strongSelf.hideExpandedTopPanel {
+                        hideTopPanel = true
+                    }
+                    // Docked Tapbacks sheet has no Telegram pack strip — keep the 42pt band collapsed.
+                    if isBottomDocked {
+                        hideTopPanel = true
+                    }
+                    
                     var pickerDockStyle: EmojiStatusSelectionComponent.BottomDockStyle?
                     var pickerDismiss: (() -> Void)?
                     if isBottomDocked {
@@ -1732,6 +1737,9 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
                 if self.isReactionSearchActive {
                     hideTopPanel = true
                 } else if self.alwaysAllowPremiumReactions || self.hideExpandedTopPanel {
+                    hideTopPanel = true
+                }
+                if tapbacksBottomPickerActive {
                     hideTopPanel = true
                 }
                 

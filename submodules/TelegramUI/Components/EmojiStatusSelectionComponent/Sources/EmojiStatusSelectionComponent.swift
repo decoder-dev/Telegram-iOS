@@ -264,7 +264,7 @@ public final class EmojiStatusSelectionComponent: Component {
             }
             if self.sheetCloseIconTheme !== theme {
                 self.sheetCloseIconTheme = theme
-                closeButton.setImage(generateSheetCloseIcon(backgroundColor: UIColor(rgb: 0x808084, alpha: 0.1), foregroundColor: theme.list.itemSecondaryTextColor), for: .normal)
+                closeButton.setImage(generateSheetCloseIcon(backgroundColor: theme.list.itemSecondaryTextColor.withMultipliedAlpha(0.12), foregroundColor: theme.list.itemSecondaryTextColor), for: .normal)
             }
             // The 30pt circle is the visual size; the button itself is grown to the 44pt minimum hit
             // target around it, so the trailing inset is measured from the circle, not the frame.
