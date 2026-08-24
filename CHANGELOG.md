@@ -6,9 +6,14 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3907-pre] — 2026-08-24
+
+Pre-release: Tapbacks idealism + WEB proxy multi-account / Russian labels.
+
 ### Changed
 - **Reactions (Tapbacks):** the bottom emoji picker is now an iMessage-style sheet — frosted backdrop with rounded top corners, grabber + close button, a flat grid (no warped edge rows, no Telegram pack chrome) and a home-indicator gutter the grid does not scroll into. Closing returns to the pill instead of leaving a dead Telegram control.
 - **Reactions (Tapbacks):** the panel now uses the fork's Messages tokens instead of Telegram chrome colours — sheet surface `#FFFFFF` / `#1C1C1E` (was the context-menu tint `#F9F9F9` / `#252525`), smile button `#FFFFFF` / `#2C2C2E` with a `#8E8E93` glyph (was a full-contrast black/white glyph on an ad-hoc grey), and theme-driven grabber / close-button colours.
+- **WEB proxy:** fork-private labels go through `ForkWebProxyStrings` (Russian via `prefersRussianStrings`) instead of `en.lproj`-only localization keys.
 
 ### Fixed
 - **Reactions (Tapbacks):** the reaction pill can be swiped left/right again — its scroll content was sized to the visible slots only, so reactions past the 7th were unreachable. The row is also vertically centred in the capsule and laid out with the Tapbacks spacing it is measured with.
@@ -16,9 +21,11 @@
 - **Reactions (Tapbacks):** an emoji-content refresh while the docked sheet was open brought back the Telegram pack panel — an empty 42pt band that also clipped the grid's first row — and could re-impose the pill's 7-column capsule metrics on the full-width grid.
 - **Reactions (Tapbacks):** smile button geometry and states — the pressed highlight was invisible on the Day theme, the border was a half-pixel hairline, and the button was inset 4pt from the pill's trailing edge instead of the row's 8pt.
 - **Reactions (Tapbacks):** sheet header alignment — grabber at the standard 5pt offset, close button optically centred with a 16pt gutter and a full 44pt hit target (was a 30pt target nudged 3pt below centre).
+- **Reactions (Tapbacks):** legacy reaction bars stay 46pt (send / share-tag / sticker peek no longer grow a 10pt dead band). Tapbacks is chat-context-menu only, so story and video-chat glass panels keep their original layout. Smile sits in the reserved gap above the bubble; pill fade completes before hide; `hideReactionPanelTail` applies only to chat.
 - **WEB proxy:** sidecar readiness is broadcast to every loaded account Network (was a single overwritten callback), so enabling WEB proxy no longer leaves other multi-account sessions stuck on the fail-closed loopback.
 - **WEB proxy:** a start already in flight for the same server is reused instead of superseded. Each account resolves the same shared proxy settings, so with several accounts every extra `configure` tore down a sidecar midway through its HTTPS bootstrap and restarted the wait for all of them.
 - **WEB proxy:** disabling the proxy no longer mutates the sidecar/endpoint state under the wrong lock, which could race a concurrent readiness callback.
+- **WEB proxy:** failed sidecar bootstrap backs off instead of spinning; Account does not reapply empty default proxy settings before shared data arrives.
 
 ## [v12.9.2-3906-pre] — 2026-08-24
 
