@@ -6,6 +6,15 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3912-pre] — 2026-08-24
+
+Pre-release: Tapbacks sheet keyboard docking (chat dismiss + in-sheet search).
+
+### Fixed
+- **Reactions (Tapbacks):** opening the emoji sheet dismisses the chat keyboard so the grid is no longer drawn behind translucent keys (iMessage behavior).
+- **Reactions (Tapbacks):** searching inside the sheet docks the sheet above the search keyboard instead of covering the emoji grid.
+- **Reactions (Tapbacks):** layout and emoji-content refresh use the same bottom gutter, so a content refresh no longer flashes an empty strip above the search keyboard.
+
 ## [v12.9.2-3911-pre] — 2026-08-24
 
 Pre-release: Tapbacks emoji sheet grabber drag polish.
