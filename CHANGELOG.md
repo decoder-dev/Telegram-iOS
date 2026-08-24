@@ -11,6 +11,7 @@
 
 ### Fixed
 - **Reactions (Tapbacks):** the reaction pill can be swiped left/right again — its scroll content was sized to the visible slots only, so reactions past the 7th were unreachable. The row is also vertically centred in the capsule and laid out with the Tapbacks spacing it is measured with.
+- **WEB proxy:** sidecar readiness is broadcast to every loaded account Network (was a single overwritten callback), so enabling WEB proxy no longer leaves other multi-account sessions stuck on the fail-closed loopback.
 
 ## [v12.9.2-3906-pre] — 2026-08-24
 
