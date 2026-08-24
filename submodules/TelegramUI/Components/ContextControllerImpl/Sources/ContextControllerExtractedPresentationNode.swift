@@ -854,7 +854,9 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
                 // iMessage-style Tapbacks: glass pill without Telegram bubble-tail. The chat caller
                 // asks for that via hideReactionPanelTail; hardcoding false here instead would strip
                 // the tail from every other context menu too, and leave the flag dead plumbing.
-                reactionContextNode.displayTail = !controller.hideReactionPanelTail
+                // The enclosing condition already established this is a ContextControllerImpl.
+                let hideReactionPanelTail = (self.getController() as? ContextControllerImpl)?.hideReactionPanelTail ?? false
+                reactionContextNode.displayTail = !hideReactionPanelTail
                 self.reactionContextNode = reactionContextNode
                 self.addSubnode(reactionContextNode)
                 
