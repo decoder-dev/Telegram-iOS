@@ -231,7 +231,13 @@ final class ReactionContextBackgroundNode: ASDisplayNode {
             smallCircleFrame = CGRect(origin: CGPoint(x: largeCircleFrame.minX + 3.0 - smallCircleSize, y: largeCircleFrame.maxY + 2.0), size: CGSize(width: smallCircleSize, height: smallCircleSize))
         }
         
-        let contentBounds = backgroundFrame.insetBy(dx: -10.0, dy: -10.0).union(largeCircleFrame).union(smallCircleFrame)
+        let contentBounds: CGRect
+        if displayTail {
+            contentBounds = backgroundFrame.insetBy(dx: -10.0, dy: -10.0).union(largeCircleFrame).union(smallCircleFrame)
+        } else {
+            // Tapbacks pill: no bubble-tail geometry — keep the glass capsule tight to the row.
+            contentBounds = backgroundFrame.insetBy(dx: -10.0, dy: -10.0)
+        }
         
         transition.updateFrame(node: self.backgroundMaskNode, frame: backgroundMaskNodeFrame, beginWithCurrentState: true)
         transition.updateFrame(layer: self.backgroundClippingLayer, frame: backgroundFrame.offsetBy(dx: -contentBounds.minX, dy: -contentBounds.minY), beginWithCurrentState: true)

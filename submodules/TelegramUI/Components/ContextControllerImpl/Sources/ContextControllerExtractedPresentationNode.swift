@@ -601,7 +601,7 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
             let isIntersectingContent = adjustedBounds.minY >= 10.0
             reactionContextNode.updateIsIntersectingContent(isIntersectingContent: isIntersectingContent, transition: .animated(duration: 0.25, curve: .easeInOut))
             
-            if !reactionContextNode.isExpanded && reactionContextNode.canBeExpanded {
+            if !reactionContextNode.isExpanded && reactionContextNode.canBeExpanded && !reactionContextNode.usesTapbacksStyle {
                 if topOverscroll > 30.0 && self.scroller.isTracking {
                     self.scroller.panGestureRecognizer.state = .cancelled
                     reactionContextNode.expand()
@@ -696,7 +696,13 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
     private var currentReactionsPositionLock: CGFloat?
     
     private func setCurrentReactionsPositionLock() {
-        self.currentReactionsPositionLock = self.proposedReactionsPositionLock
+        if let reactionContextNode = self.reactionContextNode, !reactionContextNode.isExpanded {
+            // Collapsing back releases the lock, otherwise the actions stay faded out and the content
+            // stays pinned to the expanded position forever.
+            self.currentReactionsPositionLock = nil
+        } else {
+            self.currentReactionsPositionLock = self.proposedReactionsPositionLock
+        }
     }
     
     private func getCurrentReactionsPositionLock() -> CGFloat? {
@@ -1176,7 +1182,7 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
                 
                 reactionContextNode.updateLayout(size: layout.size, insets: UIEdgeInsets(top: topInset, left: layout.safeInsets.left, bottom: 0.0, right: layout.safeInsets.right), anchorRect: reactionAnchorRect, isCoveredByInput: isCoveredByInput, isAnimatingOut: isAnimatingOut, transition: reactionContextNodeTransition)
                 
-                if reactionContextNode.alwaysAllowPremiumReactions {
+                if reactionContextNode.alwaysAllowPremiumReactions || reactionContextNode.usesTapbacksStyle {
                     self.proposedReactionsPositionLock = contentRect.minY - 18.0 - reactionContextNode.contentHeight
                 } else {
                     self.proposedReactionsPositionLock = contentRect.minY - 18.0 - reactionContextNode.contentHeight - (46.0 + 54.0 - 4.0)

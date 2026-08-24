@@ -431,6 +431,9 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
     private var visibleItemMaskNodes: [Int: ASDisplayNode] = [:]
     private let expandItemView: ExpandItemView?
     private let usesExternalExpandButton: Bool
+    public var usesTapbacksStyle: Bool {
+        return self.usesExternalExpandButton
+    }
     private let reactionStyle: Style
     
     private let title: String?
@@ -481,11 +484,17 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
     private var contentTopInset: CGFloat = 0.0
     public var contentHeight: CGFloat {
         var height = self.contentTopInset + self.currentContentHeight
-        if self.usesExternalExpandButton && !self.isExpanded && self.expandItemView != nil {
-            // Pill + gap + secondary smile control (Tapbacks proportions).
+        if self.usesExternalExpandButton && self.expandItemView != nil {
+            // Pill + gap + secondary smile control (Tapbacks proportions). The allowance is kept while
+            // the bottom picker is open too, otherwise the anchored message jumps by that amount.
             height += Self.tapbacksSmileGap + Self.tapbacksSmileSize
         }
         return height
+    }
+    
+    /// The Tapbacks emoji picker docks to the bottom of the container instead of expanding the pill in place.
+    private var isTapbacksBottomPickerActive: Bool {
+        return self.usesExternalExpandButton && self.isExpanded
     }
     
     /// iMessage Tapbacks-scale metrics for the glass reaction pill + external smile.
@@ -539,6 +548,7 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
     
     public let alwaysAllowPremiumReactions: Bool
     private var hideExpandedTopPanel: Bool = false
+    private var hideExpandedTopPanelBeforeExpand: Bool?
     private var hasPremium: Bool?
     private var hasPremiumDisposable: Disposable?
     
@@ -816,7 +826,7 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
                 }
                 
                 strongSelf.emojiContent = emojiContent
-                    if !strongSelf.canBeExpanded {
+                if !strongSelf.canBeExpanded {
                     strongSelf.canBeExpanded = true
                     
                     // Glass/Tapbacks mode uses the external smile button — skip stretch-to-expand pan.
@@ -961,6 +971,9 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
     }
     
     public func wantsDisplayBelowKeyboard() -> Bool {
+        if self.usesExternalExpandButton && self.isExpanded {
+            return true
+        }
         if let emojiView = self.reactionSelectionComponentHost?.findTaggedView(tag: EmojiPagerContentComponent.Tag(id: AnyHashable("emoji"))) as? EmojiPagerContentComponent.View {
             return emojiView.wantsDisplayBelowKeyboard()
         } else if let stickersView = self.reactionSelectionComponentHost?.findTaggedView(tag: EmojiPagerContentComponent.Tag(id: AnyHashable("stickers"))) as? EmojiPagerContentComponent.View {
@@ -1432,7 +1445,7 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
             
             maxRowItemCount = min(maxRowItemCount, preferredMaxVisible)
             itemCount = min(totalItemSlotCount, maxRowItemCount)
-            if self.isExpanded {
+            if self.isExpanded && !self.usesExternalExpandButton {
                 itemCount = maxRowItemCount
             }
             
@@ -1494,7 +1507,8 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
         )
         
         var scrollFrame = CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: actualBackgroundFrame.size)
-        if self.isExpanded {
+        let tapbacksBottomPickerActive = self.isTapbacksBottomPickerActive
+        if self.isExpanded && !tapbacksBottomPickerActive {
             if self.alwaysAllowPremiumReactions || self.hideExpandedTopPanel {
                 scrollFrame.origin.y += 0.0
             } else {
@@ -1520,38 +1534,34 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
         if self.usesExternalExpandButton, let expandItemView = self.expandItemView {
             let expandItemSize: CGFloat = self.highlightedReaction != nil ? floor(Self.tapbacksSmileSize * 0.94) : Self.tapbacksSmileSize
             // Secondary control under the trailing edge — slightly smaller than reaction glyphs.
-            var expandFrame = CGRect(
+            let expandFrame = CGRect(
                 origin: CGPoint(
                     x: visualBackgroundFrame.maxX - expandItemSize - Self.tapbacksSmileTrailingInset,
                     y: visualBackgroundFrame.maxY + Self.tapbacksSmileGap
                 ),
                 size: CGSize(width: expandItemSize, height: expandItemSize)
             )
-            if self.isExpanded {
-                expandFrame.origin.y = visualBackgroundFrame.maxY + Self.tapbacksSmileGap
-                transition.updateAlpha(layer: expandItemView.layer, alpha: 0.0)
-            } else {
-                transition.updateAlpha(layer: expandItemView.layer, alpha: 1.0)
-            }
+            // The smile belongs to the pill: while the picker is docked at the bottom the pill is faded
+            // out, so the smile has to go with it instead of floating over empty space.
+            transition.updateAlpha(layer: expandItemView.layer, alpha: self.isExpanded ? 0.0 : 1.0)
             transition.updateFrame(view: expandItemView, frame: expandFrame)
             expandItemView.update(size: expandFrame.size, transition: transition)
             self.view.bringSubviewToFront(expandItemView)
         }
         
         if self.usesExternalExpandButton {
-            if self.isExpanded {
-                transition.updateCornerRadius(layer: self.contentContainer.layer, cornerRadius: 26.0)
-                self.contentContainer.clipsToBounds = true
-                transition.updateCornerRadius(layer: self.contentTintContainer.layer, cornerRadius: 26.0)
-                self.contentTintContainer.clipsToBounds = true
-            } else {
-                // Keep reactions clipped to the glass capsule.
-                let pillRadius = min(visualBackgroundFrame.height, visualBackgroundFrame.width) / 2.0
-                transition.updateCornerRadius(layer: self.contentContainer.layer, cornerRadius: pillRadius)
-                self.contentContainer.clipsToBounds = true
-                transition.updateCornerRadius(layer: self.contentTintContainer.layer, cornerRadius: pillRadius)
-                self.contentTintContainer.clipsToBounds = true
-            }
+            // The pill keeps its capsule shape in both states — expanding docks the picker at the
+            // bottom rather than growing the pill in place.
+            let pillRadius = min(visualBackgroundFrame.height, visualBackgroundFrame.width) / 2.0
+            transition.updateCornerRadius(layer: self.contentContainer.layer, cornerRadius: pillRadius)
+            self.contentContainer.clipsToBounds = true
+            transition.updateCornerRadius(layer: self.contentTintContainer.layer, cornerRadius: pillRadius)
+            self.contentTintContainer.clipsToBounds = true
+        }
+        
+        if self.usesExternalExpandButton {
+            transition.updateAlpha(node: self.backgroundNode, alpha: tapbacksBottomPickerActive ? 0.0 : 1.0)
+            transition.updateAlpha(node: self.scrollNode, alpha: tapbacksBottomPickerActive ? 0.0 : 1.0)
         }
         
         self.updateScrolling(transition: transition)
@@ -1595,6 +1605,9 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
                     componentTransition = componentTransition.withUserData(PagerComponentForceUpdate())
                 }
                 
+                let pickerContainerWidth = tapbacksBottomPickerActive ? size.width : actualBackgroundFrame.width
+                let pickerContainerHeight = self.emojiContentHeight
+                
                 let _ = reactionSelectionComponentHost.update(
                     transition: componentTransition,
                     component: AnyComponent(EmojiStatusSelectionComponent(
@@ -1603,10 +1616,10 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
                         deviceMetrics: DeviceMetrics.iPhone13,
                         emojiContent: emojiContent,
                         color: nil,
-                        backgroundColor: .clear,
+                        backgroundColor: tapbacksBottomPickerActive ? self.presentationData.theme.contextMenu.backgroundColor : .clear,
                         separatorColor: self.presentationData.theme.list.itemPlainSeparatorColor.withMultipliedAlpha(0.5),
                         hideTopPanel: hideTopPanel,
-                        disableTopPanel: self.alwaysAllowPremiumReactions,
+                        disableTopPanel: self.alwaysAllowPremiumReactions || tapbacksBottomPickerActive,
                         hideTopPanelUpdated: { [weak self] hideTopPanel, transition in
                             guard let strongSelf = self else {
                                 return
@@ -1617,15 +1630,27 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
                     )),
                     environment: {},
                     forceUpdate: forceUpdate,
-                    containerSize: CGSize(width: actualBackgroundFrame.width, height: self.emojiContentHeight)
+                    containerSize: CGSize(width: pickerContainerWidth, height: pickerContainerHeight)
                 )
                 if let componentView = reactionSelectionComponentHost.view {
                     var animateIn = false
+                    let pickerParentView: UIView = tapbacksBottomPickerActive ? self.view : self.contentContainer.view
+                    if componentView.superview !== pickerParentView {
+                        componentView.removeFromSuperview()
+                    }
                     if componentView.superview == nil {
-                        componentView.layer.cornerRadius = 26.0
+                        componentView.layer.cornerRadius = tapbacksBottomPickerActive ? 16.0 : 26.0
                         componentView.clipsToBounds = true
                         
-                        self.contentContainer.view.insertSubview(componentView, belowSubview: self.scrollNode.view)
+                        if tapbacksBottomPickerActive {
+                            if let expandItemView = self.expandItemView {
+                                self.view.insertSubview(componentView, belowSubview: expandItemView)
+                            } else {
+                                self.view.addSubview(componentView)
+                            }
+                        } else {
+                            self.contentContainer.view.insertSubview(componentView, belowSubview: self.scrollNode.view)
+                        }
                         self.contentContainer.view.mask = nil
                         for (_, itemNode) in self.visibleItemNodes {
                             itemNode.isHidden = true
@@ -1635,7 +1660,7 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
                                 selectionTintView.isHidden = true
                             }
                         }
-                        if let emojiView = reactionSelectionComponentHost.findTaggedView(tag: EmojiPagerContentComponent.Tag(id: AnyHashable("emoji"))) as? EmojiPagerContentComponent.View {
+                        if !tapbacksBottomPickerActive, let emojiView = reactionSelectionComponentHost.findTaggedView(tag: EmojiPagerContentComponent.Tag(id: AnyHashable("emoji"))) as? EmojiPagerContentComponent.View {
                             var initialPositionAndFrame: [MediaId: (frame: CGRect, cornerRadius: CGFloat, frameIndex: Int, placeholder: UIImage)] = [:]
                             for (_, itemNode) in self.visibleItemNodes {
                                 guard let itemNode = itemNode as? ReactionNode else {
@@ -1678,7 +1703,7 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
                             topPanelView.animateIn()
                         }
                         
-                        if let expandItemView = self.expandItemView {
+                        if let expandItemView = self.expandItemView, !tapbacksBottomPickerActive {
                             expandItemView.alpha = 0.0
                             expandItemView.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.2, completion: { [weak self] _ in
                                 guard let strongSelf = self else {
@@ -1691,28 +1716,43 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
                             expandItemView.tintView.alpha = 0.0
                             expandItemView.tintView.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.2)
                             expandItemView.tintView.layer.animateScale(from: 1.0, to: 0.0, duration: 0.2, removeOnCompletion: false)
+                        } else if tapbacksBottomPickerActive {
+                            self.scrollNode.isHidden = true
+                            self.mirrorContentScrollView.isHidden = true
                         }
                         animateIn = true
                     }
                     
-                    let componentFrame = CGRect(origin: CGPoint(), size: actualBackgroundFrame.size)
+                    let componentFrame: CGRect
+                    if tapbacksBottomPickerActive {
+                        componentFrame = CGRect(
+                            origin: CGPoint(x: 0.0, y: size.height - pickerContainerHeight),
+                            size: CGSize(width: pickerContainerWidth, height: pickerContainerHeight)
+                        )
+                    } else {
+                        componentFrame = CGRect(origin: CGPoint(), size: actualBackgroundFrame.size)
+                    }
                     
-                    componentTransition.setFrame(view: componentView, frame: CGRect(origin: componentFrame.origin, size: CGSize(width: componentFrame.width, height: componentFrame.height)))
+                    componentTransition.setFrame(view: componentView, frame: componentFrame)
                     
                     if animateIn {
-                        var animationOffsetY: CGFloat = 0.0
-                        if self.isEmojiOnly {
-                            animationOffsetY += 54.0
-                        } else if self.alwaysAllowPremiumReactions {
-                            animationOffsetY += 4.0
-                        } else if self.isMessageEffects {
-                            animationOffsetY += 54.0
-                            transition.animatePositionAdditive(layer: self.backgroundNode.vibrantExpandedContentContainer.layer, offset: CGPoint(x: 0.0, y: -animationOffsetY + floorToScreenPixels(self.animateFromExtensionDistance / 2.0)))
+                        if tapbacksBottomPickerActive {
+                            transition.animatePositionAdditive(layer: componentView.layer, offset: CGPoint(x: 0.0, y: pickerContainerHeight))
                         } else {
-                            animationOffsetY += 46.0 + 54.0 - 4.0
+                            var animationOffsetY: CGFloat = 0.0
+                            if self.isEmojiOnly {
+                                animationOffsetY += 54.0
+                            } else if self.alwaysAllowPremiumReactions {
+                                animationOffsetY += 4.0
+                            } else if self.isMessageEffects {
+                                animationOffsetY += 54.0
+                                transition.animatePositionAdditive(layer: self.backgroundNode.vibrantExpandedContentContainer.layer, offset: CGPoint(x: 0.0, y: -animationOffsetY + floorToScreenPixels(self.animateFromExtensionDistance / 2.0)))
+                            } else {
+                                animationOffsetY += 46.0 + 54.0 - 4.0
+                            }
+                            
+                            transition.animatePositionAdditive(layer: componentView.layer, offset: CGPoint(x: 0.0, y: -animationOffsetY + floorToScreenPixels(self.animateFromExtensionDistance / 2.0)))
                         }
-                        
-                        transition.animatePositionAdditive(layer: componentView.layer, offset: CGPoint(x: 0.0, y: -animationOffsetY + floorToScreenPixels(self.animateFromExtensionDistance / 2.0)))
                     }
                 }
             }
@@ -1722,7 +1762,9 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
                 self.scrollNode.isHidden = false
                 self.mirrorContentScrollView.isHidden = false
                 
-                if let expandItemView = self.expandItemView {
+                // The external Tapbacks smile fades with the pill in the layout pass above; only the
+                // inline arrow needs the scale-back-in counterpart of its expand animation.
+                if let expandItemView = self.expandItemView, !self.usesExternalExpandButton {
                     expandItemView.alpha = 1.0
                     expandItemView.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.2)
                     expandItemView.layer.animateScale(from: 0.0, to: 1.0, duration: 0.2, removeOnCompletion: false)
@@ -1744,7 +1786,10 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
                         selectionTintView.isHidden = false
                     }
                 }
-                transition.updatePosition(layer: componentView.layer, position: componentView.layer.position.offsetBy(dx: 0.0, dy: -30.0))
+                // The bottom-docked picker leaves the way it arrived — downwards, not up into the screen.
+                let dismissOffsetY: CGFloat = componentView.superview === self.view ? componentView.bounds.height : -30.0
+                componentView.isUserInteractionEnabled = false
+                transition.updatePosition(layer: componentView.layer, position: componentView.layer.position.offsetBy(dx: 0.0, dy: dismissOffsetY))
                 transition.updateAlpha(layer: componentView.layer, alpha: 0.0, completion: { _ in
                     componentView.removeFromSuperview()
                 })
@@ -3171,6 +3216,16 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
     }
     
     override public func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        if self.isTapbacksBottomPickerActive {
+            // The picker is docked to the bottom of self.view, outside contentContainer, so the
+            // contentContainer branch below would never reach it. Anything outside the picker must
+            // fall through to the host (tapping away dismisses).
+            if let componentView = self.reactionSelectionComponentHost?.view, componentView.superview === self.view {
+                return componentView.hitTest(self.view.convert(point, to: componentView), with: event)
+            }
+            return nil
+        }
+        
         if self.usesExternalExpandButton, let expandItemView = self.expandItemView, !self.isExpanded, expandItemView.alpha > 0.01 {
             let expandPoint = self.view.convert(point, to: expandItemView)
             if expandItemView.point(inside: expandPoint, with: event) {
@@ -3273,12 +3328,7 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
                 if expandItemView.point(inside: expandPoint, with: nil) {
                     expandItemView.setHighlighted(true, animated: false)
                     expandItemView.setHighlighted(false, animated: true)
-                    self.animateFromExtensionDistance = self.contentTopInset * 2.0 + self.extensionDistance
-                    self.contentTopInset = 0.0
-                    self.currentContentHeight = self.emojiContentHeight
-                    self.isExpanded = true
-                    self.longPressRecognizer?.isEnabled = false
-                    self.isExpandedUpdated(.animated(duration: 0.4, curve: .spring))
+                    self.expand()
                     return
                 }
             }
@@ -3325,9 +3375,19 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
         self.extensionDistance = 0.0
         self.visibleExtensionDistance = 0.0
         self.contentTopInset = 0.0
-        self.currentContentHeight = self.emojiContentHeight
+        if self.usesExternalExpandButton {
+            // iMessage Tapbacks: keep the pill compact; emoji picker docks to the bottom.
+            self.hideExpandedTopPanelBeforeExpand = self.hideExpandedTopPanel
+            self.hideExpandedTopPanel = true
+            self.currentContentHeight = Self.tapbacksVerticalInset * 2.0 + Self.tapbacksRowHeight
+        } else {
+            self.currentContentHeight = self.emojiContentHeight
+        }
         self.isExpanded = true
         self.isExpandedUpdated(.animated(duration: 0.4, curve: .spring))
+        if self.usesExternalExpandButton {
+            self.requestUpdateOverlayWantsToBeBelowKeyboard(.animated(duration: 0.4, curve: .spring))
+        }
     }
     
     public func collapse() {
@@ -3350,9 +3410,16 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
         self.currentContentHeight = self.usesExternalExpandButton
             ? (Self.tapbacksVerticalInset * 2.0 + Self.tapbacksRowHeight)
             : 46.0
+        if let hideExpandedTopPanelBeforeExpand = self.hideExpandedTopPanelBeforeExpand {
+            self.hideExpandedTopPanel = hideExpandedTopPanelBeforeExpand
+            self.hideExpandedTopPanelBeforeExpand = nil
+        }
         self.isExpanded = false
         self.isCollapsing = true
         self.isExpandedUpdated(.animated(duration: 0.4, curve: .spring))
+        if self.usesExternalExpandButton {
+            self.requestUpdateOverlayWantsToBeBelowKeyboard(.animated(duration: 0.4, curve: .spring))
+        }
         
         self.emojiSearchDisposable.set(nil)
         self.emojiSearchState.set(.single(EmojiSearchState(result: nil, isSearching: false)))
