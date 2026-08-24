@@ -541,6 +541,10 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
     private static let tapbacksPickerExpandedTopGap: CGFloat = 16.0
     private static let tapbacksPickerFlickVelocity: CGFloat = 300.0
     private static let tapbacksPickerDismissVelocity: CGFloat = 800.0
+    /// How far below the resting stop the sheet has to be left before releasing closes it.
+    private static let tapbacksPickerDismissDistance: CGFloat = 40.0
+    /// Smallest gain that justifies a second stop at all.
+    private static let tapbacksPickerMinimumExpansion: CGFloat = 80.0
     
     /// The docked sheet is a Messages surface (`#FFFFFF` / `#1C1C1E`) kept translucent so the frosted
     /// blur reads through it; `contextMenu.backgroundColor` is the Telegram panel tint (`#F9F9F9` /
@@ -558,11 +562,16 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
     
     /// The stop the grabber drags the sheet up to. It stays clear of the status bar so it is still
     /// obvious what the sheet is sitting on top of, and so there is somewhere to tap to get out.
+    ///
+    /// A screen with too little to gain has no second stop at all: landing on a height the eye
+    /// cannot tell from the resting one is worse than the drag simply not expanding.
     private func tapbacksPickerExpandedHeight(size: CGSize, insets: UIEdgeInsets) -> CGFloat {
-        return max(
-            self.tapbacksPickerCollapsedHeight(size: size, bottomInset: insets.bottom),
-            size.height - insets.top - Self.tapbacksPickerExpandedTopGap
-        )
+        let collapsed = self.tapbacksPickerCollapsedHeight(size: size, bottomInset: insets.bottom)
+        let available = size.height - insets.top - Self.tapbacksPickerExpandedTopGap
+        if available < collapsed + Self.tapbacksPickerMinimumExpansion {
+            return collapsed
+        }
+        return available
     }
     
     /// Where to lay the sheet out: the stop it is resting at, moved by however far the grabber drag
@@ -604,6 +613,9 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
     
     @objc private func tapbacksPickerPanGesture(_ recognizer: UIPanGestureRecognizer) {
         guard self.isTapbacksBottomPickerActive, let (size, insets, _, _, _) = self.validLayout else {
+            // The sheet went away underneath the gesture. Drop the offset so a later layout cannot
+            // pick up a stale one.
+            self.tapbacksPickerDragOffset = 0.0
             return
         }
         let collapsed = self.tapbacksPickerCollapsedHeight(size: size, bottomInset: insets.bottom)
@@ -615,16 +627,29 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
         case .changed:
             self.tapbacksPickerDragOffset = recognizer.translation(in: self.view).y
             self.requestLayout(.immediate)
-        case .ended, .cancelled:
+        case .cancelled:
+            // Interrupted rather than released — by a call banner, a rotation, the system taking
+            // the touch. That is not a decision, so the sheet returns to the stop it came from.
+            guard self.tapbacksPickerDragOffset != 0.0 else {
+                return
+            }
+            self.tapbacksPickerDragOffset = 0.0
+            self.requestLayout(.animated(duration: 0.4, curve: .spring))
+        case .ended:
             let translation = recognizer.translation(in: self.view).y
             let velocity = recognizer.velocity(in: self.view).y
             let wasExpanded = self.tapbacksPickerIsExpanded
             let currentHeight = (wasExpanded ? expanded : collapsed) - translation
             self.tapbacksPickerDragOffset = 0.0
             
+            // A screen too short for a second stop leaves the sheet one height and a way out.
+            let canExpand = expanded > collapsed
+            
             // A decisive flick wins outright; a slow drag settles to whichever stop it ended nearer.
             let shouldExpand: Bool
-            if velocity < -Self.tapbacksPickerFlickVelocity {
+            if !canExpand {
+                shouldExpand = false
+            } else if velocity < -Self.tapbacksPickerFlickVelocity {
                 shouldExpand = true
             } else if velocity > Self.tapbacksPickerFlickVelocity {
                 shouldExpand = false
@@ -632,22 +657,26 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
                 shouldExpand = abs(currentHeight - expanded) < abs(currentHeight - collapsed)
             }
             
-            // Thrown down hard from either stop, or dragged well below the resting one: the sheet
-            // closes back to the reaction pill, the same thing its close button does. Distance only
-            // counts from the resting stop — from the top stop a slow drag down has a stop of its
-            // own to land on first.
-            if !shouldExpand, (velocity > Self.tapbacksPickerDismissVelocity) || (!wasExpanded && currentHeight < collapsed - 40.0) {
+            // Left well below the resting stop, or thrown down hard from it: the sheet closes back
+            // to the reaction pill, the same thing its close button does.
+            //
+            // A hard flick from the *top* stop lands on the resting stop instead, which is how a
+            // sheet with two detents behaves everywhere else — the next stop down is what the flick
+            // is asking for, and it takes a second one to close. Being dragged bodily past the
+            // resting stop is unambiguous either way, so distance still closes it from up there.
+            let flickedAwayFromRestingStop = !wasExpanded && velocity > Self.tapbacksPickerDismissVelocity
+            if !shouldExpand, flickedAwayFromRestingStop || (currentHeight < collapsed - Self.tapbacksPickerDismissDistance) {
                 self.collapse()
                 return
             }
             
-            self.tapbacksPickerIsExpanded = shouldExpand
-            if self.hapticFeedback == nil {
-                self.hapticFeedback = HapticFeedback()
-            }
             if shouldExpand != wasExpanded {
+                if self.hapticFeedback == nil {
+                    self.hapticFeedback = HapticFeedback()
+                }
                 self.hapticFeedback?.tap()
             }
+            self.tapbacksPickerIsExpanded = shouldExpand
             self.requestLayout(.animated(duration: 0.4, curve: .spring))
         default:
             break
