@@ -2008,6 +2008,23 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
             }
         }
         
+        // The pill's grid metrics describe a capsule seven 32pt reactions wide. The docked sheet is
+        // full-width, so reusing them would centre a narrow column of small emoji in it; there the
+        // keyboard derives its own iMessage-like grid from the available width instead.
+        let contentCustomLayout: EmojiPagerContentComponent.CustomLayout? = self.isTapbacksBottomPickerActive ? nil : emojiContentLayout
+        
+        // The vibrancy mirror is drawn into the pill's tint mask. The docked sheet lives at the
+        // bottom of the container with its own frosted backdrop, so that copy would land inside the
+        // capsule instead of behind the grid.
+        let contentExternalBackground: EmojiPagerContentComponent.ExternalBackground?
+        if self.isTapbacksBottomPickerActive || self.backgroundNode.backgroundTintMaskContainer.isHidden {
+            contentExternalBackground = nil
+        } else {
+            contentExternalBackground = EmojiPagerContentComponent.ExternalBackground(
+                effectContainerView: self.backgroundNode.vibrantExpandedContentContainer
+            )
+        }
+        
         emojiContent.inputInteractionHolder.inputInteraction = EmojiPagerContentComponent.InputInteraction(
             performItemAction: { [weak self] groupId, item, sourceView, sourceRect, sourceLayer, isLongPress in
                 guard let strongSelf = self, let availableReactions = strongSelf.availableReactions else {
@@ -2801,10 +2818,8 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
             },
             chatPeerId: nil,
             peekBehavior: nil,
-            customLayout: emojiContentLayout,
-            externalBackground: self.backgroundNode.backgroundTintMaskContainer.isHidden ? nil : EmojiPagerContentComponent.ExternalBackground(
-                effectContainerView: self.backgroundNode.vibrantExpandedContentContainer
-            ),
+            customLayout: contentCustomLayout,
+            externalBackground: contentExternalBackground,
             externalExpansionView: self.view,
             customContentView: nil,
             useOpaqueTheme: false,
@@ -3538,17 +3553,14 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
         self.hapticFeedback?.tap()
         
         self.view.endEditing(true)
-        self.longPressRecognizer?.isEnabled = false
         
         guard self.isExpanded else {
             return
         }
         
         // Tapbacks collapses back to a live pill rather than to a dismissing menu, so the
-        // long-press preview has to come back with it.
-        if self.usesExternalExpandButton && !self.allPresetReactionsAreAvailable {
-            self.longPressRecognizer?.isEnabled = true
-        }
+        // long-press preview has to come back with it; every other style is on its way out.
+        self.longPressRecognizer?.isEnabled = self.usesExternalExpandButton && !self.allPresetReactionsAreAvailable
         
         self.animateFromExtensionDistance = 0.0
         self.extensionDistance = 0.0
