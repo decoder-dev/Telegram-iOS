@@ -23,8 +23,7 @@ public final class WebProxyManager {
         }
     }
     
-    /// Called on the main queue when the sidecar endpoint becomes ready, fails to start, or stops at runtime.
-    public var onSidecarEvent: (() -> Void)?
+    public typealias SidecarEventToken = UInt64
     
     private let lock = NSLock()
     private let startLock = NSLock()
@@ -33,6 +32,9 @@ public final class WebProxyManager {
     private var endpoint: LoopbackEndpoint?
     private var startingConfiguration: WebProxyConfiguration?
     private var startGeneration: UInt64 = 0
+    
+    private var nextSidecarEventToken: SidecarEventToken = 0
+    private var sidecarEventHandlers: [SidecarEventToken: () -> Void] = [:]
     
     private init() {
     }
@@ -53,6 +55,24 @@ public final class WebProxyManager {
         self.lock.lock()
         defer { self.lock.unlock() }
         return self.configuration == configuration && self.endpoint != nil
+    }
+    
+    /// Registers a handler invoked on the main queue when the sidecar becomes ready, fails, or stops.
+    /// Multi-account: every Network must register — a single overwritten callback left other accounts stuck on the fail-closed loopback.
+    @discardableResult
+    public func addSidecarEventHandler(_ handler: @escaping () -> Void) -> SidecarEventToken {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        self.nextSidecarEventToken &+= 1
+        let token = self.nextSidecarEventToken
+        self.sidecarEventHandlers[token] = handler
+        return token
+    }
+    
+    public func removeSidecarEventHandler(_ token: SidecarEventToken) {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        self.sidecarEventHandlers.removeValue(forKey: token)
     }
     
     /// Starts or reuses the sidecar for the given WEB proxy without blocking the caller.
@@ -171,9 +191,13 @@ public final class WebProxyManager {
     }
     
     private func notifySidecarEvent() {
-        let handler = self.onSidecarEvent
+        self.lock.lock()
+        let handlers = Array(self.sidecarEventHandlers.values)
+        self.lock.unlock()
         DispatchQueue.main.async {
-            handler?()
+            for handler in handlers {
+                handler()
+            }
         }
     }
 }

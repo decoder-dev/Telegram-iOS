@@ -222,9 +222,9 @@ public class UnauthorizedAccount {
             let _ = latestProxySettings.swap(settings)
             applySharedProxySettingsToNetwork(settings: settings, network: network)
         }))
-        registerWebProxySidecarReapply(network: network, currentSettings: {
+        self.managedDisposables.add(registerWebProxySidecarReapply(network: network, currentSettings: {
             latestProxySettings.with { $0 }
-        })
+        }))
     }
     
     deinit {
@@ -1512,9 +1512,9 @@ public class Account {
             let _ = latestProxySettings.swap(settings)
             applySharedProxySettingsToNetwork(settings: settings, network: network)
         }))
-        registerWebProxySidecarReapply(network: network, currentSettings: {
+        self.managedOperationsDisposable.add(registerWebProxySidecarReapply(network: network, currentSettings: {
             latestProxySettings.with { $0 }
-        })
+        }))
         
         if !supplementary {
             self.managedOperationsDisposable.add(managedProxyFailover(accountManager: accountManager, network: network).start())

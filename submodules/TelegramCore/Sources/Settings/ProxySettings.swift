@@ -91,11 +91,16 @@ func applySharedProxySettingsToNetwork(settings: ProxySettings, network: Network
     }
 }
 
-public func registerWebProxySidecarReapply(network: Network, currentSettings: @escaping () -> ProxySettings) {
-    WebProxyManager.shared.onSidecarEvent = { [weak network] in
+public func registerWebProxySidecarReapply(network: Network, currentSettings: @escaping () -> ProxySettings) -> Disposable {
+    // Every account Network must observe sidecar readiness. A single overwritten
+    // callback left secondary accounts stuck on the fail-closed 127.0.0.1:1 route.
+    let token = WebProxyManager.shared.addSidecarEventHandler { [weak network] in
         guard let network = network else {
             return
         }
         applySharedProxySettingsToNetwork(settings: currentSettings(), network: network)
+    }
+    return ActionDisposable {
+        WebProxyManager.shared.removeSidecarEventHandler(token)
     }
 }
