@@ -759,6 +759,39 @@ public final class EmojiPagerContentComponent: Component {
         )
     }
     
+    /// Overrides the two flags that decide how the grid draws itself into its host: the curved
+    /// top/bottom rows of the round reaction panel, and the panel's own blurred backdrop. A grid
+    /// hosted in a flat bottom sheet wants neither.
+    public func withUpdatedBackdrop(warpContentsOnEdges: Bool, hideBackground: Bool) -> EmojiPagerContentComponent {
+        return EmojiPagerContentComponent(
+            id: self.id,
+            context: self.context,
+            avatarPeer: self.avatarPeer,
+            animationCache: self.animationCache,
+            animationRenderer: self.animationRenderer,
+            inputInteractionHolder: self.inputInteractionHolder,
+            panelItemGroups: self.panelItemGroups,
+            contentItemGroups: self.contentItemGroups,
+            itemLayoutType: self.itemLayoutType,
+            itemContentUniqueId: self.itemContentUniqueId,
+            canLoadMore: self.canLoadMore,
+            searchState: self.searchState,
+            warpContentsOnEdges: warpContentsOnEdges,
+            hideBackground: hideBackground,
+            maskEdge: self.maskEdge,
+            displaySearchWithPlaceholder: self.displaySearchWithPlaceholder,
+            searchCategories: self.searchCategories,
+            searchInitiallyHidden: self.searchInitiallyHidden,
+            searchAlwaysActive: self.searchAlwaysActive,
+            searchIsPlaceholderOnly: self.searchIsPlaceholderOnly,
+            searchUnicodeEmojiOnly: self.searchUnicodeEmojiOnly,
+            emptySearchResults: self.emptySearchResults,
+            enableLongPress: self.enableLongPress,
+            selectedItems: self.selectedItems,
+            customTintColor: self.customTintColor
+        )
+    }
+    
     public func withCustomTintColor(_ customTintColor: UIColor?) -> EmojiPagerContentComponent {
         return EmojiPagerContentComponent(
             id: self.id,

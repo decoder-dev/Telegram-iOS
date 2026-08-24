@@ -6,6 +6,12 @@
 
 ## [Unreleased]
 
+### Changed
+- **Reactions (Tapbacks):** the bottom emoji picker is now an iMessage-style sheet — frosted backdrop with rounded top corners, grabber + close button, a flat grid (no warped edge rows, no Telegram pack chrome) and a home-indicator gutter the grid does not scroll into. Closing returns to the pill instead of leaving a dead Telegram control.
+
+### Fixed
+- **Reactions (Tapbacks):** the reaction pill can be swiped left/right again — its scroll content was sized to the visible slots only, so reactions past the 7th were unreachable. The row is also vertically centred in the capsule and laid out with the Tapbacks spacing it is measured with.
+
 ## [v12.9.2-3906-pre] — 2026-08-24
 
 Pre-release: Tapbacks long-press + bottom emoji picker bugfixes (iMessage-like).

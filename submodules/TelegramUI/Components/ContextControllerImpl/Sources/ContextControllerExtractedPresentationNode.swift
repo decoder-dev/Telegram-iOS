@@ -904,7 +904,7 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
                     }
                 }
                 
-                reactionContextNode.updateLayout(size: layout.size, insets: UIEdgeInsets(top: topInset, left: layout.safeInsets.left, bottom: 0.0, right: layout.safeInsets.right), anchorRect: CGRect(origin: CGPoint(x: 0.0, y: layout.size.height), size: CGSize(width: 1.0, height: 1.0)), isCoveredByInput: false, isAnimatingOut: false, transition: .immediate)
+                reactionContextNode.updateLayout(size: layout.size, insets: UIEdgeInsets(top: topInset, left: layout.safeInsets.left, bottom: layout.intrinsicInsets.bottom, right: layout.safeInsets.right), anchorRect: CGRect(origin: CGPoint(x: 0.0, y: layout.size.height), size: CGSize(width: 1.0, height: 1.0)), isCoveredByInput: false, isAnimatingOut: false, transition: .immediate)
             }
             contentTopInset += reactionContextNode.contentHeight + 18.0
         } else if let reactionContextNode = self.reactionContextNode {
@@ -1180,7 +1180,7 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
                     isCoveredByInput = true
                 }
                 
-                reactionContextNode.updateLayout(size: layout.size, insets: UIEdgeInsets(top: topInset, left: layout.safeInsets.left, bottom: 0.0, right: layout.safeInsets.right), anchorRect: reactionAnchorRect, isCoveredByInput: isCoveredByInput, isAnimatingOut: isAnimatingOut, transition: reactionContextNodeTransition)
+                reactionContextNode.updateLayout(size: layout.size, insets: UIEdgeInsets(top: topInset, left: layout.safeInsets.left, bottom: layout.intrinsicInsets.bottom, right: layout.safeInsets.right), anchorRect: reactionAnchorRect, isCoveredByInput: isCoveredByInput, isAnimatingOut: isAnimatingOut, transition: reactionContextNodeTransition)
                 
                 if reactionContextNode.alwaysAllowPremiumReactions || reactionContextNode.usesTapbacksStyle {
                     self.proposedReactionsPositionLock = contentRect.minY - 18.0 - reactionContextNode.contentHeight

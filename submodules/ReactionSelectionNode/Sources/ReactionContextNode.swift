@@ -327,13 +327,24 @@ private final class TitleLabelView: UIView {
 public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
     private struct ItemLayout {
         var itemSize: CGFloat
+        var itemSpacing: CGFloat
+        var sideInset: CGFloat
+        var containerHeight: CGFloat
+        /// Number of items the scroll content is laid out for. For the Tapbacks pill this is the
+        /// full reaction list even though only `tapbacksMaxVisibleItems` of them fit the capsule.
         var visibleItemCount: Int
         
         init(
             itemSize: CGFloat,
+            itemSpacing: CGFloat,
+            sideInset: CGFloat,
+            containerHeight: CGFloat,
             visibleItemCount: Int
         ) {
             self.itemSize = itemSize
+            self.itemSpacing = itemSpacing
+            self.sideInset = sideInset
+            self.containerHeight = containerHeight
             self.visibleItemCount = visibleItemCount
         }
     }
@@ -507,6 +518,67 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
     private static let tapbacksSmileGap: CGFloat = 6.0
     private static let tapbacksSmileTrailingInset: CGFloat = 4.0
     private static let tapbacksMaxVisibleItems: Int = 7
+    private static let tapbacksPickerCornerRadius: CGFloat = 20.0
+    
+    /// Height of the iMessage-style bottom sheet: header + a comfortable emoji grid + the home
+    /// indicator gutter, clamped so it never eats the anchored message on short screens.
+    private func tapbacksPickerHeight(size: CGSize, bottomInset: CGFloat) -> CGFloat {
+        let gridHeight = min(max(240.0, floor(size.height * 0.38)), 340.0)
+        return EmojiStatusSelectionComponent.bottomDockHeaderHeight + gridHeight + bottomInset
+    }
+    
+    /// The grid inside the bottom sheet is a flat surface, not the round context-menu panel: drop
+    /// the warped edge rows and the panel's own backdrop, and the "clear recent" cross that would
+    /// otherwise sit in the section header where iMessage puts nothing.
+    private func tapbacksPickerContent(_ emojiContent: EmojiPagerContentComponent) -> EmojiPagerContentComponent {
+        // Rebuilding this on every layout pass would defeat the component's identity check and force
+        // a deep comparison of every emoji pack, so the derived content is cached per source.
+        if let cache = self.tapbacksPickerContentCache, cache.source === emojiContent {
+            return cache.result
+        }
+        
+        var result = emojiContent
+        if result.warpContentsOnEdges || !result.hideBackground {
+            result = result.withUpdatedBackdrop(warpContentsOnEdges: false, hideBackground: true)
+        }
+        if result.contentItemGroups.contains(where: { $0.hasClear }) {
+            let updatedGroups = result.contentItemGroups.map { group -> EmojiPagerContentComponent.ItemGroup in
+                if !group.hasClear {
+                    return group
+                }
+                return EmojiPagerContentComponent.ItemGroup(
+                    supergroupId: group.supergroupId,
+                    groupId: group.groupId,
+                    title: group.title,
+                    subtitle: group.subtitle,
+                    badge: group.badge,
+                    actionButtonTitle: group.actionButtonTitle,
+                    isFeatured: group.isFeatured,
+                    isPremiumLocked: group.isPremiumLocked,
+                    isEmbedded: group.isEmbedded,
+                    hasClear: false,
+                    hasEdit: group.hasEdit,
+                    collapsedLineCount: group.collapsedLineCount,
+                    displayPremiumBadges: group.displayPremiumBadges,
+                    headerItem: group.headerItem,
+                    fillWithLoadingPlaceholders: group.fillWithLoadingPlaceholders,
+                    customTintColor: group.customTintColor,
+                    items: group.items
+                )
+            }
+            result = result.withUpdatedItemGroups(
+                panelItemGroups: result.panelItemGroups,
+                contentItemGroups: updatedGroups,
+                itemContentUniqueId: result.itemContentUniqueId,
+                emptySearchResults: result.emptySearchResults,
+                searchState: result.searchState
+            )
+        }
+        self.tapbacksPickerContentCache = (emojiContent, result)
+        return result
+    }
+    
+    private var tapbacksPickerContentCache: (source: EmojiPagerContentComponent, result: EmojiPagerContentComponent)?
     
     private var currentContentHeight: CGFloat = 46.0
     public private(set) var isExpanded: Bool = false
@@ -853,28 +925,49 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
                         hideTopPanel = true
                     }
                     
+                    // The docked Tapbacks sheet keeps its own chrome and geometry here too — falling
+                    // back to the inline-panel defaults would strip the frosted sheet on every
+                    // emoji-content refresh.
+                    let isBottomDocked = strongSelf.isTapbacksBottomPickerActive
+                    var pickerDockStyle: EmojiStatusSelectionComponent.BottomDockStyle?
+                    var pickerDismiss: (() -> Void)?
+                    if isBottomDocked {
+                        pickerDockStyle = EmojiStatusSelectionComponent.BottomDockStyle(
+                            cornerRadius: ReactionContextNode.tapbacksPickerCornerRadius,
+                            isDark: strongSelf.presentationData.theme.overallDarkAppearance,
+                            bottomInset: strongSelf.validLayout?.1.bottom ?? 0.0
+                        )
+                        pickerDismiss = {
+                            guard let strongSelf = self else {
+                                return
+                            }
+                            strongSelf.collapse()
+                        }
+                    }
                     let _ = reactionSelectionComponentHost.update(
                         transition: emojiTransition,
                         component: AnyComponent(EmojiStatusSelectionComponent(
                             theme: strongSelf.presentationData.theme,
                             strings: strongSelf.presentationData.strings,
                             deviceMetrics: DeviceMetrics.iPhone13,
-                            emojiContent: emojiContent,
+                            emojiContent: isBottomDocked ? strongSelf.tapbacksPickerContent(emojiContent) : emojiContent,
                             color: nil,
-                            backgroundColor: .clear,
+                            backgroundColor: isBottomDocked ? strongSelf.presentationData.theme.contextMenu.backgroundColor : .clear,
                             separatorColor: strongSelf.presentationData.theme.list.itemPlainSeparatorColor.withMultipliedAlpha(0.5),
                             hideTopPanel: hideTopPanel,
                             disableTopPanel: strongSelf.alwaysAllowPremiumReactions || strongSelf.hideExpandedTopPanel,
+                            bottomDockStyle: pickerDockStyle,
                             hideTopPanelUpdated: { hideTopPanel, transition in
                                 guard let strongSelf = self else {
                                     return
                                 }
                                 strongSelf.isReactionSearchActive = hideTopPanel
                                 strongSelf.requestLayout(transition.containedViewLayoutTransition)
-                            }
+                            },
+                            dismiss: pickerDismiss
                         )),
                         environment: {},
-                        containerSize: CGSize(width: componentView.bounds.width, height: strongSelf.emojiContentHeight)
+                        containerSize: CGSize(width: componentView.bounds.width, height: isBottomDocked && !componentView.bounds.height.isZero ? componentView.bounds.height : strongSelf.emojiContentHeight)
                     )
                 }
             })
@@ -1048,17 +1141,17 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
             return
         }
         
-        let sideInset: CGFloat = 6.0
-        let itemSpacing: CGFloat = 8.0
+        let sideInset: CGFloat = itemLayout.sideInset
+        let itemSpacing: CGFloat = itemLayout.itemSpacing
         let itemSize: CGFloat = itemLayout.itemSize
         
-        let containerHeight: CGFloat = 46.0
+        let containerHeight: CGFloat = itemLayout.containerHeight
         var contentHeight: CGFloat = containerHeight
         if self.highlightedReaction != nil {
             contentHeight = floor(contentHeight * 0.9)
         }
         
-        let totalVisibleCount: CGFloat = CGFloat(min(7, self.items.count))
+        let totalVisibleCount: CGFloat = CGFloat(min(self.usesExternalExpandButton ? Self.tapbacksMaxVisibleItems : 7, self.items.count))
         let totalVisibleWidth: CGFloat = totalVisibleCount * itemSize + (totalVisibleCount - 1.0) * itemSpacing
         
         let selectedItemSize = floor(itemSize * 1.5)
@@ -1071,7 +1164,9 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
         if self.highlightedReaction != nil {
             visibleBounds = visibleBounds.insetBy(dx: remainingItemSize - selectedItemSize, dy: 0.0)
         }
-        let appearBounds = visibleBounds.insetBy(dx: 16.0, dy: 0.0)
+        // The Tapbacks pill scrolls, so items just past the capsule edge must already exist by the
+        // time they scroll in; the legacy bar instead waits until an item is well inside the bar.
+        let appearBounds = self.usesExternalExpandButton ? visibleBounds.insetBy(dx: -itemSize, dy: 0.0) : visibleBounds.insetBy(dx: 16.0, dy: 0.0)
         
         let highlightedReactionIndex: Int?
         if let highlightedReaction = self.highlightedReaction {
@@ -1428,6 +1523,7 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
         }
         
         var itemCount: Int
+        var scrollableItemCount: Int
         var visibleContentWidth: CGFloat
         var completeContentWidth: CGFloat
         
@@ -1449,14 +1545,19 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
                 itemCount = maxRowItemCount
             }
             
+            // The Tapbacks capsule stays at `itemCount` slots wide, but its scroll content covers
+            // every reaction so the row can be swiped like iMessage's.
+            scrollableItemCount = self.usesExternalExpandButton ? max(itemCount, totalItemSlotCount) : itemCount
+            
             let minVisibleItemCount: CGFloat = CGFloat(itemCount)
-            completeContentWidth = CGFloat(itemCount) * itemSize + (CGFloat(itemCount) - 1.0) * itemSpacing + sideInset * 2.0
+            completeContentWidth = floor(CGFloat(scrollableItemCount) * itemSize + max(0.0, CGFloat(scrollableItemCount) - 1.0) * itemSpacing + sideInset * 2.0)
             visibleContentWidth = floor(minVisibleItemCount * itemSize + (minVisibleItemCount - 1.0) * itemSpacing + sideInset * 2.0)
             if visibleContentWidth > size.width - sideInset * 2.0 {
                 visibleContentWidth = size.width - sideInset * 2.0
             }
         } else {
             itemCount = self.items.count
+            scrollableItemCount = itemCount
             completeContentWidth = floor(CGFloat(itemCount) * itemSize + (CGFloat(itemCount) - 1.0) * itemSpacing + sideInset * 2.0)
             
             let minVisibleItemCount = min(CGFloat(self.items.count), 6.5)
@@ -1503,7 +1604,10 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
         
         self.itemLayout = ItemLayout(
             itemSize: itemSize,
-            visibleItemCount: itemCount
+            itemSpacing: itemSpacing,
+            sideInset: sideInset,
+            containerHeight: self.usesExternalExpandButton ? contentHeight : 46.0,
+            visibleItemCount: scrollableItemCount
         )
         
         var scrollFrame = CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: actualBackgroundFrame.size)
@@ -1530,6 +1634,21 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
         transition.updateFrame(node: self.scrollNode, frame: scrollFrame, beginWithCurrentState: true)
         transition.updateFrame(node: self.previewingItemContainer, frame: visualBackgroundFrame, beginWithCurrentState: true)
         self.scrollNode.view.contentSize = CGSize(width: completeContentWidth, height: scrollFrame.size.height)
+        
+        if self.usesExternalExpandButton {
+            // iMessage lets the reaction row be swiped when it overflows the capsule; bouncing is
+            // only enabled in that case so a short row still feels like a solid pill.
+            let canScrollHorizontally = completeContentWidth > scrollFrame.width + 0.5
+            self.scrollNode.view.isScrollEnabled = true
+            self.scrollNode.view.alwaysBounceHorizontal = false
+            self.scrollNode.view.alwaysBounceVertical = false
+            self.scrollNode.view.bounces = canScrollHorizontally
+            
+            let maxContentOffsetX = max(0.0, completeContentWidth - scrollFrame.width)
+            if self.scrollNode.view.contentOffset.x > maxContentOffsetX {
+                self.scrollNode.view.contentOffset = CGPoint(x: maxContentOffsetX, y: 0.0)
+            }
+        }
         
         if self.usesExternalExpandButton, let expandItemView = self.expandItemView {
             let expandItemSize: CGFloat = self.highlightedReaction != nil ? floor(Self.tapbacksSmileSize * 0.94) : Self.tapbacksSmileSize
@@ -1606,7 +1725,20 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
                 }
                 
                 let pickerContainerWidth = tapbacksBottomPickerActive ? size.width : actualBackgroundFrame.width
-                let pickerContainerHeight = self.emojiContentHeight
+                let pickerContainerHeight = tapbacksBottomPickerActive ? self.tapbacksPickerHeight(size: size, bottomInset: insets.bottom) : self.emojiContentHeight
+                
+                var pickerDockStyle: EmojiStatusSelectionComponent.BottomDockStyle?
+                var pickerDismiss: (() -> Void)?
+                if tapbacksBottomPickerActive {
+                    pickerDockStyle = EmojiStatusSelectionComponent.BottomDockStyle(
+                        cornerRadius: Self.tapbacksPickerCornerRadius,
+                        isDark: self.presentationData.theme.overallDarkAppearance,
+                        bottomInset: insets.bottom
+                    )
+                    pickerDismiss = { [weak self] in
+                        self?.collapse()
+                    }
+                }
                 
                 let _ = reactionSelectionComponentHost.update(
                     transition: componentTransition,
@@ -1614,19 +1746,21 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
                         theme: self.presentationData.theme,
                         strings: self.presentationData.strings,
                         deviceMetrics: DeviceMetrics.iPhone13,
-                        emojiContent: emojiContent,
+                        emojiContent: tapbacksBottomPickerActive ? self.tapbacksPickerContent(emojiContent) : emojiContent,
                         color: nil,
                         backgroundColor: tapbacksBottomPickerActive ? self.presentationData.theme.contextMenu.backgroundColor : .clear,
                         separatorColor: self.presentationData.theme.list.itemPlainSeparatorColor.withMultipliedAlpha(0.5),
                         hideTopPanel: hideTopPanel,
                         disableTopPanel: self.alwaysAllowPremiumReactions || tapbacksBottomPickerActive,
+                        bottomDockStyle: pickerDockStyle,
                         hideTopPanelUpdated: { [weak self] hideTopPanel, transition in
                             guard let strongSelf = self else {
                                 return
                             }
                             strongSelf.isReactionSearchActive = hideTopPanel
                             strongSelf.requestLayout(transition.containedViewLayoutTransition)
-                        }
+                        },
+                        dismiss: pickerDismiss
                     )),
                     environment: {},
                     forceUpdate: forceUpdate,
@@ -1639,7 +1773,11 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
                         componentView.removeFromSuperview()
                     }
                     if componentView.superview == nil {
-                        componentView.layer.cornerRadius = tapbacksBottomPickerActive ? 16.0 : 26.0
+                        componentView.layer.cornerRadius = tapbacksBottomPickerActive ? Self.tapbacksPickerCornerRadius : 26.0
+                        if tapbacksBottomPickerActive {
+                            // Bottom sheet: only the top edge is rounded, the sheet runs off-screen below.
+                            componentView.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
+                        }
                         componentView.clipsToBounds = true
                         
                         if tapbacksBottomPickerActive {
@@ -3401,6 +3539,12 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
         
         guard self.isExpanded else {
             return
+        }
+        
+        // Tapbacks collapses back to a live pill rather than to a dismissing menu, so the
+        // long-press preview has to come back with it.
+        if self.usesExternalExpandButton && !self.allPresetReactionsAreAvailable {
+            self.longPressRecognizer?.isEnabled = true
         }
         
         self.animateFromExtensionDistance = 0.0

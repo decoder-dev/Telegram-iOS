@@ -52,8 +52,47 @@ private func randomGenericReactionEffect(context: AccountContext) -> Signal<Stri
     }
 }
 
+private func generateSheetCloseIcon(isDark: Bool) -> UIImage? {
+    let size = CGSize(width: 30.0, height: 30.0)
+    let backgroundColor = isDark ? UIColor(white: 1.0, alpha: 0.12) : UIColor(white: 0.0, alpha: 0.07)
+    let foregroundColor = isDark ? UIColor(white: 1.0, alpha: 0.55) : UIColor(white: 0.0, alpha: 0.45)
+    return generateImage(size, rotatedContext: { size, context in
+        context.clear(CGRect(origin: CGPoint(), size: size))
+        context.setFillColor(backgroundColor.cgColor)
+        context.fillEllipse(in: CGRect(origin: CGPoint(), size: size))
+        
+        context.setStrokeColor(foregroundColor.cgColor)
+        context.setLineWidth(1.66)
+        context.setLineCap(.round)
+        let inset: CGFloat = 10.0
+        context.move(to: CGPoint(x: inset, y: inset))
+        context.addLine(to: CGPoint(x: size.width - inset, y: size.height - inset))
+        context.strokePath()
+        context.move(to: CGPoint(x: size.width - inset, y: inset))
+        context.addLine(to: CGPoint(x: inset, y: size.height - inset))
+        context.strokePath()
+    })
+}
+
 public final class EmojiStatusSelectionComponent: Component {
     public typealias EnvironmentType = Empty
+    
+    /// Turns the selection panel into an iMessage-style bottom sheet: frosted backdrop with rounded
+    /// top corners, a grabber + close affordance instead of the Telegram pack chrome, and a bottom
+    /// safe-area gutter the grid does not scroll into.
+    public struct BottomDockStyle: Equatable {
+        public var cornerRadius: CGFloat
+        public var isDark: Bool
+        public var bottomInset: CGFloat
+        
+        public init(cornerRadius: CGFloat, isDark: Bool, bottomInset: CGFloat) {
+            self.cornerRadius = cornerRadius
+            self.isDark = isDark
+            self.bottomInset = bottomInset
+        }
+    }
+    
+    public static let bottomDockHeaderHeight: CGFloat = 44.0
     
     public let theme: PresentationTheme
     public let strings: PresentationStrings
@@ -64,7 +103,9 @@ public final class EmojiStatusSelectionComponent: Component {
     public let color: UIColor?
     public let hideTopPanel: Bool
     public let disableTopPanel: Bool
+    public let bottomDockStyle: BottomDockStyle?
     public let hideTopPanelUpdated: (Bool, ComponentTransition) -> Void
+    public let dismiss: (() -> Void)?
     
     public init(
         theme: PresentationTheme,
@@ -76,7 +117,9 @@ public final class EmojiStatusSelectionComponent: Component {
         separatorColor: UIColor,
         hideTopPanel: Bool,
         disableTopPanel: Bool,
-        hideTopPanelUpdated: @escaping (Bool, ComponentTransition) -> Void
+        bottomDockStyle: BottomDockStyle? = nil,
+        hideTopPanelUpdated: @escaping (Bool, ComponentTransition) -> Void,
+        dismiss: (() -> Void)? = nil
     ) {
         self.theme = theme
         self.strings = strings
@@ -87,7 +130,9 @@ public final class EmojiStatusSelectionComponent: Component {
         self.separatorColor = separatorColor
         self.hideTopPanel = hideTopPanel
         self.disableTopPanel = disableTopPanel
+        self.bottomDockStyle = bottomDockStyle
         self.hideTopPanelUpdated = hideTopPanelUpdated
+        self.dismiss = dismiss
     }
     
     public static func ==(lhs: EmojiStatusSelectionComponent, rhs: EmojiStatusSelectionComponent) -> Bool {
@@ -118,6 +163,9 @@ public final class EmojiStatusSelectionComponent: Component {
         if lhs.disableTopPanel != rhs.disableTopPanel {
             return false
         }
+        if lhs.bottomDockStyle != rhs.bottomDockStyle {
+            return false
+        }
         return true
     }
     
@@ -127,6 +175,11 @@ public final class EmojiStatusSelectionComponent: Component {
         private let panelHostView: PagerExternalTopPanelContainer
         private let panelBackgroundView: BlurredBackgroundView
         private let panelSeparatorView: UIView
+        
+        private var sheetBackgroundView: BlurredBackgroundView?
+        private var sheetGrabberView: UIView?
+        private var sheetCloseButton: UIButton?
+        private var sheetCloseIconIsDark: Bool?
         
         private var component: EmojiStatusSelectionComponent?
         private weak var state: EmptyComponentState?
@@ -153,14 +206,96 @@ public final class EmojiStatusSelectionComponent: Component {
         deinit {
         }
         
+        @objc private func sheetClosePressed() {
+            self.component?.dismiss?()
+        }
+        
+        private func updateBottomDock(dock: EmojiStatusSelectionComponent.BottomDockStyle?, backgroundColor: UIColor, hasDismiss: Bool, availableSize: CGSize) {
+            guard let dock else {
+                if let sheetBackgroundView = self.sheetBackgroundView {
+                    self.sheetBackgroundView = nil
+                    sheetBackgroundView.removeFromSuperview()
+                }
+                if let sheetGrabberView = self.sheetGrabberView {
+                    self.sheetGrabberView = nil
+                    sheetGrabberView.removeFromSuperview()
+                }
+                if let sheetCloseButton = self.sheetCloseButton {
+                    self.sheetCloseButton = nil
+                    sheetCloseButton.removeFromSuperview()
+                }
+                self.sheetCloseIconIsDark = nil
+                return
+            }
+            
+            let sheetBackgroundView: BlurredBackgroundView
+            if let current = self.sheetBackgroundView {
+                sheetBackgroundView = current
+            } else {
+                sheetBackgroundView = BlurredBackgroundView(color: nil, enableBlur: true)
+                sheetBackgroundView.isUserInteractionEnabled = false
+                self.sheetBackgroundView = sheetBackgroundView
+                self.insertSubview(sheetBackgroundView, at: 0)
+            }
+            sheetBackgroundView.updateColor(color: backgroundColor, forceKeepBlur: true, transition: .immediate)
+            sheetBackgroundView.frame = CGRect(origin: CGPoint(), size: availableSize)
+            sheetBackgroundView.update(size: availableSize, cornerRadius: dock.cornerRadius, maskedCorners: [.layerMinXMinYCorner, .layerMaxXMinYCorner], transition: .immediate)
+            
+            let grabberView: UIView
+            if let current = self.sheetGrabberView {
+                grabberView = current
+            } else {
+                grabberView = UIView()
+                grabberView.isUserInteractionEnabled = false
+                grabberView.layer.cornerRadius = 2.5
+                self.sheetGrabberView = grabberView
+                self.addSubview(grabberView)
+            }
+            grabberView.backgroundColor = dock.isDark ? UIColor(white: 1.0, alpha: 0.22) : UIColor(white: 0.0, alpha: 0.16)
+            let grabberSize = CGSize(width: 36.0, height: 5.0)
+            grabberView.frame = CGRect(origin: CGPoint(x: floor((availableSize.width - grabberSize.width) / 2.0), y: 8.0), size: grabberSize)
+            
+            let closeButton: UIButton
+            if let current = self.sheetCloseButton {
+                closeButton = current
+            } else {
+                closeButton = UIButton(type: .custom)
+                closeButton.addTarget(self, action: #selector(self.sheetClosePressed), for: .touchUpInside)
+                self.sheetCloseButton = closeButton
+                self.addSubview(closeButton)
+            }
+            if self.sheetCloseIconIsDark != dock.isDark {
+                self.sheetCloseIconIsDark = dock.isDark
+                closeButton.setImage(generateSheetCloseIcon(isDark: dock.isDark), for: .normal)
+            }
+            let closeButtonSize = CGSize(width: 30.0, height: 30.0)
+            closeButton.isHidden = !hasDismiss
+            closeButton.frame = CGRect(
+                origin: CGPoint(
+                    x: availableSize.width - closeButtonSize.width - 14.0,
+                    y: floor((EmojiStatusSelectionComponent.bottomDockHeaderHeight - closeButtonSize.height) / 2.0) + 3.0
+                ),
+                size: closeButtonSize
+            )
+            self.bringSubviewToFront(closeButton)
+        }
+        
         func update(component: EmojiStatusSelectionComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<EnvironmentType>, transition: ComponentTransition) -> CGSize {
-            self.backgroundColor = component.backgroundColor
+            let dock = component.bottomDockStyle
+            // The frosted sheet paints the backdrop itself, so the view underneath must not add a
+            // second flat wash of the same colour on top of it.
+            self.backgroundColor = dock == nil ? component.backgroundColor : .clear
             let panelBackgroundColor = component.backgroundColor.withMultipliedAlpha(0.85)
             self.panelBackgroundView.updateColor(color: panelBackgroundColor, transition: .immediate)
             self.panelSeparatorView.backgroundColor = component.separatorColor
             
             self.component = component
             self.state = state
+            
+            self.updateBottomDock(dock: dock, backgroundColor: component.backgroundColor, hasDismiss: component.dismiss != nil, availableSize: availableSize)
+            
+            let headerHeight: CGFloat = dock == nil ? 0.0 : EmojiStatusSelectionComponent.bottomDockHeaderHeight
+            let contentSize = CGSize(width: availableSize.width, height: max(1.0, availableSize.height - headerHeight - (dock?.bottomInset ?? 0.0)))
             
             let topPanelHeight: CGFloat = component.hideTopPanel ? 0.0 : 42.0
             
@@ -214,28 +349,28 @@ public final class EmojiStatusSelectionComponent: Component {
                 )),
                 environment: {},
                 forceUpdate: forceUpdate, 
-                containerSize: availableSize
+                containerSize: contentSize
             )
             if let keyboardComponentView = self.keyboardView.view {
                 if keyboardComponentView.superview == nil {
                     self.keyboardClippingView.addSubview(keyboardComponentView)
                 }
                 
-                if panelBackgroundColor.alpha < 0.01 {
+                if dock != nil || panelBackgroundColor.alpha < 0.01 {
                     self.keyboardClippingView.clipsToBounds = true
                 } else {
                     self.keyboardClippingView.clipsToBounds = false
                 }
                 
-                transition.setFrame(view: self.keyboardClippingView, frame: CGRect(origin: CGPoint(x: 0.0, y: topPanelHeight), size: CGSize(width: availableSize.width, height: availableSize.height - topPanelHeight)))
+                transition.setFrame(view: self.keyboardClippingView, frame: CGRect(origin: CGPoint(x: 0.0, y: headerHeight + topPanelHeight), size: CGSize(width: contentSize.width, height: max(0.0, contentSize.height - topPanelHeight))))
                 
                 transition.setFrame(view: keyboardComponentView, frame: CGRect(origin: CGPoint(x: 0.0, y: -topPanelHeight), size: keyboardSize))
-                transition.setFrame(view: self.panelHostView, frame: CGRect(origin: CGPoint(x: 0.0, y: topPanelHeight - 34.0), size: CGSize(width: keyboardSize.width, height: 0.0)))
+                transition.setFrame(view: self.panelHostView, frame: CGRect(origin: CGPoint(x: 0.0, y: headerHeight + topPanelHeight - 34.0), size: CGSize(width: keyboardSize.width, height: 0.0)))
                 
-                transition.setFrame(view: self.panelBackgroundView, frame: CGRect(origin: CGPoint(), size: CGSize(width: keyboardSize.width, height: topPanelHeight)))
+                transition.setFrame(view: self.panelBackgroundView, frame: CGRect(origin: CGPoint(x: 0.0, y: headerHeight), size: CGSize(width: keyboardSize.width, height: topPanelHeight)))
                 self.panelBackgroundView.update(size: self.panelBackgroundView.bounds.size, transition: transition.containedViewLayoutTransition)
                 
-                transition.setFrame(view: self.panelSeparatorView, frame: CGRect(origin: CGPoint(x: 0.0, y: component.hideTopPanel ? -UIScreenPixel : topPanelHeight), size: CGSize(width: keyboardSize.width, height: UIScreenPixel)))
+                transition.setFrame(view: self.panelSeparatorView, frame: CGRect(origin: CGPoint(x: 0.0, y: headerHeight + (component.hideTopPanel ? -UIScreenPixel : topPanelHeight)), size: CGSize(width: keyboardSize.width, height: UIScreenPixel)))
                 transition.setAlpha(view: self.panelSeparatorView, alpha: component.hideTopPanel ? 0.0 : 1.0)
             }
             
