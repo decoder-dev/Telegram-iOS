@@ -928,7 +928,10 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
                     // The docked Tapbacks sheet keeps its own chrome and geometry here too — falling
                     // back to the inline-panel defaults would strip the frosted sheet on every
                     // emoji-content refresh.
-                    let isBottomDocked = strongSelf.isTapbacksBottomPickerActive
+                    // Keyed off the style, not the live expanded flag: while the sheet animates away
+                    // the flag is already false but the view is still on screen, and flipping it back
+                    // to the round-panel content would re-warp the grid mid-dismissal.
+                    let isBottomDocked = strongSelf.usesExternalExpandButton
                     var pickerDockStyle: EmojiStatusSelectionComponent.BottomDockStyle?
                     var pickerDismiss: (() -> Void)?
                     if isBottomDocked {
