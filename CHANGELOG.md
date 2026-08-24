@@ -6,6 +6,15 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3911-pre] — 2026-08-24
+
+Pre-release: Tapbacks emoji sheet grabber drag polish.
+
+### Fixed
+- **Reactions (Tapbacks):** flick down from the expanded stop lands on the resting stop instead of dismissing; short screens with no headroom get rubber-band + dismiss only.
+- **Reactions (Tapbacks):** cancelled system gestures return to the starting stop; stale pan offsets are cleared.
+- **Reactions (Tapbacks):** grabbing the header during a settle/open animation no longer snaps the sheet — drag seeds from the current presentation position.
+
 ## [v12.9.2-3910-pre] — 2026-08-24
 
 Pre-release: composer text centring + draggable Tapbacks emoji sheet.
