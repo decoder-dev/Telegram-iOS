@@ -34,6 +34,10 @@ public final class WebProxyManager {
     /// (invalid hostname or empty secret), spinning global-queue → main-queue at full speed.
     private static let minimumRetryInterval: Double = 5.0
     private static let maximumRetryInterval: Double = 60.0
+    /// A sidecar that dies sooner than this after becoming ready feeds the same cooldown as a
+    /// failed bootstrap. One that ran longer starts the count again, so a carrier that worked for
+    /// an hour before a network change still reconnects promptly.
+    private static let minimumHealthyUptime: Double = 30.0
 
     private let lock = NSLock()
     private let startLock = NSLock()
@@ -46,6 +50,7 @@ public final class WebProxyManager {
     private var lastFailedConfiguration: WebProxyConfiguration?
     private var lastFailureTime: Double = 0.0
     private var consecutiveFailureCount: Int = 0
+    private var sidecarReadySince: Double = 0.0
     
     private var nextSidecarEventToken: SidecarEventToken = 0
     private var sidecarEventHandlers: [SidecarEventToken: () -> Void] = [:]
@@ -182,6 +187,7 @@ public final class WebProxyManager {
             self.sidecar = sidecar
             self.configuration = configuration
             self.endpoint = LoopbackEndpoint(host: endpoint.host, port: endpoint.port)
+            self.sidecarReadySince = CFAbsoluteTimeGetCurrent()
             sidecar?.setFailureHandler { [weak self] in
                 self?.handleSidecarFailure()
             }
@@ -222,9 +228,31 @@ public final class WebProxyManager {
     }
     
     private func handleSidecarFailure() {
+        self.lock.lock()
+        let failedConfiguration = self.configuration
+        let readySince = self.sidecarReadySince
+        self.lock.unlock()
+        
         self.startLock.lock()
         self.startGeneration &+= 1
         self.startingConfiguration = nil
+        if let failedConfiguration = failedConfiguration {
+            // The cooldown below used to cover bootstrap failures only. A carrier that bootstraps
+            // fine and then dies — a relay that sends `BYE`, a mismatched `X-Up-Ack`, a dropped
+            // session — landed here instead, which records nothing: the event fires, every account
+            // re-applies its settings, that lands straight back in `scheduleStart`, and with no
+            // failure recorded it starts a fresh bootstrap at once. Against a relay that accepts a
+            // session and then drops it that is an unthrottled reconnect loop, two HTTPS requests
+            // and a TLS handshake per turn.
+            let wasHealthy = readySince > 0.0 && CFAbsoluteTimeGetCurrent() - readySince >= WebProxyManager.minimumHealthyUptime
+            if self.lastFailedConfiguration == failedConfiguration, !wasHealthy {
+                self.consecutiveFailureCount += 1
+            } else {
+                self.lastFailedConfiguration = failedConfiguration
+                self.consecutiveFailureCount = 1
+            }
+            self.lastFailureTime = CFAbsoluteTimeGetCurrent()
+        }
         self.startLock.unlock()
         
         self.lock.lock()
@@ -239,6 +267,7 @@ public final class WebProxyManager {
         self.sidecar = nil
         self.configuration = nil
         self.endpoint = nil
+        self.sidecarReadySince = 0.0
     }
     
     private func notifySidecarEvent() {
