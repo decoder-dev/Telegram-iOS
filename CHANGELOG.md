@@ -6,6 +6,21 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3917-pre] — 2026-08-25
+
+Pre-release: bubble/status width fixes, sticker peek sharpness, WebSocket MTProto transport.
+
+### Added
+- **WebSocket transport:** optional MTProto over `kwsN.web.telegram.org/apiws` (toggle in proxy settings; off while any proxy server including WEB is active). Framing module + MtProtoKit seam; live rebuild on toggle without relaunch.
+
+### Fixed
+- **Channel posts:** long author signatures no longer push the status/bubble past `maximumNodeWidth` — date is re-measured after badges (20pt floor).
+- **Bubble header:** avatar/rank/trailing gutter reserved before measuring the author name so the header cannot exceed bubble max width.
+- **Sticker peek:** Lottie rasterised at 512pt instead of below the drawn size.
+- **Account limit UI:** logout / delete / peer-info gates read shared constants.
+- **WEB proxy:** resolve uplink URL before committing a batch; drop unused `receiveBuffer`.
+- **WebSocket transport:** freeze endpoints after establish; fallback counts payload success; coalesce near-simultaneous failures; generation-stamped NW callbacks; disconnect in deinit; hot-path buffer/mask fixes.
+
 ## [v12.9.2-3916-pre] — 2026-08-25
 
 Pre-release: WEB proxy carrier CPU/radio and reconnect backoff (includes cancelled 3915 badge fixes).
