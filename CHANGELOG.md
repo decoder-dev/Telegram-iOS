@@ -6,6 +6,16 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3914-pre] — 2026-08-25
+
+Pre-release: round video badge layout + unified message badges / Day contrast.
+
+### Fixed
+- **Round video:** share and transcription badges no longer overlap; status moves to the row above transcribe when Saved Messages full-date layout does not fit beside it.
+- **Round video:** date/status width derived from the display circle, not expanded playback size.
+- **Messages:** share button uses the same blurred pill fill as date, duration and transcription badges.
+- **Day theme:** incoming badge and secondary text contrast raised toward WCAG AA (waveform tint left at stock #cacaca).
+
 ## [v12.9.2-3913-pre] — 2026-08-25
 
 Pre-release: Tapbacks drag perf + voice transcription status inset.
