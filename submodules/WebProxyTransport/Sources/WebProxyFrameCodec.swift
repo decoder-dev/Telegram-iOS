@@ -41,9 +41,15 @@ public enum WebProxyFrameCodec {
     public static let maxBatchFrames = 4096
     
     public static func encode(_ frame: WebProxyFrame) -> Data {
+        var data = Data(capacity: 8 + frame.payload.count)
+        appendEncoded(frame, to: &data)
+        return data
+    }
+    
+    /// Appends into an existing buffer so a batch is one allocation rather than one per frame.
+    private static func appendEncoded(_ frame: WebProxyFrame, to data: inout Data) {
         precondition(frame.streamId <= 0xffffff)
         precondition(frame.payload.count <= maxPayloadSize)
-        var data = Data(capacity: 8 + frame.payload.count)
         data.append(frame.type.rawValue)
         data.append(UInt8((frame.streamId >> 16) & 0xff))
         data.append(UInt8((frame.streamId >> 8) & 0xff))
@@ -51,13 +57,12 @@ public enum WebProxyFrameCodec {
         var length = UInt32(frame.payload.count).bigEndian
         withUnsafeBytes(of: &length) { data.append(contentsOf: $0) }
         data.append(frame.payload)
-        return data
     }
     
     public static func encodeBatch(_ frames: [WebProxyFrame]) -> Data {
-        var data = Data()
+        var data = Data(capacity: frames.reduce(0) { $0 + 8 + $1.payload.count })
         for frame in frames {
-            data.append(encode(frame))
+            appendEncoded(frame, to: &data)
         }
         return data
     }
@@ -65,16 +70,20 @@ public enum WebProxyFrameCodec {
     public static func decodeBatch(_ data: Data) throws -> [WebProxyFrame] {
         var frames: [WebProxyFrame] = []
         var offset = 0
+        // `Data` subscripts by index, not by offset from the front, so every read is rebased on
+        // `startIndex`. Without it this only worked while every caller happened to pass a
+        // zero-based buffer - a slice would have been read from the wrong bytes or trapped.
+        let base = data.startIndex
         while offset < data.count {
             let remaining = data.count - offset
             if remaining < 8 {
                 throw WebProxyFrameCodecError.bufferTooShort
             }
-            guard let type = WebProxyFrameType(rawValue: data[offset]) else {
+            guard let type = WebProxyFrameType(rawValue: data[base + offset]) else {
                 throw WebProxyFrameCodecError.invalidFrameType
             }
-            let streamId = (UInt32(data[offset + 1]) << 16) | (UInt32(data[offset + 2]) << 8) | UInt32(data[offset + 3])
-            let payloadSize = Int(readUInt32BigEndian(data, offset + 4))
+            let streamId = (UInt32(data[base + offset + 1]) << 16) | (UInt32(data[base + offset + 2]) << 8) | UInt32(data[base + offset + 3])
+            let payloadSize = Int(readUInt32BigEndian(data, base + offset + 4))
             if payloadSize > maxPayloadSize || (type == .data && payloadSize == 0) {
                 throw WebProxyFrameCodecError.invalidPayloadSize
             }
@@ -82,7 +91,7 @@ public enum WebProxyFrameCodec {
             if end > data.count {
                 throw WebProxyFrameCodecError.bufferTooShort
             }
-            let payload = data.subdata(in: (offset + 8) ..< end)
+            let payload = data.subdata(in: (base + offset + 8) ..< (base + end))
             frames.append(WebProxyFrame(type: type, streamId: streamId, payload: payload))
             offset = end
             if frames.count > maxBatchFrames {
@@ -95,7 +104,8 @@ public enum WebProxyFrameCodec {
         return frames
     }
     
-    private static func readUInt32BigEndian(_ data: Data, _ offset: Int) -> UInt32 {
-        return (UInt32(data[offset]) << 24) | (UInt32(data[offset + 1]) << 16) | (UInt32(data[offset + 2]) << 8) | UInt32(data[offset + 3])
+    /// `index` is an absolute `Data` index, already rebased on `startIndex` by the caller.
+    private static func readUInt32BigEndian(_ data: Data, _ index: Int) -> UInt32 {
+        return (UInt32(data[index]) << 24) | (UInt32(data[index + 1]) << 16) | (UInt32(data[index + 2]) << 8) | UInt32(data[index + 3])
     }
 }

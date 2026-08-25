@@ -32,6 +32,11 @@ final class WebProxyHttpCarrier {
     /// behind it. Without this a 64 KiB socket read became its own round trip, which is what made
     /// the carrier RTT-bound on uploads.
     private var uplinkBuffer = Data()
+    /// Read cursor into `uplinkBuffer`. Consuming a batch used to re-base the buffer with
+    /// `dropFirst`, which copies the whole remainder on every turn — quadratic in the buffer size,
+    /// and the buffer is largest exactly when the link is slow. Draining 64 MiB in 2 MiB batches
+    /// that way moves about a gigabyte through memcpy; with a cursor it moves the batches only.
+    private var uplinkBufferOffset = 0
     private var uplinkRunning = false
     
     /// Matches the hosted bridge's 2 MiB batch. Anything above it waits for the next POST.
@@ -39,6 +44,24 @@ final class WebProxyHttpCarrier {
     /// Hard ceiling on data queued for the carrier. Past this the carrier fails instead of growing
     /// without bound: `AbstractSocket`-style writes have no backpressure to push back with.
     private static let maximumUplinkBufferSize = 64 * 1024 * 1024
+    /// Most already-sent bytes the buffer may keep in front of the read cursor before compacting.
+    private static let maximumRetainedUplinkPrefix = 8 * 1024 * 1024
+    
+    /// Downlink pacing. The relay is expected to hold `/api/v1/down` open until it has something to
+    /// send, but nothing in the protocol guarantees it, and a relay — or a CDN in front of one —
+    /// that answers 204 promptly turns the poll into an unbounded loop of HTTPS requests: hundreds
+    /// per second, each waking the radio, with no user traffic at all. So an *empty* response that
+    /// comes back faster than a long poll plausibly could is paced, with exponential backoff and
+    /// jitter. A response that took a while, or one that carried data, re-polls immediately — a
+    /// correctly long-polling relay is never slowed down by this.
+    ///
+    /// The ceiling is deliberately low. Against a relay that really does answer 204 immediately the
+    /// client cannot have both low latency and a quiet radio, and 5s caps the added latency at
+    /// something a user will not file a bug about while still turning a 100+ requests/second loop
+    /// into one request every five seconds.
+    private static let minimumDownlinkInterval: Double = 0.5
+    private static let maximumDownlinkInterval: Double = 5.0
+    private var fastEmptyDownlinkStreak = 0
     
     var onDownlinkBatch: ((Data) -> Void)?
     var onFailure: ((Error) -> Void)?
@@ -56,13 +79,23 @@ final class WebProxyHttpCarrier {
     
     func start(secret: Data, bridgeCapability: String, completion: @escaping (Result<Void, Error>) -> Void) {
         self.queue.async {
-            do {
-                let bootstrap = try self.fetchBootstrapToken(bridgeCapability: bridgeCapability)
-                try self.createSession(bootstrapToken: bootstrap)
-                self.pollDownlink()
-                completion(.success(()))
-            } catch {
-                completion(.failure(error))
+            // Chained rather than blocking: both legs used to `DispatchSemaphore.wait()` on this
+            // queue, parking it for up to 30s and 90s respectively while nothing else could run on it.
+            self.fetchBootstrapToken(bridgeCapability: bridgeCapability) { result in
+                switch result {
+                case let .success(bootstrap):
+                    self.createSession(bootstrapToken: bootstrap) { result in
+                        switch result {
+                        case .success:
+                            self.pollDownlink()
+                            completion(.success(()))
+                        case let .failure(error):
+                            completion(.failure(error))
+                        }
+                    }
+                case let .failure(error):
+                    completion(.failure(error))
+                }
             }
         }
     }
@@ -91,7 +124,7 @@ final class WebProxyHttpCarrier {
             guard !self.closed, !self.sessionToken.isEmpty else {
                 return
             }
-            if self.uplinkBuffer.count + batch.count > WebProxyHttpCarrier.maximumUplinkBufferSize {
+            if self.pendingUplinkCount + batch.count > WebProxyHttpCarrier.maximumUplinkBufferSize {
                 self.fail(WebProxyHttpCarrierError.uplinkRejected)
                 return
             }
@@ -100,12 +133,37 @@ final class WebProxyHttpCarrier {
         }
     }
     
-    private func fetchBootstrapToken(bridgeCapability: String) throws -> String {
+    private var pendingUplinkCount: Int {
+        return self.uplinkBuffer.count - self.uplinkBufferOffset
+    }
+    
+    /// Drops the consumed prefix once it is at least half the buffer, which keeps the amortised
+    /// copy cost linear in the bytes sent rather than quadratic in the buffer size.
+    private func compactUplinkBufferIfNeeded() {
+        if self.uplinkBufferOffset == 0 {
+            return
+        }
+        if self.uplinkBufferOffset >= self.uplinkBuffer.count {
+            self.uplinkBuffer = Data()
+            self.uplinkBufferOffset = 0
+            return
+        }
+        // Half-consumed keeps the amortised copy cost linear; the absolute ceiling keeps the
+        // consumed prefix from holding a second copy of a large buffer - without it a 64 MiB
+        // backlog would sit on ~128 MiB of memory.
+        if self.uplinkBufferOffset * 2 >= self.uplinkBuffer.count || self.uplinkBufferOffset >= WebProxyHttpCarrier.maximumRetainedUplinkPrefix {
+            self.uplinkBuffer = Data(self.uplinkBuffer[(self.uplinkBuffer.startIndex + self.uplinkBufferOffset)...])
+            self.uplinkBufferOffset = 0
+        }
+    }
+    
+    private func fetchBootstrapToken(bridgeCapability: String, completion: @escaping (Result<String, Error>) -> Void) {
         var components = URLComponents(url: self.origin, resolvingAgainstBaseURL: false)!
         components.path = "/"
         components.queryItems = [URLQueryItem(name: "bridge", value: bridgeCapability)]
         guard let url = components.url else {
-            throw WebProxyHttpCarrierError.bridgeRequestFailed
+            completion(.failure(WebProxyHttpCarrierError.bridgeRequestFailed))
+            return
         }
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
@@ -113,32 +171,29 @@ final class WebProxyHttpCarrier {
         request.timeoutInterval = 30.0
         request.setValue("text/html", forHTTPHeaderField: "Accept")
         
-        let semaphore = DispatchSemaphore(value: 0)
-        var responseData: Data?
-        var responseError: Error?
-        let task = self.session.dataTask(with: request) { data, response, error in
-            if let error = error {
-                responseError = error
-            } else if let http = response as? HTTPURLResponse, http.statusCode != 200 {
-                responseError = WebProxyHttpCarrierError.bridgeRequestFailed
-            } else {
-                responseData = data
+        let task = self.session.dataTask(with: request) { [weak self] data, response, error in
+            guard let self else {
+                completion(.failure(WebProxyHttpCarrierError.carrierClosed))
+                return
             }
-            semaphore.signal()
+            self.queue.async {
+                if let error = error {
+                    completion(.failure(error))
+                    return
+                }
+                if let http = response as? HTTPURLResponse, http.statusCode != 200 {
+                    completion(.failure(WebProxyHttpCarrierError.bridgeRequestFailed))
+                    return
+                }
+                guard let html = data.flatMap({ String(data: $0, encoding: .utf8) }),
+                      let token = Self.parseBootstrapToken(from: html) else {
+                    completion(.failure(WebProxyHttpCarrierError.bootstrapTokenMissing))
+                    return
+                }
+                completion(.success(token))
+            }
         }
         task.resume()
-        semaphore.wait()
-        
-        if let responseError = responseError {
-            throw responseError
-        }
-        guard let html = responseData.flatMap({ String(data: $0, encoding: .utf8) }) else {
-            throw WebProxyHttpCarrierError.bootstrapTokenMissing
-        }
-        if let token = Self.parseBootstrapToken(from: html) {
-            return token
-        }
-        throw WebProxyHttpCarrierError.bootstrapTokenMissing
     }
     
     static func parseBootstrapToken(from html: String) -> String? {
@@ -161,9 +216,10 @@ final class WebProxyHttpCarrier {
         return nil
     }
     
-    private func createSession(bootstrapToken: String) throws {
+    private func createSession(bootstrapToken: String, completion: @escaping (Result<Void, Error>) -> Void) {
         guard let url = URL(string: "/api/v1/session", relativeTo: self.origin) else {
-            throw WebProxyHttpCarrierError.sessionCreationFailed
+            completion(.failure(WebProxyHttpCarrierError.sessionCreationFailed))
+            return
         }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -173,40 +229,46 @@ final class WebProxyHttpCarrier {
         request.setValue("no-store", forHTTPHeaderField: "Cache-Control")
         request.timeoutInterval = 90.0
         
-        let semaphore = DispatchSemaphore(value: 0)
-        var responseData: Data?
-        var response: HTTPURLResponse?
-        var responseError: Error?
-        let task = self.session.dataTask(with: request) { data, urlResponse, error in
-            responseError = error
-            responseData = data
-            response = urlResponse as? HTTPURLResponse
-            semaphore.signal()
+        let task = self.session.dataTask(with: request) { [weak self] data, urlResponse, error in
+            guard let self else {
+                completion(.failure(WebProxyHttpCarrierError.carrierClosed))
+                return
+            }
+            self.queue.async {
+                if let error = error {
+                    completion(.failure(error))
+                    return
+                }
+                guard let response = urlResponse as? HTTPURLResponse, response.statusCode == 200 else {
+                    completion(.failure(WebProxyHttpCarrierError.sessionCreationFailed))
+                    return
+                }
+                guard let token = response.value(forHTTPHeaderField: "X-Session-Token"), !token.isEmpty else {
+                    completion(.failure(WebProxyHttpCarrierError.sessionCreationFailed))
+                    return
+                }
+                let carrierMode = response.value(forHTTPHeaderField: "X-Carrier-Mode") ?? "https"
+                if carrierMode != "https" {
+                    completion(.failure(WebProxyHttpCarrierError.sessionCreationFailed))
+                    return
+                }
+                self.sessionToken = token
+                self.downCursor = response.value(forHTTPHeaderField: "X-Down-Cursor") ?? "0"
+                if let body = data, !body.isEmpty {
+                    do {
+                        let frames = try WebProxyFrameCodec.decodeBatch(body)
+                        try self.consumeWelcome(in: frames)
+                    } catch {
+                        completion(.failure(error))
+                        return
+                    }
+                    // Frames trailing the handshake are ordinary downlink; the reader ignores `WELCOME`.
+                    self.onDownlinkBatch?(body)
+                }
+                completion(.success(()))
+            }
         }
         task.resume()
-        semaphore.wait()
-        
-        if let responseError = responseError {
-            throw responseError
-        }
-        guard let response = response, response.statusCode == 200 else {
-            throw WebProxyHttpCarrierError.sessionCreationFailed
-        }
-        guard let token = response.value(forHTTPHeaderField: "X-Session-Token"), !token.isEmpty else {
-            throw WebProxyHttpCarrierError.sessionCreationFailed
-        }
-        let carrierMode = response.value(forHTTPHeaderField: "X-Carrier-Mode") ?? "https"
-        if carrierMode != "https" {
-            throw WebProxyHttpCarrierError.sessionCreationFailed
-        }
-        self.sessionToken = token
-        self.downCursor = response.value(forHTTPHeaderField: "X-Down-Cursor") ?? "0"
-        if let body = responseData, !body.isEmpty {
-            let frames = try WebProxyFrameCodec.decodeBatch(body)
-            try self.consumeWelcome(in: frames)
-            // Frames trailing the handshake are ordinary downlink; the reader ignores `WELCOME`.
-            self.onDownlinkBatch?(body)
-        }
     }
     
     /// The first relay frame of the session must be `WELCOME` on stream zero.
@@ -222,6 +284,7 @@ final class WebProxyHttpCarrier {
     
     /// Largest prefix of `buffer` that ends on a frame boundary and is at most `limit` bytes.
     /// A carrier message has to carry whole frames, so a batch can only be cut here.
+    /// Offsets are relative to `buffer.startIndex`, so a slice may be passed in.
     static func frameBoundaryOffset(in buffer: Data, notExceeding limit: Int) -> Int {
         var offset = 0
         var lastBoundary = 0
@@ -247,23 +310,18 @@ final class WebProxyHttpCarrier {
     }
     
     private func runUplinkIfNeeded() {
-        if self.uplinkRunning || self.closed || self.sessionToken.isEmpty || self.uplinkBuffer.isEmpty {
+        if self.uplinkRunning || self.closed || self.sessionToken.isEmpty || self.pendingUplinkCount <= 0 {
             return
         }
         self.uplinkRunning = true
         // Split on a frame boundary: a POST body must contain whole frames, so the cut point is the
         // last frame header that ends at or before the batch limit.
-        let batch: Data
-        let splitOffset = WebProxyHttpCarrier.frameBoundaryOffset(in: self.uplinkBuffer, notExceeding: WebProxyHttpCarrier.maximumUplinkBatchSize)
-        if splitOffset >= self.uplinkBuffer.count {
-            batch = self.uplinkBuffer
-            self.uplinkBuffer = Data()
-        } else {
-            batch = Data(self.uplinkBuffer.prefix(splitOffset))
-            // Re-based rather than kept as a slice: the buffer is appended to and re-sliced on
-            // every turn, and a slice's non-zero start index is easy to index past by mistake.
-            self.uplinkBuffer = Data(self.uplinkBuffer.dropFirst(splitOffset))
-        }
+        let remaining = self.uplinkBuffer[(self.uplinkBuffer.startIndex + self.uplinkBufferOffset)...]
+        let splitOffset = WebProxyHttpCarrier.frameBoundaryOffset(in: remaining, notExceeding: WebProxyHttpCarrier.maximumUplinkBatchSize)
+        let batchStart = remaining.startIndex
+        let batch = Data(remaining[batchStart ..< (batchStart + splitOffset)])
+        self.uplinkBufferOffset += splitOffset
+        self.compactUplinkBufferIfNeeded()
         let sequence = self.upSequence
         self.upSequence += 1
         
@@ -286,7 +344,7 @@ final class WebProxyHttpCarrier {
             self.queue.async {
                 defer {
                     self.uplinkRunning = false
-                    if !self.uplinkBuffer.isEmpty {
+                    if self.pendingUplinkCount > 0 {
                         self.runUplinkIfNeeded()
                     }
                 }
@@ -308,6 +366,28 @@ final class WebProxyHttpCarrier {
         task.resume()
     }
     
+    /// Re-polls at once when the relay held the request or returned data, and paces the poll when an
+    /// empty response comes back immediately — see `minimumDownlinkInterval`.
+    private func scheduleDownlinkPoll(requestStartedAt: Double, wasEmpty: Bool) {
+        if self.closed {
+            return
+        }
+        let elapsed = CFAbsoluteTimeGetCurrent() - requestStartedAt
+        if !wasEmpty || elapsed >= WebProxyHttpCarrier.minimumDownlinkInterval {
+            self.fastEmptyDownlinkStreak = 0
+            self.pollDownlink()
+            return
+        }
+        self.fastEmptyDownlinkStreak += 1
+        let step = min(self.fastEmptyDownlinkStreak - 1, 8)
+        let backoff = min(WebProxyHttpCarrier.maximumDownlinkInterval, WebProxyHttpCarrier.minimumDownlinkInterval * pow(2.0, Double(step)))
+        // Jitter so several accounts sharing one relay do not line their polls up.
+        let delay = backoff * Double.random(in: 0.85 ... 1.15)
+        self.queue.asyncAfter(deadline: .now() + delay) { [weak self] in
+            self?.pollDownlink()
+        }
+    }
+    
     private func pollDownlink() {
         guard !self.closed, !self.sessionToken.isEmpty else {
             return
@@ -322,6 +402,7 @@ final class WebProxyHttpCarrier {
         request.setValue(self.downCursor, forHTTPHeaderField: "X-Down-Cursor")
         request.timeoutInterval = 120.0
         
+        let startedAt = CFAbsoluteTimeGetCurrent()
         let task = self.session.dataTask(with: request) { [weak self] data, response, error in
             guard let self else {
                 return
@@ -339,7 +420,7 @@ final class WebProxyHttpCarrier {
                     return
                 }
                 if http.statusCode == 204 {
-                    self.pollDownlink()
+                    self.scheduleDownlinkPoll(requestStartedAt: startedAt, wasEmpty: true)
                     return
                 }
                 guard http.statusCode == 200,
@@ -358,7 +439,7 @@ final class WebProxyHttpCarrier {
                 }
                 self.downCursor = nextCursor
                 self.onDownlinkBatch?(data)
-                self.pollDownlink()
+                self.scheduleDownlinkPoll(requestStartedAt: startedAt, wasEmpty: false)
             }
         }
         task.resume()

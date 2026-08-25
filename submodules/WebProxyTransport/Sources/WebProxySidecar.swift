@@ -13,6 +13,40 @@ private final class WebProxyStream {
     var sendCredit: Int = WebProxySidecar.initialStreamWindow
     /// Bytes read off the local socket that have no credit to travel on yet.
     var pendingUplink = Data()
+    /// Read cursor into `pendingUplink`. Chunking used to re-base the buffer with `dropFirst`,
+    /// copying the whole remainder for every 64 KiB chunk - draining the 8 MiB ceiling that way
+    /// moves about half a gigabyte through memcpy, and the buffer is fullest exactly when the relay
+    /// has stopped granting credit.
+    var pendingUplinkOffset = 0
+    /// Downlink bytes already written to the local socket whose credit has not been returned to the
+    /// relay yet. Announcing every write was a `WINDOW` frame - and so its own HTTPS POST - for
+    /// each socket send, which kept the radio busy for the whole of a download.
+    var pendingWindowCredit = 0
+    /// Most already-sent bytes this stream may keep in front of the read cursor before compacting.
+    static let maximumRetainedUplinkPrefix = 1024 * 1024
+    
+    var pendingUplinkCount: Int {
+        return self.pendingUplink.count - self.pendingUplinkOffset
+    }
+    
+    /// Drops the consumed prefix once it is at least half the buffer: amortised linear in the bytes
+    /// sent rather than quadratic in the buffer size.
+    func compactPendingUplink() {
+        if self.pendingUplinkOffset == 0 {
+            return
+        }
+        if self.pendingUplinkOffset >= self.pendingUplink.count {
+            self.pendingUplink = Data()
+            self.pendingUplinkOffset = 0
+            return
+        }
+        // Half-consumed keeps the amortised copy cost linear; the absolute ceiling bounds how much
+        // already-sent data a single stream can keep alive in front of the cursor.
+        if self.pendingUplinkOffset * 2 >= self.pendingUplink.count || self.pendingUplinkOffset >= WebProxyStream.maximumRetainedUplinkPrefix {
+            self.pendingUplink = Data(self.pendingUplink[(self.pendingUplink.startIndex + self.pendingUplinkOffset)...])
+            self.pendingUplinkOffset = 0
+        }
+    }
     
     init(id: UInt32, connection: NWConnection) {
         self.id = id
@@ -44,6 +78,9 @@ public final class WebProxySidecar {
     static let initialStreamWindow = 4 * 1024 * 1024
     /// A stream whose uplink backs up past this is failed rather than buffered without bound.
     private static let maximumPendingUplink = 8 * 1024 * 1024
+    /// Credit is returned in one frame per this much downlink instead of one per socket write. Half
+    /// the window leaves the relay a full half to keep sending into while the grant is in flight.
+    private static let windowCreditFlushThreshold = WebProxySidecar.initialStreamWindow / 2
     
     public init() {
     }
@@ -168,9 +205,11 @@ public final class WebProxySidecar {
             case .ready:
                 self.receive(from: stream)
             case .failed, .cancelled:
-                self.queue.async {
-                    self.closeStream(streamId, notifyRemote: true)
-                }
+                // Connection callbacks are delivered on the queue passed to `connection.start`,
+                // which is `self.queue`, so these handlers do not hop - an extra dispatch per
+                // received segment is pure overhead on the sidecar's hottest path. The `.ready`
+                // case already assumed this.
+                self.closeStream(streamId, notifyRemote: true)
             default:
                 break
             }
@@ -183,19 +222,17 @@ public final class WebProxySidecar {
             guard let self, let stream else {
                 return
             }
-            self.queue.async {
-                if stream.isClosed {
-                    return
-                }
-                if let data = data, !data.isEmpty {
-                    self.sendStreamData(streamId: stream.id, data: data)
-                }
-                if isComplete || error != nil {
-                    self.closeStream(stream.id, notifyRemote: true)
-                    return
-                }
-                self.receive(from: stream)
+            if stream.isClosed {
+                return
             }
+            if let data = data, !data.isEmpty {
+                self.sendStreamData(streamId: stream.id, data: data)
+            }
+            if isComplete || error != nil {
+                self.closeStream(stream.id, notifyRemote: true)
+                return
+            }
+            self.receive(from: stream)
         }
     }
     
@@ -203,7 +240,7 @@ public final class WebProxySidecar {
         guard let stream = self.streams[streamId], !stream.isClosed else {
             return
         }
-        if stream.pendingUplink.count + data.count > WebProxySidecar.maximumPendingUplink {
+        if stream.pendingUplinkCount + data.count > WebProxySidecar.maximumPendingUplink {
             // The relay has stopped granting credit and this stream has buffered more than the
             // contract allows. Failing it here keeps one stalled socket from growing without
             // bound; MTProto reconnects the session like any other dropped connection.
@@ -218,13 +255,15 @@ public final class WebProxySidecar {
     /// 64 KiB. Whatever credit does not cover stays queued until a `WINDOW` frame grants more.
     private func flushUplink(stream: WebProxyStream) {
         var frames: [WebProxyFrame] = []
-        while !stream.pendingUplink.isEmpty, stream.sendCredit > 0 {
-            let chunkSize = min(min(WebProxyFrameCodec.maxDataChunkSize, stream.sendCredit), stream.pendingUplink.count)
-            let chunk = Data(stream.pendingUplink.prefix(chunkSize))
-            stream.pendingUplink = Data(stream.pendingUplink.dropFirst(chunkSize))
+        while stream.pendingUplinkCount > 0, stream.sendCredit > 0 {
+            let chunkSize = min(min(WebProxyFrameCodec.maxDataChunkSize, stream.sendCredit), stream.pendingUplinkCount)
+            let start = stream.pendingUplink.startIndex + stream.pendingUplinkOffset
+            let chunk = Data(stream.pendingUplink[start ..< (start + chunkSize)])
+            stream.pendingUplinkOffset += chunkSize
             stream.sendCredit -= chunkSize
             frames.append(WebProxyFrame(type: .data, streamId: stream.id, payload: chunk))
         }
+        stream.compactPendingUplink()
         if !frames.isEmpty {
             self.sendFrames(frames)
         }
@@ -300,22 +339,36 @@ public final class WebProxySidecar {
             guard let self, let stream else {
                 return
             }
-            self.queue.async {
-                stream.isWriting = false
-                if error != nil {
-                    self.closeStream(stream.id, notifyRemote: true)
-                    return
-                }
-                // Downlink credit is returned only once the bytes have actually reached the local
-                // socket, which is what bounds unread data per stream. Without this the relay
-                // spends its implicit 4 MiB window and then stops sending — a large download
-                // stalled part-way with the connection still nominally up.
-                if !stream.isClosed, !chunk.isEmpty {
-                    self.sendWindowCredit(streamId: stream.id, bytes: chunk.count)
-                }
-                self.flushWrite(stream: stream)
+            stream.isWriting = false
+            if error != nil {
+                self.closeStream(stream.id, notifyRemote: true)
+                return
             }
+            // Downlink credit is returned only once the bytes have actually reached the local
+            // socket, which is what bounds unread data per stream. Without this the relay
+            // spends its implicit 4 MiB window and then stops sending — a large download
+            // stalled part-way with the connection still nominally up.
+            if !stream.isClosed, !chunk.isEmpty {
+                stream.pendingWindowCredit += chunk.count
+                // Flush once enough has piled up to be worth a frame, or as soon as the socket has
+                // caught up. The second condition is what keeps a stream that goes quiet part-way
+                // through the window from stalling on credit that was never announced.
+                self.flushWindowCredit(stream: stream, force: stream.pendingWrite.isEmpty)
+            }
+            self.flushWrite(stream: stream)
         })
+    }
+    
+    private func flushWindowCredit(stream: WebProxyStream, force: Bool) {
+        guard stream.pendingWindowCredit > 0, !stream.isClosed else {
+            return
+        }
+        if !force, stream.pendingWindowCredit < WebProxySidecar.windowCreditFlushThreshold {
+            return
+        }
+        let delta = stream.pendingWindowCredit
+        stream.pendingWindowCredit = 0
+        self.sendWindowCredit(streamId: stream.id, bytes: delta)
     }
     
     private func sendWindowCredit(streamId: UInt32, bytes: Int) {
@@ -337,6 +390,8 @@ public final class WebProxySidecar {
         }
         stream.isClosed = true
         stream.pendingUplink = Data()
+        stream.pendingUplinkOffset = 0
+        stream.pendingWindowCredit = 0
         stream.pendingWrite = Data()
         stream.connection.cancel()
         if notifyRemote {
