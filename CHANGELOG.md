@@ -6,6 +6,14 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3915-pre] — 2026-08-25
+
+Pre-release: white-wallpaper badge chip visibility + round video share spacing.
+
+### Fixed
+- **Day theme / white wallpaper:** transcription and date badge chips use an opaque light grey (#E4E4E6) instead of an invisible white-on-white fill.
+- **Round video:** share and transcription buttons keep a 10pt minimum gap; lift only when the share button still clears the video circle.
+
 ## [v12.9.2-3914-pre] — 2026-08-25
 
 Pre-release: round video badge layout + unified message badges / Day contrast.
