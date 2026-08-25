@@ -164,12 +164,11 @@ public final class StickerPreviewPeekContentNode: ASDisplayNode, PeekControllerC
                 self.animationNode = animationNode
                 
                 let dimensions = file.dimensions ?? PixelDimensions(width: 512, height: 512)
-                let fitSize: CGSize
-                if file.isCustomEmoji {
-                    fitSize = CGSize(width: 200.0, height: 200.0)
-                } else {
-                    fitSize = CGSize(width: 400.0, height: 400.0)
-                }
+                // Rasterise the Lottie at the sticker's nominal 512, not at a buffer smaller than
+                // the peek actually draws. Custom emoji peek at 120pt, which is 360px on a 3x
+                // screen, and were being decoded into 200px - a 1.8x upscale of a vector asset that
+                // can simply be rendered larger. Regular stickers had the same problem at 400.
+                let fitSize = CGSize(width: 512.0, height: 512.0)
                 let fittedDimensions = dimensions.cgSize.aspectFitted(fitSize)
                 
                 if file.isCustomTemplateEmoji {
