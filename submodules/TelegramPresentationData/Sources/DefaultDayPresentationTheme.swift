@@ -374,14 +374,7 @@ public func customizeDefaultDayTheme(theme: PresentationTheme, editing: Bool, ti
             shareButtonForegroundColor: chat.message.shareButtonForegroundColor.withUpdated(withoutWallpaper: day ? accentColor : nil),
             selectionControlColors: chat.message.selectionControlColors.withUpdated(fillColor: accentColor)),
         serviceMessage: serviceBackgroundColor.flatMap {
-            // `dateFillStatic` is deliberately NOT derived from the wallpaper. `serviceColor(with:)`
-            // returns the wallpaper's average at 65% brightness and a fixed 0.4 alpha, which can
-            // never carry white 11pt text over a light wallpaper - the badges (date pill, duration
-            // pill, transcription chip, share button) came out at ~2.2:1 where the dark theme's
-            // pinned #2C2C2E gives 13.94:1. Keeping the base value pins them to a neutral scrim,
-            // matching the dark theme and the iOS media-timestamp look. The service *bubble* fill
-            // and the floating date header stay wallpaper-tinted.
-            chat.serviceMessage.withUpdated(components: chat.serviceMessage.components.withUpdated(withCustomWallpaper: chat.serviceMessage.components.withCustomWallpaper.withUpdated(fill: $0, dateFillFloating: $0.withAlphaComponent($0.alpha * 0.6667))))
+            chat.serviceMessage.withUpdated(components: chat.serviceMessage.components.withUpdated(withCustomWallpaper: chat.serviceMessage.components.withCustomWallpaper.withUpdated(fill: $0, dateFillStatic: $0, dateFillFloating: $0.withAlphaComponent($0.alpha * 0.6667))))
         },
         inputPanel: chat.inputPanel.withUpdated(
             panelControlAccentColor: accentColor,
@@ -658,7 +651,7 @@ public func makeDefaultDayPresentationTheme(extendingThemeReference: Presentatio
             accentControlColor: defaultDayAccentColor,
             accentControlDisabledColor: UIColor(rgb: 0x525252, alpha: 0.6),
             mediaActiveControlColor: defaultDayAccentColor,
-            mediaInactiveControlColor: UIColor(rgb: 0x838383),
+            mediaInactiveControlColor: UIColor(rgb: 0xcacaca),
             mediaControlInnerBackgroundColor: UIColor(rgb: 0xffffff),
             pendingActivityColor: UIColor(rgb: 0x525252, alpha: 0.85),
             fileTitleColor: UIColor(rgb: 0x0b8bed),
@@ -822,7 +815,7 @@ public func makeDefaultDayPresentationTheme(extendingThemeReference: Presentatio
             accentControlColor: defaultDayAccentColor,
             accentControlDisabledColor: UIColor(rgb: 0x525252, alpha: 0.6),
             mediaActiveControlColor: defaultDayAccentColor,
-            mediaInactiveControlColor: UIColor(rgb: 0x838383),
+            mediaInactiveControlColor: UIColor(rgb: 0xcacaca),
             mediaControlInnerBackgroundColor: UIColor(rgb: 0xffffff),
             pendingActivityColor: UIColor(rgb: 0x525252, alpha: 0.85),
             fileTitleColor: defaultDayAccentColor,
