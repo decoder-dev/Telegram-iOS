@@ -159,6 +159,17 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
     public var audioTranscriptionState: AudioTranscriptionButtonComponent.TranscriptionState = .collapsed
     public var audioTranscriptionText: TranscribedText?
     private var transcribeDisposable: Disposable?
+    /// Frame of the transcription button in this node's coordinate space, or `nil` when it is
+    /// not on screen. The item node needs it to keep the share button clear of the button:
+    /// for an incoming message both land in the trailing bottom corner of the circle.
+    public var visibleAudioTranscriptionButtonFrame: CGRect? {
+        // The opacity is driven through the layer by the layout animator, so read it there.
+        guard let audioTranscriptionButton = self.audioTranscriptionButton, audioTranscriptionButton.layer.opacity > 0.0 else {
+            return nil
+        }
+        return audioTranscriptionButton.frame
+    }
+    
     public var hasExpandedAudioTranscription: Bool {
         if case .expanded = audioTranscriptionState {
             return true
@@ -555,15 +566,48 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
             }
             let dateText = stringForMessageTimestampStatus(context: item.context, message: EngineMessage(item.message), dateTimeFormat: item.presentationData.dateTimeFormat, nameDisplayOrder: item.presentationData.nameDisplayOrder, strings: item.presentationData.strings, format: dateFormat, associatedData: item.associatedData, ignoreAuthor: item.presentationData.isPreview)
             
+            var displaysTranscribeButton = false
+            if item.message.id.peerId.namespace != Namespaces.Peer.SecretChat && statusDisplayType == .free && !isViewOnceMessage && !item.presentationData.isPreview {
+                let premiumConfiguration = PremiumConfiguration.with(appConfiguration: item.context.currentAppConfiguration.with { $0 })
+                if item.associatedData.isPremium || item.associatedData.alwaysDisplayTranscribeButton.providedByGroupBoost {
+                    displaysTranscribeButton = true
+                } else if premiumConfiguration.audioTransciptionTrialCount > 0 {
+                    if incoming {
+                        displaysTranscribeButton = true
+                    }
+                } else if item.associatedData.alwaysDisplayTranscribeButton.canBeDisplayed {
+                    if incoming && notConsumed && item.associatedData.alwaysDisplayTranscribeButton.displayForNotConsumed {
+                        displaysTranscribeButton = true
+                    } else {
+                        displaysTranscribeButton = false
+                    }
+                }
+            }
+            
             let maxDateAndStatusWidth: CGFloat
             if case .bubble = statusDisplayType {
                 maxDateAndStatusWidth = width
-            } else {
-                if item.presentationData.isPreview {
-                    maxDateAndStatusWidth = width - videoFrame.midX - 65.0
+            } else if item.presentationData.isPreview {
+                maxDateAndStatusWidth = width - videoFrame.midX - 65.0
+            } else if incoming {
+                // An incoming status is laid out in the gutter to the right of the circle, so its
+                // budget is whatever is left of that gutter. `videoFrame` is sized for the expanded
+                // playback state rather than for the circle that is actually drawn, and measuring
+                // against its midpoint costs about half the difference between the two - enough to
+                // truncate the date to "17 av...5:04" on a phone. Derive the budget from where the
+                // status really starts (see the `.constrained` branch in the apply block); the
+                // constants fold in the item node's 14pt leading inset and the 12pt trailing gutter
+                // its own clamp leaves.
+                if displaysTranscribeButton && scaleProgress.isZero {
+                    // Pinned one circle plus the button gap past the node's leading edge. While the
+                    // circle is scaled up for playback the button is faded out and stops acting as
+                    // an anchor, so the status falls back to the self-clamping placement below.
+                    maxDateAndStatusWidth = width - displaySize.width - 33.0
                 } else {
-                    maxDateAndStatusWidth = width - videoFrame.midX - 85.0
+                    maxDateAndStatusWidth = width - displaySize.width / 2.0 - 81.0
                 }
+            } else {
+                maxDateAndStatusWidth = width - videoFrame.midX - 85.0
             }
             
             var isReplyThread = false
@@ -838,23 +882,7 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
                         }))
                     }
                                                             
-                    var displayTranscribe = false
-                    if item.message.id.peerId.namespace != Namespaces.Peer.SecretChat && statusDisplayType == .free && !isViewOnceMessage && !item.presentationData.isPreview {
-                        let premiumConfiguration = PremiumConfiguration.with(appConfiguration: item.context.currentAppConfiguration.with { $0 })
-                        if item.associatedData.isPremium || item.associatedData.alwaysDisplayTranscribeButton.providedByGroupBoost {
-                            displayTranscribe = true
-                        } else if premiumConfiguration.audioTransciptionTrialCount > 0 {
-                            if incoming {
-                                displayTranscribe = true
-                            }
-                        } else if item.associatedData.alwaysDisplayTranscribeButton.canBeDisplayed {
-                            if incoming && notConsumed && item.associatedData.alwaysDisplayTranscribeButton.displayForNotConsumed {
-                                displayTranscribe = true
-                            } else {
-                                displayTranscribe = false
-                            }
-                        }
-                    }
+                    var displayTranscribe = displaysTranscribeButton
                     
                     if displayTranscribe, let durationBlurColor = durationBlurColor {
                         var added = false

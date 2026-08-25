@@ -708,7 +708,7 @@ public class ChatMessageInstantVideoItemNode: ChatMessageItemView, ASGestureReco
                                 }
                             }
                             let buttonSize = updatedShareButtonNode.update(presentationData: item.presentationData, controllerInteraction: item.controllerInteraction, chatLocation: item.chatLocation, subject: item.associatedData.subject, message: EngineMessage(item.message), accountPeerId: item.context.account.peerId)
-                            updatedShareButtonNode.frame = CGRect(origin: CGPoint(x: min(params.width - buttonSize.width - 8.0, videoFrame.maxX - 7.0), y: videoFrame.maxY - 24.0 - buttonSize.height), size: buttonSize)
+                            updatedShareButtonNode.frame = strongSelf.shareButtonFrame(size: buttonSize, videoFrame: videoFrame, containerWidth: params.width)
                         } else if let shareButtonNode = strongSelf.shareButtonNode {
                             shareButtonNode.removeFromSupernode()
                             strongSelf.shareButtonNode = nil
@@ -1037,6 +1037,21 @@ public class ChatMessageInstantVideoItemNode: ChatMessageItemView, ASGestureReco
             break
         }
         return nil
+    }
+    
+    /// Places the share button next to the circle, lifted clear of the transcription button when
+    /// one is shown. The transcription button lives inside the video node, in the trailing bottom
+    /// corner of the circle for an incoming message - which is exactly where the share button's
+    /// leading bottom corner falls, so without this the two badges overlap by a few points.
+    private func shareButtonFrame(size: CGSize, videoFrame: CGRect, containerWidth: CGFloat) -> CGRect {
+        var frame = CGRect(origin: CGPoint(x: min(containerWidth - size.width - 8.0, videoFrame.maxX - 7.0), y: videoFrame.maxY - 24.0 - size.height), size: size)
+        if let transcriptionButtonFrame = self.interactiveVideoNode.visibleAudioTranscriptionButtonFrame {
+            let transcriptionFrame = transcriptionButtonFrame.offsetBy(dx: videoFrame.minX, dy: videoFrame.minY)
+            if transcriptionFrame.intersects(frame) {
+                frame.origin.y = transcriptionFrame.minY - 8.0 - size.height
+            }
+        }
+        return frame
     }
     
     @objc private func shareButtonPressed() {
@@ -1400,8 +1415,7 @@ public class ChatMessageInstantVideoItemNode: ChatMessageItemView, ASGestureReco
         videoApply(videoLayoutData, .None)
         
         if let shareButtonNode = self.shareButtonNode {
-            let buttonSize = shareButtonNode.frame.size
-            shareButtonNode.frame = CGRect(origin: CGPoint(x: min(params.width - buttonSize.width - 8.0, videoFrame.maxX - 7.0), y: videoFrame.maxY - 24.0 - buttonSize.height), size: buttonSize)
+            shareButtonNode.frame = self.shareButtonFrame(size: shareButtonNode.frame.size, videoFrame: videoFrame, containerWidth: params.width)
         }
         
 //        if let viaBotNode = self.viaBotNode {
