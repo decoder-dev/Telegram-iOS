@@ -791,10 +791,12 @@ public class ChatMessageDateAndStatusNode: ASDisplayNode {
             // content node that reports more width than it allowed (under DEBUG it only prints a
             // warning), so the bubble itself grows past its maximum and the status ends up outside
             // the frame. Re-measure the date against what is actually left for it, and shift the
-            // three frames that were positioned from its old width by the difference.
+            // three frames that were positioned from its old width by the difference. The 20pt floor
+            // keeps the date from collapsing to nothing if the badges alone nearly fill the bubble;
+            // that degenerate case stays slightly over budget rather than losing the time entirely.
             let statusExtrasWidth = leftInset + impressionWidth + statusWidth + backgroundInsets.left + backgroundInsets.right
             if statusExtrasWidth + date.size.width > arguments.constrainedSize.width {
-                let (updatedDate, updatedDateApply) = dateLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: updatedDateText, font: dateFont, textColor: dateColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .middle, constrainedSize: CGSize(width: max(1.0, arguments.constrainedSize.width - statusExtrasWidth), height: arguments.constrainedSize.height), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+                let (updatedDate, updatedDateApply) = dateLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: updatedDateText, font: dateFont, textColor: dateColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .middle, constrainedSize: CGSize(width: max(20.0, arguments.constrainedSize.width - statusExtrasWidth), height: arguments.constrainedSize.height), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
                 let shift = updatedDate.size.width - date.size.width
                 clockPosition.x += shift
                 checkReadFrame = checkReadFrame?.offsetBy(dx: shift, dy: 0.0)
