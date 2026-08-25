@@ -15,8 +15,12 @@ public class ChatMessageShareButton: ASDisplayNode {
     private let referenceNode: ContextReferenceContentNode
     private let containerNode: ContextControllerSourceNode
     
-    private var backgroundContent: WallpaperBubbleBackgroundNode?
-    private var backgroundBlurView: PortalView?
+    /// Same blurred fill the date and duration pills use (`selectDateFillStaticColor` +
+    /// `dateFillNeedsBlur`), so the badges around a message read as one set. The wallpaper-sampling
+    /// backdrop this used to take from `WallpaperBackgroundNode` did not match them - opaque
+    /// `#2C2C2E` chips beside a live wallpaper blur on the dark theme - and it vanished entirely on
+    /// a plain-colour wallpaper, where `makeFreeBackground()` returns nil.
+    private let backgroundNode: NavigationBackgroundNode
     
     private let topButton: HighlightTrackingButtonNode
     private let topIconNode: ASImageNode
@@ -36,8 +40,6 @@ public class ChatMessageShareButton: ASDisplayNode {
     
     private var textNode: ImmediateTextNode?
     
-    private var absolutePosition: (CGRect, CGSize)?
-    
     public var pressed: (() -> Void)?
     public var morePressed: (() -> Void)?
     public var longPressAction: ((ASDisplayNode, ContextGesture) -> Void)?
@@ -52,6 +54,8 @@ public class ChatMessageShareButton: ASDisplayNode {
         self.topIconNode.displaysAsynchronously = false
         self.topIconNode.isUserInteractionEnabled = false
         
+        self.backgroundNode = NavigationBackgroundNode(color: .clear, enableBlur: false)
+        
         super.init()
         
         self.allowsGroupOpacity = true
@@ -59,6 +63,7 @@ public class ChatMessageShareButton: ASDisplayNode {
         self.containerNode.addSubnode(self.referenceNode)
         self.topButton.addSubnode(self.containerNode)
         
+        self.addSubnode(self.backgroundNode)
         self.addSubnode(self.topIconNode)
         self.addSubnode(self.topButton)
         
@@ -281,18 +286,13 @@ public class ChatMessageShareButton: ASDisplayNode {
             textNode.removeFromSupernode()
         }
         
-        if self.backgroundBlurView == nil {
-            if let backgroundBlurView = controllerInteraction.presentationContext.backgroundNode?.makeFreeBackground() {
-                self.backgroundBlurView = backgroundBlurView
-                self.view.insertSubview(backgroundBlurView.view, at: 0)
-                
-                backgroundBlurView.view.clipsToBounds = true
-            }
-        }
-        if let backgroundBlurView = self.backgroundBlurView {
-            backgroundBlurView.view.frame = CGRect(origin: CGPoint(), size: size)
-            backgroundBlurView.view.layer.cornerRadius = min(size.width, size.height) / 2.0
-        }
+        self.backgroundNode.updateColor(
+            color: selectDateFillStaticColor(theme: presentationData.theme.theme, wallpaper: presentationData.theme.wallpaper),
+            enableBlur: controllerInteraction.enableFullTranslucency && dateFillNeedsBlur(theme: presentationData.theme.theme, wallpaper: presentationData.theme.wallpaper),
+            transition: .immediate
+        )
+        self.backgroundNode.frame = CGRect(origin: CGPoint(), size: size)
+        self.backgroundNode.update(size: size, cornerRadius: min(size.width, size.height) / 2.0, transition: .immediate)
                 
         if let image = self.topIconNode.image {
             self.topIconNode.frame = CGRect(origin: CGPoint(x: floor((size.width - image.size.width) / 2.0) + self.topIconOffset.x, y: floor((size.width - image.size.width) / 2.0) - (offsetIcon ? 1.0 : 0.0) + self.topIconOffset.y), size: image.size)
@@ -307,33 +307,6 @@ public class ChatMessageShareButton: ASDisplayNode {
         }
         
         self.separatorNode?.frame = CGRect(origin: CGPoint(x: 0.0, y: size.height / 2.0), size: CGSize(width: size.width, height: 1.0 - UIScreenPixel))
-        
-        if controllerInteraction.presentationContext.backgroundNode?.hasExtraBubbleBackground() == true {
-            if self.backgroundContent == nil, let backgroundContent = controllerInteraction.presentationContext.backgroundNode?.makeBubbleBackground(for: .free) {
-                backgroundContent.clipsToBounds = true
-                self.backgroundContent = backgroundContent
-                self.insertSubnode(backgroundContent, at: 0)
-            }
-        } else {
-            self.backgroundContent?.removeFromSupernode()
-            self.backgroundContent = nil
-        }
-        
-        if let backgroundContent = self.backgroundContent {
-            //self.backgroundNode.isHidden = true
-            self.backgroundBlurView?.view.isHidden = true
-            backgroundContent.cornerRadius = min(size.width, size.height) / 2.0
-            backgroundContent.frame = CGRect(origin: CGPoint(), size: size)
-            if let (rect, containerSize) = self.absolutePosition {
-                var backgroundFrame = backgroundContent.frame
-                backgroundFrame.origin.x += rect.minX
-                backgroundFrame.origin.y += rect.minY
-                backgroundContent.update(rect: backgroundFrame, within: containerSize, transition: .immediate)
-            }
-        } else {
-            //self.backgroundNode.isHidden = false
-            self.backgroundBlurView?.view.isHidden = false
-        }
         
         if isSummarize {
             let starsView: StarsView
@@ -355,13 +328,9 @@ public class ChatMessageShareButton: ASDisplayNode {
     }
     
     public func updateAbsoluteRect(_ rect: CGRect, within containerSize: CGSize) {
-        self.absolutePosition = (rect, containerSize)
-        if let backgroundContent = self.backgroundContent {
-            var backgroundFrame = backgroundContent.frame
-            backgroundFrame.origin.x += rect.minX
-            backgroundFrame.origin.y += rect.minY
-            backgroundContent.update(rect: backgroundFrame, within: containerSize, transition: .immediate)
-        }
+        // Nothing to do: the background is a self-contained blurred fill rather than a window onto
+        // the wallpaper, so it does not need to know where on screen it sits. Kept because item
+        // nodes call it as part of their scroll bookkeeping.
     }
 }
 
