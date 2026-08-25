@@ -1047,8 +1047,22 @@ public final class ChatMessageInteractiveFileNode: ASDisplayNode {
                         fittedLayoutSize = CGSize(width: unionSize.width, height: unionSize.height)
                     }
                     
+                    // Right-hand share of the margin allowance folded into the width just below, for
+                    // the status to give back before it right-aligns itself. Zero unless that
+                    // allowance actually ended up inside the width.
+                    var transcriptionStatusRightPadding: CGFloat = 0.0
                     if textString != nil {
-                        fittedLayoutSize.width = max(fittedLayoutSize.width + horizontalInset, textLayout.size.width)
+                        let paddedContentWidth = fittedLayoutSize.width + horizontalInset
+                        fittedLayoutSize.width = max(paddedContentWidth, textLayout.size.width)
+                        // `horizontalInset` is the transcription text's left+right margin, not usable
+                        // width. When the padded term wins, that margin is inside the width, and
+                        // anything right-aligned to the width sits in the margin instead of before it.
+                        // When the transcription is itself the wider term it was already measured
+                        // against a constraint with the margin removed, so there is nothing to give
+                        // back.
+                        if fittedLayoutSize.width == paddedContentWidth {
+                            transcriptionStatusRightPadding = horizontalInset / 2.0
+                        }
                         fittedLayoutSize.height += textLayout.size.height + 5.0
                     }
                     
@@ -1264,7 +1278,11 @@ public final class ChatMessageInteractiveFileNode: ASDisplayNode {
                             if let statusSizeAndApply = statusSizeAndApply {
                                 let statusFrame: CGRect
                                 if textString != nil {
-                                    statusFrame = CGRect(origin: CGPoint(x: fittedLayoutSize.width - 6.0 - statusSizeAndApply.0.width, y: textFrame.maxY + 4.0), size: statusSizeAndApply.0)
+                                    // Without the margin give-back the status ended up 1.8pt from the
+                                    // bubble's right edge, where the fork's 18pt corner radius cuts
+                                    // the checkmark. With it the clearance is 10.1pt, matching the
+                                    // 10.3pt the same bubble shows with the transcription collapsed.
+                                    statusFrame = CGRect(origin: CGPoint(x: fittedLayoutSize.width - transcriptionStatusRightPadding - 6.0 - statusSizeAndApply.0.width, y: textFrame.maxY + 4.0), size: statusSizeAndApply.0)
                                 } else {
                                     statusFrame = CGRect(origin: CGPoint(x: statusReferenceFrame.minX, y: statusReferenceFrame.maxY + statusOffset + statusHeightAddition), size: statusSizeAndApply.0)
                                 }
