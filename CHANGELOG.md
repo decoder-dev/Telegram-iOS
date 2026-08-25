@@ -6,6 +6,14 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3913-pre] — 2026-08-25
+
+Pre-release: Tapbacks drag perf + voice transcription status inset.
+
+### Fixed
+- **Reactions (Tapbacks):** grabber drag no longer runs a full context-menu layout every frame — only this node's layout; below-keyboard overlay updates short-circuit when unchanged.
+- **Voice messages:** expanded transcription time/checkmarks no longer sit inside the bubble's 18pt corner (right inset restored when the padded width won).
+
 ## [v12.9.2-3912-pre] — 2026-08-24
 
 Pre-release: Tapbacks sheet keyboard docking (chat dismiss + in-sheet search).
