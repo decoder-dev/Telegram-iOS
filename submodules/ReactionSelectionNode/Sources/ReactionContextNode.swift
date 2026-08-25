@@ -628,7 +628,7 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
     }
     
     @objc private func tapbacksPickerPanGesture(_ recognizer: UIPanGestureRecognizer) {
-        guard self.isTapbacksBottomPickerActive, let (size, insets, _, _, _) = self.validLayout else {
+        guard self.isTapbacksBottomPickerActive, let (size, insets, anchorRect, isCoveredByInput, centerAligned) = self.validLayout else {
             // The sheet went away underneath the gesture. Drop the offsets so neither a later
             // layout nor a later drag can pick up a stale one.
             self.tapbacksPickerDragOffset = 0.0
@@ -654,8 +654,19 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
             self.tapbacksPickerDragStartOffset = startOffset
             self.tapbacksPickerDragOffset = startOffset
         case .changed:
-            self.tapbacksPickerDragOffset = self.tapbacksPickerDragStartOffset + recognizer.translation(in: self.view).y
-            self.requestLayout(.immediate)
+            let offset = self.tapbacksPickerDragStartOffset + recognizer.translation(in: self.view).y
+            // Pan delivers at up to 120Hz and a finger often lands on the same device pixel twice.
+            // Re-laying the sheet out is the expensive half of the drag, so skip a move nobody can
+            // see rather than paying for it.
+            guard abs(offset - self.tapbacksPickerDragOffset) >= UIScreenPixel else {
+                return
+            }
+            self.tapbacksPickerDragOffset = offset
+            // Lay this node out directly instead of going through `requestLayout`, which re-runs the
+            // whole context menu — actions stack, extracted content, backdrop, every container in
+            // the navigation controller — none of which moves while the sheet is dragged. Same
+            // shortcut `updateExtension` takes for the pill's stretch.
+            self.updateLayout(size: size, insets: insets, anchorRect: anchorRect, centerAligned: centerAligned, isCoveredByInput: isCoveredByInput, isAnimatingOut: false, transition: .immediate)
         case .cancelled:
             // Interrupted rather than released — by a call banner, a rotation, the system taking
             // the touch. That is not a decision, so the sheet returns to the stop it came from.
@@ -802,6 +813,10 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
     /// Where the sheet actually was when the current drag started, as an offset from its resting
     /// stop. Non-zero only when the drag interrupted the settle animation.
     private var tapbacksPickerDragStartOffset: CGFloat = 0.0
+    /// Last answer handed to `requestUpdateOverlayWantsToBeBelowKeyboard`. That call has no
+    /// short-circuit of its own — it re-lays out every container in the navigation controller — and
+    /// the pager fires it on any content update, so it is only worth making when the answer moved.
+    private var reportedWantsDisplayBelowKeyboard: Bool = false
     /// Height of a keyboard currently covering the container, or zero. Set by the host before
     /// `updateLayout`.
     ///
@@ -1278,6 +1293,15 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
                 self.updateLayout(size: size, insets: insets, anchorRect: anchorRect, centerAligned: centerAligned, isCoveredByInput: isCoveredByInput, isAnimatingOut: false, transition: .immediate, animateInFromAnchorRect: nil, animateOutToAnchorRect: nil)
             }
         }
+    }
+    
+    private func updateOverlayWantsToBeBelowKeyboardIfNeeded(_ transition: ContainedViewLayoutTransition) {
+        let value = self.wantsDisplayBelowKeyboard()
+        guard value != self.reportedWantsDisplayBelowKeyboard else {
+            return
+        }
+        self.reportedWantsDisplayBelowKeyboard = value
+        self.requestUpdateOverlayWantsToBeBelowKeyboard(transition)
     }
     
     public func wantsDisplayBelowKeyboard() -> Bool {
@@ -2443,7 +2467,7 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
                 guard let strongSelf = self else {
                     return
                 }
-                strongSelf.requestUpdateOverlayWantsToBeBelowKeyboard(transition.containedViewLayoutTransition)
+                strongSelf.updateOverlayWantsToBeBelowKeyboardIfNeeded(transition.containedViewLayoutTransition)
             },
             updateSearchQuery: { [weak self] query in
                 guard let self else {
@@ -3815,7 +3839,7 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
         self.isExpanded = true
         self.isExpandedUpdated(.animated(duration: 0.4, curve: .spring))
         if self.usesExternalExpandButton {
-            self.requestUpdateOverlayWantsToBeBelowKeyboard(.animated(duration: 0.4, curve: .spring))
+            self.updateOverlayWantsToBeBelowKeyboardIfNeeded(.animated(duration: 0.4, curve: .spring))
         }
     }
     
@@ -3860,7 +3884,7 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
         self.isCollapsing = true
         self.isExpandedUpdated(.animated(duration: 0.4, curve: .spring))
         if self.usesExternalExpandButton {
-            self.requestUpdateOverlayWantsToBeBelowKeyboard(.animated(duration: 0.4, curve: .spring))
+            self.updateOverlayWantsToBeBelowKeyboardIfNeeded(.animated(duration: 0.4, curve: .spring))
         }
         
         self.emojiSearchDisposable.set(nil)
