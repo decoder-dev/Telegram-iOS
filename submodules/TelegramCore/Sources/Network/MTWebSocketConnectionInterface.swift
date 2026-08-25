@@ -10,7 +10,21 @@ import MTWebSocketTransport
 /// the session (only consulted when the user has enabled "fall back to direct transport"). One instance
 /// is created per `MTContext` and shared by every `MTWebSocketConnectionInterface` it spawns.
 final class MTWebSocketFallbackCoordinator {
-    private let state = Atomic<WebSocketFallbackPolicy>(value: WebSocketFallbackPolicy())
+    /// Failures are reported per connection, and MTProto keeps several open at once — master, media,
+    /// and download workers. A single network event therefore reports three or four failures within
+    /// the same instant, which would reach the threshold on its own. Failures landing inside this
+    /// window after a counted one are collapsed into it, so "3 consecutive failures" means three
+    /// separate attempts rather than one attempt across three sockets. Getting this wrong is not
+    /// symmetric: the fallback is one-way for the session, so a spurious trip drops the user back to
+    /// exactly the transport they enabled this feature to avoid, with nothing in the UI to say so.
+    private static let failureCoalescingInterval: Double = 5.0
+
+    private struct State {
+        var policy = WebSocketFallbackPolicy()
+        var lastCountedFailureTimestamp: Double?
+    }
+
+    private let state = Atomic<State>(value: State())
     private let useWebSocketState = Atomic<Bool>(value: true)
 
     var shouldUseWebSocket: Bool {
@@ -18,24 +32,30 @@ final class MTWebSocketFallbackCoordinator {
     }
 
     func recordAllEndpointsFailed() {
-        let policy = self.state.modify { policy in
-            var policy = policy
-            _ = policy.recordAllEndpointsFailed()
-            return policy
+        let timestamp = CFAbsoluteTimeGetCurrent()
+        let state = self.state.modify { state in
+            var state = state
+            if let last = state.lastCountedFailureTimestamp, timestamp - last < MTWebSocketFallbackCoordinator.failureCoalescingInterval {
+                return state
+            }
+            state.lastCountedFailureTimestamp = timestamp
+            _ = state.policy.recordAllEndpointsFailed()
+            return state
         }
-        if policy.consecutiveTotalFailures >= policy.consecutiveFailureThreshold {
+        if state.policy.consecutiveTotalFailures >= state.policy.consecutiveFailureThreshold {
             let wasUsingWebSocket = self.useWebSocketState.swap(false)
             if wasUsingWebSocket {
-                Logger.shared.log("MTWebSocket", "[WS] all endpoints failed \(policy.consecutiveTotalFailures) times in a row, falling back to direct transport for this session")
+                Logger.shared.log("MTWebSocket", "[WS] no endpoint carried traffic on \(state.policy.consecutiveTotalFailures) attempts in a row, falling back to direct transport for this session")
             }
         }
     }
 
     func recordSuccess() {
-        _ = self.state.modify { policy in
-            var policy = policy
-            policy.recordSuccess()
-            return policy
+        _ = self.state.modify { state in
+            var state = state
+            state.policy.recordSuccess()
+            state.lastCountedFailureTimestamp = nil
+            return state
         }
     }
 }
@@ -69,6 +89,8 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
     }
 
     private final class Impl {
+        private static let maximumRetainedReadPrefix = 256 * 1024
+
         private enum HandshakeState {
             case tcpConnecting
             case sentUpgradeRequest
@@ -100,6 +122,28 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
         private var handshakeResponseBuffer = Data()
         private var reassembler = WebSocketMessageReassembler()
         private var readBuffer = Data()
+        private var readBufferOffset = 0
+
+        /// Bumped every time a connection is dialed or abandoned. NWConnection callbacks capture the
+        /// value current when their connection was created and drop out if it has moved on, so a
+        /// callback already dispatched onto `queue` when we abandoned that connection cannot act on
+        /// the one that replaced it. An Int is captured instead of the connection itself so the
+        /// handlers stored on the connection do not retain it.
+        private var connectionGeneration = 0
+
+        /// Set once `connectionInterfaceDidConnect` has been delivered. From that moment the endpoint
+        /// list is frozen — see `candidateFailed`.
+        private var didReportConnection = false
+        /// Whether the peer ever delivered MTProto payload on this connection. This, not a completed
+        /// WebSocket handshake, is the transport's health signal: the gateway accepts the upgrade
+        /// before it has seen a single byte of the MTProto stream it may then reject, so treating the
+        /// handshake as success would keep resetting the fallback counter on a connection that never
+        /// carries anything.
+        private var didReceivePayload = false
+        private var recordedAttemptOutcome = false
+        /// Distinguishes "MTTcpConnection asked us to close" from "the connection died", so a clean
+        /// teardown before any payload is not counted against the endpoints.
+        private var didRequestDisconnect = false
 
         private var readRequests: [ReadRequest] = []
         private var currentReadRequest: ExecutingReadRequest?
@@ -131,6 +175,25 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
         }
 
         deinit {
+            // QueueLocalObject deallocates this on `queue`, so the connection may still be open if
+            // MTTcpConnection released the interface without disconnecting first. An NWConnection that
+            // is never cancelled keeps its TLS session and its receive loop alive.
+            self.connectTimeoutTimer?.invalidate()
+            self.discardCurrentConnection()
+        }
+
+        /// Detaches the handlers of the current connection, cancels it, and invalidates the generation
+        /// so any callback still in flight for it becomes a no-op.
+        private func discardCurrentConnection() {
+            self.connectionGeneration += 1
+            guard let connection = self.connection else {
+                return
+            }
+            self.connection = nil
+            connection.stateUpdateHandler = nil
+            connection.pathUpdateHandler = nil
+            connection.viabilityUpdateHandler = nil
+            connection.cancel()
         }
 
         func setUsageCalculationInfo(_ usageCalculationInfo: MTNetworkUsageCalculationInfo?) {
@@ -156,7 +219,6 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
 
         private func dialCurrentCandidate() {
             guard let candidate = self.endpointSelector.current else {
-                self.fallbackCoordinator?.recordAllEndpointsFailed()
                 self.cancelWithError(error: nil)
                 return
             }
@@ -167,6 +229,11 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
             self.handshakeState = .tcpConnecting
             self.handshakeResponseBuffer = Data()
             self.reassembler = WebSocketMessageReassembler()
+            // Only reachable before the connection has been reported (see `candidateFailed`), so
+            // nothing is in flight — but leaving a previous candidate's bytes in place would splice
+            // two unrelated streams together if that ever changed.
+            self.readBuffer = Data()
+            self.readBufferOffset = 0
             self.currentCandidateHost = candidate.host
             self.currentCandidatePath = candidate.path
 
@@ -192,17 +259,22 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
 
             let parameters = NWParameters(tls: tlsOptions, tcp: tcpOptions)
             let connection = NWConnection(host: host, port: port, using: parameters)
+            self.connectionGeneration += 1
+            let generation = self.connectionGeneration
             self.connection = connection
 
             let queue = self.queue
             connection.stateUpdateHandler = { [weak self] state in
                 queue.async {
-                    self?.stateUpdated(state: state)
+                    guard let self = self, self.connectionGeneration == generation else {
+                        return
+                    }
+                    self.stateUpdated(state: state)
                 }
             }
             connection.pathUpdateHandler = { [weak self] path in
                 queue.async {
-                    guard let self = self else {
+                    guard let self = self, self.connectionGeneration == generation else {
                         return
                     }
                     self.currentInterfaceIsWifi = !path.usesInterfaceType(.cellular)
@@ -210,7 +282,7 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
             }
             connection.viabilityUpdateHandler = { [weak self] isViable in
                 queue.async {
-                    guard let self = self else {
+                    guard let self = self, self.connectionGeneration == generation else {
                         return
                     }
                     if !isViable {
@@ -283,12 +355,13 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
             guard let connection = self.connection else {
                 return
             }
+            let generation = self.connectionGeneration
             connection.receive(minimumIncompleteLength: 1, maximumLength: 64 * 1024, completion: { [weak self] data, _, isComplete, error in
                 guard let self = self else {
                     return
                 }
                 self.queue.async {
-                    guard let currentConnection = self.connection, currentConnection === connection else {
+                    guard self.connectionGeneration == generation, self.connection != nil else {
                         // This receive belonged to a candidate we've already abandoned.
                         return
                     }
@@ -346,7 +419,7 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
                 self.connectTimeoutTimer = nil
                 connectTimeoutTimer.invalidate()
             }
-            self.fallbackCoordinator?.recordSuccess()
+            self.didReportConnection = true
 
             let delegate = self.delegate
             self.delegateQueue.async { [weak delegate] in
@@ -360,6 +433,9 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
             for event in events {
                 switch event {
                 case let .message(_, payload):
+                    if !payload.isEmpty {
+                        self.recordPayloadReceived()
+                    }
                     self.readBuffer.append(payload)
                 case let .ping(payload):
                     self.sendControlFrame(opcode: .pong, payload: payload)
@@ -430,13 +506,17 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
                     continue
                 }
 
-                if self.readBuffer.isEmpty {
+                let available = self.readBuffer.count - self.readBufferOffset
+                if available == 0 {
+                    self.compactReadBufferIfNeeded()
                     return
                 }
 
-                let takeCount = min(remaining, self.readBuffer.count)
-                let chunk = self.readBuffer.prefix(takeCount)
-                self.readBuffer.removeFirst(takeCount)
+                let takeCount = min(remaining, available)
+                let chunkStart = self.readBuffer.startIndex + self.readBufferOffset
+                let chunk = self.readBuffer[chunkStart ..< (chunkStart + takeCount)]
+                self.readBufferOffset += takeCount
+                self.compactReadBufferIfNeeded()
 
                 currentReadRequest.data.withUnsafeMutableBytes { (raw: UnsafeMutableRawBufferPointer) in
                     guard let base = raw.baseAddress else {
@@ -459,28 +539,79 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
             }
         }
 
+        /// A failure while dialing. Before the connection has been reported to MTTcpConnection this may
+        /// move on to the next endpoint; afterwards it may not, and becomes a plain disconnect.
+        ///
+        /// Re-dialing after `connectionInterfaceDidConnect` would be silently fatal. MTTcpConnection
+        /// prepends its 64-byte obfuscation header to the *first* packet only and then keeps encrypting
+        /// with a per-connection AES-CTR stream, so a replacement socket underneath it would be handed
+        /// mid-stream ciphertext with no init and would never decode anything — and it would see a
+        /// second `connectionInterfaceDidConnect` with no disconnect in between. MTTcpConnection is
+        /// one-shot by design (MTProto discards it and builds a new one), so the correct report after
+        /// establishment is a disconnect, which is what `cancelWithError` delivers.
         private func candidateFailed(error: Error?) {
             if let connectTimeoutTimer = self.connectTimeoutTimer {
                 self.connectTimeoutTimer = nil
                 connectTimeoutTimer.invalidate()
             }
-            if let connection = self.connection {
-                self.connection = nil
-                connection.stateUpdateHandler = nil
-                connection.pathUpdateHandler = nil
-                connection.viabilityUpdateHandler = nil
-                connection.cancel()
-            }
+            self.discardCurrentConnection()
 
             Logger.shared.log("MTWebSocket", "[WS] endpoint \(self.currentCandidateHost ?? "?") failed (\(error?.localizedDescription ?? "timeout/protocol error"))")
+
+            if self.didReportConnection {
+                self.cancelWithError(error: error)
+                return
+            }
 
             if let _ = self.endpointSelector.advance() {
                 Logger.shared.log("MTWebSocket", "[WS] trying secondary endpoint")
                 self.dialCurrentCandidate()
             } else {
-                self.fallbackCoordinator?.recordAllEndpointsFailed()
                 self.cancelWithError(error: error)
             }
+        }
+
+        /// `readBuffer` is consumed through `readBufferOffset` rather than by removing the front of the
+        /// buffer, so servicing a read is not a memmove of everything still queued behind it. The
+        /// consumed prefix is dropped only when it is worth the copy: once it is half the buffer, or
+        /// once it passes a fixed ceiling, so a long-lived connection never retains a growing dead
+        /// prefix. Index arithmetic stays relative to `startIndex`, which `Data` does not guarantee to
+        /// be zero after a `removeFirst`.
+        private func compactReadBufferIfNeeded() {
+            if self.readBufferOffset == 0 {
+                return
+            }
+            if self.readBufferOffset >= self.readBuffer.count {
+                self.readBuffer.removeAll(keepingCapacity: true)
+                self.readBufferOffset = 0
+                return
+            }
+            if self.readBufferOffset >= self.readBuffer.count / 2 || self.readBufferOffset >= Impl.maximumRetainedReadPrefix {
+                self.readBuffer.removeFirst(self.readBufferOffset)
+                self.readBufferOffset = 0
+            }
+        }
+
+        private func recordPayloadReceived() {
+            if self.didReceivePayload {
+                return
+            }
+            self.didReceivePayload = true
+            if !self.recordedAttemptOutcome {
+                self.recordedAttemptOutcome = true
+                self.fallbackCoordinator?.recordSuccess()
+            }
+        }
+
+        /// Reports this attempt to the fallback coordinator, at most once. A connection that carried
+        /// payload has already reported success; one that ended without any — including one that never
+        /// got past the handshake — counts against the endpoints, unless we were the ones who closed it.
+        private func recordAttemptFailureIfNeeded() {
+            if self.recordedAttemptOutcome || self.didReceivePayload || self.didRequestDisconnect {
+                return
+            }
+            self.recordedAttemptOutcome = true
+            self.fallbackCoordinator?.recordAllEndpointsFailed()
         }
 
         private func cancelWithError(error: Error?) {
@@ -489,6 +620,8 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
                 connectTimeoutTimer.invalidate()
             }
 
+            self.recordAttemptFailureIfNeeded()
+
             if !self.reportedDisconnection {
                 self.reportedDisconnection = true
                 let delegate = self.delegate
@@ -496,13 +629,11 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
                     delegate?.connectionInterfaceDidDisconnectWithError(error)
                 }
             }
-            if let connection = self.connection {
-                self.connection = nil
-                connection.cancel()
-            }
+            self.discardCurrentConnection()
         }
 
         func disconnect() {
+            self.didRequestDisconnect = true
             self.cancelWithError(error: nil)
         }
 

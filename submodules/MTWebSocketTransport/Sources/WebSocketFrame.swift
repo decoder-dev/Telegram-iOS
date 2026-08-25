@@ -33,7 +33,7 @@ public enum WebSocketFrameEncoder {
     /// untrusted inbound data.
     public static func encode(opcode: WebSocketOpcode, payload: Data, fin: Bool = true, mask: Bool, maskKey: [UInt8]? = nil) -> Data {
         var bytes: [UInt8] = []
-        bytes.reserveCapacity(payload.count + 14)
+        bytes.reserveCapacity(14)
 
         bytes.append((fin ? 0x80 : 0x00) | opcode.rawValue)
 
@@ -52,24 +52,35 @@ public enum WebSocketFrameEncoder {
             }
         }
 
+        // `bytes` holds only the header (at most 14 bytes). The payload is appended to the result
+        // directly and masked in place, so an outgoing frame copies the payload once rather than three
+        // times — through a `[UInt8]` mask buffer, into the header array, and again into a `Data`.
+        // This is the file-upload path, so those copies are the size of every byte the app sends.
+        var frame = Data()
+        frame.reserveCapacity(bytes.count + payload.count)
+
         if mask {
             let key = maskKey ?? WebSocketFrameEncoder.randomMaskKey()
             precondition(key.count == 4, "WebSocket mask key must be 4 bytes")
             bytes.append(contentsOf: key)
 
-            var maskedPayload = [UInt8](repeating: 0, count: payload.count)
-            payload.withUnsafeBytes { (raw: UnsafeRawBufferPointer) in
-                let src = raw.bindMemory(to: UInt8.self)
-                for i in 0 ..< src.count {
-                    maskedPayload[i] = src[i] ^ key[i % 4]
+            frame.append(contentsOf: bytes)
+            let payloadStart = frame.count
+            frame.append(payload)
+            if !payload.isEmpty {
+                frame.withUnsafeMutableBytes { (raw: UnsafeMutableRawBufferPointer) in
+                    let out = raw.bindMemory(to: UInt8.self)
+                    for i in 0 ..< payload.count {
+                        out[payloadStart + i] ^= key[i & 3]
+                    }
                 }
             }
-            bytes.append(contentsOf: maskedPayload)
         } else {
-            bytes.append(contentsOf: payload)
+            frame.append(contentsOf: bytes)
+            frame.append(payload)
         }
 
-        return Data(bytes)
+        return frame
     }
 
     public static func randomMaskKey() -> [UInt8] {

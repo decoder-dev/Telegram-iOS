@@ -145,14 +145,28 @@ pure logic to turn the WS byte stream into the same `readDataToLength:`-style re
    as the raw-TCP interface, regardless of how WS frame boundaries happen to line up with MTProto packet
    boundaries.
 6. If a candidate fails (TCP/TLS error, handshake rejected, framing protocol error, connect timeout,
-   loss of path viability), the interface logs it and dials the next candidate. If all candidates in the
-   list fail, the attempt is reported as failed to `MTTcpConnection`, which redials through MtProtoKit's
-   existing `MTTcpConnectionBehaviour` backoff — no second retry/backoff loop was invented.
-7. Every "all candidates failed" outcome is also recorded in a per-`MTContext`
-   `WebSocketFallbackPolicy`. After 3 consecutive such outcomes, and only if the user's "Fallback to
-   Direct Connection" setting is on, the factory closure starts returning `nil`, which makes
-   `MTTcpConnection` fall through to its default `MTGcdAsyncSocketTcpConnectionInterface` (ordinary TCP)
-   for the rest of the session. A later successful WS connection resets the counter.
+   loss of path viability) **before the connection has been reported to `MTTcpConnection`**, the
+   interface logs it and dials the next candidate. If all candidates in the list fail, the attempt is
+   reported as failed to `MTTcpConnection`, which redials through MtProtoKit's existing
+   `MTTcpConnectionBehaviour` backoff — no second retry/backoff loop was invented.
+
+   Once `connectionInterfaceDidConnect` has been delivered the endpoint list is frozen and any later
+   failure becomes a plain disconnect instead. Swapping the socket underneath a live
+   `MTTcpConnection` would be silently fatal: it prepends its 64-byte obfuscation header to the
+   *first* packet only and then keeps encrypting with a per-connection AES-CTR stream, so the
+   replacement endpoint would be handed mid-stream ciphertext with no init — and `MTTcpConnection`
+   would see a second `connectionInterfaceDidConnect` with no disconnect in between. It is one-shot
+   by design; MTProto discards it and builds a new one, which dials the endpoint list afresh.
+7. Each attempt's outcome is recorded in a per-`MTContext` `WebSocketFallbackPolicy`. After 3
+   consecutive failed attempts, and only if the user's "Fallback to Direct Connection" setting is on,
+   the factory closure starts returning `nil`, which makes `MTTcpConnection` fall through to its
+   default `MTGcdAsyncSocketTcpConnectionInterface` (ordinary TCP) for the rest of the session.
+
+   What counts as success is **the peer delivering MTProto payload**, not a completed WebSocket
+   handshake. The gateway accepts the upgrade before it has seen a single byte of the stream it may
+   then reject, so counting the handshake would reset the counter on every attempt and the fallback
+   would never engage against exactly the failure mode it exists for. A connection torn down at
+   `MTTcpConnection`'s own request is neutral — neither success nor failure.
 
 ## DC mapping
 
@@ -172,18 +186,23 @@ Reproduces tg-ws-proxy's `proxy/config.py`/`proxy/utils.py` behavior (`WebSocket
 Two independent levels, both reusing existing mechanisms rather than inventing new ones:
 
 - **Within one connection attempt**: primary endpoint → secondary endpoint (`WebSocketEndpointSelector`,
-  bounded — exactly two candidates per DC/media combination, never an unbounded loop).
+  bounded — exactly two candidates per DC/media combination, never an unbounded loop — and only until
+  the connection is reported to `MTTcpConnection`, per step 6 above).
 - **Across reconnect attempts**: MtProtoKit's existing `MTTcpConnectionBehaviour` owns retry/backoff
   timing (unchanged). `WebSocketFallbackPolicy` only tracks *whether* WS should still be attempted; after
-  3 consecutive fully-failed attempts, and only when "Fallback to Direct Connection" is enabled, the
-  factory closure hands control back to MtProtoKit's default TCP transport for the rest of the session by
-  returning `nil`. If the setting is off, the app keeps retrying WebSocket endpoints only, since for a
-  user whose whole point is bypassing TCP-level blocking, silently falling back to the blocked transport
-  would defeat the feature and make failures hard to diagnose.
+  3 consecutive attempts that never carried MTProto payload, and only when "Fallback to Direct
+  Connection" is enabled, the factory closure hands control back to MtProtoKit's default TCP transport
+  for the rest of the session by returning `nil`. If the setting is off, the app keeps retrying WebSocket
+  endpoints only, since for a user whose whole point is bypassing TCP-level blocking, silently falling
+  back to the blocked transport would defeat the feature and make failures hard to diagnose.
 
 Direct TCP, SOCKS5, and MTProto-proxy transport are untouched: they're `MTTcpConnection`'s existing
-default path, unconditionally available whenever `context.makeTcpConnectionInterface` isn't set (feature
-off) or returns `nil` (feature on but exhausted).
+default path, available whenever the factory returns `nil` (feature on but exhausted) or the feature is
+off. Turning the feature off restores whatever factory the account was using before rather than clearing
+it — on an account with the `NetworkSettings.useNetworkFramework` experiment enabled that is
+`NetworkFrameworkTcpConnectionInterface`, and otherwise nothing, which is `MTTcpConnection`'s own
+default. `setDefaultTcpConnectionInterface` in `Network.swift` is the single place that choice is made;
+`applyWebSocketTransport` defers to it on every path that is not "WebSocket transport is on".
 
 ## TLS / security decisions
 
@@ -231,31 +250,43 @@ intentionally independent of the SOCKS5/MTProxy server list above it (`enabled`/
 — WS transport changes *how* MtProtoKit opens its socket, not *which* proxy server is used, and DC
 hostnames are not exposed to the user.
 
-**Known limitation**: the new UI strings are hardcoded English literals, not routed through the
-project's generated `PresentationStrings` localization pipeline — that pipeline is a large generated
-surface and wiring in new keys for every supported language was out of scope for this pass. Follow-up:
-add proper `Localizable.strings` keys and regenerate `PresentationStrings` once the feature is ready to
-ship broadly.
+Both toggles apply to a running account without a relaunch. `Account.swift` subscribes to
+`SharedDataKeys.proxySettings`, re-runs `applyWebSocketTransport` against the live `MTContext`, and then
+calls `Network.rebuildTransport()`. That last step is required, not cosmetic: `MTTcpConnection` captures
+`makeTcpConnectionInterface` when it is constructed, so replacing the factory on the context leaves every
+existing connection on the old transport. `rebuildTransport` goes through `MTProto`'s `pause()`/`resume()`
+— the only public route to `resetTransport` — and consults the current `shouldKeepConnection` value first,
+because `MTProtoStatePaused` is a flag rather than a counter and an unconditional `resume()` would wake a
+connection the app had deliberately paused. The subscription's first emission is skipped, since
+`initializedNetwork` has already applied those same values and rebuilding there would restart a connection
+that is still coming up.
+
+**Known limitation**: the new UI strings are literals rather than keys routed through the project's
+generated `PresentationStrings` pipeline. They follow the bilingual RU/EN pattern the fork's other
+proxy-screen additions use (`ForkPresentationLanguage.prefersRussianStrings`), so they are not
+English-only, but they are not localized beyond those two languages either. Follow-up: add proper
+`Localizable.strings` keys and regenerate `PresentationStrings` once the feature ships broadly.
 
 ## Testing
 
 `submodules/MTWebSocketTransport/` has its own `ios_unit_test` target (`MTWebSocketTransportTests`),
-mirroring the project's existing `//submodules/TextFormat:TextFormatTests` pattern. This fork doesn't use
-Telegram's private git-based codesigning repository, so use `--xcodeManagedCodesigning` instead of
-`--gitCodesigningRepository`/`TELEGRAM_CODESIGNING_GIT_PASSWORD`:
+mirroring the project's existing `//submodules/TextFormat:TextFormatTests` pattern. Run it the way
+`CLAUDE.md` documents for a single target:
 
 ```
-python3 build-system/Make/Make.py --overrideXcodeVersion --cacheDir ~/telegram-bazel-cache \
+source ~/.zshrc 2>/dev/null; python3 build-system/Make/Make.py --overrideXcodeVersion \
+ --cacheDir ~/telegram-bazel-cache \
  test --configurationPath build-system/appstore-configuration.json \
- --xcodeManagedCodesigning \
+ --gitCodesigningRepository git@gitlab.com:peter-iakovlev/fastlanematch.git \
+ --gitCodesigningType development --gitCodesigningUseCurrent \
  --target //submodules/MTWebSocketTransport:MTWebSocketTransportTests
 ```
 
-Verified passing (real Bazel `ios_unit_test`, iOS 26.0 simulator, iPhone 17): **33/33 tests, 0 failures**.
-The `ios_test_runner` in `submodules/MTWebSocketTransport/BUILD` pins `os_version = "26.0"` to match the
-simulator runtime actually installed in this dev environment — bump it if a newer runtime is the local
-default elsewhere. The same logic was also independently smoke-tested via a throwaway standalone SwiftPM
-package (bypassing Bazel entirely) with identical results, before the Bazel toolchain was available.
+**Not yet run in this fork.** The suite passed upstream in the repository it was ported from, but nothing
+here has been built or executed — see "Known limitations". The `ios_test_runner` in
+`submodules/MTWebSocketTransport/BUILD` pins `os_version = "26.5"` / `iPhone 17` to match
+`//submodules/TextFormat:TextFormatTests`, this fork's other `ios_unit_test`; the default runner picks an
+invalid device and the test process exits 15.
 
 Coverage: small/126+-byte/65536+-byte frames (7/16/64-bit length encoding), masking round-trip,
 unmasked-frame decoding, ping/pong, close (with/without code+reason), single- and multi-step
@@ -267,32 +298,23 @@ reset-on-success, threshold-triggered fallback signal). None of it depends on a 
 device — it's all pure logic over synthetic byte buffers, so it can't be flaky.
 
 No test exercises a live `kwsN.web.telegram.org` connection; that would require network access and would
-be flaky/environment-dependent in CI, which the task explicitly asked to avoid. The networking glue in
+be flaky and environment-dependent. The networking glue in
 `MTWebSocketConnectionInterface.swift` is therefore verified by code review and (pending environment
 availability — see "Known limitations") a real device/simulator run, not by automated tests.
 
 ## Known limitations
 
-- **Not yet verified against a live Telegram DC.** See the accompanying implementation report for the
-  current build/test verification status in this environment.
-- **This fork's `submodules/rlottie/rlottie` and `submodules/TgVoipWebrtc/tgcalls` submodule remotes are
-  unreachable** (`git@github.com:Fgeeha/rlottie.git` 404s; `tgcalls` was never initialized), which
-  transitively blocks a full `//Telegram:Telegram` app build and even `//submodules/SettingsUI:SettingsUI`
-  in isolation (Lottie-consuming UI components sit on the path to almost everything). This is a pre-existing
-  gap in this fork's submodule configuration, unrelated to the WebSocket transport work — `ProxyListSettingsController.swift`
-  could only be verified by manual review against this file's own existing patterns, not by compiling it.
-- **`submodules/MtProtoKit/Sources/MTNetworkAvailability.m` fails to compile on newer SDKs** (Xcode 26.6
-  here) because it calls several `SCNetworkReachability*` APIs deprecated in macOS 14.4, and the build
-  treats warnings as errors. This is pre-existing in unmodified upstream MtProtoKit — nothing this feature
-  touches — and was left as-is rather than patched, since it's out of scope for a WebSocket-transport
-  change. It blocks a fully clean `MtProtoKit`/`TelegramCore` Bazel build on this toolchain; it does not
-  indicate any problem with the code in this document.
+- **Not yet verified against a live Telegram DC**, and not yet built. This document and the code under
+  it were ported into this fork in an environment without Bazel, so every claim here rests on review and
+  on reasoning against this tree's own sources, not on a compiler or on traffic. Building it and
+  confirming that `kwsN.web.telegram.org/apiws` actually accepts this handshake is the outstanding
+  verification step.
 - **Sec-WebSocket-Accept is not cryptographically checked** (see "TLS / security decisions" — deliberate,
   not a gap in the security model, but worth knowing if a stricter WS-conformance check is ever desired).
 - **Cloudflare Worker / Cloudflare-proxy fallback is not implemented.** `WebSocketEndpointCandidate` is
   structured so a future candidate type could be added without another MtProtoKit-level change, but no
   such candidate exists yet.
-- **UI strings are hardcoded English**, not localized (see "Settings").
+- **UI strings are RU/EN literals**, not routed through the localization pipeline (see "Settings").
 - **DC 203 handling is untested against real traffic** — folded to DC 2 per tg-ws-proxy's own behavior,
   but this fork has no way to exercise it live.
 - **Background/foreground transition handling was not independently re-verified for the WS path.** It

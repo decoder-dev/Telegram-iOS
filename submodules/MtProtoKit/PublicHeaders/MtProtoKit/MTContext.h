@@ -91,8 +91,12 @@
  The block itself may return nil (e.g. to signal "give up on this alternate transport, use the default
  TCP socket instead") - MTTcpConnection already falls back to MTGcdAsyncSocketTcpConnectionInterface
  whenever the returned interface is nil, same as when no factory is set at all.
+
+ atomic, because the factory is replaced at runtime: the WebSocket transport toggle re-applies it on a
+ live context from the settings queue, while MTTcpConnection reads it from the TCP queue on every
+ connection it opens. A nonatomic block property offers no protection against that overlap.
  */
-@property (nonatomic, copy) id<MTTcpConnectionInterface> _Nullable (^ _Nullable makeTcpConnectionInterface)(id<MTTcpConnectionInterfaceDelegate> _Nonnull delegate, dispatch_queue_t _Nonnull delegateQueue, NSInteger datacenterId, bool isMedia, bool isTestingEnvironment);
+@property (atomic, copy) id<MTTcpConnectionInterface> _Nullable (^ _Nullable makeTcpConnectionInterface)(id<MTTcpConnectionInterfaceDelegate> _Nonnull delegate, dispatch_queue_t _Nonnull delegateQueue, NSInteger datacenterId, bool isMedia, bool isTestingEnvironment);
 
 + (int32_t)fixedTimeDifference;
 + (void)setFixedTimeDifference:(int32_t)fixedTimeDifference;
