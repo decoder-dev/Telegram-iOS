@@ -1518,6 +1518,9 @@ public class Account {
             latestProxySettings.with { $0 }
         }))
 
+        // `initializedNetwork` already applied these values, so the first emission has nothing to
+        // change and must not force a transport rebuild on a connection that is still coming up.
+        let webSocketTransportIsInitialApply = Atomic<Bool>(value: true)
         self.managedOperationsDisposable.add((accountManager.sharedData(keys: [SharedDataKeys.proxySettings])
         |> map { sharedData -> (Bool, Bool, Bool) in
             if let settings = sharedData.entries[SharedDataKeys.proxySettings]?.get(ProxySettings.self) {
@@ -1539,7 +1542,10 @@ public class Account {
             // Transport" in Settings — or enabling/disabling a proxy server while WS transport is
             // on — has no effect until the app is relaunched.
             applyWebSocketTransport(context: network.context, webSocketTransportEnabled: webSocketTransportEnabled, webSocketFallbackToDirect: webSocketFallbackToDirect, hasActiveProxyServer: hasActiveProxyServer, useNetworkFramework: network.usesNetworkFrameworkTcpConnection)
-            network.dropConnectionStatus()
+            if !webSocketTransportIsInitialApply.swap(false) {
+                network.dropConnectionStatus()
+                network.rebuildTransport()
+            }
         }))
         
         if !supplementary {

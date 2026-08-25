@@ -905,6 +905,29 @@ public final class Network: NSObject, MTRequestMessageServiceDelegate {
         _connectionStatus.set(.single(.waitingForNetwork))
     }
     
+    /// Tears down and rebuilds MtProtoKit's transport so that a changed
+    /// `MTContext.makeTcpConnectionInterface` takes effect now instead of on the next natural
+    /// reconnect — `MTTcpConnection` captures the factory when it is constructed, so replacing it on
+    /// the context alone leaves every live connection on the old transport.
+    ///
+    /// `pause()`/`resume()` are the only public way in to `resetTransport`, and `MTProtoStatePaused`
+    /// is a single flag rather than a counter, so an unconditional `resume()` would wake a connection
+    /// the app had deliberately paused. The current `shouldKeepConnection` value decides instead:
+    /// when it is false the connection stays paused, exactly as the subscription in `init` left it.
+    func rebuildTransport() {
+        let _ = (self.shouldKeepConnection.get()
+        |> take(1)
+        |> deliverOn(self.queue)).start(next: { [weak self] shouldKeepConnection in
+            guard let strongSelf = self else {
+                return
+            }
+            strongSelf.mtProto.pause()
+            if shouldKeepConnection {
+                strongSelf.mtProto.resume()
+            }
+        })
+    }
+    
     public let shouldKeepConnection = Promise<Bool>(false)
     private let shouldKeepConnectionDisposable = MetaDisposable()
     
