@@ -1039,17 +1039,33 @@ public class ChatMessageInstantVideoItemNode: ChatMessageItemView, ASGestureReco
         return nil
     }
     
-    /// Places the share button next to the circle, lifted clear of the transcription button when
-    /// one is shown. The transcription button lives inside the video node, in the trailing bottom
-    /// corner of the circle for an incoming message - which is exactly where the share button's
-    /// leading bottom corner falls, so without this the two badges overlap by a few points.
+    /// Places the share button next to the circle, lifted clear of the badges the video node draws in
+    /// the trailing bottom corner (the transcription button and the status pill). Those land exactly
+    /// where the share button's leading bottom corner falls on an incoming message, so without this
+    /// they overlap - by 7x6pt against the transcription button at any font size, and against the
+    /// status pill once a large chat font makes it tall enough.
     private func shareButtonFrame(size: CGSize, videoFrame: CGRect, containerWidth: CGFloat) -> CGRect {
         var frame = CGRect(origin: CGPoint(x: min(containerWidth - size.width - 8.0, videoFrame.maxX - 7.0), y: videoFrame.maxY - 24.0 - size.height), size: size)
-        if let transcriptionButtonFrame = self.interactiveVideoNode.visibleAudioTranscriptionButtonFrame {
-            let transcriptionFrame = transcriptionButtonFrame.offsetBy(dx: videoFrame.minX, dy: videoFrame.minY)
-            if transcriptionFrame.intersects(frame) {
-                frame.origin.y = transcriptionFrame.minY - 8.0 - size.height
+        
+        var liftedTop: CGFloat?
+        for overlayFrame in self.interactiveVideoNode.trailingOverlayFrames {
+            let overlayFrame = overlayFrame.offsetBy(dx: videoFrame.minX, dy: videoFrame.minY)
+            if overlayFrame.intersects(frame) {
+                liftedTop = min(liftedTop ?? overlayFrame.minY, overlayFrame.minY)
             }
+        }
+        guard let liftedTop else {
+            return frame
+        }
+        frame.origin.y = liftedTop - 8.0 - size.height
+        
+        // The circle is wider higher up, so a lifted button can need to move outward to stay clear of
+        // it. `min` with the container keeps the push from running the button off the trailing edge.
+        let clearance = videoFrame.width / 2.0 - 2.0 + size.width / 2.0
+        let verticalDistance = abs(frame.midY - videoFrame.midY)
+        if verticalDistance < clearance {
+            let minimumCenterX = videoFrame.midX + sqrt(clearance * clearance - verticalDistance * verticalDistance)
+            frame.origin.x = min(containerWidth - size.width - 8.0, max(frame.origin.x, minimumCenterX - size.width / 2.0))
         }
         return frame
     }

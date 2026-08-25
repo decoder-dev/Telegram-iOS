@@ -159,15 +159,20 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
     public var audioTranscriptionState: AudioTranscriptionButtonComponent.TranscriptionState = .collapsed
     public var audioTranscriptionText: TranscribedText?
     private var transcribeDisposable: Disposable?
-    /// Frame of the transcription button in this node's coordinate space, or `nil` when it is
-    /// not on screen. The item node needs it to keep the share button clear of the button:
-    /// for an incoming message both land in the trailing bottom corner of the circle.
-    public var visibleAudioTranscriptionButtonFrame: CGRect? {
-        // The opacity is driven through the layer by the layout animator, so read it there.
-        guard let audioTranscriptionButton = self.audioTranscriptionButton, audioTranscriptionButton.layer.opacity > 0.0 else {
-            return nil
+    /// Frames, in this node's coordinate space, of the badges drawn in the trailing bottom corner of
+    /// the circle - the transcription button and the status pill. The item node needs them to keep
+    /// the share button clear: for an incoming message they land exactly where its leading bottom
+    /// corner falls, and a large chat font makes the status pill tall enough to reach it either way.
+    public var trailingOverlayFrames: [CGRect] {
+        var result: [CGRect] = []
+        // Opacity is driven through the layer by the layout animator, so read it there.
+        if let audioTranscriptionButton = self.audioTranscriptionButton, audioTranscriptionButton.layer.opacity > 0.0 {
+            result.append(audioTranscriptionButton.frame)
         }
-        return audioTranscriptionButton.frame
+        if !self.dateAndStatusNode.isHidden, self.dateAndStatusNode.layer.opacity > 0.0, !self.dateAndStatusNode.frame.isEmpty {
+            result.append(self.dateAndStatusNode.frame)
+        }
+        return result
     }
     
     public var hasExpandedAudioTranscription: Bool {
@@ -566,48 +571,31 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
             }
             let dateText = stringForMessageTimestampStatus(context: item.context, message: EngineMessage(item.message), dateTimeFormat: item.presentationData.dateTimeFormat, nameDisplayOrder: item.presentationData.nameDisplayOrder, strings: item.presentationData.strings, format: dateFormat, associatedData: item.associatedData, ignoreAuthor: item.presentationData.isPreview)
             
-            var displaysTranscribeButton = false
-            if item.message.id.peerId.namespace != Namespaces.Peer.SecretChat && statusDisplayType == .free && !isViewOnceMessage && !item.presentationData.isPreview {
-                let premiumConfiguration = PremiumConfiguration.with(appConfiguration: item.context.currentAppConfiguration.with { $0 })
-                if item.associatedData.isPremium || item.associatedData.alwaysDisplayTranscribeButton.providedByGroupBoost {
-                    displaysTranscribeButton = true
-                } else if premiumConfiguration.audioTransciptionTrialCount > 0 {
-                    if incoming {
-                        displaysTranscribeButton = true
-                    }
-                } else if item.associatedData.alwaysDisplayTranscribeButton.canBeDisplayed {
-                    if incoming && notConsumed && item.associatedData.alwaysDisplayTranscribeButton.displayForNotConsumed {
-                        displaysTranscribeButton = true
-                    } else {
-                        displaysTranscribeButton = false
-                    }
-                }
-            }
-            
             let maxDateAndStatusWidth: CGFloat
             if case .bubble = statusDisplayType {
                 maxDateAndStatusWidth = width
             } else if item.presentationData.isPreview {
                 maxDateAndStatusWidth = width - videoFrame.midX - 65.0
-            } else if incoming {
-                // An incoming status is laid out in the gutter to the right of the circle, so its
-                // budget is whatever is left of that gutter. `videoFrame` is sized for the expanded
-                // playback state rather than for the circle that is actually drawn, and measuring
-                // against its midpoint costs about half the difference between the two - enough to
-                // truncate the date to "17 av...5:04" on a phone. Derive the budget from where the
-                // status really starts (see the `.constrained` branch in the apply block); the
-                // constants fold in the item node's 14pt leading inset and the 12pt trailing gutter
-                // its own clamp leaves.
-                if displaysTranscribeButton && scaleProgress.isZero {
-                    // Pinned one circle plus the button gap past the node's leading edge. While the
-                    // circle is scaled up for playback the button is faded out and stops acting as
-                    // an anchor, so the status falls back to the self-clamping placement below.
-                    maxDateAndStatusWidth = width - displaySize.width - 33.0
-                } else {
-                    maxDateAndStatusWidth = width - displaySize.width / 2.0 - 81.0
-                }
             } else {
-                maxDateAndStatusWidth = width - videoFrame.midX - 85.0
+                // The status is clamped to the circle's trailing edge and slides leftwards as it grows,
+                // so it has to stop before the badges in the bottom corners - the duration pill on one
+                // side, the transcription button on the other. The duration pill ends 56pt short of
+                // the centre, so the status may reach `width / 2 - 49` at the earliest and
+                // `width - 4` at the latest, less the 14pt of insets its own background adds.
+                let clearOfCornerBadges = displaySize.width / 2.0 + 31.0
+                if incoming {
+                    // `videoFrame` is sized for the expanded playback state rather than for the circle
+                    // that is actually drawn, so budgeting an incoming status against its midpoint costs
+                    // about half the difference between the two - which truncated the date to
+                    // "17 av...5:04" on a phone. Budget against the displayed circle instead; the
+                    // constant folds in the item node's 14pt leading inset and the 12pt trailing gutter
+                    // its own clamp leaves. When the transcription button pins the status further right
+                    // and it no longer fits there, the apply block moves it a row up rather than
+                    // letting it truncate.
+                    maxDateAndStatusWidth = min(width - displaySize.width / 2.0 - 81.0, clearOfCornerBadges)
+                } else {
+                    maxDateAndStatusWidth = min(width - videoFrame.midX - 85.0, clearOfCornerBadges)
+                }
             }
             
             var isReplyThread = false
@@ -882,7 +870,23 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
                         }))
                     }
                                                             
-                    var displayTranscribe = displaysTranscribeButton
+                    var displayTranscribe = false
+                    if item.message.id.peerId.namespace != Namespaces.Peer.SecretChat && statusDisplayType == .free && !isViewOnceMessage && !item.presentationData.isPreview {
+                        let premiumConfiguration = PremiumConfiguration.with(appConfiguration: item.context.currentAppConfiguration.with { $0 })
+                        if item.associatedData.isPremium || item.associatedData.alwaysDisplayTranscribeButton.providedByGroupBoost {
+                            displayTranscribe = true
+                        } else if premiumConfiguration.audioTransciptionTrialCount > 0 {
+                            if incoming {
+                                displayTranscribe = true
+                            }
+                        } else if item.associatedData.alwaysDisplayTranscribeButton.canBeDisplayed {
+                            if incoming && notConsumed && item.associatedData.alwaysDisplayTranscribeButton.displayForNotConsumed {
+                                displayTranscribe = true
+                            } else {
+                                displayTranscribe = false
+                            }
+                        }
+                    }
                     
                     if displayTranscribe, let durationBlurColor = durationBlurColor {
                         var added = false
@@ -979,7 +983,21 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
                         var dateAndStatusFrame = CGRect(origin: CGPoint(x: min(floorToScreenPixels(displayVideoFrame.midX) + 55.0 + 25.0 * scaleProgress, displayVideoFrame.maxX + right - dateAndStatusSize.width - 4.0), y: displayVideoFrame.maxY - dateAndStatusSize.height), size: dateAndStatusSize)
                         if incoming {
                             if let audioTranscriptionButton = strongSelf.audioTranscriptionButton, displayTranscribe {
-                                dateAndStatusFrame.origin.x = audioTranscriptionButton.frame.maxX + 7.0
+                                let besideButtonOrigin = audioTranscriptionButton.frame.maxX + 7.0
+                                // `right` of zero means the caller does not bound the trailing gutter -
+                                // the bubble content node publishes `overflowRight` from the layout
+                                // result instead - so there the status keeps its pinned position.
+                                if right <= 0.0 || besideButtonOrigin + dateAndStatusSize.width <= displayVideoFrame.maxX + right - 4.0 {
+                                    dateAndStatusFrame.origin.x = besideButtonOrigin
+                                } else {
+                                    // The gutter left of the trailing edge is too narrow for this status.
+                                    // A forwarded message in Saved Messages carries the full original date
+                                    // ("17 avg, 15:04"), which does not fit beside the button at any font
+                                    // size, and pinning it there truncated it to "17 av...5:04". Keep the
+                                    // clamped x computed above - it can never overflow - and move the
+                                    // status to the row above the button instead.
+                                    dateAndStatusFrame.origin.y = audioTranscriptionButton.frame.minY - 4.0 - dateAndStatusSize.height
+                                }
                             } else if item.presentationData.isPreview {
                                 dateAndStatusFrame.origin.x = displayVideoFrame.midX + 64.0
                             }
