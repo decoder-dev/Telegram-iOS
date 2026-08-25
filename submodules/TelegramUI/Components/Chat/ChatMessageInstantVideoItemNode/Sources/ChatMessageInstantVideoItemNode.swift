@@ -1039,35 +1039,59 @@ public class ChatMessageInstantVideoItemNode: ChatMessageItemView, ASGestureReco
         return nil
     }
     
-    /// Places the share button next to the circle, lifted clear of the badges the video node draws in
-    /// the trailing bottom corner (the transcription button and the status pill). Those land exactly
+    /// Places the share button next to the circle, clear of the badges the video node draws in the
+    /// trailing bottom corner (the transcription button and the status pill). Those land exactly
     /// where the share button's leading bottom corner falls on an incoming message, so without this
     /// they overlap - by 7x6pt against the transcription button at any font size, and against the
     /// status pill once a large chat font makes it tall enough.
     private func shareButtonFrame(size: CGSize, videoFrame: CGRect, containerWidth: CGFloat) -> CGRect {
-        var frame = CGRect(origin: CGPoint(x: min(containerWidth - size.width - 8.0, videoFrame.maxX - 7.0), y: videoFrame.maxY - 24.0 - size.height), size: size)
+        let frame = CGRect(origin: CGPoint(x: min(containerWidth - size.width - 8.0, videoFrame.maxX - 7.0), y: videoFrame.maxY - 24.0 - size.height), size: size)
         
-        var liftedTop: CGFloat?
+        // A minimum gap, not just an overlap test: measured on device the share button and the
+        // transcription chip sat a couple of points apart, which does not intersect but still reads
+        // as one crowded blob.
+        let minimumGap: CGFloat = 10.0
+        var collidingTop: CGFloat?
+        var crowdedTop: CGFloat?
         for overlayFrame in self.interactiveVideoNode.trailingOverlayFrames {
             let overlayFrame = overlayFrame.offsetBy(dx: videoFrame.minX, dy: videoFrame.minY)
+            // Only badges sharing a column with the button and reaching into or below its band count.
+            // Testing the badge's bottom rather than its top matters: when the status moves to the row
+            // above the transcription button it starts slightly higher than the button but still
+            // overlaps it.
+            guard overlayFrame.maxX > frame.minX, frame.maxX > overlayFrame.minX, overlayFrame.maxY > frame.minY else {
+                continue
+            }
             if overlayFrame.intersects(frame) {
-                liftedTop = min(liftedTop ?? overlayFrame.minY, overlayFrame.minY)
+                collidingTop = min(collidingTop ?? overlayFrame.minY, overlayFrame.minY)
+            }
+            if frame.maxY + minimumGap > overlayFrame.minY {
+                crowdedTop = min(crowdedTop ?? overlayFrame.minY, overlayFrame.minY)
             }
         }
-        guard let liftedTop else {
+        guard let crowdedTop else {
             return frame
         }
-        frame.origin.y = liftedTop - 8.0 - size.height
+        
+        var lifted = frame
+        lifted.origin.y = crowdedTop - minimumGap - size.height
         
         // The circle is wider higher up, so a lifted button can need to move outward to stay clear of
         // it. `min` with the container keeps the push from running the button off the trailing edge.
         let clearance = videoFrame.width / 2.0 - 2.0 + size.width / 2.0
-        let verticalDistance = abs(frame.midY - videoFrame.midY)
+        let verticalDistance = abs(lifted.midY - videoFrame.midY)
         if verticalDistance < clearance {
             let minimumCenterX = videoFrame.midX + sqrt(clearance * clearance - verticalDistance * verticalDistance)
-            frame.origin.x = min(containerWidth - size.width - 8.0, max(frame.origin.x, minimumCenterX - size.width / 2.0))
+            lifted.origin.x = min(containerWidth - size.width - 8.0, max(lifted.origin.x, minimumCenterX - size.width / 2.0))
         }
-        return frame
+        
+        // Where the trailing edge leaves no room to move outward, lifting would drop the button onto
+        // the video instead. Accept that only when a badge actually overlaps it; plain crowding is
+        // the lesser problem of the two.
+        if collidingTop == nil, hypot(lifted.midX - videoFrame.midX, lifted.midY - videoFrame.midY) < clearance {
+            return frame
+        }
+        return lifted
     }
     
     @objc private func shareButtonPressed() {

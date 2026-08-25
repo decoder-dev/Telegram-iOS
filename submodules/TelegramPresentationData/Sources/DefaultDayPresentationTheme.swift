@@ -945,11 +945,11 @@ public func makeDefaultDayPresentationTheme(extendingThemeReference: Presentatio
     )
     
     let serviceMessageDay = PresentationThemeServiceMessage(
-        components: PresentationThemeServiceMessageColor(withDefaultWallpaper: PresentationThemeServiceMessageColorComponents(fill: UIColor(rgb: 0xffffff, alpha: 0.8), primaryText: UIColor(rgb: 0x76767a), linkHighlight: UIColor(rgb: 0x748391, alpha: 0.25), scam: UIColor(rgb: 0xff3b30), dateFillStatic: UIColor(rgb: 0xffffff, alpha: 0.8), dateFillFloating: UIColor(rgb: 0xffffff, alpha: 0.8)), withCustomWallpaper: PresentationThemeServiceMessageColorComponents(fill: serviceBackgroundColor, primaryText: UIColor(rgb: 0xffffff), linkHighlight: UIColor(rgb: 0x748391, alpha: 0.25), scam: UIColor(rgb: 0xff3b30), dateFillStatic: UIColor(rgb: 0x000000, alpha: 0.55), dateFillFloating: serviceBackgroundColor.withAlphaComponent(serviceBackgroundColor.alpha * 0.6667))),
+        components: PresentationThemeServiceMessageColor(withDefaultWallpaper: PresentationThemeServiceMessageColorComponents(fill: UIColor(rgb: 0xe4e4e6), primaryText: UIColor(rgb: 0x5a5a5e), linkHighlight: UIColor(rgb: 0x748391, alpha: 0.25), scam: UIColor(rgb: 0xff3b30), dateFillStatic: UIColor(rgb: 0xe4e4e6), dateFillFloating: UIColor(rgb: 0xe4e4e6)), withCustomWallpaper: PresentationThemeServiceMessageColorComponents(fill: serviceBackgroundColor, primaryText: UIColor(rgb: 0xffffff), linkHighlight: UIColor(rgb: 0x748391, alpha: 0.25), scam: UIColor(rgb: 0xff3b30), dateFillStatic: UIColor(rgb: 0x000000, alpha: 0.55), dateFillFloating: serviceBackgroundColor.withAlphaComponent(serviceBackgroundColor.alpha * 0.6667))),
         unreadBarFillColor: UIColor(rgb: 0xffffff),
         unreadBarStrokeColor: UIColor(rgb: 0xffffff),
         unreadBarTextColor: UIColor(rgb: 0x76767a),
-        dateTextColor: PresentationThemeVariableColor(withWallpaper: UIColor(rgb: 0xffffff), withoutWallpaper: UIColor(rgb: 0x76767a))
+        dateTextColor: PresentationThemeVariableColor(withWallpaper: UIColor(rgb: 0xffffff), withoutWallpaper: UIColor(rgb: 0x5a5a5e))
     )
     
     let inputPanelMediaRecordingControl = PresentationThemeChatInputPanelMediaRecordingControl(
