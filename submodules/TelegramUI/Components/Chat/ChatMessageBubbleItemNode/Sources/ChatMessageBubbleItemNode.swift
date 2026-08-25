@@ -2840,7 +2840,37 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
                 
                 let closeButtonWidth: CGFloat = item.message.adAttribute != nil ? 18.0 : 0.0
                 
-                let sizeAndApply = authorNameLayout(TextNodeLayoutArguments(attributedString: attributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: max(0, maximumNodeWidth - layoutConstants.text.bubbleInsets.left - layoutConstants.text.bubbleInsets.right - credibilityIconWidth - rankBadgeSizeAndApply.0.size.width - closeButtonWidth), height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+                // What the header spends beside the name, worked out here rather than after the name
+                // is measured. `headerSizeWidth` below adds the title-avatar / topic-navigation
+                // gutter, a fixed 8pt and the boost badge on top of the name, but the name used to be
+                // measured without any of them - so on a channel post, where the title avatar alone
+                // is 31pt, the header reported about 39pt more than `maximumNodeWidth` (up to ~87pt
+                // with forum topic navigation). Nothing clamps that: `maxContentWidth` starts at
+                // `headerSize.width`, and the content-width loop further down only prints a DEBUG
+                // warning when a node reports too much - so the bubble grew past its maximum and its
+                // trailing edge, the status with it, ended up outside the frame.
+                var nameAvatarSpaceWidth: CGFloat = 0.0
+                if hasTitleAvatar {
+                    nameAvatarSpaceWidth += 26.0 + 5.0
+                    if hasTitleTopicNavigation {
+                        nameAvatarSpaceWidth += 4.0 + 26.0
+                        if let channel = item.message.peers[item.message.id.peerId], channel.isForum {
+                            nameAvatarSpaceWidth += 18.0
+                        }
+                    }
+                }
+                var nameTrailingWidth: CGFloat = 8.0 + credibilityIconWidth + boostBadgeWidth + closeButtonWidth
+                if !hasTitleTopicNavigation, rankBadgeSizeAndApply.0.size.width > 0.0 {
+                    nameTrailingWidth += rankBadgeSizeAndApply.0.size.width + 3.0
+                }
+                var nameReservedWidth = nameAvatarSpaceWidth + nameTrailingWidth
+                if hasTitleTopicNavigation, rankBadgeSizeAndApply.0.size.width > 0.0 {
+                    // Not part of `headerSizeWidth` in this case, but the budget kept reserving it
+                    // before this change; leave that alone rather than widen the name here.
+                    nameReservedWidth += rankBadgeSizeAndApply.0.size.width
+                }
+                
+                let sizeAndApply = authorNameLayout(TextNodeLayoutArguments(attributedString: attributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: max(0, maximumNodeWidth - layoutConstants.text.bubbleInsets.left - layoutConstants.text.bubbleInsets.right - nameReservedWidth), height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
                 nameNodeSizeApply = (sizeAndApply.0.size, {
                     return sizeAndApply.1()
                 })
@@ -2852,24 +2882,12 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
                 
                 nameNodeOriginY = headerSize.height
                 
-                var nameAvatarSpaceWidth: CGFloat = 0.0
                 if hasTitleAvatar {
                     headerSize.height += 12.0
-                    nameAvatarSpaceWidth += 26.0 + 5.0
-                    if hasTitleTopicNavigation {
-                        nameAvatarSpaceWidth += 4.0 + 26.0
-                        if let channel = item.message.peers[item.message.id.peerId], channel.isForum {
-                            nameAvatarSpaceWidth += 18.0
-                        }
-                    }
                     nameNodeOriginY += 5.0
                 }
                 
-                var headerSizeWidth = nameAvatarSpaceWidth + nameNodeSizeApply.0.width + 8.0 + credibilityIconWidth + boostBadgeWidth + closeButtonWidth + bubbleWidthInsets
-                if hasTitleTopicNavigation {
-                } else if rankBadgeSizeAndApply.0.size.width > 0.0 {
-                    headerSizeWidth += rankBadgeSizeAndApply.0.size.width + 3.0
-                }
+                let headerSizeWidth = nameAvatarSpaceWidth + nameNodeSizeApply.0.width + nameTrailingWidth + bubbleWidthInsets
 
                 headerSize.width = max(headerSize.width, headerSizeWidth)
                 headerSize.height += nameNodeSizeApply.0.height

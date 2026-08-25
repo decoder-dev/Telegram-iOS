@@ -4,7 +4,6 @@ import Network
 private final class WebProxyStream {
     let id: UInt32
     let connection: NWConnection
-    var receiveBuffer = Data()
     var pendingWrite = Data()
     var isWriting = false
     var isClosed = false

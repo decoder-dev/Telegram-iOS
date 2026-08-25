@@ -313,6 +313,12 @@ final class WebProxyHttpCarrier {
         if self.uplinkRunning || self.closed || self.sessionToken.isEmpty || self.pendingUplinkCount <= 0 {
             return
         }
+        // Resolved before anything is committed: taking the batch first and failing here left
+        // `uplinkRunning` latched true with the batch already consumed off the buffer.
+        guard let url = URL(string: "/api/v1/up", relativeTo: self.origin) else {
+            self.fail(WebProxyHttpCarrierError.uplinkRejected)
+            return
+        }
         self.uplinkRunning = true
         // Split on a frame boundary: a POST body must contain whole frames, so the cut point is the
         // last frame header that ends at or before the batch limit.
@@ -325,10 +331,6 @@ final class WebProxyHttpCarrier {
         let sequence = self.upSequence
         self.upSequence += 1
         
-        guard let url = URL(string: "/api/v1/up", relativeTo: self.origin) else {
-            self.fail(WebProxyHttpCarrierError.uplinkRejected)
-            return
-        }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.httpBody = batch
