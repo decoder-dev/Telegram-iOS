@@ -562,7 +562,7 @@ public class ChatMessageDateAndStatusNode: ASDisplayNode {
             }
             
             let dateFont = Font.regular(floor(arguments.presentationData.fontSize.baseDisplaySize * 11.0 / 17.0))
-            let (date, dateApply) = dateLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: updatedDateText, font: dateFont, textColor: dateColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .middle, constrainedSize: arguments.constrainedSize, alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            var (date, dateApply) = dateLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: updatedDateText, font: dateFont, textColor: dateColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .middle, constrainedSize: arguments.constrainedSize, alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             let checkOffset = floor(arguments.presentationData.fontSize.baseDisplaySize * 6.0 / 17.0)
             
@@ -782,7 +782,28 @@ public class ChatMessageDateAndStatusNode: ASDisplayNode {
             
             leftInset += reactionInset
             
-            let layoutSize = CGSize(width: leftInset + impressionWidth + date.size.width + statusWidth + backgroundInsets.left + backgroundInsets.right, height: date.size.height + backgroundInsets.top + backgroundInsets.bottom)
+            // Everything the status places either side of the date: the view counter, the reply /
+            // pin / stars badges, the delivery checkmarks and the background's own insets. The date
+            // is measured before any of it is known, against the full constrained width - so a long
+            // channel author signature, which `stringForMessageTimestampStatus` glues in front of the
+            // time, is truncated only at the width the *whole* status has to fit in, and the extras
+            // then push the status past that width. `ChatMessageBubbleItemNode` does not clamp a
+            // content node that reports more width than it allowed (under DEBUG it only prints a
+            // warning), so the bubble itself grows past its maximum and the status ends up outside
+            // the frame. Re-measure the date against what is actually left for it, and shift the
+            // three frames that were positioned from its old width by the difference.
+            let statusExtrasWidth = leftInset + impressionWidth + statusWidth + backgroundInsets.left + backgroundInsets.right
+            if statusExtrasWidth + date.size.width > arguments.constrainedSize.width {
+                let (updatedDate, updatedDateApply) = dateLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: updatedDateText, font: dateFont, textColor: dateColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .middle, constrainedSize: CGSize(width: max(1.0, arguments.constrainedSize.width - statusExtrasWidth), height: arguments.constrainedSize.height), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+                let shift = updatedDate.size.width - date.size.width
+                clockPosition.x += shift
+                checkReadFrame = checkReadFrame?.offsetBy(dx: shift, dy: 0.0)
+                checkSentFrame = checkSentFrame?.offsetBy(dx: shift, dy: 0.0)
+                date = updatedDate
+                dateApply = updatedDateApply
+            }
+            
+            let layoutSize = CGSize(width: statusExtrasWidth + date.size.width, height: date.size.height + backgroundInsets.top + backgroundInsets.bottom)
             
             let verticalReactionsInset: CGFloat
             let verticalInset: CGFloat
