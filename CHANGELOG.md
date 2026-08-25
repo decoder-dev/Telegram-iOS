@@ -6,6 +6,16 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3916-pre] — 2026-08-25
+
+Pre-release: WEB proxy carrier CPU/radio and reconnect backoff (includes cancelled 3915 badge fixes).
+
+### Fixed
+- **WEB proxy:** empty downlink polls paced (0.5–5s backoff); uplink buffers use a read cursor; WINDOW credit coalesced; NWConnection callbacks stay on the sidecar queue; bootstrap no longer blocks the serial queue on semaphores.
+- **WEB proxy:** a carrier that dies after becoming ready now shares bootstrap cooldown, so BYE/drop no longer loops unthrottled reconnects.
+- **Day theme / white wallpaper:** transcription and date badge chips use an opaque light grey (#E4E4E6) instead of an invisible white-on-white fill (from 3915, IPA was cancelled).
+- **Round video:** share and transcription buttons keep a 10pt minimum gap; lift only when the share button still clears the video circle (from 3915, IPA was cancelled).
+
 ## [v12.9.2-3915-pre] — 2026-08-25
 
 Pre-release: white-wallpaper badge chip visibility + round video share spacing.
