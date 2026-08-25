@@ -463,6 +463,64 @@ public struct NetworkInitializationArguments {
 private let cloudDataContext = Atomic<CloudDataContext?>(value: nil)
 #endif
 
+// Installs the factory MtProtoKit should use when the WebSocket transport is NOT in play. This is
+// the NetworkFramework TCP experiment when it is enabled for this account, and otherwise nil —
+// which makes MTTcpConnection use its own default `MTGcdAsyncSocketTcpConnectionInterface`.
+// `applyWebSocketTransport` needs this because it also runs as a *live* settings re-apply (see
+// Account.swift): turning the WebSocket toggle back off must restore whatever the account was
+// using before, not silently disable NetworkFramework for the rest of the session.
+func setDefaultTcpConnectionInterface(context: MTContext, useNetworkFramework: Bool) {
+    if useNetworkFramework, #available(iOS 12.0, macOS 14.0, *) {
+        context.makeTcpConnectionInterface = { delegate, delegateQueue, _, _, _ in
+            return NetworkFrameworkTcpConnectionInterface(delegate: delegate, delegateQueue: delegateQueue)
+        }
+    } else {
+        context.makeTcpConnectionInterface = nil
+    }
+}
+
+// Applies (or, when disabled, undoes) the WebSocket `MTTcpConnectionInterface` factory on `context`.
+// WebSocket transport intentionally takes precedence over the NetworkFramework TCP experiment
+// whenever it's enabled; when it is not, the factory reverts to whatever the account would use
+// otherwise via `setDefaultTcpConnectionInterface`. This runs both at `initializedNetwork` time and
+// as a live re-apply of the settings toggle on an already-running Network (see Account.swift's
+// `proxySettings` subscription), so it must be safe to call repeatedly and in either direction.
+func applyWebSocketTransport(context: MTContext, webSocketTransportEnabled: Bool, webSocketFallbackToDirect: Bool, hasActiveProxyServer: Bool, useNetworkFramework: Bool) {
+    // WebSocket transport must stay OFF whenever a SOCKS/MTProxy server is active. MtProtoKit's
+    // obfuscated-transport init (MTTcpConnection.m) derives its AES key as SHA256(prekey + secret)
+    // when a proxy secret is configured, matching the MTProxy wire protocol; with no secret it uses
+    // the raw prekey directly. Telegram's /apiws WS endpoint only understands the latter ("standard"
+    // no-secret) form. Dialing /apiws with secret-hashed bytes — or bypassing the user's chosen
+    // proxy server's address entirely by dialing Telegram's WS host directly — would silently break
+    // both the proxy and the WS transport at once, so an active proxy takes precedence and disables
+    // WS transport instead of racing it. This gate is deliberately type-agnostic (it tests only for
+    // *an* active server), so the fork's `web` proxy carrier is covered by it too.
+    guard webSocketTransportEnabled, !hasActiveProxyServer else {
+        if webSocketTransportEnabled && hasActiveProxyServer {
+            Logger.shared.log("Network", "[WS] factory NOT selected: a proxy server is active, falling back to direct TCP")
+        }
+        setDefaultTcpConnectionInterface(context: context, useNetworkFramework: useNetworkFramework)
+        return
+    }
+    if #available(iOS 12.0, macOS 14.0, *) {
+        Logger.shared.log("Network", "[WS] factory selected: websocket (fallbackToDirect=\(webSocketFallbackToDirect))")
+        // One coordinator per MTContext: shared across every reconnect attempt so
+        // "N consecutive total endpoint failures" is tracked for the lifetime of this
+        // Network/context, not reset on every redial. See MTWebSocketConnectionInterface.swift.
+        let fallbackCoordinator = webSocketFallbackToDirect ? MTWebSocketFallbackCoordinator() : nil
+        context.makeTcpConnectionInterface = { delegate, delegateQueue, datacenterId, isMedia, isTestingEnv in
+            if let fallbackCoordinator = fallbackCoordinator, !fallbackCoordinator.shouldUseWebSocket {
+                // Every WS endpoint has failed repeatedly this session; returning nil here
+                // makes MTTcpConnection fall back to its default TCP socket implementation.
+                return nil
+            }
+            return MTWebSocketConnectionInterface(delegate: delegate, delegateQueue: delegateQueue, datacenterId: datacenterId, isMediaConnection: isMedia, isTestingEnvironment: isTestingEnv, fallbackCoordinator: fallbackCoordinator)
+        }
+    } else {
+        setDefaultTcpConnectionInterface(context: context, useNetworkFramework: useNetworkFramework)
+    }
+}
+
 func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializationArguments, supplementary: Bool, datacenterId: Int, keychain: Keychain, basePath: String, testingEnvironment: Bool, languageCode: String?, proxySettings: ProxySettings?, networkSettings: NetworkSettings?, phoneNumber: String?, useRequestTimeoutTimers: Bool, appConfiguration: AppConfiguration) -> Signal<Network, NoError> {
     return Signal { subscriber in
         let queue = Queue()
@@ -508,24 +566,19 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
             let context = MTContext(serialization: serialization, encryptionProvider: arguments.encryptionProvider, apiEnvironment: apiEnvironment, isTestingEnvironment: testingEnvironment, useTempAuthKeys: useTempAuthKeys)
             context.forceLocalDNS = proxySettings?.useLocalDNSForProxyHosts ?? false
             
+            var useNetworkFrameworkTcpConnection = false
             if let networkSettings = networkSettings {
-                let useNetworkFramework: Bool
                 if let customValue = networkSettings.useNetworkFramework {
-                    useNetworkFramework = customValue
+                    useNetworkFrameworkTcpConnection = customValue
                 } else if arguments.useBetaFeatures {
-                    useNetworkFramework = true
-                } else {
-                    useNetworkFramework = false
-                }
-                
-                if useNetworkFramework {
-                    if #available(iOS 12.0, macOS 14.0, *) {
-                        context.makeTcpConnectionInterface = { delegate, delegateQueue in
-                            return NetworkFrameworkTcpConnectionInterface(delegate: delegate, delegateQueue: delegateQueue)
-                        }
-                    }
+                    useNetworkFrameworkTcpConnection = true
                 }
             }
+            
+            // Both branches are covered by applyWebSocketTransport: it installs the WebSocket factory
+            // when the toggle is on and no proxy server is active, and otherwise falls through to
+            // setDefaultTcpConnectionInterface with the same `useNetworkFramework` value.
+            applyWebSocketTransport(context: context, webSocketTransportEnabled: proxySettings?.webSocketTransportEnabled ?? false, webSocketFallbackToDirect: proxySettings?.webSocketFallbackToDirect ?? true, hasActiveProxyServer: proxySettings?.effectiveActiveServer != nil, useNetworkFramework: useNetworkFrameworkTcpConnection)
             
             let seedAddressList: [Int: [String]]
             
@@ -658,6 +711,8 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
             }
             
             let network = Network(queue: queue, datacenterId: datacenterId, context: context, mtProto: mtProto, requestService: requestService, connectionStatusDelegate: connectionStatusDelegate, _connectionStatus: connectionStatus, basePath: basePath, appDataDisposable: appDataDisposable, encryptionProvider: arguments.encryptionProvider, useRequestTimeoutTimers: useRequestTimeoutTimers, useBetaFeatures: arguments.useBetaFeatures, useExperimentalFeatures: useExperimentalFeatures)
+            
+            network.usesNetworkFrameworkTcpConnection = useNetworkFrameworkTcpConnection
             
             if let data = appConfiguration.data, let notifyInterval = data["upload_premium_speedup_notify_period"] as? Double {
                 network.updateNetworkSpeedLimitedEventNotifyInterval(value: notifyInterval)
@@ -819,6 +874,9 @@ public final class Network: NSObject, MTRequestMessageServiceDelegate {
     private let useRequestTimeoutTimers: Bool
     public let useBetaFeatures: Bool
     public let useExperimentalFeatures: Bool
+    /// Whether this account resolved to the NetworkFramework TCP experiment at init time. Needed so
+    /// the live "WebSocket Transport" re-apply can restore the right non-WebSocket factory.
+    var usesNetworkFrameworkTcpConnection: Bool = false
     
     private let appDataDisposable: Disposable
     

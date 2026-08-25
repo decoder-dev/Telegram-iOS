@@ -98,12 +98,20 @@ public struct ProxySettings: Codable, Equatable {
     public var autoFetchPublicMtProxy: Bool
     /// Servers last pulled by auto-fetch (kept separate from manually added entries).
     public var automaticServers: [ProxyServerSettings]
+    /// Native WebSocket MTProto transport (routes traffic through `kwsN.web.telegram.org/apiws` instead
+    /// of a raw TCP socket). Independent of `enabled`/`servers`/`activeServer` — it changes how MtProtoKit
+    /// opens its socket, not which SOCKS5/MTProxy server is used. See docs/websocket-transport.md.
+    public var webSocketTransportEnabled: Bool
+    /// When true, falls back to MtProtoKit's normal TCP transport after repeated WebSocket endpoint
+    /// failures for the rest of the session. When false, the app keeps retrying WebSocket endpoints only
+    /// (appropriate when the user's whole point is bypassing TCP-level blocking).
+    public var webSocketFallbackToDirect: Bool
     
     public static var defaultSettings: ProxySettings {
         return ProxySettings(enabled: false, servers: [], activeServer: nil, useForCalls: false, useLocalDNSForProxyHosts: false, autoRotateProxies: false, autoFetchPublicMtProxy: false, automaticServers: [])
     }
     
-    public init(enabled: Bool, servers: [ProxyServerSettings], activeServer: ProxyServerSettings?, useForCalls: Bool, useLocalDNSForProxyHosts: Bool = false, autoRotateProxies: Bool = false, autoFetchPublicMtProxy: Bool = false, automaticServers: [ProxyServerSettings] = []) {
+    public init(enabled: Bool, servers: [ProxyServerSettings], activeServer: ProxyServerSettings?, useForCalls: Bool, useLocalDNSForProxyHosts: Bool = false, autoRotateProxies: Bool = false, autoFetchPublicMtProxy: Bool = false, automaticServers: [ProxyServerSettings] = [], webSocketTransportEnabled: Bool = false, webSocketFallbackToDirect: Bool = true) {
         self.enabled = enabled
         self.servers = servers
         self.activeServer = activeServer
@@ -112,6 +120,8 @@ public struct ProxySettings: Codable, Equatable {
         self.autoRotateProxies = autoRotateProxies
         self.autoFetchPublicMtProxy = autoFetchPublicMtProxy
         self.automaticServers = automaticServers
+        self.webSocketTransportEnabled = webSocketTransportEnabled
+        self.webSocketFallbackToDirect = webSocketFallbackToDirect
     }
     
     public init(from decoder: Decoder) throws {
@@ -132,6 +142,8 @@ public struct ProxySettings: Codable, Equatable {
             self.autoFetchPublicMtProxy = false
         }
         self.automaticServers = (try? container.decode([ProxyServerSettings].self, forKey: "automaticServers")) ?? []
+        self.webSocketTransportEnabled = ((try? container.decode(Int32.self, forKey: "webSocketTransportEnabled")) ?? 0) != 0
+        self.webSocketFallbackToDirect = ((try? container.decode(Int32.self, forKey: "webSocketFallbackToDirect")) ?? 1) != 0
     }
     
     public func encode(to encoder: Encoder) throws {
@@ -147,6 +159,8 @@ public struct ProxySettings: Codable, Equatable {
         // under "autoFetchPublicMtProxy" was written here and never read by anything.
         try container.encode((self.autoFetchPublicMtProxy ? 1 : 0) as Int32, forKey: "autoFetchMtProxy")
         try container.encode(self.automaticServers, forKey: "automaticServers")
+        try container.encode((self.webSocketTransportEnabled ? 1 : 0) as Int32, forKey: "webSocketTransportEnabled")
+        try container.encode((self.webSocketFallbackToDirect ? 1 : 0) as Int32, forKey: "webSocketFallbackToDirect")
     }
     
     public var effectiveActiveServer: ProxyServerSettings? {

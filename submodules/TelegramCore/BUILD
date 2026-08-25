@@ -27,6 +27,7 @@ swift_library(
         "//submodules/TelegramCore/FlatSerialization",
         "//submodules/MurMurHash32",
         "//submodules/WebProxyTransport:WebProxyTransport",
+        "//submodules/MTWebSocketTransport",
     ],
     visibility = [
         "//visibility:public",

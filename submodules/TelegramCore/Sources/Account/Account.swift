@@ -1517,6 +1517,30 @@ public class Account {
         self.managedOperationsDisposable.add(registerWebProxySidecarReapply(network: network, currentSettings: {
             latestProxySettings.with { $0 }
         }))
+
+        self.managedOperationsDisposable.add((accountManager.sharedData(keys: [SharedDataKeys.proxySettings])
+        |> map { sharedData -> (Bool, Bool, Bool) in
+            if let settings = sharedData.entries[SharedDataKeys.proxySettings]?.get(ProxySettings.self) {
+                return (settings.webSocketTransportEnabled, settings.webSocketFallbackToDirect, settings.effectiveActiveServer != nil)
+            } else {
+                return (false, true, false)
+            }
+        }
+        |> distinctUntilChanged(isEqual: { lhs, rhs in
+            return lhs == rhs
+        })).start(next: { [weak network] webSocketTransportEnabled, webSocketFallbackToDirect, hasActiveProxyServer in
+            guard let network = network else {
+                return
+            }
+            // Unlike the SOCKS/MTProxy settings above, `makeTcpConnectionInterface` isn't part of
+            // `MTApiEnvironment`, so `updateApiEnvironment` won't pick this up: it must be applied
+            // to the already-running `MTContext` directly whenever the toggle (or the active-proxy
+            // state `applyWebSocketTransport` gates on) changes, otherwise flipping "WebSocket
+            // Transport" in Settings — or enabling/disabling a proxy server while WS transport is
+            // on — has no effect until the app is relaunched.
+            applyWebSocketTransport(context: network.context, webSocketTransportEnabled: webSocketTransportEnabled, webSocketFallbackToDirect: webSocketFallbackToDirect, hasActiveProxyServer: hasActiveProxyServer, useNetworkFramework: network.usesNetworkFrameworkTcpConnection)
+            network.dropConnectionStatus()
+        }))
         
         if !supplementary {
             self.managedOperationsDisposable.add(managedProxyFailover(accountManager: accountManager, network: network).start())

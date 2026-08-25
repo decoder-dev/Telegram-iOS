@@ -1,0 +1,614 @@
+import Foundation
+import Network
+
+import MtProtoKit
+import SwiftSignalKit
+import MTWebSocketTransport
+
+/// Tracks "every WS endpoint failed" outcomes across reconnect attempts and tells `Network.swift`'s
+/// `makeTcpConnectionInterface` closure when to stop returning a WebSocket interface for the rest of
+/// the session (only consulted when the user has enabled "fall back to direct transport"). One instance
+/// is created per `MTContext` and shared by every `MTWebSocketConnectionInterface` it spawns.
+final class MTWebSocketFallbackCoordinator {
+    private let state = Atomic<WebSocketFallbackPolicy>(value: WebSocketFallbackPolicy())
+    private let useWebSocketState = Atomic<Bool>(value: true)
+
+    var shouldUseWebSocket: Bool {
+        return self.useWebSocketState.with { $0 }
+    }
+
+    func recordAllEndpointsFailed() {
+        let policy = self.state.modify { policy in
+            var policy = policy
+            _ = policy.recordAllEndpointsFailed()
+            return policy
+        }
+        if policy.consecutiveTotalFailures >= policy.consecutiveFailureThreshold {
+            let wasUsingWebSocket = self.useWebSocketState.swap(false)
+            if wasUsingWebSocket {
+                Logger.shared.log("MTWebSocket", "[WS] all endpoints failed \(policy.consecutiveTotalFailures) times in a row, falling back to direct transport for this session")
+            }
+        }
+    }
+
+    func recordSuccess() {
+        _ = self.state.modify { policy in
+            var policy = policy
+            policy.recordSuccess()
+            return policy
+        }
+    }
+}
+
+/// `MTTcpConnectionInterface` implementation that carries MtProtoKit's already-framed/obfuscated byte
+/// stream over a WebSocket connection to `kwsN.web.telegram.org` (or `kwsN-1...`) instead of a raw TCP
+/// socket. All MTProto packet framing, obfuscation and crypto stay in `MTTcpConnection` above this
+/// class, untouched — see `docs/websocket-transport.md` for the full architecture rationale.
+///
+/// `inHost`/`port` passed to `connect(toHost:onPort:...)` are the literal Telegram DC IP MTTcpConnection
+/// resolved for the normal TCP path; they are meaningless for a WS front-end whose hostname/IP have no
+/// relation to the DC's direct IP, so this interface ignores them and dials its own DC -> hostname
+/// mapping (`WebSocketEndpointPlanner`) instead, using the `datacenterId`/`isMediaConnection`/
+/// `isTestingEnvironment` it was constructed with.
+@available(iOS 12.0, macOS 14.0, *)
+final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
+    private struct ReadRequest {
+        let length: Int
+        let tag: Int
+    }
+
+    private final class ExecutingReadRequest {
+        let request: ReadRequest
+        var data: Data
+        var readyLength: Int = 0
+
+        init(request: ReadRequest) {
+            self.request = request
+            self.data = Data(count: request.length)
+        }
+    }
+
+    private final class Impl {
+        private enum HandshakeState {
+            case tcpConnecting
+            case sentUpgradeRequest
+            case established
+        }
+
+        private let queue: Queue
+
+        private weak var delegate: MTTcpConnectionInterfaceDelegate?
+        private let delegateQueue: DispatchQueue
+
+        private let datacenterId: Int
+        private let isMediaConnection: Bool
+        private let isTestingEnvironment: Bool
+        private let fallbackCoordinator: MTWebSocketFallbackCoordinator?
+
+        private var connection: NWConnection?
+        private var reportedDisconnection = false
+        private var currentInterfaceIsWifi = true
+
+        private var connectTimeout: Double = 12.0
+        private var connectTimeoutTimer: SwiftSignalKit.Timer?
+
+        private var endpointSelector: WebSocketEndpointSelector
+        private var currentCandidateHost: String?
+        private var currentCandidatePath: String?
+
+        private var handshakeState: HandshakeState = .tcpConnecting
+        private var handshakeResponseBuffer = Data()
+        private var reassembler = WebSocketMessageReassembler()
+        private var readBuffer = Data()
+
+        private var readRequests: [ReadRequest] = []
+        private var currentReadRequest: ExecutingReadRequest?
+
+        private var usageCalculationInfo: MTNetworkUsageCalculationInfo?
+        private var networkUsageManager: MTNetworkUsageManager?
+
+        init(
+            queue: Queue,
+            delegate: MTTcpConnectionInterfaceDelegate,
+            delegateQueue: DispatchQueue,
+            datacenterId: Int,
+            isMediaConnection: Bool,
+            isTestingEnvironment: Bool,
+            fallbackCoordinator: MTWebSocketFallbackCoordinator?
+        ) {
+            self.queue = queue
+            self.delegate = delegate
+            self.delegateQueue = delegateQueue
+            self.datacenterId = datacenterId
+            self.isMediaConnection = isMediaConnection
+            self.isTestingEnvironment = isTestingEnvironment
+            self.fallbackCoordinator = fallbackCoordinator
+            self.endpointSelector = WebSocketEndpointSelector(candidates: WebSocketEndpointPlanner.candidates(
+                datacenterId: datacenterId,
+                isMedia: isMediaConnection,
+                isTestingEnvironment: isTestingEnvironment
+            ))
+        }
+
+        deinit {
+        }
+
+        func setUsageCalculationInfo(_ usageCalculationInfo: MTNetworkUsageCalculationInfo?) {
+            if self.usageCalculationInfo !== usageCalculationInfo {
+                self.usageCalculationInfo = usageCalculationInfo
+                if let usageCalculationInfo = usageCalculationInfo {
+                    self.networkUsageManager = MTNetworkUsageManager(info: usageCalculationInfo)
+                } else {
+                    self.networkUsageManager = nil
+                }
+            }
+        }
+
+        func connect(timeout: Double) {
+            if self.connection != nil {
+                assertionFailure("A connection already exists")
+                return
+            }
+            self.connectTimeout = timeout
+            self.endpointSelector.reset()
+            self.dialCurrentCandidate()
+        }
+
+        private func dialCurrentCandidate() {
+            guard let candidate = self.endpointSelector.current else {
+                self.fallbackCoordinator?.recordAllEndpointsFailed()
+                self.cancelWithError(error: nil)
+                return
+            }
+
+            let mediaSuffix = self.isMediaConnection ? " media" : ""
+            Logger.shared.log("MTWebSocket", "[WS] DC\(self.datacenterId)\(mediaSuffix) -> \(candidate.host)\(candidate.path)")
+
+            self.handshakeState = .tcpConnecting
+            self.handshakeResponseBuffer = Data()
+            self.reassembler = WebSocketMessageReassembler()
+            self.currentCandidateHost = candidate.host
+            self.currentCandidatePath = candidate.path
+
+            let host = NWEndpoint.Host(candidate.host)
+            guard let port = NWEndpoint.Port(rawValue: candidate.port) else {
+                self.candidateFailed(error: nil)
+                return
+            }
+
+            let tcpOptions = NWProtocolTCP.Options()
+            tcpOptions.noDelay = true
+            tcpOptions.enableKeepalive = true
+            tcpOptions.keepaliveIdle = 5
+            tcpOptions.keepaliveCount = 2
+            tcpOptions.keepaliveInterval = 5
+            tcpOptions.enableFastOpen = true
+
+            // Default sec_protocol_options: full certificate-chain + hostname validation, with SNI
+            // derived by Network.framework from `host`. Deliberately NOT weakened — see the "TLS /
+            // security" section of docs/websocket-transport.md for why tg-ws-proxy's CERT_NONE /
+            // check_hostname=False pattern was not ported.
+            let tlsOptions = NWProtocolTLS.Options()
+
+            let parameters = NWParameters(tls: tlsOptions, tcp: tcpOptions)
+            let connection = NWConnection(host: host, port: port, using: parameters)
+            self.connection = connection
+
+            let queue = self.queue
+            connection.stateUpdateHandler = { [weak self] state in
+                queue.async {
+                    self?.stateUpdated(state: state)
+                }
+            }
+            connection.pathUpdateHandler = { [weak self] path in
+                queue.async {
+                    guard let self = self else {
+                        return
+                    }
+                    self.currentInterfaceIsWifi = !path.usesInterfaceType(.cellular)
+                }
+            }
+            connection.viabilityUpdateHandler = { [weak self] isViable in
+                queue.async {
+                    guard let self = self else {
+                        return
+                    }
+                    if !isViable {
+                        self.candidateFailed(error: nil)
+                    }
+                }
+            }
+
+            self.connectTimeoutTimer = SwiftSignalKit.Timer(timeout: self.connectTimeout, repeat: false, completion: { [weak self] in
+                self?.connectTimeoutTimer = nil
+                self?.candidateFailed(error: nil)
+            }, queue: self.queue)
+            self.connectTimeoutTimer?.start()
+
+            connection.start(queue: self.queue.queue)
+        }
+
+        private func stateUpdated(state: NWConnection.State) {
+            switch state {
+            case .ready:
+                if let path = self.connection?.currentPath {
+                    self.currentInterfaceIsWifi = !path.usesInterfaceType(.cellular)
+                }
+                self.beginWebSocketHandshake()
+            case let .failed(error):
+                self.candidateFailed(error: error)
+            default:
+                break
+            }
+        }
+
+        private func beginWebSocketHandshake() {
+            guard let connection = self.connection, let host = self.currentCandidateHost, let path = self.currentCandidatePath else {
+                return
+            }
+
+            let key = Impl.makeSecWebSocketKey()
+            var request = "GET \(path) HTTP/1.1\r\n"
+            request += "Host: \(host)\r\n"
+            request += "Upgrade: websocket\r\n"
+            request += "Connection: Upgrade\r\n"
+            request += "Sec-WebSocket-Key: \(key)\r\n"
+            request += "Sec-WebSocket-Version: 13\r\n"
+            // Telegram's kwsN.web.telegram.org gateway uses this to select binary vs. text/JSON WS
+            // framing; tg-ws-proxy's RawWebSocket.connect() sends the same value (proxy/raw_websocket.py,
+            // commit b2a8074c). Omitting it risks the gateway defaulting to a mode MtProtoKit's raw
+            // obfuscated byte stream doesn't match.
+            request += "Sec-WebSocket-Protocol: binary\r\n"
+            request += "\r\n"
+            guard let requestData = request.data(using: .utf8) else {
+                self.candidateFailed(error: nil)
+                return
+            }
+
+            self.handshakeState = .sentUpgradeRequest
+
+            connection.send(content: requestData, completion: .contentProcessed({ [weak self] error in
+                guard let error = error else {
+                    return
+                }
+                self?.queue.async {
+                    self?.candidateFailed(error: error)
+                }
+            }))
+
+            self.receiveLoop()
+        }
+
+        private func receiveLoop() {
+            guard let connection = self.connection else {
+                return
+            }
+            connection.receive(minimumIncompleteLength: 1, maximumLength: 64 * 1024, completion: { [weak self] data, _, isComplete, error in
+                guard let self = self else {
+                    return
+                }
+                self.queue.async {
+                    guard let currentConnection = self.connection, currentConnection === connection else {
+                        // This receive belonged to a candidate we've already abandoned.
+                        return
+                    }
+                    if let data = data, !data.isEmpty {
+                        self.networkUsageManager?.addIncomingBytes(UInt(data.count), interface: self.currentInterfaceIsWifi ? MTNetworkUsageManagerInterfaceOther : MTNetworkUsageManagerInterfaceWWAN)
+                        self.handleIncomingBytes(data)
+                    }
+                    if let error = error {
+                        self.candidateFailed(error: error)
+                        return
+                    }
+                    if isComplete {
+                        self.cancelWithError(error: nil)
+                        return
+                    }
+                    if self.connection != nil {
+                        self.receiveLoop()
+                    }
+                }
+            })
+        }
+
+        private func handleIncomingBytes(_ data: Data) {
+            switch self.handshakeState {
+            case .sentUpgradeRequest:
+                self.handshakeResponseBuffer.append(data)
+                guard let headerRange = Impl.findHeaderTerminator(in: self.handshakeResponseBuffer) else {
+                    if self.handshakeResponseBuffer.count > 16 * 1024 {
+                        self.candidateFailed(error: nil)
+                    }
+                    return
+                }
+                let headerData = self.handshakeResponseBuffer.subdata(in: self.handshakeResponseBuffer.startIndex ..< headerRange.lowerBound)
+                let remainder = self.handshakeResponseBuffer.subdata(in: headerRange.upperBound ..< self.handshakeResponseBuffer.endIndex)
+                guard let headerString = String(data: headerData, encoding: .utf8), Impl.isSuccessfulUpgradeResponse(headerString) else {
+                    self.candidateFailed(error: nil)
+                    return
+                }
+                self.handshakeState = .established
+                self.handshakeResponseBuffer = Data()
+                self.markCandidateConnected()
+                if !remainder.isEmpty {
+                    self.processWebSocketBytes(remainder)
+                }
+            case .established:
+                self.processWebSocketBytes(data)
+            case .tcpConnecting:
+                break
+            }
+        }
+
+        private func markCandidateConnected() {
+            Logger.shared.log("MTWebSocket", "[WS] handshake OK (\(self.currentCandidateHost ?? "?"))")
+            if let connectTimeoutTimer = self.connectTimeoutTimer {
+                self.connectTimeoutTimer = nil
+                connectTimeoutTimer.invalidate()
+            }
+            self.fallbackCoordinator?.recordSuccess()
+
+            let delegate = self.delegate
+            self.delegateQueue.async { [weak delegate] in
+                delegate?.connectionInterfaceDidConnect()
+            }
+            self.serviceReadRequests()
+        }
+
+        private func processWebSocketBytes(_ data: Data) {
+            let events = self.reassembler.feed(data)
+            for event in events {
+                switch event {
+                case let .message(_, payload):
+                    self.readBuffer.append(payload)
+                case let .ping(payload):
+                    self.sendControlFrame(opcode: .pong, payload: payload)
+                case .pong:
+                    break
+                case let .close(code, _):
+                    Logger.shared.log("MTWebSocket", "[WS] connection closed by peer (code \(code.map { String($0) } ?? "none"))")
+                    self.sendControlFrame(opcode: .close, payload: Data())
+                    self.cancelWithError(error: nil)
+                    return
+                case let .protocolError(reason):
+                    Logger.shared.log("MTWebSocket", "[WS] framing protocol error: \(reason)")
+                    self.candidateFailed(error: nil)
+                    return
+                }
+            }
+            self.serviceReadRequests()
+        }
+
+        private func sendControlFrame(opcode: WebSocketOpcode, payload: Data) {
+            guard let connection = self.connection else {
+                return
+            }
+            let frame = WebSocketFrameEncoder.encode(opcode: opcode, payload: payload, mask: true)
+            connection.send(content: frame, completion: .contentProcessed({ _ in
+            }))
+        }
+
+        func write(data: Data) {
+            guard let connection = self.connection, self.handshakeState == .established else {
+                Logger.shared.log("MTWebSocket", "[WS] write called before the WebSocket handshake completed, dropping \(data.count) bytes")
+                return
+            }
+            let frame = WebSocketFrameEncoder.encode(opcode: .binary, payload: data, mask: true)
+            connection.send(content: frame, completion: .contentProcessed({ _ in
+            }))
+            self.networkUsageManager?.addOutgoingBytes(UInt(data.count), interface: self.currentInterfaceIsWifi ? MTNetworkUsageManagerInterfaceOther : MTNetworkUsageManagerInterfaceWWAN)
+        }
+
+        func read(length: Int, timeout: Double, tag: Int) {
+            self.readRequests.append(ReadRequest(length: length, tag: tag))
+            self.serviceReadRequests()
+        }
+
+        private func serviceReadRequests() {
+            while true {
+                if self.currentReadRequest == nil {
+                    if self.readRequests.isEmpty {
+                        return
+                    }
+                    self.currentReadRequest = ExecutingReadRequest(request: self.readRequests.removeFirst())
+                }
+                guard let currentReadRequest = self.currentReadRequest else {
+                    return
+                }
+
+                let remaining = currentReadRequest.request.length - currentReadRequest.readyLength
+                if remaining == 0 {
+                    self.currentReadRequest = nil
+
+                    let delegate = self.delegate
+                    let tag = currentReadRequest.request.tag
+                    let resultData = currentReadRequest.data
+                    let networkType: Int32 = self.currentInterfaceIsWifi ? 0 : 1
+                    self.delegateQueue.async { [weak delegate] in
+                        delegate?.connectionInterfaceDidRead(resultData, withTag: tag, networkType: networkType)
+                    }
+                    continue
+                }
+
+                if self.readBuffer.isEmpty {
+                    return
+                }
+
+                let takeCount = min(remaining, self.readBuffer.count)
+                let chunk = self.readBuffer.prefix(takeCount)
+                self.readBuffer.removeFirst(takeCount)
+
+                currentReadRequest.data.withUnsafeMutableBytes { (raw: UnsafeMutableRawBufferPointer) in
+                    guard let base = raw.baseAddress else {
+                        return
+                    }
+                    chunk.withUnsafeBytes { (src: UnsafeRawBufferPointer) in
+                        guard let srcBase = src.baseAddress else {
+                            return
+                        }
+                        memcpy(base.advanced(by: currentReadRequest.readyLength), srcBase, takeCount)
+                    }
+                }
+                currentReadRequest.readyLength += takeCount
+
+                let delegate = self.delegate
+                let tag = currentReadRequest.request.tag
+                self.delegateQueue.async { [weak delegate] in
+                    delegate?.connectionInterfaceDidReadPartialData(ofLength: UInt(takeCount), tag: tag)
+                }
+            }
+        }
+
+        private func candidateFailed(error: Error?) {
+            if let connectTimeoutTimer = self.connectTimeoutTimer {
+                self.connectTimeoutTimer = nil
+                connectTimeoutTimer.invalidate()
+            }
+            if let connection = self.connection {
+                self.connection = nil
+                connection.stateUpdateHandler = nil
+                connection.pathUpdateHandler = nil
+                connection.viabilityUpdateHandler = nil
+                connection.cancel()
+            }
+
+            Logger.shared.log("MTWebSocket", "[WS] endpoint \(self.currentCandidateHost ?? "?") failed (\(error?.localizedDescription ?? "timeout/protocol error"))")
+
+            if let _ = self.endpointSelector.advance() {
+                Logger.shared.log("MTWebSocket", "[WS] trying secondary endpoint")
+                self.dialCurrentCandidate()
+            } else {
+                self.fallbackCoordinator?.recordAllEndpointsFailed()
+                self.cancelWithError(error: error)
+            }
+        }
+
+        private func cancelWithError(error: Error?) {
+            if let connectTimeoutTimer = self.connectTimeoutTimer {
+                self.connectTimeoutTimer = nil
+                connectTimeoutTimer.invalidate()
+            }
+
+            if !self.reportedDisconnection {
+                self.reportedDisconnection = true
+                let delegate = self.delegate
+                self.delegateQueue.async { [weak delegate] in
+                    delegate?.connectionInterfaceDidDisconnectWithError(error)
+                }
+            }
+            if let connection = self.connection {
+                self.connection = nil
+                connection.cancel()
+            }
+        }
+
+        func disconnect() {
+            self.cancelWithError(error: nil)
+        }
+
+        func resetDelegate() {
+            self.delegate = nil
+        }
+
+        private static func makeSecWebSocketKey() -> String {
+            var bytes = [UInt8](repeating: 0, count: 16)
+            for i in 0 ..< bytes.count {
+                bytes[i] = UInt8.random(in: 0...255)
+            }
+            return Data(bytes).base64EncodedString()
+        }
+
+        private static func findHeaderTerminator(in data: Data) -> Range<Data.Index>? {
+            guard let terminator = "\r\n\r\n".data(using: .utf8) else {
+                return nil
+            }
+            return data.range(of: terminator)
+        }
+
+        /// Checks the HTTP status line is "101" and the Upgrade/Connection headers are present.
+        /// Deliberately does not verify `Sec-WebSocket-Accept` against the key it sent: that header is
+        /// an RFC 6455 protocol-conformance echo, not a security boundary — the channel's actual
+        /// security comes from TLS certificate validation (already enforced) below and MTProto's own
+        /// auth-key/obfuscation layer above, neither of which this value participates in. tg-ws-proxy's
+        /// own WS client does the same (see docs/websocket-transport.md).
+        private static func isSuccessfulUpgradeResponse(_ headerString: String) -> Bool {
+            guard let statusLine = headerString.split(separator: "\r\n", maxSplits: 1, omittingEmptySubsequences: false).first else {
+                return false
+            }
+            let components = statusLine.split(separator: " ", maxSplits: 2, omittingEmptySubsequences: true)
+            guard components.count >= 2, components[1] == "101" else {
+                return false
+            }
+            let lowerHeaders = headerString.lowercased()
+            return lowerHeaders.contains("upgrade: websocket") && lowerHeaders.contains("connection: upgrade")
+        }
+    }
+
+    private static let sharedQueue = Queue(name: "MTWebSocketConnectionInterface")
+
+    private let queue: Queue
+    private let impl: QueueLocalObject<Impl>
+
+    init(
+        delegate: MTTcpConnectionInterfaceDelegate,
+        delegateQueue: DispatchQueue,
+        datacenterId: Int,
+        isMediaConnection: Bool,
+        isTestingEnvironment: Bool,
+        fallbackCoordinator: MTWebSocketFallbackCoordinator?
+    ) {
+        let queue = MTWebSocketConnectionInterface.sharedQueue
+        self.queue = queue
+        self.impl = QueueLocalObject(queue: queue, generate: {
+            return Impl(
+                queue: queue,
+                delegate: delegate,
+                delegateQueue: delegateQueue,
+                datacenterId: datacenterId,
+                isMediaConnection: isMediaConnection,
+                isTestingEnvironment: isTestingEnvironment,
+                fallbackCoordinator: fallbackCoordinator
+            )
+        })
+    }
+
+    func setGetLogPrefix(_ getLogPrefix: (() -> String)?) {
+    }
+
+    func setUsageCalculationInfo(_ usageCalculationInfo: MTNetworkUsageCalculationInfo?) {
+        self.impl.with { impl in
+            impl.setUsageCalculationInfo(usageCalculationInfo)
+        }
+    }
+
+    func connect(toHost inHost: String, onPort port: UInt16, viaInterface inInterface: String?, withTimeout timeout: TimeInterval, error errPtr: NSErrorPointer) -> Bool {
+        self.impl.with { impl in
+            impl.connect(timeout: timeout)
+        }
+        return true
+    }
+
+    func write(_ data: Data) {
+        self.impl.with { impl in
+            impl.write(data: data)
+        }
+    }
+
+    func readData(toLength length: UInt, withTimeout timeout: TimeInterval, tag: Int) {
+        self.impl.with { impl in
+            impl.read(length: Int(length), timeout: timeout, tag: tag)
+        }
+    }
+
+    func disconnect() {
+        self.impl.with { impl in
+            impl.disconnect()
+        }
+    }
+
+    func resetDelegate() {
+        self.impl.with { impl in
+            impl.resetDelegate()
+        }
+    }
+}

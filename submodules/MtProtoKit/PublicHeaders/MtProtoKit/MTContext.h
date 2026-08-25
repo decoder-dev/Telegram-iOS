@@ -82,7 +82,17 @@
 /// When true, resolve SOCKS/MTProxy hostnames via system DNS instead of Google DoH-first.
 @property (nonatomic) bool forceLocalDNS;
 
-@property (nonatomic, copy) id<MTTcpConnectionInterface> _Nonnull (^ _Nullable makeTcpConnectionInterface)(id<MTTcpConnectionInterfaceDelegate> _Nonnull delegate, dispatch_queue_t _Nonnull delegateQueue);
+/*
+ datacenterId/isMedia/isTestingEnvironment let an alternate transport (e.g. a WebSocket interface) pick
+ the right endpoint for the connection it is asked to open; MTTcpConnection itself resolves `inHost` in
+ -connectToHost:... to a literal DC IP, which is meaningless to a transport whose front-end has an
+ unrelated hostname.
+
+ The block itself may return nil (e.g. to signal "give up on this alternate transport, use the default
+ TCP socket instead") - MTTcpConnection already falls back to MTGcdAsyncSocketTcpConnectionInterface
+ whenever the returned interface is nil, same as when no factory is set at all.
+ */
+@property (nonatomic, copy) id<MTTcpConnectionInterface> _Nullable (^ _Nullable makeTcpConnectionInterface)(id<MTTcpConnectionInterfaceDelegate> _Nonnull delegate, dispatch_queue_t _Nonnull delegateQueue, NSInteger datacenterId, bool isMedia, bool isTestingEnvironment);
 
 + (int32_t)fixedTimeDifference;
 + (void)setFixedTimeDifference:(int32_t)fixedTimeDifference;

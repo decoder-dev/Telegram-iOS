@@ -830,6 +830,8 @@ struct ctr_state {
     bool _useIntermediateFormat;
     
     int32_t _datacenterTag;
+    NSInteger _datacenterId;
+    bool _isTestingEnvironment;
     
     uint8_t _quickAckByte;
     
@@ -874,7 +876,7 @@ struct ctr_state {
 @property (nonatomic) int64_t packetHeadDecodeToken;
 @property (nonatomic, strong) id packetProgressToken;
 
-@property (nonatomic, copy) id<MTTcpConnectionInterface> _Nonnull (^ _Nullable makeTcpConnectionInterface)(id<MTTcpConnectionInterfaceDelegate> _Nonnull delegate, dispatch_queue_t _Nonnull delegateQueue);
+@property (nonatomic, copy) id<MTTcpConnectionInterface> _Nullable (^ _Nullable makeTcpConnectionInterface)(id<MTTcpConnectionInterfaceDelegate> _Nonnull delegate, dispatch_queue_t _Nonnull delegateQueue, NSInteger datacenterId, bool isMedia, bool isTestingEnvironment);
 
 @end
 
@@ -945,6 +947,9 @@ struct ctr_state {
         
         _resolveDisposable = [[MTMetaDisposable alloc] init];
         
+        _datacenterId = datacenterId;
+        _isTestingEnvironment = context.isTestingEnvironment;
+        
         if (context.isTestingEnvironment) {
             if (scheme.address.preferForMedia) {
                 _datacenterTag = -(int32_t)(10000 + datacenterId);
@@ -1007,7 +1012,7 @@ struct ctr_state {
         if (_socket == nil)
         {
             if (_makeTcpConnectionInterface) {
-                _socket = _makeTcpConnectionInterface(self, [[MTTcpConnection tcpQueue] nativeQueue]);
+                _socket = _makeTcpConnectionInterface(self, [[MTTcpConnection tcpQueue] nativeQueue], _datacenterId, _scheme.address.preferForMedia, _isTestingEnvironment);
             }
             if (_socket == nil) {
                 _socket = [[MTGcdAsyncSocketTcpConnectionInterface alloc] initWithDelegate:self delegateQueue:[[MTTcpConnection tcpQueue] nativeQueue]];
