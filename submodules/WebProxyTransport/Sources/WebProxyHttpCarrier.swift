@@ -12,16 +12,22 @@ public enum WebProxyHttpCarrierError: Error {
     case unsupportedCarrierMode
 }
 
-/// Native HTTPS carrier for tproxy-server (`https` and `https-lanes` modes): no WKWebView required.
+/// Native HTTPS / WebSocket carrier for tproxy-server: no WKWebView required.
 ///
 /// - `https`: one serialized uplink sequence and one downlink long-poll for the whole session.
 /// - `https-lanes`: independent uplink sequence, downlink cursor, and long-poll per logical stream
 ///   (`X-Lane-ID`). Lane 0 is reserved for session-level PONG; every non-zero lane must begin with
 ///   OPEN and carries only frames with that stream id (PROTOCOL.md).
+/// - `websocket`: one multiplexed `wss://H/api/v1/ws` with subprotocol `tproxy-v1.<token>`.
+/// - `websocket-lanes`: one WebSocket per nonzero stream, subprotocol
+///   `tproxy-lane-v1.<token>.<stream_id>`; first binary message must begin with OPEN. Lane socket
+///   failure closes only that stream; failure to establish a new lane fails the parent carrier.
 final class WebProxyHttpCarrier {
     private enum CarrierMode {
         case https
         case httpsLanes
+        case websocket
+        case websocketLanes
     }
     
     /// Per-lane state used only in `https-lanes`. Mirrors the serialized buffers of the single-path
@@ -74,6 +80,33 @@ final class WebProxyHttpCarrier {
     
     private var lanes: [UInt32: LaneState] = [:]
     
+    // MARK: - `websocket` / `websocket-lanes` path
+    
+    /// One multiplexed socket for `websocket` mode.
+    private var multiplexWebSocket: URLSessionWebSocketTask?
+    private var multiplexWsOpen = false
+    private var multiplexWsUplink = Data()
+    private var multiplexWsUplinkOffset = 0
+    private var multiplexWsSending = false
+    private var multiplexReceiveArmed = false
+    
+    /// Per-stream sockets for `websocket-lanes` (no lane 0 — bootstrap is HTTPS).
+    private final class WsLaneState {
+        var task: URLSessionWebSocketTask?
+        var open = false
+        var connecting = false
+        var closed = false
+        var uplinkBuffer = Data()
+        var uplinkBufferOffset = 0
+        var sending = false
+        var receiveArmed = false
+        
+        var pendingUplinkCount: Int {
+            return self.uplinkBuffer.count - self.uplinkBufferOffset
+        }
+    }
+    private var wsLanes: [UInt32: WsLaneState] = [:]
+    
     /// Matches the hosted bridge's 2 MiB batch. Anything above it waits for the next POST.
     private static let maximumUplinkBatchSize = 2 * 1024 * 1024
     /// Hard ceiling on data queued for the carrier. Past this the carrier fails instead of growing
@@ -118,8 +151,7 @@ final class WebProxyHttpCarrier {
                     self.createSession(bootstrapToken: bootstrap) { result in
                         switch result {
                         case .success:
-                            self.startDownlinkPolling()
-                            completion(.success(()))
+                            self.startCarrierTransport(completion: completion)
                         case let .failure(error):
                             completion(.failure(error))
                         }
@@ -140,6 +172,7 @@ final class WebProxyHttpCarrier {
             let token = self.sessionToken
             self.sessionToken = ""
             self.lanes.removeAll()
+            self.tearDownAllWebSockets()
             if !token.isEmpty, let url = URL(string: "/api/v1/session", relativeTo: self.origin) {
                 var request = URLRequest(url: url)
                 request.httpMethod = "DELETE"
@@ -161,6 +194,10 @@ final class WebProxyHttpCarrier {
                 self.enqueueSerializedUplink(batch)
             case .httpsLanes:
                 self.enqueueLanedUplink(batch)
+            case .websocket:
+                self.enqueueMultiplexWsUplink(batch)
+            case .websocketLanes:
+                self.enqueueWsLanedUplink(batch)
             }
         }
     }
@@ -265,26 +302,14 @@ final class WebProxyHttpCarrier {
                     self.carrierMode = .https
                 case "https-lanes":
                     self.carrierMode = .httpsLanes
+                case "websocket":
+                    self.carrierMode = .websocket
+                case "websocket-lanes":
+                    self.carrierMode = .websocketLanes
                 default:
-                    // websocket / websocket-lanes need a different transport; fail closed.
                     completion(.failure(WebProxyHttpCarrierError.unsupportedCarrierMode))
                     return
                 }
-
-                // `X-Carrier-Mode` is deliberately not gated on. Refusing every value but `https`
-                // assumed the header names the wire format, and nothing here is written down: this
-                // client always dials `https://<host>` regardless of it, and never varies a single
-                // byte of the protocol by it — the value was only ever read to be compared. If the
-                // relay instead reports how it is deployed (own TLS, plain HTTP behind a terminator,
-                // a particular image), then every deployment but one was refused for a label while
-                // speaking a protocol this client understands perfectly.
-                //
-                // Compatibility is settled by the handshake instead, which is both stronger and not
-                // a guess: the relay must open with a decodable `WELCOME` frame on stream zero,
-                // checked here when the session POST carries a body and on the first downlink batch
-                // when it does not. That catches a relay whose wire format we would misread — and
-                // also one that claims `https` and is not, which a string comparison never could.
-
                 self.sessionToken = token
                 self.downCursor = response.value(forHTTPHeaderField: "X-Down-Cursor") ?? "0"
                 if let body = data, !body.isEmpty {
@@ -315,15 +340,22 @@ final class WebProxyHttpCarrier {
         self.awaitingWelcome = false
     }
     
-    private func startDownlinkPolling() {
+    private func startCarrierTransport(completion: @escaping (Result<Void, Error>) -> Void) {
         switch self.carrierMode {
         case .https:
             self.pollDownlinkSerialized()
+            completion(.success(()))
         case .httpsLanes:
             // Lane 0 is reserved for session-level control (PONG). Poll it from the start so
             // session keepalives are not blocked on the first data stream.
             let lane = self.laneState(for: 0)
             self.pollDownlinkLane(laneId: 0, lane: lane)
+            completion(.success(()))
+        case .websocket:
+            self.openMultiplexWebSocket(completion: completion)
+        case .websocketLanes:
+            // Lanes open on demand when the first OPEN for a stream arrives.
+            completion(.success(()))
         }
     }
     
@@ -790,6 +822,330 @@ final class WebProxyHttpCarrier {
         WebProxyLog.log("carrier failed against \(self.hostname): \(error)")
         self.closed = true
         self.lanes.removeAll()
+        self.tearDownAllWebSockets()
         self.onFailure?(error)
+    }
+    
+    // MARK: - WebSocket helpers
+    
+    private func wsURL() -> URL? {
+        return URL(string: "wss://\(self.hostname)/api/v1/ws")
+    }
+    
+    private func tearDownAllWebSockets() {
+        self.multiplexWebSocket?.cancel(with: .goingAway, reason: nil)
+        self.multiplexWebSocket = nil
+        self.multiplexWsOpen = false
+        self.multiplexReceiveArmed = false
+        self.multiplexWsUplink = Data()
+        self.multiplexWsUplinkOffset = 0
+        self.multiplexWsSending = false
+        for lane in self.wsLanes.values {
+            lane.task?.cancel(with: .goingAway, reason: nil)
+            lane.task = nil
+            lane.open = false
+            lane.closed = true
+        }
+        self.wsLanes.removeAll()
+    }
+    
+    private func makeWebSocketTask(subprotocol: String) -> URLSessionWebSocketTask? {
+        guard let url = self.wsURL() else {
+            return nil
+        }
+        // Subprotocol carries the session bearer (PROTOCOL.md). Prefer the protocols:
+        // form so URLSession negotiates Sec-WebSocket-Protocol correctly. Never log it.
+        let task = self.session.webSocketTask(with: url, protocols: [subprotocol])
+        return task
+    }
+    
+    // MARK: - Multiplexed `websocket`
+    
+    private func openMultiplexWebSocket(completion: @escaping (Result<Void, Error>) -> Void) {
+        guard !self.closed, !self.sessionToken.isEmpty else {
+            completion(.failure(WebProxyHttpCarrierError.carrierClosed))
+            return
+        }
+        let subprotocol = "tproxy-v1.\(self.sessionToken)"
+        guard let task = self.makeWebSocketTask(subprotocol: subprotocol) else {
+            completion(.failure(WebProxyHttpCarrierError.sessionCreationFailed))
+            return
+        }
+        self.multiplexWebSocket = task
+        task.resume()
+        // Probe readiness with a no-op ping; URLSession surfaces upgrade failure here.
+        task.sendPing { [weak self] error in
+            guard let self else {
+                completion(.failure(WebProxyHttpCarrierError.carrierClosed))
+                return
+            }
+            self.queue.async {
+                if self.closed {
+                    completion(.failure(WebProxyHttpCarrierError.carrierClosed))
+                    return
+                }
+                if let error = error {
+                    self.fail(error)
+                    completion(.failure(error))
+                    return
+                }
+                self.multiplexWsOpen = true
+                self.armMultiplexReceive()
+                self.flushMultiplexWsUplink()
+                completion(.success(()))
+            }
+        }
+    }
+    
+    private func armMultiplexReceive() {
+        guard !self.multiplexReceiveArmed, let task = self.multiplexWebSocket, !self.closed else {
+            return
+        }
+        self.multiplexReceiveArmed = true
+        self.receiveWebSocket(task) { [weak self] data in
+            guard let self, !self.closed else {
+                return
+            }
+            if self.awaitingWelcome {
+                do {
+                    try self.consumeWelcome(in: WebProxyFrameCodec.decodeBatch(data))
+                } catch {
+                    // WELCOME was already consumed from the HTTPS session body when present.
+                }
+            }
+            self.onDownlinkBatch?(data)
+        } onError: { [weak self] error in
+            guard let self else {
+                return
+            }
+            self.multiplexReceiveArmed = false
+            self.fail(error)
+        }
+    }
+    
+    private func receiveWebSocket(_ task: URLSessionWebSocketTask, onMessage: @escaping (Data) -> Void, onError: @escaping (Error) -> Void) {
+        task.receive { [weak self] result in
+            guard let self else {
+                return
+            }
+            self.queue.async {
+                if self.closed {
+                    return
+                }
+                switch result {
+                case let .failure(error):
+                    onError(error)
+                case let .success(message):
+                    switch message {
+                    case let .data(data):
+                        if !data.isEmpty {
+                            onMessage(data)
+                        }
+                        // Re-arm only while this task is still the active one.
+                        self.receiveWebSocket(task, onMessage: onMessage, onError: onError)
+                    case .string:
+                        // Text messages are rejected by the relay contract.
+                        onError(WebProxyHttpCarrierError.downlinkRejected)
+                    @unknown default:
+                        self.receiveWebSocket(task, onMessage: onMessage, onError: onError)
+                    }
+                }
+            }
+        }
+    }
+    
+    private func enqueueMultiplexWsUplink(_ batch: Data) {
+        if (self.multiplexWsUplink.count - self.multiplexWsUplinkOffset) + batch.count > WebProxyHttpCarrier.maximumUplinkBufferSize {
+            self.fail(WebProxyHttpCarrierError.uplinkRejected)
+            return
+        }
+        self.multiplexWsUplink.append(batch)
+        self.flushMultiplexWsUplink()
+    }
+    
+    private func flushMultiplexWsUplink() {
+        if self.multiplexWsSending || !self.multiplexWsOpen || self.closed {
+            return
+        }
+        guard let task = self.multiplexWebSocket else {
+            return
+        }
+        let pending = self.multiplexWsUplink.count - self.multiplexWsUplinkOffset
+        if pending <= 0 {
+            return
+        }
+        let remaining = self.multiplexWsUplink[(self.multiplexWsUplink.startIndex + self.multiplexWsUplinkOffset)...]
+        let splitOffset = WebProxyHttpCarrier.frameBoundaryOffset(in: remaining, notExceeding: WebProxyHttpCarrier.maximumUplinkBatchSize)
+        let batchStart = remaining.startIndex
+        let batch = Data(remaining[batchStart ..< (batchStart + splitOffset)])
+        self.multiplexWsUplinkOffset += splitOffset
+        self.compactBuffer(&self.multiplexWsUplink, offset: &self.multiplexWsUplinkOffset)
+        self.multiplexWsSending = true
+        task.send(.data(batch)) { [weak self] error in
+            guard let self else {
+                return
+            }
+            self.queue.async {
+                self.multiplexWsSending = false
+                if self.closed {
+                    return
+                }
+                if let error = error {
+                    self.fail(error)
+                    return
+                }
+                self.flushMultiplexWsUplink()
+            }
+        }
+    }
+    
+    // MARK: - `websocket-lanes`
+    
+    private func enqueueWsLanedUplink(_ batch: Data) {
+        let buckets = WebProxyHttpCarrier.splitBatchByStreamId(batch)
+        for (streamId, frames) in buckets {
+            if streamId == 0 {
+                // No lane-zero WebSocket; session control is HTTPS bootstrap only.
+                continue
+            }
+            let lane = self.wsLaneState(for: streamId)
+            if lane.closed {
+                continue
+            }
+            if lane.pendingUplinkCount + frames.count > WebProxyHttpCarrier.maximumLaneUplinkBufferSize {
+                self.fail(WebProxyHttpCarrierError.uplinkRejected)
+                return
+            }
+            lane.uplinkBuffer.append(frames)
+            if lane.open {
+                self.flushWsLaneUplink(laneId: streamId, lane: lane)
+            } else if !lane.connecting {
+                self.openWsLane(laneId: streamId, lane: lane)
+            }
+        }
+    }
+    
+    private func wsLaneState(for laneId: UInt32) -> WsLaneState {
+        if let existing = self.wsLanes[laneId] {
+            return existing
+        }
+        let lane = WsLaneState()
+        self.wsLanes[laneId] = lane
+        return lane
+    }
+    
+    private func openWsLane(laneId: UInt32, lane: WsLaneState) {
+        guard !self.closed, !self.sessionToken.isEmpty, !lane.connecting, !lane.open, !lane.closed else {
+            return
+        }
+        let subprotocol = "tproxy-lane-v1.\(self.sessionToken).\(laneId)"
+        guard let task = self.makeWebSocketTask(subprotocol: subprotocol) else {
+            // Failure to establish a new lane is parent-carrier failure (PROTOCOL.md).
+            self.fail(WebProxyHttpCarrierError.sessionCreationFailed)
+            return
+        }
+        lane.connecting = true
+        lane.task = task
+        task.resume()
+        task.sendPing { [weak self] error in
+            guard let self else {
+                return
+            }
+            self.queue.async {
+                lane.connecting = false
+                if self.closed || lane.closed {
+                    task.cancel(with: .goingAway, reason: nil)
+                    return
+                }
+                if let error = error {
+                    // New-lane establishment failure → parent carrier down.
+                    self.fail(error)
+                    return
+                }
+                lane.open = true
+                self.armWsLaneReceive(laneId: laneId, lane: lane, task: task)
+                self.flushWsLaneUplink(laneId: laneId, lane: lane)
+            }
+        }
+    }
+    
+    private func armWsLaneReceive(laneId: UInt32, lane: WsLaneState, task: URLSessionWebSocketTask) {
+        guard !lane.receiveArmed, !lane.closed, !self.closed else {
+            return
+        }
+        lane.receiveArmed = true
+        self.receiveWebSocket(task) { [weak self] data in
+            guard let self, !self.closed, !lane.closed else {
+                return
+            }
+            self.onDownlinkBatch?(data)
+        } onError: { [weak self] error in
+            guard let self else {
+                return
+            }
+            lane.receiveArmed = false
+            // Established lane failure closes only that stream (PROTOCOL.md).
+            if lane.open {
+                self.closeWsLane(laneId: laneId, lane: lane, notifyApp: true)
+            } else {
+                self.fail(error)
+            }
+        }
+    }
+    
+    private func flushWsLaneUplink(laneId: UInt32, lane: WsLaneState) {
+        if lane.sending || !lane.open || lane.closed || self.closed {
+            return
+        }
+        guard let task = lane.task else {
+            return
+        }
+        if lane.pendingUplinkCount <= 0 {
+            return
+        }
+        let remaining = lane.uplinkBuffer[(lane.uplinkBuffer.startIndex + lane.uplinkBufferOffset)...]
+        let splitOffset = WebProxyHttpCarrier.frameBoundaryOffset(in: remaining, notExceeding: WebProxyHttpCarrier.maximumUplinkBatchSize)
+        let batchStart = remaining.startIndex
+        let batch = Data(remaining[batchStart ..< (batchStart + splitOffset)])
+        lane.uplinkBufferOffset += splitOffset
+        self.compactBuffer(&lane.uplinkBuffer, offset: &lane.uplinkBufferOffset)
+        lane.sending = true
+        task.send(.data(batch)) { [weak self] error in
+            guard let self else {
+                return
+            }
+            self.queue.async {
+                lane.sending = false
+                if self.closed || lane.closed {
+                    return
+                }
+                if error != nil {
+                    self.closeWsLane(laneId: laneId, lane: lane, notifyApp: true)
+                    return
+                }
+                self.flushWsLaneUplink(laneId: laneId, lane: lane)
+            }
+        }
+    }
+    
+    private func closeWsLane(laneId: UInt32, lane: WsLaneState, notifyApp: Bool) {
+        guard !lane.closed else {
+            return
+        }
+        lane.closed = true
+        lane.open = false
+        lane.connecting = false
+        lane.receiveArmed = false
+        lane.uplinkBuffer = Data()
+        lane.uplinkBufferOffset = 0
+        let task = lane.task
+        lane.task = nil
+        task?.cancel(with: .goingAway, reason: nil)
+        if notifyApp {
+            // Synthesize CLOSE so the sidecar tears down the local MTProto socket for this stream.
+            let closeFrame = WebProxyFrameCodec.encode(WebProxyFrame(type: .close, streamId: laneId, payload: Data()))
+            self.onDownlinkBatch?(closeFrame)
+        }
+        _ = laneId
     }
 }
