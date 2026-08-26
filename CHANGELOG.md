@@ -6,6 +6,14 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3922-pre] — 2026-08-26
+
+Pre-release: extended log retention + streaming export.
+
+### Added
+- **Logging:** file logging raises retention to 400 MB full / 40 MB critical (`setMaxFiles` + immediate prune on disable); minute `[Heartbeat]` when logging is on.
+- **Log export:** `ForkLogExport` hard-links logs → zip on disk, packages off main thread with HUD, single archive for mail/send; `moveResourceData(id:fromTempPath:)` engine forwarder.
+
 ## [v12.9.2-3921-pre] — 2026-08-26
 
 Pre-release: crash/hang diagnostics + fork instrumentation for device logs.
