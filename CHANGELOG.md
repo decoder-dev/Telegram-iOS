@@ -6,6 +6,14 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3921-pre] — 2026-08-26
+
+Pre-release: crash/hang diagnostics + fork instrumentation for device logs.
+
+### Added
+- **Perf telemetry:** MetricKit crash/hang diagnostics log a greppable one-line summary plus full JSON payload (stacks), not just counts.
+- **Instrumentation:** memory warnings + main-thread stall watchdog; runtime launch breadcrumbs (chat opened/background); `[Chat]` / `[Composer]` / `[Tapbacks]` markers; `WebProxyLog` / `WebSocketTransportLog` sinks wired in `initializeAccountManagement`; WEB proxy bootstrap/outcome/carrier mode; WS endpoint walk + framing rejections; TCP factory choice logged.
+
 ## [v12.9.2-3920-pre] — 2026-08-26
 
 Pre-release: WebSocket recoverable fallback + WEB proxy handshake-only compatibility.
