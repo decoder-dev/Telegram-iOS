@@ -490,6 +490,13 @@ public extension TelegramEngine {
             self.account.postbox.mediaBox.moveResourceData(MediaResourceId(id.stringRepresentation), toTempPath: toTempPath)
         }
 
+        /// Takes ownership of the file at `fromTempPath`: it is moved into the media box
+        /// rather than copied, so a large file becomes a resource without its bytes ever
+        /// passing through memory.
+        public func moveResourceData(id: EngineMediaResource.Id, fromTempPath: String) {
+            self.account.postbox.mediaBox.moveResourceData(MediaResourceId(id.stringRepresentation), fromTempPath: fromTempPath)
+        }
+
         public func moveResourceData(from: EngineMediaResource.Id, to: EngineMediaResource.Id, synchronous: Bool = false) {
             self.account.postbox.mediaBox.moveResourceData(from: MediaResourceId(from.stringRepresentation), to: MediaResourceId(to.stringRepresentation), synchronous: synchronous)
         }

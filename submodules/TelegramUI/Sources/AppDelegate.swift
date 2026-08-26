@@ -1243,6 +1243,18 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             Logger.shared.logToFile = loggingSettings.logToFile
             Logger.shared.logToConsole = loggingSettings.logToConsole
             Logger.shared.redactSensitiveData = loggingSettings.redactSensitiveData
+
+            // File logging is off unless the build or the user turned it on, so whoever has
+            // it on is collecting logs on purpose. The 40 MB default holds roughly a day of
+            // a busy client — enough to look at a crash that just happened, useless for
+            // watching a pattern build up over a week — so give a collecting build the
+            // extended budget. Turning logging off restores the default and prunes down to
+            // it immediately.
+            if loggingSettings.logToFile {
+                Logger.shared.setMaxFiles(Logger.extendedMaxFiles, shortLog: Logger.extendedMaxShortFiles)
+            } else {
+                Logger.shared.setMaxFiles(Logger.defaultMaxFiles, shortLog: Logger.defaultMaxFiles)
+            }
             
             return .single(sharedApplicationContext)
         })

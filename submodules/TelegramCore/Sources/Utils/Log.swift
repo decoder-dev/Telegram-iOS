@@ -76,7 +76,26 @@ public final class Logger {
     private let queue = Queue(name: "org.telegram.Telegram.log", qos: .utility)
     private let maxLength: Int = 2 * 1024 * 1024
     private let maxShortLength: Int = 1 * 1024 * 1024
-    private let maxFiles: Int = 20
+
+    /// The number of rotated files each log keeps, i.e. how far back the on-disk history
+    /// reaches: `maxFiles * maxLength` for the full log, `maxShortFiles * maxShortLength`
+    /// for the critical one.
+    ///
+    /// The default 20 caps the full log at 40 MB, which on a busy client is a bit over a
+    /// day — enough to look at a crash that just happened, far too little to watch a
+    /// pattern develop across several days. File logging is opt-in, so the app raises the
+    /// budget while it is on (see `AppDelegate`) and only someone who deliberately asked
+    /// for logs pays the disk.
+    ///
+    /// Both are confined to `self.queue`; mutate them only through `setMaxFiles`.
+    private var maxFiles: Int = Logger.defaultMaxFiles
+    private var maxShortFiles: Int = Logger.defaultMaxFiles
+
+    /// 40 MB of full log, 20 MB of critical log.
+    public static let defaultMaxFiles: Int = 20
+    /// 400 MB of full log, 40 MB of critical log — enough for a multi-day collection.
+    public static let extendedMaxFiles: Int = 200
+    public static let extendedMaxShortFiles: Int = 40
     
     private let rootPath: String
     private let basePath: String
@@ -102,6 +121,47 @@ public final class Logger {
         }
     }
     public var redactSensitiveData: Bool = true
+
+    /// Sets how far back the on-disk history reaches, and immediately prunes whatever the
+    /// new budget no longer covers.
+    public func setMaxFiles(_ value: Int, shortLog shortValue: Int) {
+        let value = max(1, value)
+        let shortValue = max(1, shortValue)
+        self.queue.async {
+            self.maxFiles = value
+            self.maxShortFiles = shortValue
+            self.pruneLogFiles()
+        }
+    }
+
+    /// Applies the current budgets to what is already on disk, oldest first.
+    ///
+    /// Rotation prunes as it goes, but only while something is being written — a budget
+    /// lowered at the same moment file logging is turned off would otherwise never be
+    /// enforced, and the whole extended history would sit on disk forever. The file
+    /// currently being appended to is the newest one, so it is never a candidate here.
+    private func pruneLogFiles() {
+        for (prefix, limit) in [("log-", self.maxFiles), ("critlog-", self.maxShortFiles)] {
+            guard let files = try? FileManager.default.contentsOfDirectory(at: URL(fileURLWithPath: self.basePath), includingPropertiesForKeys: [URLResourceKey.creationDateKey], options: []) else {
+                continue
+            }
+
+            var existingFiles: [(Date, URL)] = []
+            for url in files {
+                if url.lastPathComponent.hasPrefix(prefix) {
+                    if let values = try? url.resourceValues(forKeys: Set([URLResourceKey.creationDateKey])), let creationDate = values.creationDate {
+                        existingFiles.append((creationDate, url))
+                    }
+                }
+            }
+            existingFiles.sort(by: { $0.0 < $1.0 })
+
+            while existingFiles.count > limit, let oldest = existingFiles.first {
+                let _ = try? FileManager.default.removeItem(at: oldest.1)
+                existingFiles.removeFirst()
+            }
+        }
+    }
     
     public static func setSharedLogger(_ logger: Logger) {
         sharedLogger = logger
@@ -330,26 +390,26 @@ public final class Logger {
                     
                     var createNew = false
                     if let files = try? FileManager.default.contentsOfDirectory(at: URL(fileURLWithPath: self.basePath), includingPropertiesForKeys: [URLResourceKey.creationDateKey], options: []) {
-                        var minCreationDate: (Date, URL)?
-                        var maxCreationDate: (Date, URL)?
-                        var count = 0
+                        var existingFiles: [(Date, URL)] = []
                         for url in files {
                             if url.lastPathComponent.hasPrefix("log-") {
                                 if let values = try? url.resourceValues(forKeys: Set([URLResourceKey.creationDateKey])), let creationDate = values.creationDate {
-                                    count += 1
-                                    if minCreationDate == nil || minCreationDate!.0 > creationDate {
-                                        minCreationDate = (creationDate, url)
-                                    }
-                                    if maxCreationDate == nil || maxCreationDate!.0 < creationDate {
-                                        maxCreationDate = (creationDate, url)
-                                    }
+                                    existingFiles.append((creationDate, url))
                                 }
                             }
                         }
-                        if let (_, url) = minCreationDate, count >= self.maxFiles {
-                            let _ = try? FileManager.default.removeItem(at: url)
+                        existingFiles.sort(by: { $0.0 < $1.0 })
+
+                        // Delete every file above the budget, not just the single oldest:
+                        // one deletion per rotation holds a steady state but never catches
+                        // up on a backlog (a lowered budget, or files left by an older
+                        // build).
+                        while existingFiles.count >= self.maxFiles, let oldest = existingFiles.first {
+                            let _ = try? FileManager.default.removeItem(at: oldest.1)
+                            existingFiles.removeFirst()
                         }
-                        if let (_, url) = maxCreationDate {
+
+                        if let (_, url) = existingFiles.last {
                             var value = stat()
                             if stat(url.path, &value) == 0 && Int(value.st_size) < self.maxLength {
                                 if let file = ManagedFile(queue: self.queue, path: url.path, mode: .append) {
@@ -439,26 +499,26 @@ public final class Logger {
                 
                 var createNew = false
                 if let files = try? FileManager.default.contentsOfDirectory(at: URL(fileURLWithPath: self.basePath), includingPropertiesForKeys: [URLResourceKey.creationDateKey], options: []) {
-                    var minCreationDate: (Date, URL)?
-                    var maxCreationDate: (Date, URL)?
-                    var count = 0
+                    var existingFiles: [(Date, URL)] = []
                     for url in files {
                         if url.lastPathComponent.hasPrefix("critlog-") {
                             if let values = try? url.resourceValues(forKeys: Set([URLResourceKey.creationDateKey])), let creationDate = values.creationDate {
-                                count += 1
-                                if minCreationDate == nil || minCreationDate!.0 > creationDate {
-                                    minCreationDate = (creationDate, url)
-                                }
-                                if maxCreationDate == nil || maxCreationDate!.0 < creationDate {
-                                    maxCreationDate = (creationDate, url)
-                                }
+                                existingFiles.append((creationDate, url))
                             }
                         }
                     }
-                    if let (_, url) = minCreationDate, count >= self.maxFiles {
-                        let _ = try? FileManager.default.removeItem(at: url)
+                    existingFiles.sort(by: { $0.0 < $1.0 })
+
+                    // Delete every file above the budget, not just the single oldest:
+                    // one deletion per rotation holds a steady state but never catches
+                    // up on a backlog (a lowered budget, or files left by an older
+                    // build).
+                    while existingFiles.count >= self.maxShortFiles, let oldest = existingFiles.first {
+                        let _ = try? FileManager.default.removeItem(at: oldest.1)
+                        existingFiles.removeFirst()
                     }
-                    if let (_, url) = maxCreationDate {
+
+                    if let (_, url) = existingFiles.last {
                         var value = stat()
                         if stat(url.path, &value) == 0 && Int(value.st_size) < self.maxShortLength {
                             if let file = ManagedFile(queue: self.queue, path: url.path, mode: .append) {

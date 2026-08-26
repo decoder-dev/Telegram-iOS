@@ -68,6 +68,7 @@ public enum ForkPerformanceTelemetry {
 
         self.installMemoryWarningObserver()
         self.installMainThreadStallWatchdog()
+        self.installHeartbeat()
     }
 
     /// Memory pressure was entirely unrecorded. A device log could show resident size falling step
@@ -134,6 +135,68 @@ public enum ForkPerformanceTelemetry {
     }
 
     private static var stallTimer: DispatchSourceTimer?
+
+    /// A steady pulse in the log: resident memory, foreground state, thermal state and free
+    /// disk, once a minute.
+    ///
+    /// When the app dies without a catchable signal — jetsam, watchdog, a kill from the OS —
+    /// the last thing written is the whole of the evidence. A single line at the moment of
+    /// death says almost nothing; the same line repeated for the preceding hour says whether
+    /// memory climbed steadily, jumped, or was flat while something else went wrong. Over a
+    /// multi-day collection that trend is the point of collecting at all.
+    ///
+    /// One line a minute is on the order of 100 KB a day — nothing against the log budget —
+    /// and nothing is computed at all unless logging is switched on.
+    private static let heartbeatInterval: Double = 60.0
+    private static let heartbeatQueue = DispatchQueue(label: "ForkTelemetryHeartbeat", qos: .utility)
+    private static var heartbeatTimer: DispatchSourceTimer?
+    private static var lastHeartbeatMegabytes: Int?
+    private static let installedAt: Double = CFAbsoluteTimeGetCurrent()
+
+    private static func installHeartbeat() {
+        let timer = DispatchSource.makeTimerSource(queue: self.heartbeatQueue)
+        timer.schedule(deadline: .now() + self.heartbeatInterval, repeating: self.heartbeatInterval)
+        timer.setEventHandler {
+            guard Logger.shared.logToFile || Logger.shared.logToConsole else {
+                return
+            }
+
+            // `applicationState` and the memory reader both want the main thread, and hopping
+            // there also means a heartbeat that stops appearing is itself a signal.
+            DispatchQueue.main.async {
+                let megabytes = getMemoryConsumption() / (1024 * 1024)
+
+                var parts: [String] = []
+                parts.append("resident=\(megabytes)MB")
+                if let previous = self.lastHeartbeatMegabytes, previous != megabytes {
+                    let delta = megabytes - previous
+                    parts.append("delta=\(delta > 0 ? "+" : "")\(delta)MB")
+                }
+                self.lastHeartbeatMegabytes = megabytes
+
+                parts.append("state=\(UIApplication.shared.applicationState == .background ? "background" : "foreground")")
+                parts.append("thermal=\(ForkPerformanceTelemetry.describe(self.thermalState))")
+                if let freeMegabytes = self.availableDiskMegabytes() {
+                    parts.append("disk=\(freeMegabytes)MB")
+                }
+                parts.append("uptime=\(Int(CFAbsoluteTimeGetCurrent() - self.installedAt))s")
+
+                Logger.shared.log("Heartbeat", parts.joined(separator: " "))
+            }
+        }
+        timer.resume()
+        self.heartbeatTimer = timer
+    }
+
+    /// Space the system would let the app use for important data, in megabytes. A tester whose
+    /// device is full behaves nothing like one whose device is not, and neither the log nor the
+    /// crash report said which one was writing it.
+    private static func availableDiskMegabytes() -> Int? {
+        guard let values = try? URL(fileURLWithPath: NSHomeDirectory()).resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey]), let capacity = values.volumeAvailableCapacityForImportantUsage else {
+            return nil
+        }
+        return Int(capacity / (1024 * 1024))
+    }
 
     private static func describe(_ state: ProcessInfo.ThermalState) -> String {
         switch state {

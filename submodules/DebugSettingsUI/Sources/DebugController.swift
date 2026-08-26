@@ -329,43 +329,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                                 if let strongController = controller {
                                     strongController.dismiss()
 
-                                    let lineFeed = "\n".data(using: .utf8)!
-                                    var rawLogData: Data = Data()
-                                    for (name, path) in logs {
-                                        if !rawLogData.isEmpty {
-                                            rawLogData.append(lineFeed)
-                                            rawLogData.append(lineFeed)
-                                        }
-
-                                        rawLogData.append("------ File: \(name) ------\n".data(using: .utf8)!)
-
-                                        if let data = try? Data(contentsOf: URL(fileURLWithPath: path)) {
-                                            rawLogData.append(data)
-                                        }
-                                    }
-
-                                    let tempSource = EngineTempBox.shared.tempFile(fileName: "Log.txt")
-                                    let tempZip = EngineTempBox.shared.tempFile(fileName: "destination.zip")
-                                    
-                                    let _ = try? rawLogData.write(to: URL(fileURLWithPath: tempSource.path))
-                                    
-                                    SSZipArchive.createZipFile(atPath: tempZip.path, withFilesAtPaths: [tempSource.path])
-
-                                    guard let gzippedData = try? Data(contentsOf: URL(fileURLWithPath: tempZip.path)) else {
-                                        return
-                                    }
-                                    
-                                    EngineTempBox.shared.dispose(tempSource)
-                                    EngineTempBox.shared.dispose(tempZip)
-
-                                    let id = Int64.random(in: Int64.min ... Int64.max)
-                                    let fileResource = LocalFileMediaResource(fileId: id, size: Int64(gzippedData.count), isSecretRelated: false)
-                                    context.engine.resources.storeResourceData(id: EngineMediaResource.Id(fileResource.id), data: gzippedData)
-
-                                    let file = TelegramMediaFile(fileId: EngineMedia.Id(namespace: Namespaces.Media.LocalFile, id: id), partialReference: nil, resource: fileResource, previewRepresentations: [], videoThumbnails: [], immediateThumbnailData: nil, mimeType: "application/text", size: Int64(gzippedData.count), attributes: [.FileName(fileName: "Log-iOS-Full.txt.zip")], alternativeRepresentations: [])
-                                    let message: EnqueueMessage = .message(text: "", attributes: [], inlineStickers: [:], mediaReference: .standalone(media: file), threadId: nil, replyToMessageId: nil, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: [])
-
-                                    let _ = enqueueMessages(account: context.account, peerId: peerId, messages: [message]).start()
+                                    ForkLogExport.sendLogs(logs, compressed: true, fileName: "Log-iOS-Full.txt.zip", to: peerId, context: context, presentProgress: { arguments.presentController($0, nil) })
                                 }
                             }
                             arguments.pushController(controller)
@@ -374,15 +338,9 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                     items.append(ActionSheetButtonItem(title: DebugLocalizedString.viaEmail, color: .accent, action: { [weak actionSheet] in
                         actionSheet?.dismissAnimated()
 
-                        let composeController = MFMailComposeViewController()
-                        composeController.mailComposeDelegate = arguments.mailComposeDelegate
-                        composeController.setSubject("Telegram Logs")
-                        for (name, path) in logs {
-                            if let data = try? Data(contentsOf: URL(fileURLWithPath: path), options: .mappedIfSafe) {
-                                composeController.addAttachmentData(data, mimeType: "application/text", fileName: name)
-                            }
-                        }
-                        arguments.getRootController()?.present(composeController, animated: true, completion: nil)
+                        ForkLogExport.composeMail(logs, fileName: "Log-iOS-Full.txt.zip", delegate: arguments.mailComposeDelegate, sharedContext: arguments.sharedContext, presentProgress: { arguments.presentController($0, nil) }, present: { composeController in
+                            arguments.getRootController()?.present(composeController, animated: true, completion: nil)
+                        })
                     }))
 
                     actionSheet.setItemGroups([ActionSheetItemGroup(items: items), ActionSheetItemGroup(items: [
@@ -413,9 +371,6 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                                     if let strongController = controller {
                                         strongController.dismiss()
                                         
-                                        let lineFeed = "\n".data(using: .utf8)!
-                                        var logData: Data = Data()
-                                        
                                         var latestLogs: [(String, String)] = []
                                         if logs.count < 2 {
                                             latestLogs = logs
@@ -424,28 +379,8 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                                                 latestLogs.append(logs[i])
                                             }
                                         }
-                                        
-                                        for (name, path) in latestLogs {
-                                            if !logData.isEmpty {
-                                                logData.append(lineFeed)
-                                                logData.append(lineFeed)
-                                            }
-                                            
-                                            logData.append("------ File: \(name) ------\n".data(using: .utf8)!)
-                                            
-                                            if let data = try? Data(contentsOf: URL(fileURLWithPath: path)) {
-                                                logData.append(data)
-                                            }
-                                        }
-                                        
-                                        let id = Int64.random(in: Int64.min ... Int64.max)
-                                        let fileResource = LocalFileMediaResource(fileId: id, size: Int64(logData.count), isSecretRelated: false)
-                                        context.engine.resources.storeResourceData(id: EngineMediaResource.Id(fileResource.id), data: logData)
-                                        
-                                        let file = TelegramMediaFile(fileId: EngineMedia.Id(namespace: Namespaces.Media.LocalFile, id: id), partialReference: nil, resource: fileResource, previewRepresentations: [], videoThumbnails: [], immediateThumbnailData: nil, mimeType: "application/text", size: Int64(logData.count), attributes: [.FileName(fileName: "Log-iOS-Short.txt")], alternativeRepresentations: [])
-                                        let message: EnqueueMessage = .message(text: "", attributes: [], inlineStickers: [:], mediaReference: .standalone(media: file), threadId: nil, replyToMessageId: nil, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: [])
-                                        
-                                        let _ = enqueueMessages(account: context.account, peerId: peerId, messages: [message]).start()
+
+                                        ForkLogExport.sendLogs(latestLogs, compressed: false, fileName: "Log-iOS-Short.txt", to: peerId, context: context, presentProgress: { arguments.presentController($0, nil) })
                                     }
                                 }
                                 arguments.pushController(controller)
@@ -455,15 +390,9 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                         items.append(ActionSheetButtonItem(title: DebugLocalizedString.viaEmail, color: .accent, action: { [weak actionSheet] in
                             actionSheet?.dismissAnimated()
                             
-                            let composeController = MFMailComposeViewController()
-                            composeController.mailComposeDelegate = arguments.mailComposeDelegate
-                            composeController.setSubject("Telegram Logs")
-                            for (name, path) in logs {
-                                if let data = try? Data(contentsOf: URL(fileURLWithPath: path), options: .mappedIfSafe) {
-                                    composeController.addAttachmentData(data, mimeType: "application/text", fileName: name)
-                                }
-                            }
-                            arguments.getRootController()?.present(composeController, animated: true, completion: nil)
+                            ForkLogExport.composeMail(logs, fileName: "Log-iOS-Full.txt.zip", delegate: arguments.mailComposeDelegate, sharedContext: arguments.sharedContext, presentProgress: { arguments.presentController($0, nil) }, present: { composeController in
+                                arguments.getRootController()?.present(composeController, animated: true, completion: nil)
+                            })
                         }))
                         
                         actionSheet.setItemGroups([ActionSheetItemGroup(items: items), ActionSheetItemGroup(items: [
@@ -495,43 +424,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                                 if let strongController = controller {
                                     strongController.dismiss()
 
-                                    let lineFeed = "\n".data(using: .utf8)!
-                                    var rawLogData: Data = Data()
-                                    for (name, path) in logs {
-                                        if !rawLogData.isEmpty {
-                                            rawLogData.append(lineFeed)
-                                            rawLogData.append(lineFeed)
-                                        }
-
-                                        rawLogData.append("------ File: \(name) ------\n".data(using: .utf8)!)
-
-                                        if let data = try? Data(contentsOf: URL(fileURLWithPath: path)) {
-                                            rawLogData.append(data)
-                                        }
-                                    }
-
-                                    let tempSource = EngineTempBox.shared.tempFile(fileName: "Log.txt")
-                                    let tempZip = EngineTempBox.shared.tempFile(fileName: "destination.zip")
-                                    
-                                    let _ = try? rawLogData.write(to: URL(fileURLWithPath: tempSource.path))
-                                    
-                                    SSZipArchive.createZipFile(atPath: tempZip.path, withFilesAtPaths: [tempSource.path])
-
-                                    guard let gzippedData = try? Data(contentsOf: URL(fileURLWithPath: tempZip.path)) else {
-                                        return
-                                    }
-                                    
-                                    EngineTempBox.shared.dispose(tempSource)
-                                    EngineTempBox.shared.dispose(tempZip)
-
-                                    let id = Int64.random(in: Int64.min ... Int64.max)
-                                    let fileResource = LocalFileMediaResource(fileId: id, size: Int64(gzippedData.count), isSecretRelated: false)
-                                    context.engine.resources.storeResourceData(id: EngineMediaResource.Id(fileResource.id), data: gzippedData)
-
-                                    let file = TelegramMediaFile(fileId: EngineMedia.Id(namespace: Namespaces.Media.LocalFile, id: id), partialReference: nil, resource: fileResource, previewRepresentations: [], videoThumbnails: [], immediateThumbnailData: nil, mimeType: "application/text", size: Int64(gzippedData.count), attributes: [.FileName(fileName: "Log-iOS-Full.txt.zip")], alternativeRepresentations: [])
-                                    let message: EnqueueMessage = .message(text: "", attributes: [], inlineStickers: [:], mediaReference: .standalone(media: file), threadId: nil, replyToMessageId: nil, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: [])
-
-                                    let _ = enqueueMessages(account: context.account, peerId: peerId, messages: [message]).start()
+                                    ForkLogExport.sendLogs(logs, compressed: true, fileName: "Log-iOS-Share.txt.zip", to: peerId, context: context, presentProgress: { arguments.presentController($0, nil) })
                                 }
                             }
                             arguments.pushController(controller)
@@ -540,15 +433,9 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                     items.append(ActionSheetButtonItem(title: DebugLocalizedString.viaEmail, color: .accent, action: { [weak actionSheet] in
                         actionSheet?.dismissAnimated()
 
-                        let composeController = MFMailComposeViewController()
-                        composeController.mailComposeDelegate = arguments.mailComposeDelegate
-                        composeController.setSubject("Telegram Logs")
-                        for (name, path) in logs {
-                            if let data = try? Data(contentsOf: URL(fileURLWithPath: path), options: .mappedIfSafe) {
-                                composeController.addAttachmentData(data, mimeType: "application/text", fileName: name)
-                            }
-                        }
-                        arguments.getRootController()?.present(composeController, animated: true, completion: nil)
+                        ForkLogExport.composeMail(logs, fileName: "Log-iOS-Share.txt.zip", delegate: arguments.mailComposeDelegate, sharedContext: arguments.sharedContext, presentProgress: { arguments.presentController($0, nil) }, present: { composeController in
+                            arguments.getRootController()?.present(composeController, animated: true, completion: nil)
+                        })
                     }))
 
                     actionSheet.setItemGroups([ActionSheetItemGroup(items: items), ActionSheetItemGroup(items: [
@@ -579,43 +466,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                                 if let strongController = controller {
                                     strongController.dismiss()
 
-                                    let lineFeed = "\n".data(using: .utf8)!
-                                    var rawLogData: Data = Data()
-                                    for (name, path) in logs {
-                                        if !rawLogData.isEmpty {
-                                            rawLogData.append(lineFeed)
-                                            rawLogData.append(lineFeed)
-                                        }
-
-                                        rawLogData.append("------ File: \(name) ------\n".data(using: .utf8)!)
-
-                                        if let data = try? Data(contentsOf: URL(fileURLWithPath: path)) {
-                                            rawLogData.append(data)
-                                        }
-                                    }
-
-                                    let tempSource = EngineTempBox.shared.tempFile(fileName: "Log.txt")
-                                    let tempZip = EngineTempBox.shared.tempFile(fileName: "destination.zip")
-                                    
-                                    let _ = try? rawLogData.write(to: URL(fileURLWithPath: tempSource.path))
-                                    
-                                    SSZipArchive.createZipFile(atPath: tempZip.path, withFilesAtPaths: [tempSource.path])
-
-                                    guard let gzippedData = try? Data(contentsOf: URL(fileURLWithPath: tempZip.path)) else {
-                                        return
-                                    }
-                                    
-                                    EngineTempBox.shared.dispose(tempSource)
-                                    EngineTempBox.shared.dispose(tempZip)
-
-                                    let id = Int64.random(in: Int64.min ... Int64.max)
-                                    let fileResource = LocalFileMediaResource(fileId: id, size: Int64(gzippedData.count), isSecretRelated: false)
-                                    context.engine.resources.storeResourceData(id: EngineMediaResource.Id(fileResource.id), data: gzippedData)
-
-                                    let file = TelegramMediaFile(fileId: EngineMedia.Id(namespace: Namespaces.Media.LocalFile, id: id), partialReference: nil, resource: fileResource, previewRepresentations: [], videoThumbnails: [], immediateThumbnailData: nil, mimeType: "application/text", size: Int64(gzippedData.count), attributes: [.FileName(fileName: "Log-iOS-Full.txt.zip")], alternativeRepresentations: [])
-                                    let message: EnqueueMessage = .message(text: "", attributes: [], inlineStickers: [:], mediaReference: .standalone(media: file), threadId: nil, replyToMessageId: nil, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: [])
-
-                                    let _ = enqueueMessages(account: context.account, peerId: peerId, messages: [message]).start()
+                                    ForkLogExport.sendLogs(logs, compressed: true, fileName: "Log-iOS-GroupCalls.txt.zip", to: peerId, context: context, presentProgress: { arguments.presentController($0, nil) })
                                 }
                             }
                             arguments.pushController(controller)
@@ -624,15 +475,9 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                     items.append(ActionSheetButtonItem(title: DebugLocalizedString.viaEmail, color: .accent, action: { [weak actionSheet] in
                         actionSheet?.dismissAnimated()
 
-                        let composeController = MFMailComposeViewController()
-                        composeController.mailComposeDelegate = arguments.mailComposeDelegate
-                        composeController.setSubject("Telegram Logs")
-                        for (name, path) in logs {
-                            if let data = try? Data(contentsOf: URL(fileURLWithPath: path), options: .mappedIfSafe) {
-                                composeController.addAttachmentData(data, mimeType: "application/text", fileName: name)
-                            }
-                        }
-                        arguments.getRootController()?.present(composeController, animated: true, completion: nil)
+                        ForkLogExport.composeMail(logs, fileName: "Log-iOS-GroupCalls.txt.zip", delegate: arguments.mailComposeDelegate, sharedContext: arguments.sharedContext, presentProgress: { arguments.presentController($0, nil) }, present: { composeController in
+                            arguments.getRootController()?.present(composeController, animated: true, completion: nil)
+                        })
                     }))
 
                     actionSheet.setItemGroups([ActionSheetItemGroup(items: items), ActionSheetItemGroup(items: [
@@ -664,43 +509,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                                 if let strongController = controller {
                                     strongController.dismiss()
 
-                                    let lineFeed = "\n".data(using: .utf8)!
-                                    var rawLogData: Data = Data()
-                                    for (name, path) in logs {
-                                        if !rawLogData.isEmpty {
-                                            rawLogData.append(lineFeed)
-                                            rawLogData.append(lineFeed)
-                                        }
-
-                                        rawLogData.append("------ File: \(name) ------\n".data(using: .utf8)!)
-
-                                        if let data = try? Data(contentsOf: URL(fileURLWithPath: path)) {
-                                            rawLogData.append(data)
-                                        }
-                                    }
-
-                                    let tempSource = EngineTempBox.shared.tempFile(fileName: "Log.txt")
-                                    let tempZip = EngineTempBox.shared.tempFile(fileName: "destination.zip")
-                                    
-                                    let _ = try? rawLogData.write(to: URL(fileURLWithPath: tempSource.path))
-                                    
-                                    SSZipArchive.createZipFile(atPath: tempZip.path, withFilesAtPaths: [tempSource.path])
-
-                                    guard let gzippedData = try? Data(contentsOf: URL(fileURLWithPath: tempZip.path)) else {
-                                        return
-                                    }
-                                    
-                                    EngineTempBox.shared.dispose(tempSource)
-                                    EngineTempBox.shared.dispose(tempZip)
-
-                                    let id = Int64.random(in: Int64.min ... Int64.max)
-                                    let fileResource = LocalFileMediaResource(fileId: id, size: Int64(gzippedData.count), isSecretRelated: false)
-                                    context.engine.resources.storeResourceData(id: EngineMediaResource.Id(fileResource.id), data: gzippedData)
-
-                                    let file = TelegramMediaFile(fileId: EngineMedia.Id(namespace: Namespaces.Media.LocalFile, id: id), partialReference: nil, resource: fileResource, previewRepresentations: [], videoThumbnails: [], immediateThumbnailData: nil, mimeType: "application/text", size: Int64(gzippedData.count), attributes: [.FileName(fileName: "Log-iOS-Full.txt.zip")], alternativeRepresentations: [])
-                                    let message: EnqueueMessage = .message(text: "", attributes: [], inlineStickers: [:], mediaReference: .standalone(media: file), threadId: nil, replyToMessageId: nil, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: [])
-
-                                    let _ = enqueueMessages(account: context.account, peerId: peerId, messages: [message]).start()
+                                    ForkLogExport.sendLogs(logs, compressed: true, fileName: "Log-iOS-Notifications.txt.zip", to: peerId, context: context, presentProgress: { arguments.presentController($0, nil) })
                                 }
                             }
                             arguments.pushController(controller)
@@ -709,15 +518,9 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                     items.append(ActionSheetButtonItem(title: DebugLocalizedString.viaEmail, color: .accent, action: { [weak actionSheet] in
                         actionSheet?.dismissAnimated()
 
-                        let composeController = MFMailComposeViewController()
-                        composeController.mailComposeDelegate = arguments.mailComposeDelegate
-                        composeController.setSubject("Telegram Logs")
-                        for (name, path) in logs {
-                            if let data = try? Data(contentsOf: URL(fileURLWithPath: path), options: .mappedIfSafe) {
-                                composeController.addAttachmentData(data, mimeType: "application/text", fileName: name)
-                            }
-                        }
-                        arguments.getRootController()?.present(composeController, animated: true, completion: nil)
+                        ForkLogExport.composeMail(logs, fileName: "Log-iOS-Notifications.txt.zip", delegate: arguments.mailComposeDelegate, sharedContext: arguments.sharedContext, presentProgress: { arguments.presentController($0, nil) }, present: { composeController in
+                            arguments.getRootController()?.present(composeController, animated: true, completion: nil)
+                        })
                     }))
 
                     actionSheet.setItemGroups([ActionSheetItemGroup(items: items), ActionSheetItemGroup(items: [
@@ -748,12 +551,10 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                                     if let strongController = controller {
                                         strongController.dismiss()
                                         
-                                        let messages = logs.map { (name, path) -> EnqueueMessage in
-                                            let id = Int64.random(in: Int64.min ... Int64.max)
-                                            let file = TelegramMediaFile(fileId: EngineMedia.Id(namespace: Namespaces.Media.LocalFile, id: id), partialReference: nil, resource: LocalFileReferenceMediaResource(localFilePath: path, randomId: id), previewRepresentations: [], videoThumbnails: [], immediateThumbnailData: nil, mimeType: "application/text", size: nil, attributes: [.FileName(fileName: name)], alternativeRepresentations: [])
-                                            return .message(text: "", attributes: [], inlineStickers: [:], mediaReference: .standalone(media: file), threadId: nil, replyToMessageId: nil, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: [])
-                                        }
-                                        let _ = enqueueMessages(account: context.account, peerId: peerId, messages: messages).start()
+                                        // One archive rather than one message per file: the
+                                        // critical log keeps enough files that sending them
+                                        // individually buries the chat.
+                                        ForkLogExport.sendLogs(logs, compressed: true, fileName: "Log-iOS-Critical.txt.zip", to: peerId, context: context, presentProgress: { arguments.presentController($0, nil) })
                                     }
                                 }
                                 arguments.pushController(controller)
@@ -763,35 +564,28 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                         items.append(ActionSheetButtonItem(title: DebugLocalizedString.viaEmail, color: .accent, action: { [weak actionSheet] in
                             actionSheet?.dismissAnimated()
 
-                            let composeController = MFMailComposeViewController()
-                            composeController.mailComposeDelegate = arguments.mailComposeDelegate
-                            composeController.setSubject("Telegram Logs")
-                            for (name, path) in logs {
-                                if let data = try? Data(contentsOf: URL(fileURLWithPath: path), options: .mappedIfSafe) {
-                                    composeController.addAttachmentData(data, mimeType: "application/text", fileName: name)
-                                }
-                            }
-                            arguments.getRootController()?.present(composeController, animated: true, completion: nil)
+                            ForkLogExport.composeMail(logs, fileName: "Log-iOS-Critical.txt.zip", delegate: arguments.mailComposeDelegate, sharedContext: arguments.sharedContext, presentProgress: { arguments.presentController($0, nil) }, present: { composeController in
+                                arguments.getRootController()?.present(composeController, animated: true, completion: nil)
+                            })
                         }))
                         items.append(ActionSheetButtonItem(title: DebugLocalizedString.saveArchive, color: .accent, action: { [weak actionSheet] in
                             actionSheet?.dismissAnimated()
 
-                            let tempZip = EngineTempBox.shared.tempFile(fileName: "Log-iOS-Critical.zip")
-                            SSZipArchive.createZipFile(atPath: tempZip.path, withFilesAtPaths: logs.map { $0.1 })
-
-                            guard let rootController = arguments.getRootController() else {
-                                EngineTempBox.shared.dispose(tempZip)
-                                return
-                            }
-                            let activityController = UIActivityViewController(activityItems: [URL(fileURLWithPath: tempZip.path)], applicationActivities: nil)
-                            activityController.completionWithItemsHandler = { _, _, _, _ in
-                                EngineTempBox.shared.dispose(tempZip)
-                            }
-                            if let popoverPresentationController = activityController.popoverPresentationController {
-                                popoverPresentationController.sourceView = rootController.view
-                                popoverPresentationController.sourceRect = CGRect(origin: CGPoint(x: rootController.view.bounds.width / 2.0, y: rootController.view.bounds.height - 1.0), size: CGSize(width: 1.0, height: 1.0))
-                            }
-                            rootController.present(activityController, animated: true, completion: nil)
+                            ForkLogExport.saveArchive(logs, fileName: "Log-iOS-Critical.zip", sharedContext: arguments.sharedContext, presentProgress: { arguments.presentController($0, nil) }, completion: { tempZip in
+                                guard let rootController = arguments.getRootController() else {
+                                    EngineTempBox.shared.dispose(tempZip)
+                                    return
+                                }
+                                let activityController = UIActivityViewController(activityItems: [URL(fileURLWithPath: tempZip.path)], applicationActivities: nil)
+                                activityController.completionWithItemsHandler = { _, _, _, _ in
+                                    EngineTempBox.shared.dispose(tempZip)
+                                }
+                                if let popoverPresentationController = activityController.popoverPresentationController {
+                                    popoverPresentationController.sourceView = rootController.view
+                                    popoverPresentationController.sourceRect = CGRect(origin: CGPoint(x: rootController.view.bounds.width / 2.0, y: rootController.view.bounds.height - 1.0), size: CGSize(width: 1.0, height: 1.0))
+                                }
+                                rootController.present(activityController, animated: true, completion: nil)
+                            })
                         }))
                         actionSheet.setItemGroups([ActionSheetItemGroup(items: items), ActionSheetItemGroup(items: [
                             ActionSheetButtonItem(title: presentationData.strings.Common_Cancel, color: .accent, font: .bold, action: { [weak actionSheet] in
@@ -841,48 +635,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                                 if let strongController = controller {
                                     strongController.dismiss()
 
-                                    let lineFeed = "\n".data(using: .utf8)!
-                                    
-                                    var tempSources: [EngineTempBox.File] = []
-                                    for (type, logItems) in allLogs {
-                                        let tempSource = EngineTempBox.shared.tempFile(fileName: "Log-\(type).txt")
-                                        
-                                        var rawLogData: Data = Data()
-                                        for (name, path) in logItems {
-                                            if !rawLogData.isEmpty {
-                                                rawLogData.append(lineFeed)
-                                                rawLogData.append(lineFeed)
-                                            }
-
-                                            rawLogData.append("------ File: \(name) ------\n".data(using: .utf8)!)
-
-                                            if let data = try? Data(contentsOf: URL(fileURLWithPath: path)) {
-                                                rawLogData.append(data)
-                                            }
-                                        }
-                                        
-                                        let _ = try? rawLogData.write(to: URL(fileURLWithPath: tempSource.path))
-                                        tempSources.append(tempSource)
-                                    }
-
-                                    let tempZip = EngineTempBox.shared.tempFile(fileName: "destination.zip")
-                                    SSZipArchive.createZipFile(atPath: tempZip.path, withFilesAtPaths: tempSources.map(\.path))
-
-                                    guard let gzippedData = try? Data(contentsOf: URL(fileURLWithPath: tempZip.path)) else {
-                                        return
-                                    }
-                                    
-                                    tempSources.forEach(EngineTempBox.shared.dispose)
-                                    EngineTempBox.shared.dispose(tempZip)
-
-                                    let id = Int64.random(in: Int64.min ... Int64.max)
-                                    let fileResource = LocalFileMediaResource(fileId: id, size: Int64(gzippedData.count), isSecretRelated: false)
-                                    context.engine.resources.storeResourceData(id: EngineMediaResource.Id(fileResource.id), data: gzippedData)
-
-                                    let file = TelegramMediaFile(fileId: EngineMedia.Id(namespace: Namespaces.Media.LocalFile, id: id), partialReference: nil, resource: fileResource, previewRepresentations: [], videoThumbnails: [], immediateThumbnailData: nil, mimeType: "application/zip", size: Int64(gzippedData.count), attributes: [.FileName(fileName: "Log-iOS-All.txt.zip")], alternativeRepresentations: [])
-                                    let message: EnqueueMessage = .message(text: "", attributes: [], inlineStickers: [:], mediaReference: .standalone(media: file), threadId: nil, replyToMessageId: nil, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: [])
-
-                                    let _ = enqueueMessages(account: context.account, peerId: peerId, messages: [message]).start()
+                                    ForkLogExport.sendLogGroups(allLogs, fileName: "Log-iOS-All.txt.zip", to: peerId, context: context, presentProgress: { arguments.presentController($0, nil) })
                                 }
                             }
                             arguments.pushController(controller)
@@ -1776,48 +1529,12 @@ public func triggerDebugSendLogsUI(context: AccountContext, additionalInfo: Stri
             if let strongController = controller {
                 strongController.dismiss()
 
-                let lineFeed = "\n".data(using: .utf8)!
-                var rawLogData: Data = Data()
-                for (name, path) in logs {
-                    if !rawLogData.isEmpty {
-                        rawLogData.append(lineFeed)
-                        rawLogData.append(lineFeed)
+                ForkLogExport.sendLogs(logs, additionalInfo: additionalInfo, compressed: true, fileName: "Log-iOS-Full.txt.zip", to: peerId, context: context, presentProgress: { progressController in
+                    guard let window = context.sharedContext.mainWindow else {
+                        return
                     }
-
-                    rawLogData.append("------ File: \(name) ------\n".data(using: .utf8)!)
-
-                    if let data = try? Data(contentsOf: URL(fileURLWithPath: path)) {
-                        rawLogData.append(data)
-                    }
-                }
-                
-                if !additionalInfo.isEmpty {
-                    rawLogData.append("------ Additional Info ------\n".data(using: .utf8)!)
-                    rawLogData.append("\(additionalInfo)".data(using: .utf8)!)
-                }
-                
-                let tempSource = EngineTempBox.shared.tempFile(fileName: "Log.txt")
-                let tempZip = EngineTempBox.shared.tempFile(fileName: "destination.zip")
-                
-                let _ = try? rawLogData.write(to: URL(fileURLWithPath: tempSource.path))
-                
-                SSZipArchive.createZipFile(atPath: tempZip.path, withFilesAtPaths: [tempSource.path])
-
-                guard let gzippedData = try? Data(contentsOf: URL(fileURLWithPath: tempZip.path)) else {
-                    return
-                }
-                
-                EngineTempBox.shared.dispose(tempSource)
-                EngineTempBox.shared.dispose(tempZip)
-
-                let id = Int64.random(in: Int64.min ... Int64.max)
-                let fileResource = LocalFileMediaResource(fileId: id, size: Int64(gzippedData.count), isSecretRelated: false)
-                context.engine.resources.storeResourceData(id: EngineMediaResource.Id(fileResource.id), data: gzippedData)
-
-                let file = TelegramMediaFile(fileId: EngineMedia.Id(namespace: Namespaces.Media.LocalFile, id: id), partialReference: nil, resource: fileResource, previewRepresentations: [], videoThumbnails: [], immediateThumbnailData: nil, mimeType: "application/text", size: Int64(gzippedData.count), attributes: [.FileName(fileName: "Log-iOS-Full.txt.zip")], alternativeRepresentations: [])
-                let message: EnqueueMessage = .message(text: "", attributes: [], inlineStickers: [:], mediaReference: .standalone(media: file), threadId: nil, replyToMessageId: nil, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: [])
-
-                let _ = enqueueMessages(account: context.account, peerId: peerId, messages: [message]).start()
+                    window.present(progressController, on: .root)
+                })
             }
         }
         pushController(controller)
