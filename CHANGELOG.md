@@ -6,6 +6,14 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3918-pre] — 2026-08-26
+
+Pre-release: Tapbacks sheet dock fix + composer capsule min-height clamp.
+
+### Fixed
+- **Reactions (Tapbacks):** emoji sheet docks to the screen bottom (with home-indicator gutter) instead of floating above a stale chat `inputHeight`; rubber-band drag is clamped at the safe-area edge.
+- **Composer:** single-line height clamp floored at `textFieldMinHeight` so the capsule stays aligned with 40pt controls and an empty field no longer draws the overflow hairline.
+
 ## [v12.9.2-3917-pre] — 2026-08-25
 
 Pre-release: bubble/status width fixes, sticker peek sharpness, WebSocket MTProto transport.
