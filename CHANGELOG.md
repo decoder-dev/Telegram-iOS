@@ -6,6 +6,14 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3920-pre] — 2026-08-26
+
+Pre-release: WebSocket recoverable fallback + WEB proxy handshake-only compatibility.
+
+### Fixed
+- **WebSocket transport:** after falling back to direct TCP, periodically probe WS again (2 min → 30 min ceiling) instead of staying on direct for the whole process life; a probe that carries MTProto traffic lifts the fallback.
+- **WEB proxy:** stop gating session creation on `X-Carrier-Mode == "https"` — compatibility is decided by the `WELCOME` handshake (mode-label park from the intermediate commit was dropped with it).
+
 ## [v12.9.2-3919-pre] — 2026-08-26
 
 Pre-release: Day composer tint readable on white wallpaper.
