@@ -136,6 +136,44 @@ public final class WebProxyManager {
         return self.isReady(for: server)
     }
     
+    /// Call from `applicationWillEnterForeground` / `applicationDidBecomeActive`.
+    ///
+    /// Across screen-lock and background suspension the carrier's long-polls die (URLSession
+    /// cancels or the relay expires the session). `handleSidecarFailure` stops the sidecar and
+    /// records a backoff, but nothing automatically retries once the cooldown elapses — shared
+    /// proxy settings do not change on resume, so `configure` is never called again and the UI
+    /// sits on "Connecting" forever. Forcing a clean restart here clears that stall.
+    public func applicationDidBecomeActive() {
+        self.lock.lock()
+        let active = self.configuration
+        self.lock.unlock()
+        
+        self.startLock.lock()
+        let starting = self.startingConfiguration
+        // Resume is an explicit user action: do not make re-enable wait out a cooldown left
+        // over from a background long-poll death.
+        self.lastFailedConfiguration = nil
+        self.consecutiveFailureCount = 0
+        self.startLock.unlock()
+        
+        let target = active ?? starting
+        guard let target = target else {
+            return
+        }
+        
+        // Tear down any half-dead carrier / listener so scheduleStart builds a fresh session.
+        self.startLock.lock()
+        self.startGeneration &+= 1
+        self.startingConfiguration = nil
+        self.startLock.unlock()
+        
+        self.lock.lock()
+        self.stopLocked()
+        self.lock.unlock()
+        
+        self.scheduleStart(configuration: target)
+    }
+    
     private func scheduleStart(configuration: WebProxyConfiguration) {
         self.startLock.lock()
         if self.startingConfiguration == configuration, CFAbsoluteTimeGetCurrent() - self.startingSince < WebProxyManager.startTimeout {
@@ -331,6 +369,8 @@ public final class WebProxyManager {
             // would leave the proxy down for good.
             self.scheduleRetryLocked(configuration: failedConfiguration, after: self.currentBackoffLocked())
         }
+        let failureCountSnapshot = self.consecutiveFailureCount
+        let generationAtFail = self.startGeneration
         self.startLock.unlock()
         
         self.lock.lock()
@@ -338,6 +378,30 @@ public final class WebProxyManager {
         self.lock.unlock()
         
         self.notifySidecarEvent()
+        
+        // Auto-retry after the backoff window. Without this, a failure that is not followed by
+        // another settings re-apply (the common case: long-poll death in background) leaves the
+        // manager stopped forever once the cooldown expires with nobody calling configure.
+        if let failedConfiguration = failedConfiguration {
+            let backoff = min(
+                WebProxyManager.maximumRetryInterval,
+                WebProxyManager.minimumRetryInterval * pow(2.0, Double(max(failureCountSnapshot, 1) - 1))
+            )
+            DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + backoff + 0.05) { [weak self] in
+                guard let self else {
+                    return
+                }
+                self.startLock.lock()
+                let stillSameGeneration = self.startGeneration == generationAtFail
+                let stillSameFailure = self.lastFailedConfiguration == failedConfiguration
+                self.startLock.unlock()
+                // A newer start/stop/applicationDidBecomeActive owns recovery now.
+                guard stillSameGeneration, stillSameFailure else {
+                    return
+                }
+                self.scheduleStart(configuration: failedConfiguration)
+            }
+        }
     }
     
     private func stopLocked() {
