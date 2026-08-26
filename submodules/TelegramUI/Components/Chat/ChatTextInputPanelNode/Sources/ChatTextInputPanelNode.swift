@@ -1478,7 +1478,15 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             
             let maxNumberOfLines = max(1, min(12, (Int(fieldMaxHeight - 11.0) - 33) / 22))
             
-            let updatedMaxHeight = (CGFloat(maxNumberOfLines) * (22.0 + 2.0) + 10.0)
+            // The clamp can never be allowed below the field's own minimum. `lines * 24 + 10` is
+            // stock's formula and its `+ 10` is stock's vertical inset sum; the fork's capsule is
+            // 36pt with insets summing to ~15.7, so the single-line case resolves to 34 — two
+            // points under `textFieldMinHeight`. `min` below then applied it, shrinking the capsule
+            // under the 40pt controls beside it, and since this same comparison decides `isOverflow`
+            // it also drew the overflow separator across an empty composer. Reachable wherever the
+            // panel's budget lands under ~70pt: the `maxHeight - 120.0` caller in ChatControllerNode
+            // does exactly that in landscape with the keyboard up.
+            let updatedMaxHeight = max(textFieldMinHeight, CGFloat(maxNumberOfLines) * (22.0 + 2.0) + 10.0)
             
             textFieldHeight = max(textFieldMinHeight, unboundTextFieldHeight)
             isOverflow = textFieldHeight > updatedMaxHeight
