@@ -50,6 +50,13 @@ public final class WebProxyManager {
     private var lastFailedConfiguration: WebProxyConfiguration?
     private var lastFailureTime: Double = 0.0
     private var consecutiveFailureCount: Int = 0
+    /// A configuration whose relay answered with a carrier mode this client cannot speak. The
+    /// backoff above is for failures that might come good — a timeout, a 502, a network change —
+    /// and it tops out at a minute, so on its own it would re-run the whole bootstrap against such a
+    /// relay every minute for as long as the proxy stays selected: two HTTPS requests and a TLS
+    /// handshake, forever, for an answer that cannot change. This parks it instead. Turning the
+    /// proxy off clears it, which is the recovery path a user reaches for anyway.
+    private var unsupportedConfiguration: WebProxyConfiguration?
     private var sidecarReadySince: Double = 0.0
     
     private var nextSidecarEventToken: SidecarEventToken = 0
@@ -103,9 +110,11 @@ public final class WebProxyManager {
             self.startGeneration &+= 1
             self.startingConfiguration = nil
             // Turning the proxy off is an explicit user action — don't make re-enabling the same
-            // server wait out a cooldown left over from an earlier failure.
+            // server wait out a cooldown left over from an earlier failure, or a park left over from
+            // a relay that has since been reconfigured.
             self.lastFailedConfiguration = nil
             self.consecutiveFailureCount = 0
+            self.unsupportedConfiguration = nil
             self.startLock.unlock()
             
             self.lock.lock()
@@ -132,6 +141,12 @@ public final class WebProxyManager {
             // this is called once per Network for one and the same server. Re-scheduling would
             // supersede the in-flight start, tearing down a sidecar that is midway through its
             // HTTPS bootstrap and restarting the wait from zero for all of them.
+            self.startLock.unlock()
+            return
+        }
+        if self.unsupportedConfiguration == configuration {
+            // This relay speaks a carrier mode we do not implement. Nothing about retrying changes
+            // that, so it is left alone until the proxy is switched off or a different one is set.
             self.startLock.unlock()
             return
         }
@@ -199,14 +214,18 @@ public final class WebProxyManager {
             }
             self.lastFailedConfiguration = nil
             self.consecutiveFailureCount = 0
+            self.unsupportedConfiguration = nil
             self.startLock.unlock()
 
             self.notifySidecarEvent()
-        case .failure:
+        case let .failure(error):
             sidecar?.stop()
             self.startLock.lock()
             if generation == self.startGeneration {
                 self.startingConfiguration = nil
+            }
+            if let carrierError = error as? WebProxyHttpCarrierError, case .unsupportedCarrierMode = carrierError {
+                self.unsupportedConfiguration = configuration
             }
             if self.lastFailedConfiguration == configuration {
                 self.consecutiveFailureCount += 1

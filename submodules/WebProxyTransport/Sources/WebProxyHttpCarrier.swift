@@ -5,6 +5,11 @@ public enum WebProxyHttpCarrierError: Error {
     case bridgeRequestFailed
     case bootstrapTokenMissing
     case sessionCreationFailed
+    /// The relay answered the handshake but named a carrier mode this client does not implement.
+    /// Distinct from `sessionCreationFailed` because it is not a transient failure: the relay will
+    /// answer the same way every time, so retrying it is only ever wasted work. Carries the mode the
+    /// relay reported so the condition can be told apart from a dead host.
+    case unsupportedCarrierMode(String)
     case welcomeMissing
     case uplinkRejected
     case downlinkRejected
@@ -247,9 +252,14 @@ final class WebProxyHttpCarrier {
                     completion(.failure(WebProxyHttpCarrierError.sessionCreationFailed))
                     return
                 }
+                // `https` is the only carrier mode this client implements; a relay that omits the
+                // header is one from before the header existed, which is that mode. Anything else is
+                // a relay speaking a wire format we would misread, so the session is refused rather
+                // than opened — but with an error of its own, since unlike everything else in this
+                // handshake it will not come good on a retry.
                 let carrierMode = response.value(forHTTPHeaderField: "X-Carrier-Mode") ?? "https"
                 if carrierMode != "https" {
-                    completion(.failure(WebProxyHttpCarrierError.sessionCreationFailed))
+                    completion(.failure(WebProxyHttpCarrierError.unsupportedCarrierMode(carrierMode)))
                     return
                 }
                 self.sessionToken = token
