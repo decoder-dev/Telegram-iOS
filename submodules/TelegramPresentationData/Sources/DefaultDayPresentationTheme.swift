@@ -966,9 +966,26 @@ public func makeDefaultDayPresentationTheme(extendingThemeReference: Presentatio
         panelControlColor: UIColor(rgb: 0x000000, alpha: 1.0),
         panelControlDisabledColor: UIColor(rgb: 0x727b87, alpha: 0.5),
         panelControlDestructiveColor: UIColor(rgb: 0xff3b30),
-        inputBackgroundColor: UIColor(white: 1.0, alpha: 0.8),
+        // The light half of the pair the Night theme documents below its own `inputBackgroundColor`.
+        // This colour is a tint on the composer's glass material, and glass over a flat backdrop
+        // resolves to `alpha * tint + (1 - alpha) * backdrop` — so a white tint on a white chat is
+        // white. On the plain-white wallpaper (the one `withDefaultWallpaper` is selected for) the
+        // field, the attachment button and the mic came out at exactly the background's value: no
+        // fill separation at all, only the material's own hairline. #F2F2F7 is iOS systemGray6, the
+        // canonical field-on-white surface, and mirrors Night's #1C1C1E at the same 0.9.
+        //
+        // A fill can only go so far: it separates from every backdrop except one of its own colour.
+        // The wallpaper-independent cure is a stroke, which is what `inputStrokeColor` below is for
+        // — no chat-composer code reads it today, and wiring it in means teaching the shared glass
+        // component to draw a border.
+        inputBackgroundColor: UIColor(rgb: 0xF2F2F7, alpha: 0.9),
         inputStrokeColor: UIColor(rgb: 0x000000, alpha: 0.1),
-        inputPlaceholderColor: UIColor(rgb: 0x000000, alpha: 0.4),
+        // 0.4 read at 2.8:1 on the field above — under the 3:1 floor, and it got no easier once the
+        // field stopped being pure white. 0.45 lands at 3.3:1, which is where iOS puts
+        // `secondaryLabel`: a placeholder should read as secondary text, not as disabled text.
+        // Night's 0.62 is the same intent from the other side — white on dark needs more alpha to
+        // reach the same place.
+        inputPlaceholderColor: UIColor(rgb: 0x000000, alpha: 0.45),
         inputTextColor: UIColor(rgb: 0x000000),
         inputControlColor: UIColor(rgb: 0x000000, alpha: 0.5),
         actionControlFillColor: defaultDayAccentColor,
