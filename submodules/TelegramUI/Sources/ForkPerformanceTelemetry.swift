@@ -118,14 +118,54 @@ private final class ForkMetricSubscriber: NSObject, MXMetricManagerSubscriber {
         }
     }
 
+    /// Diagnostics are the half of MetricKit that says *why* something went wrong, and unlike the
+    /// metric payloads they arrive with a call-stack tree attached. This used to log the count and
+    /// nothing else, which is the worst of both worlds: a crash loop left a log full of
+    /// "1 crash diagnostic(s)" and not one frame to act on, while the system had handed the app
+    /// every stack it needed.
+    ///
+    /// So each diagnostic now gets a one-line summary — termination reason, signal, exception,
+    /// build — that is greppable without parsing anything, followed by the payload's own JSON, which
+    /// carries the call-stack tree. The metric branch above already logs its payload whole for the
+    /// same reason. Diagnostics are rare when the app is healthy and exactly what is wanted when it
+    /// is not, so the size is worth it.
     @available(iOS 14.0, *)
     func didReceive(_ payloads: [MXDiagnosticPayload]) {
         for payload in payloads {
             if let hangs = payload.hangDiagnostics, !hangs.isEmpty {
                 Logger.shared.log("Perf", "MetricKit: \(hangs.count) hang diagnostic(s)")
+                for hang in hangs {
+                    Logger.shared.log("Perf", "MetricKit hang: duration=\(hang.hangDuration.value)\(hang.hangDuration.unit.symbol) build=\(hang.metaData.applicationBuildVersion) os=\(hang.metaData.osVersion)")
+                }
             }
             if let crashes = payload.crashDiagnostics, !crashes.isEmpty {
                 Logger.shared.log("Perf", "MetricKit: \(crashes.count) crash diagnostic(s)")
+                for crash in crashes {
+                    var parts: [String] = []
+                    if let reason = crash.terminationReason {
+                        parts.append("reason=\(reason)")
+                    }
+                    if let signal = crash.signal {
+                        parts.append("signal=\(signal)")
+                    }
+                    if let exceptionType = crash.exceptionType {
+                        parts.append("exceptionType=\(exceptionType)")
+                    }
+                    if let exceptionCode = crash.exceptionCode {
+                        parts.append("exceptionCode=\(exceptionCode)")
+                    }
+                    if let regionInfo = crash.virtualMemoryRegionInfo {
+                        // A bad-access crash names the region it touched here, which separates a
+                        // wild pointer from a use-after-free without reading the stack at all.
+                        parts.append("vmRegion=\(regionInfo.replacingOccurrences(of: "\n", with: " "))")
+                    }
+                    parts.append("build=\(crash.metaData.applicationBuildVersion)")
+                    parts.append("os=\(crash.metaData.osVersion)")
+                    Logger.shared.log("Perf", "MetricKit crash: \(parts.joined(separator: " "))")
+                }
+            }
+            if let json = String(data: payload.jsonRepresentation(), encoding: .utf8) {
+                Logger.shared.log("Perf", "MetricKit diagnostic payload: \(json)")
             }
         }
     }
