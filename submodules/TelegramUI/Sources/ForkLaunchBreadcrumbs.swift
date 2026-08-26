@@ -15,7 +15,15 @@ import Darwin
 /// nothing but fill four bytes and `write()` them. The `NSException` handler is not in signal
 /// context and may use Foundation freely.
 public enum ForkLaunchBreadcrumbs {
-    /// Launch stages, in order. Written as a single byte, so the value must stay under 256.
+    /// Stages, written as a single byte, so the value must stay under 256.
+    ///
+    /// The launch half runs in order. The runtime half does not: after `didBecomeActive` every
+    /// crash reported the same value, which made a record of a crash two minutes in say nothing
+    /// about where it happened. These name what was on screen instead, each overwriting the last,
+    /// so the byte answers "doing what" rather than only "past launch".
+    ///
+    /// Numbered from 20 so launch stages keep room to grow without renumbering anything a shipped
+    /// build may already have written to disk.
     public enum Stage: UInt8 {
         case didFinishLaunchingBegan = 1
         case accountManagerOpened = 2
@@ -24,6 +32,15 @@ public enum ForkLaunchBreadcrumbs {
         case rootControllerReady = 5
         case didFinishLaunchingReturned = 6
         case didBecomeActive = 7
+
+        case chatListVisible = 20
+        case chatOpened = 21
+        case composerActive = 22
+        case contextMenuOpen = 23
+        case reactionSheetOpen = 24
+        case mediaGalleryOpen = 25
+        case settingsOpen = 26
+        case enteredBackground = 27
     }
 
     private static let recordSize = 4

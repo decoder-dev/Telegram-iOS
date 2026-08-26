@@ -3840,6 +3840,7 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
         
         self.longPressRecognizer?.isEnabled = false
         
+        Logger.shared.log("Tapbacks", "expand: items=\(self.items.count) externalSmile=\(self.usesExternalExpandButton) emojiContent=\(self.getEmojiContent != nil)")
         if self.usesExternalExpandButton {
             // The sheet docks to the bottom of the screen, which is where the keyboard lives. The
             // first responder here is the chat's own input field, left over from before the long
@@ -3908,6 +3909,7 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
             self.hideExpandedTopPanel = hideExpandedTopPanelBeforeExpand
             self.hideExpandedTopPanelBeforeExpand = nil
         }
+        Logger.shared.log("Tapbacks", "collapse")
         self.isExpanded = false
         self.isCollapsing = true
         self.isExpandedUpdated(.animated(duration: 0.4, curve: .spring))

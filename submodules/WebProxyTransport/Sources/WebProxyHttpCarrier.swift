@@ -260,6 +260,10 @@ final class WebProxyHttpCarrier {
                 // checked here when the session POST carries a body and on the first downlink batch
                 // when it does not. That catches a relay whose wire format we would misread — and
                 // also one that claims `https` and is not, which a string comparison never could.
+                //
+                // It is still worth recording: when a relay does turn out to be incompatible, the
+                // mode it named is the first thing anyone will want to know.
+                WebProxyLog.log("session opened with \(self.hostname), relay reports carrier mode \(response.value(forHTTPHeaderField: "X-Carrier-Mode") ?? "unset")")
                 self.sessionToken = token
                 self.downCursor = response.value(forHTTPHeaderField: "X-Down-Cursor") ?? "0"
                 if let body = data, !body.isEmpty {
@@ -459,6 +463,7 @@ final class WebProxyHttpCarrier {
         if self.closed {
             return
         }
+        WebProxyLog.log("carrier failed against \(self.hostname): \(error)")
         self.closed = true
         self.onFailure?(error)
     }

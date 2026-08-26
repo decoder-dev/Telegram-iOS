@@ -65,7 +65,75 @@ public enum ForkPerformanceTelemetry {
         let subscriber = ForkMetricSubscriber()
         self.metricSubscriber = subscriber
         MXMetricManager.shared.add(subscriber)
+
+        self.installMemoryWarningObserver()
+        self.installMainThreadStallWatchdog()
     }
+
+    /// Memory pressure was entirely unrecorded. A device log could show resident size falling step
+    /// by step before the process died — the app evicting caches under pressure — without a single
+    /// line saying pressure had arrived. That is the difference between a jetsam kill and every
+    /// other kind, and it was not in the log.
+    private static func installMemoryWarningObserver() {
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.didReceiveMemoryWarningNotification,
+            object: nil,
+            queue: .main,
+            using: { _ in
+                Logger.shared.log("Memory", "received memory warning, resident \(getMemoryConsumption() / (1024 * 1024)) MB, thermal \(ForkPerformanceTelemetry.describe(self.thermalState))")
+            }
+        )
+    }
+
+    /// A watchdog kill is a main thread that stopped answering, and nothing measured that. A timer
+    /// on a background queue posts a heartbeat to the main queue and notes how late the answer is;
+    /// a stall long enough to matter is logged with its duration, so an uncatchable kill leaves a
+    /// timestamped stall behind it instead of nothing.
+    ///
+    /// The check runs at 1 Hz and does no work beyond two timestamps, so it costs nothing next to
+    /// the memory timer already running at the same rate.
+    private static let stallReportThreshold: Double = 1.0
+    private static let stallQueue = DispatchQueue(label: "ForkMainThreadStallWatchdog", qos: .utility)
+    private static var stallPingSentAt: Double = 0.0
+    private static var stallAwaitingReply = false
+    /// One line per stall, not one per second: a ten-second stall would otherwise write nine
+    /// identical lines, and writing them is itself work piled onto a main thread already in
+    /// trouble. The recovery line carries the total.
+    private static var stallReported = false
+
+    private static func installMainThreadStallWatchdog() {
+        let timer = DispatchSource.makeTimerSource(queue: self.stallQueue)
+        timer.schedule(deadline: .now() + 1.0, repeating: 1.0)
+        timer.setEventHandler {
+            if self.stallAwaitingReply {
+                // The previous ping has not come back yet: the main thread is still busy. Say so
+                // once, then keep waiting rather than piling on pings or repeating the line.
+                let outstanding = CFAbsoluteTimeGetCurrent() - self.stallPingSentAt
+                if outstanding >= self.stallReportThreshold, !self.stallReported {
+                    self.stallReported = true
+                    Logger.shared.log("Stall", "main thread unresponsive, \(String(format: "%.1f", outstanding))s so far")
+                }
+                return
+            }
+            self.stallAwaitingReply = true
+            let sentAt = CFAbsoluteTimeGetCurrent()
+            self.stallPingSentAt = sentAt
+            DispatchQueue.main.async {
+                let waited = CFAbsoluteTimeGetCurrent() - sentAt
+                self.stallQueue.async {
+                    self.stallAwaitingReply = false
+                    if self.stallReported {
+                        self.stallReported = false
+                        Logger.shared.log("Stall", "main thread recovered after \(String(format: "%.1f", waited))s")
+                    }
+                }
+            }
+        }
+        timer.resume()
+        self.stallTimer = timer
+    }
+
+    private static var stallTimer: DispatchSourceTimer?
 
     private static func describe(_ state: ProcessInfo.ThermalState) -> String {
         switch state {

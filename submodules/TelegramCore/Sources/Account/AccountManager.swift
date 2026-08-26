@@ -3,6 +3,8 @@ import Postbox
 import SwiftSignalKit
 import TelegramApi
 import MtProtoKit
+import WebProxyTransport
+import MTWebSocketTransport
 
 private enum AccountKind {
     case authorized
@@ -254,6 +256,16 @@ private var declaredEncodables: Void = {
 
 public func initializeAccountManagement() {
     let _ = declaredEncodables
+
+    // Both transports sit below TelegramCore in the dependency graph and so cannot reach `Logger`
+    // themselves. Installing their sinks here is the one place that runs before either can be
+    // asked to do anything, and is idempotent — a second call reinstalls the same closure.
+    WebProxyLog.handler = { message in
+        Logger.shared.log("WebProxy", message)
+    }
+    WebSocketTransportLog.handler = { message in
+        Logger.shared.log("MTWebSocket", message)
+    }
 }
 
 public func rootPathForBasePath(_ appGroupPath: String) -> String {

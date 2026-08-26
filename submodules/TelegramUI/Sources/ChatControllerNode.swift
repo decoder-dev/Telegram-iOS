@@ -817,6 +817,12 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
         
         super.init()
 
+        // The chat screen is where the app spends its time and where a crash log went silent: the
+        // subsystems that log constantly are network and storage, and this one logged nothing at
+        // all. One line per chat opened is enough to place any later failure on a screen.
+        Logger.shared.log("Chat", "opened \(chatLocation) subject=\(subject.map({ String(describing: $0) }) ?? "none") mode=\(chatPresentationInterfaceState.mode)")
+        ForkLaunchBreadcrumbs.mark(.chatOpened)
+
         getContentAreaInScreenSpaceImpl = { [weak self] in
             guard let strongSelf = self else {
                 return CGRect()

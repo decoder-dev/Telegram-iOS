@@ -338,6 +338,10 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
     // `alwaysUseNativeInput` = native from the start (mode 1 or `forceNewTextInput`). See `desiredUseNative(for:)`.
     private var enableRichTextInput: Bool = false
     private var alwaysUseNativeInput: Bool = false
+    /// Logged once per switch rather than per layout: which backend the composer is actually on is
+    /// the first question about any composer report, and the dual-field scheme means the answer
+    /// changes mid-session.
+    private var loggedInputBackend: String?
     
     public var displayAttachmentMenu: () -> Void = { }
     public var sendMessage: () -> Void = { }
@@ -1207,6 +1211,11 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
     }
 
     private func loadTextInputNode(useNative: Bool = false) {
+        let backend = useNative ? "native" : "legacy"
+        if self.loggedInputBackend != backend {
+            self.loggedInputBackend = backend
+            Logger.shared.log("Composer", "input backend -> \(backend) (richTextPermitted=\(self.enableRichTextInput) alwaysNative=\(self.alwaysUseNativeInput))")
+        }
         let richTextInputNode: ChatRichTextInputNode
         if useNative {
             richTextInputNode = RichTextEditorChatInputNode(strings: self.presentationInterfaceState?.strings ?? defaultPresentationStrings)

@@ -470,6 +470,10 @@ private let cloudDataContext = Atomic<CloudDataContext?>(value: nil)
 // Account.swift): turning the WebSocket toggle back off must restore whatever the account was
 // using before, not silently disable NetworkFramework for the rest of the session.
 func setDefaultTcpConnectionInterface(context: MTContext, useNetworkFramework: Bool) {
+    // A build where the WebSocket toggle is simply off logged nothing at all, so "feature disabled"
+    // and "feature never reached" looked identical in a device log. Naming the chosen factory on
+    // every apply separates them.
+    Logger.shared.log("Network", "tcp connection factory: \(useNetworkFramework ? "NetworkFramework" : "default socket")")
     if useNetworkFramework, #available(iOS 12.0, macOS 14.0, *) {
         context.makeTcpConnectionInterface = { delegate, delegateQueue, _, _, _ in
             return NetworkFrameworkTcpConnectionInterface(delegate: delegate, delegateQueue: delegateQueue)

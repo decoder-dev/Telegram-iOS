@@ -160,9 +160,14 @@ public final class WebProxyManager {
     
     private func startAsync(configuration: WebProxyConfiguration, generation: UInt64) {
         guard let bridgeCapability = WebProxyBridgeCapability.derive(hostname: configuration.hostname, secret: configuration.secret) else {
+            // Refused before a single byte left the device: the hostname is not a DNS name, or the
+            // secret is not one of the two forms a WEB relay accepts. Worth naming, because it is
+            // indistinguishable from a dead relay in every later signal.
+            WebProxyLog.log("bootstrap refused for \(configuration.hostname): hostname or secret unusable (secret \(configuration.secret.count) bytes)")
             self.finishStart(generation: generation, configuration: configuration, sidecar: nil, result: .failure(WebProxyHttpCarrierError.sessionCreationFailed))
             return
         }
+        WebProxyLog.log("bootstrap starting for \(configuration.hostname)")
         
         let sidecar = WebProxySidecar()
         sidecar.start(hostname: configuration.hostname, secret: configuration.secret, bridgeCapability: bridgeCapability) { [weak self] result in
@@ -182,6 +187,7 @@ public final class WebProxyManager {
         
         switch result {
         case let .success(endpoint):
+            WebProxyLog.log("carrier ready for \(configuration.hostname) on \(endpoint.host):\(endpoint.port)")
             self.lock.lock()
             self.sidecar?.stop()
             self.sidecar = sidecar
@@ -202,7 +208,10 @@ public final class WebProxyManager {
             self.startLock.unlock()
 
             self.notifySidecarEvent()
-        case .failure:
+        case let .failure(error):
+            // The reason a WEB proxy failed used to end here: the branch did not even bind the
+            // error, so "my proxy does not connect" had no answer short of reading the source.
+            WebProxyLog.log("bootstrap failed for \(configuration.hostname): \(error)")
             sidecar?.stop()
             self.startLock.lock()
             if generation == self.startGeneration {
@@ -228,6 +237,7 @@ public final class WebProxyManager {
     }
     
     private func handleSidecarFailure() {
+        WebProxyLog.log("carrier died after becoming ready")
         self.lock.lock()
         let failedConfiguration = self.configuration
         let readySince = self.sidecarReadySince

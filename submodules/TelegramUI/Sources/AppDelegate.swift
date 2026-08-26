@@ -1550,6 +1550,9 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         
         let _ = self.isInForegroundPromise.get().start(next: { value in
             Logger.shared.log("App \(self.episodeId)", "isInForeground = \(value)")
+            // A crash just after backgrounding and one in an open chat are different bugs; the
+            // breadcrumb byte could not tell them apart before this.
+            ForkLaunchBreadcrumbs.mark(value ? .chatListVisible : .enteredBackground)
         })
         let _ = self.isActivePromise.get().start(next: { value in
             Logger.shared.log("App \(self.episodeId)", "isActive = \(value)")
@@ -3394,7 +3397,10 @@ private func downloadHTTPData(url: URL) -> Signal<Data, DownloadFileError> {
     }
 }
 
-private func getMemoryConsumption() -> Int {
+/// Resident footprint in bytes, or 0 when the kernel will not say. Internal rather than private so
+/// the telemetry in ForkPerformanceTelemetry reports the same number this file's memory timer does,
+/// instead of a second mach call that could drift from it.
+func getMemoryConsumption() -> Int {
     guard let memory_offset = MemoryLayout.offset(of: \task_vm_info_data_t.min_address) else {
         return 0
     }

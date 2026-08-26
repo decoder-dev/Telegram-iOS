@@ -205,6 +205,9 @@ public final class WebSocketMessageReassembler {
             case .needsMoreData:
                 break parseLoop
             case let .invalid(reason):
+                // A framing error means the peer is not speaking what we think it is. The buffer is
+                // dropped either way, so this is the only moment the reason exists.
+                WebSocketTransportLog.log("framing rejected after \(self.buffer.count) buffered bytes: \(reason)")
                 events.append(.protocolError(reason))
                 self.buffer.removeAll()
                 break parseLoop

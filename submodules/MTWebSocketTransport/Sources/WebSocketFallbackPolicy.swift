@@ -24,9 +24,18 @@ public final class WebSocketEndpointSelector {
 
     /// Moves to the next candidate and returns it, or `nil` if every candidate has now been tried.
     @discardableResult
+    /// Moves to the next candidate. Logged because falling through this list is the last thing that
+    /// happens before an attempt is given up on, and which endpoint was reached is the difference
+    /// between a blocked host and a blocked network.
     public func advance() -> WebSocketEndpointCandidate? {
         self.index += 1
-        return self.current
+        let next = self.current
+        if let next = next {
+            WebSocketTransportLog.log("endpoint \(self.index + 1)/\(self.candidates.count): \(next.host)\(next.path)")
+        } else {
+            WebSocketTransportLog.log("all \(self.candidates.count) endpoints exhausted")
+        }
+        return next
     }
 
     public func reset() {
