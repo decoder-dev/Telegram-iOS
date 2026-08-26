@@ -36,6 +36,11 @@ final class WebProxyHttpCarrier {
         var downlinkPolling = false
         /// Set when the relay returns `X-Lane-Closed: 1` after the stream has drained.
         var closed = false
+        /// The relay only creates a lane on the first uplink that begins with OPEN.
+        /// Polling `/down` before that admission races and returns a decoy 404
+        /// (ManagerError::Protocol → serve_decoy). Start downlink only after the first
+        /// uplink is ACKed. Lane 0 is session control and is polled from session start.
+        var uplinkAdmitted = false
         var fastEmptyDownlinkStreak = 0
         
         var pendingUplinkCount: Int {
@@ -265,6 +270,21 @@ final class WebProxyHttpCarrier {
                     completion(.failure(WebProxyHttpCarrierError.unsupportedCarrierMode))
                     return
                 }
+
+                // `X-Carrier-Mode` is deliberately not gated on. Refusing every value but `https`
+                // assumed the header names the wire format, and nothing here is written down: this
+                // client always dials `https://<host>` regardless of it, and never varies a single
+                // byte of the protocol by it — the value was only ever read to be compared. If the
+                // relay instead reports how it is deployed (own TLS, plain HTTP behind a terminator,
+                // a particular image), then every deployment but one was refused for a label while
+                // speaking a protocol this client understands perfectly.
+                //
+                // Compatibility is settled by the handshake instead, which is both stronger and not
+                // a guess: the relay must open with a decodable `WELCOME` frame on stream zero,
+                // checked here when the session POST carries a body and on the first downlink batch
+                // when it does not. That catches a relay whose wire format we would misread — and
+                // also one that claims `https` and is not, which a string comparison never could.
+
                 self.sessionToken = token
                 self.downCursor = response.value(forHTTPHeaderField: "X-Down-Cursor") ?? "0"
                 if let body = data, !body.isEmpty {
@@ -552,10 +572,10 @@ final class WebProxyHttpCarrier {
             }
             lane.uplinkBuffer.append(frames)
             self.runUplinkLaneIfNeeded(laneId: streamId, lane: lane)
-            // First traffic on a non-zero lane (OPEN + …) also needs a downlink poll.
-            if streamId != 0, !lane.downlinkPolling, !lane.closed {
-                self.pollDownlinkLane(laneId: streamId, lane: lane)
-            }
+            // Do NOT start downlink here. The relay admits a non-zero lane only when the
+            // first uplink (must begin with OPEN) is accepted. A concurrent /down before
+            // that races into serve_decoy() → 404 and used to kill the whole carrier.
+            // Downlink starts from the uplink completion handler once uplinkAdmitted is set.
         }
     }
     
@@ -609,6 +629,14 @@ final class WebProxyHttpCarrier {
                       http.value(forHTTPHeaderField: "X-Up-Ack") == String(sequence) else {
                     self.fail(WebProxyHttpCarrierError.uplinkRejected)
                     return
+                }
+                // First successful uplink admits the lane on the relay. Only then is it
+                // safe to long-poll /down for this X-Lane-ID.
+                if !lane.uplinkAdmitted {
+                    lane.uplinkAdmitted = true
+                    if !lane.downlinkPolling, !lane.closed {
+                        self.pollDownlinkLane(laneId: laneId, lane: lane)
+                    }
                 }
             }
         }
@@ -675,6 +703,22 @@ final class WebProxyHttpCarrier {
                 }
                 guard let http = response as? HTTPURLResponse else {
                     self.fail(WebProxyHttpCarrierError.downlinkRejected)
+                    return
+                }
+                
+                // Decoy 404 is what the relay returns for Protocol errors (e.g. /down on a
+                // lane that was never OPEN'd). Must not fail the whole carrier — that was
+                // the freeze after a couple of chats loaded. Drop this lane's poll; if the
+                // race is fixed upstream this path is rare, but keep it non-fatal.
+                if http.statusCode == 404 {
+                    lane.downlinkPolling = false
+                    if !lane.uplinkAdmitted {
+                        // Lost the race that should no longer happen; uplink completion will
+                        // start a clean poll once OPEN is ACKed.
+                        return
+                    }
+                    // Unexpected after admission: stop this lane only.
+                    self.closeLane(laneId: laneId, lane: lane)
                     return
                 }
                 
