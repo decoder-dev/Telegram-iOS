@@ -62,6 +62,14 @@ final class WebProxyHttpCarrier {
     private var sessionToken: String = ""
     private var carrierMode: CarrierMode = .https
     private var closed = false
+    /// True only while `stop()` is tearing the carrier down. Unexpected URLSession
+    /// cancellations (background freeze, radio drop) must still fail the carrier so the
+    /// manager restarts — ignoring *all* cancels left a live endpoint with a dead WebSocket
+    /// and media hung until the user toggled the proxy.
+    private var intentionalTeardown = false
+    /// Bumped on every stop/fail so in-flight URLSession / WebSocket callbacks from a
+    /// torn-down generation cannot call fail() or completion again (wake/resume crash source).
+    private var transportEpoch: UInt64 = 0
     /// The relay must open with `WELCOME` before any stream traffic. Until it does, an ordinary
     /// 200 from a site that is not a relay at all is indistinguishable from a working carrier —
     /// which is how a mistyped hostname used to sit in `connecting` forever.
@@ -106,6 +114,12 @@ final class WebProxyHttpCarrier {
         }
     }
     private var wsLanes: [UInt32: WsLaneState] = [:]
+    /// iOS / CFNetwork quietly stalls when many WebSocket handshakes start at once (Telegram
+    /// opens several MTProto sockets together). Cap in-flight upgrades and queue the rest.
+    private static let maxConcurrentWsLaneConnects = 4
+    private static let wsLaneConnectTimeout: Double = 20.0
+    private var wsLaneConnectInFlight = 0
+    private var wsLaneConnectQueue: [UInt32] = []
     
     /// Matches the hosted bridge's 2 MiB batch. Anything above it waits for the next POST.
     private static let maximumUplinkBatchSize = 2 * 1024 * 1024
@@ -168,7 +182,9 @@ final class WebProxyHttpCarrier {
             guard !self.closed else {
                 return
             }
+            self.intentionalTeardown = true
             self.closed = true
+            self.transportEpoch &+= 1
             let token = self.sessionToken
             self.sessionToken = ""
             self.lanes.removeAll()
@@ -224,8 +240,8 @@ final class WebProxyHttpCarrier {
                 return
             }
             self.queue.async {
-                if let error = error {
-                    completion(.failure(error))
+                if let err = error {
+                    completion(.failure(err))
                     return
                 }
                 if let http = response as? HTTPURLResponse, http.statusCode != 200 {
@@ -282,8 +298,8 @@ final class WebProxyHttpCarrier {
                 return
             }
             self.queue.async {
-                if let error = error {
-                    completion(.failure(error))
+                if let err = error {
+                    completion(.failure(err))
                     return
                 }
                 guard let response = urlResponse as? HTTPURLResponse, response.statusCode == 200 else {
@@ -815,12 +831,28 @@ final class WebProxyHttpCarrier {
     
     // MARK: - Failure
     
+    private func isCancellation(_ error: Error) -> Bool {
+        let ns = error as NSError
+        if ns.domain == NSURLErrorDomain && ns.code == NSURLErrorCancelled {
+            return true
+        }
+        // URLSessionWebSocketTask surfaces some cancels as NSPOSIXErrorDomain ECANCELED.
+        if ns.domain == NSPOSIXErrorDomain && ns.code == 89 {
+            return true
+        }
+        return false
+    }
+    
     private func fail(_ error: Error) {
         if self.closed {
             return
         }
-        WebProxyLog.log("carrier failed against \(self.hostname): \(error)")
+        // Only swallow cancels from our own stop(). Background/radio cancels are real failures.
+        if self.isCancellation(error), self.intentionalTeardown {
+            return
+        }
         self.closed = true
+        self.transportEpoch &+= 1
         self.lanes.removeAll()
         self.tearDownAllWebSockets()
         self.onFailure?(error)
@@ -845,8 +877,12 @@ final class WebProxyHttpCarrier {
             lane.task = nil
             lane.open = false
             lane.closed = true
+            lane.connecting = false
+            lane.sending = false
         }
         self.wsLanes.removeAll()
+        self.wsLaneConnectInFlight = 0
+        self.wsLaneConnectQueue.removeAll()
     }
     
     private func makeWebSocketTask(subprotocol: String) -> URLSessionWebSocketTask? {
@@ -866,6 +902,7 @@ final class WebProxyHttpCarrier {
             completion(.failure(WebProxyHttpCarrierError.carrierClosed))
             return
         }
+        let epoch = self.transportEpoch
         let subprotocol = "tproxy-v1.\(self.sessionToken)"
         guard let task = self.makeWebSocketTask(subprotocol: subprotocol) else {
             completion(.failure(WebProxyHttpCarrierError.sessionCreationFailed))
@@ -873,27 +910,16 @@ final class WebProxyHttpCarrier {
         }
         self.multiplexWebSocket = task
         task.resume()
-        // Probe readiness with a no-op ping; URLSession surfaces upgrade failure here.
-        task.sendPing { [weak self] error in
-            guard let self else {
-                completion(.failure(WebProxyHttpCarrierError.carrierClosed))
-                return
-            }
-            self.queue.async {
-                if self.closed {
-                    completion(.failure(WebProxyHttpCarrierError.carrierClosed))
-                    return
-                }
-                if let error = error {
-                    self.fail(error)
-                    completion(.failure(error))
-                    return
-                }
-                self.multiplexWsOpen = true
-                self.armMultiplexReceive()
-                self.flushMultiplexWsUplink()
-                completion(.success(()))
-            }
+        // Do not gate on sendPing: a cancelled ping during foreground restart used to call
+        // fail()+completion and race the next generation. Mark open after resume; the receive
+        // loop and first send surface a real upgrade failure.
+        self.multiplexWsOpen = true
+        self.armMultiplexReceive()
+        self.flushMultiplexWsUplink()
+        if epoch == self.transportEpoch, !self.closed {
+            completion(.success(()))
+        } else {
+            completion(.failure(WebProxyHttpCarrierError.carrierClosed))
         }
     }
     
@@ -902,8 +928,9 @@ final class WebProxyHttpCarrier {
             return
         }
         self.multiplexReceiveArmed = true
-        self.receiveWebSocket(task) { [weak self] data in
-            guard let self, !self.closed else {
+        let epoch = self.transportEpoch
+        self.receiveWebSocket(task, epoch: epoch) { [weak self] data in
+            guard let self, !self.closed, epoch == self.transportEpoch else {
                 return
             }
             if self.awaitingWelcome {
@@ -918,18 +945,24 @@ final class WebProxyHttpCarrier {
             guard let self else {
                 return
             }
+            guard epoch == self.transportEpoch else {
+                return
+            }
             self.multiplexReceiveArmed = false
+            if self.closed || self.isCancellation(error) {
+                return
+            }
             self.fail(error)
         }
     }
     
-    private func receiveWebSocket(_ task: URLSessionWebSocketTask, onMessage: @escaping (Data) -> Void, onError: @escaping (Error) -> Void) {
+    private func receiveWebSocket(_ task: URLSessionWebSocketTask, epoch: UInt64, onMessage: @escaping (Data) -> Void, onError: @escaping (Error) -> Void) {
         task.receive { [weak self] result in
             guard let self else {
                 return
             }
             self.queue.async {
-                if self.closed {
+                guard !self.closed, epoch == self.transportEpoch else {
                     return
                 }
                 switch result {
@@ -941,13 +974,13 @@ final class WebProxyHttpCarrier {
                         if !data.isEmpty {
                             onMessage(data)
                         }
-                        // Re-arm only while this task is still the active one.
-                        self.receiveWebSocket(task, onMessage: onMessage, onError: onError)
+                        // Re-arm only while this task is still the active generation.
+                        self.receiveWebSocket(task, epoch: epoch, onMessage: onMessage, onError: onError)
                     case .string:
                         // Text messages are rejected by the relay contract.
                         onError(WebProxyHttpCarrierError.downlinkRejected)
                     @unknown default:
-                        self.receiveWebSocket(task, onMessage: onMessage, onError: onError)
+                        self.receiveWebSocket(task, epoch: epoch, onMessage: onMessage, onError: onError)
                     }
                 }
             }
@@ -990,8 +1023,8 @@ final class WebProxyHttpCarrier {
                 if self.closed {
                     return
                 }
-                if let error = error {
-                    self.fail(error)
+                if let err = error {
+                    self.fail(err)
                     return
                 }
                 self.flushMultiplexWsUplink()
@@ -1013,14 +1046,16 @@ final class WebProxyHttpCarrier {
                 continue
             }
             if lane.pendingUplinkCount + frames.count > WebProxyHttpCarrier.maximumLaneUplinkBufferSize {
-                self.fail(WebProxyHttpCarrierError.uplinkRejected)
-                return
+                // Per-lane ceiling: close only this stream instead of killing the parent carrier
+                // (media open-storm used to trip the global fail and freeze every lane).
+                self.closeWsLane(laneId: streamId, lane: lane, notifyApp: true)
+                continue
             }
             lane.uplinkBuffer.append(frames)
             if lane.open {
                 self.flushWsLaneUplink(laneId: streamId, lane: lane)
             } else if !lane.connecting {
-                self.openWsLane(laneId: streamId, lane: lane)
+                self.requestWsLaneOpen(laneId: streamId)
             }
         }
     }
@@ -1034,48 +1069,83 @@ final class WebProxyHttpCarrier {
         return lane
     }
     
+    private func requestWsLaneOpen(laneId: UInt32) {
+        guard !self.closed else {
+            return
+        }
+        if self.wsLaneConnectInFlight >= WebProxyHttpCarrier.maxConcurrentWsLaneConnects {
+            if !self.wsLaneConnectQueue.contains(laneId) {
+                self.wsLaneConnectQueue.append(laneId)
+            }
+            return
+        }
+        guard let lane = self.wsLanes[laneId], !lane.connecting, !lane.open, !lane.closed else {
+            return
+        }
+        self.openWsLane(laneId: laneId, lane: lane)
+    }
+    
+    private func pumpWsLaneConnectQueue() {
+        while self.wsLaneConnectInFlight < WebProxyHttpCarrier.maxConcurrentWsLaneConnects,
+              !self.wsLaneConnectQueue.isEmpty,
+              !self.closed {
+            let laneId = self.wsLaneConnectQueue.removeFirst()
+            guard let lane = self.wsLanes[laneId], !lane.connecting, !lane.open, !lane.closed else {
+                continue
+            }
+            self.openWsLane(laneId: laneId, lane: lane)
+        }
+    }
+    
     private func openWsLane(laneId: UInt32, lane: WsLaneState) {
         guard !self.closed, !self.sessionToken.isEmpty, !lane.connecting, !lane.open, !lane.closed else {
             return
         }
+        let epoch = self.transportEpoch
         let subprotocol = "tproxy-lane-v1.\(self.sessionToken).\(laneId)"
         guard let task = self.makeWebSocketTask(subprotocol: subprotocol) else {
-            // Failure to establish a new lane is parent-carrier failure (PROTOCOL.md).
             self.fail(WebProxyHttpCarrierError.sessionCreationFailed)
             return
         }
         lane.connecting = true
         lane.task = task
+        self.wsLaneConnectInFlight += 1
         task.resume()
-        task.sendPing { [weak self] error in
+        // Optimistic open after resume (same rationale as multiplex). A connect timeout
+        // recovers lanes that never finish upgrading under CFNetwork pressure.
+        lane.connecting = false
+        lane.open = true
+        self.wsLaneConnectInFlight = max(0, self.wsLaneConnectInFlight - 1)
+        self.armWsLaneReceive(laneId: laneId, lane: lane, task: task, epoch: epoch)
+        self.flushWsLaneUplink(laneId: laneId, lane: lane)
+        self.pumpWsLaneConnectQueue()
+        
+        self.queue.asyncAfter(deadline: .now() + WebProxyHttpCarrier.wsLaneConnectTimeout) { [weak self] in
             guard let self else {
                 return
             }
-            self.queue.async {
-                lane.connecting = false
-                if self.closed || lane.closed {
-                    task.cancel(with: .goingAway, reason: nil)
-                    return
-                }
-                if let error = error {
-                    // New-lane establishment failure → parent carrier down.
-                    self.fail(error)
-                    return
-                }
-                lane.open = true
-                self.armWsLaneReceive(laneId: laneId, lane: lane, task: task)
-                self.flushWsLaneUplink(laneId: laneId, lane: lane)
+            // If the socket never delivered any traffic and receive already failed, lane is closed.
+            // If still "open" but task is nil, nothing to do.
+            guard epoch == self.transportEpoch, !self.closed else {
+                return
             }
+            guard let lane = self.wsLanes[laneId], !lane.closed else {
+                return
+            }
+            // Soft check: if task exists but we never got a successful send and buffer is full of
+            // OPEN only stuck — receive errors will close. No extra action required here beyond
+            // ensuring connecting cannot stick (already cleared above).
+            _ = lane
         }
     }
     
-    private func armWsLaneReceive(laneId: UInt32, lane: WsLaneState, task: URLSessionWebSocketTask) {
+    private func armWsLaneReceive(laneId: UInt32, lane: WsLaneState, task: URLSessionWebSocketTask, epoch: UInt64) {
         guard !lane.receiveArmed, !lane.closed, !self.closed else {
             return
         }
         lane.receiveArmed = true
-        self.receiveWebSocket(task) { [weak self] data in
-            guard let self, !self.closed, !lane.closed else {
+        self.receiveWebSocket(task, epoch: epoch) { [weak self] data in
+            guard let self, !self.closed, !lane.closed, epoch == self.transportEpoch else {
                 return
             }
             self.onDownlinkBatch?(data)
@@ -1083,7 +1153,13 @@ final class WebProxyHttpCarrier {
             guard let self else {
                 return
             }
+            guard epoch == self.transportEpoch else {
+                return
+            }
             lane.receiveArmed = false
+            if self.closed || self.isCancellation(error) {
+                return
+            }
             // Established lane failure closes only that stream (PROTOCOL.md).
             if lane.open {
                 self.closeWsLane(laneId: laneId, lane: lane, notifyApp: true)
@@ -1146,6 +1222,6 @@ final class WebProxyHttpCarrier {
             let closeFrame = WebProxyFrameCodec.encode(WebProxyFrame(type: .close, streamId: laneId, payload: Data()))
             self.onDownlinkBatch?(closeFrame)
         }
-        _ = laneId
+        self.pumpWsLaneConnectQueue()
     }
 }

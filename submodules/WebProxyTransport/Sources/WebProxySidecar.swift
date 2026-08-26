@@ -72,6 +72,14 @@ public final class WebProxySidecar {
     private var nextStreamId: UInt32 = 1
     private var endpoint: Endpoint?
     private var onFailure: (() -> Void)?
+    private var hostname: String?
+    private var secret: Data?
+    private var bridgeCapability: String?
+    /// Serializes transport rebuilds so background cancel + foreground reconnect cannot stack.
+    private var transportReconnectInFlight = false
+    private var transportReconnectGeneration: UInt64 = 0
+    private var consecutiveTransportReconnects = 0
+    private static let maxTransportReconnects = 3
     
     /// Implicit per-stream window both directions start with, per the shared relay contract.
     static let initialStreamWindow = 4 * 1024 * 1024
@@ -95,6 +103,7 @@ public final class WebProxySidecar {
                 config.httpShouldSetCookies = false
                 config.timeoutIntervalForRequest = 90.0
                 config.timeoutIntervalForResource = 300.0
+                config.waitsForConnectivity = true
                 let urlSession = URLSession(configuration: config)
                 let carrier = try WebProxyHttpCarrier(hostname: hostname, session: urlSession, queue: self.queue)
                 carrier.onDownlinkBatch = { [weak self] batch in
@@ -102,12 +111,15 @@ public final class WebProxySidecar {
                 }
                 carrier.onFailure = { [weak self] _ in
                     self?.queue.async {
-                        self?.onFailure?()
-                        self?.stopLocked()
+                        self?.handleCarrierFailure()
                     }
                 }
                 
-                let listener = try NWListener(using: .tcp, on: NWEndpoint.Port(rawValue: 0)!)
+                guard let ephemeralPort = NWEndpoint.Port(rawValue: 0) else {
+                    completion(.failure(WebProxyHttpCarrierError.sessionCreationFailed))
+                    return
+                }
+                let listener = try NWListener(using: .tcp, on: ephemeralPort)
                 listener.newConnectionHandler = { [weak self] connection in
                     self?.accept(connection: connection)
                 }
@@ -118,6 +130,10 @@ public final class WebProxySidecar {
                     switch state {
                     case .failed:
                         self.queue.async {
+                            // Ignore failures after intentional stop (listener already nilled).
+                            guard self.listener != nil else {
+                                return
+                            }
                             self.onFailure?()
                             self.stopLocked()
                         }
@@ -129,6 +145,9 @@ public final class WebProxySidecar {
                 self.urlSession = urlSession
                 self.carrier = carrier
                 self.listener = listener
+                self.hostname = hostname
+                self.secret = secret
+                self.bridgeCapability = bridgeCapability
                 
                 listener.start(queue: self.queue)
                 
@@ -172,6 +191,11 @@ public final class WebProxySidecar {
     }
     
     private func stopLocked() {
+        self.transportReconnectGeneration &+= 1
+        self.transportReconnectInFlight = false
+        self.consecutiveTransportReconnects = 0
+        // Drop the handler first so listener/carrier cancels cannot re-enter onFailure → stop.
+        self.onFailure = nil
         self.carrier?.stop()
         self.carrier = nil
         self.listener?.cancel()
@@ -184,6 +208,148 @@ public final class WebProxySidecar {
         self.streams.removeAll()
         self.nextStreamId = 1
         self.endpoint = nil
+        self.hostname = nil
+        self.secret = nil
+        self.bridgeCapability = nil
+    }
+    
+    /// Rebuild only the HTTPS/WebSocket carrier. The loopback listener port stays the same so
+    /// MtProto does not get rebound to 127.0.0.1:1 mid-resume. Existing local streams are
+    /// cancelled — Telegram opens fresh TCP connections against the same proxy port.
+    public func reconnectTransport(completion: ((Result<Void, Error>) -> Void)? = nil) {
+        self.queue.async {
+            // Explicit resume always gets a full reconnect budget.
+            self.consecutiveTransportReconnects = 0
+            self.reconnectTransportLocked(reason: "explicit", completion: completion)
+        }
+    }
+    
+    private func handleCarrierFailure() {
+        // Prefer an in-place transport rebuild over tearing the whole sidecar down. Full stop
+        // changes the loopback port and (with a soft manager resume) left clients on "Connecting".
+        if self.consecutiveTransportReconnects >= WebProxySidecar.maxTransportReconnects {
+            self.onFailure?()
+            self.stopLocked()
+            return
+        }
+        if self.listener != nil, self.hostname != nil, self.secret != nil, self.bridgeCapability != nil {
+            self.reconnectTransportLocked(reason: "carrier-failure", completion: nil)
+            return
+        }
+        self.onFailure?()
+        self.stopLocked()
+    }
+    
+    private func reconnectTransportLocked(reason: String, completion: ((Result<Void, Error>) -> Void)?) {
+        guard let hostname = self.hostname,
+              let secret = self.secret,
+              let bridgeCapability = self.bridgeCapability,
+              self.listener != nil else {
+            completion?(.failure(WebProxyHttpCarrierError.carrierClosed))
+            self.onFailure?()
+            self.stopLocked()
+            return
+        }
+        // A hung previous reconnect must not block resume forever.
+        if self.transportReconnectInFlight {
+            self.transportReconnectGeneration &+= 1
+            self.carrier?.stop()
+            self.carrier = nil
+            self.transportReconnectInFlight = false
+        }
+        self.transportReconnectInFlight = true
+        self.consecutiveTransportReconnects += 1
+        self.transportReconnectGeneration &+= 1
+        let generation = self.transportReconnectGeneration
+        
+        // Drop logical streams — their relay session dies with the old carrier.
+        for stream in self.streams.values {
+            stream.connection.cancel()
+        }
+        self.streams.removeAll()
+        self.nextStreamId = 1
+        
+        self.carrier?.stop()
+        self.carrier = nil
+        
+        // URLSession after long suspension is unreliable — always build a fresh one.
+        self.urlSession?.invalidateAndCancel()
+        let config = URLSessionConfiguration.ephemeral
+        config.requestCachePolicy = .reloadIgnoringLocalCacheData
+        config.urlCache = nil
+        config.httpCookieAcceptPolicy = .never
+        config.httpShouldSetCookies = false
+        config.timeoutIntervalForRequest = 90.0
+        config.timeoutIntervalForResource = 300.0
+        config.waitsForConnectivity = true
+        let urlSession = URLSession(configuration: config)
+        self.urlSession = urlSession
+        
+        do {
+            let carrier = try WebProxyHttpCarrier(hostname: hostname, session: urlSession, queue: self.queue)
+            carrier.onDownlinkBatch = { [weak self] batch in
+                self?.handleDownlinkBatch(batch)
+            }
+            carrier.onFailure = { [weak self] _ in
+                self?.queue.async {
+                    self?.handleCarrierFailure()
+                }
+            }
+            self.carrier = carrier
+            carrier.start(secret: secret, bridgeCapability: bridgeCapability) { [weak self] result in
+                guard let self else {
+                    completion?(.failure(WebProxyHttpCarrierError.carrierClosed))
+                    return
+                }
+                self.queue.async {
+                    guard generation == self.transportReconnectGeneration else {
+                        completion?(.failure(WebProxyHttpCarrierError.carrierClosed))
+                        return
+                    }
+                    self.transportReconnectInFlight = false
+                    switch result {
+                    case .success:
+                        self.consecutiveTransportReconnects = 0
+                        completion?(.success(()))
+                    case let .failure(error):
+                        // For explicit resume the manager decides sequentialRestart. Avoid
+                        // stopLocked here so lastGoodEndpoint / listener can be retired orderly.
+                        if reason == "explicit" {
+                            completion?(.failure(error))
+                        } else {
+                            self.onFailure?()
+                            self.stopLocked()
+                            completion?(.failure(error))
+                        }
+                    }
+                }
+            }
+            // Hard timeout: bootstrap must not hang "Connecting" indefinitely after wake.
+            self.queue.asyncAfter(deadline: .now() + 45.0) { [weak self] in
+                guard let self else {
+                    return
+                }
+                guard generation == self.transportReconnectGeneration, self.transportReconnectInFlight else {
+                    return
+                }
+                self.transportReconnectInFlight = false
+                self.carrier?.stop()
+                self.carrier = nil
+                if reason == "explicit" {
+                    completion?(.failure(WebProxyHttpCarrierError.sessionCreationFailed))
+                } else {
+                    self.onFailure?()
+                    self.stopLocked()
+                    completion?(.failure(WebProxyHttpCarrierError.sessionCreationFailed))
+                }
+            }
+        } catch {
+            self.transportReconnectInFlight = false
+            self.onFailure?()
+            self.stopLocked()
+            completion?(.failure(error))
+        }
+        _ = reason
     }
     
     private func accept(connection: NWConnection) {
