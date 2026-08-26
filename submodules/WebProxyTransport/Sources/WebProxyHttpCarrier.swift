@@ -5,11 +5,6 @@ public enum WebProxyHttpCarrierError: Error {
     case bridgeRequestFailed
     case bootstrapTokenMissing
     case sessionCreationFailed
-    /// The relay answered the handshake but named a carrier mode this client does not implement.
-    /// Distinct from `sessionCreationFailed` because it is not a transient failure: the relay will
-    /// answer the same way every time, so retrying it is only ever wasted work. Carries the mode the
-    /// relay reported so the condition can be told apart from a dead host.
-    case unsupportedCarrierMode(String)
     case welcomeMissing
     case uplinkRejected
     case downlinkRejected
@@ -252,16 +247,19 @@ final class WebProxyHttpCarrier {
                     completion(.failure(WebProxyHttpCarrierError.sessionCreationFailed))
                     return
                 }
-                // `https` is the only carrier mode this client implements; a relay that omits the
-                // header is one from before the header existed, which is that mode. Anything else is
-                // a relay speaking a wire format we would misread, so the session is refused rather
-                // than opened — but with an error of its own, since unlike everything else in this
-                // handshake it will not come good on a retry.
-                let carrierMode = response.value(forHTTPHeaderField: "X-Carrier-Mode") ?? "https"
-                if carrierMode != "https" {
-                    completion(.failure(WebProxyHttpCarrierError.unsupportedCarrierMode(carrierMode)))
-                    return
-                }
+                // `X-Carrier-Mode` is deliberately not gated on. Refusing every value but `https`
+                // assumed the header names the wire format, and nothing here is written down: this
+                // client always dials `https://<host>` regardless of it, and never varies a single
+                // byte of the protocol by it — the value was only ever read to be compared. If the
+                // relay instead reports how it is deployed (own TLS, plain HTTP behind a terminator,
+                // a particular image), then every deployment but one was refused for a label while
+                // speaking a protocol this client understands perfectly.
+                //
+                // Compatibility is settled by the handshake instead, which is both stronger and not
+                // a guess: the relay must open with a decodable `WELCOME` frame on stream zero,
+                // checked here when the session POST carries a body and on the first downlink batch
+                // when it does not. That catches a relay whose wire format we would misread — and
+                // also one that claims `https` and is not, which a string comparison never could.
                 self.sessionToken = token
                 self.downCursor = response.value(forHTTPHeaderField: "X-Down-Cursor") ?? "0"
                 if let body = data, !body.isEmpty {
