@@ -553,16 +553,37 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
         return self.presentationData.theme.list.itemBlocksBackgroundColor.withMultipliedAlpha(0.9)
     }
     
+    /// How much of the container's bottom edge is covered by a keyboard the sheet has to stay clear
+    /// of — which is only ever one the sheet's own search field raised.
+    ///
+    /// `containerKeyboardHeight` is the host's whole-container input height, and that is not the same
+    /// question. Arriving at a message's context menu from a chat with the keyboard (or Telegram's
+    /// own emoji/sticker panel) still up is the ordinary case, and it reports a height here even
+    /// though the menu is drawn *over* it: dimmed, invisible, and covering nothing. Taking that at
+    /// face value docked the sheet a whole keyboard's height up the screen, hanging in the middle of
+    /// the chat on its square bottom corners with the home-indicator gutter dropped as well.
+    ///
+    /// The sheet is only ever underneath a keyboard when it has asked to be, which is exactly what
+    /// `wantsDisplayBelowKeyboard` reports and `reportedWantsDisplayBelowKeyboard` records. Search
+    /// activation is checked alongside it because the two settle a layout pass apart, and the sheet
+    /// should not step down and back up in between.
+    private var tapbacksPickerKeyboardOverlap: CGFloat {
+        guard self.isReactionSearchActive || self.reportedWantsDisplayBelowKeyboard else {
+            return 0.0
+        }
+        return self.containerKeyboardHeight
+    }
+    
     /// The edge the sheet docks its bottom to: the keyboard's top when the search field has raised
     /// one, the container's bottom otherwise.
     private func tapbacksPickerDockBottom(size: CGSize) -> CGFloat {
-        return size.height - self.containerKeyboardHeight
+        return size.height - self.tapbacksPickerKeyboardOverlap
     }
     
     /// Gutter kept inside the sheet below the grid. It exists to clear the home indicator, so a
     /// keyboard standing exactly there replaces it rather than adding to it.
     private func tapbacksPickerBottomGutter(insets: UIEdgeInsets) -> CGFloat {
-        return self.containerKeyboardHeight > 0.0 ? 0.0 : insets.bottom
+        return self.tapbacksPickerKeyboardOverlap > 0.0 ? 0.0 : insets.bottom
     }
     
     /// Resting height of the iMessage-style bottom sheet: header + a comfortable emoji grid + the
@@ -605,7 +626,14 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
         // Dragging up is a negative translation and has to make the sheet taller.
         let rawHeight = resting - self.tapbacksPickerDragOffset
         if rawHeight > expanded {
-            return (expanded + (rawHeight - expanded) * 0.15, 0.0)
+            // Rubber band above the top stop, clamped at the safe-area edge. Damping alone only
+            // slows the stretch down, it does not bound it: a long drag still walked the header —
+            // grabber, close button and all — up behind the status bar or the Dynamic Island. The
+            // stretch may eat the gap the expanded stop deliberately leaves above itself, and stops
+            // there. `max` keeps the clamp from *shrinking* the sheet on a screen so short that the
+            // resting height already exceeds that gap.
+            let ceiling = max(expanded, self.tapbacksPickerDockBottom(size: size) - insets.top)
+            return (min(ceiling, expanded + (rawHeight - expanded) * 0.15), 0.0)
         } else if rawHeight < collapsed {
             return (collapsed, collapsed - rawHeight)
         } else {
