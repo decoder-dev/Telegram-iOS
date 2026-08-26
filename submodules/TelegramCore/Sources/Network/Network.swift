@@ -509,9 +509,11 @@ func applyWebSocketTransport(context: MTContext, webSocketTransportEnabled: Bool
         // Network/context, not reset on every redial. See MTWebSocketConnectionInterface.swift.
         let fallbackCoordinator = webSocketFallbackToDirect ? MTWebSocketFallbackCoordinator() : nil
         context.makeTcpConnectionInterface = { delegate, delegateQueue, datacenterId, isMedia, isTestingEnv in
-            if let fallbackCoordinator = fallbackCoordinator, !fallbackCoordinator.shouldUseWebSocket {
-                // Every WS endpoint has failed repeatedly this session; returning nil here
-                // makes MTTcpConnection fall back to its default TCP socket implementation.
+            if let fallbackCoordinator = fallbackCoordinator, !fallbackCoordinator.shouldAttemptWebSocket() {
+                // WebSocket has failed repeatedly and the coordinator is holding this connection on
+                // direct transport; returning nil makes MTTcpConnection use its default TCP socket.
+                // The fallback is not permanent — the coordinator lets a probe through periodically,
+                // so a device that moves to a network where WebSocket works picks it up again.
                 return nil
             }
             return MTWebSocketConnectionInterface(delegate: delegate, delegateQueue: delegateQueue, datacenterId: datacenterId, isMediaConnection: isMedia, isTestingEnvironment: isTestingEnv, fallbackCoordinator: fallbackCoordinator)

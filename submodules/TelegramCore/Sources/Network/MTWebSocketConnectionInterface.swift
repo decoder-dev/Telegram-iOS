@@ -14,48 +14,122 @@ final class MTWebSocketFallbackCoordinator {
     /// and download workers. A single network event therefore reports three or four failures within
     /// the same instant, which would reach the threshold on its own. Failures landing inside this
     /// window after a counted one are collapsed into it, so "3 consecutive failures" means three
-    /// separate attempts rather than one attempt across three sockets. Getting this wrong is not
-    /// symmetric: the fallback is one-way for the session, so a spurious trip drops the user back to
-    /// exactly the transport they enabled this feature to avoid, with nothing in the UI to say so.
+    /// separate attempts rather than one attempt across three sockets.
     private static let failureCoalescingInterval: Double = 5.0
+
+    /// Falling back is not the end of it. What makes WebSocket fail is a property of the network the
+    /// device is on — a blocked host, a middlebox, a captive portal — and that is exactly the kind of
+    /// thing that changes underneath a running app: the user leaves the network, moves between
+    /// cellular and Wi-Fi, lands in another country. A door that only ever shuts left them on the
+    /// transport they turned this feature on to avoid, for the rest of the process, with nothing in
+    /// the app to say so and nothing they could do but relaunch it.
+    ///
+    /// So the fallback re-opens on its own. After the wait below one connection is let through while
+    /// the rest stay on the working transport; if it carries traffic the fallback is lifted, and if
+    /// it does not the wait doubles up to a ceiling. The first wait is long enough that a genuinely
+    /// blocked network costs one probe every couple of minutes rather than a reconnect storm, and
+    /// the ceiling keeps a device that never recovers down to one probe every half hour.
+    private static let initialFallbackRetryInterval: Double = 120.0
+    private static let maximumFallbackRetryInterval: Double = 1800.0
 
     private struct State {
         var policy = WebSocketFallbackPolicy()
         var lastCountedFailureTimestamp: Double?
+        /// When the fallback was last engaged. Nil while WebSocket is in use.
+        var fallbackSince: Double?
+        var fallbackRetryInterval: Double = MTWebSocketFallbackCoordinator.initialFallbackRetryInterval
+        /// A probe has been let through and has not yet reported an outcome, so no second one is.
+        var isProbing = false
     }
 
     private let state = Atomic<State>(value: State())
-    private let useWebSocketState = Atomic<Bool>(value: true)
 
-    var shouldUseWebSocket: Bool {
-        return self.useWebSocketState.with { $0 }
+    /// Whether a connection being opened now may use WebSocket.
+    ///
+    /// This consumes a probe permission, so it is a method rather than a property: while the
+    /// fallback is engaged it answers true exactly once per wait, and false to everything else until
+    /// that attempt has reported success or failure.
+    func shouldAttemptWebSocket() -> Bool {
+        let timestamp = CFAbsoluteTimeGetCurrent()
+        var grantedProbe = false
+        let state = self.state.modify { state in
+            var state = state
+            guard let fallbackSince = state.fallbackSince else {
+                return state
+            }
+            if !state.isProbing, timestamp - fallbackSince >= state.fallbackRetryInterval {
+                state.isProbing = true
+                grantedProbe = true
+            }
+            return state
+        }
+        if state.fallbackSince == nil {
+            return true
+        }
+        if grantedProbe {
+            Logger.shared.log("MTWebSocket", "[WS] probing whether WebSocket works again after \(Int(state.fallbackRetryInterval))s on direct transport")
+        }
+        return grantedProbe
     }
 
     func recordAllEndpointsFailed() {
         let timestamp = CFAbsoluteTimeGetCurrent()
+        var engagedFallback = false
+        var probeFailed = false
         let state = self.state.modify { state in
             var state = state
+            if state.isProbing {
+                // The one connection let through to test the water went down with everything else.
+                // Stay in the fallback and wait longer before spending another.
+                state.isProbing = false
+                state.fallbackSince = timestamp
+                state.fallbackRetryInterval = min(
+                    MTWebSocketFallbackCoordinator.maximumFallbackRetryInterval,
+                    state.fallbackRetryInterval * 2.0
+                )
+                probeFailed = true
+                return state
+            }
+            if state.fallbackSince != nil {
+                // Already fallen back and not probing: these are the other connections failing
+                // alongside, and they have nothing to add.
+                return state
+            }
             if let last = state.lastCountedFailureTimestamp, timestamp - last < MTWebSocketFallbackCoordinator.failureCoalescingInterval {
                 return state
             }
             state.lastCountedFailureTimestamp = timestamp
-            _ = state.policy.recordAllEndpointsFailed()
+            if state.policy.recordAllEndpointsFailed() {
+                state.fallbackSince = timestamp
+                state.fallbackRetryInterval = MTWebSocketFallbackCoordinator.initialFallbackRetryInterval
+                engagedFallback = true
+            }
             return state
         }
-        if state.policy.consecutiveTotalFailures >= state.policy.consecutiveFailureThreshold {
-            let wasUsingWebSocket = self.useWebSocketState.swap(false)
-            if wasUsingWebSocket {
-                Logger.shared.log("MTWebSocket", "[WS] no endpoint carried traffic on \(state.policy.consecutiveTotalFailures) attempts in a row, falling back to direct transport for this session")
-            }
+        if engagedFallback {
+            Logger.shared.log("MTWebSocket", "[WS] no endpoint carried traffic on \(state.policy.consecutiveTotalFailures) attempts in a row, falling back to direct transport; will probe again in \(Int(state.fallbackRetryInterval))s")
+        } else if probeFailed {
+            Logger.shared.log("MTWebSocket", "[WS] probe failed, staying on direct transport; next probe in \(Int(state.fallbackRetryInterval))s")
         }
     }
 
     func recordSuccess() {
+        var liftedFallback = false
         _ = self.state.modify { state in
             var state = state
             state.policy.recordSuccess()
             state.lastCountedFailureTimestamp = nil
+            if state.fallbackSince != nil {
+                // Whatever was in the way is gone: the probe carried MTProto traffic.
+                state.fallbackSince = nil
+                state.isProbing = false
+                state.fallbackRetryInterval = MTWebSocketFallbackCoordinator.initialFallbackRetryInterval
+                liftedFallback = true
+            }
             return state
+        }
+        if liftedFallback {
+            Logger.shared.log("MTWebSocket", "[WS] probe carried traffic, WebSocket transport is back in use")
         }
     }
 }

@@ -127,7 +127,7 @@ pure logic to turn the WS byte stream into the same `readDataToLength:`-style re
 
 1. `MTTcpConnection` calls `context.makeTcpConnectionInterface(delegate, queue, datacenterId, isMedia,
    isTestingEnvironment)`. If WebSocket transport is enabled and the fallback coordinator hasn't given up
-   for this session, this returns an `MTWebSocketConnectionInterface`; MtProtoKit calls `connectToHost:`
+   at the moment the connection is opened, this returns an `MTWebSocketConnectionInterface`; MtProtoKit calls `connectToHost:`
    on it exactly as it would a TCP interface.
 2. The interface computes its candidate list via `WebSocketEndpointPlanner.candidates(datacenterId:
    isMedia: isTestingEnvironment:)` — media connections try `kwsN-1.web.telegram.org` first, then
@@ -160,7 +160,15 @@ pure logic to turn the WS byte stream into the same `readDataToLength:`-style re
 7. Each attempt's outcome is recorded in a per-`MTContext` `WebSocketFallbackPolicy`. After 3
    consecutive failed attempts, and only if the user's "Fallback to Direct Connection" setting is on,
    the factory closure starts returning `nil`, which makes `MTTcpConnection` fall through to its
-   default `MTGcdAsyncSocketTcpConnectionInterface` (ordinary TCP) for the rest of the session.
+   default `MTGcdAsyncSocketTcpConnectionInterface` (ordinary TCP).
+
+   That fallback is not the end of it. What makes WebSocket fail is a property of the network the
+   device is on, and that changes underneath a running app — the user leaves the network, moves
+   between cellular and Wi-Fi, lands in another country. So the coordinator re-opens on its own:
+   after 2 minutes it lets **one** connection through while the rest stay on direct transport, and
+   doubles the wait to a 30-minute ceiling each time that probe fails. A probe that carries traffic
+   lifts the fallback outright. On a network that never recovers this costs about 14 probes over six
+   hours; on one that recovers ten minutes in, WebSocket is back within two.
 
    What counts as success is **the peer delivering MTProto payload**, not a completed WebSocket
    handshake. The gateway accepts the upgrade before it has seen a single byte of the stream it may
@@ -192,7 +200,8 @@ Two independent levels, both reusing existing mechanisms rather than inventing n
   timing (unchanged). `WebSocketFallbackPolicy` only tracks *whether* WS should still be attempted; after
   3 consecutive attempts that never carried MTProto payload, and only when "Fallback to Direct
   Connection" is enabled, the factory closure hands control back to MtProtoKit's default TCP transport
-  for the rest of the session by returning `nil`. If the setting is off, the app keeps retrying WebSocket
+  by returning `nil` — reconsidered periodically, per the probe schedule in step 7. If the setting is
+  off, the app keeps retrying WebSocket
   endpoints only, since for a user whose whole point is bypassing TCP-level blocking, silently falling
   back to the blocked transport would defeat the feature and make failures hard to diagnose.
 
@@ -230,7 +239,9 @@ default. `setDefaultTcpConnectionInterface` in `Network.swift` is the single pla
   [WS] handshake OK (kws2-1.web.telegram.org)
   [WS] endpoint kws2-1.web.telegram.org failed (timeout/protocol error)
   [WS] trying secondary endpoint
-  [WS] all endpoints failed 3 times in a row, falling back to direct transport for this session
+  [WS] no endpoint carried traffic on 3 attempts in a row, falling back to direct transport; will probe again in 120s
+  [WS] probing whether WebSocket works again after 120s on direct transport
+  [WS] probe carried traffic, WebSocket transport is back in use
   ```
 
 ## Settings
