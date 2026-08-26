@@ -6,6 +6,13 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3919-pre] — 2026-08-26
+
+Pre-release: Day composer tint readable on white wallpaper.
+
+### Fixed
+- **Day composer:** input field / attach / mic tint is `#F2F2F7` @ 0.9 (systemGray6) instead of white @ 0.8, so glass no longer disappears into the plain-white wallpaper; placeholder alpha 0.4 → 0.45 for ~3.3:1 contrast.
+
 ## [v12.9.2-3918-pre] — 2026-08-26
 
 Pre-release: Tapbacks sheet dock fix + composer capsule min-height clamp.
