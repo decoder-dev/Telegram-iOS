@@ -174,6 +174,9 @@ public enum ForkPerformanceTelemetry {
                 }
                 self.lastHeartbeatMegabytes = megabytes
 
+                if let mallocMegabytes = self.mallocBytesInUse().map({ $0 / (1024 * 1024) }) {
+                    parts.append("malloc=\(mallocMegabytes)MB")
+                }
                 parts.append("state=\(UIApplication.shared.applicationState == .background ? "background" : "foreground")")
                 parts.append("thermal=\(ForkPerformanceTelemetry.describe(self.thermalState))")
                 if let freeMegabytes = self.availableDiskMegabytes() {
@@ -186,6 +189,24 @@ public enum ForkPerformanceTelemetry {
         }
         timer.resume()
         self.heartbeatTimer = timer
+    }
+
+    /// Bytes currently held by the malloc heap, across every zone.
+    ///
+    /// This is the one number that splits a growing footprint in two. The app's own objects —
+    /// caches, arrays, retained graphs — live on the malloc heap, so if this tracks resident
+    /// memory upward the growth is ours and can be found by reading code. Image backing
+    /// stores, IOSurfaces and video decode buffers do not, so if resident climbs while this
+    /// stays flat the growth is in graphics memory and the search goes somewhere else
+    /// entirely. Without it, a log showing a gigabyte says only that there is a gigabyte.
+    private static func mallocBytesInUse() -> Int? {
+        var statistics = malloc_statistics_t()
+        // A nil zone aggregates every zone.
+        malloc_zone_statistics(nil, &statistics)
+        if statistics.size_in_use == 0 {
+            return nil
+        }
+        return Int(statistics.size_in_use)
     }
 
     /// Space the system would let the app use for important data, in megabytes. A tester whose

@@ -185,6 +185,26 @@ private final class CameraContext {
             name: .AVCaptureSessionRuntimeError,
             object: self.session.session
         )
+
+        // Only the runtime-error notification was ever observed: `sessionInterruptionEnded`
+        // existed but was never registered, and the interruption notification was not observed
+        // at all. So when something else on the device took the camera or the microphone, the
+        // session stopped and nothing ever started it again — a tester's log has forty-five
+        // minutes of the camera opening and closing on itself, every attempt ending in
+        // AVError -11800 carrying '!pri' (another process holds priority), with no recovery
+        // and nothing on screen to explain it.
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(self.sessionWasInterrupted),
+            name: .AVCaptureSessionWasInterrupted,
+            object: self.session.session
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(self.sessionInterruptionEnded),
+            name: .AVCaptureSessionInterruptionEnded,
+            object: self.session.session
+        )
     }
     
     deinit {
@@ -697,7 +717,15 @@ private final class CameraContext {
         return .single(self.mainDeviceContext?.output.transitionImage)
     }
     
+    @objc private func sessionWasInterrupted(notification: NSNotification) {
+        let reason = (notification.userInfo?[AVCaptureSessionInterruptionReasonKey] as? NSNumber)
+            .flatMap({ AVCaptureSession.InterruptionReason(rawValue: $0.intValue) })
+        Logger.shared.log("Camera", "Session interrupted: \(CameraContext.describe(reason))")
+    }
+
     @objc private func sessionInterruptionEnded(notification: NSNotification) {
+        Logger.shared.log("Camera", "Session interruption ended")
+        self.restartSessionIfNeeded()
     }
     
     @objc private func sessionRuntimeError(notification: NSNotification) {
@@ -709,12 +737,53 @@ private final class CameraContext {
         Logger.shared.log("Camera", "Runtime error: \(error)")
     
         if error.code == .mediaServicesWereReset {
-            self.queue.async {
-                if self.isSessionRunning {
-                    self.session.session.startRunning()
-                    self.isSessionRunning = self.session.session.isRunning
-                }
+            self.restartSessionIfNeeded()
+        } else {
+            // Everything else used to be logged and abandoned, which leaves a camera the user
+            // is looking at permanently dead. Most of these are transient — another process
+            // took priority, media services hiccupped — so give it one delayed retry rather
+            // than none. One, not a loop: a session that cannot start is not going to be
+            // argued into it, and retrying forever would spin the capture stack.
+            self.queue.after(0.5, { [weak self] in
+                self?.restartSessionIfNeeded()
+            })
+        }
+    }
+
+    /// Start the session again if this context believes it should be running. `startRunning`
+    /// is a no-op when the session is already live, so this is safe to call from any of the
+    /// recovery paths.
+    private func restartSessionIfNeeded() {
+        self.queue.async {
+            guard self.isSessionRunning, !self.session.session.isRunning else {
+                return
             }
+            Logger.shared.log("CameraContext", "restarting session after interruption")
+            self.session.session.startRunning()
+            self.isSessionRunning = self.session.session.isRunning
+            if !self.isSessionRunning {
+                Logger.shared.log("CameraContext", "session did not restart")
+            }
+        }
+    }
+
+    private static func describe(_ reason: AVCaptureSession.InterruptionReason?) -> String {
+        guard let reason else {
+            return "unknown"
+        }
+        switch reason {
+        case .videoDeviceNotAvailableInBackground:
+            return "videoDeviceNotAvailableInBackground"
+        case .audioDeviceInUseByAnotherClient:
+            return "audioDeviceInUseByAnotherClient"
+        case .videoDeviceInUseByAnotherClient:
+            return "videoDeviceInUseByAnotherClient"
+        case .videoDeviceNotAvailableWithMultipleForegroundApps:
+            return "videoDeviceNotAvailableWithMultipleForegroundApps"
+        case .videoDeviceNotAvailableDueToSystemPressure:
+            return "videoDeviceNotAvailableDueToSystemPressure"
+        @unknown default:
+            return "reason \(reason.rawValue)"
         }
     }
 }
