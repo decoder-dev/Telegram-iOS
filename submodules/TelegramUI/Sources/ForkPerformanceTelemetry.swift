@@ -2,6 +2,10 @@ import Foundation
 import UIKit
 import MetricKit
 import MachO
+// Explicit, for `malloc_zone_statistics` and the `mach_header` layouts: neither Foundation nor
+// MachO promises to re-export the C library, and this file is the only Swift in the tree that
+// reaches for either.
+import Darwin
 import TelegramCore
 
 /// Thermal and CPU telemetry.
