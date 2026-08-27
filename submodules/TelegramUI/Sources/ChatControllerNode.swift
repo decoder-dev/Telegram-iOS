@@ -178,6 +178,10 @@ private final class PendingSwitchToChatLocation {
 
 class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
     let context: AccountContext
+    /// Live instances, so opens and closes in the log can be read as a balance rather than a
+    /// stream. See the note in `init`.
+    private static let liveInstanceCount = Atomic<Int>(value: 0)
+
     private(set) var chatLocation: ChatLocation
     private var chatLocationContextHolder: Atomic<ChatLocationContextHolder?>
     let controllerInteraction: ChatControllerInteraction
@@ -820,7 +824,15 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
         // The chat screen is where the app spends its time and where a crash log went silent: the
         // subsystems that log constantly are network and storage, and this one logged nothing at
         // all. One line per chat opened is enough to place any later failure on a screen.
-        Logger.shared.log("Chat", "opened \(chatLocation) subject=\(subject.map({ String(describing: $0) }) ?? "none") mode=\(chatPresentationInterfaceState.mode)")
+        //
+        // The count is the other half of it. A chat screen is the heaviest object graph the app
+        // builds — history list, item nodes, decoded media, the input panel — so a few of them
+        // outliving their screen would on its own account for a footprint that climbs with use
+        // and never comes back, which is exactly what the logs show. Opens without closes cannot
+        // answer that; a number that returns to its floor between screens can. 251 opens in a day,
+        // 68 of them context-menu previews that are built and thrown away, is plenty of chances.
+        let liveCount = ChatControllerNode.liveInstanceCount.modify { $0 + 1 }
+        Logger.shared.log("Chat", "opened \(chatLocation) subject=\(subject.map({ String(describing: $0) }) ?? "none") mode=\(chatPresentationInterfaceState.mode) live=\(liveCount)")
         ForkLaunchBreadcrumbs.mark(.chatOpened)
 
         getContentAreaInScreenSpaceImpl = { [weak self] in
@@ -1048,6 +1060,9 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
     }
     
     deinit {
+        let liveCount = ChatControllerNode.liveInstanceCount.modify { $0 - 1 }
+        Logger.shared.log("Chat", "closed \(self.chatLocation) live=\(liveCount)")
+
         self.interactiveEmojisDisposable?.dispose()
         self.openStickersDisposable?.dispose()
         self.displayVideoUnmuteTipDisposable?.dispose()
