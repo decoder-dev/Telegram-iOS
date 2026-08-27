@@ -304,19 +304,15 @@ public final class WebProxySidecar {
         self.transportReconnectGeneration &+= 1
         let generation = self.transportReconnectGeneration
         
-        // Drop logical streams — their relay session dies with the old carrier.
-        for stream in self.streams.values {
-            stream.connection.cancel()
-        }
-        self.streams.removeAll()
-        // Soft reconnect used to leave nextStreamId climbing forever until 24-bit overflow.
-        self.nextStreamId = 1
-        
-        self.carrier?.stop()
+        // Keep existing local streams and the old carrier until the NEW carrier is ready.
+        // Dropping streams first made MtProto reconnect into a dead gap → infinite
+        // Connecting/Updating, and canceling WebSockets mid-receive correlated with SIGABRT on resume.
+        let previousCarrier = self.carrier
         self.carrier = nil
         
-        // URLSession after long suspension is unreliable — always build a fresh one.
-        self.urlSession?.invalidateAndCancel()
+        // Fresh URLSession; do not cancel individual WS tasks on the old carrier first —
+        // invalidate the previous session as a whole after the new one is up.
+        let previousSession = self.urlSession
         let config = URLSessionConfiguration.ephemeral
         config.requestCachePolicy = .reloadIgnoringLocalCacheData
         config.urlCache = nil
@@ -353,10 +349,24 @@ public final class WebProxySidecar {
                     switch result {
                     case .success:
                         self.consecutiveTransportReconnects = 0
+                        // Now drop local streams so MtProto reconnects against a READY carrier.
+                        for stream in self.streams.values {
+                            stream.connection.cancel()
+                        }
+                        self.streams.removeAll()
+                        self.nextStreamId = 1
+                        previousCarrier?.stop()
+                        previousSession?.invalidateAndCancel()
                         completion?(.success(()))
                     case let .failure(error):
-                        // For explicit resume the manager decides sequentialRestart. Avoid
-                        // stopLocked here so lastGoodEndpoint / listener can be retired orderly.
+                        // Roll back to previous carrier if we still have it.
+                        if self.carrier === carrier {
+                            self.carrier = previousCarrier
+                        }
+                        if self.urlSession === urlSession {
+                            self.urlSession = previousSession
+                            urlSession.invalidateAndCancel()
+                        }
                         if reason == "explicit" {
                             completion?(.failure(error))
                         } else {

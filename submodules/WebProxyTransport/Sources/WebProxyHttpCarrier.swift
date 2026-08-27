@@ -865,7 +865,9 @@ final class WebProxyHttpCarrier {
     }
     
     private func tearDownAllWebSockets() {
-        self.multiplexWebSocket?.cancel(with: .goingAway, reason: nil)
+        // Do not call cancel(with:) on each URLSessionWebSocketTask while a receive is pending —
+        // that path has produced SIGABRT on resume under CFNetwork. Drop references and let the
+        // owning URLSession invalidateAndCancel() from the sidecar finish teardown.
         self.multiplexWebSocket = nil
         self.multiplexWsOpen = false
         self.multiplexReceiveArmed = false
@@ -873,12 +875,12 @@ final class WebProxyHttpCarrier {
         self.multiplexWsUplinkOffset = 0
         self.multiplexWsSending = false
         for lane in self.wsLanes.values {
-            lane.task?.cancel(with: .goingAway, reason: nil)
             lane.task = nil
             lane.open = false
             lane.closed = true
             lane.connecting = false
             lane.sending = false
+            lane.receiveArmed = false
         }
         self.wsLanes.removeAll()
         self.wsLaneConnectInFlight = 0
@@ -1214,9 +1216,8 @@ final class WebProxyHttpCarrier {
         lane.receiveArmed = false
         lane.uplinkBuffer = Data()
         lane.uplinkBufferOffset = 0
-        let task = lane.task
         lane.task = nil
-        task?.cancel(with: .goingAway, reason: nil)
+        // Avoid cancel(with:) here; the task ends when the session is invalidated or the peer closes.
         if notifyApp {
             // Synthesize CLOSE so the sidecar tears down the local MTProto socket for this stream.
             let closeFrame = WebProxyFrameCodec.encode(WebProxyFrame(type: .close, streamId: laneId, payload: Data()))

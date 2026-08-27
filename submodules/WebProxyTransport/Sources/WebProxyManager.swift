@@ -61,7 +61,7 @@ public final class WebProxyManager {
     /// suspension; brief control-center / app-switcher flickers must not cycle the loopback port.
     private var enteredBackgroundAt: Double = 0.0
     /// Minimum time in background before a wake triggers transport rebuild.
-    private static let minimumBackgroundForResumeRestart: Double = 8.0
+    private static let minimumBackgroundForResumeRestart: Double = 12.0
     
     private var nextSidecarEventToken: SidecarEventToken = 0
     private var sidecarEventHandlers: [SidecarEventToken: () -> Void] = [:]
