@@ -51,6 +51,12 @@ public final class WebProxyManager {
     private var lastFailureTime: Double = 0.0
     private var consecutiveFailureCount: Int = 0
     private var sidecarReadySince: Double = 0.0
+    /// The configuration the app currently wants running, as opposed to the one that happens to
+    /// be up. A retry armed by the cooldown must not resurrect a proxy the user has since turned
+    /// off, and `configuration` is nil from the moment a carrier dies, so it cannot answer that.
+    private var desiredConfiguration: WebProxyConfiguration?
+    /// Whether a cooldown retry is already armed, so a burst of re-applies arms only one.
+    private var isRetryScheduled: Bool = false
     
     private var nextSidecarEventToken: SidecarEventToken = 0
     private var sidecarEventHandlers: [SidecarEventToken: () -> Void] = [:]
@@ -100,6 +106,7 @@ public final class WebProxyManager {
     public func configure(activeWebProxy server: WebProxyConfiguration?) -> Bool {
         guard let server else {
             self.startLock.lock()
+            self.desiredConfiguration = nil
             self.startGeneration &+= 1
             self.startingConfiguration = nil
             // Turning the proxy off is an explicit user action — don't make re-enabling the same
@@ -113,6 +120,10 @@ public final class WebProxyManager {
             self.lock.unlock()
             return true
         }
+        
+        self.startLock.lock()
+        self.desiredConfiguration = server
+        self.startLock.unlock()
         
         self.lock.lock()
         if server == self.configuration, self.endpoint != nil {
@@ -136,13 +147,16 @@ public final class WebProxyManager {
             return
         }
         if self.lastFailedConfiguration == configuration, self.consecutiveFailureCount > 0 {
-            let backoff = min(
-                WebProxyManager.maximumRetryInterval,
-                WebProxyManager.minimumRetryInterval * pow(2.0, Double(self.consecutiveFailureCount - 1))
-            )
-            if CFAbsoluteTimeGetCurrent() - self.lastFailureTime < backoff {
-                // Still cooling down after a failed bootstrap of this very configuration. The next
-                // settings re-apply (foreground, network change, edit) will try again.
+            let backoff = self.currentBackoffLocked()
+            let elapsed = CFAbsoluteTimeGetCurrent() - self.lastFailureTime
+            if elapsed < backoff {
+                // Nothing here used to arm a retry — the caller was simply told to come back
+                // later, and the only things that come back later are a foreground, a network
+                // change or a settings edit. So a carrier that died mid-session stayed dead until
+                // one of those happened: in one day's log, four deaths out of five went unretried
+                // for between forty minutes and twelve hours, with the app on cellular the whole
+                // time. The cooldown is still honoured; it just brings itself back now.
+                self.scheduleRetryLocked(configuration: configuration, after: backoff - elapsed)
                 self.startLock.unlock()
                 return
             }
@@ -158,6 +172,53 @@ public final class WebProxyManager {
         }
     }
     
+    /// The cooldown currently owed for `lastFailedConfiguration`. Must be called with
+    /// `startLock` held.
+    private func currentBackoffLocked() -> Double {
+        return min(
+            WebProxyManager.maximumRetryInterval,
+            WebProxyManager.minimumRetryInterval * pow(2.0, Double(max(1, self.consecutiveFailureCount) - 1))
+        )
+    }
+
+    /// Bring the cooldown back to `scheduleStart` when it expires, instead of waiting for an
+    /// outside event that may never come. Must be called with `startLock` held.
+    ///
+    /// The retry checks two things before it acts, because both can change while it waits: that
+    /// this configuration is still the one the app wants — the user may have turned the proxy off
+    /// or switched servers — and that a carrier is not already up for it.
+    private func scheduleRetryLocked(configuration: WebProxyConfiguration, after delay: Double) {
+        if self.isRetryScheduled {
+            return
+        }
+        self.isRetryScheduled = true
+
+        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + max(0.1, delay)) { [weak self] in
+            guard let self = self else {
+                return
+            }
+
+            self.startLock.lock()
+            self.isRetryScheduled = false
+            let isStillWanted = self.desiredConfiguration == configuration
+            self.startLock.unlock()
+
+            guard isStillWanted else {
+                return
+            }
+
+            self.lock.lock()
+            let isAlreadyRunning = self.configuration == configuration && self.endpoint != nil
+            self.lock.unlock()
+
+            guard !isAlreadyRunning else {
+                return
+            }
+
+            self.scheduleStart(configuration: configuration)
+        }
+    }
+
     private func startAsync(configuration: WebProxyConfiguration, generation: UInt64) {
         guard let bridgeCapability = WebProxyBridgeCapability.derive(hostname: configuration.hostname, secret: configuration.secret) else {
             // Refused before a single byte left the device: the hostname is not a DNS name, or the
@@ -224,6 +285,9 @@ public final class WebProxyManager {
                 self.consecutiveFailureCount = 1
             }
             self.lastFailureTime = CFAbsoluteTimeGetCurrent()
+            // Same reason as the death path: without this, a bootstrap that fails while nothing
+            // is listening leaves the proxy down until an unrelated event happens to poke it.
+            self.scheduleRetryLocked(configuration: configuration, after: self.currentBackoffLocked())
             self.startLock.unlock()
             
             self.lock.lock()
@@ -262,6 +326,10 @@ public final class WebProxyManager {
                 self.consecutiveFailureCount = 1
             }
             self.lastFailureTime = CFAbsoluteTimeGetCurrent()
+            // Arm the retry here as well as in `scheduleStart`: the listeners are what would
+            // otherwise carry the news back, and a death that nobody happens to be listening for
+            // would leave the proxy down for good.
+            self.scheduleRetryLocked(configuration: failedConfiguration, after: self.currentBackoffLocked())
         }
         self.startLock.unlock()
         
