@@ -1660,7 +1660,30 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         let _ = self.urlSession(identifier: "\(baseAppBundleId).backroundSession")
         
         var previousReportedMemoryConsumption = 0
+        // Once a minute, on the back of the timer that is already running: a census of the
+        // per-resource contexts the media box holds. Memory growth tracks fetch activity, and
+        // these dictionaries are the fetch pipeline's per-resource state — a monotonic climb in
+        // one of them names the leak outright.
+        var censusCountdown = 0
         let _ = Foundation.Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true, block: { _ in
+            censusCountdown -= 1
+            if censusCountdown <= 0 {
+                censusCountdown = 120
+                if Logger.shared.logToFile || Logger.shared.logToConsole {
+                    let _ = (self.sharedContextPromise.get()
+                    |> take(1)
+                    |> deliverOnMainQueue).start(next: { sharedApplicationContext in
+                        let _ = (sharedApplicationContext.sharedContext.activeAccountContexts
+                        |> take(1)
+                        |> deliverOnMainQueue).start(next: { activeAccounts in
+                            for (_, context, _) in activeAccounts.accounts {
+                                context.account.postbox.mediaBox.logContextCensus()
+                            }
+                        })
+                    })
+                }
+            }
+
             let value = getMemoryConsumption()
             if abs(value - previousReportedMemoryConsumption) > 1 * 1024 * 1024 {
                 previousReportedMemoryConsumption = value

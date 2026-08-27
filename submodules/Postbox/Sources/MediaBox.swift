@@ -592,6 +592,24 @@ public final class MediaBox {
         }
     }
     
+    /// Counts of the per-resource contexts this box keeps alive, written to the log.
+    ///
+    /// Memory growth in this app tracks media-fetch activity — across two devices and four
+    /// builds, hourly growth correlates with the preload and fetch tags and not with database
+    /// work — and every one of these dictionaries holds one entry per resource in flight. If
+    /// one of them climbs and never comes back down, that is the leak, named in a single line;
+    /// if they all stay flat while the footprint grows, the fetch pipeline is exonerated and
+    /// the search moves on. `fileContexts` and its neighbours are confined to `dataQueue`,
+    /// `statusContexts` to `statusQueue`, hence the two hops.
+    public func logContextCensus() {
+        self.dataQueue.async {
+            postboxLog("MediaBox census: fileContexts=\(self.fileContexts.count) keepResourceContexts=\(self.keepResourceContexts.count) cachedRepresentationContexts=\(self.cachedRepresentationContexts.count)")
+        }
+        self.statusQueue.async {
+            postboxLog("MediaBox census: statusContexts=\(self.statusContexts.count)")
+        }
+    }
+
     private func fileContext(for id: MediaResourceId) -> (MediaBoxFileContext, () -> Void)? {
         assert(self.dataQueue.isCurrent())
         

@@ -232,7 +232,12 @@ private final class TimeBasedCleanupImpl {
     private let totalSizeBasedPath: String
     private let shortLivedPaths: [String]
     
-    private var scheduledTouches: [String] = []
+    /// A Set, not an Array: membership was tested with a linear `contains` on every path, and
+    /// `touch` runs three times per resource the media box opens. During a fetch burst that is
+    /// thousands of paths inside one ten-second window, so the cost of collecting them was
+    /// quadratic in the size of the window. `processScheduledTouches` deduplicated into a Set
+    /// anyway, so nothing downstream cared about the order.
+    private var scheduledTouches = Set<String>()
     private var scheduledTouchesTimer: SignalKitTimer?
     
     private var generalMaxStoreTime: Int32?
@@ -432,11 +437,7 @@ private final class TimeBasedCleanupImpl {
     }
     
     func touch(paths: [String]) {
-        for path in paths {
-            if !self.scheduledTouches.contains(path) {
-                self.scheduledTouches.append(path)
-            }
-        }
+        self.scheduledTouches.formUnion(paths)
         self.scheduleTouches()
     }
     
@@ -457,11 +458,11 @@ private final class TimeBasedCleanupImpl {
     private func processScheduledTouches() {
         let scheduledTouches = self.scheduledTouches
         DispatchQueue.global(qos: .utility).async {
-            for item in Set(scheduledTouches) {
+            for item in scheduledTouches {
                 utime(item, nil)
             }
         }
-        self.scheduledTouches = []
+        self.scheduledTouches.removeAll(keepingCapacity: true)
     }
 }
 
