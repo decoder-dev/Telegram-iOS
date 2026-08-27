@@ -79,48 +79,79 @@ func managedAutoremoveMessageOperations(network: Network, postbox: Postbox, isRe
                 let signal = Signal<Void, NoError>.complete()
                 |> suspendAwareDelay(delay, queue: Queue.concurrentDefaultQueue())
                 |> then(postbox.transaction { transaction -> Void in
-                    Logger.shared.log("Autoremove", "Performing autoremove for \(entry.messageId), isRemove: \(isRemove)")
+                    // Drain everything that is already due, not only the entry that woke us.
+                    // A chat with a short auto-delete timer expires messages in a steady
+                    // stream, and one message per transaction costs a full commit plus a view
+                    // round-trip each time — in a day's log that was 1500 transactions for a
+                    // single channel. `managedAutoexpireStoryOperations` below already batches
+                    // the same way.
+                    let dueTimestamp = Int32(CFAbsoluteTimeGetCurrent() + NSTimeIntervalSince1970 + timeOffset)
+                    var dueEntries = transaction.getTimestampBasedAttributeEntries(tag: tag, upToTimestamp: dueTimestamp, limit: 256)
+                    if dueEntries.isEmpty {
+                        // Clock skew between the delay and this read: the entry that scheduled
+                        // us is due by construction, so fall back to it rather than idling.
+                        dueEntries = [entry]
+                    }
 
-                    if let message = transaction.getMessage(entry.messageId) {
+                    Logger.shared.log("Autoremove", "Performing autoremove for \(dueEntries.count) message(s) up to \(dueTimestamp), isRemove: \(isRemove)")
+
+                    // Plain deletions go out as one call; the expired-content rewrite below has
+                    // to stay per message.
+                    var deleteIds: [MessageId] = []
+                    var snapshotIds: [MessageId] = []
+                    for dueEntry in dueEntries {
+                        guard let message = transaction.getMessage(dueEntry.messageId) else {
+                            transaction.clearTimestampBasedAttribute(id: dueEntry.messageId, tag: tag)
+                            Logger.shared.log("Autoremove", "No message to autoremove for \(dueEntry.messageId)")
+                            continue
+                        }
                         if message.id.peerId.namespace == Namespaces.Peer.SecretChat || isRemove {
-                            _internal_deleteMessages(transaction: transaction, mediaBox: postbox.mediaBox, ids: [entry.messageId])
+                            deleteIds.append(dueEntry.messageId)
                         } else if MessageSavingBridge.shouldRetainInChat(message: message) {
                             // AyuGram Android: keep media + 🧹 marker instead of TelegramMediaExpiredContent.
-                            _internal_deleteMessages(transaction: transaction, mediaBox: postbox.mediaBox, ids: [entry.messageId])
+                            deleteIds.append(dueEntry.messageId)
                         } else {
-                            MessageSavingBridge.snapshotDeletedMessages(transaction: transaction, messageIds: [entry.messageId], mediaBox: postbox.mediaBox)
-                            transaction.updateMessage(message.id, update: { currentMessage in
-                                var storeForwardInfo: StoreMessageForwardInfo?
-                                if let forwardInfo = currentMessage.forwardInfo {
-                                    storeForwardInfo = StoreMessageForwardInfo(authorId: forwardInfo.author?.id, sourceId: forwardInfo.source?.id, sourceMessageId: forwardInfo.sourceMessageId, date: forwardInfo.date, authorSignature: forwardInfo.authorSignature, psaType: forwardInfo.psaType, flags: forwardInfo.flags)
-                                }
-                                var updatedMedia = currentMessage.media
-                                for i in 0 ..< updatedMedia.count {
-                                    if let _ = updatedMedia[i] as? TelegramMediaImage {
-                                        updatedMedia[i] = TelegramMediaExpiredContent(data: .image)
-                                    } else if let file = updatedMedia[i] as? TelegramMediaFile {
-                                        if file.isInstantVideo {
-                                            updatedMedia[i] = TelegramMediaExpiredContent(data: .videoMessage)
-                                        } else if file.isVoice {
-                                            updatedMedia[i] = TelegramMediaExpiredContent(data: .voiceMessage)
-                                        } else {
-                                            updatedMedia[i] = TelegramMediaExpiredContent(data: .file)
-                                        }
-                                    }
-                                }
-                                var updatedAttributes = currentMessage.attributes
-                                for i in 0 ..< updatedAttributes.count {
-                                    if let _ = updatedAttributes[i] as? AutoclearTimeoutMessageAttribute {
-                                        updatedAttributes.remove(at: i)
-                                        break
-                                    }
-                                }
-                                return .update(StoreMessage(id: currentMessage.id, customStableId: nil, globallyUniqueId: currentMessage.globallyUniqueId, groupingKey: currentMessage.groupingKey, threadId: currentMessage.threadId, timestamp: currentMessage.timestamp, flags: StoreMessageFlags(currentMessage.flags), tags: currentMessage.tags, globalTags: currentMessage.globalTags, localTags: currentMessage.localTags, forwardInfo: storeForwardInfo, authorId: currentMessage.author?.id, text: currentMessage.text, attributes: updatedAttributes, media: updatedMedia))
-                            })
+                            snapshotIds.append(dueEntry.messageId)
                         }
-                    } else {
-                        transaction.clearTimestampBasedAttribute(id: entry.messageId, tag: tag)
-                        Logger.shared.log("Autoremove", "No message to autoremove for \(entry.messageId)")
+                    }
+
+                    if !deleteIds.isEmpty {
+                        _internal_deleteMessages(transaction: transaction, mediaBox: postbox.mediaBox, ids: deleteIds)
+                    }
+
+                    if !snapshotIds.isEmpty {
+                        MessageSavingBridge.snapshotDeletedMessages(transaction: transaction, messageIds: snapshotIds, mediaBox: postbox.mediaBox)
+                    }
+
+                    for messageId in snapshotIds {
+                        transaction.updateMessage(messageId, update: { currentMessage in
+                            var storeForwardInfo: StoreMessageForwardInfo?
+                            if let forwardInfo = currentMessage.forwardInfo {
+                                storeForwardInfo = StoreMessageForwardInfo(authorId: forwardInfo.author?.id, sourceId: forwardInfo.source?.id, sourceMessageId: forwardInfo.sourceMessageId, date: forwardInfo.date, authorSignature: forwardInfo.authorSignature, psaType: forwardInfo.psaType, flags: forwardInfo.flags)
+                            }
+                            var updatedMedia = currentMessage.media
+                            for i in 0 ..< updatedMedia.count {
+                                if let _ = updatedMedia[i] as? TelegramMediaImage {
+                                    updatedMedia[i] = TelegramMediaExpiredContent(data: .image)
+                                } else if let file = updatedMedia[i] as? TelegramMediaFile {
+                                    if file.isInstantVideo {
+                                        updatedMedia[i] = TelegramMediaExpiredContent(data: .videoMessage)
+                                    } else if file.isVoice {
+                                        updatedMedia[i] = TelegramMediaExpiredContent(data: .voiceMessage)
+                                    } else {
+                                        updatedMedia[i] = TelegramMediaExpiredContent(data: .file)
+                                    }
+                                }
+                            }
+                            var updatedAttributes = currentMessage.attributes
+                            for i in 0 ..< updatedAttributes.count {
+                                if let _ = updatedAttributes[i] as? AutoclearTimeoutMessageAttribute {
+                                    updatedAttributes.remove(at: i)
+                                    break
+                                }
+                            }
+                            return .update(StoreMessage(id: currentMessage.id, customStableId: nil, globallyUniqueId: currentMessage.globallyUniqueId, groupingKey: currentMessage.groupingKey, threadId: currentMessage.threadId, timestamp: currentMessage.timestamp, flags: StoreMessageFlags(currentMessage.flags), tags: currentMessage.tags, globalTags: currentMessage.globalTags, localTags: currentMessage.localTags, forwardInfo: storeForwardInfo, authorId: currentMessage.author?.id, text: currentMessage.text, attributes: updatedAttributes, media: updatedMedia))
+                        })
                     }
                 })
                 disposable.set(signal.start())

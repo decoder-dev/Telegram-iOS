@@ -199,9 +199,15 @@ public enum MessageSavingBridge {
         return path
     }
 
+    /// Message saving copies media onto disk and can start network fetches of its own, and
+    /// none of that reached the file log — a tester's 28-hour log had 47 GB of app data and
+    /// not one line explaining where it came from. Route it through the shared logger so the
+    /// subsystem is visible in a collected log; the console print stays for local debugging.
     static func log(_ message: @autoclosure () -> String) {
+        let text = message()
+        Logger.shared.log("MessageSaving", text)
         #if DEBUG
-        print("[MessageSaving] \(message())")
+        print("[MessageSaving] \(text)")
         #endif
     }
 

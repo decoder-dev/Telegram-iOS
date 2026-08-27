@@ -87,6 +87,28 @@ final class TimestampBasedMessageAttributesTable: Table {
         operations.append(.remove(TimestampBasedMessageAttributesEntry(tag: tag, timestamp: previousTimestamp ?? 0, messageId: id)))
     }
     
+    /// Every entry of `tag` whose timestamp has already come, oldest first.
+    ///
+    /// The table is keyed by (tag, timestamp, id), so this is one ordered range scan that
+    /// stops at the first entry still in the future. `head` answers the same question for a
+    /// single entry; a consumer that expires messages in a steady stream — an auto-delete
+    /// chat — needs the whole due batch, or it pays a transaction per message.
+    func entries(tag: UInt16, upToTimestamp: Int32, limit: Int) -> [TimestampBasedMessageAttributesEntry] {
+        var result: [TimestampBasedMessageAttributesEntry] = []
+        self.valueBox.range(self.table, start: self.lowerBound(tag: tag), end: self.upperBound(tag: tag), keys: { key in
+            let timestamp = key.getInt32(2)
+            if timestamp > upToTimestamp {
+                return false
+            }
+            let idPeerId = key.getInt64(2 + 4)
+            let idNamespace = key.getInt32(2 + 4 + 8)
+            let idId = key.getInt32(2 + 4 + 8 + 4)
+            result.append(TimestampBasedMessageAttributesEntry(tag: tag, timestamp: timestamp, messageId: MessageId(peerId: PeerId(idPeerId), namespace: idNamespace, id: idId)))
+            return true
+        }, limit: limit)
+        return result
+    }
+
     func head(tag: UInt16) -> TimestampBasedMessageAttributesEntry? {
         var result: TimestampBasedMessageAttributesEntry?
         self.valueBox.range(self.table, start: self.lowerBound(tag: tag), end: self.upperBound(tag: tag), keys: { key in

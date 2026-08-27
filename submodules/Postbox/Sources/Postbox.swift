@@ -1226,6 +1226,11 @@ public final class Transaction {
         assert(!self.disposed)
         self.postbox?.clearTimestampBasedAttribute(id: id, tag: tag)
     }
+
+    public func getTimestampBasedAttributeEntries(tag: UInt16, upToTimestamp: Int32, limit: Int) -> [TimestampBasedMessageAttributesEntry] {
+        assert(!self.disposed)
+        return self.postbox?.getTimestampBasedAttributeEntries(tag: tag, upToTimestamp: upToTimestamp, limit: limit) ?? []
+    }
     
     public func removePeerTimeoutAttributeEntry(peerId: PeerId, timestamp: UInt32) {
         assert(!self.disposed)
@@ -4548,6 +4553,10 @@ final class PostboxImpl {
 
     fileprivate func clearTimestampBasedAttribute(id: MessageId, tag: UInt16) {
         self.timestampBasedMessageAttributesTable.remove(tag: tag, id: id, operations: &self.currentTimestampBasedMessageAttributesOperations)
+    }
+
+    fileprivate func getTimestampBasedAttributeEntries(tag: UInt16, upToTimestamp: Int32, limit: Int) -> [TimestampBasedMessageAttributesEntry] {
+        return self.timestampBasedMessageAttributesTable.entries(tag: tag, upToTimestamp: upToTimestamp, limit: limit)
     }
     
     fileprivate func removePeerTimeoutAttributeEntry(peerId: PeerId, timestamp: UInt32) {

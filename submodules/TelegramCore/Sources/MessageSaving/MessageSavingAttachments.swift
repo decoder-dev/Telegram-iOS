@@ -188,6 +188,16 @@ enum MessageSavingAttachments {
         return nil
     }
 
+    /// Ceiling on what a proactive preserve will pull down on its own.
+    ///
+    /// This fetch is speculative: it downloads media the user has not opened, on whatever
+    /// network happens to be up, to keep a copy in case the message is deleted. Unbounded,
+    /// that is how a client ends up having pulled gigabytes of video over cellular for
+    /// messages nobody looked at. Above the ceiling the preserve still happens — it just
+    /// waits for the file to arrive some other way (the user opening it, auto-download)
+    /// instead of paying for it up front.
+    static let proactiveFetchSizeLimit: Int64 = 32 * 1024 * 1024
+
     /// AyuGram Android parity: actively pull a not-yet-local resource instead of only waiting
     /// for whatever else happens to be downloading it. Fire-and-forget: the returned disposable
     /// is only so a caller can tear the fetch down once the preserve either succeeds or gives up
@@ -197,6 +207,10 @@ enum MessageSavingAttachments {
             return nil
         }
         guard let (media, resource, contentType) = fetchableResource(message: message) else {
+            return nil
+        }
+        if let size = resource.size, size > proactiveFetchSizeLimit {
+            MessageSavingBridge.log("preserve: skipped proactive fetch for \(message.id.id) (\(size / (1024 * 1024)) MB over the \(proactiveFetchSizeLimit / (1024 * 1024)) MB ceiling)")
             return nil
         }
         guard mediaBox.completedResourcePath(resource) == nil else {
