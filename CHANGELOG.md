@@ -6,6 +6,21 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3923-pre] — 2026-08-27
+
+Pre-release: autoremove batching, memory/perf diagnostics, network + prefetch fixes.
+
+### Fixed
+- **Autoremove:** drain up to 256 due messages per transaction instead of one commit per expiry; Postbox batch scan `entries(tag:upToTimestamp:limit:)`.
+- **Message saving:** `[MessageSaving]` file logging; proactive preserve fetch capped at 32 MB (waits for organic download above that).
+- **Memory:** respond to memory warnings (eviction path); throttle MediaManager DB writes; camera recovery after interruptions; split resident vs allocated in telemetry.
+- **Network:** stop service-layer rebuild on self-invented master flaps; steady master flag on connections.
+- **WEB proxy:** cooldown resumes on its own timer instead of waiting for settings re-apply.
+- **Prefetch:** skip media already on disk; preload manager logs only when view updates carry entries.
+
+### Added
+- **Instrumentation:** MediaBox fetch pipeline + linear path-touch logging; preload manager census; bundle image UUIDs at launch (symbolication); live chat-screen open/close counter.
+
 ## [v12.9.2-3922-pre] — 2026-08-26
 
 Pre-release: extended log retention + streaming export.
