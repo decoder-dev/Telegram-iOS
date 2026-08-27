@@ -1404,10 +1404,6 @@ public class Account {
         }
         |> distinctUntilChanged
         
-        self.network.shouldKeepConnection.set(shouldBeMaster)
-        self.network.shouldExplicitelyKeepWorkerConnections.set(self.shouldExplicitelyKeepWorkerConnections.get())
-        self.network.shouldKeepBackgroundDownloadConnections.set(self.shouldKeepBackgroundDownloadConnections.get())
-
         // Losing master is only acted on if it lasts. Re-acquiring it emits a false first by
         // construction: the map above sees `shouldBeMaster == .always && !isMaster`, calls
         // `becomeMasterClient()` and — since `isMaster` is still false at that instant — returns
@@ -1415,15 +1411,19 @@ public class Account {
         // transitions where only 74 moments actually changed anything, with runs like
         // became/resigned/became inside four hundred milliseconds.
         //
-        // Each one tore down and rebuilt `managedServiceViews`, which is the whole background
-        // service layer — autoremove, read-state sync, cached peer data, stickers, holes — and
-        // every one of those resubscribes to Postbox views. That accounts for the 5,582
-        // `combinedView` and 3,206 `itemCollectionsView` creations in the same log, about 260
-        // seconds of database queue spent building views that were discarded moments later.
+        // Both subscribers pay for that. The service layer — `managedServiceViews`: autoremove,
+        // read-state sync, cached peer data, stickers, hole fetching — is torn down and rebuilt,
+        // and each of those resubscribes to Postbox views, which accounts for the 5,582
+        // `combinedView` and 3,206 `itemCollectionsView` creations in the same log, some 260
+        // seconds of database queue spent on views discarded moments later. And every `Download`
+        // pauses and resumes its MTProto: ten workers times seven hundred invented falses is the
+        // ~7,000 "Pause/Resume worker network connection" pairs in that log, each one a transport
+        // torn down and rebuilt, on a device that spends its life on one bar of cellular.
         //
         // A `true` still takes effect immediately; only a `false` waits, and a `true` arriving
         // inside the window cancels it (mapToSignal disposes the pending inner signal). The cost
-        // is half a second of extra background work when the app really is going away.
+        // is half a second of extra connection and background work when the app really is going
+        // away — which is also half a second in which a foreground bounce costs nothing at all.
         let steadyShouldBeMaster = shouldBeMaster
         |> mapToSignal { value -> Signal<Bool, NoError> in
             if value {
@@ -1434,6 +1434,10 @@ public class Account {
             }
         }
         |> distinctUntilChanged
+
+        self.network.shouldKeepConnection.set(steadyShouldBeMaster)
+        self.network.shouldExplicitelyKeepWorkerConnections.set(self.shouldExplicitelyKeepWorkerConnections.get())
+        self.network.shouldKeepBackgroundDownloadConnections.set(self.shouldKeepBackgroundDownloadConnections.get())
 
         self.managedServiceViewsDisposable.set(steadyShouldBeMaster.start(next: { [weak self] value in
             guard let strongSelf = self else {
