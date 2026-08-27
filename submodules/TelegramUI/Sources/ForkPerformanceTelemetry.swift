@@ -1,6 +1,7 @@
 import Foundation
 import UIKit
 import MetricKit
+import MachO
 import TelegramCore
 
 /// Thermal and CPU telemetry.
@@ -42,6 +43,8 @@ public enum ForkPerformanceTelemetry {
 
         self.thermalState = ProcessInfo.processInfo.thermalState
         Logger.shared.log("Perf", "thermal state at launch: \(ForkPerformanceTelemetry.describe(self.thermalState))")
+
+        self.logLoadedImages()
 
         // Process-lifetime observer, deliberately never removed.
         NotificationCenter.default.addObserver(
@@ -189,6 +192,51 @@ public enum ForkPerformanceTelemetry {
         }
         timer.resume()
         self.heartbeatTimer = timer
+    }
+
+    /// The UUID of every Mach-O image inside the app bundle, once at launch.
+    ///
+    /// MetricKit reports a crash stack as binary UUIDs and offsets and nothing else. Four
+    /// kills on one device produced byte-for-byte identical twenty-six-frame stacks, which is
+    /// worth a great deal — but without knowing which UUID is the app's own framework there is
+    /// no way to tell our frames from the system's, let alone hand the offsets to `atos`. The
+    /// images do not change within a build, so one line at launch makes every crash stack in
+    /// the log readable afterwards.
+    private static func logLoadedImages() {
+        var entries: [String] = []
+        for index in 0 ..< _dyld_image_count() {
+            guard let namePointer = _dyld_get_image_name(index) else {
+                continue
+            }
+            let path = String(cString: namePointer)
+            // Only what shipped in the bundle: the system's images are the same for everyone
+            // and would make the line unreadable.
+            guard path.contains(".app/") else {
+                continue
+            }
+            guard let header = _dyld_get_image_header(index), let uuid = self.uuidOfImage(header) else {
+                continue
+            }
+            entries.append("\((path as NSString).lastPathComponent)=\(uuid)")
+        }
+
+        if !entries.isEmpty {
+            Logger.shared.log("Perf", "bundle images: \(entries.joined(separator: " "))")
+        }
+    }
+
+    private static func uuidOfImage(_ header: UnsafePointer<mach_header>) -> String? {
+        let header64 = UnsafeRawPointer(header).assumingMemoryBound(to: mach_header_64.self)
+        var cursor = UnsafeRawPointer(header64).advanced(by: MemoryLayout<mach_header_64>.size)
+        for _ in 0 ..< Int(header64.pointee.ncmds) {
+            let command = cursor.assumingMemoryBound(to: load_command.self)
+            if command.pointee.cmd == UInt32(LC_UUID) {
+                let value = cursor.assumingMemoryBound(to: uuid_command.self).pointee.uuid
+                return String(format: "%02X%02X%02X%02X-%02X%02X-%02X%02X-%02X%02X-%02X%02X%02X%02X%02X%02X", value.0, value.1, value.2, value.3, value.4, value.5, value.6, value.7, value.8, value.9, value.10, value.11, value.12, value.13, value.14, value.15)
+            }
+            cursor = cursor.advanced(by: Int(command.pointee.cmdsize))
+        }
+        return nil
     }
 
     /// Bytes currently held by the malloc heap, across every zone.
