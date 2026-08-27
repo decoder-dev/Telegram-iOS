@@ -1407,8 +1407,35 @@ public class Account {
         self.network.shouldKeepConnection.set(shouldBeMaster)
         self.network.shouldExplicitelyKeepWorkerConnections.set(self.shouldExplicitelyKeepWorkerConnections.get())
         self.network.shouldKeepBackgroundDownloadConnections.set(self.shouldKeepBackgroundDownloadConnections.get())
-        
-        self.managedServiceViewsDisposable.set(shouldBeMaster.start(next: { [weak self] value in
+
+        // Losing master is only acted on if it lasts. Re-acquiring it emits a false first by
+        // construction: the map above sees `shouldBeMaster == .always && !isMaster`, calls
+        // `becomeMasterClient()` and — since `isMaster` is still false at that instant — returns
+        // false, then returns true once the postbox comes back. A day's log has 742 of these
+        // transitions where only 74 moments actually changed anything, with runs like
+        // became/resigned/became inside four hundred milliseconds.
+        //
+        // Each one tore down and rebuilt `managedServiceViews`, which is the whole background
+        // service layer — autoremove, read-state sync, cached peer data, stickers, holes — and
+        // every one of those resubscribes to Postbox views. That accounts for the 5,582
+        // `combinedView` and 3,206 `itemCollectionsView` creations in the same log, about 260
+        // seconds of database queue spent building views that were discarded moments later.
+        //
+        // A `true` still takes effect immediately; only a `false` waits, and a `true` arriving
+        // inside the window cancels it (mapToSignal disposes the pending inner signal). The cost
+        // is half a second of extra background work when the app really is going away.
+        let steadyShouldBeMaster = shouldBeMaster
+        |> mapToSignal { value -> Signal<Bool, NoError> in
+            if value {
+                return .single(true)
+            } else {
+                return .single(false)
+                |> delay(0.5, queue: Queue.concurrentDefaultQueue())
+            }
+        }
+        |> distinctUntilChanged
+
+        self.managedServiceViewsDisposable.set(steadyShouldBeMaster.start(next: { [weak self] value in
             guard let strongSelf = self else {
                 return
             }

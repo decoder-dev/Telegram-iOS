@@ -4824,7 +4824,11 @@ func replayFinalState(
                     transaction.removeHole(peerId: peerId, threadId: nil, namespace: namespace, space: .tag(tag), range: 1 ... (Int32.max - 1))
                     if tag == .unseenPersonalMessage {
                         let ids = transaction.getMessageIndicesWithTag(peerId: peerId, threadId: nil, namespace: namespace, tag: tag).map({ $0.id })
-                        Logger.shared.log("State", "will call markUnseenPersonalMessage for \(ids.count) messages")
+                        if !ids.isEmpty {
+                            // Every one of the 1,871 times this fired in a day's log the count was
+                            // zero, so the line only ever said that there was nothing to do.
+                            Logger.shared.log("State", "will call markUnseenPersonalMessage for \(ids.count) messages")
+                        }
                         for id in ids {
                             markUnseenPersonalMessage(transaction: transaction, id: id, addSynchronizeAction: false)
                         }
