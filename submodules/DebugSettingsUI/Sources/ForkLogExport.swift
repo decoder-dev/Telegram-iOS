@@ -3,6 +3,7 @@ import SwiftSignalKit
 import Display
 import TelegramCore
 import TelegramPresentationData
+import PresentationDataUtils
 import AccountContext
 import OverlayStatusController
 import ZipArchive
