@@ -48,8 +48,12 @@ public enum WebProxyFrameCodec {
     
     /// Appends into an existing buffer so a batch is one allocation rather than one per frame.
     private static func appendEncoded(_ frame: WebProxyFrame, to data: inout Data) {
-        precondition(frame.streamId <= 0xffffff)
-        precondition(frame.payload.count <= maxPayloadSize)
+        // Soft-skip instead of precondition: a long-lived soft-reconnect path used to mint
+        // stream ids past the 24-bit wire limit and SIGABRT the process. Callers that still
+        // overflow after the sidecar's allocateStreamId clamp must not take the app down.
+        guard frame.streamId <= 0xffffff, frame.payload.count <= maxPayloadSize else {
+            return
+        }
         data.append(frame.type.rawValue)
         data.append(UInt8((frame.streamId >> 16) & 0xff))
         data.append(UInt8((frame.streamId >> 8) & 0xff))

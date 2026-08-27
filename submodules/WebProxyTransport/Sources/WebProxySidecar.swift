@@ -70,6 +70,8 @@ public final class WebProxySidecar {
     private var urlSession: URLSession?
     private var streams: [UInt32: WebProxyStream] = [:]
     private var nextStreamId: UInt32 = 1
+    /// Wire stream ids are 3 bytes; encoding past 0xffffff used to hit a precondition trap.
+    private static let maxStreamId: UInt32 = 0xffffff
     private var endpoint: Endpoint?
     private var onFailure: (() -> Void)?
     private var hostname: String?
@@ -80,6 +82,11 @@ public final class WebProxySidecar {
     private var transportReconnectGeneration: UInt64 = 0
     private var consecutiveTransportReconnects = 0
     private static let maxTransportReconnects = 3
+    private var startInFlight = false
+    private var startBootstrapGeneration: UInt64 = 0
+    /// Generous enough for radio reassociate after unlock; 30s caused false failures and slow
+    /// multi-retry first connects on wake.
+    private static let coldStartTimeout: Double = 90.0
     
     /// Implicit per-stream window both directions start with, per the shared relay contract.
     static let initialStreamWindow = 4 * 1024 * 1024
@@ -95,6 +102,17 @@ public final class WebProxySidecar {
     public func start(hostname: String, secret: Data, bridgeCapability: String, completion: @escaping (Result<Endpoint, Error>) -> Void) {
         self.queue.async {
             self.stopLocked()
+            self.startInFlight = true
+            self.startBootstrapGeneration &+= 1
+            let generation = self.startBootstrapGeneration
+            var didComplete = false
+            let completeOnce: (Result<Endpoint, Error>) -> Void = { result in
+                guard !didComplete else {
+                    return
+                }
+                didComplete = true
+                completion(result)
+            }
             do {
                 let config = URLSessionConfiguration.ephemeral
                 config.requestCachePolicy = .reloadIgnoringLocalCacheData
@@ -103,7 +121,9 @@ public final class WebProxySidecar {
                 config.httpShouldSetCookies = false
                 config.timeoutIntervalForRequest = 90.0
                 config.timeoutIntervalForResource = 300.0
-                config.waitsForConnectivity = true
+                // false: waitsForConnectivity can leave bootstrap hanging past our watchdog
+                // when radio is flapping; we prefer fail + manager retry.
+                config.waitsForConnectivity = false
                 let urlSession = URLSession(configuration: config)
                 let carrier = try WebProxyHttpCarrier(hostname: hostname, session: urlSession, queue: self.queue)
                 carrier.onDownlinkBatch = { [weak self] batch in
@@ -116,7 +136,8 @@ public final class WebProxySidecar {
                 }
                 
                 guard let ephemeralPort = NWEndpoint.Port(rawValue: 0) else {
-                    completion(.failure(WebProxyHttpCarrierError.sessionCreationFailed))
+                    self.startInFlight = false
+                    completeOnce(.failure(WebProxyHttpCarrierError.sessionCreationFailed))
                     return
                 }
                 let listener = try NWListener(using: .tcp, on: ephemeralPort)
@@ -130,7 +151,6 @@ public final class WebProxySidecar {
                     switch state {
                     case .failed:
                         self.queue.async {
-                            // Ignore failures after intentional stop (listener already nilled).
                             guard self.listener != nil else {
                                 return
                             }
@@ -156,24 +176,44 @@ public final class WebProxySidecar {
                         return
                     }
                     self.queue.async {
+                        guard generation == self.startBootstrapGeneration, self.startInFlight else {
+                            if case .success = result {
+                                self.stopLocked()
+                            }
+                            return
+                        }
+                        self.startInFlight = false
                         switch result {
                         case .success:
                             guard let port = listener.port?.rawValue else {
-                                completion(.failure(WebProxyHttpCarrierError.sessionCreationFailed))
+                                completeOnce(.failure(WebProxyHttpCarrierError.sessionCreationFailed))
                                 self.stopLocked()
                                 return
                             }
                             let endpoint = Endpoint(host: "127.0.0.1", port: port)
                             self.endpoint = endpoint
-                            completion(.success(endpoint))
+                            completeOnce(.success(endpoint))
                         case let .failure(error):
                             self.stopLocked()
-                            completion(.failure(error))
+                            completeOnce(.failure(error))
                         }
                     }
                 }
+                
+                self.queue.asyncAfter(deadline: .now() + WebProxySidecar.coldStartTimeout) { [weak self] in
+                    guard let self else {
+                        return
+                    }
+                    guard generation == self.startBootstrapGeneration, self.startInFlight else {
+                        return
+                    }
+                    self.startInFlight = false
+                    self.stopLocked()
+                    completeOnce(.failure(WebProxyHttpCarrierError.sessionCreationFailed))
+                }
             } catch {
-                completion(.failure(error))
+                self.startInFlight = false
+                completeOnce(.failure(error))
             }
         }
     }
@@ -194,6 +234,8 @@ public final class WebProxySidecar {
         self.transportReconnectGeneration &+= 1
         self.transportReconnectInFlight = false
         self.consecutiveTransportReconnects = 0
+        self.startBootstrapGeneration &+= 1
+        self.startInFlight = false
         // Drop the handler first so listener/carrier cancels cannot re-enter onFailure → stop.
         self.onFailure = nil
         self.carrier?.stop()
@@ -267,6 +309,7 @@ public final class WebProxySidecar {
             stream.connection.cancel()
         }
         self.streams.removeAll()
+        // Soft reconnect used to leave nextStreamId climbing forever until 24-bit overflow.
         self.nextStreamId = 1
         
         self.carrier?.stop()
@@ -281,7 +324,7 @@ public final class WebProxySidecar {
         config.httpShouldSetCookies = false
         config.timeoutIntervalForRequest = 90.0
         config.timeoutIntervalForResource = 300.0
-        config.waitsForConnectivity = true
+        config.waitsForConnectivity = false
         let urlSession = URLSession(configuration: config)
         self.urlSession = urlSession
         
@@ -352,12 +395,23 @@ public final class WebProxySidecar {
         _ = reason
     }
     
-    private func accept(connection: NWConnection) {
-        let streamId = self.nextStreamId
-        self.nextStreamId &+= 1
-        if self.nextStreamId == 0 {
-            self.nextStreamId = 1
+    private func allocateStreamId() -> UInt32 {
+        var candidate = self.nextStreamId
+        var attempts: UInt32 = 0
+        while candidate == 0 || self.streams[candidate] != nil {
+            candidate = candidate == WebProxySidecar.maxStreamId ? 1 : candidate &+ 1
+            attempts &+= 1
+            if attempts > WebProxySidecar.maxStreamId {
+                candidate = 1
+                break
+            }
         }
+        self.nextStreamId = candidate == WebProxySidecar.maxStreamId ? 1 : candidate &+ 1
+        return candidate
+    }
+    
+    private func accept(connection: NWConnection) {
+        let streamId = self.allocateStreamId()
         let stream = WebProxyStream(id: streamId, connection: connection)
         self.streams[streamId] = stream
         self.sendFrames([WebProxyFrame(type: .open, streamId: streamId, payload: Data())])

@@ -75,14 +75,14 @@ func applySharedProxySettingsToNetwork(settings: ProxySettings, network: Network
             if let resolvedProxySettings = resolvedProxySettings {
                 updated = resolvedProxySettings
             } else if let current = current {
-                // Sidecar failed while switching proxies — keep the previous endpoint
-                // rather than falling back to a direct connection.
+                // Sidecar not ready yet (bootstrap / resume) — keep the previous endpoint.
+                // Never fall through to 127.0.0.1:1: that port produces Connection-refused
+                // storms and has correlated with SIGABRT under MtProto reconnect pressure.
                 updated = current
-            } else if let activeServer = activeServer, case let .web(secret) = activeServer.connection {
-                // First enable with a dead sidecar: route to an unreachable loopback port
-                // with the MTProxy code path so traffic never goes out unproxied.
-                updated = MTSocksProxySettings(ip: "127.0.0.1", port: 1, username: nil, password: nil, secret: secret)
             } else {
+                // First enable while the sidecar is still booting: leave socks settings
+                // unchanged (nil). MtProto stays offline until the sidecar event re-applies
+                // a real loopback port — preferred over advertising a dead :1 sink.
                 updated = nil
             }
         } else {

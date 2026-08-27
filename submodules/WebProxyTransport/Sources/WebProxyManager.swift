@@ -56,7 +56,12 @@ public final class WebProxyManager {
     private var sidecarReadySince: Double = 0.0
     /// Debounce foreground restarts so rapid active/resign cycles do not stack tear-downs.
     private var lastBecomeActiveRestart: Double = 0.0
-    private static let becomeActiveRestartMinInterval: Double = 1.0
+    private static let becomeActiveRestartMinInterval: Double = 3.0
+    /// Set from `applicationDidEnterBackground`. Resume only rebuilds transport after a real
+    /// suspension; brief control-center / app-switcher flickers must not cycle the loopback port.
+    private var enteredBackgroundAt: Double = 0.0
+    /// Minimum time in background before a wake triggers transport rebuild.
+    private static let minimumBackgroundForResumeRestart: Double = 8.0
     
     private var nextSidecarEventToken: SidecarEventToken = 0
     private var sidecarEventHandlers: [SidecarEventToken: () -> Void] = [:]
@@ -84,8 +89,8 @@ public final class WebProxyManager {
         if live {
             return true
         }
-        // While a replacement sidecar is bootstrapping, keep reporting ready if we still have
-        // the previous loopback port so MtProto does not get rebinding to 127.0.0.1:1.
+        // Sequential restart / cold bootstrap briefly clears `endpoint`. Keep lastGood visible
+        // so ProxySettings does not publish 127.0.0.1:1 (236 refused connects in one session).
         self.startLock.lock()
         let starting = self.startingConfiguration == configuration
         self.startLock.unlock()
@@ -154,6 +159,13 @@ public final class WebProxyManager {
     /// records a backoff, but nothing automatically retries once the cooldown elapses — shared
     /// proxy settings do not change on resume, so `configure` is never called again and the UI
     /// sits on "Connecting" forever. Forcing a clean restart here clears that stall.
+    /// Call from `applicationDidEnterBackground` so resume can tell a real sleep from a flicker.
+    public func applicationDidEnterBackground() {
+        self.startLock.lock()
+        self.enteredBackgroundAt = CFAbsoluteTimeGetCurrent()
+        self.startLock.unlock()
+    }
+    
     public func applicationDidBecomeActive() {
         let now = CFAbsoluteTimeGetCurrent()
         self.startLock.lock()
@@ -161,6 +173,11 @@ public final class WebProxyManager {
             self.startLock.unlock()
             return
         }
+        let backgroundedAt = self.enteredBackgroundAt
+        let timeInBackground = backgroundedAt > 0 ? (now - backgroundedAt) : 0
+        // Consume the background stamp so a second becomeActive (willEnterForeground + didBecomeActive)
+        // in the same unlock does not count as another long suspension.
+        self.enteredBackgroundAt = 0
         self.lastBecomeActiveRestart = now
         self.lastFailedConfiguration = nil
         self.consecutiveFailureCount = 0
@@ -178,30 +195,43 @@ public final class WebProxyManager {
             return
         }
         
-        // Prefer in-place carrier rebuild on the SAME loopback port. Overlapping a second
-        // NWListener while MtProto still hammered the dead previous port produced connection-
-        // refused storms and SIGABRT on resume (see client logs: 127.0.0.1:N Connection refused
-        // immediately followed by MetricKit signal=6).
-        if hasEndpoint, let sidecar = sidecar {
-            sidecar.reconnectTransport { [weak self] result in
-                guard let self else {
-                    return
-                }
-                if case .failure = result {
-                    self.sequentialRestart(configuration: target)
-                }
-            }
+        // Missing endpoint → always try to start (cold path / previous failure).
+        if !hasEndpoint {
+            self.scheduleStart(configuration: target)
             return
         }
-        self.sequentialRestart(configuration: target)
+        
+        // Live endpoint + only a brief background (control center, app switcher, quick lock):
+        // do NOT rebuild. Every port change forces MtProto Connecting→Updating and the user
+        // sees a multi-second flap loop. Carrier failure still self-heals via onFailure.
+        if timeInBackground < WebProxyManager.minimumBackgroundForResumeRestart {
+            return
+        }
+        
+        // Real sleep / long background: rebuild carrier on the SAME loopback port.
+        guard let sidecar = sidecar else {
+            self.scheduleStart(configuration: target)
+            return
+        }
+        sidecar.reconnectTransport { [weak self] result in
+            guard let self else {
+                return
+            }
+            if case .failure = result {
+                self.sequentialRestart(configuration: target)
+            }
+        }
     }
     
     /// Stop the current sidecar, then schedule a fresh one. Used when there is no live endpoint
     /// or in-place transport reconnect failed. Not overlapping — only one listener at a time.
     private func sequentialRestart(configuration: WebProxyConfiguration) {
+        // Mark the target as in-flight BEFORE clearing the live endpoint so isReady(for:) can
+        // still publish lastGoodEndpoint and ProxySettings never binds 127.0.0.1:1.
         self.startLock.lock()
         self.startGeneration &+= 1
-        self.startingConfiguration = nil
+        self.startingConfiguration = configuration
+        self.startingSince = CFAbsoluteTimeGetCurrent()
         self.startLock.unlock()
         
         self.lock.lock()

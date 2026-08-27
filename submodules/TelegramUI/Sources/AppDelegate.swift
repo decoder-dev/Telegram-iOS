@@ -2066,6 +2066,8 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                 UIApplication.shared.endBackgroundTask(taskId)
             }
         })
+
+        WebProxyManager.shared.applicationDidEnterBackground()
     }
 
     /// The app had no answer to a memory warning: a search of the tree turns up exactly one
