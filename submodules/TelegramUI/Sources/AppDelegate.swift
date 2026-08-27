@@ -2000,9 +2000,18 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             let _ = (sharedApplicationContext.sharedContext.activeAccountContexts
              |> take(1)
              |> deliverOnMainQueue).start(next: { activeAccounts in
+                // How much of the footprint the Postbox table caches account for was never
+                // recorded, so a log showing the app suspended at half a gigabyte gave no way
+                // to tell whether clearing them helped at all. The caches are cleared on the
+                // Postbox queue, so read back after a beat rather than immediately.
+                let before = getMemoryConsumption() / (1024 * 1024)
                 for (_, context, _) in activeAccounts.accounts {
                     context.account.postbox.clearCaches()
                 }
+                Queue.mainQueue().after(1.0, {
+                    let after = getMemoryConsumption() / (1024 * 1024)
+                    Logger.shared.log("Memory", "cleared postbox caches on background: \(before) MB -> \(after) MB")
+                })
             })
         })
         
@@ -2026,6 +2035,34 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             if let taskId = taskIdHolder.taskId {
                 UIApplication.shared.endBackgroundTask(taskId)
             }
+        })
+    }
+
+    /// The app had no answer to a memory warning: a search of the tree turns up exactly one
+    /// `UIApplicationDidReceiveMemoryWarningNotification` observer, in a legacy GPUImage
+    /// framebuffer cache. Meanwhile MetricKit reported the app being killed for memory
+    /// pressure eight times in five days on one device, with an average suspended footprint of
+    /// half a gigabyte. Shedding what backgrounding already sheds is the least the app can do
+    /// while it still has a chance to stay alive, and the before/after numbers say how much
+    /// that is actually worth.
+    func applicationDidReceiveMemoryWarning(_ application: UIApplication) {
+        let before = getMemoryConsumption() / (1024 * 1024)
+        Logger.shared.log("Memory", "memory warning at \(before) MB — clearing postbox caches")
+
+        let _ = (self.sharedContextPromise.get()
+        |> take(1)
+        |> deliverOnMainQueue).start(next: { sharedApplicationContext in
+            let _ = (sharedApplicationContext.sharedContext.activeAccountContexts
+            |> take(1)
+            |> deliverOnMainQueue).start(next: { activeAccounts in
+                for (_, context, _) in activeAccounts.accounts {
+                    context.account.postbox.clearCaches()
+                }
+                Queue.mainQueue().after(1.0, {
+                    let after = getMemoryConsumption() / (1024 * 1024)
+                    Logger.shared.log("Memory", "after memory warning cleanup: \(before) MB -> \(after) MB")
+                })
+            })
         })
     }
 

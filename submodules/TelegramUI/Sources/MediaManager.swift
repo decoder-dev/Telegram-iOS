@@ -404,9 +404,14 @@ public final class MediaManagerImpl: NSObject, MediaManager {
             }
         }
         
+        // The only consumer of this signal is the resume-position write below, and that is a
+        // full Postbox write transaction. At two seconds a long podcast wrote the database
+        // eighteen hundred times; in a six-day log this was the third-busiest transaction site
+        // in the app. A resume position that can be up to fifteen seconds stale after a hard
+        // kill is a fair trade for a fifteenth of the writes.
         let throttledSignal = self.globalMediaPlayerState
         |> mapToThrottled { next -> Signal<(Account, SharedMediaPlayerItemPlaybackStateOrLoading, MediaManagerPlayerType)?, NoError> in
-            return .single(next) |> then(.complete() |> delay(2.0, queue: Queue.concurrentDefaultQueue()))
+            return .single(next) |> then(.complete() |> delay(15.0, queue: Queue.concurrentDefaultQueue()))
         }
         
         self.mediaPlaybackStateDisposable.set(throttledSignal.startStrict(next: { accountStateAndType in
