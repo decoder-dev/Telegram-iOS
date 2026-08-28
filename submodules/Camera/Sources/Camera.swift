@@ -782,6 +782,8 @@ private final class CameraContext {
             return "videoDeviceNotAvailableWithMultipleForegroundApps"
         case .videoDeviceNotAvailableDueToSystemPressure:
             return "videoDeviceNotAvailableDueToSystemPressure"
+        case .sensitiveContentMitigationActivated:
+            return "sensitiveContentMitigationActivated"
         @unknown default:
             return "reason \(reason.rawValue)"
         }
