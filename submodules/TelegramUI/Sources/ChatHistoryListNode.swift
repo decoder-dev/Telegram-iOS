@@ -490,6 +490,10 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
     
     var enableUnreadAlignment: Bool = true
     var areContentAnimationsEnabled: Bool = false
+    // A layout pass can arrive immediately after the initial unread scroll, e.g. when the input
+    // panel changes its bottom inset. Do not let that pass replace the first-unread anchor with
+    // the unread divider before the user has seen the initial position.
+    private var suppressUnreadAlignmentUntil: Double = 0.0
     
     private var historyView: ChatHistoryView?
     public var originalHistoryView: MessageHistoryView? {
@@ -3926,6 +3930,14 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
         }
         self.hasActiveTransition = true
         let transition = self.enqueuedHistoryViewTransitions.removeFirst()
+        if case .Initial = transition.reason, transition.scrollToItem != nil, transition.historyView.filteredEntries.contains(where: { entry in
+            if case .UnreadEntry = entry {
+                return true
+            }
+            return false
+        }) {
+            self.suppressUnreadAlignmentUntil = CACurrentMediaTime() + 1.0
+        }
         
         var expiredMessageStableIds = Set<UInt32>()
         if let previousHistoryView = self.historyView, transition.options.contains(.AnimateInsertion) {
@@ -4078,6 +4090,16 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
 
         let completion: (Bool, ListViewDisplayedItemRange) -> Void = { [weak self] wasTransformed, visibleRange in
             if let strongSelf = self {
+                if let scrollToItem = transition.scrollToItem {
+                    var visibleMessages: [String] = []
+                    strongSelf.forEachVisibleMessageItemNode { itemNode in
+                        if let item = itemNode.item {
+                            visibleMessages.append("\(Int(itemNode.frame.minY)):\(item.message.index)")
+                        }
+                    }
+                    let visibleMessageSummary = visibleMessages.joined(separator: ",")
+                    Logger.shared.log("ChatUnreadPosition", "list-applied peer=\(String(describing: strongSelf.chatLocation.peerId)) targetListIndex=\(scrollToItem.index) targetPosition=\(scrollToItem.position) reason=\(transition.reason) visibleRange=\(visibleRange) visibleMessages=\(visibleMessageSummary)")
+                }
                 strongSelf.currentAppliedDeleteAnimationCorrelationIds.removeAll()
                 
                 var newIncomingReactions: [MessageId: (value: MessageReaction.Reaction, isLarge: Bool)] = [:]
@@ -4685,12 +4707,16 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
         var postScrollToItem: ListViewScrollToItem?
         if scrollToTop, case .known = self.visibleContentOffset() {
             scrollToItem = ListViewScrollToItem(index: 0, position: .top(0.0), animated: true, curve: .Spring(duration: updateSizeAndInsets.duration), directionHint: .Up)
+        } else if self.enableUnreadAlignment, CACurrentMediaTime() < self.suppressUnreadAlignmentUntil, updateSizeAndInsets.insets.bottom != self.insets.bottom {
+            Logger.shared.log("ChatUnreadPosition", "layout-realign-unread-suppressed peer=\(String(describing: self.chatLocation.peerId)) oldBottomInset=\(self.insets.bottom) newBottomInset=\(updateSizeAndInsets.insets.bottom)")
+            self.suppressUnreadAlignmentUntil = 0.0
         } else if self.enableUnreadAlignment {
             if updateSizeAndInsets.insets.bottom != self.insets.bottom {
                 self.forEachVisibleItemNode { itemNode in
                     if let itemNode = itemNode as? ChatUnreadItemNode, let index = itemNode.index {
                         if abs(itemNode.frame.maxY - (self.listView.visibleSize.height - self.insets.bottom + 6.0)) < 1.0 {
                             postScrollToItem = ListViewScrollToItem(index: index, position: .bottom(0.0), animated: updateSizeAndInsets.duration != 0.0, curve: updateSizeAndInsets.curve, directionHint: .Up)
+                            Logger.shared.log("ChatUnreadPosition", "layout-realign-unread peer=\(String(describing: self.chatLocation.peerId)) listIndex=\(index) oldBottomInset=\(self.insets.bottom) newBottomInset=\(updateSizeAndInsets.insets.bottom) unreadMaxY=\(itemNode.frame.maxY) visibleHeight=\(self.listView.visibleSize.height)")
                         }
                     }
                 }

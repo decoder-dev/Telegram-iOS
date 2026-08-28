@@ -148,10 +148,20 @@ func preparedChatHistoryViewTransition(from fromView: ChatHistoryView?, to toVie
     if let scrollPosition = scrollPosition {
         switch scrollPosition {
             case let .unread(unreadIndex):
+                var unreadScrollSelection = "none"
                 var index = toView.filteredEntries.count - 1
+                var passedUnreadDivider = false
                 for entry in toView.filteredEntries {
                     if case .UnreadEntry = entry {
+                        passedUnreadDivider = true
+                    } else if passedUnreadDivider && entry.index > unreadIndex {
+                        // The divider represents the last read index. Anchoring it at the bottom
+                        // can leave the first unread message outside the viewport (especially
+                        // with grouped entries or variable-height items). Anchor the message
+                        // immediately after it instead; the divider remains in the list as the
+                        // visual boundary.
                         scrollToItem = ListViewScrollToItem(index: index, position: .bottom(0.0), animated: false, curve: curve, directionHint: .Down)
+                        unreadScrollSelection = "first-entry-after-unread-divider"
                         break
                     }
                     index -= 1
@@ -162,6 +172,7 @@ func preparedChatHistoryViewTransition(from fromView: ChatHistoryView?, to toVie
                     for entry in toView.filteredEntries {
                         if entry.index >= unreadIndex {
                             scrollToItem = ListViewScrollToItem(index: index, position: .bottom(0.0), animated: false, curve: curve,  directionHint: .Down)
+                            unreadScrollSelection = "first-entry-at-or-after-read"
                             break
                         }
                         index -= 1
@@ -175,6 +186,7 @@ func preparedChatHistoryViewTransition(from fromView: ChatHistoryView?, to toVie
                                     break
                                 } else if case .ChatInfoEntry = entry {
                                     scrollToItem = ListViewScrollToItem(index: index, position: .bottom(0.0), animated: false, curve: curve,  directionHint: .Down)
+                                    unreadScrollSelection = "chat-info-fallback"
                                     break
                                 }
                             }
@@ -188,11 +200,22 @@ func preparedChatHistoryViewTransition(from fromView: ChatHistoryView?, to toVie
                     for entry in toView.filteredEntries.reversed() {
                         if entry.index < unreadIndex {
                             scrollToItem = ListViewScrollToItem(index: index, position: .bottom(0.0), animated: false, curve: curve, directionHint: .Down)
+                            unreadScrollSelection = "last-entry-before-read"
                             break
                         }
                         index += 1
                     }
                 }
+
+                let selectedEntryIndex: String
+                if let scrollToItem, scrollToItem.index >= 0, scrollToItem.index < toView.filteredEntries.count {
+                    let sourceIndex = toView.filteredEntries.count - 1 - scrollToItem.index
+                    selectedEntryIndex = String(describing: toView.filteredEntries[sourceIndex].index)
+                } else {
+                    selectedEntryIndex = "none"
+                }
+                let selectedListIndex = scrollToItem.map { String($0.index) } ?? "none"
+                Logger.shared.log("ChatUnreadPosition", "list-transition peer=\(String(describing: chatLocation.peerId)) requestedUnread=\(unreadIndex) selection=\(unreadScrollSelection) listIndex=\(selectedListIndex) entryIndex=\(selectedEntryIndex) entries=\(toView.filteredEntries.count) reason=\(reason)")
             case let .positionRestoration(scrollIndex, relativeOffset):
                 var index = toView.filteredEntries.count - 1
                 for entry in toView.filteredEntries {

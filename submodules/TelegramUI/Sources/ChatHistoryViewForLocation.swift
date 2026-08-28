@@ -136,6 +136,17 @@ func chatHistoryViewForLocation(
                 |> map { viewData, isPossibleIntroLoaded -> ChatHistoryViewUpdate in
                     let (view, updateType, initialData) = viewData
                     var effectiveIsAddedToChatList = view.isAddedToChatList
+
+                    // Temporary diagnostics for chats that open away from the unread boundary.
+                    // Keep the actual indexes (rather than message text) so entries can be
+                    // correlated with the Postbox read-state trace without exposing content.
+                    let peerDebugId = chatLocation.peerId.map { String(describing: $0) } ?? "none"
+                    let entriesRange = "\(String(describing: view.entries.first?.message.index))...\(String(describing: view.entries.last?.message.index))"
+                    let firstIncomingUnreadIndex: MessageIndex? = view.maxReadIndex.flatMap { maxReadIndex in
+                        return view.entries.first(where: { entry in
+                            return !entry.message.flags.intersection(.IsIncomingMask).isEmpty && entry.message.index > maxReadIndex
+                        })?.message.index
+                    }
                     
                     let (cachedData, cachedDataMessages, readStateData, peers) = extractAdditionalData(view: view, chatLocation: chatLocation)
                     if case let .peer(peerId) = chatLocation, let channel = peers[peerId] as? TelegramChannel, let linkedCommunityId = channel.linkedCommunityId, let community = peers[linkedCommunityId] as? TelegramCommunity {
@@ -147,16 +158,20 @@ func chatHistoryViewForLocation(
                     let combinedInitialData = ChatHistoryCombinedInitialData(initialData: initialData, buttonKeyboardMessage: view.topTaggedMessages.first, cachedData: cachedData, cachedDataMessages: cachedDataMessages, readStateData: readStateData)
                     
                     if !isPossibleIntroLoaded {
+                        Logger.shared.log("ChatUnreadPosition", "loading peer=\(peerDebugId) reason=businessIntro update=\(updateType) maxRead=\(String(describing: view.maxReadIndex)) firstIncomingUnread=\(String(describing: firstIncomingUnreadIndex)) anchor=\(view.anchorIndex) entries=\(entriesRange) holes=\(view.holeEarlier)/\(view.holeLater)")
                         return .Loading(initialData: combinedInitialData, type: .Generic(type: updateType))
                     }
                     
                     if preloaded {
+                        Logger.shared.log("ChatUnreadPosition", "update-after-initial peer=\(peerDebugId) update=\(updateType) maxRead=\(String(describing: view.maxReadIndex)) firstIncomingUnread=\(String(describing: firstIncomingUnreadIndex)) anchor=\(view.anchorIndex) entries=\(entriesRange) holes=\(view.holeEarlier)/\(view.holeLater)")
                         return .HistoryView(view: view, type: .Generic(type: updateType), scrollPosition: nil, flashIndicators: false, originalScrollPosition: nil, initialData: combinedInitialData, id: location.id)
                     } else {
                         if view.isLoading || (view.entries.isEmpty && (view.holeEarlier || view.holeLater)) {
+                            Logger.shared.log("ChatUnreadPosition", "loading peer=\(peerDebugId) reason=history update=\(updateType) maxRead=\(String(describing: view.maxReadIndex)) firstIncomingUnread=\(String(describing: firstIncomingUnreadIndex)) anchor=\(view.anchorIndex) entries=\(entriesRange) holes=\(view.holeEarlier)/\(view.holeLater)")
                             return .Loading(initialData: combinedInitialData, type: .Generic(type: updateType))
                         }
                         var scrollPosition: ChatHistoryViewScrollPosition?
+                        var scrollDecision = "default"
                         
                         let canScrollToRead: Bool
                         if case let .replyThread(message) = chatLocation, !message.isForumPost, !message.isMonoforumPost {
@@ -176,12 +191,14 @@ func chatHistoryViewForLocation(
                         if tag == nil, case let .replyThread(message) = chatLocation, message.isForumPost, view.maxReadIndex == nil {
                             if case let .message(index) = view.anchorIndex {
                                 scrollPosition = .index(subject: MessageHistoryScrollToSubject(index: .message(index), quote: nil), position: .bottom(0.0), directionHint: .Up, animated: false, highlight: false, displayLink: false, setupReply: false)
+                                scrollDecision = "forum-anchor"
                             }
                         }
                         
                         if let maxReadIndex = view.maxReadIndex, tag == nil, canScrollToRead {
                             let aroundIndex = maxReadIndex
                             scrollPosition = .unread(index: maxReadIndex)
+                            scrollDecision = "unread"
                             
                             if let _ = chatLocation.peerId {
                                 var targetIndex = 0
@@ -196,11 +213,13 @@ func chatHistoryViewForLocation(
                                 let minIndex = targetIndex - 40
                                 if minIndex <= 0 && view.holeEarlier {
                                     fadeIn = true
+                                    Logger.shared.log("ChatUnreadPosition", "loading peer=\(peerDebugId) reason=missing-earlier-near-unread maxRead=\(maxReadIndex) firstIncomingUnread=\(String(describing: firstIncomingUnreadIndex)) anchor=\(view.anchorIndex) entries=\(entriesRange) holes=\(view.holeEarlier)/\(view.holeLater)")
                                     return .Loading(initialData: combinedInitialData, type: .Generic(type: updateType))
                                 }
                                 if maxIndex >= view.entries.count {
                                     if view.holeLater {
                                         fadeIn = true
+                                        Logger.shared.log("ChatUnreadPosition", "loading peer=\(peerDebugId) reason=missing-later-near-unread maxRead=\(maxReadIndex) firstIncomingUnread=\(String(describing: firstIncomingUnreadIndex)) anchor=\(view.anchorIndex) entries=\(entriesRange) holes=\(view.holeEarlier)/\(view.holeLater)")
                                         return .Loading(initialData: combinedInitialData, type: .Generic(type: updateType))
                                     }
                                     if view.holeEarlier {
@@ -213,6 +232,7 @@ func chatHistoryViewForLocation(
                                         if case let .peer(peerId) = chatLocation, let combinedReadStates = view.fixedReadStates, case let .peer(readStates) = combinedReadStates, let readState = readStates[peerId], readState.count == incomingCount {
                                         } else {
                                             fadeIn = true
+                                            Logger.shared.log("ChatUnreadPosition", "loading peer=\(peerDebugId) reason=missing-earlier-unread-count maxRead=\(maxReadIndex) firstIncomingUnread=\(String(describing: firstIncomingUnreadIndex)) anchor=\(view.anchorIndex) entries=\(entriesRange) holes=\(view.holeEarlier)/\(view.holeLater)")
                                             return .Loading(initialData: combinedInitialData, type: .Generic(type: updateType))
                                         }
                                     }
@@ -220,6 +240,7 @@ func chatHistoryViewForLocation(
                             }
                         } else if effectiveIsAddedToChatList, tag == nil, let historyScrollState = (initialData?.storedInterfaceState).flatMap(_internal_decodeStoredChatInterfaceState).flatMap(ChatInterfaceState.parse)?.historyScrollState {
                             scrollPosition = .positionRestoration(index: historyScrollState.messageIndex, relativeOffset: CGFloat(historyScrollState.relativeOffset))
+                            scrollDecision = "saved-position"
                         } else {
                             if let _ = chatLocation.peerId, !effectiveIsAddedToChatList {
                                 if view.holeEarlier && view.entries.count <= 2 {
@@ -233,6 +254,7 @@ func chatHistoryViewForLocation(
                             }
                         }
                         
+                        Logger.shared.log("ChatUnreadPosition", "initial peer=\(peerDebugId) decision=\(scrollDecision) canScrollToRead=\(canScrollToRead) update=\(updateType) maxRead=\(String(describing: view.maxReadIndex)) firstIncomingUnread=\(String(describing: firstIncomingUnreadIndex)) anchor=\(view.anchorIndex) entries=\(entriesRange) holes=\(view.holeEarlier)/\(view.holeLater)")
                         preloaded = true
                         return .HistoryView(view: view, type: .Initial(fadeIn: fadeIn), scrollPosition: scrollPosition, flashIndicators: false, originalScrollPosition: nil, initialData: ChatHistoryCombinedInitialData(initialData: initialData, buttonKeyboardMessage: view.topTaggedMessages.first, cachedData: cachedData, cachedDataMessages: cachedDataMessages, readStateData: readStateData), id: location.id)
                     }
