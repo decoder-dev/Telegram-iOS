@@ -81,7 +81,6 @@ public final class WebProxySidecar {
     private var transportReconnectInFlight = false
     private var transportReconnectGeneration: UInt64 = 0
     private var consecutiveTransportReconnects = 0
-    private static let maxTransportReconnects = 3
     private var startInFlight = false
     private var startBootstrapGeneration: UInt64 = 0
     /// Generous enough for radio reassociate after unlock; 30s caused false failures and slow
@@ -267,17 +266,10 @@ public final class WebProxySidecar {
     }
     
     private func handleCarrierFailure() {
-        // Prefer an in-place transport rebuild over tearing the whole sidecar down. Full stop
-        // changes the loopback port and (with a soft manager resume) left clients on "Connecting".
-        if self.consecutiveTransportReconnects >= WebProxySidecar.maxTransportReconnects {
-            self.onFailure?()
-            self.stopLocked()
-            return
-        }
-        if self.listener != nil, self.hostname != nil, self.secret != nil, self.bridgeCapability != nil {
-            self.reconnectTransportLocked(reason: "carrier-failure", completion: nil)
-            return
-        }
+        // The relay does not resume a lost WebSocket carrier session. Keeping this listener while
+        // attempting an in-place replacement can leave MtProto on a loopback port whose carrier
+        // is already gone. Report failure and let the manager create a new listener and session
+        // together.
         self.onFailure?()
         self.stopLocked()
     }
@@ -292,12 +284,15 @@ public final class WebProxySidecar {
             self.stopLocked()
             return
         }
-        // A hung previous reconnect must not block resume forever.
+        // A carrier failure frequently arrives just before `didBecomeActive`. The old code
+        // cancelled the bootstrap already in flight in that case and immediately started a
+        // second one. Its stale callbacks could then tear down the listener while the manager
+        // still published its loopback endpoint, leaving every MTProto connection on permanent
+        // `Connection refused` / Connecting. One reconnect owns the listener at a time; its
+        // timeout and failure path already provide recovery if it is genuinely hung.
         if self.transportReconnectInFlight {
-            self.transportReconnectGeneration &+= 1
-            self.carrier?.stop()
-            self.carrier = nil
-            self.transportReconnectInFlight = false
+            completion?(.success(()))
+            return
         }
         self.transportReconnectInFlight = true
         self.consecutiveTransportReconnects += 1

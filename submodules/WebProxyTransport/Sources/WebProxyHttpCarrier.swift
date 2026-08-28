@@ -157,6 +157,10 @@ final class WebProxyHttpCarrier {
     
     func start(secret: Data, bridgeCapability: String, completion: @escaping (Result<Void, Error>) -> Void) {
         self.queue.async {
+            guard !self.closed else {
+                completion(.failure(WebProxyHttpCarrierError.carrierClosed))
+                return
+            }
             // Chained rather than blocking: both legs used to `DispatchSemaphore.wait()` on this
             // queue, parking it for up to 30s and 90s respectively while nothing else could run on it.
             self.fetchBootstrapToken(bridgeCapability: bridgeCapability) { result in
@@ -178,25 +182,28 @@ final class WebProxyHttpCarrier {
     }
     
     func stop() {
-        self.queue.async {
-            guard !self.closed else {
-                return
-            }
-            self.intentionalTeardown = true
-            self.closed = true
-            self.transportEpoch &+= 1
-            let token = self.sessionToken
-            self.sessionToken = ""
-            self.lanes.removeAll()
-            self.tearDownAllWebSockets()
-            if !token.isEmpty, let url = URL(string: "/api/v1/session", relativeTo: self.origin) {
-                var request = URLRequest(url: url)
-                request.httpMethod = "DELETE"
-                request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-                request.setValue("no-store", forHTTPHeaderField: "Cache-Control")
-                let task = self.session.dataTask(with: request)
-                task.resume()
-            }
+        // `WebProxySidecar` owns this carrier and calls `stop()` on the same serial queue it
+        // supplied at construction. This must therefore tear down synchronously: scheduling the
+        // work asynchronously let the sidecar invalidate the URLSession first, then this block
+        // attempted to create the DELETE task and CFNetwork aborted the process with
+        // "Task created in a session that has been invalidated".
+        guard !self.closed else {
+            return
+        }
+        self.intentionalTeardown = true
+        self.closed = true
+        self.transportEpoch &+= 1
+        let token = self.sessionToken
+        self.sessionToken = ""
+        self.lanes.removeAll()
+        self.tearDownAllWebSockets()
+        if !token.isEmpty, let url = URL(string: "/api/v1/session", relativeTo: self.origin) {
+            var request = URLRequest(url: url)
+            request.httpMethod = "DELETE"
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            request.setValue("no-store", forHTTPHeaderField: "Cache-Control")
+            let task = self.session.dataTask(with: request)
+            task.resume()
         }
     }
     
@@ -221,6 +228,10 @@ final class WebProxyHttpCarrier {
     // MARK: - Session bootstrap
     
     private func fetchBootstrapToken(bridgeCapability: String, completion: @escaping (Result<String, Error>) -> Void) {
+        guard !self.closed else {
+            completion(.failure(WebProxyHttpCarrierError.carrierClosed))
+            return
+        }
         var components = URLComponents(url: self.origin, resolvingAgainstBaseURL: false)!
         components.path = "/"
         components.queryItems = [URLQueryItem(name: "bridge", value: bridgeCapability)]
@@ -240,6 +251,10 @@ final class WebProxyHttpCarrier {
                 return
             }
             self.queue.async {
+                guard !self.closed else {
+                    completion(.failure(WebProxyHttpCarrierError.carrierClosed))
+                    return
+                }
                 if let err = error {
                     completion(.failure(err))
                     return
@@ -280,6 +295,10 @@ final class WebProxyHttpCarrier {
     }
     
     private func createSession(bootstrapToken: String, completion: @escaping (Result<Void, Error>) -> Void) {
+        guard !self.closed else {
+            completion(.failure(WebProxyHttpCarrierError.carrierClosed))
+            return
+        }
         guard let url = URL(string: "/api/v1/session", relativeTo: self.origin) else {
             completion(.failure(WebProxyHttpCarrierError.sessionCreationFailed))
             return
@@ -298,6 +317,10 @@ final class WebProxyHttpCarrier {
                 return
             }
             self.queue.async {
+                guard !self.closed else {
+                    completion(.failure(WebProxyHttpCarrierError.carrierClosed))
+                    return
+                }
                 if let err = error {
                     completion(.failure(err))
                     return
@@ -357,6 +380,10 @@ final class WebProxyHttpCarrier {
     }
     
     private func startCarrierTransport(completion: @escaping (Result<Void, Error>) -> Void) {
+        guard !self.closed else {
+            completion(.failure(WebProxyHttpCarrierError.carrierClosed))
+            return
+        }
         switch self.carrierMode {
         case .https:
             self.pollDownlinkSerialized()
@@ -888,7 +915,7 @@ final class WebProxyHttpCarrier {
     }
     
     private func makeWebSocketTask(subprotocol: String) -> URLSessionWebSocketTask? {
-        guard let url = self.wsURL() else {
+        guard !self.closed, let url = self.wsURL() else {
             return nil
         }
         // Subprotocol carries the session bearer (PROTOCOL.md). Prefer the protocols:

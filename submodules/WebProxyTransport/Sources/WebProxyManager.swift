@@ -57,11 +57,16 @@ public final class WebProxyManager {
     /// Debounce foreground restarts so rapid active/resign cycles do not stack tear-downs.
     private var lastBecomeActiveRestart: Double = 0.0
     private static let becomeActiveRestartMinInterval: Double = 3.0
-    /// Set from `applicationDidEnterBackground`. Resume only rebuilds transport after a real
-    /// suspension; brief control-center / app-switcher flickers must not cycle the loopback port.
+    /// Set from `applicationDidEnterBackground`. A carrier session is foreground-only: iOS may
+    /// suspend its URLSession/WebSocket work at any point after this transition.
     private var enteredBackgroundAt: Double = 0.0
-    /// Minimum time in background before a wake triggers transport rebuild.
-    private static let minimumBackgroundForResumeRestart: Double = 12.0
+
+    /// The configuration the app currently wants running, as opposed to the one that happens to
+    /// be up. A retry armed by the cooldown must not resurrect a proxy the user has since turned
+    /// off, and `configuration` is nil from the moment a carrier dies, so it cannot answer that.
+    private var desiredConfiguration: WebProxyConfiguration?
+    /// Whether a cooldown retry is already armed, so a burst of re-applies arms only one.
+    private var isRetryScheduled: Bool = false
     
     private var nextSidecarEventToken: SidecarEventToken = 0
     private var sidecarEventHandlers: [SidecarEventToken: () -> Void] = [:]
@@ -154,11 +159,10 @@ public final class WebProxyManager {
     
     /// Call from `applicationWillEnterForeground` / `applicationDidBecomeActive`.
     ///
-    /// Across screen-lock and background suspension the carrier's long-polls die (URLSession
-    /// cancels or the relay expires the session). `handleSidecarFailure` stops the sidecar and
-    /// records a backoff, but nothing automatically retries once the cooldown elapses — shared
-    /// proxy settings do not change on resume, so `configure` is never called again and the UI
-    /// sits on "Connecting" forever. Forcing a clean restart here clears that stall.
+    /// The WEB carrier is foreground-only. After entering background, iOS can suspend its
+    /// URLSession/WebSocket work without delivering a useful failure callback. The relay contract
+    /// also closes WebSocket sessions rather than resuming their streams. Recreate the complete
+    /// sidecar on return instead of reusing its listener or trying to revive its old session.
     /// Call from `applicationDidEnterBackground` so resume can tell a real sleep from a flicker.
     public func applicationDidEnterBackground() {
         self.startLock.lock()
@@ -174,26 +178,32 @@ public final class WebProxyManager {
             return
         }
         let backgroundedAt = self.enteredBackgroundAt
-        let timeInBackground = backgroundedAt > 0 ? (now - backgroundedAt) : 0
-        // Consume the background stamp so a second becomeActive (willEnterForeground + didBecomeActive)
-        // in the same unlock does not count as another long suspension.
-        self.enteredBackgroundAt = 0
-        self.lastBecomeActiveRestart = now
-        self.lastFailedConfiguration = nil
-        self.consecutiveFailureCount = 0
         let starting = self.startingConfiguration
+        // `configuration` is cleared as soon as a failed sidecar is stopped, but the desired
+        // server still represents the enabled proxy. Keep it as a recovery target so a stale
+        // lastGoodEndpoint cannot leave all Networks waiting on a dead listener indefinitely.
+        let desired = self.desiredConfiguration
         self.startLock.unlock()
         
         self.lock.lock()
         let active = self.configuration
-        let sidecar = self.sidecar
         let hasEndpoint = self.endpoint != nil
         self.lock.unlock()
         
-        let target = active ?? starting
+        let target = active ?? starting ?? desired
         guard let target = target else {
             return
         }
+
+        // Consume the background stamp only once there is a concrete configuration to restart.
+        // Otherwise a transient empty state between stopping and starting would discard the
+        // foreground recovery event.
+        self.startLock.lock()
+        self.enteredBackgroundAt = 0
+        self.lastBecomeActiveRestart = now
+        self.lastFailedConfiguration = nil
+        self.consecutiveFailureCount = 0
+        self.startLock.unlock()
         
         // Missing endpoint → always try to start (cold path / previous failure).
         if !hasEndpoint {
@@ -201,37 +211,21 @@ public final class WebProxyManager {
             return
         }
         
-        // Live endpoint + only a brief background (control center, app switcher, quick lock):
-        // do NOT rebuild. Every port change forces MtProto Connecting→Updating and the user
-        // sees a multi-second flap loop. Carrier failure still self-heals via onFailure.
-        if timeInBackground < WebProxyManager.minimumBackgroundForResumeRestart {
-            return
-        }
-        
-        // Real sleep / long background: rebuild carrier on the SAME loopback port.
-        guard let sidecar = sidecar else {
-            self.scheduleStart(configuration: target)
-            return
-        }
-        sidecar.reconnectTransport { [weak self] result in
-            guard let self else {
-                return
-            }
-            if case .failure = result {
-                self.sequentialRestart(configuration: target)
-            }
+        if backgroundedAt > 0 {
+            self.sequentialRestart(configuration: target)
         }
     }
     
     /// Stop the current sidecar, then schedule a fresh one. Used when there is no live endpoint
     /// or in-place transport reconnect failed. Not overlapping — only one listener at a time.
     private func sequentialRestart(configuration: WebProxyConfiguration) {
-        // Mark the target as in-flight BEFORE clearing the live endpoint so isReady(for:) can
-        // still publish lastGoodEndpoint and ProxySettings never binds 127.0.0.1:1.
+        // Invalidate a previous asynchronous start before replacing the sidecar. Do not mark
+        // this replacement as started here: scheduleStart treats that marker as an existing
+        // bootstrap and would return without creating the new carrier.
         self.startLock.lock()
         self.startGeneration &+= 1
-        self.startingConfiguration = configuration
-        self.startingSince = CFAbsoluteTimeGetCurrent()
+        self.startingConfiguration = nil
+        self.startingSince = 0.0
         self.startLock.unlock()
         
         self.lock.lock()
