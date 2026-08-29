@@ -124,6 +124,24 @@ private final class FetchManagerCategoryContext {
     private let entryCompleted: (FetchManagerLocationEntryId) -> Void
     private let activeEntriesUpdated: () -> Void
     
+    /// Per-resource state this category is holding, at most once a minute.
+    ///
+    /// The queue depth beside "Adding entry" has been checked and returns to zero, but it only
+    /// counts `entries`; the active and status contexts alongside it were never visible. The
+    /// memory floor in a day's log rises with the number of parts fetched (+0.77), so anything
+    /// kept per resource here is worth being able to see. Note this whole manager runs on the
+    /// main queue, which is its own reason to keep the count cheap and rare.
+    private var lastCensusTimestamp: Double = 0.0
+
+    private func logCensusIfNeeded() {
+        let timestamp = CFAbsoluteTimeGetCurrent()
+        if timestamp - self.lastCensusTimestamp < 60.0 {
+            return
+        }
+        self.lastCensusTimestamp = timestamp
+        Logger.shared.log("FetchManager", "census: entries=\(self.entries.count) activeContexts=\(self.activeContexts.count) statusContexts=\(self.statusContexts.count)")
+    }
+
     private var topEntryIdAndPriority: (FetchManagerLocationEntryId, FetchManagerPriorityKey)?
     private var entries: [FetchManagerLocationEntryId: FetchManagerLocationEntry] = [:]
     
@@ -163,6 +181,7 @@ private final class FetchManagerCategoryContext {
             entry = FetchManagerLocationEntry(id: id, episode: episode, mediaReference: mediaReference, resourceReference: resourceReference, statsCategory: statsCategory)
             
             Logger.shared.log("FetchManager", "[\(entry.id.location)] Adding entry \(entry.resourceReference.resource.id.stringRepresentation) (\(self.entries.count) in queue)")
+            self.logCensusIfNeeded()
             
             self.entries[id] = entry
         } else {

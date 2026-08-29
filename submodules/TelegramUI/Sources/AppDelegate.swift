@@ -1685,7 +1685,13 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             }
 
             let value = getMemoryConsumption()
-            if abs(value - previousReportedMemoryConsumption) > 1 * 1024 * 1024 {
+            // Was 1 MB, which on a client that churns hundreds of megabytes meant a line every
+            // few seconds: 11,193 of them in one 21-hour log, the largest single line shape in
+            // the file outside the fetch tags. The minute-by-minute heartbeat now carries the
+            // same number with the malloc heap, block count, thermal state and free disk beside
+            // it, so this trace only has to catch bursts — and a burst moves far more than eight
+            // megabytes between ticks.
+            if abs(value - previousReportedMemoryConsumption) > 8 * 1024 * 1024 {
                 previousReportedMemoryConsumption = value
                 Logger.shared.log("App \(self.episodeId)", "Memory consumption: \(value / (1024 * 1024)) MB")
                 

@@ -406,11 +406,32 @@ public final class PendingMessageManager {
         self._pendingMediaUploads.set(pendingMediaUploads)
     }
     
+    /// Per-message state this manager is holding, at most once a minute.
+    ///
+    /// Of everything countable in a day's log, the memory floor tracks the number of messages
+    /// sent most closely — +0.78, and about 1.6 MB never returned per send, in sessions where
+    /// nearly every send carried a media upload. Every one of those goes through a context in
+    /// these dictionaries. They should track the messages currently in flight, so a count that
+    /// climbs with the number sent instead is the thing to find. `views` in the preload manager,
+    /// the media box's file contexts and the live chat screens have all been cleared this way.
+    private var lastCensusTimestamp: Double = 0.0
+
+    private func logCensusIfNeeded() {
+        let timestamp = CFAbsoluteTimeGetCurrent()
+        if timestamp - self.lastCensusTimestamp < 60.0 {
+            return
+        }
+        self.lastCensusTimestamp = timestamp
+        Logger.shared.log("PendingMessageManager", "census: contexts=\(self.messageContexts.count) pendingIds=\(self.pendingMessageIds.count) peerSummaries=\(self.peerSummaryContexts.count) forwardGates=\(self.forwardSendGateGroups.count) typingDrafts=\(self.liveTypingDraftKeys.count) newTopicDisposables=\(self.newTopicDisposables.count)")
+    }
+
     func updatePendingMessageIds(_ messageIds: Set<MessageId>) {
         Logger.shared.log("PendingMessageManager", "update on postboxQueue: \(messageIds)")
 
         self.queue.async {
             Logger.shared.log("PendingMessageManager", "update: \(messageIds)")
+
+            self.logCensusIfNeeded()
             
             let addedMessageIds = messageIds.subtracting(self.pendingMessageIds)
             let removedMessageIds = self.pendingMessageIds.subtracting(messageIds)

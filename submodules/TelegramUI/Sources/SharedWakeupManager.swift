@@ -1132,11 +1132,28 @@ public final class SharedWakeupManager {
         }*/
     }
     
+    /// The last value this logged, so only transitions are written.
+    ///
+    /// `updateAccounts` runs on every change to the wakeup state — once every twelve seconds
+    /// across a 21-hour log — and each run wrote the same line whether or not anything had
+    /// moved: 6,428 identical "enableBeginTransactions: true (active)". The transitions are what
+    /// a reader is looking for, and with the log budget raised for multi-day collection every
+    /// repeated line is history the rotation throws away.
+    private var lastLoggedTransactionsState: String?
+
+    private func logTransactionsStateIfChanged(_ state: String) {
+        if self.lastLoggedTransactionsState == state {
+            return
+        }
+        self.lastLoggedTransactionsState = state
+        Logger.shared.log("Wakeup", "enableBeginTransactions: \(state)")
+    }
+
     private func updateAccounts(hasTasks: Bool, endTaskAfterTransactionsComplete: UIBackgroundTaskIdentifier?) {
         let hasBackgroundLocationTask = self.accountsAndTasks.contains(where: { $0.2.backgroundLocation })
         
         if self.inForeground || self.hasActiveAudioSession || self.isInBackgroundExtension || self.backgroundProcessingTaskId != nil || self.backgroundStoryProcessingTaskId != nil || hasBackgroundLocationTask || (hasTasks && self.currentExternalCompletion != nil) || self.activeExplicitExtensionTimer != nil || self.silenceAudioRenderer != nil {
-            Logger.shared.log("Wakeup", "enableBeginTransactions: true (active)")
+            self.logTransactionsStateIfChanged("true (active)")
             
             for (account, primary, tasks) in self.accountsAndTasks {
                 account.postbox.setCanBeginTransactions(true)
@@ -1159,7 +1176,7 @@ public final class SharedWakeupManager {
             if self.allowBackgroundTimeExtensionDeadlineTimer != nil {
                 enableBeginTransactions = true
             }
-            Logger.shared.log("Wakeup", "enableBeginTransactions: \(enableBeginTransactions)")
+            self.logTransactionsStateIfChanged("\(enableBeginTransactions)")
             
             final class CompletionObservationState {
                 var isCompleted: Bool = false
