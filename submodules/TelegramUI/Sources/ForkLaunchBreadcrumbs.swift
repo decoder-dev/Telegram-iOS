@@ -1,5 +1,6 @@
 import Foundation
 import Darwin
+import TelegramCore
 
 /// Records where the app was when it died, so an intermittent launch crash can be diagnosed from
 /// the next launch instead of from a symptom description.
@@ -88,13 +89,36 @@ public enum ForkLaunchBreadcrumbs {
             signal(signalNumber, forkLaunchCrashSignalHandler)
         }
 
+        // Chain, do not replace: something else may already be watching (a crash reporter, the
+        // host app), and swallowing its handler would trade one blind spot for another.
+        let previousExceptionHandler = NSGetUncaughtExceptionHandler()
+        ForkLaunchBreadcrumbs.previousExceptionHandler = previousExceptionHandler
+
         NSSetUncaughtExceptionHandler { exception in
-            // Not signal context: Foundation is allowed here.
+            // Not signal context: Foundation is allowed here, and the four-byte record is not
+            // nearly enough. A MetricKit payload gives a crash stack as binary UUIDs and byte
+            // offsets, which needs a matching dSYM to mean anything — and one of the crashes in
+            // a recent log was exactly this: SIGABRT with the Foundation → objc_exception_throw
+            // → libc++abi → abort shape, thrown from TelegramCore, and no way to name it. The
+            // exception knows its own name, reason and frames; writing them costs nothing at a
+            // point where the process is ending anyway.
             ForkLaunchBreadcrumbs.writeExceptionRecord(name: exception.name.rawValue, reason: exception.reason ?? "")
+
+            Logger.shared.log("Crash", "uncaught exception \(exception.name.rawValue): \(exception.reason ?? "no reason")")
+            for (index, frame) in exception.callStackSymbols.enumerated() {
+                Logger.shared.log("Crash", "  \(index): \(frame)")
+            }
+            // The process is about to die; without this the lines are still on the log queue.
+            Logger.shared.sync()
+
+            ForkLaunchBreadcrumbs.previousExceptionHandler?(exception)
         }
 
         return previous
     }
+
+    /// The handler that was installed before ours, called after we have written our own record.
+    private static var previousExceptionHandler: (@convention(c) (NSException) -> Void)?
 
     /// Record that launch reached `stage`. Cheap enough to call unconditionally.
     public static func mark(_ stage: Stage) {

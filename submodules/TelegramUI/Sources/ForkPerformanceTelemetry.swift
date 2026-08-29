@@ -181,8 +181,13 @@ public enum ForkPerformanceTelemetry {
                 }
                 self.lastHeartbeatMegabytes = megabytes
 
-                if let mallocMegabytes = self.mallocBytesInUse().map({ $0 / (1024 * 1024) }) {
-                    parts.append("malloc=\(mallocMegabytes)MB")
+                if let heap = self.mallocHeap() {
+                    parts.append("malloc=\(heap.bytes / (1024 * 1024))MB")
+                    // Bytes alone cannot tell many small objects from a few large buffers, and
+                    // those are different bugs: the block count separates them. Growth in both
+                    // is an object graph nobody released; bytes without blocks is a buffer being
+                    // appended to.
+                    parts.append("blocks=\(heap.blocks / 1000)k")
                 }
                 parts.append("state=\(UIApplication.shared.applicationState == .background ? "background" : "foreground")")
                 parts.append("thermal=\(ForkPerformanceTelemetry.describe(self.thermalState))")
@@ -251,14 +256,14 @@ public enum ForkPerformanceTelemetry {
     /// stores, IOSurfaces and video decode buffers do not, so if resident climbs while this
     /// stays flat the growth is in graphics memory and the search goes somewhere else
     /// entirely. Without it, a log showing a gigabyte says only that there is a gigabyte.
-    private static func mallocBytesInUse() -> Int? {
+    private static func mallocHeap() -> (bytes: Int, blocks: Int)? {
         var statistics = malloc_statistics_t()
         // A nil zone aggregates every zone.
         malloc_zone_statistics(nil, &statistics)
         if statistics.size_in_use == 0 {
             return nil
         }
-        return Int(statistics.size_in_use)
+        return (Int(statistics.size_in_use), Int(statistics.blocks_in_use))
     }
 
     /// Space the system would let the app use for important data, in megabytes. A tester whose
