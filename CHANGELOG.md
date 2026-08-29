@@ -6,6 +6,13 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3926-pre] — 2026-08-29
+
+Pre-release: WEB proxy resume/retry hardening.
+
+### Fixed
+- **WEB proxy:** keep fail-closed proxy settings on retry/restart holes; rebuild carrier on foreground resume without moving the loopback port (`reconnectTransport`); enforce WebSocket lane connect cap and stop charging a carrier that cannot accept frames.
+
 ## [v12.9.2-3925-pre] — 2026-08-29
 
 Pre-release: CryZFix WEB proxy carriers + foreground lifecycle + unread diagnostics.
