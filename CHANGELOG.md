@@ -6,6 +6,14 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3924-pre] — 2026-08-29
+
+Pre-release: crash diagnostics + log redaction.
+
+### Fixed
+- **Logging:** channel/group titles in the state machine log honour `redactSensitiveData` (14 sites; peer id unchanged).
+- **Crash diagnostics:** uncaught `NSException` handler logs name, reason and call stack, syncs the log queue, chains to the previous handler; breadcrumb file records exception text; heartbeat adds malloc block count alongside bytes.
+
 ## [v12.9.2-3923-pre] — 2026-08-27
 
 Pre-release: autoremove batching, memory/perf diagnostics, network + prefetch fixes.
