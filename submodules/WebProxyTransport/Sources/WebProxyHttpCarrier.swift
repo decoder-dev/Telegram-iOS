@@ -102,12 +102,18 @@ final class WebProxyHttpCarrier {
     private final class WsLaneState {
         var task: URLSessionWebSocketTask?
         var open = false
-        var connecting = false
         var closed = false
         var uplinkBuffer = Data()
         var uplinkBufferOffset = 0
         var sending = false
         var receiveArmed = false
+        /// True from `resume()` until the upgrade settles — the first send completing either way,
+        /// a receive error, or the connect timeout. Only a lane holding this occupies one of the
+        /// `maxConcurrentWsLaneConnects` slots.
+        var connectSlotHeld = false
+        /// Whether anything has actually gone out on this socket. Until it has, the upgrade is
+        /// unproven however open the lane looks.
+        var didSendSuccessfully = false
         
         var pendingUplinkCount: Int {
             return self.uplinkBuffer.count - self.uplinkBufferOffset
@@ -118,8 +124,17 @@ final class WebProxyHttpCarrier {
     /// opens several MTProto sockets together). Cap in-flight upgrades and queue the rest.
     private static let maxConcurrentWsLaneConnects = 4
     private static let wsLaneConnectTimeout: Double = 20.0
+    /// Ceiling on the first batch written to a lane whose upgrade is still unproven. A socket that
+    /// may never come up should not be handed two megabytes, and it keeps `wsLaneConnectTimeout`
+    /// unambiguous: one small batch that has not completed in twenty seconds is a stuck handshake,
+    /// not a slow link.
+    private static let maximumUnprovenLaneBatchSize = 64 * 1024
     private var wsLaneConnectInFlight = 0
     private var wsLaneConnectQueue: [UInt32] = []
+    /// Releasing a slot pumps the queue, and opening a lane can release one, so the pump can be
+    /// re-entered from inside itself. The outer loop re-reads the queue anyway, so an inner call
+    /// has nothing to add but stack depth.
+    private var isPumpingWsLaneConnects = false
     
     /// Matches the hosted bridge's 2 MiB batch. Anything above it waits for the next POST.
     private static let maximumUplinkBatchSize = 2 * 1024 * 1024
@@ -213,6 +228,17 @@ final class WebProxyHttpCarrier {
         }
     }
     
+    /// Whether a batch handed to `sendFrames` right now would actually go anywhere.
+    ///
+    /// `sendFrames` drops what it is given when the carrier is closed or still bootstrapping its
+    /// relay session. That is fine for a carrier nobody is using yet, but during a resume
+    /// reconnect the listener is live and MtProto is writing into streams that were never
+    /// interrupted — and a caller that cannot tell the difference spends its send credit on
+    /// bytes that leave the buffer and never leave the device. Must be read on the carrier queue.
+    var isAcceptingFrames: Bool {
+        return !self.closed && !self.sessionToken.isEmpty
+    }
+
     func sendFrames(_ batch: Data) {
         self.queue.async {
             guard !self.closed, !self.sessionToken.isEmpty else {
@@ -919,7 +945,7 @@ final class WebProxyHttpCarrier {
             lane.task = nil
             lane.open = false
             lane.closed = true
-            lane.connecting = false
+            lane.connectSlotHeld = false
             lane.sending = false
             lane.receiveArmed = false
         }
@@ -1097,7 +1123,7 @@ final class WebProxyHttpCarrier {
             lane.uplinkBuffer.append(frames)
             if lane.open {
                 self.flushWsLaneUplink(laneId: streamId, lane: lane)
-            } else if !lane.connecting {
+            } else {
                 self.requestWsLaneOpen(laneId: streamId)
             }
         }
@@ -1122,18 +1148,25 @@ final class WebProxyHttpCarrier {
             }
             return
         }
-        guard let lane = self.wsLanes[laneId], !lane.connecting, !lane.open, !lane.closed else {
+        guard let lane = self.wsLanes[laneId], !lane.connectSlotHeld, !lane.open, !lane.closed else {
             return
         }
         self.openWsLane(laneId: laneId, lane: lane)
     }
     
     private func pumpWsLaneConnectQueue() {
+        if self.isPumpingWsLaneConnects {
+            return
+        }
+        self.isPumpingWsLaneConnects = true
+        defer {
+            self.isPumpingWsLaneConnects = false
+        }
         while self.wsLaneConnectInFlight < WebProxyHttpCarrier.maxConcurrentWsLaneConnects,
               !self.wsLaneConnectQueue.isEmpty,
               !self.closed {
             let laneId = self.wsLaneConnectQueue.removeFirst()
-            guard let lane = self.wsLanes[laneId], !lane.connecting, !lane.open, !lane.closed else {
+            guard let lane = self.wsLanes[laneId], !lane.connectSlotHeld, !lane.open, !lane.closed else {
                 continue
             }
             self.openWsLane(laneId: laneId, lane: lane)
@@ -1141,7 +1174,7 @@ final class WebProxyHttpCarrier {
     }
     
     private func openWsLane(laneId: UInt32, lane: WsLaneState) {
-        guard !self.closed, !self.sessionToken.isEmpty, !lane.connecting, !lane.open, !lane.closed else {
+        guard !self.closed, !self.sessionToken.isEmpty, !lane.connectSlotHeld, !lane.open, !lane.closed else {
             return
         }
         let epoch = self.transportEpoch
@@ -1150,36 +1183,64 @@ final class WebProxyHttpCarrier {
             self.fail(WebProxyHttpCarrierError.sessionCreationFailed)
             return
         }
-        lane.connecting = true
         lane.task = task
+        // Optimistic open after resume (same rationale as multiplex): `URLSessionWebSocketTask`
+        // has no handshake completion on a delegate-less session, and the OPEN frame has to go
+        // out for the relay to admit the lane at all.
+        //
+        // The connect slot is what makes the cap real, and it does NOT close here. It used to:
+        // the counter was incremented and decremented in this same straight-line block with
+        // nothing awaited between them, so it read zero to every observer, the `>= max` test in
+        // `requestWsLaneOpen` was never true, `wsLaneConnectQueue` never took an entry, and the
+        // whole "cap in-flight upgrades" mechanism did nothing — against exactly the burst of
+        // simultaneous handshakes it was written for. The slot is released when the upgrade
+        // actually settles: the first send completing either way, a receive error, a close, or
+        // the connect timeout.
+        lane.open = true
+        lane.connectSlotHeld = true
         self.wsLaneConnectInFlight += 1
         task.resume()
-        // Optimistic open after resume (same rationale as multiplex). A connect timeout
-        // recovers lanes that never finish upgrading under CFNetwork pressure.
-        lane.connecting = false
-        lane.open = true
-        self.wsLaneConnectInFlight = max(0, self.wsLaneConnectInFlight - 1)
         self.armWsLaneReceive(laneId: laneId, lane: lane, task: task, epoch: epoch)
         self.flushWsLaneUplink(laneId: laneId, lane: lane)
-        self.pumpWsLaneConnectQueue()
+        // Nothing queued to send means nothing will ever report back, so the slot would be held
+        // until the timeout for a lane that is doing nothing.
+        if !lane.sending {
+            self.releaseWsLaneConnectSlot(lane)
+        }
         
         self.queue.asyncAfter(deadline: .now() + WebProxyHttpCarrier.wsLaneConnectTimeout) { [weak self] in
             guard let self else {
                 return
             }
-            // If the socket never delivered any traffic and receive already failed, lane is closed.
-            // If still "open" but task is nil, nothing to do.
             guard epoch == self.transportEpoch, !self.closed else {
                 return
             }
             guard let lane = self.wsLanes[laneId], !lane.closed else {
                 return
             }
-            // Soft check: if task exists but we never got a successful send and buffer is full of
-            // OPEN only stuck — receive errors will close. No extra action required here beyond
-            // ensuring connecting cannot stick (already cleared above).
-            _ = lane
+            // This used to be inert — it asserted that a stalled lane would be closed by a
+            // receive error and did nothing. A CFNetwork upgrade that never completes produces
+            // no receive error either, so such a lane sat open-but-mute forever with the local
+            // MTProto socket waiting on it. If nothing has gone out by now the handshake did not
+            // happen; close it so the sidecar tears that socket down and MtProto redials.
+            if !lane.didSendSuccessfully {
+                WebProxyLog.log("ws lane \(laneId) never completed its upgrade within \(Int(WebProxyHttpCarrier.wsLaneConnectTimeout))s, closing")
+                self.closeWsLane(laneId: laneId, lane: lane, notifyApp: true)
+                return
+            }
+            self.releaseWsLaneConnectSlot(lane)
         }
+    }
+
+    /// Ends a lane's occupancy of the concurrent-upgrade window, exactly once, and lets the next
+    /// queued lane start.
+    private func releaseWsLaneConnectSlot(_ lane: WsLaneState) {
+        guard lane.connectSlotHeld else {
+            return
+        }
+        lane.connectSlotHeld = false
+        self.wsLaneConnectInFlight = max(0, self.wsLaneConnectInFlight - 1)
+        self.pumpWsLaneConnectQueue()
     }
     
     private func armWsLaneReceive(laneId: UInt32, lane: WsLaneState, task: URLSessionWebSocketTask, epoch: UInt64) {
@@ -1200,6 +1261,7 @@ final class WebProxyHttpCarrier {
                 return
             }
             lane.receiveArmed = false
+            self.releaseWsLaneConnectSlot(lane)
             if self.closed || self.isCancellation(error) {
                 return
             }
@@ -1223,7 +1285,8 @@ final class WebProxyHttpCarrier {
             return
         }
         let remaining = lane.uplinkBuffer[(lane.uplinkBuffer.startIndex + lane.uplinkBufferOffset)...]
-        let splitOffset = WebProxyHttpCarrier.frameBoundaryOffset(in: remaining, notExceeding: WebProxyHttpCarrier.maximumUplinkBatchSize)
+        let batchLimit = lane.didSendSuccessfully ? WebProxyHttpCarrier.maximumUplinkBatchSize : WebProxyHttpCarrier.maximumUnprovenLaneBatchSize
+        let splitOffset = WebProxyHttpCarrier.frameBoundaryOffset(in: remaining, notExceeding: batchLimit)
         let batchStart = remaining.startIndex
         let batch = Data(remaining[batchStart ..< (batchStart + splitOffset)])
         lane.uplinkBufferOffset += splitOffset
@@ -1235,6 +1298,8 @@ final class WebProxyHttpCarrier {
             }
             self.queue.async {
                 lane.sending = false
+                // A send only completes once the upgrade has: this is the handshake result.
+                self.releaseWsLaneConnectSlot(lane)
                 if self.closed || lane.closed {
                     return
                 }
@@ -1242,6 +1307,7 @@ final class WebProxyHttpCarrier {
                     self.closeWsLane(laneId: laneId, lane: lane, notifyApp: true)
                     return
                 }
+                lane.didSendSuccessfully = true
                 self.flushWsLaneUplink(laneId: laneId, lane: lane)
             }
         }
@@ -1253,11 +1319,11 @@ final class WebProxyHttpCarrier {
         }
         lane.closed = true
         lane.open = false
-        lane.connecting = false
         lane.receiveArmed = false
         lane.uplinkBuffer = Data()
         lane.uplinkBufferOffset = 0
         lane.task = nil
+        self.releaseWsLaneConnectSlot(lane)
         // Avoid cancel(with:) here; the task ends when the session is invalidated or the peer closes.
         if notifyApp {
             // Synthesize CLOSE so the sidecar tears down the local MTProto socket for this stream.

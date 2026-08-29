@@ -455,10 +455,18 @@ public final class WebProxySidecar {
     }
     
     private func accept(connection: NWConnection) {
+        // Every stream begins with an OPEN the relay has to see; a carrier that cannot take it
+        // yet would leave a stream registered here and unknown there, and its later DATA frames
+        // rejected. Refuse the connection instead — MtProto redials, and by then the carrier is
+        // either up or the sidecar is gone.
+        guard let carrier = self.carrier, carrier.isAcceptingFrames else {
+            connection.cancel()
+            return
+        }
         let streamId = self.allocateStreamId()
         let stream = WebProxyStream(id: streamId, connection: connection)
         self.streams[streamId] = stream
-        self.sendFrames([WebProxyFrame(type: .open, streamId: streamId, payload: Data())])
+        carrier.sendFrames(WebProxyFrameCodec.encodeBatch([WebProxyFrame(type: .open, streamId: streamId, payload: Data())]))
         
         connection.stateUpdateHandler = { [weak self, weak stream] state in
             guard let self, let stream else {
@@ -517,6 +525,15 @@ public final class WebProxySidecar {
     /// Emits queued uplink as `DATA` frames while the relay's credit lasts, in chunks of at most
     /// 64 KiB. Whatever credit does not cover stays queued until a `WINDOW` frame grants more.
     private func flushUplink(stream: WebProxyStream) {
+        // A carrier still bootstrapping its relay session throws away whatever it is handed. That
+        // matters during a resume reconnect, where the listener stays live and MtProto keeps
+        // writing into streams that were never interrupted: draining the buffer and spending the
+        // send credit into a carrier that cannot take it loses those bytes outright instead of
+        // delaying them, which corrupts the stream rather than stalling it. Hold them here; the
+        // per-stream ceiling in `sendStreamData` bounds how long that can go on.
+        guard let carrier = self.carrier, carrier.isAcceptingFrames else {
+            return
+        }
         var frames: [WebProxyFrame] = []
         while stream.pendingUplinkCount > 0, stream.sendCredit > 0 {
             let chunkSize = min(min(WebProxyFrameCodec.maxDataChunkSize, stream.sendCredit), stream.pendingUplinkCount)
@@ -528,7 +545,7 @@ public final class WebProxySidecar {
         }
         stream.compactPendingUplink()
         if !frames.isEmpty {
-            self.sendFrames(frames)
+            carrier.sendFrames(WebProxyFrameCodec.encodeBatch(frames))
         }
     }
     
@@ -629,19 +646,27 @@ public final class WebProxySidecar {
         if !force, stream.pendingWindowCredit < WebProxySidecar.windowCreditFlushThreshold {
             return
         }
+        // Same rule as the uplink: a carrier that cannot take the frame must not be charged for
+        // it. Zeroing the counter into a dropped WINDOW loses the grant for good — the relay goes
+        // on believing those bytes are still outstanding, spends its implicit window and stops
+        // sending, and the download stalls part-way with the connection nominally up. The credit
+        // stays pending until there is a carrier to announce it to.
+        guard let carrier = self.carrier, carrier.isAcceptingFrames else {
+            return
+        }
         let delta = stream.pendingWindowCredit
         stream.pendingWindowCredit = 0
-        self.sendWindowCredit(streamId: stream.id, bytes: delta)
+        self.sendWindowCredit(carrier: carrier, streamId: stream.id, bytes: delta)
     }
     
-    private func sendWindowCredit(streamId: UInt32, bytes: Int) {
+    private func sendWindowCredit(carrier: WebProxyHttpCarrier, streamId: UInt32, bytes: Int) {
         let delta = UInt32(clamping: bytes)
         var payload = Data(capacity: 4)
         payload.append(UInt8((delta >> 24) & 0xff))
         payload.append(UInt8((delta >> 16) & 0xff))
         payload.append(UInt8((delta >> 8) & 0xff))
         payload.append(UInt8(delta & 0xff))
-        self.sendFrames([WebProxyFrame(type: .window, streamId: streamId, payload: payload)])
+        carrier.sendFrames(WebProxyFrameCodec.encodeBatch([WebProxyFrame(type: .window, streamId: streamId, payload: payload)]))
     }
     
     private func closeStream(_ streamId: UInt32, notifyRemote: Bool) {
