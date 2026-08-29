@@ -80,7 +80,16 @@ public final class WebProxySidecar {
     /// Serializes transport rebuilds so background cancel + foreground reconnect cannot stack.
     private var transportReconnectInFlight = false
     private var transportReconnectGeneration: UInt64 = 0
-    private var consecutiveTransportReconnects = 0
+    /// There is deliberately no local retry budget here. A reconnect that fails takes the whole
+    /// sidecar down with it, so escalation is the manager's: it rebuilds listener and session
+    /// together and applies its own backoff. A counter kept here could only ever read zero.
+    ///
+    /// A reconnect must not hang "Connecting" forever if the relay accepts the TLS handshake and
+    /// then says nothing.
+    private static let transportReconnectTimeout: Double = 45.0
+    /// Callers that arrived while a reconnect was already running. They are answered with that
+    /// reconnect's real outcome — see `reconnectTransportLocked`.
+    private var pendingReconnectCompletions: [(Result<Void, Error>) -> Void] = []
     private var startInFlight = false
     private var startBootstrapGeneration: UInt64 = 0
     /// Generous enough for radio reassociate after unlock; 30s caused false failures and slow
@@ -232,7 +241,13 @@ public final class WebProxySidecar {
     private func stopLocked() {
         self.transportReconnectGeneration &+= 1
         self.transportReconnectInFlight = false
-        self.consecutiveTransportReconnects = 0
+        // A reconnect abandoned by a stop still owes its callers an answer; without it a resume
+        // that raced a teardown would wait on a completion that never arrives.
+        let abandonedReconnects = self.pendingReconnectCompletions
+        self.pendingReconnectCompletions.removeAll()
+        for abandoned in abandonedReconnects {
+            abandoned(.failure(WebProxyHttpCarrierError.carrierClosed))
+        }
         self.startBootstrapGeneration &+= 1
         self.startInFlight = false
         // Drop the handler first so listener/carrier cancels cannot re-enter onFailure → stop.
@@ -259,17 +274,17 @@ public final class WebProxySidecar {
     /// cancelled — Telegram opens fresh TCP connections against the same proxy port.
     public func reconnectTransport(completion: ((Result<Void, Error>) -> Void)? = nil) {
         self.queue.async {
-            // Explicit resume always gets a full reconnect budget.
-            self.consecutiveTransportReconnects = 0
-            self.reconnectTransportLocked(reason: "explicit", completion: completion)
+            self.reconnectTransportLocked(reason: "resume", completion: completion)
         }
     }
     
     private func handleCarrierFailure() {
-        // The relay does not resume a lost WebSocket carrier session. Keeping this listener while
-        // attempting an in-place replacement can leave MtProto on a loopback port whose carrier
-        // is already gone. Report failure and let the manager create a new listener and session
-        // together.
+        // A carrier that dies on its own is not the same case as a resume. Here nobody is waiting
+        // on a result, so an in-place replacement would run unobserved behind a listener that is
+        // still published — and if it failed, MtProto would sit on a loopback port with nothing
+        // behind it. Report failure and let the manager rebuild listener and session together,
+        // under its own backoff. `reconnectTransport` is for the caller that does wait, and that
+        // falls back to exactly this when the attempt does not come up.
         self.onFailure?()
         self.stopLocked()
     }
@@ -290,14 +305,40 @@ public final class WebProxySidecar {
         // still published its loopback endpoint, leaving every MTProto connection on permanent
         // `Connection refused` / Connecting. One reconnect owns the listener at a time; its
         // timeout and failure path already provide recovery if it is genuinely hung.
+        //
+        // Joining it is not the same as reporting success, though. The caller uses this result
+        // to decide whether it still has to rebuild the whole sidecar, so an early `.success`
+        // sent it away while the transport was in fact still down.
         if self.transportReconnectInFlight {
-            completion?(.success(()))
+            if let completion = completion {
+                self.pendingReconnectCompletions.append(completion)
+            }
             return
         }
         self.transportReconnectInFlight = true
-        self.consecutiveTransportReconnects += 1
         self.transportReconnectGeneration &+= 1
         let generation = self.transportReconnectGeneration
+        WebProxyLog.log("sidecar transport reconnect (\(reason)), keeping the loopback port")
+
+        // The bootstrap callback and the watchdog race, and callers that joined an in-flight
+        // attempt have to hear the same answer exactly once.
+        var didFinish = false
+        let finish: (Result<Void, Error>) -> Void = { [weak self] result in
+            guard !didFinish else {
+                return
+            }
+            didFinish = true
+            var joined: [(Result<Void, Error>) -> Void] = []
+            if let self = self {
+                self.transportReconnectInFlight = false
+                joined = self.pendingReconnectCompletions
+                self.pendingReconnectCompletions.removeAll()
+            }
+            completion?(result)
+            for joinedCompletion in joined {
+                joinedCompletion(result)
+            }
+        }
         
         // Keep existing local streams and the old carrier until the NEW carrier is ready.
         // Dropping streams first made MtProto reconnect into a dead gap → infinite
@@ -337,14 +378,17 @@ public final class WebProxySidecar {
                 }
                 self.queue.async {
                     guard generation == self.transportReconnectGeneration else {
+                        // Superseded — by a stop, which already answered anyone who had joined
+                        // this attempt. Whatever owns the reconnect state now keeps it; answer
+                        // only this call's own caller and touch nothing else.
                         completion?(.failure(WebProxyHttpCarrierError.carrierClosed))
                         return
                     }
-                    self.transportReconnectInFlight = false
                     switch result {
                     case .success:
-                        self.consecutiveTransportReconnects = 0
                         // Now drop local streams so MtProto reconnects against a READY carrier.
+                        // The relay's stream ids belong to the session that just went away, so
+                        // the counter restarts with it.
                         for stream in self.streams.values {
                             stream.connection.cancel()
                         }
@@ -352,52 +396,47 @@ public final class WebProxySidecar {
                         self.nextStreamId = 1
                         previousCarrier?.stop()
                         previousSession?.invalidateAndCancel()
-                        completion?(.success(()))
+                        WebProxyLog.log("sidecar transport reconnect (\(reason)) succeeded, loopback port unchanged")
+                        finish(.success(()))
                     case let .failure(error):
-                        // Roll back to previous carrier if we still have it.
-                        if self.carrier === carrier {
-                            self.carrier = previousCarrier
-                        }
+                        // No rollback to `previousCarrier`. It is the carrier this reconnect
+                        // exists to replace, and a listener left standing in front of a dead one
+                        // is exactly the state that puts every MtProto connection on a loopback
+                        // port with nothing behind it. Answer the caller — it restarts the whole
+                        // sidecar — and then tear this one down.
                         if self.urlSession === urlSession {
                             self.urlSession = previousSession
-                            urlSession.invalidateAndCancel()
                         }
-                        if reason == "explicit" {
-                            completion?(.failure(error))
-                        } else {
-                            self.onFailure?()
-                            self.stopLocked()
-                            completion?(.failure(error))
-                        }
+                        urlSession.invalidateAndCancel()
+                        previousCarrier?.stop()
+                        WebProxyLog.log("sidecar transport reconnect (\(reason)) failed: \(error)")
+                        finish(.failure(error))
+                        self.onFailure?()
+                        self.stopLocked()
                     }
                 }
             }
             // Hard timeout: bootstrap must not hang "Connecting" indefinitely after wake.
-            self.queue.asyncAfter(deadline: .now() + 45.0) { [weak self] in
+            self.queue.asyncAfter(deadline: .now() + WebProxySidecar.transportReconnectTimeout) { [weak self] in
                 guard let self else {
                     return
                 }
                 guard generation == self.transportReconnectGeneration, self.transportReconnectInFlight else {
                     return
                 }
-                self.transportReconnectInFlight = false
                 self.carrier?.stop()
                 self.carrier = nil
-                if reason == "explicit" {
-                    completion?(.failure(WebProxyHttpCarrierError.sessionCreationFailed))
-                } else {
-                    self.onFailure?()
-                    self.stopLocked()
-                    completion?(.failure(WebProxyHttpCarrierError.sessionCreationFailed))
-                }
+                WebProxyLog.log("sidecar transport reconnect (\(reason)) timed out after \(Int(WebProxySidecar.transportReconnectTimeout))s")
+                finish(.failure(WebProxyHttpCarrierError.sessionCreationFailed))
+                self.onFailure?()
+                self.stopLocked()
             }
         } catch {
-            self.transportReconnectInFlight = false
+            WebProxyLog.log("sidecar transport reconnect (\(reason)) could not be built: \(error)")
+            finish(.failure(error))
             self.onFailure?()
             self.stopLocked()
-            completion?(.failure(error))
         }
-        _ = reason
     }
     
     private func allocateStreamId() -> UInt32 {

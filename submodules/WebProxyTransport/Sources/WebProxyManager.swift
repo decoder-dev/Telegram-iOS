@@ -61,6 +61,11 @@ public final class WebProxyManager {
     /// Set from `applicationDidEnterBackground`. A carrier session is foreground-only: iOS may
     /// suspend its URLSession/WebSocket work at any point after this transition.
     private var enteredBackgroundAt: Double = 0.0
+    /// Minimum time in background before a wake rebuilds the carrier. Under it the carrier is
+    /// very probably still alive — a control-centre pull, the app switcher, a glance at a
+    /// notification — and if it is not, its own failure path brings the sidecar down and the
+    /// manager restarts it. Rebuilding on every flicker drops every local stream for nothing.
+    private static let minimumBackgroundForResumeRestart: Double = 12.0
 
     /// The configuration the app currently wants running, as opposed to the one that happens to
     /// be up. A retry armed by the cooldown must not resurrect a proxy the user has since turned
@@ -166,9 +171,14 @@ public final class WebProxyManager {
     /// Call from `applicationWillEnterForeground` / `applicationDidBecomeActive`.
     ///
     /// The WEB carrier is foreground-only. After entering background, iOS can suspend its
-    /// URLSession/WebSocket work without delivering a useful failure callback. The relay contract
-    /// also closes WebSocket sessions rather than resuming their streams. Recreate the complete
-    /// sidecar on return instead of reusing its listener or trying to revive its old session.
+    /// URLSession/WebSocket work without delivering a useful failure callback, and the relay
+    /// closes a WebSocket session rather than resuming its streams — so the carrier has to be
+    /// built again, with a new relay session, before anything will move.
+    ///
+    /// The listener does not: it is a local TCP socket on an ephemeral port, and rebinding it
+    /// hands every account a different port, which re-publishes proxy settings and puts all of
+    /// MtProto through Connecting→Updating. So resume rebuilds the carrier in place and keeps
+    /// the port, and only falls back to a whole new sidecar when that fails.
     /// Call from `applicationDidEnterBackground` so resume can tell a real sleep from a flicker.
     public func applicationDidEnterBackground() {
         self.startLock.lock()
@@ -193,6 +203,7 @@ public final class WebProxyManager {
         
         self.lock.lock()
         let active = self.configuration
+        let sidecar = self.sidecar
         let hasEndpoint = self.endpoint != nil
         self.lock.unlock()
         
@@ -200,6 +211,7 @@ public final class WebProxyManager {
         guard let target = target else {
             return
         }
+        let timeInBackground = backgroundedAt > 0 ? (now - backgroundedAt) : 0.0
 
         // Consume the background stamp only once there is a concrete configuration to restart.
         // Otherwise a transient empty state between stopping and starting would discard the
@@ -217,8 +229,26 @@ public final class WebProxyManager {
             return
         }
         
-        if backgroundedAt > 0 {
+        // Not a resume at all, or too brief a one to have cost us the carrier.
+        if backgroundedAt <= 0 || timeInBackground < WebProxyManager.minimumBackgroundForResumeRestart {
+            return
+        }
+        
+        guard let sidecar = sidecar else {
             self.sequentialRestart(configuration: target)
+            return
+        }
+        // Rebuild the carrier behind the listener that is already published. On failure the
+        // sidecar has already torn itself down, so there is nothing left to salvage and the
+        // port has to change after all.
+        sidecar.reconnectTransport { [weak self] result in
+            guard let self else {
+                return
+            }
+            if case let .failure(error) = result {
+                WebProxyLog.log("resume transport reconnect failed, rebuilding the sidecar: \(error)")
+                self.sequentialRestart(configuration: target)
+            }
         }
     }
     
