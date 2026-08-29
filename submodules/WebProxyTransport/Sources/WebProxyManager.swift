@@ -66,8 +66,11 @@ public final class WebProxyManager {
     /// be up. A retry armed by the cooldown must not resurrect a proxy the user has since turned
     /// off, and `configuration` is nil from the moment a carrier dies, so it cannot answer that.
     private var desiredConfiguration: WebProxyConfiguration?
-    /// Whether a cooldown retry is already armed, so a burst of re-applies arms only one.
-    private var isRetryScheduled: Bool = false
+    /// The configuration a cooldown retry is currently armed for, so a burst of re-applies arms
+    /// only one — but switching servers still re-arms rather than inheriting the old target's slot.
+    private var scheduledRetryConfiguration: WebProxyConfiguration?
+    /// Stamped onto each armed retry so a superseded one drops out when it fires.
+    private var retryGeneration: UInt64 = 0
     
     private var nextSidecarEventToken: SidecarEventToken = 0
     private var sidecarEventHandlers: [SidecarEventToken: () -> Void] = [:]
@@ -129,6 +132,8 @@ public final class WebProxyManager {
             self.startLock.lock()
             self.desiredConfiguration = nil
             self.startGeneration &+= 1
+            self.retryGeneration &+= 1
+            self.scheduledRetryConfiguration = nil
             self.startingConfiguration = nil
             // Turning the proxy off is an explicit user action — don't make re-enabling the same
             // server wait out a cooldown left over from an earlier failure.
@@ -220,13 +225,15 @@ public final class WebProxyManager {
     /// Stop the current sidecar, then schedule a fresh one. Used when there is no live endpoint
     /// or in-place transport reconnect failed. Not overlapping — only one listener at a time.
     private func sequentialRestart(configuration: WebProxyConfiguration) {
-        // Invalidate a previous asynchronous start before replacing the sidecar. Do not mark
-        // this replacement as started here: scheduleStart treats that marker as an existing
-        // bootstrap and would return without creating the new carrier.
+        // Invalidate a previous asynchronous start before replacing the sidecar, and mark this
+        // replacement as in-flight BEFORE clearing the live endpoint, so `isReady(for:)` keeps
+        // publishing `lastGoodEndpoint` and ProxySettings never falls through to the dead sink.
+        // The marker is what makes `scheduleStart` treat this as an existing bootstrap and
+        // return without building anything, so the call below opts out of that check.
         self.startLock.lock()
         self.startGeneration &+= 1
-        self.startingConfiguration = nil
-        self.startingSince = 0.0
+        self.startingConfiguration = configuration
+        self.startingSince = CFAbsoluteTimeGetCurrent()
         self.startLock.unlock()
         
         self.lock.lock()
@@ -246,12 +253,15 @@ public final class WebProxyManager {
         }
         self.lock.unlock()
         
-        self.scheduleStart(configuration: configuration)
+        self.scheduleStart(configuration: configuration, replacingCurrentStart: true)
     }
     
-    private func scheduleStart(configuration: WebProxyConfiguration) {
+    /// `replacingCurrentStart` is for callers that have already torn the sidecar down and marked
+    /// their own replacement in flight. They must not be answered with "a bootstrap is already
+    /// running" (it is theirs) or held off by a cooldown (they are the recovery).
+    private func scheduleStart(configuration: WebProxyConfiguration, replacingCurrentStart: Bool = false) {
         self.startLock.lock()
-        if self.startingConfiguration == configuration, CFAbsoluteTimeGetCurrent() - self.startingSince < WebProxyManager.startTimeout {
+        if !replacingCurrentStart, self.startingConfiguration == configuration, CFAbsoluteTimeGetCurrent() - self.startingSince < WebProxyManager.startTimeout {
             // Every account resolves the same shared proxy settings, so with several accounts
             // this is called once per Network for one and the same server. Re-scheduling would
             // supersede the in-flight start, tearing down a sidecar that is midway through its
@@ -259,7 +269,7 @@ public final class WebProxyManager {
             self.startLock.unlock()
             return
         }
-        if self.lastFailedConfiguration == configuration, self.consecutiveFailureCount > 0 {
+        if !replacingCurrentStart, self.lastFailedConfiguration == configuration, self.consecutiveFailureCount > 0 {
             let backoff = self.currentBackoffLocked()
             let elapsed = CFAbsoluteTimeGetCurrent() - self.lastFailureTime
             if elapsed < backoff {
@@ -301,10 +311,16 @@ public final class WebProxyManager {
     /// this configuration is still the one the app wants — the user may have turned the proxy off
     /// or switched servers — and that a carrier is not already up for it.
     private func scheduleRetryLocked(configuration: WebProxyConfiguration, after delay: Double) {
-        if self.isRetryScheduled {
+        // A retry already owns this target. Anything else — no retry at all, or one armed for a
+        // server the user has since switched away from — has to be replaced: a single boolean
+        // flag let the stale target hold the only slot, and the new one was dropped on the floor
+        // and never retried at all.
+        if self.scheduledRetryConfiguration == configuration {
             return
         }
-        self.isRetryScheduled = true
+        self.retryGeneration &+= 1
+        let generation = self.retryGeneration
+        self.scheduledRetryConfiguration = configuration
 
         DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + max(0.1, delay)) { [weak self] in
             guard let self = self else {
@@ -312,11 +328,14 @@ public final class WebProxyManager {
             }
 
             self.startLock.lock()
-            self.isRetryScheduled = false
+            let isCurrent = generation == self.retryGeneration
+            if isCurrent {
+                self.scheduledRetryConfiguration = nil
+            }
             let isStillWanted = self.desiredConfiguration == configuration
             self.startLock.unlock()
 
-            guard isStillWanted else {
+            guard isCurrent, isStillWanted else {
                 return
             }
 
@@ -463,8 +482,6 @@ public final class WebProxyManager {
             // would leave the proxy down for good.
             self.scheduleRetryLocked(configuration: failedConfiguration, after: self.currentBackoffLocked())
         }
-        let failureCountSnapshot = self.consecutiveFailureCount
-        let generationAtFail = self.startGeneration
         self.startLock.unlock()
         
         self.lock.lock()
@@ -473,29 +490,9 @@ public final class WebProxyManager {
         
         self.notifySidecarEvent()
         
-        // Auto-retry after the backoff window. Without this, a failure that is not followed by
-        // another settings re-apply (the common case: long-poll death in background) leaves the
-        // manager stopped forever once the cooldown expires with nobody calling configure.
-        if let failedConfiguration = failedConfiguration {
-            let backoff = min(
-                WebProxyManager.maximumRetryInterval,
-                WebProxyManager.minimumRetryInterval * pow(2.0, Double(max(failureCountSnapshot, 1) - 1))
-            )
-            DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + backoff + 0.05) { [weak self] in
-                guard let self else {
-                    return
-                }
-                self.startLock.lock()
-                let stillSameGeneration = self.startGeneration == generationAtFail
-                let stillSameFailure = self.lastFailedConfiguration == failedConfiguration
-                self.startLock.unlock()
-                // A newer start/stop/applicationDidBecomeActive owns recovery now.
-                guard stillSameGeneration, stillSameFailure else {
-                    return
-                }
-                self.scheduleStart(configuration: failedConfiguration)
-            }
-        }
+        // The auto-retry that used to be duplicated here — a second `asyncAfter` on the same
+        // backoff, guarded on `startGeneration` — could never run: `scheduleRetryLocked` above
+        // fires 50ms earlier and its `scheduleStart` bumps that generation first.
     }
     
     private func stopLocked() {

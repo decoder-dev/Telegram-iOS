@@ -202,8 +202,14 @@ final class WebProxyHttpCarrier {
             request.httpMethod = "DELETE"
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
             request.setValue("no-store", forHTTPHeaderField: "Cache-Control")
-            let task = self.session.dataTask(with: request)
-            task.resume()
+            // Not on `self.session`: the sidecar's `stopLocked` calls `invalidateAndCancel()` on
+            // it on the very next line, which cancels this task before it reaches the relay — so
+            // the session it is meant to release stayed open there until it expired on its own.
+            // A short-lived session of its own outlives the teardown; `finishTasksAndInvalidate`
+            // releases it once the request completes.
+            let teardownSession = URLSession(configuration: URLSessionConfiguration.ephemeral)
+            teardownSession.dataTask(with: request).resume()
+            teardownSession.finishTasksAndInvalidate()
         }
     }
     

@@ -150,18 +150,23 @@ func preparedChatHistoryViewTransition(from fromView: ChatHistoryView?, to toVie
             case let .unread(unreadIndex):
                 var unreadScrollSelection = "none"
                 var index = toView.filteredEntries.count - 1
-                var passedUnreadDivider = false
                 for entry in toView.filteredEntries {
                     if case .UnreadEntry = entry {
-                        passedUnreadDivider = true
-                    } else if passedUnreadDivider && entry.index > unreadIndex {
-                        // The divider represents the last read index. Anchoring it at the bottom
-                        // can leave the first unread message outside the viewport (especially
-                        // with grouped entries or variable-height items). Anchor the message
-                        // immediately after it instead; the divider remains in the list as the
-                        // visual boundary.
+                        // Anchor the divider itself, not the message after it.
+                        //
+                        // The chat list is rotated by π, so ListView's own bottom is the top of
+                        // the screen: `.bottom(0.0)` puts the anchored item's `maxY` at
+                        // `visibleSize.height - insets.bottom` (ListView.swift), which lands it
+                        // just under the navigation bar. `filteredEntries` is oldest-first while
+                        // list indices count down, so the divider — inserted immediately before
+                        // the first unread message — carries the *higher* list index and sits
+                        // above it on screen.
+                        //
+                        // Anchoring the first unread message here therefore does not bring it
+                        // into view (it is already in view, right below the divider); it pushes
+                        // the "Unread messages" separator off the top edge instead.
                         scrollToItem = ListViewScrollToItem(index: index, position: .bottom(0.0), animated: false, curve: curve, directionHint: .Down)
-                        unreadScrollSelection = "first-entry-after-unread-divider"
+                        unreadScrollSelection = "unread-divider"
                         break
                     }
                     index -= 1

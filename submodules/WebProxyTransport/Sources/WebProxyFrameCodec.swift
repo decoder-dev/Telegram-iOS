@@ -51,7 +51,12 @@ public enum WebProxyFrameCodec {
         // Soft-skip instead of precondition: a long-lived soft-reconnect path used to mint
         // stream ids past the 24-bit wire limit and SIGABRT the process. Callers that still
         // overflow after the sidecar's allocateStreamId clamp must not take the app down.
+        //
+        // Dropping the frame is not free, though: the stream loses those bytes and then stalls,
+        // with the local socket believing they were sent. Say so, or the only symptom is a
+        // connection that goes quiet for no reason anyone can trace.
         guard frame.streamId <= 0xffffff, frame.payload.count <= maxPayloadSize else {
+            WebProxyLog.log("dropped unencodable \(frame.type) frame: stream \(frame.streamId), \(frame.payload.count) byte payload")
             return
         }
         data.append(frame.type.rawValue)
