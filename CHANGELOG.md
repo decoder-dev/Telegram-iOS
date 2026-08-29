@@ -6,6 +6,17 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3925-pre] — 2026-08-29
+
+Pre-release: CryZFix WEB proxy carriers + foreground lifecycle + unread diagnostics.
+
+### Fixed
+- **WEB proxy:** add `https-lanes`, `websocket`, and `websocket-lanes` carrier modes (per-lane `/up`/`/down`, multiplex `wss`, per-stream lane sockets with connect cap); fix `/up`/`/down` race; `transportEpoch` guards stale URLSession/WebSocket callbacks; stream ID wrap at `0xffffff`; `lastGoodEndpoint` keeps loopback alive during restart (no `127.0.0.1:1` connect storms); foreground-only lifecycle — `sequentialRestart` on return from background with 3s debounce.
+- **Proxy settings:** while sidecar is booting or resuming, keep the previous loopback endpoint instead of falling through to `:1`.
+
+### Added
+- **Chat unread:** `[ChatUnreadPosition]` logging across history loading, list transition, and layout realign; 1s suppress window so composer inset changes do not steal the initial unread anchor.
+
 ## [v12.9.2-3924-pre] — 2026-08-29
 
 Pre-release: crash diagnostics + log redaction.
