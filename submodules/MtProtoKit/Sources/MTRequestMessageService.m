@@ -822,7 +822,7 @@
                     
                     if (rpcResult != nil) {
                         if (MTLogEnabled()) {
-                            MTLog(@"[MTRequestMessageService#%p response for %" PRId64 " is %@]", self, request.requestContext.messageId, rpcResult);
+                            MTLog(@"[MTRequestMessageService#%p response for %" PRId64 " is %@]", self, request.requestContext.messageId, MTLogTruncatedDescription(rpcResult));
                         }
                     } else {
                         if (MTLogEnabled()) {

@@ -880,7 +880,7 @@ static const NSUInteger MTMaxUnacknowledgedMessageCount = 64;
 
 - (NSString *)incomingMessageDescription:(MTIncomingMessage *)message
 {
-    return [[NSString alloc] initWithFormat:@"%@ (%" PRId64", %" PRId64"/%" PRId64")", message.body, message.messageId, message.authKeyId, message.sessionId];
+    return [[NSString alloc] initWithFormat:@"%@ (%" PRId64", %" PRId64"/%" PRId64")", MTLogTruncatedDescription(message.body), message.messageId, message.authKeyId, message.sessionId];
 }
 
 - (MTDatacenterAuthKey *)getAuthKeyForCurrentScheme:(MTTransportScheme *)scheme createIfNeeded:(bool)createIfNeeded authInfoSelector:(MTDatacenterAuthInfoSelector *)authInfoSelector {
@@ -1106,8 +1106,10 @@ static const NSUInteger MTMaxUnacknowledgedMessageCount = 64;
                         NSString *messageDescription = [self outgoingMessageDescription:outgoingMessage messageId:messageId messageSeqNo:messageSeqNo authKeyId:authKey.authKeyId];
                         MTLogWithPrefix(_getLogPrefix, @"[MTProto#%p@%p preparing %@]", self, _context, messageDescription);
                     }
-                    NSString *shortMessageDescription = [self outgoingShortMessageDescription:outgoingMessage messageId:messageId messageSeqNo:messageSeqNo];
-                    MTShortLog(@"[MTProto#%p@%p preparing %@]", self, _context, shortMessageDescription);
+                    if (MTLogEnabled()) {
+                        NSString *shortMessageDescription = [self outgoingShortMessageDescription:outgoingMessage messageId:messageId messageSeqNo:messageSeqNo];
+                        MTShortLog(@"[MTProto#%p@%p preparing %@]", self, _context, shortMessageDescription);
+                    }
                     
                     if (!monotonityViolated || _useUnauthorizedMode)
                     {

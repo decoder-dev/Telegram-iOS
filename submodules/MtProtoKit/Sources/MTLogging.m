@@ -8,10 +8,21 @@ bool MTLogEnabled() {
     return loggingFunction != NULL && MTLogEnabledValue;
 }
 
+NSString *MTLogTruncatedDescription(id value) {
+    NSString *description = [NSString stringWithFormat:@"%@", value];
+    static const NSUInteger limit = 1024;
+    if (description.length <= limit) {
+        return description;
+    }
+    // Expanded to whole character sequences, so the cut cannot land inside a surrogate pair.
+    NSRange range = [description rangeOfComposedCharacterSequencesForRange:NSMakeRange(0, limit)];
+    return [NSString stringWithFormat:@"%@… (truncated, %lu characters total)", [description substringWithRange:range], (unsigned long)description.length];
+}
+
 void MTLog(NSString *format, ...) {
     va_list L;
     va_start(L, format);
-    if (loggingFunction != NULL) {
+    if (loggingFunction != NULL && MTLogEnabledValue) {
         NSString *string = [[NSString alloc] initWithFormat:format arguments:L];
         loggingFunction(string);
     }
@@ -21,7 +32,7 @@ void MTLog(NSString *format, ...) {
 void MTLogWithPrefix(NSString *(^getLogPrefix)(), NSString *format, ...) {
     va_list L;
     va_start(L, format);
-    if (loggingFunction != NULL) {
+    if (loggingFunction != NULL && MTLogEnabledValue) {
         NSString *string = [[NSString alloc] initWithFormat:format arguments:L];
         if (getLogPrefix) {
             NSString *prefix = getLogPrefix();
@@ -37,7 +48,7 @@ void MTLogWithPrefix(NSString *(^getLogPrefix)(), NSString *format, ...) {
 void MTShortLog(NSString *format, ...) {
     va_list L;
     va_start(L, format);
-    if (shortLoggingFunction != NULL) {
+    if (shortLoggingFunction != NULL && MTLogEnabledValue) {
         NSString *string = [[NSString alloc] initWithFormat:format arguments:L];
         shortLoggingFunction(string);
     }
