@@ -333,6 +333,7 @@ final class WebProxyHttpCarrier {
                     completion(.failure(WebProxyHttpCarrierError.sessionCreationFailed))
                     return
                 }
+
                 let modeHeader = (response.value(forHTTPHeaderField: "X-Carrier-Mode") ?? "https")
                     .trimmingCharacters(in: .whitespacesAndNewlines)
                     .lowercased()
@@ -349,6 +350,9 @@ final class WebProxyHttpCarrier {
                     completion(.failure(WebProxyHttpCarrierError.unsupportedCarrierMode))
                     return
                 }
+
+                WebProxyLog.log("session opened with \(self.hostname), relay reports carrier mode \(response.value(forHTTPHeaderField: "X-Carrier-Mode") ?? "unset")")
+
                 self.sessionToken = token
                 self.downCursor = response.value(forHTTPHeaderField: "X-Down-Cursor") ?? "0"
                 if let body = data, !body.isEmpty {
@@ -874,10 +878,14 @@ final class WebProxyHttpCarrier {
         if self.closed {
             return
         }
+
         // Only swallow cancels from our own stop(). Background/radio cancels are real failures.
         if self.isCancellation(error), self.intentionalTeardown {
             return
         }
+
+        WebProxyLog.log("carrier failed against \(self.hostname): \(error)")
+
         self.closed = true
         self.transportEpoch &+= 1
         self.lanes.removeAll()

@@ -54,6 +54,7 @@ public final class WebProxyManager {
     private var lastFailureTime: Double = 0.0
     private var consecutiveFailureCount: Int = 0
     private var sidecarReadySince: Double = 0.0
+
     /// Debounce foreground restarts so rapid active/resign cycles do not stack tear-downs.
     private var lastBecomeActiveRestart: Double = 0.0
     private static let becomeActiveRestartMinInterval: Double = 3.0
@@ -392,12 +393,18 @@ public final class WebProxyManager {
             self.startLock.unlock()
 
             self.notifySidecarEvent()
+
             if let previous = previous {
                 DispatchQueue.global(qos: .utility).async {
                     previous.stop()
                 }
             }
-        case .failure:
+            // case .failure:
+        case let .failure(error):
+            // The reason a WEB proxy failed used to end here: the branch did not even bind the
+            // error, so "my proxy does not connect" had no answer short of reading the source.
+            WebProxyLog.log("bootstrap failed for \(configuration.hostname): \(error)")
+
             sidecar?.stop()
             self.startLock.lock()
             if generation == self.startGeneration {
