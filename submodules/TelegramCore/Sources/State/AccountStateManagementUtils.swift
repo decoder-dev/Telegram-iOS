@@ -42,6 +42,24 @@ private func reactionGeneratedEvent(_ previousReactions: ReactionsMessageAttribu
 }
 
 
+
+/// A channel's title as it should appear in the log.
+///
+/// The title used to be interpolated raw at every one of these sites, outside the guard that
+/// covers message text — so a user who turned on "remove sensitive data" and sent in a log still
+/// shipped the name of every channel and group they belong to. One day's log carried titles on
+/// 6,421 lines. The peer id sits right next to it and is what a reader following the state
+/// machine actually needs.
+private func loggedChannelTitle(_ peer: Peer?) -> String {
+    guard let channel = peer as? TelegramChannel else {
+        return "nil"
+    }
+    if Logger.shared.redactSensitiveData {
+        return "[[redacted]]"
+    }
+    return channel.title
+}
+
 private func peerIdsFromUpdateGroups(_ groups: [UpdateGroup]) -> Set<PeerId> {
     var peerIds = Set<PeerId>()
     
@@ -951,7 +969,7 @@ private func finalStateWithUpdatesAndServerTime(accountPeerId: PeerId, postbox: 
                 let peerId = PeerId(namespace: Namespaces.Peer.CloudChannel, id: PeerId.Id._internalFromInt64Value(channelId))
                 if case .none = channelsToPoll[peerId] {
                     if let channelPts = channelPts, let channelState = state.channelStates[peerId], channelState.pts >= channelPts {
-                        Logger.shared.log("State", "channel \(peerId) (\((updatedState.peers[peerId] as? TelegramChannel)?.title ?? "nil")) skip updateChannelTooLong by pts")
+                        Logger.shared.log("State", "channel \(peerId) (\(loggedChannelTitle(updatedState.peers[peerId]))) skip updateChannelTooLong by pts")
                     } else {
                         channelsToPoll[peerId] = channelPts
                     }
@@ -970,19 +988,19 @@ private func finalStateWithUpdatesAndServerTime(accountPeerId: PeerId, postbox: 
                 let peerId = PeerId(namespace: Namespaces.Peer.CloudChannel, id: PeerId.Id._internalFromInt64Value(channelId))
                 if let previousState = updatedState.channelStates[peerId] {
                     if previousState.pts >= pts {
-                        Logger.shared.log("State", "channel \(peerId) (\((updatedState.peers[peerId] as? TelegramChannel)?.title ?? "nil")) skip old delete update")
+                        Logger.shared.log("State", "channel \(peerId) (\(loggedChannelTitle(updatedState.peers[peerId]))) skip old delete update")
                     } else if previousState.pts + ptsCount == pts {
                         updatedState.deleteMessages(messages.map({ MessageId(peerId: peerId, namespace: Namespaces.Message.Cloud, id: $0) }))
                         updatedState.updateChannelState(peerId, pts: pts)
                     } else {
                         if !missingUpdatesFromChannels.contains(peerId) {
-                            Logger.shared.log("State", "channel \(peerId) (\((updatedState.peers[peerId] as? TelegramChannel)?.title ?? "nil")) delete pts hole \(previousState.pts) + \(ptsCount) != \(pts)")
+                            Logger.shared.log("State", "channel \(peerId) (\(loggedChannelTitle(updatedState.peers[peerId]))) delete pts hole \(previousState.pts) + \(ptsCount) != \(pts)")
                             missingUpdatesFromChannels.insert(peerId)
                         }
                     }
                 } else {
                     if case .none = channelsToPoll[peerId] {
-                        //Logger.shared.log("State", "channel \(peerId) (\((updatedState.peers[peerId] as? TelegramChannel)?.title ?? "nil")) state unknown")
+                        //Logger.shared.log("State", "channel \(peerId) (\(loggedChannelTitle(updatedState.peers[peerId]))) state unknown")
                         channelsToPoll[peerId] = nil
                     }
                 }
@@ -996,7 +1014,7 @@ private func finalStateWithUpdatesAndServerTime(accountPeerId: PeerId, postbox: 
                     let peerId = messageId.peerId
                     if let previousState = updatedState.channelStates[peerId] {
                         if previousState.pts >= pts {
-                            Logger.shared.log("State", "channel \(peerId) (\((updatedState.peers[peerId] as? TelegramChannel)?.title ?? "nil")) skip old edit update")
+                            Logger.shared.log("State", "channel \(peerId) (\(loggedChannelTitle(updatedState.peers[peerId]))) skip old edit update")
                         } else if previousState.pts + ptsCount == pts {
                             if let preCachedResources = apiMessage.preCachedResources {
                                 for (resource, data) in preCachedResources {
@@ -1014,13 +1032,13 @@ private func finalStateWithUpdatesAndServerTime(accountPeerId: PeerId, postbox: 
                             updatedState.updateChannelState(peerId, pts: pts)
                         } else {
                             if !missingUpdatesFromChannels.contains(peerId) {
-                                Logger.shared.log("State", "channel \(peerId) (\((updatedState.peers[peerId] as? TelegramChannel)?.title ?? "nil")) edit message pts hole \(previousState.pts) + \(ptsCount) != \(pts)")
+                                Logger.shared.log("State", "channel \(peerId) (\(loggedChannelTitle(updatedState.peers[peerId]))) edit message pts hole \(previousState.pts) + \(ptsCount) != \(pts)")
                                 missingUpdatesFromChannels.insert(peerId)
                             }
                         }
                     } else {
                         if case .none = channelsToPoll[peerId] {
-                            //Logger.shared.log("State", "channel \(peerId) (\((updatedState.peers[peerId] as? TelegramChannel)?.title ?? "nil")) state unknown")
+                            //Logger.shared.log("State", "channel \(peerId) (\(loggedChannelTitle(updatedState.peers[peerId]))) state unknown")
                             channelsToPoll[peerId] = nil
                         }
                     }
@@ -1048,7 +1066,7 @@ private func finalStateWithUpdatesAndServerTime(accountPeerId: PeerId, postbox: 
                         updatedState.updateChannelState(peerId, pts: pts)
                     } else {
                         if case .none = channelsToPoll[peerId] {
-                            Logger.shared.log("State", "channel \(peerId) (\((updatedState.peers[peerId] as? TelegramChannel)?.title ?? "nil")) updateWebPage pts hole \(previousState.pts) + \(ptsCount) != \(pts)")
+                            Logger.shared.log("State", "channel \(peerId) (\(loggedChannelTitle(updatedState.peers[peerId]))) updateWebPage pts hole \(previousState.pts) + \(ptsCount) != \(pts)")
                             channelsToPoll[peerId] = nil
                         }
                     }
@@ -1110,7 +1128,7 @@ private func finalStateWithUpdatesAndServerTime(accountPeerId: PeerId, postbox: 
                             } else {
                                 messageText = message.text
                             }
-                        Logger.shared.log("State", "channel \(message.id.peerId) (\((updatedState.peers[message.id.peerId] as? TelegramChannel)?.title ?? "nil")) skip old message \(message.id) (\(messageText))")
+                        Logger.shared.log("State", "channel \(message.id.peerId) (\(loggedChannelTitle(updatedState.peers[message.id.peerId]))) skip old message \(message.id) (\(messageText))")
                         } else if previousState.pts + ptsCount == pts {
                             if let preCachedResources = apiMessage.preCachedResources {
                                 for (resource, data) in preCachedResources {
@@ -1131,14 +1149,14 @@ private func finalStateWithUpdatesAndServerTime(accountPeerId: PeerId, postbox: 
                             }
                         } else {
                             if !missingUpdatesFromChannels.contains(message.id.peerId) {
-                                Logger.shared.log("State", "channel \(message.id.peerId) (\((updatedState.peers[message.id.peerId] as? TelegramChannel)?.title ?? "nil")) message pts hole \(previousState.pts) + \(ptsCount) != \(pts)")
+                                Logger.shared.log("State", "channel \(message.id.peerId) (\(loggedChannelTitle(updatedState.peers[message.id.peerId]))) message pts hole \(previousState.pts) + \(ptsCount) != \(pts)")
                                 ;
                                 missingUpdatesFromChannels.insert(message.id.peerId)
                             }
                         }
                     } else {
                         if case .none = channelsToPoll[message.id.peerId] {
-                            Logger.shared.log("State", "channel \(message.id.peerId) (\((updatedState.peers[message.id.peerId] as? TelegramChannel)?.title ?? "nil")) state unknown")
+                            Logger.shared.log("State", "channel \(message.id.peerId) (\(loggedChannelTitle(updatedState.peers[message.id.peerId]))) state unknown")
                             channelsToPoll[message.id.peerId] = nil
                         }
                     }
@@ -1469,7 +1487,7 @@ private func finalStateWithUpdatesAndServerTime(accountPeerId: PeerId, postbox: 
                 let peerId = PeerId(namespace: Namespaces.Peer.CloudChannel, id: PeerId.Id._internalFromInt64Value(channelId))
                 if let previousState = updatedState.channelStates[peerId] {
                     if previousState.pts >= pts {
-                        Logger.shared.log("State", "channel \(peerId) (\((updatedState.peers[peerId] as? TelegramChannel)?.title ?? "nil")) skip old pinned messages update")
+                        Logger.shared.log("State", "channel \(peerId) (\(loggedChannelTitle(updatedState.peers[peerId]))) skip old pinned messages update")
                     } else if previousState.pts + ptsCount == pts {
                         let channelPeerId = PeerId(namespace: Namespaces.Peer.CloudChannel, id: PeerId.Id._internalFromInt64Value(channelId))
                         updatedState.updateMessagesPinned(ids: messages.map { id in
@@ -1478,13 +1496,13 @@ private func finalStateWithUpdatesAndServerTime(accountPeerId: PeerId, postbox: 
                         updatedState.updateChannelState(peerId, pts: pts)
                     } else {
                         if !missingUpdatesFromChannels.contains(peerId) {
-                            Logger.shared.log("State", "channel \(peerId) (\((updatedState.peers[peerId] as? TelegramChannel)?.title ?? "nil")) pinned messages pts hole \(previousState.pts) + \(ptsCount) != \(pts)")
+                            Logger.shared.log("State", "channel \(peerId) (\(loggedChannelTitle(updatedState.peers[peerId]))) pinned messages pts hole \(previousState.pts) + \(ptsCount) != \(pts)")
                             missingUpdatesFromChannels.insert(peerId)
                         }
                     }
                 } else {
                     if case .none = channelsToPoll[peerId] {
-                        //Logger.shared.log("State", "channel \(peerId) (\((updatedState.peers[peerId] as? TelegramChannel)?.title ?? "nil")) state unknown")
+                        //Logger.shared.log("State", "channel \(peerId) (\(loggedChannelTitle(updatedState.peers[peerId]))) state unknown")
                         channelsToPoll[peerId] = nil
                     }
                 }
