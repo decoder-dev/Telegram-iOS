@@ -344,6 +344,17 @@ public final class WebProxySidecar {
         // Dropping streams first made MtProto reconnect into a dead gap → infinite
         // Connecting/Updating, and canceling WebSockets mid-receive correlated with SIGABRT on resume.
         let previousCarrier = self.carrier
+        // But detach it. Its long-poll dying is the premise of this reconnect, not news about it:
+        // the app was suspended, so that request is already dead and reports so within
+        // milliseconds of the resume. Left wired, that arrives as a fresh carrier failure,
+        // `handleCarrierFailure` tears the sidecar down mid-reconnect, and the new carrier's
+        // bootstrap is aborted as superseded — so the reconnect reports failure and the manager
+        // rebuilds the listener on a new port, which is the one thing it was called to avoid. In
+        // a tester's log that is what happened on three resumes out of four, 39 to 195 ms after
+        // the attempt started. Its downlink is dropped for the same reason: frames from the old
+        // relay session carry stream ids the new one knows nothing about.
+        previousCarrier?.onFailure = nil
+        previousCarrier?.onDownlinkBatch = nil
         self.carrier = nil
         
         // Fresh URLSession; do not cancel individual WS tasks on the old carrier first —

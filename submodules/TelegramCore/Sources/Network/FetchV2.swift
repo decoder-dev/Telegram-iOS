@@ -330,6 +330,7 @@ private final class FetchImpl {
         private var state: State?
         
         private let loggingIdentifier: String
+        private static let loggingIdentifierPrefix = "telegram-cloud-"
         
         init(
             queue: Queue,
@@ -396,15 +397,18 @@ private final class FetchImpl {
             }
             self.cdnPartSize = 128 * 1024
             
-            if let resource = resource as? TelegramCloudMediaResource {
-                if let apiInputLocation = resource.apiInputLocation(fileReference: Data()) {
-                    self.loggingIdentifier = "\(apiInputLocation)"
-                } else {
-                    self.loggingIdentifier = "unknown cloud"
-                }
-            } else {
-                self.loggingIdentifier = "unknown"
+            // Every FetchV2 line is prefixed with this, and there are a lot of them — one per
+            // part taken, per fetch. Interpolating the api input location gave the enum case name
+            // followed by its constructor's type name: ninety characters that took exactly two
+            // values across a whole session, so it could never tell two concurrent fetches apart,
+            // which is the one thing a logging identifier is for. In one tester's log it came to
+            // 11 MB of 39 MB. The resource id is shorter and actually distinguishes them; its
+            // `telegram-cloud-` prefix is the same on every line, so it goes.
+            var identifier = resource.id.stringRepresentation
+            if identifier.hasPrefix(Impl.loggingIdentifierPrefix) {
+                identifier.removeFirst(Impl.loggingIdentifierPrefix.count)
             }
+            self.loggingIdentifier = identifier
             
             self.update()
             
