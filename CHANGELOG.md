@@ -6,6 +6,14 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3927-pre] — 2026-08-30
+
+Pre-release: WEB proxy resume reconnect fix + FetchV2 log identifier.
+
+### Fixed
+- **WEB proxy:** detach the old carrier before in-place resume reconnect — stale `onFailure` from the suspended carrier no longer aborts the replacement and forces a loopback port move.
+- **FetchV2:** log lines use the resource id (not the 90-char `inputDocumentFileLocation(…)` type name) so concurrent fetches are distinguishable and logs shrink ~11 MB.
+
 ## [v12.9.2-3926-pre] — 2026-08-29
 
 Pre-release: WEB proxy resume/retry hardening.
