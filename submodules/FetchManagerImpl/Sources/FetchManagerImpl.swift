@@ -501,7 +501,11 @@ private final class FetchManagerCategoryContext {
         let _ = entriesRemoved
         
         if let entry = self.entries[id] {
-            Logger.shared.log("FetchManager", "Cancel fetching \(entry.resourceReference.resource.id.stringRepresentation)")
+            // `entryCompleted` routes here too, so this line reported a finished download as a
+            // cancelled one. Reading a log, that is the difference between "the client keeps
+            // abandoning fetches" and "a video is streaming in ranges" — and there was nothing in
+            // the line to tell them apart.
+            Logger.shared.log("FetchManager", "\(isCompleted ? "Completed" : "Cancel") fetching \(entry.resourceReference.resource.id.stringRepresentation)")
             self.entries.removeValue(forKey: id)
             entriesRemoved = true
             
