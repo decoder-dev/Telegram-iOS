@@ -6,6 +6,7 @@ import MachO
 // MachO promises to re-export the C library, and this file is the only Swift in the tree that
 // reaches for either.
 import Darwin
+import Network
 import TelegramCore
 import Display
 
@@ -76,6 +77,7 @@ public enum ForkPerformanceTelemetry {
 
         self.installMemoryWarningObserver()
         self.installMainThreadStallWatchdog()
+        self.installNetworkPathObserver()
         self.installHeartbeat()
     }
 
@@ -155,6 +157,96 @@ public enum ForkPerformanceTelemetry {
     ///
     /// One line a minute is on the order of 100 KB a day — nothing against the log budget —
     /// and nothing is computed at all unless logging is switched on.
+    /// Which network the app is actually on, including whether a tunnel is carrying it.
+    ///
+    /// Nothing recorded this. `Reachability` runs an `NWPathMonitor` already, but it collapses
+    /// every path to cellular / wifi / none and logs none of it — and a VPN presents as an
+    /// interface of type `.other`, so it does not read as cellular and is filed under wifi. The
+    /// consequence is that a report of "it crashes with the VPN on" could be neither confirmed
+    /// nor dismissed from a log: there was no evidence in it either way, and the only mention of
+    /// the word in a 38 MB collection was the name of a channel the tester follows.
+    ///
+    /// Interface names are not private data — `utun3` says a tunnel exists, not whose.
+    private static var pathMonitor: NWPathMonitor?
+    private static var lastPathSummary: String?
+
+    private static func installNetworkPathObserver() {
+        let monitor = NWPathMonitor()
+        monitor.pathUpdateHandler = { path in
+            let summary = ForkPerformanceTelemetry.describe(path)
+            // Path updates repeat unchanged; only transitions are news.
+            guard summary != ForkPerformanceTelemetry.lastPathSummary else {
+                return
+            }
+            ForkPerformanceTelemetry.lastPathSummary = summary
+            Logger.shared.log("Net", "path \(summary)")
+        }
+        monitor.start(queue: self.heartbeatQueue)
+        self.pathMonitor = monitor
+        self.lastPathSummary = self.describe(monitor.currentPath)
+        Logger.shared.log("Net", "path at launch \(self.lastPathSummary ?? "unknown")")
+    }
+
+    /// One token for the heartbeat: the carrying interface, plus a tunnel marker when one is up.
+    private static func shortDescription(_ path: NWPath) -> String {
+        guard path.status == .satisfied else {
+            return "down"
+        }
+        var kind = "other"
+        if path.usesInterfaceType(.wifi) {
+            kind = "wifi"
+        } else if path.usesInterfaceType(.cellular) {
+            kind = "cellular"
+        } else if path.usesInterfaceType(.wiredEthernet) {
+            kind = "wired"
+        }
+        let hasTunnel = path.availableInterfaces.contains(where: { $0.type == .other })
+        return hasTunnel ? "\(kind)+tunnel" : kind
+    }
+
+    private static func describe(_ path: NWPath) -> String {
+        var parts: [String] = []
+        switch path.status {
+        case .satisfied:
+            parts.append("status=satisfied")
+        case .unsatisfied:
+            parts.append("status=unsatisfied")
+        case .requiresConnection:
+            parts.append("status=requiresConnection")
+        @unknown default:
+            parts.append("status=unknown")
+        }
+
+        var interfaceNames: [String] = []
+        var tunnels: [String] = []
+        for interface in path.availableInterfaces {
+            let kind: String
+            switch interface.type {
+            case .wifi:
+                kind = "wifi"
+            case .cellular:
+                kind = "cellular"
+            case .wiredEthernet:
+                kind = "wired"
+            case .loopback:
+                kind = "loopback"
+            case .other:
+                kind = "other"
+                tunnels.append(interface.name)
+            @unknown default:
+                kind = "unknown"
+            }
+            interfaceNames.append("\(interface.name):\(kind)")
+        }
+        parts.append("interfaces=[\(interfaceNames.joined(separator: ","))]")
+        // An `.other` interface on a phone is a tunnel: utun for most VPNs, ipsec or ppp for the
+        // built-in ones. This is the line that answers whether a VPN was up.
+        parts.append("tunnel=\(tunnels.isEmpty ? "no" : tunnels.joined(separator: "+"))")
+        parts.append("expensive=\(path.isExpensive)")
+        parts.append("constrained=\(path.isConstrained)")
+        return parts.joined(separator: " ")
+    }
+
     private static let heartbeatInterval: Double = 60.0
     private static let heartbeatQueue = DispatchQueue(label: "ForkTelemetryHeartbeat", qos: .utility)
     private static var heartbeatTimer: DispatchSourceTimer?
@@ -194,6 +286,12 @@ public enum ForkPerformanceTelemetry {
                 // the log moves with it. Rows are the one large population that is built and torn
                 // down by scrolling, which leaves no trace of its own.
                 parts.append("rows=\(ListViewItemNode.liveInstanceCount.with({ $0 }))")
+                // Carried on every line, not only on transitions: a crash is read from the minute
+                // around it, and "was a tunnel up" has to be answerable there without hunting
+                // backwards for the last path change.
+                if let path = self.pathMonitor?.currentPath {
+                    parts.append("net=\(self.shortDescription(path))")
+                }
                 parts.append("state=\(UIApplication.shared.applicationState == .background ? "background" : "foreground")")
                 parts.append("thermal=\(ForkPerformanceTelemetry.describe(self.thermalState))")
                 if let freeMegabytes = self.availableDiskMegabytes() {
