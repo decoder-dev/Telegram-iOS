@@ -6,6 +6,14 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3929-pre] — 2026-08-31
+
+Pre-release: read-state retry backoff + log noise reduction (+ 3928 WEB proxy/crash fixes).
+
+### Fixed
+- **Read states:** per-peer exponential backoff (1s→60s) when server rejects sync — stops 191-retry spin at 4/s; peer held out of `update()` while waiting.
+- **Logging:** `PendingMessageManager` / Postbox unsent-view / `beginSendingMessages` log only when non-empty; master/resigned transitions include peer id.
+
 ## [v12.9.2-3928-pre] — 2026-08-31
 
 Pre-release: WEB proxy network resilience + carrier negotiation + crash breadcrumbs.
