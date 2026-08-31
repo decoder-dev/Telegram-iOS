@@ -71,6 +71,25 @@ public let chatTextInputMinFontSize: CGFloat = 5.0
 
 private let minInputFontSize = chatTextInputMinFontSize
 
+/// The view VoiceOver should treat as the text field.
+///
+/// The composer's input is several nested views deep and the outer one is not a `UITextInput`, so
+/// VoiceOver landed on a container that could not be typed into.
+private func accessibilityTextInputView(in view: UIView) -> UIView {
+    if view is UITextInput {
+        return view
+    }
+    for subview in view.subviews {
+        if !subview.isHidden && subview.alpha > 0.0 {
+            let result = accessibilityTextInputView(in: subview)
+            if result is UITextInput {
+                return result
+            }
+        }
+    }
+    return view
+}
+
 /// Height of the empty capsule: iMessage-style 36pt at the default text size, growing with it.
 ///
 /// Shared with `calculateTextFieldRealInsets`, which centres one line of text inside exactly this
@@ -1208,6 +1227,11 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         }
         old.resignInputFirstResponder()
         old.asNode.removeFromSupernode()
+        // Swapping the legacy input for the native editor replaces the focused view underneath
+        // VoiceOver, which otherwise keeps reading the one that just went away.
+        if wasFirstResponder && UIAccessibility.isVoiceOverRunning {
+            UIAccessibility.post(notification: .layoutChanged, argument: new.inputView)
+        }
     }
 
     private func loadTextInputNode(useNative: Bool = false) {
@@ -3272,6 +3296,11 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             richTextInputNode.textContainerInset = textInputViewRealInsets
             richTextInputNode.textFieldFrame = actualTextFieldFrame
             richTextInputNode.updateLayout(size: textFieldFrame.size)
+            let accessibilityInputView = accessibilityTextInputView(in: richTextInputNode.inputView)
+            let accessibilityBounds = richTextInputNode.inputView.bounds.inset(by: richTextInputNode.inputHitTestSlop)
+            accessibilityInputView.accessibilityIdentifier = "chat.input"
+            accessibilityInputView.accessibilityFrame = UIAccessibility.convertToScreenCoordinates(accessibilityBounds, in: richTextInputNode.inputView)
+            accessibilityInputView.accessibilityRespondsToUserInteraction = true
             self.updateInputField(textInputFrame: textFieldFrame, transition: ComponentTransition(transition))
             if shouldUpdateLayout {
                 richTextInputNode.layoutInputField()
