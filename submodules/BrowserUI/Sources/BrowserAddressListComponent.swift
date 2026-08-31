@@ -388,7 +388,11 @@ final class BrowserAddressListComponent: Component {
                                 continue
                             }
                         }
-                    
+
+                        guard let webPage else {
+                            continue
+                        }
+
                         let performAction = component.performAction
                         let _ = visibleItem.update(
                             transition: itemTransition,
@@ -396,12 +400,12 @@ final class BrowserAddressListComponent: Component {
                                 BrowserAddressListItemComponent(
                                     context: component.context,
                                     theme: component.theme,
-                                    webPage: webPage!,
+                                    webPage: webPage,
                                     message: itemMessage,
                                     hasNext: true,
                                     insets: component.insets,
                                     action: {
-                                        if let url = webPage?.content.url {
+                                        if let url = webPage.content.url {
                                             performAction.invoke(.navigateTo(url, false))
                                         }
                                     },

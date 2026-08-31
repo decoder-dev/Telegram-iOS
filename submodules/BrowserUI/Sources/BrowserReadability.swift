@@ -420,32 +420,32 @@ private func trimEnd(_ input: RichText) -> RichText {
     case let .plain(string):
         text = .plain(string.replacingOccurrences(of: "[ \t\r\n]+$", with: "", options: .regularExpression, range: nil))
     case let .bold(richText):
-        text = .bold(trimStart(richText))
+        text = .bold(trimEnd(richText))
     case let .italic(richText):
-        text = .italic(trimStart(richText))
+        text = .italic(trimEnd(richText))
     case let .underline(richText):
-        text = .underline(trimStart(richText))
+        text = .underline(trimEnd(richText))
     case let .strikethrough(richText):
-        text = .strikethrough(trimStart(richText))
+        text = .strikethrough(trimEnd(richText))
     case let .fixed(richText):
-        text = .fixed(trimStart(richText))
+        text = .fixed(trimEnd(richText))
     case let .url(richText, url, webpageId):
-        text = .url(text: trimStart(richText), url: url, webpageId: webpageId)
+        text = .url(text: trimEnd(richText), url: url, webpageId: webpageId)
     case let .email(richText, email):
-        text = .email(text: trimStart(richText), email: email)
+        text = .email(text: trimEnd(richText), email: email)
     case let .subscript(richText):
-        text = .subscript(trimStart(richText))
+        text = .subscript(trimEnd(richText))
     case let .superscript(richText):
-        text = .superscript(trimStart(richText))
+        text = .superscript(trimEnd(richText))
     case let .marked(richText):
-        text = .marked(trimStart(richText))
+        text = .marked(trimEnd(richText))
     case let .phone(richText, phone):
-        text = .phone(text: trimStart(richText), phone: phone)
+        text = .phone(text: trimEnd(richText), phone: phone)
     case let .anchor(richText, name):
-        text = .anchor(text: trimStart(richText), name: name)
+        text = .anchor(text: trimEnd(richText), name: name)
     case var .concat(array):
         if !array.isEmpty {
-            array[array.count - 1] = trimStart(array[array.count - 1])
+            array[array.count - 1] = trimEnd(array[array.count - 1])
             text = .concat(array)
         }
     case .image:

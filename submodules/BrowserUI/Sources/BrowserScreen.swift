@@ -1243,6 +1243,9 @@ public class BrowserScreen: ViewController, MinimizableController {
                     } else {
                         openInUrl = url
                     }
+                } else if let safariOption = openInOptions.first(where: { $0.identifier == "safari" }) {
+                    openInTitle = safariOption.title
+                    openInUrl = url
                 } else {
                     openInTitle = "Safari"
                     openInUrl = url

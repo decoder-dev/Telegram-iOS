@@ -95,6 +95,12 @@ final class BrowserDocumentContent: UIView, BrowserContent, WKNavigationDelegate
             self.webView.underPageBackgroundColor = presentationData.theme.list.plainBackgroundColor
         }
         self.addSubview(self.webView)
+
+        self.webView.addObserver(self, forKeyPath: #keyPath(WKWebView.title), options: [], context: nil)
+        self.webView.addObserver(self, forKeyPath: #keyPath(WKWebView.url), options: [], context: nil)
+        self.webView.addObserver(self, forKeyPath: #keyPath(WKWebView.estimatedProgress), options: [], context: nil)
+        self.webView.addObserver(self, forKeyPath: #keyPath(WKWebView.canGoBack), options: [], context: nil)
+        self.webView.addObserver(self, forKeyPath: #keyPath(WKWebView.canGoForward), options: [], context: nil)
         
         self.webView.interactiveTransitionGestureRecognizerTest = { [weak self] point in
             if let self {
@@ -111,7 +117,15 @@ final class BrowserDocumentContent: UIView, BrowserContent, WKNavigationDelegate
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
+
+    deinit {
+        self.webView.removeObserver(self, forKeyPath: #keyPath(WKWebView.title))
+        self.webView.removeObserver(self, forKeyPath: #keyPath(WKWebView.url))
+        self.webView.removeObserver(self, forKeyPath: #keyPath(WKWebView.estimatedProgress))
+        self.webView.removeObserver(self, forKeyPath: #keyPath(WKWebView.canGoBack))
+        self.webView.removeObserver(self, forKeyPath: #keyPath(WKWebView.canGoForward))
+    }
+
     func updatePresentationData(_ presentationData: PresentationData) {
         self.presentationData = presentationData
         if #available(iOS 15.0, *) {

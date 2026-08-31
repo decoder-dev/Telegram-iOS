@@ -146,7 +146,7 @@ final class WebView: WKWebView {
     
     override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
         var result = super.point(inside: point, with: event)
-        if !result && point.x > 0.0 && point.y < self.frame.width && point.y > 0.0 && point.y < self.frame.height + 83.0 {
+        if !result && point.x > 0.0 && point.x < self.frame.width && point.y > 0.0 && point.y < self.frame.height + 83.0 {
             result = true
         }
         return result
@@ -1019,7 +1019,7 @@ final class BrowserWebContent: UIView, BrowserContent, WKNavigationDelegate, WKU
         self.downloadArguments = (path, suggestedFilename)
         completionHandler(URL(fileURLWithPath: path))
         
-        let downloadController = progressAlertController(sharedContext: self.context.sharedContext, title: "", cancel: { [weak download] in
+        let downloadController = progressAlertController(sharedContext: self.context.sharedContext, title: suggestedFilename, cancel: { [weak download] in
             download?.cancel()
         })
         self.downloadController = downloadController
@@ -1286,7 +1286,7 @@ final class BrowserWebContent: UIView, BrowserContent, WKNavigationDelegate, WKU
                                     in: WKContentWorld.defaultClient) { result in
             switch result {
             case .success(let dataUrl):
-                guard let url = URL(string: dataUrl as! String) else {
+                guard let dataUrl = dataUrl as? String, let url = URL(string: dataUrl) else {
                     print("Failed to get data")
                     return
                 }
