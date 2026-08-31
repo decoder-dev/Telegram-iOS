@@ -426,10 +426,16 @@ public final class PendingMessageManager {
     }
 
     func updatePendingMessageIds(_ messageIds: Set<MessageId>) {
-        Logger.shared.log("PendingMessageManager", "update on postboxQueue: \(messageIds)")
+        // Empty is the steady state and says nothing: three lines per pass, 1256 passes in one
+        // tester's 13-hour log, all of them reporting that nothing is pending.
+        if !messageIds.isEmpty {
+            Logger.shared.log("PendingMessageManager", "update on postboxQueue: \(messageIds)")
+        }
 
         self.queue.async {
-            Logger.shared.log("PendingMessageManager", "update: \(messageIds)")
+            if !messageIds.isEmpty {
+                Logger.shared.log("PendingMessageManager", "update: \(messageIds)")
+            }
 
             self.logCensusIfNeeded()
             
@@ -547,7 +553,9 @@ public final class PendingMessageManager {
                 }
             }
             
-            Logger.shared.log("PendingMessageManager", "pending messages: \(self.pendingMessageIds)")
+            if !self.pendingMessageIds.isEmpty {
+                Logger.shared.log("PendingMessageManager", "pending messages: \(self.pendingMessageIds)")
+            }
             
             self._pendingMessageCount.set(pendingMessageCount)
             self.updatePendingMediaUploads()
@@ -811,7 +819,9 @@ public final class PendingMessageManager {
                     }
                 }
                 
-                Logger.shared.log("PendingMessageManager", "beginSendingMessages messagesToUpload.count: \(messagesToUpload.count)")
+                if !messagesToUpload.isEmpty {
+                    Logger.shared.log("PendingMessageManager", "beginSendingMessages messagesToUpload.count: \(messagesToUpload.count)")
+                }
                 
                 for (messageContext, message, type, contentUploadSignal) in messagesToUpload {
                     if let paidStarsAttribute = message.paidStarsAttribute, paidStarsAttribute.postponeSending {
@@ -825,7 +835,9 @@ public final class PendingMessageManager {
                 }
                 strongSelf.updatePendingMediaUploads()
                 
-                Logger.shared.log("PendingMessageManager", "beginSendingMessages messagesToForward.count: \(messagesToForward.count)")
+                if !messagesToForward.isEmpty {
+                    Logger.shared.log("PendingMessageManager", "beginSendingMessages messagesToForward.count: \(messagesToForward.count)")
+                }
                 
                 let forwardGroupLimit = 100
                 for (_, ungroupedMessages) in messagesToForward {

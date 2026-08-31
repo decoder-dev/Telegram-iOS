@@ -1445,7 +1445,9 @@ public class Account {
             }
             
             if value {
-                Logger.shared.log("Account", "Became master")
+                // Named: with more than one account signed in these lines were indistinguishable,
+                // and 500 transitions in one log could not be attributed to either.
+                Logger.shared.log("Account", "Became master (\(peerId))")
                 let data = managedServiceViews(accountPeerId: peerId, network: network, postbox: postbox, stateManager: strongSelf.stateManager, pendingMessageManager: strongSelf.pendingMessageManager)
                 
                 let resetPeerHoles = data.resetPeerHoles
@@ -1454,7 +1456,7 @@ public class Account {
                 }
                 strongSelf.managedServiceViewsActionDisposable.set(data.disposable)
             } else {
-                Logger.shared.log("Account", "Resigned master")
+                Logger.shared.log("Account", "Resigned master (\(peerId))")
                 strongSelf.managedServiceViewsActionDisposable.set(nil)
             }
         }))

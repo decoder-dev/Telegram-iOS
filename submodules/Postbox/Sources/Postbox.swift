@@ -4052,7 +4052,10 @@ final class PostboxImpl {
             let disposable = MetaDisposable()
             self.queue.async {
                 disposable.set(self.viewTracker.unsentMessageIdsViewSignal().start(next: { view in
-                    postboxLog("unsentMessageIdsView contents: \(view.ids)")
+                    // Empty is the steady state, and it was 1256 lines of it in one 13-hour log.
+                    if !view.ids.isEmpty {
+                        postboxLog("unsentMessageIdsView contents: \(view.ids)")
+                    }
                     subscriber.putNext(view)
                 }))
             }
