@@ -6,6 +6,14 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3928-pre] — 2026-08-31
+
+Pre-release: WEB proxy network resilience + carrier negotiation + crash breadcrumbs.
+
+### Fixed
+- **WEB proxy:** transient downlink URLSession errors (-1001/-1004/-1005/-1009) retry with backoff instead of killing the carrier; session POST advertises `X-Carrier-Modes` so relay can pick websocket/lanes; resume-reconnect ignores stale failure from detached carrier.
+- **Crash breadcrumbs:** SIGSEGV handler runs on `sigaltstack` and records `backtrace` frames (stack overflow no longer faults again before writing).
+
 ## [v12.9.2-3927-pre] — 2026-08-30
 
 Pre-release: WEB proxy resume reconnect fix + FetchV2 log identifier.
