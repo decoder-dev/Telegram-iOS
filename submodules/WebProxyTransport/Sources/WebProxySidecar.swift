@@ -137,9 +137,16 @@ public final class WebProxySidecar {
                 carrier.onDownlinkBatch = { [weak self] batch in
                     self?.handleDownlinkBatch(batch)
                 }
-                carrier.onFailure = { [weak self] _ in
+                carrier.onFailure = { [weak self, weak carrier] _ in
                     self?.queue.async {
-                        self?.handleCarrierFailure()
+                        // Only the carrier that is still ours may end the sidecar. Detaching a
+                        // superseded carrier is not enough on its own: if it failed just before a
+                        // reconnect began, its notification is already sitting on this queue and
+                        // will run after the detach.
+                        guard let self, let carrier, self.carrier === carrier else {
+                            return
+                        }
+                        self.handleCarrierFailure()
                     }
                 }
                 
@@ -376,9 +383,12 @@ public final class WebProxySidecar {
             carrier.onDownlinkBatch = { [weak self] batch in
                 self?.handleDownlinkBatch(batch)
             }
-            carrier.onFailure = { [weak self] _ in
+            carrier.onFailure = { [weak self, weak carrier] _ in
                 self?.queue.async {
-                    self?.handleCarrierFailure()
+                    guard let self, let carrier, self.carrier === carrier else {
+                        return
+                    }
+                    self.handleCarrierFailure()
                 }
             }
             self.carrier = carrier

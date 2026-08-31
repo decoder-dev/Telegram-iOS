@@ -48,6 +48,9 @@ final class WebProxyHttpCarrier {
         /// uplink is ACKed. Lane 0 is session control and is polled from session start.
         var uplinkAdmitted = false
         var fastEmptyDownlinkStreak = 0
+        /// Same rule as the single-lane path: a transient network error on this lane's long poll
+        /// is retried rather than ending the whole carrier.
+        var consecutiveDownlinkFailures = 0
         
         var pendingUplinkCount: Int {
             return self.uplinkBuffer.count - self.uplinkBufferOffset
@@ -155,6 +158,16 @@ final class WebProxyHttpCarrier {
     /// correctly long-polling relay is never slowed down by this.
     private static let minimumDownlinkInterval: Double = 0.5
     private static let maximumDownlinkInterval: Double = 5.0
+
+    /// A long poll held open for two minutes on a phone will time out, lose the connection, or be
+    /// dropped by a radio handoff as a matter of course. Treating that as the end of the carrier
+    /// tore the session down, took the sidecar with it and rebound the loopback port — in one
+    /// tester's log, 33 times in 13 hours, five of them inside five minutes. The poll is
+    /// idempotent (it carries a cursor), so the answer to a network hiccup is to poll again.
+    /// After this many consecutive failures it is not a hiccup, and the manager's own backoff
+    /// takes over.
+    private static let maximumConsecutiveDownlinkFailures = 6
+    private var consecutiveDownlinkFailures = 0
     
     var onDownlinkBatch: ((Data) -> Void)?
     var onFailure: ((Error) -> Void)?
@@ -341,6 +354,13 @@ final class WebProxyHttpCarrier {
         request.setValue("Bearer \(bootstrapToken)", forHTTPHeaderField: "Authorization")
         request.setValue("application/octet-stream", forHTTPHeaderField: "Content-Type")
         request.setValue("no-store", forHTTPHeaderField: "Cache-Control")
+        // The response half of this negotiation has always existed — the relay answers with
+        // `X-Carrier-Mode` — but the request half never did, so the relay had nothing to choose
+        // against and picked the safe floor. In a tester's log it answered `https` on all 71
+        // sessions, which is to say the WebSocket and lane carriers have never run outside a
+        // test: the client asks for nothing, so it gets long-polling. Best first; a relay that
+        // does not know the header ignores it and answers `https` exactly as before.
+        request.setValue("websocket-lanes, websocket, https-lanes, https", forHTTPHeaderField: "X-Carrier-Modes")
         request.timeoutInterval = 90.0
         
         let task = self.session.dataTask(with: request) { [weak self] data, urlResponse, error in
@@ -597,6 +617,17 @@ final class WebProxyHttpCarrier {
         }
     }
     
+    /// Backs off the same way an empty long poll does, but keyed on the failure count so a radio
+    /// that is genuinely gone is not hammered.
+    private func scheduleDownlinkRetrySerialized() {
+        let step = min(self.consecutiveDownlinkFailures - 1, 8)
+        let backoff = min(WebProxyHttpCarrier.maximumDownlinkInterval, WebProxyHttpCarrier.minimumDownlinkInterval * pow(2.0, Double(step)))
+        let delay = backoff * Double.random(in: 0.85 ... 1.15)
+        self.queue.asyncAfter(deadline: .now() + delay) { [weak self] in
+            self?.pollDownlinkSerialized()
+        }
+    }
+
     private func pollDownlinkSerialized() {
         guard !self.closed, !self.sessionToken.isEmpty else {
             return
@@ -620,7 +651,13 @@ final class WebProxyHttpCarrier {
                 if self.closed {
                     return
                 }
-                if error != nil {
+                if let error = error {
+                    if !self.isCancellation(error), self.isTransientNetworkFailure(error), self.consecutiveDownlinkFailures < WebProxyHttpCarrier.maximumConsecutiveDownlinkFailures {
+                        self.consecutiveDownlinkFailures += 1
+                        WebProxyLog.log("downlink poll failed transiently against \(self.hostname) (\((error as NSError).code)), retry \(self.consecutiveDownlinkFailures) of \(WebProxyHttpCarrier.maximumConsecutiveDownlinkFailures)")
+                        self.scheduleDownlinkRetrySerialized()
+                        return
+                    }
                     self.fail(WebProxyHttpCarrierError.downlinkRejected)
                     return
                 }
@@ -628,6 +665,8 @@ final class WebProxyHttpCarrier {
                     self.fail(WebProxyHttpCarrierError.downlinkRejected)
                     return
                 }
+                // The relay answered, so whatever the network was doing, it has stopped.
+                self.consecutiveDownlinkFailures = 0
                 if http.statusCode == 204 {
                     self.scheduleDownlinkPollSerialized(requestStartedAt: startedAt, wasEmpty: true)
                     return
@@ -781,6 +820,22 @@ final class WebProxyHttpCarrier {
         }
     }
     
+    private func scheduleDownlinkRetryLane(laneId: UInt32, lane: LaneState) {
+        let step = min(lane.consecutiveDownlinkFailures - 1, 8)
+        let backoff = min(WebProxyHttpCarrier.maximumDownlinkInterval, WebProxyHttpCarrier.minimumDownlinkInterval * pow(2.0, Double(step)))
+        let delay = backoff * Double.random(in: 0.85 ... 1.15)
+        self.queue.asyncAfter(deadline: .now() + delay) { [weak self] in
+            guard let self else {
+                return
+            }
+            if self.closed || lane.closed {
+                lane.downlinkPolling = false
+                return
+            }
+            self.pollDownlinkLane(laneId: laneId, lane: lane)
+        }
+    }
+
     private func pollDownlinkLane(laneId: UInt32, lane: LaneState) {
         guard !self.closed, !lane.closed, !self.sessionToken.isEmpty else {
             lane.downlinkPolling = false
@@ -808,7 +863,13 @@ final class WebProxyHttpCarrier {
                     lane.downlinkPolling = false
                     return
                 }
-                if error != nil {
+                if let error = error {
+                    if !self.isCancellation(error), self.isTransientNetworkFailure(error), lane.consecutiveDownlinkFailures < WebProxyHttpCarrier.maximumConsecutiveDownlinkFailures {
+                        lane.consecutiveDownlinkFailures += 1
+                        WebProxyLog.log("downlink poll for lane \(laneId) failed transiently against \(self.hostname) (\((error as NSError).code)), retry \(lane.consecutiveDownlinkFailures) of \(WebProxyHttpCarrier.maximumConsecutiveDownlinkFailures)")
+                        self.scheduleDownlinkRetryLane(laneId: laneId, lane: lane)
+                        return
+                    }
                     self.fail(WebProxyHttpCarrierError.downlinkRejected)
                     return
                 }
@@ -816,6 +877,7 @@ final class WebProxyHttpCarrier {
                     self.fail(WebProxyHttpCarrierError.downlinkRejected)
                     return
                 }
+                lane.consecutiveDownlinkFailures = 0
                 
                 // Decoy 404 is what the relay returns for Protocol errors (e.g. /down on a
                 // lane that was never OPEN'd). Must not fail the whole carrier — that was
@@ -906,6 +968,31 @@ final class WebProxyHttpCarrier {
         return false
     }
     
+    /// Whether a URLSession error means the network is being a network, rather than the carrier
+    /// being over. Protocol-level rejections — a bad status, a missing cursor, a session the relay
+    /// has forgotten — are not in here and still end the carrier.
+    private func isTransientNetworkFailure(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        guard nsError.domain == NSURLErrorDomain else {
+            return false
+        }
+        switch nsError.code {
+        case NSURLErrorTimedOut,
+             NSURLErrorCannotFindHost,
+             NSURLErrorCannotConnectToHost,
+             NSURLErrorNetworkConnectionLost,
+             NSURLErrorDNSLookupFailed,
+             NSURLErrorNotConnectedToInternet,
+             NSURLErrorInternationalRoamingOff,
+             NSURLErrorCallIsActive,
+             NSURLErrorDataNotAllowed,
+             NSURLErrorSecureConnectionFailed:
+            return true
+        default:
+            return false
+        }
+    }
+
     private func fail(_ error: Error) {
         if self.closed {
             return

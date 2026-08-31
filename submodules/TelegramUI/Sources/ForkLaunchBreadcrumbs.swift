@@ -50,6 +50,17 @@ public enum ForkLaunchBreadcrumbs {
 
     private static var fileDescriptor: Int32 = -1
     private static var recordBuffer: UnsafeMutablePointer<UInt8>?
+    /// A dedicated stack for the signal handler, and the frame buffer it fills.
+    ///
+    /// Both exist for one case the previous design could not report at all: a stack overflow. The
+    /// fault arrives as SIGSEGV on the thread's guard page, and a handler installed with `signal()`
+    /// runs on that same exhausted stack — so it faults again and the process dies with nothing
+    /// written. Two such crashes appeared in a tester's log with an identical ten-frame recursion
+    /// and no breadcrumb beside them. `sigaltstack` plus `SA_ONSTACK` gives the handler its own
+    /// memory to run in, and once it can run, it can record the frames that got there.
+    private static var alternateStack: UnsafeMutableRawPointer?
+    private static var frameBuffer: UnsafeMutablePointer<UnsafeMutableRawPointer?>?
+    private static let maximumFrames = 96
     /// Touched from the signal handler, so it is a plain global rather than anything with a lock.
     private static var lastStage: UInt8 = 0
     private static var installed = false
@@ -85,8 +96,28 @@ public enum ForkLaunchBreadcrumbs {
         buffer[self.recordSize - 1] = 0x0A
         self.recordBuffer = buffer
 
+        self.frameBuffer = UnsafeMutablePointer<UnsafeMutableRawPointer?>.allocate(capacity: self.maximumFrames)
+
+        // MINSIGSTKSZ is the floor for an empty handler; `backtrace` walks frames and wants room.
+        let alternateStackSize = max(Int(SIGSTKSZ), 64 * 1024)
+        let alternateStack = UnsafeMutableRawPointer.allocate(byteCount: alternateStackSize, alignment: 16)
+        self.alternateStack = alternateStack
+        // Field-by-field rather than the memberwise initialiser: the order of an imported C
+        // struct's members is the C declaration order, and getting it wrong here would compile.
+        var stackDescription = stack_t()
+        stackDescription.ss_sp = alternateStack
+        stackDescription.ss_size = alternateStackSize
+        stackDescription.ss_flags = 0
+        sigaltstack(&stackDescription, nil)
+
+        // `signal()` cannot ask for SA_ONSTACK, which is the whole point of the alternate stack,
+        // so the disposition is installed through sigaction instead.
+        var action = sigaction()
+        action.__sigaction_u.__sa_handler = forkLaunchCrashSignalHandler
+        action.sa_flags = Int32(SA_ONSTACK) | Int32(SA_RESETHAND)
+        sigemptyset(&action.sa_mask)
         for signalNumber in [SIGSEGV, SIGABRT, SIGBUS, SIGILL, SIGFPE, SIGTRAP] {
-            signal(signalNumber, forkLaunchCrashSignalHandler)
+            sigaction(signalNumber, &action, nil)
         }
 
         // Chain, do not replace: something else may already be watching (a crash reporter, the
@@ -133,6 +164,15 @@ public enum ForkLaunchBreadcrumbs {
         buffer[1] = UInt8(truncatingIfNeeded: signalNumber)
         buffer[2] = self.lastStage
         _ = write(self.fileDescriptor, buffer, self.recordSize)
+        // `backtrace` and `backtrace_symbols_fd` are both documented async-signal-safe, and the
+        // buffer they fill was allocated at install time. This is the difference between "died on
+        // signal 11" and knowing which ten functions were calling each other.
+        if let frames = self.frameBuffer {
+            let count = backtrace(frames, Int32(self.maximumFrames))
+            if count > 0 {
+                backtrace_symbols_fd(frames, count, self.fileDescriptor)
+            }
+        }
         fsync(self.fileDescriptor)
     }
 
@@ -182,7 +222,10 @@ public enum ForkLaunchBreadcrumbs {
 
         switch bytes[0] {
         case self.markerCrash:
-            return "previous launch died on signal \(Int32(bytes[1])), last stage reached: \(stage)"
+            if trailing.isEmpty {
+                return "previous launch died on signal \(Int32(bytes[1])), last stage reached: \(stage)"
+            }
+            return "previous launch died on signal \(Int32(bytes[1])), last stage reached: \(stage)\n\(trailing)"
         case self.markerException:
             return "previous launch died on an uncaught exception, last stage reached: \(stage)\n\(trailing)"
         default:
