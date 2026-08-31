@@ -74,16 +74,16 @@ private final class SynchronizePeerReadStatesContextImpl {
     private func scheduleRetry(peerId: PeerId, operation: PeerReadStateSynchronizationOperation) {
         let failureCount = (self.failureCounts[peerId] ?? 0) + 1
         self.failureCounts[peerId] = failureCount
-        let delay = min(
+        let retryDelay = min(
             SynchronizePeerReadStatesContextImpl.maximumRetryInterval,
             SynchronizePeerReadStatesContextImpl.minimumRetryInterval * pow(2.0, Double(failureCount - 1))
         )
-        Logger.shared.log("SynchronizePeerReadStates", "\(peerId): operation retry \(operation) in \(delay)s (failure \(failureCount))")
+        Logger.shared.log("SynchronizePeerReadStates", "\(peerId): operation retry \(operation) in \(retryDelay)s (failure \(failureCount))")
 
         let disposable = MetaDisposable()
         self.retryDisposables[peerId] = disposable
         disposable.set((Signal<Never, NoError>.complete()
-        |> delay(delay, queue: self.queue)).start(completed: { [weak self] in
+        |> delay(retryDelay, queue: self.queue)).start(completed: { [weak self] in
             guard let strongSelf = self else {
                 return
             }
