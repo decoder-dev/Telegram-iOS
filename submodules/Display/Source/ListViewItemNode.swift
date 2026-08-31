@@ -233,12 +233,28 @@ open class ListViewItemNode: ASDisplayNode, AccessibilityFocusableNode {
         return .complete()
     }
     
+    /// Live instances, across every list in the app.
+    ///
+    /// The heap swings by 150 MB and 700,000 blocks inside a single minute, and nothing that
+    /// currently writes to the log correlates with it — the strongest of eight candidates reached
+    /// 0.17. Rows are the obvious suspect that leaves no trace: a message node and its text layout
+    /// are thousands of small objects, they are built and dropped by scrolling, and scrolling is
+    /// not logged anywhere. This makes the population visible so the next log can confirm or clear
+    /// them.
+    public static let liveInstanceCount = Atomic<Int>(value: 0)
+
     public init(layerBacked: Bool, rotated: Bool = false, seeThrough: Bool = false) {
         self.rotated = rotated
         
         super.init()
         
         self.isLayerBacked = layerBacked
+
+        let _ = ListViewItemNode.liveInstanceCount.modify { $0 + 1 }
+    }
+
+    deinit {
+        let _ = ListViewItemNode.liveInstanceCount.modify { $0 - 1 }
     }
     
     open var apparentHeight: CGFloat = 0.0

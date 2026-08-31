@@ -7,6 +7,7 @@ import MachO
 // reaches for either.
 import Darwin
 import TelegramCore
+import Display
 
 /// Thermal and CPU telemetry.
 ///
@@ -189,6 +190,10 @@ public enum ForkPerformanceTelemetry {
                     // appended to.
                     parts.append("blocks=\(heap.blocks / 1000)k")
                 }
+                // The heap moves by hundreds of thousands of blocks a minute and nothing else in
+                // the log moves with it. Rows are the one large population that is built and torn
+                // down by scrolling, which leaves no trace of its own.
+                parts.append("rows=\(ListViewItemNode.liveInstanceCount.with({ $0 }))")
                 parts.append("state=\(UIApplication.shared.applicationState == .background ? "background" : "foreground")")
                 parts.append("thermal=\(ForkPerformanceTelemetry.describe(self.thermalState))")
                 if let freeMegabytes = self.availableDiskMegabytes() {
@@ -256,7 +261,10 @@ public enum ForkPerformanceTelemetry {
     /// stores, IOSurfaces and video decode buffers do not, so if resident climbs while this
     /// stays flat the growth is in graphics memory and the search goes somewhere else
     /// entirely. Without it, a log showing a gigabyte says only that there is a gigabyte.
-    private static func mallocHeap() -> (bytes: Int, blocks: Int)? {
+    /// Live heap, as the allocator sees it. Resident memory is not a substitute: freeing into the
+    /// allocator does not hand pages back to the kernel, so a release that worked can read as no
+    /// change at all in `getMemoryConsumption()`.
+    static func mallocHeap() -> (bytes: Int, blocks: Int)? {
         var statistics = malloc_statistics_t()
         // A nil zone aggregates every zone.
         malloc_zone_statistics(nil, &statistics)

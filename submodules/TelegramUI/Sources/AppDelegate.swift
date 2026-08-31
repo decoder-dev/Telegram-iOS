@@ -2034,13 +2034,21 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                 // recorded, so a log showing the app suspended at half a gigabyte gave no way
                 // to tell whether clearing them helped at all. The caches are cleared on the
                 // Postbox queue, so read back after a beat rather than immediately.
-                let before = getMemoryConsumption() / (1024 * 1024)
+                // Measured against the allocator, not resident memory. Resident was the wrong
+                // gauge for this: releasing a cache returns its blocks to malloc, which keeps the
+                // pages, so 259 clears in one session read as a median of 1 MB freed and a mean of
+                // minus 0.3 — which says nothing about whether the caches were large.
+                let before = ForkPerformanceTelemetry.mallocHeap()
                 for (_, context, _) in activeAccounts.accounts {
                     context.account.postbox.clearCaches()
                 }
                 Queue.mainQueue().after(1.0, {
-                    let after = getMemoryConsumption() / (1024 * 1024)
-                    Logger.shared.log("Memory", "cleared postbox caches on background: \(before) MB -> \(after) MB")
+                    let after = ForkPerformanceTelemetry.mallocHeap()
+                    let heapBefore = (before?.bytes ?? 0) / (1024 * 1024)
+                    let heapAfter = (after?.bytes ?? 0) / (1024 * 1024)
+                    let blocksBefore = (before?.blocks ?? 0) / 1000
+                    let blocksAfter = (after?.blocks ?? 0) / 1000
+                    Logger.shared.log("Memory", "cleared postbox caches on background: heap \(heapBefore) MB -> \(heapAfter) MB, blocks \(blocksBefore)k -> \(blocksAfter)k, resident \(getMemoryConsumption() / (1024 * 1024)) MB")
                 })
             })
         })
@@ -2078,8 +2086,9 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
     /// while it still has a chance to stay alive, and the before/after numbers say how much
     /// that is actually worth.
     func applicationDidReceiveMemoryWarning(_ application: UIApplication) {
-        let before = getMemoryConsumption() / (1024 * 1024)
-        Logger.shared.log("Memory", "memory warning at \(before) MB — clearing postbox caches")
+        let before = ForkPerformanceTelemetry.mallocHeap()
+        let residentBefore = getMemoryConsumption() / (1024 * 1024)
+        Logger.shared.log("Memory", "memory warning at heap \((before?.bytes ?? 0) / (1024 * 1024)) MB / resident \(residentBefore) MB — clearing postbox caches")
 
         let _ = (self.sharedContextPromise.get()
         |> take(1)
@@ -2091,8 +2100,8 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                     context.account.postbox.clearCaches()
                 }
                 Queue.mainQueue().after(1.0, {
-                    let after = getMemoryConsumption() / (1024 * 1024)
-                    Logger.shared.log("Memory", "after memory warning cleanup: \(before) MB -> \(after) MB")
+                    let after = ForkPerformanceTelemetry.mallocHeap()
+                    Logger.shared.log("Memory", "after memory warning cleanup: heap \((before?.bytes ?? 0) / (1024 * 1024)) MB -> \((after?.bytes ?? 0) / (1024 * 1024)) MB, blocks \((before?.blocks ?? 0) / 1000)k -> \((after?.blocks ?? 0) / 1000)k, resident \(residentBefore) MB -> \(getMemoryConsumption() / (1024 * 1024)) MB")
                 })
             })
         })
