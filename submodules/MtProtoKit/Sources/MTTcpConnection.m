@@ -998,8 +998,14 @@ struct ctr_state {
 
 - (void)dealloc
 {
-    GCDAsyncSocket *socket = _socket;
-    socket.delegate = nil;
+    // `resetDelegate`, not `socket.delegate = nil`. `_socket` is an
+    // `id<MTTcpConnectionInterface>` and the concrete type behind it is
+    // `MTGcdAsyncSocketTcpConnectionInterface`, which has no `delegate` property — assigning
+    // through a `GCDAsyncSocket *` local compiled, but sent `setDelegate:` to an object that does
+    // not implement it. Unreachable while the connection had already been closed, since messaging
+    // nil is a no-op; a connection deallocated without a close would have raised.
+    id<MTTcpConnectionInterface> socket = _socket;
+    [socket resetDelegate];
     _socket = nil;
     
     MTTimer *responseTimeoutTimer = _responseTimeoutTimer;
@@ -1010,9 +1016,18 @@ struct ctr_state {
     {
         [responseTimeoutTimer invalidate];
         
-        [socket disconnect];
         [resolveDisposable dispose];
     }];
+
+    // Off `tcpQueue` for the same reason `closeAndNotifyWithError:` is — see
+    // `tcpSocketTeardownQueue`. This is the path a connection that was never explicitly closed
+    // takes, which is how the probing connections in `MTProxyConnectivity` end, and it blocked
+    // every MTProto connection in the process exactly as the other one did.
+    if (socket != nil) {
+        dispatch_async([MTTcpConnection tcpSocketTeardownQueue], ^{
+            [socket disconnect];
+        });
+    }
 }
 
 - (void)setUsageCalculationInfo:(MTNetworkUsageCalculationInfo *)usageCalculationInfo {
