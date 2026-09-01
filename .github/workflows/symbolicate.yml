@@ -1,0 +1,78 @@
+# Turns crash addresses into function names without anyone needing a Mac.
+#
+# The app's own crash handler writes a backtrace, but `backtrace_symbols` can only see exported
+# symbols, so a stripped release build resolves every Swift frame to the nearest export plus a
+# few kilobytes — a name that belongs to a different function. The real names live in the dSYM,
+# which is produced on the build runner and never reaches the device.
+#
+# So the runner does the lookup. Build once with "Also produce debug symbols" enabled, then run
+# this against that run's id with the offsets from the log; the answer appears in the run summary,
+# readable from a phone.
+name: Symbolicate crash addresses
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Run id of the build that produced the dSYMs artifact
+        type: string
+        required: true
+      offsets:
+        description: 'Space-separated file offsets, e.g. 0x48d404 0x394289c'
+        type: string
+        required: true
+      framework:
+        description: Which binary the offsets belong to
+        type: string
+        default: TelegramUIFramework
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  symbolicate:
+    name: atos
+    runs-on: macos-26
+    timeout-minutes: 20
+
+    steps:
+      - name: Fetch debug symbols from the build run
+        uses: actions/download-artifact@v5
+        with:
+          pattern: '*-dSYMs'
+          merge-multiple: true
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: symbols
+
+      - name: Resolve
+        run: |
+          set -euo pipefail
+
+          ZIP="$(find symbols -name 'Telegram.DSYMs.zip' | head -1)"
+          if [ -z "$ZIP" ]; then
+            echo "::error::run ${{ inputs.run_id }} has no dSYMs artifact — rebuild it with 'Also produce debug symbols' enabled"
+            exit 1
+          fi
+          unzip -q "$ZIP" -d unpacked
+
+          # The DWARF payload sits under <name>.dSYM/Contents/Resources/DWARF/<name>.
+          BIN="$(find unpacked -type f -path "*${{ inputs.framework }}.dSYM/Contents/Resources/DWARF/*" | head -1)"
+          if [ -z "$BIN" ]; then
+            echo "::error::no dSYM for ${{ inputs.framework }}. Present:"
+            find unpacked -name '*.dSYM' -maxdepth 4 -exec basename {} \;
+            exit 1
+          fi
+
+          echo "### ${{ inputs.framework }}" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          dwarfdump --uuid "$BIN" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo >> "$GITHUB_STEP_SUMMARY"
+
+          # `-l 0` because the log already carries file offsets rather than runtime addresses.
+          for offset in ${{ inputs.offsets }}; do
+            printf '%-12s %s\n' "$offset" "$(atos -o "$BIN" -arch arm64 -l 0 "$offset" 2>&1)" \
+              | tee -a "$GITHUB_STEP_SUMMARY"
+          done
+          echo '```' >> "$GITHUB_STEP_SUMMARY"

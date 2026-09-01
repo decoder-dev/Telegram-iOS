@@ -24,6 +24,10 @@ on:
         description: Publish / update a GitHub Release with the IPA
         type: boolean
         default: true
+      generate_dsym:
+        description: Also produce debug symbols (slower; needed to name a crash)
+        type: boolean
+        default: false
 
 concurrency:
   group: telegram-ios-ipa
@@ -164,6 +168,12 @@ jobs:
           echo "Telegram ${APP_VERSION} (${BUILD_NUMBER})"
 
       - name: Archive sideload iPhone application
+        env:
+          # `release_arm64` is an optimised, stripped build, so a crash address in it resolves to
+          # nothing at all — not from the binary, not from a dSYM that was never produced. Symbols
+          # are off by default because `dsymutil` is slow and most builds never need them; ask for
+          # them on the run where a crash has to be named.
+          DSYM_FLAG: ${{ inputs.generate_dsym && ' ' || '--skipDsym' }}
         run: |
           set -euo pipefail
           mkdir -p "$BAZEL_CACHE_DIR" "$BAZEL_REPO_CACHE" artifacts build/artifacts
@@ -182,7 +192,7 @@ jobs:
             --configuration="$BUILD_CONFIGURATION" \
             --buildNumber="$BUILD_NUMBER" \
             --disableExtensions \
-            --skipDsym \
+            $DSYM_FLAG \
             --ciFast \
             --outputBuildArtifactsPath=build/artifacts \
             2>&1 | tee release-build.log
@@ -322,6 +332,15 @@ jobs:
                 --latest
             fi
           fi
+
+      - name: Upload debug symbols
+        if: ${{ inputs.generate_dsym && (success() || failure()) }}
+        uses: actions/upload-artifact@v5
+        with:
+          name: Telegram-${{ env.APP_VERSION }}-${{ env.BUILD_NUMBER }}-dSYMs
+          path: build/artifacts/Telegram.DSYMs.zip
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Upload sideload IPA artifact
         if: success() || failure()
