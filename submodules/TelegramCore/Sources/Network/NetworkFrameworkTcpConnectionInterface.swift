@@ -57,6 +57,14 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
         /// no lock.
         private static var inFlightConnectCount: Int = 0
         private var isCountedInFlight: Bool = false
+
+        /// Kept only so the log lines can name the endpoint.
+        ///
+        /// The first log with this counter in it caught 4,176 connection attempts in twenty-five
+        /// seconds, ending in a watchdog kill — and could not say where a single one of them was
+        /// going, which is the one thing needed to tell a hammered relay from a hammered
+        /// loopback port from a hammered datacenter.
+        private var endpointDescription: String = "?"
         
         init(
             queue: Queue,
@@ -100,6 +108,11 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
                 assertionFailure("A connection already exists")
                 return
             }
+
+            // Taken from the parameters, before `host` is shadowed by the `NWEndpoint.Host` below:
+            // that type has no `CustomStringConvertible` conformance, so interpolating it would
+            // print whatever reflection makes of the case rather than the address.
+            self.endpointDescription = "\(host):\(port)"
             
             let host = NWEndpoint.Host(host)
             let port = NWEndpoint.Port(rawValue: port)!
@@ -163,14 +176,14 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
                     return
                 }
                 self.connectTimeoutTimer = nil
-                Logger.shared.log("Network", "NW connect timed out after \(timeout)s")
+                Logger.shared.log("Network", "NW connect to \(self.endpointDescription) timed out after \(timeout)s")
                 self.cancelWithError(error: nil)
             }, queue: self.queue)
             self.connectTimeoutTimer?.start()
 
             self.isCountedInFlight = true
             Impl.inFlightConnectCount += 1
-            Logger.shared.log("Network", "NW connect starting, \(Impl.inFlightConnectCount) in flight")
+            Logger.shared.log("Network", "NW connect starting to \(self.endpointDescription), \(Impl.inFlightConnectCount) in flight")
             
             connection.start(queue: self.queue.queue)
             
@@ -330,6 +343,13 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
             if let connectTimeoutTimer = self.connectTimeoutTimer {
                 self.connectTimeoutTimer = nil
                 connectTimeoutTimer.invalidate()
+            }
+            // Only when an attempt that had not yet connected fails: an ordinary disconnect passes
+            // no error and is not worth a line. A connection refused the instant it is made and a
+            // connection that dies after minutes of traffic look identical in the count above, and
+            // they are not the same problem — the first is a retry loop with nothing throttling it.
+            if let error = error, self.isCountedInFlight {
+                Logger.shared.log("Network", "NW connect to \(self.endpointDescription) failed: \(error)")
             }
             self.leaveInFlight()
             
