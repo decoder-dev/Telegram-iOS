@@ -306,7 +306,8 @@ public enum ForkPerformanceTelemetry {
         self.heartbeatTimer = timer
     }
 
-    /// The UUID of every Mach-O image inside the app bundle, once at launch.
+    /// The build number, and the UUID and load address of every Mach-O image inside the app bundle,
+    /// once at launch.
     ///
     /// MetricKit reports a crash stack as binary UUIDs and offsets and nothing else. Four
     /// kills on one device produced byte-for-byte identical twenty-six-frame stacks, which is
@@ -314,6 +315,13 @@ public enum ForkPerformanceTelemetry {
     /// no way to tell our frames from the system's, let alone hand the offsets to `atos`. The
     /// images do not change within a build, so one line at launch makes every crash stack in
     /// the log readable afterwards.
+    ///
+    /// The load address and the build number are here for the other kind of stack: the one our own
+    /// signal handler writes, which is a list of *runtime* addresses. Turning those into offsets
+    /// needs the slide, and picking the dSYM needs the build — and a log that carries neither costs
+    /// an afternoon of guessing which build produced it, with a wrong guess resolving to confident
+    /// nonsense rather than to an error. The UUID is what settles it: it must match
+    /// `dwarfdump --uuid` on the dSYM being used.
     private static func logLoadedImages() {
         var entries: [String] = []
         for index in 0 ..< _dyld_image_count() {
@@ -329,11 +337,13 @@ public enum ForkPerformanceTelemetry {
             guard let header = _dyld_get_image_header(index), let uuid = self.uuidOfImage(header) else {
                 continue
             }
-            entries.append("\((path as NSString).lastPathComponent)=\(uuid)")
+            let loadAddress = UInt(bitPattern: UnsafeRawPointer(header))
+            entries.append("\((path as NSString).lastPathComponent)=\(uuid)@0x\(String(loadAddress, radix: 16))")
         }
 
         if !entries.isEmpty {
-            Logger.shared.log("Perf", "bundle images: \(entries.joined(separator: " "))")
+            let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
+            Logger.shared.log("Perf", "bundle images: build=\(build) \(entries.joined(separator: " "))")
         }
     }
 
