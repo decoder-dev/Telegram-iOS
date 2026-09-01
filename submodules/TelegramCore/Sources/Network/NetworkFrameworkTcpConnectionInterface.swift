@@ -32,6 +32,7 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
         
         private var connection: NWConnection?
         private var reportedDisconnection: Bool = false
+        private var isReady: Bool = false
         
         private var currentInterfaceIsWifi: Bool = true
         
@@ -105,9 +106,11 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
         
         func connect(host: String, port: UInt16, timeout: Double) {
             if self.connection != nil {
-                assertionFailure("A connection already exists")
-                return
+                Logger.shared.log("Network", "NW connect to \(self.endpointDescription) restarting while a connection still exists")
+                self.cancelWithError(error: nil)
             }
+            self.reportedDisconnection = false
+            self.isReady = false
 
             // Taken from the parameters, before `host` is shadowed by the `NWEndpoint.Host` below:
             // that type has no `CustomStringConvertible` conformance, so interpolating it would
@@ -154,7 +157,10 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
                     guard let self = self else {
                         return
                     }
-                    if !isViable {
+                    // Do not tear down a connect that has not reached `.ready` yet. On flaky paths
+                    // viability often flips false while the stack is still negotiating, and
+                    // cancelling there leaves the UI stuck on "Connecting…" until the timeout fires.
+                    if !isViable, self.isReady {
                         self.cancelWithError(error: nil)
                     }
                 }
@@ -203,6 +209,7 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
         private func stateUpdated(state: NWConnection.State) {
             switch state {
             case .ready:
+                self.isReady = true
                 if let path = self.connection?.currentPath {
                     if path.usesInterfaceType(.cellular) {
                         self.currentInterfaceIsWifi = false
@@ -223,8 +230,11 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
                         delegate.connectionInterfaceDidConnect()
                     }
                 }
+                self.processReadRequests()
             case let .failed(error):
                 self.cancelWithError(error: error)
+            case .cancelled:
+                self.cancelWithError(error: nil)
             default:
                 break
             }
@@ -340,6 +350,7 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
         }
         
         private func cancelWithError(error: Error?) {
+            self.isReady = false
             if let connectTimeoutTimer = self.connectTimeoutTimer {
                 self.connectTimeoutTimer = nil
                 connectTimeoutTimer.invalidate()

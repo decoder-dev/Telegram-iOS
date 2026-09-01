@@ -115,7 +115,6 @@ private enum DebugControllerEntry: ItemListNodeEntry {
     case enableLocalTranslation(Bool)
     case preferredVideoCodec(Int, String, String?, Bool)
     case disableVideoAspectScaling(Bool)
-    case enableNetworkFramework(Bool)
     case enableNetworkExperiments(Bool)
     case restorePurchases(PresentationTheme)
     case logTranslationRecognition(Bool)
@@ -143,7 +142,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
             return DebugControllerSection.translation.rawValue
         case .preferredVideoCodec:
             return DebugControllerSection.videoExperiments.rawValue
-        case .disableVideoAspectScaling, .enableNetworkFramework, .enableNetworkExperiments:
+        case .disableVideoAspectScaling, .enableNetworkExperiments:
             return DebugControllerSection.videoExperiments2.rawValue
         case .hostInfo, .versionInfo:
             return DebugControllerSection.info.rawValue
@@ -276,8 +275,6 @@ private enum DebugControllerEntry: ItemListNodeEntry {
             return 61 + index
         case .disableVideoAspectScaling:
             return 100
-        case .enableNetworkFramework:
-            return 101
         case .enableNetworkExperiments:
             return 102
         case .hostInfo:
@@ -1254,16 +1251,6 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                     })
                 }).start()
             })
-        case let .enableNetworkFramework(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: DebugLocalizedString.networkXRestart, value: value, sectionId: self.section, style: .blocks, updated: { value in
-                if let context = arguments.context {
-                    let _ = updateNetworkSettingsInteractively(postbox: context.account.postbox, network: context.account.network, { settings in
-                        var settings = settings
-                        settings.useNetworkFramework = value
-                        return settings
-                    }).start()
-                }
-            })
         case let .enableNetworkExperiments(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: DebugLocalizedString.downloadXRestart, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 if let context = arguments.context {
@@ -1416,9 +1403,6 @@ private func debugControllerEntries(context: AccountContext?, sharedContext: Sha
 
     if isMainApp {
         entries.append(.disableVideoAspectScaling(experimentalSettings.disableVideoAspectScaling))
-        // Always on at runtime; migration rewrites any stored `false` on account load. The switch
-        // can still flip the stored flag for a one-session legacy-socket test after restart.
-        entries.append(.enableNetworkFramework(networkSettings?.useNetworkFramework ?? true))
         entries.append(.enableNetworkExperiments(networkSettings?.useExperimentalDownload ?? true))
     }
 

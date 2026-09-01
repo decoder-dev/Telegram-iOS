@@ -18,15 +18,15 @@ extension NetworkSettings {
 
 func networkSettingsWithMigrations(transaction: Transaction) -> NetworkSettings {
     let current = transaction.getPreferencesEntry(key: PreferencesKeys.networkSettings)?.get(NetworkSettings.self) ?? NetworkSettings.defaultSettings
-    if current.useNetworkFramework == true {
-        return current
+    guard current.useNetworkFramework == true else {
+        var updated = current
+        updated.useNetworkFramework = true
+        transaction.updatePreferencesEntry(key: PreferencesKeys.networkSettings, { _ in
+            PreferencesEntry(updated)
+        })
+        return updated
     }
-    var updated = current
-    updated.useNetworkFramework = true
-    transaction.updatePreferencesEntry(key: PreferencesKeys.networkSettings, { _ in
-        PreferencesEntry(updated)
-    })
-    return updated
+    return current
 }
 
 public func updateNetworkSettingsInteractively(transaction: Transaction, network: Network?, _ f: @escaping (NetworkSettings) -> NetworkSettings) {
@@ -34,7 +34,8 @@ public func updateNetworkSettingsInteractively(transaction: Transaction, network
     var updatedSettings: NetworkSettings?
     transaction.updatePreferencesEntry(key: PreferencesKeys.networkSettings, { current in
         let previous = current?.get(NetworkSettings.self) ?? NetworkSettings.defaultSettings
-        let updated = f(previous)
+        var updated = f(previous)
+        updated.useNetworkFramework = true
         updatedSettings = updated
         if updated.reducedBackupDiscoveryTimeout != previous.reducedBackupDiscoveryTimeout {
             updateNetwork = true

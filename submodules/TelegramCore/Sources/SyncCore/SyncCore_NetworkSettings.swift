@@ -8,7 +8,7 @@ public struct NetworkSettings: Codable {
     public var useExperimentalDownload: Bool?
     
     public static var defaultSettings: NetworkSettings {
-        return NetworkSettings(reducedBackupDiscoveryTimeout: false, applicationUpdateUrlPrefix: nil, backupHostOverride: nil, useNetworkFramework: nil, useExperimentalDownload: nil)
+        return NetworkSettings(reducedBackupDiscoveryTimeout: false, applicationUpdateUrlPrefix: nil, backupHostOverride: nil, useNetworkFramework: true, useExperimentalDownload: nil)
     }
     
     public init(reducedBackupDiscoveryTimeout: Bool, applicationUpdateUrlPrefix: String?, backupHostOverride: String?, useNetworkFramework: Bool?, useExperimentalDownload: Bool?) {

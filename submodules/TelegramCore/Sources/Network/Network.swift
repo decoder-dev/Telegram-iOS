@@ -582,12 +582,9 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
             // `-[GCDAsyncSocket closeWithError:]` at the same moment. `NWConnection` has neither:
             // `cancel()` aborts an in-flight connect, and nothing here can block a thread.
             //
-            // Always on. Upgrades migrate any stored `useNetworkFramework = false` back to true on
-            // the next account load, so testers who opted out of the experiment on an older build
-            // pick up NWConnection automatically. Debug Settings ▸ "Network (X Restart)" can still
-            // flip the stored flag for a one-session rollback, but the next launch re-enables it.
-            // `[Network] tcp connection factory: …` logs which transport is running.
-            // `setDefaultTcpConnectionInterface` falls back to the socket transport below iOS 12.
+            // Always on. `networkSettingsWithMigrations` rewrites any stored opt-out to true on every
+            // account load, so fresh installs and upgrades both land here. There is no debug toggle
+            // to turn it off anymore.
             let useNetworkFrameworkTcpConnection = true
             
             // Both branches are covered by applyWebSocketTransport: it installs the WebSocket factory
