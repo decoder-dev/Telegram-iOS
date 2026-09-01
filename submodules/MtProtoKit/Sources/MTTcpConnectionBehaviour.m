@@ -5,10 +5,30 @@
 #import <MtProtoKit/MTTimer.h>
 #import <MtProtoKit/MTQueue.h>
 
+/// Shortest gap allowed between two connection attempts.
+///
+/// The backoff below deliberately makes the first retry after a failure immediate, and
+/// `requestConnection` connects at once whenever no backoff timer is armed. Both are right for the
+/// case they were written for: a connection that worked for a while and dropped should come back
+/// without a visible pause.
+///
+/// They are wrong for a peer that refuses instantly. A loopback port with nothing listening — which
+/// is what MtProto is pointed at while the fork's WEB proxy has no carrier — fails a connect in
+/// microseconds, so "immediate retry" becomes as fast as the queue can turn around. A tester's log
+/// caught 4,176 connection attempts in twenty-five seconds, ending in a watchdog kill; in-flight
+/// never rose above seven, so every one of them was resolving instantly rather than timing out.
+///
+/// One second is chosen to be longer than any plausible instant refusal and shorter than the 1/4/8
+/// second ladder below, so it changes nothing about a normal reconnect: an attempt that got as far
+/// as connecting, or that failed after a real network delay, is already past it.
+static const NSTimeInterval MTTcpConnectionBehaviourMinimumAttemptInterval = 1.0;
+
 @interface MTTcpConnectionBehaviour ()
 {
     MTTimer *_backoffTimer;
     NSInteger _backoffCount;
+    /// When the last attempt was handed to the delegate. Zero until the first one.
+    CFAbsoluteTime _lastAttemptTimestamp;
 }
 
 @end
@@ -35,8 +55,25 @@
 - (void)requestConnection
 {
     if (_backoffTimer == nil) {
+        // Not unconditionally: with no timer armed this is the path that reconnects as fast as it
+        // is called, and after a fast failure it is called again immediately.
+        NSTimeInterval sinceLastAttempt = [self intervalSinceLastAttempt];
+        if (sinceLastAttempt < MTTcpConnectionBehaviourMinimumAttemptInterval) {
+            [self startTimer:MTTcpConnectionBehaviourMinimumAttemptInterval - sinceLastAttempt];
+            return;
+        }
         [self timerEvent:false];
     }
+}
+
+- (NSTimeInterval)intervalSinceLastAttempt
+{
+    if (_lastAttemptTimestamp <= 0.0) {
+        return DBL_MAX;
+    }
+    NSTimeInterval elapsed = CFAbsoluteTimeGetCurrent() - _lastAttemptTimestamp;
+    // The clock can step backwards; treat that as "long ago" rather than as a reason to stall.
+    return elapsed < 0.0 ? DBL_MAX : elapsed;
 }
 
 - (void)connectionOpened
@@ -59,8 +96,17 @@
     {
         _backoffCount++;
         
-        if (_backoffCount == 1)
-            [self timerEvent:true];
+        if (_backoffCount == 1) {
+            // The immediate first retry is kept for a connection that actually lived: that is the
+            // case it exists for. An attempt that ended within the minimum interval of starting
+            // never got going, and retrying it at once just repeats the failure at queue speed.
+            NSTimeInterval sinceLastAttempt = [self intervalSinceLastAttempt];
+            if (sinceLastAttempt < MTTcpConnectionBehaviourMinimumAttemptInterval) {
+                [self startTimer:MTTcpConnectionBehaviourMinimumAttemptInterval - sinceLastAttempt];
+            } else {
+                [self timerEvent:true];
+            }
+        }
         else
         {
             NSTimeInterval delay = 1.0;
@@ -112,6 +158,7 @@
 - (void)timerEvent:(bool)error
 {
     [self invalidateTimer];
+    _lastAttemptTimestamp = CFAbsoluteTimeGetCurrent();
     
     [_queue dispatchOnQueue:^
     {
