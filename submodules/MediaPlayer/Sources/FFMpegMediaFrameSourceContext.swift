@@ -99,6 +99,9 @@ private func readPacketCallback(userData: UnsafeMutableRawPointer?, buffer: Unsa
             } else {
                 let semaphore = DispatchSemaphore(value: 0)
                 let _ = context.currentSemaphore.swap(semaphore)
+                if context.isCancelled {
+                    semaphore.signal()
+                }
                 var completedRequest = false
                 let disposable = data.start(next: { result in
                     let (data, isComplete) = result
@@ -141,6 +144,9 @@ private func readPacketCallback(userData: UnsafeMutableRawPointer?, buffer: Unsa
             let data = postbox.mediaBox.resourceData(resourceReference.resource, pathExtension: nil, option: .complete(waitUntilFetchStatus: false))
             let semaphore = DispatchSemaphore(value: 0)
             let _ = context.currentSemaphore.swap(semaphore)
+            if context.isCancelled {
+                semaphore.signal()
+            }
             let readingOffset = context.readingOffset
             var completedRequest = false
             let disposable = data.start(next: { next in
@@ -217,6 +223,9 @@ private func seekCallback(userData: UnsafeMutableRawPointer?, offset: Int64, whe
                 let data = postbox.mediaBox.resourceData(resourceReference.resource, pathExtension: nil, option: .complete(waitUntilFetchStatus: false))
                 let semaphore = DispatchSemaphore(value: 0)
                 let _ = context.currentSemaphore.swap(semaphore)
+                if context.isCancelled {
+                    semaphore.signal()
+                }
                 var completedRequest = false
                 let disposable = data.start(next: { next in
                     if next.complete {
@@ -327,6 +336,31 @@ final class FFMpegMediaFrameSourceContext: NSObject {
     fileprivate var touchedRanges = IndexSet()
     
     let currentSemaphore = Atomic<DispatchSemaphore?>(value: nil)
+
+    /// Set from another thread when the owning `FFMpegMediaFrameSource` is being torn down.
+    ///
+    /// The four blocking reads in this file wait on `currentSemaphore` with no timeout, and the
+    /// worker thread only tests for termination between tasks. A read that never completes — a
+    /// stalled fetch, which is what a dropped connection produces — parks the thread inside a task
+    /// forever, so `ThreadTaskQueue.terminate()` can never reclaim it: one tester crash report
+    /// carried 118 threads, 68 of them identical and every one parked in `initializeState`'s read.
+    /// Cancelling releases the wait so the task can unwind and the loop can see that it should
+    /// exit.
+    private let cancelledValue = Atomic<Bool>(value: false)
+
+    var isCancelled: Bool {
+        return self.cancelledValue.with({ $0 })
+    }
+
+    /// Safe to call from any thread.
+    ///
+    /// The flag is set before the semaphore is signalled, and each waiter publishes its semaphore
+    /// before re-reading the flag. Either order releases the waiter: a waiter that publishes after
+    /// the flag is set sees the flag, and one that publishes before it is reached by the signal.
+    func cancel() {
+        let _ = self.cancelledValue.swap(true)
+        self.currentSemaphore.with({ $0 })?.signal()
+    }
     
     init(thread: Thread) {
         self.thread = thread
@@ -416,6 +450,9 @@ final class FFMpegMediaFrameSourceContext: NSObject {
             let data = postbox.mediaBox.resourceData(resourceReference.resource, pathExtension: nil, option: .complete(waitUntilFetchStatus: false))
             let semaphore = DispatchSemaphore(value: 0)
             let _ = self.currentSemaphore.swap(semaphore)
+            if self.isCancelled {
+                semaphore.signal()
+            }
             var resultFilePath: String?
             let disposable = data.start(next: { next in
                 if next.complete {

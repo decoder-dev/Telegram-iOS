@@ -8,6 +8,14 @@ private final class ThreadTaskQueue: NSObject {
     private var condition: pthread_cond_t
     private var tasks: [() -> Void] = []
     private var shouldExit = false
+    /// Published by the worker thread as soon as its context exists.
+    ///
+    /// `terminate()` sets `shouldExit`, but the loop only reads it between tasks. A task blocked
+    /// in the context's read callback — waiting, with no timeout, on a fetch that a dropped
+    /// connection will never complete — never returns to the loop, so the thread is never
+    /// reclaimed and the process accumulates one parked thread per stalled video. Cancelling the
+    /// context releases that wait.
+    private var context: FFMpegMediaFrameSourceContext?
     
     override init() {
         self.mutex = pthread_mutex_t()
@@ -61,9 +69,37 @@ private final class ThreadTaskQueue: NSObject {
         pthread_mutex_unlock(&self.mutex)
     }
     
+    /// Called once by the worker thread, before it enters `loop`.
+    func setContext(_ context: FFMpegMediaFrameSourceContext) {
+        pthread_mutex_lock(&self.mutex)
+        self.context = context
+        // `terminate()` may have run before the thread got this far, in which case it found no
+        // context to cancel and this is the only place the cancellation can be applied.
+        if self.shouldExit {
+            context.cancel()
+        }
+        pthread_mutex_unlock(&self.mutex)
+    }
+
+    /// Called by the worker thread once `loop` has returned.
+    ///
+    /// The context asserts that it is deallocated on its own thread, so this reference must be
+    /// dropped here rather than wherever the queue itself happens to die. Holding it only between
+    /// `setContext` and this call, both under the mutex, means `terminate()` never becomes the
+    /// last owner.
+    func clearContext() {
+        pthread_mutex_lock(&self.mutex)
+        self.context = nil
+        pthread_mutex_unlock(&self.mutex)
+    }
+
     func terminate() {
         pthread_mutex_lock(&self.mutex)
         self.shouldExit = true
+        // Under the mutex deliberately: no strong reference to the context escapes this call, so
+        // this thread can never end up releasing it. `cancel` only takes the context's own two
+        // `Atomic` locks, which are leaves — nothing acquires this mutex while holding one.
+        self.context?.cancel()
         pthread_cond_broadcast(&self.condition)
         pthread_mutex_unlock(&self.mutex)
     }
@@ -105,9 +141,11 @@ public final class FFMpegMediaFrameSource: NSObject, MediaFrameSource {
             let context = FFMpegMediaFrameSourceContext(thread: Thread.current)
             let localStorage = Thread.current.threadDictionary
             localStorage["FFMpegMediaFrameSourceContext"] = context
+            taskQueue.setContext(context)
 
             taskQueue.loop()
-            
+
+            taskQueue.clearContext()
             Thread.current.threadDictionary.removeObject(forKey: "FFMpegMediaFrameSourceContext")
         }
     }
