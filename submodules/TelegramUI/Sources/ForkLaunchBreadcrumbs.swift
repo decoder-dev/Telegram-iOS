@@ -112,7 +112,9 @@ public enum ForkLaunchBreadcrumbs {
 
         // `signal()` cannot ask for SA_ONSTACK, which is the whole point of the alternate stack,
         // so the disposition is installed through sigaction instead.
-        var action = sigaction()
+        // Annotated: `sigaction` names both this struct and the C function, and the annotation is
+        // what tells the type checker which one a bare `sigaction()` means.
+        var action: sigaction = sigaction()
         action.__sigaction_u.__sa_handler = forkLaunchCrashSignalHandler
         action.sa_flags = Int32(SA_ONSTACK) | Int32(SA_RESETHAND)
         sigemptyset(&action.sa_mask)
