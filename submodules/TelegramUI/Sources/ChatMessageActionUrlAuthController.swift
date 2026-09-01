@@ -41,12 +41,12 @@ private final class ChatMessageActionUrlAuthOptionNode: ASDisplayNode {
         set { self.textNode.attributedText = newValue }
     }
 
-    var maximumNumberOfLines: UInt {
+    var maximumNumberOfLines: Int {
         get { self.textNode.maximumNumberOfLines }
         set { self.textNode.maximumNumberOfLines = newValue }
     }
 
-    func measure(_ constrainedSize: CGSize) -> CGSize {
+    override func measure(_ constrainedSize: CGSize) -> CGSize {
         return self.textNode.measure(constrainedSize)
     }
 }
