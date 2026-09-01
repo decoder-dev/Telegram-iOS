@@ -268,7 +268,7 @@ private final class ChatMessageActionUrlAuthAlertContentNode: AlertContentNode {
         let authorizeCheckFrame = CGRect(origin: CGPoint(x: 12.0, y: origin.y - 2.0), size: checkSize)
         transition.updateFrame(node: self.authorizeLabelNode, frame: authorizeLabelFrame)
         transition.updateFrame(node: self.authorizeCheckNode, frame: authorizeCheckFrame)
-        self.authorizeLabelNode.view.accessibilityFrameInContainerSpace = authorizeLabelFrame.union(authorizeCheckFrame)
+        self.authorizeLabelNode.view.accessibilityFrame = UIAccessibility.convertToScreenCoordinates(authorizeLabelFrame.union(authorizeCheckFrame), in: self.view)
         origin.y += authorizeSize.height
         entriesHeight += authorizeSize.height
         
@@ -281,7 +281,7 @@ private final class ChatMessageActionUrlAuthAlertContentNode: AlertContentNode {
             let allowWriteCheckFrame = CGRect(origin: CGPoint(x: 12.0, y: origin.y - 2.0), size: checkSize)
             transition.updateFrame(node: self.allowWriteLabelNode, frame: allowWriteLabelFrame)
             transition.updateFrame(node: self.allowWriteCheckNode, frame: allowWriteCheckFrame)
-            self.allowWriteLabelNode.view.accessibilityFrameInContainerSpace = allowWriteLabelFrame.union(allowWriteCheckFrame)
+            self.allowWriteLabelNode.view.accessibilityFrame = UIAccessibility.convertToScreenCoordinates(allowWriteLabelFrame.union(allowWriteCheckFrame), in: self.view)
             origin.y += allowWriteSize.height
             entriesHeight += allowWriteSize.height
         }
