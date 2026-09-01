@@ -6,6 +6,21 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3930-pre] — 2026-09-01
+
+Pre-release: VoiceOver accessibility wave + WEB proxy uplink/reconnect fixes.
+
+### Added
+- **VoiceOver:** accessibility labels/traits across Display (alerts, action sheets, lists), chat messages, peer info panes, share sheet, contact list, chat list search, input context panels; contract tests (`AccessibilityUITests`, `VoiceOverContracts`) and release gate (`docs/VOICEOVER_RELEASE_GATE.md`, `ACCESSIBILITY_CHANGELOG.md`).
+
+### Fixed
+- **Browser:** KVO observer leak, readability text trim, hit-test, crash risks.
+- **WEB proxy:** resend uplink batches that never left on reconnect; skip bootstrap when offline; release replaced transport on every reconnect outcome (not only success).
+- **Context menu:** keep reaction bar off the message it belongs to.
+
+### Changed
+- **Instrumentation:** FetchManager logs finished vs abandoned; heartbeat uses malloc heap + Postbox row counts; network log records interface type and tunnel/proxy state.
+
 ## [v12.9.2-3929-pre] — 2026-08-31
 
 Pre-release: read-state retry backoff + log noise reduction (+ 3928 WEB proxy/crash fixes).
