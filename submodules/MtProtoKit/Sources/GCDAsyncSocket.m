@@ -2421,6 +2421,26 @@ enum GCDAsyncSocketConfig
         int flag = 1;
         setsockopt(socketFD, SOL_SOCKET, TCP_NODELAY, &flag, sizeof(flag));
     }
+
+    // Bound how long a blocking `connect()` can hold its thread.
+    //
+    // The connect below runs on a global concurrent queue and blocks a dispatch worker until the
+    // kernel gives up, which on Darwin is around 75 seconds. The caller's own timeout does not
+    // touch it: `endConnectTimeout` only bumps `connectIndex`, and the `close()` in
+    // `closeWithError:` does not wake a thread already inside `connect()`. A tester's watchdog
+    // report caught eleven threads parked here at once, with the tunnel up but dead.
+    //
+    // This is a bound, not the fix — the fix is a non-blocking connect driven by a write source,
+    // which is a rewrite of this function and its cancellation path. Twenty seconds sits above
+    // the twelve the only caller passes, so the app-level timeout still decides when an attempt
+    // has failed; this stops the thread outliving that decision by a minute. Guarded because the
+    // option is a Darwin extension: where it is missing, behaviour is exactly what it is today.
+#ifdef TCP_CONNECTIONTIMEOUT
+    {
+        int connectionTimeout = 20;
+        setsockopt(socketFD, IPPROTO_TCP, TCP_CONNECTIONTIMEOUT, &connectionTimeout, sizeof(connectionTimeout));
+    }
+#endif
 	
 	// Start the connection process in a background queue
 	
@@ -2430,48 +2450,65 @@ enum GCDAsyncSocketConfig
 	dispatch_async(globalConcurrentQueue, ^{
         CFAbsoluteTime startTime = CFAbsoluteTimeGetCurrent();
 		int result = connect(socketFD, (const struct sockaddr *)[address bytes], (socklen_t)[address length]);
+        CFAbsoluteTime connectDuration = CFAbsoluteTimeGetCurrent() - startTime;
 		if (result == 0)
 		{
-            bool isWifi = true;
-            
-            struct sockaddr_in addr;
-            struct ifaddrs* ifaddr;
-            struct ifaddrs* ifa;
-            socklen_t addr_len;
-            
-            addr_len = sizeof(addr);
-            getsockname(socketFD, (struct sockaddr*)&addr, &addr_len);
-            getifaddrs(&ifaddr);
-            
-            // look which interface contains the wanted IP.
-            // When found, ifa->ifa_name contains the name of the interface (eth0, eth1, ppp0...)
-            for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next)
-            {
-                if (ifa->ifa_addr)
+			dispatch_async(socketQueue, ^{ @autoreleasepool {
+                // Everything below reads socketFD, and the connect timeout closes it from this
+                // queue without waiting for the blocking connect above to return — `close()` does
+                // not wake a thread already inside `connect()`. So the descriptor is only safe to
+                // touch once this attempt is known to still be the current one; by then a timed
+                // out attempt's descriptor number may already belong to something else.
+                // `didConnect:` makes the same check, one call later, which was too late for the
+                // `getsockname` this guard now covers.
+                if (aConnectIndex != connectIndex) {
+                    return;
+                }
+
+                // NOTE: `isWifi` starts true and the loop below can only ever set it true again,
+                // so every connection is accounted as Wi-Fi, cellular included. Left alone here
+                // deliberately: correcting it changes what the Data Usage screen reports, and the
+                // loop would also need the AF_INET6 case it does not have, since it compares only
+                // AF_INET addresses and so can never match an IPv6 connection either way.
+                bool isWifi = true;
+                
+                struct sockaddr_in addr;
+                struct ifaddrs* ifaddr;
+                struct ifaddrs* ifa;
+                socklen_t addr_len;
+                
+                addr_len = sizeof(addr);
+                getsockname(socketFD, (struct sockaddr*)&addr, &addr_len);
+                getifaddrs(&ifaddr);
+                
+                // look which interface contains the wanted IP.
+                // When found, ifa->ifa_name contains the name of the interface (eth0, eth1, ppp0...)
+                for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next)
                 {
-                    if (AF_INET == ifa->ifa_addr->sa_family)
+                    if (ifa->ifa_addr)
                     {
-                        struct sockaddr_in* inaddr = (struct sockaddr_in*)ifa->ifa_addr;
-                        
-                        if (inaddr->sin_addr.s_addr == addr.sin_addr.s_addr)
+                        if (AF_INET == ifa->ifa_addr->sa_family)
                         {
-                            if (ifa->ifa_name)
+                            struct sockaddr_in* inaddr = (struct sockaddr_in*)ifa->ifa_addr;
+                            
+                            if (inaddr->sin_addr.s_addr == addr.sin_addr.s_addr)
                             {
-                                if ([[NSString stringWithCString:ifa->ifa_name encoding:NSUTF8StringEncoding] hasPrefix:@"en"]) {
-                                    isWifi = true;
+                                if (ifa->ifa_name)
+                                {
+                                    if ([[NSString stringWithCString:ifa->ifa_name encoding:NSUTF8StringEncoding] hasPrefix:@"en"]) {
+                                        isWifi = true;
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
-            freeifaddrs(ifaddr);
-            
-            if (MTLogEnabled()) {
-                MTLogWithPrefix(_getLogPrefix, @"Connection time: %f ms, interface: %@", (CFAbsoluteTimeGetCurrent() - startTime) * 1000.0f, isWifi ? @"Wifi" : @"WAN");
-            }
-            
-			dispatch_async(socketQueue, ^{ @autoreleasepool {
+                freeifaddrs(ifaddr);
+                
+                if (MTLogEnabled()) {
+                    MTLogWithPrefix(_getLogPrefix, @"Connection time: %f ms, interface: %@", connectDuration * 1000.0f, isWifi ? @"Wifi" : @"WAN");
+                }
+                
                 if (_usageCalculationInfo != nil) {
                     _usageManager = [[MTNetworkUsageManager alloc] initWithInfo:_usageCalculationInfo];
                     _interface = isWifi ? MTNetworkUsageManagerInterfaceOther : MTNetworkUsageManagerInterfaceWWAN;
