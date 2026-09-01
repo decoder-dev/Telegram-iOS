@@ -1382,7 +1382,11 @@ public final class ReactionContextNode: ASDisplayNode, ASScrollViewDelegate {
             isLeftAligned = false
         }
         rect.origin.x = max(sideInset, rect.origin.x)
-        rect.origin.y = max(insets.top + sideInset, rect.origin.y)
+        // `sideInset` carries the container's horizontal safe area, so reusing it as the vertical
+        // floor let a side inset push the pill down onto the anchored message. Only the constant
+        // part of it is a vertical margin.
+        let topMargin: CGFloat = self.forceTailToRight ? 0.0 : 11.0
+        rect.origin.y = max(insets.top + topMargin, rect.origin.y)
         rect.origin.x = min(containerSize.width - contentSize.width - sideInset, rect.origin.x)
         
         let rightEdge = containerSize.width - sideInset

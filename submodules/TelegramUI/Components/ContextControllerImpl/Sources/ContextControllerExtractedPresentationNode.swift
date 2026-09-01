@@ -1172,6 +1172,28 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
                 }
             }
             
+            // The message and the actions scroll together inside `scrollNode`; the reaction bar and
+            // the reaction preview are siblings of that container, so they stay where `contentRect`
+            // put them. When the pair overflows the screen the scroller comes to rest at its bottom
+            // (`defaultScrollY` below), lifting the message by that much - straight into the band
+            // `contentTopInset` reserved above it for the bar. Bound the lift by the slack the layout
+            // actually left there, and anchor the bar to where the message ends up.
+            var limitsContentLift = false
+            var restingContentLift: CGFloat = 0.0
+            if case .extracted = self.source, contextExtractableContainer == nil, !keepInPlace, self.actionsStackNode.topPositionLock == nil, self.currentReactionsPositionLock == nil, self.reactionContextNode != nil || self.reactionPreviewView != nil {
+                limitsContentLift = true
+                
+                // Mirrors the scroller's content height computed further down, which cannot be reused
+                // here because `actionsFrame` is only built after the bar has been laid out.
+                var scrollContentHeight = contentRect.maxY + contentActionsSpacing + actionsSize.height
+                if additionalActionsSize.height > 0.0 {
+                    scrollContentHeight += additionalActionsSize.height + 10.0
+                }
+                scrollContentHeight += bottomInset + layout.intrinsicInsets.bottom
+                
+                restingContentLift = max(0.0, min(scrollContentHeight - layout.size.height, contentRect.minY - contentTopInset))
+            }
+            
             if let reactionContextNode = self.reactionContextNode {
                 var reactionContextNodeTransition = transition
                 if reactionContextNode.frame.isEmpty {
@@ -1179,7 +1201,7 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
                 }
                 reactionContextNodeTransition.updateFrame(node: reactionContextNode, frame: CGRect(origin: CGPoint(), size: layout.size), beginWithCurrentState: true)
                 
-                var reactionAnchorRect = contentRect.offsetBy(dx: contentParentGlobalFrame.minX, dy: 0.0)
+                var reactionAnchorRect = contentRect.offsetBy(dx: contentParentGlobalFrame.minX, dy: -restingContentLift)
                 
                 let bottomInset = layout.insets(options: [.input]).bottom
                 var isCoveredByInput = false
@@ -1201,7 +1223,7 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
             }
             
             if let reactionPreviewView = self.reactionPreviewView {
-                let anchorRect = contentRect.offsetBy(dx: contentParentGlobalFrame.minX, dy: 0.0)
+                let anchorRect = contentRect.offsetBy(dx: contentParentGlobalFrame.minX, dy: -restingContentLift)
                 
                 let reactionPreviewFrame = CGRect(origin: CGPoint(x: floor((anchorRect.midX - reactionPreviewSize.width * 0.5)), y: anchorRect.minY - reactionPreviewInset - reactionPreviewSize.height), size: reactionPreviewSize)
                 transition.updateFrame(view: reactionPreviewView, frame: reactionPreviewFrame)
@@ -1409,6 +1431,11 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
             defaultScrollY = contentSize.height - layout.size.height
             if defaultScrollY < 0.0 {
                 defaultScrollY = 0.0
+            }
+            if limitsContentLift {
+                // Resting any lower would slide the message under the reaction bar, which does not
+                // scroll with it. The tail of the actions list stays reachable by scrolling.
+                defaultScrollY = min(defaultScrollY, restingContentLift)
             }
             
             self.dismissTapNode.frame = CGRect(origin: CGPoint(), size: CGSize(width: contentSize.width, height: max(contentSize.height, layout.size.height)))
