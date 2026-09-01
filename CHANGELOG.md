@@ -6,6 +6,16 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3932-pre] — 2026-09-01
+
+Pre-release: NWConnection default TCP, connect/thread watchdog fixes, chat list hang.
+
+### Fixed
+- **Network:** NWConnection is the default TCP transport — in-flight connects cancel on timeout instead of blocking threads in `connect(2)`; fix deinit leak, failed-write teardown, in-flight logging.
+- **MtProtoKit:** `TCP_CONNECTIONTIMEOUT` bounds blocking GCDAsyncSocket connects; stale-FD read after timeout; async socket teardown in `dealloc` off shared queues.
+- **Chat list:** skip header `requestLayout` when `combineLatest` emits but title/buttons unchanged — fixes main-thread watchdog hang on unstable network.
+- **FetchV2:** gate per-part chunk trace so large downloads do not evict crash breadcrumbs from the log.
+
 ## [v12.9.2-3931-pre] — 2026-09-01
 
 Pre-release: launch stack-overflow fix, FFMpeg thread leak fix, crash symbolication CI.
