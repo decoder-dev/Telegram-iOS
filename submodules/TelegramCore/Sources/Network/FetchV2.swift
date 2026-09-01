@@ -5,6 +5,23 @@ import MtProtoKit
 import RangeSet
 import TelegramApi
 
+/// Whether to log one line per fetched part, on top of the per-fetch lifecycle lines.
+///
+/// A tester's log came back 38 MB across nineteen rotated files, and 16.5 MB of that — 43% of
+/// everything retained — was FetchV2. Almost all of it was these two lines, one per 128 KB chunk:
+/// a single forty-megabyte video writes about three hundred of them. Rotation is a fixed budget,
+/// so the parts were evicting the crash breadcrumbs, heartbeats and MetricKit payloads sitting
+/// beside them — the lines every diagnosis in this log actually used. The parts have been used by
+/// none.
+///
+/// Everything that says what a fetch asked for, where it went and how it ended is still logged
+/// unconditionally. Flip this to true when a specific transfer needs to be followed chunk by
+/// chunk.
+/// A `var`, not a `let`, and file-scope rather than local: the compiler cannot then treat the
+/// branches below as statically dead, which under `-warnings-as-errors` would be a build failure
+/// rather than a warning. `flatBuffers_checkedGet` in this module is the same shape.
+private var logFetchV2Parts: Bool = false
+
 private let possiblePartLengths: [Int64] = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576]
 
 private func alignPartFetchRange(partRange: Range<Int64>, minPartSize: Int64, maxPartSize: Int64, alignment: Int64, boundaryLimit: Int64) -> (partRange: Range<Int64>, fetchRange: Range<Int64>) {
@@ -636,13 +653,19 @@ private final class FetchImpl {
                             var storePartRange = partRange
                             do {
                                 storePartRange = alignedRange
-                                Logger.shared.log("FetchV2", "\(self.loggingIdentifier): take part \(partRange) (store aligned as \(storePartRange)")
+                                if logFetchV2Parts {
+                                    Logger.shared.log("FetchV2", "\(self.loggingIdentifier): take part \(partRange) (store aligned as \(storePartRange)")
+                                }
                             }
                             /*if case .cdn = state.fetchLocation {
                                 storePartRange = alignedRange
-                                Logger.shared.log("FetchV2", "\(self.loggingIdentifier): take part \(partRange) (store aligned as \(storePartRange)")
+                                if logFetchV2Parts {
+                                    Logger.shared.log("FetchV2", "\(self.loggingIdentifier): take part \(partRange) (store aligned as \(storePartRange)")
+                                }
                             } else {
-                                Logger.shared.log("FetchV2", "\(self.loggingIdentifier): take part \(partRange) (aligned as \(alignedRange))")
+                                if logFetchV2Parts {
+                                    Logger.shared.log("FetchV2", "\(self.loggingIdentifier): take part \(partRange) (aligned as \(alignedRange))")
+                                }
                             }*/
                             
                             let pendingPart = PendingPart(
@@ -1069,7 +1092,9 @@ private final class FetchImpl {
             }
             
             if !actualData.isEmpty {
-                Logger.shared.log("FetchV2", "\(self.loggingIdentifier): emitting data part \(partRange) (aligned as \(fetchRange)): \(actualData.count)")
+                if logFetchV2Parts {
+                    Logger.shared.log("FetchV2", "\(self.loggingIdentifier): emitting data part \(partRange) (aligned as \(fetchRange)): \(actualData.count)")
+                }
                 
                 self.onNext(.dataPart(
                     resourceOffset: partRange.lowerBound,
@@ -1078,7 +1103,9 @@ private final class FetchImpl {
                     complete: false
                 ))
             } else {
-                Logger.shared.log("FetchV2", "\(self.loggingIdentifier): not emitting data part \(partRange) (aligned as \(fetchRange))")
+                if logFetchV2Parts {
+                    Logger.shared.log("FetchV2", "\(self.loggingIdentifier): not emitting data part \(partRange) (aligned as \(fetchRange))")
+                }
             }
         }
         
