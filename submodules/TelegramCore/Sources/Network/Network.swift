@@ -572,13 +572,23 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
             let context = MTContext(serialization: serialization, encryptionProvider: arguments.encryptionProvider, apiEnvironment: apiEnvironment, isTestingEnvironment: testingEnvironment, useTempAuthKeys: useTempAuthKeys)
             context.forceLocalDNS = proxySettings?.useLocalDNSForProxyHosts ?? false
             
-            var useNetworkFrameworkTcpConnection = false
-            if let networkSettings = networkSettings {
-                if let customValue = networkSettings.useNetworkFramework {
-                    useNetworkFrameworkTcpConnection = customValue
-                } else if arguments.useBetaFeatures {
-                    useNetworkFrameworkTcpConnection = true
-                }
+            // Default on.
+            //
+            // The socket transport this replaces blocks a dispatch worker inside `connect(2)`
+            // until the kernel gives up — around seventy-five seconds, whatever timeout
+            // MTTcpConnection passed — and on iOS creates a CFStream per connection scheduled on
+            // one process-wide run-loop thread that every close then blocks on. A tester's
+            // watchdog report caught eleven threads parked in `connect(2)` and three inside
+            // `-[GCDAsyncSocket closeWithError:]` at the same moment. `NWConnection` has neither:
+            // `cancel()` aborts an in-flight connect, and nothing here can block a thread.
+            //
+            // An explicit setting still wins, so Debug Settings ▸ "Network (X Restart)" turns it
+            // back off without a build, and `[Network] tcp connection factory: …` says on every
+            // launch which one is actually running. `setDefaultTcpConnectionInterface` falls back
+            // to the socket transport below iOS 12 on its own.
+            var useNetworkFrameworkTcpConnection = true
+            if let networkSettings = networkSettings, let customValue = networkSettings.useNetworkFramework {
+                useNetworkFrameworkTcpConnection = customValue
             }
             
             // Both branches are covered by applyWebSocketTransport: it installs the WebSocket factory

@@ -42,6 +42,21 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
         
         private var readRequests: [ReadRequest] = []
         private var currentReadRequest: ExecutingReadRequest?
+
+        /// Connections that have been started and have not yet reached `.ready`, failed, or been
+        /// cancelled.
+        ///
+        /// This is the number the whole Network.framework experiment exists to hold down. The
+        /// socket transport it replaces blocks a dispatch worker inside `connect(2)` for as long
+        /// as the kernel takes to give up — a tester's watchdog report caught eleven of them at
+        /// once — and nothing in a log said so; it took thread archaeology on a crash payload.
+        /// `NWConnection` cannot block a thread, so if this number still climbs the cause is
+        /// somewhere else entirely, and either way the log now answers it directly.
+        ///
+        /// Mutated only from `sharedQueue`, which every `Impl` in the process shares, so it needs
+        /// no lock.
+        private static var inFlightConnectCount: Int = 0
+        private var isCountedInFlight: Bool = false
         
         init(
             queue: Queue,
@@ -57,6 +72,16 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
         }
         
         deinit {
+            // An `NWConnection` keeps itself alive while started, so one that is never cancelled
+            // outlives everything that referenced it — with this file's five-second keepalive
+            // still running. `disconnect()` normally gets here first, but "released without being
+            // closed" is exactly the shape of two bugs already fixed in the socket transport, and
+            // the cost of covering it is one call.
+            self.leaveInFlight()
+            if let connection = self.connection {
+                self.connection = nil
+                connection.cancel()
+            }
         }
         
         func setUsageCalculationInfo(_ usageCalculationInfo: MTNetworkUsageCalculationInfo?) {
@@ -138,13 +163,28 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
                     return
                 }
                 self.connectTimeoutTimer = nil
+                Logger.shared.log("Network", "NW connect timed out after \(timeout)s")
                 self.cancelWithError(error: nil)
             }, queue: self.queue)
             self.connectTimeoutTimer?.start()
+
+            self.isCountedInFlight = true
+            Impl.inFlightConnectCount += 1
+            Logger.shared.log("Network", "NW connect starting, \(Impl.inFlightConnectCount) in flight")
             
             connection.start(queue: self.queue.queue)
             
             self.processReadRequests()
+        }
+
+        /// Balanced against the increment in `connect`, from every path that ends an attempt:
+        /// ready, failed, timed out, cancelled, or deallocated. Idempotent, because more than one
+        /// of those can happen to the same connection.
+        private func leaveInFlight() {
+            if self.isCountedInFlight {
+                self.isCountedInFlight = false
+                Impl.inFlightConnectCount -= 1
+            }
         }
         
         private func stateUpdated(state: NWConnection.State) {
@@ -162,6 +202,7 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
                     self.connectTimeoutTimer = nil
                     connectTimeoutTimer.invalidate()
                 }
+                self.leaveInFlight()
                 
                 let delegate = self.delegate
                 self.delegateQueue.async { [weak delegate] in
@@ -182,7 +223,21 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
                 return
             }
             
-            connection.send(content: data, completion: .contentProcessed({ _ in
+            let queue = self.queue
+            connection.send(content: data, completion: .contentProcessed({ [weak self] error in
+                // A dropped send used to be silent, which left MtProtoKit waiting on a reply to a
+                // request that never left for as long as its own timeout — the socket transport
+                // reports write errors, so this one should too.
+                guard let error = error else {
+                    return
+                }
+                queue.async {
+                    guard let self = self else {
+                        return
+                    }
+                    Logger.shared.log("NetworkFrameworkTcpConnectionInterface", "send failed: \(error)")
+                    self.cancelWithError(error: error)
+                }
             }))
             
             self.networkUsageManager?.addOutgoingBytes(UInt(data.count), interface: self.currentInterfaceIsWifi ? MTNetworkUsageManagerInterfaceOther : MTNetworkUsageManagerInterfaceWWAN)
@@ -276,6 +331,7 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
                 self.connectTimeoutTimer = nil
                 connectTimeoutTimer.invalidate()
             }
+            self.leaveInFlight()
             
             if !self.reportedDisconnection {
                 self.reportedDisconnection = true
@@ -324,6 +380,14 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
     }
     
     func connect(toHost inHost: String, onPort port: UInt16, viaInterface inInterface: String?, withTimeout timeout: TimeInterval, error errPtr: NSErrorPointer) -> Bool {
+        // `viaInterface` has no equivalent here and is not implemented: it would map to
+        // `NWParameters.requiredInterfaceType`, and every construction site in MtProtoKit
+        // (MTTcpTransport, MTProxyConnectivity, MTDiscoverConnectionSignals) passes nil, so the
+        // mapping would be code no path exercises. Saying so out loud rather than dropping the
+        // argument, in case a caller ever starts passing one.
+        if let inInterface = inInterface {
+            Logger.shared.log("NetworkFrameworkTcpConnectionInterface", "ignoring viaInterface \(inInterface): not implemented for NWConnection")
+        }
         self.impl.with { impl in
             impl.connect(host: inHost, port: port, timeout: timeout)
         }
