@@ -17,11 +17,37 @@ private func formattedText(_ text: String, color: UIColor, textAlignment: NSText
     return parseMarkdownIntoAttributedString(text, attributes: MarkdownAttributes(body: MarkdownAttributeSet(font: textFont, textColor: color), bold: MarkdownAttributeSet(font: boldTextFont, textColor: color), link: MarkdownAttributeSet(font: textFont, textColor: color), linkAttribute: { _ in return nil}), textAlignment: textAlignment)
 }
 
-private final class ChatMessageActionUrlAuthOptionNode: ASTextNode {
+private final class ChatMessageActionUrlAuthOptionNode: ASDisplayNode {
+    let textNode = ASTextNode()
     var activate: (() -> Bool)?
+
+    override init() {
+        super.init()
+        self.addSubnode(self.textNode)
+        self.isAccessibilityElement = true
+    }
 
     override func accessibilityActivate() -> Bool {
         return self.activate?() ?? false
+    }
+
+    override func layout() {
+        super.layout()
+        self.textNode.frame = self.bounds
+    }
+
+    var attributedText: NSAttributedString? {
+        get { self.textNode.attributedText }
+        set { self.textNode.attributedText = newValue }
+    }
+
+    var maximumNumberOfLines: UInt {
+        get { self.textNode.maximumNumberOfLines }
+        set { self.textNode.maximumNumberOfLines = newValue }
+    }
+
+    func measure(_ constrainedSize: CGSize) -> CGSize {
+        return self.textNode.measure(constrainedSize)
     }
 }
 
