@@ -6,6 +6,21 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3931-pre] — 2026-09-01
+
+Pre-release: launch stack-overflow fix, FFMpeg thread leak fix, crash symbolication CI.
+
+### Added
+- **CI:** optional dSYM upload on Build sideload IPA (`generate_dsym`); Symbolicate crash addresses workflow (`atos` on runner).
+- **Breadcrumbs:** launch sub-stages inside `rootControllerReady` (`overlayControllersAttached`, `notificationsRegistered`, `authContextObserved`, `logoutObserved`).
+
+### Fixed
+- **ListView:** drain transaction queue in a loop instead of recursive `endTransaction` — fixes launch SIGSEGV stack overflow when many list transactions queue at startup.
+- **MediaPlayer:** cancel FFMpeg frame source on thread termination so blocked `readPacketCallback` semaphores unwind and worker threads are reclaimed.
+
+### Changed
+- **Telemetry:** bundle-images log includes build number and load address per image UUID for crash offset mapping.
+
 ## [v12.9.2-3930-pre] — 2026-09-01
 
 Pre-release: VoiceOver accessibility wave + WEB proxy uplink/reconnect fixes.
