@@ -3932,7 +3932,7 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
         if UIAccessibility.isVoiceOverRunning {
             self.forEachVisibleMessageItemNode { itemNode in
                 if accessibilityFocusedMessageId == nil, itemNode.accessibilityContainsFocus(), let item = itemNode.item {
-                    accessibilityFocusedMessageId = item.content.first?.0.id
+                    accessibilityFocusedMessageId = item.content.firstMessage.id
                 }
             }
         }
