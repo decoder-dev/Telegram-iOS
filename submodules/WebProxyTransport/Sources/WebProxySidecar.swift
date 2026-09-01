@@ -335,6 +335,14 @@ public final class WebProxySidecar {
                 return
             }
             didFinish = true
+            // Every terminal path releases the transport being replaced, not just the successful
+            // one. The timeout and the build failure used to leave it running: `stopLocked` closes
+            // `self.carrier` and `self.urlSession`, which by then are the *new* ones, so the old
+            // session stayed alive with its long polls in flight and nothing left to invalidate
+            // it — a leaked session per attempt, on exactly the bad network that makes attempts
+            // time out in the first place.
+            previousCarrier?.stop()
+            previousSession?.invalidateAndCancel()
             var joined: [(Result<Void, Error>) -> Void] = []
             if let self = self {
                 self.transportReconnectInFlight = false
@@ -415,8 +423,6 @@ public final class WebProxySidecar {
                         }
                         self.streams.removeAll()
                         self.nextStreamId = 1
-                        previousCarrier?.stop()
-                        previousSession?.invalidateAndCancel()
                         WebProxyLog.log("sidecar transport reconnect (\(reason)) succeeded, loopback port unchanged")
                         finish(.success(()))
                     case let .failure(error):
@@ -429,7 +435,6 @@ public final class WebProxySidecar {
                             self.urlSession = previousSession
                         }
                         urlSession.invalidateAndCancel()
-                        previousCarrier?.stop()
                         WebProxyLog.log("sidecar transport reconnect (\(reason)) failed: \(error)")
                         finish(.failure(error))
                         self.onFailure?()
