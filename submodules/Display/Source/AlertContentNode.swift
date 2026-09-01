@@ -5,7 +5,7 @@ import AsyncDisplayKit
 open class AlertContentNode: ASDisplayNode {
     open var requestLayout: ((ContainedViewLayoutTransition) -> Void)?
 
-    var usesAccessibilityContentSizeCategory: Bool {
+    public var usesAccessibilityContentSizeCategory: Bool {
         let category = self.isNodeLoaded ? self.view.traitCollection.preferredContentSizeCategory : UITraitCollection.current.preferredContentSizeCategory
         return category.isAccessibilityCategory
     }
