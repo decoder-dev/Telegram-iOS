@@ -79,7 +79,6 @@ enum DebugLocalizedString {
             "pwa": "PWA",
             "localTranslation": "Local Translation",
             "videoCroppingOptimization": "Video Cropping Optimization",
-            "networkXRestart": "Network X [Restart App]",
             "downloadXRestart": "Download X [Restart App]",
             "restorePurchases": "Restore Purchases",
             "done": "Done",
@@ -158,7 +157,6 @@ enum DebugLocalizedString {
             "pwa": "PWA",
             "localTranslation": "Локальный перевод",
             "videoCroppingOptimization": "Оптимизация кропа видео",
-            "networkXRestart": "Network X [перезапуск]",
             "downloadXRestart": "Download X [перезапуск]",
             "restorePurchases": "Восстановить покупки",
             "done": "Готово",
@@ -253,7 +251,6 @@ enum DebugLocalizedString {
     static var pwa: String { string("pwa") }
     static var localTranslation: String { string("localTranslation") }
     static var videoCroppingOptimization: String { string("videoCroppingOptimization") }
-    static var networkXRestart: String { string("networkXRestart") }
     static var downloadXRestart: String { string("downloadXRestart") }
     static var restorePurchases: String { string("restorePurchases") }
     static var done: String { string("done") }
