@@ -1509,7 +1509,7 @@ private final class StoryGridAccessibilityElement: UIAccessibilityElement {
         return false
     }
 
-    init(accessibilityContainer container: Any) {
+    override init(accessibilityContainer container: Any) {
         super.init(accessibilityContainer: container)
     }
 
@@ -5853,9 +5853,10 @@ private final class BottomActionsPanelComponent: Component {
                     if itemComponenView.superview == nil {
                         self.addSubview(itemComponenView)
                     }
+                    let panelItem = component.items[i]
                     itemComponenView.isAccessibilityElement = true
-                    itemComponenView.accessibilityLabel = item.title
-                    itemComponenView.accessibilityTraits = item.isEnabled ? [.button] : [.button, .notEnabled]
+                    itemComponenView.accessibilityLabel = panelItem.title
+                    itemComponenView.accessibilityTraits = panelItem.isEnabled ? [.button] : [.button, .notEnabled]
                     for subview in itemComponenView.subviews {
                         subview.accessibilityElementsHidden = true
                     }
