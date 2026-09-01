@@ -6,6 +6,15 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3933-pre] — 2026-09-01
+
+Pre-release: NWConnection always-on, connect hang fix, reconnect storm throttle.
+
+### Fixed
+- **Network:** NWConnection is always enabled — debug toggle removed; stored opt-out migrates to on at account load and on every settings write; fix intermittent connect hang (ignore pre-ready viability loss, handle `.cancelled`, restart stale connections).
+- **Network:** NWConnection logs name the endpoint and pre-connect failures (`NWError`) so retry storms can be distinguished (relay vs loopback vs DC).
+- **MtProtoKit:** one-second floor between TCP reconnect attempts when a peer refuses instantly — stops 4k+ connects/25s watchdog kills while WEB proxy has no carrier.
+
 ## [v12.9.2-3932-pre] — 2026-09-01
 
 Pre-release: NWConnection default TCP, connect/thread watchdog fixes, chat list hang.
