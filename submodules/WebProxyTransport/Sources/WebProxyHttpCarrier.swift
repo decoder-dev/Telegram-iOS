@@ -168,6 +168,16 @@ final class WebProxyHttpCarrier {
     /// takes over.
     private static let maximumConsecutiveDownlinkFailures = 6
     private var consecutiveDownlinkFailures = 0
+
+    /// The uplink cannot be retried as freely as the downlink poll. Its batch leaves the buffer
+    /// when it is sent and its `X-Up-Seq` is spent, and the relay orders the stream by that
+    /// sequence — so replaying a request the relay may already have processed would duplicate
+    /// frames rather than recover them. But a request that never reached a socket is a different
+    /// case: nothing was delivered, so re-sending the identical bytes under the identical sequence
+    /// is exactly what the relay is still waiting for. Only errors that fail before a connection
+    /// exists qualify; a timeout or a dropped connection is ambiguous and still ends the carrier.
+    private var consecutiveUplinkFailures = 0
+    private static let maximumConsecutiveUplinkFailures = 4
     
     var onDownlinkBatch: ((Data) -> Void)?
     var onFailure: ((Error) -> Void)?
@@ -560,7 +570,13 @@ final class WebProxyHttpCarrier {
         self.compactBuffer(&self.uplinkBuffer, offset: &self.uplinkBufferOffset)
         let sequence = self.upSequence
         self.upSequence += 1
-        
+        self.consecutiveUplinkFailures = 0
+        self.sendUplinkSerialized(url: url, sequence: sequence, batch: batch)
+    }
+
+    /// Sends one batch. Separated from the batching above so a retry re-sends the identical bytes
+    /// under the identical sequence rather than cutting a new batch.
+    private func sendUplinkSerialized(url: URL, sequence: Int, batch: Data) {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.httpBody = batch
@@ -574,16 +590,35 @@ final class WebProxyHttpCarrier {
                 return
             }
             self.queue.async {
+                var isRetrying = false
                 defer {
-                    self.uplinkRunning = false
-                    if self.pendingUplinkCount > 0 {
-                        self.runUplinkSerializedIfNeeded()
+                    // A retry keeps the slot: the same sequence has to reach the relay before any
+                    // later batch may, or the stream arrives out of order.
+                    if !isRetrying {
+                        self.uplinkRunning = false
+                        if self.pendingUplinkCount > 0 {
+                            self.runUplinkSerializedIfNeeded()
+                        }
                     }
                 }
                 if self.closed {
                     return
                 }
-                if error != nil {
+                if let error = error {
+                    if !self.isCancellation(error), self.isUnsentNetworkFailure(error), self.consecutiveUplinkFailures < WebProxyHttpCarrier.maximumConsecutiveUplinkFailures {
+                        self.consecutiveUplinkFailures += 1
+                        isRetrying = true
+                        WebProxyLog.log("uplink \(sequence) never left the device against \(self.hostname) (\((error as NSError).code)), resending \(self.consecutiveUplinkFailures) of \(WebProxyHttpCarrier.maximumConsecutiveUplinkFailures)")
+                        let step = min(self.consecutiveUplinkFailures - 1, 8)
+                        let backoff = min(WebProxyHttpCarrier.maximumDownlinkInterval, WebProxyHttpCarrier.minimumDownlinkInterval * pow(2.0, Double(step)))
+                        self.queue.asyncAfter(deadline: .now() + backoff * Double.random(in: 0.85 ... 1.15)) { [weak self] in
+                            guard let self, !self.closed else {
+                                return
+                            }
+                            self.sendUplinkSerialized(url: url, sequence: sequence, batch: batch)
+                        }
+                        return
+                    }
                     self.fail(WebProxyHttpCarrierError.uplinkRejected)
                     return
                 }
@@ -593,6 +628,7 @@ final class WebProxyHttpCarrier {
                     self.fail(WebProxyHttpCarrierError.uplinkRejected)
                     return
                 }
+                self.consecutiveUplinkFailures = 0
             }
         }
         task.resume()
@@ -971,6 +1007,29 @@ final class WebProxyHttpCarrier {
     /// Whether a URLSession error means the network is being a network, rather than the carrier
     /// being over. Protocol-level rejections — a bad status, a missing cursor, a session the relay
     /// has forgotten — are not in here and still end the carrier.
+    /// Whether a URLSession error means the request never reached a socket, so nothing at the
+    /// other end can have seen it. Strictly narrower than `isTransientNetworkFailure`: a timeout
+    /// and a lost connection are transient but NOT unsent, because the relay may have processed
+    /// the body before the connection went away.
+    private func isUnsentNetworkFailure(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        guard nsError.domain == NSURLErrorDomain else {
+            return false
+        }
+        switch nsError.code {
+        case NSURLErrorNotConnectedToInternet,
+             NSURLErrorCannotFindHost,
+             NSURLErrorCannotConnectToHost,
+             NSURLErrorDNSLookupFailed,
+             NSURLErrorInternationalRoamingOff,
+             NSURLErrorCallIsActive,
+             NSURLErrorDataNotAllowed:
+            return true
+        default:
+            return false
+        }
+    }
+
     private func isTransientNetworkFailure(_ error: Error) -> Bool {
         let nsError = error as NSError
         guard nsError.domain == NSURLErrorDomain else {

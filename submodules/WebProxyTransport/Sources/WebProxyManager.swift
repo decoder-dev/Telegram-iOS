@@ -1,4 +1,5 @@
 import Foundation
+import Network
 
 public struct WebProxyConfiguration: Equatable {
     public let hostname: String
@@ -77,6 +78,20 @@ public final class WebProxyManager {
     /// Stamped onto each armed retry so a superseded one drops out when it fires.
     private var retryGeneration: UInt64 = 0
     
+    /// Whether there is a network at all, and the monitor that says so.
+    ///
+    /// A bootstrap attempted with no path cannot succeed, but it still counted as a failure and
+    /// still advanced the cooldown — so after the radio came back the proxy sat out a backoff it
+    /// had earned entirely while offline. In one tester's log 34 of 55 bootstrap failures were
+    /// `NSURLErrorNotConnectedToInternet`. Starts now wait for a path, and the path returning is
+    /// itself the trigger to start, because conditions genuinely changed and the cooldown was
+    /// measuring the wrong thing.
+    ///
+    /// Optimistic until told otherwise: a manager that never hears from the monitor must still
+    /// try, rather than refuse to connect for the life of the process.
+    private var isNetworkAvailable = true
+    private var pathMonitor: NWPathMonitor?
+
     private var nextSidecarEventToken: SidecarEventToken = 0
     private var sidecarEventHandlers: [SidecarEventToken: () -> Void] = [:]
     
@@ -156,6 +171,8 @@ public final class WebProxyManager {
         self.startLock.lock()
         self.desiredConfiguration = server
         self.startLock.unlock()
+
+        self.installPathMonitorIfNeeded()
         
         self.lock.lock()
         if server == self.configuration, self.endpoint != nil {
@@ -314,6 +331,13 @@ public final class WebProxyManager {
                 return
             }
         }
+        if !self.isNetworkAvailable {
+            // No path: the bootstrap would fail on its first request and charge the cooldown for
+            // it. `handlePathUpdate` starts this the moment a path exists.
+            WebProxyLog.log("holding bootstrap for \(configuration.hostname): no network path")
+            self.startLock.unlock()
+            return
+        }
         self.startGeneration &+= 1
         let generation = self.startGeneration
         self.startingConfiguration = configuration
@@ -325,6 +349,54 @@ public final class WebProxyManager {
         }
     }
     
+    private func installPathMonitorIfNeeded() {
+        self.startLock.lock()
+        if self.pathMonitor != nil {
+            self.startLock.unlock()
+            return
+        }
+        let monitor = NWPathMonitor()
+        self.pathMonitor = monitor
+        self.startLock.unlock()
+
+        monitor.pathUpdateHandler = { [weak self] path in
+            self?.handlePathUpdate(isSatisfied: path.status == .satisfied)
+        }
+        monitor.start(queue: DispatchQueue.global(qos: .utility))
+    }
+
+    private func handlePathUpdate(isSatisfied: Bool) {
+        self.startLock.lock()
+        let wasAvailable = self.isNetworkAvailable
+        self.isNetworkAvailable = isSatisfied
+        let desired = self.desiredConfiguration
+        if isSatisfied, !wasAvailable {
+            // The cooldown was earned offline. Whatever it was counting, it was not this server
+            // refusing us.
+            self.lastFailedConfiguration = nil
+            self.consecutiveFailureCount = 0
+        }
+        self.startLock.unlock()
+
+        guard isSatisfied, !wasAvailable, let desired = desired else {
+            return
+        }
+
+        self.lock.lock()
+        let hasEndpoint = self.configuration == desired && self.endpoint != nil
+        self.lock.unlock()
+
+        guard !hasEndpoint else {
+            return
+        }
+        WebProxyLog.log("network path returned, starting \(desired.hostname) without waiting out the offline cooldown")
+        // Forced: a start held back for want of a path leaves `startingConfiguration` set — by
+        // `sequentialRestart`, or by an attempt that never got off the ground — and the ordinary
+        // path would read that marker as a bootstrap already running and return, stranding the
+        // proxy for as long as the marker lives.
+        self.scheduleStart(configuration: desired, replacingCurrentStart: true)
+    }
+
     /// The cooldown currently owed for `lastFailedConfiguration`. Must be called with
     /// `startLock` held.
     private func currentBackoffLocked() -> Double {
