@@ -201,11 +201,11 @@ private struct ContactListSearchContainerTransition {
     let entries: [ContactListSearchEntry]
 }
 
-private func accessibilityElementIsFocused(in view: UIView) -> Bool {
+private func isAccessibilitySubtreeFocused(in view: UIView) -> Bool {
     if view.isAccessibilityElement && view.accessibilityElementIsFocused() {
         return true
     }
-    return view.subviews.contains(where: { accessibilityElementIsFocused(in: $0) })
+    return view.subviews.contains(where: { isAccessibilitySubtreeFocused(in: $0) })
 }
 
 private func contactListSearchContainerPreparedRecentTransition(from fromEntries: [ContactListSearchEntry], to toEntries: [ContactListSearchEntry], isSearching: Bool, emptyResults: Bool, query: String, context: AccountContext, presentationData: PresentationData, nameSortOrder: PresentationPersonNameOrder, nameDisplayOrder: PresentationPersonNameOrder, timeFormat: PresentationDateTimeFormat, isPeerEnabled: @escaping (ContactListPeer) -> Bool, addContact: ((String) -> Void)?, openPeer: @escaping (ContactListPeer, ContactsSearchContainerNode.OpenPeerAction) -> Void, openDisabledPeer: @escaping (EnginePeer, ChatListDisabledPeerReason) -> Void, contextAction: ((EnginePeer, ASDisplayNode, ContextGesture?, CGPoint?) -> Void)?) -> ContactListSearchContainerTransition {
@@ -813,7 +813,7 @@ public final class ContactsSearchContainerNode: SearchDisplayControllerContentNo
                     guard let index = itemNode.index, self.displayedEntries.indices.contains(index) else {
                         continue
                     }
-                    if accessibilityElementIsFocused(in: itemNode.view) {
+                    if isAccessibilitySubtreeFocused(in: itemNode.view) {
                         focusedEntryId = self.displayedEntries[index].stableId
                         break
                     }
@@ -826,7 +826,7 @@ public final class ContactsSearchContainerNode: SearchDisplayControllerContentNo
                 strongSelf.displayedEntries = transition.entries
                 if let focusedEntryId, let index = transition.entries.firstIndex(where: { $0.stableId == focusedEntryId }) {
                     for itemNode in strongSelf.listNode.visibleItemNodes() {
-                        if itemNode.index == index, !accessibilityElementIsFocused(in: itemNode.view) {
+                        if itemNode.index == index, !isAccessibilitySubtreeFocused(in: itemNode.view) {
                             UIAccessibility.post(notification: .layoutChanged, argument: firstAccessibilityElement(in: itemNode.view) ?? itemNode.view)
                             break
                         }

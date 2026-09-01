@@ -67,11 +67,11 @@ private struct GroupStickerSearchContainerTransition {
     let entries: [GroupStickerSearchEntry]
 }
 
-private func accessibilityElementIsFocused(in view: UIView) -> Bool {
+private func isAccessibilitySubtreeFocused(in view: UIView) -> Bool {
     if view.isAccessibilityElement && view.accessibilityElementIsFocused() {
         return true
     }
-    return view.subviews.contains(where: { accessibilityElementIsFocused(in: $0) })
+    return view.subviews.contains(where: { isAccessibilitySubtreeFocused(in: $0) })
 }
 
 private func groupStickerSearchContainerPreparedRecentTransition(from fromEntries: [GroupStickerSearchEntry], to toEntries: [GroupStickerSearchEntry], isSearching: Bool, isEmpty: Bool, query: String, context: AccountContext, presentationData: PresentationData, interaction: GroupStickerSearchContainerInteraction) -> GroupStickerSearchContainerTransition {
@@ -266,7 +266,7 @@ public final class GroupStickerSearchContainerNode: SearchDisplayControllerConte
                     guard let index = itemNode.index, self.displayedEntries.indices.contains(index) else {
                         continue
                     }
-                    if accessibilityElementIsFocused(in: itemNode.view) {
+                    if isAccessibilitySubtreeFocused(in: itemNode.view) {
                         focusedPackId = self.displayedEntries[index].stableId
                         break
                     }
@@ -279,7 +279,7 @@ public final class GroupStickerSearchContainerNode: SearchDisplayControllerConte
                 strongSelf.displayedEntries = transition.entries
                 if let focusedPackId, let index = transition.entries.firstIndex(where: { $0.stableId == focusedPackId }) {
                     for itemNode in strongSelf.listNode.visibleItemNodes() {
-                        if itemNode.index == index, !accessibilityElementIsFocused(in: itemNode.view) {
+                        if itemNode.index == index, !isAccessibilitySubtreeFocused(in: itemNode.view) {
                             UIAccessibility.post(notification: .layoutChanged, argument: firstAccessibilityElement(in: itemNode.view) ?? itemNode.view)
                             break
                         }

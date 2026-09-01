@@ -5125,6 +5125,16 @@ open class ListViewImpl: ASDisplayNode, ListView, ASScrollViewDelegate, ASGestur
         }
     }
     
+    public func visibleItemNodes() -> [ListViewItemNode] {
+        var result: [ListViewItemNode] = []
+        self.forEachVisibleItemNode { node in
+            if let itemNode = node as? ListViewItemNode {
+                result.append(itemNode)
+            }
+        }
+        return result
+    }
+    
     public func forEachItemHeaderNode(_ f: (ListViewItemHeaderNode) -> Void) {
         for (_, itemNode) in self.itemHeaderNodes {
             f(itemNode)

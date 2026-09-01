@@ -27,12 +27,12 @@ import LottieComponent
 import ButtonComponent
 import ContextUI
 
-private func accessibilityElementIsFocused(in view: UIView) -> Bool {
+private func isAccessibilitySubtreeFocused(in view: UIView) -> Bool {
     if view.isAccessibilityElement && view.accessibilityElementIsFocused() {
         return true
     }
     for subview in view.subviews {
-        if accessibilityElementIsFocused(in: subview) {
+        if isAccessibilitySubtreeFocused(in: subview) {
             return true
         }
     }
@@ -499,7 +499,7 @@ final class GiftsListView: UIView {
 
         var focusedItemId: AnyHashable?
         for (id, item) in self.starsItems {
-            if let itemView = item.1.view, accessibilityElementIsFocused(in: itemView) {
+            if let itemView = item.1.view, isAccessibilitySubtreeFocused(in: itemView) {
                 focusedItemId = id
                 break
             }
@@ -896,7 +896,7 @@ final class GiftsListView: UIView {
             self.starsItems.removeValue(forKey: id)
         }
 
-        if let focusedItemId, let itemView = self.starsItems[focusedItemId]?.1.view, !accessibilityElementIsFocused(in: itemView), let accessibilityView = firstAccessibilityElementView(in: itemView) {
+        if let focusedItemId, let itemView = self.starsItems[focusedItemId]?.1.view, !isAccessibilitySubtreeFocused(in: itemView), let accessibilityView = firstAccessibilityElementView(in: itemView) {
             UIAccessibility.post(notification: .layoutChanged, argument: accessibilityView)
         }
         

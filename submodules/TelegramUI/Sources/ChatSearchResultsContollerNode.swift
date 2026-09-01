@@ -141,11 +141,11 @@ public struct ChatListSearchContainerTransition {
     }
 }
 
-private func accessibilityElementIsFocused(in view: UIView) -> Bool {
+private func isAccessibilitySubtreeFocused(in view: UIView) -> Bool {
     if view.isAccessibilityElement && view.accessibilityElementIsFocused() {
         return true
     }
-    return view.subviews.contains(where: { accessibilityElementIsFocused(in: $0) })
+    return view.subviews.contains(where: { isAccessibilitySubtreeFocused(in: $0) })
 }
 
 private func chatListSearchContainerPreparedTransition(from fromEntries: [ChatListSearchEntry], to toEntries: [ChatListSearchEntry], context: AccountContext, interaction: ChatListNodeInteraction, location: ChatListControllerLocation) -> ChatListSearchContainerTransition {
@@ -434,7 +434,7 @@ class ChatSearchResultsControllerNode: ViewControllerTracingNode, ASScrollViewDe
                     guard let index = itemNode.index, self.displayedEntryIds.indices.contains(index) else {
                         continue
                     }
-                    if accessibilityElementIsFocused(in: itemNode.view) {
+                    if isAccessibilitySubtreeFocused(in: itemNode.view) {
                         focusedEntryId = self.displayedEntryIds[index]
                         break
                     }
@@ -448,7 +448,7 @@ class ChatSearchResultsControllerNode: ViewControllerTracingNode, ASScrollViewDe
                 self.displayedEntryIds = transition.stableIds
                 if let focusedEntryId, let index = transition.stableIds.firstIndex(of: focusedEntryId) {
                     for itemNode in self.listNode.visibleItemNodes() {
-                        if itemNode.index == index, !accessibilityElementIsFocused(in: itemNode.view) {
+                        if itemNode.index == index, !isAccessibilitySubtreeFocused(in: itemNode.view) {
                             UIAccessibility.post(notification: .layoutChanged, argument: firstAccessibilityElement(in: itemNode.view) ?? itemNode.view)
                             break
                         }

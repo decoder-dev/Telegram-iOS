@@ -82,6 +82,7 @@ public protocol ListView: ASDisplayNode {
 
     func forEachItemNode(_ f: (ASDisplayNode) -> Void)
     func forEachVisibleItemNode(_ f: (ASDisplayNode) -> Void)
+    func visibleItemNodes() -> [ListViewItemNode]
     func enumerateItemNodes(_ f: (ASDisplayNode) -> Bool)
     func forEachItemHeaderNode(_ f: (ListViewItemHeaderNode) -> Void)
     func forEachAccessoryItemNode(_ f: (ListViewAccessoryItemNode) -> Void)

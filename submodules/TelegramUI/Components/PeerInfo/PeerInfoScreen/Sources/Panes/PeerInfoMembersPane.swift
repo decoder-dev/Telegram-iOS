@@ -25,11 +25,11 @@ private struct PeerMembersListTransaction {
     let entries: [PeerMembersListEntry]
 }
 
-private func accessibilityElementIsFocused(in view: UIView) -> Bool {
+private func isAccessibilitySubtreeFocused(in view: UIView) -> Bool {
     if view.isAccessibilityElement && view.accessibilityElementIsFocused() {
         return true
     }
-    return view.subviews.contains(where: { accessibilityElementIsFocused(in: $0) })
+    return view.subviews.contains(where: { isAccessibilitySubtreeFocused(in: $0) })
 }
 
 enum PeerMembersListAction {
@@ -515,7 +515,7 @@ final class PeerInfoMembersPaneNode: ASDisplayNode, PeerInfoPaneNode {
                 guard let index = itemNode.index, self.displayedEntries.indices.contains(index) else {
                     continue
                 }
-                if accessibilityElementIsFocused(in: itemNode.view) {
+                if isAccessibilitySubtreeFocused(in: itemNode.view) {
                     focusedEntryId = self.displayedEntries[index].stableId
                     break
                 }
@@ -529,7 +529,7 @@ final class PeerInfoMembersPaneNode: ASDisplayNode, PeerInfoPaneNode {
             strongSelf.displayedEntries = transaction.entries
             if let focusedEntryId, let index = transaction.entries.firstIndex(where: { $0.stableId == focusedEntryId }) {
                 for itemNode in strongSelf.listNode.visibleItemNodes() {
-                    if itemNode.index == index, !accessibilityElementIsFocused(in: itemNode.view) {
+                    if itemNode.index == index, !isAccessibilitySubtreeFocused(in: itemNode.view) {
                         UIAccessibility.post(notification: .layoutChanged, argument: firstAccessibilityElement(in: itemNode.view) ?? itemNode.view)
                         break
                     }
