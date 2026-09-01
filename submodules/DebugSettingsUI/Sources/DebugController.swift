@@ -1416,8 +1416,8 @@ private func debugControllerEntries(context: AccountContext?, sharedContext: Sha
 
     if isMainApp {
         entries.append(.disableVideoAspectScaling(experimentalSettings.disableVideoAspectScaling))
-        // `?? true` tracks the default in `initializedNetwork`: with no stored value the transport
-        // is on, and a switch showing off while it runs is worse than no switch at all.
+        // Always on at runtime; migration rewrites any stored `false` on account load. The switch
+        // can still flip the stored flag for a one-session legacy-socket test after restart.
         entries.append(.enableNetworkFramework(networkSettings?.useNetworkFramework ?? true))
         entries.append(.enableNetworkExperiments(networkSettings?.useExperimentalDownload ?? true))
     }

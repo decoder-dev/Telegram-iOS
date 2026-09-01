@@ -243,7 +243,7 @@ public class UnauthorizedAccount {
             }
             |> mapToSignal { localizationSettings, proxySettings -> Signal<(LocalizationSettings?, ProxySettings?, NetworkSettings?, AppConfiguration), NoError> in
                 return self.postbox.transaction { transaction -> (LocalizationSettings?, ProxySettings?, NetworkSettings?, AppConfiguration) in
-                    return (localizationSettings, proxySettings, transaction.getPreferencesEntry(key: PreferencesKeys.networkSettings)?.get(NetworkSettings.self), transaction.getPreferencesEntry(key: PreferencesKeys.appConfiguration)?.get(AppConfiguration.self) ?? .defaultValue)
+                    return (localizationSettings, proxySettings, networkSettingsWithMigrations(transaction: transaction), transaction.getPreferencesEntry(key: PreferencesKeys.appConfiguration)?.get(AppConfiguration.self) ?? .defaultValue)
                 }
             }
             |> mapToSignal { localizationSettings, proxySettings, networkSettings, appConfiguration -> Signal<UnauthorizedAccount, NoError> in
@@ -330,7 +330,7 @@ public func accountWithId(accountManager: AccountManager<TelegramAccountManagerT
                         
                         let appConfig = transaction.getPreferencesEntry(key: PreferencesKeys.appConfiguration)?.get(AppConfiguration.self) ?? .defaultValue
                         
-                        return (state, localizationSettings, proxySettings, transaction.getPreferencesEntry(key: PreferencesKeys.networkSettings)?.get(NetworkSettings.self), appConfig)
+                        return (state, localizationSettings, proxySettings, networkSettingsWithMigrations(transaction: transaction), appConfig)
                     }
                     |> mapToSignal { (accountState, localizationSettings, proxySettings, networkSettings, appConfig) -> Signal<AccountResult, NoError> in
                         let keychain = makeExclusiveKeychain(id: id, postbox: postbox)
@@ -1819,7 +1819,7 @@ public func standaloneStateManager(
                     
                     let state = transaction.getState()
 
-                    return (state, localizationSettings, proxySettings, transaction.getPreferencesEntry(key: PreferencesKeys.networkSettings)?.get(NetworkSettings.self))
+                    return (state, localizationSettings, proxySettings, networkSettingsWithMigrations(transaction: transaction))
                 }
                 |> mapToSignal { accountState, localizationSettings, proxySettings, networkSettings -> Signal<AccountStateManager?, NoError> in
                     Logger.shared.log("StandaloneStateManager", "Received state")

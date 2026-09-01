@@ -16,6 +16,19 @@ extension NetworkSettings {
     }
 }
 
+func networkSettingsWithMigrations(transaction: Transaction) -> NetworkSettings {
+    let current = transaction.getPreferencesEntry(key: PreferencesKeys.networkSettings)?.get(NetworkSettings.self) ?? NetworkSettings.defaultSettings
+    if current.useNetworkFramework == true {
+        return current
+    }
+    var updated = current
+    updated.useNetworkFramework = true
+    transaction.updatePreferencesEntry(key: PreferencesKeys.networkSettings, { _ in
+        PreferencesEntry(updated)
+    })
+    return updated
+}
+
 public func updateNetworkSettingsInteractively(transaction: Transaction, network: Network?, _ f: @escaping (NetworkSettings) -> NetworkSettings) {
     var updateNetwork = false
     var updatedSettings: NetworkSettings?

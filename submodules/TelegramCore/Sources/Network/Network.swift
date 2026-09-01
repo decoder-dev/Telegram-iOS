@@ -582,14 +582,13 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
             // `-[GCDAsyncSocket closeWithError:]` at the same moment. `NWConnection` has neither:
             // `cancel()` aborts an in-flight connect, and nothing here can block a thread.
             //
-            // An explicit setting still wins, so Debug Settings ▸ "Network (X Restart)" turns it
-            // back off without a build, and `[Network] tcp connection factory: …` says on every
-            // launch which one is actually running. `setDefaultTcpConnectionInterface` falls back
-            // to the socket transport below iOS 12 on its own.
-            var useNetworkFrameworkTcpConnection = true
-            if let networkSettings = networkSettings, let customValue = networkSettings.useNetworkFramework {
-                useNetworkFrameworkTcpConnection = customValue
-            }
+            // Always on. Upgrades migrate any stored `useNetworkFramework = false` back to true on
+            // the next account load, so testers who opted out of the experiment on an older build
+            // pick up NWConnection automatically. Debug Settings ▸ "Network (X Restart)" can still
+            // flip the stored flag for a one-session rollback, but the next launch re-enables it.
+            // `[Network] tcp connection factory: …` logs which transport is running.
+            // `setDefaultTcpConnectionInterface` falls back to the socket transport below iOS 12.
+            let useNetworkFrameworkTcpConnection = true
             
             // Both branches are covered by applyWebSocketTransport: it installs the WebSocket factory
             // when the toggle is on and no proxy server is active, and otherwise falls through to
