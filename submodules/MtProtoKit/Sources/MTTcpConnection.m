@@ -893,6 +893,32 @@ struct ctr_state {
     return queue;
 }
 
+/// Where a socket is closed, so that closing one does not stop every other connection.
+///
+/// `tcpQueue` above is a `dispatch_once` singleton: one serial queue shared by every MTProto
+/// connection in the process, and also the delegate queue of every socket. Tearing a socket down
+/// on it blocks all of them — sends, reads, reconnects — because `-[GCDAsyncSocket disconnect]`
+/// is a `dispatch_sync` onto that socket's own queue, and the close path there blocks on
+/// `performSelector:onThread:waitUntilDone:YES` against `+[GCDAsyncSocket cfstreamThread]`, the
+/// single run-loop thread every socket in the app shares. On iOS the CFStreams are created for
+/// every connection, not only TLS ones, so every close takes that hop.
+///
+/// A tester's crash report caught the pile-up: three threads inside `-[GCDAsyncSocket
+/// closeWithError:]` at once, two of them waiting on the CFStream thread, which was itself inside
+/// CFNetwork. Concurrent rather than serial, since each teardown blocks its own thread and
+/// serialising them here would only rebuild the queue this moves the work off. The name is
+/// deliberate: if teardowns pile up again they are identifiable by thread name in the next report.
++ (dispatch_queue_t)tcpSocketTeardownQueue
+{
+    static dispatch_queue_t queue = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^
+    {
+        queue = dispatch_queue_create("org.mtproto.tcpSocketTeardownQueue", DISPATCH_QUEUE_CONCURRENT);
+    });
+    return queue;
+}
+
 - (instancetype)initWithContext:(MTContext *)context datacenterId:(NSInteger)datacenterId scheme:(MTTransportScheme *)scheme interface:(NSString *)interface usageCalculationInfo:(MTNetworkUsageCalculationInfo *)usageCalculationInfo getLogPrefix:(NSString *(^)())getLogPrefix
 {
 #ifdef DEBUG
@@ -1169,10 +1195,18 @@ struct ctr_state {
         if (!_closed)
         {
             _closed = true;
-            
-            [_socket disconnect];
-            [_socket resetDelegate];
+
+            // Detach first, then close off this queue. Nothing here may touch the socket again,
+            // and the close itself blocks — see `tcpSocketTeardownQueue`. The block holds the only
+            // remaining reference, so the socket lives exactly as long as its own teardown.
+            id<MTTcpConnectionInterface> socket = _socket;
             _socket = nil;
+            if (socket != nil) {
+                dispatch_async([MTTcpConnection tcpSocketTeardownQueue], ^{
+                    [socket disconnect];
+                    [socket resetDelegate];
+                });
+            }
             
             if (_connectionClosed)
                 _connectionClosed();
@@ -2054,6 +2088,12 @@ struct ctr_state {
              
 - (void)connectionInterfaceDidConnect
 {
+    // Same guard the two read callbacks already carry. The socket's delegate callbacks are dispatched
+    // onto `tcpQueue` and can therefore land behind a close that is already queued there; without
+    // this, a connection that has already reported itself closed would report itself opened again.
+    if (_closed)
+        return;
+    
     if (_socksIp != nil) {
         
     } else {
