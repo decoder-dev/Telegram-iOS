@@ -6920,6 +6920,27 @@ private final class ChatListLocationContext {
     private(set) var toolbar: Toolbar?
     
     private let previousEditingAndNetworkStateValue = Atomic<(Bool, AccountNetworkState)?>(value: nil)
+
+    /// Everything `updateChatList` produces that a layout pass can act on.
+    ///
+    /// The six properties are the only ones it assigns; the rest are the inputs it reads that
+    /// reach the layout without passing through them. If none of it changed, the pass has nothing
+    /// to do — see the call site.
+    private struct HeaderState: Equatable {
+        var chatListTitle: NetworkStatusTitle?
+        var leftButton: AnyComponentWithIdentity<NavigationButtonComponentEnvironment>?
+        var rightButton: AnyComponentWithIdentity<NavigationButtonComponentEnvironment>?
+        var settingsButton: AnyComponentWithIdentity<NavigationButtonComponentEnvironment>?
+        var proxyButton: AnyComponentWithIdentity<NavigationButtonComponentEnvironment>?
+        var storyButton: AnyComponentWithIdentity<NavigationButtonComponentEnvironment>?
+        var isReorderingTabs: Bool
+        var hideTabBar: Bool
+        var filterId: Int32?
+        var theme: ObjectIdentifier
+        var strings: ObjectIdentifier
+    }
+
+    private var previousHeaderState: HeaderState?
     
     private var didSetReady: Bool = false
     let ready = Promise<Bool>()
@@ -7507,14 +7528,43 @@ private final class ChatListLocationContext {
             self.ready.set(.single(true))
         }
         
-        self.parentController?.requestLayout(transition: .animated(duration: 0.45, curve: .spring))
-        
-        Queue.mainQueue().after(1.0, { [weak self] in
-            guard let self else {
-                return
-            }
-            self.parentController?.maybeDisplayStoryTooltip()
-        })
+        // This used to lay out unconditionally, and a layout pass here is not cheap: it runs
+        // `ChatListNavigationBar.applyScroll` down through `ChatListHeaderComponent` and
+        // `GlassBackgroundComponent` into a UIView animation and a QuartzCore commit, on the main
+        // thread. It ran on every emission of a nine-way `combineLatest`, and two of those inputs —
+        // the network state and the chat list's own item state — tick continuously while the
+        // connection is unstable. A tester's log carries 193 network pause/resume events in a
+        // single minute, main-thread stalls of 2 to 4.5 seconds, and a watchdog kill
+        // (`0x8BADF00D`, "failed to terminate gracefully") whose main thread was caught in exactly
+        // that pass, inside the QuartzCore commit.
+        //
+        // Nothing downstream reads anything this function did not set, so an emission that changed
+        // none of it has nothing to lay out.
+        let headerState = HeaderState(
+            chatListTitle: self.chatListTitle,
+            leftButton: self.leftButton,
+            rightButton: self.rightButton,
+            settingsButton: self.settingsButton,
+            proxyButton: self.proxyButton,
+            storyButton: self.storyButton,
+            isReorderingTabs: isReorderingTabs,
+            hideTabBar: hideTabBar,
+            filterId: stateAndFilterId.filterId,
+            theme: ObjectIdentifier(presentationData.theme),
+            strings: ObjectIdentifier(presentationData.strings)
+        )
+        if self.previousHeaderState != headerState {
+            self.previousHeaderState = headerState
+            
+            self.parentController?.requestLayout(transition: .animated(duration: 0.45, curve: .spring))
+            
+            Queue.mainQueue().after(1.0, { [weak self] in
+                guard let self else {
+                    return
+                }
+                self.parentController?.maybeDisplayStoryTooltip()
+            })
+        }
     }
     
     private func updateForum(
