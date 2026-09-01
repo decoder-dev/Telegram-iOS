@@ -291,7 +291,7 @@ private final class ChatMessageActionUrlAuthAlertContentNode: AlertContentNode {
         let maxActionWidth: CGFloat = self.actionNodes.isEmpty ? size.width : floor(size.width / CGFloat(self.actionNodes.count))
         let actionTitleInsets: CGFloat = 8.0
         
-        var effectiveActionLayout: TextAlertContentActionLayout = self.traitCollection.preferredContentSizeCategory.isAccessibilityCategory ? .vertical : .horizontal
+        var effectiveActionLayout: TextAlertContentActionLayout = self.usesAccessibilityContentSizeCategory ? .vertical : .horizontal
         var actionHeights: [CGFloat] = []
         for actionNode in self.actionNodes {
             let actionTitleSize = actionNode.titleNode.updateLayout(CGSize(width: max(1.0, maxActionWidth - 16.0), height: CGFloat.greatestFiniteMagnitude))
