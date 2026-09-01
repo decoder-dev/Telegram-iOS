@@ -34,6 +34,16 @@ public enum ForkLaunchBreadcrumbs {
         case didFinishLaunchingReturned = 6
         case didBecomeActive = 7
 
+        // Sub-stages of the window between `rootControllerReady` and
+        // `didFinishLaunchingReturned`. Five stack overflows in one collection all reported
+        // `rootControllerReady`, which is deterministic enough to be worth chasing but still
+        // three hundred lines wide. Naming the phases inside it costs a byte each and narrows
+        // the next occurrence to a statement.
+        case overlayControllersAttached = 8
+        case notificationsRegistered = 9
+        case authContextObserved = 10
+        case logoutObserved = 11
+
         case chatListVisible = 20
         case chatOpened = 21
         case composerActive = 22

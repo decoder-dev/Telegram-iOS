@@ -1413,6 +1413,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                     }
                     self.mainWindow.topLevelOverlayControllers = [context.sharedApplicationContext.overlayMediaController, context.notificationController]
                     (context.context.sharedContext as? SharedAccountContextImpl)?.notificationController = context.notificationController
+                    ForkLaunchBreadcrumbs.mark(.overlayControllersAttached)
                     var authorizeNotifications = true
                     if #available(iOS 10.0, *) {
                         authorizeNotifications = false
@@ -1420,6 +1421,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                     self.registerForNotifications(context: context.context, authorize: authorizeNotifications)
                     
                     self.resetIntentsIfNeeded(context: context.context)
+                    ForkLaunchBreadcrumbs.mark(.notificationsRegistered)
                 }))
             } else {
                 self.mainWindow.viewController = nil
@@ -1491,6 +1493,8 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         }))
 
 
+        ForkLaunchBreadcrumbs.mark(.authContextObserved)
+
         let logoutDataSignal: Signal<(AccountManager, Set<PeerId>), NoError> = self.sharedContextPromise.get()
         |> take(1)
         |> mapToSignal { sharedContext -> Signal<(AccountManager<TelegramAccountManagerTypes>, Set<PeerId>), NoError> in
@@ -1524,6 +1528,8 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             }).start()
         }))
         
+        ForkLaunchBreadcrumbs.mark(.logoutObserved)
+
         self.resetBadge()
         
         if #available(iOS 9.1, *) {
