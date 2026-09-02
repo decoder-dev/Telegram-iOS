@@ -521,7 +521,7 @@ private func proxySettingsControllerEntries(theme: PresentationTheme, strings: P
         if proxySettings.enabled && server == proxySettings.activeServer {
             switch connectionStatus {
                 case .waitingForNetwork:
-                    displayStatus = DisplayProxyServerStatus(activity: true, text: strings.State_WaitingForNetwork.lowercased(), textActive: false)
+                    displayStatus = DisplayProxyServerStatus(activity: true, text: strings.State_WaitingForNetwork, textActive: false)
                 case .connecting, .updating:
                     displayStatus = DisplayProxyServerStatus(activity: true, text: strings.SocksProxySetup_ProxyStatusConnecting, textActive: false)
                 case .online:
@@ -543,7 +543,18 @@ private func proxySettingsControllerEntries(theme: PresentationTheme, strings: P
                     text = ForkWebProxyStrings.proxyType
             }
             if server.connection.isWebProxy {
-                displayStatus = DisplayProxyServerStatus(activity: false, text: text, textActive: false)
+                switch status {
+                    case .notAvailable:
+                        text = text + ", " + strings.SocksProxySetup_ProxyStatusUnavailable
+                        displayStatus = DisplayProxyServerStatus(activity: false, text: text, textActive: false)
+                    case .checking:
+                        text = text + ", " + strings.SocksProxySetup_ProxyStatusChecking
+                        displayStatus = DisplayProxyServerStatus(activity: false, text: text, textActive: false)
+                    case let .available(rtt):
+                        let pingTime: Int = Int(rtt * 1000.0)
+                        text = text + ", \(strings.SocksProxySetup_ProxyStatusPing("\(pingTime)").string)"
+                        displayStatus = DisplayProxyServerStatus(activity: false, text: text, textActive: false)
+                }
             } else {
             switch status {
                 case .notAvailable:
@@ -582,7 +593,7 @@ private func proxySettingsControllerEntries(theme: PresentationTheme, strings: P
         autoRotateTitle = "Автосмена прокси"
         autoRotateTimeoutTitle = "Таймаут перед сменой"
         autoRotateTimeoutInfo = "Сколько ждать подключения через текущий прокси, прежде чем проверить остальные и переключиться на самый быстрый."
-        autoRotateInfo = "При зависании на подключении проверяет сохранённые прокси и переключается на самый быстрый."
+        autoRotateInfo = "При зависании на подключении проверяет сохранённые MTProxy и SOCKS5 и переключается на самый быстрый. Не работает вместе с «Авто MTProxy»."
         autoFetchTitle = "Авто MTProxy"
         autoFetchInfo = "Скачивает публичные MTProxy-списки и держит соединение на самом быстром живом сервере. Только MTProxy; WEB- и SOCKS-прокси настраиваются вручную. Чужие ноды не читают чаты, но видят IP."
     } else {
@@ -591,7 +602,7 @@ private func proxySettingsControllerEntries(theme: PresentationTheme, strings: P
         autoRotateTitle = "Auto-rotate Proxies"
         autoRotateTimeoutTitle = "Switch Timeout"
         autoRotateTimeoutInfo = "How long to wait while connecting via the active proxy before probing the rest and switching to the fastest live one."
-        autoRotateInfo = "When stuck connecting via the active proxy, probes saved servers and switches to the lowest-latency live one."
+        autoRotateInfo = "When stuck connecting via the active proxy, probes saved MTProxy and SOCKS5 servers and switches to the lowest-latency live one. Cannot be used together with Auto MTProxy."
         autoFetchTitle = "Auto MTProxy"
         autoFetchInfo = "Downloads public MTProxy lists and keeps the connection on the fastest live server. MTProxy only — WEB and SOCKS proxies are configured manually. Third-party nodes cannot read chats, but they see your IP."
     }
@@ -599,7 +610,8 @@ private func proxySettingsControllerEntries(theme: PresentationTheme, strings: P
     entries.append(.useLocalDNSInfo(theme, useLocalDNSInfo))
     entries.append(.autoFetch(theme, autoFetchTitle, proxySettings.autoFetchPublicMtProxy))
     entries.append(.autoFetchInfo(theme, autoFetchInfo))
-    if proxySettings.servers.count > 1 {
+    let rotationEligibleCount = proxySettings.manualRotationEligibleServers.count
+    if rotationEligibleCount > 1 && !proxySettings.autoFetchPublicMtProxy {
         entries.append(.autoRotate(theme, autoRotateTitle, proxySettings.autoRotateProxies))
         if proxySettings.autoRotateProxies {
             let timeoutIndex = max(0, min(Int(proxySettings.proxyRotationTimeoutIndex), ProxyRotationTimeouts.seconds.count - 1))
@@ -762,6 +774,9 @@ public func proxySettingsController(accountManager: AccountManager<TelegramAccou
         let _ = updateProxySettingsInteractively(accountManager: accountManager, { current in
             var current = current
             current.autoRotateProxies = value
+            if value {
+                current.setAutoFetchPublicMtProxy(false)
+            }
             return current
         }).start()
     }, openRotationTimeoutPicker: {
@@ -770,6 +785,9 @@ public func proxySettingsController(accountManager: AccountManager<TelegramAccou
         let _ = updateProxySettingsInteractively(accountManager: accountManager, { current in
             var current = current
             current.setAutoFetchPublicMtProxy(value)
+            if value {
+                current.autoRotateProxies = false
+            }
             return current
         }).start()
     }, toggleWebSocketTransport: { value in

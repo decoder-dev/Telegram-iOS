@@ -7,21 +7,24 @@ private let proxyRotationProbeCacheInterval: Double = 2.0 * 60.0
 private let proxyRotationCooldownSeconds: Double = 30.0
 private let proxyRotationProbeTimeout: Double = 30.0
 
-private func proxyRotationRotatableServers(from settings: ProxySettings) -> [ProxyServerSettings] {
-    return settings.servers.filter { server in
-        if settings.automaticServers.contains(server) {
-            return false
-        }
-        if server.connection.isWebProxy {
-            return false
-        }
-        return true
+private func socksSettingsForProxyRotationPing(server: ProxyServerSettings) -> MTSocksProxySettings? {
+    switch server.connection {
+        case let .socks5(username, password):
+            return MTSocksProxySettings(ip: server.host, port: UInt16(clamping: server.port), username: username, password: password, secret: nil)
+        case let .mtp(secret):
+            return MTSocksProxySettings(ip: server.host, port: UInt16(clamping: server.port), username: nil, password: nil, secret: secret)
+        case .web:
+            return nil
     }
+}
+
+private func proxyRotationRotatableServers(from settings: ProxySettings) -> [ProxyServerSettings] {
+    return settings.manualRotationEligibleServers
 }
 
 private func probeProxyRotationServersOnce(network: Network, servers: [ProxyServerSettings], queue: Queue) -> Signal<[ProxyServerSettings: ProxyServerStatus], NoError> {
     let probeTargets = servers.filter { server in
-        !server.connection.isWebProxy && server.mtProxySettings != nil
+        socksSettingsForProxyRotationPing(server: server) != nil
     }
     if probeTargets.isEmpty {
         return .single([:])
@@ -32,7 +35,7 @@ private func probeProxyRotationServersOnce(network: Network, servers: [ProxyServ
         let lock = NSLock()
         var disposables: [Disposable] = []
         for server in probeTargets {
-            guard let settings = server.mtProxySettings else {
+            guard let settings = socksSettingsForProxyRotationPing(server: server) else {
                 lock.lock()
                 remaining -= 1
                 let done = remaining == 0

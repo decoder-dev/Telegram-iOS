@@ -154,8 +154,11 @@ private final class ProxyServerPreviewSheetContent: CombinedComponent {
                         let signal = self.network.connectionStatus
                         |> filter { status in
                             switch status {
-                                case let .online(proxyAddress):
-                                    if proxyAddress == proxyServerSettings.host {
+                                case .online:
+                                    if proxyServerSettings.connection.isWebProxy {
+                                        return true
+                                    }
+                                    if case let .online(proxyAddress) = status, proxyAddress == proxyServerSettings.host {
                                         return true
                                     } else {
                                         return false
@@ -327,7 +330,41 @@ private final class ProxyServerPreviewSheetContent: CombinedComponent {
                 ))
             }
             
-            if !component.server.connection.isWebProxy {
+            if component.server.connection.isWebProxy {
+                var statusText = strings.SocksProxySetup_CheckStatus
+                var statusColor = tableLinkColor
+                var statusIsActive = true
+                if let status = state.status {
+                    statusIsActive = false
+                    switch status {
+                    case let .available(rtt):
+                        let pingTime = Int(rtt * 1000.0)
+                        statusText = strings.SocksProxySetup_ProxyStatusPing("\(pingTime)").string
+                        statusColor = tableTextColor
+                    case .checking:
+                        statusText = strings.SocksProxySetup_ProxyStatusChecking
+                        statusColor = tableTextColor
+                    case .notAvailable:
+                        statusText = strings.SocksProxySetup_ProxyStatusUnavailable
+                        statusColor = environment.theme.list.itemDestructiveColor
+                    }
+                }
+                tableItems.append(.init(
+                    id: "status",
+                    title: strings.SocksProxySetup_Status,
+                    component: AnyComponent(
+                        Button(
+                            content: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: statusText, font: tableFont, textColor: statusColor)))),
+                            automaticHighlight: statusIsActive,
+                            action: {
+                                if statusIsActive {
+                                    state.check()
+                                }
+                            }
+                        )
+                    )
+                ))
+            } else {
             var statusText = strings.SocksProxySetup_CheckStatus
             var statusColor = tableLinkColor
             var statusIsActive = true

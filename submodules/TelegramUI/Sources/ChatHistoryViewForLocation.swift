@@ -97,6 +97,7 @@ func chatHistoryViewForLocation(
             case let .Initial(count):
                 var preloaded = false
                 var fadeIn = false
+                var lockedInitialScrollPosition: ChatHistoryViewScrollPosition?
                 // The post-initial trace below is on the per-update path, so it repeats the same
                 // line for every typing indicator and reaction that redelivers the view. Only the
                 // read boundary moving is news here.
@@ -219,6 +220,7 @@ func chatHistoryViewForLocation(
                         if let maxReadIndex = view.maxReadIndex, tag == nil, canScrollToRead {
                             let aroundIndex = maxReadIndex
                             scrollPosition = .unread(index: maxReadIndex)
+                            lockedInitialScrollPosition = scrollPosition
                             scrollDecision = "unread"
                             
                             if let _ = chatLocation.peerId {
@@ -259,6 +261,9 @@ func chatHistoryViewForLocation(
                                     }
                                 }
                             }
+                        } else if let lockedInitialScrollPosition = lockedInitialScrollPosition {
+                            scrollPosition = lockedInitialScrollPosition
+                            scrollDecision = "unread-locked"
                         } else if effectiveIsAddedToChatList, tag == nil, let historyScrollState = (initialData?.storedInterfaceState).flatMap(_internal_decodeStoredChatInterfaceState).flatMap(ChatInterfaceState.parse)?.historyScrollState {
                             scrollPosition = .positionRestoration(index: historyScrollState.messageIndex, relativeOffset: CGFloat(historyScrollState.relativeOffset))
                             scrollDecision = "saved-position"

@@ -187,6 +187,24 @@ public struct ProxySettings: Codable, Equatable {
         }
     }
     
+    /// Manually added servers (excludes auto-fetched MTProxy entries hidden from the list).
+    public var manualServers: [ProxyServerSettings] {
+        let automatic = Set(self.automaticServers)
+        return self.servers.filter { !automatic.contains($0) }
+    }
+    
+    /// Saved servers eligible for ping-based auto-rotation (manual MTProxy and SOCKS5).
+    public var manualRotationEligibleServers: [ProxyServerSettings] {
+        return self.manualServers.filter { server in
+            switch server.connection {
+                case .socks5, .mtp:
+                    return true
+                case .web:
+                    return false
+            }
+        }
+    }
+    
     /// Enable or disable public MTProxy auto-fetch. Turning off removes only auto-pulled servers.
     public mutating func setAutoFetchPublicMtProxy(_ enabled: Bool) {
         self.autoFetchPublicMtProxy = enabled

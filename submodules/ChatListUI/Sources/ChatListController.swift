@@ -7352,11 +7352,10 @@ private final class ChatListLocationContext {
             case .waitingForNetwork:
                 titleContent = NetworkStatusTitle(text: presentationData.strings.State_WaitingForNetwork, activity: true, hasProxy: false, connectsViaProxy: connectsViaProxy, isPasscodeSet: false, isManuallyLocked: false, peerStatus: peerStatus)
             case let .connecting(proxy):
-                let text = presentationData.strings.State_Connecting
-                let _ = proxy
-                /*if let layout = strongSelf.validLayout, proxy != nil && layout.metrics.widthClass != .regular && layout.size.width > 320.0 {
-                    text = self.presentationData.strings.State_ConnectingToProxy
-                }*/
+                var text = presentationData.strings.State_Connecting
+                if proxy != nil {
+                    text = presentationData.strings.State_ConnectingToProxy
+                }
                 titleContent = NetworkStatusTitle(text: text, activity: true, hasProxy: false, connectsViaProxy: connectsViaProxy, isPasscodeSet: false, isManuallyLocked: false, peerStatus: peerStatus)
             case .updating:
                 titleContent = NetworkStatusTitle(text: presentationData.strings.State_Updating, activity: true, hasProxy: false, connectsViaProxy: connectsViaProxy, isPasscodeSet: false, isManuallyLocked: false, peerStatus: peerStatus)

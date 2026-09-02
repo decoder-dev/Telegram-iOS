@@ -1851,6 +1851,9 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
             let _ = updateProxySettingsInteractively(accountManager: context.sharedContext.accountManager, { current in
                 var current = current
                 current.setAutoFetchPublicMtProxy(value)
+                if value {
+                    current.autoRotateProxies = false
+                }
                 return current
             }).start()
         },
