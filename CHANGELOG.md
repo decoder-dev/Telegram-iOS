@@ -6,6 +6,14 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3936-pre] — 2026-09-02
+
+Pre-release: chat list watchdog layout coalesce + NWConnection silent stall fixes.
+
+### Fixed
+- **Chat list:** coalesce header `requestLayout` after the first pass — connection-status title flaps no longer run a spring layout on every `combineLatest` emission (watchdog stack through `GlassBackgroundComponent`).
+- **Network:** NWConnection reports disconnect on write/read with no connection instead of silently dropping frames; identity guard on send/receive completions so superseded connections cannot corrupt the successor's read stream.
+
 ## [v12.9.2-3935-pre] — 2026-09-02
 
 Pre-release: NWConnection restart race + reachability backoff follow-up.
