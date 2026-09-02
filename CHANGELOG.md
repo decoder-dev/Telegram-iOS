@@ -6,6 +6,11 @@
 
 ## [Unreleased]
 
+### Fixed
+- **Network:** rebuild transport on OS path changes (Wi‑Fi/cellular/VPN handoff) instead of sitting stuck while reachability stays "available"; WEB proxy bootstrap pauses MtProto until sidecar ready (no more 127.0.0.1:1 hammer); IPv6 connect cap 2.5s; WebSocket send failures tear down the connection like NW TCP.
+- **WEB proxy:** resume carrier rebuild after 2s background (was 12s) so brief app switches don't leave a dead tunnel.
+- **Proxy rotation:** only switch when the active proxy has connection issues or probes unreachable; always re-probe the active server; 12s probe timeout (was 30s).
+
 ## [v12.9.2-3939-pre] — 2026-09-02
 
 Pre-release: proxy reachability UI, network perf fixes (WEB loopback, IPv6 fast-fail, WS write buffer).
