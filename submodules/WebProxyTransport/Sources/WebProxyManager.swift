@@ -54,10 +54,8 @@ public final class WebProxyManager {
     private let startLock = NSLock()
     private var sidecar: WebProxySidecar?
     private var configuration: WebProxyConfiguration?
+    /// Retained only while a sidecar is live — never published to MtProto after stop.
     private var endpoint: LoopbackEndpoint?
-    /// Retained across a brief restart so ProxySettings does not fall through to 127.0.0.1:1
-    /// (unreachable) while the new sidecar is still bootstrapping.
-    private var lastGoodEndpoint: LoopbackEndpoint?
     private var startingConfiguration: WebProxyConfiguration?
     private var startingSince: Double = 0.0
     private var startGeneration: UInt64 = 0
@@ -66,17 +64,8 @@ public final class WebProxyManager {
     private var consecutiveFailureCount: Int = 0
     private var sidecarReadySince: Double = 0.0
 
-    /// Debounce foreground restarts so rapid active/resign cycles do not stack tear-downs.
-    private var lastBecomeActiveRestart: Double = 0.0
-    private static let becomeActiveRestartMinInterval: Double = 2.0
-    /// Set from `applicationDidEnterBackground`. A carrier session is foreground-only: iOS may
-    /// suspend its URLSession/WebSocket work at any point after this transition.
+    /// Set from `applicationDidEnterBackground`. The WEB carrier is foreground-only.
     private var enteredBackgroundAt: Double = 0.0
-    /// Minimum time in background before a wake rebuilds the carrier. Under it the carrier is
-    /// very probably still alive — a control-centre pull, the app switcher, a glance at a
-    /// notification — and if it is not, its own failure path brings the sidecar down and the
-    /// manager restarts it. Rebuilding on every flicker drops every local stream for nothing.
-    private static let minimumBackgroundForResumeRestart: Double = 2.0
 
     /// The configuration the app currently wants running, as opposed to the one that happens to
     /// be up. A retry armed by the cooldown must not resurrect a proxy the user has since turned
@@ -104,8 +93,6 @@ public final class WebProxyManager {
 
     private var nextSidecarEventToken: SidecarEventToken = 0
     private var sidecarEventHandlers: [SidecarEventToken: (WebProxySidecarEvent) -> Void] = [:]
-    /// Coalesces a debounced `applicationDidBecomeActive` retry onto the main queue.
-    private var deferredForegroundResumeGeneration: UInt64 = 0
     
     private init() {
     }
@@ -113,11 +100,8 @@ public final class WebProxyManager {
     public var activeLoopbackEndpoint: LoopbackEndpoint? {
         self.lock.lock()
         defer { self.lock.unlock() }
-        // Only the sidecar that is currently listening may publish a loopback port. `lastGoodEndpoint`
-        // used to be returned here during bootstrap/restart, but once the sidecar stops the listener
-        // is gone while the stale port lived on — MtProto then hammered a dead `127.0.0.1:638xx`
-        // (hundreds of "Connection refused" per session in device logs). Fail-closed `:1` during
-        // the gap is noisy but correct; a fresh `carrier ready` publishes the new port.
+        // Only the sidecar that is currently listening may publish a loopback port.
+        // Fail-closed nil during bootstrap; MtProto must not dial a stale port.
         guard self.sidecar != nil, let endpoint = self.endpoint else {
             return nil
         }
@@ -163,7 +147,6 @@ public final class WebProxyManager {
             self.desiredConfiguration = nil
             self.startGeneration &+= 1
             self.retryGeneration &+= 1
-            self.deferredForegroundResumeGeneration &+= 1
             self.scheduledRetryConfiguration = nil
             self.startingConfiguration = nil
             // Turning the proxy off is an explicit user action — don't make re-enabling the same
@@ -174,7 +157,6 @@ public final class WebProxyManager {
             
             self.lock.lock()
             self.stopLocked()
-            self.lastGoodEndpoint = nil
             self.lock.unlock()
             return true
         }
@@ -204,32 +186,19 @@ public final class WebProxyManager {
         return self.isReady(for: server)
     }
     
-    /// Call from `applicationWillEnterForeground` / `applicationDidBecomeActive`.
-    ///
-    /// The WEB carrier is foreground-only. After entering background, iOS can suspend its
-    /// URLSession/WebSocket work without delivering a useful failure callback, and the relay
-    /// closes a WebSocket session rather than resuming its streams — so the carrier has to be
-    /// built again, with a new relay session, before anything will move.
-    ///
-    /// The listener does not: it is a local TCP socket on an ephemeral port, and rebinding it
-    /// hands every account a different port, which re-publishes proxy settings and puts all of
-    /// MtProto through Connecting→Updating. So resume rebuilds the carrier in place and keeps
-    /// the port, and only falls back to a whole new sidecar when that fails.
-    /// Call from `applicationDidEnterBackground` so resume can tell a real sleep from a flicker.
+    /// Call from `applicationDidEnterBackground`.
     public func applicationDidEnterBackground() {
         self.startLock.lock()
         self.enteredBackgroundAt = CFAbsoluteTimeGetCurrent()
         self.startLock.unlock()
     }
     
+    /// Call from `applicationDidBecomeActive` only (AppDelegate). Rebuilds the HTTPS carrier
+    /// in place when the app was backgrounded; the sidecar serializes overlapping reconnects.
     public func applicationDidBecomeActive() {
-        let now = CFAbsoluteTimeGetCurrent()
         self.startLock.lock()
         let backgroundedAt = self.enteredBackgroundAt
         let starting = self.startingConfiguration
-        // `configuration` is cleared as soon as a failed sidecar is stopped, but the desired
-        // server still represents the enabled proxy. Keep it as a recovery target so a stale
-        // lastGoodEndpoint cannot leave all Networks waiting on a dead listener indefinitely.
         let desired = self.desiredConfiguration
         self.startLock.unlock()
         
@@ -239,13 +208,10 @@ public final class WebProxyManager {
         let hasEndpoint = self.endpoint != nil
         self.lock.unlock()
         
-        let target = active ?? starting ?? desired
-        guard let target = target else {
+        guard let target = active ?? starting ?? desired else {
             return
         }
-        let timeInBackground = backgroundedAt > 0 ? (now - backgroundedAt) : 0.0
 
-        // Missing endpoint → always try to start (cold path / previous failure).
         if !hasEndpoint {
             self.startLock.lock()
             self.enteredBackgroundAt = 0
@@ -255,59 +221,22 @@ public final class WebProxyManager {
             self.scheduleStart(configuration: target)
             return
         }
-        
-        // No background transition recorded — nothing to resume (avoids a redundant carrier
-        // rebuild on every cold `didBecomeActive` after the sidecar is already up).
+
         guard backgroundedAt > 0 else {
             return
         }
-        
-        // Not long enough in background to have likely lost the carrier — keep the stamp so a
-        // later `didBecomeActive` (iOS often fires twice) can still recover.
-        if timeInBackground < WebProxyManager.minimumBackgroundForResumeRestart {
-            return
-        }
-        
+
         self.startLock.lock()
-        let debounceRemaining = WebProxyManager.becomeActiveRestartMinInterval - (now - self.lastBecomeActiveRestart)
-        if debounceRemaining > 0 {
-            self.scheduleDeferredForegroundResume(after: debounceRemaining)
-            self.startLock.unlock()
-            return
-        }
         self.enteredBackgroundAt = 0
-        self.lastBecomeActiveRestart = now
         self.lastFailedConfiguration = nil
         self.consecutiveFailureCount = 0
         self.startLock.unlock()
-        
+
         guard let sidecar = sidecar else {
             self.sequentialRestart(configuration: target)
             return
         }
         self.performInPlaceCarrierResume(sidecar: sidecar, configuration: target)
-    }
-    
-    /// Debounced `didBecomeActive` must not drop a background resume on the floor — iOS often
-    /// fires twice inside the debounce window, but sometimes only once.
-    private func scheduleDeferredForegroundResume(after delay: Double) {
-        self.startLock.lock()
-        self.deferredForegroundResumeGeneration &+= 1
-        let generation = self.deferredForegroundResumeGeneration
-        self.startLock.unlock()
-        DispatchQueue.main.asyncAfter(deadline: .now() + max(0.05, delay)) { [weak self] in
-            guard let self else {
-                return
-            }
-            self.startLock.lock()
-            let stillCurrent = generation == self.deferredForegroundResumeGeneration
-            let stillBackgrounded = self.enteredBackgroundAt > 0
-            self.startLock.unlock()
-            guard stillCurrent, stillBackgrounded else {
-                return
-            }
-            self.applicationDidBecomeActive()
-        }
     }
     
     private func performInPlaceCarrierResume(sidecar: WebProxySidecar, configuration: WebProxyConfiguration) {
@@ -555,7 +484,6 @@ public final class WebProxyManager {
             self.sidecar = sidecar
             self.configuration = configuration
             self.endpoint = LoopbackEndpoint(host: endpoint.host, port: endpoint.port)
-            self.lastGoodEndpoint = self.endpoint
             self.sidecarReadySince = CFAbsoluteTimeGetCurrent()
             sidecar?.setFailureHandler { [weak self, weak sidecar] in
                 guard let self, let sidecar else {
@@ -586,7 +514,6 @@ public final class WebProxyManager {
                     previous.stop()
                 }
             }
-            // case .failure:
         case let .failure(error):
             // The reason a WEB proxy failed used to end here: the branch did not even bind the
             // error, so "my proxy does not connect" had no answer short of reading the source.
@@ -669,7 +596,6 @@ public final class WebProxyManager {
         self.configuration = nil
         self.endpoint = nil
         self.sidecarReadySince = 0.0
-        self.lastGoodEndpoint = nil
     }
     
     private func notifySidecarEvent(_ event: WebProxySidecarEvent) {

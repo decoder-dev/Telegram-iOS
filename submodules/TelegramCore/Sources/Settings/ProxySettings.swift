@@ -25,20 +25,29 @@ public func isSupportedWebProxySecret(_ secret: Data) -> Bool {
 }
 
 extension ProxyServerSettings {
+    var webProxyConfiguration: WebProxyConfiguration? {
+        guard case let .web(secret) = self.connection else {
+            return nil
+        }
+        return WebProxyConfiguration(hostname: self.host, secret: secret)
+    }
+
     var mtProxySettings: MTSocksProxySettings? {
         switch self.connection {
             case let .socks5(username, password):
                 return MTSocksProxySettings(ip: self.host, port: UInt16(clamping: self.port), username: username, password: password, secret: nil)
             case let .mtp(secret):
                 return MTSocksProxySettings(ip: self.host, port: UInt16(clamping: self.port), username: nil, password: nil, secret: secret)
-            case let .web(secret):
-                let configuration = WebProxyConfiguration(hostname: self.host, secret: secret)
+            case .web:
+                guard let configuration = self.webProxyConfiguration else {
+                    return nil
+                }
                 WebProxyManager.shared.configure(activeWebProxy: configuration)
                 guard WebProxyManager.shared.isReady(for: configuration),
                       let endpoint = WebProxyManager.shared.activeLoopbackEndpoint else {
                     return nil
                 }
-                return MTSocksProxySettings(ip: endpoint.host, port: endpoint.port, username: nil, password: nil, secret: secret)
+                return MTSocksProxySettings(ip: endpoint.host, port: endpoint.port, username: nil, password: nil, secret: configuration.secret)
         }
     }
 }
@@ -69,8 +78,7 @@ func applySharedProxySettingsToNetwork(settings: ProxySettings, network: Network
     let resolvedProxySettings = activeServer?.mtProxySettings
 
     if isActiveWebProxy, resolvedProxySettings == nil {
-        if let activeServer = activeServer, case let .web(secret) = activeServer.connection {
-            let configuration = WebProxyConfiguration(hostname: activeServer.host, secret: secret)
+        if let configuration = activeServer?.webProxyConfiguration {
             WebProxyManager.shared.configure(activeWebProxy: configuration)
         }
         network.context.updateApiEnvironment { environment in
@@ -120,12 +128,11 @@ func applySharedProxySettingsToNetwork(settings: ProxySettings, network: Network
         }
     }
 
-    if forceTransportReconnect, isActiveWebProxy, let activeServer = activeServer, case let .web(secret) = activeServer.connection {
-        let configuration = WebProxyConfiguration(hostname: activeServer.host, secret: secret)
-        if WebProxyManager.shared.isReady(for: configuration) {
-            network.dropConnectionStatus()
-            network.rebuildTransport()
-        }
+    if forceTransportReconnect,
+       let configuration = activeServer?.webProxyConfiguration,
+       WebProxyManager.shared.isReady(for: configuration) {
+        network.dropConnectionStatus()
+        network.rebuildTransport()
     }
 }
 

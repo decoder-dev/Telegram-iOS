@@ -189,13 +189,14 @@ static bool MTTlsHelloEndScope(MTTlsHelloBuilder *builder) {
     return true;
 }
 
-static void MTTlsHelloAppendGrease(MTTlsHelloBuilder *builder, uint8_t grease[8], int index) {
+static bool MTTlsHelloAppendGrease(MTTlsHelloBuilder *builder, uint8_t grease[8], int index) {
     if (index < 0 || index >= 8) {
-        return;
+        return false;
     }
     uint8_t value = grease[index];
-    MTTlsHelloAppendBytes(builder, &value, 1);
-    MTTlsHelloAppendBytes(builder, &value, 1);
+    MTTlsHelloAppend(builder, &value, 1);
+    MTTlsHelloAppend(builder, &value, 1);
+    return true;
 }
 
 static bool MTTlsHelloAppendRandom(MTTlsHelloBuilder *builder, NSUInteger length) {
@@ -235,11 +236,11 @@ static void MTShuffleExtensionParts(NSMutableArray<NSMutableData *> *parts) {
 
 static bool MTTlsHelloBuildServerNameExtension(MTTlsHelloBuilder *builder, NSData *domain) {
     static const uint8_t extensionType[] = { 0x00, 0x00 };
-    MTTlsHelloAppendStatic(builder, extensionType, sizeof(extensionType));
+    MTTlsHelloAppend(builder, extensionType, sizeof(extensionType));
     MTTlsHelloBeginScope(builder);
     MTTlsHelloBeginScope(builder);
     static const uint8_t hostNameType[] = { 0x00 };
-    MTTlsHelloAppendStatic(builder, hostNameType, sizeof(hostNameType));
+    MTTlsHelloAppend(builder, hostNameType, sizeof(hostNameType));
     MTTlsHelloBeginScope(builder);
     [builder->data appendData:domain];
     if (!MTTlsHelloEndScope(builder)) {
@@ -256,15 +257,15 @@ static bool MTTlsHelloBuildServerNameExtension(MTTlsHelloBuilder *builder, NSDat
 
 static bool MTTlsHelloBuildEchExtension(MTTlsHelloBuilder *builder, id<EncryptionProvider> provider) {
     static const uint8_t extensionType[] = { 0xfe, 0x0d };
-    MTTlsHelloAppendStatic(builder, extensionType, sizeof(extensionType));
+    MTTlsHelloAppend(builder, extensionType, sizeof(extensionType));
     MTTlsHelloBeginScope(builder);
     static const uint8_t echHeader[] = { 0x00, 0x00, 0x01, 0x00, 0x01 };
-    MTTlsHelloAppendStatic(builder, echHeader, sizeof(echHeader));
+    MTTlsHelloAppend(builder, echHeader, sizeof(echHeader));
     if (!MTTlsHelloAppendRandom(builder, 1)) {
         return false;
     }
     static const uint8_t keyShareLength[] = { 0x00, 0x20 };
-    MTTlsHelloAppendStatic(builder, keyShareLength, sizeof(keyShareLength));
+    MTTlsHelloAppend(builder, keyShareLength, sizeof(keyShareLength));
     if (!MTTlsHelloAppendKey(builder, provider)) {
         return false;
     }
@@ -284,10 +285,12 @@ static bool MTTlsHelloBuildEchExtension(MTTlsHelloBuilder *builder, id<Encryptio
 
 static bool MTTlsHelloBuildCombinedKeyShareExtension(MTTlsHelloBuilder *builder, uint8_t grease[8], id<EncryptionProvider> provider) {
     static const uint8_t prefix[] = { 0x00, 0x33, 0x04, 0xef, 0x04, 0xed };
-    MTTlsHelloAppendStatic(builder, prefix, sizeof(prefix));
-    MTTlsHelloAppendGrease(builder, grease, 4);
+    MTTlsHelloAppend(builder, prefix, sizeof(prefix));
+    if (!MTTlsHelloAppendGrease(builder, grease, 4)) {
+        return false;
+    }
     static const uint8_t middle[] = { 0x00, 0x01, 0x00, 0x11, 0xec, 0x04, 0xc0 };
-    MTTlsHelloAppendStatic(builder, middle, sizeof(middle));
+    MTTlsHelloAppend(builder, middle, sizeof(middle));
     if (!MTTlsHelloAppendMlKemKey(builder)) {
         return false;
     }
@@ -295,7 +298,7 @@ static bool MTTlsHelloBuildCombinedKeyShareExtension(MTTlsHelloBuilder *builder,
         return false;
     }
     static const uint8_t keyShare[] = { 0x00, 0x1d, 0x00, 0x20 };
-    MTTlsHelloAppendStatic(builder, keyShare, sizeof(keyShare));
+    MTTlsHelloAppend(builder, keyShare, sizeof(keyShare));
     if (!MTTlsHelloAppendKey(builder, provider)) {
         return false;
     }
@@ -308,7 +311,7 @@ static bool MTTlsHelloApplyPadding(MTTlsHelloBuilder *builder) {
     }
     NSUInteger paddingLength = 513 - builder->data.length;
     static const uint8_t paddingType[] = { 0x00, 0x15 };
-    MTTlsHelloAppendStatic(builder, paddingType, sizeof(paddingType));
+    MTTlsHelloAppend(builder, paddingType, sizeof(paddingType));
     MTTlsHelloBeginScope(builder);
     NSMutableData *zeros = [[NSMutableData alloc] initWithLength:paddingLength];
     [builder->data appendData:zeros];
@@ -331,41 +334,45 @@ static NSMutableData *MTCreateChromeClientHello(NSString *domain, id<EncryptionP
     MTTlsHelloBuilder builder = { .data = resultData, .scopeStack = scopeStack };
 
     static const uint8_t recordHeader[] = { 0x16, 0x03, 0x01 };
-    MTTlsHelloAppendStatic(&builder, recordHeader, sizeof(recordHeader));
+    MTTlsHelloAppend(&builder, recordHeader, sizeof(recordHeader));
     MTTlsHelloBeginScope(&builder);
 
     static const uint8_t handshakePrefix[] = { 0x01, 0x00 };
-    MTTlsHelloAppendStatic(&builder, handshakePrefix, sizeof(handshakePrefix));
+    MTTlsHelloAppend(&builder, handshakePrefix, sizeof(handshakePrefix));
     MTTlsHelloBeginScope(&builder);
 
     static const uint8_t clientVersion[] = { 0x03, 0x03 };
-    MTTlsHelloAppendStatic(&builder, clientVersion, sizeof(clientVersion));
+    MTTlsHelloAppend(&builder, clientVersion, sizeof(clientVersion));
 
     NSMutableData *clientRandomPlaceholder = [[NSMutableData alloc] initWithLength:32];
     [resultData appendData:clientRandomPlaceholder];
 
     static const uint8_t sessionIdLength[] = { 0x20 };
-    MTTlsHelloAppendStatic(&builder, sessionIdLength, sizeof(sessionIdLength));
+    MTTlsHelloAppend(&builder, sessionIdLength, sizeof(sessionIdLength));
     if (!MTTlsHelloAppendRandom(&builder, 32)) {
         return nil;
     }
 
     static const uint8_t cipherSuitesLength[] = { 0x00, 0x20 };
-    MTTlsHelloAppendStatic(&builder, cipherSuitesLength, sizeof(cipherSuitesLength));
-    MTTlsHelloAppendGrease(&builder, grease, 0);
+    MTTlsHelloAppend(&builder, cipherSuitesLength, sizeof(cipherSuitesLength));
+    if (!MTTlsHelloAppendGrease(&builder, grease, 0)) {
+        return nil;
+    }
     static const uint8_t cipherSuites[] = {
         0x13, 0x01, 0x13, 0x02, 0x13, 0x03, 0xc0, 0x2b, 0xc0, 0x2f, 0xc0, 0x2c, 0xc0, 0x30,
         0xcc, 0xa9, 0xcc, 0xa8, 0xc0, 0x13, 0xc0, 0x14, 0x00, 0x9c, 0x00, 0x9d, 0x00, 0x2f, 0x00, 0x35
     };
-    MTTlsHelloAppendStatic(&builder, cipherSuites, sizeof(cipherSuites));
+    MTTlsHelloAppend(&builder, cipherSuites, sizeof(cipherSuites));
 
     static const uint8_t compressionMethods[] = { 0x01, 0x00 };
-    MTTlsHelloAppendStatic(&builder, compressionMethods, sizeof(compressionMethods));
+    MTTlsHelloAppend(&builder, compressionMethods, sizeof(compressionMethods));
 
     MTTlsHelloBeginScope(&builder);
-    MTTlsHelloAppendGrease(&builder, grease, 2);
+    if (!MTTlsHelloAppendGrease(&builder, grease, 2)) {
+        return nil;
+    }
     static const uint8_t firstGreaseExtension[] = { 0x00, 0x00 };
-    MTTlsHelloAppendStatic(&builder, firstGreaseExtension, sizeof(firstGreaseExtension));
+    MTTlsHelloAppend(&builder, firstGreaseExtension, sizeof(firstGreaseExtension));
 
     NSMutableArray<NSMutableData *> *extensionParts = [[NSMutableArray alloc] init];
     {
@@ -436,9 +443,11 @@ static NSMutableData *MTCreateChromeClientHello(NSString *domain, id<EncryptionP
         [resultData appendData:part];
     }
 
-    MTTlsHelloAppendGrease(&builder, grease, 3);
+    if (!MTTlsHelloAppendGrease(&builder, grease, 3)) {
+        return nil;
+    }
     static const uint8_t trailingGrease[] = { 0x00, 0x01, 0x00 };
-    MTTlsHelloAppendStatic(&builder, trailingGrease, sizeof(trailingGrease));
+    MTTlsHelloAppend(&builder, trailingGrease, sizeof(trailingGrease));
 
     if (!MTTlsHelloApplyPadding(&builder)) {
         return nil;
