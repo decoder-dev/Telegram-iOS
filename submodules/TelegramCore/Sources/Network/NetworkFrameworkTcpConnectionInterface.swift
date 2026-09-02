@@ -271,12 +271,19 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
         
         func write(data: Data) {
             guard let connection = self.connection else {
+                // Returning here dropped the frame and told nobody: MtProtoKit had handed over a
+                // request and would wait out its own timeout for a reply to something that never
+                // left. A tester's logs carry 35 of these. Reporting the disconnect is the honest
+                // answer — and when it was already reported (the usual case, since `connection`
+                // goes nil in `cancelWithError`) this costs nothing: `reportedDisconnection`
+                // makes it a no-op.
                 Logger.shared.log("NetworkFrameworkTcpConnectionInterface", "write called while connection == nil")
+                self.cancelWithError(error: nil)
                 return
             }
             
             let queue = self.queue
-            connection.send(content: data, completion: .contentProcessed({ [weak self] error in
+            connection.send(content: data, completion: .contentProcessed({ [weak self, weak connection] error in
                 // A dropped send used to be silent, which left MtProtoKit waiting on a reply to a
                 // request that never left for as long as its own timeout — the socket transport
                 // reports write errors, so this one should too.
@@ -284,7 +291,9 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
                     return
                 }
                 queue.async {
-                    guard let self = self else {
+                    // Same identity check as the state handlers: a send that fails on a connection
+                    // this interface has already moved on from must not tear down its successor.
+                    guard let self = self, let connection = connection, self.connection === connection else {
                         return
                     }
                     Logger.shared.log("NetworkFrameworkTcpConnectionInterface", "send failed: \(error)")
@@ -320,7 +329,13 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
                 return
             }
             guard let connection = self.connection else {
-                print("Connection not ready")
+                // This used to `print` and return, leaving `currentReadRequest` set. That state
+                // never recovers: `processReadRequests` returns early while a request is current,
+                // so the interface never reads again and MtProtoKit waits on a socket that will
+                // never deliver a byte — a connection that hangs rather than one that fails.
+                self.currentReadRequest = nil
+                Logger.shared.log("NetworkFrameworkTcpConnectionInterface", "read requested while connection == nil")
+                self.cancelWithError(error: nil)
                 return
             }
             
@@ -338,8 +353,16 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
                 
                 self.processReadRequests()
             } else {
-                connection.receive(minimumIncompleteLength: requestChunkLength, maximumLength: requestChunkLength, completion: { [weak self] data, context, isComplete, error in
-                    guard let self = self, let currentReadRequest = self.currentReadRequest else {
+                connection.receive(minimumIncompleteLength: requestChunkLength, maximumLength: requestChunkLength, completion: { [weak self, weak connection] data, context, isComplete, error in
+                    // The identity check matters more here than anywhere else: without it, bytes
+                    // that arrived on a connection this interface has already dropped are copied
+                    // into the read request of the one that replaced it, and an end-of-stream on
+                    // the old one cancels the new one. Either way MtProtoKit is reading a stream
+                    // that is not the one it thinks it is.
+                    guard let self = self, let connection = connection, self.connection === connection else {
+                        return
+                    }
+                    guard let currentReadRequest = self.currentReadRequest else {
                         return
                     }
                     if let data = data {

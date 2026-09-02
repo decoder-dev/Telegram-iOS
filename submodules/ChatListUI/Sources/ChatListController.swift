@@ -6941,6 +6941,9 @@ private final class ChatListLocationContext {
     }
 
     private var previousHeaderState: HeaderState?
+
+    /// Set while a coalesced header layout is waiting on the main queue — see `updateChatList`.
+    private var isHeaderLayoutScheduled: Bool = false
     
     private var didSetReady: Bool = false
     let ready = Promise<Bool>()
@@ -7554,17 +7557,51 @@ private final class ChatListLocationContext {
             strings: ObjectIdentifier(presentationData.strings)
         )
         if self.previousHeaderState != headerState {
+            // The very first pass lays out inline: the chat list has to be laid out before it is
+            // shown, and deferring it by a runloop turn would put an unlaid-out header on screen.
+            let isFirstUpdate = self.previousHeaderState == nil
             self.previousHeaderState = headerState
-            
-            self.parentController?.requestLayout(transition: .animated(duration: 0.45, curve: .spring))
-            
-            Queue.mainQueue().after(1.0, { [weak self] in
-                guard let self else {
-                    return
+
+            // Everything after that is coalesced. The guard above stops emissions that changed
+            // nothing, but it cannot stop the ones that changed something real: `chatListTitle`
+            // carries the connection status, so every flap between "Connecting…", "Waiting for
+            // network" and the account name is a genuine change. On an unstable connection that is
+            // a continuous stream, and each one used to run a full spring-animated layout of the
+            // whole container synchronously from the signal sink.
+            //
+            // Two builds after the guard landed, the same stack was still the one the watchdog
+            // caught: `updateChatList` -> `requestLayout` -> `ChatListNavigationBar.applyScroll`
+            // -> `ChatListHeaderComponent` -> `GlassBackgroundComponent` -> `Transition.animateView`,
+            // in three of the four kills that could be symbolicated. Coalescing collapses a burst
+            // — several of the nine `combineLatest` inputs emitting in one turn, or a run of status
+            // changes — into one layout, and `previousHeaderState` already holds the latest state,
+            // so the pass that does run is the current one.
+            if isFirstUpdate {
+                self.requestHeaderLayout()
+            } else if !self.isHeaderLayoutScheduled {
+                self.isHeaderLayoutScheduled = true
+                // `justDispatch`, not `async`: `Queue.mainQueue()` runs `async` inline when it is
+                // already the current queue, which is exactly the case here and would defer nothing.
+                Queue.mainQueue().justDispatch { [weak self] in
+                    guard let self else {
+                        return
+                    }
+                    self.isHeaderLayoutScheduled = false
+                    self.requestHeaderLayout()
                 }
-                self.parentController?.maybeDisplayStoryTooltip()
-            })
+            }
         }
+    }
+
+    private func requestHeaderLayout() {
+        self.parentController?.requestLayout(transition: .animated(duration: 0.45, curve: .spring))
+
+        Queue.mainQueue().after(1.0, { [weak self] in
+            guard let self else {
+                return
+            }
+            self.parentController?.maybeDisplayStoryTooltip()
+        })
     }
     
     private func updateForum(
