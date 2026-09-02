@@ -6,6 +6,10 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3934-pre] — 2026-09-02
+
+Pre-release: foreground resume reconnect storm fix.
+
 ### Fixed
 - **Network:** stop tearing down live TCP on spurious reachability "available" callbacks during foreground resume — only reconnect after a real offline→online transition.
 - **Network:** debounce NWConnection viability loss (2s) on established sockets so brief resume flicker does not restart every transport.
