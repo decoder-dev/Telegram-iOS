@@ -7,10 +7,11 @@
 ## [Unreleased]
 
 ### Fixed
-- **WEB proxy resume:** typed sidecar events; MtProto rebuild only on `.carrierResumedInPlace`; carrier rebuild on any real background (no 2s heuristics/debounce); single lifecycle hook in AppDelegate.
-- **Network:** rebuild transport on OS path changes (Wi‑Fi/cellular/VPN handoff) instead of sitting stuck while reachability stays "available"; WEB proxy bootstrap pauses MtProto until sidecar ready (no more 127.0.0.1:1 hammer); IPv6 connect cap 2.5s; WebSocket send failures tear down the connection like NW TCP.
-- **WEB proxy:** resume carrier rebuild after 2s background (was 12s) so brief app switches don't leave a dead tunnel.
-- **Proxy rotation:** only switch when the active proxy has connection issues or probes unreachable; always re-probe the active server; 12s probe timeout (was 30s).
+- **WEB proxy resume:** typed sidecar events; MtProto rebuild only on `.carrierResumedInPlace`; carrier rebuild on any real background; single lifecycle hook in AppDelegate.
+- **WEB proxy:** in-place reconnect failure no longer double-fires `onFailure` + manager restart (was invalidating `startGeneration` and delaying recovery by backoff); pause MtProto whenever sidecar is down, including stale loopback in environment.
+- **Network:** `rebuildTransport()` respects WEB bootstrap pause — path/VPN handoff no longer resumes MtProto into direct DC while sidecar is bootstrapping.
+- **Network:** rebuild transport on OS path changes (Wi‑Fi/cellular/VPN handoff); WEB bootstrap pause; IPv6 connect cap 2.5s; WebSocket send failures tear down the connection like NW TCP.
+- **Proxy rotation:** only switch when the active proxy has connection issues; 12s probe timeout (was 30s).
 
 ### Changed
 - **FakeTLS (TSPU bypass):** Chrome ClientHello (TDLib non-Darwin layout: fixed ciphers, h2 ALPN, ECH, permuted extensions, ML-KEM key share); removed dead Safari DSL (~420 lines).

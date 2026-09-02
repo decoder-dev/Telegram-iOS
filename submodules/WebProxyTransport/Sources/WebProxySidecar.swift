@@ -437,7 +437,6 @@ public final class WebProxySidecar {
                         urlSession.invalidateAndCancel()
                         WebProxyLog.log("sidecar transport reconnect (\(reason)) failed: \(error)")
                         finish(.failure(error))
-                        self.onFailure?()
                         self.stopLocked()
                     }
                 }
@@ -454,13 +453,11 @@ public final class WebProxySidecar {
                 self.carrier = nil
                 WebProxyLog.log("sidecar transport reconnect (\(reason)) timed out after \(Int(WebProxySidecar.transportReconnectTimeout))s")
                 finish(.failure(WebProxyHttpCarrierError.sessionCreationFailed))
-                self.onFailure?()
                 self.stopLocked()
             }
         } catch {
             WebProxyLog.log("sidecar transport reconnect (\(reason)) could not be built: \(error)")
             finish(.failure(error))
-            self.onFailure?()
             self.stopLocked()
         }
     }

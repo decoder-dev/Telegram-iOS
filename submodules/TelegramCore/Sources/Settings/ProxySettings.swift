@@ -81,11 +81,7 @@ func applySharedProxySettingsToNetwork(settings: ProxySettings, network: Network
         if let configuration = activeServer?.webProxyConfiguration {
             WebProxyManager.shared.configure(activeWebProxy: configuration)
         }
-        network.context.updateApiEnvironment { environment in
-            let current = environment?.socksProxySettings
-            if let current = current {
-                return nil
-            }
+        network.context.updateApiEnvironment { _ in
             network.pauseForWebProxyBootstrap()
             return nil
         }

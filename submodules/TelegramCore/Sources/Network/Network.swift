@@ -937,8 +937,8 @@ public final class Network: NSObject, MTRequestMessageServiceDelegate {
     }
     private let networkSpeedLimitedEventPipe = ValuePipe<NetworkSpeedLimitedEvent>()
     private let networkSpeedLimitedEventState = Atomic<NetworkSpeedLimitedEventState>(value: NetworkSpeedLimitedEventState())
-    /// While a WEB proxy sidecar is bootstrapping on first enable, MtProto is paused instead of
-    /// hammering the fail-closed 127.0.0.1:1 placeholder.
+    /// While a WEB proxy sidecar is bootstrapping or its carrier is down, MtProto stays paused
+    /// instead of dialing a stale loopback or falling through to direct DC.
     private var webProxyBootstrapPaused = false
     
     public func dropConnectionStatus() {
@@ -962,7 +962,7 @@ public final class Network: NSObject, MTRequestMessageServiceDelegate {
                 return
             }
             strongSelf.mtProto.pause()
-            if shouldKeepConnection {
+            if shouldKeepConnection, !strongSelf.webProxyBootstrapPaused {
                 strongSelf.mtProto.resume()
             }
         })
