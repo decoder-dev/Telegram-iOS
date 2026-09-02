@@ -573,13 +573,320 @@ static NSMutableData *executeGenerationCode(id<EncryptionProvider> provider, NSD
     return resultData;
 }
 
-static NSMutableData *MTCreateSafariClientHello(NSString *domain, id<EncryptionProvider> provider) {
+#pragma mark - Chrome FakeTLS ClientHello (TSPU / JA3 bypass)
+
+typedef struct {
+    NSMutableData *data;
+    NSMutableArray<NSNumber *> *scopeStack;
+} MTTlsHelloBuilder;
+
+static void MTTlsHelloAppendBytes(MTTlsHelloBuilder *builder, const void *bytes, NSUInteger length) {
+    [builder->data appendBytes:bytes length:length];
+}
+
+static void MTTlsHelloAppendStatic(MTTlsHelloBuilder *builder, const uint8_t *bytes, NSUInteger length) {
+    [builder->data appendBytes:bytes length:length];
+}
+
+static void MTTlsHelloBeginScope(MTTlsHelloBuilder *builder) {
+    [builder->scopeStack addObject:@(builder->data.length)];
+    uint8_t zeroBytes[2] = { 0, 0 };
+    MTTlsHelloAppendBytes(builder, zeroBytes, 2);
+}
+
+static bool MTTlsHelloEndScope(MTTlsHelloBuilder *builder) {
+    if (builder->scopeStack.count == 0) {
+        return false;
+    }
+    NSUInteger position = (NSUInteger)[builder->scopeStack.lastObject unsignedIntegerValue];
+    [builder->scopeStack removeLastObject];
+    if (builder->data.length < position + 2) {
+        return false;
+    }
+    uint16_t blockLength = (uint16_t)(builder->data.length - position - 2);
+    if (blockLength >= (1 << 14)) {
+        return false;
+    }
+    ((uint8_t *)builder->data.mutableBytes)[position] = (uint8_t)((blockLength >> 8) & 0xff);
+    ((uint8_t *)builder->data.mutableBytes)[position + 1] = (uint8_t)(blockLength & 0xff);
+    return true;
+}
+
+static void MTTlsHelloAppendGrease(MTTlsHelloBuilder *builder, uint8_t grease[8], int index) {
+    if (index < 0 || index >= 8) {
+        return;
+    }
+    uint8_t value = grease[index];
+    MTTlsHelloAppendBytes(builder, &value, 1);
+    MTTlsHelloAppendBytes(builder, &value, 1);
+}
+
+static bool MTTlsHelloAppendRandom(MTTlsHelloBuilder *builder, NSUInteger length) {
+    if (length == 0) {
+        return true;
+    }
+    NSMutableData *randomData = [[NSMutableData alloc] initWithLength:length];
+    if (!MTFillRandomBytes((uint8_t *)randomData.mutableBytes, randomData.length)) {
+        return false;
+    }
+    [builder->data appendData:randomData];
+    return true;
+}
+
+static bool MTTlsHelloAppendKey(MTTlsHelloBuilder *builder, id<EncryptionProvider> provider) {
+    NSMutableData *key = [[NSMutableData alloc] initWithLength:32];
+    generate_public_key((unsigned char *)key.mutableBytes, provider);
+    [builder->data appendData:key];
+    return true;
+}
+
+static bool MTTlsHelloAppendMlKemKey(MTTlsHelloBuilder *builder) {
+    NSMutableData *key = [[NSMutableData alloc] initWithLength:1184];
+    if (!generate_ml_kem_public_key((uint8_t *)key.mutableBytes)) {
+        return false;
+    }
+    [builder->data appendData:key];
+    return true;
+}
+
+static void MTShuffleExtensionParts(NSMutableArray<NSMutableData *> *parts) {
+    for (NSUInteger i = parts.count; i > 1; i--) {
+        NSUInteger j = arc4random_uniform((uint32_t)i);
+        [parts exchangeObjectAtIndex:j withObjectAtIndex:(i - 1)];
+    }
+}
+
+static bool MTTlsHelloBuildServerNameExtension(MTTlsHelloBuilder *builder, NSData *domain) {
+    static const uint8_t extensionType[] = { 0x00, 0x00 };
+    MTTlsHelloAppendStatic(builder, extensionType, sizeof(extensionType));
+    MTTlsHelloBeginScope(builder);
+    MTTlsHelloBeginScope(builder);
+    static const uint8_t hostNameType[] = { 0x00 };
+    MTTlsHelloAppendStatic(builder, hostNameType, sizeof(hostNameType));
+    MTTlsHelloBeginScope(builder);
+    [builder->data appendData:domain];
+    if (!MTTlsHelloEndScope(builder)) {
+        return false;
+    }
+    if (!MTTlsHelloEndScope(builder)) {
+        return false;
+    }
+    if (!MTTlsHelloEndScope(builder)) {
+        return false;
+    }
+    return true;
+}
+
+static bool MTTlsHelloBuildEchExtension(MTTlsHelloBuilder *builder, id<EncryptionProvider> provider) {
+    static const uint8_t extensionType[] = { 0xfe, 0x0d };
+    MTTlsHelloAppendStatic(builder, extensionType, sizeof(extensionType));
+    MTTlsHelloBeginScope(builder);
+    static const uint8_t echHeader[] = { 0x00, 0x00, 0x01, 0x00, 0x01 };
+    MTTlsHelloAppendStatic(builder, echHeader, sizeof(echHeader));
+    if (!MTTlsHelloAppendRandom(builder, 1)) {
+        return false;
+    }
+    static const uint8_t keyShareLength[] = { 0x00, 0x20 };
+    MTTlsHelloAppendStatic(builder, keyShareLength, sizeof(keyShareLength));
+    if (!MTTlsHelloAppendKey(builder, provider)) {
+        return false;
+    }
+    MTTlsHelloBeginScope(builder);
+    uint32_t echPayloadLength = arc4random_uniform(4) * 32 + 144;
+    if (!MTTlsHelloAppendRandom(builder, echPayloadLength)) {
+        return false;
+    }
+    if (!MTTlsHelloEndScope(builder)) {
+        return false;
+    }
+    if (!MTTlsHelloEndScope(builder)) {
+        return false;
+    }
+    return true;
+}
+
+static bool MTTlsHelloBuildCombinedKeyShareExtension(MTTlsHelloBuilder *builder, uint8_t grease[8], id<EncryptionProvider> provider) {
+    static const uint8_t prefix[] = { 0x00, 0x33, 0x04, 0xef, 0x04, 0xed };
+    MTTlsHelloAppendStatic(builder, prefix, sizeof(prefix));
+    MTTlsHelloAppendGrease(builder, grease, 4);
+    static const uint8_t middle[] = { 0x00, 0x01, 0x00, 0x11, 0xec, 0x04, 0xc0 };
+    MTTlsHelloAppendStatic(builder, middle, sizeof(middle));
+    if (!MTTlsHelloAppendMlKemKey(builder)) {
+        return false;
+    }
+    if (!MTTlsHelloAppendKey(builder, provider)) {
+        return false;
+    }
+    static const uint8_t keyShare[] = { 0x00, 0x1d, 0x00, 0x20 };
+    MTTlsHelloAppendStatic(builder, keyShare, sizeof(keyShare));
+    if (!MTTlsHelloAppendKey(builder, provider)) {
+        return false;
+    }
+    return true;
+}
+
+static bool MTTlsHelloApplyPadding(MTTlsHelloBuilder *builder) {
+    if (builder->data.length >= 513) {
+        return true;
+    }
+    NSUInteger paddingLength = 513 - builder->data.length;
+    static const uint8_t paddingType[] = { 0x00, 0x15 };
+    MTTlsHelloAppendStatic(builder, paddingType, sizeof(paddingType));
+    MTTlsHelloBeginScope(builder);
+    NSMutableData *zeros = [[NSMutableData alloc] initWithLength:paddingLength];
+    [builder->data appendData:zeros];
+    return MTTlsHelloEndScope(builder);
+}
+
+static NSMutableData *MTCreateChromeClientHello(NSString *domain, id<EncryptionProvider> provider) {
     NSData *domainData = [domain dataUsingEncoding:NSUTF8StringEncoding];
-    if (domainData == nil || domainData.length == 0 || domainData.length > 0xffff) {
+    if (domainData == nil || domainData.length == 0 || domainData.length > 253) {
         return nil;
     }
 
-    return executeGenerationCode(provider, domainData);
+    uint8_t grease[8];
+    if (!MTGenerateGreaseValues(grease)) {
+        return nil;
+    }
+
+    NSMutableData *resultData = [[NSMutableData alloc] init];
+    NSMutableArray<NSNumber *> *scopeStack = [[NSMutableArray alloc] init];
+    MTTlsHelloBuilder builder = { .data = resultData, .scopeStack = scopeStack };
+
+    static const uint8_t recordHeader[] = { 0x16, 0x03, 0x01 };
+    MTTlsHelloAppendStatic(&builder, recordHeader, sizeof(recordHeader));
+    MTTlsHelloBeginScope(&builder);
+
+    static const uint8_t handshakePrefix[] = { 0x01, 0x00 };
+    MTTlsHelloAppendStatic(&builder, handshakePrefix, sizeof(handshakePrefix));
+    MTTlsHelloBeginScope(&builder);
+
+    static const uint8_t clientVersion[] = { 0x03, 0x03 };
+    MTTlsHelloAppendStatic(&builder, clientVersion, sizeof(clientVersion));
+
+    NSMutableData *clientRandomPlaceholder = [[NSMutableData alloc] initWithLength:32];
+    [resultData appendData:clientRandomPlaceholder];
+
+    static const uint8_t sessionIdLength[] = { 0x20 };
+    MTTlsHelloAppendStatic(&builder, sessionIdLength, sizeof(sessionIdLength));
+    if (!MTTlsHelloAppendRandom(&builder, 32)) {
+        return nil;
+    }
+
+    static const uint8_t cipherSuitesLength[] = { 0x00, 0x20 };
+    MTTlsHelloAppendStatic(&builder, cipherSuitesLength, sizeof(cipherSuitesLength));
+    MTTlsHelloAppendGrease(&builder, grease, 0);
+    static const uint8_t cipherSuites[] = {
+        0x13, 0x01, 0x13, 0x02, 0x13, 0x03, 0xc0, 0x2b, 0xc0, 0x2f, 0xc0, 0x2c, 0xc0, 0x30,
+        0xcc, 0xa9, 0xcc, 0xa8, 0xc0, 0x13, 0xc0, 0x14, 0x00, 0x9c, 0x00, 0x9d, 0x00, 0x2f, 0x00, 0x35
+    };
+    MTTlsHelloAppendStatic(&builder, cipherSuites, sizeof(cipherSuites));
+
+    static const uint8_t compressionMethods[] = { 0x01, 0x00 };
+    MTTlsHelloAppendStatic(&builder, compressionMethods, sizeof(compressionMethods));
+
+    MTTlsHelloBeginScope(&builder);
+    MTTlsHelloAppendGrease(&builder, grease, 2);
+    static const uint8_t firstGreaseExtension[] = { 0x00, 0x00 };
+    MTTlsHelloAppendStatic(&builder, firstGreaseExtension, sizeof(firstGreaseExtension));
+
+    NSMutableArray<NSMutableData *> *extensionParts = [[NSMutableArray alloc] init];
+    {
+        NSMutableData *part = [[NSMutableData alloc] init];
+        MTTlsHelloBuilder partBuilder = { .data = part, .scopeStack = [[NSMutableArray alloc] init] };
+        if (!MTTlsHelloBuildServerNameExtension(&partBuilder, domainData)) {
+            return nil;
+        }
+        [extensionParts addObject:part];
+    }
+    [extensionParts addObject:[NSMutableData dataWithBytes:(uint8_t[]){ 0x00, 0x05, 0x00, 0x05, 0x01, 0x00, 0x00, 0x00, 0x00 } length:9]];
+    {
+        NSMutableData *part = [[NSMutableData alloc] init];
+        static const uint8_t supportedGroupsPrefix[] = { 0x00, 0x0a, 0x00, 0x0c, 0x00, 0x0a };
+        [part appendBytes:supportedGroupsPrefix length:sizeof(supportedGroupsPrefix)];
+        uint8_t g = grease[4];
+        [part appendBytes:&g length:1];
+        [part appendBytes:&g length:1];
+        static const uint8_t supportedGroupsSuffix[] = { 0x11, 0xec, 0x00, 0x1d, 0x00, 0x17, 0x00, 0x18 };
+        [part appendBytes:supportedGroupsSuffix length:sizeof(supportedGroupsSuffix)];
+        [extensionParts addObject:part];
+    }
+    [extensionParts addObject:[NSMutableData dataWithBytes:(uint8_t[]){ 0x00, 0x0b, 0x00, 0x02, 0x01, 0x00 } length:6]];
+    [extensionParts addObject:[NSMutableData dataWithBytes:(uint8_t[]){
+        0x00, 0x0d, 0x00, 0x18, 0x00, 0x16, 0x09, 0x04, 0x09, 0x05, 0x09, 0x06, 0x04, 0x03, 0x08, 0x04,
+        0x04, 0x01, 0x05, 0x03, 0x08, 0x05, 0x05, 0x01, 0x08, 0x06, 0x06, 0x01
+    } length:28]];
+    [extensionParts addObject:[NSMutableData dataWithBytes:(uint8_t[]){
+        0x00, 0x10, 0x00, 0x0e, 0x00, 0x0c, 0x02, 0x68, 0x32, 0x08, 0x68, 0x74, 0x74, 0x70, 0x2f, 0x31, 0x2e, 0x31
+    } length:18]];
+    [extensionParts addObject:[NSMutableData dataWithBytes:(uint8_t[]){ 0x00, 0x12, 0x00, 0x00 } length:4]];
+    [extensionParts addObject:[NSMutableData dataWithBytes:(uint8_t[]){ 0x00, 0x17, 0x00, 0x00 } length:4]];
+    [extensionParts addObject:[NSMutableData dataWithBytes:(uint8_t[]){ 0x00, 0x1b, 0x00, 0x03, 0x02, 0x00, 0x02 } length:7]];
+    [extensionParts addObject:[NSMutableData dataWithBytes:(uint8_t[]){ 0x00, 0x23, 0x00, 0x00 } length:4]];
+    {
+        NSMutableData *part = [[NSMutableData alloc] init];
+        static const uint8_t supportedVersionsPrefix[] = { 0x00, 0x2b, 0x00, 0x07, 0x06 };
+        [part appendBytes:supportedVersionsPrefix length:sizeof(supportedVersionsPrefix)];
+        uint8_t g = grease[6];
+        [part appendBytes:&g length:1];
+        [part appendBytes:&g length:1];
+        static const uint8_t supportedVersionsSuffix[] = { 0x03, 0x04, 0x03, 0x03 };
+        [part appendBytes:supportedVersionsSuffix length:sizeof(supportedVersionsSuffix)];
+        [extensionParts addObject:part];
+    }
+    [extensionParts addObject:[NSMutableData dataWithBytes:(uint8_t[]){ 0x00, 0x2d, 0x00, 0x02, 0x01, 0x01 } length:6]];
+    {
+        NSMutableData *part = [[NSMutableData alloc] init];
+        MTTlsHelloBuilder partBuilder = { .data = part, .scopeStack = [[NSMutableArray alloc] init] };
+        if (!MTTlsHelloBuildCombinedKeyShareExtension(&partBuilder, grease, provider)) {
+            return nil;
+        }
+        [extensionParts addObject:part];
+    }
+    [extensionParts addObject:[NSMutableData dataWithBytes:(uint8_t[]){ 0x44, 0xcd, 0x00, 0x05, 0x00, 0x03, 0x02, 0x68, 0x32 } length:9]];
+    {
+        NSMutableData *part = [[NSMutableData alloc] init];
+        MTTlsHelloBuilder partBuilder = { .data = part, .scopeStack = [[NSMutableArray alloc] init] };
+        if (!MTTlsHelloBuildEchExtension(&partBuilder, provider)) {
+            return nil;
+        }
+        [extensionParts addObject:part];
+    }
+    [extensionParts addObject:[NSMutableData dataWithBytes:(uint8_t[]){ 0xff, 0x01, 0x00, 0x01, 0x00 } length:5]];
+
+    MTShuffleExtensionParts(extensionParts);
+    for (NSMutableData *part in extensionParts) {
+        [resultData appendData:part];
+    }
+
+    MTTlsHelloAppendGrease(&builder, grease, 3);
+    static const uint8_t trailingGrease[] = { 0x00, 0x01, 0x00 };
+    MTTlsHelloAppendStatic(&builder, trailingGrease, sizeof(trailingGrease));
+
+    if (!MTTlsHelloApplyPadding(&builder)) {
+        return nil;
+    }
+    if (!MTTlsHelloEndScope(&builder)) {
+        return nil;
+    }
+    if (!MTTlsHelloEndScope(&builder)) {
+        return nil;
+    }
+    if (!MTTlsHelloEndScope(&builder)) {
+        return nil;
+    }
+    if (scopeStack.count != 0) {
+        return nil;
+    }
+    if (resultData.length < 513) {
+        return nil;
+    }
+
+    return resultData;
+}
+
+static NSMutableData *MTCreateSafariClientHello(NSString *domain, id<EncryptionProvider> provider) {
+    return MTCreateChromeClientHello(domain, provider);
 }
 
 
@@ -1143,7 +1450,7 @@ struct ctr_state {
                     } else if (strongSelf->_socksIp == nil) {
                         if (strongSelf->_mtpIp != nil && [strongSelf->_mtpSecret isKindOfClass:[MTProxySecretType2 class]]) {
                             MTProxySecretType2 *secret = (MTProxySecretType2 *)(strongSelf->_mtpSecret);
-                            NSMutableData *helloData = MTCreateSafariClientHello(secret.domain, strongSelf->_encryptionProvider);
+                            NSMutableData *helloData = MTCreateChromeClientHello(secret.domain, strongSelf->_encryptionProvider);
                             if (helloData == nil || helloData.length < 513) {
                                 [strongSelf closeAndNotifyWithError:true];
                                 return;

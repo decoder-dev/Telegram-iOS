@@ -7,6 +7,7 @@
 ## [Unreleased]
 
 ### Changed
+- **FakeTLS (TSPU bypass):** MTProxy `ee` ClientHello now matches TDLib/Chrome — fixed cipher list, h2 ALPN, ECH (`0xfe0d`) with ML-KEM key share, randomized extension order, GREASE, dynamic padding to ≥513 B; HMAC @ offset 11 unchanged.
 - **WebSocket transport:** always enabled for every account (fork invariant); settings section removed from Proxy.
 
 ### Fixed
