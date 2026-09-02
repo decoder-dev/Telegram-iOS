@@ -15,7 +15,7 @@ func managedNetworkPathReconnect(network: Network) -> Signal<Never, NoError> {
         let debounceQueue = Queue()
         
         monitor.pathUpdateHandler = { path in
-            let interfaces = path.availableInterfaces.map { "\($0.type.rawValue)" }.sorted().joined(separator: ",")
+            let interfaces = path.availableInterfaces.map { String(describing: $0.type) }.sorted().joined(separator: ",")
             let signature = "\(path.status.rawValue)-\(interfaces)"
             guard path.status == .satisfied else {
                 lastSignature = signature

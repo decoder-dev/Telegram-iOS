@@ -6,12 +6,17 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3942-pre] — 2026-09-02
+
+Pre-release: network audit cleanup, FakeTLS Chrome ClientHello, WEB proxy foreground resume.
+
 ### Fixed
 - **WEB proxy resume:** typed sidecar events; MtProto rebuild only on `.carrierResumedInPlace`; carrier rebuild on any real background; single lifecycle hook in AppDelegate.
 - **WEB proxy:** in-place reconnect failure no longer double-fires `onFailure` + manager restart (was invalidating `startGeneration` and delaying recovery by backoff); pause MtProto whenever sidecar is down, including stale loopback in environment.
 - **WEB proxy:** tear down `NWPathMonitor` when the user disables WEB proxy (no leaked monitor after explicit off).
 - **Network:** `rebuildTransport()` respects WEB bootstrap pause — path/VPN handoff no longer resumes MtProto into direct DC while sidecar is bootstrapping.
 - **Network:** rebuild transport on OS path changes (Wi‑Fi/cellular/VPN handoff); WEB bootstrap pause; IPv6 connect cap 2.5s; WebSocket send failures tear down the connection like NW TCP.
+- **Network:** fix `ManagedNetworkPathReconnect` compile on release_arm64 (`NWInterface.InterfaceType` has no `rawValue`).
 - **Proxy rotation:** only switch when the active proxy has connection issues; 12s probe timeout (was 30s).
 
 ### Changed
