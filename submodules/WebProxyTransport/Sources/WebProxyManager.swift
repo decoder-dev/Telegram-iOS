@@ -212,10 +212,6 @@ public final class WebProxyManager {
     public func applicationDidBecomeActive() {
         let now = CFAbsoluteTimeGetCurrent()
         self.startLock.lock()
-        if now - self.lastBecomeActiveRestart < WebProxyManager.becomeActiveRestartMinInterval {
-            self.startLock.unlock()
-            return
-        }
         let backgroundedAt = self.enteredBackgroundAt
         let starting = self.startingConfiguration
         // `configuration` is cleared as soon as a failed sidecar is stopped, but the desired
@@ -236,26 +232,39 @@ public final class WebProxyManager {
         }
         let timeInBackground = backgroundedAt > 0 ? (now - backgroundedAt) : 0.0
 
-        // Consume the background stamp only once there is a concrete configuration to restart.
-        // Otherwise a transient empty state between stopping and starting would discard the
-        // foreground recovery event.
+        // Missing endpoint → always try to start (cold path / previous failure).
+        if !hasEndpoint {
+            self.startLock.lock()
+            self.enteredBackgroundAt = 0
+            self.lastFailedConfiguration = nil
+            self.consecutiveFailureCount = 0
+            self.startLock.unlock()
+            self.scheduleStart(configuration: target)
+            return
+        }
+        
+        // No background transition recorded — nothing to resume (avoids a redundant carrier
+        // rebuild on every cold `didBecomeActive` after the sidecar is already up).
+        guard backgroundedAt > 0 else {
+            return
+        }
+        
+        // Not long enough in background to have likely lost the carrier — keep the stamp so a
+        // later `didBecomeActive` (iOS often fires twice) can still recover.
+        if timeInBackground < WebProxyManager.minimumBackgroundForResumeRestart {
+            return
+        }
+        
         self.startLock.lock()
+        if now - self.lastBecomeActiveRestart < WebProxyManager.becomeActiveRestartMinInterval {
+            self.startLock.unlock()
+            return
+        }
         self.enteredBackgroundAt = 0
         self.lastBecomeActiveRestart = now
         self.lastFailedConfiguration = nil
         self.consecutiveFailureCount = 0
         self.startLock.unlock()
-        
-        // Missing endpoint → always try to start (cold path / previous failure).
-        if !hasEndpoint {
-            self.scheduleStart(configuration: target)
-            return
-        }
-        
-        // Not a resume at all, or too brief a one to have cost us the carrier.
-        if backgroundedAt <= 0 || timeInBackground < WebProxyManager.minimumBackgroundForResumeRestart {
-            return
-        }
         
         guard let sidecar = sidecar else {
             self.sequentialRestart(configuration: target)
@@ -268,7 +277,13 @@ public final class WebProxyManager {
             guard let self else {
                 return
             }
-            if case let .failure(error) = result {
+            switch result {
+            case .success:
+                // Loopback port is unchanged, so proxy settings equality would skip MtProto
+                // rebuild — notify every account to drop and reconnect against the new carrier.
+                WebProxyLog.log("resume transport reconnect succeeded, notifying networks")
+                self.notifySidecarEvent()
+            case let .failure(error):
                 WebProxyLog.log("resume transport reconnect failed, rebuilding the sidecar: \(error)")
                 self.sequentialRestart(configuration: target)
             }

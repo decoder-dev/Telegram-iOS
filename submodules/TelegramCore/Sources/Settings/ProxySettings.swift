@@ -132,6 +132,16 @@ public func registerWebProxySidecarReapply(network: Network, currentSettings: @e
             return
         }
         applySharedProxySettingsToNetwork(settings: settings, network: network)
+        // After an in-place WEB carrier rebuild the loopback host:port is unchanged, so
+        // `applySharedProxySettingsToNetwork` may not touch MtProto at all. Rebuild anyway
+        // whenever the sidecar is ready so foreground resume actually reconnects.
+        if let active = settings.effectiveActiveServer, case let .web(secret) = active.connection {
+            let configuration = WebProxyConfiguration(hostname: active.host, secret: secret)
+            if WebProxyManager.shared.isReady(for: configuration) {
+                network.dropConnectionStatus()
+                network.rebuildTransport()
+            }
+        }
     }
     return ActionDisposable {
         WebProxyManager.shared.removeSidecarEventHandler(token)
