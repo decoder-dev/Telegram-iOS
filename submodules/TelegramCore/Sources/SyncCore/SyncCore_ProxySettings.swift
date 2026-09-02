@@ -121,10 +121,10 @@ public struct ProxySettings: Codable, Equatable {
     public var webSocketFallbackToDirect: Bool
     
     public static var defaultSettings: ProxySettings {
-        return ProxySettings(enabled: false, servers: [], activeServer: nil, useForCalls: false, useLocalDNSForProxyHosts: false, autoRotateProxies: false, proxyRotationTimeoutIndex: ProxyRotationTimeouts.defaultIndex, autoFetchPublicMtProxy: false, automaticServers: [])
+        return ProxySettings(enabled: false, servers: [], activeServer: nil, useForCalls: false, useLocalDNSForProxyHosts: false, autoRotateProxies: false, proxyRotationTimeoutIndex: ProxyRotationTimeouts.defaultIndex, autoFetchPublicMtProxy: false, automaticServers: [], webSocketTransportEnabled: true, webSocketFallbackToDirect: true)
     }
     
-    public init(enabled: Bool, servers: [ProxyServerSettings], activeServer: ProxyServerSettings?, useForCalls: Bool, useLocalDNSForProxyHosts: Bool = false, autoRotateProxies: Bool = false, proxyRotationTimeoutIndex: Int32 = ProxyRotationTimeouts.defaultIndex, autoFetchPublicMtProxy: Bool = false, automaticServers: [ProxyServerSettings] = [], webSocketTransportEnabled: Bool = false, webSocketFallbackToDirect: Bool = true) {
+    public init(enabled: Bool, servers: [ProxyServerSettings], activeServer: ProxyServerSettings?, useForCalls: Bool, useLocalDNSForProxyHosts: Bool = false, autoRotateProxies: Bool = false, proxyRotationTimeoutIndex: Int32 = ProxyRotationTimeouts.defaultIndex, autoFetchPublicMtProxy: Bool = false, automaticServers: [ProxyServerSettings] = [], webSocketTransportEnabled: Bool = true, webSocketFallbackToDirect: Bool = true) {
         self.enabled = enabled
         self.servers = servers
         self.activeServer = activeServer
@@ -157,7 +157,8 @@ public struct ProxySettings: Codable, Equatable {
             self.autoFetchPublicMtProxy = false
         }
         self.automaticServers = (try? container.decode([ProxyServerSettings].self, forKey: "automaticServers")) ?? []
-        self.webSocketTransportEnabled = ((try? container.decode(Int32.self, forKey: "webSocketTransportEnabled")) ?? 0) != 0
+        // Fork invariant: WebSocket MTProto transport is always on (no settings toggle).
+        self.webSocketTransportEnabled = true
         self.webSocketFallbackToDirect = ((try? container.decode(Int32.self, forKey: "webSocketFallbackToDirect")) ?? 1) != 0
     }
     

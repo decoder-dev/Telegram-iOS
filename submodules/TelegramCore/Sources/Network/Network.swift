@@ -612,7 +612,7 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
             // when the toggle is on and no proxy server is active, and otherwise falls through to
             // setDefaultTcpConnectionInterface with the same `useNetworkFramework` value.
             var webSocketFallbackCoordinator: MTWebSocketFallbackCoordinator?
-            applyWebSocketTransport(context: context, webSocketTransportEnabled: proxySettings?.webSocketTransportEnabled ?? false, webSocketFallbackToDirect: proxySettings?.webSocketFallbackToDirect ?? true, hasActiveProxyServer: proxySettings?.effectiveActiveServer != nil, useNetworkFramework: useNetworkFrameworkTcpConnection, fallbackCoordinator: &webSocketFallbackCoordinator)
+            applyWebSocketTransport(context: context, webSocketTransportEnabled: true, webSocketFallbackToDirect: proxySettings?.webSocketFallbackToDirect ?? true, hasActiveProxyServer: proxySettings?.effectiveActiveServer != nil, useNetworkFramework: useNetworkFrameworkTcpConnection, fallbackCoordinator: &webSocketFallbackCoordinator)
             
             let seedAddressList: [Int: [String]]
             

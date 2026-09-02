@@ -1557,9 +1557,9 @@ public class Account {
         self.managedOperationsDisposable.add((accountManager.sharedData(keys: [SharedDataKeys.proxySettings])
         |> map { sharedData -> (Bool, Bool, Bool) in
             if let settings = sharedData.entries[SharedDataKeys.proxySettings]?.get(ProxySettings.self) {
-                return (settings.webSocketTransportEnabled, settings.webSocketFallbackToDirect, settings.effectiveActiveServer != nil)
+                return (true, settings.webSocketFallbackToDirect, settings.effectiveActiveServer != nil)
             } else {
-                return (false, true, false)
+                return (true, true, false)
             }
         }
         |> distinctUntilChanged(isEqual: { lhs, rhs in

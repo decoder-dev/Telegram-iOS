@@ -633,40 +633,6 @@ private func proxySettingsControllerEntries(theme: PresentationTheme, strings: P
         entries.append(.useForCallsInfo(theme, strings.SocksProxySetup_UseForCallsHelp))
     }
 
-    // Native WebSocket MTProto transport (docs/websocket-transport.md). The section is always shown,
-    // not gated on `proxySettings.enabled`, but the transport itself only activates while no proxy
-    // server is active — see applyWebSocketTransport in TelegramCore's Network.swift for why
-    // (Telegram's /apiws endpoint only understands the non-secret "standard" obfuscation handshake,
-    // not the secret-flavored one a configured proxy server requires).
-    let webSocketHeaderTitle: String
-    let webSocketTransportTitle: String
-    let webSocketFallbackTitle: String
-    let webSocketInfoText: String
-    let webSocketProxyConflictText: String
-    if preferRussian {
-        webSocketHeaderTitle = "WEBSOCKET-ТРАНСПОРТ"
-        webSocketTransportTitle = "WebSocket-транспорт"
-        webSocketFallbackTitle = "Откат на обычное соединение"
-        webSocketInfoText = "Пускает трафик через WebSocket-соединение с серверами Telegram — помогает, когда обычное соединение блокируют на уровне сети. Не работает вместе с прокси. Если включён откат, приложение само вернётся к обычному соединению, когда WebSocket-адреса перестанут отвечать."
-        webSocketProxyConflictText = "Сейчас активен прокси, поэтому WebSocket-транспорт не используется. Одновременно они не работают."
-    } else {
-        webSocketHeaderTitle = "WEBSOCKET TRANSPORT"
-        webSocketTransportTitle = "WebSocket Transport"
-        webSocketFallbackTitle = "Fallback to Direct Connection"
-        webSocketInfoText = "Routes traffic through a WebSocket connection to Telegram's servers, which can help bypass network-level blocking of the regular connection. Does not work together with a proxy server. When Fallback to Direct Connection is on, the app switches back to its normal connection automatically if the WebSocket endpoints become unreachable."
-        webSocketProxyConflictText = "A proxy server is active, so WebSocket Transport is inactive until it's turned off. The two cannot be used together."
-    }
-    entries.append(.webSocketHeader(theme, webSocketHeaderTitle))
-    entries.append(.webSocketTransport(theme, webSocketTransportTitle, proxySettings.webSocketTransportEnabled))
-    if proxySettings.webSocketTransportEnabled {
-        entries.append(.webSocketFallbackToDirect(theme, webSocketFallbackTitle, proxySettings.webSocketFallbackToDirect))
-    }
-    if proxySettings.webSocketTransportEnabled && proxySettings.effectiveActiveServer != nil {
-        entries.append(.webSocketInfo(theme, webSocketProxyConflictText))
-    } else {
-        entries.append(.webSocketInfo(theme, webSocketInfoText))
-    }
-
     return entries
 }
 
