@@ -868,6 +868,7 @@ struct ctr_state {
     
     bool _forceLocalDNS;
     bool _readyToSendData;
+    bool _tlsHashMismatch;
     NSMutableArray<MTTcpSendData *> *_pendingDataQueue;
     NSMutableData *_receivedDataBuffer;
     MTTcpReceiveData *_pendingReceiveData;
@@ -881,6 +882,8 @@ struct ctr_state {
 @end
 
 @implementation MTTcpConnection
+
+@synthesize tlsHashMismatch = _tlsHashMismatch;
 
 + (MTQueue *)tcpQueue
 {
@@ -1050,6 +1053,7 @@ struct ctr_state {
 {
     [[MTTcpConnection tcpQueue] dispatchOnQueue:^
     {
+        _tlsHashMismatch = false;
         if (_socket == nil)
         {
             if (_makeTcpConnectionInterface) {
@@ -1802,8 +1806,9 @@ struct ctr_state {
         
         if (![[[NSData alloc] initWithBytes:cHMAC length:CC_SHA256_DIGEST_LENGTH] isEqualToData:currentHelloResponseRandom]) {
             if (MTLogEnabled()) {
-                MTLog(@"***** %s: invalid hello response random", __PRETTY_FUNCTION__);
+                MTLog(@"***** %s: invalid hello response random (FakeTLS HMAC mismatch)", __PRETTY_FUNCTION__);
             }
+            _tlsHashMismatch = true;
             [self closeAndNotifyWithError:true];
             return;
         }

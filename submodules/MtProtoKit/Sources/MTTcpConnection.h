@@ -32,6 +32,8 @@
 @property (nonatomic, strong, readonly) id internalId;
 @property (nonatomic, strong, readonly) MTTransportScheme *scheme;
 @property (nonatomic, strong, readonly) NSString *interface;
+/// Set when a FakeTLS (`ee`) proxy handshake fails HMAC verification on the server hello.
+@property (nonatomic, readonly) bool tlsHashMismatch;
 
 @property (nonatomic, strong) NSString *(^getLogPrefix)();
 
