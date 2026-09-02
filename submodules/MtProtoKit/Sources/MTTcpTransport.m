@@ -719,12 +719,21 @@ static const NSTimeInterval MTTcpTransportSleepWatchdogTimeout = 60.0;
     
     [[MTTcpTransport tcpTransportQueue] dispatchOnQueue:^
     {
+        bool wasAvailable = transportContext.isNetworkAvailable;
         transportContext.isNetworkAvailable = networkAvailable;
         
-        if (networkAvailable)
-            [transportContext.connectionBehaviour clearBackoff];
+        if (!networkAvailable) {
+            [transportContext.connection stop];
+            return;
+        }
         
-        [transportContext.connection stop];
+        // Only reconnect when availability is actually recovering. Foreground resume commonly
+        // re-delivers "reachable" while the transport is already up; stopping a live connection
+        // here made every MTProto worker tear down and dial again — hundreds of connects per wake.
+        if (!wasAvailable) {
+            [transportContext.connectionBehaviour clearBackoff];
+            [transportContext.connection stop];
+        }
     }];
 }
 

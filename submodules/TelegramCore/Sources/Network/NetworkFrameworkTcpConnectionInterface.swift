@@ -37,6 +37,7 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
         private var currentInterfaceIsWifi: Bool = true
         
         private var connectTimeoutTimer: SwiftSignalKit.Timer?
+        private var viabilityLossTimer: SwiftSignalKit.Timer?
         
         private var usageCalculationInfo: MTNetworkUsageCalculationInfo?
         private var networkUsageManager: MTNetworkUsageManager?
@@ -157,12 +158,31 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
                     guard let self = self else {
                         return
                     }
+                    if isViable {
+                        if let viabilityLossTimer = self.viabilityLossTimer {
+                            self.viabilityLossTimer = nil
+                            viabilityLossTimer.invalidate()
+                        }
+                        return
+                    }
                     // Do not tear down a connect that has not reached `.ready` yet. On flaky paths
                     // viability often flips false while the stack is still negotiating, and
                     // cancelling there leaves the UI stuck on "Connecting…" until the timeout fires.
-                    if !isViable, self.isReady {
-                        self.cancelWithError(error: nil)
+                    // After `.ready`, debounce brief false spikes on foreground resume — they used
+                    // to disconnect every established socket and restart the whole reconnect ladder.
+                    guard self.isReady, self.viabilityLossTimer == nil else {
+                        return
                     }
+                    self.viabilityLossTimer = SwiftSignalKit.Timer(timeout: 2.0, repeat: false, completion: { [weak self] in
+                        guard let self = self else {
+                            return
+                        }
+                        self.viabilityLossTimer = nil
+                        if self.isReady {
+                            self.cancelWithError(error: nil)
+                        }
+                    }, queue: self.queue)
+                    self.viabilityLossTimer?.start()
                 }
             }
             
@@ -351,6 +371,10 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
         
         private func cancelWithError(error: Error?) {
             self.isReady = false
+            if let viabilityLossTimer = self.viabilityLossTimer {
+                self.viabilityLossTimer = nil
+                viabilityLossTimer.invalidate()
+            }
             if let connectTimeoutTimer = self.connectTimeoutTimer {
                 self.connectTimeoutTimer = nil
                 connectTimeoutTimer.invalidate()

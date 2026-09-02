@@ -6,6 +6,11 @@
 
 ## [Unreleased]
 
+### Fixed
+- **Network:** stop tearing down live TCP on spurious reachability "available" callbacks during foreground resume — only reconnect after a real offline→online transition.
+- **Network:** debounce NWConnection viability loss (2s) on established sockets so brief resume flicker does not restart every transport.
+- **Web proxy:** run sidecar resume rebuild only from `applicationDidBecomeActive`, not `willEnterForeground`, to avoid racing foreground network wake-up.
+
 ## [v12.9.2-3933-pre] — 2026-09-01
 
 Pre-release: NWConnection always-on, connect hang fix, reconnect storm throttle.
