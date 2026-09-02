@@ -22,6 +22,7 @@
 - (void)transportNetworkAvailabilityChanged:(MTTransport * _Nonnull)transport isNetworkAvailable:(bool)isNetworkAvailable;
 - (void)transportConnectionStateChanged:(MTTransport * _Nonnull)transport isConnected:(bool)isConnected proxySettings:(MTSocksProxySettings * _Nullable)proxySettings;
 - (void)transportConnectionFailed:(MTTransport * _Nonnull)transport scheme:(MTTransportScheme * _Nonnull)scheme;
+- (void)transportConnectionTlsHashMismatch:(MTTransport * _Nonnull)transport scheme:(MTTransportScheme * _Nonnull)scheme;
 - (void)transportConnectionContextUpdateStateChanged:(MTTransport * _Nonnull)transport isUpdatingConnectionContext:(bool)isUpdatingConnectionContext;
 - (void)transportConnectionProblemsStatusChanged:(MTTransport * _Nonnull)transport scheme:(MTTransportScheme * _Nonnull)scheme hasConnectionProblems:(bool)hasConnectionProblems isProbablyHttp:(bool)isProbablyHttp;
 

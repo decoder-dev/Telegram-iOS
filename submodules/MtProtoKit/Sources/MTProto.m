@@ -752,6 +752,26 @@ static const NSUInteger MTMaxUnacknowledgedMessageCount = 64;
     }];
 }
 
+- (void)transportConnectionTlsHashMismatch:(MTTransport *)transport scheme:(MTTransportScheme *)scheme {
+    [[MTProto managerQueue] dispatchOnQueue:^{
+        if (transport != _transport) {
+            return;
+        }
+        if (_useUnauthorizedMode) {
+            return;
+        }
+        if (transport.proxySettings == nil) {
+            return;
+        }
+        if (MTLogEnabled()) {
+            MTLogWithPrefix(_getLogPrefix, @"[MTProto#%p@%p FakeTLS HMAC mismatch via proxy — fetching alternate DC addresses]", self, _context);
+        }
+        [_context reportTransportSchemeFailureForDatacenterId:_datacenterId transportScheme:scheme];
+        [_context invalidateTransportSchemeForDatacenterId:_datacenterId transportScheme:scheme isProbablyHttp:false media:_media];
+        [_context beginExplicitBackupAddressDiscovery];
+    }];
+}
+
 - (void)transportConnectionStateChanged:(MTTransport *)transport isConnected:(bool)isConnected proxySettings:(MTSocksProxySettings *)proxySettings
 {
     [[MTProto managerQueue] dispatchOnQueue:^

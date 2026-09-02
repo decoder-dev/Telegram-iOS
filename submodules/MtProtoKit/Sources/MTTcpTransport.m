@@ -445,6 +445,11 @@ static const NSTimeInterval MTTcpTransportSleepWatchdogTimeout = 60.0;
             if ([delegate respondsToSelector:@selector(transportConnectionFailed:scheme:)]) {
                 [delegate transportConnectionFailed:self scheme:connection.scheme];
             }
+            if (connection.tlsHashMismatch && transportContext.proxySettings != nil) {
+                if ([delegate respondsToSelector:@selector(transportConnectionTlsHashMismatch:scheme:)]) {
+                    [delegate transportConnectionTlsHashMismatch:self scheme:connection.scheme];
+                }
+            }
         }
         
         if ([delegate respondsToSelector:@selector(transportTransactionsMayHaveFailed:transactionIds:)])

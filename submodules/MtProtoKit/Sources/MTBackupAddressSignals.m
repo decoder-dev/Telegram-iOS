@@ -92,90 +92,96 @@ static NSData *base64_decode(NSString *str) {
     }
 }
 
-+ (MTSignal *)fetchBackupIpsResolveGoogle:(bool)isTesting phoneNumber:(NSString *)phoneNumber currentContext:(MTContext *)currentContext addressOverride:(NSString *)addressOverride {
-    NSArray *hosts = @[
-        @[@"dns.google.com", @""],
-    ];
-    
-    id<EncryptionProvider> encryptionProvider = currentContext.encryptionProvider;
-    
-    NSMutableArray *signals = [[NSMutableArray alloc] init];
-    for (NSArray *hostAndHostname in hosts) {
-        NSString *host = hostAndHostname[0];
-        NSString *hostName = hostAndHostname[1];
-        NSMutableDictionary *headers = [[NSMutableDictionary alloc] init];
-        if ([hostName length] != 0) {
-            headers[@"Host"] = hostName;
++ (MTSignal *)fetchBackupIpsFromDnsResponse:(MTHttpResponse *)response encryptionProvider:(id<EncryptionProvider>)encryptionProvider phoneNumber:(NSString *)phoneNumber currentContext:(MTContext *)currentContext source:(NSString *)source {
+    NSString *dateHeader = response.headers[@"Date"];
+    if ([dateHeader isKindOfClass:[NSString class]]) {
+        NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
+        NSLocale *usLocale = [[NSLocale alloc] initWithLocaleIdentifier:@"en_US"];
+        [formatter setLocale:usLocale];
+        [formatter setDateFormat:@"EEE',' dd' 'MMM' 'yyyy HH':'mm':'ss zzz"];
+        NSDate *date = [formatter dateFromString:dateHeader];
+        if (date != nil) {
+            double difference = [date timeIntervalSince1970] - [[NSDate date] timeIntervalSince1970];
+            [MTContext setFixedTimeDifference:(int32_t)difference];
         }
-        NSString *apvHost = @"apv3.stel.com";
-        if (addressOverride != nil) {
-            apvHost = addressOverride;
-        }
-        MTSignal *signal = [[[MTHttpRequestOperation dataForHttpUrl:[NSURL URLWithString:[NSString stringWithFormat:@"https://%@/resolve?name=%@&type=16&random_padding=%@", host, isTesting ? @"tapv3.stel.com" : apvHost, makeRandomPadding()]] headers:headers] mapToSignal:^MTSignal *(MTHttpResponse *response) {
-            NSString *dateHeader = response.headers[@"Date"];
-            if ([dateHeader isKindOfClass:[NSString class]]) {
-                NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
-                NSLocale *usLocale = [[NSLocale alloc] initWithLocaleIdentifier:@"en_US"];
-                [formatter setLocale:usLocale];
-                [formatter setDateFormat:@"EEE',' dd' 'MMM' 'yyyy HH':'mm':'ss zzz"];
-                NSDate *date = [formatter dateFromString:dateHeader];
-                if (date != nil) {
-                    double difference = [date timeIntervalSince1970] - [[NSDate date] timeIntervalSince1970];
-                    [MTContext setFixedTimeDifference:(int32_t)difference];
-                }
-            }
-            
-            NSData *data = response.data;
-            
-            NSDictionary *dict = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
-            if ([dict respondsToSelector:@selector(objectForKey:)]) {
-                NSArray *answer = dict[@"Answer"];
-                NSMutableArray *strings = [[NSMutableArray alloc] init];
-                if ([answer respondsToSelector:@selector(objectAtIndex:)]) {
-                    for (NSDictionary *value in answer) {
-                        if ([value respondsToSelector:@selector(objectForKey:)]) {
-                            NSString *part = value[@"data"];
-                            if ([part respondsToSelector:@selector(characterAtIndex:)]) {
-                                [strings addObject:part];
-                            }
-                        }
-                    }
-                    [strings sortUsingComparator:^NSComparisonResult(NSString *lhs, NSString *rhs) {
-                        if (lhs.length > rhs.length) {
-                            return NSOrderedAscending;
-                        } else {
-                            return NSOrderedDescending;
-                        }
-                    }];
-                    
-                    NSString *finalString = @"";
-                    for (NSString *string in strings) {
-                        finalString = [finalString stringByAppendingString:[string stringByTrimmingCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@"="]]];
-                    }
-                    while (finalString.length % 4 != 0) {
-                        finalString = [finalString stringByAppendingString:@"="];
-                    }
-                    
-                    NSData *result = base64_decode(finalString);
-                    NSMutableData *finalData = [[NSMutableData alloc] initWithData:result];
-                    [finalData setLength:256];
-                    MTBackupDatacenterData *datacenterData = MTIPDataDecode(encryptionProvider, finalData, phoneNumber);
-                    if (datacenterData != nil && [self checkIpData:datacenterData timestamp:(int32_t)[currentContext globalTime] source:@"resolveGoogle"]) {
-                        return [MTSignal single:datacenterData];
-                    }
-                }
-            }
-            return [MTSignal complete];
-        }] catch:^MTSignal *(__unused id error) {
-            return [MTSignal complete];
-        }];
-        if (signals.count != 0) {
-            signal = [signal delay:signals.count onQueue:[[MTQueue alloc] init]];
-        }
-        [signals addObject:signal];
     }
     
-    return [[MTSignal mergeSignals:signals] take:1];
+    NSData *data = response.data;
+    NSDictionary *dict = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+    if ([dict respondsToSelector:@selector(objectForKey:)]) {
+        NSArray *answer = dict[@"Answer"];
+        NSMutableArray *strings = [[NSMutableArray alloc] init];
+        if ([answer respondsToSelector:@selector(objectAtIndex:)]) {
+            for (NSDictionary *value in answer) {
+                if ([value respondsToSelector:@selector(objectForKey:)]) {
+                    NSNumber *type = value[@"type"];
+                    if (type != nil && [type intValue] != 16) {
+                        continue;
+                    }
+                    NSString *part = value[@"data"];
+                    if ([part respondsToSelector:@selector(characterAtIndex:)]) {
+                        [strings addObject:[part stringByReplacingOccurrencesOfString:@"\"" withString:@""]];
+                    }
+                }
+            }
+            [strings sortUsingComparator:^NSComparisonResult(NSString *lhs, NSString *rhs) {
+                if (lhs.length > rhs.length) {
+                    return NSOrderedAscending;
+                } else {
+                    return NSOrderedDescending;
+                }
+            }];
+            
+            NSString *finalString = @"";
+            for (NSString *string in strings) {
+                finalString = [finalString stringByAppendingString:[string stringByTrimmingCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@"="]]];
+            }
+            while (finalString.length % 4 != 0) {
+                finalString = [finalString stringByAppendingString:@"="];
+            }
+            
+            NSData *result = base64_decode(finalString);
+            if (result.length == 0) {
+                return [MTSignal fail:@0];
+            }
+            NSMutableData *finalData = [[NSMutableData alloc] initWithData:result];
+            [finalData setLength:256];
+            MTBackupDatacenterData *datacenterData = MTIPDataDecode(encryptionProvider, finalData, phoneNumber);
+            if (datacenterData != nil && [self checkIpData:datacenterData timestamp:(int32_t)[currentContext globalTime] source:source]) {
+                return [MTSignal single:datacenterData];
+            }
+        }
+    }
+    return [MTSignal fail:@0];
+}
+
++ (MTSignal *)fetchBackupIpsResolveDnsHost:(NSString *)host dnsPath:(NSString *)dnsPath extraHeaders:(NSDictionary *)extraHeaders isTesting:(bool)isTesting phoneNumber:(NSString *)phoneNumber currentContext:(MTContext *)currentContext addressOverride:(NSString *)addressOverride source:(NSString *)source {
+    id<EncryptionProvider> encryptionProvider = currentContext.encryptionProvider;
+    NSMutableDictionary *headers = [[NSMutableDictionary alloc] initWithDictionary:extraHeaders];
+    NSString *apvHost = @"apv3.stel.com";
+    if (addressOverride != nil) {
+        apvHost = addressOverride;
+    }
+    NSURL *url = [NSURL URLWithString:[NSString stringWithFormat:@"https://%@%@name=%@&type=16&random_padding=%@", host, dnsPath, isTesting ? @"tapv3.stel.com" : apvHost, makeRandomPadding()]];
+    return [[[MTHttpRequestOperation dataForHttpUrl:url headers:headers] mapToSignal:^MTSignal *(MTHttpResponse *response) {
+        return [self fetchBackupIpsFromDnsResponse:response encryptionProvider:encryptionProvider phoneNumber:phoneNumber currentContext:currentContext source:source];
+    }] catch:^MTSignal *(__unused id error) {
+        return [MTSignal fail:@0];
+    }];
+}
+
++ (MTSignal *)fetchBackupIpsResolveGoogle:(bool)isTesting phoneNumber:(NSString *)phoneNumber currentContext:(MTContext *)currentContext addressOverride:(NSString *)addressOverride {
+    return [self fetchBackupIpsResolveDnsHost:@"dns.google.com" dnsPath:@"/resolve?" extraHeaders:@{} isTesting:isTesting phoneNumber:phoneNumber currentContext:currentContext addressOverride:addressOverride source:@"resolveGoogle"];
+}
+
++ (MTSignal *)fetchBackupIpsResolveMozilla:(bool)isTesting phoneNumber:(NSString *)phoneNumber currentContext:(MTContext *)currentContext addressOverride:(NSString *)addressOverride {
+    return [self fetchBackupIpsResolveDnsHost:@"mozilla.cloudflare-dns.com" dnsPath:@"/dns-query?" extraHeaders:@{@"accept": @"application/dns-json"} isTesting:isTesting phoneNumber:phoneNumber currentContext:currentContext addressOverride:addressOverride source:@"resolveMozilla"];
+}
+
++ (MTSignal *)fetchBackupIpsResolveGoogleThenMozilla:(bool)isTesting phoneNumber:(NSString *)phoneNumber currentContext:(MTContext *)currentContext addressOverride:(NSString *)addressOverride {
+    return [[[self fetchBackupIpsResolveGoogle:isTesting phoneNumber:phoneNumber currentContext:currentContext addressOverride:addressOverride] catch:^MTSignal *(__unused id error) {
+        return [self fetchBackupIpsResolveMozilla:isTesting phoneNumber:phoneNumber currentContext:currentContext addressOverride:addressOverride];
+    }] take:1];
 }
 
 static NSString *makeRandomPadding() {
@@ -295,7 +301,7 @@ MTAtomic *sharedFetchConfigKeychains() {
 
 + (MTSignal * _Nonnull)fetchBackupIps:(bool)isTestingEnvironment currentContext:(MTContext * _Nonnull)currentContext additionalSource:(MTSignal * _Nullable)additionalSource phoneNumber:(NSString * _Nullable)phoneNumber mainDatacenterId:(NSInteger)mainDatacenterId {
     NSMutableArray *signals = [[NSMutableArray alloc] init];
-    [signals addObject:[self fetchBackupIpsResolveGoogle:isTestingEnvironment phoneNumber:phoneNumber currentContext:currentContext addressOverride:currentContext.apiEnvironment.accessHostOverride]];
+    [signals addObject:[self fetchBackupIpsResolveGoogleThenMozilla:isTestingEnvironment phoneNumber:phoneNumber currentContext:currentContext addressOverride:currentContext.apiEnvironment.accessHostOverride]];
     if (additionalSource != nil) {
         [signals addObject:[additionalSource mapToSignal:^MTSignal *(MTBackupDatacenterData *datacenterData) {
             if (![datacenterData isKindOfClass:[MTBackupDatacenterData class]]) {
