@@ -11,6 +11,16 @@ public struct WebProxyConfiguration: Equatable {
     }
 }
 
+/// Why the sidecar changed — handlers should not guess from `isReady` alone.
+public enum WebProxySidecarEvent: Equatable {
+    /// Sidecar published a loopback endpoint (cold bootstrap or full restart).
+    case becameReady
+    /// HTTPS carrier rebuilt in place after foreground; loopback host:port unchanged.
+    case carrierResumedInPlace
+    /// Sidecar stopped or bootstrap failed; endpoint is gone until the next start.
+    case stopped
+}
+
 public final class WebProxyManager {
     public static let shared = WebProxyManager()
     
@@ -93,7 +103,9 @@ public final class WebProxyManager {
     private var pathMonitor: NWPathMonitor?
 
     private var nextSidecarEventToken: SidecarEventToken = 0
-    private var sidecarEventHandlers: [SidecarEventToken: () -> Void] = [:]
+    private var sidecarEventHandlers: [SidecarEventToken: (WebProxySidecarEvent) -> Void] = [:]
+    /// Coalesces a debounced `applicationDidBecomeActive` retry onto the main queue.
+    private var deferredForegroundResumeGeneration: UInt64 = 0
     
     private init() {
     }
@@ -127,7 +139,7 @@ public final class WebProxyManager {
     /// Registers a handler invoked on the main queue when the sidecar becomes ready, fails, or stops.
     /// Multi-account: every Network must register — a single overwritten callback left other accounts stuck on the fail-closed loopback.
     @discardableResult
-    public func addSidecarEventHandler(_ handler: @escaping () -> Void) -> SidecarEventToken {
+    public func addSidecarEventHandler(_ handler: @escaping (WebProxySidecarEvent) -> Void) -> SidecarEventToken {
         self.lock.lock()
         defer { self.lock.unlock() }
         self.nextSidecarEventToken &+= 1
@@ -151,6 +163,7 @@ public final class WebProxyManager {
             self.desiredConfiguration = nil
             self.startGeneration &+= 1
             self.retryGeneration &+= 1
+            self.deferredForegroundResumeGeneration &+= 1
             self.scheduledRetryConfiguration = nil
             self.startingConfiguration = nil
             // Turning the proxy off is an explicit user action — don't make re-enabling the same
@@ -256,7 +269,9 @@ public final class WebProxyManager {
         }
         
         self.startLock.lock()
-        if now - self.lastBecomeActiveRestart < WebProxyManager.becomeActiveRestartMinInterval {
+        let debounceRemaining = WebProxyManager.becomeActiveRestartMinInterval - (now - self.lastBecomeActiveRestart)
+        if debounceRemaining > 0 {
+            self.scheduleDeferredForegroundResume(after: debounceRemaining)
             self.startLock.unlock()
             return
         }
@@ -270,6 +285,32 @@ public final class WebProxyManager {
             self.sequentialRestart(configuration: target)
             return
         }
+        self.performInPlaceCarrierResume(sidecar: sidecar, configuration: target)
+    }
+    
+    /// Debounced `didBecomeActive` must not drop a background resume on the floor — iOS often
+    /// fires twice inside the debounce window, but sometimes only once.
+    private func scheduleDeferredForegroundResume(after delay: Double) {
+        self.startLock.lock()
+        self.deferredForegroundResumeGeneration &+= 1
+        let generation = self.deferredForegroundResumeGeneration
+        self.startLock.unlock()
+        DispatchQueue.main.asyncAfter(deadline: .now() + max(0.05, delay)) { [weak self] in
+            guard let self else {
+                return
+            }
+            self.startLock.lock()
+            let stillCurrent = generation == self.deferredForegroundResumeGeneration
+            let stillBackgrounded = self.enteredBackgroundAt > 0
+            self.startLock.unlock()
+            guard stillCurrent, stillBackgrounded else {
+                return
+            }
+            self.applicationDidBecomeActive()
+        }
+    }
+    
+    private func performInPlaceCarrierResume(sidecar: WebProxySidecar, configuration: WebProxyConfiguration) {
         // Rebuild the carrier behind the listener that is already published. On failure the
         // sidecar has already torn itself down, so there is nothing left to salvage and the
         // port has to change after all.
@@ -279,13 +320,11 @@ public final class WebProxyManager {
             }
             switch result {
             case .success:
-                // Loopback port is unchanged, so proxy settings equality would skip MtProto
-                // rebuild — notify every account to drop and reconnect against the new carrier.
                 WebProxyLog.log("resume transport reconnect succeeded, notifying networks")
-                self.notifySidecarEvent()
+                self.notifySidecarEvent(.carrierResumedInPlace)
             case let .failure(error):
                 WebProxyLog.log("resume transport reconnect failed, rebuilding the sidecar: \(error)")
-                self.sequentialRestart(configuration: target)
+                self.sequentialRestart(configuration: configuration)
             }
         }
     }
@@ -540,7 +579,7 @@ public final class WebProxyManager {
             self.consecutiveFailureCount = 0
             self.startLock.unlock()
 
-            self.notifySidecarEvent()
+            self.notifySidecarEvent(.becameReady)
 
             if let previous = previous {
                 DispatchQueue.global(qos: .utility).async {
@@ -575,7 +614,7 @@ public final class WebProxyManager {
             }
             self.lock.unlock()
             
-            self.notifySidecarEvent()
+            self.notifySidecarEvent(.stopped)
         }
     }
     
@@ -617,7 +656,7 @@ public final class WebProxyManager {
         self.stopLocked()
         self.lock.unlock()
         
-        self.notifySidecarEvent()
+        self.notifySidecarEvent(.stopped)
         
         // The auto-retry that used to be duplicated here — a second `asyncAfter` on the same
         // backoff, guarded on `startGeneration` — could never run: `scheduleRetryLocked` above
@@ -633,13 +672,13 @@ public final class WebProxyManager {
         self.lastGoodEndpoint = nil
     }
     
-    private func notifySidecarEvent() {
+    private func notifySidecarEvent(_ event: WebProxySidecarEvent) {
         self.lock.lock()
         let handlers = Array(self.sidecarEventHandlers.values)
         self.lock.unlock()
         DispatchQueue.main.async {
             for handler in handlers {
-                handler()
+                handler(event)
             }
         }
     }

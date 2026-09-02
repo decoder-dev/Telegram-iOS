@@ -7,10 +7,11 @@
 ## [Unreleased]
 
 ### Fixed
-- **WEB proxy resume:** after background, in-place carrier rebuild now notifies every account and forces MtProto `rebuildTransport()` even when the loopback port is unchanged; background stamp is no longer consumed before the resume threshold, and debounce applies only to the reconnect itself.
+- **WEB proxy resume:** typed sidecar events (`.carrierResumedInPlace` forces MtProto rebuild only when needed); debounced foreground resume is retried instead of dropped; `willEnterForeground` kicks recovery before `didBecomeActive`.
+- **WEB proxy resume:** after background, in-place carrier rebuild notifies every account (see above); background stamp no longer consumed before the resume threshold.
 
 ### Changed
-- **FakeTLS (TSPU bypass):** MTProxy `ee` ClientHello now matches TDLib/Chrome — fixed cipher list, h2 ALPN, ECH (`0xfe0d`) with ML-KEM key share, randomized extension order, GREASE, dynamic padding to ≥513 B; HMAC @ offset 11 unchanged.
+- **FakeTLS (TSPU bypass):** removed dead Safari DSL interpreter (~420 lines); Chrome ClientHello is the sole generator.
 - **WebSocket transport:** always enabled for every account (fork invariant); settings section removed from Proxy.
 
 ### Fixed

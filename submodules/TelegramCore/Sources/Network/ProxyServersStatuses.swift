@@ -98,7 +98,7 @@ private final class ProxyServerItemContext {
         }
         
         WebProxyManager.shared.configure(activeWebProxy: configuration)
-        self.sidecarEventToken = WebProxyManager.shared.addSidecarEventHandler {
+        self.sidecarEventToken = WebProxyManager.shared.addSidecarEventHandler { _ in
             runPing()
         }
         runPing()

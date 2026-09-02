@@ -54,7 +54,7 @@ public func updateProxySettingsInteractively(transaction: AccountManagerModifier
     return hasChanges
 }
 
-func applySharedProxySettingsToNetwork(settings: ProxySettings, network: Network) {
+func applySharedProxySettingsToNetwork(settings: ProxySettings, network: Network, forceTransportReconnect: Bool = false) {
     let previousForceLocalDNS = network.context.forceLocalDNS
     network.context.forceLocalDNS = settings.useLocalDNSForProxyHosts
 
@@ -119,6 +119,14 @@ func applySharedProxySettingsToNetwork(settings: ProxySettings, network: Network
             return nil
         }
     }
+
+    if forceTransportReconnect, isActiveWebProxy, let activeServer = activeServer, case let .web(secret) = activeServer.connection {
+        let configuration = WebProxyConfiguration(hostname: activeServer.host, secret: secret)
+        if WebProxyManager.shared.isReady(for: configuration) {
+            network.dropConnectionStatus()
+            network.rebuildTransport()
+        }
+    }
 }
 
 /// `currentSettings` returns nil until the account's shared-data subscription has delivered real
@@ -127,21 +135,15 @@ func applySharedProxySettingsToNetwork(settings: ProxySettings, network: Network
 public func registerWebProxySidecarReapply(network: Network, currentSettings: @escaping () -> ProxySettings?) -> Disposable {
     // Every account Network must observe sidecar readiness. A single overwritten
     // callback left secondary accounts stuck on the fail-closed 127.0.0.1:1 route.
-    let token = WebProxyManager.shared.addSidecarEventHandler { [weak network] in
+    let token = WebProxyManager.shared.addSidecarEventHandler { [weak network] event in
         guard let network = network, let settings = currentSettings() else {
             return
         }
-        applySharedProxySettingsToNetwork(settings: settings, network: network)
-        // After an in-place WEB carrier rebuild the loopback host:port is unchanged, so
-        // `applySharedProxySettingsToNetwork` may not touch MtProto at all. Rebuild anyway
-        // whenever the sidecar is ready so foreground resume actually reconnects.
-        if let active = settings.effectiveActiveServer, case let .web(secret) = active.connection {
-            let configuration = WebProxyConfiguration(hostname: active.host, secret: secret)
-            if WebProxyManager.shared.isReady(for: configuration) {
-                network.dropConnectionStatus()
-                network.rebuildTransport()
-            }
-        }
+        applySharedProxySettingsToNetwork(
+            settings: settings,
+            network: network,
+            forceTransportReconnect: event == .carrierResumedInPlace
+        )
     }
     return ActionDisposable {
         WebProxyManager.shared.removeSidecarEventHandler(token)
