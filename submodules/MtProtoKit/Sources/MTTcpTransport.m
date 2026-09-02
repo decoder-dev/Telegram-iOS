@@ -727,12 +727,25 @@ static const NSTimeInterval MTTcpTransportSleepWatchdogTimeout = 60.0;
             return;
         }
         
-        // Only reconnect when availability is actually recovering. Foreground resume commonly
+        // Unconditionally, because it starts nothing: it resets the retry counter and drops the
+        // pending wait. `isNetworkAvailable` is initialised to true, so an app that started
+        // offline may never see a false->true edge at all — and the count only falls again when
+        // data actually flows, so without this a session that accumulated failures stays on the
+        // eight-second rung for the rest of its life.
+        [transportContext.connectionBehaviour clearBackoff];
+        
+        // Only tear down when availability is actually recovering. Foreground resume commonly
         // re-delivers "reachable" while the transport is already up; stopping a live connection
         // here made every MTProto worker tear down and dial again — hundreds of connects per wake.
         if (!wasAvailable) {
-            [transportContext.connectionBehaviour clearBackoff];
             [transportContext.connection stop];
+        } else if (!transportContext.connectionConnected) {
+            // Re-notified while nothing is connected. There is nothing to tear down, but there is
+            // also no reason to sit out a backoff that has just been declared stale — ask for a
+            // connection. The minimum-interval floor in MTTcpConnectionBehaviour bounds how often
+            // this can actually dial, so a burst of "reachable" callbacks cannot become the storm
+            // the edge check above exists to stop.
+            [transportContext.connectionBehaviour requestConnection];
         }
     }];
 }

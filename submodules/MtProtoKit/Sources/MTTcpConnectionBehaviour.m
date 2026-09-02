@@ -126,6 +126,11 @@ static const NSTimeInterval MTTcpConnectionBehaviourMinimumAttemptInterval = 1.0
 - (void)clearBackoff
 {
     _backoffCount = 0;
+    // The pending wait goes with the count. Leaving an armed timer behind means the next
+    // `requestConnection` returns without doing anything, so a transport that had climbed to the
+    // eight-second rung keeps waiting it out even though the caller has just said the network is
+    // back. The minimum-interval floor above is what keeps that from becoming a retry loop.
+    [self invalidateTimer];
 }
 
 - (void)invalidateTimer

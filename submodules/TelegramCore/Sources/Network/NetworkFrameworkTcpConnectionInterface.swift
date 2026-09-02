@@ -108,7 +108,7 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
         func connect(host: String, port: UInt16, timeout: Double) {
             if self.connection != nil {
                 Logger.shared.log("Network", "NW connect to \(self.endpointDescription) restarting while a connection still exists")
-                self.cancelWithError(error: nil)
+                self.discardConnectionWithoutNotifying()
             }
             self.reportedDisconnection = false
             self.isReady = false
@@ -134,15 +134,24 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
             self.connection = connection
             
             let queue = self.queue
-            connection.stateUpdateHandler = { [weak self] state in
+            // Every handler checks that the connection it belongs to is still the current one.
+            //
+            // Without that, a superseded connection's callbacks act on its replacement. The
+            // restart path below cancels the old connection and starts a new one immediately, and
+            // the old one's `.cancelled` then arrives — with no guard it runs `cancelWithError`
+            // against the connection that just started, so a restart could never succeed.
+            connection.stateUpdateHandler = { [weak self, weak connection] state in
                 queue.async {
-                    self?.stateUpdated(state: state)
+                    guard let self = self, let connection = connection, self.connection === connection else {
+                        return
+                    }
+                    self.stateUpdated(state: state)
                 }
             }
             
-            connection.pathUpdateHandler = { [weak self] path in
+            connection.pathUpdateHandler = { [weak self, weak connection] path in
                 queue.async {
-                    guard let self = self else {
+                    guard let self = self, let connection = connection, self.connection === connection else {
                         return
                     }
                     if path.usesInterfaceType(.cellular) {
@@ -153,9 +162,9 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
                 }
             }
             
-            connection.viabilityUpdateHandler = { [weak self] isViable in
+            connection.viabilityUpdateHandler = { [weak self, weak connection] isViable in
                 queue.async {
-                    guard let self = self else {
+                    guard let self = self, let connection = connection, self.connection === connection else {
                         return
                     }
                     if isViable {
@@ -366,6 +375,33 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
                         self.cancelWithError(error: error)
                     }
                 })
+            }
+        }
+        
+        /// Drop the current connection without telling the delegate it disconnected.
+        ///
+        /// The restart path cannot go through `cancelWithError`: that reports a disconnect, and
+        /// `MTTcpConnection` treats a disconnect as the connection being finished — it sets
+        /// `_closed` and writes the connection off. The socket started immediately afterwards
+        /// would then belong to something that will never read from it, which is a connection
+        /// that hangs rather than one that restarts.
+        private func discardConnectionWithoutNotifying() {
+            self.isReady = false
+            if let viabilityLossTimer = self.viabilityLossTimer {
+                self.viabilityLossTimer = nil
+                viabilityLossTimer.invalidate()
+            }
+            if let connectTimeoutTimer = self.connectTimeoutTimer {
+                self.connectTimeoutTimer = nil
+                connectTimeoutTimer.invalidate()
+            }
+            self.leaveInFlight()
+            if let connection = self.connection {
+                // Cleared first: the handlers' identity check reads this, and it is what makes the
+                // cancelled connection's own `.cancelled` callback a no-op instead of a teardown
+                // of whatever replaces it.
+                self.connection = nil
+                connection.cancel()
             }
         }
         
