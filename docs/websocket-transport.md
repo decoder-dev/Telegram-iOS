@@ -1,6 +1,6 @@
 # WebSocket MTProto transport
 
-An optional, off-by-default transport that carries MTProto over a WebSocket connection to Telegram's
+An always-on transport that carries MTProto over a WebSocket connection to Telegram's
 own `kwsN.web.telegram.org` front-ends instead of a raw TCP socket, for users on networks that block or
 throttle direct TCP/MTProto but allow ordinary HTTPS/WebSocket traffic. It reproduces the wire behavior
 of [`Flowseal/tg-ws-proxy`](https://github.com/Flowseal/tg-ws-proxy) natively, without running a Python
@@ -246,37 +246,29 @@ default. `setDefaultTcpConnectionInterface` in `Network.swift` is the single pla
 
 ## Settings
 
-Two new fields on the existing `ProxySettings` model (`SyncCore_ProxySettings.swift`), persisted through
+Two fields on the existing `ProxySettings` model (`SyncCore_ProxySettings.swift`), persisted through
 the same Postbox `SharedDataKeys.proxySettings` / `PreferencesEntry` mechanism the SOCKS5/MTProxy server
 list already uses — no new persistence machinery:
 
-- `webSocketTransportEnabled: Bool` (default `false`) — the feature is off by default.
+- `webSocketTransportEnabled: Bool` — **always `true` in this fork** (forced on decode; not user-configurable).
 - `webSocketFallbackToDirect: Bool` (default `true`) — falls back to direct TCP after repeated failure;
-  can be turned off for users who specifically want to keep retrying WebSocket only.
+  still honored at runtime even though the enable toggle was removed from Settings.
 
-Surfaced in `Settings → Data and Storage → Proxy` (`ProxyListSettingsController.swift`) as a new
-"WebSocket Transport" section below the existing "Use for Calls" section: an enable toggle, a
-fallback-to-direct toggle (shown only while WS transport is enabled), and an explanatory footer. It is
-intentionally independent of the SOCKS5/MTProxy server list above it (`enabled`/`servers`/`activeServer`)
-— WS transport changes *how* MtProtoKit opens its socket, not *which* proxy server is used, and DC
-hostnames are not exposed to the user.
+The fork enables WebSocket transport for every account without a proxy server active. Settings → Data and
+Storage → Proxy no longer exposes a WebSocket section — the SOCKS5/MTProxy server list and advanced
+options (local DNS, auto-rotate, auto MTProxy, use-for-calls) are unchanged. WS transport changes *how*
+MtProtoKit opens its socket when no proxy is in use, not *which* proxy server is selected.
 
-Both toggles apply to a running account without a relaunch. `Account.swift` subscribes to
-`SharedDataKeys.proxySettings`, re-runs `applyWebSocketTransport` against the live `MTContext`, and then
-calls `Network.rebuildTransport()`. That last step is required, not cosmetic: `MTTcpConnection` captures
-`makeTcpConnectionInterface` when it is constructed, so replacing the factory on the context leaves every
-existing connection on the old transport. `rebuildTransport` goes through `MTProto`'s `pause()`/`resume()`
-— the only public route to `resetTransport` — and consults the current `shouldKeepConnection` value first,
-because `MTProtoStatePaused` is a flag rather than a counter and an unconditional `resume()` would wake a
+Runtime application is unchanged: `Account.swift` subscribes to `SharedDataKeys.proxySettings`, re-runs
+`applyWebSocketTransport` against the live `MTContext`, and then calls `Network.rebuildTransport()`.
+That last step is required, not cosmetic: `MTTcpConnection` captures `makeTcpConnectionInterface` when
+it is constructed, so replacing the factory on the context leaves every existing connection on the old
+transport. `rebuildTransport` goes through `MTProto`'s `pause()`/`resume()` — the only public route to
+`resetTransport` — and consults the current `shouldKeepConnection` value first, because
+`MTProtoStatePaused` is a flag rather than a counter and an unconditional `resume()` would wake a
 connection the app had deliberately paused. The subscription's first emission is skipped, since
 `initializedNetwork` has already applied those same values and rebuilding there would restart a connection
 that is still coming up.
-
-**Known limitation**: the new UI strings are literals rather than keys routed through the project's
-generated `PresentationStrings` pipeline. They follow the bilingual RU/EN pattern the fork's other
-proxy-screen additions use (`ForkPresentationLanguage.prefersRussianStrings`), so they are not
-English-only, but they are not localized beyond those two languages either. Follow-up: add proper
-`Localizable.strings` keys and regenerate `PresentationStrings` once the feature ships broadly.
 
 ## Testing
 
@@ -325,7 +317,7 @@ availability — see "Known limitations") a real device/simulator run, not by au
 - **Cloudflare Worker / Cloudflare-proxy fallback is not implemented.** `WebSocketEndpointCandidate` is
   structured so a future candidate type could be added without another MtProtoKit-level change, but no
   such candidate exists yet.
-- **UI strings are RU/EN literals**, not routed through the localization pipeline (see "Settings").
+- **UI strings for the removed WS settings section** were RU/EN literals; the section itself is gone in this fork.
 - **DC 203 handling is untested against real traffic** — folded to DC 2 per tg-ws-proxy's own behavior,
   but this fork has no way to exercise it live.
 - **Background/foreground transition handling was not independently re-verified for the WS path.** It

@@ -9,13 +9,14 @@
 ### Fixed
 - **WEB proxy resume:** typed sidecar events; MtProto rebuild only on `.carrierResumedInPlace`; carrier rebuild on any real background; single lifecycle hook in AppDelegate.
 - **WEB proxy:** in-place reconnect failure no longer double-fires `onFailure` + manager restart (was invalidating `startGeneration` and delaying recovery by backoff); pause MtProto whenever sidecar is down, including stale loopback in environment.
+- **WEB proxy:** tear down `NWPathMonitor` when the user disables WEB proxy (no leaked monitor after explicit off).
 - **Network:** `rebuildTransport()` respects WEB bootstrap pause — path/VPN handoff no longer resumes MtProto into direct DC while sidecar is bootstrapping.
 - **Network:** rebuild transport on OS path changes (Wi‑Fi/cellular/VPN handoff); WEB bootstrap pause; IPv6 connect cap 2.5s; WebSocket send failures tear down the connection like NW TCP.
 - **Proxy rotation:** only switch when the active proxy has connection issues; 12s probe timeout (was 30s).
 
 ### Changed
 - **FakeTLS (TSPU bypass):** Chrome ClientHello (TDLib non-Darwin layout: fixed ciphers, h2 ALPN, ECH, permuted extensions, ML-KEM key share); removed dead Safari DSL (~420 lines).
-- **WebSocket transport:** always enabled for every account (fork invariant); settings section removed from Proxy.
+- **WebSocket transport:** always enabled for every account (fork invariant); dead settings UI and stale docs removed from Proxy screen.
 
 ## [v12.9.2-3939-pre] — 2026-09-02
 
@@ -25,7 +26,7 @@ Pre-release: proxy reachability UI, network perf fixes (WEB loopback, IPv6 fast-
 - **Proxy settings:** SOCKS5 and WEB proxies now get real reachability pings (WEB waits for sidecar bootstrap); auto-rotate counts only manual MTProxy/SOCKS5 servers, is hidden when Auto MTProxy is on, and the two toggles are mutually exclusive; WEB preview connect succeeds via loopback; chat list shows «Connecting to proxy…» while a proxy link is active; chat unread scroll no longer flips to default on a second initial emission.
 - **WebSocket:** buffer outbound writes until the HTTP upgrade handshake completes instead of dropping them (MTTcpConnection sends data as soon as `connectToHost` returns).
 - **WEB proxy:** stop publishing `lastGoodEndpoint` after the sidecar listener has stopped — stale loopback ports caused hundreds of `127.0.0.1:638xx Connection refused` hits; coalesce bootstraps through backoff and skip superseding an in-flight start on path return.
-- **Network:** cap NWConnection connect timeout at 4s for IPv6 endpoints (blocked v6 no longer burns 12s per attempt); default proxy rotation wait 5s instead of 10s for new installs.
+- **Network:** cap NWConnection connect timeout at 2.5s for IPv6 endpoints (blocked v6 no longer burns 12s per attempt); default proxy rotation wait 5s instead of 10s for new installs.
 
 ## [v12.9.2-3938-pre] — 2026-09-02
 

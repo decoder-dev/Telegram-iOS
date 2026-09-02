@@ -158,6 +158,7 @@ public final class WebProxyManager {
             self.lock.lock()
             self.stopLocked()
             self.lock.unlock()
+            self.removePathMonitorIfNeeded()
             return true
         }
         
@@ -351,6 +352,15 @@ public final class WebProxyManager {
             self?.handlePathUpdate(isSatisfied: path.status == .satisfied)
         }
         monitor.start(queue: DispatchQueue.global(qos: .utility))
+    }
+
+    private func removePathMonitorIfNeeded() {
+        self.startLock.lock()
+        let monitor = self.pathMonitor
+        self.pathMonitor = nil
+        self.isNetworkAvailable = true
+        self.startLock.unlock()
+        monitor?.cancel()
     }
 
     private func handlePathUpdate(isSatisfied: Bool) {

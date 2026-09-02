@@ -24,11 +24,9 @@ private final class ProxySettingsControllerArguments {
     let toggleAutoRotate: (Bool) -> Void
     let openRotationTimeoutPicker: () -> Void
     let toggleAutoFetch: (Bool) -> Void
-    let toggleWebSocketTransport: (Bool) -> Void
-    let toggleWebSocketFallbackToDirect: (Bool) -> Void
     let shareProxyList: () -> Void
 
-    init(toggleEnabled: @escaping (Bool) -> Void, presentAddProxyMenu: @escaping () -> Void, activateServer: @escaping (ProxyServerSettings) -> Void, editServer: @escaping (ProxyServerSettings) -> Void, removeServer: @escaping (ProxyServerSettings) -> Void, setServerWithRevealedOptions: @escaping (ProxyServerSettings?, ProxyServerSettings?) -> Void, toggleUseForCalls: @escaping (Bool) -> Void, toggleUseLocalDNS: @escaping (Bool) -> Void, toggleAutoRotate: @escaping (Bool) -> Void, openRotationTimeoutPicker: @escaping () -> Void, toggleAutoFetch: @escaping (Bool) -> Void, toggleWebSocketTransport: @escaping (Bool) -> Void, toggleWebSocketFallbackToDirect: @escaping (Bool) -> Void, shareProxyList: @escaping () -> Void) {
+    init(toggleEnabled: @escaping (Bool) -> Void, presentAddProxyMenu: @escaping () -> Void, activateServer: @escaping (ProxyServerSettings) -> Void, editServer: @escaping (ProxyServerSettings) -> Void, removeServer: @escaping (ProxyServerSettings) -> Void, setServerWithRevealedOptions: @escaping (ProxyServerSettings?, ProxyServerSettings?) -> Void, toggleUseForCalls: @escaping (Bool) -> Void, toggleUseLocalDNS: @escaping (Bool) -> Void, toggleAutoRotate: @escaping (Bool) -> Void, openRotationTimeoutPicker: @escaping () -> Void, toggleAutoFetch: @escaping (Bool) -> Void, shareProxyList: @escaping () -> Void) {
         self.toggleEnabled = toggleEnabled
         self.presentAddProxyMenu = presentAddProxyMenu
         self.activateServer = activateServer
@@ -40,8 +38,6 @@ private final class ProxySettingsControllerArguments {
         self.toggleAutoRotate = toggleAutoRotate
         self.openRotationTimeoutPicker = openRotationTimeoutPicker
         self.toggleAutoFetch = toggleAutoFetch
-        self.toggleWebSocketTransport = toggleWebSocketTransport
-        self.toggleWebSocketFallbackToDirect = toggleWebSocketFallbackToDirect
         self.shareProxyList = shareProxyList
     }
 }
@@ -52,7 +48,6 @@ private enum ProxySettingsControllerSection: Int32 {
     case share
     case advanced
     case calls
-    case webSocket
 }
 
 private enum ProxyServerAvailabilityStatus: Equatable {
@@ -77,7 +72,6 @@ public enum ProxySettingsEntryTag: ItemListItemTag, Equatable {
     case useProxy
     case shareList
     case useForCalls
-    case webSocketTransport
     
     public func isEqual(to other: ItemListItemTag) -> Bool {
         if let other = other as? ProxySettingsEntryTag, self == other {
@@ -104,10 +98,6 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
     case autoFetchInfo(PresentationTheme, String)
     case useForCalls(PresentationTheme, String, Bool)
     case useForCallsInfo(PresentationTheme, String)
-    case webSocketHeader(PresentationTheme, String)
-    case webSocketTransport(PresentationTheme, String, Bool)
-    case webSocketFallbackToDirect(PresentationTheme, String, Bool)
-    case webSocketInfo(PresentationTheme, String)
     
     var section: ItemListSectionId {
         switch self {
@@ -121,8 +111,6 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
                 return ProxySettingsControllerSection.advanced.rawValue
             case .useForCalls, .useForCallsInfo:
                 return ProxySettingsControllerSection.calls.rawValue
-            case .webSocketHeader, .webSocketTransport, .webSocketFallbackToDirect, .webSocketInfo:
-                return ProxySettingsControllerSection.webSocket.rawValue
         }
     }
     
@@ -158,14 +146,6 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
                 return .index(10)
             case .useForCallsInfo:
                 return .index(11)
-            case .webSocketHeader:
-                return .index(12)
-            case .webSocketTransport:
-                return .index(13)
-            case .webSocketFallbackToDirect:
-                return .index(14)
-            case .webSocketInfo:
-                return .index(15)
         }
     }
     
@@ -257,30 +237,6 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
                 }
             case let .useForCallsInfo(lhsTheme, lhsText):
                 if case let .useForCallsInfo(rhsTheme, rhsText) = rhs, lhsTheme === rhsTheme, lhsText == rhsText {
-                    return true
-                } else {
-                    return false
-                }
-            case let .webSocketHeader(lhsTheme, lhsText):
-                if case let .webSocketHeader(rhsTheme, rhsText) = rhs, lhsTheme === rhsTheme, lhsText == rhsText {
-                    return true
-                } else {
-                    return false
-                }
-            case let .webSocketTransport(lhsTheme, lhsText, lhsValue):
-                if case let .webSocketTransport(rhsTheme, rhsText, rhsValue) = rhs, lhsTheme === rhsTheme, lhsText == rhsText, lhsValue == rhsValue {
-                    return true
-                } else {
-                    return false
-                }
-            case let .webSocketFallbackToDirect(lhsTheme, lhsText, lhsValue):
-                if case let .webSocketFallbackToDirect(rhsTheme, rhsText, rhsValue) = rhs, lhsTheme === rhsTheme, lhsText == rhsText, lhsValue == rhsValue {
-                    return true
-                } else {
-                    return false
-                }
-            case let .webSocketInfo(lhsTheme, lhsText):
-                if case let .webSocketInfo(rhsTheme, rhsText) = rhs, lhsTheme === rhsTheme, lhsText == rhsText {
                     return true
                 } else {
                     return false
@@ -391,34 +347,6 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
                         return true
                 }
             case .useForCallsInfo:
-                switch rhs {
-                    case .webSocketHeader, .webSocketTransport, .webSocketFallbackToDirect, .webSocketInfo:
-                        return true
-                    default:
-                        return false
-                }
-            case .webSocketHeader:
-                switch rhs {
-                    case .webSocketTransport, .webSocketFallbackToDirect, .webSocketInfo:
-                        return true
-                    default:
-                        return false
-                }
-            case .webSocketTransport:
-                switch rhs {
-                    case .webSocketFallbackToDirect, .webSocketInfo:
-                        return true
-                    default:
-                        return false
-                }
-            case .webSocketFallbackToDirect:
-                switch rhs {
-                    case .webSocketInfo:
-                        return true
-                    default:
-                        return false
-                }
-            case .webSocketInfo:
                 return false
         }
     }
@@ -483,18 +411,6 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
                     arguments.toggleUseForCalls(value)
                 }, tag: ProxySettingsEntryTag.useForCalls)
             case let .useForCallsInfo(_, text):
-                return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section)
-            case let .webSocketHeader(_, text):
-                return ItemListSectionHeaderItem(presentationData: presentationData, text: text, sectionId: self.section)
-            case let .webSocketTransport(_, text, value):
-                return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: text, value: value, enableInteractiveChanges: true, enabled: true, sectionId: self.section, style: .blocks, updated: { value in
-                    arguments.toggleWebSocketTransport(value)
-                }, tag: ProxySettingsEntryTag.webSocketTransport)
-            case let .webSocketFallbackToDirect(_, text, value):
-                return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: text, value: value, enableInteractiveChanges: true, enabled: true, sectionId: self.section, style: .blocks, updated: { value in
-                    arguments.toggleWebSocketFallbackToDirect(value)
-                })
-            case let .webSocketInfo(_, text):
                 return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section)
         }
     }
@@ -754,18 +670,6 @@ public func proxySettingsController(accountManager: AccountManager<TelegramAccou
             if value {
                 current.autoRotateProxies = false
             }
-            return current
-        }).start()
-    }, toggleWebSocketTransport: { value in
-        let _ = updateProxySettingsInteractively(accountManager: accountManager, { current in
-            var current = current
-            current.webSocketTransportEnabled = value
-            return current
-        }).start()
-    }, toggleWebSocketFallbackToDirect: { value in
-        let _ = updateProxySettingsInteractively(accountManager: accountManager, { current in
-            var current = current
-            current.webSocketFallbackToDirect = value
             return current
         }).start()
     }, shareProxyList: {
