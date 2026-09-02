@@ -1574,7 +1574,7 @@ public class Account {
             // state `applyWebSocketTransport` gates on) changes, otherwise flipping "WebSocket
             // Transport" in Settings — or enabling/disabling a proxy server while WS transport is
             // on — has no effect until the app is relaunched.
-            network.applyWebSocketTransport(
+            network.updateWebSocketTransportSettings(
                 webSocketTransportEnabled: webSocketTransportEnabled,
                 webSocketFallbackToDirect: webSocketFallbackToDirect,
                 hasActiveProxyServer: hasActiveProxyServer

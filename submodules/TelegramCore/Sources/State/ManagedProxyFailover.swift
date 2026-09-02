@@ -43,7 +43,7 @@ private func probeProxyRotationServersOnce(network: Network, servers: [ProxyServ
                 }
                 continue
             }
-            let disposable = MTProxyConnectivity.pingProxy(with: network.context, datacenterId: network.datacenterId, settings: settings).start(next: { status in
+            let token = MTProxyConnectivity.pingProxy(with: network.context, datacenterId: network.datacenterId, settings: settings).start(next: { status in
                 lock.lock()
                 if let status = status as? MTProxyConnectivityStatus {
                     if status.reachable {
@@ -61,7 +61,9 @@ private func probeProxyRotationServersOnce(network: Network, servers: [ProxyServ
                     subscriber.putCompletion()
                 }
             })
-            disposables.append(disposable)
+            disposables.append(ActionDisposable {
+                token?.dispose()
+            })
         }
         return ActionDisposable {
             for disposable in disposables {

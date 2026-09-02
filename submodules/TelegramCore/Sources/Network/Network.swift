@@ -536,7 +536,7 @@ func applyWebSocketTransport(context: MTContext, webSocketTransportEnabled: Bool
 }
 
 extension Network {
-    func applyWebSocketTransport(webSocketTransportEnabled: Bool, webSocketFallbackToDirect: Bool, hasActiveProxyServer: Bool) {
+    func updateWebSocketTransportSettings(webSocketTransportEnabled: Bool, webSocketFallbackToDirect: Bool, hasActiveProxyServer: Bool) {
         applyWebSocketTransport(
             context: self.context,
             webSocketTransportEnabled: webSocketTransportEnabled,

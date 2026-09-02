@@ -6,18 +6,18 @@
 
 ## [Unreleased]
 
-### Fixed
-- **Proxy rotation:** reschedule wait-and-probe while still connecting when no faster proxy is found or cooldown blocks a switch; dispose in-flight probes on settings change.
-
 ## [v12.9.2-3938-pre] — 2026-09-02
 
-Pre-release: WebSocket transport hardening + proxy rotation probe watchdog.
+Pre-release: censorship network stack (proxy rotation, FakeTLS DC fallback, WebSocket hardening).
+
+### Added
+- **Proxy rotation:** Android-style ping-based auto-switch — configurable wait (5/10/15/30/60 s), RTT probe via `MTProxyConnectivity`, switch to fastest live server; timeout picker in Settings → Proxy.
 
 ### Fixed
-- **WebSocket:** handle NWConnection `.cancelled` so MtProtoKit is notified instead of hanging on "Connecting…".
-- **WebSocket:** debounce viability loss (2s, post-`.ready` only) — same policy as direct NWConnection TCP.
-- **WebSocket:** fallback coordinator persists on `Network` across settings re-applies (proxy toggle no longer resets failure count / probe schedule).
-- **Proxy rotation:** 30s watchdog on stuck MTProxy ping probes so `isChecking` cannot block rotation forever.
+- **FakeTLS:** HMAC mismatch on `ee` MTProxy triggers DNS TXT backup → `configSimple` DC fallback (Mozilla DNS after Google); mirrors Android tgnet.
+- **WebSocket:** fallback to direct transport uses `NetworkFrameworkTcpConnectionInterface`, not GCDAsyncSocket.
+- **WebSocket:** handle NWConnection `.cancelled`; debounce viability loss (2s post-`.ready`); persistent fallback coordinator on `Network`.
+- **Proxy rotation:** 30s probe watchdog; reschedule wait-and-probe while still connecting when no faster proxy is found.
 
 ## [v12.9.2-3937-pre] — 2026-09-02
 
