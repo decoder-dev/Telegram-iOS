@@ -96,6 +96,11 @@ public enum WebProxyFrameCodec {
             if payloadSize > maxPayloadSize || (type == .data && payloadSize == 0) {
                 throw WebProxyFrameCodecError.invalidPayloadSize
             }
+            // MTProxy (Aug 2026) rejects zero-length padded RPC packets; our wire format allows
+            // empty ping/pong payloads but WINDOW must carry exactly four credit bytes.
+            if type == .window && payloadSize != 4 {
+                throw WebProxyFrameCodecError.invalidPayloadSize
+            }
             let end = offset + 8 + payloadSize
             if end > data.count {
                 throw WebProxyFrameCodecError.bufferTooShort

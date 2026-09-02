@@ -6,6 +6,21 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3937-pre] — 2026-09-02
+
+Pre-release: upstream TelegramMessenger audit (rich-text / MTProxy / tgcalls).
+
+### Added
+- **Docs (audit):** compared `TelegramMessenger/Telegram-iOS` master (Jul 2026 rich-text batch) — all `feat(richtext*)` / `feat(composer*)` / related fixes already present on `dec/zalupa-mess` under fork SHAs; no blind merge of official network code (our NWConnection/reachability fixes are ahead of upstream).
+
+### Fixed
+- **WebProxy:** reject malformed `WINDOW` frames unless payload is exactly 4 bytes (MTProxy Aug 2026 empty-packet hardening analogue).
+
+### Notes (no code change this release)
+- **MTProxy** (`TelegramMessenger/MTProxy`, Aug 2026): padding/window-clamp fixes apply to the C proxy daemon, not our Swift WEB sidecar; existing guards already cover empty `DATA` frames and stream window credit.
+- **tgcalls:** repo pin `e3069322` (2026-06-15); upstream tip `78d07f3e46` (2026-08-20) — intentionally not bumped this pass.
+- **Cocoon / Passport / MiniApps:** out of scope.
+
 ## [v12.9.2-3936-pre] — 2026-09-02
 
 Pre-release: chat list watchdog layout coalesce + NWConnection silent stall fixes.
