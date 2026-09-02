@@ -6,6 +6,9 @@
 
 ## [Unreleased]
 
+### Fixed
+- **Proxy rotation:** reschedule wait-and-probe while still connecting when no faster proxy is found or cooldown blocks a switch; dispose in-flight probes on settings change.
+
 ## [v12.9.2-3938-pre] — 2026-09-02
 
 Pre-release: WebSocket transport hardening + proxy rotation probe watchdog.

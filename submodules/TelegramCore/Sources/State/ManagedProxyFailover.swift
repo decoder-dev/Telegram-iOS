@@ -84,6 +84,7 @@ private final class ProxyFailoverContext {
     
     private var currentSettings: ProxySettings = .defaultSettings
     private var isChecking = false
+    private var isConnectingViaProxy = false
     private var lastCheckedAt: [ProxyServerSettings: Double] = [:]
     private var lastCheckedStatus: [ProxyServerSettings: ProxyServerStatus] = [:]
     private var lastRotateAt: Double = 0.0
@@ -106,6 +107,8 @@ private final class ProxyFailoverContext {
             }
             self.currentSettings = settings
             self.cancelConnectingTimer()
+            self.probeDisposable?.dispose()
+            self.probeDisposable = nil
             self.isChecking = false
         })
         
@@ -134,15 +137,28 @@ private final class ProxyFailoverContext {
         }
         switch status {
         case let .connecting(proxyAddress, _):
-            guard proxyAddress != nil else {
+            if proxyAddress != nil {
+                self.isConnectingViaProxy = true
+                self.scheduleConnectingTimer()
+            } else {
+                self.isConnectingViaProxy = false
                 self.cancelConnectingTimer()
-                return
             }
-            self.scheduleConnectingTimer()
         default:
+            self.isConnectingViaProxy = false
             self.cancelConnectingTimer()
             self.isChecking = false
         }
+    }
+    
+    /// After a probe finds no better proxy (or cooldown blocks a switch), schedule another
+    /// wait-and-probe cycle while the link is still stuck on `.connecting`. Without this the
+    /// timer only fires once per connecting stint because `connectionStatus` is distinct-until-changed.
+    private func rescheduleConnectingTimerIfNeeded() {
+        guard self.isConnectingViaProxy, self.shouldManageRotation, !self.isChecking else {
+            return
+        }
+        self.scheduleConnectingTimer()
     }
     
     private var shouldManageRotation: Bool {
@@ -179,11 +195,13 @@ private final class ProxyFailoverContext {
     
     private func checkProxiesAndSwitch() {
         guard self.shouldManageRotation, !self.isChecking else {
+            self.rescheduleConnectingTimerIfNeeded()
             return
         }
         let settings = self.currentSettings
         let rotatableServers = proxyRotationRotatableServers(from: settings)
         guard rotatableServers.count > 1, let active = settings.activeServer else {
+            self.rescheduleConnectingTimerIfNeeded()
             return
         }
         self.isChecking = true
@@ -232,6 +250,7 @@ private final class ProxyFailoverContext {
         }
         let now = CFAbsoluteTimeGetCurrent()
         if now - self.lastRotateAt < proxyRotationCooldownSeconds {
+            self.rescheduleConnectingTimerIfNeeded()
             return
         }
         
@@ -244,6 +263,7 @@ private final class ProxyFailoverContext {
         available.sort { $0.1 < $1.1 }
         
         guard let best = available.first(where: { $0.0 != active })?.0 else {
+            self.rescheduleConnectingTimerIfNeeded()
             return
         }
         
