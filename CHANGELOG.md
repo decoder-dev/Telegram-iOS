@@ -6,6 +6,9 @@
 
 ## [Unreleased]
 
+### Changed
+- **WebSocket transport:** always enabled for every account (fork invariant); settings section removed from Proxy.
+
 ### Fixed
 - **Network:** rebuild transport on OS path changes (Wi‑Fi/cellular/VPN handoff) instead of sitting stuck while reachability stays "available"; WEB proxy bootstrap pauses MtProto until sidecar ready (no more 127.0.0.1:1 hammer); IPv6 connect cap 2.5s; WebSocket send failures tear down the connection like NW TCP.
 - **WEB proxy:** resume carrier rebuild after 2s background (was 12s) so brief app switches don't leave a dead tunnel.
