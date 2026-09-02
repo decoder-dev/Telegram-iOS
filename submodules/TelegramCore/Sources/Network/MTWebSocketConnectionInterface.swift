@@ -8,7 +8,7 @@ import MTWebSocketTransport
 /// Tracks "every WS endpoint failed" outcomes across reconnect attempts and tells `Network.swift`'s
 /// `makeTcpConnectionInterface` closure when to stop returning a WebSocket interface for the rest of
 /// the session (only consulted when the user has enabled "fall back to direct transport"). One instance
-/// is created per `MTContext` and shared by every `MTWebSocketConnectionInterface` it spawns.
+/// is owned by `Network` and shared by every `MTWebSocketConnectionInterface` it spawns.
 final class MTWebSocketFallbackCoordinator {
     /// Failures are reported per connection, and MTProto keeps several open at once — master, media,
     /// and download workers. A single network event therefore reports three or four failures within
@@ -187,6 +187,8 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
 
         private var connectTimeout: Double = 12.0
         private var connectTimeoutTimer: SwiftSignalKit.Timer?
+        private var viabilityLossTimer: SwiftSignalKit.Timer?
+        private var isReady = false
 
         private var endpointSelector: WebSocketEndpointSelector
         private var currentCandidateHost: String?
@@ -253,6 +255,7 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
             // MTTcpConnection released the interface without disconnecting first. An NWConnection that
             // is never cancelled keeps its TLS session and its receive loop alive.
             self.connectTimeoutTimer?.invalidate()
+            self.viabilityLossTimer?.invalidate()
             self.discardCurrentConnection()
         }
 
@@ -260,6 +263,11 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
         /// so any callback still in flight for it becomes a no-op.
         private func discardCurrentConnection() {
             self.connectionGeneration += 1
+            if let viabilityLossTimer = self.viabilityLossTimer {
+                self.viabilityLossTimer = nil
+                viabilityLossTimer.invalidate()
+            }
+            self.isReady = false
             guard let connection = self.connection else {
                 return
             }
@@ -303,6 +311,11 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
             self.handshakeState = .tcpConnecting
             self.handshakeResponseBuffer = Data()
             self.reassembler = WebSocketMessageReassembler()
+            self.isReady = false
+            if let viabilityLossTimer = self.viabilityLossTimer {
+                self.viabilityLossTimer = nil
+                viabilityLossTimer.invalidate()
+            }
             // Only reachable before the connection has been reported (see `candidateFailed`), so
             // nothing is in flight — but leaving a previous candidate's bytes in place would splice
             // two unrelated streams together if that ever changed.
@@ -359,9 +372,29 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
                     guard let self = self, self.connectionGeneration == generation else {
                         return
                     }
-                    if !isViable {
-                        self.candidateFailed(error: nil)
+                    if isViable {
+                        if let viabilityLossTimer = self.viabilityLossTimer {
+                            self.viabilityLossTimer = nil
+                            viabilityLossTimer.invalidate()
+                        }
+                        return
                     }
+                    // Do not tear down a connect that has not reached `.ready` yet. After `.ready`,
+                    // debounce brief false spikes on foreground resume — same policy as
+                    // NetworkFrameworkTcpConnectionInterface.
+                    guard self.isReady, self.viabilityLossTimer == nil else {
+                        return
+                    }
+                    self.viabilityLossTimer = SwiftSignalKit.Timer(timeout: 2.0, repeat: false, completion: { [weak self] in
+                        guard let self = self else {
+                            return
+                        }
+                        self.viabilityLossTimer = nil
+                        if self.isReady {
+                            self.candidateFailed(error: nil)
+                        }
+                    }, queue: self.queue)
+                    self.viabilityLossTimer?.start()
                 }
             }
 
@@ -377,12 +410,15 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
         private func stateUpdated(state: NWConnection.State) {
             switch state {
             case .ready:
+                self.isReady = true
                 if let path = self.connection?.currentPath {
                     self.currentInterfaceIsWifi = !path.usesInterfaceType(.cellular)
                 }
                 self.beginWebSocketHandshake()
             case let .failed(error):
                 self.candidateFailed(error: error)
+            case .cancelled:
+                self.candidateFailed(error: nil)
             default:
                 break
             }

@@ -489,7 +489,7 @@ func setDefaultTcpConnectionInterface(context: MTContext, useNetworkFramework: B
 // otherwise via `setDefaultTcpConnectionInterface`. This runs both at `initializedNetwork` time and
 // as a live re-apply of the settings toggle on an already-running Network (see Account.swift's
 // `proxySettings` subscription), so it must be safe to call repeatedly and in either direction.
-func applyWebSocketTransport(context: MTContext, webSocketTransportEnabled: Bool, webSocketFallbackToDirect: Bool, hasActiveProxyServer: Bool, useNetworkFramework: Bool) {
+func applyWebSocketTransport(context: MTContext, webSocketTransportEnabled: Bool, webSocketFallbackToDirect: Bool, hasActiveProxyServer: Bool, useNetworkFramework: Bool, fallbackCoordinator: inout MTWebSocketFallbackCoordinator?) {
     // WebSocket transport must stay OFF whenever a SOCKS/MTProxy server is active. MtProtoKit's
     // obfuscated-transport init (MTTcpConnection.m) derives its AES key as SHA256(prekey + secret)
     // when a proxy secret is configured, matching the MTProxy wire protocol; with no secret it uses
@@ -508,12 +508,15 @@ func applyWebSocketTransport(context: MTContext, webSocketTransportEnabled: Bool
     }
     if #available(iOS 12.0, macOS 14.0, *) {
         Logger.shared.log("Network", "[WS] factory selected: websocket (fallbackToDirect=\(webSocketFallbackToDirect))")
-        // One coordinator per MTContext: shared across every reconnect attempt so
-        // "N consecutive total endpoint failures" is tracked for the lifetime of this
-        // Network/context, not reset on every redial. See MTWebSocketConnectionInterface.swift.
-        let fallbackCoordinator = webSocketFallbackToDirect ? MTWebSocketFallbackCoordinator() : nil
+        // One coordinator per Network: shared across every reconnect attempt and settings
+        // re-apply so "N consecutive total endpoint failures" is not reset when the user
+        // toggles proxy or fallback. See MTWebSocketConnectionInterface.swift.
+        if webSocketFallbackToDirect, fallbackCoordinator == nil {
+            fallbackCoordinator = MTWebSocketFallbackCoordinator()
+        }
+        let activeFallbackCoordinator = webSocketFallbackToDirect ? fallbackCoordinator : nil
         context.makeTcpConnectionInterface = { delegate, delegateQueue, datacenterId, isMedia, isTestingEnv in
-            if let fallbackCoordinator = fallbackCoordinator, !fallbackCoordinator.shouldAttemptWebSocket() {
+            if let fallbackCoordinator = activeFallbackCoordinator, !fallbackCoordinator.shouldAttemptWebSocket() {
                 // WebSocket has failed repeatedly and the coordinator is holding this connection on
                 // direct transport. Returning nil would make MTTcpConnection fall through to
                 // GCDAsyncSocket; with Network.framework always-on, hand back the same raw-TCP
@@ -525,10 +528,23 @@ func applyWebSocketTransport(context: MTContext, webSocketTransportEnabled: Bool
                 }
                 return nil
             }
-            return MTWebSocketConnectionInterface(delegate: delegate, delegateQueue: delegateQueue, datacenterId: datacenterId, isMediaConnection: isMedia, isTestingEnvironment: isTestingEnv, fallbackCoordinator: fallbackCoordinator)
+            return MTWebSocketConnectionInterface(delegate: delegate, delegateQueue: delegateQueue, datacenterId: datacenterId, isMediaConnection: isMedia, isTestingEnvironment: isTestingEnv, fallbackCoordinator: activeFallbackCoordinator)
         }
     } else {
         setDefaultTcpConnectionInterface(context: context, useNetworkFramework: useNetworkFramework)
+    }
+}
+
+extension Network {
+    func applyWebSocketTransport(webSocketTransportEnabled: Bool, webSocketFallbackToDirect: Bool, hasActiveProxyServer: Bool) {
+        applyWebSocketTransport(
+            context: self.context,
+            webSocketTransportEnabled: webSocketTransportEnabled,
+            webSocketFallbackToDirect: webSocketFallbackToDirect,
+            hasActiveProxyServer: hasActiveProxyServer,
+            useNetworkFramework: self.usesNetworkFrameworkTcpConnection,
+            fallbackCoordinator: &self.webSocketFallbackCoordinator
+        )
     }
 }
 
@@ -595,7 +611,8 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
             // Both branches are covered by applyWebSocketTransport: it installs the WebSocket factory
             // when the toggle is on and no proxy server is active, and otherwise falls through to
             // setDefaultTcpConnectionInterface with the same `useNetworkFramework` value.
-            applyWebSocketTransport(context: context, webSocketTransportEnabled: proxySettings?.webSocketTransportEnabled ?? false, webSocketFallbackToDirect: proxySettings?.webSocketFallbackToDirect ?? true, hasActiveProxyServer: proxySettings?.effectiveActiveServer != nil, useNetworkFramework: useNetworkFrameworkTcpConnection)
+            var webSocketFallbackCoordinator: MTWebSocketFallbackCoordinator?
+            applyWebSocketTransport(context: context, webSocketTransportEnabled: proxySettings?.webSocketTransportEnabled ?? false, webSocketFallbackToDirect: proxySettings?.webSocketFallbackToDirect ?? true, hasActiveProxyServer: proxySettings?.effectiveActiveServer != nil, useNetworkFramework: useNetworkFrameworkTcpConnection, fallbackCoordinator: &webSocketFallbackCoordinator)
             
             let seedAddressList: [Int: [String]]
             
@@ -730,6 +747,7 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
             let network = Network(queue: queue, datacenterId: datacenterId, context: context, mtProto: mtProto, requestService: requestService, connectionStatusDelegate: connectionStatusDelegate, _connectionStatus: connectionStatus, basePath: basePath, appDataDisposable: appDataDisposable, encryptionProvider: arguments.encryptionProvider, useRequestTimeoutTimers: useRequestTimeoutTimers, useBetaFeatures: arguments.useBetaFeatures, useExperimentalFeatures: useExperimentalFeatures)
             
             network.usesNetworkFrameworkTcpConnection = useNetworkFrameworkTcpConnection
+            network.webSocketFallbackCoordinator = webSocketFallbackCoordinator
             
             if let data = appConfiguration.data, let notifyInterval = data["upload_premium_speedup_notify_period"] as? Double {
                 network.updateNetworkSpeedLimitedEventNotifyInterval(value: notifyInterval)
@@ -894,6 +912,8 @@ public final class Network: NSObject, MTRequestMessageServiceDelegate {
     /// Whether this account resolved to the NetworkFramework TCP experiment at init time. Needed so
     /// the live "WebSocket Transport" re-apply can restore the right non-WebSocket factory.
     var usesNetworkFrameworkTcpConnection: Bool = false
+    /// Shared across every WebSocket connection and settings re-apply for this account's Network.
+    var webSocketFallbackCoordinator: MTWebSocketFallbackCoordinator?
     
     private let appDataDisposable: Disposable
     

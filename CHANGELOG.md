@@ -6,6 +6,16 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3938-pre] — 2026-09-02
+
+Pre-release: WebSocket transport hardening + proxy rotation probe watchdog.
+
+### Fixed
+- **WebSocket:** handle NWConnection `.cancelled` so MtProtoKit is notified instead of hanging on "Connecting…".
+- **WebSocket:** debounce viability loss (2s, post-`.ready` only) — same policy as direct NWConnection TCP.
+- **WebSocket:** fallback coordinator persists on `Network` across settings re-applies (proxy toggle no longer resets failure count / probe schedule).
+- **Proxy rotation:** 30s watchdog on stuck MTProxy ping probes so `isChecking` cannot block rotation forever.
+
 ## [v12.9.2-3937-pre] — 2026-09-02
 
 Pre-release: upstream TelegramMessenger audit (rich-text / MTProxy / tgcalls).

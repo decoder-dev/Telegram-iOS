@@ -5,6 +5,7 @@ import MtProtoKit
 
 private let proxyRotationProbeCacheInterval: Double = 2.0 * 60.0
 private let proxyRotationCooldownSeconds: Double = 30.0
+private let proxyRotationProbeTimeout: Double = 30.0
 
 private func proxyRotationRotatableServers(from settings: ProxySettings) -> [ProxyServerSettings] {
     return settings.servers.filter { server in
@@ -206,6 +207,7 @@ private final class ProxyFailoverContext {
         
         self.probeDisposable?.dispose()
         self.probeDisposable = (probeProxyRotationServersOnce(network: self.network, servers: serversToProbe, queue: self.queue)
+        |> timeout(proxyRotationProbeTimeout, queue: self.queue, alternate: .single([:]))
         |> deliverOn(self.queue)).start(next: { [weak self] probed in
             guard let self else {
                 return
