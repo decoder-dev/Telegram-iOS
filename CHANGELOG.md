@@ -8,6 +8,7 @@
 
 ### Fixed
 - **WebSocket:** buffer outbound writes until the HTTP upgrade handshake completes instead of dropping them (MTTcpConnection sends data as soon as `connectToHost` returns).
+- **WEB proxy:** stop publishing `lastGoodEndpoint` after the sidecar listener has stopped — stale loopback ports caused hundreds of `127.0.0.1:638xx Connection refused` hits; coalesce bootstraps through backoff and skip superseding an in-flight start on path return.
 
 ## [v12.9.2-3938-pre] — 2026-09-02
 

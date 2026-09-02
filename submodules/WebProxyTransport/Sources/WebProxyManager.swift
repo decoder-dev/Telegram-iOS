@@ -101,7 +101,15 @@ public final class WebProxyManager {
     public var activeLoopbackEndpoint: LoopbackEndpoint? {
         self.lock.lock()
         defer { self.lock.unlock() }
-        return self.endpoint ?? self.lastGoodEndpoint
+        // Only the sidecar that is currently listening may publish a loopback port. `lastGoodEndpoint`
+        // used to be returned here during bootstrap/restart, but once the sidecar stops the listener
+        // is gone while the stale port lived on — MtProto then hammered a dead `127.0.0.1:638xx`
+        // (hundreds of "Connection refused" per session in device logs). Fail-closed `:1` during
+        // the gap is noisy but correct; a fresh `carrier ready` publishes the new port.
+        guard self.sidecar != nil, let endpoint = self.endpoint else {
+            return nil
+        }
+        return endpoint
     }
     
     public var activeConfiguration: WebProxyConfiguration? {
@@ -112,18 +120,8 @@ public final class WebProxyManager {
     
     public func isReady(for configuration: WebProxyConfiguration) -> Bool {
         self.lock.lock()
-        let live = self.configuration == configuration && self.endpoint != nil
-        let hasFallback = self.lastGoodEndpoint != nil
-        self.lock.unlock()
-        if live {
-            return true
-        }
-        // Sequential restart / cold bootstrap briefly clears `endpoint`. Keep lastGood visible
-        // so ProxySettings does not publish 127.0.0.1:1 (236 refused connects in one session).
-        self.startLock.lock()
-        let starting = self.startingConfiguration == configuration
-        self.startLock.unlock()
-        return starting && hasFallback
+        defer { self.lock.unlock() }
+        return self.configuration == configuration && self.endpoint != nil && self.sidecar != nil
     }
     
     /// Registers a handler invoked on the main queue when the sidecar becomes ready, fails, or stops.
@@ -180,6 +178,14 @@ public final class WebProxyManager {
             return true
         }
         self.lock.unlock()
+
+        self.startLock.lock()
+        let bootstrapInFlight = self.startingConfiguration == server
+            && CFAbsoluteTimeGetCurrent() - self.startingSince < WebProxyManager.startTimeout
+        self.startLock.unlock()
+        if bootstrapInFlight {
+            return self.isReady(for: server)
+        }
         
         self.scheduleStart(configuration: server)
         return self.isReady(for: server)
@@ -273,10 +279,9 @@ public final class WebProxyManager {
     /// or in-place transport reconnect failed. Not overlapping — only one listener at a time.
     private func sequentialRestart(configuration: WebProxyConfiguration) {
         // Invalidate a previous asynchronous start before replacing the sidecar, and mark this
-        // replacement as in-flight BEFORE clearing the live endpoint, so `isReady(for:)` keeps
-        // publishing `lastGoodEndpoint` and ProxySettings never falls through to the dead sink.
-        // The marker is what makes `scheduleStart` treat this as an existing bootstrap and
-        // return without building anything, so the call below opts out of that check.
+        // replacement as in-flight BEFORE clearing the live endpoint so concurrent `configure`
+        // calls coalesce on `startingConfiguration` instead of spawning parallel bootstraps.
+        // The call below opts out of the "already starting" check.
         self.startLock.lock()
         self.startGeneration &+= 1
         self.startingConfiguration = configuration
@@ -387,6 +392,13 @@ public final class WebProxyManager {
         self.lock.unlock()
 
         guard !hasEndpoint else {
+            return
+        }
+        self.startLock.lock()
+        let bootstrapInFlight = self.startingConfiguration == desired
+            && CFAbsoluteTimeGetCurrent() - self.startingSince < WebProxyManager.startTimeout
+        self.startLock.unlock()
+        guard !bootstrapInFlight else {
             return
         }
         WebProxyLog.log("network path returned, starting \(desired.hostname) without waiting out the offline cooldown")
@@ -528,9 +540,8 @@ public final class WebProxyManager {
 
             sidecar?.stop()
             self.startLock.lock()
-            if generation == self.startGeneration {
-                self.startingConfiguration = nil
-            }
+            // Keep `startingConfiguration` set through the backoff so concurrent account re-applies
+            // coalesce instead of each spawning a fresh bootstrap (14 starts / 2 ready in one log).
             if self.lastFailedConfiguration == configuration {
                 self.consecutiveFailureCount += 1
             } else {
@@ -562,8 +573,9 @@ public final class WebProxyManager {
         
         self.startLock.lock()
         self.startGeneration &+= 1
-        self.startingConfiguration = nil
         if let failedConfiguration = failedConfiguration {
+            self.startingConfiguration = failedConfiguration
+            self.startingSince = CFAbsoluteTimeGetCurrent()
             // The cooldown below used to cover bootstrap failures only. A carrier that bootstraps
             // fine and then dies — a relay that sends `BYE`, a mismatched `X-Up-Ack`, a dropped
             // session — landed here instead, which records nothing: the event fires, every account
@@ -603,7 +615,7 @@ public final class WebProxyManager {
         self.configuration = nil
         self.endpoint = nil
         self.sidecarReadySince = 0.0
-        // lastGoodEndpoint intentionally retained for resolution during the next bootstrap.
+        self.lastGoodEndpoint = nil
     }
     
     private func notifySidecarEvent() {
