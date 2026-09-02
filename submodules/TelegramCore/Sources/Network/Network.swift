@@ -937,6 +937,9 @@ public final class Network: NSObject, MTRequestMessageServiceDelegate {
     }
     private let networkSpeedLimitedEventPipe = ValuePipe<NetworkSpeedLimitedEvent>()
     private let networkSpeedLimitedEventState = Atomic<NetworkSpeedLimitedEventState>(value: NetworkSpeedLimitedEventState())
+    /// While a WEB proxy sidecar is bootstrapping on first enable, MtProto is paused instead of
+    /// hammering the fail-closed 127.0.0.1:1 placeholder.
+    private var webProxyBootstrapPaused = false
     
     public func dropConnectionStatus() {
         _connectionStatus.set(.single(.waitingForNetwork))
@@ -961,6 +964,40 @@ public final class Network: NSObject, MTRequestMessageServiceDelegate {
             strongSelf.mtProto.pause()
             if shouldKeepConnection {
                 strongSelf.mtProto.resume()
+            }
+        })
+    }
+    
+    /// Hold off MtProto dials while the WEB sidecar publishes its loopback port (first enable).
+    func pauseForWebProxyBootstrap() {
+        let _ = (self.shouldKeepConnection.get()
+        |> take(1)
+        |> deliverOn(self.queue)).start(next: { [weak self] _ in
+            guard let strongSelf = self else {
+                return
+            }
+            if !strongSelf.webProxyBootstrapPaused {
+                strongSelf.webProxyBootstrapPaused = true
+                Logger.shared.log("Network", "WEB proxy bootstrap: pausing until sidecar ready")
+                strongSelf.mtProto.pause()
+            }
+        })
+    }
+    
+    /// Resume after WEB sidecar ready if bootstrap pause was active.
+    func resumeIfWebProxyBootstrapPaused() {
+        let _ = (self.shouldKeepConnection.get()
+        |> take(1)
+        |> deliverOn(self.queue)).start(next: { [weak self] shouldKeepConnection in
+            guard let strongSelf = self else {
+                return
+            }
+            if strongSelf.webProxyBootstrapPaused {
+                strongSelf.webProxyBootstrapPaused = false
+                Logger.shared.log("Network", "WEB proxy bootstrap: sidecar ready, resuming")
+                if shouldKeepConnection {
+                    strongSelf.mtProto.resume()
+                }
             }
         })
     }

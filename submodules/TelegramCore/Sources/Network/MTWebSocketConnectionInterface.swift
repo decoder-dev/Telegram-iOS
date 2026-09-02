@@ -605,7 +605,18 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
                 return
             }
             let frame = WebSocketFrameEncoder.encode(opcode: .binary, payload: data, mask: true)
-            connection.send(content: frame, completion: .contentProcessed({ _ in
+            let queue = self.queue
+            connection.send(content: frame, completion: .contentProcessed({ [weak self, weak connection] error in
+                guard let error = error else {
+                    return
+                }
+                queue.async {
+                    guard let self = self, let connection = connection, self.connection === connection else {
+                        return
+                    }
+                    Logger.shared.log("MTWebSocket", "[WS] send failed: \(error)")
+                    self.candidateFailed(error: error)
+                }
             }))
             self.networkUsageManager?.addOutgoingBytes(UInt(data.count), interface: self.currentInterfaceIsWifi ? MTNetworkUsageManagerInterfaceOther : MTNetworkUsageManagerInterfaceWWAN)
         }

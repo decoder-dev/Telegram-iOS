@@ -7,10 +7,10 @@ import SwiftSignalKit
 /// IPv6 DC addresses often black-hole on censored mobile paths instead of refusing — each
 /// NWConnection then sits for the full MtProto timeout (12s). Device logs showed 100+ such
 /// timeouts per session while IPv4/MTProxy worked. A working v6 handshake completes in under
-/// a second, so capping v6 at 4s fails fast without hurting good paths.
+/// a second, so capping v6 at 2.5s fails fast without hurting good paths.
 func networkFrameworkConnectTimeout(host: String, requested: Double) -> Double {
     if host.contains(":") {
-        return min(requested, 4.0)
+        return min(requested, 2.5)
     }
     return requested
 }

@@ -1588,6 +1588,7 @@ public class Account {
         if !supplementary {
             self.managedOperationsDisposable.add(managedProxyFailover(accountManager: accountManager, network: network).start())
             self.managedOperationsDisposable.add(managedAutomaticMtProxy(accountManager: accountManager, network: network).start())
+            self.managedOperationsDisposable.add(managedNetworkPathReconnect(network: network).start())
             
             let mediaBox = postbox.mediaBox
             let _ = (accountManager.sharedData(keys: [SharedDataKeys.cacheStorageSettings])

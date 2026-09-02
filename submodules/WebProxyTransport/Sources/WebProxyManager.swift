@@ -58,7 +58,7 @@ public final class WebProxyManager {
 
     /// Debounce foreground restarts so rapid active/resign cycles do not stack tear-downs.
     private var lastBecomeActiveRestart: Double = 0.0
-    private static let becomeActiveRestartMinInterval: Double = 3.0
+    private static let becomeActiveRestartMinInterval: Double = 2.0
     /// Set from `applicationDidEnterBackground`. A carrier session is foreground-only: iOS may
     /// suspend its URLSession/WebSocket work at any point after this transition.
     private var enteredBackgroundAt: Double = 0.0
@@ -66,7 +66,7 @@ public final class WebProxyManager {
     /// very probably still alive — a control-centre pull, the app switcher, a glance at a
     /// notification — and if it is not, its own failure path brings the sidecar down and the
     /// manager restarts it. Rebuilding on every flicker drops every local stream for nothing.
-    private static let minimumBackgroundForResumeRestart: Double = 12.0
+    private static let minimumBackgroundForResumeRestart: Double = 2.0
 
     /// The configuration the app currently wants running, as opposed to the one that happens to
     /// be up. A retry armed by the cooldown must not resurrect a proxy the user has since turned

@@ -5,7 +5,7 @@ import MtProtoKit
 
 private let proxyRotationProbeCacheInterval: Double = 2.0 * 60.0
 private let proxyRotationCooldownSeconds: Double = 30.0
-private let proxyRotationProbeTimeout: Double = 30.0
+private let proxyRotationProbeTimeout: Double = 12.0
 
 private func socksSettingsForProxyRotationPing(server: ProxyServerSettings) -> MTSocksProxySettings? {
     switch server.connection {
@@ -90,6 +90,7 @@ private final class ProxyFailoverContext {
     private var currentSettings: ProxySettings = .defaultSettings
     private var isChecking = false
     private var isConnectingViaProxy = false
+    private var activeProxyHasConnectionIssues = false
     private var lastCheckedAt: [ProxyServerSettings: Double] = [:]
     private var lastCheckedStatus: [ProxyServerSettings: ProxyServerStatus] = [:]
     private var lastRotateAt: Double = 0.0
@@ -141,7 +142,8 @@ private final class ProxyFailoverContext {
             return
         }
         switch status {
-        case let .connecting(proxyAddress, _):
+        case let .connecting(proxyAddress, proxyHasConnectionIssues):
+            self.activeProxyHasConnectionIssues = proxyHasConnectionIssues
             if proxyAddress != nil {
                 self.isConnectingViaProxy = true
                 self.scheduleConnectingTimer()
@@ -151,6 +153,7 @@ private final class ProxyFailoverContext {
             }
         default:
             self.isConnectingViaProxy = false
+            self.activeProxyHasConnectionIssues = false
             self.cancelConnectingTimer()
             self.isChecking = false
         }
@@ -215,7 +218,9 @@ private final class ProxyFailoverContext {
         var cachedStatuses: [ProxyServerSettings: ProxyServerStatus] = [:]
         var serversToProbe: [ProxyServerSettings] = []
         for server in rotatableServers {
-            if let lastChecked = self.lastCheckedAt[server], now - lastChecked < proxyRotationProbeCacheInterval, let status = self.lastCheckedStatus[server] {
+            if server == active {
+                serversToProbe.append(server)
+            } else if let lastChecked = self.lastCheckedAt[server], now - lastChecked < proxyRotationProbeCacheInterval, let status = self.lastCheckedStatus[server] {
                 cachedStatuses[server] = status
             } else {
                 serversToProbe.append(server)
@@ -266,6 +271,11 @@ private final class ProxyFailoverContext {
             }
         }
         available.sort { $0.1 < $1.1 }
+        
+        if !self.activeProxyHasConnectionIssues, case .available = statuses[active] {
+            self.rescheduleConnectingTimerIfNeeded()
+            return
+        }
         
         guard let best = available.first(where: { $0.0 != active })?.0 else {
             self.rescheduleConnectingTimerIfNeeded()

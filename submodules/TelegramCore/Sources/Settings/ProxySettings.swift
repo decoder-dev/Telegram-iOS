@@ -68,6 +68,26 @@ func applySharedProxySettingsToNetwork(settings: ProxySettings, network: Network
     // calling it here as well as above would start it twice.
     let resolvedProxySettings = activeServer?.mtProxySettings
 
+    if isActiveWebProxy, resolvedProxySettings == nil {
+        if let activeServer = activeServer, case let .web(secret) = activeServer.connection {
+            let configuration = WebProxyConfiguration(hostname: activeServer.host, secret: secret)
+            WebProxyManager.shared.configure(activeWebProxy: configuration)
+        }
+        network.context.updateApiEnvironment { environment in
+            let current = environment?.socksProxySettings
+            if let current = current {
+                return nil
+            }
+            network.pauseForWebProxyBootstrap()
+            return nil
+        }
+        return
+    }
+    
+    if isActiveWebProxy {
+        network.resumeIfWebProxyBootstrapPaused()
+    }
+
     network.context.updateApiEnvironment { environment in
         let current = environment?.socksProxySettings
         let updated: MTSocksProxySettings?
@@ -78,21 +98,6 @@ func applySharedProxySettingsToNetwork(settings: ProxySettings, network: Network
                 // Sidecar not ready yet (bootstrap / resume) — keep the previous endpoint
                 // rather than falling back to a direct connection.
                 updated = current
-            } else if let activeServer = activeServer, case let .web(secret) = activeServer.connection {
-                // First enable, or a cold start, with the sidecar still bootstrapping. This has
-                // to stay fail-closed: `nil` here is not "MtProto waits", it is "no proxy", and
-                // MtProto opens connections straight to Telegram from the user's own address —
-                // for the whole bootstrap, and for the whole backoff if the bootstrap fails.
-                // Someone who turns on a WEB proxy is asking specifically not to do that.
-                //
-                // The unreachable loopback port is the cost of the guarantee: MtProto retries
-                // against it and each retry is refused at once, so the connection log fills up
-                // until the sidecar publishes a real port. Noise, and bounded by how long the
-                // bootstrap takes; the alternative silently leaks the connection it was there
-                // to hide. (The SIGABRT that shared a commit with the removal of this branch
-                // came from the 24-bit stream-id `precondition` in WebProxyFrameCodec, which is
-                // fixed separately — not from anything reachable through this port.)
-                updated = MTSocksProxySettings(ip: "127.0.0.1", port: 1, username: nil, password: nil, secret: secret)
             } else {
                 updated = nil
             }
