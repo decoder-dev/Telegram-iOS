@@ -6,6 +6,14 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3935-pre] — 2026-09-02
+
+Pre-release: NWConnection restart race + reachability backoff follow-up.
+
+### Fixed
+- **Network:** NWConnection restart uses silent discard (no spurious disconnect); stale `.cancelled` from superseded connections ignored via identity guard — fixes intermittent connect hang.
+- **MtProtoKit:** `clearBackoff` always runs on reachability "available" and invalidates pending timer; reconnect only tears down live TCP on offline→online edge; request connection when reachable but disconnected.
+
 ## [v12.9.2-3934-pre] — 2026-09-02
 
 Pre-release: foreground resume reconnect storm fix.
