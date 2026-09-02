@@ -6,6 +6,9 @@
 
 ## [Unreleased]
 
+### Fixed
+- **WebSocket:** buffer outbound writes until the HTTP upgrade handshake completes instead of dropping them (MTTcpConnection sends data as soon as `connectToHost` returns).
+
 ## [v12.9.2-3938-pre] — 2026-09-02
 
 Pre-release: censorship network stack (proxy rotation, FakeTLS DC fallback, WebSocket hardening).
