@@ -6,6 +6,10 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3939-pre] — 2026-09-02
+
+Pre-release: proxy reachability UI, network perf fixes (WEB loopback, IPv6 fast-fail, WS write buffer).
+
 ### Fixed
 - **Proxy settings:** SOCKS5 and WEB proxies now get real reachability pings (WEB waits for sidecar bootstrap); auto-rotate counts only manual MTProxy/SOCKS5 servers, is hidden when Auto MTProxy is on, and the two toggles are mutually exclusive; WEB preview connect succeeds via loopback; chat list shows «Connecting to proxy…» while a proxy link is active; chat unread scroll no longer flips to default on a second initial emission.
 - **WebSocket:** buffer outbound writes until the HTTP upgrade handshake completes instead of dropping them (MTTcpConnection sends data as soon as `connectToHost` returns).
