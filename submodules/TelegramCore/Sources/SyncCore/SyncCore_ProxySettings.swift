@@ -88,7 +88,7 @@ public struct ProxyServerSettings: Codable, Equatable, Hashable {
 /// Android-style wait-before-probe values for manual proxy rotation (`ProxyRotationController`).
 public enum ProxyRotationTimeouts {
     public static let seconds: [Int32] = [5, 10, 15, 30, 60]
-    public static let defaultIndex: Int32 = 1
+    public static let defaultIndex: Int32 = 0
     
     public static func timeoutSeconds(at index: Int32) -> Double {
         let clamped = max(0, min(Int(index), seconds.count - 1))

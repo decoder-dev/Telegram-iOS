@@ -4,6 +4,17 @@ import Network
 import MtProtoKit
 import SwiftSignalKit
 
+/// IPv6 DC addresses often black-hole on censored mobile paths instead of refusing — each
+/// NWConnection then sits for the full MtProto timeout (12s). Device logs showed 100+ such
+/// timeouts per session while IPv4/MTProxy worked. A working v6 handshake completes in under
+/// a second, so capping v6 at 4s fails fast without hurting good paths.
+func networkFrameworkConnectTimeout(host: String, requested: Double) -> Double {
+    if host.contains(":") {
+        return min(requested, 4.0)
+    }
+    return requested
+}
+
 @available(iOS 12.0, macOS 14.0, *)
 final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInterface {
     private struct ReadRequest {
@@ -117,6 +128,7 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
             // that type has no `CustomStringConvertible` conformance, so interpolating it would
             // print whatever reflection makes of the case rather than the address.
             self.endpointDescription = "\(host):\(port)"
+            let connectTimeout = networkFrameworkConnectTimeout(host: host, requested: timeout)
             
             let host = NWEndpoint.Host(host)
             let port = NWEndpoint.Port(rawValue: port)!
@@ -206,7 +218,7 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
                 }
             }*/
             
-            self.connectTimeoutTimer = SwiftSignalKit.Timer(timeout: timeout, repeat: false, completion: { [weak self] in
+            self.connectTimeoutTimer = SwiftSignalKit.Timer(timeout: connectTimeout, repeat: false, completion: { [weak self] in
                 guard let self = self else {
                     return
                 }

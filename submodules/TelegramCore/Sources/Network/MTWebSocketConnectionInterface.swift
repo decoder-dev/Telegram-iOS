@@ -404,7 +404,7 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
                 }
             }
 
-            self.connectTimeoutTimer = SwiftSignalKit.Timer(timeout: self.connectTimeout, repeat: false, completion: { [weak self] in
+            self.connectTimeoutTimer = SwiftSignalKit.Timer(timeout: networkFrameworkConnectTimeout(host: candidate.host, requested: self.connectTimeout), repeat: false, completion: { [weak self] in
                 self?.connectTimeoutTimer = nil
                 self?.candidateFailed(error: nil)
             }, queue: self.queue)
