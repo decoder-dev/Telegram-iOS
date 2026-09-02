@@ -22,12 +22,13 @@ private final class ProxySettingsControllerArguments {
     let toggleUseForCalls: (Bool) -> Void
     let toggleUseLocalDNS: (Bool) -> Void
     let toggleAutoRotate: (Bool) -> Void
+    let openRotationTimeoutPicker: () -> Void
     let toggleAutoFetch: (Bool) -> Void
     let toggleWebSocketTransport: (Bool) -> Void
     let toggleWebSocketFallbackToDirect: (Bool) -> Void
     let shareProxyList: () -> Void
 
-    init(toggleEnabled: @escaping (Bool) -> Void, presentAddProxyMenu: @escaping () -> Void, activateServer: @escaping (ProxyServerSettings) -> Void, editServer: @escaping (ProxyServerSettings) -> Void, removeServer: @escaping (ProxyServerSettings) -> Void, setServerWithRevealedOptions: @escaping (ProxyServerSettings?, ProxyServerSettings?) -> Void, toggleUseForCalls: @escaping (Bool) -> Void, toggleUseLocalDNS: @escaping (Bool) -> Void, toggleAutoRotate: @escaping (Bool) -> Void, toggleAutoFetch: @escaping (Bool) -> Void, toggleWebSocketTransport: @escaping (Bool) -> Void, toggleWebSocketFallbackToDirect: @escaping (Bool) -> Void, shareProxyList: @escaping () -> Void) {
+    init(toggleEnabled: @escaping (Bool) -> Void, presentAddProxyMenu: @escaping () -> Void, activateServer: @escaping (ProxyServerSettings) -> Void, editServer: @escaping (ProxyServerSettings) -> Void, removeServer: @escaping (ProxyServerSettings) -> Void, setServerWithRevealedOptions: @escaping (ProxyServerSettings?, ProxyServerSettings?) -> Void, toggleUseForCalls: @escaping (Bool) -> Void, toggleUseLocalDNS: @escaping (Bool) -> Void, toggleAutoRotate: @escaping (Bool) -> Void, openRotationTimeoutPicker: @escaping () -> Void, toggleAutoFetch: @escaping (Bool) -> Void, toggleWebSocketTransport: @escaping (Bool) -> Void, toggleWebSocketFallbackToDirect: @escaping (Bool) -> Void, shareProxyList: @escaping () -> Void) {
         self.toggleEnabled = toggleEnabled
         self.presentAddProxyMenu = presentAddProxyMenu
         self.activateServer = activateServer
@@ -37,6 +38,7 @@ private final class ProxySettingsControllerArguments {
         self.toggleUseForCalls = toggleUseForCalls
         self.toggleUseLocalDNS = toggleUseLocalDNS
         self.toggleAutoRotate = toggleAutoRotate
+        self.openRotationTimeoutPicker = openRotationTimeoutPicker
         self.toggleAutoFetch = toggleAutoFetch
         self.toggleWebSocketTransport = toggleWebSocketTransport
         self.toggleWebSocketFallbackToDirect = toggleWebSocketFallbackToDirect
@@ -95,6 +97,8 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
     case useLocalDNS(PresentationTheme, String, Bool)
     case useLocalDNSInfo(PresentationTheme, String)
     case autoRotate(PresentationTheme, String, Bool)
+    case autoRotateTimeout(PresentationTheme, String, String)
+    case autoRotateTimeoutInfo(PresentationTheme, String)
     case autoRotateInfo(PresentationTheme, String)
     case autoFetch(PresentationTheme, String, Bool)
     case autoFetchInfo(PresentationTheme, String)
@@ -113,7 +117,7 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
                 return ProxySettingsControllerSection.servers.rawValue
             case .shareProxyList:
                 return ProxySettingsControllerSection.share.rawValue
-            case .useLocalDNS, .useLocalDNSInfo, .autoRotate, .autoRotateInfo, .autoFetch, .autoFetchInfo:
+            case .useLocalDNS, .useLocalDNSInfo, .autoRotate, .autoRotateTimeout, .autoRotateTimeoutInfo, .autoRotateInfo, .autoFetch, .autoFetchInfo:
                 return ProxySettingsControllerSection.advanced.rawValue
             case .useForCalls, .useForCallsInfo:
                 return ProxySettingsControllerSection.calls.rawValue
@@ -140,6 +144,10 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
                 return .index(5)
             case .autoRotate:
                 return .index(6)
+            case .autoRotateTimeout:
+                return .index(16)
+            case .autoRotateTimeoutInfo:
+                return .index(17)
             case .autoRotateInfo:
                 return .index(7)
             case .autoFetch:
@@ -207,6 +215,18 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
                 }
             case let .autoRotate(lhsTheme, lhsText, lhsValue):
                 if case let .autoRotate(rhsTheme, rhsText, rhsValue) = rhs, lhsTheme === rhsTheme, lhsText == rhsText, lhsValue == rhsValue {
+                    return true
+                } else {
+                    return false
+                }
+            case let .autoRotateTimeout(lhsTheme, lhsText, lhsValue):
+                if case let .autoRotateTimeout(rhsTheme, rhsText, rhsValue) = rhs, lhsTheme === rhsTheme, lhsText == rhsText, lhsValue == rhsValue {
+                    return true
+                } else {
+                    return false
+                }
+            case let .autoRotateTimeoutInfo(lhsTheme, lhsText):
+                if case let .autoRotateTimeoutInfo(rhsTheme, rhsText) = rhs, lhsTheme === rhsTheme, lhsText == rhsText {
                     return true
                 } else {
                     return false
@@ -328,30 +348,44 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
                     default:
                         return true
                 }
+            case .autoRotateTimeout:
+                switch rhs {
+                    case .enabled, .serversHeader, .addProxy, .server, .shareProxyList, .useLocalDNS, .useLocalDNSInfo, .autoRotate, .autoRotateTimeout:
+                        return false
+                    default:
+                        return true
+                }
+            case .autoRotateTimeoutInfo:
+                switch rhs {
+                    case .enabled, .serversHeader, .addProxy, .server, .shareProxyList, .useLocalDNS, .useLocalDNSInfo, .autoRotate, .autoRotateTimeout, .autoRotateTimeoutInfo:
+                        return false
+                    default:
+                        return true
+                }
             case .autoRotateInfo:
                 switch rhs {
-                    case .enabled, .serversHeader, .addProxy, .server, .shareProxyList, .useLocalDNS, .useLocalDNSInfo, .autoRotate, .autoRotateInfo:
+                    case .enabled, .serversHeader, .addProxy, .server, .shareProxyList, .useLocalDNS, .useLocalDNSInfo, .autoRotate, .autoRotateTimeout, .autoRotateTimeoutInfo, .autoRotateInfo:
                         return false
                     default:
                         return true
                 }
             case .autoFetch:
                 switch rhs {
-                    case .enabled, .serversHeader, .addProxy, .server, .shareProxyList, .useLocalDNS, .useLocalDNSInfo, .autoRotate, .autoRotateInfo, .autoFetch:
+                    case .enabled, .serversHeader, .addProxy, .server, .shareProxyList, .useLocalDNS, .useLocalDNSInfo, .autoRotate, .autoRotateTimeout, .autoRotateTimeoutInfo, .autoRotateInfo, .autoFetch:
                         return false
                     default:
                         return true
                 }
             case .autoFetchInfo:
                 switch rhs {
-                    case .enabled, .serversHeader, .addProxy, .server, .shareProxyList, .useLocalDNS, .useLocalDNSInfo, .autoRotate, .autoRotateInfo, .autoFetch, .autoFetchInfo:
+                    case .enabled, .serversHeader, .addProxy, .server, .shareProxyList, .useLocalDNS, .useLocalDNSInfo, .autoRotate, .autoRotateTimeout, .autoRotateTimeoutInfo, .autoRotateInfo, .autoFetch, .autoFetchInfo:
                         return false
                     default:
                         return true
                 }
             case .useForCalls:
                 switch rhs {
-                    case .enabled, .serversHeader, .addProxy, .server, .shareProxyList, .useLocalDNS, .useLocalDNSInfo, .autoRotate, .autoRotateInfo, .autoFetch, .autoFetchInfo, .useForCalls:
+                    case .enabled, .serversHeader, .addProxy, .server, .shareProxyList, .useLocalDNS, .useLocalDNSInfo, .autoRotate, .autoRotateTimeout, .autoRotateTimeoutInfo, .autoRotateInfo, .autoFetch, .autoFetchInfo, .useForCalls:
                         return false
                     default:
                         return true
@@ -430,6 +464,12 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
                 return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: text, value: value, enableInteractiveChanges: true, enabled: true, sectionId: self.section, style: .blocks, updated: { value in
                     arguments.toggleAutoRotate(value)
                 })
+            case let .autoRotateTimeout(_, text, value):
+                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: text, label: value, labelStyle: .text, sectionId: self.section, style: .blocks, disclosureStyle: .arrow, action: {
+                    arguments.openRotationTimeoutPicker()
+                })
+            case let .autoRotateTimeoutInfo(_, text):
+                return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section)
             case let .autoRotateInfo(_, text):
                 return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section)
             case let .autoFetch(_, text, value):
@@ -529,6 +569,8 @@ private func proxySettingsControllerEntries(theme: PresentationTheme, strings: P
     let useLocalDNSTitle: String
     let useLocalDNSInfo: String
     let autoRotateTitle: String
+    let autoRotateTimeoutTitle: String
+    let autoRotateTimeoutInfo: String
     let autoRotateInfo: String
     let autoFetchTitle: String
     let autoFetchInfo: String
@@ -538,14 +580,18 @@ private func proxySettingsControllerEntries(theme: PresentationTheme, strings: P
         useLocalDNSTitle = "Локальный DNS для прокси"
         useLocalDNSInfo = "Резолвить домен прокси через системный DNS вместо Google DoH (быстрее, если DoH недоступен)."
         autoRotateTitle = "Автосмена прокси"
-        autoRotateInfo = "При проблемах с соединением переключаться на следующий сохранённый прокси."
+        autoRotateTimeoutTitle = "Таймаут перед сменой"
+        autoRotateTimeoutInfo = "Сколько ждать подключения через текущий прокси, прежде чем проверить остальные и переключиться на самый быстрый."
+        autoRotateInfo = "При зависании на подключении проверяет сохранённые прокси и переключается на самый быстрый."
         autoFetchTitle = "Авто MTProxy"
         autoFetchInfo = "Скачивает публичные MTProxy-списки и держит соединение на самом быстром живом сервере. Только MTProxy; WEB- и SOCKS-прокси настраиваются вручную. Чужие ноды не читают чаты, но видят IP."
     } else {
         useLocalDNSTitle = "Local DNS for Proxy"
         useLocalDNSInfo = "Resolve proxy hostnames via system DNS instead of Google DoH (avoids DoH timeouts)."
         autoRotateTitle = "Auto-rotate Proxies"
-        autoRotateInfo = "When the active proxy has connection issues, switch to the next saved proxy."
+        autoRotateTimeoutTitle = "Switch Timeout"
+        autoRotateTimeoutInfo = "How long to wait while connecting via the active proxy before probing the rest and switching to the fastest live one."
+        autoRotateInfo = "When stuck connecting via the active proxy, probes saved servers and switches to the lowest-latency live one."
         autoFetchTitle = "Auto MTProxy"
         autoFetchInfo = "Downloads public MTProxy lists and keeps the connection on the fastest live server. MTProxy only — WEB and SOCKS proxies are configured manually. Third-party nodes cannot read chats, but they see your IP."
     }
@@ -555,6 +601,18 @@ private func proxySettingsControllerEntries(theme: PresentationTheme, strings: P
     entries.append(.autoFetchInfo(theme, autoFetchInfo))
     if proxySettings.servers.count > 1 {
         entries.append(.autoRotate(theme, autoRotateTitle, proxySettings.autoRotateProxies))
+        if proxySettings.autoRotateProxies {
+            let timeoutIndex = max(0, min(Int(proxySettings.proxyRotationTimeoutIndex), ProxyRotationTimeouts.seconds.count - 1))
+            let timeoutSeconds = ProxyRotationTimeouts.seconds[timeoutIndex]
+            let timeoutLabel: String
+            if preferRussian {
+                timeoutLabel = "\(timeoutSeconds) с"
+            } else {
+                timeoutLabel = "\(timeoutSeconds) s"
+            }
+            entries.append(.autoRotateTimeout(theme, autoRotateTimeoutTitle, timeoutLabel))
+            entries.append(.autoRotateTimeoutInfo(theme, autoRotateTimeoutInfo))
+        }
         entries.append(.autoRotateInfo(theme, autoRotateInfo))
     }
     
@@ -644,6 +702,7 @@ public func proxySettingsController(accountManager: AccountManager<TelegramAccou
     
     var shareProxyListImpl: (() -> Void)?
     var presentAddProxyMenuImpl: (() -> Void)?
+    var presentRotationTimeoutPickerImpl: (() -> Void)?
 
     let arguments = ProxySettingsControllerArguments(toggleEnabled: { value in
         let _ = updateProxySettingsInteractively(accountManager: accountManager, { current in
@@ -705,6 +764,8 @@ public func proxySettingsController(accountManager: AccountManager<TelegramAccou
             current.autoRotateProxies = value
             return current
         }).start()
+    }, openRotationTimeoutPicker: {
+        presentRotationTimeoutPickerImpl?()
     }, toggleAutoFetch: { value in
         let _ = updateProxySettingsInteractively(accountManager: accountManager, { current in
             var current = current
@@ -911,6 +972,47 @@ public func proxySettingsController(accountManager: AccountManager<TelegramAccou
             })
         ])])
         strongController.present(actionSheet, in: .window(.root))
+    }
+
+    presentRotationTimeoutPickerImpl = { [weak controller] in
+        guard let strongController = controller else {
+            return
+        }
+        let presentationData = sharedContext.currentPresentationData.with { $0 }
+        let preferRussian = ForkPresentationLanguage.prefersRussianStrings
+            || presentationData.strings.primaryComponent.languageCode.hasPrefix("ru")
+        let _ = (proxySettings.get()
+        |> take(1)
+        |> deliverOnMainQueue).start(next: { settings in
+            let actionSheet = ActionSheetController(presentationData: presentationData)
+            var items: [ActionSheetItem] = []
+            for (index, seconds) in ProxyRotationTimeouts.seconds.enumerated() {
+                let title: String
+                if preferRussian {
+                    title = "\(seconds) с"
+                } else {
+                    title = "\(seconds) s"
+                }
+                let selected = Int32(index) == settings.proxyRotationTimeoutIndex
+                items.append(ActionSheetButtonItem(title: selected ? "✓ \(title)" : title, color: .accent, action: { [weak actionSheet] in
+                    actionSheet?.dismissAnimated()
+                    let _ = updateProxySettingsInteractively(accountManager: accountManager, { current in
+                        var current = current
+                        current.proxyRotationTimeoutIndex = Int32(index)
+                        return current
+                    }).start()
+                }))
+            }
+            actionSheet.setItemGroups([
+                ActionSheetItemGroup(items: items),
+                ActionSheetItemGroup(items: [
+                    ActionSheetButtonItem(title: presentationData.strings.Common_Cancel, color: .accent, font: .bold, action: { [weak actionSheet] in
+                        actionSheet?.dismissAnimated()
+                    })
+                ])
+            ])
+            strongController.present(actionSheet, in: .window(.root))
+        })
     }
 
     if let focusOnItemTag {

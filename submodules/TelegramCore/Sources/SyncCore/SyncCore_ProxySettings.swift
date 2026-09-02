@@ -85,6 +85,17 @@ public struct ProxyServerSettings: Codable, Equatable, Hashable {
     }
 }
 
+/// Android-style wait-before-probe values for manual proxy rotation (`ProxyRotationController`).
+public enum ProxyRotationTimeouts {
+    public static let seconds: [Int32] = [5, 10, 15, 30, 60]
+    public static let defaultIndex: Int32 = 1
+    
+    public static func timeoutSeconds(at index: Int32) -> Double {
+        let clamped = max(0, min(Int(index), seconds.count - 1))
+        return Double(seconds[clamped])
+    }
+}
+
 public struct ProxySettings: Codable, Equatable {
     public var enabled: Bool
     public var servers: [ProxyServerSettings]
@@ -92,8 +103,10 @@ public struct ProxySettings: Codable, Equatable {
     public var useForCalls: Bool
     /// Resolve SOCKS/MTProxy hostnames via system DNS (skip Google DoH-first).
     public var useLocalDNSForProxyHosts: Bool
-    /// On sustained proxy connection issues, round-robin to the next saved server.
+    /// When stuck connecting via the active proxy, probe saved servers and switch to the lowest-latency live one.
     public var autoRotateProxies: Bool
+    /// Index into `ProxyRotationTimeouts.seconds` (5/10/15/30/60 s wait while connecting via proxy).
+    public var proxyRotationTimeoutIndex: Int32
     /// Fetch public MTProxy servers, probe RTT, and fail over to the fastest live one.
     public var autoFetchPublicMtProxy: Bool
     /// Servers last pulled by auto-fetch (kept separate from manually added entries).
@@ -108,16 +121,17 @@ public struct ProxySettings: Codable, Equatable {
     public var webSocketFallbackToDirect: Bool
     
     public static var defaultSettings: ProxySettings {
-        return ProxySettings(enabled: false, servers: [], activeServer: nil, useForCalls: false, useLocalDNSForProxyHosts: false, autoRotateProxies: false, autoFetchPublicMtProxy: false, automaticServers: [])
+        return ProxySettings(enabled: false, servers: [], activeServer: nil, useForCalls: false, useLocalDNSForProxyHosts: false, autoRotateProxies: false, proxyRotationTimeoutIndex: ProxyRotationTimeouts.defaultIndex, autoFetchPublicMtProxy: false, automaticServers: [])
     }
     
-    public init(enabled: Bool, servers: [ProxyServerSettings], activeServer: ProxyServerSettings?, useForCalls: Bool, useLocalDNSForProxyHosts: Bool = false, autoRotateProxies: Bool = false, autoFetchPublicMtProxy: Bool = false, automaticServers: [ProxyServerSettings] = [], webSocketTransportEnabled: Bool = false, webSocketFallbackToDirect: Bool = true) {
+    public init(enabled: Bool, servers: [ProxyServerSettings], activeServer: ProxyServerSettings?, useForCalls: Bool, useLocalDNSForProxyHosts: Bool = false, autoRotateProxies: Bool = false, proxyRotationTimeoutIndex: Int32 = ProxyRotationTimeouts.defaultIndex, autoFetchPublicMtProxy: Bool = false, automaticServers: [ProxyServerSettings] = [], webSocketTransportEnabled: Bool = false, webSocketFallbackToDirect: Bool = true) {
         self.enabled = enabled
         self.servers = servers
         self.activeServer = activeServer
         self.useForCalls = useForCalls
         self.useLocalDNSForProxyHosts = useLocalDNSForProxyHosts
         self.autoRotateProxies = autoRotateProxies
+        self.proxyRotationTimeoutIndex = proxyRotationTimeoutIndex
         self.autoFetchPublicMtProxy = autoFetchPublicMtProxy
         self.automaticServers = automaticServers
         self.webSocketTransportEnabled = webSocketTransportEnabled
@@ -133,6 +147,7 @@ public struct ProxySettings: Codable, Equatable {
         self.useForCalls = ((try? container.decode(Int32.self, forKey: "useForCalls")) ?? 0) != 0
         self.useLocalDNSForProxyHosts = ((try? container.decode(Int32.self, forKey: "useLocalDNSForProxyHosts")) ?? 0) != 0
         self.autoRotateProxies = ((try? container.decode(Int32.self, forKey: "autoRotateProxies")) ?? 0) != 0
+        self.proxyRotationTimeoutIndex = (try? container.decode(Int32.self, forKey: "proxyRotationTimeoutIndex")) ?? ProxyRotationTimeouts.defaultIndex
         if let stored = try? container.decode(Int32.self, forKey: "autoFetchMtProxy") {
             self.autoFetchPublicMtProxy = stored != 0
         } else {
@@ -155,6 +170,7 @@ public struct ProxySettings: Codable, Equatable {
         try container.encode((self.useForCalls ? 1 : 0) as Int32, forKey: "useForCalls")
         try container.encode((self.useLocalDNSForProxyHosts ? 1 : 0) as Int32, forKey: "useLocalDNSForProxyHosts")
         try container.encode((self.autoRotateProxies ? 1 : 0) as Int32, forKey: "autoRotateProxies")
+        try container.encode(self.proxyRotationTimeoutIndex, forKey: "proxyRotationTimeoutIndex")
         // Key name is "autoFetchMtProxy" because that is what init(from:) reads; a second copy
         // under "autoFetchPublicMtProxy" was written here and never read by anything.
         try container.encode((self.autoFetchPublicMtProxy ? 1 : 0) as Int32, forKey: "autoFetchMtProxy")
