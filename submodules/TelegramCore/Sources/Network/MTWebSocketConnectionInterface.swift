@@ -164,6 +164,10 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
 
     private final class Impl {
         private static let maximumRetainedReadPrefix = 256 * 1024
+        /// MTTcpConnection sets `_readyToSendData` as soon as `connectToHost` returns, before
+        /// `connectionInterfaceDidConnect` — which for WebSocket only fires after the HTTP upgrade
+        /// completes. Buffer outbound bytes until then instead of dropping them.
+        private static let maximumPendingWriteBytes = 256 * 1024
 
         private enum HandshakeState {
             case tcpConnecting
@@ -223,6 +227,8 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
 
         private var readRequests: [ReadRequest] = []
         private var currentReadRequest: ExecutingReadRequest?
+        private var pendingWrites: [Data] = []
+        private var pendingWriteBytes = 0
 
         private var usageCalculationInfo: MTNetworkUsageCalculationInfo?
         private var networkUsageManager: MTNetworkUsageManager?
@@ -513,6 +519,7 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
                 self.handshakeState = .established
                 self.handshakeResponseBuffer = Data()
                 self.markCandidateConnected()
+                self.flushPendingWrites()
                 if !remainder.isEmpty {
                     self.processWebSocketBytes(remainder)
                 }
@@ -575,14 +582,48 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
         }
 
         func write(data: Data) {
-            guard let connection = self.connection, self.handshakeState == .established else {
-                Logger.shared.log("MTWebSocket", "[WS] write called before the WebSocket handshake completed, dropping \(data.count) bytes")
+            guard !data.isEmpty else {
+                return
+            }
+            if self.handshakeState != .established {
+                let newSize = self.pendingWriteBytes + data.count
+                if newSize > Impl.maximumPendingWriteBytes {
+                    Logger.shared.log("MTWebSocket", "[WS] pending write buffer exceeded \(Impl.maximumPendingWriteBytes) bytes during handshake, closing connection")
+                    self.clearPendingWrites()
+                    self.candidateFailed(error: nil)
+                    return
+                }
+                self.pendingWrites.append(data)
+                self.pendingWriteBytes += data.count
+                return
+            }
+            self.sendPayload(data)
+        }
+
+        private func sendPayload(_ data: Data) {
+            guard let connection = self.connection, !data.isEmpty else {
                 return
             }
             let frame = WebSocketFrameEncoder.encode(opcode: .binary, payload: data, mask: true)
             connection.send(content: frame, completion: .contentProcessed({ _ in
             }))
             self.networkUsageManager?.addOutgoingBytes(UInt(data.count), interface: self.currentInterfaceIsWifi ? MTNetworkUsageManagerInterfaceOther : MTNetworkUsageManagerInterfaceWWAN)
+        }
+
+        private func flushPendingWrites() {
+            guard !self.pendingWrites.isEmpty else {
+                return
+            }
+            let chunks = self.pendingWrites
+            self.clearPendingWrites()
+            for chunk in chunks {
+                self.sendPayload(chunk)
+            }
+        }
+
+        private func clearPendingWrites() {
+            self.pendingWrites = []
+            self.pendingWriteBytes = 0
         }
 
         func read(length: Int, timeout: Double, tag: Int) {
@@ -730,6 +771,7 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
                 connectTimeoutTimer.invalidate()
             }
 
+            self.clearPendingWrites()
             self.recordAttemptFailureIfNeeded()
 
             if !self.reportedDisconnection {
