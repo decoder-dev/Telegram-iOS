@@ -88,9 +88,10 @@ func applySharedProxySettingsToNetwork(settings: ProxySettings, network: Network
         return
     }
     
-    if isActiveWebProxy {
-        network.resumeIfWebProxyBootstrapPaused()
-    }
+    // Clear the bootstrap pause whenever we have a resolvable route (ready WEB, SOCKS/MTProxy,
+    // or direct). Leaving WEB while paused used to leave `webProxyBootstrapPaused` stuck true,
+    // so rebuildTransport / shouldKeepConnection never resumed MtProto.
+    network.resumeIfWebProxyBootstrapPaused()
 
     network.context.updateApiEnvironment { environment in
         let current = environment?.socksProxySettings

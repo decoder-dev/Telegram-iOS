@@ -631,8 +631,10 @@ public final class ChatTitleComponent: Component {
                 switch component.networkState {
                 case .waitingForNetwork:
                     infoText = component.strings.ChatState_WaitingForNetwork
-                case .connecting:
-                    infoText = component.strings.ChatState_Connecting
+                case let .connecting(proxy):
+                    infoText = proxy != nil
+                        ? component.strings.ChatState_ConnectingToProxy
+                        : component.strings.ChatState_Connecting
                 case .updating:
                     infoText = component.strings.ChatState_Updating
                 case .online, .none:

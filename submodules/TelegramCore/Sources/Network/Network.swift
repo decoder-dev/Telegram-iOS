@@ -1122,8 +1122,12 @@ public final class Network: NSObject, MTRequestMessageServiceDelegate {
         self.shouldKeepConnectionDisposable.set(shouldKeepConnectionSignal.start(next: { [weak self] value in
             if let strongSelf = self {
                 if value {
-                    Logger.shared.log("Network", "Resume network connection")
-                    strongSelf.mtProto.resume()
+                    if strongSelf.webProxyBootstrapPaused {
+                        Logger.shared.log("Network", "Skip resume: WEB proxy bootstrap still paused")
+                    } else {
+                        Logger.shared.log("Network", "Resume network connection")
+                        strongSelf.mtProto.resume()
+                    }
                 } else {
                     Logger.shared.log("Network", "Pause network connection")
                     strongSelf.mtProto.pause()

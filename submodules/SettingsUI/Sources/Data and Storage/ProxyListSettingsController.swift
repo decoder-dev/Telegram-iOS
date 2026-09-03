@@ -262,7 +262,7 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
                 }
             case .addProxy:
                 switch rhs {
-                    case .enabled:
+                    case .enabled, .serversHeader, .addProxy:
                         return false
                     default:
                         return true

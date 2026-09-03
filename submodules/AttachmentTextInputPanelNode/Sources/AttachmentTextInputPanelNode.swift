@@ -1336,10 +1336,11 @@ public class AttachmentTextInputPanelNode: ASDisplayNode, TGCaptionPanelView, AS
                 isMinimized = !self.isAttachment || inputHasText || self.glass
                 text = presentationInterfaceState.strings.MediaPicker_Send
             }
-            actionButtonsSize = self.actionButtons.updateLayout(size: CGSize(width: 44.0, height: minimalHeight), transition: transition, minimized: isMinimized, text: text, interfaceState: presentationInterfaceState)
-            textBackgroundInset = actionButtonsSize.width - 44.0
+            let actionButtonSide: CGFloat = self.glass ? 40.0 : 44.0
+            actionButtonsSize = self.actionButtons.updateLayout(size: CGSize(width: actionButtonSide, height: self.glass ? 40.0 : minimalHeight), transition: transition, minimized: isMinimized, text: text, interfaceState: presentationInterfaceState)
+            textBackgroundInset = actionButtonsSize.width - actionButtonSide
         } else {
-            actionButtonsSize = CGSize(width: 44.0, height: minimalHeight)
+            actionButtonsSize = CGSize(width: self.glass ? 40.0 : 44.0, height: self.glass ? 40.0 : minimalHeight)
         }
 
         let actionButtonsOriginOffset: CGFloat = self.glass ? -6.0 : 0.0

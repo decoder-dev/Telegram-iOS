@@ -342,7 +342,7 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
             tcpOptions.keepaliveIdle = 5
             tcpOptions.keepaliveCount = 2
             tcpOptions.keepaliveInterval = 5
-            tcpOptions.enableFastOpen = true
+            tcpOptions.enableFastOpen = false
 
             // Default sec_protocol_options: full certificate-chain + hostname validation, with SNI
             // derived by Network.framework from `host`. Deliberately NOT weakened — see the "TLS /

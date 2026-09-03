@@ -527,8 +527,10 @@ public final class ChatTitleView: UIView, NavigationBarTitleView {
             switch self.networkState {
             case .waitingForNetwork:
                 infoText = self.strings.ChatState_WaitingForNetwork
-            case .connecting:
-                infoText = self.strings.ChatState_Connecting
+            case let .connecting(proxy):
+                infoText = proxy != nil
+                    ? self.strings.ChatState_ConnectingToProxy
+                    : self.strings.ChatState_Connecting
             case .updating:
                 infoText = self.strings.ChatState_Updating
             case .online:

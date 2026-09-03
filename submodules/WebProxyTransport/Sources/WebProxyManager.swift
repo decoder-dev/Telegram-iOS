@@ -219,7 +219,9 @@ public final class WebProxyManager {
             self.lastFailedConfiguration = nil
             self.consecutiveFailureCount = 0
             self.startLock.unlock()
-            self.scheduleStart(configuration: target)
+            // Force past a stale `startingConfiguration` left by a failed bootstrap / carrier
+            // death — otherwise the cooldown retry and this resume both no-op for up to 180s.
+            self.scheduleStart(configuration: target, replacingCurrentStart: true)
             return
         }
 
@@ -288,6 +290,10 @@ public final class WebProxyManager {
             self.sidecarReadySince = 0.0
         }
         self.lock.unlock()
+        
+        // MtProto still has the old loopback socks settings until a `.stopped` / `.becameReady`
+        // re-apply. Without this it dials a dead port for the whole next bootstrap.
+        self.notifySidecarEvent(.stopped)
         
         self.scheduleStart(configuration: configuration, replacingCurrentStart: true)
     }
@@ -454,7 +460,7 @@ public final class WebProxyManager {
                 return
             }
 
-            self.scheduleStart(configuration: configuration)
+            self.scheduleStart(configuration: configuration, replacingCurrentStart: true)
         }
     }
 
@@ -531,8 +537,12 @@ public final class WebProxyManager {
 
             sidecar?.stop()
             self.startLock.lock()
-            // Keep `startingConfiguration` set through the backoff so concurrent account re-applies
-            // coalesce instead of each spawning a fresh bootstrap (14 starts / 2 ready in one log).
+            // Clear the in-flight marker before arming the retry. Leaving it set made
+            // `scheduleRetryLocked` → `scheduleStart` hit the "already starting" gate and return
+            // without starting — so a failed bootstrap never came back without a path flap.
+            if self.startingConfiguration == configuration {
+                self.startingConfiguration = nil
+            }
             if self.lastFailedConfiguration == configuration {
                 self.consecutiveFailureCount += 1
             } else {
@@ -565,8 +575,11 @@ public final class WebProxyManager {
         self.startLock.lock()
         self.startGeneration &+= 1
         if let failedConfiguration = failedConfiguration {
-            self.startingConfiguration = failedConfiguration
-            self.startingSince = CFAbsoluteTimeGetCurrent()
+            // Do not leave `startingConfiguration` set — that made the armed retry's
+            // `scheduleStart` no-op inside the 180s window (carrier deaths never recovered).
+            if self.startingConfiguration == failedConfiguration {
+                self.startingConfiguration = nil
+            }
             // The cooldown below used to cover bootstrap failures only. A carrier that bootstraps
             // fine and then dies — a relay that sends `BYE`, a mismatched `X-Up-Ack`, a dropped
             // session — landed here instead, which records nothing: the event fires, every account

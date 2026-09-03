@@ -6,6 +6,11 @@
 
 ## [Unreleased]
 
+### Fixed
+- **WEB proxy:** cooldown retry no longer no-ops inside the 180s `startingConfiguration` window (carrier deaths / failed bootstraps recover without a path flap); clear bootstrap pause when leaving WEB; `shouldKeepConnection` respects WEB pause; listener `.failed` during start completes the manager; sequential restart notifies `.stopped`.
+- **WebSocket:** disable TCP fast open on TLS WS connects (intermittent middlebox handshake failures).
+- **UI:** chat list and in-chat titles show «Connecting to proxy…» when a proxy is active; Auto MTProxy shows the nav shield; proxy-unavailable tooltip presents again; proxy list `addProxy` sort fixed; attachment caption send button is 40×40 (not oval) in glass mode.
+
 ## [v12.9.2-3943-pre] — 2026-09-03
 
 Pre-release: fix path-reconnect compile on release_arm64 CI.

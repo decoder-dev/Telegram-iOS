@@ -6966,7 +6966,12 @@ private final class ChatListLocationContext {
         let hasProxy = context.sharedContext.accountManager.sharedData(keys: [SharedDataKeys.proxySettings])
         |> map { sharedData -> (Bool, Bool) in
             if let settings = sharedData.entries[SharedDataKeys.proxySettings]?.get(ProxySettings.self) {
-                return (!settings.servers.isEmpty, settings.enabled)
+                // Auto MTProxy only lives in `automaticServers` / the fetch flag — an empty
+                // manual `servers` list must still show the nav shield while connecting via proxy.
+                let hasServers = !settings.servers.isEmpty
+                    || !settings.automaticServers.isEmpty
+                    || settings.autoFetchPublicMtProxy
+                return (hasServers, settings.enabled)
             } else {
                 return (false, false)
             }
@@ -7462,7 +7467,10 @@ private final class ChatListLocationContext {
             case .waitingForNetwork:
                 titleContent = NetworkStatusTitle(text: presentationData.strings.State_WaitingForNetwork, activity: true, hasProxy: false, connectsViaProxy: connectsViaProxy, isPasscodeSet: isRoot && isPasscodeSet, isManuallyLocked: isRoot && isManuallyLocked, peerStatus: peerStatus)
             case let .connecting(proxy):
-                let text = presentationData.strings.State_Connecting
+                var text = presentationData.strings.State_Connecting
+                if proxy != nil {
+                    text = presentationData.strings.State_ConnectingToProxy
+                }
                 if let proxy = proxy, proxy.hasConnectionIssues {
                     checkProxy = true
                 }
@@ -7500,7 +7508,7 @@ private final class ChatListLocationContext {
             self.chatListTitle = titleContent
             
             if case .chatList(.root) = self.location, checkProxy {
-                if self.proxyUnavailableTooltipController == nil, !self.didShowProxyUnavailableTooltipController, let parentController = self.parentController, parentController.isNodeLoaded, parentController.displayNode.view.window != nil, parentController.navigationController?.topViewController == nil {
+                if self.proxyUnavailableTooltipController == nil, !self.didShowProxyUnavailableTooltipController, let parentController = self.parentController, parentController.isNodeLoaded, parentController.displayNode.view.window != nil, parentController.navigationController?.topViewController === parentController {
                     self.didShowProxyUnavailableTooltipController = true
                     let tooltipController = TooltipController(content: .text(presentationData.strings.Proxy_TooltipUnavailable), baseFontSize: presentationData.listsFontSize.baseDisplaySize, timeout: 60.0, dismissByTapOutside: true)
                     self.proxyUnavailableTooltipController = tooltipController

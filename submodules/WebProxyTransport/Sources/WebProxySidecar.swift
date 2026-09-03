@@ -166,6 +166,15 @@ public final class WebProxySidecar {
                     switch state {
                     case .failed:
                         self.queue.async {
+                            // During bootstrap, `onFailure` is often still nil — without
+                            // `completeOnce` the manager never sees the failure and never
+                            // arms a retry (same stuck-Connecting as a swallowed scheduleStart).
+                            if generation == self.startBootstrapGeneration, self.startInFlight {
+                                self.startInFlight = false
+                                self.stopLocked()
+                                completeOnce(.failure(WebProxyHttpCarrierError.sessionCreationFailed))
+                                return
+                            }
                             guard self.listener != nil else {
                                 return
                             }
