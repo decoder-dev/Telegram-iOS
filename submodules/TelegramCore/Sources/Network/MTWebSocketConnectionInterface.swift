@@ -263,10 +263,12 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
             self.isMediaConnection = isMediaConnection
             self.isTestingEnvironment = isTestingEnvironment
             self.fallbackCoordinator = fallbackCoordinator
+            let frontConfig = WebSocketEndpointPlanConfig(fronts: WebSocketFrontBootstrap.templates, order: .frontsFirst)
             self.endpointSelector = WebSocketEndpointSelector(candidates: WebSocketEndpointPlanner.candidates(
                 datacenterId: datacenterId,
                 isMedia: isMediaConnection,
-                isTestingEnvironment: isTestingEnvironment
+                isTestingEnvironment: isTestingEnvironment,
+                config: frontConfig
             ))
         }
 

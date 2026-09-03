@@ -2086,16 +2086,20 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         // Keep the WEB proxy carrier alive briefly in the background so the next foreground
         // resume can skip the carrier rebuild (avoids "Connecting" flicker). A single PING is
         // enough — the relay's own keep-alive timer runs on the server side.
-        var webProxyKeepaliveTaskId = UIBackgroundTaskIdentifier.invalid
-        let endWebProxyKeepaliveTask = { [application] in
-            let id = webProxyKeepaliveTaskId
-            webProxyKeepaliveTaskId = .invalid
-            if id != .invalid { application.endBackgroundTask(id) }
+        final class Box { var value: UIBackgroundTaskIdentifier = .invalid }
+        let webProxyTaskBox = Box()
+        webProxyTaskBox.value = application.beginBackgroundTask(withName: "web-proxy-keepalive") { [weak webProxyTaskBox] in
+            if let box = webProxyTaskBox, box.value != .invalid {
+                application.endBackgroundTask(box.value)
+                box.value = .invalid
+            }
         }
-        webProxyKeepaliveTaskId = application.beginBackgroundTask(withName: "web-proxy-keepalive", expirationHandler: endWebProxyKeepaliveTask)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak webProxyTaskBox] in
             let _ = WebProxyManager.shared.sendKeepalivePing()
-            endWebProxyKeepaliveTask()
+            if let box = webProxyTaskBox, box.value != .invalid {
+                application.endBackgroundTask(box.value)
+                box.value = .invalid
+            }
         }
     }
 
