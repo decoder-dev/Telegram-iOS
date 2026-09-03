@@ -51,7 +51,7 @@ private func calclulateTextFieldMinHeight(_ presentationInterfaceState: ChatPres
     }
 
     if glass {
-        result = max(38.0, result)
+        result = max(40.0, result)
     }
 
     return result
@@ -59,25 +59,27 @@ private func calclulateTextFieldMinHeight(_ presentationInterfaceState: ChatPres
 
 private func calculateTextFieldRealInsets(_ presentationInterfaceState: ChatPresentationInterfaceState, glass: Bool = false) -> UIEdgeInsets {
     let baseFontSize = max(minInputFontSize, presentationInterfaceState.fontSize.baseDisplaySize)
+    if glass {
+        // Match ChatTextInputPanelNode: centre one line in the 40pt capsule.
+        let capsuleHeight: CGFloat = 40.0
+        let lineHeight = Font.regular(max(baseFontSize, 17.0)).lineHeight
+        let verticalInset = max(0.0, capsuleHeight - lineHeight) / 2.0
+        return UIEdgeInsets(top: max(0.0, verticalInset - 0.5), left: 0.0, bottom: verticalInset + 0.5, right: 32.0)
+    }
     let top: CGFloat
     let bottom: CGFloat
-    if glass {
-        top = 4.0
+    if baseFontSize.isEqual(to: 14.0) {
+        top = 2.0
         bottom = 1.0
+    } else if baseFontSize.isEqual(to: 15.0) {
+        top = 1.0
+        bottom = 1.0
+    } else if baseFontSize.isEqual(to: 16.0) {
+        top = 0.5
+        bottom = 0.0
     } else {
-        if baseFontSize.isEqual(to: 14.0) {
-            top = 2.0
-            bottom = 1.0
-        } else if baseFontSize.isEqual(to: 15.0) {
-            top = 1.0
-            bottom = 1.0
-        } else if baseFontSize.isEqual(to: 16.0) {
-            top = 0.5
-            bottom = 0.0
-        } else {
-            top = 0.0
-            bottom = 0.0
-        }
+        top = 0.0
+        bottom = 0.0
     }
     return UIEdgeInsets(top: 4.5 + top, left: 0.0, bottom: 5.5 + bottom, right: 32.0)
 }
@@ -1344,7 +1346,8 @@ public class AttachmentTextInputPanelNode: ASDisplayNode, TGCaptionPanelView, AS
         }
 
         let actionButtonsOriginOffset: CGFloat = self.glass ? -6.0 : 0.0
-        let actionButtonsFrame = CGRect(origin: CGPoint(x: width - rightInset - actionButtonsSize.width + 1.0 - UIScreenPixel + composeButtonsOffset + actionButtonsOriginOffset, y: panelOriginY + panelHeight - minimalHeight - 1.0), size: actionButtonsSize)
+        let actionButtonsYOffset: CGFloat = self.glass ? 0.0 : -1.0
+        let actionButtonsFrame = CGRect(origin: CGPoint(x: width - rightInset - actionButtonsSize.width + 1.0 - UIScreenPixel + composeButtonsOffset + actionButtonsOriginOffset, y: panelOriginY + panelHeight - minimalHeight + actionButtonsYOffset), size: actionButtonsSize)
         transition.updateFrame(node: self.actionButtons, frame: actionButtonsFrame)
 
         let textInputHeight = panelHeight - textFieldInsets.top - textFieldInsets.bottom

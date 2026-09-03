@@ -90,6 +90,7 @@ public final class WebProxyManager {
     /// try, rather than refuse to connect for the life of the process.
     private var isNetworkAvailable = true
     private var pathMonitor: NWPathMonitor?
+    private var lastPathSignature: String?
 
     private var nextSidecarEventToken: SidecarEventToken = 0
     private var sidecarEventHandlers: [SidecarEventToken: (WebProxySidecarEvent) -> Void] = [:]
@@ -195,7 +196,8 @@ public final class WebProxyManager {
     }
     
     /// Call from `applicationDidBecomeActive` only (AppDelegate). Rebuilds the HTTPS carrier
-    /// in place when the app was backgrounded; the sidecar serializes overlapping reconnects.
+    /// in place when the app was backgrounded long enough for URLSession to die; skips Control
+    /// Center / quick flickers that set `enteredBackgroundAt` for under a few seconds.
     public func applicationDidBecomeActive() {
         self.startLock.lock()
         let backgroundedAt = self.enteredBackgroundAt
@@ -226,6 +228,16 @@ public final class WebProxyManager {
         }
 
         guard backgroundedAt > 0 else {
+            return
+        }
+        
+        let dwell = CFAbsoluteTimeGetCurrent() - backgroundedAt
+        // Control Center / notification shade can briefly enter background. Rebuilding a healthy
+        // carrier every time causes Connecting flicker; only rebuild after a real suspension.
+        if dwell < 5.0 {
+            self.startLock.lock()
+            self.enteredBackgroundAt = 0
+            self.startLock.unlock()
             return
         }
 
@@ -355,7 +367,9 @@ public final class WebProxyManager {
         self.startLock.unlock()
 
         monitor.pathUpdateHandler = { [weak self] path in
-            self?.handlePathUpdate(isSatisfied: path.status == .satisfied)
+            let interfaces = path.availableInterfaces.map { String(describing: $0.type) }.sorted().joined(separator: ",")
+            let signature = "\(String(describing: path.status))-\(interfaces)"
+            self?.handlePathUpdate(isSatisfied: path.status == .satisfied, signature: signature)
         }
         monitor.start(queue: DispatchQueue.global(qos: .utility))
     }
@@ -364,16 +378,19 @@ public final class WebProxyManager {
         self.startLock.lock()
         let monitor = self.pathMonitor
         self.pathMonitor = nil
+        self.lastPathSignature = nil
         self.isNetworkAvailable = true
         self.startLock.unlock()
         monitor?.cancel()
     }
 
-    private func handlePathUpdate(isSatisfied: Bool) {
+    private func handlePathUpdate(isSatisfied: Bool, signature: String) {
         self.startLock.lock()
         let wasAvailable = self.isNetworkAvailable
         self.isNetworkAvailable = isSatisfied
         let desired = self.desiredConfiguration
+        let previousSignature = self.lastPathSignature
+        self.lastPathSignature = signature
         if isSatisfied, !wasAvailable {
             // The cooldown was earned offline. Whatever it was counting, it was not this server
             // refusing us.
@@ -382,17 +399,33 @@ public final class WebProxyManager {
         }
         self.startLock.unlock()
 
-        guard isSatisfied, !wasAvailable, let desired = desired else {
+        guard isSatisfied, let desired = desired else {
             return
         }
 
         self.lock.lock()
         let hasEndpoint = self.configuration == desired && self.endpoint != nil
+        let sidecar = self.sidecar
         self.lock.unlock()
 
-        guard !hasEndpoint else {
+        if hasEndpoint, let sidecar = sidecar {
+            // Wi‑Fi↔cellular / VPN while the path stays satisfied: MtProto rebuilds loopback,
+            // but the URLSession/WS to the relay is still bound to the old interface. Rebuild
+            // the carrier in place whenever the interface set actually changed.
+            let pathChanged = previousSignature != nil && previousSignature != signature
+            let returnedFromOffline = !wasAvailable
+            guard pathChanged || returnedFromOffline else {
+                return
+            }
+            WebProxyLog.log("network path changed while WEB endpoint live (\(previousSignature ?? "nil") → \(signature)), reconnecting carrier in place")
+            self.performInPlaceCarrierResume(sidecar: sidecar, configuration: desired)
             return
         }
+
+        guard !wasAvailable else {
+            return
+        }
+
         self.startLock.lock()
         let bootstrapInFlight = self.startingConfiguration == desired
             && CFAbsoluteTimeGetCurrent() - self.startingSince < WebProxyManager.startTimeout

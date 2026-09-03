@@ -792,7 +792,8 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
 
         self.menuButton = HighlightTrackingButtonNode()
         self.menuButton.clipsToBounds = true
-        self.menuButton.cornerRadius = 16.0
+        // Circle when collapsed (40pt glass); animateBotButtonInFromMenu morphs from r=16.
+        self.menuButton.cornerRadius = 20.0
         self.menuButton.accessibilityLabel = presentationInterfaceState.strings.Conversation_InputMenu
         self.menuButtonBackgroundView = GlassBackgroundView()
         self.menuButtonBackgroundView.isUserInteractionEnabled = false

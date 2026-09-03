@@ -72,6 +72,18 @@ final class MTWebSocketFallbackCoordinator {
         return grantedProbe
     }
 
+    func abortProbe() {
+        _ = self.state.modify { state in
+            var state = state
+            if state.isProbing {
+                // Clear the probe slot without backing off further — MTProto asked us to close
+                // (path rebuild / pause / short-lived media worker), not a network failure.
+                state.isProbing = false
+            }
+            return state
+        }
+    }
+
     func recordAllEndpointsFailed() {
         let timestamp = CFAbsoluteTimeGetCurrent()
         var engagedFallback = false
@@ -262,6 +274,9 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
             // is never cancelled keeps its TLS session and its receive loop alive.
             self.connectTimeoutTimer?.invalidate()
             self.viabilityLossTimer?.invalidate()
+            if !self.recordedAttemptOutcome && !self.didReceivePayload {
+                self.fallbackCoordinator?.abortProbe()
+            }
             self.discardCurrentConnection()
         }
 
@@ -767,12 +782,18 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
 
         /// Reports this attempt to the fallback coordinator, at most once. A connection that carried
         /// payload has already reported success; one that ended without any — including one that never
-        /// got past the handshake — counts against the endpoints, unless we were the ones who closed it.
+        /// got past the handshake — counts against the endpoints. An intentional disconnect (path
+        /// rebuild / pause) must abort a probe without backing off, otherwise `isProbing` sticks
+        /// forever and WS never returns.
         private func recordAttemptFailureIfNeeded() {
-            if self.recordedAttemptOutcome || self.didReceivePayload || self.didRequestDisconnect {
+            if self.recordedAttemptOutcome || self.didReceivePayload {
                 return
             }
             self.recordedAttemptOutcome = true
+            if self.didRequestDisconnect {
+                self.fallbackCoordinator?.abortProbe()
+                return
+            }
             self.fallbackCoordinator?.recordAllEndpointsFailed()
         }
 

@@ -226,6 +226,33 @@ public class UnauthorizedAccount {
         self.managedDisposables.add(registerWebProxySidecarReapply(network: network, currentSettings: {
             latestProxySettings.with { $0 }
         }))
+        
+        let webSocketTransportIsInitialApply = Atomic<Bool>(value: true)
+        self.managedDisposables.add((accountManager.sharedData(keys: [SharedDataKeys.proxySettings])
+        |> map { sharedData -> (Bool, Bool, Bool) in
+            if let settings = sharedData.entries[SharedDataKeys.proxySettings]?.get(ProxySettings.self) {
+                return (true, settings.webSocketFallbackToDirect, settings.effectiveActiveServer != nil)
+            } else {
+                return (true, true, false)
+            }
+        }
+        |> distinctUntilChanged(isEqual: { lhs, rhs in
+            return lhs == rhs
+        })).start(next: { [weak network] webSocketTransportEnabled, webSocketFallbackToDirect, hasActiveProxyServer in
+            guard let network = network else {
+                return
+            }
+            network.updateWebSocketTransportSettings(
+                webSocketTransportEnabled: webSocketTransportEnabled,
+                webSocketFallbackToDirect: webSocketFallbackToDirect,
+                hasActiveProxyServer: hasActiveProxyServer
+            )
+            if !webSocketTransportIsInitialApply.swap(false) {
+                network.dropConnectionStatus()
+                network.rebuildTransport()
+            }
+        }))
+        self.managedDisposables.add(managedNetworkPathReconnect(network: network).start())
     }
     
     deinit {

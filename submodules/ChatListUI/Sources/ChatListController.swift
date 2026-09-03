@@ -7518,8 +7518,16 @@ private final class ChatListLocationContext {
                         }
                     }
                     self.parentController?.present(tooltipController, in: .window(.root), with: TooltipControllerPresentationArguments(sourceViewAndRect: { [weak self] in
-                        if let strongSelf = self, let titleView = strongSelf.parentController?.self.findTitleView(), let rect = titleView.proxyButtonFrame {
-                            return (titleView, rect.insetBy(dx: 0.0, dy: -4.0))
+                        if let strongSelf = self, let parentController = strongSelf.parentController {
+                            if let titleView = parentController.findTitleView(), let rect = titleView.proxyButtonFrame {
+                                return (titleView, rect.insetBy(dx: 0.0, dy: -4.0))
+                            }
+                            // Shield lives in the nav right-button strip after the Messages chrome move;
+                            // approximate the trailing control when the title-view icon is hidden.
+                            let bounds = parentController.view.bounds
+                            let side: CGFloat = 44.0
+                            let rect = CGRect(x: bounds.width - side - 8.0, y: parentController.view.safeAreaInsets.top, width: side, height: side)
+                            return (parentController.view, rect)
                         }
                         return nil
                     }))

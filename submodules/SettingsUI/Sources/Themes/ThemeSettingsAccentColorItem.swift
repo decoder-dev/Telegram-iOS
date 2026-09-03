@@ -401,18 +401,12 @@ private final class ThemeSettingsAccentColorIconItemNode : ListViewItemNode {
                                 bottomColor = topColor
                             }
                         } else if case .builtin(.day) = item.themeReference {
-                            // Day derives its bubble from the accent: see customizeDefaultDayTheme,
-                            // which builds [accent×(0.966, 0.61, 0.98), accent] when the accent
-                            // carries no explicit bubble colours of its own.
-                            if let accentColor = item.color?.accentColor {
-                                bottomColor = accentColor
-                                topColor = accentColor.withMultiplied(hue: 0.966, saturation: 0.61, brightness: 0.98)
-                            } else {
-                                fillColor = defaultDayAccentColor
-                                strokeColor = fillColor
-                                topColor = fillColor
-                                bottomColor = topColor
-                            }
+                            // Fork pins outgoing fill to #007AFF (customizeDefaultDayTheme); do not
+                            // paint an accent-derived gradient the theme will ignore.
+                            fillColor = item.color?.accentColor ?? UIColor(rgb: 0x007AFF)
+                            strokeColor = fillColor
+                            topColor = UIColor(rgb: 0x007AFF)
+                            bottomColor = topColor
                         } else if case .builtin(.night) = item.themeReference {
                             // Night is not accent-derived: unless the accent carries explicit bubble
                             // colours — handled by the `plainBubbleColors` branch above — the outgoing

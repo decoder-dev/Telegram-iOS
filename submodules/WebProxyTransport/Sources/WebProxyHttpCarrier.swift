@@ -100,6 +100,10 @@ final class WebProxyHttpCarrier {
     private var multiplexWsUplinkOffset = 0
     private var multiplexWsSending = false
     private var multiplexReceiveArmed = false
+    /// Held until the multiplex WS has sent or received successfully (or timed out). Completing
+    /// `.success` at `task.resume()` published loopback before the HTTP upgrade finished.
+    private var multiplexOpenCompletion: ((Result<Void, Error>) -> Void)?
+    private var emptyWelcomePolls = 0
     
     /// Per-stream sockets for `websocket-lanes` (no lane 0 — bootstrap is HTTPS).
     private final class WsLaneState {
@@ -428,10 +432,29 @@ final class WebProxyHttpCarrier {
                     // Frames trailing the handshake are ordinary downlink; the reader ignores `WELCOME`.
                     self.onDownlinkBatch?(body)
                 }
+                self.armWelcomeWatchdog()
                 completion(.success(()))
             }
         }
         task.resume()
+    }
+    
+    /// Fail the carrier if WELCOME never arrives (CDN / mistyped host that only 204s).
+    private func armWelcomeWatchdog() {
+        guard self.awaitingWelcome else {
+            return
+        }
+        let epoch = self.transportEpoch
+        self.queue.asyncAfter(deadline: .now() + 10.0) { [weak self] in
+            guard let self else {
+                return
+            }
+            guard epoch == self.transportEpoch, !self.closed, self.awaitingWelcome else {
+                return
+            }
+            WebProxyLog.log("WELCOME never arrived from \(self.hostname) within 10s")
+            self.fail(WebProxyHttpCarrierError.welcomeMissing)
+        }
     }
     
     /// The first relay frame of the session must be `WELCOME` on stream zero.
@@ -443,6 +466,7 @@ final class WebProxyHttpCarrier {
             throw WebProxyHttpCarrierError.welcomeMissing
         }
         self.awaitingWelcome = false
+        self.emptyWelcomePolls = 0
     }
     
     private func startCarrierTransport(completion: @escaping (Result<Void, Error>) -> Void) {
@@ -704,6 +728,13 @@ final class WebProxyHttpCarrier {
                 // The relay answered, so whatever the network was doing, it has stopped.
                 self.consecutiveDownlinkFailures = 0
                 if http.statusCode == 204 {
+                    if self.awaitingWelcome {
+                        self.emptyWelcomePolls += 1
+                        if self.emptyWelcomePolls >= 5 {
+                            self.fail(WebProxyHttpCarrierError.welcomeMissing)
+                            return
+                        }
+                    }
                     self.scheduleDownlinkPollSerialized(requestStartedAt: startedAt, wasEmpty: true)
                     return
                 }
@@ -1087,6 +1118,10 @@ final class WebProxyHttpCarrier {
         self.multiplexWsUplink = Data()
         self.multiplexWsUplinkOffset = 0
         self.multiplexWsSending = false
+        if let pending = self.multiplexOpenCompletion {
+            self.multiplexOpenCompletion = nil
+            pending(.failure(WebProxyHttpCarrierError.carrierClosed))
+        }
         for lane in self.wsLanes.values {
             lane.task = nil
             lane.open = false
@@ -1125,17 +1160,37 @@ final class WebProxyHttpCarrier {
         }
         self.multiplexWebSocket = task
         task.resume()
-        // Do not gate on sendPing: a cancelled ping during foreground restart used to call
-        // fail()+completion and race the next generation. Mark open after resume; the receive
-        // loop and first send surface a real upgrade failure.
+        // Optimistic open for uplink/receive, but do NOT complete the sidecar start until the
+        // first successful send or binary frame — otherwise MtProto dials loopback while the
+        // HTTP upgrade is still in flight (and a stuck upgrade + swallowed cancel = forever Connecting).
         self.multiplexWsOpen = true
+        self.multiplexOpenCompletion = completion
         self.armMultiplexReceive()
         self.flushMultiplexWsUplink()
-        if epoch == self.transportEpoch, !self.closed {
-            completion(.success(()))
-        } else {
-            completion(.failure(WebProxyHttpCarrierError.carrierClosed))
+        
+        self.queue.asyncAfter(deadline: .now() + WebProxyHttpCarrier.wsLaneConnectTimeout) { [weak self] in
+            guard let self else {
+                return
+            }
+            guard epoch == self.transportEpoch, !self.closed else {
+                return
+            }
+            guard let pending = self.multiplexOpenCompletion else {
+                return
+            }
+            self.multiplexOpenCompletion = nil
+            WebProxyLog.log("multiplex WS never completed its upgrade within \(Int(WebProxyHttpCarrier.wsLaneConnectTimeout))s")
+            pending(.failure(WebProxyHttpCarrierError.sessionCreationFailed))
+            self.fail(WebProxyHttpCarrierError.sessionCreationFailed)
         }
+    }
+    
+    private func completeMultiplexOpenIfNeeded() {
+        guard let pending = self.multiplexOpenCompletion else {
+            return
+        }
+        self.multiplexOpenCompletion = nil
+        pending(.success(()))
     }
     
     private func armMultiplexReceive() {
@@ -1152,9 +1207,11 @@ final class WebProxyHttpCarrier {
                 do {
                     try self.consumeWelcome(in: WebProxyFrameCodec.decodeBatch(data))
                 } catch {
-                    // WELCOME was already consumed from the HTTPS session body when present.
+                    self.fail(WebProxyHttpCarrierError.welcomeMissing)
+                    return
                 }
             }
+            self.completeMultiplexOpenIfNeeded()
             self.onDownlinkBatch?(data)
         } onError: { [weak self] error in
             guard let self else {
@@ -1164,9 +1221,11 @@ final class WebProxyHttpCarrier {
                 return
             }
             self.multiplexReceiveArmed = false
-            if self.closed || self.isCancellation(error) {
+            if self.closed {
                 return
             }
+            // Background / Control Center / radio drops arrive as NSURLErrorCancelled. Swallowing
+            // them left multiplexWsOpen true and the manager publishing a dead loopback forever.
             self.fail(error)
         }
     }
@@ -1242,6 +1301,7 @@ final class WebProxyHttpCarrier {
                     self.fail(err)
                     return
                 }
+                self.completeMultiplexOpenIfNeeded()
                 self.flushMultiplexWsUplink()
             }
         }
@@ -1408,7 +1468,11 @@ final class WebProxyHttpCarrier {
             }
             lane.receiveArmed = false
             self.releaseWsLaneConnectSlot(lane)
-            if self.closed || self.isCancellation(error) {
+            if self.closed {
+                return
+            }
+            // Same as multiplex: unexpected cancels are real failures, not intentional teardown.
+            if self.isCancellation(error), self.intentionalTeardown {
                 return
             }
             // Established lane failure closes only that stream (PROTOCOL.md).

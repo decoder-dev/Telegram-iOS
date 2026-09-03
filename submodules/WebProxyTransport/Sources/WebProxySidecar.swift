@@ -416,10 +416,8 @@ public final class WebProxySidecar {
                 }
                 self.queue.async {
                     guard generation == self.transportReconnectGeneration else {
-                        // Superseded — by a stop, which already answered anyone who had joined
-                        // this attempt. Whatever owns the reconnect state now keeps it; answer
-                        // only this call's own caller and touch nothing else.
-                        completion?(.failure(WebProxyHttpCarrierError.carrierClosed))
+                        // Superseded by timeout/stop — `finish` already answered waiters. Calling
+                        // `completion` here double-fired `sequentialRestart`.
                         return
                     }
                     switch result {

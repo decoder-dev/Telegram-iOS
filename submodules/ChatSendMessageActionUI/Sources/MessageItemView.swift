@@ -341,8 +341,9 @@ final class MessageItemView: UIView {
         }
         
         let themeGraphics = PresentationResourcesChat.principalGraphics(theme: presentationData.theme, wallpaper: presentationData.chatWallpaper, bubbleCorners: presentationData.chatBubbleCorners)
+        let outgoingNeighbors: ChatMessageBackgroundType = presentationData.chatBubbleCorners.hasTails ? .outgoing(.None) : .outgoing(.Extracted)
         self.backgroundWallpaperNode.setType(
-            type: .outgoing(.None),
+            type: outgoingNeighbors,
             theme: chatTheme,
             essentialGraphics: themeGraphics,
             maskMode: true,
@@ -350,7 +351,7 @@ final class MessageItemView: UIView {
         )
         
         self.backgroundNode.setType(
-            type: .outgoing(.None),
+            type: outgoingNeighbors,
             highlighted: false,
             graphics: themeGraphics,
             maskMode: true,

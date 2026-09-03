@@ -6,6 +6,12 @@
 
 ## [Unreleased]
 
+### Fixed
+- **WEB proxy:** WS receive no longer swallows background cancels (dead loopback hang); multiplex open waits for first send/frame + 20s timeout; WELCOME watchdog / empty-204 fail; path change reconnects live carrier in place; skip Control Center flicker (&lt;5s background); superseded reconnect no longer double-restarts.
+- **WebSocket:** abort stuck `isProbing` on intentional disconnect/deinit so fallback can recover.
+- **Login network:** path reconnect + WS settings re-apply on unauthorized accounts.
+- **UI:** long-press Send preview uses tailless bubbles; glass caption field 40pt + centred text; proxy-unavailable tooltip anchors to trailing shield; bot Menu button is circular; Day accent swatches show `#007AFF` bubble colour.
+
 ## [v12.9.2-3944-pre] — 2026-09-03
 
 Pre-release: intermittent WEB connect recovery + proxy chrome visual fixes.
