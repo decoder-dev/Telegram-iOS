@@ -38,13 +38,42 @@ final class WebSocketDatacenterMappingTests: XCTestCase {
     func testEndpointPlannerCombinesHostsAndPath() {
         let candidates = WebSocketEndpointPlanner.candidates(datacenterId: 4, isMedia: true, isTestingEnvironment: true)
         XCTAssertEqual(candidates, [
-            WebSocketEndpointCandidate(host: "kws4-1.web.telegram.org", path: "/apiws_test"),
-            WebSocketEndpointCandidate(host: "kws4.web.telegram.org", path: "/apiws_test"),
+            WebSocketEndpointCandidate(host: "kws4-1.web.telegram.org", path: "/apiws_test", kind: .telegramGateway),
+            WebSocketEndpointCandidate(host: "kws4.web.telegram.org", path: "/apiws_test", kind: .telegramGateway),
         ])
     }
 
     func testEndpointPlannerDefaultPortIs443() {
         let candidates = WebSocketEndpointPlanner.candidates(datacenterId: 1, isMedia: false, isTestingEnvironment: false)
         XCTAssertEqual(candidates.map { $0.port }, [443, 443])
+    }
+
+    func testEndpointPlannerTelegramCandidatesHaveIdenticalHttpHostAndTlsName() {
+        let candidates = WebSocketEndpointPlanner.candidates(datacenterId: 2, isMedia: false, isTestingEnvironment: false)
+        for c in candidates {
+            XCTAssertEqual(c.httpHost, c.host)
+            XCTAssertEqual(c.tlsServerName, c.host)
+            XCTAssertEqual(c.kind, .telegramGateway)
+        }
+    }
+
+    func testEndpointPlannerFrontCandidateOverridesHttpHostAndSNI() {
+        let template = WebSocketFrontTemplate(
+            host: "worker.example.com",
+            port: 443,
+            pathTemplate: "/dc/{dc}/apiws",
+            httpHostTemplate: "worker.example.com",
+            tlsServerNameTemplate: "worker.example.com"
+        )
+        let config = WebSocketEndpointPlanConfig(fronts: [template], order: .frontsFirst)
+        let candidates = WebSocketEndpointPlanner.candidates(datacenterId: 1, isMedia: false, isTestingEnvironment: false, config: config)
+        guard let front = candidates.first else {
+            return XCTFail("expected front candidate first")
+        }
+        XCTAssertEqual(front.kind, .front)
+        XCTAssertEqual(front.httpHost, "worker.example.com")
+        XCTAssertEqual(front.tlsServerName, "worker.example.com")
+        // Remaining candidates are Telegram gateways
+        XCTAssertTrue(candidates.dropFirst().allSatisfy { $0.kind == .telegramGateway })
     }
 }

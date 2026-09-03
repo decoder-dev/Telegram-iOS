@@ -6,6 +6,15 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3946-pre]
+
+### Added
+- **FakeTLS TCP fragmentation:** ClientHello split into 5-byte TLS record header + body (30 ms delay) — DPI boxes waiting for a complete record no longer see SNI/ECH in the first segment.
+- **MTProxy mirrors:** jsDelivr + gitmirror CDN fallbacks before GitHub; DoH TXT resolver (Google/Cloudflare/Mozilla) for proxy lists; hardcoded seed placeholder.
+- **WS front / CF Worker support:** `WebSocketFrontTemplate`, `WebSocketEndpointPlanConfig`, `WebSocketEndpointPlanner.candidates(config:)` — planner now accepts operator-provided CF Worker front hostnames; HTTP `Host` header and TLS SNI use the front's own domain while cert validation stays on.
+- **WEB proxy catalog:** `WebProxyCatalog` with bootstrap + HTTPS directory fetch; "Choose WEB Proxy" sheet with catalog entries + "Enter manually…" fallback.
+- **WEB proxy background keepalive:** session PING sent from a `UIBackgroundTask` on entering background; active carrier with recent activity skips full rebuild on foreground resume.
+
 ## [v12.9.2-3945-pre] — 2026-09-03
 
 Pre-release: WEB hang/path recovery + Messages chrome nits.

@@ -4,6 +4,7 @@ import SwiftSignalKit
 import MtProtoKit
 
 /// Public MTProxy lists used by WhiteGram-style auto-fetch (refreshed by the publishers).
+/// Prefer non-GitHub mirrors first — `raw.githubusercontent.com` is often blocked in RU.
 /// SoliSpirit: worldwide. kort0881: RU-only (`proxy_ru.txt`). dubblebyte: worldwide.
 /// Chumbayoumba: RU whitelist-focused, and published as `host:port:secret` rather than as
 /// proxy links — `parseAutomaticMtProxyServers` reads both shapes.
@@ -11,10 +12,38 @@ import MtProtoKit
 /// Grim1313/mtproto-for-telegram was considered and left out: byte-for-byte the same list as
 /// SoliSpirit, so it would cost a request per refresh and contribute nothing.
 private let automaticMtProxyListURLs = [
+    // Operator-owned mirrors (fill before ship). Ordinary HTTPS — not github.com.
+    // "https://cdn.example.com/mtproxy/all.txt",
+
+    // jsDelivr / gitmirror — same blobs as GitHub, different anycast (often still reachable).
+    "https://cdn.jsdelivr.net/gh/SoliSpirit/mtproto@master/all_proxies.txt",
+    "https://cdn.jsdelivr.net/gh/kort0881/telegram-proxy-collector@main/proxy_ru.txt",
+    "https://cdn.jsdelivr.net/gh/dubblebyte/free-mtproto-proxies@main/all_proxies.txt",
+    "https://cdn.jsdelivr.net/gh/Chumbayoumba/free-telegram-proxy-russia-2026@main/proxies.txt",
+    "https://raw.gitmirror.com/SoliSpirit/mtproto/master/all_proxies.txt",
+    "https://raw.gitmirror.com/kort0881/telegram-proxy-collector/main/proxy_ru.txt",
+    "https://raw.gitmirror.com/dubblebyte/free-mtproto-proxies/main/all_proxies.txt",
+    "https://raw.gitmirror.com/Chumbayoumba/free-telegram-proxy-russia-2026/main/proxies.txt",
+
+    // GitHub last — works when not blocked; primary failure mode when it is.
     "https://raw.githubusercontent.com/SoliSpirit/mtproto/master/all_proxies.txt",
     "https://raw.githubusercontent.com/kort0881/telegram-proxy-collector/main/proxy_ru.txt",
     "https://raw.githubusercontent.com/dubblebyte/free-mtproto-proxies/main/all_proxies.txt",
     "https://raw.githubusercontent.com/Chumbayoumba/free-telegram-proxy-russia-2026/main/proxies.txt",
+]
+
+/// Last-resort FakeTLS `ee` seeds when every HTTPS fetch is empty. Operator fills real
+/// `host:port:ee…sni` lines before shipping; empty keeps first-launch dependent on mirrors.
+private let automaticMtProxySeedText = """
+# FakeTLS seeds — host:port:secret (ee + 16 bytes + SNI). Replace before ship.
+"""
+
+private let automaticMtProxySeedServers: [ProxyServerSettings] = {
+    automaticMtProxyPreferFakeTLS(parseAutomaticMtProxyServers(automaticMtProxySeedText))
+}()
+
+private let automaticMtProxyDoHTXTNames: [String] = [
+    // "mtproxy.example.com",
 ]
 private let automaticMtProxyRefreshInterval: Double = 10.0 * 60.0
 private let automaticMtProxySelectionDelay: Double = 0.2
@@ -242,8 +271,21 @@ private struct AutomaticMtProxyFetchState {
 private func fetchAutomaticMtProxyServers() -> Signal<[ProxyServerSettings], NoError> {
     return Signal { subscriber in
         let urls = automaticMtProxyListURLs
-        let state = Atomic(value: AutomaticMtProxyFetchState(lists: Array(repeating: [], count: urls.count), remaining: urls.count))
+        let dohNames = automaticMtProxyDoHTXTNames
+        let listCount = urls.count + dohNames.count + 1 // + seed slot
+        let state = Atomic(value: AutomaticMtProxyFetchState(lists: Array(repeating: [], count: listCount), remaining: listCount))
         let disposables = DisposableSet()
+
+        func emit(_ lists: [[ProxyServerSettings]]) {
+            var merged = mergeAutomaticMtProxyServers(lists)
+            if merged.isEmpty, !automaticMtProxySeedServers.isEmpty {
+                merged = automaticMtProxySeedServers
+            }
+            if !merged.isEmpty {
+                subscriber.putNext(automaticMtProxyPreferFakeTLS(merged))
+            }
+        }
+
         for (index, urlString) in urls.enumerated() {
             disposables.add((fetchAutomaticMtProxyListText(urlString: urlString)
             |> map(parseAutomaticMtProxyServers)).start(next: { servers in
@@ -252,10 +294,7 @@ private func fetchAutomaticMtProxyServers() -> Signal<[ProxyServerSettings], NoE
                     current.lists[index] = servers
                     return current
                 }
-                let merged = mergeAutomaticMtProxyServers(snapshot.lists)
-                if !merged.isEmpty {
-                    subscriber.putNext(merged)
-                }
+                emit(snapshot.lists)
             }, completed: {
                 let snapshot = state.modify { current in
                     var current = current
@@ -263,11 +302,100 @@ private func fetchAutomaticMtProxyServers() -> Signal<[ProxyServerSettings], NoE
                     return current
                 }
                 if snapshot.remaining == 0 {
+                    emit(snapshot.lists)
                     subscriber.putCompletion()
                 }
             }))
         }
+
+        for (dohOffset, name) in dohNames.enumerated() {
+            let index = urls.count + dohOffset
+            disposables.add((fetchAutomaticMtProxyListViaDoHTXT(name: name)
+            |> map(parseAutomaticMtProxyServers)).start(next: { servers in
+                let snapshot = state.modify { current in
+                    var current = current
+                    current.lists[index] = servers
+                    return current
+                }
+                emit(snapshot.lists)
+            }, completed: {
+                let snapshot = state.modify { current in
+                    var current = current
+                    current.remaining -= 1
+                    return current
+                }
+                if snapshot.remaining == 0 {
+                    emit(snapshot.lists)
+                    subscriber.putCompletion()
+                }
+            }))
+        }
+
+        let seedIndex = listCount - 1
+        let seedSnapshot = state.modify { current in
+            var current = current
+            current.lists[seedIndex] = automaticMtProxySeedServers
+            current.remaining -= 1
+            return current
+        }
+        emit(seedSnapshot.lists)
+        if seedSnapshot.remaining == 0 {
+            subscriber.putCompletion()
+        }
+
         return disposables
+    }
+}
+
+/// DoH TXT → proxy list blob. Same Google/Cloudflare endpoints MtProtoKit uses for backup discovery.
+private func fetchAutomaticMtProxyListViaDoHTXT(name: String) -> Signal<String, NoError> {
+    let encoded = name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? name
+    let endpoints: [(String, [String: String])] = [
+        ("https://dns.google/resolve?name=\(encoded)&type=TXT", [:]),
+        ("https://cloudflare-dns.com/dns-query?name=\(encoded)&type=TXT", ["Accept": "application/dns-json"]),
+        ("https://mozilla.cloudflare-dns.com/dns-query?name=\(encoded)&type=TXT", ["Accept": "application/dns-json"]),
+    ]
+    return Signal { subscriber in
+        let queue = DispatchQueue(label: "org.telegram.Telegram.automaticMtProxyDoH")
+        queue.async {
+            for (urlString, headers) in endpoints {
+                guard let url = URL(string: urlString) else {
+                    continue
+                }
+                var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 8.0)
+                for (key, value) in headers {
+                    request.setValue(value, forHTTPHeaderField: key)
+                }
+                let semaphore = DispatchSemaphore(value: 0)
+                var body = ""
+                let task = URLSession.shared.dataTask(with: request) { data, response, _ in
+                    defer { semaphore.signal() }
+                    guard let http = response as? HTTPURLResponse, http.statusCode == 200, let data = data,
+                          let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                          let answers = json["Answer"] as? [[String: Any]] else {
+                        return
+                    }
+                    var parts: [String] = []
+                    for answer in answers {
+                        guard let raw = answer["data"] as? String else {
+                            continue
+                        }
+                        parts.append(raw.replacingOccurrences(of: "\"", with: ""))
+                    }
+                    body = parts.joined(separator: "\n")
+                }
+                task.resume()
+                _ = semaphore.wait(timeout: .now() + 9.0)
+                if !body.isEmpty {
+                    subscriber.putNext(body)
+                    subscriber.putCompletion()
+                    return
+                }
+            }
+            subscriber.putNext("")
+            subscriber.putCompletion()
+        }
+        return EmptyDisposable
     }
 }
 

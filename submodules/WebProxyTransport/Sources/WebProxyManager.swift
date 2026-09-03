@@ -49,6 +49,9 @@ public final class WebProxyManager {
     /// failed bootstrap. One that ran longer starts the count again, so a carrier that worked for
     /// an hour before a network change still reconnects promptly.
     private static let minimumHealthyUptime: Double = 30.0
+    /// If the WEB sidecar exchanged frames this recently, a foreground resume skips rebuilding
+    /// the HTTPS carrier — a background keepalive ping keeps the session in this window.
+    private static let recentActivitySkipRebuild: Double = 45.0
 
     private let lock = NSLock()
     private let startLock = NSLock()
@@ -66,6 +69,8 @@ public final class WebProxyManager {
 
     /// Set from `applicationDidEnterBackground`. The WEB carrier is foreground-only.
     private var enteredBackgroundAt: Double = 0.0
+    /// Last uplink/downlink/keepalive activity, used to skip a healthy carrier rebuild.
+    private var lastActivityAt: Double = 0.0
 
     /// The configuration the app currently wants running, as opposed to the one that happens to
     /// be up. A retry armed by the cooldown must not resurrect a proxy the user has since turned
@@ -194,6 +199,60 @@ public final class WebProxyManager {
         self.enteredBackgroundAt = CFAbsoluteTimeGetCurrent()
         self.startLock.unlock()
     }
+
+    /// Sends a keepalive PING on the active sidecar (if any) and returns true.
+    /// Returns false when there is no ready WEB proxy sidecar.
+    /// Intended to be called from an `UIBackgroundTask` so the carrier stays alive briefly.
+    public func sendKeepalivePing() -> Bool {
+        self.lock.lock()
+        let sidecar = self.sidecar
+        self.lock.unlock()
+        guard let sidecar = sidecar else { return false }
+        sidecar.sendKeepalivePing()
+        return true
+    }
+    
+    /// Call from `applicationWillEnterForeground`. If the sidecar is still ready and recently
+    /// active, skip the later carrier rebuild by clearing `enteredBackgroundAt` only.
+    public func applicationWillEnterForeground() {
+        self.startLock.lock()
+        let backgroundedAt = self.enteredBackgroundAt
+        self.startLock.unlock()
+        guard backgroundedAt > 0 else {
+            return
+        }
+        
+        self.lock.lock()
+        let sidecar = self.sidecar
+        let hasEndpoint = self.endpoint != nil
+        self.lock.unlock()
+        
+        if self.shouldSkipCarrierRebuildDueToRecentActivity(sidecar: sidecar, hasEndpoint: hasEndpoint) {
+            self.startLock.lock()
+            self.enteredBackgroundAt = 0
+            self.startLock.unlock()
+            WebProxyLog.log("foreground: sidecar recently active, skipping carrier rebuild")
+        }
+    }
+    
+    /// Sends a session keepalive PING while the app is backgrounded. Returns false when there is
+    /// no live WEB sidecar. `expirationHandler` is invoked shortly after the ping is queued so the
+    /// caller can end its `beginBackgroundTask`.
+    public func beginBackgroundKeepalive(expirationHandler: @escaping () -> Void) -> Bool {
+        self.lock.lock()
+        let sidecar = self.sidecar
+        let ready = sidecar != nil && self.endpoint != nil
+        self.lock.unlock()
+        guard ready, let sidecar else {
+            return false
+        }
+        sidecar.sendKeepalivePing()
+        self.lock.lock()
+        self.lastActivityAt = CFAbsoluteTimeGetCurrent()
+        self.lock.unlock()
+        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 1.0, execute: expirationHandler)
+        return true
+    }
     
     /// Call from `applicationDidBecomeActive` only (AppDelegate). Rebuilds the HTTPS carrier
     /// in place when the app was backgrounded long enough for URLSession to die; skips Control
@@ -238,6 +297,29 @@ public final class WebProxyManager {
             self.startLock.lock()
             self.enteredBackgroundAt = 0
             self.startLock.unlock()
+            return
+        }
+
+        // If the sidecar is healthy and had recent activity (keepalive kept it alive), skip the
+        // carrier rebuild. "Recent" = within the last 45 s — covers brief suspensions where the
+        // background task managed to run.
+        self.lock.lock()
+        let liveSidecar = self.sidecar
+        let hasLiveEndpoint = self.endpoint != nil
+        self.lock.unlock()
+        if hasLiveEndpoint, let liveSidecar = liveSidecar, liveSidecar.secondsSinceLastActivity() < 45 {
+            self.startLock.lock()
+            self.enteredBackgroundAt = 0
+            self.startLock.unlock()
+            WebProxyLog.log("skip carrier rebuild: recent activity (\(Int(liveSidecar.secondsSinceLastActivity()))s ago)")
+            return
+        }
+
+        if self.shouldSkipCarrierRebuildDueToRecentActivity(sidecar: sidecar, hasEndpoint: hasEndpoint) {
+            self.startLock.lock()
+            self.enteredBackgroundAt = 0
+            self.startLock.unlock()
+            WebProxyLog.log("becomeActive: sidecar recently active, skipping carrier rebuild")
             return
         }
 
@@ -534,6 +616,7 @@ public final class WebProxyManager {
             self.configuration = configuration
             self.endpoint = LoopbackEndpoint(host: endpoint.host, port: endpoint.port)
             self.sidecarReadySince = CFAbsoluteTimeGetCurrent()
+            self.lastActivityAt = CFAbsoluteTimeGetCurrent()
             sidecar?.setFailureHandler { [weak self, weak sidecar] in
                 guard let self, let sidecar else {
                     return

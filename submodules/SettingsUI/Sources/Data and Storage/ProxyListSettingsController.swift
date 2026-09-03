@@ -11,6 +11,7 @@ import PresentationDataUtils
 import AccountContext
 import ShareController
 import UrlEscaping
+import WebProxyTransport
 
 private final class ProxySettingsControllerArguments {
     let toggleEnabled: (Bool) -> Void
@@ -850,9 +851,53 @@ public func proxySettingsController(accountManager: AccountManager<TelegramAccou
                 actionSheet?.dismissAnimated()
                 addServer(.mtp)
             }),
-            ActionSheetButtonItem(title: ForkWebProxyStrings.proxyType, color: .accent, action: { [weak actionSheet] in
+            ActionSheetButtonItem(title: ForkWebProxyStrings.proxyType, color: .accent, action: { [weak actionSheet, weak strongController] in
                 actionSheet?.dismissAnimated()
-                addServer(.web)
+                // If there are catalog entries, offer a pick sheet; otherwise go straight to manual.
+                let bootstrap = WebProxyCatalog.bootstrapEntries
+                if bootstrap.isEmpty {
+                    addServer(.web)
+                    return
+                }
+                // Offer catalog + manual option.
+                WebProxyCatalog.load { entries in
+                    guard let controller = strongController else { return }
+                    let sheet = ActionSheetController(presentationData: presentationData)
+                    var items: [ActionSheetItem] = []
+                    for entry in entries {
+                        items.append(ActionSheetButtonItem(title: entry.title, color: .accent, action: { [weak sheet] in
+                            sheet?.dismissAnimated()
+                            guard let parsedSecret = MTProxySecret.parse(entry.secretHex),
+                                  isSupportedWebProxySecret(parsedSecret.serialize()) else {
+                                addServer(.web)
+                                return
+                            }
+                            let server = ProxyServerSettings(host: entry.host, port: 443, connection: .web(secret: parsedSecret.serialize()))
+                            let _ = updateProxySettingsInteractively(accountManager: accountManager, { current in
+                                var current = current
+                                if !current.servers.contains(server) {
+                                    current.servers.insert(server, at: 0)
+                                }
+                                current.activeServer = server
+                                current.enabled = true
+                                return current
+                            }).start()
+                        }))
+                    }
+                    items.append(ActionSheetButtonItem(title: ForkWebProxyStrings.catalogManual, color: .accent, action: { [weak sheet] in
+                        sheet?.dismissAnimated()
+                        addServer(.web)
+                    }))
+                    sheet.setItemGroups([
+                        ActionSheetItemGroup(items: items),
+                        ActionSheetItemGroup(items: [
+                            ActionSheetButtonItem(title: presentationData.strings.Common_Cancel, color: .accent, font: .bold, action: { [weak sheet] in
+                                sheet?.dismissAnimated()
+                            })
+                        ])
+                    ])
+                    controller.present(sheet, in: .window(.root))
+                }
             })
         ]), ActionSheetItemGroup(items: [
             ActionSheetButtonItem(title: presentationData.strings.Common_Cancel, color: .accent, font: .bold, action: { [weak actionSheet] in

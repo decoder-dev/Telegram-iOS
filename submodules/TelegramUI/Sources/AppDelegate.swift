@@ -2082,6 +2082,21 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         })
 
         WebProxyManager.shared.applicationDidEnterBackground()
+
+        // Keep the WEB proxy carrier alive briefly in the background so the next foreground
+        // resume can skip the carrier rebuild (avoids "Connecting" flicker). A single PING is
+        // enough — the relay's own keep-alive timer runs on the server side.
+        var webProxyKeepaliveTaskId = UIBackgroundTaskIdentifier.invalid
+        let endWebProxyKeepaliveTask = { [application] in
+            let id = webProxyKeepaliveTaskId
+            webProxyKeepaliveTaskId = .invalid
+            if id != .invalid { application.endBackgroundTask(id) }
+        }
+        webProxyKeepaliveTaskId = application.beginBackgroundTask(withName: "web-proxy-keepalive", expirationHandler: endWebProxyKeepaliveTask)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            let _ = WebProxyManager.shared.sendKeepalivePing()
+            endWebProxyKeepaliveTask()
+        }
     }
 
     /// The app had no answer to a memory warning: a search of the tree turns up exactly one

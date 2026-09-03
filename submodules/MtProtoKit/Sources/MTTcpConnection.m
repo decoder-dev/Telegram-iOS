@@ -1057,7 +1057,26 @@ struct ctr_state {
                             _helloRandom = [[NSData alloc] initWithBytes:cHMAC length:CC_SHA256_DIGEST_LENGTH];
                             memcpy(((uint8_t *)helloData.mutableBytes) + 11, cHMAC, CC_SHA256_DIGEST_LENGTH);
 
-                            [strongSelf->_socket writeData:helloData];
+                            // TCP-split the FakeTLS ClientHello so a DPI midbox that waits for a
+                            // complete record does not see SNI/ECH in the first segment. HMAC was
+                            // already taken over the full record; fragments must concatenate to
+                            // those exact bytes (never emit a second TLS record header).
+                            static const NSUInteger kFakeTlsHelloFirstFragment = 5;
+                            static const NSTimeInterval kFakeTlsHelloFragmentDelay = 0.03;
+                            if (helloData.length > kFakeTlsHelloFirstFragment) {
+                                NSData *part0 = [helloData subdataWithRange:NSMakeRange(0, kFakeTlsHelloFirstFragment)];
+                                NSData *part1 = [helloData subdataWithRange:NSMakeRange(kFakeTlsHelloFirstFragment, helloData.length - kFakeTlsHelloFirstFragment)];
+                                [strongSelf->_socket writeData:part0];
+                                [[MTTcpConnection tcpQueue] dispatchAfter:kFakeTlsHelloFragmentDelay block:^{
+                                    __strong MTTcpConnection *innerSelf = strongSelf;
+                                    if (innerSelf == nil || innerSelf->_closed) {
+                                        return;
+                                    }
+                                    [innerSelf->_socket writeData:part1];
+                                }];
+                            } else {
+                                [strongSelf->_socket writeData:helloData];
+                            }
                             [strongSelf->_socket readDataToLength:5 withTimeout:-1 tag:MTTcpSocksReceiveHelloResponse];
                         } else {
                             strongSelf->_readyToSendData = true;

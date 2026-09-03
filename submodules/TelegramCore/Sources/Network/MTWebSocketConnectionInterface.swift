@@ -209,6 +209,8 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
         private var endpointSelector: WebSocketEndpointSelector
         private var currentCandidateHost: String?
         private var currentCandidatePath: String?
+        private var currentCandidateHttpHost: String?
+        private var currentCandidateTlsServerName: String?
 
         private var handshakeState: HandshakeState = .tcpConnecting
         private var handshakeResponseBuffer = Data()
@@ -344,6 +346,8 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
             self.readBufferOffset = 0
             self.currentCandidateHost = candidate.host
             self.currentCandidatePath = candidate.path
+            self.currentCandidateHttpHost = candidate.httpHost
+            self.currentCandidateTlsServerName = candidate.tlsServerName
 
             let host = NWEndpoint.Host(candidate.host)
             guard let port = NWEndpoint.Port(rawValue: candidate.port) else {
@@ -359,11 +363,15 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
             tcpOptions.keepaliveInterval = 5
             tcpOptions.enableFastOpen = false
 
-            // Default sec_protocol_options: full certificate-chain + hostname validation, with SNI
-            // derived by Network.framework from `host`. Deliberately NOT weakened — see the "TLS /
-            // security" section of docs/websocket-transport.md for why tg-ws-proxy's CERT_NONE /
-            // check_hostname=False pattern was not ported.
+            // TLS SNI. For Telegram-gateway candidates, SNI is derived from `host` automatically.
+            // For CF-Worker / custom-front candidates, `tlsServerName` may differ from `host`
+            // (the Worker's own hostname) — use sec_protocol_options to override it while keeping
+            // full certificate-chain validation against that Worker cert (NOT weakened).
             let tlsOptions = NWProtocolTLS.Options()
+            let effectiveSNI = self.currentCandidateTlsServerName ?? candidate.host
+            if effectiveSNI != candidate.host {
+                sec_protocol_options_set_tls_server_name(tlsOptions.securityProtocolOptions, effectiveSNI)
+            }
 
             let parameters = NWParameters(tls: tlsOptions, tcp: tcpOptions)
             let connection = NWConnection(host: host, port: port, using: parameters)
@@ -449,10 +457,13 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
             guard let connection = self.connection, let host = self.currentCandidateHost, let path = self.currentCandidatePath else {
                 return
             }
+            // HTTP Host header: for CF-Worker fronts this is the Worker domain (same as httpHost),
+            // not the Telegram gateway. For plain Telegram candidates they are identical.
+            let httpHost = self.currentCandidateHttpHost ?? host
 
             let key = Impl.makeSecWebSocketKey()
             var request = "GET \(path) HTTP/1.1\r\n"
-            request += "Host: \(host)\r\n"
+            request += "Host: \(httpHost)\r\n"
             request += "Upgrade: websocket\r\n"
             request += "Connection: Upgrade\r\n"
             request += "Sec-WebSocket-Key: \(key)\r\n"

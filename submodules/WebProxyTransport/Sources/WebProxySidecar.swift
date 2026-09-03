@@ -253,6 +253,36 @@ public final class WebProxySidecar {
             self.onFailure = handler
         }
     }
+
+    /// Timestamp of the last frame sent or received on this sidecar. Used by the manager to decide
+    /// whether a healthy carrier needs a rebuild after a short background stint.
+    private var lastActivityAt: CFAbsoluteTime = 0.0
+
+    /// Update the activity timestamp (called from within the sidecar's own queue).
+    private func touchActivityLocked() {
+        self.lastActivityAt = CFAbsoluteTimeGetCurrent()
+    }
+
+    /// Seconds since any frame activity (0 if no activity recorded yet).
+    public func secondsSinceLastActivity() -> CFAbsoluteTime {
+        var result: CFAbsoluteTime = 0
+        self.queue.sync {
+            let t = self.lastActivityAt
+            result = t > 0 ? max(0, CFAbsoluteTimeGetCurrent() - t) : CFAbsoluteTime.infinity
+        }
+        return result
+    }
+
+    /// Send a session-level keepalive PING (stream 0). Safe to call at any time; drops silently
+    /// if no carrier is ready.
+    public func sendKeepalivePing() {
+        self.queue.async {
+            guard let carrier = self.carrier else { return }
+            let frame = WebProxyFrame(type: .ping, streamId: 0, payload: Data([0xCA, 0xFE]))
+            carrier.sendFrames(WebProxyFrameCodec.encodeBatch([frame]))
+            self.touchActivityLocked()
+        }
+    }
     
     private func stopLocked() {
         self.transportReconnectGeneration &+= 1
@@ -584,9 +614,11 @@ public final class WebProxySidecar {
             return
         }
         carrier.sendFrames(WebProxyFrameCodec.encodeBatch(frames))
+        self.touchActivityLocked()
     }
     
     private func handleDownlinkBatch(_ batch: Data) {
+        self.touchActivityLocked()
         guard let frames = try? WebProxyFrameCodec.decodeBatch(batch) else {
             self.onFailure?()
             self.stopLocked()

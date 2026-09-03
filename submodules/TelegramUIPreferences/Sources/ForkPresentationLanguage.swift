@@ -59,4 +59,19 @@ public enum ForkWebProxyStrings {
     public static var maskingSite: String {
         return ForkPresentationLanguage.prefersRussianStrings ? "Сайт маскировки" : "Masking site"
     }
+
+    /// Title of the WEB proxy catalog picker sheet.
+    public static var catalogTitle: String {
+        return ForkPresentationLanguage.prefersRussianStrings ? "Каталог WEB-прокси" : "WEB Proxy catalog"
+    }
+
+    /// Section label for curated catalog entries in the picker sheet.
+    public static var catalogPick: String {
+        return ForkPresentationLanguage.prefersRussianStrings ? "Из каталога…" : "From catalog…"
+    }
+
+    /// Action that opens the manual WEB proxy form instead of a catalog entry.
+    public static var catalogManual: String {
+        return ForkPresentationLanguage.prefersRussianStrings ? "Ввести вручную…" : "Enter manually…"
+    }
 }
