@@ -1,7 +1,7 @@
 import Foundation
 
 /// A single entry in the WEB-proxy public catalog.
-public struct WebProxyCatalogEntry: Equatable, Codable {
+public struct WebProxyCatalogEntry: Equatable, Decodable {
     public var title: String
     public var host: String
     /// Raw hex of the proxy secret (`dd…` or `ee…` prefix).

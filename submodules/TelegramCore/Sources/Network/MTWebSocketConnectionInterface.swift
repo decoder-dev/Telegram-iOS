@@ -1,5 +1,6 @@
 import Foundation
 import Network
+import Security
 
 import MtProtoKit
 import SwiftSignalKit

@@ -2088,17 +2088,18 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         // enough — the relay's own keep-alive timer runs on the server side.
         final class Box { var value: UIBackgroundTaskIdentifier = .invalid }
         let webProxyTaskBox = Box()
-        webProxyTaskBox.value = application.beginBackgroundTask(withName: "web-proxy-keepalive") { [weak webProxyTaskBox] in
-            if let box = webProxyTaskBox, box.value != .invalid {
-                application.endBackgroundTask(box.value)
-                box.value = .invalid
+        let endWebProxyKeepaliveTask: () -> Void = {
+            if webProxyTaskBox.value != .invalid {
+                application.endBackgroundTask(webProxyTaskBox.value)
+                webProxyTaskBox.value = .invalid
             }
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak webProxyTaskBox] in
-            let _ = WebProxyManager.shared.sendKeepalivePing()
-            if let box = webProxyTaskBox, box.value != .invalid {
-                application.endBackgroundTask(box.value)
-                box.value = .invalid
+        webProxyTaskBox.value = application.beginBackgroundTask(withName: "web-proxy-keepalive", expirationHandler: endWebProxyKeepaliveTask)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            // beginBackgroundKeepalive ends the task via expirationHandler ~1s after the ping;
+            // if there is no live WEB sidecar, end it here.
+            if !WebProxyManager.shared.beginBackgroundKeepalive(expirationHandler: endWebProxyKeepaliveTask) {
+                endWebProxyKeepaliveTask()
             }
         }
     }
@@ -2144,6 +2145,8 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                 }
             }
         }
+
+        WebProxyManager.shared.applicationWillEnterForeground()
         
         self.runForegroundTasks()
         

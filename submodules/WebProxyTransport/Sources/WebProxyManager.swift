@@ -209,7 +209,24 @@ public final class WebProxyManager {
         self.lock.unlock()
         guard let sidecar = sidecar else { return false }
         sidecar.sendKeepalivePing()
+        self.lock.lock()
+        self.lastActivityAt = CFAbsoluteTimeGetCurrent()
+        self.lock.unlock()
         return true
+    }
+
+    /// True when a live sidecar recently carried traffic (or we just keepalive-pinged it), so a
+    /// foreground resume can leave the carrier alone instead of rebuilding.
+    private func shouldSkipCarrierRebuildDueToRecentActivity(sidecar: WebProxySidecar?, hasEndpoint: Bool) -> Bool {
+        guard hasEndpoint, let sidecar else {
+            return false
+        }
+        let sidecarAge = sidecar.secondsSinceLastActivity()
+        self.lock.lock()
+        let managerStamp = self.lastActivityAt
+        self.lock.unlock()
+        let managerAge = managerStamp > 0 ? CFAbsoluteTimeGetCurrent() - managerStamp : Double.infinity
+        return min(sidecarAge, managerAge) < 45.0
     }
     
     /// Call from `applicationWillEnterForeground`. If the sidecar is still ready and recently
@@ -239,17 +256,9 @@ public final class WebProxyManager {
     /// no live WEB sidecar. `expirationHandler` is invoked shortly after the ping is queued so the
     /// caller can end its `beginBackgroundTask`.
     public func beginBackgroundKeepalive(expirationHandler: @escaping () -> Void) -> Bool {
-        self.lock.lock()
-        let sidecar = self.sidecar
-        let ready = sidecar != nil && self.endpoint != nil
-        self.lock.unlock()
-        guard ready, let sidecar else {
+        guard self.sendKeepalivePing() else {
             return false
         }
-        sidecar.sendKeepalivePing()
-        self.lock.lock()
-        self.lastActivityAt = CFAbsoluteTimeGetCurrent()
-        self.lock.unlock()
         DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 1.0, execute: expirationHandler)
         return true
     }
@@ -297,21 +306,6 @@ public final class WebProxyManager {
             self.startLock.lock()
             self.enteredBackgroundAt = 0
             self.startLock.unlock()
-            return
-        }
-
-        // If the sidecar is healthy and had recent activity (keepalive kept it alive), skip the
-        // carrier rebuild. "Recent" = within the last 45 s — covers brief suspensions where the
-        // background task managed to run.
-        self.lock.lock()
-        let liveSidecar = self.sidecar
-        let hasLiveEndpoint = self.endpoint != nil
-        self.lock.unlock()
-        if hasLiveEndpoint, let liveSidecar = liveSidecar, liveSidecar.secondsSinceLastActivity() < 45 {
-            self.startLock.lock()
-            self.enteredBackgroundAt = 0
-            self.startLock.unlock()
-            WebProxyLog.log("skip carrier rebuild: recent activity (\(Int(liveSidecar.secondsSinceLastActivity()))s ago)")
             return
         }
 
