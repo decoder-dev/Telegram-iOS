@@ -6,6 +6,16 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3948-pre]
+
+### Fixed
+- **CI compile:** FakeTLS fragment delay uses `dispatch_after` on `tcpQueue.nativeQueue` — `MTQueue` has no `dispatchAfter:block:`.
+
+## [v12.9.2-3947-pre]
+
+### Fixed
+- **CI compile:** `WebProxyCatalogEntry` is `Decodable` only (CodingKeys `secret` alias broke Encodable synthesis); add missing `shouldSkipCarrierRebuildDueToRecentActivity` helper.
+
 ## [v12.9.2-3946-pre]
 
 ### Added

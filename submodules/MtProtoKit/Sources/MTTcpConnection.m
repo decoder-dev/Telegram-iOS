@@ -1067,13 +1067,13 @@ struct ctr_state {
                                 NSData *part0 = [helloData subdataWithRange:NSMakeRange(0, kFakeTlsHelloFirstFragment)];
                                 NSData *part1 = [helloData subdataWithRange:NSMakeRange(kFakeTlsHelloFirstFragment, helloData.length - kFakeTlsHelloFirstFragment)];
                                 [strongSelf->_socket writeData:part0];
-                                [[MTTcpConnection tcpQueue] dispatchAfter:kFakeTlsHelloFragmentDelay block:^{
+                                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(kFakeTlsHelloFragmentDelay * NSEC_PER_SEC)), [MTTcpConnection tcpQueue].nativeQueue, ^{
                                     __strong MTTcpConnection *innerSelf = strongSelf;
                                     if (innerSelf == nil || innerSelf->_closed) {
                                         return;
                                     }
                                     [innerSelf->_socket writeData:part1];
-                                }];
+                                });
                             } else {
                                 [strongSelf->_socket writeData:helloData];
                             }
