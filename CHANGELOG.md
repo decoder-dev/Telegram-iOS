@@ -6,6 +6,10 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3945-pre] — 2026-09-03
+
+Pre-release: WEB hang/path recovery + Messages chrome nits.
+
 ### Fixed
 - **WEB proxy:** WS receive no longer swallows background cancels (dead loopback hang); multiplex open waits for first send/frame + 20s timeout; WELCOME watchdog / empty-204 fail; path change reconnects live carrier in place; skip Control Center flicker (&lt;5s background); superseded reconnect no longer double-restarts.
 - **WebSocket:** abort stuck `isProbing` on intentional disconnect/deinit so fallback can recover.
