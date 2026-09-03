@@ -2183,6 +2183,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                             })
                         }
                         
+                        strongSelf.beginGhostReadOnInteractIfEnabled()
                         let _ = updateMessageReactionsInteractively(account: strongSelf.context.account, messageIds: [message.id], reactions: mappedUpdatedReactions, isLarge: false, storeAsRecentlyUsed: false).startStandalone()
                     }
                 }
@@ -6054,7 +6055,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                             self?.interfaceInteraction?.beginMessageSearch(.everything, "")
                         })))
                         if context.sharedContext.immediateForkExtrasSettings.saveDeletedMessages {
-                            items.append(.action(ContextMenuActionItem(text: "View Deleted", icon: { theme in
+                            items.append(.action(ContextMenuActionItem(text: ForkMessageSavingStrings.viewDeleted, icon: { theme in
                                 return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Archive"), color: theme.actionSheet.primaryTextColor)
                             }, action: { [weak self] _, f in
                                 f(.dismissWithoutContent)
@@ -6316,7 +6317,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                             self?.interfaceInteraction?.beginMessageSearch(.everything, "")
                         })))
                         if context.sharedContext.immediateForkExtrasSettings.saveDeletedMessages {
-                            items.append(.action(ContextMenuActionItem(text: "View Deleted", icon: { theme in
+                            items.append(.action(ContextMenuActionItem(text: ForkMessageSavingStrings.viewDeleted, icon: { theme in
                                 return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Archive"), color: theme.actionSheet.primaryTextColor)
                             }, action: { [weak self] _, f in
                                 f(.dismissWithoutContent)
@@ -8951,12 +8952,14 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
             isScheduledMessagesSubject = true
         }
         // Hoist once per send — albums must share one schedule base timestamp.
+        // Android full Ghost = dont-read + dont-online + dont-typing + go-offline.
         let applyGhostSchedule = scheduleTime == nil
             && !isScheduledMessagesSubject
             && ForkGhostScheduleSettings.enabled
             && ForkGhostModeSettings.suppressMessageReads
             && ForkGhostModeSettings.suppressOutgoingActivity
             && ForkGhostModeSettings.suppressOnline
+            && ForkGhostModeSettings.goOfflineAutomatically
         let ghostScheduleBaseTimestamp = applyGhostSchedule ? Int32(Date().timeIntervalSince1970) : 0
 
         return messages.map { message in
@@ -9071,6 +9074,17 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         }
     }
 
+    /// AyuGram Ghost Mode: Read on Interact — open the override window and flush pending reads.
+    func beginGhostReadOnInteractIfEnabled() {
+        guard ForkGhostModeSettings.readOnInteract else {
+            return
+        }
+        ForkGhostModeSettings.beginReadOnInteractOverride()
+        if self.isNodeLoaded {
+            self.chatDisplayNode.historyNode.updateReadHistoryActions()
+        }
+    }
+
     /// AyuGram formula: text = 12s; media = max(6, ceil(MB * 4.5)).
     private static func forkGhostScheduleDelaySeconds(for message: EnqueueMessage) -> Int32 {
         switch message {
@@ -9107,8 +9121,20 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         }
 
         // AyuGram Ghost Mode: Read on Interact — briefly allow read receipts + online blink on send.
-        if ForkGhostModeSettings.readOnInteract {
-            ForkGhostModeSettings.beginReadOnInteractOverride()
+        // Skip when Ghost Schedule Messages will actually delay this send (Android does not mark
+        // read on a scheduled outgoing).
+        var isScheduledMessagesSubject = false
+        if case .scheduledMessages = self.presentationInterfaceState.subject {
+            isScheduledMessagesSubject = true
+        }
+        let applyGhostSchedule = !isScheduledMessagesSubject
+            && ForkGhostScheduleSettings.enabled
+            && ForkGhostModeSettings.suppressMessageReads
+            && ForkGhostModeSettings.suppressOutgoingActivity
+            && ForkGhostModeSettings.suppressOnline
+            && ForkGhostModeSettings.goOfflineAutomatically
+        if !applyGhostSchedule {
+            self.beginGhostReadOnInteractIfEnabled()
         }
         
         let _ = (self.shouldDivertMessagesToScheduled(messages: messages)

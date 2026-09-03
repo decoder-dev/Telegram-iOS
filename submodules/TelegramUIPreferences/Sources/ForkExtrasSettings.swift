@@ -72,8 +72,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
     /// AyuGram Local Telegram Premium: unlock client-side Premium-gated UX (stealth mode, HD stories,
     /// sticker/emoji cosmetics) without touching the account's real Premium status. Default off — opt-in.
     public var localPremium: Bool
-    /// Hide sponsored / recommended ads in chats. This fork keeps ads off; the
-    /// value is retained for prefs compatibility and is forced `true` at runtime.
+    /// Hide sponsored / recommended ads in chats (AyuGram disableAds).
     public var hideAds: Bool
     /// AyuGram Message Filters: hide messages (and typing) from blocked users.
     public var hideBlockedMessages: Bool
@@ -123,7 +122,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
             ghostDontSendOnline: false,
             ghostDontSendTyping: false,
             ghostGoOfflineAutomatically: false,
-            ghostReadOnInteract: false,
+            ghostReadOnInteract: true,
             ghostAlertBeforeOpeningStory: false,
             instantPasscodeLock: false,
             hideMentionNotifications: false,
@@ -301,7 +300,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.ghostDontSendOnline = try container.decodeIfPresent(Bool.self, forKey: "ghostDontSendOnline") ?? legacyGhost
         self.ghostDontSendTyping = try container.decodeIfPresent(Bool.self, forKey: "ghostDontSendTyping") ?? legacyGhost
         self.ghostGoOfflineAutomatically = try container.decodeIfPresent(Bool.self, forKey: "ghostGoOfflineAutomatically") ?? false
-        self.ghostReadOnInteract = try container.decodeIfPresent(Bool.self, forKey: "ghostReadOnInteract") ?? false
+        self.ghostReadOnInteract = try container.decodeIfPresent(Bool.self, forKey: "ghostReadOnInteract") ?? true
         self.ghostAlertBeforeOpeningStory = try container.decodeIfPresent(Bool.self, forKey: "ghostAlertBeforeOpeningStory") ?? false
         self.instantPasscodeLock = try container.decodeIfPresent(Bool.self, forKey: "instantPasscodeLock") ?? false
         self.hideMentionNotifications = try container.decodeIfPresent(Bool.self, forKey: "hideMentionNotifications") ?? false
@@ -357,7 +356,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: StringCodingKey.self)
-        // Legacy: true only when the original three core flags are all on.
+        // Legacy: true when full Ghost Mode (4 flags including go-offline) is on.
         try container.encode(self.ghostMode, forKey: "ghostMode")
         try container.encode(self.ghostDontReadMessages, forKey: "ghostDontReadMessages")
         try container.encode(self.ghostDontReadStories, forKey: "ghostDontReadStories")
@@ -422,18 +421,26 @@ public struct ForkExtrasSettings: Codable, Equatable {
         return self.ghostDontReadMessages
     }
 
-    /// Full Ghost Mode (AyuGram): dont-read + dont-online + dont-typing.
+    /// Full Ghost Mode (AyuGram `setGhostMode`): dont-read + dont-online + dont-typing + go-offline.
     ///
     /// The single definition. `ghostMode` was a stored mirror of this expression, re-derived by
     /// hand in six places — decode, encode, the memberwise init and three settings mutations —
-    /// and read by nothing: Ghost Mode itself is driven from the three raw flags in
+    /// and read by nothing: Ghost Mode itself is driven from the raw flags in
     /// `SharedAccountContext`. A stored copy of a derived value is only ever one forgotten
     /// assignment away from disagreeing with what it mirrors, so it is computed now.
     public var isFullGhostMode: Bool {
-        return self.ghostDontReadMessages && self.ghostDontSendOnline && self.ghostDontSendTyping
+        return self.ghostDontReadMessages && self.ghostDontSendOnline && self.ghostDontSendTyping && self.ghostGoOfflineAutomatically
     }
 
-    /// Legacy encoding key, kept so a build that predates the three separate ghost flags still
+    /// AyuGram `setGhostMode`: flip the four master flags together. Other ghost options are left alone.
+    public mutating func setFullGhostMode(_ enabled: Bool) {
+        self.ghostDontReadMessages = enabled
+        self.ghostDontSendOnline = enabled
+        self.ghostDontSendTyping = enabled
+        self.ghostGoOfflineAutomatically = enabled
+    }
+
+    /// Legacy encoding key, kept so a build that predates the granular ghost flags still
     /// reads a coherent value out of the stored blob. Never a source of truth.
     public var ghostMode: Bool {
         return self.isFullGhostMode

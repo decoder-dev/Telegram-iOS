@@ -566,7 +566,7 @@ extension PeerInfoScreenNode {
                     }
                     
                     if strongSelf.context.sharedContext.immediateForkExtrasSettings.saveDeletedMessages {
-                        items.append(.action(ContextMenuActionItem(text: "View Deleted", icon: { theme in
+                        items.append(.action(ContextMenuActionItem(text: ForkMessageSavingStrings.viewDeleted, icon: { theme in
                             generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Archive"), color: theme.contextMenu.primaryColor)
                         }, action: { [weak self] _, f in
                             f(.dismissWithoutContent)

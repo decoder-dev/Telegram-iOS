@@ -469,7 +469,7 @@ final class OverlayAudioPlayerControlsNode: ASDisplayNode {
             if let (_, valueOrLoading, _) = value, case let .state(value) = valueOrLoading, let source = value.item.playbackData?.source {
                 switch source {
                 case let .telegramFile(_, isCopyProtected, _):
-                    strongSelf.shareNode.isHidden = isCopyProtected || forceCopyProtected
+                    strongSelf.shareNode.isHidden = (isCopyProtected || forceCopyProtected) && !ForkBypassDownloadRestrictionsSettings.enabled
                 }
             }
             

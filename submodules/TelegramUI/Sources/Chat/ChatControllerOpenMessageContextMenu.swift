@@ -616,6 +616,7 @@ extension ChatControllerImpl {
                             }
                         }
                         
+                        self.beginGhostReadOnInteractIfEnabled()
                         let _ = updateMessageReactionsInteractively(account: self.context.account, messageIds: [message.id], reactions: mappedUpdatedReactions, isLarge: isLarge, storeAsRecentlyUsed: true).startStandalone()
                     }
                 }

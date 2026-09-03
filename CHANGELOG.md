@@ -9,6 +9,9 @@
 ### Fixed
 - **Forward first-try:** hydrate sources via `getMessagesLoadIfNecessary` before picker (Chat + PeerInfo); pass Message objects from context menu instead of re-fetching ids; AyuForward covers 1:1 CachedUserData copy-protection; rebuild `MessageReference` from Postbox peer when snapshot lacks accessHash; use `apiInputPeer(_:sourceMessageId:)` for forward source; skip empty AyuForward instead of falling through to rejected vanilla forward; reupload webpage image/file embeds.
 
+### Changed
+- **AyuGram Android parity (Extras):** Ghost Mode master switch (4 flags incl. Go Offline); Read on Interact default ON + reacts; Schedule ↔ Read on Interact exclusive; full Ghost Schedule requires go-offline; Don't Read suppresses voice/video `readMessageContents`; Bypass unlocks save of protected chat media (not only stories); Local Premium unlocks chat-list View Anonymously; Hide Ads is a real toggle; View Deleted localized.
+
 ## [v12.9.2-3948-pre]
 
 ### Fixed

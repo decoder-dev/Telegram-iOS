@@ -104,7 +104,7 @@ public enum ForkGhostScheduleSettings {
 /// Bool flags read on scroll / bubble-layout paths. Atomic so Postbox/UI queues never race.
 public enum ForkExtrasHotFlags {
     public struct State: Equatable {
-        /// Always `true` in this fork — sponsored/recommended ads are client-disabled.
+        /// Hide sponsored / recommended ads (AyuGram disableAds). Default on.
         public var hideAds: Bool = true
         public var hideBlockedMessages: Bool = false
         public var hideReactionsBar: Bool = false
@@ -146,8 +146,7 @@ public enum ForkExtrasHotFlags {
             downloadSpeedBoost: Bool = false,
             outgoingPhotoQuality: Int32 = 0
         ) {
-            // Ads stay off regardless of the prefs value passed in.
-            self.hideAds = true
+            self.hideAds = hideAds
             self.hideBlockedMessages = hideBlockedMessages
             self.hideReactionsBar = hideReactionsBar
             self.useRecentEmojiInReactions = useRecentEmojiInReactions
@@ -175,15 +174,12 @@ public enum ForkExtrasHotFlags {
     }
 
     public static func update(_ next: State) {
-        var forced = next
-        forced.hideAds = true
-        let _ = state.swap(forced)
+        let _ = state.swap(next)
     }
 
-    /// Fork policy: never surface sponsored/recommended messages.
     public static var hideAds: Bool {
-        get { return true }
-        set { /* permanently on */ }
+        get { return state.with { $0.hideAds } }
+        set { let _ = state.modify { var s = $0; s.hideAds = newValue; return s } }
     }
     public static var hideBlockedMessages: Bool {
         get { return state.with { $0.hideBlockedMessages } }
@@ -330,21 +326,22 @@ public enum ForkGhostModeSettings {
         public var suppressOnline: Bool = false
         public var suppressMessageReads: Bool = false
         public var suppressStoryViews: Bool = false
-        public var goOfflineAutomatically: Bool = false
-        public var readOnInteract: Bool = false
-        public var interactOverrideActive: Bool = false
-        public var interactOverrideGeneration: Int = 0
+            public var goOfflineAutomatically: Bool = false
+            /// Matches Android `markReadAfterSend` default (on). Prefs push overrides at startup.
+            public var readOnInteract: Bool = true
+            public var interactOverrideActive: Bool = false
+            public var interactOverrideGeneration: Int = 0
 
-        public init(
-            suppressOutgoingActivity: Bool = false,
-            suppressOnline: Bool = false,
-            suppressMessageReads: Bool = false,
-            suppressStoryViews: Bool = false,
-            goOfflineAutomatically: Bool = false,
-            readOnInteract: Bool = false,
-            interactOverrideActive: Bool = false,
-            interactOverrideGeneration: Int = 0
-        ) {
+            public init(
+                suppressOutgoingActivity: Bool = false,
+                suppressOnline: Bool = false,
+                suppressMessageReads: Bool = false,
+                suppressStoryViews: Bool = false,
+                goOfflineAutomatically: Bool = false,
+                readOnInteract: Bool = true,
+                interactOverrideActive: Bool = false,
+                interactOverrideGeneration: Int = 0
+            ) {
             self.suppressOutgoingActivity = suppressOutgoingActivity
             self.suppressOnline = suppressOnline
             self.suppressMessageReads = suppressMessageReads

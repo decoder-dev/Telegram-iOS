@@ -770,7 +770,10 @@ final class ChatImageGalleryItemNode: ZoomableContentGalleryItemNode {
                             })
                         })
                     })))
-                    
+                }
+                
+                let saveRestricted = (message.isCopyProtected() || self.peerIsCopyProtected) && !ForkBypassDownloadRestrictionsSettings.enabled
+                if !saveRestricted && message.paidContent == nil, let media = self.contextAndMedia?.1 {
                     items.append(.action(ContextMenuActionItem(text: self.presentationData.strings.Gallery_SaveImage, icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Download"), color: theme.actionSheet.primaryTextColor) }, action: { [weak self] _, f in
                         f(.default)
                                                 

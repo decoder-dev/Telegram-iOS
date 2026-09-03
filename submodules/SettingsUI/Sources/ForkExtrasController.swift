@@ -85,6 +85,7 @@ private enum ForkExtrasLocalizedString {
     private static let translations: [String: [String: String]] = [
         "en": [
             "ForkExtras.Title": "Extras",
+            "ForkExtras.GhostModeMaster": "Ghost Mode",
             "ForkExtras.GhostDontReadMessages": "Don't Read Messages",
             "ForkExtras.GhostDontReadStories": "Don't Read Stories",
             "ForkExtras.GhostDontSendOnline": "Don't Send Online",
@@ -92,10 +93,10 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.GhostGoOfflineAutomatically": "Go Offline Automatically",
             "ForkExtras.GhostGoOfflineAutomaticallyFooter": "After briefly appearing online, immediately go offline again.",
             "ForkExtras.GhostReadOnInteract": "Read on Interact",
-            "ForkExtras.GhostReadOnInteractFooter": "When Don't Read Messages is on, mark chats read and blink online after you send a message.",
+            "ForkExtras.GhostReadOnInteractFooter": "When Don't Read Messages is on, mark chats read and blink online after you send or react.",
             "ForkExtras.GhostAlertBeforeOpeningStory": "Alert Before Opening Story",
             "ForkExtras.GhostAlertBeforeOpeningStoryFooter": "Ask before opening any story. Tap outside to dismiss without opening.",
-            "ForkExtras.GhostModeFooter": "AyuGram-style Ghost Mode. Each option can be toggled independently.",
+            "ForkExtras.GhostModeFooter": "The master switch enables Don't Read Messages, Don't Send Online, Don't Send Typing, and Go Offline Automatically. Each option can still be toggled independently.",
             "ForkExtras.InstantPasscode": "Instant Passcode Lock",
             "ForkExtras.InstantPasscodeFooter": "Lock the app as soon as it leaves the foreground.",
             "ForkExtras.HideMentions": "Hide Mention Notifications",
@@ -150,7 +151,7 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.AutoFetchMtProxy": "Auto MTProxy",
             "ForkExtras.AutoFetchMtProxyFooter": "Keeps Telegram on the fastest live public MTProxy automatically. Auto servers stay hidden from the saved list. Third-party nodes cannot read chats, but they see your IP.",
             "ForkExtras.HideAds": "Hide Ads",
-            "ForkExtras.HideAdsFooter": "Sponsored and recommended messages are permanently disabled in this build.",
+            "ForkExtras.HideAdsFooter": "Hide sponsored and recommended messages in chats.",
             "ForkExtras.HideBlockedMessages": "Hide Blocked Users",
             "ForkExtras.HideBlockedMessagesFooter": "Hide messages and typing from users you've blocked.",
             "ForkExtras.GhostScheduleMessages": "Schedule Messages (Ghost)",
@@ -182,7 +183,7 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.HubNinja": "Ninja",
             "ForkExtras.HubNinjaLabel": "Save, filters, bypass",
             "ForkExtras.HubGhost": "Ghost",
-            "ForkExtras.HubGhostLabel": "Offline, read receipts",
+            "ForkExtras.HubGhostLabel": "Master switch, read receipts",
             "ForkExtras.HubPrivacy": "Privacy",
             "ForkExtras.HubPrivacyLabel": "Lock, notifications, backup",
             "ForkExtras.HubInterface": "Interface",
@@ -220,6 +221,7 @@ private enum ForkExtrasLocalizedString {
         ],
         "ru": [
             "ForkExtras.Title": "Дополнительно",
+            "ForkExtras.GhostModeMaster": "Режим призрака",
             "ForkExtras.GhostDontReadMessages": "Не читать сообщения",
             "ForkExtras.GhostDontReadStories": "Не читать истории",
             "ForkExtras.GhostDontSendOnline": "Не отправлять онлайн",
@@ -227,10 +229,10 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.GhostGoOfflineAutomatically": "Сразу уходить в офлайн",
             "ForkExtras.GhostGoOfflineAutomaticallyFooter": "После короткого появления онлайн сразу снова уходить в офлайн.",
             "ForkExtras.GhostReadOnInteract": "Читать при взаимодействии",
-            "ForkExtras.GhostReadOnInteractFooter": "Если включено «Не читать сообщения», отмечать прочтение и кратко показывать онлайн после отправки.",
+            "ForkExtras.GhostReadOnInteractFooter": "Если включено «Не читать сообщения», отмечать прочтение и кратко показывать онлайн после отправки или реакции.",
             "ForkExtras.GhostAlertBeforeOpeningStory": "Спрашивать перед открытием истории",
             "ForkExtras.GhostAlertBeforeOpeningStoryFooter": "Показывать предупреждение перед открытием истории. Нажатие снаружи закрывает без открытия.",
-            "ForkExtras.GhostModeFooter": "Режим призрака в стиле AyuGram. Каждую опцию можно включать отдельно.",
+            "ForkExtras.GhostModeFooter": "Мастер-переключатель включает «Не читать сообщения», «Не отправлять онлайн», «Не отправлять набор» и «Сразу уходить в офлайн». Каждую опцию можно включать отдельно.",
             "ForkExtras.InstantPasscode": "Мгновенная блокировка",
             "ForkExtras.InstantPasscodeFooter": "Блокировать приложение сразу при уходе в фон.",
             "ForkExtras.HideMentions": "Скрыть уведомления об упоминаниях",
@@ -285,7 +287,7 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.AutoFetchMtProxy": "Авто MTProxy",
             "ForkExtras.AutoFetchMtProxyFooter": "Сам держит соединение на самом быстром живом публичном MTProxy. Авто-серверы в списке сохранённых не показываются. Чужие ноды не читают чаты, но видят IP.",
             "ForkExtras.HideAds": "Скрыть рекламу",
-            "ForkExtras.HideAdsFooter": "Спонсорские и рекомендованные сообщения в этой сборке отключены навсегда.",
+            "ForkExtras.HideAdsFooter": "Скрывать спонсорские и рекомендованные сообщения в чатах.",
             "ForkExtras.HideBlockedMessages": "Скрыть заблокированных",
             "ForkExtras.HideBlockedMessagesFooter": "Скрывать сообщения и набор текста от заблокированных пользователей.",
             "ForkExtras.GhostScheduleMessages": "Отложенная отправка (призрак)",
@@ -317,7 +319,7 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.HubNinja": "Ниндзя",
             "ForkExtras.HubNinjaLabel": "Сохранение, фильтры, обход",
             "ForkExtras.HubGhost": "Невидимка",
-            "ForkExtras.HubGhostLabel": "Офлайн, прочтения",
+            "ForkExtras.HubGhostLabel": "Мастер-переключатель, прочтения",
             "ForkExtras.HubPrivacy": "Приватность",
             "ForkExtras.HubPrivacyLabel": "Блокировка, уведомления, бэкап",
             "ForkExtras.HubInterface": "Интерфейс",
@@ -380,6 +382,7 @@ private enum ForkExtrasLocalizedString {
     }
     
     static var title: String { string(forKey: "ForkExtras.Title") }
+    static var ghostModeMaster: String { string(forKey: "ForkExtras.GhostModeMaster") }
     static var ghostDontReadMessages: String { string(forKey: "ForkExtras.GhostDontReadMessages") }
     static var ghostDontReadStories: String { string(forKey: "ForkExtras.GhostDontReadStories") }
     static var ghostDontSendOnline: String { string(forKey: "ForkExtras.GhostDontSendOnline") }
@@ -515,6 +518,7 @@ private enum ForkExtrasLocalizedString {
 }
 
 private final class ForkExtrasControllerArguments {
+    let updateGhostModeMaster: (Bool) -> Void
     let updateGhostDontReadMessages: (Bool) -> Void
     let updateGhostDontReadStories: (Bool) -> Void
     let updateGhostDontSendOnline: (Bool) -> Void
@@ -576,6 +580,7 @@ private final class ForkExtrasControllerArguments {
     let openOutgoingPhotoQuality: () -> Void
 
     init(
+        updateGhostModeMaster: @escaping (Bool) -> Void,
         updateGhostDontReadMessages: @escaping (Bool) -> Void,
         updateGhostDontReadStories: @escaping (Bool) -> Void,
         updateGhostDontSendOnline: @escaping (Bool) -> Void,
@@ -636,6 +641,7 @@ private final class ForkExtrasControllerArguments {
         updateDownloadSpeedBoost: @escaping (Bool) -> Void,
         openOutgoingPhotoQuality: @escaping () -> Void
     ) {
+        self.updateGhostModeMaster = updateGhostModeMaster
         self.updateGhostDontReadMessages = updateGhostDontReadMessages
         self.updateGhostDontReadStories = updateGhostDontReadStories
         self.updateGhostDontSendOnline = updateGhostDontSendOnline
@@ -728,6 +734,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     case hubChat
     case hubNetwork
     case hubFooter
+    case ghostModeMaster(Bool)
     case ghostDontReadMessages(Bool)
     case ghostDontReadStories(Bool)
     case ghostDontSendOnline(Bool)
@@ -792,7 +799,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     case localPremiumFooter
     case autoFetchMtProxy(Bool)
     case autoFetchMtProxyFooter
-    case hideAds
+    case hideAds(Bool)
     case hideAdsFooter
     case hideBlockedMessages(Bool)
     case hideBlockedMessagesFooter
@@ -834,7 +841,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         switch self {
         case .hubNinja, .hubGhost, .hubPrivacy, .hubInterface, .hubChat, .hubNetwork, .hubFooter:
             return ForkExtrasSection.hub.rawValue
-        case .ghostDontReadMessages, .ghostDontReadStories, .ghostDontSendOnline, .ghostDontSendTyping, .ghostGoOfflineAutomatically, .ghostGoOfflineAutomaticallyFooter, .ghostReadOnInteract, .ghostReadOnInteractFooter, .ghostAlertBeforeOpeningStory, .ghostAlertBeforeOpeningStoryFooter, .ghostScheduleMessages, .ghostScheduleMessagesFooter, .ghostModeFooter:
+        case .ghostModeMaster, .ghostDontReadMessages, .ghostDontReadStories, .ghostDontSendOnline, .ghostDontSendTyping, .ghostGoOfflineAutomatically, .ghostGoOfflineAutomaticallyFooter, .ghostReadOnInteract, .ghostReadOnInteractFooter, .ghostAlertBeforeOpeningStory, .ghostAlertBeforeOpeningStoryFooter, .ghostScheduleMessages, .ghostScheduleMessagesFooter, .ghostModeFooter:
             return ForkExtrasSection.ghost.rawValue
         case .instantPasscode, .instantPasscodeFooter:
             return ForkExtrasSection.lock.rawValue
@@ -882,6 +889,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case .hubChat: return 4
         case .hubNetwork: return 5
         case .hubFooter: return 6
+        case .ghostModeMaster: return 9
         case .ghostDontReadMessages: return 10
         case .ghostDontReadStories: return 11
         case .ghostDontSendOnline: return 12
@@ -1019,6 +1027,10 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             })
         case .hubFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.hubFooter), sectionId: self.section)
+        case let .ghostModeMaster(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.ghostModeMaster, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateGhostModeMaster(value)
+            })
         case let .ghostDontReadMessages(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.ghostDontReadMessages, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateGhostDontReadMessages(value)
@@ -1237,10 +1249,9 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             })
         case .autoFetchMtProxyFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.autoFetchMtProxyFooter), sectionId: self.section)
-        case .hideAds:
-            // Ads are hard-disabled in this fork; the switch stays locked on.
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.hideAds, value: true, enableInteractiveChanges: false, enabled: false, displayLocked: true, sectionId: self.section, style: .blocks, updated: { _ in
-                arguments.updateHideAds(true)
+        case let .hideAds(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.hideAds, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateHideAds(value)
             })
         case .hideAdsFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.hideAdsFooter), sectionId: self.section)
@@ -1383,6 +1394,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
     switch category {
     case .ghost:
         entries = [
+            .ghostModeMaster(settings.isFullGhostMode),
             .ghostDontReadMessages(settings.ghostDontReadMessages),
             .ghostDontReadStories(settings.ghostDontReadStories),
             .ghostDontSendOnline(settings.ghostDontSendOnline),
@@ -1486,7 +1498,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .exportMessageSavingDatabase,
             .importMessageSavingDatabase,
             .messageSavingDbFooter,
-            .hideAds,
+            .hideAds(settings.hideAds),
             .hideAdsFooter,
             .hideBlockedMessages(settings.hideBlockedMessages),
             .hideBlockedMessagesFooter,
@@ -1582,6 +1594,13 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
     }
 
     let arguments = ForkExtrasControllerArguments(
+        updateGhostModeMaster: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.setFullGhostMode(value)
+                return updated
+            }.start())
+        },
         updateGhostDontReadMessages: { value in
             updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
                 var updated = current
@@ -1621,6 +1640,9 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
             updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
                 var updated = current
                 updated.ghostReadOnInteract = value
+                if value {
+                    updated.ghostScheduleMessages = false
+                }
                 return updated
             }.start())
         },
@@ -1857,10 +1879,10 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
                 return current
             }).start()
         },
-        updateHideAds: { _ in
+        updateHideAds: { value in
             updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
                 var updated = current
-                updated.hideAds = true
+                updated.hideAds = value
                 return updated
             }.start())
         },
@@ -1875,6 +1897,9 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
             updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
                 var updated = current
                 updated.ghostScheduleMessages = value
+                if value {
+                    updated.ghostReadOnInteract = false
+                }
                 return updated
             }.start())
         },

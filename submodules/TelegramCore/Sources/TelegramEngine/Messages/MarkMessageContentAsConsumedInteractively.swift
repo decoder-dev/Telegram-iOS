@@ -6,6 +6,10 @@ import SwiftSignalKit
 func _internal_markMessageContentAsConsumedInteractively(postbox: Postbox, accountPeerId: PeerId, messageId: MessageId) -> Signal<Void, NoError> {
     return postbox.transaction { transaction -> Void in
         if let message = transaction.getMessage(messageId), message.flags.contains(.Incoming) {
+            // AyuGram Ghost "Don't Read": keep the local consumed=true UI update, mention consume,
+            // TTL countdown, and MessageSaving preserve — skip only the network read packets
+            // (`messages.readMessageContents` / secret-chat `readMessagesContent`).
+            let suppressContentReadPacket = ForkGhostModeSettings.shouldSuppressMessageReads
             // AyuGram Android: with saveDeletedMessages, skip scheduling secret/TTL delete tasks
             // after open; still sync "consumed" and copy media into Saved Attachments.
             let protectSecretMedia = MessageSavingBridge.shouldProtectSecretMedia
@@ -22,30 +26,32 @@ func _internal_markMessageContentAsConsumedInteractively(postbox: Postbox, accou
                         updatedAttributes[i] = ConsumableContentMessageAttribute(consumed: true)
                         updateMessage = true
                         
-                        if message.id.peerId.namespace == Namespaces.Peer.SecretChat {
-                            if let state = transaction.getPeerChatState(message.id.peerId) as? SecretChatState {
-                                var layer: SecretChatLayer?
-                                switch state.embeddedState {
-                                    case .terminated, .handshake:
-                                        break
-                                    case .basicLayer:
-                                        layer = .layer8
-                                    case let .sequenceBasedLayer(sequenceState):
-                                        layer = sequenceState.layerNegotiationState.activeLayer.secretChatLayer
-                                }
-                                if let layer = layer {
-                                    var globallyUniqueIds: [Int64] = []
-                                    if let globallyUniqueId = message.globallyUniqueId {
-                                        globallyUniqueIds.append(globallyUniqueId)
-                                        let updatedState = addSecretChatOutgoingOperation(transaction: transaction, peerId: message.id.peerId, operation: SecretChatOutgoingOperationContents.readMessagesContent(layer: layer, actionGloballyUniqueId: Int64.random(in: Int64.min ... Int64.max), globallyUniqueIds: globallyUniqueIds), state: state)
-                                        if updatedState != state {
-                                            transaction.setPeerChatState(message.id.peerId, state: updatedState)
+                        if !suppressContentReadPacket {
+                            if message.id.peerId.namespace == Namespaces.Peer.SecretChat {
+                                if let state = transaction.getPeerChatState(message.id.peerId) as? SecretChatState {
+                                    var layer: SecretChatLayer?
+                                    switch state.embeddedState {
+                                        case .terminated, .handshake:
+                                            break
+                                        case .basicLayer:
+                                            layer = .layer8
+                                        case let .sequenceBasedLayer(sequenceState):
+                                            layer = sequenceState.layerNegotiationState.activeLayer.secretChatLayer
+                                    }
+                                    if let layer = layer {
+                                        var globallyUniqueIds: [Int64] = []
+                                        if let globallyUniqueId = message.globallyUniqueId {
+                                            globallyUniqueIds.append(globallyUniqueId)
+                                            let updatedState = addSecretChatOutgoingOperation(transaction: transaction, peerId: message.id.peerId, operation: SecretChatOutgoingOperationContents.readMessagesContent(layer: layer, actionGloballyUniqueId: Int64.random(in: Int64.min ... Int64.max), globallyUniqueIds: globallyUniqueIds), state: state)
+                                            if updatedState != state {
+                                                transaction.setPeerChatState(message.id.peerId, state: updatedState)
+                                            }
                                         }
                                     }
                                 }
+                            } else {
+                                addSynchronizeConsumeMessageContentsOperation(transaction: transaction, messageIds: [message.id])
                             }
-                        } else {
-                            addSynchronizeConsumeMessageContentsOperation(transaction: transaction, messageIds: [message.id])
                         }
                     }
                 } else if let attribute = updatedAttributes[i] as? ConsumablePersonalMentionMessageAttribute, !attribute.consumed {
@@ -66,7 +72,7 @@ func _internal_markMessageContentAsConsumedInteractively(postbox: Postbox, accou
                             updatedAttributes[i] = AutoremoveTimeoutMessageAttribute(timeout: timeout, countdownBeginTime: timestamp)
                             updateMessage = true
                             
-                            if messageId.peerId.namespace == Namespaces.Peer.SecretChat {
+                            if !suppressContentReadPacket, messageId.peerId.namespace == Namespaces.Peer.SecretChat {
                                 var layer: SecretChatLayer?
                                 let state = transaction.getPeerChatState(message.id.peerId) as? SecretChatState
                                 if let state = state {
@@ -97,7 +103,7 @@ func _internal_markMessageContentAsConsumedInteractively(postbox: Postbox, accou
                             updatedAttributes[i] = AutoclearTimeoutMessageAttribute(timeout: timeout, countdownBeginTime: timestamp)
                             updateMessage = true
                             
-                            if messageId.peerId.namespace == Namespaces.Peer.SecretChat {
+                            if !suppressContentReadPacket, messageId.peerId.namespace == Namespaces.Peer.SecretChat {
                                 var layer: SecretChatLayer?
                                 let state = transaction.getPeerChatState(message.id.peerId) as? SecretChatState
                                 if let state = state {

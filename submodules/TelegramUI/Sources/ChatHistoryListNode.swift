@@ -1918,7 +1918,7 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
         let messageFilterSettings: Signal<MessageFilterSettingsFingerprint, NoError> = forkExtrasSettings(accountManager: context.sharedContext.accountManager)
         |> map { settings -> MessageFilterSettingsFingerprint in
             return MessageFilterSettingsFingerprint(
-                hideAds: true,
+                hideAds: settings.hideAds,
                 hideBlockedMessages: settings.hideBlockedMessages,
                 regexEnabled: settings.regexMessageFiltersEnabled,
                 regexCaseInsensitive: settings.regexMessageFiltersCaseInsensitive,
@@ -4772,7 +4772,7 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
         self.historyDisposable.set(nil)
     }
     
-    private func updateReadHistoryActions() {
+    func updateReadHistoryActions() {
         let canRead = self.canReadHistoryValue && self.isScrollAtBottomPosition
         
         if canRead != (self.interactiveReadActionDisposable != nil) {

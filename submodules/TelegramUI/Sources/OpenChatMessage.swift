@@ -253,7 +253,7 @@ func openChatMessageImpl(_ params: OpenChatMessageParams) -> Bool {
                     params.present(controller, nil, .window(.root))
                 } else if let rootController = params.navigationController?.view.window?.rootViewController {
                     let proceed = {
-                        let canShare = !params.message.isCopyProtected() && !params.copyProtected
+                        let canShare = !((params.message.isCopyProtected() || params.copyProtected) && !ForkBypassDownloadRestrictionsSettings.enabled)
                         var useBrowserScreen = false
                         if BrowserScreen.supportedDocumentMimeTypes.contains(file.mimeType) {
                             useBrowserScreen = true

@@ -777,6 +777,9 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
                 break
             }
         }
+        // Honor hideAds at construction. Toggle-off hides ads on the insertion path
+        // (`ChatHistoryEntriesForView`). Toggle-on mid-session cannot recreate this
+        // nil-once context; reopening the chat will.
         if let displayAdPeer, !ForkExtrasHotFlags.hideAds {
             self.adMessagesContext = context.engine.messages.adMessages(peerId: displayAdPeer, activateManually: true)
         } else {

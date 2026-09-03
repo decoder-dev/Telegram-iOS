@@ -1348,6 +1348,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
         }
         
         let isCopyProtected = chatPresentationInterfaceState.copyProtectionEnabled || message.isCopyProtected()
+        let saveRestricted = isCopyProtected && !ForkBypassDownloadRestrictionsSettings.enabled
         if !messageText.isEmpty || richMessageMarkdown != nil || (resourceAvailable && isImage) || diceEmoji != nil {
             if !isExpired {
                 if !isPoll {
@@ -1496,7 +1497,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
             }
         }
         
-        if resourceAvailable, !message.shouldDrawSecretMediaBlur && !isCopyProtected {
+        if resourceAvailable, !message.shouldDrawSecretMediaBlur && !saveRestricted {
             var mediaReference: AnyMediaReference?
             var isVideo = false
             for media in message.effectiveMedia {
@@ -1540,7 +1541,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
             }
         }
         
-        if !isCopyProtected {
+        if !saveRestricted {
             for media in message.effectiveMedia {
                 if let file = media as? TelegramMediaFile {
                     if file.isMusic {
@@ -1870,7 +1871,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
                     }
                     if message.id.peerId.namespace == Namespaces.Peer.SecretChat {
                         
-                    } else if let file = media as? TelegramMediaFile, !isCopyProtected {
+                    } else if let file = media as? TelegramMediaFile, !saveRestricted {
                         if file.isVideo {
                             if file.isAnimated && !file.isVideoSticker {
                                 actions.append(.action(ContextMenuActionItem(text: chatPresentationInterfaceState.strings.Conversation_SaveGif, icon: { theme in

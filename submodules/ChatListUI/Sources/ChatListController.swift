@@ -3515,14 +3515,15 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                         })))
                         
                         items.append(.action(ContextMenuActionItem(text: presentationData.strings.StoryFeed_ViewAnonymously, icon: { theme in
-                            return generateTintedImage(image: UIImage(bundleImageName: self.context.isPremium ? "Chat/Context Menu/Eye" : "Chat/Context Menu/EyeLocked"), color: theme.contextMenu.primaryColor)
+                            let canUseStealthMode = forkEffectiveIsPremium(accountIsPremium: self.context.isPremium)
+                            return generateTintedImage(image: UIImage(bundleImageName: canUseStealthMode ? "Chat/Context Menu/Eye" : "Chat/Context Menu/EyeLocked"), color: theme.contextMenu.primaryColor)
                         }, action: { [weak self] _, a in
                             a(.default)
                             
                             guard let self else {
                                 return
                             }
-                            if self.context.isPremium {
+                            if forkEffectiveIsPremium(accountIsPremium: self.context.isPremium) {
                                 self.requestStealthMode(openStory: { [weak self] presentTooltip in
                                     guard let self else {
                                         return

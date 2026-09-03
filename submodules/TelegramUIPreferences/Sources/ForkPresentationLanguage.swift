@@ -75,3 +75,11 @@ public enum ForkWebProxyStrings {
         return ForkPresentationLanguage.prefersRussianStrings ? "Ввести вручную…" : "Enter manually…"
     }
 }
+
+/// Menu titles for the fork's saved-deleted-messages screens. Same reason as
+/// `ForkWebProxyStrings`: these keys are not in Telegram's localisation catalogue.
+public enum ForkMessageSavingStrings {
+    public static var viewDeleted: String {
+        return ForkPresentationLanguage.prefersRussianStrings ? "Удалённые" : "View Deleted"
+    }
+}

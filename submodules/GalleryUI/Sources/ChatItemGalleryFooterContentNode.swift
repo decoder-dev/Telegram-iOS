@@ -948,8 +948,12 @@ final class ChatItemGalleryFooterContentNode: GalleryFooterContentNode, ASScroll
             canEdit = false
         }
         
-        if message.isCopyProtected() || peerIsCopyProtected || message.paidContent != nil {
+        // AyuGram Desktop "No Copy & Download Restrictions": gallery share is the Camera Roll / Files path.
+        let saveRestricted = (message.isCopyProtected() || peerIsCopyProtected) && !ForkBypassDownloadRestrictionsSettings.enabled
+        if saveRestricted || message.paidContent != nil {
             canShare = false
+        }
+        if message.isCopyProtected() || peerIsCopyProtected || message.paidContent != nil {
             canEdit = false
         }
         
