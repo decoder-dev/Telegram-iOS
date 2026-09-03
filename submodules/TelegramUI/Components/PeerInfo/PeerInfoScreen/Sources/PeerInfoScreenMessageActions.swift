@@ -72,6 +72,35 @@ extension PeerInfoScreenNode {
     
     func forwardMessages(messageIds: Set<EngineMessage.Id>?) {
         if let messageIds = messageIds ?? self.state.selectedMessageIds, !messageIds.isEmpty {
+            let ids = Array(messageIds)
+            // Hydrate before the picker — shared-media pane ids are not always in Postbox yet;
+            // enqueue then silent-drops missing sources (looks like "Forward did nothing").
+            let _ = (self.context.engine.messages.getMessagesLoadIfNecessary(ids, strategy: .cloud(skipLocal: false))
+            |> mapToSignal { result -> Signal<[EngineMessage], GetMessagesError> in
+                switch result {
+                case .progress:
+                    return .never()
+                case let .result(messages):
+                    return .single(messages.map(EngineMessage.init))
+                }
+            }
+            |> `catch` { _ -> Signal<[EngineMessage], NoError> in
+                return .single([])
+            }
+            |> take(1)
+            |> deliverOnMainQueue).startStandalone(next: { [weak self] loaded in
+                guard let self else {
+                    return
+                }
+                if !loaded.isEmpty {
+                    self.context.engine.messages.ensureMessagesAreLocallyAvailable(messages: loaded)
+                }
+                self.presentForwardPeerSelection(messageIds: messageIds)
+            })
+        }
+    }
+
+    private func presentForwardPeerSelection(messageIds: Set<EngineMessage.Id>) {
             let peerSelectionController = self.context.sharedContext.makePeerSelectionController(PeerSelectionControllerParams(context: self.context, updatedPresentationData: self.controller?.updatedPresentationData, filter: [.onlyWriteable, .excludeDisabled], hasFilters: true, multipleSelection: true, selectForumThreads: true))
             peerSelectionController.multiplePeersSelected = { [weak self, weak peerSelectionController] peers, peerMap, messageText, mode, forwardOptions, _ in
                 guard let strongSelf = self, let strongController = peerSelectionController else {
@@ -276,6 +305,5 @@ extension PeerInfoScreenNode {
                 }
             }
             self.controller?.push(peerSelectionController)
-        }
     }
 }
