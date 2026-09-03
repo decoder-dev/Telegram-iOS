@@ -6,6 +6,13 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3943-pre] — 2026-09-03
+
+Pre-release: fix path-reconnect compile on release_arm64 CI.
+
+### Fixed
+- **Network:** `ManagedNetworkPathReconnect` — use `String(describing:)` for `NWPath.Status` and `NWInterface.InterfaceType` (no `rawValue` on CI SDK).
+
 ## [v12.9.2-3942-pre] — 2026-09-02
 
 Pre-release: network audit cleanup, FakeTLS Chrome ClientHello, WEB proxy foreground resume.
