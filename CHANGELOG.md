@@ -6,6 +6,10 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3944-pre] — 2026-09-03
+
+Pre-release: intermittent WEB connect recovery + proxy chrome visual fixes.
+
 ### Fixed
 - **WEB proxy:** cooldown retry no longer no-ops inside the 180s `startingConfiguration` window (carrier deaths / failed bootstraps recover without a path flap); clear bootstrap pause when leaving WEB; `shouldKeepConnection` respects WEB pause; listener `.failed` during start completes the manager; sequential restart notifies `.stopped`.
 - **WebSocket:** disable TCP fast open on TLS WS connects (intermittent middlebox handshake failures).
