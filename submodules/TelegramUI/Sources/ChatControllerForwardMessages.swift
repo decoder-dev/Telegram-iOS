@@ -17,14 +17,48 @@ import ChatListUI
 
 extension ChatControllerImpl {
     func forwardMessages(messageIds: [EngineMessage.Id], options: ChatInterfaceForwardOptionsState? = nil, resetCurrent: Bool = false) {
-        let _ = (self.context.engine.data.get(EngineDataMap(
-            messageIds.map(TelegramEngine.EngineData.Item.Messages.Message.init)
-        ))
+        guard !messageIds.isEmpty else {
+            return
+        }
+        // Hydrate from the cloud when Postbox is missing the source (search hits, history holes).
+        // The previous EngineData-only path silently compactMap'd nils — Forward appeared to do
+        // nothing until a second tap after the messages finished loading.
+        let _ = (self.context.engine.messages.getMessagesLoadIfNecessary(messageIds, strategy: .cloud(skipLocal: false))
+        |> mapToSignal { result -> Signal<[EngineRawMessage], GetMessagesError> in
+            switch result {
+            case .progress:
+                return .never()
+            case let .result(messages):
+                return .single(messages)
+            }
+        }
+        |> `catch` { _ -> Signal<[EngineRawMessage], NoError> in
+            return .single([])
+        }
+        |> mapToSignal { loaded -> Signal<[EngineRawMessage], NoError> in
+            if !loaded.isEmpty {
+                return .single(loaded)
+            }
+            // Cloud miss / private channel: fall back to whatever is already in Postbox.
+            return self.context.engine.data.get(EngineDataMap(
+                messageIds.map(TelegramEngine.EngineData.Item.Messages.Message.init)
+            ))
+            |> map { map in
+                map.values.compactMap { $0?._asMessage() }
+            }
+        }
+        |> take(1)
         |> deliverOnMainQueue).startStandalone(next: { [weak self] messages in
-            let sortedMessages = messages.values.compactMap { $0?._asMessage() }.sorted { lhs, rhs in
+            guard let self else {
+                return
+            }
+            let sortedMessages = messages.sorted { lhs, rhs in
                 return lhs.id < rhs.id
             }
-            self?.forwardMessages(messages: sortedMessages, options: options, resetCurrent: resetCurrent)
+            if !sortedMessages.isEmpty {
+                self.context.engine.messages.ensureMessagesAreLocallyAvailable(messages: sortedMessages.map(EngineMessage.init))
+            }
+            self.forwardMessages(messages: sortedMessages, options: options, resetCurrent: resetCurrent)
         })
     }
 

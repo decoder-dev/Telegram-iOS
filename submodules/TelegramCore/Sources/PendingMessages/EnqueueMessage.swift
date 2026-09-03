@@ -319,11 +319,19 @@ private func convertMediaForAyuForward(_ media: Media, mediaBox: MediaBox) -> Me
 }
 
 /// Cloud messages that cannot use `messages.forwardMessages` and must be re-uploaded as new content.
-private func messageNeedsAyuForwardReupload(_ message: Message) -> Bool {
+private func messageNeedsAyuForwardReupload(_ message: Message, transaction: Transaction) -> Bool {
     guard ForkAyuForwardSettings.enabled else {
         return false
     }
     if message.isCopyProtected() || message.isLocallyDeleted || message.containsSecretMedia {
+        return true
+    }
+    // 1:1 "restrict saving content" lives on CachedUserData, not on Message.flags / group/channel
+    // flags — `Message.isCopyProtected()` does not see it. Without this gate the UI still offers
+    // Forward (AyuForward on) but enqueue keeps a vanilla `.forward` that the server rejects.
+    if message.id.peerId.namespace == Namespaces.Peer.CloudUser,
+       let cached = transaction.getPeerCachedData(peerId: message.id.peerId) as? CachedUserData,
+       cached.flags.contains(.copyProtectionEnabled) || cached.flags.contains(.myCopyProtectionEnabled) {
         return true
     }
     // View-once / ≤60s self-destruct (including text-only) — server rejects vanilla forward.
@@ -612,7 +620,7 @@ private func forwardedMessageToBeReuploaded(transaction: Transaction, id: Messag
             return message
         }
         // AyuForward: cloud messages that cannot use messages.forwardMessages — re-upload as new content.
-        if messageNeedsAyuForwardReupload(message) {
+        if messageNeedsAyuForwardReupload(message, transaction: transaction) {
             return message
         }
         return nil
@@ -621,11 +629,30 @@ private func forwardedMessageToBeReuploaded(transaction: Transaction, id: Messag
     }
 }
 
+/// Image/file payloads AyuForward can re-upload. Prefer top-level media; also take webpage
+/// embeds so a link-preview photo/file is not left as an empty reupload.
+private func ayuForwardCandidateMedia(from sourceMessage: Message) -> [Media] {
+    var result: [Media] = []
+    for media in sourceMessage.media {
+        if media is TelegramMediaImage || media is TelegramMediaFile {
+            result.append(media)
+        } else if let webpage = media as? TelegramMediaWebpage, case let .Loaded(content) = webpage.content {
+            if let image = content.image {
+                result.append(image)
+            }
+            if let file = content.file {
+                result.append(file)
+            }
+        }
+    }
+    return result
+}
+
 /// Build a media reference for AyuForward reupload, remapping to local MediaIds so PendingMessageManager
 /// uploads instead of calling forwardMessages. Prefers a `.message` back-reference over `.standalone` so a
 /// stale/expired file reference on the not-yet-locally-cached source resource can still self-heal via
 /// `revalidateMediaResourceReference` (see the inner comment below for why this matters).
-private func ayuForwardMediaReference(account: Account, sourceMessage: Message) -> AnyMediaReference? {
+private func ayuForwardMediaReference(account: Account, transaction: Transaction, sourceMessage: Message) -> AnyMediaReference? {
     // Locally deleted: prefer durable Saved Attachments before remapping stale cloud media ids.
     if sourceMessage.isLocallyDeleted {
         if let path = sourceMessage.locallyDeletedMediaPath
@@ -635,38 +662,52 @@ private func ayuForwardMediaReference(account: Account, sourceMessage: Message) 
             return reference
         }
     }
-    for media in sourceMessage.media {
-        if media is TelegramMediaImage || media is TelegramMediaFile {
-            let convertedMedia = convertMediaForAyuForward(media, mediaBox: account.postbox.mediaBox)
-            // Keep a back-reference to the source message rather than going `.standalone`.
-            //
-            // When the source resource isn't in mediaBox yet (mediaBox.completedResourcePath == nil
-            // inside convertMediaForAyuForward), the *original* cloud resource — with its embedded
-            // fileReference bytes — is kept as-is and PendingMessageManager has to fetch it over the
-            // network before it can reupload. Telegram's file references expire, and the generic
-            // fetch layer (MultipartFetch/FetchV2) knows how to transparently refresh an expired one
-            // via `revalidateMediaResourceReference` — but only if it can trace the resource back to
-            // a message/peer. `revalidateMediaResourceReference`'s `.standalone` branch only handles
-            // sticker-pack attributes and otherwise fails outright, so a `.standalone` reference here
-            // turns a normally self-healing FILE_REFERENCE_EXPIRED into a hard failure: the whole
-            // enqueued message gets marked .Failed on the spot.
-            //
-            // That is why AyuForward-reuploaded sends have needed a manual second "Forward" tap to go
-            // through: the first attempt fails outright on a stale reference, and by the second
-            // attempt mediaBox usually already has the bytes cached (from the failed attempt's own
-            // partial fetch, or from the user reopening the message), so `completedResourcePath`
-            // succeeds and the zero-copy local-file branch is used instead, needing no fetch at all.
-            //
-            // Wiring a `.message` reference here (mirroring the vanilla-forward path's
-            // `augmentMediaWithReference(.message(message: MessageReference(sourceMessage), media:))`)
-            // lets `revalidateMediaResourceReference` hit its `.message` branch, refetch the source
-            // message, and patch in a fresh reference within the *same* send attempt.
-            let messageReference = MessageReference(sourceMessage)
-            if messageReference.peer != nil {
-                return .message(message: messageReference, media: convertedMedia)
-            }
-            return .standalone(media: convertedMedia)
+    for media in ayuForwardCandidateMedia(from: sourceMessage) {
+        let convertedMedia = convertMediaForAyuForward(media, mediaBox: account.postbox.mediaBox)
+        // Keep a back-reference to the source message rather than going `.standalone`.
+        //
+        // When the source resource isn't in mediaBox yet (mediaBox.completedResourcePath == nil
+        // inside convertMediaForAyuForward), the *original* cloud resource — with its embedded
+        // fileReference bytes — is kept as-is and PendingMessageManager has to fetch it over the
+        // network before it can reupload. Telegram's file references expire, and the generic
+        // fetch layer (MultipartFetch/FetchV2) knows how to transparently refresh an expired one
+        // via `revalidateMediaResourceReference` — but only if it can trace the resource back to
+        // a message/peer. `revalidateMediaResourceReference`'s `.standalone` branch only handles
+        // sticker-pack attributes and otherwise fails outright, so a `.standalone` reference here
+        // turns a normally self-healing FILE_REFERENCE_EXPIRED into a hard failure: the whole
+        // enqueued message gets marked .Failed on the spot.
+        //
+        // That is why AyuForward-reuploaded sends have needed a manual second "Forward" tap to go
+        // through: the first attempt fails outright on a stale reference, and by the second
+        // attempt mediaBox usually already has the bytes cached (from the failed attempt's own
+        // partial fetch, or from the user reopening the message), so `completedResourcePath`
+        // succeeds and the zero-copy local-file branch is used instead, needing no fetch at all.
+        //
+        // Wiring a `.message` reference here (mirroring the vanilla-forward path's
+        // `augmentMediaWithReference(.message(message: MessageReference(sourceMessage), media:))`)
+        // lets `revalidateMediaResourceReference` hit its `.message` branch, refetch the source
+        // message, and patch in a fresh reference within the *same* send attempt.
+        //
+        // `MessageReference(sourceMessage)` needs the source peer (with accessHash) in
+        // `message.peers`. Search / partial history snapshots sometimes omit it — recover from
+        // the transaction so we do not silently fall back to `.standalone`.
+        var messageReference = MessageReference(sourceMessage)
+        if messageReference.peer == nil,
+           let peer = transaction.getPeer(sourceMessage.id.peerId) ?? sourceMessage.peers[sourceMessage.id.peerId] {
+            messageReference = MessageReference(
+                peer: peer,
+                author: sourceMessage.author,
+                id: sourceMessage.id,
+                timestamp: sourceMessage.timestamp,
+                incoming: sourceMessage.flags.contains(.Incoming),
+                secret: sourceMessage.containsSecretMedia,
+                threadId: sourceMessage.threadId
+            )
         }
+        if messageReference.peer != nil {
+            return .message(message: messageReference, media: convertedMedia)
+        }
+        return .standalone(media: convertedMedia)
     }
     // Cloud media gone / unsupported — fall back to Saved Attachments / mediaPath.
     let path = sourceMessage.locallyDeletedMediaPath
@@ -998,9 +1039,9 @@ func enqueueMessages(transaction: Transaction, account: Account, peerId: PeerId,
                         if let media = sourceMessage.media.first {
                             mediaReference = .standalone(media: media)
                         }
-                    } else if messageNeedsAyuForwardReupload(sourceMessage) {
+                    } else if messageNeedsAyuForwardReupload(sourceMessage, transaction: transaction) {
                         // AyuForward: re-upload without author (noforwards / deleted / view-once).
-                        mediaReference = ayuForwardMediaReference(account: account, sourceMessage: sourceMessage)
+                        mediaReference = ayuForwardMediaReference(account: account, transaction: transaction, sourceMessage: sourceMessage)
                     }
 
                     var text = sourceMessage.text
@@ -1013,9 +1054,10 @@ func enqueueMessages(transaction: Transaction, account: Account, peerId: PeerId,
                     }
 
                     // Nothing representable (unsupported media / missing bytes + empty caption) —
-                    // leave as vanilla `.forward` rather than enqueue MESSAGE_EMPTY.
-                    if messageNeedsAyuForwardReupload(sourceMessage), mediaReference == nil, text.isEmpty {
-                        break
+                    // skip rather than fall through to vanilla `.forward` (server rejects noforwards
+                    // with a Failed bubble that looks like "didn't work first time") or MESSAGE_EMPTY.
+                    if messageNeedsAyuForwardReupload(sourceMessage, transaction: transaction), mediaReference == nil, text.isEmpty {
+                        continue outer
                     }
 
                     var attributes = filterMessageAttributesForOutgoingMessage(sourceMessage.attributes)
@@ -1405,7 +1447,15 @@ func enqueueMessages(transaction: Transaction, account: Account, peerId: PeerId,
                     storeMessages.append(StoreMessage(peerId: peerId, namespace: messageNamespace, customStableId: nil, globallyUniqueId: randomId, groupingKey: localGroupingKey, threadId: threadId, timestamp: effectiveTimestamp, flags: flags, tags: tags, globalTags: globalTags, localTags: localTags, forwardInfo: nil, authorId: authorId, text: text, attributes: attributes, media: mediaList))
                 case let .forward(source, threadId, grouping, requestedAttributes, _):
                     let sourceMessage = transaction.getMessage(source)
-                    if let sourceMessage = sourceMessage, let author = sourceMessage.author ?? sourceMessage.peers[sourceMessage.id.peerId] {
+                    // Prefer message.author, then peers snapshot, then live Postbox peer — a missing
+                    // author used to silently drop the forward (no Failed bubble), which looked like
+                    // "Forward did nothing until I try again" after the peer finished loading.
+                    let sourceAuthor: Peer? = sourceMessage.flatMap { message in
+                        message.author
+                            ?? message.peers[message.id.peerId]
+                            ?? transaction.getPeer(message.id.peerId)
+                    }
+                    if let sourceMessage = sourceMessage, let author = sourceAuthor {
                         var messageText = sourceMessage.text
                         
                         if let peer = peer as? TelegramSecretChat {

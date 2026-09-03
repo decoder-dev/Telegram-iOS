@@ -2082,8 +2082,11 @@ extension ChatControllerImpl {
                 }
                 
                 strongSelf.commitPurposefulAction()
-                let forwardMessageIds = messages.map { $0.id }.sorted()
-                strongSelf.forwardMessages(messageIds: forwardMessageIds)
+                // Pass Message objects directly — re-fetching by id alone used to drop sources that
+                // were not yet in Postbox (search / partial history), so the first Forward tap
+                // opened an empty picker / sent nothing until a second attempt.
+                strongSelf.context.engine.messages.ensureMessagesAreLocallyAvailable(messages: messages.map(EngineMessage.init))
+                strongSelf.forwardMessages(messages: messages, options: nil, resetCurrent: false)
             }
         }, updateForwardOptionsState: { [weak self] f in
             if let strongSelf = self {
