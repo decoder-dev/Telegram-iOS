@@ -16,7 +16,7 @@ func managedNetworkPathReconnect(network: Network) -> Signal<Never, NoError> {
         
         monitor.pathUpdateHandler = { path in
             let interfaces = path.availableInterfaces.map { String(describing: $0.type) }.sorted().joined(separator: ",")
-            let signature = "\(path.status.rawValue)-\(interfaces)"
+            let signature = "\(String(describing: path.status))-\(interfaces)"
             guard path.status == .satisfied else {
                 lastSignature = signature
                 return
