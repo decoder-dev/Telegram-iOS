@@ -2147,6 +2147,10 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                 guard let strongSelf = self, let data = strongSelf.data, case let .user(user) = data.peer else {
                     return
                 }
+                let hideOwnIdentity = forkHidesOwnIdentity(accountPeerId: strongSelf.context.account.peerId, peerId: user.id, settings: strongSelf.context.sharedContext.immediateForkExtrasSettings)
+                if hideOwnIdentity {
+                    return
+                }
                 var actions: [ContextMenuAction] = []
                 if copyPhone, let phone = user.phone, !phone.isEmpty {
                     actions.append(ContextMenuAction(content: .text(title: strongSelf.presentationData.strings.Settings_CopyPhoneNumber, accessibilityLabel: strongSelf.presentationData.strings.Settings_CopyPhoneNumber), action: { [weak self] in

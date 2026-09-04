@@ -64,6 +64,14 @@ private func rootPathForBasePath(_ appGroupPath: String) -> String {
     return appGroupPath + "/telegram-data"
 }
 
+private func widgetAppIsLocked(rootPath: String) -> Bool {
+    guard let data = try? Data(contentsOf: URL(fileURLWithPath: appLockStatePath(rootPath: rootPath))),
+          let state = try? JSONDecoder().decode(LockState.self, from: data) else {
+        return false
+    }
+    return isAppLocked(state: state)
+}
+
 @available(iOS 14.0, *)
 private func getCommonTimeline(friends: [Friend]?, in context: TimelineProviderContext, completion: @escaping (Timeline<SimpleEntry>) -> ()) {
     if context.isPreview {
@@ -90,6 +98,11 @@ private func getCommonTimeline(friends: [Friend]?, in context: TimelineProviderC
     }
     
     let rootPath = rootPathForBasePath(appGroupUrl.path)
+    
+    if widgetAppIsLocked(rootPath: rootPath) {
+        completion(Timeline(entries: [SimpleEntry(date: entryDate, contents: .locked)], policy: .atEnd))
+        return
+    }
     
     TempBox.initializeShared(basePath: rootPath, processType: "widget", launchSpecificId: Int64.random(in: Int64.min ... Int64.max))
     
@@ -257,6 +270,7 @@ struct SimpleEntry: TimelineEntry {
         case recent
         case preview
         case peers(ParsedPeers)
+        case locked
     }
     
     let date: Date
@@ -267,6 +281,7 @@ enum PeersWidgetData {
     case empty
     case preview
     case peers(ParsedPeers)
+    case locked
 }
 
 @available(iOSApplicationExtension 14.0, iOS 14.0, *)
@@ -656,6 +671,8 @@ struct WidgetView: View {
                 formatter.timeStyle = .short
                 text = self.presentationData.widgetUpdatedTodayAt.replacingOccurrences(of: "{}", with: formatter.string(from: date))
             }
+        case .locked:
+            text = self.presentationData.generalLockedTitle
         default:
             text = self.presentationData.widgetLongTapToEdit
         }
@@ -869,6 +886,8 @@ func getWidgetData(contents: SimpleEntry.Contents) -> PeersWidgetData {
         return .preview
     case let .peers(peers):
         return .peers(peers)
+    case .locked:
+        return .locked
     }
 }
 

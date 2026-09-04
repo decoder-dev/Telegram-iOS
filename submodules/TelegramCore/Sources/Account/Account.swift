@@ -208,7 +208,9 @@ public class UnauthorizedAccount {
                     network.context.authInfoForDatacenter(withIdRequired: id, isCdn: false, selector: .ephemeralMain, allowUnboundEphemeralKeys: false)
                 }
             }
-            network.context.beginExplicitBackupAddressDiscovery()
+            if !network.isWebProxyBootstrapPaused {
+                network.context.beginExplicitBackupAddressDiscovery()
+            }
         })
         
         self.stateManager.reset()

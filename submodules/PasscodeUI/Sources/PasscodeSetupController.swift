@@ -65,22 +65,14 @@ public final class PasscodeSetupController: ViewController {
                 controller?.dismissAnimated()
             }
             
+            // 4-digit numerical is intentionally omitted: 10^4 is too small a space.
+            // Existing 4-digit passcodes still unlock via PasscodeEntryController.
             var items: [ActionSheetButtonItem] = []
             if case .digits6 = type {
             } else {
                 items.append(ActionSheetButtonItem(title: strongSelf.presentationData.strings.PasscodeSettings_6DigitCode, action: { [weak self] in
                     if let strongSelf = self {
                         strongSelf.mode = .setup(change: change, .digits6)
-                        strongSelf.controllerNode.updateMode(strongSelf.mode)
-                    }
-                    dismissAction()
-                }))
-            }
-            if case .digits4 = type {
-            } else {
-                items.append(ActionSheetButtonItem(title: strongSelf.presentationData.strings.PasscodeSettings_4DigitCode, action: {
-                    if let strongSelf = self {
-                        strongSelf.mode = .setup(change: change, .digits4)
                         strongSelf.controllerNode.updateMode(strongSelf.mode)
                     }
                     dismissAction()

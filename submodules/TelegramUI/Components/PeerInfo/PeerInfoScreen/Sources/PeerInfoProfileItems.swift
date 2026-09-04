@@ -16,6 +16,7 @@ import WebUI
 import AvatarNode
 import PeerNameColorItem
 import BoostLevelIconComponent
+import TelegramUIPreferences
 
 private let enabledPublicBioEntities: EnabledEntityTypes = [.allUrl, .mention, .hashtag]
 private let enabledPrivateBioEntities: EnabledEntityTypes = [.internalUrl, .mention, .hashtag]
@@ -156,25 +157,27 @@ func infoItems(
         }
         
         if let phone = user.phone {
-            let formattedPhone = formatPhoneNumber(context: context, number: phone)
+            let hideOwnIdentity = forkHidesOwnIdentity(accountPeerId: context.account.peerId, peerId: user.id, settings: context.sharedContext.immediateForkExtrasSettings)
+            let formattedPhone = hideOwnIdentity ? ForkExtrasSettings.streamerHiddenLabel : formatPhoneNumber(context: context, number: phone)
             let label: String
             if formattedPhone.hasPrefix("+888 ") {
                 label = presentationData.strings.UserInfo_AnonymousNumberLabel
             } else {
                 label = presentationData.strings.ContactInfo_PhoneLabelMobile
             }
-            items[currentPeerInfoSection]!.append(PeerInfoScreenLabeledValueItem(id: ItemPhoneNumber, label: label, text: formattedPhone, textColor: .accent, action: { node, progress in
+            items[currentPeerInfoSection]!.append(PeerInfoScreenLabeledValueItem(id: ItemPhoneNumber, label: label, text: formattedPhone, textColor: .accent, action: hideOwnIdentity ? nil : { node, progress in
                 interaction.openPhone(phone, node, nil, progress)
-            }, longTapAction: nil, contextAction: { node, gesture, _ in
+            }, longTapAction: nil, contextAction: hideOwnIdentity ? nil : { node, gesture, _ in
                 interaction.openPhone(phone, node, gesture, nil)
             }, requestLayout: { animated in
                 interaction.requestLayout(animated)
             }))
         }
         if let mainUsername = user.addressName {
+            let hideOwnIdentity = forkHidesOwnIdentity(accountPeerId: context.account.peerId, peerId: user.id, settings: context.sharedContext.immediateForkExtrasSettings)
             var additionalUsernames: String?
             let usernames = user.usernames.filter { $0.isActive && $0.username != mainUsername }
-            if !usernames.isEmpty {
+            if !usernames.isEmpty && !hideOwnIdentity {
                 additionalUsernames = presentationData.strings.Profile_AdditionalUsernames(String(usernames.map { "@\($0.username)" }.joined(separator: ", "))).string
             }
             
@@ -182,21 +185,21 @@ func infoItems(
                 PeerInfoScreenLabeledValueItem(
                     id: ItemUsername,
                     label: presentationData.strings.Profile_Username,
-                    text: "@\(mainUsername)",
+                    text: hideOwnIdentity ? ForkExtrasSettings.streamerHiddenLabel : "@\(mainUsername)",
                     additionalText: additionalUsernames,
                     textColor: .accent,
-                    icon: .qrCode,
-                    action: { _, progress in
+                    icon: hideOwnIdentity ? nil : .qrCode,
+                    action: hideOwnIdentity ? nil : { _, progress in
                         interaction.openUsername(mainUsername, true, progress)
-                    }, linkItemAction: { type, item, _, _, progress in
+                    }, linkItemAction: hideOwnIdentity ? nil : { type, item, _, _, progress in
                         if case .tap = type {
                             if case let .mention(username) = item {
                                 interaction.openUsername(String(username[username.index(username.startIndex, offsetBy: 1)...]), false, progress)
                             }
                         }
-                    }, iconAction: {
+                    }, iconAction: hideOwnIdentity ? nil : {
                         interaction.openQrCode()
-                    }, contextAction: { node, gesture, _ in
+                    }, contextAction: hideOwnIdentity ? nil : { node, gesture, _ in
                         interaction.openUsernameContextMenu(node, gesture)
                     }, requestLayout: { animated in
                         interaction.requestLayout(animated)
@@ -904,7 +907,8 @@ func infoItems(
     }
 
     let forkExtras = context.sharedContext.immediateForkExtrasSettings
-    if forkExtras.showProfileId {
+    let hideDiagnostics = ForkExtrasHotFlags.streamerMode || forkExtras.streamerMode
+    if forkExtras.showProfileId && !hideDiagnostics {
         let idText = "\(data.peer?.id.id._internalGetInt64Value() ?? 0)"
         items[.peerInfoTrailing]!.append(PeerInfoScreenLabeledValueItem(id: AnyHashable("fork_profile_id"), label: "id", text: idText, textColor: .primary, action: nil, longTapAction: { sourceNode in
             interaction.openPeerInfoContextMenu(.genericCopy(idText), sourceNode, nil)
@@ -912,7 +916,7 @@ func infoItems(
             interaction.requestLayout(false)
         }))
     }
-    if forkExtras.showDC, let smallProfileImage = data.peer?.smallProfileImage, let cloudResource = smallProfileImage.resource as? CloudPeerPhotoSizeMediaResource {
+    if forkExtras.showDC && !hideDiagnostics, let smallProfileImage = data.peer?.smallProfileImage, let cloudResource = smallProfileImage.resource as? CloudPeerPhotoSizeMediaResource {
         let dcText = "\(cloudResource.datacenterId)"
         items[.peerInfoTrailing]!.append(PeerInfoScreenLabeledValueItem(id: AnyHashable("fork_dc"), label: "dc", text: dcText, textColor: .primary, action: nil, longTapAction: { sourceNode in
             interaction.openPeerInfoContextMenu(.genericCopy(dcText), sourceNode, nil)
@@ -924,7 +928,7 @@ func infoItems(
     // dedicated setting. Only surfaces a registration date Telegram's own server already
     // supplied for this peer (PeerStatusSettings.registrationDate) — no third-party lookup
     // service, so this row simply doesn't appear for peers the server didn't annotate.
-    if forkExtras.showDC, let cachedUserData = data.cachedData as? CachedUserData, let registrationDate = cachedUserData.peerStatusSettings?.registrationDate {
+    if forkExtras.showDC && !hideDiagnostics, let cachedUserData = data.cachedData as? CachedUserData, let registrationDate = cachedUserData.peerStatusSettings?.registrationDate {
         items[.peerInfoTrailing]!.append(PeerInfoScreenLabeledValueItem(id: AnyHashable("fork_reg_date"), label: "registered", text: registrationDate, textColor: .primary, action: nil, longTapAction: { sourceNode in
             interaction.openPeerInfoContextMenu(.genericCopy(registrationDate), sourceNode, nil)
         }, requestLayout: { _ in

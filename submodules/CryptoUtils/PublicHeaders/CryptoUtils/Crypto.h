@@ -8,6 +8,9 @@ NSData * _Nonnull CryptoSHA1(const void * _Nonnull bytes, int count);
 NSData * _Nonnull CryptoSHA256(const void * _Nonnull bytes, int count);
 NSData * _Nonnull CryptoSHA512(const void * _Nonnull bytes, int count);
 
+/// PBKDF2-HMAC-SHA256. `rounds` is the iteration count; `derivedKeyLength` is the output size in bytes.
+NSData * _Nullable CryptoPBKDF2HMACSHA256(NSData * _Nonnull password, NSData * _Nonnull salt, int rounds, int derivedKeyLength);
+
 @interface IncrementalMD5 : NSObject
 
 - (instancetype _Nonnull)init;

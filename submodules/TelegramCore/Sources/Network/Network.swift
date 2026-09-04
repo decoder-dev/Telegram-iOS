@@ -746,6 +746,14 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
             
             let network = Network(queue: queue, datacenterId: datacenterId, context: context, mtProto: mtProto, requestService: requestService, connectionStatusDelegate: connectionStatusDelegate, _connectionStatus: connectionStatus, basePath: basePath, appDataDisposable: appDataDisposable, encryptionProvider: arguments.encryptionProvider, useRequestTimeoutTimers: useRequestTimeoutTimers, useBetaFeatures: arguments.useBetaFeatures, useExperimentalFeatures: useExperimentalFeatures)
             
+            // WEB proxy at cold start: `mtProxySettings` is nil until the sidecar publishes a
+            // loopback port, so socks stays unset. Hold MtProto (and skip explicit backup-IP
+            // discovery) until `applySharedProxySettingsToNetwork` resumes after the sidecar is ready.
+            if let active = proxySettings?.effectiveActiveServer, active.connection.isWebProxy,
+               network.context.apiEnvironment.socksProxySettings == nil {
+                network.markWebProxyBootstrapPausedAtInit()
+            }
+            
             network.usesNetworkFrameworkTcpConnection = useNetworkFrameworkTcpConnection
             network.webSocketFallbackCoordinator = webSocketFallbackCoordinator
             
@@ -941,6 +949,10 @@ public final class Network: NSObject, MTRequestMessageServiceDelegate {
     /// instead of dialing a stale loopback or falling through to direct DC.
     private var webProxyBootstrapPaused = false
     
+    var isWebProxyBootstrapPaused: Bool {
+        return self.webProxyBootstrapPaused
+    }
+    
     public func dropConnectionStatus() {
         _connectionStatus.set(.single(.waitingForNetwork))
     }
@@ -966,6 +978,13 @@ public final class Network: NSObject, MTRequestMessageServiceDelegate {
                 strongSelf.mtProto.resume()
             }
         })
+    }
+    
+    /// Called from `initializedNetwork` on the Network queue before the instance is published,
+    /// so `shouldKeepConnection=true` cannot resume onto a direct DC while the sidecar is starting.
+    func markWebProxyBootstrapPausedAtInit() {
+        self.webProxyBootstrapPaused = true
+        Logger.shared.log("Network", "WEB proxy bootstrap: held at Network init until sidecar ready")
     }
     
     /// Hold off MtProto dials while the WEB sidecar publishes its loopback port (first enable).

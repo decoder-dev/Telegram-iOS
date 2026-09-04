@@ -99,6 +99,8 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.GhostModeFooter": "The master switch enables Don't Read Messages, Don't Read Stories, Don't Send Online, Don't Send Typing, and Go Offline Automatically. Each option can still be toggled independently.",
             "ForkExtras.InstantPasscode": "Instant Passcode Lock",
             "ForkExtras.InstantPasscodeFooter": "Lock the app as soon as it leaves the foreground.",
+            "ForkExtras.StreamerMode": "Streamer Mode",
+            "ForkExtras.StreamerModeFooter": "Hide your phone number and username in profiles and the Settings header (AyuGram-style).",
             "ForkExtras.HideMentions": "Hide Mention Notifications",
             "ForkExtras.HideMentionsFooter": "Suppress push notifications for mentions.",
             "ForkExtras.HidePinned": "Hide Pinned Notifications",
@@ -235,6 +237,8 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.GhostModeFooter": "Мастер-переключатель включает «Не читать сообщения», «Не читать истории», «Не отправлять онлайн», «Не отправлять набор» и «Сразу уходить в офлайн». Каждую опцию можно включать отдельно.",
             "ForkExtras.InstantPasscode": "Мгновенная блокировка",
             "ForkExtras.InstantPasscodeFooter": "Блокировать приложение сразу при уходе в фон.",
+            "ForkExtras.StreamerMode": "Режим стримера",
+            "ForkExtras.StreamerModeFooter": "Скрывать номер телефона и имя пользователя в профилях и в шапке Настроек.",
             "ForkExtras.HideMentions": "Скрыть уведомления об упоминаниях",
             "ForkExtras.HideMentionsFooter": "Не показывать push-уведомления об упоминаниях.",
             "ForkExtras.HidePinned": "Скрыть уведомления о закреплении",
@@ -396,6 +400,8 @@ private enum ForkExtrasLocalizedString {
     static var ghostModeFooter: String { string(forKey: "ForkExtras.GhostModeFooter") }
     static var instantPasscode: String { string(forKey: "ForkExtras.InstantPasscode") }
     static var instantPasscodeFooter: String { string(forKey: "ForkExtras.InstantPasscodeFooter") }
+    static var streamerMode: String { string(forKey: "ForkExtras.StreamerMode") }
+    static var streamerModeFooter: String { string(forKey: "ForkExtras.StreamerModeFooter") }
     static var hideMentions: String { string(forKey: "ForkExtras.HideMentions") }
     static var hideMentionsFooter: String { string(forKey: "ForkExtras.HideMentionsFooter") }
     static var hidePinned: String { string(forKey: "ForkExtras.HidePinned") }
@@ -527,6 +533,7 @@ private final class ForkExtrasControllerArguments {
     let updateGhostReadOnInteract: (Bool) -> Void
     let updateGhostAlertBeforeOpeningStory: (Bool) -> Void
     let updateInstantPasscode: (Bool) -> Void
+    let updateStreamerMode: (Bool) -> Void
     let updateHideMentions: (Bool) -> Void
     let updateHidePinned: (Bool) -> Void
     let updateSessionBackup: (Bool) -> Void
@@ -589,6 +596,7 @@ private final class ForkExtrasControllerArguments {
         updateGhostReadOnInteract: @escaping (Bool) -> Void,
         updateGhostAlertBeforeOpeningStory: @escaping (Bool) -> Void,
         updateInstantPasscode: @escaping (Bool) -> Void,
+        updateStreamerMode: @escaping (Bool) -> Void,
         updateHideMentions: @escaping (Bool) -> Void,
         updateHidePinned: @escaping (Bool) -> Void,
         updateSessionBackup: @escaping (Bool) -> Void,
@@ -650,6 +658,7 @@ private final class ForkExtrasControllerArguments {
         self.updateGhostReadOnInteract = updateGhostReadOnInteract
         self.updateGhostAlertBeforeOpeningStory = updateGhostAlertBeforeOpeningStory
         self.updateInstantPasscode = updateInstantPasscode
+        self.updateStreamerMode = updateStreamerMode
         self.updateHideMentions = updateHideMentions
         self.updateHidePinned = updateHidePinned
         self.updateSessionBackup = updateSessionBackup
@@ -748,6 +757,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     case ghostScheduleMessages(Bool)
     case ghostScheduleMessagesFooter
     case ghostModeFooter
+    case streamerMode(Bool)
+    case streamerModeFooter
     case instantPasscode(Bool)
     case instantPasscodeFooter
     case hideMentions(Bool)
@@ -843,7 +854,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return ForkExtrasSection.hub.rawValue
         case .ghostModeMaster, .ghostDontReadMessages, .ghostDontReadStories, .ghostDontSendOnline, .ghostDontSendTyping, .ghostGoOfflineAutomatically, .ghostGoOfflineAutomaticallyFooter, .ghostReadOnInteract, .ghostReadOnInteractFooter, .ghostAlertBeforeOpeningStory, .ghostAlertBeforeOpeningStoryFooter, .ghostScheduleMessages, .ghostScheduleMessagesFooter, .ghostModeFooter:
             return ForkExtrasSection.ghost.rawValue
-        case .instantPasscode, .instantPasscodeFooter:
+        case .streamerMode, .streamerModeFooter, .instantPasscode, .instantPasscodeFooter:
             return ForkExtrasSection.lock.rawValue
         case .hideMentions, .hideMentionsFooter, .hidePinned, .hidePinnedFooter:
             return ForkExtrasSection.notifications.rawValue
@@ -903,6 +914,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case .ghostScheduleMessages: return 20
         case .ghostScheduleMessagesFooter: return 21
         case .ghostModeFooter: return 22
+        case .streamerMode: return 28
+        case .streamerModeFooter: return 29
         case .instantPasscode: return 30
         case .instantPasscodeFooter: return 31
         case .hideMentions: return 32
@@ -1073,6 +1086,12 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.ghostScheduleMessagesFooter), sectionId: self.section)
         case .ghostModeFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.ghostModeFooter), sectionId: self.section)
+        case let .streamerMode(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.streamerMode, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateStreamerMode(value)
+            })
+        case .streamerModeFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.streamerModeFooter), sectionId: self.section)
         case let .instantPasscode(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.instantPasscode, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateInstantPasscode(value)
@@ -1411,6 +1430,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
         ]
     case .privacy:
         entries = [
+            .streamerMode(settings.streamerMode),
+            .streamerModeFooter,
             .instantPasscode(settings.instantPasscodeLock),
             .instantPasscodeFooter,
             .hideMentions(settings.hideMentionNotifications),
@@ -1657,6 +1678,13 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
             updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
                 var updated = current
                 updated.instantPasscodeLock = value
+                return updated
+            }.start())
+        },
+        updateStreamerMode: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.streamerMode = value
                 return updated
             }.start())
         },

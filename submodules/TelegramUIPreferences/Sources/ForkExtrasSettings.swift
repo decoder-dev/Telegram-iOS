@@ -114,6 +114,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var downloadSpeedBoost: Bool
     /// Outgoing photo send quality: 0 = Telegram default (1280), 1 = better (1920), 2 = maximum (2560).
     public var outgoingPhotoQuality: Int32
+    /// Hide own phone number and @username on profile and the Settings header (AyuGram Streamer Mode).
+    public var streamerMode: Bool
 
     public static var defaultSettings: ForkExtrasSettings {
         return ForkExtrasSettings(
@@ -172,7 +174,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
             saveToCloudMenu: true,
             selectFromAuthor: true,
             downloadSpeedBoost: false,
-            outgoingPhotoQuality: 0
+            outgoingPhotoQuality: 0,
+            streamerMode: false
         )
     }
 
@@ -232,7 +235,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         saveToCloudMenu: Bool = true,
         selectFromAuthor: Bool = true,
         downloadSpeedBoost: Bool = false,
-        outgoingPhotoQuality: Int32 = 0
+        outgoingPhotoQuality: Int32 = 0,
+        streamerMode: Bool = false
     ) {
         self.ghostDontReadMessages = ghostDontReadMessages
         self.ghostDontReadStories = ghostDontReadStories
@@ -290,6 +294,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.selectFromAuthor = selectFromAuthor
         self.downloadSpeedBoost = downloadSpeedBoost
         self.outgoingPhotoQuality = min(2, max(0, outgoingPhotoQuality))
+        self.streamerMode = streamerMode
     }
 
     public init(from decoder: Decoder) throws {
@@ -352,6 +357,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.selectFromAuthor = try container.decodeIfPresent(Bool.self, forKey: "selectFromAuthor") ?? true
         self.downloadSpeedBoost = try container.decodeIfPresent(Bool.self, forKey: "downloadSpeedBoost") ?? false
         self.outgoingPhotoQuality = min(2, max(0, try container.decodeIfPresent(Int32.self, forKey: "outgoingPhotoQuality") ?? 0))
+        self.streamerMode = try container.decodeIfPresent(Bool.self, forKey: "streamerMode") ?? false
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -414,6 +420,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.selectFromAuthor, forKey: "selectFromAuthor")
         try container.encode(self.downloadSpeedBoost, forKey: "downloadSpeedBoost")
         try container.encode(self.outgoingPhotoQuality, forKey: "outgoingPhotoQuality")
+        try container.encode(self.streamerMode, forKey: "streamerMode")
     }
 
     /// Whether message/reaction read receipts should be suppressed right now.
@@ -445,6 +452,11 @@ public struct ForkExtrasSettings: Codable, Equatable {
     /// reads a coherent value out of the stored blob. Never a source of truth.
     public var ghostMode: Bool {
         return self.isFullGhostMode
+    }
+
+    /// Own-identity mask used on profile / Settings header when Streamer Mode is on.
+    public static var streamerHiddenLabel: String {
+        return ForkPresentationLanguage.prefersRussianStrings ? "Скрыто" : "Hidden"
     }
 
     /// AyuGram "Add filter": escape selected text as a literal regex pattern, enable filters, append if new.
@@ -504,6 +516,11 @@ public enum ForkLastChatListFilter {
         }
         UserDefaults.standard.set(Int(id), forKey: accountKey)
     }
+}
+
+/// Mask own phone / @username at display sites. Chat titles are intentionally not gated.
+public func forkHidesOwnIdentity(accountPeerId: EnginePeer.Id, peerId: EnginePeer.Id, settings: ForkExtrasSettings) -> Bool {
+    return accountPeerId == peerId && (ForkExtrasHotFlags.streamerMode || settings.streamerMode)
 }
 
 public func updateForkExtrasSettingsInteractively(accountManager: AccountManager<TelegramAccountManagerTypes>, _ f: @escaping (ForkExtrasSettings) -> ForkExtrasSettings) -> Signal<Void, NoError> {

@@ -1203,7 +1203,8 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             saveToCloudMenu: settings.saveToCloudMenu,
             selectFromAuthor: settings.selectFromAuthor,
             downloadSpeedBoost: settings.downloadSpeedBoost,
-            outgoingPhotoQuality: settings.outgoingPhotoQuality
+            outgoingPhotoQuality: settings.outgoingPhotoQuality,
+            streamerMode: settings.streamerMode
         ))
         ForkRegexMessageFilters.apply(
             enabled: settings.regexMessageFiltersEnabled,

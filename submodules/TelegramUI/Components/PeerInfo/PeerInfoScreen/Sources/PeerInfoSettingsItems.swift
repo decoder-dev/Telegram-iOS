@@ -87,7 +87,8 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
                 interaction.openSettings(.premiumManagement)
             }))
         } else if settings.suggestPhoneNumberConfirmation, case let .user(peer) = data.peer {
-            let phoneNumber = formatPhoneNumber(context: context, number: peer.phone ?? "")
+            let hideOwnIdentity = forkHidesOwnIdentity(accountPeerId: context.account.peerId, peerId: peer.id, settings: context.sharedContext.immediateForkExtrasSettings)
+            let phoneNumber = hideOwnIdentity ? ForkExtrasSettings.streamerHiddenLabel : formatPhoneNumber(context: context, number: peer.phone ?? "")
             items[.phone]!.append(PeerInfoScreenInfoItem(id: 0, title: presentationData.strings.Settings_CheckPhoneNumberTitle(phoneNumber).string, text: .markdown(presentationData.strings.Settings_CheckPhoneNumberText), linkAction: { link in
                 if case .tap = link {
                     interaction.openFaq(presentationData.strings.Settings_CheckPhoneNumberFAQAnchor)
@@ -472,13 +473,16 @@ func settingsEditingItems(data: PeerInfoScreenData?, state: PeerInfoState, conte
     }
     
     if case let .user(user) = data.peer {
-        items[.info]!.append(PeerInfoScreenDisclosureItem(id: ItemPhoneNumber, label: .text(user.phone.flatMap({ formatPhoneNumber(context: context, number: $0) }) ?? ""), text: presentationData.strings.Settings_PhoneNumber, icon: PresentationResourcesSettings.recentCalls, action: {
+        let hideOwnIdentity = forkHidesOwnIdentity(accountPeerId: context.account.peerId, peerId: user.id, settings: context.sharedContext.immediateForkExtrasSettings)
+        let phoneLabel = hideOwnIdentity ? ForkExtrasSettings.streamerHiddenLabel : (user.phone.flatMap({ formatPhoneNumber(context: context, number: $0) }) ?? "")
+        items[.info]!.append(PeerInfoScreenDisclosureItem(id: ItemPhoneNumber, label: .text(phoneLabel), text: presentationData.strings.Settings_PhoneNumber, icon: PresentationResourcesSettings.recentCalls, action: {
             interaction.openSettings(.phoneNumber)
         }))
     }
     var username = ""
     if let addressName = data.peer?.addressName, !addressName.isEmpty {
-        username = "@\(addressName)"
+        let hideOwnIdentity = forkHidesOwnIdentity(accountPeerId: context.account.peerId, peerId: data.peer?.id ?? context.account.peerId, settings: context.sharedContext.immediateForkExtrasSettings)
+        username = hideOwnIdentity ? ForkExtrasSettings.streamerHiddenLabel : "@\(addressName)"
     }
     items[.info]!.append(PeerInfoScreenDisclosureItem(id: ItemUsername, label: .text(username), text: presentationData.strings.Settings_Username, icon: PresentationResourcesSettings.email, action: {
           interaction.openSettings(.username)

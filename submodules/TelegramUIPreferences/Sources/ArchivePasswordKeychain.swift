@@ -52,11 +52,13 @@ public enum ArchivePasswordKeychain {
         }
     }
 
-    /// Hash and store a plaintext password, salted per-account so a Keychain/backup
-    /// extraction can't be attacked with one precomputed table shared across accounts.
+    /// Hash and store a plaintext password with PBKDF2-HMAC-SHA256 and a random per-password salt.
     @discardableResult
     public static func store(password: String, peerId: EnginePeer.Id) -> Bool {
-        return self.storeHash(saltedArchivePasswordHash(password, peerId: peerId), peerId: peerId)
+        guard let blob = makePBKDF2StoredBlob(password: password) else {
+            return false
+        }
+        return self.storeHash(blob, peerId: peerId)
     }
 
     @discardableResult
@@ -70,12 +72,15 @@ public enum ArchivePasswordKeychain {
         guard let stored = self.loadHash(peerId: peerId) else {
             return false
         }
-        if stored == saltedArchivePasswordHash(password, peerId: peerId) {
-            return true
+        if let blob = decodePBKDF2StoredBlob(stored) {
+            guard let expected = pbkdf2HexHash(password: password, saltHex: blob.salt, iterations: blob.iterations) else {
+                return false
+            }
+            return hexStringsEqual(expected, blob.hash)
         }
-        // Upgrade a hash stored before per-account salting was introduced.
-        if stored == archivePasswordHash(password) {
-            _ = self.storeHash(saltedArchivePasswordHash(password, peerId: peerId), peerId: peerId)
+        // Upgrade a hash stored before PBKDF2 (per-account SHA-256 salt, then unsalted SHA-256).
+        if stored == saltedArchivePasswordHash(password, peerId: peerId) || stored == archivePasswordHash(password) {
+            _ = self.store(password: password, peerId: peerId)
             return true
         }
         return false
@@ -208,8 +213,116 @@ public func archivePasswordHash(_ password: String) -> String {
     return digest.map { String(format: "%02x", $0) }.joined()
 }
 
-/// Per-account-salted password hash: prevents one precomputed table from working against
-/// every account's stored hash if the Keychain is ever extracted (jailbreak/backup exploit).
+/// Per-account-salted SHA-256 (pre-PBKDF2). Kept only so `matchesPassword` can verify and
+/// transparently upgrade hashes stored after the v1 salt but before PBKDF2.
 public func saltedArchivePasswordHash(_ password: String, peerId: EnginePeer.Id) -> String {
     return archivePasswordHash("archive-lock-salt-v1:\(peerId.toInt64()):\(password)")
+}
+
+private let archivePasswordPBKDF2Iterations = 100_000
+private let archivePasswordPBKDF2SaltLength = 16
+private let archivePasswordPBKDF2DerivedKeyLength = 32
+
+private struct ArchivePasswordPBKDF2Blob: Codable {
+    var salt: String
+    var hash: String
+    var iterations: Int
+}
+
+private func archivePasswordHexString(_ data: Data) -> String {
+    return data.map { String(format: "%02x", $0) }.joined()
+}
+
+private func archivePasswordDataFromHex(_ hex: String) -> Data? {
+    let chars = Array(hex.utf8)
+    guard chars.count >= 2, chars.count % 2 == 0 else {
+        return nil
+    }
+    var data = Data(capacity: chars.count / 2)
+    var index = 0
+    while index < chars.count {
+        func nibble(_ value: UInt8) -> UInt8? {
+            switch value {
+            case 48...57:
+                return value - 48
+            case 97...102:
+                return value - 97 + 10
+            case 65...70:
+                return value - 65 + 10
+            default:
+                return nil
+            }
+        }
+        guard let high = nibble(chars[index]), let low = nibble(chars[index + 1]) else {
+            return nil
+        }
+        data.append((high << 4) | low)
+        index += 2
+    }
+    return data
+}
+
+private func hexStringsEqual(_ lhs: String, _ rhs: String) -> Bool {
+    let left = Array(lhs.utf8)
+    let right = Array(rhs.utf8)
+    var diff: UInt8 = left.count == right.count ? 0 : 1
+    let count = min(left.count, right.count)
+    var index = 0
+    while index < count {
+        diff |= left[index] ^ right[index]
+        index += 1
+    }
+    return diff == 0
+}
+
+private func decodePBKDF2StoredBlob(_ stored: String) -> ArchivePasswordPBKDF2Blob? {
+    guard let data = stored.data(using: .utf8) else {
+        return nil
+    }
+    guard let blob = try? JSONDecoder().decode(ArchivePasswordPBKDF2Blob.self, from: data) else {
+        return nil
+    }
+    guard blob.iterations > 0, blob.iterations <= 500_000, !blob.salt.isEmpty, !blob.hash.isEmpty else {
+        return nil
+    }
+    return blob
+}
+
+private func pbkdf2HexHash(password: String, saltHex: String, iterations: Int) -> String? {
+    guard let salt = archivePasswordDataFromHex(saltHex), !salt.isEmpty else {
+        return nil
+    }
+    return pbkdf2HexHash(password: password, salt: salt, iterations: iterations)
+}
+
+private func pbkdf2HexHash(password: String, salt: Data, iterations: Int) -> String? {
+    guard iterations > 0, iterations <= 500_000, !salt.isEmpty, salt.count <= 64 else {
+        return nil
+    }
+    let passwordData = Data(password.utf8)
+    guard let derived = CryptoPBKDF2HMACSHA256(passwordData, salt, Int32(iterations), Int32(archivePasswordPBKDF2DerivedKeyLength)) else {
+        return nil
+    }
+    return archivePasswordHexString(derived)
+}
+
+private func makePBKDF2StoredBlob(password: String) -> String? {
+    var salt = Data(count: archivePasswordPBKDF2SaltLength)
+    let randomStatus = salt.withUnsafeMutableBytes { buffer -> OSStatus in
+        guard let pointer = buffer.baseAddress else {
+            return errSecParam
+        }
+        return SecRandomCopyBytes(kSecRandomDefault, archivePasswordPBKDF2SaltLength, pointer)
+    }
+    guard randomStatus == errSecSuccess else {
+        return nil
+    }
+    guard let hash = pbkdf2HexHash(password: password, salt: salt, iterations: archivePasswordPBKDF2Iterations) else {
+        return nil
+    }
+    let blob = ArchivePasswordPBKDF2Blob(salt: archivePasswordHexString(salt), hash: hash, iterations: archivePasswordPBKDF2Iterations)
+    guard let data = try? JSONEncoder().encode(blob), let string = String(data: data, encoding: .utf8) else {
+        return nil
+    }
+    return string
 }

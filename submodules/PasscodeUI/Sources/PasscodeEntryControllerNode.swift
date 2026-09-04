@@ -315,7 +315,9 @@ final class PasscodeEntryControllerNode: ASDisplayNode {
         }
     }
     
-    private let waitInterval: Int32 = 60
+    // 2 minutes after 6 failures. The subtitle still uses PasscodeSettings_TryAgainIn1Minute
+    // (no duration-parameterized localization); the wait itself is what matters for brute-force.
+    private let waitInterval: Int32 = 120
     private func shouldWaitBeforeNextAttempt() -> Bool {
         if let attempts = self.invalidAttempts {
             if attempts.count >= 6 {

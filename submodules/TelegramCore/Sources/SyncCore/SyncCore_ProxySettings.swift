@@ -121,7 +121,10 @@ public struct ProxySettings: Codable, Equatable {
     public var webSocketFallbackToDirect: Bool
     
     public static var defaultSettings: ProxySettings {
-        return ProxySettings(enabled: false, servers: [], activeServer: nil, useForCalls: false, useLocalDNSForProxyHosts: false, autoRotateProxies: false, proxyRotationTimeoutIndex: ProxyRotationTimeouts.defaultIndex, autoFetchPublicMtProxy: false, automaticServers: [], webSocketTransportEnabled: true, webSocketFallbackToDirect: true)
+        // `useForCalls: true` so a new install (or a first write of never-stored prefs) routes
+        // VoIP through the proxy once one is enabled. Existing accounts keep whatever was last
+        // encoded in SharedData — `init(from:)` reads the stored Int32 and does not consult this.
+        return ProxySettings(enabled: false, servers: [], activeServer: nil, useForCalls: true, useLocalDNSForProxyHosts: false, autoRotateProxies: false, proxyRotationTimeoutIndex: ProxyRotationTimeouts.defaultIndex, autoFetchPublicMtProxy: false, automaticServers: [], webSocketTransportEnabled: true, webSocketFallbackToDirect: true)
     }
     
     public init(enabled: Bool, servers: [ProxyServerSettings], activeServer: ProxyServerSettings?, useForCalls: Bool, useLocalDNSForProxyHosts: Bool = false, autoRotateProxies: Bool = false, proxyRotationTimeoutIndex: Int32 = ProxyRotationTimeouts.defaultIndex, autoFetchPublicMtProxy: Bool = false, automaticServers: [ProxyServerSettings] = [], webSocketTransportEnabled: Bool = true, webSocketFallbackToDirect: Bool = true) {

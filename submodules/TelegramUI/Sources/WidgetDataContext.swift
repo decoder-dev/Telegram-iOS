@@ -96,6 +96,7 @@ final class WidgetDataContext {
     private var disposable: Disposable?
     private var widgetPresentationDataDisposable: Disposable?
     private var notificationPresentationDataDisposable: Disposable?
+    private var appLockDisposable: Disposable?
     
     init(basePath: String, inForeground: Signal<Bool, NoError>, activeAccounts: Signal<[Account], NoError>, presentationData: Signal<PresentationData, NoError>, appLockContext: AppLockContextImpl) {
         self.reloadManager = WidgetReloadManager(inForeground: inForeground)
@@ -271,6 +272,12 @@ final class WidgetDataContext {
             self?.reloadManager.requestReload()
         })
         
+        self.appLockDisposable = (appLockContext.isCurrentlyLocked
+        |> distinctUntilChanged
+        |> deliverOnMainQueue).startStrict(next: { [weak self] _ in
+            self?.reloadManager.requestReload()
+        })
+        
         self.widgetPresentationDataDisposable = (presentationData
         |> map { presentationData -> WidgetPresentationData in
             return WidgetPresentationData(
@@ -339,5 +346,6 @@ final class WidgetDataContext {
         self.disposable?.dispose()
         self.widgetPresentationDataDisposable?.dispose()
         self.notificationPresentationDataDisposable?.dispose()
+        self.appLockDisposable?.dispose()
     }
 }

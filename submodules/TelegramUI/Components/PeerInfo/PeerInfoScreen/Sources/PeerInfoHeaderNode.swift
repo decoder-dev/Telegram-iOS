@@ -1231,7 +1231,10 @@ final class PeerInfoHeaderNode: ASDisplayNode {
                 title = "" //"\u{00A0}"
             }
             if title.isEmpty {
-                if case let .user(user) = peer, let phone = user.phone {
+                let hideOwnIdentity = forkHidesOwnIdentity(accountPeerId: self.context.account.peerId, peerId: peer.id, settings: self.context.sharedContext.immediateForkExtrasSettings)
+                if hideOwnIdentity {
+                    title = ForkExtrasSettings.streamerHiddenLabel
+                } else if case let .user(user) = peer, let phone = user.phone {
                     title = formatPhoneNumber(context: self.context, number: phone)
                 } else if let addressName = peer.addressName {
                     title = "@\(addressName)"
@@ -1245,9 +1248,10 @@ final class PeerInfoHeaderNode: ASDisplayNode {
             smallTitleAttributes = MultiScaleTextState.Attributes(font: Font.medium(28.0), color: .white, shadowColor: titleShadowColor)
             
             if self.isSettings, case let .user(user) = peer {
-                var subtitle = formatPhoneNumber(context: self.context, number: user.phone ?? "")
+                let hideOwnIdentity = forkHidesOwnIdentity(accountPeerId: self.context.account.peerId, peerId: peer.id, settings: self.context.sharedContext.immediateForkExtrasSettings)
+                var subtitle = hideOwnIdentity ? ForkExtrasSettings.streamerHiddenLabel : formatPhoneNumber(context: self.context, number: user.phone ?? "")
                 
-                if let mainUsername = user.addressName, !mainUsername.isEmpty {
+                if !hideOwnIdentity, let mainUsername = user.addressName, !mainUsername.isEmpty {
                     subtitle = "\(subtitle) • @\(mainUsername)"
                 }
                 subtitleStringText = subtitle
@@ -1401,7 +1405,8 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         self.subtitleNode.isAccessibilityElement = !subtitleIsButton
         var subtitleAccessibilityActions: [UIAccessibilityCustomAction] = []
         if self.isSettings, case let .user(user) = peer {
-            if let phone = user.phone, !phone.isEmpty {
+            let hideOwnIdentity = forkHidesOwnIdentity(accountPeerId: self.context.account.peerId, peerId: user.id, settings: self.context.sharedContext.immediateForkExtrasSettings)
+            if !hideOwnIdentity, let phone = user.phone, !phone.isEmpty {
                 subtitleAccessibilityActions.append(PeerInfoHeaderAccessibilityAction(name: presentationData.strings.Settings_CopyPhoneNumber, target: self, selector: #selector(self.performAccessibilityAction(_:)), perform: { [weak self] in
                     guard let self else {
                         return
@@ -1409,7 +1414,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
                     self.displayCopyContextMenu?(self.subtitleNodeRawContainer, true, false)
                 }))
             }
-            if let username = user.addressName, !username.isEmpty {
+            if !hideOwnIdentity, let username = user.addressName, !username.isEmpty {
                 subtitleAccessibilityActions.append(PeerInfoHeaderAccessibilityAction(name: presentationData.strings.Settings_CopyUsername, target: self, selector: #selector(self.performAccessibilityAction(_:)), perform: { [weak self] in
                     guard let self else {
                         return

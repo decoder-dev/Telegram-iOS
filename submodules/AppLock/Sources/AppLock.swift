@@ -10,6 +10,9 @@ import PasscodeUI
 import TelegramUIPreferences
 import AppLockState
 import PassKit
+#if canImport(WidgetKit)
+import WidgetKit
+#endif
 
 private func isLocked(passcodeSettings: PresentationPasscodeSettings, state: LockState, isApplicationActive: Bool) -> Bool {
     if state.isManuallyLocked {
@@ -33,6 +36,16 @@ private func isLocked(passcodeSettings: PresentationPasscodeSettings, state: Loc
         }
     }
     return false
+}
+
+private func reloadWidgetTimelinesAfterLockStateChange() {
+    #if canImport(WidgetKit)
+    if #available(iOS 14.0, *) {
+        #if arch(arm64) || arch(i386) || arch(x86_64)
+        WidgetCenter.shared.reloadAllTimelines()
+        #endif
+    }
+    #endif
 }
 
 public final class AppLockContextImpl: AppLockContext {
@@ -309,14 +322,20 @@ public final class AppLockContextImpl: AppLockContext {
         Queue.mainQueue().async {
             let updatedState = f(self.currentStateValue)
             if updatedState != self.currentStateValue {
+                let wasLocked = isAppLocked(state: self.currentStateValue)
                 self.currentStateValue = updatedState
                 self.currentState.set(.single(updatedState))
                 
                 let path = appLockStatePath(rootPath: self.rootPath)
+                let nowLocked = isAppLocked(state: updatedState)
+                let reloadWidgets = wasLocked != nowLocked
                 
                 self.syncQueue.async {
                     if let data = try? JSONEncoder().encode(updatedState) {
                         let _ = try? data.write(to: URL(fileURLWithPath: path), options: .atomic)
+                    }
+                    if reloadWidgets {
+                        reloadWidgetTimelinesAfterLockStateChange()
                     }
                 }
             }
@@ -352,6 +371,7 @@ public final class AppLockContextImpl: AppLockContext {
     }
     
     public func lock() {
+        // Widget timelines reload after lockState.json is persisted in updateLockState.
         self.updateLockState { state in
             var state = state
             state.isManuallyLocked = true

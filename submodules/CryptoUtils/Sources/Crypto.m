@@ -29,6 +29,19 @@ NSData * _Nonnull CryptoSHA512(const void * _Nonnull bytes, int count) {
     return result;
 }
 
+NSData * _Nullable CryptoPBKDF2HMACSHA256(NSData * _Nonnull password, NSData * _Nonnull salt, int rounds, int derivedKeyLength) {
+    if (rounds <= 0 || derivedKeyLength <= 0 || salt.length == 0) {
+        return nil;
+    }
+    NSMutableData *result = [[NSMutableData alloc] initWithLength:(NSUInteger)derivedKeyLength];
+    const char *passwordBytes = password.length > 0 ? (const char *)password.bytes : "";
+    CCStatus status = CCKeyDerivationPBKDF(kCCPBKDF2, passwordBytes, password.length, salt.bytes, salt.length, kCCPRFHmacAlgSHA256, (unsigned int)rounds, result.mutableBytes, result.length);
+    if (status != kCCSuccess) {
+        return nil;
+    }
+    return result;
+}
+
 @interface IncrementalMD5 () {
     CC_MD5_CTX _ctx;
 }
