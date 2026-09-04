@@ -4,6 +4,7 @@ import UserNotifications
 import Display
 import SwiftSignalKit
 import TelegramCore
+import TelegramPresentationData
 import TelegramUIPreferences
 import AccountContext
 import LocalAuth
@@ -830,15 +831,6 @@ private func dismissPresentedArchiveControllers(from navigationController: UINav
         }
     }
     
-    if let navigationHost = navigationController as? ViewController {
-        collectFromHost(navigationHost)
-        navigationHost.window?.forEachController { contained in
-            if let viewController = contained as? ViewController {
-                enqueue(viewController)
-            }
-        }
-    }
-    
     for controller in navigationController.viewControllers {
         if let viewController = controller as? ViewController {
             collectFromHost(viewController)
@@ -846,6 +838,11 @@ private func dismissPresentedArchiveControllers(from navigationController: UINav
     }
     
     if let navigationController = navigationController as? NavigationController {
+        navigationController.currentWindow?.forEachController { contained in
+            if let viewController = contained as? ViewController {
+                enqueue(viewController)
+            }
+        }
         for overlay in navigationController.overlayControllers {
             enqueue(overlay)
         }
