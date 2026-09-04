@@ -167,6 +167,14 @@ final class AuthorizedApplicationContext {
         self.context = context
         
         bindArchiveLockSession(context: context)
+        
+        self.showCallsTab = showCallsTab
+        
+        self.notificationController = NotificationContainerController(context: context)
+        
+        self.rootController = TelegramRootController(context: context)
+        
+        // Handlers capture `self`; assign only after all stored properties (incl. rootController) are set.
         ArchiveLockSession.shared.willRelockHandler = { [weak self] in
             guard let self else {
                 return
@@ -179,12 +187,6 @@ final class AuthorizedApplicationContext {
             }
             restoreArchivePrivacyOnBecomeActive(context: self.context)
         }
-        
-        self.showCallsTab = showCallsTab
-        
-        self.notificationController = NotificationContainerController(context: context)
-        
-        self.rootController = TelegramRootController(context: context)
         self.rootController.minimizedContainer = self.sharedApplicationContext.minimizedContainer[context.account.id]
         self.rootController.minimizedContainerUpdated = { [weak self] minimizedContainer in
             guard let self else {
