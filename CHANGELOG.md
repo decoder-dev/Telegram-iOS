@@ -6,6 +6,11 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3951-pre]
+
+### Fixed
+- **Archive lock:** opening Archive no longer pops itself after Face ID/Touch ID — become-active privacy restore only dismisses when the session is still locked, and biometric unlock suppresses background relock so resign-active from the system prompt cannot clear reveal mid-unlock.
+
 ## [v12.9.2-3950-pre]
 
 ### Changed
