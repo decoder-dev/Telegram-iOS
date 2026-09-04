@@ -128,6 +128,10 @@ public final class ArchiveLockSession {
     /// registered after `bindBackgroundRelock` (first-wins) has already claimed the slot.
     private var willRelockHandlerValue: (() -> Void)?
     private var didBecomeActiveHandlerValue: (() -> Void)?
+    /// >0 while Archive biometric unlock is in progress. Face ID/Touch ID resigns active and
+    /// would otherwise `relock()` mid-prompt (clear reveal + schedule dismiss of the folder
+    /// we are about to open).
+    private var suppressBackgroundRelockCount: Int = 0
     private var collapseGeneration: Int = 0
     private let relockedPipe = ValuePipe<Void>()
     private let revealedPromise = ValuePromise<Bool>(false, ignoreRepeated: true)
@@ -385,6 +389,18 @@ public final class ArchiveLockSession {
         return true
     }
     
+    public func beginSuppressBackgroundRelock() {
+        self.lock.lock()
+        self.suppressBackgroundRelockCount += 1
+        self.lock.unlock()
+    }
+    
+    public func endSuppressBackgroundRelock() {
+        self.lock.lock()
+        self.suppressBackgroundRelockCount = max(0, self.suppressBackgroundRelockCount - 1)
+        self.lock.unlock()
+    }
+    
     /// App-switcher cover, installed from TelegramUI where `Window1` is available. Invoked on
     /// the main queue immediately before `relock()` so the snapshot still sees `isUnlocked`.
     public var willRelockHandler: (() -> Void)? {
@@ -518,9 +534,18 @@ public final class ArchiveLockSession {
                 didBecomeActive?()
                 self?.didBecomeActiveHandler?()
             } else {
+                guard let self else {
+                    return
+                }
+                self.lock.lock()
+                let suppressed = self.suppressBackgroundRelockCount > 0
+                self.lock.unlock()
+                if suppressed {
+                    return
+                }
                 willRelock?()
-                self?.willRelockHandler?()
-                self?.relock()
+                self.willRelockHandler?()
+                self.relock()
             }
         })
         self.lock.lock()

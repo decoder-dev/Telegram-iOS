@@ -200,7 +200,11 @@ public func prepareArchivePrivacyOnResignActive(context: AccountContext) {
 
 /// Drop remaining Archive surfaces, then remove the switcher cover only once they are gone.
 public func restoreArchivePrivacyOnBecomeActive(context: AccountContext) {
-    if ArchiveLockSession.shared.isLockActive {
+    // Only sweep when the session is *locked*. `isLockActive` is also true while unlocked
+    // (passwordConfigured || unlocked), and Face ID / Touch ID for Archive unlock resigns
+    // active then becomes active again — dismissing here would pop the Archive that just
+    // opened after a successful biometric unlock.
+    if ArchiveLockSession.shared.isPasswordConfigured && !ArchiveLockSession.shared.isUnlocked {
         dismissOpenArchiveControllers(from: archiveNavigationController(context: context), context: context)
     }
     removeArchiveLockSwitcherCover(context: context)
@@ -434,8 +438,12 @@ public func ensureArchiveUnlocked(
         // set (checked above) and the user opted in per-account. A cancel/failure always
         // falls through to the password prompt — never a dead end.
         if settings.useBiometrics, LocalAuth.biometricAuthentication != nil {
+            // Biometric UI resigns active; suppress Archive background-relock for that window
+            // so Face ID does not clear reveal / dismiss the folder mid-unlock.
+            ArchiveLockSession.shared.beginSuppressBackgroundRelock()
             let _ = (LocalAuth.auth(reason: ArchiveLockLocalizedString.biometricReason)
             |> deliverOnMainQueue).start(next: { success, _ in
+                ArchiveLockSession.shared.endSuppressBackgroundRelock()
                 if success {
                     // Same reset the password path does on success. Both outcomes mean the owner
                     // proved who they are, and the counter throttles guessing, not the owner — but
