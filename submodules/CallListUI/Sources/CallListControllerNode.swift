@@ -18,6 +18,32 @@ import ItemListPeerActionItem
 import EdgeEffect
 import ComponentFlow
 import ComponentDisplayAdapters
+import Postbox
+
+private func archiveLockedPeerIdsSignal(context: AccountContext) -> Signal<Set<EnginePeer.Id>, NoError> {
+    let passwordConfigured = context.engine.data.subscribe(
+        TelegramEngine.EngineData.Item.Configuration.ApplicationSpecificPreference(key: ApplicationSpecificPreferencesKeys.chatArchiveSettings)
+    )
+    |> map { preference -> Bool in
+        let settings = preference?.get(ChatArchiveSettings.self) ?? .default
+        return settings.isPasswordConfigured
+    }
+    |> distinctUntilChanged
+    
+    return combineLatest(
+        passwordConfigured,
+        context.engine.messages.chatList(group: .archive, count: 100)
+    )
+    |> mapToSignal { configured, _ -> Signal<Set<EnginePeer.Id>, NoError> in
+        if !configured {
+            return .single([])
+        }
+        return context.account.postbox.transaction { transaction in
+            return archiveLockedPeerIds(transaction: transaction)
+        }
+    }
+    |> distinctUntilChanged
+}
 
 private struct CallListNodeListViewTransition {
     let callListView: CallListNodeView
@@ -537,12 +563,13 @@ final class CallListControllerNode: ASDisplayNode {
             self.statePromise.get(),
             groupCalls,
             showCallsTab,
-            currentGroupCallPeerId
+            currentGroupCallPeerId,
+            archiveLockedPeerIdsSignal(context: context)
         )
-        |> mapToQueue { (updateAndType, state, groupCalls, showCallsTab, currentGroupCallPeerId) -> Signal<CallListNodeListViewTransition, NoError> in
+        |> mapToQueue { (updateAndType, state, groupCalls, showCallsTab, currentGroupCallPeerId, lockedArchivePeerIds) -> Signal<CallListNodeListViewTransition, NoError> in
             let (update, type) = updateAndType
             
-            let processedView = CallListNodeView(originalView: update.view, filteredEntries: callListNodeEntriesForView(view: update.view, displayOpenNewCall: type == .all, groupCalls: groupCalls, state: state, showSettings: showSettings, showCallsTab: showCallsTab, isRecentCalls: type == .all, currentGroupCallPeerId: currentGroupCallPeerId), presentationData: state.presentationData)
+            let processedView = CallListNodeView(originalView: update.view, filteredEntries: callListNodeEntriesForView(view: update.view, displayOpenNewCall: type == .all, groupCalls: groupCalls, state: state, showSettings: showSettings, showCallsTab: showCallsTab, isRecentCalls: type == .all, currentGroupCallPeerId: currentGroupCallPeerId, lockedPeerIds: lockedArchivePeerIds), presentationData: state.presentationData)
             let previous = previousView.swap(processedView)
             let previousType = previousType.swap(type)
                         

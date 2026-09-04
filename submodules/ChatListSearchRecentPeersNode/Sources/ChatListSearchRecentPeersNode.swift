@@ -13,6 +13,7 @@ import AccountContext
 import TelegramUIPreferences
 import AnimationCache
 import MultiAnimationRenderer
+import Postbox
 
 private func calculateItemCustomWidth(width: CGFloat) -> CGFloat {
     let itemInsets = UIEdgeInsets(top: 0.0, left: 6.0, bottom: 0.0, right: 6.0)
@@ -245,60 +246,66 @@ public final class ChatListSearchRecentPeersNode: ASDisplayNode {
             case .disabled:
                 return .single(([], [:], [:]))
             case let .peers(peers):
-                return combineLatest(queue: .mainQueue(),
-                    peers.filter {
-                        !$0.isDeleted
-                    }.map {
-                        stateManager.postbox.peerView(id: $0.id)
+                return stateManager.postbox.transaction { transaction -> [EnginePeer] in
+                    return peers.filter { !$0.isDeleted && !archiveNotificationShouldRedact(transaction: transaction, peerId: $0.id) }.map { EnginePeer($0) }
+                }
+                |> mapToSignal { peers -> Signal<([EnginePeer], [EnginePeer.Id: (Int32, Bool)], [EnginePeer.Id : EnginePeer.Presence]), NoError> in
+                    if peers.isEmpty {
+                        return .single(([], [:], [:]))
                     }
-                )
-                |> mapToSignal { peerViews -> Signal<([EnginePeer], [EnginePeer.Id: (Int32, Bool)], [EnginePeer.Id: EnginePeer.Presence]), NoError> in
-                    return stateManager.postbox.combinedView(keys: peerViews.map { item -> EngineRawPostboxViewKey in
-                        let key = EngineRawPostboxViewKey.unreadCounts(items: [EngineRawUnreadMessageCountsItem.peer(id: item.peerId, handleThreads: true)])
-                        return key
-                    })
-                    |> map { views -> [EnginePeer.Id: Int] in
-                        var result: [EnginePeer.Id: Int] = [:]
-                        for item in peerViews {
+                    return combineLatest(queue: .mainQueue(),
+                        peers.map {
+                            stateManager.postbox.peerView(id: $0.id)
+                        }
+                    )
+                    |> mapToSignal { peerViews -> Signal<([EnginePeer], [EnginePeer.Id: (Int32, Bool)], [EnginePeer.Id: EnginePeer.Presence]), NoError> in
+                        return stateManager.postbox.combinedView(keys: peerViews.map { item -> EngineRawPostboxViewKey in
                             let key = EngineRawPostboxViewKey.unreadCounts(items: [EngineRawUnreadMessageCountsItem.peer(id: item.peerId, handleThreads: true)])
+                            return key
+                        })
+                        |> map { views -> [EnginePeer.Id: Int] in
+                            var result: [EnginePeer.Id: Int] = [:]
+                            for item in peerViews {
+                                let key = EngineRawPostboxViewKey.unreadCounts(items: [EngineRawUnreadMessageCountsItem.peer(id: item.peerId, handleThreads: true)])
 
-                            if let view = views.views[key] as? EngineRawUnreadMessageCountsView {
-                                result[item.peerId] = Int(view.count(for: .peer(id: item.peerId, handleThreads: true)) ?? 0)
-                            } else {
-                                result[item.peerId] = 0
+                                if let view = views.views[key] as? EngineRawUnreadMessageCountsView {
+                                    result[item.peerId] = Int(view.count(for: .peer(id: item.peerId, handleThreads: true)) ?? 0)
+                                } else {
+                                    result[item.peerId] = 0
+                                }
                             }
+                            return result
                         }
-                        return result
-                    }
-                    |> map { unreadCounts in
-                        var peers: [EnginePeer] = []
-                        var unread: [EnginePeer.Id: (Int32, Bool)] = [:]
-                        var presences: [EnginePeer.Id: EnginePeer.Presence] = [:]
-                        for peerView in peerViews {
-                            if let peer = peerViewMainPeer(peerView) {
-                                var isMuted: Bool = false
-                                if let notificationSettings = peerView.notificationSettings as? TelegramPeerNotificationSettings {
-                                    switch notificationSettings.muteState {
-                                    case .muted:
-                                        isMuted = true
-                                    default:
-                                        break
+                        |> map { unreadCounts in
+                            var peers: [EnginePeer] = []
+                            var unread: [EnginePeer.Id: (Int32, Bool)] = [:]
+                            var presences: [EnginePeer.Id: EnginePeer.Presence] = [:]
+                            for peerView in peerViews {
+                                if let peer = peerViewMainPeer(peerView) {
+                                    var isMuted: Bool = false
+                                    if let notificationSettings = peerView.notificationSettings as? TelegramPeerNotificationSettings {
+                                        switch notificationSettings.muteState {
+                                        case .muted:
+                                            isMuted = true
+                                        default:
+                                            break
+                                        }
                                     }
+                                    
+                                    let unreadCount = unreadCounts[peerView.peerId]
+                                    if let unreadCount, unreadCount > 0 {
+                                        unread[peerView.peerId] = (Int32(unreadCount), isMuted)
+                                    }
+                                    
+                                    if let presence = peerView.peerPresences[peer.id] {
+                                        presences[peer.id] = EnginePeer.Presence(presence)
+                                    }
+                                    
+                                    peers.append(EnginePeer(peer))
                                 }
-                                
-                                let unreadCount = unreadCounts[peerView.peerId]
-                                if let unreadCount, unreadCount > 0 {
-                                    unread[peerView.peerId] = (Int32(unreadCount), isMuted)
-                                }
-                                
-                                if let presence = peerView.peerPresences[peer.id] {
-                                    presences[peer.id] = EnginePeer.Presence(presence)
-                                }
-                                
-                                peers.append(EnginePeer(peer))
                             }
+                            return (peers, unread, presences)
                         }
-                        return (peers, unread, presences)
                     }
                 }
             }

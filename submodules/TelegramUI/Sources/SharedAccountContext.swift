@@ -2064,6 +2064,9 @@ public final class SharedAccountContextImpl: SharedAccountContext {
     }
     
     public func makePeerInfoController(context: AccountContext, updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>)?, peer: EnginePeer, mode: PeerInfoControllerMode, avatarInitiallyExpanded: Bool, fromChat: Bool, requestsContext: PeerInvitationImportersContext?) -> ViewController? {
+        if !fromChat && !archivePeerInfoAllowed(context: context, peerId: peer.id) {
+            return nil
+        }
         let controller = peerInfoControllerImpl(context: context, updatedPresentationData: updatedPresentationData, peer: peer, mode: mode, avatarInitiallyExpanded: avatarInitiallyExpanded, isOpenedFromChat: fromChat)
         controller?.navigationPresentation = .modalInLargeLayout
         return controller
@@ -3501,17 +3504,30 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             guard let self, let controller else {
                 return
             }
-            if let infoController = self.makePeerInfoController(
-                context: context,
-                updatedPresentationData: nil,
-                peer: peer,
-                mode: .generic,
-                avatarInitiallyExpanded: peer.smallProfileImage != nil,
-                fromChat: false,
-                requestsContext: nil
-            ) {
-                controller.replace(with: infoController)
-            }
+            ensureArchivedPeerAccessible(context: context, peerId: peer.id, present: { [weak controller] unlockController in
+                controller?.present(unlockController, in: .window(.root))
+            }, completion: { [weak self, weak controller] result in
+                guard let self, let controller else {
+                    return
+                }
+                switch result {
+                case .cancelled:
+                    return
+                case .unlocked, .notProtected:
+                    break
+                }
+                if let infoController = self.makePeerInfoController(
+                    context: context,
+                    updatedPresentationData: nil,
+                    peer: peer,
+                    mode: .generic,
+                    avatarInitiallyExpanded: peer.smallProfileImage != nil,
+                    fromChat: false,
+                    requestsContext: nil
+                ) {
+                    controller.replace(with: infoController)
+                }
+            })
         }
         
         presentBirthdayPickerImpl = { [weak controller] in
@@ -3645,55 +3661,76 @@ public final class SharedAccountContextImpl: SharedAccountContext {
                                 }
                                 dismissAlertImpl?()
                                 
-                                var controllers = navigationController.viewControllers
-                                controllers = controllers.filter { !($0 is ContactSelectionController) }
-                                if !isChannelGift {
-                                    if peer.id.namespace == Namespaces.Peer.CloudChannel {
-                                        if let controller = context.sharedContext.makePeerInfoController(
-                                            context: context,
-                                            updatedPresentationData: nil,
-                                            peer: peer,
-                                            mode: .gifts,
-                                            avatarInitiallyExpanded: false,
-                                            fromChat: false,
-                                            requestsContext: nil
-                                        ) {
-                                            controllers.append(controller)
-                                        }
-                                    } else {
-                                        var foundController = false
-                                        for controller in controllers.reversed() {
-                                            if let chatController = controller as? ChatController, case .peer(id: peer.id) = chatController.chatLocation {
+                                let presentUnlock: (ViewController) -> Void = { unlockController in
+                                    if let lastController = navigationController.viewControllers.last as? ViewController {
+                                        lastController.present(unlockController, in: .window(.root))
+                                    }
+                                }
+                                
+                                let finishNavigation: (Bool) -> Void = { openPeer in
+                                    var controllers = navigationController.viewControllers
+                                    controllers = controllers.filter { !($0 is ContactSelectionController) }
+                                    if openPeer, !isChannelGift {
+                                        if peer.id.namespace == Namespaces.Peer.CloudChannel {
+                                            if let controller = context.sharedContext.makePeerInfoController(
+                                                context: context,
+                                                updatedPresentationData: nil,
+                                                peer: peer,
+                                                mode: .gifts,
+                                                avatarInitiallyExpanded: false,
+                                                fromChat: false,
+                                                requestsContext: nil
+                                            ) {
+                                                controllers.append(controller)
+                                            }
+                                        } else {
+                                            var foundController = false
+                                            for controller in controllers.reversed() {
+                                                if let chatController = controller as? ChatController, case .peer(id: peer.id) = chatController.chatLocation {
+                                                    chatController.hintPlayNextOutgoingGift()
+                                                    foundController = true
+                                                    break
+                                                }
+                                            }
+                                            if !foundController {
+                                                let chatController = context.sharedContext.makeChatController(context: context, chatLocation: .peer(id: peer.id), subject: nil, botStart: nil, mode: .standard(.default), params: nil)
                                                 chatController.hintPlayNextOutgoingGift()
-                                                foundController = true
-                                                break
+                                                controllers.append(chatController)
                                             }
                                         }
-                                        if !foundController {
-                                            let chatController = context.sharedContext.makeChatController(context: context, chatLocation: .peer(id: peer.id), subject: nil, botStart: nil, mode: .standard(.default), params: nil)
-                                            chatController.hintPlayNextOutgoingGift()
-                                            controllers.append(chatController)
+                                    }
+                                    navigationController.setViewControllers(controllers, animated: true)
+                                    
+                                    Queue.mainQueue().after(0.3) {
+                                        let tooltipController = UndoOverlayController(
+                                            presentationData: presentationData,
+                                            content: .forward(savedMessages: false, text: presentationData.strings.Gift_Transfer_Success("\(gift.title) #\(formatCollectibleNumber(gift.number, dateTimeFormat: presentationData.dateTimeFormat))", peer.displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder)).string),
+                                            elevatedLayout: false,
+                                            action: { _ in return true }
+                                        )
+                                        if let lastController = navigationController.viewControllers.last as? ViewController {
+                                            lastController.present(tooltipController, in: .window(.root))
+                                        }
+                                        
+                                        Queue.mainQueue().after(0.5) {
+                                            var controllers = navigationController.viewControllers
+                                            controllers = controllers.filter { !($0 is GiftViewScreen) }
+                                            navigationController.setViewControllers(controllers, animated: false)
                                         }
                                     }
                                 }
-                                navigationController.setViewControllers(controllers, animated: true)
                                 
-                                Queue.mainQueue().after(0.3) {
-                                    let tooltipController = UndoOverlayController(
-                                        presentationData: presentationData,
-                                        content: .forward(savedMessages: false, text: presentationData.strings.Gift_Transfer_Success("\(gift.title) #\(formatCollectibleNumber(gift.number, dateTimeFormat: presentationData.dateTimeFormat))", peer.displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder)).string),
-                                        elevatedLayout: false,
-                                        action: { _ in return true }
-                                    )
-                                    if let lastController = navigationController.viewControllers.last as? ViewController {
-                                        lastController.present(tooltipController, in: .window(.root))
-                                    }
-                                    
-                                    Queue.mainQueue().after(0.5) {
-                                        var controllers = navigationController.viewControllers
-                                        controllers = controllers.filter { !($0 is GiftViewScreen) }
-                                        navigationController.setViewControllers(controllers, animated: false)
-                                    }
+                                if isChannelGift {
+                                    finishNavigation(false)
+                                } else {
+                                    ensureArchivedPeerAccessible(context: context, peerId: peer.id, present: presentUnlock, completion: { result in
+                                        switch result {
+                                        case .cancelled:
+                                            finishNavigation(false)
+                                        case .unlocked, .notProtected:
+                                            finishNavigation(true)
+                                        }
+                                    })
                                 }
                             })
                         }
@@ -4225,19 +4262,21 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             guard let self else {
                 return
             }
-            if let infoController = self.makePeerInfoController(
+            presentPeerInfoEnsuringArchiveAccess(
                 context: context,
-                updatedPresentationData: nil,
                 peer: peer,
-                mode: .generic,
                 avatarInitiallyExpanded: peer.smallProfileImage != nil,
-                fromChat: false,
-                requestsContext: nil
-            ) {
-                if let navigationController = self.mainWindow?.viewController as? NavigationController {
-                    navigationController.pushViewController(infoController)
+                presentUnlock: { [weak self] unlockController in
+                    if let host = self?.mainWindow?.viewController as? ViewController {
+                        host.present(unlockController, in: .window(.root))
+                    }
+                },
+                push: { [weak self] infoController in
+                    if let navigationController = self?.mainWindow?.viewController as? NavigationController {
+                        navigationController.pushViewController(infoController)
+                    }
                 }
-            }
+            )
         }, completion: completion)
     }
     

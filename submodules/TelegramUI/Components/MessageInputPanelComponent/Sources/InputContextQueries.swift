@@ -6,6 +6,7 @@ import ChatContextQuery
 import AccountContext
 import TelegramUIPreferences
 import SearchPeerMembers
+import Postbox
 
 func textInputStateContextQueryRangeAndType(inputState: TextFieldComponent.InputState) -> [(NSRange, PossibleContextQueryTypes, NSRange?)] {
     return textInputStateContextQueryRangeAndType(inputText: inputState.inputText, selectionRange: inputState.selectionRange)
@@ -201,35 +202,52 @@ private func updatedContextQueryResultStateForQuery(context: AccountContext, cha
                 }
                 return { _ in return .mentions(sortedPeers) }
             }
+            |> mapToSignal { result -> Signal<(ChatPresentationInputQueryResult?) -> ChatPresentationInputQueryResult?, NoError> in
+                return context.account.postbox.transaction { transaction -> (ChatPresentationInputQueryResult?) -> ChatPresentationInputQueryResult? in
+                    return { previous in
+                        guard case let .mentions(peers)? = result(previous) else {
+                            return result(previous)
+                        }
+                        return .mentions(peers.filter { !archiveNotificationShouldRedact(transaction: transaction, peerId: $0.id) })
+                    }
+                }
+            }
             |> castError(ChatContextQueryError.self)
             
             return signal |> then(participants)
         } else {
             if normalizedQuery.isEmpty {
                 let peers: Signal<(ChatPresentationInputQueryResult?) -> ChatPresentationInputQueryResult?, ChatContextQueryError> = context.engine.peers.recentPeers()
-                |> map { recentPeers -> (ChatPresentationInputQueryResult?) -> ChatPresentationInputQueryResult? in
-                    if case let .peers(peers) = recentPeers {
-                        let peers = peers.filter { peer in
-                            return peer.addressName != nil
-                        }.compactMap { EnginePeer($0) }
-                        return { _ in return .mentions(peers) }
-                    } else {
-                        return { _ in return .mentions([]) }
+                |> mapToSignal { recentPeers -> Signal<(ChatPresentationInputQueryResult?) -> ChatPresentationInputQueryResult?, NoError> in
+                    return context.account.postbox.transaction { transaction -> (ChatPresentationInputQueryResult?) -> ChatPresentationInputQueryResult? in
+                        if case let .peers(peers) = recentPeers {
+                            let peers = peers.filter { peer in
+                                return peer.addressName != nil && !archiveNotificationShouldRedact(transaction: transaction, peerId: peer.id)
+                            }.compactMap { EnginePeer($0) }
+                            return { _ in return .mentions(peers) }
+                        } else {
+                            return { _ in return .mentions([]) }
+                        }
                     }
                 }
                 |> castError(ChatContextQueryError.self)
                 return signal |> then(peers)
             } else {
                 let peers: Signal<(ChatPresentationInputQueryResult?) -> ChatPresentationInputQueryResult?, ChatContextQueryError> = context.engine.contacts.searchLocalPeers(query: normalizedQuery)
-                |> map { peersAndPresences -> (ChatPresentationInputQueryResult?) -> ChatPresentationInputQueryResult? in
-                    let peers = peersAndPresences.filter { peer in
-                        if let peer = peer.peer, case .user = peer, peer.addressName != nil {
-                            return true
-                        } else {
-                            return false
-                        }
-                    }.compactMap { $0.peer }
-                    return { _ in return .mentions(peers) }
+                |> mapToSignal { peersAndPresences -> Signal<(ChatPresentationInputQueryResult?) -> ChatPresentationInputQueryResult?, NoError> in
+                    return context.account.postbox.transaction { transaction -> (ChatPresentationInputQueryResult?) -> ChatPresentationInputQueryResult? in
+                        let peers = peersAndPresences.filter { peer in
+                            if archiveNotificationShouldRedact(transaction: transaction, peerId: peer.peerId) {
+                                return false
+                            }
+                            if let peer = peer.peer, case .user = peer, peer.addressName != nil {
+                                return true
+                            } else {
+                                return false
+                            }
+                        }.compactMap { $0.peer }
+                        return { _ in return .mentions(peers) }
+                    }
                 }
                 |> castError(ChatContextQueryError.self)
                 return signal |> then(peers)

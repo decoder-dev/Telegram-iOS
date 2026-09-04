@@ -2269,7 +2269,25 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
             if self.previewing {
                 self.storiesReady.set(.single(true))
             } else {
-                self.storySubscriptionsDisposable = (self.context.engine.messages.storySubscriptions(isHidden: self.location == .chatList(groupId: .archive))
+                let location = self.location
+                let context = self.context
+                self.storySubscriptionsDisposable = (context.engine.messages.storySubscriptions(isHidden: location == .chatList(groupId: .archive))
+                |> mapToSignal { subscriptions -> Signal<EngineStorySubscriptions, NoError> in
+                    if case .chatList(groupId: .archive) = location {
+                        return .single(subscriptions)
+                    }
+                    return context.account.postbox.transaction { transaction -> EngineStorySubscriptions in
+                        let locked = archiveLockedPeerIds(transaction: transaction)
+                        if locked.isEmpty {
+                            return subscriptions
+                        }
+                        return EngineStorySubscriptions(
+                            accountItem: subscriptions.accountItem,
+                            items: subscriptions.items.filter { !locked.contains($0.peer.id) },
+                            hasMoreToken: subscriptions.hasMoreToken
+                        )
+                    }
+                }
                 |> deliverOnMainQueue).startStrict(next: { [weak self] rawStorySubscriptions in
                     guard let self else {
                         return
@@ -2933,6 +2951,13 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
         self.featuredFiltersDisposable.set(nil)
     }
     
+    override public func viewWillLeaveNavigation() {
+        super.viewWillLeaveNavigation()
+        // Interactive pop of the Archive folder completes here while this controller is
+        // still the top of `_viewControllers`; treat it as leaving the folder, not a push.
+        self.relockArchiveSessionIfLeavingFolder(isLeavingNavigation: true)
+    }
+    
     override public func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
         
@@ -2948,6 +2973,15 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
         if let storyPeerListView = self.chatListHeaderView()?.storyPeerListView() {
             storyPeerListView.cancelLoadingItem()
         }
+        
+        self.relockArchiveSessionIfLeavingFolder(isLeavingNavigation: false)
+    }
+    
+    /// Relock when the Archive folder list leaves the navigation stack (Back to main chats).
+    /// Does not relock while this list is only covered by a pushed archived chat, or for the
+    /// context-menu preview controller. The session must not stay open after that leave.
+    private func relockArchiveSessionIfLeavingFolder(isLeavingNavigation: Bool) {
+        relockArchiveSessionIfLeavingArchivedSurface(leavingController: self, isLeavingNavigation: isLeavingNavigation, context: self.context)
     }
     
     func updateHeaderContent() -> (primaryContent: ChatListHeaderComponent.Content?, secondaryContent: ChatListHeaderComponent.Content?) {
@@ -3462,10 +3496,19 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                                     guard let self else {
                                         return
                                     }
-                                    guard let peer = peer, let controller = self.context.sharedContext.makePeerInfoController(context: self.context, updatedPresentationData: nil, peer: peer, mode: .generic, avatarInitiallyExpanded: false, fromChat: false, requestsContext: nil) else {
+                                    guard let peer else {
                                         return
                                     }
-                                    (self.navigationController as? NavigationController)?.pushViewController(controller)
+                                    presentPeerInfoEnsuringArchiveAccess(
+                                        context: self.context,
+                                        peer: peer,
+                                        presentUnlock: { [weak self] unlockController in
+                                            self?.present(unlockController, in: .window(.root))
+                                        },
+                                        push: { [weak self] controller in
+                                            (self?.navigationController as? NavigationController)?.pushViewController(controller)
+                                        }
+                                    )
                                 })
                             })
                         })))

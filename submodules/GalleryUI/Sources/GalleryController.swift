@@ -723,6 +723,17 @@ public class GalleryController: ViewController, StandalonePresentableController,
     private let source: GalleryControllerItemSource
     private let invertItemOrder: Bool
     
+    public var sourcePeerId: EnginePeer.Id? {
+        switch self.source {
+        case let .peerMessagesAtId(_, chatLocation, _, _):
+            return chatLocation.peerId
+        case let .standaloneMessage(message, _):
+            return message.id.peerId
+        case let .custom(_, messageId, _):
+            return messageId.peerId
+        }
+    }
+    
     private let titleView: GalleryTitleView
     
     private let streamVideos: Bool

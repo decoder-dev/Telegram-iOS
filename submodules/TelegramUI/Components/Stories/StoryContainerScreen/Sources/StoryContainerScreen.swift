@@ -2099,8 +2099,13 @@ public class StoryContainerScreen: ViewControllerComponentContainer, KeyShortcut
     }
     
     private let context: AccountContext
+    private let storyContent: StoryContentContext
     private var didAnimateIn: Bool = false
     private var isDismissed: Bool = false
+    
+    public var focusedPeerId: EnginePeer.Id? {
+        return self.storyContent.stateValue?.slice?.peer.id
+    }
     
     private let focusedItemPromise = Promise<EngineStoryId?>()
     public var focusedItem: Signal<EngineStoryId?, NoError> {
@@ -2117,6 +2122,7 @@ public class StoryContainerScreen: ViewControllerComponentContainer, KeyShortcut
         transitionOut: @escaping (EnginePeer.Id, AnyHashable) -> TransitionOut?
     ) {
         self.context = context
+        self.storyContent = content
         
         super.init(context: context, component: StoryContainerScreenComponent(
             context: context,

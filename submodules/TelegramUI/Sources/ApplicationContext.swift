@@ -166,6 +166,20 @@ final class AuthorizedApplicationContext {
         
         self.context = context
         
+        bindArchiveLockSession(context: context)
+        ArchiveLockSession.shared.willRelockHandler = { [weak self] in
+            guard let self else {
+                return
+            }
+            applyArchiveLockSwitcherCover(context: self.context)
+        }
+        ArchiveLockSession.shared.didBecomeActiveHandler = { [weak self] in
+            guard let self else {
+                return
+            }
+            removeArchiveLockSwitcherCover(context: self.context)
+        }
+        
         self.showCallsTab = showCallsTab
         
         self.notificationController = NotificationContainerController(context: context)

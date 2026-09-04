@@ -2003,6 +2003,11 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
 
         if enableRecentlySearched {
             fixedRecentlySearchedPeers = context.engine.peers.recentlySearchedPeers()
+            |> mapToSignal { peers -> Signal<[RecentlySearchedPeer], NoError> in
+                return context.account.postbox.transaction { transaction -> [RecentlySearchedPeer] in
+                    return peers.filter { !archiveNotificationShouldRedact(transaction: transaction, peerId: $0.peer.peerId) }
+                }
+            }
             |> map { peers -> [RecentlySearchedPeer] in
                 var result: [RecentlySearchedPeer] = []
                 let _ = previousRecentlySearchedPeerOrder.modify { current in
@@ -2349,6 +2354,11 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                     }
                 } else {
                     let fixedOrRemovedRecentlySearchedPeers = context.engine.peers.recentlySearchedPeers()
+                    |> mapToSignal { peers -> Signal<[RecentlySearchedPeer], NoError> in
+                        return context.account.postbox.transaction { transaction -> [RecentlySearchedPeer] in
+                            return peers.filter { !archiveNotificationShouldRedact(transaction: transaction, peerId: $0.peer.peerId) }
+                        }
+                    }
                     |> map { peers -> [RecentlySearchedPeer] in
                         let allIds = peers.map(\.peer.peerId)
 
@@ -2709,6 +2719,13 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                         }
                         return (peers: resultPeers, unread: unread, recentlySearchedPeerIds: Set())
                     }
+                    |> mapToSignal { result -> Signal<(peers: [EngineRenderedPeer], unread: [EnginePeer.Id: (Int32, Bool)], recentlySearchedPeerIds: Set<EnginePeer.Id>), NoError> in
+                        return context.account.postbox.transaction { transaction in
+                            let peers = result.peers.filter { !archiveNotificationShouldRedact(transaction: transaction, peerId: $0.peerId) }
+                            let allowed = Set(peers.map(\.peerId))
+                            return (peers: peers, unread: result.unread.filter { allowed.contains($0.key) }, recentlySearchedPeerIds: result.recentlySearchedPeerIds)
+                        }
+                    }
                 }
             } else {
                 foundLocalPeers = .single((peers: [], unread: [:], recentlySearchedPeerIds: Set()))
@@ -2716,7 +2733,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                 let _ = previousRecentlySearchedPeersState.swap(nil)
             }
 
-            let foundRemotePeers: Signal<([FoundPeer], [FoundPeer], [AdPeer], Bool), NoError>
+            var foundRemotePeers: Signal<([FoundPeer], [FoundPeer], [AdPeer], Bool), NoError>
             let currentRemotePeersValue: ([FoundPeer], [FoundPeer], [AdPeer]) = currentRemotePeers.with { $0 } ?? ([], [], [])
             if communityId != nil {
                 foundRemotePeers = .single(([], [], [], false))
@@ -2752,6 +2769,17 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                 foundRemotePeers = .single(([], [], [], false))
             } else {
                 foundRemotePeers = .single(([], [], [], false))
+            }
+            foundRemotePeers = foundRemotePeers
+            |> mapToSignal { local, global, ads, searching -> Signal<([FoundPeer], [FoundPeer], [AdPeer], Bool), NoError> in
+                return context.account.postbox.transaction { transaction -> ([FoundPeer], [FoundPeer], [AdPeer], Bool) in
+                    return (
+                        local.filter { !archiveNotificationShouldRedact(transaction: transaction, peerId: $0.peer.id) },
+                        global.filter { !archiveNotificationShouldRedact(transaction: transaction, peerId: $0.peer.id) },
+                        ads,
+                        searching
+                    )
+                }
             }
             let searchLocations: [SearchMessagesLocation]
             if key == .globalPosts {

@@ -9,6 +9,7 @@ import TelegramUIPreferences
 import WidgetItemsUtils
 import AccountContext
 import AppLock
+import Postbox
 
 import GeneratedSources
 
@@ -198,46 +199,58 @@ final class WidgetDataContext {
                     continue
                 }
                 
-                accountSignals.append(TelegramEngine(account: account).data.subscribe(EngineDataMap(
-                    peerIds.map(TelegramEngine.EngineData.Item.Messages.TopMessage.init)
-                ))
-                |> map { topMessages -> [WidgetDataPeer] in
-                    var result: [WidgetDataPeer] = []
-                    for (peerId, message) in topMessages {
-                        guard let message = message else {
-                            continue
-                        }
-                        guard let peer = message.peers[message.id.peerId] else {
-                            continue
-                        }
-                        
-                        var name: String = ""
-                        var lastName: String?
-                        
-                        if let user = peer as? TelegramUser {
-                            if let firstName = user.firstName {
-                                name = firstName
-                                lastName = user.lastName
-                            } else if let lastName = user.lastName {
-                                name = lastName
-                            } else if let phone = user.phone, !phone.isEmpty {
-                                name = phone
+                accountSignals.append(combineLatest(
+                    TelegramEngine(account: account).data.subscribe(EngineDataMap(
+                        peerIds.map(TelegramEngine.EngineData.Item.Messages.TopMessage.init)
+                    )),
+                    TelegramEngine(account: account).data.subscribe(
+                        TelegramEngine.EngineData.Item.Configuration.ApplicationSpecificPreference(key: ApplicationSpecificPreferencesKeys.chatArchiveSettings)
+                    ),
+                    TelegramEngine(account: account).messages.chatList(group: .archive, count: 100)
+                )
+                |> mapToSignal { topMessages, _, _ -> Signal<[WidgetDataPeer], NoError> in
+                    return account.postbox.transaction { transaction -> [WidgetDataPeer] in
+                        let locked = archiveLockedPeerIds(transaction: transaction)
+                        var result: [WidgetDataPeer] = []
+                        for (peerId, message) in topMessages {
+                            if locked.contains(peerId) {
+                                continue
                             }
-                        } else {
-                            name = peer.debugDisplayTitle
+                            guard let message = message else {
+                                continue
+                            }
+                            guard let peer = message.peers[message.id.peerId] else {
+                                continue
+                            }
+                            
+                            var name: String = ""
+                            var lastName: String?
+                            
+                            if let user = peer as? TelegramUser {
+                                if let firstName = user.firstName {
+                                    name = firstName
+                                    lastName = user.lastName
+                                } else if let lastName = user.lastName {
+                                    name = lastName
+                                } else if let phone = user.phone, !phone.isEmpty {
+                                    name = phone
+                                }
+                            } else {
+                                name = peer.debugDisplayTitle
+                            }
+                            
+                            var isForum = false
+                            if let peer = peer as? TelegramChannel, peer.isForumOrMonoForum {
+                                isForum = true
+                            }
+                            
+                            result.append(WidgetDataPeer(id: peerId.toInt64(), name: name, lastName: lastName, letters: [], avatarPath: nil, badge: nil, message: WidgetDataPeer.Message(accountPeerId: account.peerId, message: message), isForum: isForum))
                         }
-                        
-                        var isForum = false
-                        if let peer = peer as? TelegramChannel, peer.isForumOrMonoForum {
-                            isForum = true
-                        }
-                        
-                        result.append(WidgetDataPeer(id: peerId.toInt64(), name: name, lastName: lastName, letters: [], avatarPath: nil, badge: nil, message: WidgetDataPeer.Message(accountPeerId: account.peerId, message: message), isForum: isForum))
+                        result.sort(by: { lhs, rhs in
+                            return lhs.id < rhs.id
+                        })
+                        return result
                     }
-                    result.sort(by: { lhs, rhs in
-                        return lhs.id < rhs.id
-                    })
-                    return result
                 })
             }
             

@@ -6,6 +6,9 @@
 
 ## [Unreleased]
 
+### Fixed
+- **Archive lock:** App Switcher cover, leave-chat relock, Spotlight/share/mentions/widgets/search name leaks, Peer Info central gate.
+
 ## [v12.9.2-3949-pre]
 
 ### Fixed

@@ -7,6 +7,8 @@ import TelegramCore
 import TelegramUIPreferences
 import AccountContext
 import LocalAuth
+import GalleryUI
+import StoryContainerScreen
 
 public enum ArchiveUnlockResult {
     case unlocked
@@ -113,13 +115,229 @@ public func archivePasswordProtectionSignal(context: AccountContext) -> Signal<B
     |> distinctUntilChanged
 }
 
+private weak var archiveSwitcherCoveringView: WindowCoveringView?
+
+private func navigationContainsArchiveUI(_ navigationController: NavigationController, archivedPeerIds: Set<EnginePeer.Id>) -> Bool {
+    let check: (UIViewController) -> Bool = { controller in
+        return archiveLockShouldDismiss(controller, archivedPeerIds: archivedPeerIds)
+    }
+    if navigationController.viewControllers.contains(where: check) {
+        return true
+    }
+    if navigationController.overlayControllers.contains(where: check) {
+        return true
+    }
+    if navigationController.globalOverlayControllers.contains(where: check) {
+        return true
+    }
+    if let tabController = navigationController.viewControllers.first as? TabBarController {
+        if tabController.controllers.contains(where: check) {
+            return true
+        }
+    }
+    return false
+}
+
+/// Whether App Switcher would currently snapshot Archive contents: unlocked session plus either
+/// the revealed folder row (names/previews on the main list) or an archive chat/folder/peer-info
+/// controller on the navigation stack.
+private func archiveLockSwitcherCoverNeeded(context: AccountContext) -> Bool {
+    guard ArchiveLockSession.shared.isPasswordConfigured else {
+        return false
+    }
+    guard ArchiveLockSession.shared.isUnlocked else {
+        return false
+    }
+    if ArchiveLockSession.shared.isRevealed {
+        return true
+    }
+    guard let navigationController = context.sharedContext.mainWindow?.viewController as? NavigationController else {
+        return true
+    }
+    return navigationContainsArchiveUI(navigationController, archivedPeerIds: ArchiveLockSession.shared.currentLockedPeerIds())
+}
+
+/// Solid cover on `mainWindow` so the App Switcher snapshot cannot show Archive contents.
+/// Skips if App Lock (or anything else) already owns `coveringView`. Weak-ref stored so
+/// foreground cleanup only removes *this* cover.
+public func applyArchiveLockSwitcherCover(context: AccountContext) {
+    guard archiveLockSwitcherCoverNeeded(context: context) else {
+        return
+    }
+    guard let window = context.sharedContext.mainWindow else {
+        return
+    }
+    if window.coveringView != nil {
+        return
+    }
+    let coveringView = WindowCoveringView()
+    coveringView.backgroundColor = context.sharedContext.currentPresentationData.with({ $0 }).theme.chatList.backgroundColor
+    window.coveringView = coveringView
+    archiveSwitcherCoveringView = coveringView
+}
+
+/// Drop the Archive cover on foreground unless App Lock has replaced it.
+public func removeArchiveLockSwitcherCover(context: AccountContext) {
+    guard let coveringView = archiveSwitcherCoveringView else {
+        return
+    }
+    archiveSwitcherCoveringView = nil
+    guard let window = context.sharedContext.mainWindow else {
+        return
+    }
+    if window.coveringView === coveringView {
+        window.coveringView = nil
+    }
+}
+
+private func archiveLockedPeerIdsSignal(context: AccountContext) -> Signal<Set<EnginePeer.Id>, NoError> {
+    let passwordConfigured = context.engine.data.subscribe(
+        TelegramEngine.EngineData.Item.Configuration.ApplicationSpecificPreference(key: ApplicationSpecificPreferencesKeys.chatArchiveSettings)
+    )
+    |> map { preference -> Bool in
+        let settings = preference?.get(ChatArchiveSettings.self) ?? .default
+        return settings.isPasswordConfigured
+    }
+    |> distinctUntilChanged
+    
+    return combineLatest(
+        passwordConfigured,
+        context.engine.messages.chatList(group: .archive, count: 100)
+    )
+    |> mapToSignal { configured, _ -> Signal<Set<EnginePeer.Id>, NoError> in
+        if !configured {
+            return .single([])
+        }
+        return context.account.postbox.transaction { transaction in
+            return archiveLockedPeerIds(transaction: transaction)
+        }
+    }
+    |> distinctUntilChanged
+}
+
+/// Sync Peer Info gate: false when a password is configured, the session is locked, and the
+/// peer lives in Archive (or the locked-peer cache has not been read yet — fail closed).
+public func archivePeerInfoAllowed(context: AccountContext, peerId: EnginePeer.Id) -> Bool {
+    bindArchiveLockSession(context: context)
+    return !ArchiveLockSession.shared.isLockedArchivedPeer(peerId)
+}
+
+/// Unlock if needed, then `makePeerInfoController` + push. Use at ungated `fromChat: false`
+/// call sites so the central gate returning nil is not a dead end.
+public func presentPeerInfoEnsuringArchiveAccess(
+    context: AccountContext,
+    peer: EnginePeer,
+    updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>)? = nil,
+    avatarInitiallyExpanded: Bool = false,
+    presentUnlock: @escaping (ViewController) -> Void,
+    push: @escaping (ViewController) -> Void
+) {
+    ensureArchivedPeerAccessible(context: context, peerId: peer.id, present: presentUnlock, completion: { result in
+        switch result {
+        case .cancelled:
+            return
+        case .unlocked, .notProtected:
+            break
+        }
+        if let infoController = context.sharedContext.makePeerInfoController(
+            context: context,
+            updatedPresentationData: updatedPresentationData,
+            peer: peer,
+            mode: .generic,
+            avatarInitiallyExpanded: avatarInitiallyExpanded,
+            fromChat: false,
+            requestsContext: nil
+        ) {
+            push(infoController)
+        }
+    })
+}
+
+/// Relock when the last Archive folder / archived chat / archived Peer Info leaves the stack.
+/// Safe to call from `viewWillLeaveNavigation` (`isLeavingNavigation: true`) and
+/// `viewDidDisappear` (`isLeavingNavigation: false`); matches the folder-leave helper.
+public func relockArchiveSessionIfLeavingArchivedSurface(
+    leavingController: UIViewController,
+    isLeavingNavigation: Bool,
+    context: AccountContext
+) {
+    guard ArchiveLockSession.shared.isPasswordConfigured else {
+        return
+    }
+    guard ArchiveLockSession.shared.isUnlocked || ArchiveLockSession.shared.isRevealed else {
+        return
+    }
+    if let chatList = leavingController as? ChatListControllerImpl, chatList.previewing {
+        return
+    }
+    
+    let apply: (Set<EnginePeer.Id>) -> Void = { archivedPeerIds in
+        guard ArchiveLockSession.shared.isPasswordConfigured else {
+            return
+        }
+        guard ArchiveLockSession.shared.isUnlocked || ArchiveLockSession.shared.isRevealed else {
+            return
+        }
+        guard archiveLockShouldDismiss(leavingController, archivedPeerIds: archivedPeerIds) else {
+            return
+        }
+        
+        if let navigationController = leavingController.navigationController {
+            let controllers = navigationController.viewControllers
+            if let index = controllers.firstIndex(where: { $0 === leavingController }), index + 1 < controllers.count {
+                return
+            }
+            let otherArchiveRemains = controllers.contains { controller in
+                if controller === leavingController {
+                    return false
+                }
+                return archiveLockShouldDismiss(controller, archivedPeerIds: archivedPeerIds)
+            }
+            if otherArchiveRemains {
+                return
+            }
+            if !isLeavingNavigation, controllers.contains(where: { $0 === leavingController }) {
+                return
+            }
+        } else if !isLeavingNavigation {
+            return
+        }
+        
+        ArchiveLockSession.shared.relock()
+    }
+    
+    if ArchiveLockSession.shared.areLockedPeerIdsResolved {
+        apply(ArchiveLockSession.shared.currentLockedPeerIds())
+    } else {
+        let _ = (context.account.postbox.transaction { transaction -> Set<EnginePeer.Id> in
+            return archiveLockedPeerIds(transaction: transaction)
+        }
+        |> deliverOnMainQueue).startStandalone(next: apply)
+    }
+}
+
 /// Wires the shared `ArchiveLockSession` to this account: re-lock on background, and keep its
 /// notion of "this account has an Archive password" current. Without the latter every gate stays
 /// fail-closed, which would hide the Archive from accounts that never set a password.
 /// Both bindings are idempotent, so call this from anywhere that is about to consult the session.
 public func bindArchiveLockSession(context: AccountContext) {
-    ArchiveLockSession.shared.bindBackgroundRelock(applicationIsActive: context.sharedContext.applicationBindings.applicationIsActive)
+    ArchiveLockSession.shared.bindBackgroundRelock(
+        applicationIsActive: context.sharedContext.applicationBindings.applicationIsActive,
+        willRelock: { [weak context] in
+            guard let context else {
+                return
+            }
+            applyArchiveLockSwitcherCover(context: context)
+        },
+        didBecomeActive: { [weak context] in
+            guard let context else {
+                return
+            }
+            removeArchiveLockSwitcherCover(context: context)
+        }
+    )
     ArchiveLockSession.shared.bindPasswordProtection(accountId: context.account.id.int64, isPasswordConfigured: archivePasswordProtectionSignal(context: context))
+    ArchiveLockSession.shared.bindLockedPeerIds(accountId: context.account.id.int64, lockedPeerIds: archiveLockedPeerIdsSignal(context: context))
 }
 
 /// Align server-side keepArchivedUnmuted with local force-mute: unmuted
@@ -478,25 +696,153 @@ public func muteAllArchivedChats(context: AccountContext) {
     }).startStandalone()
 }
 
-/// Pop Archive chat-list controllers and any open chats whose peer currently lives in Archive.
-/// Safe to call multiple times; never animates (avoids races with swipe/context completions).
-public func dismissOpenArchiveControllers(from navigationController: UINavigationController?, context: AccountContext? = nil) {
-    guard let navigationController else {
+private func overlayMediaPeerId(from stateOrLoading: SharedMediaPlayerItemPlaybackStateOrLoading) -> EnginePeer.Id? {
+    switch stateOrLoading {
+    case .loading:
+        return nil
+    case let .state(state):
+        if let playlistId = state.playlistId as? PeerMessagesMediaPlaylistId {
+            switch playlistId {
+            case let .peer(peerId), let .recentActions(peerId), let .savedMusic(peerId):
+                return peerId
+            case .feed, .custom:
+                break
+            }
+        }
+        if let itemId = state.item.id as? PeerMessagesMediaPlaylistItemId {
+            return itemId.messageId.peerId
+        }
+        if let location = state.playlistLocation as? PeerMessagesPlaylistLocation {
+            switch location.playlistId {
+            case let .peer(peerId), let .recentActions(peerId), let .savedMusic(peerId):
+                return peerId
+            case .feed, .custom:
+                return nil
+            }
+        }
+        return nil
+    }
+}
+
+private func stopOverlayMediaForArchivedPeers(context: AccountContext, archivedPeerIds: Set<EnginePeer.Id>) {
+    guard !archivedPeerIds.isEmpty else {
         return
     }
+    let mediaManager = context.sharedContext.mediaManager
+    let _ = (combineLatest(
+        mediaManager.globalMediaPlayerState,
+        mediaManager.musicMediaPlayerState
+    )
+    |> take(1)
+    |> deliverOnMainQueue).startStandalone(next: { globalState, musicState in
+        if let (_, stateOrLoading, type) = globalState, let peerId = overlayMediaPeerId(from: stateOrLoading), archivedPeerIds.contains(peerId) {
+            mediaManager.setPlaylist(nil, type: type, control: .playback(.pause))
+        }
+        if let (_, stateOrLoading, type) = musicState, let peerId = overlayMediaPeerId(from: stateOrLoading), archivedPeerIds.contains(peerId) {
+            mediaManager.setPlaylist(nil, type: type, control: .playback(.pause))
+        }
+    })
+}
+
+private func archiveLockShouldDismiss(_ controller: UIViewController, archivedPeerIds: Set<EnginePeer.Id>) -> Bool {
+    if let chatList = controller as? ChatListControllerImpl, case .chatList(groupId: .archive) = chatList.location {
+        return true
+    }
+    if archivedPeerIds.isEmpty {
+        return false
+    }
+    if let chat = controller as? ChatController, let peerId = chat.chatLocation.peerId, archivedPeerIds.contains(peerId) {
+        return true
+    }
+    if let peerInfo = controller as? PeerInfoScreen, archivedPeerIds.contains(peerInfo.peerId) {
+        return true
+    }
+    if let overlayPlayer = controller as? OverlayAudioPlayerController, let peerId = overlayPlayer.chatLocation.peerId, archivedPeerIds.contains(peerId) {
+        return true
+    }
+    if let gallery = controller as? GalleryController, let peerId = gallery.sourcePeerId, archivedPeerIds.contains(peerId) {
+        return true
+    }
+    if let story = controller as? StoryContainerScreen, let peerId = story.focusedPeerId, archivedPeerIds.contains(peerId) {
+        return true
+    }
+    return false
+}
+
+private func dismissPresentedArchiveControllers(from navigationController: UINavigationController, archivedPeerIds: Set<EnginePeer.Id>) {
+    var toDismiss: [ViewController] = []
+    let stackIdentities = Set(navigationController.viewControllers.map { ObjectIdentifier($0) })
+    
+    let enqueue: (UIViewController) -> Void = { controller in
+        guard let controller = controller as? ViewController else {
+            return
+        }
+        guard archiveLockShouldDismiss(controller, archivedPeerIds: archivedPeerIds) else {
+            return
+        }
+        if stackIdentities.contains(ObjectIdentifier(controller)) {
+            return
+        }
+        if !toDismiss.contains(where: { $0 === controller }) {
+            toDismiss.append(controller)
+        }
+    }
+    
+    let collectFromHost: (ViewController) -> Void = { host in
+        host.forEachController { contained in
+            if let viewController = contained as? ViewController {
+                enqueue(viewController)
+            }
+            return true
+        }
+    }
+    
+    if let navigationHost = navigationController as? ViewController {
+        collectFromHost(navigationHost)
+        navigationHost.window?.forEachController { contained in
+            if let viewController = contained as? ViewController {
+                enqueue(viewController)
+            }
+        }
+    }
+    
+    for controller in navigationController.viewControllers {
+        if let viewController = controller as? ViewController {
+            collectFromHost(viewController)
+        }
+    }
+    
+    if let navigationController = navigationController as? NavigationController {
+        for overlay in navigationController.overlayControllers {
+            enqueue(overlay)
+        }
+        for overlay in navigationController.globalOverlayControllers {
+            enqueue(overlay)
+        }
+    }
+    
+    for controller in toDismiss {
+        controller.dismiss(animated: false)
+    }
+}
+
+/// Pop Archive chat-list controllers and any open chats / peer-info / gallery / story / overlay
+/// audio surfaces whose peer currently lives in Archive. Also stops overlay media playback for
+/// those peers. Safe to call multiple times; never animates (avoids races with swipe/context completions).
+public func dismissOpenArchiveControllers(from navigationController: UINavigationController?, context: AccountContext? = nil) {
     let apply: (Set<EnginePeer.Id>) -> Void = { archivedPeerIds in
         let work = {
+            if let context {
+                stopOverlayMediaForArchivedPeers(context: context, archivedPeerIds: archivedPeerIds)
+            }
+            guard let navigationController else {
+                return
+            }
+            dismissPresentedArchiveControllers(from: navigationController, archivedPeerIds: archivedPeerIds)
+            
             let controllers = navigationController.viewControllers
             let filtered = controllers.filter { controller in
-                if let chatList = controller as? ChatListControllerImpl {
-                    if case .chatList(groupId: .archive) = chatList.location {
-                        return false
-                    }
-                }
-                if let chat = controller as? ChatController, let peerId = chat.chatLocation.peerId, archivedPeerIds.contains(peerId) {
-                    return false
-                }
-                return true
+                return !archiveLockShouldDismiss(controller, archivedPeerIds: archivedPeerIds)
             }
             guard filtered.count != controllers.count else {
                 return

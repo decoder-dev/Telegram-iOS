@@ -5,6 +5,8 @@ import TelegramCore
 import Display
 import CoreSpotlight
 import MobileCoreServices
+import TelegramUIPreferences
+import Postbox
 
 private let roundCorners = { () -> UIImage in
     let diameter: CGFloat = 60.0
@@ -210,27 +212,37 @@ private func manageableSpotlightContacts(appBasePath: String, accounts: Signal<[
                 engine.data.subscribe(
                     TelegramEngine.EngineData.Item.Contacts.List(includePresences: false)
                 ),
-                recentApps
+                recentApps,
+                engine.data.subscribe(
+                    TelegramEngine.EngineData.Item.Configuration.ApplicationSpecificPreference(key: ApplicationSpecificPreferencesKeys.chatArchiveSettings)
+                ),
+                engine.messages.chatList(group: .archive, count: 100)
             )
-            |> map { view, recentApps -> [EnginePeer.Id: SpotlightIndexStorageItem] in
-                var result: [EnginePeer.Id: SpotlightIndexStorageItem] = [:]
-                var peers: [EnginePeer] = []
-                peers.append(contentsOf: view.peers)
-                peers.append(contentsOf: recentApps)
-                for peer in peers {
-                    if case let .user(user) = peer {
-                        let avatarSourcePath = smallestImageRepresentation(user.photo).flatMap { representation -> String? in
-                            let resourcePath = account.postbox.mediaBox.resourcePath(representation.resource)
-                            if resourcePath.hasPrefix(appBasePath + "/") {
-                                return String(resourcePath[resourcePath.index(resourcePath.startIndex, offsetBy: appBasePath.count + 1)...])
-                            } else {
-                                return resourcePath
-                            }
+            |> mapToSignal { view, recentApps, _, _ -> Signal<[EnginePeer.Id: SpotlightIndexStorageItem], NoError> in
+                return account.postbox.transaction { transaction -> [EnginePeer.Id: SpotlightIndexStorageItem] in
+                    let locked = archiveLockedPeerIds(transaction: transaction)
+                    var result: [EnginePeer.Id: SpotlightIndexStorageItem] = [:]
+                    var peers: [EnginePeer] = []
+                    peers.append(contentsOf: view.peers)
+                    peers.append(contentsOf: recentApps)
+                    for peer in peers {
+                        if locked.contains(peer.id) {
+                            continue
                         }
-                        result[user.id] = SpotlightIndexStorageItem(firstName: user.firstName ?? "", lastName: user.lastName ?? "", avatarSourcePath: avatarSourcePath)
+                        if case let .user(user) = peer {
+                            let avatarSourcePath = smallestImageRepresentation(user.photo).flatMap { representation -> String? in
+                                let resourcePath = account.postbox.mediaBox.resourcePath(representation.resource)
+                                if resourcePath.hasPrefix(appBasePath + "/") {
+                                    return String(resourcePath[resourcePath.index(resourcePath.startIndex, offsetBy: appBasePath.count + 1)...])
+                                } else {
+                                    return resourcePath
+                                }
+                            }
+                            result[user.id] = SpotlightIndexStorageItem(firstName: user.firstName ?? "", lastName: user.lastName ?? "", avatarSourcePath: avatarSourcePath)
+                        }
                     }
+                    return result
                 }
-                return result
             }
             |> distinctUntilChanged
         })

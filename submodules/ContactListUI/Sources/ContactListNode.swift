@@ -23,6 +23,32 @@ import ContextUI
 import PhoneNumberFormat
 import LocalizedPeerData
 import ContextUI
+import Postbox
+
+func archiveLockedPeerIdsSignal(context: AccountContext) -> Signal<Set<EnginePeer.Id>, NoError> {
+    let passwordConfigured = context.engine.data.subscribe(
+        TelegramEngine.EngineData.Item.Configuration.ApplicationSpecificPreference(key: ApplicationSpecificPreferencesKeys.chatArchiveSettings)
+    )
+    |> map { preference -> Bool in
+        let settings = preference?.get(ChatArchiveSettings.self) ?? .default
+        return settings.isPasswordConfigured
+    }
+    |> distinctUntilChanged
+    
+    return combineLatest(
+        passwordConfigured,
+        context.engine.messages.chatList(group: .archive, count: 100)
+    )
+    |> mapToSignal { configured, _ -> Signal<Set<EnginePeer.Id>, NoError> in
+        if !configured {
+            return .single([])
+        }
+        return context.account.postbox.transaction { transaction in
+            return archiveLockedPeerIds(transaction: transaction)
+        }
+    }
+    |> distinctUntilChanged
+}
 
 private let dropDownIcon = { () -> UIImage in
     UIGraphicsBeginImageContextWithOptions(CGSize(width: 12.0, height: 12.0), false, 0.0)
@@ -1553,12 +1579,19 @@ public final class ContactListNode: ASDisplayNode {
                     let foundPeers = Promise<FoundPeers>()
                     foundPeers.set(combineLatest(
                         foundLocalContacts,
-                        foundRemoteContacts
+                        foundRemoteContacts,
+                        archiveLockedPeerIdsSignal(context: context)
                     )
-                   |> map { foundLocalContacts, foundRemoteContacts -> FoundPeers in
+                   |> map { foundLocalContacts, foundRemoteContacts, lockedArchivePeerIds -> FoundPeers in
                         return FoundPeers(
-                            foundLocalContacts: foundLocalContacts,
-                            foundRemoteContacts: foundRemoteContacts
+                            foundLocalContacts: (
+                                foundLocalContacts.0.filter { !lockedArchivePeerIds.contains($0.peer.id) },
+                                foundLocalContacts.1.filter { !lockedArchivePeerIds.contains($0.key) }
+                            ),
+                            foundRemoteContacts: (
+                                foundRemoteContacts.0.filter { !lockedArchivePeerIds.contains($0.peer.id) },
+                                foundRemoteContacts.1.filter { !lockedArchivePeerIds.contains($0.peer.id) }
+                            )
                         )
                     })
                     
@@ -1931,7 +1964,8 @@ public final class ContactListNode: ASDisplayNode {
                         contactsAuthorization.get(),
                         contactsWarningSuppressed.get(),
                         self.storySubscriptions.get(),
-                        topPeers
+                        topPeers,
+                        archiveLockedPeerIdsSignal(context: context)
                     )
                     |> mapToQueue {
                         view,
@@ -1942,7 +1976,8 @@ public final class ContactListNode: ASDisplayNode {
                         authorizationStatus,
                         warningSuppressed,
                         storySubscriptions,
-                        topPeers -> Signal<ContactsListNodeTransition, NoError> in
+                        topPeers,
+                        lockedArchivePeerIds -> Signal<ContactsListNodeTransition, NoError> in
                         let signal = deferred { () -> Signal<ContactsListNodeTransition, NoError> in
                             if !view.2.isEmpty {
                                 context.account.viewTracker.refreshCanSendMessagesForPeerIds(peerIds: Array(view.2.keys))
@@ -1950,6 +1985,9 @@ public final class ContactListNode: ASDisplayNode {
                             
                             var peers = view.0.peers.map({ ContactListPeer.peer(peer: $0, isGlobal: false, participantCount: nil) })
                             for (peer, memberCount) in chatListPeers {
+                                if lockedArchivePeerIds.contains(peer.id) {
+                                    continue
+                                }
                                 peers.append(.peer(peer: peer, isGlobal: false, participantCount: memberCount))
                             }
                             var existingPeerIds = Set<EnginePeer.Id>()
@@ -1980,7 +2018,7 @@ public final class ContactListNode: ASDisplayNode {
                                             return false
                                         }
                                     }
-                                    return !existingPeerIds.contains(peer.id) && !pendingRemovalPeerIds.contains(peer.id)
+                                    return !existingPeerIds.contains(peer.id) && !pendingRemovalPeerIds.contains(peer.id) && !lockedArchivePeerIds.contains(peer.id)
                                 default:
                                     return true
                                 }
@@ -2018,8 +2056,7 @@ public final class ContactListNode: ASDisplayNode {
                                 displaySortOptions: displaySortOptions,
                                 displayCallIcons: displayCallIcons,
                                 storySubscriptions: storySubscriptions,
-                                topPeers: topPeers.map { $0.peer
-                                },
+                                topPeers: topPeers.compactMap { lockedArchivePeerIds.contains($0.peer.id) ? nil : $0.peer },
                                 topPeersPresentation: displayTopPeers,
                                 isPeerEnabled: isPeerEnabled,
                                 interaction: interaction

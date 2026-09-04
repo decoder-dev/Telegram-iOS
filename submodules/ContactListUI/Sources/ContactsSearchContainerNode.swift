@@ -390,12 +390,22 @@ public final class ContactsSearchContainerNode: SearchDisplayControllerContentNo
                 let foundPeers = Promise<FoundPeers>()
                 foundPeers.set(combineLatest(
                     foundLocalContacts,
-                    foundRemoteContacts
+                    foundRemoteContacts,
+                    archiveLockedPeerIdsSignal(context: context)
                 )
-                |> map { foundLocalContacts, foundRemoteContacts -> FoundPeers in
+                |> map { foundLocalContacts, foundRemoteContacts, lockedArchivePeerIds -> FoundPeers in
+                    let remote = foundRemoteContacts.map { local, global in
+                        return (
+                            local.filter { !lockedArchivePeerIds.contains($0.peer.id) },
+                            global.filter { !lockedArchivePeerIds.contains($0.peer.id) }
+                        )
+                    }
                     return FoundPeers(
-                        foundLocalContacts: foundLocalContacts,
-                        foundRemoteContacts: foundRemoteContacts
+                        foundLocalContacts: (
+                            foundLocalContacts.0.filter { !lockedArchivePeerIds.contains($0.id) },
+                            foundLocalContacts.1.filter { !lockedArchivePeerIds.contains($0.key) }
+                        ),
+                        foundRemoteContacts: remote
                     )
                 })
                 

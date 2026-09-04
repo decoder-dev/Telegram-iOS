@@ -350,6 +350,7 @@ enum ChatListNodeEntry: Comparable, Identifiable {
         var hiddenByDefault: Bool
         var appearsPinned: Bool
         var storyState: ChatListNodeState.StoryState?
+        var contentsHidden: Bool
         
         init(
             index: EngineChatList.Item.Index,
@@ -362,7 +363,8 @@ enum ChatListNodeEntry: Comparable, Identifiable {
             revealed: Bool,
             hiddenByDefault: Bool,
             appearsPinned: Bool,
-            storyState: ChatListNodeState.StoryState?
+            storyState: ChatListNodeState.StoryState?,
+            contentsHidden: Bool = false
         ) {
             self.index = index
             self.presentationData = presentationData
@@ -375,6 +377,7 @@ enum ChatListNodeEntry: Comparable, Identifiable {
             self.hiddenByDefault = hiddenByDefault
             self.appearsPinned = appearsPinned
             self.storyState = storyState
+            self.contentsHidden = contentsHidden
         }
         
         static func ==(lhs: GroupReferenceEntryData, rhs: GroupReferenceEntryData) -> Bool {
@@ -409,6 +412,9 @@ enum ChatListNodeEntry: Comparable, Identifiable {
                 return false
             }
             if lhs.storyState != rhs.storyState {
+                return false
+            }
+            if lhs.contentsHidden != rhs.contentsHidden {
                 return false
             }
             
@@ -604,7 +610,7 @@ struct ChatListContactPeer {
     }
 }
 
-func chatListNodeEntriesForView(view: EngineChatList, state: ChatListNodeState, savedMessagesPeer: EnginePeer?, foundPeers: [(EnginePeer, EnginePeer?)], hideArchivedFolderByDefault: Bool, displayArchiveIntro: Bool, mode: ChatListNodeMode, chatListLocation: ChatListControllerLocation, contacts: [ChatListContactPeer], accountPeerId: EnginePeer.Id, isMainTab: Bool, omitArchiveFolder: Bool = false, forceArchiveCollapsed: Bool = false) -> (entries: [ChatListNodeEntry], loading: Bool) {
+func chatListNodeEntriesForView(view: EngineChatList, state: ChatListNodeState, savedMessagesPeer: EnginePeer?, foundPeers: [(EnginePeer, EnginePeer?)], hideArchivedFolderByDefault: Bool, displayArchiveIntro: Bool, mode: ChatListNodeMode, chatListLocation: ChatListControllerLocation, contacts: [ChatListContactPeer], accountPeerId: EnginePeer.Id, isMainTab: Bool, omitArchiveFolder: Bool = false, forceArchiveCollapsed: Bool = false, redactArchiveFolderContents: Bool = false) -> (entries: [ChatListNodeEntry], loading: Bool) {
     var groupItems = view.groupItems
     // Secret archive: until Settings is tapped 10× (or while fully omitted after close), the folder does not exist.
     if omitArchiveFolder {
@@ -933,14 +939,15 @@ func chatListNodeEntriesForView(view: EngineChatList, state: ChatListNodeState, 
                     index: .chatList(EngineChatList.Item.Index.ChatList(pinningIndex: pinningIndex, messageIndex: messageIndex)),
                     presentationData: state.presentationData,
                     groupId: groupReference.id,
-                    peers: groupReference.items,
-                    message: groupReference.topMessage,
+                    peers: redactArchiveFolderContents ? [] : groupReference.items,
+                    message: redactArchiveFolderContents ? nil : groupReference.topMessage,
                     editing: state.editing,
-                    unreadCount: groupReference.unreadCount,
+                    unreadCount: redactArchiveFolderContents ? 0 : groupReference.unreadCount,
                     revealed: forceArchiveCollapsed ? false : state.hiddenItemShouldBeTemporaryRevealed,
                     hiddenByDefault: hideArchivedFolderByDefault || forceArchiveCollapsed,
                     appearsPinned: hasPinned,
-                    storyState: mappedStoryState
+                    storyState: redactArchiveFolderContents ? nil : mappedStoryState,
+                    contentsHidden: redactArchiveFolderContents
                 )))
                 if pinningIndex != 0 {
                     pinningIndex -= 1

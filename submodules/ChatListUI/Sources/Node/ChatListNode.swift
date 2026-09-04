@@ -748,7 +748,8 @@ private func mappedInsertEntries(context: AccountContext, nodeInteraction: ChatL
                             stats: storyState.stats,
                             hasUnseenCloseFriends: storyState.hasUnseenCloseFriends
                         )
-                    }
+                    },
+                    contentsHidden: groupReferenceEntry.contentsHidden
                 )),
                 editing: groupReferenceEntry.editing,
                 hasActiveRevealControls: false,
@@ -1064,7 +1065,8 @@ private func mappedUpdateEntries(context: AccountContext, nodeInteraction: ChatL
                                     stats: storyState.stats,
                                     hasUnseenCloseFriends: storyState.hasUnseenCloseFriends
                                 )
-                            }
+                            },
+                            contentsHidden: groupReferenceEntry.contentsHidden
                         )),
                         editing: groupReferenceEntry.editing,
                         hasActiveRevealControls: false,
@@ -2015,6 +2017,18 @@ public final class ChatListNode: ListViewImpl {
         }
         |> distinctUntilChanged
         
+        // Title-only Archive row while a password is set and the session is still locked.
+        // Combined here (not read ad hoc in the item) so Settings × 10 / unlock / relock
+        // rebuild the entry instead of leaving a previously laid-out preview on screen.
+        let archiveFolderContentsHidden = combineLatest(
+            ArchiveLockSession.shared.unlockedSignal,
+            archivePasswordProtectionSignal(context: context)
+        )
+        |> map { unlocked, isPasswordProtected -> Bool in
+            return isPasswordProtected && !unlocked
+        }
+        |> distinctUntilChanged
+        
         let displayArchiveIntro: Signal<Bool, NoError>
         if case .chatList(.archive) = location {
             let displayArchiveIntroData = context.sharedContext.accountManager.noticeEntry(key: ApplicationSpecificNotice.archiveIntroDismissedKey())
@@ -2235,6 +2249,7 @@ public final class ChatListNode: ListViewImpl {
         let chatListNodeViewTransition = combineLatest(queue: viewProcessingQueue,
             hideArchivedFolderByDefault,
             archiveFolderPresentation,
+            archiveFolderContentsHidden,
             displayArchiveIntro,
             storageInfo,
             savedMessagesPeer,
@@ -2244,7 +2259,7 @@ public final class ChatListNode: ListViewImpl {
             chatListFilters,
             accountIsPremium
         )
-        |> mapToQueue { [weak self] (hideArchivedFolderByDefault, archiveFolderPresentation, displayArchiveIntro, storageInfo, savedMessagesPeer, updateAndFilter, state, contacts, chatListFilters, accountIsPremium) -> Signal<ChatListNodeListViewTransition, NoError> in
+        |> mapToQueue { [weak self] (hideArchivedFolderByDefault, archiveFolderPresentation, archiveFolderContentsHidden, displayArchiveIntro, storageInfo, savedMessagesPeer, updateAndFilter, state, contacts, chatListFilters, accountIsPremium) -> Signal<ChatListNodeListViewTransition, NoError> in
             // Weak-self gate only — the generation/staleness guard that used to touch `self`
             // was dropped; binding `strongSelf` here tripped [#no-usage] under release Swift.
             guard self != nil else {
@@ -2259,7 +2274,7 @@ public final class ChatListNode: ListViewImpl {
             
             let innerIsMainTab = location == .chatList(groupId: .root) && chatListFilter == nil
             
-            let (rawEntries, isLoading) = chatListNodeEntriesForView(view: update.list, state: state, savedMessagesPeer: savedMessagesPeer, foundPeers: state.foundPeers, hideArchivedFolderByDefault: hideArchivedFolderByDefault, displayArchiveIntro: displayArchiveIntro, mode: mode, chatListLocation: location, contacts: contacts, accountPeerId: accountPeerId, isMainTab: innerIsMainTab, omitArchiveFolder: omitArchiveFolder, forceArchiveCollapsed: forceArchiveCollapsed)
+            let (rawEntries, isLoading) = chatListNodeEntriesForView(view: update.list, state: state, savedMessagesPeer: savedMessagesPeer, foundPeers: state.foundPeers, hideArchivedFolderByDefault: hideArchivedFolderByDefault, displayArchiveIntro: displayArchiveIntro, mode: mode, chatListLocation: location, contacts: contacts, accountPeerId: accountPeerId, isMainTab: innerIsMainTab, omitArchiveFolder: omitArchiveFolder, forceArchiveCollapsed: forceArchiveCollapsed, redactArchiveFolderContents: archiveFolderContentsHidden)
             var isEmpty = true
             var entries = rawEntries.filter { entry in
                 switch entry {

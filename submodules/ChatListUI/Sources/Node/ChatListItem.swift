@@ -298,6 +298,8 @@ public enum ChatListItemContent {
         public var hiddenByDefault: Bool
         public var appearsPinned: Bool
         public var storyState: StoryState?
+        /// Password-protected Archive that is revealed but not yet unlocked: title-only row.
+        public var contentsHidden: Bool
         
         public init(
             groupId: EngineChatList.Group,
@@ -306,7 +308,8 @@ public enum ChatListItemContent {
             unreadCount: Int,
             hiddenByDefault: Bool,
             appearsPinned: Bool,
-            storyState: StoryState?
+            storyState: StoryState?,
+            contentsHidden: Bool = false
         ) {
             self.groupId = groupId
             self.peers = peers
@@ -315,6 +318,7 @@ public enum ChatListItemContent {
             self.hiddenByDefault = hiddenByDefault
             self.appearsPinned = appearsPinned
             self.storyState = storyState
+            self.contentsHidden = contentsHidden
         }
     }
 
@@ -332,6 +336,16 @@ public enum ChatListItemContent {
             return nil
         }
     }
+}
+
+/// Password-protected Archive folder row must stay title-only until unlock, even if the
+/// row itself is already visible (Settings × 10 reveal). `contentsHidden` is the list-entry
+/// flag; the live session check is defense in depth if an older entry is still on screen.
+private func shouldHideArchiveGroupContents(_ data: ChatListItemContent.GroupReferenceData) -> Bool {
+    if data.contentsHidden {
+        return true
+    }
+    return ArchiveLockSession.shared.hidesFolderRowContents
 }
 
 private let tagBackgroundImage: UIImage? = {
@@ -1579,9 +1593,11 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                     return nil
                 case let .groupReference(groupReferenceData):
                     var result = item.presentationData.strings.ChatList_ArchivedChatsTitle
-                let allCount = groupReferenceData.unreadCount
-                    if allCount > 0 {
-                        result += "\n\(item.presentationData.strings.VoiceOver_Chat_UnreadMessages(Int32(allCount)))"
+                    if !shouldHideArchiveGroupContents(groupReferenceData) {
+                        let allCount = groupReferenceData.unreadCount
+                        if allCount > 0 {
+                            result += "\n\(item.presentationData.strings.VoiceOver_Chat_UnreadMessages(Int32(allCount)))"
+                        }
                     }
                     return result
                 case let .peer(peerData):
@@ -1612,6 +1628,9 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                 case .loading:
                     return nil
                 case let .groupReference(groupReferenceData):
+                    if shouldHideArchiveGroupContents(groupReferenceData) {
+                        return nil
+                    }
                     let peers = groupReferenceData.peers
                     let messageValue = groupReferenceData.message
                     if let message = messageValue, let peer = peers.first?.peer {
@@ -1922,7 +1941,9 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
         if case let .peer(peerData) = item.content {
             storyState = peerData.storyState
         } else if case let .groupReference(groupReference) = item.content {
-            storyState = groupReference.storyState
+            if !shouldHideArchiveGroupContents(groupReference) {
+                storyState = groupReference.storyState
+            }
         }
         
         var peer: EnginePeer?
@@ -2525,9 +2546,10 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                     displayAsMessage = displayAsMessageValue
                     hasFailedMessages = messagesValue.last?.flags.contains(.Failed) ?? false // hasFailedMessagesValue
                 case let .groupReference(groupReferenceData):
-                    let peers = groupReferenceData.peers
-                    let messageValue = groupReferenceData.message
-                    let unreadCountValue = groupReferenceData.unreadCount
+                    let hideContents = shouldHideArchiveGroupContents(groupReferenceData)
+                    let peers = hideContents ? [] : groupReferenceData.peers
+                    let messageValue = hideContents ? nil : groupReferenceData.message
+                    let unreadCountValue = hideContents ? 0 : groupReferenceData.unreadCount
                     let hiddenByDefault = groupReferenceData.hiddenByDefault
                 
                     if let _ = messageValue, !peers.isEmpty {
@@ -3336,7 +3358,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                             }
                         }
                     }
-                    if textString.length == 0, case let .groupReference(data) = item.content, let storyState = data.storyState, storyState.stats.totalCount != 0 {
+                    if textString.length == 0, case let .groupReference(data) = item.content, !shouldHideArchiveGroupContents(data), let storyState = data.storyState, storyState.stats.totalCount != 0 {
                         let storyText: String = item.presentationData.strings.ChatList_ArchiveStoryCount(Int32(storyState.stats.totalCount))
                         textString.append(NSAttributedString(string: storyText, font: textFont, textColor: theme.messageTextColor))
                     }
@@ -3472,7 +3494,9 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
             case .loading:
                 break
             case let .groupReference(groupReferenceData):
-                topIndex = groupReferenceData.message?.index
+                if !shouldHideArchiveGroupContents(groupReferenceData) {
+                    topIndex = groupReferenceData.message?.index
+                }
             case let .peer(peerData):
                 topIndex = peerData.messages.first?.index
             }

@@ -86,7 +86,13 @@ public enum ArchiveFolderPresentation: Equatable {
 /// In-memory session state for the secret Archive:
 /// - `isRevealed`: folder row visible (10 taps on Settings).
 /// - `isUnlocked`: password accepted for this process.
-/// Both clear on background / Lock Now / after unarchiving a chat.
+/// Both clear on background / Lock Now / after unarchiving a chat / when leaving the Archive
+/// folder back to the main chat list. The session does **not** stay open after that leave: an
+/// attacker who finds the phone still in the foreground must pass the password again.
+///
+/// Revealing the folder (Settings × 10) must not leak contents. While a password is set and the
+/// session is still locked, the Archive row is title-only — no peer names, last-message preview,
+/// unread counts, or stories.
 ///
 /// Both gates only exist to protect a password that is actually set. An account with no Archive
 /// password has a stock Telegram Archive — always in the chat list, opened without a prompt — so
@@ -114,9 +120,18 @@ public final class ArchiveLockSession {
     private var muteSweepAccountIds = Set<Int64>()
     private var keepArchivedAlignAccountIds = Set<Int64>()
     private var backgroundDisposable: Disposable?
+    private var lockedPeerIdsBindingAccountId: Int64?
+    private var lockedPeerIdsDisposable: Disposable?
+    private var lockedPeerIds = Set<EnginePeer.Id>()
+    private var lockedPeerIdsResolved = false
+    /// App-switcher cover / foreground cleanup. Looked up at fire time so they can be
+    /// registered after `bindBackgroundRelock` (first-wins) has already claimed the slot.
+    private var willRelockHandlerValue: (() -> Void)?
+    private var didBecomeActiveHandlerValue: (() -> Void)?
     private var collapseGeneration: Int = 0
     private let relockedPipe = ValuePipe<Void>()
     private let revealedPromise = ValuePromise<Bool>(false, ignoreRepeated: true)
+    private let unlockedPromise = ValuePromise<Bool>(false, ignoreRepeated: true)
     private let folderPresentationPromise = ValuePromise<ArchiveFolderPresentation>(.omitted, ignoreRepeated: true)
     
     private init() {}
@@ -142,6 +157,14 @@ public final class ArchiveLockSession {
         return self.passwordConfigured
     }
     
+    /// Folder row may be visible (Settings × 10) while still locked; the row must then be
+    /// title-only so last-message / peers / unread / stories cannot leak before the password.
+    public var hidesFolderRowContents: Bool {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        return self.passwordConfigured && !self.unlocked
+    }
+    
     /// Whether the lock is in force at all. `unlocked` is the belt to `passwordConfigured`'s braces:
     /// it can only be set by a password flow, and it is cleared when the password is removed, so it
     /// still reads true in the brief window after launch before the stored password state arrives.
@@ -151,7 +174,7 @@ public final class ArchiveLockSession {
         return self.passwordConfigured || self.unlocked
     }
     
-    /// Fires whenever the session is re-locked (Lock Now / background / unarchive).
+    /// Fires whenever the session is re-locked (Lock Now / background / unarchive / leaving Archive).
     public var relockedSignal: Signal<Void, NoError> {
         return self.relockedPipe.signal()
     }
@@ -159,6 +182,12 @@ public final class ArchiveLockSession {
     /// Current reveal flag (updates when Settings 10-tap reveals or when relocked).
     public var revealedSignal: Signal<Bool, NoError> {
         return self.revealedPromise.get()
+    }
+    
+    /// Current unlock flag. Drives the main chat-list Archive row so it stays title-only
+    /// until the password is accepted, then can show previews again.
+    public var unlockedSignal: Signal<Bool, NoError> {
+        return self.unlockedPromise.get()
     }
     
     /// List presentation including the transient `collapsing` auto-close phase.
@@ -170,6 +199,7 @@ public final class ArchiveLockSession {
         self.lock.lock()
         self.unlocked = true
         self.lock.unlock()
+        self.unlockedPromise.set(true)
     }
     
     /// Show the Archive folder (Settings tab × 10). Does not skip the password.
@@ -215,6 +245,9 @@ public final class ArchiveLockSession {
         if shouldNotifyReveal {
             self.revealedPromise.set(false)
             self.beginFolderCollapse(generation: collapseGeneration)
+        }
+        if shouldNotifyRelock {
+            self.unlockedPromise.set(false)
         }
         if shouldNotifyRelock || shouldNotifyReveal {
             self.relockedPipe.putNext(Void())
@@ -287,6 +320,7 @@ public final class ArchiveLockSession {
     private func updatePasswordConfigured(_ value: Bool, accountId: Int64) {
         var collapseGeneration = 0
         var shouldCollapseFolder = false
+        var shouldClearUnlocked = false
         self.lock.lock()
         guard self.passwordBindingAccountId == accountId else {
             self.lock.unlock()
@@ -300,6 +334,7 @@ public final class ArchiveLockSession {
             // The password is gone, so nothing is unlocked any more. Leaving the flag set would
             // keep `isLockActive` true and re-lock a now-stock Archive on the next background.
             self.unlocked = false
+            shouldClearUnlocked = true
         }
         if didChange, value {
             // The folder was on screen unconditionally while the account was unprotected, and any
@@ -315,9 +350,12 @@ public final class ArchiveLockSession {
         }
         let effectiveRevealed = !value || self.revealed
         self.lock.unlock()
-        // `unlocked` is deliberately left alone: `setArchivePassword` unlocks the session as part
-        // of the same flow, and this push lands after it.
+        // `unlocked` is deliberately left alone when a password is *set*: `setArchivePassword`
+        // unlocks the session as part of the same flow, and this push lands after it.
         self.revealedPromise.set(effectiveRevealed)
+        if shouldClearUnlocked {
+            self.unlockedPromise.set(false)
+        }
         if shouldCollapseFolder {
             self.beginFolderCollapse(generation: collapseGeneration)
         }
@@ -347,8 +385,119 @@ public final class ArchiveLockSession {
         return true
     }
     
+    /// App-switcher cover, installed from TelegramUI where `Window1` is available. Invoked on
+    /// the main queue immediately before `relock()` so the snapshot still sees `isUnlocked`.
+    public var willRelockHandler: (() -> Void)? {
+        get {
+            self.lock.lock()
+            defer { self.lock.unlock() }
+            return self.willRelockHandlerValue
+        }
+        set {
+            self.lock.lock()
+            self.willRelockHandlerValue = newValue
+            self.lock.unlock()
+        }
+    }
+    
+    /// Remove the Archive app-switcher cover on foreground if App Lock did not replace it.
+    public var didBecomeActiveHandler: (() -> Void)? {
+        get {
+            self.lock.lock()
+            defer { self.lock.unlock() }
+            return self.didBecomeActiveHandlerValue
+        }
+        set {
+            self.lock.lock()
+            self.didBecomeActiveHandlerValue = newValue
+            self.lock.unlock()
+        }
+    }
+    
+    /// Cached peer IDs currently sitting in a password-protected Archive. Empty when no
+    /// password is set. Used by the sync Peer Info gate (`archivePeerInfoAllowed`).
+    public func currentLockedPeerIds() -> Set<EnginePeer.Id> {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        return self.lockedPeerIds
+    }
+    
+    public var areLockedPeerIdsResolved: Bool {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        return self.lockedPeerIdsResolved
+    }
+    
+    /// True when this peer must not open Peer Info without an unlock: password is set, the
+    /// session is locked, and the peer is (or might still be) in Archive.
+    ///
+    /// Until the locked-peer-id cache has been read once, this fails closed for every peer so
+    /// a launch race cannot push archived profile UI.
+    public func isLockedArchivedPeer(_ peerId: EnginePeer.Id) -> Bool {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        if !self.passwordConfigured || self.unlocked {
+            return false
+        }
+        if !self.lockedPeerIdsResolved {
+            return true
+        }
+        return self.lockedPeerIds.contains(peerId)
+    }
+    
+    /// Keep `currentLockedPeerIds` in sync with Postbox. Replaces any previous subscription
+    /// when the bound account record changes (same pattern as `bindPasswordProtection`).
+    public func bindLockedPeerIds(accountId: Int64, lockedPeerIds: Signal<Set<EnginePeer.Id>, NoError>) {
+        self.lock.lock()
+        if self.lockedPeerIdsBindingAccountId == accountId {
+            self.lock.unlock()
+            return
+        }
+        let previousDisposable = self.lockedPeerIdsDisposable
+        self.lockedPeerIdsBindingAccountId = accountId
+        self.lockedPeerIdsDisposable = EmptyDisposable
+        self.lockedPeerIdsResolved = false
+        self.lockedPeerIds = []
+        self.lock.unlock()
+        previousDisposable?.dispose()
+        
+        let disposable = (lockedPeerIds
+        |> distinctUntilChanged
+        |> deliverOnMainQueue).startStrict(next: { [weak self] value in
+            guard let self else {
+                return
+            }
+            self.lock.lock()
+            guard self.lockedPeerIdsBindingAccountId == accountId else {
+                self.lock.unlock()
+                return
+            }
+            self.lockedPeerIds = value
+            self.lockedPeerIdsResolved = true
+            self.lock.unlock()
+        })
+        
+        var isObsolete = false
+        self.lock.lock()
+        if self.lockedPeerIdsBindingAccountId == accountId {
+            self.lockedPeerIdsDisposable = disposable
+        } else {
+            isObsolete = true
+        }
+        self.lock.unlock()
+        if isObsolete {
+            disposable.dispose()
+        }
+    }
+    
     /// Re-lock Archive when the app leaves the active state.
-    public func bindBackgroundRelock(applicationIsActive: Signal<Bool, NoError>) {
+    ///
+    /// `willRelock` runs on the main queue *before* `relock()` so callers can cover Archive UI
+    /// for the app-switcher snapshot while `isUnlocked` is still true. `didBecomeActive` runs
+    /// when the app returns so that covering view can be removed if App Lock did not take over.
+    /// Session-level `willRelockHandler` / `didBecomeActiveHandler` are also invoked at fire
+    /// time so they can be registered after this binding has already claimed the slot.
+    public func bindBackgroundRelock(applicationIsActive: Signal<Bool, NoError>, willRelock: (() -> Void)? = nil, didBecomeActive: (() -> Void)? = nil) {
         // Claim the "binding" slot atomically with a placeholder before subscribing, so two
         // concurrent callers can't both observe "not yet bound" and both subscribe — only the
         // caller that wins the claim installs a real disposable; the loser's subscription is
@@ -364,9 +513,15 @@ public final class ArchiveLockSession {
         }
         let disposable = (applicationIsActive
         |> distinctUntilChanged
-        |> filter { !$0 }
-        |> deliverOnMainQueue).startStrict(next: { [weak self] _ in
-            self?.relock()
+        |> deliverOnMainQueue).startStrict(next: { [weak self] isActive in
+            if isActive {
+                didBecomeActive?()
+                self?.didBecomeActiveHandler?()
+            } else {
+                willRelock?()
+                self?.willRelockHandler?()
+                self?.relock()
+            }
         })
         self.lock.lock()
         self.backgroundDisposable = disposable
@@ -408,4 +563,19 @@ public func archiveNotificationShouldRedact(transaction: Transaction, peerId: En
     }
     let settings = transaction.getPreferencesEntry(key: ApplicationSpecificPreferencesKeys.chatArchiveSettings)?.get(ChatArchiveSettings.self) ?? .default
     return settings.isPasswordConfigured
+}
+
+/// Engine-data equivalent of `archiveNotificationShouldRedact` for call sites that already
+/// have `ChatListGroup` + settings and must not import Postbox (CallListUI, ContactListUI).
+public func archiveNotificationShouldRedact(chatListGroup: EngineChatList.Group?, isPasswordConfigured: Bool) -> Bool {
+    return chatListGroup == .archive && isPasswordConfigured
+}
+
+/// Peer IDs currently sitting in a password-protected Archive. Empty when no password is set.
+public func archiveLockedPeerIds(transaction: Transaction) -> Set<EnginePeer.Id> {
+    let settings = transaction.getPreferencesEntry(key: ApplicationSpecificPreferencesKeys.chatArchiveSettings)?.get(ChatArchiveSettings.self) ?? .default
+    guard settings.isPasswordConfigured else {
+        return []
+    }
+    return Set(transaction.chatListGetAllPeerIds(groupId: Namespaces.PeerGroup.archive))
 }

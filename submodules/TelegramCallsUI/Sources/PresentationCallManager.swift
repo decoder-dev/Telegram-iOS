@@ -197,24 +197,29 @@ public final class PresentationCallManagerImpl: PresentationCallManager {
         }
         
         self.ringingStatesDisposable = (combineLatest(ringingStatesByAccount, enableCallKit, enabledMicrophoneAccess)
-        |> mapToSignal { ringingStatesByAccount, enableCallKit, enabledMicrophoneAccess -> Signal<([(AccountContext, Peer, CallSessionRingingState, Bool, NetworkType)], Bool), NoError> in
+        |> mapToSignal { ringingStatesByAccount, enableCallKit, enabledMicrophoneAccess -> Signal<([(AccountContext, Peer, CallSessionRingingState, Bool, NetworkType, Bool)], Bool), NoError> in
             if ringingStatesByAccount.isEmpty {
                 return .single(([], enableCallKit && enabledMicrophoneAccess))
             } else {
-                return combineLatest(ringingStatesByAccount.map { context, state, networkType -> Signal<(AccountContext, Peer, CallSessionRingingState, Bool, NetworkType)?, NoError> in
-                    return context.engine.data.get(
-                        TelegramEngine.EngineData.Item.Peer.Peer(id: state.peerId),
-                        TelegramEngine.EngineData.Item.Peer.IsContact(id: state.peerId)
+                return combineLatest(ringingStatesByAccount.map { context, state, networkType -> Signal<(AccountContext, Peer, CallSessionRingingState, Bool, NetworkType, Bool)?, NoError> in
+                    return combineLatest(
+                        context.engine.data.get(
+                            TelegramEngine.EngineData.Item.Peer.Peer(id: state.peerId),
+                            TelegramEngine.EngineData.Item.Peer.IsContact(id: state.peerId)
+                        ),
+                        context.account.postbox.transaction { transaction -> Bool in
+                            return archiveNotificationShouldRedact(transaction: transaction, peerId: state.peerId)
+                        }
                     )
-                    |> map { peer, isContact -> (AccountContext, Peer, CallSessionRingingState, Bool, NetworkType)? in
-                        if let peer = peer {
-                            return (context, peer._asPeer(), state, isContact, networkType)
+                    |> map { peerAndContact, shouldRedact -> (AccountContext, Peer, CallSessionRingingState, Bool, NetworkType, Bool)? in
+                        if let peer = peerAndContact.0 {
+                            return (context, peer._asPeer(), state, peerAndContact.1, networkType, shouldRedact)
                         } else {
                             return nil
                         }
                     }
                 })
-                |> map { ringingStatesByAccount -> ([(AccountContext, Peer, CallSessionRingingState, Bool, NetworkType)], Bool) in
+                |> map { ringingStatesByAccount -> ([(AccountContext, Peer, CallSessionRingingState, Bool, NetworkType, Bool)], Bool) in
                     return (ringingStatesByAccount.compactMap({ $0 }), enableCallKit && enabledMicrophoneAccess)
                 }
             }
@@ -316,7 +321,16 @@ public final class PresentationCallManagerImpl: PresentationCallManager {
         self.isConferenceReadyDisposable?.dispose()
     }
     
-    private func ringingStatesUpdated(_ ringingStates: [(AccountContext, Peer, CallSessionRingingState, Bool, NetworkType)], enableCallKit: Bool) {
+    private func ringingStatesUpdated(_ ringingStates: [(AccountContext, Peer, CallSessionRingingState, Bool, NetworkType, Bool)], enableCallKit: Bool) {
+        for (context, _, state, _, _, shouldRedact) in ringingStates {
+            if shouldRedact {
+                // Same drop as the PushKit path: never create in-app call UI (name/avatar)
+                // for a peer sitting in a password-protected Archive.
+                self.callKitIntegration?.dropCall(uuid: state.id)
+                context.account.callSessionManager.drop(internalId: state.id, reason: .hangUp, debugLog: .single(nil))
+            }
+        }
+        let ringingStates = ringingStates.filter { !$0.5 }
         if let firstState = ringingStates.first {
             if self.currentCall == nil && self.currentGroupCall == nil {
                 self.currentCallDisposable.set((combineLatest(
@@ -417,7 +431,7 @@ public final class PresentationCallManagerImpl: PresentationCallManager {
                     call.answer()
                 }))
             } else {
-                for (context, _, state, _, _) in ringingStates {
+                for (context, _, state, _, _, _) in ringingStates {
                     if state.id != self.currentCall?.internalId {
                         self.callKitIntegration?.dropCall(uuid: state.id)
                         context.account.callSessionManager.drop(internalId: state.id, reason: .busy, debugLog: .single(nil))

@@ -16,6 +16,7 @@ import PresentationDataUtils
 import UrlWhitelist
 import UndoUI
 import BrowserUI
+import ChatListUI
 
 func handleTextLinkActionImpl(context: AccountContext, peerId: EnginePeer.Id?, navigateDisposable: MetaDisposable, controller: ViewController, action: TextLinkItemActionType, itemLink: TextLinkItem) {
     let presentationData = context.sharedContext.currentPresentationData.with({ $0 })
@@ -42,9 +43,16 @@ func handleTextLinkActionImpl(context: AccountContext, peerId: EnginePeer.Id?, n
                     )
                     navigateDisposable.set((peerSignal |> take(1) |> deliverOnMainQueue).start(next: { peer in
                         if let controller = controller, let peer = peer {
-                            if let infoController = context.sharedContext.makePeerInfoController(context: context, updatedPresentationData: nil, peer: peer, mode: .generic, avatarInitiallyExpanded: false, fromChat: false, requestsContext: nil) {
-                                (controller.navigationController as? NavigationController)?.pushViewController(infoController)
-                            }
+                            presentPeerInfoEnsuringArchiveAccess(
+                                context: context,
+                                peer: peer,
+                                presentUnlock: { unlockController in
+                                    controller.present(unlockController, in: .window(.root))
+                                },
+                                push: { infoController in
+                                    (controller.navigationController as? NavigationController)?.pushViewController(infoController)
+                                }
+                            )
                         }
                     }))
                 case let .withBotStartPayload(botStart):

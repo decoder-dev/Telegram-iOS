@@ -6945,6 +6945,13 @@ public final class PeerInfoScreenImpl: ViewController, PeerInfoScreen, KeyShortc
         super.present(controller, in: context, with: arguments, blockInteraction: blockInteraction, completion: completion)
     }
     
+    override public func viewWillLeaveNavigation() {
+        super.viewWillLeaveNavigation()
+        if !self.isSettings && !self.isMyProfile {
+            relockArchiveSessionIfLeavingArchivedSurface(leavingController: self, isLeavingNavigation: true, context: self.context)
+        }
+    }
+    
     override public func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         
@@ -6953,6 +6960,13 @@ public final class PeerInfoScreenImpl: ViewController, PeerInfoScreen, KeyShortc
         if let emojiStatusSelectionController = self.controllerNode.emojiStatusSelectionController {
             self.controllerNode.emojiStatusSelectionController = nil
             emojiStatusSelectionController.dismiss()
+        }
+    }
+    
+    override public func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        if !self.isSettings && !self.isMyProfile {
+            relockArchiveSessionIfLeavingArchivedSurface(leavingController: self, isLeavingNavigation: false, context: self.context)
         }
     }
     
@@ -6999,9 +7013,18 @@ public final class PeerInfoScreenImpl: ViewController, PeerInfoScreen, KeyShortc
                 context.sharedContext.navigateToChatController(NavigateToChatControllerParams(navigationController: navigationController, context: context, chatLocation: .peer(peer), subject: subject, keepStack: .always, peekData: peekData))
             case .info:
                 if peer.restrictionText(platform: "ios", contentSettings: context.currentContentSettings.with { $0 }) == nil {
-                    if let infoController = context.sharedContext.makePeerInfoController(context: context, updatedPresentationData: nil, peer: peer, mode: .generic, avatarInitiallyExpanded: false, fromChat: false, requestsContext: nil) {
-                        navigationController.pushViewController(infoController)
-                    }
+                    presentPeerInfoEnsuringArchiveAccess(
+                        context: context,
+                        peer: peer,
+                        presentUnlock: { unlockController in
+                            if let host = navigationController.viewControllers.last as? ViewController {
+                                host.present(unlockController, in: .window(.root))
+                            }
+                        },
+                        push: { infoController in
+                            navigationController.pushViewController(infoController)
+                        }
+                    )
                 }
             case let .withBotStartPayload(startPayload):
                 context.sharedContext.navigateToChatController(NavigateToChatControllerParams(navigationController: navigationController, context: context, chatLocation: .peer(peer), botStart: startPayload))

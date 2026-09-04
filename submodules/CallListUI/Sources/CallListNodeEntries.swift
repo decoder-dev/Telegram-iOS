@@ -212,11 +212,14 @@ enum CallListNodeEntry: Comparable, Identifiable {
     }
 }
 
-func callListNodeEntriesForView(view: EngineCallList, displayOpenNewCall: Bool, groupCalls: [EnginePeer], state: CallListNodeState, showSettings: Bool, showCallsTab: Bool, isRecentCalls: Bool, currentGroupCallPeerId: EnginePeer.Id?) -> [CallListNodeEntry] {
+func callListNodeEntriesForView(view: EngineCallList, displayOpenNewCall: Bool, groupCalls: [EnginePeer], state: CallListNodeState, showSettings: Bool, showCallsTab: Bool, isRecentCalls: Bool, currentGroupCallPeerId: EnginePeer.Id?, lockedPeerIds: Set<EnginePeer.Id> = []) -> [CallListNodeEntry] {
     var result: [CallListNodeEntry] = []
     for entry in view.items {
         switch entry {
             case let .message(topMessage, messages):
+                if lockedPeerIds.contains(topMessage.id.peerId) {
+                    continue
+                }
                 result.append(.messageEntry(topMessage: topMessage, messages: messages, theme: state.presentationData.theme, strings: state.presentationData.strings, dateTimeFormat: state.dateTimeFormat, editing: state.editing, hasActiveRevealControls: state.messageIdWithRevealedOptions == topMessage.id, displayHeader: !showSettings && isRecentCalls, missed: !isRecentCalls))
             case let .hole(index):
                 result.append(.holeEntry(index: index, theme: state.presentationData.theme))
@@ -233,6 +236,9 @@ func callListNodeEntriesForView(view: EngineCallList, displayOpenNewCall: Bool, 
                 }
                 return lhs.id < rhs.id
             }).reversed() {
+                if lockedPeerIds.contains(peer.id) {
+                    continue
+                }
                 result.append(.groupCall(peer: peer, editing: state.editing, isActive: currentGroupCallPeerId == peer.id))
             }
         }

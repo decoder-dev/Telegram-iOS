@@ -1824,18 +1824,28 @@ func openResolvedUrlImpl(
                     return
                 }
                 
-                guard let controller = context.sharedContext.makePeerInfoController(
-                    context: context,
-                    updatedPresentationData: updatedPresentationData,
-                    peer: peer,
-                    mode: .storyAlbum(id: id),
-                    avatarInitiallyExpanded: false,
-                    fromChat: false,
-                    requestsContext: nil
-                ) else {
-                    return
-                }
-                navigationController?.pushViewController(controller)
+                ensureArchivedPeerAccessible(context: context, peerId: peerId, present: { controller in
+                    present(controller, nil)
+                }, completion: { result in
+                    switch result {
+                    case .cancelled:
+                        return
+                    case .unlocked, .notProtected:
+                        break
+                    }
+                    guard let controller = context.sharedContext.makePeerInfoController(
+                        context: context,
+                        updatedPresentationData: updatedPresentationData,
+                        peer: peer,
+                        mode: .storyAlbum(id: id),
+                        avatarInitiallyExpanded: false,
+                        fromChat: false,
+                        requestsContext: nil
+                    ) else {
+                        return
+                    }
+                    navigationController?.pushViewController(controller)
+                })
             }
         case let .giftCollection(peerId, id):
             Task { @MainActor [weak navigationController] in
@@ -1845,18 +1855,28 @@ func openResolvedUrlImpl(
                     return
                 }
                 
-                guard let controller = context.sharedContext.makePeerInfoController(
-                    context: context,
-                    updatedPresentationData: updatedPresentationData,
-                    peer: peer,
-                    mode: .giftCollection(id: id),
-                    avatarInitiallyExpanded: false,
-                    fromChat: false,
-                    requestsContext: nil
-                ) else {
-                    return
-                }
-                navigationController?.pushViewController(controller)
+                ensureArchivedPeerAccessible(context: context, peerId: peerId, present: { controller in
+                    present(controller, nil)
+                }, completion: { result in
+                    switch result {
+                    case .cancelled:
+                        return
+                    case .unlocked, .notProtected:
+                        break
+                    }
+                    guard let controller = context.sharedContext.makePeerInfoController(
+                        context: context,
+                        updatedPresentationData: updatedPresentationData,
+                        peer: peer,
+                        mode: .giftCollection(id: id),
+                        avatarInitiallyExpanded: false,
+                        fromChat: false,
+                        requestsContext: nil
+                    ) else {
+                        return
+                    }
+                    navigationController?.pushViewController(controller)
+                })
             }
         case let .sendGift(peerId):
             Task { @MainActor [weak navigationController] in

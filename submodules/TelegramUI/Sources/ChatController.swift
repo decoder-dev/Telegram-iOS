@@ -8304,6 +8304,18 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         
     override public func viewWillLeaveNavigation() {
         self.chatDisplayNode.willNavigateAway()
+        if case .standard(.previewing) = self.mode {
+            return
+        }
+        relockArchiveSessionIfLeavingArchivedSurface(leavingController: self, isLeavingNavigation: true, context: self.context)
+    }
+    
+    override public func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        if case .standard(.previewing) = self.mode {
+            return
+        }
+        relockArchiveSessionIfLeavingArchivedSurface(leavingController: self, isLeavingNavigation: false, context: self.context)
     }
     
     override public func inFocusUpdated(isInFocus: Bool) {
@@ -9936,9 +9948,17 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                     |> take(1)
                     |> deliverOnMainQueue).startStrict(next: { [weak self] peer in
                         if let strongSelf = self, peer.restrictionText(platform: "ios", contentSettings: strongSelf.context.currentContentSettings.with { $0 }) == nil {
-                            if let infoController = strongSelf.context.sharedContext.makePeerInfoController(context: strongSelf.context, updatedPresentationData: strongSelf.updatedPresentationData, peer: peer, mode: .generic, avatarInitiallyExpanded: false, fromChat: false, requestsContext: nil) {
-                                strongSelf.effectiveNavigationController?.pushViewController(infoController)
-                            }
+                            presentPeerInfoEnsuringArchiveAccess(
+                                context: strongSelf.context,
+                                peer: peer,
+                                updatedPresentationData: strongSelf.updatedPresentationData,
+                                presentUnlock: { [weak strongSelf] unlockController in
+                                    strongSelf?.present(unlockController, in: .window(.root))
+                                },
+                                push: { [weak strongSelf] infoController in
+                                    strongSelf?.effectiveNavigationController?.pushViewController(infoController)
+                                }
+                            )
                         }
                     }))
                     commit()

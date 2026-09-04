@@ -14,6 +14,7 @@ import BrowserUI
 import OverlayStatusController
 import PresentationDataUtils
 import SettingsUI
+import ChatListUI
 
 public struct ParsedSecureIdUrl {
     public let peerId: EnginePeer.Id
@@ -174,10 +175,19 @@ private func makeResolvedUrlHandler(
                 openPeer: { peer, navigation in
                     switch navigation {
                     case .info:
-                        if let infoController = context.sharedContext.makePeerInfoController(context: context, updatedPresentationData: nil, peer: peer, mode: .generic, avatarInitiallyExpanded: false, fromChat: false, requestsContext: nil) {
-                            context.sharedContext.applicationBindings.dismissNativeController()
-                            navigationController?.pushViewController(infoController)
-                        }
+                        presentPeerInfoEnsuringArchiveAccess(
+                            context: context,
+                            peer: peer,
+                            presentUnlock: { unlockController in
+                                if let host = navigationController?.viewControllers.last as? ViewController {
+                                    host.present(unlockController, in: .window(.root))
+                                }
+                            },
+                            push: { infoController in
+                                context.sharedContext.applicationBindings.dismissNativeController()
+                                navigationController?.pushViewController(infoController)
+                            }
+                        )
                     case let .chat(textInputState, subject, peekData):
                         context.sharedContext.applicationBindings.dismissNativeController()
                         if let navigationController {
@@ -614,16 +624,19 @@ func openExternalUrlImpl(context: AccountContext, urlContext: OpenURLContext, ur
                     if let idValue = params["id"].flatMap(Int64.init), idValue > 0 {
                         let _ = (context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: EnginePeer.Id(namespace: Namespaces.Peer.CloudUser, id: EnginePeer.Id.Id._internalFromInt64Value(idValue))))
                         |> deliverOnMainQueue).startStandalone(next: { peer in
-                            if let peer = peer, let controller = context.sharedContext.makePeerInfoController(
-                                context: context,
-                                updatedPresentationData: nil,
-                                peer: peer,
-                                mode: .generic,
-                                avatarInitiallyExpanded: false,
-                                fromChat: false,
-                                requestsContext: nil
-                            ) {
-                                navigationController?.pushViewController(controller)
+                            if let peer {
+                                presentPeerInfoEnsuringArchiveAccess(
+                                    context: context,
+                                    peer: peer,
+                                    presentUnlock: { unlockController in
+                                        if let host = navigationController?.viewControllers.last as? ViewController {
+                                            host.present(unlockController, in: .window(.root))
+                                        }
+                                    },
+                                    push: { controller in
+                                        navigationController?.pushViewController(controller)
+                                    }
+                                )
                             }
                         })
                         return

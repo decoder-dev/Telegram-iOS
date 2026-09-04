@@ -207,9 +207,22 @@ extension ChatControllerImpl {
                                         if let validLayout = strongSelf.validLayout, validLayout.deviceMetrics.type == .tablet {
                                             expandAvatar = false
                                         }
-                                        if let infoController = strongSelf.context.sharedContext.makePeerInfoController(context: strongSelf.context, updatedPresentationData: strongSelf.updatedPresentationData, peer: peer, mode: mode, avatarInitiallyExpanded: expandAvatar, fromChat: false, requestsContext: nil) {
-                                            strongSelf.effectiveNavigationController?.pushViewController(infoController)
-                                        }
+                                        ensureArchivedPeerAccessible(context: strongSelf.context, peerId: peer.id, present: { [weak strongSelf] controller in
+                                            strongSelf?.present(controller, in: .window(.root))
+                                        }, completion: { [weak strongSelf] result in
+                                            guard let strongSelf else {
+                                                return
+                                            }
+                                            switch result {
+                                            case .cancelled:
+                                                return
+                                            case .unlocked, .notProtected:
+                                                break
+                                            }
+                                            if let infoController = strongSelf.context.sharedContext.makePeerInfoController(context: strongSelf.context, updatedPresentationData: strongSelf.updatedPresentationData, peer: peer, mode: mode, avatarInitiallyExpanded: expandAvatar, fromChat: false, requestsContext: nil) {
+                                                strongSelf.effectiveNavigationController?.pushViewController(infoController)
+                                            }
+                                        })
                                     }
                                 }))
                             case let .chat(textInputState, subject, peekData):
@@ -259,7 +272,20 @@ extension ChatControllerImpl {
                                     })
                                 }
                             case let .withBotStartPayload(botStart):
-                                self.effectiveNavigationController?.pushViewController(ChatControllerImpl(context: self.context, chatLocation: .peer(id: peer.id), botStart: botStart))
+                                ensureArchivedPeerAccessible(context: self.context, peerId: peer.id, present: { [weak self] controller in
+                                    self?.present(controller, in: .window(.root))
+                                }, completion: { [weak self] result in
+                                    guard let self else {
+                                        return
+                                    }
+                                    switch result {
+                                    case .cancelled:
+                                        return
+                                    case .unlocked, .notProtected:
+                                        break
+                                    }
+                                    self.effectiveNavigationController?.pushViewController(ChatControllerImpl(context: self.context, chatLocation: .peer(id: peer.id), botStart: botStart))
+                                })
                             case let .withAttachBot(attachBotStart):
                                 if let navigationController = self.effectiveNavigationController {
                                     self.context.sharedContext.navigateToChatController(NavigateToChatControllerParams(navigationController: navigationController, context: self.context, chatLocation: .peer(peer), attachBotStart: attachBotStart))

@@ -17,6 +17,8 @@ import InviteLinksUI
 import UndoUI
 import TelegramCallsUI
 import TelegramUIPreferences
+import Postbox
+import ChatListUI
 
 public enum CallListControllerMode {
     case tab
@@ -372,8 +374,23 @@ public final class CallListController: TelegramBaseController {
                     TelegramEngine.EngineData.Item.Peer.Peer(id: peerId)
                 )
                 |> deliverOnMainQueue).startStandalone(next: { peer in
-                    if let strongSelf = self, let peer = peer, let controller = strongSelf.context.sharedContext.makePeerInfoController(context: strongSelf.context, updatedPresentationData: nil, peer: peer, mode: .calls(messages: messages), avatarInitiallyExpanded: false, fromChat: false, requestsContext: nil) {
-                        (strongSelf.navigationController as? NavigationController)?.pushViewController(controller)
+                    if let strongSelf = self, let peer = peer {
+                        ensureArchivedPeerAccessible(context: strongSelf.context, peerId: peerId, present: { [weak strongSelf] controller in
+                            strongSelf?.present(controller, in: .window(.root))
+                        }, completion: { [weak strongSelf] result in
+                            guard let strongSelf else {
+                                return
+                            }
+                            switch result {
+                            case .cancelled:
+                                return
+                            case .unlocked, .notProtected:
+                                break
+                            }
+                            if let controller = strongSelf.context.sharedContext.makePeerInfoController(context: strongSelf.context, updatedPresentationData: nil, peer: peer, mode: .calls(messages: messages), avatarInitiallyExpanded: false, fromChat: false, requestsContext: nil) {
+                                (strongSelf.navigationController as? NavigationController)?.pushViewController(controller)
+                            }
+                        })
                     }
                 })
             }

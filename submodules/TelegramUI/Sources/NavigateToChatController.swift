@@ -20,12 +20,13 @@ import SavedMessagesScreen
 import WallpaperGalleryScreen
 import ChatMessageNotificationItem
 import FaceScanScreen
+import TelegramUIPreferences
 
 public func navigateToChatControllerImpl(_ params: NavigateToChatControllerParams) {
     navigateToChatControllerImpl(params, skipArchiveUnlock: false)
 }
 
-private func navigateToChatControllerImpl(_ params: NavigateToChatControllerParams, skipArchiveUnlock: Bool) {
+private func navigateToChatControllerImpl(_ params: NavigateToChatControllerParams, skipArchiveUnlock: Bool, requireArchiveSessionUnlocked: Bool = false) {
     if !skipArchiveUnlock {
         let peerId = params.chatLocation.peerId
         let presentUnlock: (ViewController) -> Void = { controller in
@@ -37,7 +38,12 @@ private func navigateToChatControllerImpl(_ params: NavigateToChatControllerPara
             switch result {
             case .cancelled:
                 return
-            case .unlocked, .notProtected:
+            case .unlocked:
+                guard ArchiveLockSession.shared.isUnlocked else {
+                    return
+                }
+                navigateToChatControllerImpl(params, skipArchiveUnlock: true, requireArchiveSessionUnlocked: true)
+            case .notProtected:
                 navigateToChatControllerImpl(params, skipArchiveUnlock: true)
             }
         })
@@ -96,9 +102,15 @@ private func navigateToChatControllerImpl(_ params: NavigateToChatControllerPara
         viewForumAsMessages |> take(1),
         requiresAgeVerification
     ).start(next: { viewForumAsMessages, requiresAgeVerification in
+        if requireArchiveSessionUnlocked && !ArchiveLockSession.shared.isUnlocked {
+            return
+        }
         if requiresAgeVerification, let parentController = params.navigationController.viewControllers.last as? ViewController {
             presentAgeVerification(context: params.context, parentController: parentController, completion: {
-                navigateToChatControllerImpl(params.withSkipAgeVerification(true), skipArchiveUnlock: true)
+                if requireArchiveSessionUnlocked && !ArchiveLockSession.shared.isUnlocked {
+                    return
+                }
+                navigateToChatControllerImpl(params.withSkipAgeVerification(true), skipArchiveUnlock: true, requireArchiveSessionUnlocked: requireArchiveSessionUnlocked)
             })
             return
         }
@@ -143,6 +155,9 @@ private func navigateToChatControllerImpl(_ params: NavigateToChatControllerPara
             
             let activateMessageSearch = params.activateMessageSearch
             let chatListCompletion = params.chatListCompletion
+            if requireArchiveSessionUnlocked && !ArchiveLockSession.shared.isUnlocked {
+                return
+            }
             params.navigationController.pushViewController(controller, completion: { [weak controller] in
                 guard let controller else {
                     return
@@ -255,6 +270,9 @@ private func navigateToChatControllerImpl(_ params: NavigateToChatControllerPara
             }
         }
         if !found {
+            if requireArchiveSessionUnlocked && !ArchiveLockSession.shared.isUnlocked {
+                return
+            }
             let controller: ChatControllerImpl
             if let chatController = params.chatController as? ChatControllerImpl {
                 controller = chatController
@@ -305,6 +323,9 @@ private func navigateToChatControllerImpl(_ params: NavigateToChatControllerPara
                 resolvedKeepStack = false
             }
             if resolvedKeepStack {
+                if requireArchiveSessionUnlocked && !ArchiveLockSession.shared.isUnlocked {
+                    return
+                }
                 if let pushController = params.pushController {
                     pushController(controller, params.animated, {
                         params.completion(controller)
@@ -315,6 +336,9 @@ private func navigateToChatControllerImpl(_ params: NavigateToChatControllerPara
                     })
                 }
             } else {
+                if requireArchiveSessionUnlocked && !ArchiveLockSession.shared.isUnlocked {
+                    return
+                }
                 let viewControllers = params.navigationController.viewControllers.filter({ controller in
                     if controller is ForumCreateTopicScreen {
                         return false

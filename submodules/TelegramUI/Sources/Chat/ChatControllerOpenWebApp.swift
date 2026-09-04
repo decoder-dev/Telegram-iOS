@@ -14,6 +14,7 @@ import UndoUI
 import UrlHandling
 import TelegramPresentationData
 import ChatInterfaceState
+import ChatListUI
 
 func openWebAppImpl(
     context: AccountContext,
@@ -647,9 +648,18 @@ public extension ChatControllerImpl {
                 context.sharedContext.navigateToChatController(NavigateToChatControllerParams(navigationController: navigationController, context: context, chatLocation: .peer(peer), subject: subject, keepStack: .always, peekData: peekData))
             case .info:
                 if peer.restrictionText(platform: "ios", contentSettings: context.currentContentSettings.with { $0 }) == nil {
-                    if let infoController = context.sharedContext.makePeerInfoController(context: context, updatedPresentationData: nil, peer: peer, mode: .generic, avatarInitiallyExpanded: false, fromChat: false, requestsContext: nil) {
-                        navigationController.pushViewController(infoController)
-                    }
+                    presentPeerInfoEnsuringArchiveAccess(
+                        context: context,
+                        peer: peer,
+                        presentUnlock: { unlockController in
+                            if let host = navigationController.viewControllers.last as? ViewController {
+                                host.present(unlockController, in: .window(.root))
+                            }
+                        },
+                        push: { infoController in
+                            navigationController.pushViewController(infoController)
+                        }
+                    )
                 }
             case let .withBotStartPayload(startPayload):
                 context.sharedContext.navigateToChatController(NavigateToChatControllerParams(navigationController: navigationController, context: context, chatLocation: .peer(peer), botStart: startPayload))

@@ -2294,6 +2294,37 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         self.pushRegistryImpl(registry, didReceiveIncomingPushWith: payload, for: type, completion: completion)
     }
     
+    /// Resolve the CallKit account and whether the ringing peer must be redacted.
+    /// Waits briefly for accounts to load on cold start; if the account still cannot be
+    /// attached, fail closed (`shouldRedact == true`) so CallKit never shows a real title.
+    private func resolveIncomingCallAccount(sharedContext: SharedAccountContext, accountId: AccountRecordId, peerId: EnginePeer.Id) -> Signal<(AccountContext?, Bool), NoError> {
+        return sharedContext.activeAccountContexts
+        |> map { activeAccounts -> (AccountContext?, Bool) in
+            var matched: AccountContext?
+            for (_, context, _) in activeAccounts.accounts {
+                if context.account.id == accountId {
+                    matched = context
+                    break
+                }
+            }
+            return (matched, !activeAccounts.accounts.isEmpty)
+        }
+        |> filter { matched, accountsReady in
+            return matched != nil || accountsReady
+        }
+        |> take(1)
+        |> timeout(2.0, queue: Queue.mainQueue(), alternate: .single((nil, true)))
+        |> mapToSignal { matched, _ -> Signal<(AccountContext?, Bool), NoError> in
+            if let matched {
+                return matched.account.postbox.transaction { transaction -> (AccountContext?, Bool) in
+                    return (matched, archiveNotificationShouldRedact(transaction: transaction, peerId: peerId))
+                }
+            } else {
+                return .single((nil, true))
+            }
+        }
+    }
+    
     public func pushRegistry(_ registry: PKPushRegistry, didReceiveIncomingPushWith payload: PKPushPayload, for type: PKPushType) {
         Logger.shared.log("App \(self.episodeId) PushRegistry", "pushRegistry didReceiveIncomingPushWith \(payload.dictionaryPayload)")
         
@@ -2398,28 +2429,8 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             |> deliverOnMainQueue).start(next: { sharedApplicationContext in
                 let strings = sharedApplicationContext.sharedContext.currentPresentationData.with { $0.strings }
 
-                let _ = (sharedApplicationContext.sharedContext.activeAccountContexts
-                |> take(1)
-                |> deliverOnMainQueue).start(next: { activeAccounts in
-                    var matchedContext: AccountContext?
-                    for (_, context, _) in activeAccounts.accounts {
-                        if context.account.id == accountId {
-                            matchedContext = context
-                            break
-                        }
-                    }
-
-                    let shouldRedactSignal: Signal<Bool, NoError>
-                    if let matchedContext {
-                        shouldRedactSignal = matchedContext.account.postbox.transaction { transaction -> Bool in
-                            return archiveNotificationShouldRedact(transaction: transaction, peerId: fromPeerId)
-                        }
-                    } else {
-                        shouldRedactSignal = .single(false)
-                    }
-
-                    let _ = (shouldRedactSignal
-                    |> deliverOnMainQueue).start(next: { shouldRedact in
+                let _ = (self.resolveIncomingCallAccount(sharedContext: sharedApplicationContext.sharedContext, accountId: accountId, peerId: fromPeerId)
+                |> deliverOnMainQueue).start(next: { matchedContext, shouldRedact in
                         let displayTitle: String
                         if shouldRedact {
                             displayTitle = "Telegram"
@@ -2505,7 +2516,6 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                             }))
                         }
                     })
-                })
 
                 sharedApplicationContext.wakeupManager.allowBackgroundTimeExtension(timeout: 2.0)
 
@@ -2550,34 +2560,13 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             // Resolve the matching account *before* reporting to CallKit, so a caller hidden in
             // a locked, password-protected Archive is never shown by real name/handle — not even
             // for the brief window it'd take to report-then-correct. If the account can't be
-            // resolved in time (e.g. cold launch), fail open (report normally) rather than risk
-            // silently swallowing ordinary calls; this only weakens the Archive redaction in a
-            // rare timing edge case, it never breaks calling.
+            // resolved in time, fail closed: generic "Telegram" title and drop, rather than
+            // leaking a real display name.
             let _ = (self.sharedContextPromise.get()
             |> take(1)
             |> deliverOnMainQueue).start(next: { sharedApplicationContext in
-                let _ = (sharedApplicationContext.sharedContext.activeAccountContexts
-                |> take(1)
-                |> deliverOnMainQueue).start(next: { activeAccounts in
-                    var matchedContext: AccountContext?
-                    for (_, context, _) in activeAccounts.accounts {
-                        if context.account.id == accountId {
-                            matchedContext = context
-                            break
-                        }
-                    }
-
-                    let shouldRedactSignal: Signal<Bool, NoError>
-                    if let matchedContext {
-                        shouldRedactSignal = matchedContext.account.postbox.transaction { transaction -> Bool in
-                            return archiveNotificationShouldRedact(transaction: transaction, peerId: callUpdate.peer.id)
-                        }
-                    } else {
-                        shouldRedactSignal = .single(false)
-                    }
-
-                    let _ = (shouldRedactSignal
-                    |> deliverOnMainQueue).start(next: { shouldRedact in
+                let _ = (self.resolveIncomingCallAccount(sharedContext: sharedApplicationContext.sharedContext, accountId: accountId, peerId: callUpdate.peer.id)
+                |> deliverOnMainQueue).start(next: { matchedContext, shouldRedact in
                         callKitIntegration.reportIncomingCall(
                             uuid: oneToOneCallUUID,
                             stableId: callUpdate.callId,
@@ -2631,7 +2620,6 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                             }
                         }))
                     })
-                })
                 
                 sharedApplicationContext.wakeupManager.allowBackgroundTimeExtension(timeout: 2.0)
                 

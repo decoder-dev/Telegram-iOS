@@ -8,6 +8,7 @@ import Display
 import TelegramPresentationData
 import MergeLists
 import AccountContext
+import TelegramUIPreferences
 
 private let cancelFont = Font.regular(17.0)
 private let subtitleFont = Font.regular(12.0)
@@ -319,11 +320,17 @@ final class ShareSearchContainerNode: ASDisplayNode, ShareContentContainerNode {
                     foundLocalPeers,
                     foundRemotePeers
                 )
-               |> map { foundLocalPeers, foundRemotePeers -> FoundPeers in
-                    return FoundPeers(
-                        foundLocalPeers: foundLocalPeers,
-                        foundRemotePeers: foundRemotePeers
-                    )
+               |> mapToSignal { foundLocalPeers, foundRemotePeers -> Signal<FoundPeers, NoError> in
+                    return context.stateManager.postbox.transaction { transaction -> FoundPeers in
+                        return FoundPeers(
+                            foundLocalPeers: foundLocalPeers.filter { !archiveNotificationShouldRedact(transaction: transaction, peerId: $0.peerId) },
+                            foundRemotePeers: (
+                                foundRemotePeers.0.filter { !archiveNotificationShouldRedact(transaction: transaction, peerId: $0.peer.id) },
+                                foundRemotePeers.1.filter { !archiveNotificationShouldRedact(transaction: transaction, peerId: $0.peer.id) },
+                                foundRemotePeers.2
+                            )
+                        )
+                    }
                 })
                 
                 let peerRequiresPremiumForMessaging: Signal<[EnginePeer.Id: Bool], NoError>
@@ -474,19 +481,24 @@ final class ShareSearchContainerNode: ASDisplayNode, ShareContentContainerNode {
         |> distinctUntilChanged
         
         let recentItems: Signal<[ShareSearchRecentEntry], NoError> = combineLatest(hasRecentPeers, self.themePromise.get())
-        |> map { hasRecentPeers, theme -> [ShareSearchRecentEntry] in
-            var recentItemList: [ShareSearchRecentEntry] = []
-            if hasRecentPeers {
-                recentItemList.append(.topPeers(theme, strings))
-            }
-            var index = 0
-            for (peer, requiresPremiumForMessaging) in recentPeerList {
-                if let mainPeer = peer.peers[peer.peerId], canSendMessagesToPeer(mainPeer) {
-                    recentItemList.append(.peer(index: index, theme: theme, peer: mainPeer, associatedPeer: mainPeer.associatedPeerId.flatMap { peer.peers[$0] }, presence: nil, requiresPremiumForMessaging: requiresPremiumForMessaging, requiresStars: nil, strings: strings))
-                    index += 1
+        |> mapToSignal { hasRecentPeers, theme -> Signal<[ShareSearchRecentEntry], NoError> in
+            return context.stateManager.postbox.transaction { transaction -> [ShareSearchRecentEntry] in
+                var recentItemList: [ShareSearchRecentEntry] = []
+                if hasRecentPeers {
+                    recentItemList.append(.topPeers(theme, strings))
                 }
+                var index = 0
+                for (peer, requiresPremiumForMessaging) in recentPeerList {
+                    if archiveNotificationShouldRedact(transaction: transaction, peerId: peer.peerId) {
+                        continue
+                    }
+                    if let mainPeer = peer.peers[peer.peerId], canSendMessagesToPeer(mainPeer) {
+                        recentItemList.append(.peer(index: index, theme: theme, peer: mainPeer, associatedPeer: mainPeer.associatedPeerId.flatMap { peer.peers[$0] }, presence: nil, requiresPremiumForMessaging: requiresPremiumForMessaging, requiresStars: nil, strings: strings))
+                        index += 1
+                    }
+                }
+                return recentItemList
             }
-            return recentItemList
         }
         let previousRecentItems = Atomic<[ShareSearchRecentEntry]?>(value: nil)
         self.recentDisposable.set((recentItems
