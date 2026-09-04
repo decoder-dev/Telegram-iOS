@@ -6,17 +6,13 @@
 
 ## [Unreleased]
 
-## [v12.9.2-3951-pre]
-
-### Fixed
-- **Archive lock:** opening Archive no longer pops itself after Face ID/Touch ID — become-active privacy restore only dismisses when the session is still locked, and biometric unlock suppresses background relock so resign-active from the system prompt cannot clear reveal mid-unlock.
-
 ## [v12.9.2-3950-pre]
 
 ### Changed
 - **Adversarial hardening:** Archive password uses PBKDF2-HMAC-SHA256 (100k iterations, random 16-byte salt; old SHA-256 hashes still unlock and upgrade); VoIP `useForCalls` defaults on for new installs (existing stored prefs unchanged); passcode setup is 6-digit or alphanumeric only (no 4-digit).
 
 ### Fixed
+- **Archive lock:** opening Archive no longer pops itself after Face ID/Touch ID — become-active privacy restore only dismisses when the session is still locked, and biometric unlock suppresses background relock so resign-active from the system prompt cannot clear reveal mid-unlock.
 - **Archive lock:** App Switcher cover, leave-chat relock, Spotlight/share/mentions/widgets/search name leaks, Peer Info central gate.
 - **Adversarial privacy:** Instant Passcode covers/locks on resign-active (Control Center / App Switcher); keyboard hidden under cover; instant cover remove; Archive dismiss sync before uncover; App Lock NSE redacts title+body; secret screenshots default off; Ghost Don't Read gates mentions/live-location/notification-reply/channel-view-increment; master Ghost includes Don't Read Stories; Read on Interact default off; MessageSaving/session Keychain backup/bypass-download default off; session backup wipe on disable.
 - **Streamer Mode:** hide own phone number and username in profiles and the Settings header; widgets show locked/empty content while App Lock is active.
