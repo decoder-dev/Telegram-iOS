@@ -508,12 +508,11 @@ public final class ArchiveLockSession {
     
     /// Re-lock Archive when the app leaves the active state.
     ///
-    /// `willRelock` runs on the main queue *before* `relock()` so callers can cover Archive UI
-    /// for the app-switcher snapshot while `isUnlocked` is still true. `didBecomeActive` runs
-    /// when the app returns so that covering view can be removed if App Lock did not take over.
-    /// Session-level `willRelockHandler` / `didBecomeActiveHandler` are also invoked at fire
-    /// time so they can be registered after this binding has already claimed the slot.
-    public func bindBackgroundRelock(applicationIsActive: Signal<Bool, NoError>, willRelock: (() -> Void)? = nil, didBecomeActive: (() -> Void)? = nil) {
+    /// Handlers are looked up at fire time (`willRelockHandler` / `didBecomeActiveHandler`) so
+    /// account switches can refresh them without rebinding the subscription. `applicationInForeground`
+    /// distinguishes Face ID resign-active (still foreground — suppressible) from a true Home
+    /// background (always relock, even mid-biometric).
+    public func bindBackgroundRelock(applicationIsActive: Signal<Bool, NoError>, applicationInForeground: Signal<Bool, NoError>) {
         // Claim the "binding" slot atomically with a placeholder before subscribing, so two
         // concurrent callers can't both observe "not yet bound" and both subscribe — only the
         // caller that wins the claim installs a real disposable; the loser's subscription is
@@ -527,23 +526,25 @@ public final class ArchiveLockSession {
         if alreadyBound {
             return
         }
-        let disposable = (applicationIsActive
-        |> distinctUntilChanged
-        |> deliverOnMainQueue).startStrict(next: { [weak self] isActive in
+        let disposable = (combineLatest(applicationIsActive, applicationInForeground)
+        |> distinctUntilChanged(isEqual: { lhs, rhs in
+            return lhs.0 == rhs.0 && lhs.1 == rhs.1
+        })
+        |> deliverOnMainQueue).startStrict(next: { [weak self] isActive, inForeground in
+            guard let self else {
+                return
+            }
             if isActive {
-                didBecomeActive?()
-                self?.didBecomeActiveHandler?()
+                self.didBecomeActiveHandler?()
             } else {
-                guard let self else {
-                    return
-                }
                 self.lock.lock()
                 let suppressed = self.suppressBackgroundRelockCount > 0
                 self.lock.unlock()
-                if suppressed {
+                // Face ID/Touch ID resigns active while still foreground — skip. A real
+                // background (Home / app switcher settle) must always relock.
+                if suppressed && inForeground {
                     return
                 }
-                willRelock?()
                 self.willRelockHandler?()
                 self.relock()
             }

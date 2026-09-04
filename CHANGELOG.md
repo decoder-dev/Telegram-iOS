@@ -6,6 +6,11 @@
 
 ## [Unreleased]
 
+## [v12.9.2-4013]
+
+### Fixed
+- **Archive lock:** Face ID resign no longer skips a real Home-background relock; suppress only applies while still foreground. Dual willRelock/didBecomeActive callbacks collapsed to session handlers refreshed on every bind (no stale account after switch). Dismiss waits for full archived peer-id set instead of first applying empty (App Switcher leak). Biometric suppress counter always cleared on auth completion.
+
 ## [v12.9.2-3950-pre]
 
 ### Changed

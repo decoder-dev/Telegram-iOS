@@ -361,19 +361,22 @@ public func relockArchiveSessionIfLeavingArchivedSurface(
 public func bindArchiveLockSession(context: AccountContext) {
     ArchiveLockSession.shared.bindBackgroundRelock(
         applicationIsActive: context.sharedContext.applicationBindings.applicationIsActive,
-        willRelock: { [weak context] in
-            guard let context else {
-                return
-            }
-            prepareArchivePrivacyOnResignActive(context: context)
-        },
-        didBecomeActive: { [weak context] in
-            guard let context else {
-                return
-            }
-            restoreArchivePrivacyOnBecomeActive(context: context)
-        }
+        applicationInForeground: context.sharedContext.applicationBindings.applicationInForeground
     )
+    // Refresh every bind so account switches do not keep a stale primary's prepare/restore.
+    // (bindBackgroundRelock itself is first-wins for the subscription only.)
+    ArchiveLockSession.shared.willRelockHandler = { [weak context] in
+        guard let context else {
+            return
+        }
+        prepareArchivePrivacyOnResignActive(context: context)
+    }
+    ArchiveLockSession.shared.didBecomeActiveHandler = { [weak context] in
+        guard let context else {
+            return
+        }
+        restoreArchivePrivacyOnBecomeActive(context: context)
+    }
     ArchiveLockSession.shared.bindPasswordProtection(accountId: context.account.id.int64, isPasswordConfigured: archivePasswordProtectionSignal(context: context))
     ArchiveLockSession.shared.bindLockedPeerIds(accountId: context.account.id.int64, lockedPeerIds: archiveLockedPeerIdsSignal(context: context))
 }
@@ -439,11 +442,20 @@ public func ensureArchiveUnlocked(
         // falls through to the password prompt — never a dead end.
         if settings.useBiometrics, LocalAuth.biometricAuthentication != nil {
             // Biometric UI resigns active; suppress Archive background-relock for that window
-            // so Face ID does not clear reveal / dismiss the folder mid-unlock.
+            // so Face ID does not clear reveal / dismiss the folder mid-unlock. Always end
+            // suppress on next *or* completion so a cancelled auth cannot stick the counter.
             ArchiveLockSession.shared.beginSuppressBackgroundRelock()
+            var endedSuppress = false
+            let endSuppress = {
+                guard !endedSuppress else {
+                    return
+                }
+                endedSuppress = true
+                ArchiveLockSession.shared.endSuppressBackgroundRelock()
+            }
             let _ = (LocalAuth.auth(reason: ArchiveLockLocalizedString.biometricReason)
             |> deliverOnMainQueue).start(next: { success, _ in
-                ArchiveLockSession.shared.endSuppressBackgroundRelock()
+                endSuppress()
                 if success {
                     // Same reset the password path does on success. Both outcomes mean the owner
                     // proved who they are, and the counter throttles guessing, not the owner — but
@@ -455,6 +467,8 @@ public func ensureArchiveUnlocked(
                 } else {
                     showPasswordPrompt()
                 }
+            }, completed: {
+                endSuppress()
             })
         } else {
             showPasswordPrompt()
@@ -903,12 +917,17 @@ public func dismissOpenArchiveControllers(from navigationController: UINavigatio
         apply(ArchiveLockSession.shared.currentLockedPeerIds())
         return
     }
-    apply(ArchiveLockSession.shared.currentLockedPeerIds())
+    // Do not apply an empty peer-id set first: that would pop the Archive folder but leave
+    // archived chats / Peer Info / gallery on the stack until the async fetch lands (App
+    // Switcher leak window). Wait for the full id set when we have a context; otherwise only
+    // the folder match (empty ids still dismisses `.archive` chat lists) is available.
     if let context {
         let _ = (context.account.postbox.transaction { transaction -> Set<EnginePeer.Id> in
             return Set(transaction.chatListGetAllPeerIds(groupId: Namespaces.PeerGroup.archive))
         }
         |> deliverOnMainQueue).startStandalone(next: apply)
+    } else {
+        apply([])
     }
 }
 
