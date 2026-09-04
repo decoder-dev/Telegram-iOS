@@ -6,6 +6,8 @@
 
 ## [Unreleased]
 
+## [v12.9.2-3950-pre]
+
 ### Changed
 - **Adversarial hardening:** Archive password uses PBKDF2-HMAC-SHA256 (100k iterations, random 16-byte salt; old SHA-256 hashes still unlock and upgrade); VoIP `useForCalls` defaults on for new installs (existing stored prefs unchanged); passcode setup is 6-digit or alphanumeric only (no 4-digit).
 
