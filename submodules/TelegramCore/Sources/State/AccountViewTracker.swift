@@ -698,7 +698,7 @@ public final class AccountViewTracker {
         }
     }
     
-    public func updateViewCountForMessageIds(messageIds: Set<MessageId>, clientId: Int32) {
+    public func updateViewCountForMessageIds(messageIds: Set<MessageId>, clientId: Int32, increment: Bool = true) {
         self.queue.async {
             var addedMessageIds: [MessageId] = []
             let updatedState = ViewCountContextState(timestamp: Int32(CFAbsoluteTimeGetCurrent()), clientId: clientId, result: nil)
@@ -720,7 +720,7 @@ public final class AccountViewTracker {
                             guard let peer = transaction.getPeer(peerId), let inputPeer = apiInputPeer(peer) else {
                                 return .complete()
                             }
-                            return account.network.request(Api.functions.messages.getMessagesViews(peer: inputPeer, id: messageIds.map { $0.id }, increment: .boolTrue))
+                            return account.network.request(Api.functions.messages.getMessagesViews(peer: inputPeer, id: messageIds.map { $0.id }, increment: increment ? .boolTrue : .boolFalse))
                             |> map(Optional.init)
                             |> `catch` { _ -> Signal<Api.messages.MessageViews?, NoError> in
                                 return .single(nil)

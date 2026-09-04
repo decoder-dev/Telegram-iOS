@@ -8,6 +8,7 @@
 
 ### Fixed
 - **Archive lock:** App Switcher cover, leave-chat relock, Spotlight/share/mentions/widgets/search name leaks, Peer Info central gate.
+- **Adversarial privacy:** Instant Passcode covers/locks on resign-active (Control Center / App Switcher); keyboard hidden under cover; instant cover remove; Archive dismiss sync before uncover; App Lock NSE redacts title+body; secret screenshots default off; Ghost Don't Read gates mentions/live-location/notification-reply/channel-view-increment; master Ghost includes Don't Read Stories; Read on Interact default off; MessageSaving/session Keychain backup/bypass-download default off; session backup wipe on disable.
 
 ## [v12.9.2-3949-pre]
 

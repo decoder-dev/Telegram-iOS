@@ -176,9 +176,42 @@ public func applyArchiveLockSwitcherCover(context: AccountContext) {
     archiveSwitcherCoveringView = coveringView
 }
 
-/// Drop the Archive cover on foreground unless App Lock has replaced it.
+private func archiveControllersRemainOnStack(context: AccountContext) -> Bool {
+    guard let navigationController = context.sharedContext.mainWindow?.viewController as? NavigationController else {
+        return false
+    }
+    return navigationContainsArchiveUI(navigationController, archivedPeerIds: ArchiveLockSession.shared.currentLockedPeerIds())
+}
+
+private func archiveNavigationController(context: AccountContext) -> UINavigationController? {
+    return context.sharedContext.mainWindow?.viewController as? UINavigationController
+}
+
+/// Cover Archive UI, then dismiss Archive controllers on the current runloop so the
+/// App Switcher snapshot cannot show them after the cover is later removed.
+public func prepareArchivePrivacyOnResignActive(context: AccountContext) {
+    applyArchiveLockSwitcherCover(context: context)
+    guard ArchiveLockSession.shared.isLockActive else {
+        return
+    }
+    dismissOpenArchiveControllers(from: archiveNavigationController(context: context), context: context)
+}
+
+/// Drop remaining Archive surfaces, then remove the switcher cover only once they are gone.
+public func restoreArchivePrivacyOnBecomeActive(context: AccountContext) {
+    if ArchiveLockSession.shared.isLockActive {
+        dismissOpenArchiveControllers(from: archiveNavigationController(context: context), context: context)
+    }
+    removeArchiveLockSwitcherCover(context: context)
+}
+
+/// Drop the Archive cover on foreground unless App Lock has replaced it, or Archive
+/// controllers are still on the stack (cover must outlive dismiss).
 public func removeArchiveLockSwitcherCover(context: AccountContext) {
     guard let coveringView = archiveSwitcherCoveringView else {
+        return
+    }
+    if archiveControllersRemainOnStack(context: context) {
         return
     }
     archiveSwitcherCoveringView = nil
@@ -327,13 +360,13 @@ public func bindArchiveLockSession(context: AccountContext) {
             guard let context else {
                 return
             }
-            applyArchiveLockSwitcherCover(context: context)
+            prepareArchivePrivacyOnResignActive(context: context)
         },
         didBecomeActive: { [weak context] in
             guard let context else {
                 return
             }
-            removeArchiveLockSwitcherCover(context: context)
+            restoreArchivePrivacyOnBecomeActive(context: context)
         }
     )
     ArchiveLockSession.shared.bindPasswordProtection(accountId: context.account.id.int64, isPasswordConfigured: archivePasswordProtectionSignal(context: context))
@@ -861,13 +894,16 @@ public func dismissOpenArchiveControllers(from navigationController: UINavigatio
             Queue.mainQueue().async(work)
         }
     }
+    if ArchiveLockSession.shared.areLockedPeerIdsResolved {
+        apply(ArchiveLockSession.shared.currentLockedPeerIds())
+        return
+    }
+    apply(ArchiveLockSession.shared.currentLockedPeerIds())
     if let context {
         let _ = (context.account.postbox.transaction { transaction -> Set<EnginePeer.Id> in
             return Set(transaction.chatListGetAllPeerIds(groupId: Namespaces.PeerGroup.archive))
         }
         |> deliverOnMainQueue).startStandalone(next: apply)
-    } else {
-        apply([])
     }
 }
 

@@ -126,7 +126,7 @@ public struct MessageSavingBridgeSettings: Equatable {
     /// Optional customizable edited-message mark. Empty keeps Telegram's own "edited" label.
     public var editedMark: String
 
-    public init(saveDeleted: Bool, saveEdits: Bool, saveForBots: Bool, saveMedia: Bool = true, proactiveSaveMedia: Bool = true, deletedMark: String = MessageSavingBridge.defaultDeletedMark, editedMark: String = "") {
+    public init(saveDeleted: Bool, saveEdits: Bool, saveForBots: Bool, saveMedia: Bool = false, proactiveSaveMedia: Bool = false, deletedMark: String = MessageSavingBridge.defaultDeletedMark, editedMark: String = "") {
         self.saveDeleted = saveDeleted
         self.saveEdits = saveEdits
         self.saveForBots = saveForBots
@@ -136,9 +136,9 @@ public struct MessageSavingBridgeSettings: Equatable {
         self.editedMark = editedMark
     }
 
-    /// Matches ForkExtrasSettings.defaultSettings so deletes are captured before
-    /// SharedAccountContext's async sharedData subscription applies persisted prefs.
-    public static let defaults = MessageSavingBridgeSettings(saveDeleted: true, saveEdits: true, saveForBots: false, saveMedia: true, proactiveSaveMedia: true, deletedMark: MessageSavingBridge.defaultDeletedMark, editedMark: "")
+    /// Matches ForkExtrasSettings.defaultSettings so the engine does not capture deletes/edits
+    /// before SharedAccountContext's async sharedData subscription applies persisted prefs.
+    public static let defaults = MessageSavingBridgeSettings(saveDeleted: false, saveEdits: false, saveForBots: false, saveMedia: false, proactiveSaveMedia: false, deletedMark: MessageSavingBridge.defaultDeletedMark, editedMark: "")
 
     public static let disabled = MessageSavingBridgeSettings(saveDeleted: false, saveEdits: false, saveForBots: false, saveMedia: false, proactiveSaveMedia: false, deletedMark: MessageSavingBridge.defaultDeletedMark, editedMark: "")
 }

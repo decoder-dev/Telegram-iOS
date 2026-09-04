@@ -143,13 +143,18 @@ public final class AppLockContextImpl: AppLockContext {
                 strongSelf.autolockTimeout.set(nil)
                 strongSelf.autolockReportTimeout.set(nil)
             } else {
-                if let _ = passcodeSettings.autolockTimeout, !appIsActive {
-                    shouldDisplayCoveringView = true
+                // Instant Passcode covers and locks on resign-active (Control Center,
+                // app switcher, permission sheets), not only the background edge.
+                if !appIsActive {
+                    if forkExtras.instantPasscodeLock {
+                        strongSelf.lock()
+                        shouldDisplayCoveringView = true
+                    }
+                    if forkExtras.instantPasscodeLock || passcodeSettings.autolockTimeout != nil {
+                        shouldDisplayCoveringView = true
+                    }
                 }
                 
-                // Instant lock only on the true background edge (applicationDidEnterBackground).
-                // Resign-active (Control Center, permission sheets) must not hard-lock and
-                // dismiss pickers. Covering view still uses isActive for a privacy overlay.
                 if justEnteredBackground && forkExtras.instantPasscodeLock {
                     strongSelf.lock()
                     shouldDisplayCoveringView = true
@@ -224,6 +229,9 @@ public final class AppLockContextImpl: AppLockContext {
             strongSelf.isCurrentlyLockedPromise.set(.single(!appIsActive || isCurrentlyLocked))
             
             if shouldDisplayCoveringView {
+                if !appIsActive {
+                    strongSelf.hideKeyboardForPrivacyCover()
+                }
                 if strongSelf.coveringView == nil, let window = strongSelf.window {
                     let coveringView = LockedWindowCoveringView(theme: presentationData.theme)
                     // Never take a drawHierarchy snapshot here — full-window capture + blur
@@ -334,6 +342,13 @@ public final class AppLockContextImpl: AppLockContext {
                 return nil
             }
         }
+    }
+    
+    private func hideKeyboardForPrivacyCover() {
+        self.window?.hostView.containerView.endEditing(true)
+        self.window?.hostView.eventView.endEditing(true)
+        self.applicationBindings.getTopWindow()?.endEditing(true)
+        self.rootController?.view.endEditing(true)
     }
     
     public func lock() {

@@ -6,9 +6,10 @@ import SwiftSignalKit
 func _internal_markMessageContentAsConsumedInteractively(postbox: Postbox, accountPeerId: PeerId, messageId: MessageId) -> Signal<Void, NoError> {
     return postbox.transaction { transaction -> Void in
         if let message = transaction.getMessage(messageId), message.flags.contains(.Incoming) {
-            // AyuGram Ghost "Don't Read": keep the local consumed=true UI update, mention consume,
-            // TTL countdown, and MessageSaving preserve — skip only the network read packets
-            // (`messages.readMessageContents` / secret-chat `readMessagesContent`).
+            // AyuGram Ghost "Don't Read": keep the local consumed=true UI update,
+            // TTL countdown, and MessageSaving preserve — skip the network read packets
+            // (`messages.readMessageContents` / secret-chat `readMessagesContent`) and
+            // mention consume (`ConsumePersonalMessageAction` / pending mention).
             let suppressContentReadPacket = ForkGhostModeSettings.shouldSuppressMessageReads
             // AyuGram Android: with saveDeletedMessages, skip scheduling secret/TTL delete tasks
             // after open; still sync "consumed" and copy media into Saved Attachments.
@@ -55,8 +56,10 @@ func _internal_markMessageContentAsConsumedInteractively(postbox: Postbox, accou
                         }
                     }
                 } else if let attribute = updatedAttributes[i] as? ConsumablePersonalMentionMessageAttribute, !attribute.consumed {
-                    transaction.setPendingMessageAction(type: .consumeUnseenPersonalMessage, id: messageId, action: ConsumePersonalMessageAction())
-                    updatedAttributes[i] = ConsumablePersonalMentionMessageAttribute(consumed: attribute.consumed, pending: true)
+                    if !suppressContentReadPacket {
+                        transaction.setPendingMessageAction(type: .consumeUnseenPersonalMessage, id: messageId, action: ConsumePersonalMessageAction())
+                        updatedAttributes[i] = ConsumablePersonalMentionMessageAttribute(consumed: attribute.consumed, pending: true)
+                    }
                 }
             }
             

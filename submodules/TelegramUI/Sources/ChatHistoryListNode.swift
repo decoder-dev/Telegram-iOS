@@ -979,12 +979,16 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
         //self.debugInfo = true
         
         self.messageProcessingManager.process = { [weak context] messageIds in
-            context?.account.viewTracker.updateViewCountForMessageIds(messageIds: Set(messageIds.map(\.messageId)), clientId: clientId.with { $0 })
+            let increment = !ForkGhostModeSettings.shouldSuppressMessageReads
+            context?.account.viewTracker.updateViewCountForMessageIds(messageIds: Set(messageIds.map(\.messageId)), clientId: clientId.with { $0 }, increment: increment)
         }
         self.messageWithReactionsProcessingManager.process = { [weak context] messageIds in
             context?.account.viewTracker.updateReactionsForMessageIds(messageIds: Set(messageIds.map(\.messageId)))
         }
         self.seenLiveLocationProcessingManager.process = { [weak context] messageIds in
+            if ForkGhostModeSettings.shouldSuppressMessageReads {
+                return
+            }
             context?.account.viewTracker.updateSeenLiveLocationForMessageIds(messageIds: Set(messageIds.map(\.messageId)))
         }
         self.unsupportedMessageProcessingManager.process = { [weak context] messageIds in
@@ -1009,7 +1013,7 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
         
         self.messageMentionProcessingManager.process = { [weak self, weak context] messageIds in
             if let strongSelf = self {
-                if strongSelf.canReadHistoryValue {
+                if strongSelf.canReadHistoryValue && !(strongSelf.context.sharedContext.immediateExperimentalUISettings.skipReadHistory || ForkGhostModeSettings.shouldSuppressMessageReads) {
                     context?.account.viewTracker.updateMarkMentionsSeenForMessageIds(messageIds: Set(messageIds.map(\.messageId)))
                 } else {
                     strongSelf.messageIdsScheduledForMarkAsSeen.formUnion(messageIds.map(\.messageId))
@@ -2612,7 +2616,7 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
                     strongSelf.updateReadHistoryActions()
                     strongSelf.messageReadMetricsTracker?.setIsActive(strongSelf.canReadHistoryValue)
 
-                    if strongSelf.canReadHistoryValue && !strongSelf.suspendReadingReactions && !strongSelf.messageIdsScheduledForMarkAsSeen.isEmpty {
+                    if strongSelf.canReadHistoryValue && !strongSelf.suspendReadingReactions && !(strongSelf.context.sharedContext.immediateExperimentalUISettings.skipReadHistory || ForkGhostModeSettings.shouldSuppressMessageReads) && !strongSelf.messageIdsScheduledForMarkAsSeen.isEmpty {
                         let messageIds = strongSelf.messageIdsScheduledForMarkAsSeen
                         strongSelf.messageIdsScheduledForMarkAsSeen.removeAll()
                         context?.account.viewTracker.updateMarkMentionsSeenForMessageIds(messageIds: messageIds)

@@ -998,10 +998,11 @@ public class Window1 {
         didSet {
             if self.coveringView !== oldValue {
                 if let oldValue = oldValue {
-                    oldValue.layer.allowsGroupOpacity = true
-                    oldValue.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.2, removeOnCompletion: false, completion: { [weak oldValue] _ in
-                        oldValue?.removeFromSuperview()
-                    })
+                    // Instant removal: a 0.2s fade would reveal the UI under an
+                    // App Lock / Instant Passcode / Archive privacy cover.
+                    oldValue.layer.removeAnimation(forKey: "opacity")
+                    oldValue.alpha = 0.0
+                    oldValue.removeFromSuperview()
                 }
                 if let coveringView = self.coveringView {
                     coveringView.layer.removeAnimation(forKey: "opacity")

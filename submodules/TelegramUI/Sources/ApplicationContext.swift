@@ -171,13 +171,13 @@ final class AuthorizedApplicationContext {
             guard let self else {
                 return
             }
-            applyArchiveLockSwitcherCover(context: self.context)
+            prepareArchivePrivacyOnResignActive(context: self.context)
         }
         ArchiveLockSession.shared.didBecomeActiveHandler = { [weak self] in
             guard let self else {
                 return
             }
-            removeArchiveLockSwitcherCover(context: self.context)
+            restoreArchivePrivacyOnBecomeActive(context: self.context)
         }
         
         self.showCallsTab = showCallsTab

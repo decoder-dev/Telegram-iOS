@@ -296,12 +296,21 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                 guard let self else {
                     return
                 }
-                Queue.mainQueue().after(0.3, { [weak self] in
+                let dismiss = { [weak self] in
                     guard let self else {
                         return
                     }
                     dismissOpenArchiveControllers(from: self.navigationController, context: self.context)
-                })
+                }
+                // Background / resign-active relock must pop Archive immediately so it
+                // is gone before the privacy cover is removed. In-app relock (swipe
+                // unarchive, Lock Now) keeps a short delay so the originating gesture
+                // can finish without tearing down the Archive VC mid-transition.
+                if UIApplication.shared.applicationState != .active {
+                    dismiss()
+                } else {
+                    Queue.mainQueue().after(0.3, dismiss)
+                }
             }))
         }
         

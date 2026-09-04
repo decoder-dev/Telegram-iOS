@@ -600,7 +600,7 @@ private struct NotificationContent: CustomStringConvertible {
         if let subtitle = self.subtitle {
             content.subtitle = subtitle
         }
-        if let body = self.body {
+        if self.isLockedMessage == nil, let body = self.body {
             if #available(iOS 18.0, *) {
                 if !self.resolvedEmojiFiles.isEmpty {
                     let attributedString = NSMutableAttributedString(string: body)
@@ -643,10 +643,10 @@ private struct NotificationContent: CustomStringConvertible {
             }
         }
         
-        if !content.title.isEmpty || !content.subtitle.isEmpty || !content.body.isEmpty {
-            if let isLockedMessage = self.isLockedMessage {
-                content.body = isLockedMessage
-            }
+        if let isLockedMessage = self.isLockedMessage {
+            content.title = isLockedMessage
+            content.subtitle = ""
+            content.body = isLockedMessage
         }
         
         if let threadId = self.threadId {

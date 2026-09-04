@@ -122,12 +122,12 @@ public struct ForkExtrasSettings: Codable, Equatable {
             ghostDontSendOnline: false,
             ghostDontSendTyping: false,
             ghostGoOfflineAutomatically: false,
-            ghostReadOnInteract: true,
+            ghostReadOnInteract: false,
             ghostAlertBeforeOpeningStory: false,
             instantPasscodeLock: false,
             hideMentionNotifications: false,
             hidePinnedNotifications: false,
-            sessionKeychainBackup: true,
+            sessionKeychainBackup: false,
             compactChatList: false,
             compactMessagePreview: false,
             compactFolderNames: false,
@@ -142,19 +142,19 @@ public struct ForkExtrasSettings: Codable, Equatable {
             translationBackend: .default,
             transcriptionBackend: .default,
             scrollToNextChatDisabled: false,
-            saveDeletedMessages: true,
-            saveMessagesHistory: true,
+            saveDeletedMessages: false,
+            saveMessagesHistory: false,
             saveForBots: false,
-            saveMedia: true,
+            saveMedia: false,
             proactiveSaveMedia: false,
             deletedMessageMark: MessageSavingBridge.defaultDeletedMark,
             editedMessageMark: "",
             ayuForward: true,
-            bypassDownloadRestrictions: true,
+            bypassDownloadRestrictions: false,
             localPremium: false,
             hideAds: true,
             hideBlockedMessages: false,
-            allowSecretScreenshots: true,
+            allowSecretScreenshots: false,
             expireTtlButton: true,
             keepBannedChats: true,
             regexMessageFiltersEnabled: false,
@@ -205,16 +205,16 @@ public struct ForkExtrasSettings: Codable, Equatable {
         saveDeletedMessages: Bool,
         saveMessagesHistory: Bool,
         saveForBots: Bool,
-        saveMedia: Bool = true,
+        saveMedia: Bool = false,
         proactiveSaveMedia: Bool = false,
         deletedMessageMark: String = MessageSavingBridge.defaultDeletedMark,
         editedMessageMark: String = "",
         ayuForward: Bool = true,
-        bypassDownloadRestrictions: Bool = true,
+        bypassDownloadRestrictions: Bool = false,
         localPremium: Bool = false,
         hideAds: Bool = true,
         hideBlockedMessages: Bool = false,
-        allowSecretScreenshots: Bool = true,
+        allowSecretScreenshots: Bool = false,
         expireTtlButton: Bool = true,
         keepBannedChats: Bool = true,
         regexMessageFiltersEnabled: Bool = false,
@@ -300,12 +300,12 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.ghostDontSendOnline = try container.decodeIfPresent(Bool.self, forKey: "ghostDontSendOnline") ?? legacyGhost
         self.ghostDontSendTyping = try container.decodeIfPresent(Bool.self, forKey: "ghostDontSendTyping") ?? legacyGhost
         self.ghostGoOfflineAutomatically = try container.decodeIfPresent(Bool.self, forKey: "ghostGoOfflineAutomatically") ?? false
-        self.ghostReadOnInteract = try container.decodeIfPresent(Bool.self, forKey: "ghostReadOnInteract") ?? true
+        self.ghostReadOnInteract = try container.decodeIfPresent(Bool.self, forKey: "ghostReadOnInteract") ?? false
         self.ghostAlertBeforeOpeningStory = try container.decodeIfPresent(Bool.self, forKey: "ghostAlertBeforeOpeningStory") ?? false
         self.instantPasscodeLock = try container.decodeIfPresent(Bool.self, forKey: "instantPasscodeLock") ?? false
         self.hideMentionNotifications = try container.decodeIfPresent(Bool.self, forKey: "hideMentionNotifications") ?? false
         self.hidePinnedNotifications = try container.decodeIfPresent(Bool.self, forKey: "hidePinnedNotifications") ?? false
-        self.sessionKeychainBackup = try container.decodeIfPresent(Bool.self, forKey: "sessionKeychainBackup") ?? true
+        self.sessionKeychainBackup = try container.decodeIfPresent(Bool.self, forKey: "sessionKeychainBackup") ?? false
         self.compactChatList = try container.decodeIfPresent(Bool.self, forKey: "compactChatList") ?? false
         self.compactMessagePreview = try container.decodeIfPresent(Bool.self, forKey: "compactMessagePreview") ?? false
         self.compactFolderNames = try container.decodeIfPresent(Bool.self, forKey: "compactFolderNames") ?? false
@@ -320,20 +320,20 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.translationBackend = (try container.decodeIfPresent(String.self, forKey: "translationBackend")).flatMap(ForkTranslationBackend.init(rawValue:)) ?? .default
         self.transcriptionBackend = (try container.decodeIfPresent(String.self, forKey: "transcriptionBackend")).flatMap(ForkTranscriptionBackend.init(rawValue:)) ?? .default
         self.scrollToNextChatDisabled = try container.decodeIfPresent(Bool.self, forKey: "scrollToNextChatDisabled") ?? false
-        self.saveDeletedMessages = try container.decodeIfPresent(Bool.self, forKey: "saveDeletedMessages") ?? true
-        self.saveMessagesHistory = try container.decodeIfPresent(Bool.self, forKey: "saveMessagesHistory") ?? true
+        self.saveDeletedMessages = try container.decodeIfPresent(Bool.self, forKey: "saveDeletedMessages") ?? false
+        self.saveMessagesHistory = try container.decodeIfPresent(Bool.self, forKey: "saveMessagesHistory") ?? false
         self.saveForBots = try container.decodeIfPresent(Bool.self, forKey: "saveForBots") ?? false
-        self.saveMedia = try container.decodeIfPresent(Bool.self, forKey: "saveMedia") ?? true
+        self.saveMedia = try container.decodeIfPresent(Bool.self, forKey: "saveMedia") ?? false
         // Default off: proactive gallery fetch on every open was a major thermal/IO load.
         self.proactiveSaveMedia = try container.decodeIfPresent(Bool.self, forKey: "proactiveSaveMedia") ?? false
         self.deletedMessageMark = try container.decodeIfPresent(String.self, forKey: "deletedMessageMark") ?? MessageSavingBridge.defaultDeletedMark
         self.editedMessageMark = try container.decodeIfPresent(String.self, forKey: "editedMessageMark") ?? ""
         self.ayuForward = try container.decodeIfPresent(Bool.self, forKey: "ayuForward") ?? true
-        self.bypassDownloadRestrictions = try container.decodeIfPresent(Bool.self, forKey: "bypassDownloadRestrictions") ?? true
+        self.bypassDownloadRestrictions = try container.decodeIfPresent(Bool.self, forKey: "bypassDownloadRestrictions") ?? false
         self.localPremium = try container.decodeIfPresent(Bool.self, forKey: "localPremium") ?? false
         self.hideAds = try container.decodeIfPresent(Bool.self, forKey: "hideAds") ?? true
         self.hideBlockedMessages = try container.decodeIfPresent(Bool.self, forKey: "hideBlockedMessages") ?? false
-        self.allowSecretScreenshots = try container.decodeIfPresent(Bool.self, forKey: "allowSecretScreenshots") ?? true
+        self.allowSecretScreenshots = try container.decodeIfPresent(Bool.self, forKey: "allowSecretScreenshots") ?? false
         self.expireTtlButton = try container.decodeIfPresent(Bool.self, forKey: "expireTtlButton") ?? true
         self.keepBannedChats = try container.decodeIfPresent(Bool.self, forKey: "keepBannedChats") ?? true
         self.regexMessageFiltersEnabled = try container.decodeIfPresent(Bool.self, forKey: "regexMessageFiltersEnabled") ?? false
@@ -356,7 +356,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: StringCodingKey.self)
-        // Legacy: true when full Ghost Mode (4 flags including go-offline) is on.
+        // Legacy: true when full Ghost Mode (5 flags including stories + go-offline) is on.
         try container.encode(self.ghostMode, forKey: "ghostMode")
         try container.encode(self.ghostDontReadMessages, forKey: "ghostDontReadMessages")
         try container.encode(self.ghostDontReadStories, forKey: "ghostDontReadStories")
@@ -421,7 +421,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         return self.ghostDontReadMessages
     }
 
-    /// Full Ghost Mode (AyuGram `setGhostMode`): dont-read + dont-online + dont-typing + go-offline.
+    /// Full Ghost Mode (AyuGram `setGhostMode`): dont-read messages + stories + dont-online + dont-typing + go-offline.
     ///
     /// The single definition. `ghostMode` was a stored mirror of this expression, re-derived by
     /// hand in six places — decode, encode, the memberwise init and three settings mutations —
@@ -429,12 +429,13 @@ public struct ForkExtrasSettings: Codable, Equatable {
     /// `SharedAccountContext`. A stored copy of a derived value is only ever one forgotten
     /// assignment away from disagreeing with what it mirrors, so it is computed now.
     public var isFullGhostMode: Bool {
-        return self.ghostDontReadMessages && self.ghostDontSendOnline && self.ghostDontSendTyping && self.ghostGoOfflineAutomatically
+        return self.ghostDontReadMessages && self.ghostDontReadStories && self.ghostDontSendOnline && self.ghostDontSendTyping && self.ghostGoOfflineAutomatically
     }
 
-    /// AyuGram `setGhostMode`: flip the four master flags together. Other ghost options are left alone.
+    /// AyuGram `setGhostMode`: flip the five master flags together. Other ghost options are left alone.
     public mutating func setFullGhostMode(_ enabled: Bool) {
         self.ghostDontReadMessages = enabled
+        self.ghostDontReadStories = enabled
         self.ghostDontSendOnline = enabled
         self.ghostDontSendTyping = enabled
         self.ghostGoOfflineAutomatically = enabled

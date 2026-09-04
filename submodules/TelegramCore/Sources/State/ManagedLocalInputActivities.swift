@@ -40,7 +40,7 @@ public enum ForkAyuForwardSettings {
 /// AyuGram Desktop "No Copy & Download Restrictions": allow saving stories / protected media
 /// without Telegram Premium and despite `noforwards` / isForwardingDisabled.
 public enum ForkBypassDownloadRestrictionsSettings {
-    private static let value = Atomic<Bool>(value: true)
+    private static let value = Atomic<Bool>(value: false)
     public static var enabled: Bool {
         get { return value.with { $0 } }
         set { let _ = value.swap(newValue) }
@@ -67,7 +67,7 @@ public func forkEffectiveIsPremium(accountIsPremium: Bool) -> Bool {
 
 /// AyuGram: allow screenshots in secret chats / secret media and suppress peer notify.
 public enum ForkSecretScreenshotSettings {
-    private static let value = Atomic<Bool>(value: true)
+    private static let value = Atomic<Bool>(value: false)
     public static var allow: Bool {
         get { return value.with { $0 } }
         set { let _ = value.swap(newValue) }
@@ -327,8 +327,8 @@ public enum ForkGhostModeSettings {
         public var suppressMessageReads: Bool = false
         public var suppressStoryViews: Bool = false
             public var goOfflineAutomatically: Bool = false
-            /// Matches Android `markReadAfterSend` default (on). Prefs push overrides at startup.
-            public var readOnInteract: Bool = true
+            /// Prefs push overrides at startup. Default off so Don't Read stays quiet until the user opts in.
+            public var readOnInteract: Bool = false
             public var interactOverrideActive: Bool = false
             public var interactOverrideGeneration: Int = 0
 
@@ -338,7 +338,7 @@ public enum ForkGhostModeSettings {
                 suppressMessageReads: Bool = false,
                 suppressStoryViews: Bool = false,
                 goOfflineAutomatically: Bool = false,
-                readOnInteract: Bool = true,
+                readOnInteract: Bool = false,
                 interactOverrideActive: Bool = false,
                 interactOverrideGeneration: Int = 0
             ) {

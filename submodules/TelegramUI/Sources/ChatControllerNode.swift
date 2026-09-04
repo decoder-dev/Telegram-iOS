@@ -1237,11 +1237,7 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
             isSecret = self.chatPresentationInterfaceState.copyProtectionEnabled || self.chatLocation.peerId?.isVerificationCodes == true
         }
         if self.historyNodeContainer.isSecret != isSecret {
-            #if DEBUG
-            self.historyNodeContainer.isSecret = false
-            #else
             self.historyNodeContainer.isSecret = isSecret
-            #endif
             setLayerDisableScreenshots(self.titleAccessoryPanelContainer.layer, isSecret)
         }
 

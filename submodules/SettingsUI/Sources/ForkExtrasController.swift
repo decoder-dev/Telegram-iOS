@@ -96,7 +96,7 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.GhostReadOnInteractFooter": "When Don't Read Messages is on, mark chats read and blink online after you send or react.",
             "ForkExtras.GhostAlertBeforeOpeningStory": "Alert Before Opening Story",
             "ForkExtras.GhostAlertBeforeOpeningStoryFooter": "Ask before opening any story. Tap outside to dismiss without opening.",
-            "ForkExtras.GhostModeFooter": "The master switch enables Don't Read Messages, Don't Send Online, Don't Send Typing, and Go Offline Automatically. Each option can still be toggled independently.",
+            "ForkExtras.GhostModeFooter": "The master switch enables Don't Read Messages, Don't Read Stories, Don't Send Online, Don't Send Typing, and Go Offline Automatically. Each option can still be toggled independently.",
             "ForkExtras.InstantPasscode": "Instant Passcode Lock",
             "ForkExtras.InstantPasscodeFooter": "Lock the app as soon as it leaves the foreground.",
             "ForkExtras.HideMentions": "Hide Mention Notifications",
@@ -232,7 +232,7 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.GhostReadOnInteractFooter": "Если включено «Не читать сообщения», отмечать прочтение и кратко показывать онлайн после отправки или реакции.",
             "ForkExtras.GhostAlertBeforeOpeningStory": "Спрашивать перед открытием истории",
             "ForkExtras.GhostAlertBeforeOpeningStoryFooter": "Показывать предупреждение перед открытием истории. Нажатие снаружи закрывает без открытия.",
-            "ForkExtras.GhostModeFooter": "Мастер-переключатель включает «Не читать сообщения», «Не отправлять онлайн», «Не отправлять набор» и «Сразу уходить в офлайн». Каждую опцию можно включать отдельно.",
+            "ForkExtras.GhostModeFooter": "Мастер-переключатель включает «Не читать сообщения», «Не читать истории», «Не отправлять онлайн», «Не отправлять набор» и «Сразу уходить в офлайн». Каждую опцию можно включать отдельно.",
             "ForkExtras.InstantPasscode": "Мгновенная блокировка",
             "ForkExtras.InstantPasscodeFooter": "Блокировать приложение сразу при уходе в фон.",
             "ForkExtras.HideMentions": "Скрыть уведомления об упоминаниях",
@@ -1680,6 +1680,9 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
                 updated.sessionKeychainBackup = value
                 return updated
             }.start())
+            if !value {
+                SessionKeychainBackup.deleteAll()
+            }
         },
         updateCompactChatList: { value in
             updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
