@@ -309,6 +309,18 @@ public final class PresentationCallManagerImpl: PresentationCallManager {
         })
     }
     
+    /// The proxy a call should actually dial, resolved at call-creation time. A WEB proxy cannot
+    /// be spoken to by tgcalls, but the sidecar exposes a loopback SOCKS5 bridge when the relay
+    /// supports arbitrary stream targets; without that bridge the call stays direct, exactly as
+    /// before. Reading the bridge live (not from the settings subscription) matters: it can
+    /// appear after the settings change, once the relay's WELCOME arrives.
+    private func resolvedCallProxyServer() -> ProxyServerSettings? {
+        guard let proxyServer = self.proxyServer, case .web = proxyServer.connection else {
+            return self.proxyServer
+        }
+        return webProxySidecarCallProxySettings()
+    }
+    
     deinit {
         self.currentCallDisposable.dispose()
         self.ringingStatesDisposable?.dispose()
@@ -367,7 +379,7 @@ public final class PresentationCallManagerImpl: PresentationCallManager {
                         isOutgoing: false,
                         incomingConferenceSource: firstState.2.conferenceSource,
                         peer: EnginePeer(firstState.1),
-                        proxyServer: strongSelf.proxyServer,
+                        proxyServer: strongSelf.resolvedCallProxyServer(),
                         auxiliaryServers: [],
                         currentNetworkType: firstState.4,
                         updatedNetworkType: firstState.0.account.networkType,
@@ -416,7 +428,7 @@ public final class PresentationCallManagerImpl: PresentationCallManager {
                         isOutgoing: false,
                         incomingConferenceSource: firstState.2.conferenceSource,
                         peer: EnginePeer(firstState.1),
-                        proxyServer: strongSelf.proxyServer,
+                        proxyServer: strongSelf.resolvedCallProxyServer(),
                         auxiliaryServers: [],
                         currentNetworkType: firstState.4,
                         updatedNetworkType: firstState.0.account.networkType,
@@ -687,7 +699,7 @@ public final class PresentationCallManagerImpl: PresentationCallManager {
                         isOutgoing: true,
                         incomingConferenceSource: nil,
                         peer: nil,
-                        proxyServer: strongSelf.proxyServer,
+                        proxyServer: strongSelf.resolvedCallProxyServer(),
                         auxiliaryServers: [],
                         currentNetworkType: currentNetworkType,
                         updatedNetworkType: context.account.networkType,

@@ -114,6 +114,19 @@ public final class WebProxyManager {
         return endpoint
     }
     
+    /// The sidecar's local SOCKS5 bridge (endpoint + per-start credentials), when the active
+    /// WEB relay has advertised arbitrary stream targets. For SOCKS5-only consumers that cannot
+    /// speak MTProto — tgcalls. Nil whenever any piece is missing; callers must treat nil as
+    /// "no bridge" and fall back to their direct behavior.
+    public var activeSocksBridgeEndpoint: WebProxySidecar.SocksBridgeEndpoint? {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        guard self.sidecar != nil, self.endpoint != nil else {
+            return nil
+        }
+        return self.sidecar?.socksBridgeEndpoint()
+    }
+    
     public var activeConfiguration: WebProxyConfiguration? {
         self.lock.lock()
         defer { self.lock.unlock() }

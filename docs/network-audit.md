@@ -130,6 +130,11 @@ direct, to confirm the boost setting is still a win over the carrier's batching 
 
 ### F-1 — Calls bypass the WEB proxy (P1, product decision + protocol work)
 
+Status: **(a) done; (b) client side done, relay side specced** (`docs/webproxy-socks-bridge.md`).
+The client is capability-gated — against today's relays behavior is unchanged (calls direct,
+disclaimer shown); the moment a relay advertises arbitrary stream targets, calls go through the
+tunnel via the sidecar's loopback SOCKS5 bridge.
+
 Root cause is two-layered:
 
 1. Client side: tgcalls in this tree only supports a SOCKS5 proxy for calls
@@ -141,21 +146,20 @@ Root cause is two-layered:
 
 Options, in increasing cost:
 
-- **(a) Document + surface in UI (cheap, honest).** In the WEB-proxy settings screen, state that
-  calls do not go through the proxy. A user enabling WEB for privacy currently has no indication
-  that a 30-second call hands their real IP to Telegram's reflectors.
-- **(b) Relay-protocol extension (full fix, needs relay-side work).** Add a target
-  (host/port/443-domain) to `OPEN` payloads; relay dials arbitrary targets for streams that ask.
-  Then add a SOCKS5 listener to the sidecar (each CONNECT maps to one carrier stream; the credit
-  system already multiplexes streams) and hand `VoipProxyServerWebrtc` the loopback SOCKS5
-  endpoint when WEB is active. Client-side sketch: `WebProxySidecar` gains a second listener +
-  a ~200-line SOCKS5 greeting parser; `OngoingCallContext` gains a `.web` branch that asks
-  `WebProxyManager` for the SOCKS endpoint. Server-side: relay change, not in this repo.
+- **(a) Document + surface in UI (cheap, honest) — DONE.** The WEB-proxy settings screen now
+  states that calls depend on relay support (`ForkWebProxyStrings.callsNote`), because a user
+  enabling WEB for privacy otherwise has no indication that a call can hand their real IP to
+  Telegram's reflectors.
+- **(b) Relay-protocol extension (full fix) — client half DONE, relay half specced.** WELCOME
+  payload now carries capability flags (bit 0 = arbitrary stream targets); `OPEN` may name a
+  host:port (SOCKS5 address encoding). The sidecar runs a loopback-only SOCKS5 listener
+  (RFC 1929 auth with per-start random credentials — iOS loopback is not app-isolated), and
+  `PresentationCallManager.resolvedCallProxyServer()` resolves a WEB proxy to that bridge for
+  calls, or to direct when the relay has no capability. `OngoingCallContext`'s `.web` branch
+  stays as the no-op fallback. Relay-side contract: `docs/webproxy-socks-bridge.md`.
 - **(c) Interim:** users who need call anonymity today can use a separate SOCKS5 proxy — the
   calls path already honors it — or disable P2P in call settings (reduces exposure to
   counterparties, not to Telegram infrastructure).
-
-Recommended: do (a) now, (b) when/if the relay operator can ship the protocol extension.
 
 ### F-2 — NSE + WEB sidecar unverified (P1, verification + possible policy)
 
@@ -176,17 +180,21 @@ policy. No blind code change.
 
 ### F-3 — Backup-IP DoH queries leak "uses Telegram" to Google/Cloudflare (P2)
 
+Status: **fixed** — early return in `MTContext._beginBackupAddressDiscoveryWithDelay` when
+`_apiEnvironment.secret != nil`. The condition is the **secret**, not `socksProxySettings`:
+backup discovery is only ever useful for the direct transport the secret powers. SOCKS5 is
+deliberately NOT gated — a SOCKS5 proxy tunnels arbitrary hosts, and the DoH-resolved DC
+addresses are dialed through the proxy, so discovery is both harmless and useful there.
+
 `_beginBackupAddressDiscoveryWithDelay` arms whenever a DC needs a transport scheme
 (`MTContext.m:1400-1426`), including when a proxy is active. The DoH requests are direct
-(`MTHttpRequestOperation`, shared session). Under an active proxy the discovered DC addresses are
-never dialed directly, so the discovery yields nothing the tunnel needs — only the metadata
-exposure.
+(`MTHttpRequestOperation`, shared session). Under an active WEB proxy the discovered DC
+addresses are never dialed directly, so the discovery yields nothing the tunnel needs — only the
+metadata exposure.
 
-Candidate fix (small, but touches stock engine behavior — needs device verification): in
-`MTContext._beginBackupAddressDiscoveryWithDelay`, return early when
-`_apiEnvironment.socksProxySettings != nil`. Risk to check: the WS-transport path (no proxy) must
-keep discovery; and a future "proxy dies, user disables it" flow must re-discover (it does — the
-next scheme setup re-arms it).
+Risks checked: the WS-transport path (no proxy, no secret) keeps discovery; a future "proxy
+dies, user disables it" flow re-discovers (the next scheme setup re-arms it — the gate only
+skips the arming while a secret is set).
 
 ### F-4 — Not-yet-built / not-yet-live-verified items (P0, hygiene)
 

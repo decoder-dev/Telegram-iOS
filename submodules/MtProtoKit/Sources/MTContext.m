@@ -1413,6 +1413,16 @@ static void copyKeychainDictionaryKey(NSString * _Nonnull group, NSString * _Non
 }
 
 - (void)_beginBackupAddressDiscoveryWithDelay:(double)delay {
+    // Secret-carrying proxies — a real MTProxy, or this fork's WEB sidecar loopback — never dial
+    // the discovered DC addresses directly: the connection goes to the proxy endpoint and the
+    // target DC is encoded in the obfuscated handshake. Discovery under such a proxy yields
+    // nothing the client can use, but its DoH requests (dns.google.com /
+    // mozilla.cloudflare-dns.com) leave the device directly and reveal Telegram usage to the
+    // resolver. Plain SOCKS5 is deliberately NOT gated: the client dials DC addresses *through*
+    // the SOCKS server, so fresh addresses still matter there, as they do on the direct path.
+    if (_apiEnvironment.socksProxySettings.secret != nil) {
+        return;
+    }
     if (_backupAddressListDisposable == nil && _discoverBackupAddressListSignal != nil) {
         __weak MTContext *weakSelf = self;
         _backupAddressListDisposable = [[[_discoverBackupAddressListSignal delay:delay onQueue:[MTQueue mainQueue]] onDispose:^{

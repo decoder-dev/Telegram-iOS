@@ -41,6 +41,7 @@ private enum ProxySettingsEntry: ItemListNodeEntry {
     case modeSocks5(PresentationTheme, String, Bool)
     case modeMtp(PresentationTheme, String, Bool)
     case modeWeb(PresentationTheme, String, Bool)
+    case webInfo(PresentationTheme, String)
     
     case connectionHeader(PresentationTheme, String)
     case connectionServer(PresentationTheme, PresentationStrings, String, String)
@@ -57,7 +58,7 @@ private enum ProxySettingsEntry: ItemListNodeEntry {
         switch self {
             case .usePasteboardSettings, .usePasteboardInfo:
                 return ProxySettingsSection.pasteboard.rawValue
-            case .modeSocks5, .modeMtp, .modeWeb:
+            case .modeSocks5, .modeMtp, .modeWeb, .webInfo:
                 return ProxySettingsSection.mode.rawValue
             case .connectionHeader, .connectionServer, .connectionPort:
                 return ProxySettingsSection.connection.rawValue
@@ -80,6 +81,8 @@ private enum ProxySettingsEntry: ItemListNodeEntry {
                 return 3
             case .modeWeb:
                 return 11
+            case .webInfo:
+                return 13
             case .connectionHeader:
                 return 4
             case .connectionServer:
@@ -137,6 +140,8 @@ private enum ProxySettingsEntry: ItemListNodeEntry {
                         return state
                     }
                 })
+            case let .webInfo(_, text):
+                return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section)
             case let .connectionHeader(_, text):
                 return ItemListSectionHeaderItem(presentationData: presentationData, text: text, sectionId: self.section)
             case let .connectionServer(_, _, placeholder, text):
@@ -256,6 +261,9 @@ private func proxyServerSettingsControllerEntries(presentationData: Presentation
     entries.append(.modeSocks5(presentationData.theme, presentationData.strings.SocksProxySetup_ProxySocks5, state.mode == .socks5))
     entries.append(.modeMtp(presentationData.theme, presentationData.strings.SocksProxySetup_ProxyTelegram, state.mode == .mtp))
     entries.append(.modeWeb(presentationData.theme, ForkWebProxyStrings.proxyType, state.mode == .web))
+    if state.mode == .web {
+        entries.append(.webInfo(presentationData.theme, ForkWebProxyStrings.callsNote))
+    }
     
     entries.append(.connectionHeader(presentationData.theme, presentationData.strings.SocksProxySetup_Connection.uppercased()))
     let serverPlaceholder = state.mode == .web ? ForkWebProxyStrings.maskingSite : presentationData.strings.SocksProxySetup_Hostname

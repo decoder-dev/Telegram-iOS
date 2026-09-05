@@ -1,5 +1,6 @@
 import Foundation
 import Postbox
+import WebProxyTransport
 
 public enum ProxyServerConnection: Equatable, Hashable, Codable {
     case socks5(username: String?, password: String?)
@@ -83,6 +84,17 @@ public struct ProxyServerSettings: Codable, Equatable, Hashable {
         hasher.combine(self.port)
         hasher.combine(self.connection)
     }
+}
+
+/// SOCKS5 settings pointing at the WEB sidecar's local SOCKS5 bridge — for consumers that speak
+/// SOCKS5 but not MTProto (tgcalls). Non-nil only while a WEB proxy is active AND its relay has
+/// advertised arbitrary stream targets; callers must fall back to their un-proxied behavior on
+/// nil rather than fail.
+public func webProxySidecarCallProxySettings() -> ProxyServerSettings? {
+    guard let bridge = WebProxyManager.shared.activeSocksBridgeEndpoint else {
+        return nil
+    }
+    return ProxyServerSettings(host: bridge.host, port: Int32(bridge.port), connection: .socks5(username: bridge.username, password: bridge.password))
 }
 
 /// Android-style wait-before-probe values for manual proxy rotation (`ProxyRotationController`).

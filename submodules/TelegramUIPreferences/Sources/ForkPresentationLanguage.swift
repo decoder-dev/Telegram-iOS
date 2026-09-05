@@ -74,6 +74,14 @@ public enum ForkWebProxyStrings {
     public static var catalogManual: String {
         return ForkPresentationLanguage.prefersRussianStrings ? "Ввести вручную…" : "Enter manually…"
     }
+
+    /// Footnote in the add/edit form: VoIP calls are not tunneled through the WEB proxy.
+    /// tgcalls in this tree only supports SOCKS5 for calls (`OngoingCallContext` skips
+    /// `.mtp`/`.web`), and the WEB relay protocol has no per-stream target addressing — so
+    /// during a call the device talks to Telegram's call infrastructure directly.
+    public static var callsNote: String {
+        return ForkPresentationLanguage.prefersRussianStrings ? "Звонки не проходят через WEB-прокси: во время звонка ваш IP-адрес виден серверам Telegram." : "Calls do not go through the WEB proxy: during a call your IP address is visible to Telegram servers."
+    }
 }
 
 /// Menu titles for the fork's saved-deleted-messages screens. Same reason as
