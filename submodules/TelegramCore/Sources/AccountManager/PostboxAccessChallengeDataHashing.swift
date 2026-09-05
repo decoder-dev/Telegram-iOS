@@ -58,7 +58,7 @@ public extension PostboxAccessChallengeData {
     ///   and compare the digests in constant time.
     /// - Legacy plaintext challenges keep the exact pre-hashing comparison semantics (the stored numerical
     ///   value is normalized to western digits before comparing; plaintext values compare as-is).
-    public func isValidPasscode(_ passcode: String) -> Bool {
+    func isValidPasscode(_ passcode: String) -> Bool {
         switch self {
             case .none:
                 return true
@@ -82,7 +82,7 @@ public extension PostboxAccessChallengeData {
     /// The same challenge with the passcode stored as a PBKDF2 digest instead of plaintext.
     /// Returns nil for `.none` and for already-hashed challenges (nothing to upgrade), or when
     /// digest derivation fails — callers should then keep the existing stored value.
-    public func upgradedWithPasscode(_ passcode: String) -> PostboxAccessChallengeData? {
+    func upgradedWithPasscode(_ passcode: String) -> PostboxAccessChallengeData? {
         switch self {
             case .numericalPassword:
                 return PostboxAccessChallengeData.makeHashedPasscode(passcode: passcode, numerical: true)
@@ -100,7 +100,7 @@ public extension PostboxAccessChallengeData {
     /// Falls back to the legacy plaintext representation only if digest derivation fails (practically
     /// never — it requires the system CSPRNG or the KDF to fail), so that setting a passcode can never
     /// hard-fail and lock the user out of configuring the app lock.
-    public static func makeHashedPasscode(passcode: String, numerical: Bool) -> PostboxAccessChallengeData {
+    static func makeHashedPasscode(passcode: String, numerical: Bool) -> PostboxAccessChallengeData {
         let normalized = numerical ? PasscodeHashing.normalizeDigits(passcode) : passcode
         if let blob = PasscodeHashing.makeBlob(passcode: normalized) {
             if numerical {
@@ -131,13 +131,18 @@ private enum PasscodeHashing {
     }
 
     static func makeBlob(passcode: String) -> String? {
-        var salt = Data()
-        salt.reserveCapacity(saltLength)
+        var salt = Data(count: saltLength)
         var generator = SystemRandomNumberGenerator()
-        for _ in 0..<(saltLength / 4) {
-            withUnsafeBytes(of: UInt32.random(using: &generator).bigEndian) { bytes in
-                salt.append(contentsOf: bytes)
+        salt.withUnsafeMutableBytes { buffer in
+            guard let base = buffer.bindMemory(to: UInt8.self).baseAddress else {
+                return
             }
+            for index in 0..<saltLength {
+                base[index] = UInt8.random(in: UInt8.min...UInt8.max, using: &generator)
+            }
+        }
+        guard salt.count == saltLength else {
+            return nil
         }
         guard let hash = digest(passcode: passcode, salt: salt, iterations: iterations) else {
             return nil
