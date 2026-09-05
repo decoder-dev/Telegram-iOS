@@ -6,6 +6,8 @@
 
 ## [Unreleased]
 
+## [v12.9.2-4014]
+
 ### Security
 - **Passcode at rest:** the app-lock passcode is now stored as a PBKDF2-HMAC-SHA256 digest (100k iterations, random 16-byte salt — the same scheme as the Archive password) instead of plaintext in postbox metadata. Legacy plaintext values still unlock and are transparently upgraded to the hashed form on the first successful entry; verification of hashed values is constant-time. The unused `lockId` property, which embedded the raw passcode, was removed. New passcodes are never stored in plaintext.
 - **WEB proxy audit fixes (docs/network-audit.md):** backup-IP DoH discovery no longer arms while a WEB secret is active (F-3 — it only leaked "uses Telegram" to the DoH resolver and was never dialed through the tunnel; SOCKS5 is deliberately not gated). The WEB-proxy settings screen now discloses that calls depend on relay support (F-1a).
