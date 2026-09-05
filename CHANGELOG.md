@@ -15,6 +15,7 @@
 
 ### Fixed
 - **UI consistency audit (docs/ui-audit.md):** the WEB calls note now reflects the bridge ("calls go through only if the relay supports call tunneling"); "Use for calls" is visible and controllable with a WEB proxy active (was silently applied with its stored default); uk/be app languages no longer get mixed RU/EN fork strings (table lookups follow the same rule as the ternary strings); the WEB catalog sheet got a title; the saved-messages feature is spelled from one string source; the "Auto" proxy summary value comes from one place; "WEB" is findable in settings search; dead `usePasteboardInfo`/`catalogPick` and a verbatim-duplicated status branch removed.
+- **Visual bug hunt (docs/ui-audit.md §4):** layout-affecting Extras toggles (compact chat list/preview, folder-tab font, timestamp seconds, sticker size, wide channel posts, reactions bar, deleted/edited marks) now apply live — the chat list re-lays out via a new `refreshForkItemLayouts()`/folders-subscription path, and open chats re-emit history through the fork's settings fingerprint, instead of leaving a half-old half-new UI until restart. Restored a missing `!` in `ChatListNodeState ==` that made every state comparison report a change (constant needless list re-layout churn on typing ticks). Localized the profile "registered" diagnostic label (was English-only).
 
 ### Changed
 - Removed the dead vendored OpenSSL 1.1.1d tarball (`submodules/openssl`) — not referenced by any build target (TDLib builds against BoringSSL); the 1.1.1 series has been EOL since September 2023.

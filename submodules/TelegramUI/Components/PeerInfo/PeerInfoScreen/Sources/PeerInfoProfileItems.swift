@@ -4,6 +4,7 @@ import Display
 import AccountContext
 import TelegramPresentationData
 import TelegramCore
+import TelegramUIPreferences
 import PeerInfoUI
 import TextFormat
 import PhoneNumberFormat
@@ -929,7 +930,7 @@ func infoItems(
     // supplied for this peer (PeerStatusSettings.registrationDate) — no third-party lookup
     // service, so this row simply doesn't appear for peers the server didn't annotate.
     if forkExtras.showDC && !hideDiagnostics, let cachedUserData = data.cachedData as? CachedUserData, let registrationDate = cachedUserData.peerStatusSettings?.registrationDate {
-        items[.peerInfoTrailing]!.append(PeerInfoScreenLabeledValueItem(id: AnyHashable("fork_reg_date"), label: "registered", text: registrationDate, textColor: .primary, action: nil, longTapAction: { sourceNode in
+        items[.peerInfoTrailing]!.append(PeerInfoScreenLabeledValueItem(id: AnyHashable("fork_reg_date"), label: ForkPresentationLanguage.prefersRussianStrings ? "регистрация" : "registered", text: registrationDate, textColor: .primary, action: nil, longTapAction: { sourceNode in
             interaction.openPeerInfoContextMenu(.genericCopy(registrationDate), sourceNode, nil)
         }, requestLayout: { _ in
             interaction.requestLayout(false)

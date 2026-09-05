@@ -56,7 +56,29 @@ was possible in this environment — §4 is the device checklist.
   cannot edit for RU users (server-served); the fork appends its own synonym at the call site
   (U-7) instead.
 
-## 4. Device verification checklist (first build)
+## 4. Visual bug hunt (second pass)
+
+Focus: rendering/layout defects, not strings. Every fork visual feature was traced to its
+layout code: compact chat list / preview, folder-tab font, message-timestamp seconds, sticker
+size, wide channel posts, reactions-bar hiding, deleted/edited marks, profile diagnostic rows,
+app-icon naming. Verified-clean along the way: `hideReactionsBar` swaps the attribute to an
+empty one (no reserved-gap artifacts); sticker scaling (50–150% of 184 pt) fits bubble widths;
+timestamp/marks flow through measured text (no fixed widths, no truncation risk); the
+`scheduleWhenOnline` placeholder interacts safely with the marks.
+
+| # | Severity | Finding | Fix |
+|---|----------|---------|-----|
+| V-1 | P2 | **Profile diagnostic labels were English-only** — the `registered` row label was a hardcoded string in a screen that is otherwise RU/EN bilingual. (`id`/`dc` stay as-is: universal tokens, AyuGram parity.) | Label localized via `ForkPresentationLanguage` («регистрация»/«registered»). |
+| V-2 | P1 | **Layout-affecting Extras toggles did not apply live** — item nodes read `ForkExtrasHotFlags` statics at layout time, and nothing invalidated already-rendered UI: after toggling compact rows/preview, folder-tab font, seconds, sticker size, wide posts, reactions bar or the marks, the screen re-rendered only rows that happened to re-layout — a half-old, half-new mix until restart. (`hideAllChats`/`rememberLastFolder`/`hideTabBar` were the exceptions: they had reactive wiring.) | Chat list: `ChatListContainerNode.refreshForkItemLayouts()` re-emits each tab's list state (a fresh `ChatListPresentationData` instance — `==` compares it by reference), wired to a new controller subscription on the compact flags; `compactFolderNames` joined the existing folders subscription whose `reloadFilters()` ends in a full layout pass for the tab bar. Chats: the fork's own `MessageFilterSettingsFingerprint` in `ChatHistoryListNode` now also carries `showMessageSeconds`, `wideChannelPosts`, `stickerSizePercent`, `hideReactionsBar`, `deletedMessageMark`, `editedMessageMark`, so a toggle re-emits the history and message nodes re-layout with fresh flag reads. |
+| V-3 | P2 | **Inverted equality in `ChatListNodeState ==`**: `if areFoundPeerArraysEqual(...) { return false }` — missing `!`. With the usual equal (empty) found-peer arrays every state comparison said "changed", so every `updateState` call (typing ticks, reveal actions, selection) re-emitted and re-laid-out the whole visible list. Correctness was saved by downstream dedup; the cost was constant needless list churn (battery/jank). | `!` restored. |
+| V-4 | P3 | **Dead hot-flag copies**: `ForkExtrasHotFlags.saveToCloudMenu` / `.selectFromAuthor` are pushed on every settings change but never read (the features read `immediateForkExtrasSettings` instead). | Documented; left in place — removing them is churn with no user-visible gain. |
+| V-5 | P3 | **`dec/zalupa` line carries unaudited visual work** (Телеграм icon family rebrand, PatriotPlane icons, calls-list type icons, proxy-list redesign). Those files are not in this branch's tree. | Not fixable here; audit them when the lines are next merged (see §5). |
+
+Device verification for this pass: toggle each of the V-2 flags while the chat list and an open
+chat are visible — every visible row/bubble should restyle in place with no restart; watch that
+typing-indicator ticks no longer visibly churn the list (V-3).
+
+## 5. Device verification checklist (first build)
 
 1. Proxy add/edit: WEB mode shows the updated calls note; SOCKS5/MTProxy modes show none;
    paste-from-clipboard row still first when a proxy URL is on the clipboard.
