@@ -111,8 +111,8 @@ private func messageSavingHistoryEntries(mode: MessageSavingHistoryMode, account
 public func messageSavingDeletedController(context: AccountContext, peerId: EnginePeer.Id, topicId: Int64? = nil) -> ViewController {
     return messageSavingHistoryController(
         context: context,
-        title: messageSavingLocalizedString(key: "ForkExtras.ViewDeleted", en: "View Deleted", ru: "Удалённые"),
-        emptyText: messageSavingLocalizedString(key: "ForkExtras.NoDeleted", en: "No deleted messages saved yet.", ru: "Пока нет сохранённых удалённых сообщений."),
+        title: ForkMessageSavingStrings.viewDeleted,
+        emptyText: ForkMessageSavingStrings.noDeleted,
         mode: .deleted(peerId: peerId, topicId: topicId),
         clearAction: {
             MessageSavingStore.clearDeleted(
@@ -128,8 +128,8 @@ public func messageSavingDeletedController(context: AccountContext, peerId: Engi
 public func messageSavingEditsController(context: AccountContext, messageId: EngineMessage.Id) -> ViewController {
     return messageSavingHistoryController(
         context: context,
-        title: messageSavingLocalizedString(key: "ForkExtras.EditHistory", en: "Edit History", ru: "История правок"),
-        emptyText: messageSavingLocalizedString(key: "ForkExtras.NoEdits", en: "No previous versions saved.", ru: "Предыдущих версий нет."),
+        title: ForkMessageSavingStrings.editHistory,
+        emptyText: ForkMessageSavingStrings.noEdits,
         mode: .edits(peerId: messageId.peerId, messageId: messageId),
         clearAction: nil
     )
@@ -216,7 +216,7 @@ private func messageSavingHistoryController(
         var rightButton: ItemListNavigationButton?
         if clearAction != nil {
             rightButton = ItemListNavigationButton(
-                content: .text(messageSavingLocalizedString(key: "ForkExtras.ClearDeleted", en: "Clear Deleted", ru: "Очистить удалённые")),
+                content: .text(ForkMessageSavingStrings.clearDeleted),
                 style: .regular,
                 enabled: true,
                 action: {
@@ -241,14 +241,4 @@ private func messageSavingHistoryController(
     }
 
     return ItemListController(context: context, state: signal)
-}
-
-private func messageSavingLocalizedString(key: String, en: String, ru: String) -> String {
-    // `key` kept for call-site readability / future catalogue lookup.
-    let _ = key
-    // App language first (Telegram's setting ≠ device language).
-    if ForkPresentationLanguage.prefersRussianStrings {
-        return ru
-    }
-    return en
 }

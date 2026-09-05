@@ -3736,7 +3736,7 @@ private func proxySearchableItems(context: AccountContext, servers: [ProxyServer
         SettingsSearchableItem(
             id: "data/proxy",
             title: strings.Settings_Proxy,
-            alternate: synonyms(strings.SettingsSearch_Synonyms_Proxy_Title),
+            alternate: synonyms(strings.SettingsSearch_Synonyms_Proxy_Title) + [ForkWebProxyStrings.proxyType],
             icon: icon,
             breadcrumbs: [],
             present: { context, _, present in
@@ -3787,14 +3787,16 @@ private func proxySearchableItems(context: AccountContext, servers: [ProxyServer
         )
     )
 
-    var hasSocksServers = false
+    var hasCallProxyServers = false
     for server in servers {
-        if case .socks5 = server.connection {
-            hasSocksServers = true
-            break
+        switch server.connection {
+            case .socks5, .web:
+                hasCallProxyServers = true
+            case .mtp:
+                break
         }
     }
-    if hasSocksServers {
+    if hasCallProxyServers {
         items.append(
             SettingsSearchableItem(
                 id: "data/proxy/use-for-calls",

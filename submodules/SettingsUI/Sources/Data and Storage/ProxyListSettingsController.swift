@@ -459,20 +459,6 @@ private func proxySettingsControllerEntries(theme: PresentationTheme, strings: P
                 case .web:
                     text = ForkWebProxyStrings.proxyType
             }
-            if server.connection.isWebProxy {
-                switch status {
-                    case .notAvailable:
-                        text = text + ", " + strings.SocksProxySetup_ProxyStatusUnavailable
-                        displayStatus = DisplayProxyServerStatus(activity: false, text: text, textActive: false)
-                    case .checking:
-                        text = text + ", " + strings.SocksProxySetup_ProxyStatusChecking
-                        displayStatus = DisplayProxyServerStatus(activity: false, text: text, textActive: false)
-                    case let .available(rtt):
-                        let pingTime: Int = Int(rtt * 1000.0)
-                        text = text + ", \(strings.SocksProxySetup_ProxyStatusPing("\(pingTime)").string)"
-                        displayStatus = DisplayProxyServerStatus(activity: false, text: text, textActive: false)
-                }
-            } else {
             switch status {
                 case .notAvailable:
                     text = text + ", " + strings.SocksProxySetup_ProxyStatusUnavailable
@@ -484,7 +470,6 @@ private func proxySettingsControllerEntries(theme: PresentationTheme, strings: P
                     let pingTime: Int = Int(rtt * 1000.0)
                     text = text + ", \(strings.SocksProxySetup_ProxyStatusPing("\(pingTime)").string)"
                     displayStatus = DisplayProxyServerStatus(activity: false, text: text, textActive: false)
-            }
             }
         }
         entries.append(.server(index, theme, strings, server, server == proxySettings.activeServer, displayStatus, ProxySettingsServerItemEditing(editable: true, editing: state.editing, revealed: state.revealedServer == server), proxySettings.enabled, false))
@@ -545,9 +530,21 @@ private func proxySettingsControllerEntries(theme: PresentationTheme, strings: P
         entries.append(.autoRotateInfo(theme, autoRotateInfo))
     }
     
-    if let activeServer = proxySettings.activeServer, case .socks5 = activeServer.connection {
-        entries.append(.useForCalls(theme, strings.SocksProxySetup_UseForCalls, proxySettings.useForCalls))
-        entries.append(.useForCallsInfo(theme, strings.SocksProxySetup_UseForCallsHelp))
+    if let activeServer = proxySettings.activeServer {
+        switch activeServer.connection {
+            case .socks5:
+                entries.append(.useForCalls(theme, strings.SocksProxySetup_UseForCalls, proxySettings.useForCalls))
+                entries.append(.useForCallsInfo(theme, strings.SocksProxySetup_UseForCallsHelp))
+            case .web:
+                // The toggle governs the SOCKS5 bridge: with the relay-side capability the call
+                // resolves to the sidecar's loopback SOCKS5 endpoint, without it the call stays
+                // direct — which is what the help text says. MTProxy stays hidden: tgcalls cannot
+                // use it and there is no bridge for it.
+                entries.append(.useForCalls(theme, strings.SocksProxySetup_UseForCalls, proxySettings.useForCalls))
+                entries.append(.useForCallsInfo(theme, ForkWebProxyStrings.callsNote))
+            case .mtp:
+                break
+        }
     }
 
     return entries
@@ -863,7 +860,7 @@ public func proxySettingsController(accountManager: AccountManager<TelegramAccou
                 WebProxyCatalog.load { entries in
                     guard let controller = strongController else { return }
                     let sheet = ActionSheetController(presentationData: presentationData)
-                    var items: [ActionSheetItem] = []
+                    var items: [ActionSheetItem] = [ActionSheetTextItem(title: ForkWebProxyStrings.catalogTitle)]
                     for entry in entries {
                         items.append(ActionSheetButtonItem(title: entry.title, color: .accent, action: { [weak sheet] in
                             sheet?.dismissAnimated()

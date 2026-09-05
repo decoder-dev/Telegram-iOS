@@ -83,6 +83,50 @@ the sidecar can become ready after the settings change.
 * Per-stream windows, keepalive and `BYE` semantics are unchanged — a target-bearing stream is
   an ordinary stream once the OPEN is accepted.
 
+## Rollout guide for relay operators
+
+The client half is already shipped: no app update, re-pairing or per-user flag is needed on the
+client side. The bridge turns itself on the moment the relay's WELCOME advertises the
+capability, and turns itself off again on the next session if the relay stops advertising it
+(a carrier reconnect re-reads WELCOME, so a relay-side rollback is picked up automatically
+within one reconnect — minutes at most).
+
+What to implement, in order:
+
+1. **WELCOME payload.** Append two bytes to the WELCOME frame you already send on session
+   start: `0x01` (version) and the flags byte with bit 0 set (`0x01`). Sending the old
+   empty/short payload keeps the old behavior — that is the rollback switch. Do not set bits
+   you do not implement; clients must ignore unknown bits, but do not promise what you lack.
+2. **OPEN with a target.** When an OPEN arrives with a non-empty payload, parse it as
+   `[atyp][addr][port BE]` (atyp 0x01 IPv4 / 0x03 domain / 0x04 IPv6 — same encoding as SOCKS5,
+   see above) and dial that endpoint instead of the backing MTProxy. Empty-payload OPENs keep
+   meaning "connect to your backing MTProxy" — MtProto bootstrap must continue to work
+   unchanged.
+3. **Failure reporting.** If the dial fails or your policy refuses the target, send `CLOSE`
+   on that stream. Do not kill the session; the SOCKS client sees a dropped connection and its
+   own failover applies.
+4. **Policy (recommended).** Dial exactly what the client asked for — no redirect table, no
+   interpretation. You may restrict hosts/ports by your own policy; a refused dial is a CLOSE.
+   Consider blocking private/link-local address ranges (127.0.0.0/8, 10/8, 172.16/12,
+   192.168/16, 169.254/16, ::1, fc00::/7) so a same-device process cannot use the user's relay
+   to reach their loopback or LAN — the client already requires auth on its side, but the relay
+   is the natural place for this net-polite behavior.
+5. **No changes** to HELLO, session creation, the bridge token, per-stream windows, keepalive,
+   or BYE. A target-bearing stream is an ordinary stream once the OPEN is accepted.
+
+Testing, in order:
+
+1. Unit-level: emit a WELCOME with payload `[0x01, 0x01]` and check the client log for
+   `relay <host> advertised arbitrary stream targets` (the sidecar logs this once per session).
+2. End-to-end: with the WEB proxy active and the capability advertised, place a call — it
+   should connect through the relay (relay sees a CONNECT-shaped stream to Telegram call
+   infrastructure, not to the backing MTProxy). With the capability bit off, the same call goes
+   direct and the in-app "Use for calls" help says so.
+3. Interop: old client build + new relay (empty OPENs only — must behave exactly as before),
+   new client + old relay (bridge absent, calls direct — the default today).
+4. Rollback drill: drop the flags byte, reconnect, confirm the client stops advertising the
+   bridge (SOCKS CONNECTs refused, `socksBridgeEndpoint()` nil, calls direct).
+
 ## What is intentionally NOT in v1
 
 * UDP ASSOCIATE, BIND — tgcalls needs neither.

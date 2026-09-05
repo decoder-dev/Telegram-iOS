@@ -74,15 +74,27 @@ public enum ArchiveLockLocalizedString {
     
     private static func languageCode() -> String {
         // The app's language first — Telegram's own setting is independent of the device's.
-        // The device list stays as the fallback for the window before the first push.
-        if let appLanguage = ForkPresentationLanguage.languageCode, translations[appLanguage] != nil {
-            return appLanguage
+        // The device list stays as the fallback for the window before the first push. The fork
+        // serves Russian to ru/uk/be everywhere else (`ForkPresentationLanguage`), so the table
+        // follows the same rule instead of dropping those users to English mid-screen.
+        if let appLanguage = ForkPresentationLanguage.languageCode {
+            switch appLanguage {
+                case "ru", "uk", "be":
+                    return "ru"
+                case "en":
+                    return "en"
+                default:
+                    break
+            }
         }
         let candidates = Locale.preferredLanguages + Bundle.main.preferredLocalizations
         for candidate in candidates {
             let code = String(candidate.prefix(2)).lowercased()
-            if translations[code] != nil {
-                return code
+            if code == "ru" || code == "uk" || code == "be" {
+                return "ru"
+            }
+            if code == "en" {
+                return "en"
             }
         }
         return "en"

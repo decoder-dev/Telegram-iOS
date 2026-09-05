@@ -65,29 +65,53 @@ public enum ForkWebProxyStrings {
         return ForkPresentationLanguage.prefersRussianStrings ? "Каталог WEB-прокси" : "WEB Proxy catalog"
     }
 
-    /// Section label for curated catalog entries in the picker sheet.
-    public static var catalogPick: String {
-        return ForkPresentationLanguage.prefersRussianStrings ? "Из каталога…" : "From catalog…"
-    }
-
     /// Action that opens the manual WEB proxy form instead of a catalog entry.
     public static var catalogManual: String {
         return ForkPresentationLanguage.prefersRussianStrings ? "Ввести вручную…" : "Enter manually…"
     }
 
-    /// Footnote in the add/edit form: VoIP calls are not tunneled through the WEB proxy.
-    /// tgcalls in this tree only supports SOCKS5 for calls (`OngoingCallContext` skips
-    /// `.mtp`/`.web`), and the WEB relay protocol has no per-stream target addressing — so
-    /// during a call the device talks to Telegram's call infrastructure directly.
+    /// Footnote about calls, shown under the WEB mode in the add/edit form and as the help text
+    /// of the "Use for calls" toggle when a WEB proxy is active. tgcalls cannot speak MTProto,
+    /// so a WEB proxy routes calls through the sidecar's loopback SOCKS5 bridge — but only when
+    /// the relay has advertised arbitrary stream targets (`docs/webproxy-socks-bridge.md`).
+    /// On relays without that capability the call goes direct, which is what the note says.
     public static var callsNote: String {
-        return ForkPresentationLanguage.prefersRussianStrings ? "Звонки не проходят через WEB-прокси: во время звонка ваш IP-адрес виден серверам Telegram." : "Calls do not go through the WEB proxy: during a call your IP address is visible to Telegram servers."
+        return ForkPresentationLanguage.prefersRussianStrings ? "Звонки проходят через WEB-прокси, только если релей поддерживает туннелирование звонков. Иначе во время звонка ваш IP-адрес виден серверам Telegram." : "Calls go through the WEB proxy only if the relay supports call tunneling. Otherwise your IP address is visible to Telegram servers during a call."
     }
 }
 
-/// Menu titles for the fork's saved-deleted-messages screens. Same reason as
-/// `ForkWebProxyStrings`: these keys are not in Telegram's localisation catalogue.
+/// Shared value strings for the Settings rows that summarize the active proxy mode (the
+/// Data & Storage row and the peer-info settings row). Same reason as `ForkWebProxyStrings`:
+/// fork-private keys are never in Telegram's localisation catalogue.
+public enum ForkProxySettingsStrings {
+    /// Value shown when public MTProxy auto-fetch owns the connection.
+    public static var autoFetchValue: String {
+        return ForkPresentationLanguage.prefersRussianStrings ? "Авто" : "Auto"
+    }
+}
+
+/// Menu titles and screen copy for the fork's saved-deleted-messages feature. Same reason as
+/// `ForkWebProxyStrings`: these keys are not in Telegram's localisation catalogue. The context
+/// menus, the history screens and the clear action all read from here so the feature is spelled
+/// identically everywhere.
 public enum ForkMessageSavingStrings {
     public static var viewDeleted: String {
         return ForkPresentationLanguage.prefersRussianStrings ? "Удалённые" : "View Deleted"
+    }
+
+    public static var editHistory: String {
+        return ForkPresentationLanguage.prefersRussianStrings ? "История правок" : "Edit History"
+    }
+
+    public static var clearDeleted: String {
+        return ForkPresentationLanguage.prefersRussianStrings ? "Очистить удалённые" : "Clear Deleted"
+    }
+
+    public static var noDeleted: String {
+        return ForkPresentationLanguage.prefersRussianStrings ? "Пока нет сохранённых удалённых сообщений." : "No deleted messages saved yet."
+    }
+
+    public static var noEdits: String {
+        return ForkPresentationLanguage.prefersRussianStrings ? "Предыдущих версий нет." : "No previous versions saved."
     }
 }

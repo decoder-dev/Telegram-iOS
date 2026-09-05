@@ -36,7 +36,6 @@ private enum ProxySettingsSection: Int32 {
 
 private enum ProxySettingsEntry: ItemListNodeEntry {
     case usePasteboardSettings(PresentationTheme, String)
-    case usePasteboardInfo(PresentationTheme, String)
     
     case modeSocks5(PresentationTheme, String, Bool)
     case modeMtp(PresentationTheme, String, Bool)
@@ -56,7 +55,7 @@ private enum ProxySettingsEntry: ItemListNodeEntry {
     
     var section: ItemListSectionId {
         switch self {
-            case .usePasteboardSettings, .usePasteboardInfo:
+            case .usePasteboardSettings:
                 return ProxySettingsSection.pasteboard.rawValue
             case .modeSocks5, .modeMtp, .modeWeb, .webInfo:
                 return ProxySettingsSection.mode.rawValue
@@ -73,8 +72,6 @@ private enum ProxySettingsEntry: ItemListNodeEntry {
         switch self {
             case .usePasteboardSettings:
                 return 0
-            case .usePasteboardInfo:
-                return 1
             case .modeSocks5:
                 return 2
             case .modeMtp:
@@ -113,8 +110,6 @@ private enum ProxySettingsEntry: ItemListNodeEntry {
                 return ItemListActionItem(presentationData: presentationData, systemStyle: .glass, title: title, kind: .generic, alignment: .natural, sectionId: self.section, style: .blocks, action: {
                     arguments.usePasteboardSettings()
                 })
-            case let .usePasteboardInfo(_, text):
-                return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section)
             case let .modeSocks5(_, text, value):
                 return ItemListCheckboxItem(presentationData: presentationData, systemStyle: .glass, title: text, style: .left, checked: value, zeroSeparatorInsets: false, sectionId: self.section, action: {
                     arguments.updateState { state in

@@ -155,7 +155,7 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
         
         let proxyType: String
         if settings.proxySettings.autoFetchPublicMtProxy, settings.proxySettings.enabled {
-            proxyType = ForkPresentationLanguage.prefersRussianStrings ? "Авто" : "Auto"
+            proxyType = ForkProxySettingsStrings.autoFetchValue
         } else if settings.proxySettings.enabled, let activeServer = settings.proxySettings.activeServer {
             switch activeServer.connection {
             case .mtp:
