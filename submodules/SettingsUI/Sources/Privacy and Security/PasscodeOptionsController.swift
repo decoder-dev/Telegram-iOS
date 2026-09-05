@@ -215,7 +215,7 @@ private func passcodeOptionsControllerEntries(presentationData: PresentationData
         case .none:
             entries.append(.togglePasscode(presentationData.theme, presentationData.strings.PasscodeSettings_TurnPasscodeOn, false))
             entries.append(.settingInfo(presentationData.theme, presentationData.strings.PasscodeSettings_Help))
-        case .numericalPassword, .plaintextPassword:
+        case .numericalPassword, .plaintextPassword, .numericalPasswordHash, .plaintextPasswordHash:
             entries.append(.togglePasscode(presentationData.theme, presentationData.strings.PasscodeSettings_TurnPasscodeOff, true))
             entries.append(.changePasscode(presentationData.theme, presentationData.strings.PasscodeSettings_ChangePasscode))
             entries.append(.settingInfo(presentationData.theme, presentationData.strings.PasscodeSettings_Help))
@@ -279,11 +279,7 @@ func passcodeOptionsController(context: AccountContext, focusOnItemTag: Passcode
                     setupController.complete = { passcode, numerical in
                         let _ = (context.sharedContext.accountManager.transaction({ transaction -> Void in
                             var data = transaction.getAccessChallengeData()
-                            if numerical {
-                                data = PostboxAccessChallengeData.numericalPassword(value: passcode)
-                            } else {
-                                data = PostboxAccessChallengeData.plaintextPassword(value: passcode)
-                            }
+                            data = PostboxAccessChallengeData.makeHashedPasscode(passcode: passcode, numerical: numerical)
                             transaction.setAccessChallengeData(data)
                             
                             updatePresentationPasscodeSettingsInternal(transaction: transaction, { $0.withUpdatedAutolockTimeout(1 * 60 * 60).withUpdatedBiometricsDomainState(LocalAuth.evaluatedPolicyDomainState) })
@@ -312,9 +308,9 @@ func passcodeOptionsController(context: AccountContext, focusOnItemTag: Passcode
     }, changePasscode: {
         let _ = (context.sharedContext.accountManager.transaction({ transaction -> Bool in
             switch transaction.getAccessChallengeData() {
-                case .none, .numericalPassword:
+                case .none, .numericalPassword, .numericalPasswordHash:
                     return true
-                case .plaintextPassword:
+                case .plaintextPassword, .plaintextPasswordHash:
                     return false
             }
         })
@@ -323,11 +319,7 @@ func passcodeOptionsController(context: AccountContext, focusOnItemTag: Passcode
             setupController.complete = { passcode, numerical in
                 let _ = (context.sharedContext.accountManager.transaction({ transaction -> Void in
                     var data = transaction.getAccessChallengeData()
-                    if numerical {
-                        data = PostboxAccessChallengeData.numericalPassword(value: passcode)
-                    } else {
-                        data = PostboxAccessChallengeData.plaintextPassword(value: passcode)
-                    }
+                    data = PostboxAccessChallengeData.makeHashedPasscode(passcode: passcode, numerical: numerical)
                     transaction.setAccessChallengeData(data)
                 }) |> deliverOnMainQueue).start(next: { _ in
                 }, error: { _ in
@@ -461,11 +453,7 @@ public func passcodeOptionsAccessController(context: AccountContext, animateIn: 
                 setupController.complete = { passcode, numerical in
                     let _ = (context.sharedContext.accountManager.transaction({ transaction -> Void in
                         var data = transaction.getAccessChallengeData()
-                        if numerical {
-                            data = PostboxAccessChallengeData.numericalPassword(value: passcode)
-                        } else {
-                            data = PostboxAccessChallengeData.plaintextPassword(value: passcode)
-                        }
+                        data = PostboxAccessChallengeData.makeHashedPasscode(passcode: passcode, numerical: numerical)
                         transaction.setAccessChallengeData(data)
                         
                         updatePresentationPasscodeSettingsInternal(transaction: transaction, { $0.withUpdatedAutolockTimeout(1 * 60 * 60).withUpdatedBiometricsDomainState(LocalAuth.evaluatedPolicyDomainState) })
@@ -482,16 +470,14 @@ public func passcodeOptionsAccessController(context: AccountContext, animateIn: 
         } else {
             let controller = PasscodeSetupController(context: context, mode: .entry(challenge))
             controller.check = { passcode in
-                var succeed = false
-                switch challenge {
-                    case .none:
-                        succeed = true
-                    case let .numericalPassword(code):
-                        succeed = passcode == normalizeArabicNumeralString(code, type: .western)
-                    case let .plaintextPassword(code):
-                        succeed = passcode == code
-                }
+                let succeed = challenge.isValidPasscode(passcode)
                 if succeed {
+                    // Transparent upgrade of a legacy challenge that still stores the raw passcode.
+                    if challenge.isLegacyPlaintextPasscode, let upgraded = challenge.upgradedWithPasscode(passcode) {
+                        let _ = context.sharedContext.accountManager.transaction({ transaction -> Void in
+                            transaction.setAccessChallengeData(upgraded)
+                        }).start()
+                    }
                     completion(true)
                 }
                 return succeed
