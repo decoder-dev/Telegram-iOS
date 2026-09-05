@@ -6,6 +6,13 @@
 
 ## [Unreleased]
 
+### Security
+- **Passcode at rest:** the app-lock passcode is now stored as a PBKDF2-HMAC-SHA256 digest (100k iterations, random 16-byte salt — the same scheme as the Archive password) instead of plaintext in postbox metadata. Legacy plaintext values still unlock and are transparently upgraded to the hashed form on the first successful entry; verification of hashed values is constant-time. The unused `lockId` property, which embedded the raw passcode, was removed. New passcodes are never stored in plaintext.
+
+### Changed
+- Removed the dead vendored OpenSSL 1.1.1d tarball (`submodules/openssl`) — not referenced by any build target (TDLib builds against BoringSSL); the 1.1.1 series has been EOL since September 2023.
+- `Tests/AllTests` now aggregates the three existing unit-test suites instead of a dangling `TgCallsTests` label, so the default `Make.py test` build no longer fails.
+
 ## [v12.9.2-4013]
 
 ### Fixed
