@@ -78,6 +78,12 @@ private final class AccountPresenceManagerImpl {
             }
         }))
     }
+    
+    /// Fork (Ghost Read on Interact): re-run `updatePresence` with the current `wasOnline`
+    /// value, so a just-opened or just-closed interact override window is reflected immediately.
+    func reassertPresence() {
+        self.updatePresence(self.wasOnline)
+    }
 }
 
 final class AccountPresenceManager {
@@ -89,6 +95,16 @@ final class AccountPresenceManager {
         self.impl = QueueLocalObject(queue: self.queue, generate: {
             return AccountPresenceManagerImpl(queue: queue, shouldKeepOnlinePresence: shouldKeepOnlinePresence, network: network)
         })
+    }
+    
+    /// Fork (Ghost Read on Interact): re-evaluate presence immediately. The interact override
+    /// un-suppresses online reporting, but while the app stays foreground nothing else pokes
+    /// this manager — the online blink needs an explicit push, both when the window opens and
+    /// when it closes (otherwise a blink-period online report lingers until the 30s timer).
+    func reassertPresence() {
+        self.impl.with { impl in
+            impl.reassertPresence()
+        }
     }
     
     func isPerformingUpdate() -> Signal<Bool, NoError> {

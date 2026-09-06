@@ -9092,6 +9092,10 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
             return
         }
         ForkGhostModeSettings.beginReadOnInteractOverride()
+        // The override only *permits* online reporting; poke the presence manager so the
+        // "briefly show online" half of the feature actually fires (and re-pokes itself
+        // offline when the window closes — see performGhostInteractPresenceBlink).
+        self.context.account.performGhostInteractPresenceBlink()
         if self.isNodeLoaded {
             self.chatDisplayNode.historyNode.updateReadHistoryActions()
         }

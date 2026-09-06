@@ -1756,6 +1756,22 @@ public class Account {
         return self.localInputActivityManager.acquireActivity(chatPeerId: peerId, peerId: self.peerId, activity: activity)
     }
     
+    /// Fork (Ghost Read on Interact): push presence re-evaluation through the interact-override
+    /// window — once right away (so the online blink actually fires; while the app stays
+    /// foreground nothing else pokes the presence manager) and once just after the window
+    /// closes (so a blink-period online report is replaced by offline immediately instead of
+    /// lingering until the 30s presence timer). No-op unless online reporting is suppressed.
+    public func performGhostInteractPresenceBlink() {
+        guard ForkGhostModeSettings.readOnInteract, ForkGhostModeSettings.suppressOnline else {
+            return
+        }
+        self.accountPresenceManager.reassertPresence()
+        let duration = ForkGhostModeSettings.readOnInteractOverrideDuration
+        Queue.mainQueue().after(duration + 0.1, { [weak self] in
+            self?.accountPresenceManager.reassertPresence()
+        })
+    }
+    
     public func addUpdates(serializedData: Data) -> Void {
         /*if let object = Api.parse(Buffer(data: serializedData)) {
             self.stateManager.addUpdates()
