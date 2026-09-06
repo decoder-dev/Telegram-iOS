@@ -1,5 +1,6 @@
 import Foundation
 import UIKit
+import SwiftSignalKit
 import TelegramCore
 
 // Small local HSL-desaturation helper (mirrors Display/UIKitUtils.swift's desaturatedHSL, not
@@ -52,7 +53,17 @@ public class PeerNameColors: Equatable {
     /// Percentage (0-100) applied to every color this class returns; pushed down from
     /// ForkExtrasSettings.accentColorSaturation by SharedAccountContext whenever settings change,
     /// since this plain value type has no live AccountContext/settings reference of its own.
-    public static var saturationPercent: Int32 = 100
+    /// Atomic for the same reason the fork's other cross-queue statics are: colors are
+    /// constructed during background text layout while the write lands on the main queue.
+    private static let saturationPercentValue = Atomic<Int32>(value: 100)
+    public static var saturationPercent: Int32 {
+        get {
+            return self.saturationPercentValue.with { $0 }
+        }
+        set {
+            let _ = self.saturationPercentValue.swap(newValue)
+        }
+    }
 
     public enum Subject {
         case background
