@@ -102,7 +102,7 @@ final class PeerInfoScreenLabeledValueItem: PeerInfoScreenItem {
         iconAction: (() -> Void)? = nil,
         button: Button? = nil,
         contextAction: ((ASDisplayNode, ContextGesture?, CGPoint?) -> Void)? = nil,
-        requestLayout: @escaping (Bool) -> Void
+        requestLayout: @escaping (Bool) -> Void = { _ in }
     ) {
         self.id = id
         self.context = context

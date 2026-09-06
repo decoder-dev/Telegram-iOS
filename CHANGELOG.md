@@ -6,6 +6,9 @@
 
 ## [Unreleased]
 
+### Fixed
+- **Profile diagnostic rows (id / dc / registered):** tapping these fork rows triggered a full immediate re-layout of the profile screen (the visible "row changes on tap") instead of opening the standard value window. Tap now opens the same copy-value context menu that long-press did; the meaningless `requestLayout` tap side effect (copied from the expandable bio/link rows, where it serves header expansion) was removed, and `PeerInfoScreenLabeledValueItem.requestLayout` gained a no-op default so rows without expansion behavior don't need to fake one. Rows also became proper accessibility buttons (activate action = open value menu).
+
 ## [v12.9.2-4014]
 
 ### Security

@@ -911,18 +911,18 @@ func infoItems(
     let hideDiagnostics = ForkExtrasHotFlags.streamerMode || forkExtras.streamerMode
     if forkExtras.showProfileId && !hideDiagnostics {
         let idText = "\(data.peer?.id.id._internalGetInt64Value() ?? 0)"
-        items[.peerInfoTrailing]!.append(PeerInfoScreenLabeledValueItem(id: AnyHashable("fork_profile_id"), label: "id", text: idText, textColor: .primary, action: nil, longTapAction: { sourceNode in
+        items[.peerInfoTrailing]!.append(PeerInfoScreenLabeledValueItem(id: AnyHashable("fork_profile_id"), label: "id", text: idText, textColor: .primary, action: { sourceNode, _ in
             interaction.openPeerInfoContextMenu(.genericCopy(idText), sourceNode, nil)
-        }, requestLayout: { _ in
-            interaction.requestLayout(false)
+        }, longTapAction: { sourceNode in
+            interaction.openPeerInfoContextMenu(.genericCopy(idText), sourceNode, nil)
         }))
     }
     if forkExtras.showDC && !hideDiagnostics, let smallProfileImage = data.peer?.smallProfileImage, let cloudResource = smallProfileImage.resource as? CloudPeerPhotoSizeMediaResource {
         let dcText = "\(cloudResource.datacenterId)"
-        items[.peerInfoTrailing]!.append(PeerInfoScreenLabeledValueItem(id: AnyHashable("fork_dc"), label: "dc", text: dcText, textColor: .primary, action: nil, longTapAction: { sourceNode in
+        items[.peerInfoTrailing]!.append(PeerInfoScreenLabeledValueItem(id: AnyHashable("fork_dc"), label: "dc", text: dcText, textColor: .primary, action: { sourceNode, _ in
             interaction.openPeerInfoContextMenu(.genericCopy(dcText), sourceNode, nil)
-        }, requestLayout: { _ in
-            interaction.requestLayout(false)
+        }, longTapAction: { sourceNode in
+            interaction.openPeerInfoContextMenu(.genericCopy(dcText), sourceNode, nil)
         }))
     }
     // Gated by the same showDC toggle (both are "extra diagnostic info" rows) rather than a
@@ -930,10 +930,10 @@ func infoItems(
     // supplied for this peer (PeerStatusSettings.registrationDate) — no third-party lookup
     // service, so this row simply doesn't appear for peers the server didn't annotate.
     if forkExtras.showDC && !hideDiagnostics, let cachedUserData = data.cachedData as? CachedUserData, let registrationDate = cachedUserData.peerStatusSettings?.registrationDate {
-        items[.peerInfoTrailing]!.append(PeerInfoScreenLabeledValueItem(id: AnyHashable("fork_reg_date"), label: ForkPresentationLanguage.prefersRussianStrings ? "регистрация" : "registered", text: registrationDate, textColor: .primary, action: nil, longTapAction: { sourceNode in
+        items[.peerInfoTrailing]!.append(PeerInfoScreenLabeledValueItem(id: AnyHashable("fork_reg_date"), label: ForkPresentationLanguage.prefersRussianStrings ? "регистрация" : "registered", text: registrationDate, textColor: .primary, action: { sourceNode, _ in
             interaction.openPeerInfoContextMenu(.genericCopy(registrationDate), sourceNode, nil)
-        }, requestLayout: { _ in
-            interaction.requestLayout(false)
+        }, longTapAction: { sourceNode in
+            interaction.openPeerInfoContextMenu(.genericCopy(registrationDate), sourceNode, nil)
         }))
     }
 
