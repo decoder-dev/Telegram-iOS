@@ -73,6 +73,25 @@ timestamp/marks flow through measured text (no fixed widths, no truncation risk)
 | V-3 | P2 | **Inverted equality in `ChatListNodeState ==`**: `if areFoundPeerArraysEqual(...) { return false }` — missing `!`. With the usual equal (empty) found-peer arrays every state comparison said "changed", so every `updateState` call (typing ticks, reveal actions, selection) re-emitted and re-laid-out the whole visible list. Correctness was saved by downstream dedup; the cost was constant needless list churn (battery/jank). | `!` restored. |
 | V-4 | P3 | **Dead hot-flag copies**: `ForkExtrasHotFlags.saveToCloudMenu` / `.selectFromAuthor` are pushed on every settings change but never read (the features read `immediateForkExtrasSettings` instead). | Documented; left in place — removing them is churn with no user-visible gain. |
 | V-5 | P3 | **`dec/zalupa` line carries unaudited visual work** (Телеграм icon family rebrand, PatriotPlane icons, calls-list type icons, proxy-list redesign). Those files are not in this branch's tree. | Not fixable here; audit them when the lines are next merged (see §5). |
+| V-6 | P1 | **Profile diagnostic rows changed on tap instead of opening the value window** — the fork's `id`/`dc`/«регистрация» rows had `action: nil` plus a `requestLayout` closure copied from the expandable bio/link rows. A tap therefore ran a full immediate `containerLayoutUpdated` pass (the visibly "shifting" screen the user reported as "the row changes"), and the standard value window (the copy-value context menu) was reachable only via long-press. | Tap now opens the same `genericCopy` context menu as long-press; the meaningless `requestLayout` argument was dropped and `PeerInfoScreenLabeledValueItem.requestLayout` gained a no-op default so non-expanding rows no longer fake one. Rows are now real accessibility buttons (activate = open value menu). |
+| V-7 | P2 | **Stale keyboard return key after toggling "Send with return key"** — `ChatTextInputPanelNode` seeded `returnKeyType` only when the input node was created, so a mid-session toggle left a "return" key that actually sends (or a "send" key that inserts a newline) until the chat was closed and reopened. Same class as V-2 (creation-time read of a live setting). | The key type is re-asserted whenever editing begins (`chatInputTextNodeDidBeginEditing`), using the fresh `immediateForkExtrasSettings` snapshot. |
+
+Also audited clean in this pass (no change needed): the WebProxy manager's lock
+discipline on every remaining `queue.sync` path (`sendKeepalivePing`,
+`shouldSkipCarrierRebuildDueToRecentActivity` — snapshot-then-sync everywhere);
+the SOCKS5 parser's bounds checks before every index (loopback is reachable by
+other processes on device); `ForkExtrasHotFlags`/`ForkGhostModeSettings`
+atomicity and the hot-flag ↔ settings default parity (`saveToCloudMenu`,
+`selectFromAuthor`, `hideAds`, `useRecentEmojiInReactions` all match
+`ForkExtrasSettings.defaultSettings`); streamer-mode gates on phone/username
+rows in profiles (consistent with `forkHidesOwnIdentity`, hot flag included);
+Ghost Read-on-Interact's generation counter (repeated sends extend the window
+correctly, no stuck override); `rememberLastFolder`'s drag lifecycle (the
+container clears `isSwitchingCurrentItemFilterByDragging` *before* the final
+`currentItemFilterUpdated` callback, so swipe-switched folders persist). The
+`shouldDivertMessagesToScheduled` stub (always `.single(false)`) is dead but
+harmless — ghost scheduling is applied via message attributes; noted here rather
+than churned.
 
 Device verification for this pass: toggle each of the V-2 flags while the chat list and an open
 chat are visible — every visible row/bubble should restyle in place with no restart; watch that
