@@ -5063,6 +5063,17 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             return
         }
         
+        // Fork: the return key type is only seeded when the input node is created, so a
+        // mid-session "send with return key" toggle otherwise leaves a stale key label
+        // (a "return" key that sends, or a "send" key that inserts a newline) until the
+        // panel is recreated. Re-assert it whenever editing begins.
+        if let context = self.context, let richTextInputNode = self.richTextInputNode {
+            let desiredReturnKeyType: UIReturnKeyType = context.sharedContext.immediateForkExtrasSettings.sendWithReturnKey ? .send : .default
+            if richTextInputNode.returnKeyType != desiredReturnKeyType {
+                richTextInputNode.returnKeyType = desiredReturnKeyType
+            }
+        }
+        
         switch presentationInterfaceState.inputMode {
         case .text:
             break
