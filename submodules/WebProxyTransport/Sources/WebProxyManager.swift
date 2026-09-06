@@ -119,12 +119,19 @@ public final class WebProxyManager {
     /// speak MTProto — tgcalls. Nil whenever any piece is missing; callers must treat nil as
     /// "no bridge" and fall back to their direct behavior.
     public var activeSocksBridgeEndpoint: WebProxySidecar.SocksBridgeEndpoint? {
+        // Snapshot under the lock, then leave it before touching the sidecar. The sidecar's
+        // failure handler takes this lock *from the sidecar's queue* on a carrier drop, so
+        // calling a queue.sync sidecar method while holding it deadlocks the two threads —
+        // call resolution parked on main exactly when the carrier dies is a watchdog kill.
+        // `sendKeepalivePing()` below follows the same discipline for the same reason.
         self.lock.lock()
-        defer { self.lock.unlock() }
-        guard self.sidecar != nil, self.endpoint != nil else {
+        let sidecar = self.sidecar
+        let hasEndpoint = self.endpoint != nil
+        self.lock.unlock()
+        guard let sidecar = sidecar, hasEndpoint else {
             return nil
         }
-        return self.sidecar?.socksBridgeEndpoint()
+        return sidecar.socksBridgeEndpoint()
     }
     
     public var activeConfiguration: WebProxyConfiguration? {
