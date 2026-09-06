@@ -174,6 +174,7 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.ImportMessageSavingReplace": "Replace existing",
             "ForkExtras.MessageSavingDbFooter": "Export / import the local deleted & edit-history JSON store (AyuGram DB backup), including a copy of Saved Attachments. Import also accepts a bare records.json.",
             "ForkExtras.ExportMessageSavingDone": "Exported {count} records.",
+            "ForkExtras.ExportMessageSavingFailed": "Could not create the export bundle.",
             "ForkExtras.ImportMessageSavingDone": "Imported {count} new records.",
             "ForkExtras.ImportMessageSavingFailed": "Could not import this file.",
             "ForkExtras.HubFooter": "Each row opens a grouped Settings list. Navigation, sheets and switches follow iOS conventions.",
@@ -307,6 +308,7 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.ImportMessageSavingReplace": "Заменить текущую",
             "ForkExtras.MessageSavingDbFooter": "Экспорт / импорт локального JSON с удалёнными и историей правок (бэкап БД AyuGram), включая копию Saved Attachments. При импорте также подходит обычный records.json.",
             "ForkExtras.ExportMessageSavingDone": "Экспортировано записей: {count}.",
+            "ForkExtras.ExportMessageSavingFailed": "Не удалось создать пакет экспорта.",
             "ForkExtras.ImportMessageSavingDone": "Добавлено новых записей: {count}.",
             "ForkExtras.ImportMessageSavingFailed": "Не удалось импортировать файл.",
             "ForkExtras.HubFooter": "Каждая строка открывает grouped-список как в Настройках iOS: навигация, шиты и переключатели системные.",
@@ -474,6 +476,7 @@ private enum ForkExtrasLocalizedString {
     static var importMessageSavingReplace: String { string(forKey: "ForkExtras.ImportMessageSavingReplace") }
     static var messageSavingDbFooter: String { string(forKey: "ForkExtras.MessageSavingDbFooter") }
     static var exportMessageSavingDone: String { string(forKey: "ForkExtras.ExportMessageSavingDone") }
+    static var exportMessageSavingFailed: String { string(forKey: "ForkExtras.ExportMessageSavingFailed") }
     static var importMessageSavingDone: String { string(forKey: "ForkExtras.ImportMessageSavingDone") }
     static var importMessageSavingFailed: String { string(forKey: "ForkExtras.ImportMessageSavingFailed") }
     static var hubFooter: String { string(forKey: "ForkExtras.HubFooter") }
@@ -1990,13 +1993,24 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
         exportMessageSavingDatabase: {
             MessageSavingStore.flush()
             guard let url = MessageSavingStore.exportBundle() else {
+                // Was a silent no-op — with a failed bundle the row looked simply dead.
+                let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+                let alert = textAlertController(context: context, title: nil, text: ForkExtrasLocalizedString.exportMessageSavingFailed, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})])
+                presentControllerImpl?(alert)
                 return
             }
+            let exportedRecordCount = MessageSavingStore.recordCount
             // Folder URL: AirDrop / "Save to Files" accept it. Import the folder itself (not a
             // zip — the picker does not open archives).
             let activity = UIActivityViewController(activityItems: [url], applicationActivities: nil)
             activity.completionWithItemsHandler = { _, _, _, _ in
                 try? FileManager.default.removeItem(at: url)
+                // The bundle existed with `exportedRecordCount` records whether or not the user
+                // shared it — tell them, so an empty/short backup is caught before a restore.
+                let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+                let text = ForkExtrasLocalizedString.exportMessageSavingDone.replacingOccurrences(of: "{count}", with: "\(exportedRecordCount)")
+                let alert = textAlertController(context: context, title: nil, text: text, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})])
+                presentControllerImpl?(alert)
             }
             forkExtrasPresentNativeController(activity, context: context)
         },
