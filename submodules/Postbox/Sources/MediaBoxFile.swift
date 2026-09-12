@@ -585,7 +585,15 @@ final class MediaBoxPartialFile {
                                     strongSelf.reset()
                                 }
                             case let .resourceSizeUpdated(size):
-                                strongSelf.truncate(size)
+                                // A reported size of 0 is not evidence of a completed
+                                // resource: it has only ever been produced by error paths
+                                // (WEBFILE_NOT_AVAILABLE used to complete the fetch with a
+                                // size of 0, poisoning the resource as a "fully downloaded
+                                // 0-byte file" that was never fetched again — upstream
+                                // issue #2244). Real media resources are never 0 bytes.
+                                if size > 0 {
+                                    strongSelf.truncate(size)
+                                }
                             case let .dataPart(resourceOffset, data, range, complete):
                                 if !data.isEmpty {
                                     strongSelf.write(offset: resourceOffset, data: data, dataRange: range)

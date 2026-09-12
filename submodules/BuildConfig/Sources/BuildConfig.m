@@ -377,7 +377,14 @@ API_AVAILABLE(ios(10))
         }
         assert(result == 0);
         resultData = randomData;
-        [resultData writeToFile:filePath atomically:false];
+        // Atomic write (temp file + rename): extensions (NSE, Siri, widgets, share)
+        // read this file from their own processes concurrently with the main app.
+        // The previous non-atomic write could be observed half-written; the reader's
+        // length check would then fail and a NEW random key would be generated and
+        // written back, permanently diverging from the key the database was encrypted
+        // with — every subsequent Postbox open in the extension traps
+        // (upstream issue #2308).
+        [resultData writeToFile:filePath atomically:true];
     }
     
     /*if (@available(iOS 11, *)) {

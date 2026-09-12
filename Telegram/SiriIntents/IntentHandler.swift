@@ -127,9 +127,15 @@ class DefaultIntentHandler: INExtension, INSendMessageIntentHandling, INSearchFo
         self.accountManager = accountManager
         
         let deviceSpecificEncryptionParameters = BuildConfig.deviceSpecificEncryptionParameters(rootPath, baseAppBundleId: baseAppBundleId)
-        let encryptionParameters = ValueBoxEncryptionParameters(forceEncryptionIfNoSet: false, key: ValueBoxEncryptionParameters.Key(data: deviceSpecificEncryptionParameters.key)!, salt: ValueBoxEncryptionParameters.Salt(data: deviceSpecificEncryptionParameters.salt)!)
+        // By construction the parameters are always a 32-byte key and a 16-byte salt,
+        // but an extension process must never trap on a defensive invariant — fail the
+        // intent instead (upstream issue #2308).
+        guard let encryptionKey = ValueBoxEncryptionParameters.Key(data: deviceSpecificEncryptionParameters.key), let encryptionSalt = ValueBoxEncryptionParameters.Salt(data: deviceSpecificEncryptionParameters.salt) else {
+            return
+        }
+        let encryptionParameters = ValueBoxEncryptionParameters(forceEncryptionIfNoSet: false, key: encryptionKey, salt: encryptionSalt)
         self.encryptionParameters = encryptionParameters
-        
+
         self.allAccounts.set(accountManager.accountRecords()
         |> take(1)
         |> map { view -> [(AccountRecordId, PeerId, Bool)] in
@@ -903,7 +909,12 @@ private final class WidgetIntentHandler {
         initializeAccountManagement()
         
         let deviceSpecificEncryptionParameters = BuildConfig.deviceSpecificEncryptionParameters(rootPath, baseAppBundleId: baseAppBundleId)
-        let encryptionParameters = ValueBoxEncryptionParameters(forceEncryptionIfNoSet: false, key: ValueBoxEncryptionParameters.Key(data: deviceSpecificEncryptionParameters.key)!, salt: ValueBoxEncryptionParameters.Salt(data: deviceSpecificEncryptionParameters.salt)!)
+        // See the matching guard above: an extension process must never trap on a
+        // defensive invariant — fail the intent instead (upstream issue #2308).
+        guard let encryptionKey = ValueBoxEncryptionParameters.Key(data: deviceSpecificEncryptionParameters.key), let encryptionSalt = ValueBoxEncryptionParameters.Salt(data: deviceSpecificEncryptionParameters.salt) else {
+            return
+        }
+        let encryptionParameters = ValueBoxEncryptionParameters(forceEncryptionIfNoSet: false, key: encryptionKey, salt: encryptionSalt)
         self.encryptionParameters = encryptionParameters
         
         let view = AccountManager<TelegramAccountManagerTypes>.getCurrentRecords(basePath: rootPath + "/accounts-metadata")
