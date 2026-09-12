@@ -6,6 +6,10 @@
 
 ## [Unreleased]
 
+### Fixed
+- **App Lock: eternal "Try again in 1 minute" after reboot.** After 6+ failed passcode attempts, a reboot made the cooldown permanent — the persisted `bootTimestamp` could never match the new session's, so even the correct passcode was rejected forever (the gate survives restart and offload because the counter is persisted). Policy now: a boot-session change expires the wait; the failure count itself persists, so the next wrong attempt immediately re-arms the full interval.
+- **App Lock: fail-closed extension reads of `lockState.json`.** The notification service, Siri and the widget each parsed the lock state with `try?` chains in which a corrupt or unreadable file fell through to the *unlocked* branch — private message content could surface through notifications and Siri while the app was locked. A single fail-closed helper (`isAppLockedFailClosed`) now defines the rule for all 15 call sites: no file at all = no passcode = unlocked; file present but unparseable = locked. Main-app writes were already atomic (`.atomic`); this covers corruption from other sources.
+
 ## [v12.9.2-4015-pre]
 
 ### Fixed
