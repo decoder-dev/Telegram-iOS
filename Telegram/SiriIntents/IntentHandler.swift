@@ -266,7 +266,7 @@ class DefaultIntentHandler: INExtension, INSendMessageIntentHandling, INSearchFo
     private func resolve(persons: [INPerson]?, with completion: @escaping ([ResolveResult]) -> Void) {
         if let appGroupUrl = self.appGroupUrl {
             let rootPath = rootPathForBasePath(appGroupUrl.path)
-            if let data = try? Data(contentsOf: URL(fileURLWithPath: appLockStatePath(rootPath: rootPath))), let state = try? JSONDecoder().decode(LockState.self, from: data), isAppLocked(state: state) {
+            if isAppLockedFailClosed(rootPath: rootPath) {
                 completion([.skip])
                 return
             }
@@ -373,7 +373,7 @@ class DefaultIntentHandler: INExtension, INSendMessageIntentHandling, INSearchFo
     public func resolveRecipients(for intent: INSendMessageIntent, with completion: @escaping ([INSendMessageRecipientResolutionResult]) -> Void) {
         if let appGroupUrl = self.appGroupUrl {
             let rootPath = rootPathForBasePath(appGroupUrl.path)
-            if let data = try? Data(contentsOf: URL(fileURLWithPath: appLockStatePath(rootPath: rootPath))), let state = try? JSONDecoder().decode(LockState.self, from: data), isAppLocked(state: state) {
+            if isAppLockedFailClosed(rootPath: rootPath) {
                 completion([INSendMessageRecipientResolutionResult.notRequired()])
                 return
             }
@@ -424,7 +424,7 @@ class DefaultIntentHandler: INExtension, INSendMessageIntentHandling, INSearchFo
     public func resolveContent(for intent: INSendMessageIntent, with completion: @escaping (INStringResolutionResult) -> Void) {
         if let appGroupUrl = self.appGroupUrl {
             let rootPath = rootPathForBasePath(appGroupUrl.path)
-            if let data = try? Data(contentsOf: URL(fileURLWithPath: appLockStatePath(rootPath: rootPath))), let state = try? JSONDecoder().decode(LockState.self, from: data), isAppLocked(state: state) {
+            if isAppLockedFailClosed(rootPath: rootPath) {
                 completion(INStringResolutionResult.notRequired())
                 return
             }
@@ -443,7 +443,7 @@ class DefaultIntentHandler: INExtension, INSendMessageIntentHandling, INSearchFo
     public func confirm(intent: INSendMessageIntent, completion: @escaping (INSendMessageIntentResponse) -> Void) {
         if let appGroupUrl = self.appGroupUrl {
             let rootPath = rootPathForBasePath(appGroupUrl.path)
-            if let data = try? Data(contentsOf: URL(fileURLWithPath: appLockStatePath(rootPath: rootPath))), let state = try? JSONDecoder().decode(LockState.self, from: data), isAppLocked(state: state) {
+            if isAppLockedFailClosed(rootPath: rootPath) {
                 let userActivity = NSUserActivity(activityType: NSStringFromClass(INSendMessageIntent.self))
                 let response = INSendMessageIntentResponse(code: .failureRequiringAppLaunch, userActivity: userActivity)
                 completion(response)
@@ -463,7 +463,7 @@ class DefaultIntentHandler: INExtension, INSendMessageIntentHandling, INSearchFo
     public func handle(intent: INSendMessageIntent, completion: @escaping (INSendMessageIntentResponse) -> Void) {
         if let appGroupUrl = self.appGroupUrl {
             let rootPath = rootPathForBasePath(appGroupUrl.path)
-            if let data = try? Data(contentsOf: URL(fileURLWithPath: appLockStatePath(rootPath: rootPath))), let state = try? JSONDecoder().decode(LockState.self, from: data), isAppLocked(state: state) {
+            if isAppLockedFailClosed(rootPath: rootPath) {
                 let userActivity = NSUserActivity(activityType: NSStringFromClass(INSendMessageIntent.self))
                 let response = INSendMessageIntentResponse(code: .failureRequiringAppLaunch, userActivity: userActivity)
                 completion(response)
@@ -523,7 +523,7 @@ class DefaultIntentHandler: INExtension, INSendMessageIntentHandling, INSearchFo
     public func handle(intent: INSearchForMessagesIntent, completion: @escaping (INSearchForMessagesIntentResponse) -> Void) {
         if let appGroupUrl = self.appGroupUrl {
             let rootPath = rootPathForBasePath(appGroupUrl.path)
-            if let data = try? Data(contentsOf: URL(fileURLWithPath: appLockStatePath(rootPath: rootPath))), let state = try? JSONDecoder().decode(LockState.self, from: data), isAppLocked(state: state) {
+            if isAppLockedFailClosed(rootPath: rootPath) {
                 let userActivity = NSUserActivity(activityType: NSStringFromClass(INSearchForMessagesIntent.self))
                 let response = INSearchForMessagesIntentResponse(code: .failureRequiringAppLaunch, userActivity: userActivity)
                 completion(response)
@@ -594,7 +594,7 @@ class DefaultIntentHandler: INExtension, INSendMessageIntentHandling, INSearchFo
     public func handle(intent: INSetMessageAttributeIntent, completion: @escaping (INSetMessageAttributeIntentResponse) -> Void) {
         if let appGroupUrl = self.appGroupUrl {
             let rootPath = rootPathForBasePath(appGroupUrl.path)
-            if let data = try? Data(contentsOf: URL(fileURLWithPath: appLockStatePath(rootPath: rootPath))), let state = try? JSONDecoder().decode(LockState.self, from: data), isAppLocked(state: state) {
+            if isAppLockedFailClosed(rootPath: rootPath) {
                 let userActivity = NSUserActivity(activityType: NSStringFromClass(INSetMessageAttributeIntent.self))
                 let response = INSetMessageAttributeIntentResponse(code: .failure, userActivity: userActivity)
                 completion(response)
@@ -662,7 +662,7 @@ class DefaultIntentHandler: INExtension, INSendMessageIntentHandling, INSearchFo
     public func resolveContacts(for intent: INStartCallIntent, with completion: @escaping ([INStartCallContactResolutionResult]) -> Void) {
         if let appGroupUrl = self.appGroupUrl {
             let rootPath = rootPathForBasePath(appGroupUrl.path)
-            if let data = try? Data(contentsOf: URL(fileURLWithPath: appLockStatePath(rootPath: rootPath))), let state = try? JSONDecoder().decode(LockState.self, from: data), isAppLocked(state: state) {
+            if isAppLockedFailClosed(rootPath: rootPath) {
                 completion([INStartCallContactResolutionResult.notRequired()])
                 return
             }
@@ -684,7 +684,7 @@ class DefaultIntentHandler: INExtension, INSendMessageIntentHandling, INSearchFo
     public func handle(intent: INStartCallIntent, completion: @escaping (INStartCallIntentResponse) -> Void) {
         if let appGroupUrl = self.appGroupUrl {
             let rootPath = rootPathForBasePath(appGroupUrl.path)
-            if let data = try? Data(contentsOf: URL(fileURLWithPath: appLockStatePath(rootPath: rootPath))), let state = try? JSONDecoder().decode(LockState.self, from: data), isAppLocked(state: state) {
+            if isAppLockedFailClosed(rootPath: rootPath) {
                 let userActivity = NSUserActivity(activityType: NSStringFromClass(INStartCallIntent.self))
                 let response = INStartCallIntentResponse(code: .failureRequiringAppLaunch, userActivity: userActivity)
                 completion(response)
@@ -737,7 +737,7 @@ class DefaultIntentHandler: INExtension, INSendMessageIntentHandling, INSearchFo
     public func handle(intent: INSearchCallHistoryIntent, completion: @escaping (INSearchCallHistoryIntentResponse) -> Void) {
         if let appGroupUrl = self.appGroupUrl {
             let rootPath = rootPathForBasePath(appGroupUrl.path)
-            if let data = try? Data(contentsOf: URL(fileURLWithPath: appLockStatePath(rootPath: rootPath))), let state = try? JSONDecoder().decode(LockState.self, from: data), isAppLocked(state: state) {
+            if isAppLockedFailClosed(rootPath: rootPath) {
                 let userActivity = NSUserActivity(activityType: NSStringFromClass(INSearchCallHistoryIntent.self))
                 let response = INSearchCallHistoryIntentResponse(code: .failureRequiringAppLaunch, userActivity: userActivity)
                 completion(response)
@@ -784,7 +784,7 @@ class DefaultIntentHandler: INExtension, INSendMessageIntentHandling, INSearchFo
             return
         }
         
-        if let data = try? Data(contentsOf: URL(fileURLWithPath: appLockStatePath(rootPath: rootPath))), let state = try? JSONDecoder().decode(LockState.self, from: data), isAppLocked(state: state) {
+        if isAppLockedFailClosed(rootPath: rootPath) {
             let presentationData = WidgetPresentationData.getForExtension()
             
             let error = NSError(domain: presentationData.generalLockedTitle, code: 1, userInfo: [
@@ -956,7 +956,7 @@ private final class WidgetIntentHandler {
             return
         }
         
-        if let data = try? Data(contentsOf: URL(fileURLWithPath: appLockStatePath(rootPath: rootPath))), let state = try? JSONDecoder().decode(LockState.self, from: data), isAppLocked(state: state) {
+        if isAppLockedFailClosed(rootPath: rootPath) {
             
             //let presentationData = WidgetPresentationData.getForExtension()
             
@@ -1041,7 +1041,7 @@ private final class WidgetIntentHandler {
             return []
         }
         
-        if let data = try? Data(contentsOf: URL(fileURLWithPath: appLockStatePath(rootPath: rootPath))), let state = try? JSONDecoder().decode(LockState.self, from: data), isAppLocked(state: state) {
+        if isAppLockedFailClosed(rootPath: rootPath) {
             return []
         }
         
