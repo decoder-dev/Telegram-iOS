@@ -3207,6 +3207,20 @@ final class ShareWithPeersScreenComponent: Component {
             
             let scrollContentHeight = max(topInset + itemLayout.contentHeight + containerInset + bottomPanelHeight, availableSize.height - containerInset)
             
+            if case .stories = component.stateContext.subject {
+                // The settings do not fit the available height (e.g. iPhone SE with a
+                // full set of options). Story posting normally disables scrolling in
+                // favor of the dismiss pan gesture (see the early layout pass above),
+                // but when the content overflows the screen the bottom rows would be
+                // permanently unreachable — make the screen scrollable instead
+                // (upstream issue #2329). On the next layout without overflow the early
+                // pass restores the dismiss gesture.
+                if scrollContentHeight > availableSize.height - containerInset + 1.0, !self.scrollView.isScrollEnabled {
+                    self.scrollView.isScrollEnabled = true
+                    self.dismissPanGesture?.isEnabled = false
+                }
+            }
+
             transition.setFrame(view: self.scrollContentView, frame: CGRect(origin: CGPoint(x: 0.0, y: topInset + containerInset), size: CGSize(width: containerWidth, height: itemLayout.contentHeight)))
             
             transition.setPosition(view: self.backgroundView, position: CGPoint(x: availableSize.width / 2.0, y: availableSize.height / 2.0))
