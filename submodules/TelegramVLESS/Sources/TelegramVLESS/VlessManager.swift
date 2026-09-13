@@ -225,7 +225,7 @@ public final class VlessManager {
     /// shape tgcalls' managed-route validation accepts (non-empty, <=255,
     /// printable ASCII without control characters).
     static func generateCredential() -> (String, String) {
-        let alphabet = Array("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+        let alphabet: [UInt8] = Array("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".utf8)
         func randomString(_ length: Int) -> String {
             var bytes = [UInt8]()
             bytes.reserveCapacity(length)
