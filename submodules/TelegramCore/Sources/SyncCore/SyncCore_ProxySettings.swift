@@ -1,12 +1,16 @@
 import Foundation
 import Postbox
 import WebProxyTransport
+import TelegramVLESS
 
 public enum ProxyServerConnection: Equatable, Hashable, Codable {
     case socks5(username: String?, password: String?)
     case mtp(secret: Data)
     /// WEB proxy (tproxy-server): hostname is the masking HTTPS site; traffic is tunneled via WebView/HTTPS carrier.
     case web(secret: Data)
+    /// VLESS proxy: `secret` holds the full `vless://` share-link URL (UTF-8); traffic is
+    /// tunneled through an embedded Xray runtime exposing an authenticated loopback SOCKS5 bridge.
+    case vless(secret: Data)
     
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: StringCodingKey.self)
@@ -18,6 +22,8 @@ public enum ProxyServerConnection: Equatable, Hashable, Codable {
                 self = .mtp(secret: try container.decode(Data.self, forKey: "secret"))
             case 2:
                 self = .web(secret: try container.decode(Data.self, forKey: "secret"))
+            case 3:
+                self = .vless(secret: try container.decode(Data.self, forKey: "secret"))
             default:
                 self = .socks5(username: nil, password: nil)
         }
@@ -37,11 +43,21 @@ public enum ProxyServerConnection: Equatable, Hashable, Codable {
             case let .web(secret):
                 try container.encode(2 as Int32, forKey: "_t")
                 try container.encode(secret, forKey: "secret")
+            case let .vless(secret):
+                try container.encode(3 as Int32, forKey: "_t")
+                try container.encode(secret, forKey: "secret")
         }
     }
     
     public var isWebProxy: Bool {
         if case .web = self {
+            return true
+        }
+        return false
+    }
+    
+    public var isVlessProxy: Bool {
+        if case .vless = self {
             return true
         }
         return false

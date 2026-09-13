@@ -40,9 +40,13 @@ public final class VlessManager {
         case failed(VlessError)
     }
 
+    /// Process-wide manager, mirroring `WebProxyManager.shared`.
+    public static let shared = VlessManager()
+
     private let lock = NSLock()
     private let runtime: XrayRuntime
     private var stateValue: State = .idle
+    private var activeProfileURLValue: String?
     private let stateUpdated: (() -> Void)?
 
     public var state: State {
@@ -136,6 +140,7 @@ public final class VlessManager {
         let sink = VlessProxySink(host: "127.0.0.1", port: socks.port, user: socks.user, password: socks.password)
         lock.lock()
         stateValue = .running(sink: sink)
+        activeProfileURLValue = url
         lock.unlock()
         notifyStateChange()
         return .success(sink)
@@ -146,9 +151,63 @@ public final class VlessManager {
     public func stop() {
         lock.lock()
         stateValue = .idle
+        activeProfileURLValue = nil
         lock.unlock()
         try? runtime.stop()
         notifyStateChange()
+    }
+
+    /// Reconciles the embedded runtime with the currently active profile.
+    ///
+    /// - Same URL and running: no-op.
+    /// - Different URL: restart with the new profile.
+    /// - `nil` or a profile that fails to start: stop.
+    ///
+    /// Mirrors `WebProxyManager.configure(activeWebProxy:)`.
+    public func configure(activeProfileURL: String?) {
+        lock.lock()
+        let previousURL = activeProfileURLValue
+        if activeProfileURL == nil {
+            activeProfileURLValue = nil
+        }
+        let isRunningForPrevious: Bool
+        if case .running = stateValue {
+            isRunningForPrevious = true
+        } else {
+            isRunningForPrevious = false
+        }
+        lock.unlock()
+
+        if let activeProfileURL = activeProfileURL {
+            if isRunningForPrevious && previousURL == activeProfileURL {
+                return
+            }
+            _ = start(url: activeProfileURL)
+        } else {
+            if isRunningForPrevious || previousURL != nil {
+                stop()
+            }
+        }
+    }
+
+    /// Whether the runtime is currently serving the given profile URL.
+    public func isReady(for profileURL: String) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        if case .running = stateValue, activeProfileURLValue == profileURL {
+            return true
+        }
+        return false
+    }
+
+    /// The running loopback endpoint, if any.
+    public var activeLoopbackEndpoint: VlessProxySink? {
+        lock.lock()
+        defer { lock.unlock() }
+        if case let .running(sink) = stateValue {
+            return sink
+        }
+        return nil
     }
 
     public var isRunning: Bool {
