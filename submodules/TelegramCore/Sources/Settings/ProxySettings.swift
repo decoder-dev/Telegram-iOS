@@ -33,7 +33,7 @@ extension ProxyServerSettings {
         return WebProxyConfiguration(hostname: self.host, secret: secret)
     }
 
-    var vlessProxyURL: String? {
+    public var vlessProxyURL: String? {
         guard case let .vless(secret) = self.connection else {
             return nil
         }
