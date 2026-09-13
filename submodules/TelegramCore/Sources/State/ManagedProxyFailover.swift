@@ -13,7 +13,7 @@ private func socksSettingsForProxyRotationPing(server: ProxyServerSettings) -> M
             return MTSocksProxySettings(ip: server.host, port: UInt16(clamping: server.port), username: username, password: password, secret: nil)
         case let .mtp(secret):
             return MTSocksProxySettings(ip: server.host, port: UInt16(clamping: server.port), username: nil, password: nil, secret: secret)
-        case .web:
+        case .web, .vless:
             return nil
     }
 }

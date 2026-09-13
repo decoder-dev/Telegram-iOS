@@ -231,7 +231,7 @@ public struct ProxySettings: Codable, Equatable {
             switch server.connection {
                 case .socks5, .mtp:
                     return true
-                case .web:
+                case .web, .vless:
                     return false
             }
         }
