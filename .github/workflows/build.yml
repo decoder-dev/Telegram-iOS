@@ -66,6 +66,28 @@ jobs:
       - name: Checkout submodules
         run: git submodule update --init --recursive --depth 1 --jobs 8
 
+      - name: Fetch libxray framework for VLESS support
+        run: |
+          mkdir -p third-party/libxray
+          if [ ! -d third-party/libxray/LibXray.xcframework ]; then
+            curl -sL -o /tmp/libxray-apple-cgo.zip "https://github.com/XTLS/libxray/releases/download/v26.9.9/libxray-apple-cgo.zip"
+            echo "84a11f0923efb65be7631b3c4cac75bd4351fc13b9cc2394def6af5c1696e9fa  /tmp/libxray-apple-cgo.zip" | shasum -a 256 -c -
+            unzip -q -o /tmp/libxray-apple-cgo.zip -d /tmp/libxray-extract
+            XCFW=$(find /tmp/libxray-extract -name "LibXray.xcframework" -type d | head -1)
+            if [ -z "$XCFW" ]; then
+              echo "LibXray.xcframework not found in the archive"; exit 1
+            fi
+            # Keep only the slices the iOS app build needs (device + simulator).
+            mkdir -p third-party/libxray/LibXray.xcframework
+            cp "$XCFW/Info.plist" third-party/libxray/LibXray.xcframework/
+            for slice in ios-arm64 ios-arm64-simulator; do
+              if [ -d "$XCFW/$slice" ]; then
+                cp -R "$XCFW/$slice" third-party/libxray/LibXray.xcframework/
+              fi
+            done
+            ls third-party/libxray/LibXray.xcframework
+          fi
+
       - name: Apply vendored tgcalls patch (managed SOCKS5 media routing)
         run: |
           cd submodules/TgVoipWebrtc/tgcalls
