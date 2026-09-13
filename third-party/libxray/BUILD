@@ -13,7 +13,7 @@ apple_static_xcframework_import(
         allow_empty = False,
     ),
     sdk_dylibs = [
-        "libresolv.dylib",
+        "libresolv",
     ],
     visibility = ["//visibility:public"],
 )
