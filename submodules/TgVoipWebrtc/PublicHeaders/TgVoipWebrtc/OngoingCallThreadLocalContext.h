@@ -150,6 +150,9 @@ typedef NS_ENUM(int32_t, OngoingCallDataSavingWebrtc) {
 @property (nonatomic, readonly) int32_t port;
 @property (nonatomic, strong, readonly) NSString * _Nullable username;
 @property (nonatomic, strong, readonly) NSString * _Nullable password;
+/// When set, the proxy is an authenticated on-device SOCKS5 bridge (loopback):
+/// call media is routed exclusively through it via tgcalls' managed transports.
+@property (nonatomic) BOOL managed;
 
 - (instancetype _Nonnull)initWithHost:(NSString * _Nonnull)host port:(int32_t)port username:(NSString * _Nullable)username password:(NSString * _Nullable)password;
 

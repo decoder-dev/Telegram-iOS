@@ -1741,6 +1741,7 @@ static void (*InternalVoipLoggingFunction)(NSString *) = NULL;
             proxyObject->port = (uint16_t)proxy.port;
             proxyObject->login = proxy.username.UTF8String ?: "";
             proxyObject->password = proxy.password.UTF8String ?: "";
+            proxyObject->managed = proxy.managed;
             proxyValue = std::unique_ptr<tgcalls::Proxy>(proxyObject);
         }
         

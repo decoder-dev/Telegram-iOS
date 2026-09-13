@@ -66,6 +66,12 @@ jobs:
       - name: Checkout submodules
         run: git submodule update --init --recursive --depth 1 --jobs 8
 
+      - name: Apply vendored tgcalls patch (managed SOCKS5 media routing)
+        run: |
+          cd submodules/TgVoipWebrtc/tgcalls
+          git apply --check ../patches/vless-media-socks.patch
+          git apply ../patches/vless-media-socks.patch
+
       - name: Select Xcode
         run: |
           set -euo pipefail
