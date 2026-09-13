@@ -1026,7 +1026,8 @@ swift_library(
     ],
     deps = [
         "//submodules/TelegramUI",
-        "//submodules/TelegramUI/Components/ShareExtensionContext"
+        "//submodules/TelegramUI/Components/ShareExtensionContext",
+        "//third-party/libxray:LibXray",
     ],
 )
 

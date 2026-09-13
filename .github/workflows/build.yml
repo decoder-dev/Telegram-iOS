@@ -78,14 +78,18 @@ jobs:
               echo "LibXray.xcframework not found in the archive"; exit 1
             fi
             # Keep only the slices the iOS app build needs (device + simulator).
+            # gomobile names the simulator slice ios-arm64_x86_64-simulator (fat);
+            # accept both known spellings.
             mkdir -p third-party/libxray/LibXray.xcframework
             cp "$XCFW/Info.plist" third-party/libxray/LibXray.xcframework/
-            for slice in ios-arm64 ios-arm64-simulator; do
+            for slice in ios-arm64 ios-arm64-simulator ios-arm64_x86_64-simulator; do
               if [ -d "$XCFW/$slice" ]; then
                 cp -R "$XCFW/$slice" third-party/libxray/LibXray.xcframework/
               fi
             done
             ls third-party/libxray/LibXray.xcframework
+            echo "::warning::LibXray layout: $(find third-party/libxray -maxdepth 3 | tr '\n' '|' | head -c 900)"
+            echo "::warning::LibXray binaries: $(find third-party/libxray -name '*.a' -o -name 'LibXray' -type f | head -5 | while read f; do echo -n "$f=$(file -b "$f" | head -c 60) "; done)"
           fi
 
       - name: Apply vendored tgcalls patch (managed SOCKS5 media routing)
@@ -228,8 +232,11 @@ jobs:
       - name: Report compiler errors
         if: failure()
         run: |
-          grep -E '(^| )error:' release-build.log \
-            | tail -40 \
+          {
+            grep -E '(^| )error:' release-build.log | tail -20
+            grep -B2 -A10 'Undefined symbols for' release-build.log | tail -50
+            grep -E 'ld: |duplicate symbol|file was built for' release-build.log | tail -20
+          } \
             | while IFS= read -r line; do
                 safe="${line//'%'/'%25'}"
                 safe="${safe//$'\r'/'%0D'}"
