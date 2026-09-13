@@ -6,6 +6,12 @@
 
 ## [Unreleased]
 
+## [v12.9.2-4021-pre]
+
+### Added
+- **Calls through an on-device proxy bridge (managed SOCKS5 media routing).** Call media can now flow exclusively through an authenticated SOCKS5 server on 127.0.0.1 — the shape exposed by an on-device VLESS client — using authenticated SOCKS5 UDP/TCP transports in tgcalls, with direct P2P/STUN candidates suppressed so call traffic cannot leak around the proxy. Remote SOCKS5 proxies keep the previous TCP-only behavior. Includes call-setup reliability fixes from the same branch (simultaneous-offer glare handling, connection replay-filter hardening, SCTP undefined-behavior fixes) and anti-SSRF validation for managed relays. Add the local proxy in Settings → Data and Storage → Proxy (host 127.0.0.1, username and password set) with "Use for calls" enabled.
+- **Embedded VLESS support, part 1: the TelegramVLESS core package** (pure Swift): a strict `vless://` profile parser (tcp/websocket/grpc/httpupgrade transports; none/TLS/REALITY security; xtls-rprx-vision flow; uTLS fingerprints, ALPN, SNI, REALITY public key/short id/spiderX), Xray configuration assembly with authenticated loopback SOCKS5+HTTP inbounds, a runtime lifecycle manager, and a libxray adapter. The libxray binary (XTLS/libxray v26.9.9, checksum-pinned) is fetched by CI. App-side wiring (settings UI, proxy-state integration, kill switch) lands next.
+
 ## [v12.9.2-4020-pre]
 
 ### Fixed
