@@ -274,6 +274,10 @@ private final class CameraContext {
     }
     
     private var positionValue: Camera.Position = .back
+    
+    private var isSwitchingPosition = false
+    private var pendingTargetPosition: Camera.Position?
+    
     func togglePosition() {
         guard let mainDeviceContext = self.mainDeviceContext else {
             return
@@ -290,35 +294,59 @@ private final class CameraContext {
             
             mainDeviceContext.output.markPositionChange(position: targetPosition)
         } else {
-            self.session.session.stopRunning()
-            self.configure {
-                let isRoundVideo = self.initialConfiguration.isRoundVideo
-                self.mainDeviceContext?.invalidate(switchAudio: !isRoundVideo)
-                
-                let targetPosition: Camera.Position
-                if case .back = mainDeviceContext.device.position {
-                    targetPosition = .front
-                } else {
-                    targetPosition = .back
-                }
-                self.positionValue = targetPosition
-                self._positionPromise.set(targetPosition)
-                self.modeChange = .position
-                
-                let preferWide = self.initialConfiguration.preferWide || isRoundVideo
-                let preferLowerFramerate = self.initialConfiguration.preferLowerFramerate || isRoundVideo
-                
-                mainDeviceContext.configure(position: targetPosition, previewView: self.simplePreviewView, audio: self.initialConfiguration.audio, photo: self.initialConfiguration.photo, metadata: self.initialConfiguration.metadata, preferWide: preferWide, preferLowerFramerate: preferLowerFramerate, switchAudio: !isRoundVideo)
-                if isRoundVideo {
-                    mainDeviceContext.output.markPositionChange(position: targetPosition)
-                }
-                
-                self.queue.after(0.5) {
-                    self.modeChange = .none
+            let targetPosition: Camera.Position
+            if case .back = self.positionValue {
+                targetPosition = .front
+            } else {
+                targetPosition = .back
+            }
+            
+            if self.isSwitchingPosition {
+                // A full switch cycle (stopRunning -> reconfigure -> startRunning) is a
+                // blocking, expensive operation on this serial queue. Rapid front/back
+                // toggles used to queue N full cycles behind each other, freezing the
+                // preview for seconds (upstream issue #1396). Coalesce instead: while a
+                // switch is settling, only remember the last requested target and run at
+                // most one more switch for it afterwards.
+                self.pendingTargetPosition = targetPosition
+                return
+            }
+            self.isSwitchingPosition = true
+            self.performPositionSwitch(mainDeviceContext: mainDeviceContext, targetPosition: targetPosition)
+        }
+    }
+    
+    private func performPositionSwitch(mainDeviceContext: CameraDeviceContext, targetPosition: Camera.Position) {
+        self.session.session.stopRunning()
+        self.configure {
+            let isRoundVideo = self.initialConfiguration.isRoundVideo
+            self.mainDeviceContext?.invalidate(switchAudio: !isRoundVideo)
+            
+            self.positionValue = targetPosition
+            self._positionPromise.set(targetPosition)
+            self.modeChange = .position
+            
+            let preferWide = self.initialConfiguration.preferWide || isRoundVideo
+            let preferLowerFramerate = self.initialConfiguration.preferLowerFramerate || isRoundVideo
+            
+            mainDeviceContext.configure(position: targetPosition, previewView: self.simplePreviewView, audio: self.initialConfiguration.audio, photo: self.initialConfiguration.photo, metadata: self.initialConfiguration.metadata, preferWide: preferWide, preferLowerFramerate: preferLowerFramerate, switchAudio: !isRoundVideo)
+            if isRoundVideo {
+                mainDeviceContext.output.markPositionChange(position: targetPosition)
+            }
+            
+            self.queue.after(0.5) {
+                self.modeChange = .none
+                self.isSwitchingPosition = false
+                if let pendingTargetPosition = self.pendingTargetPosition {
+                    self.pendingTargetPosition = nil
+                    if pendingTargetPosition != self.positionValue, let mainDeviceContext = self.mainDeviceContext {
+                        self.isSwitchingPosition = true
+                        self.performPositionSwitch(mainDeviceContext: mainDeviceContext, targetPosition: pendingTargetPosition)
+                    }
                 }
             }
-            self.session.session.startRunning()
         }
+        self.session.session.startRunning()
     }
     
     public func setPosition(_ position: Camera.Position) {
@@ -725,6 +753,24 @@ private final class CameraContext {
 
     @objc private func sessionInterruptionEnded(notification: NSNotification) {
         Logger.shared.log("Camera", "Session interruption ended")
+        
+        if self.mainDeviceContext?.output.isRecording == true {
+            // The capture session uses the application audio session
+            // (`usesApplicationAudioSession == true`). During a phone call iOS
+            // deactivates it; when the call ends the capture session restarts and
+            // video keeps being delivered, but the audio input only comes back once
+            // the app reactivates its AVAudioSession. Nothing did that, so a round
+            // video message recorded across a call kept a live video track with a
+            // permanently silent audio track (upstream issue #2113).
+            self.queue.async {
+                do {
+                    try AVAudioSession.sharedInstance().setActive(true, options: [.notifyOthersOnDeactivation])
+                } catch {
+                    Logger.shared.log("Camera", "Failed to reactivate audio session after interruption: \(error)")
+                }
+            }
+        }
+        
         self.restartSessionIfNeeded()
     }
     
@@ -1269,6 +1315,9 @@ public struct CameraRecordingData {
 public enum CameraRecordingError {
     case videoRecorderInitializationError
     case audioInitializationError
+    /// Recording was aborted mid-way because the audio track stopped receiving samples
+    /// (e.g. the audio session died after a phone call interruption) — upstream #2113.
+    case audioInterrupted
 }
 
 public class CameraVideoOutput {
