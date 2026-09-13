@@ -458,6 +458,8 @@ private func proxySettingsControllerEntries(theme: PresentationTheme, strings: P
                     text = strings.SocksProxySetup_ProxyTelegram
                 case .web:
                     text = ForkWebProxyStrings.proxyType
+                case .vless:
+                    text = "VLESS"
             }
             switch status {
                 case .notAvailable:
@@ -542,6 +544,9 @@ private func proxySettingsControllerEntries(theme: PresentationTheme, strings: P
                 // use it and there is no bridge for it.
                 entries.append(.useForCalls(theme, strings.SocksProxySetup_UseForCalls, proxySettings.useForCalls))
                 entries.append(.useForCallsInfo(theme, ForkWebProxyStrings.callsNote))
+            case .vless:
+                entries.append(.useForCalls(theme, strings.SocksProxySetup_UseForCalls, proxySettings.useForCalls))
+                entries.append(.useForCallsInfo(theme, "Звонки идут через встроенный VLESS-туннель (без P2P-утечек)."))
             case .mtp:
                 break
         }
@@ -821,6 +826,8 @@ public func proxySettingsController(accountManager: AccountManager<TelegramAccou
                         let secret = MTProxySecret.parseData(secret)?.serializeToString() ?? ""
                         string = "https://t.me/webproxy?server=\(server.host)"
                         string += "&secret=\((secret as NSString).addingPercentEncoding(withAllowedCharacters: CharacterSet.urlQueryValueAllowed) ?? "")"
+                    case let .vless(secret):
+                        string = String(data: secret, encoding: .utf8) ?? ""
                     }
                     
                     result += string
@@ -847,6 +854,10 @@ public func proxySettingsController(accountManager: AccountManager<TelegramAccou
             ActionSheetButtonItem(title: presentationData.strings.SocksProxySetup_ProxyTelegram, color: .accent, action: { [weak actionSheet] in
                 actionSheet?.dismissAnimated()
                 addServer(.mtp)
+            }),
+            ActionSheetButtonItem(title: "VLESS", color: .accent, action: { [weak actionSheet] in
+                actionSheet?.dismissAnimated()
+                addServer(.vless)
             }),
             ActionSheetButtonItem(title: ForkWebProxyStrings.proxyType, color: .accent, action: { [weak actionSheet, weak strongController] in
                 actionSheet?.dismissAnimated()

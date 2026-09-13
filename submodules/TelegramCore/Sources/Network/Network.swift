@@ -749,7 +749,7 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
             // WEB proxy at cold start: `mtProxySettings` is nil until the sidecar publishes a
             // loopback port, so socks stays unset. Hold MtProto (and skip explicit backup-IP
             // discovery) until `applySharedProxySettingsToNetwork` resumes after the sidecar is ready.
-            if let active = proxySettings?.effectiveActiveServer, active.connection.isWebProxy,
+            if let active = proxySettings?.effectiveActiveServer, (active.connection.isWebProxy || active.connection.isVlessProxy),
                network.context.apiEnvironment.socksProxySettings == nil {
                 network.markWebProxyBootstrapPausedAtInit()
             }

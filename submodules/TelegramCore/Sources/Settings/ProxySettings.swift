@@ -3,6 +3,7 @@ import Postbox
 import SwiftSignalKit
 import MtProtoKit
 import WebProxyTransport
+import TelegramVLESS
 
 public func updateProxySettingsInteractively(accountManager: AccountManager<TelegramAccountManagerTypes>, _ f: @escaping (ProxySettings) -> ProxySettings) -> Signal<Bool, NoError> {
     return accountManager.transaction { transaction -> Bool in
@@ -32,6 +33,13 @@ extension ProxyServerSettings {
         return WebProxyConfiguration(hostname: self.host, secret: secret)
     }
 
+    var vlessProxyURL: String? {
+        guard case let .vless(secret) = self.connection else {
+            return nil
+        }
+        return String(data: secret, encoding: .utf8)
+    }
+
     var mtProxySettings: MTSocksProxySettings? {
         switch self.connection {
             case let .socks5(username, password):
@@ -48,9 +56,29 @@ extension ProxyServerSettings {
                     return nil
                 }
                 return MTSocksProxySettings(ip: endpoint.host, port: endpoint.port, username: nil, password: nil, secret: configuration.secret)
+            case .vless:
+                guard let url = self.vlessProxyURL else {
+                    return nil
+                }
+                VlessManager.shared.configure(activeProfileURL: url)
+                guard let endpoint = VlessManager.shared.activeLoopbackEndpoint else {
+                    return nil
+                }
+                return MTSocksProxySettings(ip: endpoint.host, port: UInt16(clamping: endpoint.port), username: endpoint.user, password: endpoint.password, secret: nil)
         }
     }
 }
+
+/// Whether a `vless://` share link is fully supported by the embedded runtime (strict
+/// allowlist parsing). Re-exported so the settings editor validates against the same
+/// rule the runtime applies.
+public func isValidVlessProxyURL(_ url: String) -> Bool {
+    if case .success = VlessProfileParser.parse(url) {
+        return true
+    }
+    return false
+}
+
 
 public func updateProxySettingsInteractively(transaction: AccountManagerModifier<TelegramAccountManagerTypes>, _ f: @escaping (ProxySettings) -> ProxySettings) -> Bool {
     var hasChanges = false
@@ -72,12 +100,16 @@ func applySharedProxySettingsToNetwork(settings: ProxySettings, network: Network
     if !isActiveWebProxy {
         WebProxyManager.shared.configure(activeWebProxy: nil)
     }
+    let isActiveVlessProxy = activeServer?.connection.isVlessProxy ?? false
+    if !isActiveVlessProxy {
+        VlessManager.shared.configure(activeProfileURL: nil)
+    }
 
-    // mtProxySettings configures (or reuses) the WEB proxy sidecar as a side effect;
-    // calling it here as well as above would start it twice.
+    // mtProxySettings configures (or reuses) the WEB proxy sidecar / the VLESS runtime
+    // as a side effect; calling it here as well as above would start it twice.
     let resolvedProxySettings = activeServer?.mtProxySettings
 
-    if isActiveWebProxy, resolvedProxySettings == nil {
+    if (isActiveWebProxy || isActiveVlessProxy), resolvedProxySettings == nil {
         if let configuration = activeServer?.webProxyConfiguration {
             WebProxyManager.shared.configure(activeWebProxy: configuration)
         }

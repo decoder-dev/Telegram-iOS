@@ -2,6 +2,7 @@ import Foundation
 import SwiftSignalKit
 import MtProtoKit
 import WebProxyTransport
+import TelegramVLESS
 
 
 public enum ProxyServerStatus: Equatable {
@@ -39,6 +40,17 @@ private func socksSettingsForPing(server: ProxyServerSettings) -> MTSocksProxySe
             return MTSocksProxySettings(ip: server.host, port: UInt16(clamping: server.port), username: nil, password: nil, secret: secret)
         case .web:
             return nil
+        case .vless:
+            // The embedded runtime exposes an authenticated loopback SOCKS5; resolve it
+            // through the manager so the ping goes through the actual VLESS tunnel.
+            guard let url = server.vlessProxyURL else {
+                return nil
+            }
+            VlessManager.shared.configure(activeProfileURL: url)
+            guard let endpoint = VlessManager.shared.activeLoopbackEndpoint else {
+                return nil
+            }
+            return MTSocksProxySettings(ip: endpoint.host, port: UInt16(clamping: endpoint.port), username: endpoint.user, password: endpoint.password, secret: nil)
     }
 }
 

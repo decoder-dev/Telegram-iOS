@@ -1,6 +1,7 @@
 import Foundation
 import SwiftSignalKit
 import TelegramCore
+import TelegramVLESS
 import Network
 import TelegramUIPreferences
 import CoreMedia
@@ -955,6 +956,17 @@ public final class OngoingCallContext {
                             server.managed = true
                         }
                         voipProxyServer = server
+                    case .vless:
+                        // The embedded VLESS runtime exposes an authenticated loopback SOCKS5;
+                        // calls go through it in managed mode (sole egress, no P2P/STUN leak).
+                        if let url = proxyServer.vlessProxyURL {
+                            VlessManager.shared.configure(activeProfileURL: url)
+                            if let endpoint = VlessManager.shared.activeLoopbackEndpoint {
+                                let server = VoipProxyServerWebrtc(host: endpoint.host, port: Int32(clamping: endpoint.port), username: endpoint.user, password: endpoint.password)
+                                server.managed = true
+                                voipProxyServer = server
+                            }
+                        }
                     case .mtp, .web:
                         break
                     }

@@ -10,6 +10,7 @@ swift_library(
         "-warnings-as-errors",
     ],
     deps = [
+        "//third-party/libxray:LibXray",
     ],
     visibility = [
         "//visibility:public",

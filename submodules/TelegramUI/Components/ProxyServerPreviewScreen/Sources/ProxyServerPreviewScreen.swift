@@ -321,6 +321,12 @@ private final class ProxyServerPreviewSheetContent: CombinedComponent {
                     ))
                 }
             case .mtp, .web:
+            case .vless:
+                tableItems.append(.init(
+                    id: "vless-url",
+                    title: "VLESS",
+                    component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: "•••••", font: tableFont, textColor: tableTextColor))))
+                ))
                 tableItems.append(.init(
                     id: "secret",
                     title: strings.SocksProxySetup_Secret,

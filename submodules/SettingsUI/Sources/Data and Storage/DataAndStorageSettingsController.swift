@@ -658,6 +658,8 @@ private func dataAndStorageControllerEntries(context: AccountContext, state: Dat
                     proxyValue = presentationData.strings.SocksProxySetup_ProxyTelegram
                 case .web:
                     proxyValue = ForkWebProxyStrings.proxyType
+                case .vless:
+                    proxyValue = "VLESS"
             }
         } else {
             proxyValue = presentationData.strings.GroupInfo_SharedMediaNone

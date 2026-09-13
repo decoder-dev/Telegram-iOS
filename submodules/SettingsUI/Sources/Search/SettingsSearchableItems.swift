@@ -3790,7 +3790,7 @@ private func proxySearchableItems(context: AccountContext, servers: [ProxyServer
     var hasCallProxyServers = false
     for server in servers {
         switch server.connection {
-            case .socks5, .web:
+            case .socks5, .web, .vless:
                 hasCallProxyServers = true
             case .mtp:
                 break
