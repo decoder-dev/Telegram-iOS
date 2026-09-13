@@ -427,20 +427,24 @@ final class CameraOutput: NSObject {
                     return
                 }
                 if case let .success(transitionImage, duration, positionChangeTimestamps) = result {
-                    self.recordingCompletionPipe.putNext(
-                        .finished(
-                            main: VideoCaptureResult.Result(
-                                path: outputFilePath,
-                                thumbnail: transitionImage ?? UIImage(),
-                                isMirrored: false,
-                                dimensions: dimensions
-                            ),
-                            additional: nil,
-                            duration: duration,
-                            positionChangeTimestamps: positionChangeTimestamps.map { ($0 == .front, $1) },
-                            captureTimestamp: CACurrentMediaTime()
+                    if self.audioWatchdogTriggered {
+                        self.recordingCompletionPipe.putNext(.failed)
+                    } else {
+                        self.recordingCompletionPipe.putNext(
+                            .finished(
+                                main: VideoCaptureResult.Result(
+                                    path: outputFilePath,
+                                    thumbnail: transitionImage ?? UIImage(),
+                                    isMirrored: false,
+                                    dimensions: dimensions
+                                ),
+                                additional: nil,
+                                duration: duration,
+                                positionChangeTimestamps: positionChangeTimestamps.map { ($0 == .front, $1) },
+                                captureTimestamp: CACurrentMediaTime()
+                            )
                         )
-                    )
+                    }
                 } else {
                     self.recordingCompletionPipe.putNext(.failed)
                 }
@@ -453,6 +457,9 @@ final class CameraOutput: NSObject {
         videoRecorder.start()
         self.videoRecorder = videoRecorder
         
+        self.lastAudioSampleWallTime = nil
+        self.audioWatchdogTriggered = false
+        
         if case .dualCamera = mode, let position {
             videoRecorder.markPositionChange(position: position, time: .zero)
         } else if case .roundVideo = mode {
@@ -460,6 +467,9 @@ final class CameraOutput: NSObject {
         }
         
         return Signal { subscriber in
+            let failureDisposable = self.recordingFailurePipe.signal().start(next: { error in
+                subscriber.putError(error)
+            })
             let timer = SwiftSignalKit.Timer(timeout: 0.09, repeat: true, completion: { [weak videoRecorder] in
                 let recordingData = CameraRecordingData(duration: videoRecorder?.duration ?? 0.0, filePath: outputFilePath)
                 subscriber.putNext(recordingData)
@@ -467,6 +477,7 @@ final class CameraOutput: NSObject {
             timer.start()
             
             return ActionDisposable {
+                failureDisposable.dispose()
                 timer.invalidate()
             }
         }
@@ -537,6 +548,17 @@ final class CameraOutput: NSObject {
     private var lastAudioSampleTime: CMTime?
     private var videoSwitchSampleTimeOffset: CMTime?
     
+    // Audio watchdog (upstream issue #2113): while a recording with an audio track is
+    // running, video frames keep flowing but audio sample buffers can stop forever
+    // (e.g. after a phone call the app's audio session was never reactivated). Rather
+    // than producing a recording with a live video track and a permanently silent
+    // audio tail, fail the recording. `lastAudioSampleWallTime` is a Double written
+    // from the audio queue and read from the video queue — a torn read on arm64 is
+    // not a concern and the worst case is one extra 0.03s frame of delay.
+    private var lastAudioSampleWallTime: Double?
+    private var audioWatchdogTriggered = false
+    private let recordingFailurePipe = ValuePipe<CameraRecordingError>()
+    
     func processVideoRecording(_ sampleBuffer: CMSampleBuffer, fromAdditionalOutput: Bool) {
         guard let videoRecorder = self.videoRecorder, videoRecorder.isRecording else {
             return
@@ -545,6 +567,19 @@ final class CameraOutput: NSObject {
             return
         }
         let type = CMFormatDescriptionGetMediaType(formatDescriptor)
+        
+        if self.hasAudio {
+            if type == kCMMediaType_Audio {
+                self.lastAudioSampleWallTime = CACurrentMediaTime()
+            } else if type == kCMMediaType_Video, !self.audioWatchdogTriggered, self.videoRecorder != nil, let lastAudioSampleWallTime = self.lastAudioSampleWallTime {
+                if CACurrentMediaTime() - lastAudioSampleWallTime > 4.0 {
+                    self.audioWatchdogTriggered = true
+                    Logger.shared.log("CameraOutput", "Audio stopped arriving mid-recording while video continues (session interrupted?) — failing the recording instead of producing a silent audio track (upstream issue #2113)")
+                    self.recordingFailurePipe.putNext(.audioInterrupted)
+                    videoRecorder.stop()
+                }
+            }
+        }
         
         if case .roundVideo = self.currentMode, type == kCMMediaType_Video {
             let currentTimestamp = CACurrentMediaTime()
