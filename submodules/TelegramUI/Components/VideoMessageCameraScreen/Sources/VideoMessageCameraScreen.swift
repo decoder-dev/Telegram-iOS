@@ -1035,7 +1035,7 @@ public class VideoMessageCameraScreen: ViewController {
             self.backgroundView.removeFromSuperview()
         }
         
-        func withReadyCamera(isFirstTime: Bool = false, timeout: Double = 10.0, onTimeout: (() -> Void)? = nil, _ f: @escaping () -> Void) {
+        func withReadyCamera(isFirstTime: Bool = false, timeoutDuration: Double = 10.0, onTimeout: (() -> Void)? = nil, _ f: @escaping () -> Void) {
             let previewReady: Signal<Bool, NoError>
             if #available(iOS 13.0, *) {
                 previewReady = self.cameraState.isDualCameraEnabled ? self.additionalPreviewView.isPreviewing : self.mainPreviewView.isPreviewing |> delay(0.3, queue: Queue.mainQueue())
@@ -1050,7 +1050,7 @@ public class VideoMessageCameraScreen: ViewController {
             let _ = (previewReady
             |> filter { $0 }
             |> take(1)
-            |> timeout(timeout, queue: Queue.mainQueue(), alternate: .single(false))
+            |> timeout(timeoutDuration, queue: Queue.mainQueue(), alternate: .single(false))
             |> deliverOnMainQueue).startStandalone(next: { ready in
                 if ready {
                     f()

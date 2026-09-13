@@ -6,7 +6,7 @@
 
 ## [Unreleased]
 
-## [v12.9.2-4019-pre]
+## [v12.9.2-4020-pre]
 
 ### Fixed
 - **Video messages: recording stuck on an infinite loading state.** A wedged capture session never emitted the preview-ready signal the hold-to-record button waits for, so the button spun forever and recording never started — only restarting the phone helped (upstream issue #1772). Camera readiness now has a 10s timeout: the capture session is torn down and recreated (bounded at 2 resets per screen), and a timed-out recording attempt fails cleanly instead of spinning.
