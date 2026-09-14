@@ -164,6 +164,8 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
                 proxyType = presentationData.strings.SocksProxySetup_ProxySocks5
             case .web:
                 proxyType = ForkWebProxyStrings.proxyType
+            case .vless:
+                proxyType = "VLESS"
             }
         } else {
             proxyType = presentationData.strings.Settings_ProxyDisabled
