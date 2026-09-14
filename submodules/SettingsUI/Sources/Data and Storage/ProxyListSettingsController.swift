@@ -851,14 +851,17 @@ public func proxySettingsController(accountManager: AccountManager<TelegramAccou
                 actionSheet?.dismissAnimated()
                 addServer(.socks5)
             }),
+            ActionSheetTextItem(title: ForkProxyDescriptionStrings.Menu.socks5),
             ActionSheetButtonItem(title: presentationData.strings.SocksProxySetup_ProxyTelegram, color: .accent, action: { [weak actionSheet] in
                 actionSheet?.dismissAnimated()
                 addServer(.mtp)
             }),
+            ActionSheetTextItem(title: ForkProxyDescriptionStrings.Menu.mtp),
             ActionSheetButtonItem(title: "VLESS", color: .accent, action: { [weak actionSheet] in
                 actionSheet?.dismissAnimated()
                 addServer(.vless)
             }),
+            ActionSheetTextItem(title: ForkProxyDescriptionStrings.Menu.vless),
             ActionSheetButtonItem(title: ForkWebProxyStrings.proxyType, color: .accent, action: { [weak actionSheet, weak strongController] in
                 actionSheet?.dismissAnimated()
                 // If there are catalog entries, offer a pick sheet; otherwise go straight to manual.
@@ -906,7 +909,8 @@ public func proxySettingsController(accountManager: AccountManager<TelegramAccou
                     ])
                     controller.present(sheet, in: .window(.root))
                 }
-            })
+            }),
+            ActionSheetTextItem(title: ForkProxyDescriptionStrings.Menu.web),
         ]), ActionSheetItemGroup(items: [
             ActionSheetButtonItem(title: presentationData.strings.Common_Cancel, color: .accent, font: .bold, action: { [weak actionSheet] in
                 actionSheet?.dismissAnimated()
