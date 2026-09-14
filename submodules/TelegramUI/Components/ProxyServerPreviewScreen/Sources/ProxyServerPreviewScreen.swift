@@ -290,6 +290,65 @@ private final class ProxyServerPreviewSheetContent: CombinedComponent {
                 )
             ))
             
+            // A short per-type description so every card explains what it actually tunnels.
+            let typeDescription: String
+            switch component.server.connection {
+            case .socks5:
+                typeDescription = ForkProxyDescriptionStrings.socks5
+            case .mtp:
+                typeDescription = ForkProxyDescriptionStrings.mtp
+            case .web:
+                typeDescription = ForkProxyDescriptionStrings.web
+            case .vless:
+                typeDescription = ForkProxyDescriptionStrings.vless
+            }
+            tableItems.append(.init(
+                id: "type-description",
+                title: "",
+                component: AnyComponent(
+                    MultilineTextComponent(text: .plain(NSAttributedString(string: typeDescription, font: Font.regular(13.0), textColor: theme.list.itemSecondaryTextColor)))
+                )
+            ))
+            
+            // For VLESS, surface the protocol details parsed from the share link
+            // (security, transport, flow) so the card shows what kind of tunnel it is.
+            if case let .vless(secret) = component.server.connection, let url = String(data: secret, encoding: .utf8), let components = URLComponents(string: url) {
+                var query: [String: String] = [:]
+                if let items = components.queryItems {
+                    for item in items {
+                        query[item.name] = item.value ?? ""
+                    }
+                }
+                var details: [String] = []
+                let security = (query["security"] ?? "none").lowercased()
+                if security == "reality" {
+                    details.append("Reality")
+                } else if security == "tls" {
+                    details.append("TLS")
+                }
+                let transport = (query["type"] ?? "tcp").lowercased()
+                let transportName: String
+                switch transport {
+                case "tcp": transportName = "TCP"
+                case "ws", "websocket": transportName = "WebSocket"
+                case "grpc": transportName = "gRPC"
+                case "httpupgrade": transportName = "HTTP-Upgrade"
+                default: transportName = transport
+                }
+                details.append(transportName)
+                let flow = query["flow"] ?? ""
+                if !flow.isEmpty {
+                    details.append("Vision")
+                }
+                tableItems.append(.init(
+                    id: "vless-protocol",
+                    title: "VLESS",
+                    component: AnyComponent(
+                        MultilineTextComponent(text: .plain(NSAttributedString(string: details.joined(separator: " · "), font: tableFont, textColor: tableTextColor)))
+                    )
+                ))
+            }
+            
             if !component.server.connection.isWebProxy {
                 tableItems.append(.init(
                     id: "port",
@@ -331,7 +390,7 @@ private final class ProxyServerPreviewSheetContent: CombinedComponent {
             case .vless:
                 tableItems.append(.init(
                     id: "vless-url",
-                    title: "VLESS",
+                    title: strings.SocksProxySetup_Secret,
                     component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: "•••••", font: tableFont, textColor: tableTextColor))))
                 ))
             }

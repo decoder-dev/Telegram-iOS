@@ -43,6 +43,8 @@ private enum ProxySettingsEntry: ItemListNodeEntry {
     case webInfo(PresentationTheme, String)
     case modeVless(PresentationTheme, String, Bool)
     case vlessInfo(PresentationTheme, String)
+    case socks5Info(PresentationTheme, String)
+    case mtpInfo(PresentationTheme, String)
     
     case connectionHeader(PresentationTheme, String)
     case connectionServer(PresentationTheme, PresentationStrings, String, String)
@@ -59,7 +61,7 @@ private enum ProxySettingsEntry: ItemListNodeEntry {
         switch self {
             case .usePasteboardSettings:
                 return ProxySettingsSection.pasteboard.rawValue
-            case .modeSocks5, .modeMtp, .modeWeb, .webInfo, .modeVless, .vlessInfo:
+            case .modeSocks5, .modeMtp, .modeWeb, .webInfo, .modeVless, .vlessInfo, .socks5Info, .mtpInfo:
                 return ProxySettingsSection.mode.rawValue
             case .connectionHeader, .connectionServer, .connectionPort:
                 return ProxySettingsSection.connection.rawValue
@@ -86,6 +88,10 @@ private enum ProxySettingsEntry: ItemListNodeEntry {
                 return 14
             case .vlessInfo:
                 return 15
+            case .socks5Info:
+                return 16
+            case .mtpInfo:
+                return 17
             case .connectionHeader:
                 return 4
             case .connectionServer:
@@ -150,6 +156,10 @@ private enum ProxySettingsEntry: ItemListNodeEntry {
                     }
                 })
             case let .vlessInfo(_, text):
+                return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section)
+            case let .socks5Info(_, text):
+                return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section)
+            case let .mtpInfo(_, text):
                 return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section)
             case let .webInfo(_, text):
                 return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section)
@@ -279,7 +289,13 @@ private func proxyServerSettingsControllerEntries(presentationData: Presentation
     }
     
     entries.append(.modeSocks5(presentationData.theme, presentationData.strings.SocksProxySetup_ProxySocks5, state.mode == .socks5))
+    if state.mode == .socks5 {
+        entries.append(.socks5Info(presentationData.theme, ForkProxyDescriptionStrings.socks5))
+    }
     entries.append(.modeMtp(presentationData.theme, presentationData.strings.SocksProxySetup_ProxyTelegram, state.mode == .mtp))
+    if state.mode == .mtp {
+        entries.append(.mtpInfo(presentationData.theme, ForkProxyDescriptionStrings.mtp))
+    }
     entries.append(.modeWeb(presentationData.theme, ForkWebProxyStrings.proxyType, state.mode == .web))
     if state.mode == .web {
         entries.append(.webInfo(presentationData.theme, ForkWebProxyStrings.callsNote))
@@ -397,7 +413,11 @@ func proxyServerSettingsController(sharedContext: SharedAccountContext, context:
         }
     } else {
         let pasteboardUrl = UIPasteboard.general.string ?? ""
-        if let webProxy = parseWebProxyUrl(sharedContext: sharedContext, url: pasteboardUrl) {
+        let trimmedPasteboardUrl = pasteboardUrl.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedPasteboardUrl.lowercased().hasPrefix("vless://"), isValidVlessProxyURL(trimmedPasteboardUrl),
+           let data = trimmedPasteboardUrl.data(using: .utf8), let components = URLComponents(string: trimmedPasteboardUrl), let host = components.host, let port = components.port {
+            pasteboardSettings = ProxyServerSettings(host: host, port: Int32(port), connection: .vless(secret: data))
+        } else if let webProxy = parseWebProxyUrl(sharedContext: sharedContext, url: pasteboardUrl) {
             pasteboardSettings = ProxyServerSettings(host: webProxy.host, port: 443, connection: .web(secret: webProxy.secret))
         } else if let proxy = parseProxyUrl(sharedContext: sharedContext, url: pasteboardUrl) {
             if let secret = proxy.secret, let parsedSecret = MTProxySecret.parseData(secret) {

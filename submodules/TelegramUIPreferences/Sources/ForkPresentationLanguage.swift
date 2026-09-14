@@ -80,6 +80,44 @@ public enum ForkWebProxyStrings {
     }
 }
 
+/// Per-type proxy descriptions shown across the proxy settings UI (edit form,
+/// add-proxy menu and the preview card). Every proxy type carries a short
+/// explanation of what it tunnels and how calls behave, so no type is a mystery
+/// label. Localized the same way as `ForkWebProxyStrings`.
+public enum ForkProxyDescriptionStrings {
+    public static var socks5: String {
+        return ForkPresentationLanguage.prefersRussianStrings ? "Классический SOCKS5-прокси. Через него идёт трафик приложения, а звонки — если включить «Использовать для звонков»." : "A classic SOCKS5 proxy. Carries app traffic; calls too when 'Use for calls' is enabled."
+    }
+
+    public static var mtp: String {
+        return ForkPresentationLanguage.prefersRussianStrings ? "Прокси собственного протокола Telegram. Помогает там, где SOCKS5 и HTTP заблокированы. Звонки через него не маршрутизируются." : "Telegram's own proxy protocol. Works where SOCKS5 and HTTP are blocked. Calls are not routed through it."
+    }
+
+    public static var web: String {
+        return ForkPresentationLanguage.prefersRussianStrings ? "Трафик маскируется под обычный HTTPS к сайту-маскировщику и проходит через WebView-мост. Обходит DPI-блокировки." : "Traffic is disguised as plain HTTPS to a masking site and goes through a WebView bridge. Works around DPI blocks."
+    }
+
+    public static var vless: String {
+        return ForkPresentationLanguage.prefersRussianStrings ? "VLESS со встроенным Xray: вставьте ссылку vless:// — весь трафик приложения пойдёт через туннель (TLS/Reality), звонки — без утечек IP." : "VLESS with an embedded Xray core: paste a vless:// link and all app traffic goes through the tunnel (TLS/Reality); calls never leak your IP."
+    }
+
+    /// Short one-liners for the add-proxy action sheet.
+    public enum Menu {
+        public static var socks5: String {
+            return ForkPresentationLanguage.prefersRussianStrings ? "Универсальный, нужен сервер и порт" : "Universal; needs a server and port"
+        }
+        public static var mtp: String {
+            return ForkPresentationLanguage.prefersRussianStrings ? "Протокол Telegram, устойчив к блокировкам" : "Telegram protocol, block-resistant"
+        }
+        public static var web: String {
+            return ForkPresentationLanguage.prefersRussianStrings ? "Маскировка под HTTPS-трафик" : "Disguised as HTTPS traffic"
+        }
+        public static var vless: String {
+            return ForkPresentationLanguage.prefersRussianStrings ? "Туннель со встроенным Xray (Reality)" : "Tunnel with an embedded Xray core (Reality)"
+        }
+    }
+}
+
 /// Shared value strings for the Settings rows that summarize the active proxy mode (the
 /// Data & Storage row and the peer-info settings row). Same reason as `ForkWebProxyStrings`:
 /// fork-private keys are never in Telegram's localisation catalogue.
