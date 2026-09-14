@@ -155,6 +155,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
     private let selectTabDisposable = MetaDisposable()
     private var selectTabGeneration: Int = 0
     private let extrasFoldersDisposable = MetaDisposable()
+    private let extrasLayoutDisposable = MetaDisposable()
     private var skipExtrasFoldersReload = false
     private let featuredFiltersDisposable = MetaDisposable()
     private var processedFeaturedFilters = false
@@ -791,12 +792,12 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
             }
             self.reloadFilters()
             self.skipExtrasFoldersReload = true
-            let extrasFoldersSignal: Signal<(Bool, Bool), NoError> = forkExtrasSettings(accountManager: self.context.sharedContext.accountManager)
-            |> map { settings -> (Bool, Bool) in
-                return (settings.hideAllChats, settings.rememberLastFolder)
+            let extrasFoldersSignal: Signal<(Bool, Bool, Bool), NoError> = forkExtrasSettings(accountManager: self.context.sharedContext.accountManager)
+            |> map { settings -> (Bool, Bool, Bool) in
+                return (settings.hideAllChats, settings.rememberLastFolder, settings.compactFolderNames)
             }
             |> distinctUntilChanged(isEqual: { lhs, rhs in
-                return lhs.0 == rhs.0 && lhs.1 == rhs.1
+                return lhs.0 == rhs.0 && lhs.1 == rhs.1 && lhs.2 == rhs.2
             })
             self.extrasFoldersDisposable.set((extrasFoldersSignal
             |> deliverOnMainQueue).startStrict(next: { [weak self] _ in
@@ -807,7 +808,26 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                     self.skipExtrasFoldersReload = false
                     return
                 }
+                // reloadFilters ends in a full containerLayoutUpdated pass, which is what makes
+                // the folder tab bar re-read compactFolderNames for its font size.
                 self.reloadFilters()
+            }))
+            
+            // Row heights are computed from live hot flags at item-layout time; without this the
+            // compact toggles only reach rows that re-layout on their own, leaving a mixed list.
+            let extrasLayoutSignal: Signal<(Bool, Bool), NoError> = forkExtrasSettings(accountManager: self.context.sharedContext.accountManager)
+            |> map { settings -> (Bool, Bool) in
+                return (settings.compactChatList, settings.compactMessagePreview)
+            }
+            |> distinctUntilChanged(isEqual: { lhs, rhs in
+                return lhs.0 == rhs.0 && lhs.1 == rhs.1
+            })
+            self.extrasLayoutDisposable.set((extrasLayoutSignal
+            |> deliverOnMainQueue).startStrict(next: { [weak self] _ in
+                guard let self else {
+                    return
+                }
+                self.chatListDisplayNode.mainContainerNode.refreshForkItemLayouts()
             }))
         }
         
@@ -860,6 +880,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
         self.stateDisposable.dispose()
         self.filterDisposable.dispose()
         self.extrasFoldersDisposable.dispose()
+        self.extrasLayoutDisposable.dispose()
         self.featuredFiltersDisposable.dispose()
         self.activeDownloadsDisposable?.dispose()
         self.selectAddMemberDisposable.dispose()

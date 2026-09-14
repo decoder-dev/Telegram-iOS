@@ -414,7 +414,7 @@ public func deleteAccountOptionsController(context: AccountContext, navigationCo
 
         var hasPasscode = false
         switch accessChallengeData.data {
-            case .numericalPassword, .plaintextPassword:
+            case .numericalPassword, .plaintextPassword, .numericalPasswordHash, .plaintextPasswordHash:
                 hasPasscode = true
             default:
                 break

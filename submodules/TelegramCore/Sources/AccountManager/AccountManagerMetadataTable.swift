@@ -17,11 +17,24 @@ public enum PostboxAccessChallengeData: PostboxCoding, Equatable, Codable {
     enum CodingKeys: String, CodingKey {
         case numericalPassword
         case plaintextPassword
+        case numericalPasswordHash
+        case numericalPasswordHashDigits
+        case plaintextPasswordHash
     }
     
     case none
+    /// Legacy storage that carries the raw passcode in the (SQLCipher-encrypted) postbox
+    /// metadata. Kept only so existing installs keep unlocking; a successful verification
+    /// transparently rewrites the challenge to `numericalPasswordHash`.
     case numericalPassword(value: String)
+    /// Legacy storage; see `numericalPassword`.
     case plaintextPassword(value: String)
+    /// The passcode is stored only as a PBKDF2-HMAC-SHA256 digest blob (see
+    /// `PostboxAccessChallengeDataHashing.swift`), together with the digit count the
+    /// passcode was set with (4 or 6 — selects the entry field).
+    case numericalPasswordHash(value: String, digits: Int32)
+    /// The passcode is stored only as a PBKDF2-HMAC-SHA256 digest blob.
+    case plaintextPasswordHash(value: String)
     
     public init(decoder: PostboxDecoder) {
         switch decoder.decodeInt32ForKey("r", orElse: 0) {
@@ -31,6 +44,10 @@ public enum PostboxAccessChallengeData: PostboxCoding, Equatable, Codable {
                 self = .numericalPassword(value: decoder.decodeStringForKey("t", orElse: ""))
             case 2:
                 self = .plaintextPassword(value: decoder.decodeStringForKey("t", orElse: ""))
+            case 3:
+                self = .numericalPasswordHash(value: decoder.decodeStringForKey("t", orElse: ""), digits: decoder.decodeInt32ForKey("d", orElse: 6))
+            case 4:
+                self = .plaintextPasswordHash(value: decoder.decodeStringForKey("t", orElse: ""))
             default:
                 assertionFailure()
                 self = .none
@@ -47,6 +64,13 @@ public enum PostboxAccessChallengeData: PostboxCoding, Equatable, Codable {
             case let .plaintextPassword(text):
                 encoder.encodeInt32(2, forKey: "r")
                 encoder.encodeString(text, forKey: "t")
+            case let .numericalPasswordHash(value, digits):
+                encoder.encodeInt32(3, forKey: "r")
+                encoder.encodeString(value, forKey: "t")
+                encoder.encodeInt32(digits, forKey: "d")
+            case let .plaintextPasswordHash(value):
+                encoder.encodeInt32(4, forKey: "r")
+                encoder.encodeString(value, forKey: "t")
         }
     }
     
@@ -56,6 +80,11 @@ public enum PostboxAccessChallengeData: PostboxCoding, Equatable, Codable {
             self = .numericalPassword(value: value)
         } else if let value = try? container.decode(String.self, forKey: .plaintextPassword) {
             self = .plaintextPassword(value: value)
+        } else if let value = try? container.decode(String.self, forKey: .numericalPasswordHash) {
+            let digits = (try? container.decode(Int32.self, forKey: .numericalPasswordHashDigits)) ?? 6
+            self = .numericalPasswordHash(value: value, digits: digits)
+        } else if let value = try? container.decode(String.self, forKey: .plaintextPasswordHash) {
+            self = .plaintextPasswordHash(value: value)
         } else {
             self = .none
         }
@@ -70,6 +99,11 @@ public enum PostboxAccessChallengeData: PostboxCoding, Equatable, Codable {
             try container.encode(value, forKey: .numericalPassword)
         case let .plaintextPassword(value):
             try container.encode(value, forKey: .plaintextPassword)
+        case let .numericalPasswordHash(value, digits):
+            try container.encode(value, forKey: .numericalPasswordHash)
+            try container.encode(digits, forKey: .numericalPasswordHashDigits)
+        case let .plaintextPasswordHash(value):
+            try container.encode(value, forKey: .plaintextPasswordHash)
         }
     }
     
@@ -78,17 +112,6 @@ public enum PostboxAccessChallengeData: PostboxCoding, Equatable, Codable {
             return false
         } else {
             return true
-        }
-    }
-    
-    public var lockId: String? {
-        switch self {
-        case .none:
-            return nil
-        case let .numericalPassword(value):
-            return "numericalPassword:\(value)"
-        case let .plaintextPassword(value):
-            return "plaintextPassword:\(value)"
         }
     }
 }

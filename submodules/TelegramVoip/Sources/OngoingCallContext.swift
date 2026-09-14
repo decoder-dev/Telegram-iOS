@@ -1,6 +1,7 @@
 import Foundation
 import SwiftSignalKit
 import TelegramCore
+import TelegramVLESS
 import Network
 import TelegramUIPreferences
 import CoreMedia
@@ -943,7 +944,29 @@ public final class OngoingCallContext {
                 if let proxyServer = proxyServer {
                     switch proxyServer.connection {
                     case let .socks5(username, password):
-                        voipProxyServer = VoipProxyServerWebrtc(host: proxyServer.host, port: proxyServer.port, username: username, password: password)
+                        let server = VoipProxyServerWebrtc(host: proxyServer.host, port: proxyServer.port, username: username, password: password)
+                        // An authenticated SOCKS5 server on the loopback interface is, by
+                        // construction, an on-device bridge (e.g. an embedded VLESS client
+                        // exposing a local proxy). tgcalls' managed route treats it as the
+                        // sole egress: media flows through authenticated SOCKS5 UDP/TCP
+                        // transports and direct P2P/STUN candidates are suppressed, so call
+                        // traffic cannot leak around the proxy. Remote SOCKS5 proxies keep
+                        // the regular (TCP-only) routing behavior.
+                        if proxyServer.host == "127.0.0.1", let username, let password, !username.isEmpty, !password.isEmpty {
+                            server.managed = true
+                        }
+                        voipProxyServer = server
+                    case .vless:
+                        // The embedded VLESS runtime exposes an authenticated loopback SOCKS5;
+                        // calls go through it in managed mode (sole egress, no P2P/STUN leak).
+                        if let url = proxyServer.vlessProxyURL {
+                            VlessManager.shared.configure(activeProfileURL: url)
+                            if let endpoint = VlessManager.shared.activeLoopbackEndpoint {
+                                let server = VoipProxyServerWebrtc(host: endpoint.host, port: Int32(clamping: endpoint.port), username: endpoint.user, password: endpoint.password)
+                                server.managed = true
+                                voipProxyServer = server
+                            }
+                        }
                     case .mtp, .web:
                         break
                     }

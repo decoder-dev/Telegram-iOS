@@ -108,6 +108,8 @@ public final class PasscodeEntryController: ViewController {
         switch self.challengeData {
             case let .numericalPassword(value):
                 passcodeType = value.count == 6 ? .digits6 : .digits4
+            case let .numericalPasswordHash(_, digits):
+                passcodeType = digits == 4 ? .digits4 : .digits6
             default:
                 passcodeType = .alphanumeric
         }
@@ -145,23 +147,24 @@ public final class PasscodeEntryController: ViewController {
                 return
             }
     
-            var succeed = false
-            switch strongSelf.challengeData {
-                case .none:
-                    succeed = true
-                case let .numericalPassword(code):
-                    succeed = passcode == normalizeArabicNumeralString(code, type: .western)
-                case let .plaintextPassword(code):
-                    succeed = passcode == code
-            }
-            
+            let succeed = strongSelf.challengeData.isValidPasscode(passcode)
+
             if succeed {
+                // Transparent upgrade: a legacy challenge that still stores the raw passcode is
+                // rewritten with the passcode stored as a PBKDF2 digest. Fire-and-forget — if the
+                // write is lost the next successful unlock upgrades again.
+                if strongSelf.challengeData.isLegacyPlaintextPasscode, let upgraded = strongSelf.challengeData.upgradedWithPasscode(passcode) {
+                    let _ = strongSelf.accountManager.transaction({ transaction -> Void in
+                        transaction.setAccessChallengeData(upgraded)
+                    }).start()
+                }
+
                 if let completed = strongSelf.completed {
                     completed()
                 } else {
                     strongSelf.appLockContext.unlock()
                 }
-                
+
                 let isMainApp = strongSelf.applicationBindings.isMainApp
                 let _ = updatePresentationPasscodeSettingsInteractively(accountManager: strongSelf.accountManager, { settings in
                     if isMainApp {

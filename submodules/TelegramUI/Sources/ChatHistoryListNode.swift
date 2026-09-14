@@ -1918,6 +1918,16 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
             var regexEnabled: Bool
             var regexCaseInsensitive: Bool
             var regexPatterns: [String]
+            // Layout-affecting forks flags: the item nodes read these from statics at async-layout
+            // time, so an open chat only re-renders a toggle's effect when the history re-emits.
+            // Without them in the fingerprint the toggle reaches just the messages that happen to
+            // re-layout on their own, leaving the chat visually mixed until reopen.
+            var showMessageSeconds: Bool
+            var wideChannelPosts: Bool
+            var stickerSizePercent: Int32
+            var hideReactionsBar: Bool
+            var deletedMessageMark: String
+            var editedMessageMark: String
         }
         let messageFilterSettings: Signal<MessageFilterSettingsFingerprint, NoError> = forkExtrasSettings(accountManager: context.sharedContext.accountManager)
         |> map { settings -> MessageFilterSettingsFingerprint in
@@ -1926,7 +1936,13 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
                 hideBlockedMessages: settings.hideBlockedMessages,
                 regexEnabled: settings.regexMessageFiltersEnabled,
                 regexCaseInsensitive: settings.regexMessageFiltersCaseInsensitive,
-                regexPatterns: settings.regexMessageFilterPatterns
+                regexPatterns: settings.regexMessageFilterPatterns,
+                showMessageSeconds: settings.showMessageSeconds,
+                wideChannelPosts: settings.wideChannelPosts,
+                stickerSizePercent: settings.stickerSizePercent,
+                hideReactionsBar: settings.hideReactionsBar,
+                deletedMessageMark: settings.deletedMessageMark,
+                editedMessageMark: settings.editedMessageMark
             )
         }
         |> distinctUntilChanged

@@ -354,7 +354,7 @@ public struct ChatListNodeState: Equatable {
         if lhs.selectedPeerIds != rhs.selectedPeerIds {
             return false
         }
-        if areFoundPeerArraysEqual(lhs.foundPeers, rhs.foundPeers) {
+        if !areFoundPeerArraysEqual(lhs.foundPeers, rhs.foundPeers) {
             return false
         }
         if lhs.selectedPeerMap != rhs.selectedPeerMap {

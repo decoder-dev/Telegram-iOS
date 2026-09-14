@@ -14,6 +14,18 @@ public protocol BatchVideoRenderingContextTarget: AnyObject {
 }
 
 public final class BatchVideoRenderingContext {
+    struct ReaderLoopState {
+        private var hasProducedFrame: Bool = false
+        
+        var shouldRestartReaderAtEndOfStream: Bool {
+            return self.hasProducedFrame
+        }
+        
+        mutating func didProduceFrame() {
+            self.hasProducedFrame = true
+        }
+    }
+    
     public typealias Target = BatchVideoRenderingContextTarget
     
     public final class TargetHandle {
@@ -92,6 +104,7 @@ public final class BatchVideoRenderingContext {
         
         var isFailed: Bool = false
         var reader: FFMpegFileReader?
+        var readerLoopState = ReaderLoopState()
         
         init(dataPath: String) {
             self.dataPath = dataPath
@@ -115,6 +128,7 @@ public final class BatchVideoRenderingContext {
                         break outer
                     }
                     self.reader = reader
+                    self.readerLoopState = ReaderLoopState()
                 }
                 
                 guard let reader = self.reader else {
@@ -123,12 +137,24 @@ public final class BatchVideoRenderingContext {
                 
                 switch reader.readFrame() {
                 case let .frame(frame):
+                    self.readerLoopState.didProduceFrame()
                     return createSampleBuffer(fromSampleBuffer: frame.sampleBuffer, withTimeOffset: .zero, duration: nil, displayImmediately: true)
                 case .error:
                     self.isFailed = true
                     break outer
                 case .endOfStream:
-                    self.reader = nil
+                    // Restart the reader only if it has produced at least one frame.
+                    // A zero-frame EOF (e.g. an H.264 file in a pixel format the software
+                    // decoder cannot decode) previously reopened the reader forever:
+                    // construct -> 0 frames -> EOF -> construct -> ..., a synchronous
+                    // decode loop pinning a core at 100% CPU until force quit (upstream
+                    // issue #2246, fixed upstream in PR #2315).
+                    if self.readerLoopState.shouldRestartReaderAtEndOfStream {
+                        self.reader = nil
+                    } else {
+                        self.isFailed = true
+                        break outer
+                    }
                 case .waitingForMoreData:
                     // Invariant: the reader is only constructed once the consumer's
                     // `data.isComplete == true` (see `BatchVideoRenderingContext.update`),

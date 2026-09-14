@@ -157,6 +157,21 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
         self.itemNodes[id] = itemNode
     }
     
+    /// Rebuilds every tab's list state so rows recompute the fork's live layout flags (compact
+    /// chat list / compact message preview). Those flags are read from statics at item-layout
+    /// time, so without this a toggle only reaches rows that re-layout on their own, leaving the
+    /// list half-old, half-new until a restart. A fresh `ChatListPresentationData` instance is
+    /// what makes `ChatListNodeState ==` (reference comparison) report a change.
+    public func refreshForkItemLayouts() {
+        for (_, itemNode) in self.itemNodes {
+            itemNode.listNode.updateState { state in
+                var state = state
+                state.presentationData = ChatListPresentationData(theme: state.presentationData.theme, fontSize: state.presentationData.fontSize, strings: state.presentationData.strings, dateTimeFormat: state.presentationData.dateTimeFormat, nameSortOrder: state.presentationData.nameSortOrder, nameDisplayOrder: state.presentationData.nameDisplayOrder, disableAnimations: state.presentationData.disableAnimations)
+                return state
+            }
+        }
+    }
+    
     private func applyItemNodeAsCurrent(id: ChatListFilterTabEntryId, itemNode: ChatListContainerItemNode) {
         if let previousItemNode = self.currentItemNodeValue {
             previousItemNode.listNode.activateSearch = nil

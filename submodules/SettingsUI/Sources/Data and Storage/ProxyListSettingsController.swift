@@ -458,21 +458,9 @@ private func proxySettingsControllerEntries(theme: PresentationTheme, strings: P
                     text = strings.SocksProxySetup_ProxyTelegram
                 case .web:
                     text = ForkWebProxyStrings.proxyType
+                case .vless:
+                    text = "VLESS"
             }
-            if server.connection.isWebProxy {
-                switch status {
-                    case .notAvailable:
-                        text = text + ", " + strings.SocksProxySetup_ProxyStatusUnavailable
-                        displayStatus = DisplayProxyServerStatus(activity: false, text: text, textActive: false)
-                    case .checking:
-                        text = text + ", " + strings.SocksProxySetup_ProxyStatusChecking
-                        displayStatus = DisplayProxyServerStatus(activity: false, text: text, textActive: false)
-                    case let .available(rtt):
-                        let pingTime: Int = Int(rtt * 1000.0)
-                        text = text + ", \(strings.SocksProxySetup_ProxyStatusPing("\(pingTime)").string)"
-                        displayStatus = DisplayProxyServerStatus(activity: false, text: text, textActive: false)
-                }
-            } else {
             switch status {
                 case .notAvailable:
                     text = text + ", " + strings.SocksProxySetup_ProxyStatusUnavailable
@@ -484,7 +472,6 @@ private func proxySettingsControllerEntries(theme: PresentationTheme, strings: P
                     let pingTime: Int = Int(rtt * 1000.0)
                     text = text + ", \(strings.SocksProxySetup_ProxyStatusPing("\(pingTime)").string)"
                     displayStatus = DisplayProxyServerStatus(activity: false, text: text, textActive: false)
-            }
             }
         }
         entries.append(.server(index, theme, strings, server, server == proxySettings.activeServer, displayStatus, ProxySettingsServerItemEditing(editable: true, editing: state.editing, revealed: state.revealedServer == server), proxySettings.enabled, false))
@@ -545,9 +532,24 @@ private func proxySettingsControllerEntries(theme: PresentationTheme, strings: P
         entries.append(.autoRotateInfo(theme, autoRotateInfo))
     }
     
-    if let activeServer = proxySettings.activeServer, case .socks5 = activeServer.connection {
-        entries.append(.useForCalls(theme, strings.SocksProxySetup_UseForCalls, proxySettings.useForCalls))
-        entries.append(.useForCallsInfo(theme, strings.SocksProxySetup_UseForCallsHelp))
+    if let activeServer = proxySettings.activeServer {
+        switch activeServer.connection {
+            case .socks5:
+                entries.append(.useForCalls(theme, strings.SocksProxySetup_UseForCalls, proxySettings.useForCalls))
+                entries.append(.useForCallsInfo(theme, strings.SocksProxySetup_UseForCallsHelp))
+            case .web:
+                // The toggle governs the SOCKS5 bridge: with the relay-side capability the call
+                // resolves to the sidecar's loopback SOCKS5 endpoint, without it the call stays
+                // direct — which is what the help text says. MTProxy stays hidden: tgcalls cannot
+                // use it and there is no bridge for it.
+                entries.append(.useForCalls(theme, strings.SocksProxySetup_UseForCalls, proxySettings.useForCalls))
+                entries.append(.useForCallsInfo(theme, ForkWebProxyStrings.callsNote))
+            case .vless:
+                entries.append(.useForCalls(theme, strings.SocksProxySetup_UseForCalls, proxySettings.useForCalls))
+                entries.append(.useForCallsInfo(theme, "Звонки идут через встроенный VLESS-туннель (без P2P-утечек)."))
+            case .mtp:
+                break
+        }
     }
 
     return entries
@@ -824,6 +826,8 @@ public func proxySettingsController(accountManager: AccountManager<TelegramAccou
                         let secret = MTProxySecret.parseData(secret)?.serializeToString() ?? ""
                         string = "https://t.me/webproxy?server=\(server.host)"
                         string += "&secret=\((secret as NSString).addingPercentEncoding(withAllowedCharacters: CharacterSet.urlQueryValueAllowed) ?? "")"
+                    case let .vless(secret):
+                        string = String(data: secret, encoding: .utf8) ?? ""
                     }
                     
                     result += string
@@ -851,6 +855,10 @@ public func proxySettingsController(accountManager: AccountManager<TelegramAccou
                 actionSheet?.dismissAnimated()
                 addServer(.mtp)
             }),
+            ActionSheetButtonItem(title: "VLESS", color: .accent, action: { [weak actionSheet] in
+                actionSheet?.dismissAnimated()
+                addServer(.vless)
+            }),
             ActionSheetButtonItem(title: ForkWebProxyStrings.proxyType, color: .accent, action: { [weak actionSheet, weak strongController] in
                 actionSheet?.dismissAnimated()
                 // If there are catalog entries, offer a pick sheet; otherwise go straight to manual.
@@ -863,7 +871,7 @@ public func proxySettingsController(accountManager: AccountManager<TelegramAccou
                 WebProxyCatalog.load { entries in
                     guard let controller = strongController else { return }
                     let sheet = ActionSheetController(presentationData: presentationData)
-                    var items: [ActionSheetItem] = []
+                    var items: [ActionSheetItem] = [ActionSheetTextItem(title: ForkWebProxyStrings.catalogTitle)]
                     for entry in entries {
                         items.append(ActionSheetButtonItem(title: entry.title, color: .accent, action: { [weak sheet] in
                             sheet?.dismissAnimated()

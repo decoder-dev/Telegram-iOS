@@ -324,8 +324,16 @@ final class PasscodeEntryControllerNode: ASDisplayNode {
                 var bootTimestamp: Int32 = 0
                 let uptime = getDeviceUptimeSeconds(&bootTimestamp)
                 
+                // A different boot session makes the persisted uptime incomparable, so the
+                // cooldown deadline cannot be recomputed. This branch used to return `true`,
+                // which made the lock permanent: the persisted boot timestamp can never match
+                // the new session again, so even the correct passcode was rejected forever
+                // ("Try again in 1 minute" surviving restart and offload — the known upstream
+                // bug report). Policy instead: a boot-session change expires the wait. The
+                // failure COUNT stays persisted, so the next wrong attempt immediately re-arms
+                // the full interval, and a reboot itself costs far more time than the wait.
                 if attempts.bootTimestamp != bootTimestamp {
-                    return true
+                    return false
                 }
                 
                 if uptime - attempts.uptime < waitInterval {

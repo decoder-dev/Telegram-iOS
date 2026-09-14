@@ -649,7 +649,7 @@ private func dataAndStorageControllerEntries(context: AccountContext, state: Dat
     let proxyValue: String
     if let proxySettings = data.proxySettings, proxySettings.enabled {
         if proxySettings.autoFetchPublicMtProxy {
-            proxyValue = ForkPresentationLanguage.prefersRussianStrings ? "Авто" : "Auto"
+            proxyValue = ForkProxySettingsStrings.autoFetchValue
         } else if let activeServer = proxySettings.activeServer {
             switch activeServer.connection {
                 case .socks5:
@@ -658,6 +658,8 @@ private func dataAndStorageControllerEntries(context: AccountContext, state: Dat
                     proxyValue = presentationData.strings.SocksProxySetup_ProxyTelegram
                 case .web:
                     proxyValue = ForkWebProxyStrings.proxyType
+                case .vless:
+                    proxyValue = "VLESS"
             }
         } else {
             proxyValue = presentationData.strings.GroupInfo_SharedMediaNone

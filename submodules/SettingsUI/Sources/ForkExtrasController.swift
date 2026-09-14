@@ -174,13 +174,9 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.ImportMessageSavingReplace": "Replace existing",
             "ForkExtras.MessageSavingDbFooter": "Export / import the local deleted & edit-history JSON store (AyuGram DB backup), including a copy of Saved Attachments. Import also accepts a bare records.json.",
             "ForkExtras.ExportMessageSavingDone": "Exported {count} records.",
+            "ForkExtras.ExportMessageSavingFailed": "Could not create the export bundle.",
             "ForkExtras.ImportMessageSavingDone": "Imported {count} new records.",
             "ForkExtras.ImportMessageSavingFailed": "Could not import this file.",
-            "ForkExtras.ViewDeleted": "View Deleted",
-            "ForkExtras.EditHistory": "Edit History",
-            "ForkExtras.ClearDeleted": "Clear Deleted",
-            "ForkExtras.NoDeleted": "No deleted messages saved yet.",
-            "ForkExtras.NoEdits": "No previous versions saved.",
             "ForkExtras.HubFooter": "Each row opens a grouped Settings list. Navigation, sheets and switches follow iOS conventions.",
             "ForkExtras.HubNinja": "Ninja",
             "ForkExtras.HubNinjaLabel": "Save, filters, bypass",
@@ -312,13 +308,9 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.ImportMessageSavingReplace": "Заменить текущую",
             "ForkExtras.MessageSavingDbFooter": "Экспорт / импорт локального JSON с удалёнными и историей правок (бэкап БД AyuGram), включая копию Saved Attachments. При импорте также подходит обычный records.json.",
             "ForkExtras.ExportMessageSavingDone": "Экспортировано записей: {count}.",
+            "ForkExtras.ExportMessageSavingFailed": "Не удалось создать пакет экспорта.",
             "ForkExtras.ImportMessageSavingDone": "Добавлено новых записей: {count}.",
             "ForkExtras.ImportMessageSavingFailed": "Не удалось импортировать файл.",
-            "ForkExtras.ViewDeleted": "Удалённые",
-            "ForkExtras.EditHistory": "История правок",
-            "ForkExtras.ClearDeleted": "Очистить удалённые",
-            "ForkExtras.NoDeleted": "Пока нет сохранённых удалённых сообщений.",
-            "ForkExtras.NoEdits": "Предыдущих версий нет.",
             "ForkExtras.HubFooter": "Каждая строка открывает grouped-список как в Настройках iOS: навигация, шиты и переключатели системные.",
             "ForkExtras.HubNinja": "Ниндзя",
             "ForkExtras.HubNinjaLabel": "Сохранение, фильтры, обход",
@@ -363,15 +355,27 @@ private enum ForkExtrasLocalizedString {
     
     private static func languageCode() -> String {
         // The app's language first — Telegram's own setting is independent of the device's.
-        // The device list stays as the fallback for the window before the first push.
-        if let appLanguage = ForkPresentationLanguage.languageCode, translations[appLanguage] != nil {
-            return appLanguage
+        // The device list stays as the fallback for the window before the first push. The fork
+        // serves Russian to ru/uk/be everywhere else (`ForkPresentationLanguage`), so the table
+        // follows the same rule instead of dropping those users to English mid-screen.
+        if let appLanguage = ForkPresentationLanguage.languageCode {
+            switch appLanguage {
+                case "ru", "uk", "be":
+                    return "ru"
+                case "en":
+                    return "en"
+                default:
+                    break
+            }
         }
         let candidates = Locale.preferredLanguages + Bundle.main.preferredLocalizations
         for candidate in candidates {
             let code = String(candidate.prefix(2)).lowercased()
-            if translations[code] != nil {
-                return code
+            if code == "ru" || code == "uk" || code == "be" {
+                return "ru"
+            }
+            if code == "en" {
+                return "en"
             }
         }
         return "en"
@@ -472,13 +476,9 @@ private enum ForkExtrasLocalizedString {
     static var importMessageSavingReplace: String { string(forKey: "ForkExtras.ImportMessageSavingReplace") }
     static var messageSavingDbFooter: String { string(forKey: "ForkExtras.MessageSavingDbFooter") }
     static var exportMessageSavingDone: String { string(forKey: "ForkExtras.ExportMessageSavingDone") }
+    static var exportMessageSavingFailed: String { string(forKey: "ForkExtras.ExportMessageSavingFailed") }
     static var importMessageSavingDone: String { string(forKey: "ForkExtras.ImportMessageSavingDone") }
     static var importMessageSavingFailed: String { string(forKey: "ForkExtras.ImportMessageSavingFailed") }
-    static var viewDeleted: String { string(forKey: "ForkExtras.ViewDeleted") }
-    static var editHistory: String { string(forKey: "ForkExtras.EditHistory") }
-    static var clearDeleted: String { string(forKey: "ForkExtras.ClearDeleted") }
-    static var noDeleted: String { string(forKey: "ForkExtras.NoDeleted") }
-    static var noEdits: String { string(forKey: "ForkExtras.NoEdits") }
     static var hubFooter: String { string(forKey: "ForkExtras.HubFooter") }
     static var hubNinja: String { string(forKey: "ForkExtras.HubNinja") }
     static var hubNinjaLabel: String { string(forKey: "ForkExtras.HubNinjaLabel") }
@@ -1993,13 +1993,24 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
         exportMessageSavingDatabase: {
             MessageSavingStore.flush()
             guard let url = MessageSavingStore.exportBundle() else {
+                // Was a silent no-op — with a failed bundle the row looked simply dead.
+                let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+                let alert = textAlertController(context: context, title: nil, text: ForkExtrasLocalizedString.exportMessageSavingFailed, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})])
+                presentControllerImpl?(alert)
                 return
             }
+            let exportedRecordCount = MessageSavingStore.recordCount
             // Folder URL: AirDrop / "Save to Files" accept it. Import the folder itself (not a
             // zip — the picker does not open archives).
             let activity = UIActivityViewController(activityItems: [url], applicationActivities: nil)
             activity.completionWithItemsHandler = { _, _, _, _ in
                 try? FileManager.default.removeItem(at: url)
+                // The bundle existed with `exportedRecordCount` records whether or not the user
+                // shared it — tell them, so an empty/short backup is caught before a restore.
+                let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+                let text = ForkExtrasLocalizedString.exportMessageSavingDone.replacingOccurrences(of: "{count}", with: "\(exportedRecordCount)")
+                let alert = textAlertController(context: context, title: nil, text: text, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})])
+                presentControllerImpl?(alert)
             }
             forkExtrasPresentNativeController(activity, context: context)
         },

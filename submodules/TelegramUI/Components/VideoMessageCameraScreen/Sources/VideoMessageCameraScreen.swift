@@ -421,7 +421,13 @@ private final class VideoMessageCameraScreenComponent: CombinedComponent {
         
             controller.updatePreviewState({ _ in return nil }, transition: .spring(duration: 0.4))
             
-            controller.node.withReadyCamera(isFirstTime: !controller.node.cameraIsActive) { [weak self] in
+            controller.node.withReadyCamera(isFirstTime: !controller.node.cameraIsActive, onTimeout: { [weak controller] in
+                guard let controller else {
+                    return
+                }
+                controller.completion(nil, nil, nil, nil)
+                controller.node.resetCamera()
+            }) { [weak self] in
                 Queue.mainQueue().after(0.15) {
                     guard let self else {
                         return
@@ -1007,7 +1013,9 @@ public class VideoMessageCameraScreen: ViewController {
             if isDualCameraEnabled {
                 self.mainPreviewView.removePlaceholder(delay: 0.0)
             }
-            self.withReadyCamera(isFirstTime: true, { [weak self] in
+            self.withReadyCamera(isFirstTime: true, onTimeout: { [weak self] in
+                self?.resetCamera()
+            }, { [weak self] in
                 guard let self else {
                     return
                 }
@@ -1027,7 +1035,7 @@ public class VideoMessageCameraScreen: ViewController {
             self.backgroundView.removeFromSuperview()
         }
         
-        func withReadyCamera(isFirstTime: Bool = false, _ f: @escaping () -> Void) {
+        func withReadyCamera(isFirstTime: Bool = false, timeoutDuration: Double = 10.0, onTimeout: (() -> Void)? = nil, _ f: @escaping () -> Void) {
             let previewReady: Signal<Bool, NoError>
             if #available(iOS 13.0, *) {
                 previewReady = self.cameraState.isDualCameraEnabled ? self.additionalPreviewView.isPreviewing : self.mainPreviewView.isPreviewing |> delay(0.3, queue: Queue.mainQueue())
@@ -1035,11 +1043,20 @@ public class VideoMessageCameraScreen: ViewController {
                 previewReady = .single(true) |> delay(0.35, queue: Queue.mainQueue())
             }
             
+            // A wedged capture session never emits a ready preview: without a timeout
+            // the hold-to-record button shows its loading state forever and recording
+            // never starts — the only way out was restarting the whole phone (upstream
+            // issue #1772). After the timeout the camera is torn down and recreated.
             let _ = (previewReady
             |> filter { $0 }
             |> take(1)
-            |> deliverOnMainQueue).startStandalone(next: { _ in
-                f()
+            |> timeout(timeoutDuration, queue: Queue.mainQueue(), alternate: .single(false))
+            |> deliverOnMainQueue).startStandalone(next: { ready in
+                if ready {
+                    f()
+                } else {
+                    onTimeout?()
+                }
             })
         }
         
@@ -1064,6 +1081,26 @@ public class VideoMessageCameraScreen: ViewController {
             self.view.addGestureRecognizer(pinchGestureRecognizer)
         }
                 
+        private var cameraResetCount = 0
+        
+        fileprivate func resetCamera() {
+            guard let camera = self.camera else {
+                return
+            }
+            if self.cameraResetCount >= 2 {
+                Logger.shared.log("VideoMessageCamera", "capture session wedged; reset limit reached, giving up")
+                return
+            }
+            self.cameraResetCount += 1
+            Logger.shared.log("VideoMessageCamera", "capture session never became ready — tearing it down and recreating")
+            
+            self.cameraStateDisposable?.dispose()
+            camera.stopCapture(invalidate: true)
+            self.camera = nil
+            
+            self.setupCamera()
+        }
+        
         fileprivate func setupCamera() {
             guard self.camera == nil else {
                 return
@@ -2105,10 +2142,16 @@ public class VideoMessageCameraScreen: ViewController {
     
     private func requestAudioSession() {
         let audioSessionType: ManagedAudioSessionType
+        // `video: true` is what makes ManagedAudioSession apply the video-recording
+        // configuration: .videoRecording session mode and the "Bottom" built-in
+        // microphone data source preference. With `video: false` (previous behavior)
+        // round video messages kept the automatically selected input — on devices with
+        // several microphones that is often the quiet one next to the earpiece, while
+        // voice messages recorded through the normal bottom mic (upstream issue #1195).
         if self.context.sharedContext.currentMediaInputSettings.with({ $0 }).pauseMusicOnRecording { 
-            audioSessionType = .record(speaker: false, video: false, withOthers: false)
+            audioSessionType = .record(speaker: false, video: true, withOthers: false)
         } else {
-            audioSessionType = .record(speaker: false, video: false, withOthers: true)
+            audioSessionType = .record(speaker: false, video: true, withOthers: true)
         }
       
         self.audioSessionDisposable = self.context.sharedContext.mediaManager.audioSession.push(audioSessionType: audioSessionType, activate: { [weak self] _ in

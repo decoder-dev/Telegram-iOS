@@ -427,8 +427,11 @@ public enum ForkGhostModeSettings {
         set { update { var s = $0; s.interactOverrideActive = newValue; return s } }
     }
 
+    /// Duration of the read-on-interact override window (online blink + allowed reads).
+    public static let readOnInteractOverrideDuration: TimeInterval = 1.5
+
     /// Call when the user sends/reacts and Read on Interact is enabled.
-    public static func beginReadOnInteractOverride(duration: TimeInterval = 1.5) {
+    public static func beginReadOnInteractOverride(duration: TimeInterval = ForkGhostModeSettings.readOnInteractOverrideDuration) {
         var generation: Int?
         update { current in
             guard current.readOnInteract else {

@@ -77,6 +77,11 @@ final class WebProxyHttpCarrier {
     /// 200 from a site that is not a relay at all is indistinguishable from a working carrier —
     /// which is how a mistyped hostname used to sit in `connecting` forever.
     private var awaitingWelcome = true
+    /// Whether the relay's `WELCOME` advertised arbitrary stream targets (payload byte 1,
+    /// bit 0 — see `docs/webproxy-socks-bridge.md`): `OPEN` frames may then name a host:port
+    /// instead of implying the relay's backing MTProxy. False until `WELCOME` is consumed, and
+    /// on every relay that predates the capability extension.
+    public private(set) var supportsStreamTargets = false
     
     // MARK: - Serialized `https` path (single lane)
     
@@ -467,6 +472,17 @@ final class WebProxyHttpCarrier {
         }
         self.awaitingWelcome = false
         self.emptyWelcomePolls = 0
+        // WELCOME payload (v1): [version(1)] [capability flags(1)], both bytes optional for
+        // relays predating the capability extension — an absent flags byte simply means "no
+        // capabilities". Bit 0: arbitrary stream targets (OPEN may carry a host:port).
+        if first.payload.count > 1 {
+            self.supportsStreamTargets = (first.payload[first.payload.startIndex + 1] & 0x01) != 0
+        } else {
+            self.supportsStreamTargets = false
+        }
+        if self.supportsStreamTargets {
+            WebProxyLog.log("relay \(self.hostname) advertised arbitrary stream targets")
+        }
     }
     
     private func startCarrierTransport(completion: @escaping (Result<Void, Error>) -> Void) {

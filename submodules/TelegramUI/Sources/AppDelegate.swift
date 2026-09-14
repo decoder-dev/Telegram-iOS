@@ -2204,7 +2204,18 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
     }
     
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
-        Logger.shared.log("App \(self.episodeId)", "register for notifications: didRegisterForRemoteNotificationsWithDeviceToken (deviceToken: \(hexString(deviceToken)))")
+        // Log only a fingerprint: the full APNs device token identifies this
+        // installation to anyone who can read the logs (and the token is forwarded
+        // server-side for push delivery). Length plus the first/last bytes are enough
+        // to correlate registrations in support logs.
+        let tokenHex = hexString(deviceToken)
+        let tokenFingerprint: String
+        if tokenHex.count > 8 {
+            tokenFingerprint = String(tokenHex.prefix(4)) + "…" + String(tokenHex.suffix(4)) + " (\(tokenHex.count / 2) bytes)"
+        } else {
+            tokenFingerprint = "(\(tokenHex.count / 2) bytes)"
+        }
+        Logger.shared.log("App \(self.episodeId)", "register for notifications: didRegisterForRemoteNotificationsWithDeviceToken (deviceToken: \(tokenFingerprint))")
         self.notificationTokenPromise.set(.single(deviceToken))
     }
     

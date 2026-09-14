@@ -328,6 +328,12 @@ private final class ProxyServerPreviewSheetContent: CombinedComponent {
                         MultilineTextComponent(text: .plain(NSAttributedString(string: "•••••", font: tableFont, textColor: tableTextColor)))
                     )
                 ))
+            case .vless:
+                tableItems.append(.init(
+                    id: "vless-url",
+                    title: "VLESS",
+                    component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: "•••••", font: tableFont, textColor: tableTextColor))))
+                ))
             }
             
             if component.server.connection.isWebProxy {

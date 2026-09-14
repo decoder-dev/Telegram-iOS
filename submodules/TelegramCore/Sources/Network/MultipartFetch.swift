@@ -545,6 +545,9 @@ private final class MultipartFetchManager {
     var revalidatingMediaReference = false
     let revalidateMediaReferenceDisposable = MetaDisposable()
     
+    var webfileNotAvailableRetryCount = 0
+    var webfileRetryTimer: SwiftSignalKit.Timer?
+    
     var state: MultipartDownloadState
     
     var rangesDisposable: Disposable?
@@ -703,6 +706,7 @@ private final class MultipartFetchManager {
             rangesDisposable?.dispose()
         }
         self.speedTimer?.invalidate()
+        self.webfileRetryTimer?.invalidate()
     }
     
     func start() {
@@ -719,6 +723,8 @@ private final class MultipartFetchManager {
             }
             self.reuploadToCdnDisposable.dispose()
             self.revalidateMediaReferenceDisposable.dispose()
+            self.webfileRetryTimer?.invalidate()
+            self.webfileRetryTimer = nil
         }
     }
     
@@ -984,8 +990,30 @@ private final class MultipartFetchManager {
                     case .hashesMissing:
                         break
                     case .webfileNotAvailable:
-                        strongSelf.completeSize = 0
-                        strongSelf.checkState()
+                        // The server does not currently hold this web file (web content is
+                        // fetched server-side lazily, e.g. when somebody sends the GIF).
+                        // The previous behavior completed the resource with a size of 0,
+                        // which MediaBox persisted as a fully downloaded 0-byte file — the
+                        // resource was then never fetched again and inline GIF tiles stayed
+                        // blank forever, surviving restarts (upstream issue #2244).
+                        // Keep the resource retryable instead: retry with exponential
+                        // backoff, then fail the fetch. A failed fetch is retried when the
+                        // consumer re-subscribes; a bogus "complete" 0-byte file is not.
+                        strongSelf.webfileNotAvailableRetryCount += 1
+                        if strongSelf.webfileNotAvailableRetryCount <= 5 {
+                            let delay = pow(2.0, Double(strongSelf.webfileNotAvailableRetryCount - 1))
+                            strongSelf.webfileRetryTimer?.invalidate()
+                            strongSelf.webfileRetryTimer = SwiftSignalKit.Timer(timeout: delay, repeat: false, completion: { [weak self] in
+                                guard let self else {
+                                    return
+                                }
+                                self.webfileRetryTimer = nil
+                                self.checkState()
+                            }, queue: strongSelf.queue)
+                            strongSelf.webfileRetryTimer?.start()
+                        } else {
+                            strongSelf.finishWithError(.generic)
+                        }
                 }
             }))
         }

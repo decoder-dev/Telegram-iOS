@@ -64,12 +64,31 @@ public final class WebProxySidecar {
         }
     }
     
+    /// Endpoint + credentials of the sidecar's local SOCKS5 bridge. Only meaningful when
+    /// `socksBridgeEndpoint()` returns non-nil: the relay must have advertised arbitrary stream
+    /// targets for the bridge to be usable.
+    public struct SocksBridgeEndpoint {
+        public let host: String
+        public let port: UInt16
+        public let username: String
+        public let password: String
+    }
+    
     private let queue = DispatchQueue(label: "WebProxySidecar", qos: .userInitiated)
     private var listener: NWListener?
     private var carrier: WebProxyHttpCarrier?
     private var urlSession: URLSession?
     private var streams: [UInt32: WebProxyStream] = [:]
     private var nextStreamId: UInt32 = 1
+    /// Loopback SOCKS5 listener exposing the relay's arbitrary-target streams (WELCOME capability
+    /// bit 0) to callers that speak SOCKS5 but not MTProto — tgcalls. The listener runs whenever
+    /// the sidecar does so its port survives carrier reconnects; connections are refused while
+    /// the relay has not advertised the capability.
+    private var socksListener: NWListener?
+    private var socksEndpoint: Endpoint?
+    private var socksUsername: String?
+    private var socksPassword: String?
+    private var socksSessions: [SocksHandshakeSession] = []
     /// Wire stream ids are 3 bytes; encoding past 0xffffff used to hit a precondition trap.
     private static let maxStreamId: UInt32 = 0xffffff
     private var endpoint: Endpoint?
@@ -192,7 +211,55 @@ public final class WebProxySidecar {
                 self.hostname = hostname
                 self.secret = secret
                 self.bridgeCapability = bridgeCapability
-                
+
+                // The SOCKS5 bridge listener is best-effort: a relay without arbitrary-target
+                // support never turns it on (connections are refused until the capability is
+                // seen), and a bind failure must not take the MTProxy path down with it.
+                // Loopback-only, with per-start credentials — see WebProxySocksProtocol's
+                // comment for why auth is required rather than relying on loopback isolation.
+                do {
+                    let socksParameters = NWParameters.tcp
+                    socksParameters.requiredLocalEndpoint = NWEndpoint.hostPort(host: "127.0.0.1", port: .any)
+                    let socksListener = try NWListener(using: socksParameters)
+                    socksListener.newConnectionHandler = { [weak self] connection in
+                        self?.acceptSocks(connection: connection)
+                    }
+                    socksListener.stateUpdateHandler = { [weak self, weak socksListener] state in
+                        guard let self, let socksListener else {
+                            return
+                        }
+                        switch state {
+                        case .ready:
+                            // Listener callbacks are delivered on the queue passed to
+                            // `socksListener.start(queue:)` — `self.queue` — so state can be
+                            // read in place. The weak capture keeps the handler from retaining
+                            // the listener it belongs to.
+                            if let port = socksListener.port?.rawValue {
+                                self.socksEndpoint = Endpoint(host: "127.0.0.1", port: port)
+                                WebProxyLog.log("SOCKS5 bridge listening on 127.0.0.1:\(port)")
+                            }
+                        case .failed:
+                            if self.socksListener === socksListener {
+                                WebProxyLog.log("SOCKS5 bridge listener failed, bridge disabled until restart")
+                                self.socksEndpoint = nil
+                                self.socksListener = nil
+                                socksListener.cancel()
+                            }
+                        default:
+                            break
+                        }
+                    }
+                    self.socksListener = socksListener
+                    let socksCredentials = WebProxySidecar.randomSocksCredentials()
+                    self.socksUsername = socksCredentials.0
+                    self.socksPassword = socksCredentials.1
+                    socksListener.start(queue: self.queue)
+                } catch {
+                    WebProxyLog.log("SOCKS5 bridge listener unavailable: \(error)")
+                    self.socksListener = nil
+                    self.socksEndpoint = nil
+                }
+
                 listener.start(queue: self.queue)
                 
                 carrier.start(secret: secret, bridgeCapability: bridgeCapability) { [weak self] result in
@@ -302,6 +369,16 @@ public final class WebProxySidecar {
         self.carrier = nil
         self.listener?.cancel()
         self.listener = nil
+        self.socksListener?.cancel()
+        self.socksListener = nil
+        self.socksEndpoint = nil
+        self.socksUsername = nil
+        self.socksPassword = nil
+        for session in self.socksSessions {
+            session.isPromoted = true
+            session.connection.cancel()
+        }
+        self.socksSessions.removeAll()
         self.urlSession?.invalidateAndCancel()
         self.urlSession = nil
         for stream in self.streams.values {
@@ -547,6 +624,195 @@ public final class WebProxySidecar {
         }
         connection.start(queue: self.queue)
     }
+
+    // MARK: - SOCKS5 bridge
+
+    /// The local SOCKS5 bridge endpoint, when the relay supports arbitrary stream targets and the
+    /// bridge listener is up. A nil result must make callers fall back to their direct behavior —
+    /// the bridge being absent must never fail anything.
+    public func socksBridgeEndpoint() -> SocksBridgeEndpoint? {
+        return self.queue.sync {
+            guard let endpoint = self.socksEndpoint, let username = self.socksUsername, let password = self.socksPassword else {
+                return nil
+            }
+            guard let carrier = self.carrier, carrier.supportsStreamTargets else {
+                return nil
+            }
+            return SocksBridgeEndpoint(host: endpoint.host, port: endpoint.port, username: username, password: password)
+        }
+    }
+
+    private static func randomSocksCredentials() -> (String, String) {
+        var generator = SystemRandomNumberGenerator()
+        var bytes: [UInt8] = []
+        for _ in 0..<16 {
+            bytes.append(UInt8.random(in: .min ... .max, using: &generator))
+        }
+        return ("tg", bytes.map { String(format: "%02x", $0) }.joined())
+    }
+
+    private func acceptSocks(connection: NWConnection) {
+        guard let carrier = self.carrier, carrier.isAcceptingFrames else {
+            connection.cancel()
+            return
+        }
+        let session = SocksHandshakeSession(connection: connection)
+        self.socksSessions.append(session)
+        connection.stateUpdateHandler = { [weak self, weak session] state in
+            guard let self else {
+                return
+            }
+            switch state {
+            case .ready:
+                if let session {
+                    self.receiveSocks(session)
+                }
+            case .failed, .cancelled:
+                if let session {
+                    self.removeSocksSession(session, cancelConnection: false)
+                }
+            default:
+                break
+            }
+        }
+        connection.start(queue: self.queue)
+    }
+
+    private func receiveSocks(_ session: SocksHandshakeSession) {
+        session.connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self, weak session] data, _, isComplete, error in
+            guard let self, let session else {
+                return
+            }
+            if session.isPromoted {
+                // Promotion armed the regular stream receive loop; it owns the connection now.
+                return
+            }
+            if let data = data, !data.isEmpty {
+                session.buffer.append(data)
+                self.processSocksBuffer(session)
+            }
+            if session.isPromoted {
+                return
+            }
+            if isComplete || error != nil {
+                self.removeSocksSession(session)
+                return
+            }
+            self.receiveSocks(session)
+        }
+    }
+
+    private func processSocksBuffer(_ session: SocksHandshakeSession) {
+        // Greeting and auth (or auth and request) can arrive in one TCP segment; keep consuming
+        // while a stage completes.
+        var didProgress = true
+        while didProgress, !session.isPromoted {
+            didProgress = false
+            switch session.stage {
+            case .greeting:
+                switch Socks5Protocol.parseMethodSelection(session.buffer) {
+                case let .parsed(methods, consumed):
+                    session.buffer = Data(session.buffer.dropFirst(consumed))
+                    didProgress = true
+                    if methods.contains(Socks5Protocol.methodUsernamePassword) {
+                        self.sendSocksBytes(session, Socks5Protocol.methodSelectionReply(method: Socks5Protocol.methodUsernamePassword))
+                        session.stage = .auth
+                    } else {
+                        self.sendSocksBytes(session, Socks5Protocol.methodSelectionReply(method: Socks5Protocol.methodNoAcceptable))
+                        self.removeSocksSession(session)
+                        return
+                    }
+                case .needMoreData:
+                    return
+                case .invalid:
+                    self.removeSocksSession(session)
+                    return
+                }
+            case .auth:
+                switch Socks5Protocol.parseUsernamePasswordRequest(session.buffer) {
+                case let .parsed(credentials, consumed):
+                    session.buffer = Data(session.buffer.dropFirst(consumed))
+                    didProgress = true
+                    if credentials.username == self.socksUsername, credentials.password == self.socksPassword {
+                        self.sendSocksBytes(session, Socks5Protocol.usernamePasswordReply(succeeded: true))
+                        session.stage = .request
+                    } else {
+                        WebProxyLog.log("SOCKS5 bridge: rejecting bad credentials")
+                        self.sendSocksBytes(session, Socks5Protocol.usernamePasswordReply(succeeded: false))
+                        self.removeSocksSession(session)
+                        return
+                    }
+                case .needMoreData:
+                    return
+                case .invalid:
+                    self.removeSocksSession(session)
+                    return
+                }
+            case .request:
+                switch Socks5Protocol.parseConnectRequest(session.buffer) {
+                case let .parsed(request, consumed):
+                    session.buffer = Data(session.buffer.dropFirst(consumed))
+                    let leftover = session.buffer
+                    session.buffer = Data()
+                    guard let carrier = self.carrier, carrier.isAcceptingFrames, carrier.supportsStreamTargets else {
+                        WebProxyLog.log("SOCKS5 bridge: refusing CONNECT — relay has no arbitrary-target capability")
+                        self.sendSocksBytes(session, Socks5Protocol.connectReply(succeeded: false))
+                        self.removeSocksSession(session)
+                        return
+                    }
+                    // The SOCKS reply is optimistic: the relay reports a target it cannot dial by
+                    // closing the stream, which the local client sees as a dropped connection —
+                    // the same failure mode as an unreachable direct target, with client-side
+                    // failover intact.
+                    let streamId = self.allocateStreamId()
+                    let stream = WebProxyStream(id: streamId, connection: session.connection)
+                    self.streams[streamId] = stream
+                    carrier.sendFrames(WebProxyFrameCodec.encodeBatch([WebProxyFrame(type: .open, streamId: streamId, payload: request.target.openPayload(port: request.port))]))
+                    self.sendSocksBytes(session, Socks5Protocol.connectReply(succeeded: true))
+                    session.isPromoted = true
+                    let promotedConnection = session.connection
+                    promotedConnection.stateUpdateHandler = { [weak self, weak stream] state in
+                        guard let self, let stream else {
+                            return
+                        }
+                        switch state {
+                        case .failed, .cancelled:
+                            self.closeStream(stream.id, notifyRemote: true)
+                        default:
+                            break
+                        }
+                    }
+                    self.removeSocksSession(session, cancelConnection: false)
+                    if !leftover.isEmpty {
+                        self.sendStreamData(streamId: streamId, data: leftover)
+                    }
+                    self.receive(from: stream)
+                    return
+                case .needMoreData:
+                    return
+                case .invalid:
+                    self.removeSocksSession(session)
+                    return
+                }
+            }
+        }
+    }
+
+    private func sendSocksBytes(_ session: SocksHandshakeSession, _ data: Data) {
+        session.connection.send(content: data, completion: .contentProcessed { _ in
+        })
+    }
+
+    private func removeSocksSession(_ session: SocksHandshakeSession, cancelConnection: Bool = true) {
+        // Also serves as the "stop handing this session bytes" flag for an in-flight receive.
+        session.isPromoted = true
+        if let index = self.socksSessions.firstIndex(where: { $0 === session }) {
+            self.socksSessions.remove(at: index)
+        }
+        if cancelConnection {
+            session.connection.cancel()
+        }
+    }
     
     private func receive(from stream: WebProxyStream) {
         stream.connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self, weak stream] data, _, isComplete, error in
@@ -747,5 +1013,25 @@ public final class WebProxySidecar {
         if notifyRemote {
             self.sendFrames([WebProxyFrame(type: .close, streamId: streamId, payload: Data())])
         }
+    }
+}
+
+/// One in-progress SOCKS5 handshake on the bridge listener. Once the CONNECT request is
+/// promoted into a regular `WebProxyStream`, the session is discarded and the stream machinery
+/// owns the connection — `isPromoted` tells any in-flight handshake receive to stand down.
+private final class SocksHandshakeSession {
+    enum Stage {
+        case greeting
+        case auth
+        case request
+    }
+
+    let connection: NWConnection
+    var stage: Stage = .greeting
+    var buffer = Data()
+    var isPromoted = false
+
+    init(connection: NWConnection) {
+        self.connection = connection
     }
 }

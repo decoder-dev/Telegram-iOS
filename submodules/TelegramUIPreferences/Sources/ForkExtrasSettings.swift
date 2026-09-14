@@ -773,6 +773,17 @@ public enum ForkExtrasNotificationBridge {
             suites.append(suite)
         }
         if let bundleId = Bundle.main.bundleIdentifier {
+            // The NSE's bundle id is "<app bundle id>.NotificationService", and the extension
+            // itself derives its app group by stripping the last path component (see
+            // NotificationService.swift's baseAppBundleId) — which is also what the main app's
+            // plain "group.<bundleId>" candidate computes to. Mirror that derivation so both
+            // processes land on the SAME suite: without the stripped candidate the extension
+            // only looked in "group.<…>.NotificationService", which the app never writes, and
+            // the hide-mention/hide-pinned flags never reached the NSE. The raw candidate is
+            // kept too (it is the app-side target, and empty elsewhere).
+            if let lastDotRange = bundleId.range(of: ".", options: [.backwards]) {
+                suites.append("group.\(bundleId[..<lastDotRange.lowerBound])")
+            }
             suites.append("group.\(bundleId)")
         }
         if let hinted = UserDefaults.standard.string(forKey: suiteHintKey) {
