@@ -6,6 +6,11 @@
 
 ## [Unreleased]
 
+## [v12.9.2-4038-pre]
+
+### Fixed
+- **Сборка Slice 3:** `AccountContext` не имеет `callManager` (он на `sharedContext`) — обращение в PresentationGroupCall чинится на `accountContext.sharedContext.callManager?.resolvedCallProxyServer()` (ошибка всплыла только в 4037: раны 4034–4036 отменялись до компиляции).
+
 ## [v12.9.2-4037-pre]
 
 ### Fixed — кросс-форк пакет 3
