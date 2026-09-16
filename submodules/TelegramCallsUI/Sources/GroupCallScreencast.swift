@@ -20,6 +20,7 @@ protocol ScreencastIPCContext: AnyObject {
 final class ScreencastInProcessIPCContext: ScreencastIPCContext {
     private let isConference: Bool
     private let e2eContext: ConferenceCallE2EContext?
+    private let proxyServer: ProxyServerSettings?
     
     private let screencastBufferServerContext: IpcGroupCallBufferAppContext
     private var screencastCallContext: ScreencastContext?
@@ -31,9 +32,10 @@ final class ScreencastInProcessIPCContext: ScreencastIPCContext {
         return self.screencastBufferServerContext.isActive
     }
     
-    init(basePath: String, isConference: Bool, e2eContext: ConferenceCallE2EContext?) {
+    init(basePath: String, isConference: Bool, e2eContext: ConferenceCallE2EContext?, proxyServer: ProxyServerSettings?) {
         self.isConference = isConference
         self.e2eContext = e2eContext
+        self.proxyServer = proxyServer
         
         let screencastBufferServerContext = IpcGroupCallBufferAppContext(basePath: basePath + "/broadcast-coordination")
         self.screencastBufferServerContext = screencastBufferServerContext
@@ -94,7 +96,8 @@ final class ScreencastInProcessIPCContext: ScreencastIPCContext {
                     audioIsActiveByDefault: true,
                     isStream: false,
                     sharedAudioDevice: nil,
-                    encryptionContext: encryptionContext
+                    encryptionContext: encryptionContext,
+                    proxyServer: self.proxyServer
                 )
             )
             self.screencastCallContext = screencastCallContext

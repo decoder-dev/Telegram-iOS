@@ -1,6 +1,7 @@
 import Foundation
 import UIKit
 import Photos
+import ImageIO
 import SwiftSignalKit
 import TelegramCore
 import ImageCompression
@@ -89,6 +90,62 @@ private func resizedImage(_ image: UIImage, for size: CGSize) -> UIImage? {
     return UIImage(cgImage: resizedImage)
 }
 
+/// Original bytes of a photo-library asset, via PHAssetResource (bypasses the
+/// PHImageManager decode pipeline entirely).
+private func photoLibraryOriginalImageData(asset: PHAsset) -> Data? {
+    let resources = PHAssetResource.assetResources(for: asset)
+    let resource = resources.first { $0.type == .photo }
+        ?? resources.first { $0.type == .fullSizePhoto }
+        ?? resources.first
+    guard let resource = resource else {
+        return nil
+    }
+    let tempFile = EngineTempBox.shared.tempFile(fileName: "original")
+    defer {
+        EngineTempBox.shared.dispose(tempFile)
+    }
+    let url = URL(fileURLWithPath: tempFile.path)
+    let semaphore = DispatchSemaphore(value: 0)
+    var result: Data?
+    let options = PHAssetResourceRequestOptions()
+    options.isNetworkAccessAllowed = true
+    PHAssetResourceManager.default().writeData(for: resource, toFile: url, options: options) { error in
+        if error == nil {
+            result = try? Data(contentsOf: url)
+        }
+        semaphore.signal()
+    }
+    semaphore.wait()
+    return result
+}
+
+/// Decode raw image data via ImageIO, rendering wide/10-bit sources through CoreImage into
+/// an 8-bit RGBA image the JPEG encoder can consume. This is the path that lets pro-camera
+/// HEIF files (e.g. Sony FX3 10-bit 4:2:2) still send when PHImageManager refuses them.
+private func decodedImage(fromImageData data: Data) -> UIImage? {
+    guard let source = CGImageSourceCreateWithData(data as CFData, [kCGImageSourceShouldCache: false] as CFDictionary) else {
+        return nil
+    }
+    guard let cgImage = CGImageSourceCreateImageAtIndex(source, 0, [kCGImageSourceShouldCacheImmediately: true] as CFDictionary) else {
+        return nil
+    }
+    var orientation: CGImagePropertyOrientation = .up
+    if let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+       let rawOrientation = properties[kCGImagePropertyOrientation] as? UInt32,
+       let parsedOrientation = CGImagePropertyOrientation(rawValue: rawOrientation) {
+        orientation = parsedOrientation
+    }
+    if cgImage.bitsPerComponent > 8 || cgImage.bitsPerPixel > 32 {
+        let ciImage = CIImage(cgImage: cgImage)
+        let context = CIContext()
+        guard let rendered = context.createCGImage(ciImage, from: ciImage.extent) else {
+            return nil
+        }
+        return UIImage(cgImage: rendered)
+    }
+    return UIImage(cgImage: cgImage, scale: 1.0, orientation: UIImage.Orientation(orientation))
+}
+
 extension UIImage.Orientation {
     init(_ cgOrientation: CGImagePropertyOrientation) {
         switch cgOrientation {
@@ -173,6 +230,44 @@ public func fetchPhotoLibraryResource(localIdentifier: String, width: Int32?, he
             let _ = useExif // retained for API parity with callers / PhotoLibraryMediaResource
             let targetSize = size
             
+            // Shared encode+deliver path. Falls back to the unresized image when the resize
+            // step fails, and fails the fetch LOUDLY (putError) when nothing can be encoded —
+            // a silent empty completion leaves the upload progress at 0% forever
+            // (upstream #2337: pro-camera HEIF that no stage can render).
+            func encodeAndDeliver(_ image: UIImage) {
+                let startEncodeTime = CACurrentMediaTime()
+                let scale = min(1.0, min(size.width / max(1.0, image.size.width), size.height / max(1.0, image.size.height)))
+                let scaledSize = CGSize(width: floor(image.size.width * scale), height: floor(image.size.height * scale))
+                let scaledImage = resizedImage(image, for: scaledSize) ?? image
+                
+                switch format {
+                case .none, .jpeg:
+                    let tempFile = EngineTempBox.shared.tempFile(fileName: "file")
+                    defer {
+                        EngineTempBox.shared.dispose(tempFile)
+                    }
+                    if let data = compressImageToJPEG(scaledImage, quality: jpegQuality, tempFilePath: tempFile.path) {
+#if DEBUG
+                        print("compression completion \((CACurrentMediaTime() - startEncodeTime) * 1000.0) ms")
+#endif
+                        subscriber.putNext(.dataPart(resourceOffset: 0, data: data, range: 0 ..< Int64(data.count), complete: true))
+                        subscriber.putCompletion()
+                    } else {
+                        subscriber.putError(.generic)
+                    }
+                case .jxl:
+                    if let data = compressImageToJPEGXL(scaledImage, quality: Int(quality ?? 75)) {
+#if DEBUG
+                        print("jpegxl compression completion \((CACurrentMediaTime() - startEncodeTime) * 1000.0) ms")
+#endif
+                        subscriber.putNext(.dataPart(resourceOffset: 0, data: data, range: 0 ..< Int64(data.count), complete: true))
+                        subscriber.putCompletion()
+                    } else {
+                        subscriber.putError(.generic)
+                    }
+                }
+            }
+            
             queue.addTask(ThreadPoolTask({ _ in
                 let startTime = CACurrentMediaTime()
                 
@@ -201,43 +296,20 @@ public func fetchPhotoLibraryResource(localIdentifier: String, width: Int32?, he
                                 print("load completion \((CACurrentMediaTime() - startTime) * 1000.0) ms")
 #endif
                                 
-                                let scale = min(1.0, min(size.width / max(1.0, image.size.width), size.height / max(1.0, image.size.height)))
-                                let scaledSize = CGSize(width: floor(image.size.width * scale), height: floor(image.size.height * scale))
-                                let scaledImage = resizedImage(image, for: scaledSize)
-                                
-#if DEBUG
-                                print("scaled completion \((CACurrentMediaTime() - startTime) * 1000.0) ms")
-#endif
-                                
-                                switch format {
-                                case .none, .jpeg:
-                                    let tempFile = EngineTempBox.shared.tempFile(fileName: "file")
-                                    defer {
-                                        EngineTempBox.shared.dispose(tempFile)
-                                    }
-                                    if let scaledImage = scaledImage, let data = compressImageToJPEG(scaledImage, quality: jpegQuality, tempFilePath: tempFile.path) {
-    #if DEBUG
-                                        print("compression completion \((CACurrentMediaTime() - startTime) * 1000.0) ms")
-    #endif
-                                        subscriber.putNext(.dataPart(resourceOffset: 0, data: data, range: 0 ..< Int64(data.count), complete: true))
-                                        subscriber.putCompletion()
-                                    } else {
-                                        subscriber.putCompletion()
-                                    }
-                                case .jxl:
-                                    if let scaledImage = scaledImage, let data = compressImageToJPEGXL(scaledImage, quality: Int(quality ?? 75)) {
-    #if DEBUG
-                                        print("jpegxl compression completion \((CACurrentMediaTime() - startTime) * 1000.0) ms")
-    #endif
-                                        subscriber.putNext(.dataPart(resourceOffset: 0, data: data, range: 0 ..< Int64(data.count), complete: true))
-                                        subscriber.putCompletion()
-                                    } else {
-                                        subscriber.putCompletion()
-                                    }
-                                }
+                                encodeAndDeliver(image)
                                 semaphore.signal()
                             }
                         } else {
+                            // PHImageManager could not render the asset (e.g. Sony FX3-style
+                            // 10-bit 4:2:2 HEIF). Fall back to the original asset bytes decoded
+                            // through ImageIO so the photo still sends; if that fails too, end
+                            // the fetch with an error instead of leaving the upload stuck at 0%
+                            // forever (upstream #2337).
+                            if let data = photoLibraryOriginalImageData(asset: asset), let fallbackImage = decodedImage(fromImageData: data) {
+                                encodeAndDeliver(fallbackImage)
+                            } else {
+                                subscriber.putError(.generic)
+                            }
                             semaphore.signal()
                         }
                     }
@@ -296,6 +368,11 @@ public func fetchPhotoLibraryImage(localIdentifier: String, thumbnail: Bool) -> 
                     }
                     if let image = image {
                         subscriber.putNext((image, thumbnail))
+                        subscriber.putCompletion()
+                    } else {
+                        // Decode failed — complete with nil instead of never completing, so
+                        // callers don't wait forever (upstream #2337 family).
+                        subscriber.putNext(nil)
                         subscriber.putCompletion()
                     }
                 }

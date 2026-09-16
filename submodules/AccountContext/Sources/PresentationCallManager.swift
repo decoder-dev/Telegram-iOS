@@ -595,6 +595,9 @@ public protocol PresentationCallManager: AnyObject {
     var hasActiveCall: Bool { get }
     var hasActiveGroupCall: Bool { get }
     
+    /// The proxy a call (1-1 or group) should actually dial, resolved at call-creation time.
+    func resolvedCallProxyServer() -> ProxyServerSettings?
+    
     func requestCall(context: AccountContext, peerId: EnginePeer.Id, isVideo: Bool, endCurrentIfAny: Bool) -> RequestCallResult
     func joinGroupCall(context: AccountContext, peerId: EnginePeer.Id, invite: String?, requestJoinAsPeerId: ((@escaping (EnginePeer.Id?) -> Void) -> Void)?, initialCall: EngineGroupCallDescription, endCurrentIfAny: Bool) -> JoinGroupCallManagerResult
     func scheduleGroupCall(context: AccountContext, peerId: EnginePeer.Id, endCurrentIfAny: Bool, parentController: ViewController) -> RequestScheduleGroupCallResult

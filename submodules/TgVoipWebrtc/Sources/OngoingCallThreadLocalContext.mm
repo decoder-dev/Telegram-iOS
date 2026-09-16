@@ -2370,6 +2370,7 @@ private:
 @implementation GroupCallThreadLocalContext
 
 - (instancetype _Nonnull)initWithQueue:(id<OngoingCallThreadLocalContextQueueWebrtc> _Nonnull)queue
+    proxy:(VoipProxyServerWebrtc * _Nullable)proxy
     networkStateUpdated:(void (^ _Nonnull)(GroupCallNetworkState))networkStateUpdated
     audioLevelsUpdated:(void (^ _Nonnull)(NSArray<NSNumber *> * _Nonnull))audioLevelsUpdated
     activityUpdated:(void (^ _Nonnull)(NSArray<NSNumber *> * _Nonnull))activityUpdated
@@ -2475,6 +2476,17 @@ useReferenceImpl:(bool)useReferenceImpl {
             };
         }
 
+        std::unique_ptr<tgcalls::Proxy> proxyValue = nullptr;
+        if (proxy != nil) {
+            tgcalls::Proxy *proxyObject = new tgcalls::Proxy();
+            proxyObject->host = proxy.host.UTF8String;
+            proxyObject->port = (uint16_t)proxy.port;
+            proxyObject->login = proxy.username.UTF8String ?: "";
+            proxyObject->password = proxy.password.UTF8String ?: "";
+            proxyObject->managed = proxy.managed;
+            proxyValue = std::unique_ptr<tgcalls::Proxy>(proxyObject);
+        }
+        
         __weak GroupCallThreadLocalContext *weakSelf = self;
         tgcalls::GroupInstanceDescriptor descriptor = (tgcalls::GroupInstanceDescriptor){
             .threads = tgcalls::StaticThreads::getThreads(),
@@ -2703,7 +2715,8 @@ useReferenceImpl:(bool)useReferenceImpl {
                 }];
             },
             .e2eEncryptDecrypt = mappedEncryptDecrypt,
-            .isConference = isConference
+            .isConference = isConference,
+            .proxy = std::move(proxyValue)
         };
         if (useReferenceImpl) {
             _instance.reset(new tgcalls::GroupInstanceReferenceImpl(std::move(descriptor)));

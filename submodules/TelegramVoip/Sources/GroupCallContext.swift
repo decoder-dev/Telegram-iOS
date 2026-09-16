@@ -501,6 +501,7 @@ public final class OngoingGroupCallContext {
         
         init(
             queue: Queue,
+            voipProxyServer: VoipProxyServerWebrtc?,
             inputDeviceId: String,
             outputDeviceId: String,
             audioSessionActive: Signal<Bool, NoError>,
@@ -555,6 +556,7 @@ public final class OngoingGroupCallContext {
 #if os(iOS)
             self.context = GroupCallThreadLocalContext(
                 queue: ContextQueueImpl(queue: queue),
+                proxy: voipProxyServer,
                 networkStateUpdated: { state in
                     networkStateUpdatedImpl?(state)
                 },
@@ -670,6 +672,7 @@ public final class OngoingGroupCallContext {
 #else
             self.context = GroupCallThreadLocalContext(
                 queue: ContextQueueImpl(queue: queue),
+                proxy: voipProxyServer,
                 networkStateUpdated: { state in
                     networkStateUpdatedImpl?(state)
                 },
@@ -1225,10 +1228,17 @@ public final class OngoingGroupCallContext {
         }
     }
     
-    public init(inputDeviceId: String = "", outputDeviceId: String = "", audioSessionActive: Signal<Bool, NoError>, video: OngoingCallVideoCapturer?, requestMediaChannelDescriptions: @escaping (Set<UInt32>, @escaping ([MediaChannelDescription]) -> Void) -> Disposable, rejoinNeeded: @escaping () -> Void, outgoingAudioBitrateKbit: Int32?, videoContentType: VideoContentType, enableNoiseSuppression: Bool, disableAudioInput: Bool, enableSystemMute: Bool, useReferenceImpl: Bool, prioritizeVP8: Bool, logPath: String, onMutedSpeechActivityDetected: @escaping (Bool) -> Void, isConference: Bool, audioIsActiveByDefault: Bool, isStream: Bool, sharedAudioDevice: OngoingCallContext.AudioDevice?, encryptionContext: OngoingGroupCallEncryptionContext?) {
+    public init(inputDeviceId: String = "", outputDeviceId: String = "", audioSessionActive: Signal<Bool, NoError>, video: OngoingCallVideoCapturer?, requestMediaChannelDescriptions: @escaping (Set<UInt32>, @escaping ([MediaChannelDescription]) -> Void) -> Disposable, rejoinNeeded: @escaping () -> Void, outgoingAudioBitrateKbit: Int32?, videoContentType: VideoContentType, enableNoiseSuppression: Bool, disableAudioInput: Bool, enableSystemMute: Bool, useReferenceImpl: Bool, prioritizeVP8: Bool, logPath: String, onMutedSpeechActivityDetected: @escaping (Bool) -> Void, isConference: Bool, audioIsActiveByDefault: Bool, isStream: Bool, sharedAudioDevice: OngoingCallContext.AudioDevice?, encryptionContext: OngoingGroupCallEncryptionContext?, proxyServer: ProxyServerSettings?) {
         let queue = self.queue
+#if os(macOS)
+        // The macOS compatibility stub has no call-proxy resolution; group-call proxy
+        // routing is an iOS-only feature of this fork.
+        let voipProxyServer: VoipProxyServerWebrtc? = nil
+#else
+        let voipProxyServer = OngoingCallContext.resolvedVoipProxyServer(for: proxyServer)
+#endif
         self.impl = QueueLocalObject(queue: queue, generate: {
-            return Impl(queue: queue, inputDeviceId: inputDeviceId, outputDeviceId: outputDeviceId, audioSessionActive: audioSessionActive, video: video, requestMediaChannelDescriptions: requestMediaChannelDescriptions, rejoinNeeded: rejoinNeeded, outgoingAudioBitrateKbit: outgoingAudioBitrateKbit, videoContentType: videoContentType, enableNoiseSuppression: enableNoiseSuppression, disableAudioInput: disableAudioInput, enableSystemMute: enableSystemMute, useReferenceImpl: useReferenceImpl, prioritizeVP8: prioritizeVP8, logPath: logPath, onMutedSpeechActivityDetected: onMutedSpeechActivityDetected, isConference: isConference, audioIsActiveByDefault: audioIsActiveByDefault, isStream: isStream, sharedAudioDevice: sharedAudioDevice, encryptionContext: encryptionContext)
+            return Impl(queue: queue, voipProxyServer: voipProxyServer, inputDeviceId: inputDeviceId, outputDeviceId: outputDeviceId, audioSessionActive: audioSessionActive, video: video, requestMediaChannelDescriptions: requestMediaChannelDescriptions, rejoinNeeded: rejoinNeeded, outgoingAudioBitrateKbit: outgoingAudioBitrateKbit, videoContentType: videoContentType, enableNoiseSuppression: enableNoiseSuppression, disableAudioInput: disableAudioInput, enableSystemMute: enableSystemMute, useReferenceImpl: useReferenceImpl, prioritizeVP8: prioritizeVP8, logPath: logPath, onMutedSpeechActivityDetected: onMutedSpeechActivityDetected, isConference: isConference, audioIsActiveByDefault: audioIsActiveByDefault, isStream: isStream, sharedAudioDevice: sharedAudioDevice, encryptionContext: encryptionContext)
         })
     }
     

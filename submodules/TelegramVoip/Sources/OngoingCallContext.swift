@@ -912,6 +912,40 @@ public final class OngoingCallContext {
         return result
     }
 
+    /// Resolves the tgcalls proxy a call (1-1 or group) should actually dial. An authenticated
+    /// SOCKS5 server on the loopback interface is, by construction, an on-device bridge (an
+    /// embedded VLESS client or a WEB-proxy sidecar exposing a local proxy). tgcalls' managed
+    /// route treats it as the sole egress: media flows through authenticated SOCKS5 UDP/TCP
+    /// transports and direct P2P/STUN candidates are suppressed, so call traffic cannot leak
+    /// around the proxy. Remote SOCKS5 proxies keep the regular (TCP-only) routing behavior.
+    static func resolvedVoipProxyServer(for proxyServer: ProxyServerSettings?) -> VoipProxyServerWebrtc? {
+        guard let proxyServer = proxyServer else {
+            return nil
+        }
+        switch proxyServer.connection {
+        case let .socks5(username, password):
+            let server = VoipProxyServerWebrtc(host: proxyServer.host, port: proxyServer.port, username: username, password: password)
+            if proxyServer.host == "127.0.0.1", let username, let password, !username.isEmpty, !password.isEmpty {
+                server.managed = true
+            }
+            return server
+        case .vless:
+            // The embedded VLESS runtime exposes an authenticated loopback SOCKS5; calls go
+            // through it in managed mode (sole egress, no P2P/STUN leak).
+            if let url = proxyServer.vlessProxyURL {
+                VlessManager.shared.configure(activeProfileURL: url)
+                if let endpoint = VlessManager.shared.activeLoopbackEndpoint {
+                    let server = VoipProxyServerWebrtc(host: endpoint.host, port: Int32(clamping: endpoint.port), username: endpoint.user, password: endpoint.password)
+                    server.managed = true
+                    return server
+                }
+            }
+            return nil
+        case .mtp, .web:
+            return nil
+        }
+    }
+    
     public init(account: Account, callSessionManager: CallSessionManager, callId: CallId, internalId: CallSessionInternalId, proxyServer: ProxyServerSettings?, initialNetworkType: NetworkType, updatedNetworkType: Signal<NetworkType, NoError>, serializedData: String?, dataSaving: VoiceCallDataSaving, key: Data, isOutgoing: Bool, video: OngoingCallVideoCapturer?, connections: CallSessionConnectionSet, maxLayer: Int32, version: String, customParameters: String?, allowP2P: Bool, enableTCP: Bool, enableStunMarking: Bool, audioSessionActive: Signal<Bool, NoError>, logName: String, preferredVideoCodec: String?, audioDevice: AudioDevice?) {
         let _ = setupLogs
         
@@ -940,37 +974,7 @@ public final class OngoingCallContext {
             if let strongSelf = self {
                 var allowP2P = allowP2P
                 
-                var voipProxyServer: VoipProxyServerWebrtc?
-                if let proxyServer = proxyServer {
-                    switch proxyServer.connection {
-                    case let .socks5(username, password):
-                        let server = VoipProxyServerWebrtc(host: proxyServer.host, port: proxyServer.port, username: username, password: password)
-                        // An authenticated SOCKS5 server on the loopback interface is, by
-                        // construction, an on-device bridge (e.g. an embedded VLESS client
-                        // exposing a local proxy). tgcalls' managed route treats it as the
-                        // sole egress: media flows through authenticated SOCKS5 UDP/TCP
-                        // transports and direct P2P/STUN candidates are suppressed, so call
-                        // traffic cannot leak around the proxy. Remote SOCKS5 proxies keep
-                        // the regular (TCP-only) routing behavior.
-                        if proxyServer.host == "127.0.0.1", let username, let password, !username.isEmpty, !password.isEmpty {
-                            server.managed = true
-                        }
-                        voipProxyServer = server
-                    case .vless:
-                        // The embedded VLESS runtime exposes an authenticated loopback SOCKS5;
-                        // calls go through it in managed mode (sole egress, no P2P/STUN leak).
-                        if let url = proxyServer.vlessProxyURL {
-                            VlessManager.shared.configure(activeProfileURL: url)
-                            if let endpoint = VlessManager.shared.activeLoopbackEndpoint {
-                                let server = VoipProxyServerWebrtc(host: endpoint.host, port: Int32(clamping: endpoint.port), username: endpoint.user, password: endpoint.password)
-                                server.managed = true
-                                voipProxyServer = server
-                            }
-                        }
-                    case .mtp, .web:
-                        break
-                    }
-                }
+                let voipProxyServer = OngoingCallContext.resolvedVoipProxyServer(for: proxyServer)
                 
                 var unfilteredConnections: [CallSessionConnection]
                 unfilteredConnections = [connections.primary] + connections.alternatives
