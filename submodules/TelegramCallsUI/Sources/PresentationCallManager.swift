@@ -309,12 +309,14 @@ public final class PresentationCallManagerImpl: PresentationCallManager {
         })
     }
     
-    /// The proxy a call should actually dial, resolved at call-creation time. A WEB proxy cannot
-    /// be spoken to by tgcalls, but the sidecar exposes a loopback SOCKS5 bridge when the relay
-    /// supports arbitrary stream targets; without that bridge the call stays direct, exactly as
-    /// before. Reading the bridge live (not from the settings subscription) matters: it can
-    /// appear after the settings change, once the relay's WELCOME arrives.
-    private func resolvedCallProxyServer() -> ProxyServerSettings? {
+    /// The proxy a call (1-1 or group) should actually dial, resolved at call-creation time. A
+    /// WEB proxy cannot be spoken to by tgcalls, but the sidecar exposes a loopback SOCKS5
+    /// bridge when the relay supports arbitrary stream targets; without that bridge the call
+    /// stays direct, exactly as before. Reading the bridge live (not from the settings
+    /// subscription) matters: it can appear after the settings change, once the relay's WELCOME
+    /// arrives. Group calls resolve this at join time and route their media through the same
+    /// managed SOCKS5 bridge (no P2P/STUN leak).
+    public func resolvedCallProxyServer() -> ProxyServerSettings? {
         guard let proxyServer = self.proxyServer, case .web = proxyServer.connection else {
             return self.proxyServer
         }

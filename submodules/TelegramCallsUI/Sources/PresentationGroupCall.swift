@@ -1231,7 +1231,7 @@ public final class PresentationGroupCallImpl: PresentationGroupCall {
             screencastIPCContext = ScreencastEmbeddedIPCContext(basePath: self.accountContext.sharedContext.basePath)
             let _ = try? "ipc".write(toFile: embeddedBroadcastImplementationTypePath, atomically: true, encoding: .utf8)
         } else {
-            screencastIPCContext = ScreencastInProcessIPCContext(basePath: self.accountContext.sharedContext.basePath, isConference: self.isConference, e2eContext: self.e2eContext)
+            screencastIPCContext = ScreencastInProcessIPCContext(basePath: self.accountContext.sharedContext.basePath, isConference: self.isConference, e2eContext: self.e2eContext, proxyServer: self.accountContext.callManager?.resolvedCallProxyServer())
             let _ = try? "legacy".write(toFile: embeddedBroadcastImplementationTypePath, atomically: true, encoding: .utf8)
         }
         self.screencastIPCContext = screencastIPCContext
@@ -1893,7 +1893,7 @@ public final class PresentationGroupCallImpl: PresentationGroupCall {
                             }
                             self.onMutedSpeechActivityDetected?(value)
                         }
-                    }, isConference: self.isConference, audioIsActiveByDefault: audioIsActiveByDefault, isStream: self.isStream, sharedAudioDevice: self.sharedAudioContext?.audioDevice, encryptionContext: encryptionContext))
+                    }, isConference: self.isConference, audioIsActiveByDefault: audioIsActiveByDefault, isStream: self.isStream, sharedAudioDevice: self.sharedAudioContext?.audioDevice, encryptionContext: encryptionContext, proxyServer: self.accountContext.callManager?.resolvedCallProxyServer()))
                     
                     let isEffectivelyMuted: Bool
                     switch self.isMutedValue {

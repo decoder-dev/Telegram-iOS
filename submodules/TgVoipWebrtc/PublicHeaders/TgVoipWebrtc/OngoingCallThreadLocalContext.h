@@ -439,6 +439,7 @@ typedef NS_ENUM(int32_t, OngoingGroupCallRequestedVideoQuality) {
 @property (nonatomic, copy) void (^ _Nullable signalBarsChanged)(int32_t);
 
 - (instancetype _Nonnull)initWithQueue:(id<OngoingCallThreadLocalContextQueueWebrtc> _Nonnull)queue
+    proxy:(VoipProxyServerWebrtc * _Nullable)proxy
     networkStateUpdated:(void (^ _Nonnull)(GroupCallNetworkState))networkStateUpdated
     audioLevelsUpdated:(void (^ _Nonnull)(NSArray<NSNumber *> * _Nonnull))audioLevelsUpdated
     activityUpdated:(void (^ _Nonnull)(NSArray<NSNumber *> * _Nonnull))activityUpdated

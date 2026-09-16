@@ -2425,8 +2425,12 @@ private func findTextItem(
                 }
             }
         case let .table(table):
+            // The renderer shifts the grid down by the caption (title) height — the hit-test
+            // mapping must apply the same offset, or a captioned table's bottom rows become
+            // untappable with a dead band exactly as tall as the caption (upstream #2323).
+            let gridOffsetY = table.titleFrame?.height ?? 0.0
             for cell in table.cells {
-                let cellAbs = cell.frame.offsetBy(dx: f.minX + table.contentInset, dy: f.minY)
+                let cellAbs = cell.frame.offsetBy(dx: f.minX + table.contentInset, dy: f.minY + gridOffsetY)
                 if !cellAbs.contains(point) { continue }
                 if let sub = cell.subLayout {
                     if let hit = findTextItem(in: sub, point: point,
@@ -2502,9 +2506,10 @@ private func findAnchorFrame(
                 }
             }
         case let .table(table):
+            let gridOffsetY = table.titleFrame?.height ?? 0.0
             for cell in table.cells {
                 if let sub = cell.subLayout {
-                    let cellOffset = CGPoint(x: f.minX + table.contentInset + cell.frame.minX, y: f.minY + cell.frame.minY)
+                    let cellOffset = CGPoint(x: f.minX + table.contentInset + cell.frame.minX, y: f.minY + gridOffsetY + cell.frame.minY)
                     if let hit = findAnchorFrame(in: sub, name: name, accumulatedOffset: cellOffset) {
                         return hit
                     }
@@ -2566,11 +2571,12 @@ private func collectSelectableTextItems(
                 )
                 collectSelectableTextItems(in: titleLayout, accumulatedOffset: titleOffset, into: &result)
             }
+            let gridOffsetY = table.titleFrame?.height ?? 0.0
             for cell in table.cells {
                 if let sub = cell.subLayout {
                     let cellOffset = CGPoint(
                         x: accumulatedOffset.x + table.frame.minX + table.contentInset + cell.frame.minX,
-                        y: accumulatedOffset.y + table.frame.minY + cell.frame.minY
+                        y: accumulatedOffset.y + table.frame.minY + gridOffsetY + cell.frame.minY
                     )
                     collectSelectableTextItems(in: sub, accumulatedOffset: cellOffset, into: &result)
                 }
