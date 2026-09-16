@@ -6,6 +6,16 @@
 
 ## [Unreleased]
 
+## [v12.9.2-4036-pre]
+
+### Fixed — порт upstream-PR, пакет 2
+- **#2304 (звонки из Phone Recents):** звонок, начатый из вкладки «Недавние» системного приложения Phone, открывал чат, но сам звонок не стартовал — handle активности (`TGCA<peerId>`) не распознавался. Теперь маппится напрямую на peer и запускается.
+- **#2297 (мыльные стикеры в fullscreen/peek):** увеличенные просмотрщики (наборы стикеров, peek) больше не блюрят ожидающий thumbnail — `blurThumbnail: false` + острый апскейл превью; peek кастомных emoji 120pt → 180pt (cap по размеру экрана).
+- **#2217 (SIGSEGV DrawingContext):** guard на нулевой `imageBuffer.mutableBytes` при неудачном malloc (сверхразмерный drawingSize) — вместо segfault в memset init теперь честно фейлится.
+
+### Skipped
+- **#2315 (infinite GIF reader loop):** уже в форке — портирован ранее вместе с фиксом #2246 (zero-frame EOF → decode failure вместо вечного reopen-loop).
+
 ## [v12.9.2-4035-pre]
 
 ### Fixed — порт upstream-PR, пакет 1 (стабильность + memory safety)

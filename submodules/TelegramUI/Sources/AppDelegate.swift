@@ -2760,6 +2760,21 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
     
     func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
         if #available(iOS 10.0, *) {
+            // A call started from the iOS Phone app's Recents tab resumes as an activity whose
+            // handle carries the peer id (TGCA<id>) rather than a phone number; without this the
+            // chat opens but the call never starts (upstream PR #2304).
+            let startCallHandlePrefix = "TGCA"
+            if userActivity.activityType == NSStringFromClass(INStartCallIntent.self),
+               let handle = userActivity.userInfo?["handle"] as? String,
+               handle.hasPrefix(startCallHandlePrefix),
+               let peerIdValue = Int64(handle.dropFirst(startCallHandlePrefix.count)) {
+                let peerId = PeerId(peerIdValue)
+                if peerId.namespace == Namespaces.Peer.CloudUser {
+                    self.startCallWhenReady(accountId: nil, peerId: peerId, isVideo: false)
+                    return true
+                }
+            }
+
             var startCallContacts: [INPerson]?
             var isVideo = false
             if let startCallIntent = userActivity.interaction?.intent as? SupportedStartCallIntent {
