@@ -1625,6 +1625,7 @@ plist_fragment(
         <string>moovit</string>
         <string>alook</string>
         <string>dgis</string>
+        <string>casva</string>
         <string>microsoft-edge-http</string>
         <string>brave</string>
         <string>onionhttp</string>

@@ -723,7 +723,7 @@ public class ChatMessageRichDataBubbleContentNode: ChatMessageBubbleContentNode 
                 var showMoreFramePageLocal: CGRect?
                 if showMore, let pageLayout {
                     let title = item.presentationData.strings.Chat_RichText_ShowMore
-                    let attributedTitle = NSAttributedString(string: title, font: Font.regular(17.0), textColor: messageTheme.linkTextColor)
+                    let attributedTitle = NSAttributedString(string: title, font: Font.regular(item.presentationData.fontSize.baseDisplaySize), textColor: messageTheme.linkTextColor)
                     // The link only fits within the existing bubble width (it does not widen the
                     // bubble the way the status node does); the short fixed string never needs more,
                     // and `.end` truncation is a safe fallback for a pathologically narrow bubble.
