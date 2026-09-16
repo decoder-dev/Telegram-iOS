@@ -6,6 +6,19 @@
 
 ## [Unreleased]
 
+## [v12.9.2-4037-pre]
+
+### Fixed — кросс-форк пакет 3
+- **Nicegram #139 (Google DoH в MTDNS):** хостнеймы SOCKS-/MTT-прокси больше НЕ резолвятся через Google DoH (`https://google.com/resolve`) — всегда системный резолвер. Убирает утечку имени прокси-сервера в Google и 10-секундный ста́лл в регионах, где google.com душится (DoH висел до таймаута, потом fallback). Проверено: в форке Google DoH использовался только на этих двух сайтах — теперь его в приложении нет вообще.
+- **Upstream #740 (сохранение контакта):** в телефонную книгу писалась битая ссылка `https://t.me/@id<peerId>` (не работает как deep-link). Теперь пишется `https://t.me/<username>`; у пира без юзернейма строка Telegram-URL не пишется вовсе (вместо битой). Легаси-записи `@id<peerId>` по-прежнему парсятся обратно в пира.
+- **Upstream #2070 (Storage Usage):** при очистке кэша size-label не скрывался и накладывался на галочку — теперь `isHidden` вместе с alpha (коммит 67433ab).
+- **Upstream #1430 (Mini App клавиатура, частично):** убран teardown keyboard-обсерверов в `didMoveToSuperview` WebAppWebView. Математику скролла к активному элементу НЕ переносил: у форка другая конвенция фрейма (к моменту JS-колбэка фрейм уже уменьшен на клавиатуру — фикс #2235), вычитание inputHeight по апстрим-рецепту дало бы двойной учёт клавиатуры.
+
+### Проанализировано и не перенесено
+- **Upstream #735 (IPv6 SOCKS AddrType):** уже в форке (inet_aton/IPv6/Domain → AddrType 1/4/3), причём с клампом длины домена в 255 байт.
+- **TelegramSwift #1425 (guard noteHeightOfRow):** macOS/TGUIKit-специфика; на iOS идея уже применена фиксом #2124 (bounds-проверки индексов в ListView).
+- **TelegramSwift #1416 (fallback unsupported media):** на iOS уже есть — `updateUnsupportedMediaForMessageIds` в ChatHistoryListNode; не хватало только macOS-форку.
+
 ## [v12.9.2-4036-pre]
 
 ### Fixed — порт upstream-PR, пакет 2
