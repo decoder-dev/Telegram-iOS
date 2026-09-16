@@ -265,6 +265,23 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
     
     private let titleAccessoryPanelContainer: ChatControllerTitlePanelNodeContainer
     private var currentTitleAccessoryPanelNode: ChatTitleAccessoryPanelNode?
+    private var currentPinnedTitleAccessoryPanelNode: ChatPinnedMessageTitlePanelNode?
+
+    private var shouldDisplayPinnedTitlePanel: Bool {
+        guard self.chatPresentationInterfaceState.titlePanelContexts.contains(.pinnedMessage) else {
+            return false
+        }
+        guard let pinnedMessage = self.chatPresentationInterfaceState.pinnedMessage else {
+            return false
+        }
+        if pinnedMessage.topMessageId == self.chatPresentationInterfaceState.interfaceState.messageActionsState.closedPinnedMessageId {
+            return false
+        }
+        if self.chatPresentationInterfaceState.pendingUnpinnedAllMessages {
+            return false
+        }
+        return true
+    }
     
     private var floatingTopicsPanelContainer: ChatControllerTitlePanelNodeContainer
     private var floatingTopicsPanel: (view: ComponentView<ChatSidePanelEnvironment>, component: ChatFloatingTopicsPanel)?
@@ -1622,17 +1639,50 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
         
         if !hideTopPanels, let titleAccessoryPanelNode = titlePanelForChatPresentationInterfaceState(self.chatPresentationInterfaceState, context: self.context, currentPanel: self.currentTitleAccessoryPanelNode, controllerInteraction: self.controllerInteraction, interfaceInteraction: self.interfaceInteraction, force: false) {
             self.currentTitleAccessoryPanelNode = titleAccessoryPanelNode
-            let panelKey = "\(type(of: titleAccessoryPanelNode))"
-            headerPanels.append(HeaderPanelContainerComponent.Panel(
-                key: panelKey,
-                orderIndex: 3,
-                component: AnyComponent(LegacyChatHeaderPanelComponent(
-                    panelNode: titleAccessoryPanelNode,
-                    interfaceState: self.chatPresentationInterfaceState
-                )))
-            )
+            if titleAccessoryPanelNode is ChatManagingBotTitlePanelNode, self.shouldDisplayPinnedTitlePanel {
+                // A managing-bot panel must not displace the pinned-message panel: show both,
+                // pinned on top (upstream PR #2212).
+                let pinnedPanelNode: ChatPinnedMessageTitlePanelNode
+                if let current = self.currentPinnedTitleAccessoryPanelNode {
+                    pinnedPanelNode = current
+                } else {
+                    pinnedPanelNode = ChatPinnedMessageTitlePanelNode(context: self.context, animationCache: self.controllerInteraction.presentationContext.animationCache, animationRenderer: self.controllerInteraction.presentationContext.animationRenderer)
+                    pinnedPanelNode.interfaceInteraction = self.interfaceInteraction
+                    self.currentPinnedTitleAccessoryPanelNode = pinnedPanelNode
+                }
+
+                headerPanels.append(HeaderPanelContainerComponent.Panel(
+                    key: "\(ChatPinnedMessageTitlePanelNode.self)",
+                    orderIndex: 3,
+                    component: AnyComponent(LegacyChatHeaderPanelComponent(
+                        panelNode: pinnedPanelNode,
+                        interfaceState: self.chatPresentationInterfaceState
+                    )))
+                )
+                headerPanels.append(HeaderPanelContainerComponent.Panel(
+                    key: "\(type(of: titleAccessoryPanelNode))",
+                    orderIndex: 4,
+                    component: AnyComponent(LegacyChatHeaderPanelComponent(
+                        panelNode: titleAccessoryPanelNode,
+                        interfaceState: self.chatPresentationInterfaceState
+                    )))
+                )
+            } else {
+                self.currentPinnedTitleAccessoryPanelNode = nil
+
+                let panelKey = "\(type(of: titleAccessoryPanelNode))"
+                headerPanels.append(HeaderPanelContainerComponent.Panel(
+                    key: panelKey,
+                    orderIndex: 3,
+                    component: AnyComponent(LegacyChatHeaderPanelComponent(
+                        panelNode: titleAccessoryPanelNode,
+                        interfaceState: self.chatPresentationInterfaceState
+                    )))
+                )
+            }
         } else {
             self.currentTitleAccessoryPanelNode = nil
+            self.currentPinnedTitleAccessoryPanelNode = nil
         }
         
         var displayFeePanel: (value: Int64, peer: EnginePeer)?
