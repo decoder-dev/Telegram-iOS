@@ -6,6 +6,17 @@
 
 ## [Unreleased]
 
+## [v12.9.2-4039-pre]
+
+### Fixed — VLESS: современные ссылки Xray не вставлялись
+- **XHTTP-транспорт (`type=xhttp`)**: парсер принимал только tcp/ws/grpc/httpupgrade — ссылки с XHTTP (включая легаси-алиас `splithttp`) отвергались как unsupportedTransport. Теперь: `xhttpSettings` с path/host/mode (auto/packet-up/stream-up/stream-one).
+- **Post-quantum encryption (`encryption=mlkem768x25519plus.native.0rtt.<ключ>`)**: парсер требовал строго `none`. Теперь ключ-выражение валидируется по формату ядра (KEM/реализация/RTT-тройка + base64url) и передаётся в outbound user settings как есть; криптопроверку делает сам Xray при старте.
+- **`extra=<JSON>`**: параметры XHTTP-экстры (xmux, xPaddingBytes/Header/Key/Method/Placement, uplinkHTTPMethod и т.д.) не были в allowlist. Ссылки кодируют JSON дважды — принимаются обе формы (одинарная/двойная кодировка), объект валидируется, каноникализируется, лимит 4 КБ; кладётся в `xhttpSettings.extra`, ядро само вмерживает (top-level path/host/mode приоритетнее).
+- **`allowInsecure=0/1`**: не было в allowlist → все ссылки современных клиентов (всегда егонесут) отвергались. Принимается 0/1/true/false; при true ставится в tls/reality settings.
+- **Лимит длины ссылки**: 4096 → 8192 (ключ mlkem768x25519plus один ~1.6 КБ, ссылка целиком ~3.2 КБ).
+- Строгость сохранена: extra/mode по-прежнему отвергаются на чужих транспортах, невалидные mode/extra/allowInsecure дают понятные ошибки (invalidExtra/invalidAllowInsecure).
+- Проверено по исходникам Xray-core (vless.go, transport_method.go): формат mlkem-шифрования, поля SplitHTTPConfig, merge-семантика extra. Поля `downFrame`/`scStreamDownServerSecs` ядро молча игнорирует (unknown fields) — безопасный passthrough.
+
 ## [v12.9.2-4038-pre]
 
 ### Fixed

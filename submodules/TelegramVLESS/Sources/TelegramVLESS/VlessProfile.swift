@@ -3,10 +3,12 @@ import Foundation
 /// A parsed and validated `vless://` share-link profile.
 ///
 /// The parameter space mirrors the strict allowlist of the reference desktop
-/// integration (telegramvless `Core::ParseVlessProfile`): anything outside the
-/// supported subset is rejected instead of silently ignored, so a profile that
-/// parses here is guaranteed to be fully expressible in the generated Xray
-/// configuration.
+/// integration (telegramvless `Core::ParseVlessProfile`), extended for the
+/// modern Xray link surface: the XHTTP transport (`type=xhttp` with `mode`,
+/// `extra`), the post-quantum `mlkem768x25519plus` encryption layer, and the
+/// `allowInsecure` flag. Anything outside the supported subset is rejected
+/// instead of silently ignored, so a profile that parses here is guaranteed to
+/// be fully expressible in the generated Xray configuration.
 public struct VlessProfile: Equatable {
     public enum Flow: String, Equatable {
         case none = ""
@@ -24,6 +26,7 @@ public struct VlessProfile: Equatable {
         case ws = "websocket"
         case grpc
         case httpupgrade
+        case xhttp
     }
 
     public enum Fingerprint: String, Equatable {
@@ -63,6 +66,17 @@ public struct VlessProfile: Equatable {
     public var grpcAuthority: String?
     public var grpcMultiMode: Bool
 
+    // XHTTP settings
+    public var xhttpMode: String?
+    public var xhttpExtraJSON: String?
+
+    // VLESS encryption layer: "none", or a post-quantum
+    // mlkem768x25519plus key expression passed through verbatim to the core.
+    public var encryption: String
+
+    // TLS/REALITY: skip server certificate verification (allowInsecure in share links).
+    public var allowInsecure: Bool
+
     public init(
         endpoint: Endpoint,
         userId: String,
@@ -79,7 +93,11 @@ public struct VlessProfile: Equatable {
         transportHost: String? = nil,
         grpcServiceName: String? = nil,
         grpcAuthority: String? = nil,
-        grpcMultiMode: Bool = false
+        grpcMultiMode: Bool = false,
+        encryption: String = "none",
+        allowInsecure: Bool = false,
+        xhttpMode: String? = nil,
+        xhttpExtraJSON: String? = nil
     ) {
         self.endpoint = endpoint
         self.userId = userId
@@ -97,6 +115,10 @@ public struct VlessProfile: Equatable {
         self.grpcServiceName = grpcServiceName
         self.grpcAuthority = grpcAuthority
         self.grpcMultiMode = grpcMultiMode
+        self.encryption = encryption
+        self.allowInsecure = allowInsecure
+        self.xhttpMode = xhttpMode
+        self.xhttpExtraJSON = xhttpExtraJSON
     }
 }
 
@@ -121,15 +143,21 @@ public enum VlessProfileError: Error, Equatable {
     case invalidServerName
     case missingRealityPublicKey
     case invalidQuery
+    case invalidExtra
+    case invalidAllowInsecure
 }
 
 private let allowedParameters: Set<String> = [
     "encryption", "flow", "security", "sni", "fp", "alpn", "pbk", "sid", "spx",
     "type", "host", "path", "serviceName", "mode", "authority",
+    "extra", "allowInsecure",
 ]
 
 public enum VlessProfileParser {
-    public static let maximumUriLength = 4096
+    // A post-quantum mlkem768x25519plus key expression alone is ~1.6 KB, and the
+    // XHTTP `extra` JSON adds several hundred more, so the cap must comfortably
+    // exceed the classical 4 KB while still bounding the input.
+    public static let maximumUriLength = 8192
 
     public static func parse(_ raw: String) -> Result<VlessProfile, VlessProfileError> {
         let uri = raw.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -166,10 +194,14 @@ public enum VlessProfileParser {
             }
         }
 
-        // encryption: VLESS supports only "none".
-        let encryption = (query["encryption"] ?? "none").lowercased()
-        guard encryption == "none" else {
-            return .failure(.unsupportedEncryption(encryption))
+        // encryption: legacy VLESS uses "none"; the post-quantum layer (Xray v25.9.1+)
+        // carries `mlkem768x25519plus.<native|xorpub|random>.<1rtt|0rtt>.<key>` in the
+        // share link and in the outbound user settings. The key expression is passed
+        // through verbatim - the core validates the key material itself.
+        let encryptionRaw = query["encryption"].flatMap { $0.isEmpty ? nil : $0 } ?? "none"
+        let encryption = encryptionRaw.lowercased() == "none" ? "none" : encryptionRaw
+        guard encryption == "none" || Self.isValidVlessEncryption(encryption) else {
+            return .failure(.unsupportedEncryption(encryptionRaw))
         }
 
         // flow
@@ -210,6 +242,8 @@ public enum VlessProfileParser {
             transport = .grpc
         case "httpupgrade":
             transport = .httpupgrade
+        case "xhttp", "splithttp":
+            transport = .xhttp
         default:
             return .failure(.unsupportedTransport(rawTransport))
         }
@@ -233,6 +267,20 @@ public enum VlessProfileParser {
                 }
             }
             alpn = parts
+        }
+
+        // allowInsecure: links generated by modern clients always carry the flag;
+        // anything but a recognized boolean form is rejected rather than guessed.
+        var allowInsecure = false
+        if let rawAllowInsecure = query["allowInsecure"], !rawAllowInsecure.isEmpty {
+            switch rawAllowInsecure.lowercased() {
+            case "0", "false":
+                allowInsecure = false
+            case "1", "true":
+                allowInsecure = true
+            default:
+                return .failure(.invalidAllowInsecure)
+            }
         }
 
         // serverName
@@ -280,9 +328,11 @@ public enum VlessProfileParser {
         var grpcServiceName: String?
         var grpcAuthority: String?
         var grpcMultiMode = false
+        var xhttpMode: String?
+        var xhttpExtraJSON: String?
         switch transport {
         case .tcp:
-            for key in ["path", "host", "serviceName", "mode", "authority"] where (query[key] ?? "").isEmpty == false {
+            for key in ["path", "host", "serviceName", "mode", "authority", "extra"] where (query[key] ?? "").isEmpty == false {
                 return .failure(.unsupportedParameter(key))
             }
         case .ws, .httpupgrade:
@@ -292,7 +342,7 @@ public enum VlessProfileParser {
             if let rawHost = query["host"], !rawHost.isEmpty {
                 transportHost = rawHost
             }
-            for key in ["serviceName", "mode", "authority"] where (query[key] ?? "").isEmpty == false {
+            for key in ["serviceName", "mode", "authority", "extra"] where (query[key] ?? "").isEmpty == false {
                 return .failure(.unsupportedParameter(key))
             }
         case .grpc:
@@ -312,7 +362,31 @@ public enum VlessProfileParser {
             if let rawAuthority = query["authority"], !rawAuthority.isEmpty {
                 grpcAuthority = rawAuthority
             }
-            for key in ["path", "host"] where (query[key] ?? "").isEmpty == false {
+            for key in ["path", "host", "extra"] where (query[key] ?? "").isEmpty == false {
+                return .failure(.unsupportedParameter(key))
+            }
+        case .xhttp:
+            if let rawPath = query["path"], !rawPath.isEmpty {
+                path = rawPath
+            }
+            if let rawHost = query["host"], !rawHost.isEmpty {
+                transportHost = rawHost
+            }
+            if let rawMode = query["mode"], !rawMode.isEmpty {
+                switch rawMode {
+                case "auto", "packet-up", "stream-up", "stream-one":
+                    xhttpMode = rawMode
+                default:
+                    return .failure(.unsupportedParameter("mode"))
+                }
+            }
+            if let rawExtra = query["extra"], !rawExtra.isEmpty {
+                guard let extraJSON = Self.decodeXhttpExtra(rawExtra) else {
+                    return .failure(.invalidExtra)
+                }
+                xhttpExtraJSON = extraJSON
+            }
+            for key in ["serviceName", "authority"] where (query[key] ?? "").isEmpty == false {
                 return .failure(.unsupportedParameter(key))
             }
         }
@@ -333,8 +407,63 @@ public enum VlessProfileParser {
             transportHost: transportHost,
             grpcServiceName: grpcServiceName,
             grpcAuthority: grpcAuthority,
-            grpcMultiMode: grpcMultiMode
+            grpcMultiMode: grpcMultiMode,
+            encryption: encryption,
+            allowInsecure: allowInsecure,
+            xhttpMode: xhttpMode,
+            xhttpExtraJSON: xhttpExtraJSON
         ))
+    }
+
+    /// `mlkem768x25519plus.<native|xorpub|random>.<1rtt|0rtt>.<base64url key material>`,
+    /// mirroring the acceptance rules of Xray-core's VLESS outbound configuration:
+    /// at least four dot-separated parts, a known KEM/implementation/RTT triple,
+    /// and key material limited to base64url characters and a sane length. The
+    /// core performs the full cryptographic validation when the tunnel starts.
+    static func isValidVlessEncryption(_ value: String) -> Bool {
+        let parts = value.split(separator: ".", omittingEmptySubsequences: false).map(String.init)
+        guard parts.count >= 4, parts[0] == "mlkem768x25519plus" else {
+            return false
+        }
+        guard ["native", "xorpub", "random"].contains(parts[1]) else {
+            return false
+        }
+        guard ["1rtt", "0rtt"].contains(parts[2]) else {
+            return false
+        }
+        let keyMaterial = parts[3...].joined(separator: ".")
+        guard !keyMaterial.isEmpty, keyMaterial.count <= 2048 else {
+            return false
+        }
+        return keyMaterial.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-" || $0 == "_" || $0 == ".") }
+    }
+
+    /// Share links URL-encode the XHTTP `extra` JSON twice, so after the single
+    /// round of query decoding performed by URLComponents the value still looks
+    /// percent-encoded. Accept both the once- and the twice-encoded form, require
+    /// a JSON object, canonicalize it, and cap its size; the core merges the
+    /// object into `xhttpSettings` (top-level path/host/mode take priority).
+    static func decodeXhttpExtra(_ value: String) -> String? {
+        var candidates = [value]
+        if let decoded = value.removingPercentEncoding {
+            candidates.append(decoded)
+        }
+        for candidate in candidates {
+            guard candidate.hasPrefix("{"), let data = candidate.data(using: .utf8) else {
+                continue
+            }
+            guard let object = (try? JSONSerialization.jsonObject(with: data, options: [])) as? [String: Any] else {
+                continue
+            }
+            guard let normalized = try? JSONSerialization.data(withJSONObject: object, options: [.sortedKeys]) else {
+                continue
+            }
+            guard let text = String(data: normalized, encoding: .utf8), text.utf8.count <= 4096 else {
+                continue
+            }
+            return text
+        }
+        return nil
     }
 
     static func isValidUUID(_ value: String) -> Bool {
