@@ -31,7 +31,9 @@ public enum VlessXrayConfig {
 
         var user: [String: Any] = [
             "id": profile.userId,
-            "encryption": "none",
+            // "none" for legacy profiles, or the post-quantum
+            // mlkem768x25519plus key expression carried by the share link.
+            "encryption": profile.encryption,
         ]
         if !profile.flow.rawValue.isEmpty {
             user["flow"] = profile.flow.rawValue
@@ -69,6 +71,22 @@ public enum VlessXrayConfig {
                 settings["host"] = host
             }
             stream["httpupgradeSettings"] = settings
+        case .xhttp:
+            var settings: [String: Any] = [
+                "path": profile.path ?? "/",
+            ]
+            if let host = profile.transportHost {
+                settings["host"] = host
+            }
+            if let mode = profile.xhttpMode {
+                settings["mode"] = mode
+            }
+            // The `extra` object is merged into xhttpSettings by the core;
+            // top-level path/host/mode take priority over its contents.
+            if let extraJSON = profile.xhttpExtraJSON, let extraData = extraJSON.data(using: .utf8), let extraObject = (try? JSONSerialization.jsonObject(with: extraData, options: [])) as? [String: Any] {
+                settings["extra"] = extraObject
+            }
+            stream["xhttpSettings"] = settings
         }
 
         switch profile.security {
@@ -76,7 +94,7 @@ public enum VlessXrayConfig {
             break
         case .tls:
             var settings: [String: Any] = [
-                "allowInsecure": false,
+                "allowInsecure": profile.allowInsecure,
             ]
             if let serverName = profile.serverName {
                 settings["serverName"] = serverName
@@ -94,6 +112,7 @@ public enum VlessXrayConfig {
             }
             var settings: [String: Any] = [
                 "publicKey": publicKey,
+                "allowInsecure": profile.allowInsecure,
             ]
             if let serverName = profile.serverName {
                 settings["serverName"] = serverName
