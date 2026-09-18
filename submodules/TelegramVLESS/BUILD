@@ -10,6 +10,7 @@ swift_library(
         "-warnings-as-errors",
     ],
     deps = [
+        "//submodules/SwiftSignalKit:SwiftSignalKit",
         "//third-party/libxray:LibXray",
     ],
     visibility = [
