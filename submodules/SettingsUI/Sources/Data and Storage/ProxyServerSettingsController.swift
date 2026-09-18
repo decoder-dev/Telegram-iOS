@@ -310,19 +310,18 @@ private func proxyServerSettingsControllerEntries(presentationData: Presentation
         entries.append(.vlessInfo(presentationData.theme, ForkProxyDescriptionStrings.vless))
     }
     
-    entries.append(.connectionHeader(presentationData.theme, presentationData.strings.SocksProxySetup_Connection.uppercased()))
+    let connectionHeaderTitle = state.mode == .vless ? "URL" : presentationData.strings.SocksProxySetup_Connection.uppercased()
+    entries.append(.connectionHeader(presentationData.theme, connectionHeaderTitle))
     let serverPlaceholder: String
     if state.mode == .web {
         serverPlaceholder = ForkWebProxyStrings.maskingSite
+    } else if state.mode == .vless {
+        serverPlaceholder = "vless://…"
     } else {
         serverPlaceholder = presentationData.strings.SocksProxySetup_Hostname
     }
     
-    if state.mode == .vless {
-        entries.append(.connectionServerReadOnly(presentationData.theme, "URL", state.host))
-    } else {
-        entries.append(.connectionServer(presentationData.theme, presentationData.strings, serverPlaceholder, state.host))
-    }
+    entries.append(.connectionServer(presentationData.theme, presentationData.strings, serverPlaceholder, state.host))
     
     if state.mode != .web && state.mode != .vless {
         entries.append(.connectionPort(presentationData.theme, presentationData.strings, presentationData.strings.SocksProxySetup_Port, state.port))

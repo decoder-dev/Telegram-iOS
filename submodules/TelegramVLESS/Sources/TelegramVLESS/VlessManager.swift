@@ -80,81 +80,81 @@ public final class VlessManager {
 
     /// Starts the runtime for `url`. On success the app should install the
     /// returned sink as its active proxy (SOCKS5, `useForCalls` included).
-    @discardableResult
-    public func start(url: String) -> Result<VlessProxySink, VlessError> {
+    public func start(url: String) {
         lock.lock()
         if case .preparing = stateValue {
             lock.unlock()
-            return .failure(.busy)
+            return
         }
         if case .running = stateValue {
             lock.unlock()
-            return .failure(.busy)
+            return
         }
         stateValue = .preparing
         lock.unlock()
         notifyStateChange()
 
-        let fail: (VlessError) -> Result<VlessProxySink, VlessError> = { [weak self] error in
-            guard let self = self else {
-                return .failure(error)
+        DispatchQueue.global().async { [weak self] in
+            guard let self = self else { return }
+
+            let fail: (VlessError) -> Void = { [weak self] error in
+                guard let self = self else { return }
+                self.lock.lock()
+                self.stateValue = .failed(error)
+                self.lock.unlock()
+                self.notifyStateChange()
             }
+
+            guard self.runtime.isAvailable else {
+                return fail(.runtimeUnavailable)
+            }
+
+            let profile: VlessProfile
+            switch VlessProfileParser.parse(url) {
+            case let .success(value):
+                profile = value
+            case let .failure(error):
+                return fail(.invalidProfile(error))
+            }
+
+            let ports: [Int]
+            do {
+                ports = try self.runtime.getFreePorts(count: 2)
+            } catch {
+                return fail(.portAllocationFailed)
+            }
+
+            let socksCredential = Self.generateCredential()
+            let httpCredential = Self.generateCredential()
+            let socks = VlessLocalInbound(port: ports[0], user: socksCredential.0, password: socksCredential.1)
+            let http = VlessLocalInbound(port: ports[1], user: httpCredential.0, password: httpCredential.1)
+
+            guard let configJSON = VlessXrayConfig.configJSON(profile: profile, socks: socks, http: http) else {
+                return fail(.configurationFailed)
+            }
+
+            do {
+                try self.runtime.start(configJSON: configJSON)
+            } catch {
+                return fail(.startFailed(String(describing: error)))
+            }
+
+            guard self.runtime.isRunning() else {
+                try? self.runtime.stop()
+                return fail(.startFailed("runtime did not stay running"))
+            }
+
+            let sink = VlessProxySink(host: "127.0.0.1", port: socks.port, user: socks.user, password: socks.password)
             self.lock.lock()
-            self.stateValue = .failed(error)
+            self.stateValue = .running(sink: sink)
+            self.activeProfileURLValue = url
             self.lock.unlock()
             self.notifyStateChange()
-            return .failure(error)
+            
+            DispatchQueue.main.async { [weak self] in
+                self?.startHeartbeat()
+            }
         }
-
-        guard runtime.isAvailable else {
-            return fail(.runtimeUnavailable)
-        }
-
-        let profile: VlessProfile
-        switch VlessProfileParser.parse(url) {
-        case let .success(value):
-            profile = value
-        case let .failure(error):
-            return fail(.invalidProfile(error))
-        }
-
-        let ports: [Int]
-        do {
-            ports = try runtime.getFreePorts(count: 2)
-        } catch {
-            return fail(.portAllocationFailed)
-        }
-
-        let socksCredential = Self.generateCredential()
-        let httpCredential = Self.generateCredential()
-        let socks = VlessLocalInbound(port: ports[0], user: socksCredential.0, password: socksCredential.1)
-        let http = VlessLocalInbound(port: ports[1], user: httpCredential.0, password: httpCredential.1)
-
-        guard let configJSON = VlessXrayConfig.configJSON(profile: profile, socks: socks, http: http) else {
-            return fail(.configurationFailed)
-        }
-
-        do {
-            try runtime.start(configJSON: configJSON)
-        } catch {
-            return fail(.startFailed(String(describing: error)))
-        }
-
-        guard runtime.isRunning() else {
-            try? runtime.stop()
-            return fail(.startFailed("runtime did not stay running"))
-        }
-
-        let sink = VlessProxySink(host: "127.0.0.1", port: socks.port, user: socks.user, password: socks.password)
-        lock.lock()
-        stateValue = .running(sink: sink)
-        activeProfileURLValue = url
-        lock.unlock()
-        notifyStateChange()
-        
-        startHeartbeat()
-        
-        return .success(sink)
     }
 
     /// Stops the runtime. The app must drop the sink from its active proxy

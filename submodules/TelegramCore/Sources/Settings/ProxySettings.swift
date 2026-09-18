@@ -50,17 +50,11 @@ extension ProxyServerSettings {
                 guard let configuration = self.webProxyConfiguration else {
                     return nil
                 }
-                WebProxyManager.shared.configure(activeWebProxy: configuration)
-                guard WebProxyManager.shared.isReady(for: configuration),
-                      let endpoint = WebProxyManager.shared.activeLoopbackEndpoint else {
+                guard let endpoint = WebProxyManager.shared.activeLoopbackEndpoint else {
                     return nil
                 }
                 return MTSocksProxySettings(ip: endpoint.host, port: endpoint.port, username: nil, password: nil, secret: configuration.secret)
             case .vless:
-                guard let url = self.vlessProxyURL else {
-                    return nil
-                }
-                VlessManager.shared.configure(activeProfileURL: url)
                 guard let endpoint = VlessManager.shared.activeLoopbackEndpoint else {
                     return nil
                 }
@@ -97,22 +91,22 @@ func applySharedProxySettingsToNetwork(settings: ProxySettings, network: Network
 
     let activeServer = settings.effectiveActiveServer
     let isActiveWebProxy = activeServer?.connection.isWebProxy ?? false
-    if !isActiveWebProxy {
+    if isActiveWebProxy, let configuration = activeServer?.webProxyConfiguration {
+        WebProxyManager.shared.configure(activeWebProxy: configuration)
+    } else {
         WebProxyManager.shared.configure(activeWebProxy: nil)
     }
+    
     let isActiveVlessProxy = activeServer?.connection.isVlessProxy ?? false
-    if !isActiveVlessProxy {
+    if isActiveVlessProxy, let url = activeServer?.vlessProxyURL {
+        VlessManager.shared.configure(activeProfileURL: url)
+    } else {
         VlessManager.shared.configure(activeProfileURL: nil)
     }
 
-    // mtProxySettings configures (or reuses) the WEB proxy sidecar / the VLESS runtime
-    // as a side effect; calling it here as well as above would start it twice.
     let resolvedProxySettings = activeServer?.mtProxySettings
 
     if (isActiveWebProxy || isActiveVlessProxy), resolvedProxySettings == nil {
-        if let configuration = activeServer?.webProxyConfiguration {
-            WebProxyManager.shared.configure(activeWebProxy: configuration)
-        }
         
         var isFailed = false
         if isActiveVlessProxy, case .failed = VlessManager.shared.state {

@@ -98,7 +98,7 @@ public enum ForkProxyDescriptionStrings {
     }
 
     public static var vless: String {
-        return ForkPresentationLanguage.prefersRussianStrings ? "VLESS со встроенным Xray: вставьте ссылку vless:// — весь трафик приложения пойдёт через туннель (TLS/Reality/XHTTP+mlkem), звонки — без утечек IP." : "VLESS with an embedded Xray core: paste a vless:// link and all app traffic goes through the tunnel (TLS/Reality/XHTTP+mlkem); calls never leak your IP."
+        return ForkPresentationLanguage.prefersRussianStrings ? "VLESS-протокол (XHTTP, mlkem, TLS/Reality). Работает на основе Xray-core.\n\nВставьте ссылку vless:// — весь трафик приложения пойдёт через встроенный Xray-туннель." : "VLESS with an embedded Xray core: paste a vless:// link and all app traffic goes through the tunnel (TLS/Reality/XHTTP+mlkem); calls never leak your IP."
     }
 
     /// Short one-liners for the add-proxy action sheet.

@@ -124,7 +124,13 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
             case .addProxy:
                 return .index(2)
             case let .server(_, _, _, settings, _, _, _, _, _):
-                return .server(settings.host, settings.port, settings.connection)
+                let displayHost: String
+                if case .vless = settings.connection {
+                    displayHost = "vless://\(settings.host)"
+                } else {
+                    displayHost = settings.host
+                }
+                return .server(displayHost, settings.port, settings.connection)
             case .shareProxyList:
                 return .index(3)
             case .useLocalDNS:

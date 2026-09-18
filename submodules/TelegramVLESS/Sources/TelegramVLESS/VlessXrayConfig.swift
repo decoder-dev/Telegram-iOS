@@ -94,8 +94,8 @@ public enum VlessXrayConfig {
             }
             // The `extra` object is merged into xhttpSettings by the core;
             // top-level path/host/mode take priority over its contents.
-            if let extraJSON = profile.xhttpExtraJSON, let extraData = extraJSON.data(using: .utf8), let extraObject = (try? JSONSerialization.jsonObject(with: extraData, options: [])) as? [String: Any] {
-                settings["extra"] = extraObject
+            if let extra = profile.xhttpExtra {
+                settings["extra"] = extra.value
             }
             stream["xhttpSettings"] = settings
         }

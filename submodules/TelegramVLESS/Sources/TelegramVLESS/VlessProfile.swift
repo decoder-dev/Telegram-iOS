@@ -15,6 +15,14 @@ public struct VlessProfile: Equatable {
         case xtlsRprxVision = "xtls-rprx-vision"
     }
 
+    public struct XhttpExtra: Equatable {
+        public let value: [String: Any]
+        public init(_ value: [String: Any]) { self.value = value }
+        public static func == (lhs: XhttpExtra, rhs: XhttpExtra) -> Bool {
+            return NSDictionary(dictionary: lhs.value).isEqual(to: rhs.value)
+        }
+    }
+
     public enum Security: String, Equatable {
         case none
         case tls
@@ -68,7 +76,7 @@ public struct VlessProfile: Equatable {
 
     // XHTTP settings
     public var xhttpMode: String?
-    public var xhttpExtraJSON: String?
+    public var xhttpExtra: XhttpExtra?
 
     // Sockopt / Mux overrides
     public var sockoptDownFrame: Int?
@@ -101,7 +109,7 @@ public struct VlessProfile: Equatable {
         encryption: String = "none",
         allowInsecure: Bool = false,
         xhttpMode: String? = nil,
-        xhttpExtraJSON: String? = nil,
+        xhttpExtra: XhttpExtra? = nil,
         sockoptDownFrame: Int? = nil,
         sockoptScStreamDownServerSecs: Int? = nil
     ) {
@@ -124,7 +132,7 @@ public struct VlessProfile: Equatable {
         self.encryption = encryption
         self.allowInsecure = allowInsecure
         self.xhttpMode = xhttpMode
-        self.xhttpExtraJSON = xhttpExtraJSON
+        self.xhttpExtra = xhttpExtra
         self.sockoptDownFrame = sockoptDownFrame
         self.sockoptScStreamDownServerSecs = sockoptScStreamDownServerSecs
     }
@@ -337,7 +345,7 @@ public enum VlessProfileParser {
         var grpcAuthority: String?
         var grpcMultiMode = false
         var xhttpMode: String?
-        var xhttpExtraJSON: String?
+        var xhttpExtra: XhttpExtra? = nil
         switch transport {
         case .tcp:
             for key in ["path", "host", "serviceName", "mode", "authority", "extra"] where (query[key] ?? "").isEmpty == false {
@@ -389,10 +397,10 @@ public enum VlessProfileParser {
                 }
             }
             if let rawExtra = query["extra"], !rawExtra.isEmpty {
-                guard let extraJSON = Self.decodeXhttpExtra(rawExtra) else {
+                guard let extra = Self.decodeXhttpExtra(rawExtra) else {
                     return .failure(.invalidExtra)
                 }
-                xhttpExtraJSON = extraJSON
+                xhttpExtra = extra
             }
             for key in ["serviceName", "authority"] where (query[key] ?? "").isEmpty == false {
                 return .failure(.unsupportedParameter(key))
@@ -429,7 +437,7 @@ public enum VlessProfileParser {
             encryption: encryption,
             allowInsecure: allowInsecure,
             xhttpMode: xhttpMode,
-            xhttpExtraJSON: xhttpExtraJSON,
+            xhttpExtra: xhttpExtra,
             sockoptDownFrame: sockoptDownFrame,
             sockoptScStreamDownServerSecs: sockoptScStreamDownServerSecs
         ))
@@ -458,12 +466,11 @@ public enum VlessProfileParser {
         return keyMaterial.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-" || $0 == "_" || $0 == ".") }
     }
 
-    /// Share links URL-encode the XHTTP `extra` JSON twice, so after the single
     /// round of query decoding performed by URLComponents the value still looks
     /// percent-encoded. Accept both the once- and the twice-encoded form, require
-    /// a JSON object, canonicalize it, and cap its size; the core merges the
+    /// a JSON object, and cap its size; the core merges the
     /// object into `xhttpSettings` (top-level path/host/mode take priority).
-    static func decodeXhttpExtra(_ value: String) -> String? {
+    static func decodeXhttpExtra(_ value: String) -> XhttpExtra? {
         var candidates = [value]
         if let decoded = value.removingPercentEncoding {
             candidates.append(decoded)
@@ -475,13 +482,10 @@ public enum VlessProfileParser {
             guard let object = (try? JSONSerialization.jsonObject(with: data, options: [])) as? [String: Any] else {
                 continue
             }
-            guard let normalized = try? JSONSerialization.data(withJSONObject: object, options: [.sortedKeys]) else {
+            guard data.count <= 4096 else {
                 continue
             }
-            guard let text = String(data: normalized, encoding: .utf8), text.utf8.count <= 4096 else {
-                continue
-            }
-            return text
+            return XhttpExtra(object)
         }
         return nil
     }
