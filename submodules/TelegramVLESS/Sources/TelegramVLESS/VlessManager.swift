@@ -1,4 +1,5 @@
 import Foundation
+import SwiftSignalKit
 
 /// Lifecycle manager for the embedded VLESS runtime, mirroring the desktop
 /// client's `Core::VlessManager`: parse a `vless://` profile, allocate local
@@ -48,6 +49,13 @@ public final class VlessManager {
     private var stateValue: State = .idle
     private var activeProfileURLValue: String?
     private let stateUpdated: (() -> Void)?
+    
+    private let stateEventsPipe = ValuePipe<State>()
+    public var stateEvents: Signal<State, NoError> {
+        return self.stateEventsPipe.signal()
+    }
+    
+    private var heartbeatTimer: SwiftSignalKit.Timer?
 
     public var state: State {
         lock.lock()
@@ -143,12 +151,16 @@ public final class VlessManager {
         activeProfileURLValue = url
         lock.unlock()
         notifyStateChange()
+        
+        startHeartbeat()
+        
         return .success(sink)
     }
 
     /// Stops the runtime. The app must drop the sink from its active proxy
     /// before or immediately after calling this.
     public func stop() {
+        stopHeartbeat()
         lock.lock()
         stateValue = .idle
         activeProfileURLValue = nil
@@ -219,6 +231,33 @@ public final class VlessManager {
 
     private func notifyStateChange() {
         stateUpdated?()
+        stateEventsPipe.putNext(self.state)
+    }
+    
+    private func startHeartbeat() {
+        stopHeartbeat()
+        let timer = SwiftSignalKit.Timer(timeout: 2.0, repeat: true, completion: { [weak self] in
+            self?.checkHeartbeat()
+        }, queue: Queue.mainQueue())
+        self.heartbeatTimer = timer
+        timer.start()
+    }
+    
+    private func stopHeartbeat() {
+        self.heartbeatTimer?.invalidate()
+        self.heartbeatTimer = nil
+    }
+    
+    private func checkHeartbeat() {
+        if !self.runtime.isRunning() {
+            stopHeartbeat()
+            lock.lock()
+            if case .running = stateValue {
+                stateValue = .failed(.notRunning)
+            }
+            lock.unlock()
+            notifyStateChange()
+        }
     }
 
     /// Random printable-ASCII credentials for the local inbounds, in the

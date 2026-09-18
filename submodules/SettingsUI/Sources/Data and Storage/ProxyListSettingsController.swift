@@ -546,7 +546,8 @@ private func proxySettingsControllerEntries(theme: PresentationTheme, strings: P
                 entries.append(.useForCallsInfo(theme, ForkWebProxyStrings.callsNote))
             case .vless:
                 entries.append(.useForCalls(theme, strings.SocksProxySetup_UseForCalls, proxySettings.useForCalls))
-                entries.append(.useForCallsInfo(theme, "Звонки идут через встроенный VLESS-туннель (без P2P-утечек)."))
+                let vlessCallsInfo = preferRussian ? "Звонки идут через встроенный VLESS-туннель (без P2P-утечек)." : "Calls go through the embedded VLESS tunnel (no P2P leaks)."
+                entries.append(.useForCallsInfo(theme, vlessCallsInfo))
             case .mtp:
                 break
         }

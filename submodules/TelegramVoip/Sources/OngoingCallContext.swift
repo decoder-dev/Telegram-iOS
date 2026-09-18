@@ -940,7 +940,10 @@ public final class OngoingCallContext {
                     return server
                 }
             }
-            return nil
+            // Fail closed if the proxy is dead or URL is invalid, to prevent IP leaks via direct connection.
+            let server = VoipProxyServerWebrtc(host: "127.0.0.1", port: 1, username: "dead", password: "dead")
+            server.managed = true
+            return server
         case .mtp, .web:
             return nil
         }

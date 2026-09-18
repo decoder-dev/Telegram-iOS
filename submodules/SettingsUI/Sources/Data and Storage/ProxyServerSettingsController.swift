@@ -48,6 +48,7 @@ private enum ProxySettingsEntry: ItemListNodeEntry {
     
     case connectionHeader(PresentationTheme, String)
     case connectionServer(PresentationTheme, PresentationStrings, String, String)
+    case connectionServerReadOnly(PresentationTheme, String, String)
     case connectionPort(PresentationTheme, PresentationStrings, String, String)
     
     case credentialsHeader(PresentationTheme, String)
@@ -63,7 +64,7 @@ private enum ProxySettingsEntry: ItemListNodeEntry {
                 return ProxySettingsSection.pasteboard.rawValue
             case .modeSocks5, .modeMtp, .modeWeb, .webInfo, .modeVless, .vlessInfo, .socks5Info, .mtpInfo:
                 return ProxySettingsSection.mode.rawValue
-            case .connectionHeader, .connectionServer, .connectionPort:
+            case .connectionHeader, .connectionServer, .connectionServerReadOnly, .connectionPort:
                 return ProxySettingsSection.connection.rawValue
             case .credentialsHeader, .credentialsUsername, .credentialsPassword, .credentialsSecret:
                 return ProxySettingsSection.credentials.rawValue
@@ -96,6 +97,8 @@ private enum ProxySettingsEntry: ItemListNodeEntry {
                 return 4
             case .connectionServer:
                 return 5
+            case .connectionServerReadOnly:
+                return 18
             case .connectionPort:
                 return 6
             case .credentialsHeader:
@@ -173,6 +176,8 @@ private enum ProxySettingsEntry: ItemListNodeEntry {
                         return state
                     }
                 }, action: {})
+            case let .connectionServerReadOnly(_, title, text):
+                return ItemListTextItem(presentationData: presentationData, text: .plain("\(title):\n\(text)"), sectionId: self.section)
             case let .connectionPort(_, _, placeholder, text):
                 return ItemListSingleLineInputItem(presentationData: presentationData, systemStyle: .glass, title: NSAttributedString(), text: text, placeholder: placeholder, type: .number, sectionId: self.section, textUpdated: { value in
                     arguments.updateState { current in
@@ -302,19 +307,23 @@ private func proxyServerSettingsControllerEntries(presentationData: Presentation
     }
     entries.append(.modeVless(presentationData.theme, "VLESS", state.mode == .vless))
     if state.mode == .vless {
-        entries.append(.vlessInfo(presentationData.theme, "Вставьте ссылку vless:// — весь трафик приложения пойдёт через встроенный Xray-туннель."))
+        entries.append(.vlessInfo(presentationData.theme, ForkProxyDescriptionStrings.vless))
     }
     
     entries.append(.connectionHeader(presentationData.theme, presentationData.strings.SocksProxySetup_Connection.uppercased()))
     let serverPlaceholder: String
     if state.mode == .web {
         serverPlaceholder = ForkWebProxyStrings.maskingSite
-    } else if state.mode == .vless {
-        serverPlaceholder = "vless://…"
     } else {
         serverPlaceholder = presentationData.strings.SocksProxySetup_Hostname
     }
-    entries.append(.connectionServer(presentationData.theme, presentationData.strings, serverPlaceholder, state.host))
+    
+    if state.mode == .vless {
+        entries.append(.connectionServerReadOnly(presentationData.theme, "URL", state.host))
+    } else {
+        entries.append(.connectionServer(presentationData.theme, presentationData.strings, serverPlaceholder, state.host))
+    }
+    
     if state.mode != .web && state.mode != .vless {
         entries.append(.connectionPort(presentationData.theme, presentationData.strings, presentationData.strings.SocksProxySetup_Port, state.port))
     }

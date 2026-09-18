@@ -180,7 +180,7 @@ private final class ProxyFailoverContext {
         guard proxyRotationRotatableServers(from: settings).count > 1 else {
             return false
         }
-        guard let active = settings.activeServer, !active.connection.isWebProxy, !settings.automaticServers.contains(active) else {
+        guard let active = settings.activeServer, !settings.automaticServers.contains(active) else {
             return false
         }
         return true

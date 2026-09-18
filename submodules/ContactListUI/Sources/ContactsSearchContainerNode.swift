@@ -151,7 +151,7 @@ private enum ContactListSearchEntry: Comparable, Identifiable {
                         if case let .peer(peer, _, _) = peer, let _ = peer.addressName {
                             status = .addressName("")
                         } else {
-                            status = .none
+                            status = .presence(presence ?? EnginePeer.Presence(status: .longTimeAgo, lastActivity: 0), timeFormat)
                         }
                     case .deviceContacts:
                         header = ChatListSearchItemHeader(type: .deviceContacts, theme: theme, strings: strings, actionTitle: nil, action: nil)

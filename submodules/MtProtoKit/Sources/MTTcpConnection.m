@@ -969,16 +969,14 @@ struct ctr_state {
                 }
                 
                 if (isHostname) {
-                    int32_t port = _socksPort;
-                    // Proxy hostnames must never be resolved through Google DoH
-                    // (https://google.com/resolve): it leaks the proxy hostname to Google and,
-                    // where google.com is throttled, stalls the connection for the full 10s DoH
-                    // timeout before falling back. Always use the system resolver
-                    // (Nicegram PR #139; the useLocalDNSForProxyHosts setting is honored by
-                    // making this unconditional).
-                    resolveSignal = [[MTDNS resolveHostnameNative:_socksIp port:port] map:^id(NSString *resolvedIp) {
-                        return [[MTTcpConnectionData alloc] initWithIp:resolvedIp port:port isSocks:true];
-                    }];
+                    if (_forceLocalDNS) {
+                        int32_t port = _socksPort;
+                        resolveSignal = [[MTDNS resolveHostnameNative:_socksIp port:port] map:^id(NSString *resolvedIp) {
+                            return [[MTTcpConnectionData alloc] initWithIp:resolvedIp port:port isSocks:true];
+                        }];
+                    } else {
+                        resolveSignal = [MTSignal single:[[MTTcpConnectionData alloc] initWithIp:_socksIp port:_socksPort isSocks:true]];
+                    }
                 } else {
                     resolveSignal = [MTSignal single:[[MTTcpConnectionData alloc] initWithIp:_socksIp port:_socksPort isSocks:true]];
                 }
@@ -993,10 +991,14 @@ struct ctr_state {
                 }
                 
                 if (isHostname) {
-                    int32_t port = _mtpPort;
-                    resolveSignal = [[MTDNS resolveHostnameNative:_mtpIp port:port] map:^id(NSString *resolvedIp) {
-                        return [[MTTcpConnectionData alloc] initWithIp:resolvedIp port:port isSocks:false];
-                    }];
+                    if (_forceLocalDNS) {
+                        int32_t port = _mtpPort;
+                        resolveSignal = [[MTDNS resolveHostnameNative:_mtpIp port:port] map:^id(NSString *resolvedIp) {
+                            return [[MTTcpConnectionData alloc] initWithIp:resolvedIp port:port isSocks:false];
+                        }];
+                    } else {
+                        resolveSignal = [MTSignal single:[[MTTcpConnectionData alloc] initWithIp:_mtpIp port:_mtpPort isSocks:false]];
+                    }
                 } else {
                     resolveSignal = [MTSignal single:[[MTTcpConnectionData alloc] initWithIp:_mtpIp port:_mtpPort isSocks:false]];
                 }

@@ -228,6 +228,9 @@ public class UnauthorizedAccount {
         self.managedDisposables.add(registerWebProxySidecarReapply(network: network, currentSettings: {
             latestProxySettings.with { $0 }
         }))
+        self.managedDisposables.add(registerVlessManagerReapply(network: network, currentSettings: {
+            latestProxySettings.with { $0 }
+        }))
         
         let webSocketTransportIsInitialApply = Atomic<Bool>(value: true)
         self.managedDisposables.add((accountManager.sharedData(keys: [SharedDataKeys.proxySettings])
@@ -1577,6 +1580,9 @@ public class Account {
             applySharedProxySettingsToNetwork(settings: settings, network: network)
         }))
         self.managedOperationsDisposable.add(registerWebProxySidecarReapply(network: network, currentSettings: {
+            latestProxySettings.with { $0 }
+        }))
+        self.managedOperationsDisposable.add(registerVlessManagerReapply(network: network, currentSettings: {
             latestProxySettings.with { $0 }
         }))
 

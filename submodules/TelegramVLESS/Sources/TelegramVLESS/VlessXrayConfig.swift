@@ -43,6 +43,17 @@ public enum VlessXrayConfig {
             "network": profile.transport.rawValue,
             "security": profile.security.rawValue,
         ]
+        
+        var sockopt: [String: Any] = [:]
+        if let downFrame = profile.sockoptDownFrame {
+            sockopt["downFrame"] = downFrame
+        }
+        if let scStream = profile.sockoptScStreamDownServerSecs {
+            sockopt["scStreamDownServerSecs"] = scStream
+        }
+        if !sockopt.isEmpty {
+            stream["sockopt"] = sockopt
+        }
         switch profile.transport {
         case .tcp:
             break

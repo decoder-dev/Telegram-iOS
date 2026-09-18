@@ -113,11 +113,21 @@ func applySharedProxySettingsToNetwork(settings: ProxySettings, network: Network
         if let configuration = activeServer?.webProxyConfiguration {
             WebProxyManager.shared.configure(activeWebProxy: configuration)
         }
-        network.context.updateApiEnvironment { _ in
-            network.pauseForWebProxyBootstrap()
-            return nil
+        
+        var isFailed = false
+        if isActiveVlessProxy, case .failed = VlessManager.shared.state {
+            isFailed = true
         }
-        return
+        
+        if isFailed {
+            network.resumeIfWebProxyBootstrapPaused()
+        } else {
+            network.context.updateApiEnvironment { _ in
+                network.pauseForWebProxyBootstrap()
+                return nil
+            }
+            return
+        }
     }
     
     // Clear the bootstrap pause whenever we have a resolvable route (ready WEB, SOCKS/MTProxy,
@@ -184,4 +194,23 @@ public func registerWebProxySidecarReapply(network: Network, currentSettings: @e
     return ActionDisposable {
         WebProxyManager.shared.removeSidecarEventHandler(token)
     }
+}
+
+public func registerVlessManagerReapply(network: Network, currentSettings: @escaping () -> ProxySettings?) -> Disposable {
+    return VlessManager.shared.stateEvents.start(next: { [weak network] state in
+        guard let network = network, let settings = currentSettings() else {
+            return
+        }
+        if case .failed = state {
+            network.resumeIfWebProxyBootstrapPaused()
+            network.dropConnectionStatus()
+            network.rebuildTransport()
+        } else {
+            applySharedProxySettingsToNetwork(
+                settings: settings,
+                network: network,
+                forceTransportReconnect: false
+            )
+        }
+    })
 }

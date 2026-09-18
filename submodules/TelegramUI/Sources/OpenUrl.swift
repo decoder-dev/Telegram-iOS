@@ -29,6 +29,11 @@ public func parseProxyUrl(sharedContext: SharedAccountContext, url: URL) -> Prox
     if let webProxy = parseWebProxyUrl(sharedContext: sharedContext, url: url.absoluteString) {
         return ProxyServerSettings(host: webProxy.host, port: 443, connection: .web(secret: webProxy.secret))
     }
+    if url.absoluteString.lowercased().hasPrefix("vless://"), isValidVlessProxyURL(url.absoluteString), let data = url.absoluteString.data(using: .utf8) {
+        if let components = URLComponents(string: url.absoluteString), let host = components.host, let port = components.port {
+            return ProxyServerSettings(host: host, port: Int32(port), connection: .vless(secret: data))
+        }
+    }
     guard let proxy = parseProxyUrl(sharedContext: sharedContext, url: url.absoluteString) else {
         return nil
     }
@@ -474,6 +479,15 @@ func openExternalUrlImpl(context: AccountContext, urlContext: OpenURLContext, ur
     }
     
     var parsedUrl = canonicalUrl
+    
+    if parsedUrl.scheme?.lowercased() == "vless" {
+        if let proxy = parseProxyUrl(sharedContext: context.sharedContext, url: parsedUrl) {
+            dismissInput()
+            let controller = ProxyServerPreviewScreen(context: context, server: proxy)
+            navigationController?.pushViewController(controller)
+            return
+        }
+    }
     
     if let host = parsedUrl.host?.lowercased() {
         if host == "itunes.apple.com" {

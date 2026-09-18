@@ -70,6 +70,10 @@ public struct VlessProfile: Equatable {
     public var xhttpMode: String?
     public var xhttpExtraJSON: String?
 
+    // Sockopt / Mux overrides
+    public var sockoptDownFrame: Int?
+    public var sockoptScStreamDownServerSecs: Int?
+
     // VLESS encryption layer: "none", or a post-quantum
     // mlkem768x25519plus key expression passed through verbatim to the core.
     public var encryption: String
@@ -97,7 +101,9 @@ public struct VlessProfile: Equatable {
         encryption: String = "none",
         allowInsecure: Bool = false,
         xhttpMode: String? = nil,
-        xhttpExtraJSON: String? = nil
+        xhttpExtraJSON: String? = nil,
+        sockoptDownFrame: Int? = nil,
+        sockoptScStreamDownServerSecs: Int? = nil
     ) {
         self.endpoint = endpoint
         self.userId = userId
@@ -119,6 +125,8 @@ public struct VlessProfile: Equatable {
         self.allowInsecure = allowInsecure
         self.xhttpMode = xhttpMode
         self.xhttpExtraJSON = xhttpExtraJSON
+        self.sockoptDownFrame = sockoptDownFrame
+        self.sockoptScStreamDownServerSecs = sockoptScStreamDownServerSecs
     }
 }
 
@@ -150,7 +158,7 @@ public enum VlessProfileError: Error, Equatable {
 private let allowedParameters: Set<String> = [
     "encryption", "flow", "security", "sni", "fp", "alpn", "pbk", "sid", "spx",
     "type", "host", "path", "serviceName", "mode", "authority",
-    "extra", "allowInsecure",
+    "extra", "allowInsecure", "downFrame", "scStreamDownServerSecs"
 ]
 
 public enum VlessProfileParser {
@@ -391,6 +399,16 @@ public enum VlessProfileParser {
             }
         }
 
+        // Sockopt
+        var sockoptDownFrame: Int?
+        if let rawDownFrame = query["downFrame"], !rawDownFrame.isEmpty {
+            sockoptDownFrame = Int(rawDownFrame)
+        }
+        var sockoptScStreamDownServerSecs: Int?
+        if let rawScStream = query["scStreamDownServerSecs"], !rawScStream.isEmpty {
+            sockoptScStreamDownServerSecs = Int(rawScStream)
+        }
+
         return .success(VlessProfile(
             endpoint: VlessProfile.Endpoint(host: host, port: port),
             userId: user,
@@ -411,7 +429,9 @@ public enum VlessProfileParser {
             encryption: encryption,
             allowInsecure: allowInsecure,
             xhttpMode: xhttpMode,
-            xhttpExtraJSON: xhttpExtraJSON
+            xhttpExtraJSON: xhttpExtraJSON,
+            sockoptDownFrame: sockoptDownFrame,
+            sockoptScStreamDownServerSecs: sockoptScStreamDownServerSecs
         ))
     }
 
