@@ -345,7 +345,7 @@ public enum VlessProfileParser {
         var grpcAuthority: String?
         var grpcMultiMode = false
         var xhttpMode: String?
-        var xhttpExtra: XhttpExtra? = nil
+        var xhttpExtra: VlessProfile.XhttpExtra? = nil
         switch transport {
         case .tcp:
             for key in ["path", "host", "serviceName", "mode", "authority", "extra"] where (query[key] ?? "").isEmpty == false {
@@ -470,7 +470,7 @@ public enum VlessProfileParser {
     /// percent-encoded. Accept both the once- and the twice-encoded form, require
     /// a JSON object, and cap its size; the core merges the
     /// object into `xhttpSettings` (top-level path/host/mode take priority).
-    static func decodeXhttpExtra(_ value: String) -> XhttpExtra? {
+    static func decodeXhttpExtra(_ value: String) -> VlessProfile.XhttpExtra? {
         var candidates = [value]
         if let decoded = value.removingPercentEncoding {
             candidates.append(decoded)
@@ -485,7 +485,7 @@ public enum VlessProfileParser {
             guard data.count <= 4096 else {
                 continue
             }
-            return XhttpExtra(object)
+            return VlessProfile.XhttpExtra(object)
         }
         return nil
     }

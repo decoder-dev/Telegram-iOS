@@ -194,7 +194,7 @@ public final class VlessManager {
             if isRunningForPrevious && previousURL == activeProfileURL {
                 return
             }
-            _ = start(url: activeProfileURL)
+            start(url: activeProfileURL)
         } else {
             if isRunningForPrevious || previousURL != nil {
                 stop()
