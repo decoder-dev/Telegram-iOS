@@ -755,8 +755,14 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
             }
 
             if let _ = self.endpointSelector.advance() {
-                Logger.shared.log("MTWebSocket", "[WS] trying secondary endpoint")
-                self.dialCurrentCandidate()
+                Logger.shared.log("MTWebSocket", "[WS] trying secondary endpoint with jitter")
+                
+                let delay = Double.random(in: 0.1...1.5)
+                let generation = self.connectionGeneration
+                self.queue.after(delay, { [weak self] in
+                    guard let self = self, self.connectionGeneration == generation else { return }
+                    self.dialCurrentCandidate()
+                })
             } else {
                 self.cancelWithError(error: error)
             }
