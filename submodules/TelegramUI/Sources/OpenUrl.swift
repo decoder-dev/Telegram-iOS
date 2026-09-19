@@ -15,6 +15,7 @@ import OverlayStatusController
 import PresentationDataUtils
 import SettingsUI
 import ChatListUI
+import ProxyServerPreviewScreen
 
 public struct ParsedSecureIdUrl {
     public let peerId: EnginePeer.Id
