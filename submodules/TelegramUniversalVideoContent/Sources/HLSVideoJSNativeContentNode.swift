@@ -22,14 +22,14 @@ private func parseRange(from rangeString: String) -> Range<Int>? {
         return nil
     }
     
-    let rangeValues = rangeString.dropFirst("bytes=".count).split(separator: "-")
+    let rangeValues = rangeString.dropFirst("bytes=".count).split(separator: "-", omittingEmptySubsequences: false)
     
     guard rangeValues.count == 2,
           let start = Int(rangeValues[0]),
-          let end = Int(rangeValues[1]) else {
+          let end = Int(rangeValues[1]), start >= 0, end >= start, end < Int.max else {
         return nil
     }
-    return start ..< end
+    return start ..< (end + 1)
 }
 
 final class HLSJSServerSource: SharedHLSServer.Source {
@@ -745,7 +745,7 @@ private final class SharedHLSVideoJSContext: NSObject {
                                 SharedHLSVideoJSContext.sendErrorAndClose(id: id, error: .badRequest, completion: completion)
                                 return
                             }
-                            let _ = (source.fileData(id: fileIdValue, range: requestRange.lowerBound ..< requestRange.upperBound + 1)
+                            let _ = (source.fileData(id: fileIdValue, range: requestRange)
                             |> deliverOn(.mainQueue())
                             //|> timeout(5.0, queue: self.queue, alternate: .single(nil))
                             |> take(1)).start(next: { result in
@@ -805,14 +805,18 @@ private final class SharedHLSVideoJSContext: NSObject {
     
     private static func sendResponseFileAndClose(id: Int, file: TempBoxFile, fileRange: Range<Int>, range: Range<Int>, totalSize: Int, completion: @escaping ([String: Any]) -> Void) {
         Queue.concurrentDefaultQueue().async {
-            if let data = try? Data(contentsOf: URL(fileURLWithPath: file.path), options: .mappedIfSafe).subdata(in: fileRange) {
+            if let fileData = try? Data(contentsOf: URL(fileURLWithPath: file.path), options: .mappedIfSafe),
+               fileRange.lowerBound >= 0, fileRange.upperBound <= fileData.count,
+               !range.isEmpty, range.lowerBound >= 0, range.upperBound <= totalSize,
+               range.count == fileRange.count {
+                let data = fileData.subdata(in: fileRange)
                 completion([
-                    "status": 200,
-                    "statusText": "OK",
+                    "status": 206,
+                    "statusText": "Partial Content",
                     "responseData": data.base64EncodedString(),
                     "responseHeaders": [
                         "Content-Type": "application/octet-stream",
-                        "Content-Range": "bytes \(range.lowerBound)-\(range.upperBound)/\(totalSize)",
+                        "Content-Range": "bytes \(range.lowerBound)-\(range.upperBound - 1)/\(totalSize)",
                         "Content-Length": "\(fileRange.upperBound - fileRange.lowerBound)"
                     ] as [String: String]
                 ])

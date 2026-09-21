@@ -30,14 +30,43 @@ on:
         default: false
 
 concurrency:
-  group: telegram-ios-ipa
-  cancel-in-progress: true
+  group: telegram-ios-ipa-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: write
 
 jobs:
+  regression:
+    name: Regression tests
+    runs-on: macos-26
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Accessibility contracts
+        run: python3 -m unittest discover -s Tests/VoiceOverContracts
+      - name: MTProto malformed-input regression tests
+        run: |
+          clang -fobjc-arc -framework Foundation -I submodules/MtProtoKit/PublicHeaders \
+            submodules/MtProtoKit/Sources/MTInputStream.m Tests/MTInputStream/main.m -o /tmp/mtinput-tests
+          /tmp/mtinput-tests
+      - name: VLESS parser, configuration and lifecycle tests
+        run: swift test --package-path submodules/TelegramVLESS
+      - name: Player regression tests and production build
+        working-directory: submodules/TelegramUniversalVideoContent/PlayerSource
+        run: |
+          npm ci --ignore-scripts
+          npm test
+          npm run build-release
+          npm audit --audit-level=high
+
   build:
+    needs: regression
     # Xcode 27 preview IPA crashed on device — stay on macos-26 / Xcode 26.2.
     name: Build IPA (macos-26)
     runs-on: macos-26
@@ -52,7 +81,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          fetch-depth: 1
+          fetch-depth: 0
           submodules: false
 
       - name: Fix submodule URLs for forks
@@ -312,12 +341,12 @@ jobs:
           PY
           fi
           if [[ ! -s "$CHANGELOG_BODY" ]]; then
-            PREV="$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null || true)"
+            PREV="$(git describe --tags --abbrev=0 "${GITHUB_SHA}^" 2>/dev/null || true)"
             if [[ -n "$PREV" ]]; then
               {
                 echo "### Commits since ${PREV}"
                 echo
-                git log --pretty=format:'- %s (%h)' "${PREV}..${TAG}"
+                git log --pretty=format:'- %s (%h)' "${PREV}..${GITHUB_SHA}"
                 echo
               } > "$CHANGELOG_BODY"
             else
@@ -357,11 +386,13 @@ jobs:
           else
             if ((${#RELEASE_EXTRA_ARGS[@]})); then
               gh release create "$TAG" "$IPA" \
+                --target "$GITHUB_SHA" \
                 --title "$TITLE" \
                 --notes-file "$NOTES" \
                 "${RELEASE_EXTRA_ARGS[@]}"
             else
               gh release create "$TAG" "$IPA" \
+                --target "$GITHUB_SHA" \
                 --title "$TITLE" \
                 --notes-file "$NOTES" \
                 --latest

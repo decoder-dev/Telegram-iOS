@@ -1,0 +1,100 @@
+import XCTest
+@testable import TelegramVLESS
+
+private let profileURL = "vless://01234567-89ab-cdef-0123-456789abcdef@example.com:443?security=tls&type=ws"
+
+private final class FakeRuntime: XrayRuntime {
+    let lock = NSLock()
+    var running = false
+    var startedHosts: [String] = []
+    var ports = [21001, 21002]
+    var onStart: (() -> Void)?
+    var gate: DispatchSemaphore?
+    var isAvailable: Bool { true }
+    func getFreePorts(count: Int) throws -> [Int] { ports }
+    func start(configJSON: String) throws {
+        onStart?()
+        if let gate = gate { _ = gate.wait(timeout: .now() + 5) }
+        let config = try JSONSerialization.jsonObject(with: Data(configJSON.utf8)) as! [String: Any]
+        let out = (config["outbounds"] as! [[String: Any]])[0]
+        let server = ((out["settings"] as! [String: Any])["vnext"] as! [[String: Any]])[0]
+        lock.lock(); defer { lock.unlock() }
+        startedHosts.append(server["address"] as! String)
+        running = true
+    }
+    func stop() throws { lock.lock(); running = false; lock.unlock() }
+    func isRunning() -> Bool { lock.lock(); defer { lock.unlock() }; return running }
+    func version() -> String? { "test" }
+}
+
+final class VlessTests: XCTestCase {
+    func testParserRejectsInvalidAuthorityAndShortID() {
+        for uri in [profileURL.replacingOccurrences(of: "@", with: ":password@"), profileURL.replacingOccurrences(of: "?", with: "/ignored?")] {
+            guard case .failure = VlessProfileParser.parse(uri) else { return XCTFail("Accepted invalid authority") }
+        }
+        let reality = profileURL.replacingOccurrences(of: "security=tls&type=ws", with: "security=reality&pbk=" + String(repeating: "a", count: 43) + "&sid=a")
+        XCTAssertEqual(VlessProfileParser.parse(reality), .failure(.invalidShortId))
+    }
+
+    func testSupportedTransportsAndConfig() throws {
+        for transport in ["tcp", "ws", "grpc", "httpupgrade", "xhttp"] {
+            let profile = try VlessProfileParser.parse(profileURL.replacingOccurrences(of: "type=ws", with: "type=" + transport)).get()
+            let socks = VlessLocalInbound(port: 21001, user: "user", password: "password")
+            let http = VlessLocalInbound(port: 21002, user: "user", password: "password")
+            let text = try XCTUnwrap(VlessXrayConfig.configJSON(profile: profile, socks: socks, http: http))
+            let json = try JSONSerialization.jsonObject(with: Data(text.utf8)) as! [String: Any]
+            for inbound in json["inbounds"] as! [[String: Any]] {
+                XCTAssertEqual(inbound["listen"] as? String, "127.0.0.1")
+            }
+            XCTAssertNil(VlessXrayConfig.configJSON(profile: profile, socks: socks, http: socks))
+        }
+    }
+
+    func testSwitchingRunningProfileStartsReplacement() {
+        let runtime = FakeRuntime()
+        var manager: VlessManager!
+        let first = expectation(description: "first profile")
+        let second = expectation(description: "replacement profile")
+        let secondURL = profileURL.replacingOccurrences(of: "example.com", with: "second.example.com")
+        var seenFirst = false, seenSecond = false
+        manager = VlessManager(runtime: runtime, onStateChange: {
+            if manager.isReady(for: profileURL), !seenFirst { seenFirst = true; first.fulfill() }
+            if manager.isReady(for: secondURL), !seenSecond { seenSecond = true; second.fulfill() }
+        })
+        manager.configure(activeProfileURL: profileURL)
+        wait(for: [first], timeout: 5)
+        manager.configure(activeProfileURL: secondURL)
+        wait(for: [second], timeout: 5)
+        XCTAssertFalse(manager.isReady(for: profileURL))
+        manager.stop()
+    }
+
+    func testStoppingDuringStartupCannotPublishRunningState() {
+        let runtime = FakeRuntime()
+        runtime.gate = DispatchSemaphore(value: 0)
+        let entered = expectation(description: "runtime entered")
+        runtime.onStart = { entered.fulfill() }
+        let manager = VlessManager(runtime: runtime)
+        manager.start(url: profileURL)
+        wait(for: [entered], timeout: 5)
+        manager.stop()
+        runtime.gate?.signal()
+        let settled = expectation(description: "serialized stop")
+        DispatchQueue.global().asyncAfter(deadline: .now() + 0.2) { settled.fulfill() }
+        wait(for: [settled], timeout: 3)
+        XCTAssertEqual(manager.state, .idle)
+        XCTAssertFalse(runtime.isRunning())
+    }
+
+    func testMalformedPortListFailsWithoutIndexingCrash() {
+        let runtime = FakeRuntime(); runtime.ports = []
+        let failed = expectation(description: "port validation")
+        var manager: VlessManager!
+        manager = VlessManager(runtime: runtime, onStateChange: {
+            if case .failed(.portAllocationFailed) = manager.state { failed.fulfill() }
+        })
+        manager.start(url: profileURL)
+        wait(for: [failed], timeout: 3)
+        manager.stop()
+    }
+}

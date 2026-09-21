@@ -13,6 +13,7 @@ import UrlEscaping
 import UrlHandling
 import QrCodeUI
 import WebProxyTransport
+import TelegramVLESS
 
 private final class ProxyServerSettingsControllerArguments {
     let updateState: ((ProxyServerSettingsControllerState) -> ProxyServerSettingsControllerState) -> Void
@@ -75,45 +76,27 @@ private enum ProxySettingsEntry: ItemListNodeEntry {
     
     var stableId: Int32 {
         switch self {
-            case .usePasteboardSettings:
-                return 0
-            case .modeSocks5:
-                return 2
-            case .modeMtp:
-                return 3
-            case .modeWeb:
-                return 11
-            case .webInfo:
-                return 13
-            case .modeVless:
-                return 14
-            case .vlessInfo:
-                return 15
-            case .socks5Info:
-                return 16
-            case .mtpInfo:
-                return 17
-            case .connectionHeader:
-                return 4
-            case .connectionServer:
-                return 5
-            case .connectionServerReadOnly:
-                return 18
-            case .connectionPort:
-                return 6
-            case .credentialsHeader:
-                return 7
-            case .credentialsUsername:
-                return 8
-            case .credentialsPassword:
-                return 9
-            case .credentialsSecret:
-                return 10
-            case .share:
-                return 12
+            case .usePasteboardSettings: return 0
+            case .modeSocks5: return 1
+            case .socks5Info: return 2
+            case .modeMtp: return 3
+            case .mtpInfo: return 4
+            case .modeWeb: return 5
+            case .webInfo: return 6
+            case .modeVless: return 7
+            case .vlessInfo: return 8
+            case .connectionHeader: return 9
+            case .connectionServer: return 10
+            case .connectionServerReadOnly: return 11
+            case .connectionPort: return 12
+            case .credentialsHeader: return 13
+            case .credentialsUsername: return 14
+            case .credentialsPassword: return 15
+            case .credentialsSecret: return 16
+            case .share: return 17
         }
     }
-    
+
     static func <(lhs: ProxySettingsEntry, rhs: ProxySettingsEntry) -> Bool {
         return lhs.stableId < rhs.stableId
     }
@@ -248,7 +231,21 @@ private func mapPreferredMode(_ mode: ProxyServerSettingsPreferredMode) -> Proxy
 }
 
 private struct ProxyServerSettingsControllerState: Equatable {
-    var mode: ProxyServerSettingsControllerMode
+    var mode: ProxyServerSettingsControllerMode {
+        didSet {
+            if oldValue != mode {
+                if oldValue == .vless {
+                    vlessDraft = host
+                    host = serverDraft
+                } else if mode == .vless {
+                    serverDraft = host
+                    host = vlessDraft
+                }
+            }
+        }
+    }
+    var vlessDraft = ""
+    var serverDraft = ""
     var host: String
     var port: String
     var username: String
@@ -256,19 +253,19 @@ private struct ProxyServerSettingsControllerState: Equatable {
     var secret: String
     
     var isComplete: Bool {
-        if self.host.isEmpty {
+        if self.host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return false
         }
         switch self.mode {
             case .socks5:
-                if self.port.isEmpty || Int(self.port) == nil {
+                if Int(self.port).map({ (1...65535).contains($0) }) != true {
                     return false
                 }
             case .mtp, .web:
                 if MTProxySecret.parse(self.secret) == nil {
                     return false
                 }
-                if self.mode == .web && !WebProxyHostname.isValid(self.host.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()) {
+                if self.mode == .web && (!WebProxyHostname.isValid(self.host.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()) || !isSupportedWebProxySecret(MTProxySecret.parse(self.secret)!.serialize())) {
                     return false
                 }
             case .vless:
@@ -278,7 +275,7 @@ private struct ProxyServerSettingsControllerState: Equatable {
                 }
         }
         if self.mode != .web && self.mode != .vless {
-            if self.port.isEmpty || Int(self.port) == nil {
+            if Int(self.port).map({ (1...65535).contains($0) }) != true {
                 return false
             }
         }
@@ -307,7 +304,7 @@ private func proxyServerSettingsControllerEntries(presentationData: Presentation
     }
     entries.append(.modeVless(presentationData.theme, "VLESS", state.mode == .vless))
     if state.mode == .vless {
-        entries.append(.vlessInfo(presentationData.theme, ForkProxyDescriptionStrings.vless))
+        entries.append(.vlessInfo(presentationData.theme, vlessEditorInfo(state.host)))
     }
     
     let connectionHeaderTitle = state.mode == .vless ? "URL" : presentationData.strings.SocksProxySetup_Connection.uppercased()
@@ -462,18 +459,20 @@ func proxyServerSettingsController(sharedContext: SharedAccountContext, context:
         if let pasteboardSettings = pasteboardSettings {
             updateState { state in
                 var state = state
-                state.host = pasteboardSettings.host
                 state.port = "\(pasteboardSettings.port)"
                 switch pasteboardSettings.connection {
                     case let .socks5(username, password):
                         state.mode = .socks5
+                        state.host = pasteboardSettings.host
                         state.username = username ?? ""
                         state.password = password ?? ""
                     case let .mtp(secret):
                         state.mode = .mtp
+                        state.host = pasteboardSettings.host
                         state.secret = hexString(secret)
                     case let .web(secret):
                         state.mode = .web
+                        state.host = pasteboardSettings.host
                         state.port = "443"
                         state.secret = hexString(secret)
                     case let .vless(secret):

@@ -55,7 +55,8 @@ extension ProxyServerSettings {
                 }
                 return MTSocksProxySettings(ip: endpoint.host, port: endpoint.port, username: nil, password: nil, secret: configuration.secret)
             case .vless:
-                guard let endpoint = VlessManager.shared.activeLoopbackEndpoint else {
+                guard let url = self.vlessProxyURL, VlessManager.shared.isReady(for: url),
+                      let endpoint = VlessManager.shared.activeLoopbackEndpoint else {
                     return nil
                 }
                 return MTSocksProxySettings(ip: endpoint.host, port: UInt16(clamping: endpoint.port), username: endpoint.user, password: endpoint.password, secret: nil)
@@ -107,21 +108,11 @@ func applySharedProxySettingsToNetwork(settings: ProxySettings, network: Network
     let resolvedProxySettings = activeServer?.mtProxySettings
 
     if (isActiveWebProxy || isActiveVlessProxy), resolvedProxySettings == nil {
-        
-        var isFailed = false
-        if isActiveVlessProxy, case .failed = VlessManager.shared.state {
-            isFailed = true
+        network.context.updateApiEnvironment { _ in
+            network.pauseForWebProxyBootstrap()
+            return nil
         }
-        
-        if isFailed {
-            network.resumeIfWebProxyBootstrapPaused()
-        } else {
-            network.context.updateApiEnvironment { _ in
-                network.pauseForWebProxyBootstrap()
-                return nil
-            }
-            return
-        }
+        return
     }
     
     // Clear the bootstrap pause whenever we have a resolvable route (ready WEB, SOCKS/MTProxy,
@@ -191,20 +182,10 @@ public func registerWebProxySidecarReapply(network: Network, currentSettings: @e
 }
 
 public func registerVlessManagerReapply(network: Network, currentSettings: @escaping () -> ProxySettings?) -> Disposable {
-    return VlessManager.shared.stateEvents.start(next: { [weak network] state in
+    return (VlessManager.shared.stateEvents |> deliverOnMainQueue).start(next: { [weak network] _ in
         guard let network = network, let settings = currentSettings() else {
             return
         }
-        if case .failed = state {
-            network.resumeIfWebProxyBootstrapPaused()
-            network.dropConnectionStatus()
-            network.rebuildTransport()
-        } else {
-            applySharedProxySettingsToNetwork(
-                settings: settings,
-                network: network,
-                forceTransportReconnect: false
-            )
-        }
+        applySharedProxySettingsToNetwork(settings: settings, network: network)
     })
 }

@@ -23,7 +23,7 @@ public enum VlessXrayConfig {
     /// authenticated local inbounds, mirroring the reference desktop
     /// `VlessProfile::xrayConfig(socks, http)`.
     public static func configJSON(profile: VlessProfile, socks: VlessLocalInbound, http: VlessLocalInbound) -> String? {
-        guard socks.port > 0, http.port > 0, socks.port != http.port,
+        guard (1...65535).contains(socks.port), (1...65535).contains(http.port), socks.port != http.port,
               isValidLocalCredential(socks.user), isValidLocalCredential(socks.password),
               isValidLocalCredential(http.user), isValidLocalCredential(http.password) else {
             return nil

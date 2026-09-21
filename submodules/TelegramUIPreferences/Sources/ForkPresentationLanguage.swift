@@ -98,7 +98,7 @@ public enum ForkProxyDescriptionStrings {
     }
 
     public static var vless: String {
-        return ForkPresentationLanguage.prefersRussianStrings ? "VLESS-протокол (XHTTP, mlkem, TLS/Reality). Работает на основе Xray-core.\n\nВставьте ссылку vless:// — весь трафик приложения пойдёт через встроенный Xray-туннель." : "VLESS with an embedded Xray core: paste a vless:// link and all app traffic goes through the tunnel (TLS/Reality/XHTTP+mlkem); calls never leak your IP."
+        return ForkPresentationLanguage.prefersRussianStrings ? "VLESS на основе Xray-core: TCP, WebSocket, gRPC, HTTPUpgrade и XHTTP; TLS/REALITY. Вставьте ссылку vless://. Соединения Telegram используют туннель, звонки — если включено «Использовать для звонков». Внешние сайты и Mini Apps могут использовать отдельные соединения." : "VLESS with an embedded Xray core: TCP, WebSocket, gRPC, HTTPUpgrade and XHTTP; TLS/REALITY. Paste a vless:// link. Telegram connections use the tunnel; calls do so when ‘Use for calls’ is enabled. External sites and Mini Apps may use separate connections."
     }
 
     /// Short one-liners for the add-proxy action sheet.

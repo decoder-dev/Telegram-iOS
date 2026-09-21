@@ -6,6 +6,15 @@
 
 ## [Unreleased]
 
+### Fixed — release hardening, VLESS and media playback
+- VLESS profile switching and cancellation now serialize Xray operations and invalidate stale starts; runtime failures retry with bounded backoff and keep MTProto paused until the selected tunnel is ready.
+- Proxy editor rows now have ordered identifiers; VLESS shows validation errors and profile details, preserves drafts when changing type, and rejects invalid ports. Proxy descriptions no longer promise protection for unrelated web connections.
+- MTProto TL reader rejects truncated lengths/padding, invalid markers and invalid UTF-8, and handles negative lengths/allocation failures safely.
+- HLS bridge fixes empty responses, case-insensitive headers, stale responses after abort, repeated playback timers and media-source listeners. Native range requests validate bounds before slicing files.
+- All five pending Dependabot branches merged; additional player development dependencies updated to clear the npm audit, and the shipped production bundle rebuilt.
+- Release tags target the actual build commit; release builds run accessibility, MTProto, VLESS and player regression checks before compiling the IPA. Symbolication inputs no longer interpolate shell code.
+- Validation scope: automated checks and source review. Full device UI/theme, real VLESS server and call-routing acceptance tests remain necessary; this release does not certify every screen or third-party library as defect-free.
+
 ## [v12.9.2-4039-pre]
 
 ### Fixed — VLESS: современные ссылки Xray не вставлялись

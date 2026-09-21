@@ -180,7 +180,7 @@ public enum VlessProfileParser {
         if uri.isEmpty {
             return .failure(.empty)
         }
-        if uri.count > maximumUriLength {
+        if uri.utf8.count > maximumUriLength {
             return .failure(.tooLong)
         }
         guard uri.lowercased().hasPrefix("vless://"), let url = URLComponents(string: uri), let host = url.host, let port = url.port else {
@@ -188,6 +188,9 @@ public enum VlessProfileParser {
         }
         guard let user = url.user, Self.isValidUUID(user) else {
             return .failure(.invalidUserId)
+        }
+        guard url.password == nil, url.path.isEmpty || url.path == "/" else {
+            return .failure(.invalidUri)
         }
         if host.isEmpty || host.count > 255 || host.contains(" ") || host.contains("\0") || host.contains("/") {
             return .failure(.invalidHost)
@@ -318,7 +321,7 @@ public enum VlessProfileParser {
             }
             publicKey = rawPublicKey
             if let rawShortId = query["sid"], !rawShortId.isEmpty {
-                guard rawShortId.count <= 16, rawShortId.allSatisfy({ $0.isHexDigit }) else {
+                guard rawShortId.count <= 16, rawShortId.count % 2 == 0, rawShortId.allSatisfy({ $0.isASCII && $0.isHexDigit }) else {
                     return .failure(.invalidShortId)
                 }
                 shortId = rawShortId
@@ -495,7 +498,7 @@ public enum VlessProfileParser {
         guard parts.count == 5, [8, 4, 4, 4, 12] == parts.map({ $0.count }) else {
             return false
         }
-        return value.allSatisfy { $0.isHexDigit || $0 == "-" }
+        return value.allSatisfy { $0.isASCII && ($0.isHexDigit || $0 == "-") }
     }
 
     static func isBase64URLString(_ value: String) -> Bool {

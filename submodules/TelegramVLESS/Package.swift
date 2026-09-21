@@ -11,6 +11,7 @@ let package = Package(
             targets: ["TelegramVLESS"]),
     ],
     dependencies: [
+        .package(path: "../SSignalKit"),
         // The libxray binary target is provided by the build pipeline: CI
         // downloads LibXray.xcframework (XTLS/libxray, checksum-pinned) into
         // third-party/libxray/ before invoking Bazel. It is intentionally not
@@ -20,6 +21,7 @@ let package = Package(
     targets: [
         .target(
             name: "TelegramVLESS",
-            dependencies: []),
+            dependencies: [.product(name: "SwiftSignalKit", package: "SSignalKit")]),
+        .testTarget(name: "TelegramVLESSTests", dependencies: ["TelegramVLESS"]),
     ]
 )
