@@ -208,6 +208,16 @@ final class SharePeersContainerNode: ASDisplayNode, ShareContentContainerNode {
             }
             return entries
         }
+        |> mapToSignal { entries in
+            return context.stateManager.postbox.transaction { transaction in
+                return entries.filter { entry in
+                    if case let .peer(peer, _, _, _, _, _) = entry.item {
+                        return !archiveNotificationShouldRedact(transaction: transaction, peerId: peer.peerId)
+                    }
+                    return true
+                }
+            }
+        }
         
         self.contentGridNode = GridNode()
         self.headerNode = ASDisplayNode()

@@ -133,12 +133,20 @@ public final class ArchiveLockSession {
     /// we are about to open).
     private var suppressBackgroundRelockCount: Int = 0
     private var collapseGeneration: Int = 0
+    private var authorizationGenerationValue: UInt64 = 0
     private let relockedPipe = ValuePipe<Void>()
     private let revealedPromise = ValuePromise<Bool>(false, ignoreRepeated: true)
     private let unlockedPromise = ValuePromise<Bool>(false, ignoreRepeated: true)
     private let folderPresentationPromise = ValuePromise<ArchiveFolderPresentation>(.omitted, ignoreRepeated: true)
     
     private init() {}
+
+    /// Invalidates outstanding password/biometric prompts on relock or account change.
+    public var authorizationGeneration: UInt64 {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        return self.authorizationGenerationValue
+    }
     
     public var isUnlocked: Bool {
         self.lock.lock()
@@ -235,6 +243,7 @@ public final class ArchiveLockSession {
         var shouldNotifyReveal = false
         var collapseGeneration = 0
         self.lock.lock()
+        self.authorizationGenerationValue &+= 1
         if self.unlocked {
             self.unlocked = false
             shouldNotifyRelock = true
@@ -299,7 +308,16 @@ public final class ArchiveLockSession {
         self.passwordBindingAccountId = accountId
         self.passwordDisposable = EmptyDisposable
         self.passwordStateResolved = false
+        self.authorizationGenerationValue &+= 1
+        // A session authenticated for another account must never authorize this one.
+        self.passwordConfigured = true
+        self.unlocked = false
+        self.revealed = false
+        self.collapseGeneration &+= 1
         self.lock.unlock()
+        self.unlockedPromise.set(false)
+        self.revealedPromise.set(false)
+        self.folderPresentationPromise.set(.omitted)
         previousDisposable?.dispose()
         
         let disposable = (isPasswordConfigured
@@ -572,7 +590,7 @@ public func archiveIsPasswordProtected(peerId: EnginePeer.Id, settings: ChatArch
     if ArchivePasswordKeychain.migrateFromPreferencesIfNeeded(peerId: peerId, legacyHash: settings.legacyLockPasswordHash) {
         return true
     }
-    return ArchivePasswordKeychain.hasPassword(peerId: peerId)
+    return settings.isPasswordConfigured || ArchivePasswordKeychain.hasPassword(peerId: peerId)
 }
 
 /// Whether a peer's notifications/calls should be fully redacted because it currently lives
@@ -584,7 +602,8 @@ public func archiveIsPasswordProtected(peerId: EnginePeer.Id, settings: ChatArch
 /// Keychain state) rather than `archiveIsPasswordProtected`/`ArchivePasswordKeychain` directly,
 /// since the latter requires Keychain access this check must also work without.
 public func archiveNotificationShouldRedact(transaction: Transaction, peerId: EnginePeer.Id) -> Bool {
-    guard transaction.getPeerChatListIndex(peerId)?.0 == Namespaces.PeerGroup.archive else {
+    let savedMessagesPeerId = (transaction.getState() as? AuthorizedAccountState)?.peerId
+    guard peerId == savedMessagesPeerId || transaction.getPeerChatListIndex(peerId)?.0 == Namespaces.PeerGroup.archive else {
         return false
     }
     let settings = transaction.getPreferencesEntry(key: ApplicationSpecificPreferencesKeys.chatArchiveSettings)?.get(ChatArchiveSettings.self) ?? .default
@@ -603,5 +622,9 @@ public func archiveLockedPeerIds(transaction: Transaction) -> Set<EnginePeer.Id>
     guard settings.isPasswordConfigured else {
         return []
     }
-    return Set(transaction.chatListGetAllPeerIds(groupId: Namespaces.PeerGroup.archive))
+    var peerIds = Set(transaction.chatListGetAllPeerIds(groupId: Namespaces.PeerGroup.archive))
+    if let peerId = (transaction.getState() as? AuthorizedAccountState)?.peerId {
+        peerIds.insert(peerId)
+    }
+    return peerIds
 }

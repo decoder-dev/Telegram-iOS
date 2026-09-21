@@ -2515,8 +2515,9 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
             queue: Queue.mainQueue(),
             screenData,
             self.forceIsContactPromise.get(),
-            reactionSourceMessage
-        ).startStrict(next: { [weak self] data, forceIsContact, reactionSourceMessage in
+            reactionSourceMessage,
+            ArchiveLockSession.shared.revealedSignal
+        ).startStrict(next: { [weak self] data, forceIsContact, reactionSourceMessage, _ in
             guard let strongSelf = self else {
                 return
             }
@@ -6399,6 +6400,9 @@ public struct PeerInfoSwitchToMediaTarget {
 }
 
 public final class PeerInfoScreenImpl: ViewController, PeerInfoScreen, KeyShortcutResponder {
+    public var archiveLockProtectsContents: Bool {
+        return !self.isSettings && !self.isMyProfile
+    }
     let context: AccountContext
     let updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>)?
     public let peerId: PeerId

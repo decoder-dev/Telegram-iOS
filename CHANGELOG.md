@@ -7,6 +7,8 @@
 ## [Unreleased]
 
 ### Fixed — release hardening, VLESS and media playback
+- Protected Saved Messages now shares Archive's ten-tap reveal and password/biometric gate; entries in Settings, chat lists, search, sharing, widgets and Spotlight are hidden while protected as appropriate to each surface.
+- Archive cleanup removes the actual protected controller instead of blindly popping the top screen, clears its privacy cover after cleanup, isolates authentication across account switches, rejects late unlock callbacks after relock and retains legacy hashes if Keychain migration has not succeeded.
 - VLESS profile switching and cancellation now serialize Xray operations and invalidate stale starts; runtime failures retry with bounded backoff and keep MTProto paused until the selected tunnel is ready.
 - Proxy editor rows now have ordered identifiers; VLESS shows validation errors and profile details, preserves drafts when changing type, and rejects invalid ports. Proxy descriptions no longer promise protection for unrelated web connections.
 - MTProto TL reader rejects truncated lengths/padding, invalid markers and invalid UTF-8, and handles negative lengths/allocation failures safely.

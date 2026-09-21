@@ -1070,6 +1070,7 @@ public enum PeerInfoAvatarUploadStatus {
 
 public protocol PeerInfoScreen: ViewController {
     var peerId: EnginePeer.Id { get }
+    var archiveLockProtectsContents: Bool { get }
     var privacySettings: Promise<AccountPrivacySettings?> { get }
     var twoStepAuthData: Promise<TwoStepAuthData?> { get }
     var notificationExceptions: Promise<NotificationExceptionsList?> { get }
@@ -1085,6 +1086,10 @@ public protocol PeerInfoScreen: ViewController {
     
     func updateProfilePhoto(_ image: UIImage)
     func updateProfileVideo(_ image: UIImage, video: Any?, values: Any?, markup: UploadPeerPhotoMarkup?)
+}
+
+public extension PeerInfoScreen {
+    var archiveLockProtectsContents: Bool { true }
 }
 
 public extension EngineRawPeer {

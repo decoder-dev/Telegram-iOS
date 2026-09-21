@@ -21,7 +21,7 @@ public enum ArchiveUnlockResult {
 private func migrateAndResolvePasswordProtected(context: AccountContext, settings: ChatArchiveSettings) -> Bool {
     let peerId = context.account.peerId
     let protected = archiveIsPasswordProtected(peerId: peerId, settings: settings)
-    if settings.legacyLockPasswordHash != nil || (protected && !settings.isPasswordConfigured) {
+    if ArchivePasswordKeychain.hasPassword(peerId: peerId), settings.legacyLockPasswordHash != nil || (protected && !settings.isPasswordConfigured) {
         // Also backfills isPasswordConfigured for accounts that set a password before that
         // flag existed, so the notification/CallKit redaction check (which only has Postbox,
         // not Keychain, access in the Notification Service Extension) stays correct.
@@ -216,7 +216,7 @@ public func removeArchiveLockSwitcherCover(context: AccountContext) {
     guard let coveringView = archiveSwitcherCoveringView else {
         return
     }
-    if archiveControllersRemainOnStack(context: context) {
+    if !ArchiveLockSession.shared.isUnlocked && archiveControllersRemainOnStack(context: context) {
         return
     }
     archiveSwitcherCoveringView = nil
@@ -404,6 +404,7 @@ public func ensureArchiveUnlocked(
     completion: @escaping (ArchiveUnlockResult) -> Void
 ) {
     bindArchiveLockSession(context: context)
+    let authorizationGeneration = ArchiveLockSession.shared.authorizationGeneration
     
     let _ = (context.engine.data.get(
         TelegramEngine.EngineData.Item.Configuration.ApplicationSpecificPreference(key: ApplicationSpecificPreferencesKeys.chatArchiveSettings)
@@ -427,6 +428,10 @@ public func ensureArchiveUnlocked(
                 confirmTitle: ArchiveLockLocalizedString.unlock,
                 verifyPassword: true,
                 onSuccess: {
+                    guard ArchiveLockSession.shared.authorizationGeneration == authorizationGeneration else {
+                        completion(.cancelled)
+                        return
+                    }
                     ArchiveLockSession.shared.unlock()
                     completion(.unlocked)
                 },
@@ -457,6 +462,10 @@ public func ensureArchiveUnlocked(
             |> deliverOnMainQueue).start(next: { success, _ in
                 endSuppress()
                 if success {
+                    guard ArchiveLockSession.shared.authorizationGeneration == authorizationGeneration else {
+                        completion(.cancelled)
+                        return
+                    }
                     // Same reset the password path does on success. Both outcomes mean the owner
                     // proved who they are, and the counter throttles guessing, not the owner — but
                     // only one of the two was clearing it, so unlocking with Face ID left the
@@ -492,7 +501,7 @@ public func ensureArchivedPeerAccessible(
     |> deliverOnMainQueue).startStandalone(next: { group, preference in
         let settings = preference?.get(ChatArchiveSettings.self) ?? .default
         let protected = migrateAndResolvePasswordProtected(context: context, settings: settings)
-        guard group == .archive, protected else {
+        guard (group == .archive || peerId == context.account.peerId), protected else {
             completion(.notProtected)
             return
         }
@@ -810,7 +819,7 @@ private func archiveLockShouldDismiss(_ controller: UIViewController, archivedPe
     if let chat = controller as? ChatController, let peerId = chat.chatLocation.peerId, archivedPeerIds.contains(peerId) {
         return true
     }
-    if let peerInfo = controller as? PeerInfoScreen, archivedPeerIds.contains(peerInfo.peerId) {
+    if let peerInfo = controller as? PeerInfoScreen, peerInfo.archiveLockProtectsContents, archivedPeerIds.contains(peerInfo.peerId) {
         return true
     }
     if let overlayPlayer = controller as? OverlayAudioPlayerController, let peerId = overlayPlayer.chatLocation.peerId, archivedPeerIds.contains(peerId) {
@@ -884,6 +893,14 @@ private func dismissPresentedArchiveControllers(from navigationController: UINav
 public func dismissOpenArchiveControllers(from navigationController: UINavigationController?, context: AccountContext? = nil) {
     let apply: (Set<EnginePeer.Id>) -> Void = { archivedPeerIds in
         let work = {
+            defer {
+                if let context {
+                    // Presented controllers can finish dismissing on the next runloop.
+                    Queue.mainQueue().async {
+                        removeArchiveLockSwitcherCover(context: context)
+                    }
+                }
+            }
             if let context {
                 stopOverlayMediaForArchivedPeers(context: context, archivedPeerIds: archivedPeerIds)
             }
@@ -901,7 +918,12 @@ public func dismissOpenArchiveControllers(from navigationController: UINavigatio
             }
             // Prefer a single pop when only the top controller is leaving — cheaper and less
             // crash-prone than replacing the whole stack mid-transition.
-            if controllers.count == filtered.count + 1 {
+            guard !filtered.isEmpty else {
+                return
+            }
+            if controllers.count == filtered.count + 1,
+               let topController = controllers.last,
+               archiveLockShouldDismiss(topController, archivedPeerIds: archivedPeerIds) {
                 navigationController.popViewController(animated: false)
             } else {
                 navigationController.setViewControllers(filtered, animated: false)
@@ -923,7 +945,9 @@ public func dismissOpenArchiveControllers(from navigationController: UINavigatio
     // the folder match (empty ids still dismisses `.archive` chat lists) is available.
     if let context {
         let _ = (context.account.postbox.transaction { transaction -> Set<EnginePeer.Id> in
-            return Set(transaction.chatListGetAllPeerIds(groupId: Namespaces.PeerGroup.archive))
+            var peerIds = Set(transaction.chatListGetAllPeerIds(groupId: Namespaces.PeerGroup.archive))
+            peerIds.insert(context.account.peerId)
+            return peerIds
         }
         |> deliverOnMainQueue).startStandalone(next: apply)
     } else {

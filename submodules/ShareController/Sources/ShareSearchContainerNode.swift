@@ -313,6 +313,7 @@ final class ShareSearchContainerNode: ASDisplayNode, ShareContentContainerNode {
                 struct FoundPeers {
                     var foundLocalPeers: [RenderedPeer]
                     var foundRemotePeers: ([FoundPeer], [FoundPeer], Bool)
+                    var hideSavedMessages: Bool
                 }
                 
                 let foundPeers = Promise<FoundPeers>()
@@ -328,7 +329,8 @@ final class ShareSearchContainerNode: ASDisplayNode, ShareContentContainerNode {
                                 foundRemotePeers.0.filter { !archiveNotificationShouldRedact(transaction: transaction, peerId: $0.peer.id) },
                                 foundRemotePeers.1.filter { !archiveNotificationShouldRedact(transaction: transaction, peerId: $0.peer.id) },
                                 foundRemotePeers.2
-                            )
+                            ),
+                            hideSavedMessages: archiveNotificationShouldRedact(transaction: transaction, peerId: context.accountPeerId)
                         )
                     }
                 })
@@ -382,7 +384,7 @@ final class ShareSearchContainerNode: ASDisplayNode, ShareContentContainerNode {
                     
                     let lowercasedQuery = query.lowercased()
                     if strings.DialogList_SavedMessages.lowercased().hasPrefix(lowercasedQuery) || "saved messages".hasPrefix(lowercasedQuery) {
-                        if !existingPeerIds.contains(accountPeer.id) {
+                        if !foundPeers.hideSavedMessages && !existingPeerIds.contains(accountPeer.id) {
                             existingPeerIds.insert(accountPeer.id)
                             entries.append(ShareSearchPeerEntry(index: index, peer: EngineRenderedPeer(peer: EnginePeer(accountPeer)), presence: nil, requiresPremiumForMessaging: false, requiresStars: nil, theme: theme, strings: strings, isGlobal: false))
                             index += 1

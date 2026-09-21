@@ -4452,10 +4452,15 @@ func settingsSearchableItems(
             icon: .savedMessages,
             breadcrumbs: [],
             present: { context, _, present in
-                present(.push, context.sharedContext.makeChatController(context: context, chatLocation: .peer(id: context.account.peerId), subject: nil, botStart: nil, mode: .standard(.default), params: nil))
+                ensureArchiveUnlocked(context: context, present: { present(.modal, $0) }, completion: { result in
+                    if case .cancelled = result { return }
+                    present(.push, context.sharedContext.makeChatController(context: context, chatLocation: .peer(id: context.account.peerId), subject: nil, botStart: nil, mode: .standard(.default), params: nil))
+                })
             }
         )
-        allItems.append(savedMessages)
+        if ArchiveLockSession.shared.isRevealed {
+            allItems.append(savedMessages)
+        }
         
         let devicesItems = devicesSearchableItems(context: context, activeSessionsContext: activeSessionsContext, webSessionsContext: activeWebSessionsContext)
         allItems.append(contentsOf: devicesItems)

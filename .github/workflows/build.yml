@@ -57,6 +57,8 @@ jobs:
           /tmp/mtinput-tests
       - name: VLESS parser, configuration and lifecycle tests
         run: swift test --package-path submodules/TelegramVLESS
+      - name: Archive session and account isolation tests
+        run: python3 Tests/ArchiveLock/run.py
       - name: Player regression tests and production build
         working-directory: submodules/TelegramUniversalVideoContent/PlayerSource
         run: |
