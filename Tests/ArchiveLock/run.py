@@ -7,6 +7,8 @@ import json
 root = pathlib.Path(__file__).resolve().parents[2]
 source = (root / 'submodules/TelegramUIPreferences/Sources/ChatArchiveSettings.swift').read_text()
 session = source[source.index('public enum ArchiveFolderPresentation'):source.index('public func updateChatArchiveSettings')]
+settings = source[source.index('public struct ChatArchiveSettings'):source.index('public enum ArchiveFolderPresentation')]
+coding_key = (root / 'submodules/TelegramCore/Sources/TelegramEngine/Utils/StringCodingKey.swift').read_text()
 with tempfile.TemporaryDirectory(prefix='archive-session-') as directory:
     package = pathlib.Path(directory)
     tests = package / 'Tests/ArchiveSessionTests'
@@ -25,6 +27,10 @@ public enum EnginePeer {
         public func toInt64() -> Int64 { value }
     }
 }
-''' + session)
+''' + session + settings + coding_key + '''
+// Hashing is outside this settings serialization test; legacy-hash fixtures bypass this stub.
+func archivePasswordHash(_ value: String) -> String { value }
+''')
     (tests / 'SessionTests.swift').write_text((root / 'Tests/ArchiveLock/SessionTests.swift').read_text())
+    (tests / 'SettingsTests.swift').write_text((root / 'Tests/ArchiveLock/SettingsTests.swift').read_text())
     subprocess.run(['swift', 'test', '--package-path', directory], check=True)

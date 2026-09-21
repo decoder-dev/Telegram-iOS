@@ -7,6 +7,7 @@
 ## [Unreleased]
 
 ### Fixed — release hardening, VLESS and media playback
+- Legacy Archive credentials survive unrelated settings writes until Keychain migration succeeds; notification redaction applies before migration. Locking also clears already-delivered Saved Messages notifications.
 - Reader mode removes mixed-case and control-character-obfuscated JavaScript links. Build tools atomically create temporary files; signing keys are removed even when certificate repository loading fails.
 - Fixed libxray API v3 decoding: successful replies contain a JSON object in `data` and an empty `error` string. The previous adapter rejected successful calls, preventing the embedded runtime from starting.
 - Protected Saved Messages now shares Archive's ten-tap reveal and password/biometric gate; entries in Settings, chat lists, search, sharing, widgets and Spotlight are hidden while protected as appropriate to each surface.

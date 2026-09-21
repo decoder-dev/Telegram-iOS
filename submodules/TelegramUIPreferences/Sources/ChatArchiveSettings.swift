@@ -6,7 +6,7 @@ import Postbox
 public struct ChatArchiveSettings: Equatable, Codable {
     public var isHiddenByDefault: Bool
     public var hiddenPsaPeerId: EnginePeer.Id?
-    /// Legacy field kept only for migration into Keychain; never written going forward.
+    /// Retained until migration into Keychain succeeds.
     public var legacyLockPasswordHash: String?
     /// Per-account: allow Face ID/Touch ID as a convenience unlock alongside the password.
     /// Only meaningful while a password is set; forced back to `false` when the password is removed.
@@ -44,6 +44,8 @@ public struct ChatArchiveSettings: Equatable, Codable {
         }
         self.useBiometrics = ((try container.decodeIfPresent(Int32.self, forKey: "useBiometrics")) ?? 0) != 0
         self.isPasswordConfigured = ((try container.decodeIfPresent(Int32.self, forKey: "isPasswordConfigured")) ?? 0) != 0
+        // Extensions must redact before the main app has migrated the legacy credential.
+        self.isPasswordConfigured = self.isPasswordConfigured || self.legacyLockPasswordHash != nil
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -55,8 +57,8 @@ public struct ChatArchiveSettings: Equatable, Codable {
         } else {
             try container.encodeNil(forKey: "hiddenPsaPeerId")
         }
-        // Password hash lives in Keychain; clear any prefs copies on write.
-        try container.encodeNil(forKey: "lockPasswordHash")
+        // Only clearingLegacyPasswordHash after successful migration may remove this copy.
+        try container.encodeIfPresent(self.legacyLockPasswordHash, forKey: "lockPasswordHash")
         try container.encodeNil(forKey: "lockPassword")
         try container.encode((self.useBiometrics ? 1 : 0) as Int32, forKey: "useBiometrics")
         try container.encode((self.isPasswordConfigured ? 1 : 0) as Int32, forKey: "isPasswordConfigured")

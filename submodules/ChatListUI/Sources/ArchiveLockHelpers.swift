@@ -84,7 +84,7 @@ public func clearStaleArchiveNotifications(context: AccountContext, peerIds: [En
                 return peerId.toInt64()
             })
         }
-        return Set(transaction.chatListGetAllPeerIds(groupId: Namespaces.PeerGroup.archive).map { $0.toInt64() })
+        return Set(archiveLockedPeerIds(transaction: transaction).map { $0.toInt64() })
     }
     |> deliverOnMainQueue).startStandalone(next: { peerIds in
         clearDeliveredNotifications(forPeerIds: peerIds)
