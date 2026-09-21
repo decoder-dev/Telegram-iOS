@@ -54,6 +54,9 @@ static const NSTimeInterval MTTcpConnectionBehaviourMinimumAttemptInterval = 1.0
 
 - (void)requestConnection
 {
+    if (!_needsReconnection) {
+        return;
+    }
     if (_backoffTimer == nil) {
         // Not unconditionally: with no timer armed this is the path that reconnects as fast as it
         // is called, and after a fast failure it is called again immediately.
@@ -71,7 +74,7 @@ static const NSTimeInterval MTTcpConnectionBehaviourMinimumAttemptInterval = 1.0
     if (_lastAttemptTimestamp <= 0.0) {
         return DBL_MAX;
     }
-    NSTimeInterval elapsed = CFAbsoluteTimeGetCurrent() - _lastAttemptTimestamp;
+    NSTimeInterval elapsed = [NSProcessInfo processInfo].systemUptime - _lastAttemptTimestamp;
     // The clock can step backwards; treat that as "long ago" rather than as a reason to stall.
     return elapsed < 0.0 ? DBL_MAX : elapsed;
 }
@@ -133,6 +136,14 @@ static const NSTimeInterval MTTcpConnectionBehaviourMinimumAttemptInterval = 1.0
     [self invalidateTimer];
 }
 
+- (void)setNeedsReconnection:(bool)needsReconnection
+{
+    _needsReconnection = needsReconnection;
+    if (!needsReconnection) {
+        [self invalidateTimer];
+    }
+}
+
 - (void)invalidateTimer
 {
     MTTimer *reconnectionTimer = _backoffTimer;
@@ -163,10 +174,16 @@ static const NSTimeInterval MTTcpConnectionBehaviourMinimumAttemptInterval = 1.0
 - (void)timerEvent:(bool)error
 {
     [self invalidateTimer];
-    _lastAttemptTimestamp = CFAbsoluteTimeGetCurrent();
+    if (!_needsReconnection) {
+        return;
+    }
+    _lastAttemptTimestamp = [NSProcessInfo processInfo].systemUptime;
     
     [_queue dispatchOnQueue:^
     {
+        if (!_needsReconnection) {
+            return;
+        }
         id<MTTcpConnectionBehaviourDelegate> delegate = _delegate;
         if ([delegate respondsToSelector:@selector(tcpConnectionBehaviourRequestsReconnection:error:)])
             [delegate tcpConnectionBehaviourRequestsReconnection:self error:error];

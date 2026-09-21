@@ -59,6 +59,8 @@ jobs:
           clang -fobjc-arc -framework Foundation -I submodules/MtProtoKit/PublicHeaders \
             submodules/MtProtoKit/Sources/MTInputStream.m Tests/MTInputStream/main.m -o /tmp/mtinput-tests
           /tmp/mtinput-tests
+      - name: MTProto timer and reconnection regression tests
+        run: bash Tests/MTConnection/run.sh
       - name: VLESS parser, configuration and lifecycle tests
         run: swift test --package-path submodules/TelegramVLESS
       - name: Archive session and account isolation tests

@@ -188,6 +188,9 @@ static const NSTimeInterval MTTcpTransportSleepWatchdogTimeout = 60.0;
     MTTcpTransportContext *transportContext = _transportContext;
     [[MTTcpTransport tcpTransportQueue] dispatchOnQueue:^
     {
+        if (transportContext.stopped || !transportContext.isNetworkAvailable) {
+            return;
+        }
         if (transportContext.connection == nil)
         {
             MTContext *context = _context;
@@ -728,9 +731,15 @@ static const NSTimeInterval MTTcpTransportSleepWatchdogTimeout = 60.0;
         transportContext.isNetworkAvailable = networkAvailable;
         
         if (!networkAvailable) {
+            transportContext.connectionBehaviour.needsReconnection = false;
             [transportContext.connection stop];
             return;
         }
+
+        if (transportContext.stopped) {
+            return;
+        }
+        transportContext.connectionBehaviour.needsReconnection = true;
         
         // Unconditionally, because it starts nothing: it resets the retry counter and drops the
         // pending wait. `isNetworkAvailable` is initialised to true, so an app that started
@@ -744,6 +753,9 @@ static const NSTimeInterval MTTcpTransportSleepWatchdogTimeout = 60.0;
         // here made every MTProto worker tear down and dial again — hundreds of connects per wake.
         if (!wasAvailable) {
             [transportContext.connection stop];
+            if (transportContext.connection == nil) {
+                [transportContext.connectionBehaviour requestConnection];
+            }
         } else if (!transportContext.connectionConnected) {
             // Re-notified while nothing is connected. There is nothing to tear down, but there is
             // also no reason to sit out a backoff that has just been declared stale — ask for a

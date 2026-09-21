@@ -11,6 +11,7 @@
 @property (nonatomic) NSTimeInterval timeout;
 @property (nonatomic) bool repeat;
 @property (nonatomic, copy) dispatch_block_t completion;
+@property (nonatomic) NSUInteger generation;
 
 #if OS_OBJECT_USE_OBJC
 @property (nonatomic, strong) dispatch_queue_t queue;
@@ -62,6 +63,8 @@
 
 - (void)start
 {
+    [self invalidate];
+    NSUInteger generation = _generation;
     _timeoutDate = CFAbsoluteTimeGetCurrent() + kCFAbsoluteTimeIntervalSince1970 + _timeout;
     
     _timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, _queue);
@@ -69,26 +72,29 @@
     
     dispatch_source_set_event_handler(_timer, ^
     {
-        if (self.completion)
-            self.completion();
+        if (self.generation != generation)
+            return;
         if (!_repeat)
         {
             [self invalidate];
         }
+        // A completion may rearm this timer. Never invalidate its replacement.
+        if (self.completion)
+            self.completion();
     });
     dispatch_resume(_timer);
 }
 
 - (void)fireAndInvalidate
 {
+    [self invalidate];
     if (self.completion)
         self.completion();
-    
-    [self invalidate];
 }
 
 - (void)invalidate
 {
+    _generation++;
     _timeoutDate = 0;
     
     if (_timer != nil)

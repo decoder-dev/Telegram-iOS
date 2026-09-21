@@ -6,6 +6,13 @@
 
 ## [Unreleased]
 
+### Fixed — MTProto connection lifecycle
+- Timer callbacks can safely rearm themselves; repeated starts cancel the previous timer and ignore stale events.
+- Offline/stopped transports stop retrying, pending retries are cancelled, and returning online reconnects even after the old socket was cleared. Retry throttling uses monotonic time.
+- DNS, TCP and SOCKS/FakeTLS setup share a 30-second deadline; closing a connection cancels DNS subscriptions and timers and rejects late callbacks/restarts.
+- SOCKS credentials and MTProxy secrets are omitted from connection logs.
+- Native regression tests cover timer rearming, replacement deadlines, disabled retries and retry rate limiting.
+
 ### Fixed — release hardening, VLESS and media playback
 - Unavailable managed proxies install a closed local route in the shared MTContext, covering download workers as well as the paused main connection, including cold starts.
 - Locking Saved Messages leaves the account's public profile, profile editing, gifts and story albums accessible from Settings search.

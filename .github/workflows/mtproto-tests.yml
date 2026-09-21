@@ -1,0 +1,32 @@
+name: MTProto connection regression tests
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'Tests/MTConnection/**'
+      - 'submodules/MtProtoKit/Sources/**'
+      - '.github/workflows/mtproto-tests.yml'
+permissions:
+  contents: read
+jobs:
+  connection:
+    runs-on: macos-26
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 20
+      - run: bash Tests/MTConnection/run.sh
+      - name: Reproduce failures on the previous release
+        run: |
+          mkdir -p "$RUNNER_TEMP/mt-baseline"
+          for file in MTTimer.m MTTcpConnectionBehaviour.m; do
+            git show 3762285be10792d9e6be0e8d8dcdb4bead91b1a8:submodules/MtProtoKit/Sources/$file > "$RUNNER_TEMP/mt-baseline/$file"
+          done
+          for test in rearm manual-rearm restart-deadline disabled cancel-retry; do
+            if MT_CONNECTION_SOURCE_ROOT="$RUNNER_TEMP/mt-baseline" bash Tests/MTConnection/run.sh "$test"; then
+              echo "::error::Baseline unexpectedly passed $test"
+              exit 1
+            fi
+            echo "Confirmed baseline failure: $test"
+          done
