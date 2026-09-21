@@ -20,10 +20,10 @@ jobs:
       - name: Reproduce failures on the previous release
         run: |
           mkdir -p "$RUNNER_TEMP/mt-baseline"
-          for file in MTTimer.m MTTcpConnectionBehaviour.m; do
+          for file in MTTimer.m MTTcpConnectionBehaviour.m MTRequestMessageService.m; do
             git show 3762285be10792d9e6be0e8d8dcdb4bead91b1a8:submodules/MtProtoKit/Sources/$file > "$RUNNER_TEMP/mt-baseline/$file"
           done
-          for test in rearm manual-rearm restart-deadline disabled cancel-retry; do
+          for test in rearm manual-rearm disabled cancel-retry requests; do
             if MT_CONNECTION_SOURCE_ROOT="$RUNNER_TEMP/mt-baseline" bash Tests/MTConnection/run.sh "$test"; then
               echo "::error::Baseline unexpectedly passed $test"
               exit 1

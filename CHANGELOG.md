@@ -7,6 +7,7 @@
 ## [Unreleased]
 
 ### Fixed — MTProto connection lifecycle
+- Request scheduling and timeout tracking index dependency identities once per pass, replacing quadratic scans with lazy linear indexing while preserving pointer identity and delayed-request semantics.
 - Timer callbacks can safely rearm themselves; repeated starts cancel the previous timer and ignore stale events.
 - Offline/stopped transports stop retrying, pending retries are cancelled, and returning online reconnects even after the old socket was cleared. Retry throttling uses monotonic time.
 - DNS, TCP and SOCKS/FakeTLS setup share a 30-second deadline; closing a connection cancels DNS subscriptions and timers and rejects late callbacks/restarts.
