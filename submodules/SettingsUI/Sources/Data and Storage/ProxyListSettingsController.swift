@@ -125,8 +125,8 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
                 return .index(2)
             case let .server(_, _, _, settings, _, _, _, _, _):
                 let displayHost: String
-                if case .vless = settings.connection {
-                    displayHost = "vless://\(settings.host)"
+                if case .vless = settings.connection, let vlessURL = settings.vlessProxyURL {
+                    displayHost = vlessURL
                 } else {
                     displayHost = settings.host
                 }

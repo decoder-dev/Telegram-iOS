@@ -243,9 +243,13 @@ private final class ProxySettingsServerItemNode: ItemListRevealOptionsItemNode {
             }
             
             let titleAttributedString = NSMutableAttributedString()
-            titleAttributedString.append(NSAttributedString(string: urlEncodedStringFromString(item.server.host), font: titleFont, textColor: item.theme.list.itemPrimaryTextColor))
-            if !item.server.connection.isWebProxy {
-                titleAttributedString.append(NSAttributedString(string: ":\(item.server.port)", font: titleFont, textColor: item.theme.list.itemSecondaryTextColor))
+            if case .vless = item.server.connection, let vlessURL = item.server.vlessProxyURL {
+                titleAttributedString.append(NSAttributedString(string: vlessURL, font: titleFont, textColor: item.theme.list.itemPrimaryTextColor))
+            } else {
+                titleAttributedString.append(NSAttributedString(string: urlEncodedStringFromString(item.server.host), font: titleFont, textColor: item.theme.list.itemPrimaryTextColor))
+                if !item.server.connection.isWebProxy {
+                    titleAttributedString.append(NSAttributedString(string: ":\(item.server.port)", font: titleFont, textColor: item.theme.list.itemSecondaryTextColor))
+                }
             }
             let statusAttributedString = NSAttributedString(string: item.label, font: statusFont, textColor: item.labelAccent ? item.theme.list.itemAccentColor : item.theme.list.itemSecondaryTextColor)
             
