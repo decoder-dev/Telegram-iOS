@@ -7,6 +7,7 @@
 ## [Unreleased]
 
 ### Fixed — MTProto connection lifecycle
+- Corrected authenticated envelope padding validation to exclude the 32-byte header, validate signed body lengths before subtraction, and accept the full specified padding range. Incoming parsing now consumes exactly the declared body and records its size instead of copying the remaining packet and padding in 128-byte chunks.
 - Request scheduling and timeout tracking index dependency identities once per pass, replacing quadratic scans with lazy linear indexing while preserving pointer identity and delayed-request semantics.
 - Timer callbacks can safely rearm themselves; repeated starts cancel the previous timer and ignore stale events.
 - Offline/stopped transports stop retrying, pending retries are cancelled, and returning online reconnects even after the old socket was cleared. Retry throttling uses monotonic time.
