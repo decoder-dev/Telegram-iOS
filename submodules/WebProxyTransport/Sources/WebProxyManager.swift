@@ -141,9 +141,14 @@ public final class WebProxyManager {
     }
     
     public func isReady(for configuration: WebProxyConfiguration) -> Bool {
+        return self.loopbackEndpoint(for: configuration) != nil
+    }
+
+    public func loopbackEndpoint(for configuration: WebProxyConfiguration) -> LoopbackEndpoint? {
         self.lock.lock()
         defer { self.lock.unlock() }
-        return self.configuration == configuration && self.endpoint != nil && self.sidecar != nil
+        guard self.configuration == configuration, self.sidecar != nil else { return nil }
+        return self.endpoint
     }
     
     /// Registers a handler invoked on the main queue when the sidecar becomes ready, fails, or stops.

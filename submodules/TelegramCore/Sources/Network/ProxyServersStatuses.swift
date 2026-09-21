@@ -6,6 +6,7 @@ import TelegramVLESS
 
 
 public enum ProxyServerStatus: Equatable {
+    case notChecked
     case checking
     case notAvailable
     case available(Double)
@@ -46,8 +47,7 @@ private func socksSettingsForPing(server: ProxyServerSettings) -> MTSocksProxySe
             guard let url = server.vlessProxyURL else {
                 return nil
             }
-            VlessManager.shared.configure(activeProfileURL: url)
-            guard let endpoint = VlessManager.shared.activeLoopbackEndpoint else {
+            guard let endpoint = VlessManager.shared.loopbackEndpoint(for: url) else {
                 return nil
             }
             return MTSocksProxySettings(ip: endpoint.host, port: UInt16(clamping: endpoint.port), username: endpoint.user, password: endpoint.password, secret: nil)
@@ -63,10 +63,33 @@ private func webConfiguration(for server: ProxyServerSettings) -> WebProxyConfig
 
 private final class ProxyServerItemContext {
     private var disposable = MetaDisposable()
+    private var stateDisposable = MetaDisposable()
     private var sidecarEventToken: WebProxyManager.SidecarEventToken?
     var value: ProxyServerStatus = .checking
     
     init(queue: Queue, context: MTContext, datacenterId: Int, server: ProxyServerSettings, updated: @escaping (ProxyServerStatus) -> Void) {
+        if let url = server.vlessProxyURL {
+            // Observing a saved profile must never replace the application's active tunnel.
+            var previousEndpoint: VlessProxySink?
+            let refresh: () -> Void = { [weak self] in
+                guard let self else { return }
+                guard let endpoint = VlessManager.shared.loopbackEndpoint(for: url) else {
+                    previousEndpoint = nil
+                    self.disposable.set(nil)
+                    updated(.notChecked)
+                    return
+                }
+                guard endpoint != previousEndpoint else { return }
+                previousEndpoint = endpoint
+                updated(.checking)
+                let settings = MTSocksProxySettings(ip: endpoint.host, port: UInt16(clamping: endpoint.port), username: endpoint.user, password: endpoint.password, secret: nil)
+                self.disposable.set((pingProxyStatus(context: context, datacenterId: datacenterId, settings: settings)
+                |> deliverOn(queue)).start(next: updated))
+            }
+            self.stateDisposable.set((VlessManager.shared.stateEvents |> deliverOn(queue)).start(next: { _ in refresh() }))
+            queue.async { refresh() }
+            return
+        }
         if let configuration = webConfiguration(for: server) {
             self.startWebProxyPing(queue: queue, context: context, datacenterId: datacenterId, server: server, configuration: configuration, updated: updated)
             return
@@ -95,10 +118,10 @@ private final class ProxyServerItemContext {
             guard let self else {
                 return
             }
-            guard WebProxyManager.shared.isReady(for: configuration),
-                  let endpoint = WebProxyManager.shared.activeLoopbackEndpoint else {
+            guard let endpoint = WebProxyManager.shared.loopbackEndpoint(for: configuration) else {
+                self.disposable.set(nil)
                 queue.async {
-                    updated(.checking)
+                    updated(.notChecked)
                 }
                 return
             }
@@ -109,15 +132,15 @@ private final class ProxyServerItemContext {
             }))
         }
         
-        WebProxyManager.shared.configure(activeWebProxy: configuration)
         self.sidecarEventToken = WebProxyManager.shared.addSidecarEventHandler { _ in
-            runPing()
+            queue.async { runPing() }
         }
         runPing()
     }
     
     deinit {
         self.disposable.dispose()
+        self.stateDisposable.dispose()
         if let sidecarEventToken = self.sidecarEventToken {
             WebProxyManager.shared.removeSidecarEventHandler(sidecarEventToken)
         }

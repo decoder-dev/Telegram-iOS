@@ -65,6 +65,10 @@ jobs:
         run: swift test --package-path submodules/TelegramVLESS
       - name: Archive session and account isolation tests
         run: python3 Tests/ArchiveLock/run.py
+      - name: Managed proxy observation and customization tests
+        run: |
+          python3 Tests/ManagedProxy/run.py
+          python3 Tests/Customization/run.py
       - name: Player regression tests and production build
         working-directory: submodules/TelegramUniversalVideoContent/PlayerSource
         run: |

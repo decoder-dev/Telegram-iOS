@@ -56,13 +56,13 @@ extension ProxyServerSettings {
                 guard let configuration = self.webProxyConfiguration else {
                     return nil
                 }
-                guard let endpoint = WebProxyManager.shared.activeLoopbackEndpoint else {
+                guard let endpoint = WebProxyManager.shared.loopbackEndpoint(for: configuration) else {
                     return nil
                 }
                 return MTSocksProxySettings(ip: endpoint.host, port: endpoint.port, username: nil, password: nil, secret: configuration.secret)
             case .vless:
-                guard let url = self.vlessProxyURL, VlessManager.shared.isReady(for: url),
-                      let endpoint = VlessManager.shared.activeLoopbackEndpoint else {
+                guard let url = self.vlessProxyURL,
+                      let endpoint = VlessManager.shared.loopbackEndpoint(for: url) else {
                     return nil
                 }
                 return MTSocksProxySettings(ip: endpoint.host, port: UInt16(clamping: endpoint.port), username: endpoint.user, password: endpoint.password, secret: nil)

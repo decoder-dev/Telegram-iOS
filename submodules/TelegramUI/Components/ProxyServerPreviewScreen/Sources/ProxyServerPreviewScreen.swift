@@ -402,6 +402,9 @@ private final class ProxyServerPreviewSheetContent: CombinedComponent {
                 if let status = state.status {
                     statusIsActive = false
                     switch status {
+                    case .notChecked:
+                        statusText = strings.SocksProxySetup_ConnectAndSave
+                        statusColor = tableTextColor
                     case let .available(rtt):
                         let pingTime = Int(rtt * 1000.0)
                         statusText = strings.SocksProxySetup_ProxyStatusPing("\(pingTime)").string
@@ -436,6 +439,9 @@ private final class ProxyServerPreviewSheetContent: CombinedComponent {
             if let status = state.status {
                 statusIsActive = false
                 switch status {
+                case .notChecked:
+                    statusText = strings.SocksProxySetup_ConnectAndSave
+                    statusColor = tableTextColor
                 case let .available(rtt):
                     let pingTime = Int(rtt * 1000.0)
                     statusText = strings.SocksProxySetup_ProxyStatusPing("\(pingTime)").string

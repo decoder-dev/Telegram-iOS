@@ -1,0 +1,23 @@
+name: Client regression tests
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'submodules/TelegramVLESS/**'
+      - 'submodules/WebProxyTransport/Sources/WebProxyManager.swift'
+      - 'submodules/TelegramCore/Sources/Network/ProxyServersStatuses.swift'
+      - 'submodules/TelegramPresentationData/Sources/PresentationData.swift'
+      - 'Tests/ManagedProxy/**'
+      - 'Tests/Customization/**'
+      - '.github/workflows/client-regression.yml'
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - run: swift test --package-path submodules/TelegramVLESS
+      - run: python3 Tests/ManagedProxy/run.py
+      - run: python3 Tests/Customization/run.py

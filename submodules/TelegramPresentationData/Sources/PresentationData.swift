@@ -78,14 +78,12 @@ public struct PresentationChatBubbleCorners: Equatable, Hashable {
     }
 }
 
-/// Apple HIG / iMessage geometry for every chat: continuous corners, no comic tails.
+/// Tail-free bubbles with the user's selected corner geometry.
 public func higChatBubbleCorners(from settings: PresentationChatBubbleSettings) -> PresentationChatBubbleCorners {
+    let mainRadius = CGFloat(max(8, min(24, settings.mainRadius)))
     return PresentationChatBubbleCorners(
-        // Pinned to Messages geometry rather than floored against the stored setting: the
-        // defaults are 20/10, so a floor would never reach 18/4. This makes the radius sliders
-        // in Bubble Settings inert, which is the cost of matching Messages exactly.
-        mainRadius: 18.0,
-        auxiliaryRadius: 4.0,
+        mainRadius: mainRadius,
+        auxiliaryRadius: min(mainRadius, CGFloat(max(0, settings.auxiliaryRadius))),
         mergeBubbleCorners: settings.mergeBubbleCorners,
         hasTails: false
     )

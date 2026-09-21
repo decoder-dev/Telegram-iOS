@@ -481,6 +481,7 @@ private final class BubbleSettingsToolbarNode: ASDisplayNode {
     }
     
     func updatePresentationData(presentationData: PresentationData) {
+        self.presentationData = presentationData
         self.backgroundColor = presentationData.theme.rootController.tabBar.backgroundColor
         self.separatorNode.backgroundColor = presentationData.theme.rootController.tabBar.separatorColor
         self.topSeparatorNode.backgroundColor = presentationData.theme.rootController.tabBar.separatorColor
@@ -503,10 +504,10 @@ private final class BubbleSettingsToolbarNode: ASDisplayNode {
             self?.updateMergeBubbleCorners?(value)
         })
         let cornerRadiusItem = BubbleSettingsRadiusItem(theme: self.presentationData.theme, value: Int(self.presentationData.chatBubbleCorners.mainRadius), enabled: true, disableLeadingInset: false, displayIcons: false, disableDecorations: true, force: false, sectionId: 0, updated: { [weak self] value in
-            self?.updateCornerRadius?(Int32(max(8, min(16, value))))
+            self?.updateCornerRadius?(Int32(max(8, min(24, value))))
         })
         
-        /*switchItem.updateNode(async: { f in
+        switchItem.updateNode(async: { f in
             f()
         }, node: {
             return self.switchItemNode
@@ -516,7 +517,7 @@ private final class BubbleSettingsToolbarNode: ASDisplayNode {
             transition.updateFrame(node: self.switchItemNode, frame: CGRect(origin: CGPoint(x: 0.0, y: contentHeight), size: layout.contentSize))
             contentHeight += layout.contentSize.height
             apply(ListViewItemApply(isOnScreen: true))
-        })*/
+        })
         
         cornerRadiusItem.updateNode(async: { f in
             f()

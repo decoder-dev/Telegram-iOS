@@ -6,6 +6,11 @@
 
 ## [Unreleased]
 
+### Fixed — managed proxy observation and customization
+- Listing or inspecting saved WEB/VLESS proxies no longer reconfigures the process-wide active tunnel. Status checks observe readiness changes, cancel stale probes, and leave inactive managed profiles untested instead of falsely declaring them unavailable.
+- VLESS and WEB endpoints are resolved atomically for the requested profile; VLESS readiness applies the same whitespace normalization as startup.
+- Bubble radius settings now affect actual rendering and previews. The slider supports the stored default radius, adjacent-corner controls are visible, and preview toolbar presentation data updates with the preview.
+
 ### Fixed — MTProto connection lifecycle
 - Corrected authenticated envelope padding validation to exclude the 32-byte header, validate signed body lengths before subtraction, and accept the full specified padding range. Incoming parsing now consumes exactly the declared body and records its size instead of copying the remaining packet and padding in 128-byte chunks.
 - Request scheduling and timeout tracking index dependency identities once per pass, replacing quadratic scans with lazy linear indexing while preserving pointer identity and delayed-request semantics.

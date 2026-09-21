@@ -208,12 +208,17 @@ public final class VlessManager {
 
     /// Whether the runtime is currently serving the given profile URL.
     public func isReady(for profileURL: String) -> Bool {
+        return self.loopbackEndpoint(for: profileURL) != nil
+    }
+
+    /// Resolve profile identity and endpoint in one snapshot during profile switches.
+    public func loopbackEndpoint(for profileURL: String) -> VlessProxySink? {
         lock.lock()
         defer { lock.unlock() }
-        if case .running = stateValue, activeProfileURLValue == profileURL {
-            return true
+        if case let .running(sink) = stateValue, activeProfileURLValue == profileURL.trimmingCharacters(in: .whitespacesAndNewlines) {
+            return sink
         }
-        return false
+        return nil
     }
 
     /// The running loopback endpoint, if any.

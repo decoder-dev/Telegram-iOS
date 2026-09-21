@@ -28,6 +28,27 @@ private final class FakeRuntime: XrayRuntime {
 }
 
 final class VlessTests: XCTestCase {
+    func testEndpointResolutionUsesNormalizedProfileIdentity() {
+        let runtime = FakeRuntime()
+        let ready = expectation(description: "normalized profile ready")
+        weak var observedManager: VlessManager?
+        var fulfilled = false
+        let padded = " \n" + profileURL + "\r\n"
+        let manager = VlessManager(runtime: runtime, onStateChange: {
+            guard let manager = observedManager, manager.isRunning, !fulfilled else { return }
+            fulfilled = true
+            XCTAssertNotNil(manager.loopbackEndpoint(for: padded))
+            XCTAssertEqual(manager.loopbackEndpoint(for: padded), manager.loopbackEndpoint(for: profileURL))
+            XCTAssertNil(manager.loopbackEndpoint(for: profileURL.replacingOccurrences(of: "example.com", with: "other.example.com")))
+            ready.fulfill()
+        })
+        observedManager = manager
+        manager.start(url: padded)
+        wait(for: [ready], timeout: 5)
+        manager.stop()
+        XCTAssertNil(manager.loopbackEndpoint(for: padded))
+    }
+
     func testNativeInvokeResponseContract() throws {
         let ports = try LibXrayRuntime.decodeResponse(Data(#"{"success":true,"data":{"ports":[21001,21002]},"error":""}"#.utf8))
         XCTAssertEqual(ports?.ports, [21001, 21002])

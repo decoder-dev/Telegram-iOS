@@ -130,15 +130,15 @@ class BubbleSettingsRadiusItemNode: ListViewItemNode, ItemListItemNode {
         sliderView.lineSize = 4.0
         sliderView.dotSize = 8.0
         sliderView.minimumValue = 0.0
-        sliderView.maximumValue = 4.0
+        sliderView.maximumValue = 8.0
         sliderView.startValue = 0.0
-        sliderView.positionsCount = 5
+        sliderView.positionsCount = 9
         sliderView.useLinesForPositions = true
         sliderView.disablesInteractiveTransitionGestureRecognizer = true
         if let item = self.item, let params = self.layoutParams {
             sliderView.isUserInteractionEnabled = item.enabled
             
-            sliderView.value = CGFloat((item.value - 8) / 2)
+            sliderView.value = CGFloat((max(8, min(24, item.value)) - 8) / 2)
             sliderView.backgroundColor = item.theme.list.itemBlocksBackgroundColor
             sliderView.backColor = item.theme.list.itemSwitchColors.frameColor
             sliderView.trackColor = item.enabled ? item.theme.list.itemAccentColor : item.theme.list.itemDisabledTextColor
@@ -273,7 +273,7 @@ class BubbleSettingsRadiusItemNode: ListViewItemNode, ItemListItemNode {
                             sliderView.knobImage = PresentationResourcesItemList.knobImage(item.theme)
                         }
                         
-                        let value: CGFloat = CGFloat((item.value - 8) / 2)
+                        let value: CGFloat = CGFloat((max(8, min(24, item.value)) - 8) / 2)
                         if firstTime {
                             sliderView.value = value
                         }

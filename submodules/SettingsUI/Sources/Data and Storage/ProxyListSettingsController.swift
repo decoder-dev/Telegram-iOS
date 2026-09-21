@@ -468,6 +468,8 @@ private func proxySettingsControllerEntries(theme: PresentationTheme, strings: P
                     text = "VLESS"
             }
             switch status {
+                case .notChecked:
+                    displayStatus = DisplayProxyServerStatus(activity: false, text: text, textActive: false)
                 case .notAvailable:
                     text = text + ", " + strings.SocksProxySetup_ProxyStatusUnavailable
                     displayStatus = DisplayProxyServerStatus(activity: false, text: text, textActive: false)
