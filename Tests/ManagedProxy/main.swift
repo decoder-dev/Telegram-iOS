@@ -8,26 +8,29 @@ let manager = VlessManager.shared
 manager.configuration = "vless-a"
 let statuses = ProxyServersStatuses(network: Network(), servers: .single([vless, other, web]))
 var latest: [ProxyServerSettings: ProxyServerStatus] = [:]
-let subscription = (statuses.statuses() |> deliverOnMainQueue).start(next: { latest = $0 })
-func awaitState(_ predicate: () -> Bool) {
+let subscription = (statuses.statuses() |> deliverOnMainQueue).start(next: {
+    latest = $0
+    print("Statuses:", $0.map { "\($0.key.host)=\($0.value)" }.sorted()); fflush(stdout)
+})
+func awaitState(_ name: String, _ predicate: () -> Bool) {
     let deadline = Date().addingTimeInterval(5)
     while !predicate(), Date() < deadline { RunLoop.main.run(until: Date().addingTimeInterval(0.01)) }
-    precondition(predicate(), "Proxy status transition timed out")
+    precondition(predicate(), "Proxy status transition timed out: \(name)")
 }
-awaitState { latest.count == 3 }
+awaitState("initial") { latest.count == 3 }
 precondition(manager.mutations == 0 && WebProxyManager.shared.mutations == 0, "Observing a saved proxy switched the active tunnel")
 precondition(latest.values.allSatisfy { $0 == .notChecked }, "Inactive tunnels were reported as failed or left checking")
 manager.endpoint = VlessProxySink(port: 21001)
 manager.events.putNext(1)
-awaitState { if case .available? = latest[vless] { return true }; return false }
+awaitState("first ready") { if case .available? = latest[vless] { return true }; return false }
 precondition(latest[other] == .notChecked, "Another VLESS profile reused the active endpoint")
 manager.configuration = "vless-b"
 manager.endpoint = VlessProxySink(port: 21002)
 manager.events.putNext(2)
-awaitState { if case .available? = latest[other], latest[vless] == .notChecked { return true }; return false }
+awaitState("switch") { if case .available? = latest[other], latest[vless] == .notChecked { return true }; return false }
 precondition(manager.mutations == 0, "Status refresh mutated tunnel configuration")
 manager.endpoint = nil
 manager.events.putNext(3)
-awaitState { latest[other] == .notChecked }
+awaitState("stopped") { latest[other] == .notChecked }
 subscription.dispose()
 print("Saved proxy observation, readiness events and profile isolation: passed")

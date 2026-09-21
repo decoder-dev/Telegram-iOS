@@ -26,6 +26,13 @@ public func isSupportedWebProxySecret(_ secret: Data) -> Bool {
 }
 
 extension ProxyServerSettings {
+    /// Managed proxies connect through their current loopback endpoint, not the
+    /// public profile hostname. A stale/direct online state must not confirm a switch.
+    public func matchesConnectedProxyAddress(_ address: String?) -> Bool {
+        guard let address, let settings = self.mtProxySettings else { return false }
+        return settings.ip == address
+    }
+
     /// A closed local endpoint keeps every MTContext consumer, including download
     /// workers, off a direct route while a managed proxy is unavailable.
     static var managedBootstrapProxySettings: MTSocksProxySettings {

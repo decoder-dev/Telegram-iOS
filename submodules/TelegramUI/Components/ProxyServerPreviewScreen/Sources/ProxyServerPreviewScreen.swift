@@ -154,15 +154,8 @@ private final class ProxyServerPreviewSheetContent: CombinedComponent {
                         let signal = self.network.connectionStatus
                         |> filter { status in
                             switch status {
-                                case .online:
-                                    if proxyServerSettings.connection.isWebProxy {
-                                        return true
-                                    }
-                                    if case let .online(proxyAddress) = status, proxyAddress == proxyServerSettings.host {
-                                        return true
-                                    } else {
-                                        return false
-                                    }
+                                case let .online(proxyAddress):
+                                    return proxyServerSettings.matchesConnectedProxyAddress(proxyAddress)
                                 default:
                                     return false
                             }
