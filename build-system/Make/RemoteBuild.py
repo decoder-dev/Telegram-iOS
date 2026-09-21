@@ -144,8 +144,8 @@ def remote_build_darwin_containers(darwin_containers_path, darwin_containers_hos
                 if watch_provisioning_profile_remote_path is not None:
                     guest_build_sh += '--watchProvisioningProfile="{}" \\'.format(watch_provisioning_profile_remote_path)
 
-            guest_build_file_path = tempfile.mktemp()
-            with open(guest_build_file_path, 'w+') as file:
+            guest_build_fd, guest_build_file_path = tempfile.mkstemp()
+            with os.fdopen(guest_build_fd, 'w+') as file:
                 file.write(guest_build_sh)
             session_scp_upload(session=session, source_path=guest_build_file_path, destination_path='guest-build-telegram.sh')
             os.unlink(guest_build_file_path)
@@ -222,8 +222,8 @@ def remote_deploy_testflight(darwin_containers_path, darwin_containers_host, mac
                 FASTLANE_PASSWORD="{password}" xcrun altool --upload-app --type ios --file "Telegram.ipa" --username "{username}" --password "@env:FASTLANE_PASSWORD"
             '''.format(username=username, password=password)
 
-            guest_upload_file_path = tempfile.mktemp()
-            with open(guest_upload_file_path, 'w+') as file:
+            guest_upload_fd, guest_upload_file_path = tempfile.mkstemp()
+            with os.fdopen(guest_upload_fd, 'w+') as file:
                 file.write(guest_upload_sh)
             session_scp_upload(session=session, source_path=guest_upload_file_path, destination_path='guest-upload-telegram.sh')
             os.unlink(guest_upload_file_path)
@@ -282,15 +282,16 @@ def remote_ipa_diff(darwin_containers_path, darwin_containers_host, macos_versio
                 echo $? > result.txt
             '''
 
-            guest_upload_file_path = tempfile.mktemp()
-            with open(guest_upload_file_path, 'w+') as file:
+            guest_upload_fd, guest_upload_file_path = tempfile.mkstemp()
+            with os.fdopen(guest_upload_fd, 'w+') as file:
                 file.write(guest_upload_sh)
             session_scp_upload(session=session, source_path=guest_upload_file_path, destination_path='guest-ipa-diff.sh')
             os.unlink(guest_upload_file_path)
 
             print('Executing remote ipa-diff...')
             session_ssh(session=session, command='bash -l guest-ipa-diff.sh')
-            guest_result_path = tempfile.mktemp()
+            guest_result_fd, guest_result_path = tempfile.mkstemp()
+            os.close(guest_result_fd)
             session_scp_download(session=session, source_path='result.txt', destination_path=guest_result_path)
             guest_result = ''
             with open(guest_result_path, 'r') as file:

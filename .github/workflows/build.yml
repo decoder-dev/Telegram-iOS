@@ -50,6 +50,10 @@ jobs:
           node-version: '22'
       - name: Accessibility contracts
         run: python3 -m unittest discover -s Tests/VoiceOverContracts
+      - name: Reader links and signing key cleanup
+        run: |
+          node --test Tests/Readability/links.test.cjs
+          python3 -m unittest discover -s Tests/BuildTools
       - name: MTProto malformed-input regression tests
         run: |
           clang -fobjc-arc -framework Foundation -I submodules/MtProtoKit/PublicHeaders \

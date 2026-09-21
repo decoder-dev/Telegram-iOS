@@ -262,18 +262,19 @@ class GitCodesigningSource(CodesigningSource):
     def load_data(self, working_dir):
         self.working_dir = working_dir
         temp_key_path = None
-        if self.private_key is not None:
-            temp_key_path = tempfile.mktemp()
-            with open(temp_key_path, 'w+') as file:
-                file.write(self.private_key)
-                if not self.private_key.endswith('\n'):
-                    file.write('\n')
-            os.chmod(temp_key_path, 0o600)
+        try:
+            if self.private_key is not None:
+                key_fd, temp_key_path = tempfile.mkstemp()
+                with os.fdopen(key_fd, 'w+') as file:
+                    file.write(self.private_key)
+                    if not self.private_key.endswith('\n'):
+                        file.write('\n')
+                os.chmod(temp_key_path, 0o600)
 
-        load_codesigning_data_from_git(working_dir=self.working_dir, repo_url=self.repo_url, temp_key_path=temp_key_path, branch=self.team_id, password=self.password, always_fetch=self.always_fetch)
-
-        if temp_key_path is not None:
-            os.remove(temp_key_path)
+            load_codesigning_data_from_git(working_dir=self.working_dir, repo_url=self.repo_url, temp_key_path=temp_key_path, branch=self.team_id, password=self.password, always_fetch=self.always_fetch)
+        finally:
+            if temp_key_path is not None:
+                os.remove(temp_key_path)
 
     def copy_profiles_to_destination(self, destination_path):
         source_path = self.working_dir + '/decrypted/profiles/{}'.format(self.codesigning_type)
