@@ -71,15 +71,17 @@ final class VlessTests: XCTestCase {
 
     func testSwitchingRunningProfileStartsReplacement() {
         let runtime = FakeRuntime()
-        var manager: VlessManager!
+        weak var observedManager: VlessManager?
         let first = expectation(description: "first profile")
         let second = expectation(description: "replacement profile")
         let secondURL = profileURL.replacingOccurrences(of: "example.com", with: "second.example.com")
         var seenFirst = false, seenSecond = false
-        manager = VlessManager(runtime: runtime, onStateChange: {
+        let manager = VlessManager(runtime: runtime, onStateChange: {
+            guard let manager = observedManager else { return }
             if manager.isReady(for: profileURL), !seenFirst { seenFirst = true; first.fulfill() }
             if manager.isReady(for: secondURL), !seenSecond { seenSecond = true; second.fulfill() }
         })
+        observedManager = manager
         manager.configure(activeProfileURL: profileURL)
         wait(for: [first], timeout: 5)
         manager.configure(activeProfileURL: secondURL)
@@ -108,10 +110,18 @@ final class VlessTests: XCTestCase {
     func testMalformedPortListFailsWithoutIndexingCrash() {
         let runtime = FakeRuntime(); runtime.ports = []
         let failed = expectation(description: "port validation")
-        var manager: VlessManager!
-        manager = VlessManager(runtime: runtime, onStateChange: {
-            if case .failed(.portAllocationFailed) = manager.state { failed.fulfill() }
+        weak var observedManager: VlessManager?
+        var observedFailure = false
+        let manager = VlessManager(runtime: runtime, onStateChange: {
+            guard let manager = observedManager else { return }
+            // Notifications read the latest state; multiple queued transitions may
+            // legitimately observe the same terminal state before this queue drains.
+            if case .failed(.portAllocationFailed) = manager.state, !observedFailure {
+                observedFailure = true
+                failed.fulfill()
+            }
         })
+        observedManager = manager
         manager.start(url: profileURL)
         wait(for: [failed], timeout: 3)
         manager.stop()
