@@ -46,6 +46,15 @@ final class VlessTests: XCTestCase {
         XCTAssertEqual(VlessProfileParser.parse(reality), .failure(.invalidShortId))
     }
 
+    func testIPv6AndCommonTCPLinkParameters() throws {
+        let uri = profileURL.replacingOccurrences(of: "example.com", with: "[::1]").replacingOccurrences(of: "type=ws", with: "type=raw&headerType=none")
+        let profile = try VlessProfileParser.parse(uri).get()
+        XCTAssertEqual(profile.endpoint.host, "::1")
+        XCTAssertEqual(profile.transport, .tcp)
+        XCTAssertEqual(VlessProfileParser.parse(uri.replacingOccurrences(of: "headerType=none", with: "headerType=http")), .failure(.unsupportedHeaderType("http")))
+        XCTAssertFalse(VlessProfileParser.isValidRealityPublicKey(String(repeating: "=", count: 43)))
+    }
+
     func testSupportedTransportsAndConfig() throws {
         for transport in ["tcp", "ws", "grpc", "httpupgrade", "xhttp"] {
             let profile = try VlessProfileParser.parse(profileURL.replacingOccurrences(of: "type=ws", with: "type=" + transport)).get()

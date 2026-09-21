@@ -6,7 +6,7 @@ const vm = require('node:vm');
 
 function load(name, extras = {}) {
   const context = vm.createContext({ EventTarget, Event, Uint8Array, atob, btoa, console, ...extras });
-  let source = fs.readFileSync(path.join(__dirname, '../src/', name + '.js'), 'utf8');
+  let source = fs.readFileSync(path.join(process.env.PLAYER_TEST_SOURCE_ROOT || path.join(__dirname, '../src/'), name + '.js'), 'utf8');
   source = source.replace(/^import .*$/gm, '').replace(/export /g, '');
   vm.runInContext(source + `\nthis.Subject = ${name === 'index' ? 'HlsPlayerInstance' : name};`, context);
   return { Subject: context.Subject, context };

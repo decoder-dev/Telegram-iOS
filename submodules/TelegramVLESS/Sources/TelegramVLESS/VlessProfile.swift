@@ -165,7 +165,7 @@ public enum VlessProfileError: Error, Equatable {
 
 private let allowedParameters: Set<String> = [
     "encryption", "flow", "security", "sni", "fp", "alpn", "pbk", "sid", "spx",
-    "type", "host", "path", "serviceName", "mode", "authority",
+    "type", "host", "path", "serviceName", "mode", "authority", "headerType",
     "extra", "allowInsecure", "downFrame", "scStreamDownServerSecs"
 ]
 
@@ -183,9 +183,11 @@ public enum VlessProfileParser {
         if uri.utf8.count > maximumUriLength {
             return .failure(.tooLong)
         }
-        guard uri.lowercased().hasPrefix("vless://"), let url = URLComponents(string: uri), let host = url.host, let port = url.port else {
+        guard uri.lowercased().hasPrefix("vless://"), let url = URLComponents(string: uri), let rawHost = url.host, let port = url.port else {
             return .failure(.invalidUri)
         }
+        // URLComponents preserves brackets on IPv6 literals; Xray expects the address itself.
+        let host = rawHost.hasPrefix("[") && rawHost.hasSuffix("]") ? String(rawHost.dropFirst().dropLast()) : rawHost
         guard let user = url.user, Self.isValidUUID(user) else {
             return .failure(.invalidUserId)
         }
@@ -253,7 +255,7 @@ public enum VlessProfileParser {
         let rawTransport = (query["type"] ?? "tcp").lowercased()
         let transport: VlessProfile.Transport
         switch rawTransport {
-        case "tcp":
+        case "tcp", "raw":
             transport = .tcp
         case "ws", "websocket":
             transport = .ws
@@ -265,6 +267,9 @@ public enum VlessProfileParser {
             transport = .xhttp
         default:
             return .failure(.unsupportedTransport(rawTransport))
+        }
+        if let headerType = query["headerType"], !headerType.isEmpty && headerType != "none" {
+            return .failure(.unsupportedHeaderType(headerType))
         }
 
         // fingerprint
@@ -316,7 +321,7 @@ public enum VlessProfileParser {
         var shortId: String?
         var spiderX: String?
         if security == .reality {
-            guard let rawPublicKey = query["pbk"], !rawPublicKey.isEmpty, Self.isBase64URLString(rawPublicKey), rawPublicKey.count >= 43, rawPublicKey.count <= 44 else {
+            guard let rawPublicKey = query["pbk"], Self.isValidRealityPublicKey(rawPublicKey) else {
                 return .failure(.invalidPublicKey)
             }
             publicKey = rawPublicKey
@@ -504,5 +509,13 @@ public enum VlessProfileParser {
     static func isBase64URLString(_ value: String) -> Bool {
         let allowed = Array("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_=")
         return !value.isEmpty && value.allSatisfy { allowed.contains($0) }
+    }
+
+    static func isValidRealityPublicKey(_ value: String) -> Bool {
+        guard value.count == 43 || (value.count == 44 && value.hasSuffix("=")) else { return false }
+        let unpadded = value.hasSuffix("=") ? String(value.dropLast()) : value
+        guard !unpadded.contains("="), isBase64URLString(unpadded) else { return false }
+        let base64 = unpadded.replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/") + "="
+        return Data(base64Encoded: base64)?.count == 32
     }
 }
