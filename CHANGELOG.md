@@ -7,6 +7,7 @@
 ## [Unreleased]
 
 ### Fixed — release hardening, VLESS and media playback
+- Proxy bootstrap resumes MTProto only after the new route has been queued to its listeners, avoiding a resume on the previous route.
 - Legacy Archive credentials survive unrelated settings writes until Keychain migration succeeds; notification redaction applies before migration. Locking also clears already-delivered Saved Messages notifications.
 - Reader mode removes mixed-case and control-character-obfuscated JavaScript links. Build tools atomically create temporary files; signing keys are removed even when certificate repository loading fails.
 - Fixed libxray API v3 decoding: successful replies contain a JSON object in `data` and an empty `error` string. The previous adapter rejected successful calls, preventing the embedded runtime from starting.

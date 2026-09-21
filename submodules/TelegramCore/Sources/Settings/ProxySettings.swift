@@ -115,11 +115,6 @@ func applySharedProxySettingsToNetwork(settings: ProxySettings, network: Network
         return
     }
     
-    // Clear the bootstrap pause whenever we have a resolvable route (ready WEB, SOCKS/MTProxy,
-    // or direct). Leaving WEB while paused used to leave `webProxyBootstrapPaused` stuck true,
-    // so rebuildTransport / shouldKeepConnection never resumed MtProto.
-    network.resumeIfWebProxyBootstrapPaused()
-
     network.context.updateApiEnvironment { environment in
         let current = environment?.socksProxySettings
         let updated: MTSocksProxySettings?
@@ -150,6 +145,14 @@ func applySharedProxySettingsToNetwork(settings: ProxySettings, network: Network
         } else {
             return nil
         }
+    }
+
+    // MTContext serializes these blocks. The first block must finish notifying MTProto
+    // listeners (enqueueing their route updates) before we enqueue a resume. Resuming
+    // before updateApiEnvironment could briefly dial the previous/direct route.
+    network.context.updateApiEnvironment { _ in
+        network.resumeIfWebProxyBootstrapPaused()
+        return nil
     }
 
     if forceTransportReconnect,
