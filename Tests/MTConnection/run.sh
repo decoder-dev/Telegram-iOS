@@ -5,6 +5,15 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 cd "$ROOT"
 SOURCES="${MT_CONNECTION_SOURCE_ROOT:-$ROOT/submodules/MtProtoKit/Sources}"
+if [ "$#" -eq 0 ] || [ "$1" = transport ]; then
+  python3 Tests/MTConnection/extract_requests.py "$SOURCES/MTTcpTransport.m" "$TMP/transport.m"
+  clang -fobjc-arc -framework Foundation -I submodules/MtProtoKit/PublicHeaders \
+    -I submodules/MtProtoKit/Sources submodules/MtProtoKit/Sources/MTTimer.m \
+    submodules/MtProtoKit/Sources/MTTcpConnectionBehaviour.m submodules/MtProtoKit/Sources/MTQueue.m \
+    "$TMP/transport.m" -o "$TMP/transport"
+  "$TMP/transport"
+  if [ "$#" -ne 0 ]; then exit 0; fi
+fi
 if [ "$#" -eq 0 ] || [ "$1" = requests ]; then
   python3 Tests/MTConnection/extract_requests.py "$SOURCES/MTRequestMessageService.m" "$TMP/requests.m"
   clang -fobjc-arc -framework Foundation -I submodules/MtProtoKit/PublicHeaders \
