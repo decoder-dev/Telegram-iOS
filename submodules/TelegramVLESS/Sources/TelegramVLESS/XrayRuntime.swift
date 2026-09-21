@@ -47,14 +47,29 @@ public final class LibXrayRuntime: XrayRuntime {
 
     private struct InvokeResponse: Decodable {
         var success: Bool?
-        var data: Data?
+        var data: Payload?
         var error: String?
     }
 
-    private struct Payload: Decodable {
+    struct Payload: Decodable {
         var ports: [Int]?
         var running: Bool?
         var version: String?
+    }
+
+    // libxray v26.9.9 Invoke returns a JSON object in data, not base64 bytes.
+    // Successful Go responses contain error: "" (the field has no omitempty).
+    static func decodeResponse(_ responseData: Data) throws -> Payload? {
+        let decoded: InvokeResponse
+        do {
+            decoded = try JSONDecoder().decode(InvokeResponse.self, from: responseData)
+        } catch {
+            throw XrayRuntimeError.responseDecodeFailed
+        }
+        guard decoded.success == true, decoded.error?.isEmpty != false else {
+            throw XrayRuntimeError.invokeFailed(decoded.error ?? "unknown failure")
+        }
+        return decoded.data
     }
 
     private func invoke(_ method: String, payload: [String: Any]?) throws -> Payload? {
@@ -83,17 +98,10 @@ public final class LibXrayRuntime: XrayRuntime {
         defer { CGoFree(responseCString) }
 
         let responseString = String(cString: responseCString)
-        guard let responseData = responseString.data(using: .utf8),
-              let decoded = try? JSONDecoder().decode(InvokeResponse.self, from: responseData) else {
+        guard let responseData = responseString.data(using: .utf8) else {
             throw XrayRuntimeError.responseDecodeFailed
         }
-        guard decoded.success == true, decoded.error == nil else {
-            throw XrayRuntimeError.invokeFailed(decoded.error ?? "unknown failure")
-        }
-        guard let data = decoded.data else {
-            return nil
-        }
-        return try? JSONDecoder().decode(Payload.self, from: data)
+        return try Self.decodeResponse(responseData)
         #else
         _ = method
         _ = payload
@@ -105,7 +113,7 @@ public final class LibXrayRuntime: XrayRuntime {
 
     public func getFreePorts(count: Int) throws -> [Int] {
         let response = try invoke("getFreePorts", payload: ["count": count])
-        guard let ports = response?.ports, ports.count == count, ports.allSatisfy({ $0 > 0 && $0 <= 65535 }) else {
+        guard let ports = response?.ports, ports.count == count, Set(ports).count == count, ports.allSatisfy({ $0 > 0 && $0 <= 65535 }) else {
             throw XrayRuntimeError.portAllocationFailed
         }
         return ports

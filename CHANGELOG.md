@@ -7,6 +7,7 @@
 ## [Unreleased]
 
 ### Fixed — release hardening, VLESS and media playback
+- Fixed libxray API v3 decoding: successful replies contain a JSON object in `data` and an empty `error` string. The previous adapter rejected successful calls, preventing the embedded runtime from starting.
 - Protected Saved Messages now shares Archive's ten-tap reveal and password/biometric gate; entries in Settings, chat lists, search, sharing, widgets and Spotlight are hidden while protected as appropriate to each surface.
 - Archive cleanup removes the actual protected controller instead of blindly popping the top screen, clears its privacy cover after cleanup, isolates authentication across account switches, rejects late unlock callbacks after relock and retains legacy hashes if Keychain migration has not succeeded.
 - VLESS profile switching and cancellation now serialize Xray operations and invalidate stale starts; runtime failures retry with bounded backoff and keep MTProto paused until the selected tunnel is ready.

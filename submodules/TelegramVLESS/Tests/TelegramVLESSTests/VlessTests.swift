@@ -28,6 +28,16 @@ private final class FakeRuntime: XrayRuntime {
 }
 
 final class VlessTests: XCTestCase {
+    func testNativeInvokeResponseContract() throws {
+        let ports = try LibXrayRuntime.decodeResponse(Data(#"{"success":true,"data":{"ports":[21001,21002]},"error":""}"#.utf8))
+        XCTAssertEqual(ports?.ports, [21001, 21002])
+        let state = try LibXrayRuntime.decodeResponse(Data(#"{"success":true,"data":{"running":true},"error":""}"#.utf8))
+        XCTAssertEqual(state?.running, true)
+        XCTAssertNotNil(try LibXrayRuntime.decodeResponse(Data(#"{"success":true,"data":{},"error":""}"#.utf8)))
+        XCTAssertThrowsError(try LibXrayRuntime.decodeResponse(Data(#"{"success":false,"data":null,"error":"bad config"}"#.utf8)))
+        XCTAssertThrowsError(try LibXrayRuntime.decodeResponse(Data(#"{"success":true,"data":"not an object","error":""}"#.utf8)))
+    }
+
     func testParserRejectsInvalidAuthorityAndShortID() {
         for uri in [profileURL.replacingOccurrences(of: "@", with: ":password@"), profileURL.replacingOccurrences(of: "?", with: "/ignored?")] {
             guard case .failure = VlessProfileParser.parse(uri) else { return XCTFail("Accepted invalid authority") }
