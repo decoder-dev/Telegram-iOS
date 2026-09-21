@@ -7,6 +7,7 @@
 ## [Unreleased]
 
 ### Fixed — release hardening, VLESS and media playback
+- Locking Saved Messages leaves the account's public profile, profile editing, gifts and story albums accessible from Settings search.
 - Proxy bootstrap resumes MTProto only after the new route has been queued to its listeners, avoiding a resume on the previous route.
 - Legacy Archive credentials survive unrelated settings writes until Keychain migration succeeds; notification redaction applies before migration. Locking also clears already-delivered Saved Messages notifications.
 - Reader mode removes mixed-case and control-character-obfuscated JavaScript links. Build tools atomically create temporary files; signing keys are removed even when certificate repository loading fails.

@@ -2065,7 +2065,16 @@ public final class SharedAccountContextImpl: SharedAccountContext {
     }
     
     public func makePeerInfoController(context: AccountContext, updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>)?, peer: EnginePeer, mode: PeerInfoControllerMode, avatarInitiallyExpanded: Bool, fromChat: Bool, requestsContext: PeerInvitationImportersContext?) -> ViewController? {
-        if !fromChat && !archivePeerInfoAllowed(context: context, peerId: peer.id) {
+        let isOwnPublicProfile: Bool
+        switch mode {
+        case .myProfile, .myProfileGifts, .upgradableGifts, .storyAlbum, .giftCollection:
+            isOwnPublicProfile = peer.id == context.account.peerId
+        default:
+            isOwnPublicProfile = false
+        }
+        // Saved Messages uses the same peer ID, but locking it must not disable
+        // the user's public profile, profile editing, gifts or story albums.
+        if !fromChat && !isOwnPublicProfile && !archivePeerInfoAllowed(context: context, peerId: peer.id) {
             return nil
         }
         let controller = peerInfoControllerImpl(context: context, updatedPresentationData: updatedPresentationData, peer: peer, mode: mode, avatarInitiallyExpanded: avatarInitiallyExpanded, isOpenedFromChat: fromChat)
