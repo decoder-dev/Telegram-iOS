@@ -7,6 +7,7 @@
 ## [Unreleased]
 
 ### Fixed — release hardening, VLESS and media playback
+- Unavailable managed proxies install a closed local route in the shared MTContext, covering download workers as well as the paused main connection, including cold starts.
 - Locking Saved Messages leaves the account's public profile, profile editing, gifts and story albums accessible from Settings search.
 - Proxy bootstrap resumes MTProto only after the new route has been queued to its listeners, avoiding a resume on the previous route.
 - Legacy Archive credentials survive unrelated settings writes until Keychain migration succeeds; notification redaction applies before migration. Locking also clears already-delivered Saved Messages notifications.

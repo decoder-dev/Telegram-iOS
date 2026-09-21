@@ -566,6 +566,8 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
             
             if let effectiveActiveServer = proxySettings?.effectiveActiveServer, let mtProxySettings = effectiveActiveServer.mtProxySettings {
                 apiEnvironment = apiEnvironment.withUpdatedSocksProxySettings(mtProxySettings)
+            } else if let activeServer = proxySettings?.effectiveActiveServer, activeServer.connection.isWebProxy || activeServer.connection.isVlessProxy {
+                apiEnvironment = apiEnvironment.withUpdatedSocksProxySettings(ProxyServerSettings.managedBootstrapProxySettings)
             }
             
             apiEnvironment = apiEnvironment.withUpdatedNetworkSettings((networkSettings ?? NetworkSettings.defaultSettings).mtNetworkSettings)
@@ -746,11 +748,10 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
             
             let network = Network(queue: queue, datacenterId: datacenterId, context: context, mtProto: mtProto, requestService: requestService, connectionStatusDelegate: connectionStatusDelegate, _connectionStatus: connectionStatus, basePath: basePath, appDataDisposable: appDataDisposable, encryptionProvider: arguments.encryptionProvider, useRequestTimeoutTimers: useRequestTimeoutTimers, useBetaFeatures: arguments.useBetaFeatures, useExperimentalFeatures: useExperimentalFeatures)
             
-            // WEB proxy at cold start: `mtProxySettings` is nil until the sidecar publishes a
-            // loopback port, so socks stays unset. Hold MtProto (and skip explicit backup-IP
-            // discovery) until `applySharedProxySettingsToNetwork` resumes after the sidecar is ready.
+            // Keep the main connection paused until the managed endpoint is ready.
+            // The shared environment also has a closed local route for download workers.
             if let active = proxySettings?.effectiveActiveServer, (active.connection.isWebProxy || active.connection.isVlessProxy),
-               network.context.apiEnvironment.socksProxySettings == nil {
+               active.mtProxySettings == nil {
                 network.markWebProxyBootstrapPausedAtInit()
             }
             

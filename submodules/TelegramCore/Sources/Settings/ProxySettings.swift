@@ -26,6 +26,12 @@ public func isSupportedWebProxySecret(_ secret: Data) -> Bool {
 }
 
 extension ProxyServerSettings {
+    /// A closed local endpoint keeps every MTContext consumer, including download
+    /// workers, off a direct route while a managed proxy is unavailable.
+    static var managedBootstrapProxySettings: MTSocksProxySettings {
+        return MTSocksProxySettings(ip: "127.0.0.1", port: 1, username: nil, password: nil, secret: nil)
+    }
+
     var webProxyConfiguration: WebProxyConfiguration? {
         guard case let .web(secret) = self.connection else {
             return nil
@@ -108,9 +114,14 @@ func applySharedProxySettingsToNetwork(settings: ProxySettings, network: Network
     let resolvedProxySettings = activeServer?.mtProxySettings
 
     if (isActiveWebProxy || isActiveVlessProxy), resolvedProxySettings == nil {
-        network.context.updateApiEnvironment { _ in
+        network.context.updateApiEnvironment { environment in
             network.pauseForWebProxyBootstrap()
-            return nil
+            let blocked = ProxyServerSettings.managedBootstrapProxySettings
+            if environment?.socksProxySettings?.isEqual(blocked) == true {
+                return nil
+            }
+            network.dropConnectionStatus()
+            return environment?.withUpdatedSocksProxySettings(blocked)
         }
         return
     }
