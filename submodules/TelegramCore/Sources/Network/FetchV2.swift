@@ -1062,16 +1062,30 @@ private final class FetchImpl {
             
             if actualLength < requestedLength {
                 let resultingSize = fetchRange.lowerBound + actualLength
-                if let currentKnownSize = self.knownSize {
-                    Logger.shared.log("FetchV2", "\(self.loggingIdentifier): setting known size to min(\(currentKnownSize), \(resultingSize)) = \(min(currentKnownSize, resultingSize))")
-                    self.knownSize = min(currentKnownSize, resultingSize)
+                let maxCompleted = state.completedRanges.ranges.last?.upperBound ?? 0
+                
+                if resultingSize < maxCompleted {
+                    Logger.shared.log("FetchV2", "\(self.loggingIdentifier): ignoring false EOF at \(resultingSize) (already fetched up to \(maxCompleted))")
                 } else {
-                    Logger.shared.log("FetchV2", "\(self.loggingIdentifier): setting known size to \(resultingSize)")
-                    self.knownSize = resultingSize
+                    if let currentKnownSize = self.knownSize {
+                        if resultingSize > 0 && resultingSize < currentKnownSize && actualLength == 0 {
+                            Logger.shared.log("FetchV2", "\(self.loggingIdentifier): ignoring 0-byte chunk as EOF because current known size is \(currentKnownSize)")
+                        } else {
+                            Logger.shared.log("FetchV2", "\(self.loggingIdentifier): setting known size to min(\(currentKnownSize), \(resultingSize)) = \(min(currentKnownSize, resultingSize))")
+                            self.knownSize = min(currentKnownSize, resultingSize)
+                        }
+                    } else {
+                        if actualLength == 0 && fetchRange.lowerBound > 0 {
+                            Logger.shared.log("FetchV2", "\(self.loggingIdentifier): ignoring 0-byte chunk as EOF for unknown size at \(fetchRange.lowerBound)")
+                        } else {
+                            Logger.shared.log("FetchV2", "\(self.loggingIdentifier): setting known size to \(resultingSize)")
+                            self.knownSize = resultingSize
+                        }
+                    }
+                    let reportedSize = self.knownSize ?? resultingSize
+                    Logger.shared.log("FetchV2", "\(self.loggingIdentifier): reporting resource size \(reportedSize)")
+                    self.onNext(.resourceSizeUpdated(reportedSize))
                 }
-                let reportedSize = self.knownSize ?? resultingSize
-                Logger.shared.log("FetchV2", "\(self.loggingIdentifier): reporting resource size \(reportedSize)")
-                self.onNext(.resourceSizeUpdated(reportedSize))
             }
             
             state.completedRanges.formUnion(RangeSet<Int64>(partRange))

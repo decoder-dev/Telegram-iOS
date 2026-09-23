@@ -915,7 +915,8 @@ public final class AccountStateManager {
                                                     
                                                     return (difference, replayedState, false, false)
                                                 } else {
-                                                    return (nil, nil, false, false)
+                                                    Logger.shared.log("State", "replayFinalState returned nil, triggering state reset")
+                                                    return (nil, nil, true, true)
                                                 }
                                             }
                                         }

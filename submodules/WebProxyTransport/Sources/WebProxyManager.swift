@@ -66,6 +66,7 @@ public final class WebProxyManager {
     private var lastFailureTime: Double = 0.0
     private var consecutiveFailureCount: Int = 0
     private var sidecarReadySince: Double = 0.0
+    private var carrierRebuildGeneration: UInt64 = 0
 
     /// Set from `applicationDidEnterBackground`. The WEB carrier is foreground-only.
     private var enteredBackgroundAt: Double = 0.0
@@ -356,6 +357,11 @@ public final class WebProxyManager {
     }
     
     private func performInPlaceCarrierResume(sidecar: WebProxySidecar, configuration: WebProxyConfiguration) {
+        self.startLock.lock()
+        self.carrierRebuildGeneration &+= 1
+        let generation = self.carrierRebuildGeneration
+        self.startLock.unlock()
+        
         // Rebuild the carrier behind the listener that is already published. On failure the
         // sidecar has already torn itself down, so there is nothing left to salvage and the
         // port has to change after all.
@@ -363,6 +369,16 @@ public final class WebProxyManager {
             guard let self else {
                 return
             }
+            
+            self.startLock.lock()
+            let isCurrent = self.carrierRebuildGeneration == generation
+            self.startLock.unlock()
+            
+            guard isCurrent else {
+                WebProxyLog.log("resume transport reconnect completed but generation is stale, ignoring")
+                return
+            }
+            
             switch result {
             case .success:
                 WebProxyLog.log("resume transport reconnect succeeded, notifying networks")

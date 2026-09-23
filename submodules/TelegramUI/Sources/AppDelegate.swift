@@ -2124,6 +2124,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             |> deliverOnMainQueue).start(next: { activeAccounts in
                 for (_, context, _) in activeAccounts.accounts {
                     context.account.postbox.clearCaches()
+                    context.account.resetCachedData()
                 }
                 Queue.mainQueue().after(1.0, {
                     let after = ForkPerformanceTelemetry.mallocHeap()
