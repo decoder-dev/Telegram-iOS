@@ -51,7 +51,7 @@ final class MTWebSocketFallbackCoordinator {
     /// fallback is engaged it answers true exactly once per wait, and false to everything else until
     /// that attempt has reported success or failure.
     func shouldAttemptWebSocket() -> Bool {
-        let timestamp = CFAbsoluteTimeGetCurrent()
+        let timestamp = ProcessInfo.processInfo.systemUptime
         var grantedProbe = false
         let state = self.state.modify { state in
             var state = state
@@ -86,7 +86,7 @@ final class MTWebSocketFallbackCoordinator {
     }
 
     func recordAllEndpointsFailed() {
-        let timestamp = CFAbsoluteTimeGetCurrent()
+        let timestamp = ProcessInfo.processInfo.systemUptime
         var engagedFallback = false
         var probeFailed = false
         let state = self.state.modify { state in
@@ -200,6 +200,7 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
 
         private var connection: NWConnection?
         private var reportedDisconnection = false
+        private var didRequestConnect = false
         private var currentInterfaceIsWifi = true
 
         private var connectTimeout: Double = 12.0
@@ -316,10 +317,10 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
         }
 
         func connect(timeout: Double) {
-            if self.connection != nil {
-                assertionFailure("A connection already exists")
-                return
-            }
+            // The interface owns one MTProto stream, including the jitter gap where its
+            // NWConnection is temporarily nil. Repeated requests must not reset candidates.
+            guard !self.didRequestConnect, !self.reportedDisconnection else { return }
+            self.didRequestConnect = true
             self.connectTimeout = timeout
             self.endpointSelector.reset()
             self.dialCurrentCandidate()

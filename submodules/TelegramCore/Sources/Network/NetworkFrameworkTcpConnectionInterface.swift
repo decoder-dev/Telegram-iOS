@@ -278,7 +278,7 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
                     return
                 }
                 self.connectTimeoutTimer = nil
-                Logger.shared.log("Network", "NW connect to \(self.endpointDescription) timed out after \(timeout)s")
+                Logger.shared.log("Network", "NW connect to \(self.endpointDescription) timed out after \(connectTimeout)s (attempt \(self.attempt))")
                 if self.isCountedInFlight {
                     Impl.endpointHealth.failed(endpoint: self.endpointDescription, attempt: self.attempt, now: ProcessInfo.processInfo.systemUptime)
                 }
@@ -306,7 +306,7 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
             }
             self.isCountedInFlight = true
             Impl.inFlightConnectCount += 1
-            Logger.shared.log("Network", "NW connect starting to \(self.endpointDescription), \(Impl.inFlightConnectCount) in flight")
+            Logger.shared.log("Network", "NW connect starting to \(self.endpointDescription), \(Impl.inFlightConnectCount) in flight (attempt \(self.attempt))")
             
             connection.start(queue: self.queue.queue)
             
@@ -545,7 +545,7 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
             // connection that dies after minutes of traffic look identical in the count above, and
             // they are not the same problem — the first is a retry loop with nothing throttling it.
             if let error = error, self.isCountedInFlight {
-                Logger.shared.log("Network", "NW connect to \(self.endpointDescription) failed: \(error)")
+                Logger.shared.log("Network", "NW connect to \(self.endpointDescription) failed: \(error) (attempt \(self.attempt))")
             }
             self.leaveInFlight()
             

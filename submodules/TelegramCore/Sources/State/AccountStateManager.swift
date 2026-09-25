@@ -915,8 +915,11 @@ public final class AccountStateManager {
                                                     
                                                     return (difference, replayedState, false, false)
                                                 } else {
-                                                    Logger.shared.log("State", "replayFinalState returned nil, triggering state reset")
-                                                    return (nil, nil, true, true)
+                                                    // A concurrent state/channel update can invalidate the snapshot.
+                                                    // Retry the difference from current PTS; this is not a reason to
+                                                    // discard the chat list and advance the account to updates.getState.
+                                                    Logger.shared.log("State", "replayFinalState snapshot changed, retrying difference")
+                                                    return (nil, nil, false, false)
                                                 }
                                             }
                                         }

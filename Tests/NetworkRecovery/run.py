@@ -19,6 +19,8 @@ commit = extract('submodules/TelegramCore/Sources/Network/FetchV2.swift',
                  '        private func commitPendingReadyPart(', '\n        }').replace('private func', 'func', 1)
 trim = extract('submodules/TelegramCore/Sources/State/AccountViewTracker.swift',
                '    func trimCachedData()', '\n    }')
+ws_connect = extract('submodules/TelegramCore/Sources/Network/MTWebSocketConnectionInterface.swift',
+                     '        func connect(timeout: Double)', '\n        }')
 fixture = '''import Foundation
 final class Logger {
     static let shared = Logger()
@@ -44,6 +46,17 @@ final class Tracker {
     let queue = ImmediateQueue()
     var cachedDataContexts: [Int: PeerContext] = [:]
 ''' + trim + '\n}\n'
+fixture += '''
+struct Selector { var resets = 0; mutating func reset() { resets += 1 } }
+final class WebSocketDial {
+    var connection: Int?
+    var connectTimeout: Double = 0
+    var didRequestConnect = false
+    var reportedDisconnection = false
+    var endpointSelector = Selector()
+    var dials = 0
+    func dialCurrentCandidate() { dials += 1 }
+''' + ws_connect + '\n}\n'
 
 tests = '''
 var health = NetworkEndpointHealth()
@@ -103,6 +116,14 @@ tracker.cachedDataContexts = [1: active, 2: PeerContext()]
 tracker.trimCachedData()
 precondition(tracker.cachedDataContexts.count == 1 && tracker.cachedDataContexts[1] === active)
 print("Endpoint cooldown, probe ownership, EOF permutations and active cache ownership: passed")
+let ws = WebSocketDial()
+for _ in 0..<100 { ws.connect(timeout: 12) }
+precondition(ws.dials == 1 && ws.endpointSelector.resets == 1)
+let closed = WebSocketDial()
+closed.reportedDisconnection = true
+closed.connect(timeout: 12)
+precondition(closed.dials == 0)
+print("WebSocket connect coalescing across candidate gaps and terminal close: passed")
 '''
 with tempfile.TemporaryDirectory(prefix='telegram-recovery-') as tmp:
     file = pathlib.Path(tmp) / 'main.swift'

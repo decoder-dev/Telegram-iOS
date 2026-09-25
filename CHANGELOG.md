@@ -10,6 +10,8 @@
 - Failed TCP endpoints share monotonic cooldown and a single recovery probe across contexts; duplicate connects reuse the existing connection, and closed interfaces release read buffers.
 - WEB resume requests coalesce per carrier. Stale callbacks cannot restart disabled/replaced profiles; duplicate failures count once and short-lived sessions retain backoff history.
 - Removed the global WebSocket fallback cancellation and the mid-transaction state replay timeout. State replay finishes atomically instead of committing a prefix and resetting synchronization.
+- Stale PTS snapshots retry difference synchronization without a full account reset. WebSocket dial requests are one-shot across fallback gaps and use a monotonic fallback clock.
+- Fetch completion logs identify the location and episode; TCP attempts have IDs for correlation and log the effective connection deadline.
 - Download EOF handling accepts empty boundary responses and out-of-order partial responses, without treating requested ranges as received bytes.
 - Memory-pressure cache trimming retains contexts owned by open peer views.
 - Recovery tests exercise production EOF handling, endpoint health, WEB manager lifecycle and the Network.framework interface against a loopback echo server.
