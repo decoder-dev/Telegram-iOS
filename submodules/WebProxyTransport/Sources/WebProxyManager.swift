@@ -216,7 +216,7 @@ public final class WebProxyManager {
 
         self.startLock.lock()
         let bootstrapInFlight = self.startingConfiguration == server
-            && CFAbsoluteTimeGetCurrent() - self.startingSince < WebProxyManager.startTimeout
+            && ProcessInfo.processInfo.systemUptime - self.startingSince < WebProxyManager.startTimeout
         self.startLock.unlock()
         if bootstrapInFlight {
             return self.isReady(for: server)
@@ -229,7 +229,7 @@ public final class WebProxyManager {
     /// Call from `applicationDidEnterBackground`.
     public func applicationDidEnterBackground() {
         self.startLock.lock()
-        self.enteredBackgroundAt = CFAbsoluteTimeGetCurrent()
+        self.enteredBackgroundAt = ProcessInfo.processInfo.systemUptime
         self.startLock.unlock()
     }
 
@@ -243,7 +243,7 @@ public final class WebProxyManager {
         guard let sidecar = sidecar else { return false }
         sidecar.sendKeepalivePing()
         self.lock.lock()
-        self.lastActivityAt = CFAbsoluteTimeGetCurrent()
+        self.lastActivityAt = ProcessInfo.processInfo.systemUptime
         self.lock.unlock()
         return true
     }
@@ -258,7 +258,7 @@ public final class WebProxyManager {
         self.lock.lock()
         let managerStamp = self.lastActivityAt
         self.lock.unlock()
-        let managerAge = managerStamp > 0 ? CFAbsoluteTimeGetCurrent() - managerStamp : Double.infinity
+        let managerAge = managerStamp > 0 ? ProcessInfo.processInfo.systemUptime - managerStamp : Double.infinity
         return min(sidecarAge, managerAge) < 45.0
     }
     
@@ -312,19 +312,17 @@ public final class WebProxyManager {
         let hasEndpoint = self.endpoint != nil
         self.lock.unlock()
         
-        guard let target = active ?? starting ?? desired else {
+        guard let target = desired ?? starting ?? active else {
             return
         }
 
         if !hasEndpoint {
             self.startLock.lock()
             self.enteredBackgroundAt = 0
-            self.lastFailedConfiguration = nil
-            self.consecutiveFailureCount = 0
             self.startLock.unlock()
-            // Force past a stale `startingConfiguration` left by a failed bootstrap / carrier
-            // death — otherwise the cooldown retry and this resume both no-op for up to 180s.
-            self.scheduleStart(configuration: target, replacingCurrentStart: true)
+            // Foreground notifications can repeat while HTTPS bootstrap is still running.
+            // Keep that attempt and its cooldown; scheduleStart already expires stale starts.
+            self.scheduleStart(configuration: target)
             return
         }
 
@@ -332,7 +330,7 @@ public final class WebProxyManager {
             return
         }
         
-        let dwell = CFAbsoluteTimeGetCurrent() - backgroundedAt
+        let dwell = ProcessInfo.processInfo.systemUptime - backgroundedAt
         // Control Center / notification shade can briefly enter background. Rebuilding a healthy
         // carrier every time causes Connecting flicker; only rebuild after a real suspension.
         if dwell < 5.0 {
@@ -426,7 +424,7 @@ public final class WebProxyManager {
         self.startLock.lock()
         self.startGeneration &+= 1
         self.startingConfiguration = configuration
-        self.startingSince = CFAbsoluteTimeGetCurrent()
+        self.startingSince = ProcessInfo.processInfo.systemUptime
         self.startLock.unlock()
         
         self.lock.lock()
@@ -462,7 +460,7 @@ public final class WebProxyManager {
             self.startLock.unlock()
             return
         }
-        if !replacingCurrentStart, self.startingConfiguration == configuration, CFAbsoluteTimeGetCurrent() - self.startingSince < WebProxyManager.startTimeout {
+        if !replacingCurrentStart, self.startingConfiguration == configuration, ProcessInfo.processInfo.systemUptime - self.startingSince < WebProxyManager.startTimeout {
             // Every account resolves the same shared proxy settings, so with several accounts
             // this is called once per Network for one and the same server. Re-scheduling would
             // supersede the in-flight start, tearing down a sidecar that is midway through its
@@ -472,7 +470,7 @@ public final class WebProxyManager {
         }
         if !replacingCurrentStart, self.lastFailedConfiguration == configuration, self.consecutiveFailureCount > 0 {
             let backoff = self.currentBackoffLocked()
-            let elapsed = CFAbsoluteTimeGetCurrent() - self.lastFailureTime
+            let elapsed = ProcessInfo.processInfo.systemUptime - self.lastFailureTime
             if elapsed < backoff {
                 // Nothing here used to arm a retry — the caller was simply told to come back
                 // later, and the only things that come back later are a foreground, a network
@@ -495,7 +493,7 @@ public final class WebProxyManager {
         self.startGeneration &+= 1
         let generation = self.startGeneration
         self.startingConfiguration = configuration
-        self.startingSince = CFAbsoluteTimeGetCurrent()
+        self.startingSince = ProcessInfo.processInfo.systemUptime
         self.startLock.unlock()
         
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
@@ -575,7 +573,7 @@ public final class WebProxyManager {
 
         self.startLock.lock()
         let bootstrapInFlight = self.startingConfiguration == desired
-            && CFAbsoluteTimeGetCurrent() - self.startingSince < WebProxyManager.startTimeout
+            && ProcessInfo.processInfo.systemUptime - self.startingSince < WebProxyManager.startTimeout
         self.startLock.unlock()
         guard !bootstrapInFlight else {
             return
@@ -645,6 +643,10 @@ public final class WebProxyManager {
     }
 
     private func startAsync(configuration: WebProxyConfiguration, generation: UInt64) {
+        self.startLock.lock()
+        let isCurrent = generation == self.startGeneration && self.desiredConfiguration == configuration
+        self.startLock.unlock()
+        guard isCurrent else { return }
         guard let bridgeCapability = WebProxyBridgeCapability.derive(hostname: configuration.hostname, secret: configuration.secret) else {
             // Refused before a single byte left the device: the hostname is not a DNS name, or the
             // secret is not one of the two forms a WEB relay accepts. Worth naming, because it is
@@ -680,8 +682,8 @@ public final class WebProxyManager {
             self.sidecar = sidecar
             self.configuration = configuration
             self.endpoint = LoopbackEndpoint(host: endpoint.host, port: endpoint.port)
-            self.sidecarReadySince = CFAbsoluteTimeGetCurrent()
-            self.lastActivityAt = CFAbsoluteTimeGetCurrent()
+            self.sidecarReadySince = ProcessInfo.processInfo.systemUptime
+            self.lastActivityAt = ProcessInfo.processInfo.systemUptime
             sidecar?.setFailureHandler { [weak self, weak sidecar] in
                 guard let self, let sidecar else {
                     return
@@ -732,7 +734,7 @@ public final class WebProxyManager {
                 self.lastFailedConfiguration = configuration
                 self.consecutiveFailureCount = 1
             }
-            self.lastFailureTime = CFAbsoluteTimeGetCurrent()
+            self.lastFailureTime = ProcessInfo.processInfo.systemUptime
             // Same reason as the death path: without this, a bootstrap that fails while nothing
             // is listening leaves the proxy down until an unrelated event happens to poke it.
             self.scheduleRetryLocked(configuration: configuration, after: self.currentBackoffLocked())
@@ -779,14 +781,14 @@ public final class WebProxyManager {
             // failure recorded it starts a fresh bootstrap at once. Against a relay that accepts a
             // session and then drops it that is an unthrottled reconnect loop, two HTTPS requests
             // and a TLS handshake per turn.
-            let wasHealthy = readySince > 0.0 && CFAbsoluteTimeGetCurrent() - readySince >= WebProxyManager.minimumHealthyUptime
+            let wasHealthy = readySince > 0.0 && ProcessInfo.processInfo.systemUptime - readySince >= WebProxyManager.minimumHealthyUptime
             if self.lastFailedConfiguration == failedConfiguration, !wasHealthy {
                 self.consecutiveFailureCount += 1
             } else {
                 self.lastFailedConfiguration = failedConfiguration
                 self.consecutiveFailureCount = 1
             }
-            self.lastFailureTime = CFAbsoluteTimeGetCurrent()
+            self.lastFailureTime = ProcessInfo.processInfo.systemUptime
             // Arm the retry here as well as in `scheduleStart`: the listeners are what would
             // otherwise carry the news back, and a death that nobody happens to be listening for
             // would leave the proxy down for good.

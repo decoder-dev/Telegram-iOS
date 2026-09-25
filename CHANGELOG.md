@@ -9,6 +9,7 @@
 ### Fixed — transport recovery and synchronization
 - Failed TCP endpoints share monotonic cooldown and a single recovery probe across contexts; duplicate connects reuse the existing connection, and closed interfaces release read buffers.
 - WEB resume requests coalesce per carrier. Stale callbacks cannot restart disabled/replaced profiles; duplicate failures count once and short-lived sessions retain backoff history.
+- Foreground events join an existing WEB bootstrap and respect its cooldown instead of superseding it; queued obsolete starts exit before opening a new session.
 - Removed the global WebSocket fallback cancellation and the mid-transaction state replay timeout. State replay finishes atomically instead of committing a prefix and resetting synchronization.
 - Stale PTS snapshots retry difference synchronization without a full account reset. WebSocket dial requests are one-shot across fallback gaps and use a monotonic fallback clock.
 - Fetch completion logs identify the location and episode; TCP attempts have IDs for correlation and log the effective connection deadline.

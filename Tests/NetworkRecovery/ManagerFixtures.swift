@@ -48,7 +48,7 @@ extension WebProxyManager {
         self.sidecar = sidecar
         self.configuration = profile
         self.endpoint = LoopbackEndpoint(host: "127.0.0.1", port: 1234)
-        self.sidecarReadySince = CFAbsoluteTimeGetCurrent()
+        self.sidecarReadySince = ProcessInfo.processInfo.systemUptime
     }
     func resumeForTest(_ sidecar: WebProxySidecar, _ profile: WebProxyConfiguration) {
         self.performInPlaceCarrierResume(sidecar: sidecar, configuration: profile)
@@ -57,6 +57,12 @@ extension WebProxyManager {
         self.handleSidecarFailure(expectedSidecar: sidecar)
     }
     var failuresForTest: Int { self.consecutiveFailureCount }
+    func pendingStartForTest(_ profile: WebProxyConfiguration) {
+        self.desiredConfiguration = profile
+        self.startingConfiguration = profile
+        self.startingSince = ProcessInfo.processInfo.systemUptime
+    }
+    var startGenerationForTest: UInt64 { self.startGeneration }
 }
 
 let profile = WebProxyConfiguration(hostname: "test.example", secret: Data([1]))
@@ -100,4 +106,10 @@ manager.failureForTest(old)
 precondition(replacement.stopCount == 0 && manager.activeLoopbackEndpoint != nil)
 manager.configure(activeWebProxy: nil)
 manager.removeSidecarEventHandler(token)
+let pendingManager = WebProxyManager.testInstance()
+pendingManager.pendingStartForTest(profile)
+let generation = pendingManager.startGenerationForTest
+for _ in 0..<100 { pendingManager.applicationDidBecomeActive() }
+precondition(pendingManager.startGenerationForTest == generation, "foreground must join pending bootstrap")
+pendingManager.configure(activeWebProxy: nil)
 print("WEB reconnect coalescing, duplicate failure, disabled profile and stale carrier: passed")
