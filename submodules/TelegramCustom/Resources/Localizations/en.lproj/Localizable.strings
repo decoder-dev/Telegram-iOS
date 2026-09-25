@@ -1,0 +1,25 @@
+/* Splash Screen */
+"splash.slogan.main" = "Web3 × Telegram Super App";
+"splash.slogan.sub" = "Secure Communication · Web3 Wallet · Global Network";
+"splash.legal" = "By using this service, you agree to our Terms of Service and Privacy Policy. This app is not affiliated with Telegram Messenger.";
+"splash.skip.format" = "Skip %ds";
+
+// u-Duo Escrow Splash Screen
+"splash.skip.label" = "Skip";
+"splash.badge.verified" = "u-Duo Escrow • $50M Security Reserve";
+"splash.title.line1" = "u-Duo Escrow ✕ Telegram";
+"splash.title.line2" = "Ultra-Fast Multi-Sig Platform";
+"splash.subtitle" = "Support OTC, Dev, Marketing & Traffic Escrow\nSmart Contract Lock + Official Arbitration";
+"splash.feature.multisig" = "Multi-Sig Lock";
+"splash.feature.verification" = "Anti-Fraud Check";
+"splash.feature.arbitration" = "Official Arbitration";
+"splash.button.enter" = "Enter Telegram Web3 Login";
+"splash.footer.guarantee" = "100% Funds Secured by Smart Contracts & Reserve";
+
+/* Login Screen */
+"login.title" = "Web3 × Telegram";
+"login.subtitle" = "Decentralized Web3 ecosystem integrated with lightweight messaging.\nContinue with your existing account, contacts, and groups.";
+"login.button.telegram" = "Quick Login with Telegram";
+"login.button.quick" = "One-Click Access (Quick Start)";
+"login.legal" = "By logging in, you agree to our Terms of Service and Privacy Policy";
+"login.quick.coming_soon" = "Feature coming soon";

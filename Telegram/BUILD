@@ -87,11 +87,25 @@ bool_flag(
     visibility = ["//visibility:public"],
 )
 
+bool_flag(
+    name = "enableWeb3Splash",
+    build_setting_default = False,
+    visibility = ["//visibility:public"],
+)
+
 config_setting(
     name = "disableExtensionsSetting",
     flag_values = {
         ":disableExtensions": "True",
     },
+)
+
+config_setting(
+    name = "enableWeb3SplashSetting",
+    flag_values = {
+        ":enableWeb3Splash": "True",
+    },
+    visibility = ["//visibility:public"],
 )
 
 config_setting(
