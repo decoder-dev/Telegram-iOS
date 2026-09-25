@@ -48,7 +48,7 @@ extension WebProxyManager {
         self.sidecar = sidecar
         self.configuration = profile
         self.endpoint = LoopbackEndpoint(host: "127.0.0.1", port: 1234)
-        self.sidecarReadySince = ProcessInfo.processInfo.systemUptime
+        self.sidecarReadySince = webProxyContinuousTime()
     }
     func resumeForTest(_ sidecar: WebProxySidecar, _ profile: WebProxyConfiguration) {
         self.performInPlaceCarrierResume(sidecar: sidecar, configuration: profile)
@@ -60,7 +60,7 @@ extension WebProxyManager {
     func pendingStartForTest(_ profile: WebProxyConfiguration) {
         self.desiredConfiguration = profile
         self.startingConfiguration = profile
-        self.startingSince = ProcessInfo.processInfo.systemUptime
+        self.startingSince = webProxyContinuousTime()
     }
     var startGenerationForTest: UInt64 { self.startGeneration }
 }
