@@ -743,7 +743,7 @@ public func proxySettingsController(accountManager: AccountManager<TelegramAccou
         return (controllerState, (listState, arguments))
     }
     
-    let controller = ItemListController(presentationData: ItemListPresentationData(presentationData), updatedPresentationData: updatedPresentationData |> map(ItemListPresentationData.init(_:)), state: signal, tabBarItem: nil)
+    let controller = ItemListController(presentationData: ItemListPresentationData(presentationData), updatedPresentationData: updatedPresentationData |> map { ItemListPresentationData($0) }, state: signal, tabBarItem: nil)
     controller.navigationPresentation = .modal
     pushControllerImpl = { [weak controller] c in
         (controller?.navigationController as? NavigationController)?.pushViewController(c)

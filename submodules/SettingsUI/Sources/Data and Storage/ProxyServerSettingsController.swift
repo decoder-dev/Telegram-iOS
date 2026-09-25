@@ -502,7 +502,7 @@ func proxyServerSettingsController(sharedContext: SharedAccountContext, context:
     
     let signal = combineLatest(updatedPresentationData, statePromise.get())
     |> deliverOnMainQueue
-    |> map { presentationData, state -> (ItemListControllerState, (ItemListNodeState, ProxyServerSettingsControllerArguments)) in
+    |> map { presentationData, state -> (ItemListControllerState, (ItemListNodeState, Any)) in
         var presentationData = presentationData
         let updatedTheme = presentationData.theme.withModalBlocksBackground()
         presentationData = presentationData.withUpdated(theme: updatedTheme)
@@ -543,7 +543,7 @@ func proxyServerSettingsController(sharedContext: SharedAccountContext, context:
         return (controllerState, (listState, arguments))
     }
     
-    let controller = ItemListController(presentationData: ItemListPresentationData(presentationData), updatedPresentationData: updatedPresentationData |> map(ItemListPresentationData.init(_:)), state: signal, tabBarItem: nil)
+    let controller = ItemListController(presentationData: ItemListPresentationData(presentationData), updatedPresentationData: updatedPresentationData |> map { ItemListPresentationData($0) }, state: signal, tabBarItem: nil)
     controller.navigationPresentation = .modal
     pushControllerImpl = { [weak controller] c in
         controller?.push(c)
