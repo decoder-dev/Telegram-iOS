@@ -182,8 +182,6 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
         /// completes. Buffer outbound bytes until then instead of dropping them.
         private static let maximumPendingWriteBytes = 256 * 1024
 
-        private static var lastFallbackTime: Double = 0.0
-
         private enum HandshakeState {
             case tcpConnecting
             case sentUpgradeRequest
@@ -757,16 +755,6 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
             }
 
             if let _ = self.endpointSelector.advance() {
-                let currentTime = CFAbsoluteTimeGetCurrent()
-                let timeSinceLastFallback = currentTime - Impl.lastFallbackTime
-                
-                if timeSinceLastFallback < 5.0 {
-                    Logger.shared.log("MTWebSocket", "[WS] fallback cooldown active (\(timeSinceLastFallback)s), delaying secondary endpoint probe")
-                    self.cancelWithError(error: error)
-                    return
-                }
-                Impl.lastFallbackTime = currentTime
-
                 Logger.shared.log("MTWebSocket", "[WS] trying secondary endpoint with jitter")
                 
                 let delay = Double.random(in: 0.1...1.5)

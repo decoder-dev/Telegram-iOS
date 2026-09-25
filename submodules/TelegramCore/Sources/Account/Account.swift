@@ -1708,6 +1708,10 @@ public class Account {
     public func resetCachedData() {
         self.viewTracker.reset()
     }
+
+    public func trimCachedData() {
+        self.viewTracker.trimCachedData()
+    }
     
     public func cleanupTasks(lowImpact: Bool) -> Signal<Never, NoError> {
         let postbox = self.postbox

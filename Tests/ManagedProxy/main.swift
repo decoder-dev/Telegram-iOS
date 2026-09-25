@@ -17,7 +17,7 @@ func awaitState(_ name: String, _ predicate: () -> Bool) {
     while !predicate(), Date() < deadline { RunLoop.main.run(until: Date().addingTimeInterval(0.01)) }
     precondition(predicate(), "Proxy status transition timed out: \(name)")
 }
-awaitState("initial") { latest.count == 3 }
+awaitState("initial") { latest.count == 3 && latest.values.allSatisfy { $0 == .notChecked } }
 precondition(manager.mutations == 0 && WebProxyManager.shared.mutations == 0, "Observing a saved proxy switched the active tunnel")
 precondition(latest.values.allSatisfy { $0 == .notChecked }, "Inactive tunnels were reported as failed or left checking")
 manager.endpoint = VlessProxySink(port: 21001)

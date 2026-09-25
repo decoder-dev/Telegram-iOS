@@ -4,6 +4,19 @@ import SwiftSignalKit
 import TelegramApi
 import MtProtoKit
 
+private enum UnsupportedMediaRefreshPolicy {
+    static let successInterval: Int64 = 10 * 60 * 60
+    static let retryInterval: Int64 = 30
+
+    static func needsUpdate(previous: Int32?, now: Int32) -> Bool {
+        guard let previous else { return true }
+        return now < previous || Int64(now) - Int64(previous) >= successInterval
+    }
+
+    static func failedTimestamp(now: Int32) -> Int32 {
+        return Int32(clamping: Int64(now) - successInterval + retryInterval)
+    }
+}
 
 public enum CallListViewType {
     case all
@@ -395,6 +408,14 @@ public final class AccountViewTracker {
     func reset() {
         self.queue.async {
             self.cachedDataContexts.removeAll()
+        }
+    }
+
+    func trimCachedData() {
+        self.queue.async {
+            // Active views own subscriptions and reference counts in these contexts.
+            // Removing them on memory pressure cancels live refreshes and loses their owners.
+            self.cachedDataContexts = self.cachedDataContexts.filter { !$0.value.viewIds.isEmpty }
         }
     }
     
@@ -1057,7 +1078,7 @@ public final class AccountViewTracker {
             let timestamp = Int32(CFAbsoluteTimeGetCurrent())
             for messageId in messageIds {
                 let messageTimestamp = self.updatedUnsupportedMediaMessageIdsAndTimestamps[messageId]
-                if messageTimestamp == nil || messageTimestamp! < timestamp - 10 * 60 * 60 {
+                if UnsupportedMediaRefreshPolicy.needsUpdate(previous: messageTimestamp, now: timestamp) {
                     self.updatedUnsupportedMediaMessageIdsAndTimestamps[messageId] = timestamp
                     addedMessageIds.append(messageId)
                 }
@@ -1066,6 +1087,18 @@ public final class AccountViewTracker {
                 for (peerIdAndThreadId, messageIds) in messagesIdsGroupedByPeerId(Set(addedMessageIds)) {
                     let disposableId = self.nextUpdatedUnsupportedMediaDisposableId
                     self.nextUpdatedUnsupportedMediaDisposableId += 1
+                    let retryAfterFailure: () -> Void = { [weak self] in
+                        self?.queue.async {
+                            guard let self else { return }
+                            let failedAt = Int32(CFAbsoluteTimeGetCurrent())
+                            for messageId in messageIds {
+                                let key = MessageAndThreadId(messageId: messageId, threadId: peerIdAndThreadId.threadId)
+                                if self.updatedUnsupportedMediaMessageIdsAndTimestamps[key] == timestamp {
+                                    self.updatedUnsupportedMediaMessageIdsAndTimestamps[key] = UnsupportedMediaRefreshPolicy.failedTimestamp(now: failedAt)
+                                }
+                            }
+                        }
+                    }
                     
                     if let account = self.account {
                         let accountPeerId = account.peerId
@@ -1078,6 +1111,7 @@ public final class AccountViewTracker {
                         }
                         |> mapToSignal { peer -> Signal<Void, NoError> in
                             guard let peer = peer else {
+                                retryAfterFailure()
                                 return .complete()
                             }
                             var fetchSignal: Signal<Api.messages.Messages, MTRpcError>?
@@ -1089,7 +1123,8 @@ public final class AccountViewTracker {
                                 if let threadId = peerIdAndThreadId.threadId {
                                     fetchSignal = account.network.request(Api.functions.messages.getQuickReplyMessages(flags: 1 << 0, shortcutId: Int32(clamping: threadId), id: messageIds.map { $0.id }, hash: 0))
                                 } else {
-                                    fetchSignal = .never()
+                                    retryAfterFailure()
+                                    return .complete()
                                 }
                             } else if peerIdAndThreadId.peerId.namespace == Namespaces.Peer.CloudUser || peerIdAndThreadId.peerId.namespace == Namespaces.Peer.CloudGroup {
                                 fetchSignal = account.network.request(Api.functions.messages.getMessages(id: messageIds.map { Api.InputMessage.inputMessageID(.init(id: $0.id)) }))
@@ -1099,6 +1134,7 @@ public final class AccountViewTracker {
                                 }
                             }
                             guard let signal = fetchSignal else {
+                                retryAfterFailure()
                                 return .complete()
                             }
                             
@@ -1119,6 +1155,7 @@ public final class AccountViewTracker {
                                 }
                             }
                             |> `catch` { _ in
+                                retryAfterFailure()
                                 return Signal<(Peer, [Api.Message], [Api.Chat], [Api.User]), NoError>.single((peer, [], [], []))
                             }
                             |> mapToSignal { topPeer, messages, chats, users -> Signal<Void, NoError> in
@@ -1141,7 +1178,7 @@ public final class AccountViewTracker {
                             }
                         }
                         |> afterDisposed { [weak self] in
-                            self?.queue.async {
+                            self?.queue.justDispatch {
                                 self?.updatedUnsupportedMediaDisposables.set(nil, forKey: disposableId)
                             }
                         }

@@ -4,6 +4,50 @@ import Network
 import MtProtoKit
 import SwiftSignalKit
 
+/// Shared by TCP contexts on their serial queue. Only endpoints with a failed dial are
+/// gated: established streams and unrelated DCs keep their normal concurrency.
+struct NetworkEndpointHealth {
+    private struct Failure {
+        var count: Int
+        var retryAt: Double
+        var probe: UInt64?
+        var updatedAt: Double
+    }
+    private var failures: [String: Failure] = [:]
+
+    mutating func delay(endpoint: String, attempt: UInt64, now: Double) -> Double {
+        guard var failure = self.failures[endpoint] else { return 0 }
+        if let probe = failure.probe, probe != attempt { return 0.25 }
+        if now < failure.retryAt { return failure.retryAt - now }
+        failure.probe = attempt
+        self.failures[endpoint] = failure
+        return 0
+    }
+
+    mutating func failed(endpoint: String, attempt: UInt64, now: Double) {
+        // Bound diagnostic/health state even when proxy profiles are repeatedly replaced.
+        self.failures = self.failures.filter { now - $0.value.updatedAt < 120 || $0.value.probe != nil }
+        if self.failures[endpoint] == nil, self.failures.count >= 256,
+           let oldest = self.failures.filter({ $0.value.probe == nil }).min(by: { $0.value.updatedAt < $1.value.updatedAt })?.key {
+            self.failures.removeValue(forKey: oldest)
+        }
+        let previous = self.failures[endpoint]
+        if let probe = previous?.probe, probe != attempt { return }
+        // Concurrent failures from the original burst count as one outage, not as retries.
+        if let previous = previous, previous.probe != attempt, now < previous.retryAt { return }
+        let count = min(4, (previous?.count ?? 0) + 1)
+        self.failures[endpoint] = Failure(count: count, retryAt: now + pow(2, Double(count - 1)), probe: nil, updatedAt: now)
+    }
+
+    mutating func succeeded(endpoint: String) {
+        self.failures.removeValue(forKey: endpoint)
+    }
+
+    mutating func cancelled(endpoint: String, attempt: UInt64) {
+        if self.failures[endpoint]?.probe == attempt { self.failures[endpoint]?.probe = nil }
+    }
+}
+
 /// IPv6 DC addresses often black-hole on censored mobile paths instead of refusing — each
 /// NWConnection then sits for the full MtProto timeout (12s). Device logs showed 100+ such
 /// timeouts per session while IPv4/MTProxy worked. A working v6 handshake completes in under
@@ -48,6 +92,7 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
         private var currentInterfaceIsWifi: Bool = true
         
         private var connectTimeoutTimer: SwiftSignalKit.Timer?
+        private var admissionTimer: SwiftSignalKit.Timer?
         private var viabilityLossTimer: SwiftSignalKit.Timer?
         
         private var usageCalculationInfo: MTNetworkUsageCalculationInfo?
@@ -69,6 +114,9 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
         /// Mutated only from `sharedQueue`, which every `Impl` in the process shares, so it needs
         /// no lock.
         private static var inFlightConnectCount: Int = 0
+        private static var endpointHealth = NetworkEndpointHealth()
+        private static var nextAttempt: UInt64 = 0
+        private var attempt: UInt64 = 0
         private var isCountedInFlight: Bool = false
 
         /// Kept only so the log lines can name the endpoint.
@@ -99,6 +147,8 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
             // closed" is exactly the shape of two bugs already fixed in the socket transport, and
             // the cost of covering it is one call.
             self.leaveInFlight()
+            self.admissionTimer?.invalidate()
+            Impl.endpointHealth.cancelled(endpoint: self.endpointDescription, attempt: self.attempt)
             if let connection = self.connection {
                 self.connection = nil
                 connection.cancel()
@@ -117,6 +167,9 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
         }
         
         func connect(host: String, port: UInt16, timeout: Double) {
+            if self.connection != nil, self.endpointDescription == "\(host):\(port)" {
+                return
+            }
             if self.connection != nil {
                 Logger.shared.log("Network", "NW connect to \(self.endpointDescription) restarting while a connection still exists")
                 self.discardConnectionWithoutNotifying()
@@ -128,6 +181,8 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
             // that type has no `CustomStringConvertible` conformance, so interpolating it would
             // print whatever reflection makes of the case rather than the address.
             self.endpointDescription = "\(host):\(port)"
+            Impl.nextAttempt &+= 1
+            self.attempt = Impl.nextAttempt
             let connectTimeout = networkFrameworkConnectTimeout(host: host, requested: timeout)
             
             let host = NWEndpoint.Host(host)
@@ -224,17 +279,37 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
                 }
                 self.connectTimeoutTimer = nil
                 Logger.shared.log("Network", "NW connect to \(self.endpointDescription) timed out after \(timeout)s")
+                if self.isCountedInFlight {
+                    Impl.endpointHealth.failed(endpoint: self.endpointDescription, attempt: self.attempt, now: ProcessInfo.processInfo.systemUptime)
+                }
                 self.cancelWithError(error: nil)
             }, queue: self.queue)
             self.connectTimeoutTimer?.start()
 
+            self.startWhenAdmitted(connection)
+            self.processReadRequests()
+        }
+
+        private func startWhenAdmitted(_ connection: NWConnection) {
+            guard self.connection === connection else { return }
+            let delay = Impl.endpointHealth.delay(endpoint: self.endpointDescription, attempt: self.attempt, now: ProcessInfo.processInfo.systemUptime)
+            if delay > 0 {
+                // Keep the original connect deadline. Waiting for another context's health
+                // probe must neither create sockets nor extend a request indefinitely.
+                self.admissionTimer = SwiftSignalKit.Timer(timeout: delay, repeat: false, completion: { [weak self, weak connection] in
+                    guard let self, let connection else { return }
+                    self.admissionTimer = nil
+                    self.startWhenAdmitted(connection)
+                }, queue: self.queue)
+                self.admissionTimer?.start()
+                return
+            }
             self.isCountedInFlight = true
             Impl.inFlightConnectCount += 1
             Logger.shared.log("Network", "NW connect starting to \(self.endpointDescription), \(Impl.inFlightConnectCount) in flight")
             
             connection.start(queue: self.queue.queue)
             
-            self.processReadRequests()
         }
 
         /// Balanced against the increment in `connect`, from every path that ends an attempt:
@@ -250,7 +325,9 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
         private func stateUpdated(state: NWConnection.State) {
             switch state {
             case .ready:
+                if self.isReady { return }
                 self.isReady = true
+                Impl.endpointHealth.succeeded(endpoint: self.endpointDescription)
                 if let path = self.connection?.currentPath {
                     if path.usesInterfaceType(.cellular) {
                         self.currentInterfaceIsWifi = false
@@ -273,6 +350,9 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
                 }
                 self.processReadRequests()
             case let .failed(error):
+                if self.isCountedInFlight {
+                    Impl.endpointHealth.failed(endpoint: self.endpointDescription, attempt: self.attempt, now: ProcessInfo.processInfo.systemUptime)
+                }
                 self.cancelWithError(error: error)
             case .cancelled:
                 self.cancelWithError(error: nil)
@@ -421,6 +501,11 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
         /// would then belong to something that will never read from it, which is a connection
         /// that hangs rather than one that restarts.
         private func discardConnectionWithoutNotifying() {
+            self.admissionTimer?.invalidate()
+            self.admissionTimer = nil
+            Impl.endpointHealth.cancelled(endpoint: self.endpointDescription, attempt: self.attempt)
+            self.readRequests.removeAll()
+            self.currentReadRequest = nil
             self.isReady = false
             if let viabilityLossTimer = self.viabilityLossTimer {
                 self.viabilityLossTimer = nil
@@ -441,6 +526,11 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
         }
         
         private func cancelWithError(error: Error?) {
+            self.admissionTimer?.invalidate()
+            self.admissionTimer = nil
+            Impl.endpointHealth.cancelled(endpoint: self.endpointDescription, attempt: self.attempt)
+            self.readRequests.removeAll()
+            self.currentReadRequest = nil
             self.isReady = false
             if let viabilityLossTimer = self.viabilityLossTimer {
                 self.viabilityLossTimer = nil

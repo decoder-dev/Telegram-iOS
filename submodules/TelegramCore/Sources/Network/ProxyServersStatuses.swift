@@ -170,6 +170,8 @@ final class ProxyServersStatusesImpl {
                     for key in validKeys {
                         if strongSelf.contexts[key] == nil {
                             let context = ProxyServerItemContext(queue: strongSelf.queue, context: network.context, datacenterId: network.datacenterId, server: key, updated: { value in
+                                // Queue.async executes inline on this queue. Defer until the
+                                // new context has been inserted, or its initial status is lost.
                                 queue.justDispatch {
                                     if let strongSelf = self {
                                         strongSelf.contexts[key]?.value = value

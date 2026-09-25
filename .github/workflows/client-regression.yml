@@ -6,9 +6,15 @@ on:
       - 'submodules/TelegramVLESS/**'
       - 'submodules/WebProxyTransport/Sources/WebProxyManager.swift'
       - 'submodules/TelegramCore/Sources/Network/ProxyServersStatuses.swift'
+      - 'submodules/TelegramCore/Sources/Network/NetworkFrameworkTcpConnectionInterface.swift'
+      - 'submodules/TelegramCore/Sources/Network/MTWebSocketConnectionInterface.swift'
+      - 'submodules/TelegramCore/Sources/Network/FetchV2.swift'
+      - 'submodules/TelegramCore/Sources/State/**'
       - 'submodules/TelegramPresentationData/Sources/PresentationData.swift'
       - 'Tests/ManagedProxy/**'
       - 'Tests/Customization/**'
+      - 'Tests/NetworkPolicies/**'
+      - 'Tests/NetworkRecovery/**'
       - '.github/workflows/client-regression.yml'
 permissions:
   contents: read
@@ -21,3 +27,5 @@ jobs:
       - run: swift test --package-path submodules/TelegramVLESS
       - run: python3 Tests/ManagedProxy/run.py
       - run: python3 Tests/Customization/run.py
+      - run: python3 Tests/NetworkPolicies/run.py
+      - run: python3 Tests/NetworkRecovery/run.py

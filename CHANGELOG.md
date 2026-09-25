@@ -6,7 +6,17 @@
 
 ## [Unreleased]
 
+### Fixed — transport recovery and synchronization
+- Failed TCP endpoints share monotonic cooldown and a single recovery probe across contexts; duplicate connects reuse the existing connection, and closed interfaces release read buffers.
+- WEB resume requests coalesce per carrier. Stale callbacks cannot restart disabled/replaced profiles; duplicate failures count once and short-lived sessions retain backoff history.
+- Removed the global WebSocket fallback cancellation and the mid-transaction state replay timeout. State replay finishes atomically instead of committing a prefix and resetting synchronization.
+- Download EOF handling accepts empty boundary responses and out-of-order partial responses, without treating requested ranges as received bytes.
+- Memory-pressure cache trimming retains contexts owned by open peer views.
+- Recovery tests exercise production EOF handling, endpoint health, WEB manager lifecycle and the Network.framework interface against a loopback echo server.
+
 ### Fixed — managed proxy observation and customization
+- Proxy status initialization now defers callbacks until the row context exists, preventing lost results and permanently checking rows. Connection previews validate the effective managed route instead of the external VLESS hostname or any previous online state.
+- Unsupported-message refresh failures permit retry after 30 seconds instead of suppressing refresh for ten hours; malformed quick-reply requests no longer leave never-completing subscriptions. Successful refreshes retain their normal cache interval.
 - Listing or inspecting saved WEB/VLESS proxies no longer reconfigures the process-wide active tunnel. Status checks observe readiness changes, cancel stale probes, and leave inactive managed profiles untested instead of falsely declaring them unavailable.
 - VLESS and WEB endpoints are resolved atomically for the requested profile; VLESS readiness applies the same whitespace normalization as startup.
 - Bubble radius settings now affect actual rendering and previews. The slider supports the stored default radius, adjacent-corner controls are visible, and preview toolbar presentation data updates with the preview.

@@ -3946,8 +3946,6 @@ func replayFinalState(
         }
     }
     
-    let replayStartTime = CFAbsoluteTimeGetCurrent()
-    
     var peerIdsWithAddedSecretMessages = Set<PeerId>()
     
     var updatedTypingActivities: [PeerActivitySpace: [PeerId: PeerInputActivity?]] = [:]
@@ -4179,11 +4177,6 @@ func replayFinalState(
     var isPremiumUpdated = false
     
     for operation in optimizedOperations(finalState.state.operations) {
-        if CFAbsoluteTimeGetCurrent() - replayStartTime > 3.0 {
-            Logger.shared.log("State", "replayFinalState taking too long (> 3.0s), aborting to trigger state reset")
-            return nil
-        }
-        
         switch operation {
             case let .AddMessages(messages, location):
                 if case .UpperHistoryBlock = location {
