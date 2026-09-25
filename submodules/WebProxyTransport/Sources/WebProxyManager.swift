@@ -11,7 +11,7 @@ public struct WebProxyConfiguration: Equatable {
     }
 }
 
-/// Why the sidecar changed — handlers should not guess from `isReady` alone.
+/// Why the sidecar changed вЂ” handlers should not guess from `isReady` alone.
 public enum WebProxySidecarEvent: Equatable {
     /// Sidecar published a loopback endpoint (cold bootstrap or full restart).
     case becameReady
@@ -40,9 +40,9 @@ public final class WebProxyManager {
     /// an in-flight start is no longer treated as live and a fresh one may supersede it.
     private static let startTimeout: Double = 180.0
     /// Backoff bounds after a failed bootstrap. A failure notifies every account, and each one
-    /// re-applies its proxy settings, which lands straight back in `scheduleStart` — without a
+    /// re-applies its proxy settings, which lands straight back in `scheduleStart` вЂ” without a
     /// cooldown that is an unbounded retry loop, and a hot one when `derive` fails synchronously
-    /// (invalid hostname or empty secret), spinning global-queue → main-queue at full speed.
+    /// (invalid hostname or empty secret), spinning global-queue в†’ main-queue at full speed.
     private static let minimumRetryInterval: Double = 5.0
     private static let maximumRetryInterval: Double = 60.0
     /// A sidecar that dies sooner than this after becoming ready feeds the same cooldown as a
@@ -50,14 +50,14 @@ public final class WebProxyManager {
     /// an hour before a network change still reconnects promptly.
     private static let minimumHealthyUptime: Double = 30.0
     /// If the WEB sidecar exchanged frames this recently, a foreground resume skips rebuilding
-    /// the HTTPS carrier — a background keepalive ping keeps the session in this window.
+    /// the HTTPS carrier вЂ” a background keepalive ping keeps the session in this window.
     private static let recentActivitySkipRebuild: Double = 45.0
 
     private let lock = NSLock()
     private let startLock = NSLock()
     private var sidecar: WebProxySidecar?
     private var configuration: WebProxyConfiguration?
-    /// Retained only while a sidecar is live — never published to MtProto after stop.
+    /// Retained only while a sidecar is live вЂ” never published to MtProto after stop.
     private var endpoint: LoopbackEndpoint?
     private var startingConfiguration: WebProxyConfiguration?
     private var startingSince: Double = 0.0
@@ -79,7 +79,7 @@ public final class WebProxyManager {
     /// off, and `configuration` is nil from the moment a carrier dies, so it cannot answer that.
     private var desiredConfiguration: WebProxyConfiguration?
     /// The configuration a cooldown retry is currently armed for, so a burst of re-applies arms
-    /// only one — but switching servers still re-arms rather than inheriting the old target's slot.
+    /// only one вЂ” but switching servers still re-arms rather than inheriting the old target's slot.
     private var scheduledRetryConfiguration: WebProxyConfiguration?
     /// Stamped onto each armed retry so a superseded one drops out when it fires.
     private var retryGeneration: UInt64 = 0
@@ -87,7 +87,7 @@ public final class WebProxyManager {
     /// Whether there is a network at all, and the monitor that says so.
     ///
     /// A bootstrap attempted with no path cannot succeed, but it still counted as a failure and
-    /// still advanced the cooldown — so after the radio came back the proxy sat out a backoff it
+    /// still advanced the cooldown вЂ” so after the radio came back the proxy sat out a backoff it
     /// had earned entirely while offline. In one tester's log 34 of 55 bootstrap failures were
     /// `NSURLErrorNotConnectedToInternet`. Starts now wait for a path, and the path returning is
     /// itself the trigger to start, because conditions genuinely changed and the cooldown was
@@ -118,12 +118,12 @@ public final class WebProxyManager {
     
     /// The sidecar's local SOCKS5 bridge (endpoint + per-start credentials), when the active
     /// WEB relay has advertised arbitrary stream targets. For SOCKS5-only consumers that cannot
-    /// speak MTProto — tgcalls. Nil whenever any piece is missing; callers must treat nil as
+    /// speak MTProto вЂ” tgcalls. Nil whenever any piece is missing; callers must treat nil as
     /// "no bridge" and fall back to their direct behavior.
     public var activeSocksBridgeEndpoint: WebProxySidecar.SocksBridgeEndpoint? {
         // Snapshot under the lock, then leave it before touching the sidecar. The sidecar's
         // failure handler takes this lock *from the sidecar's queue* on a carrier drop, so
-        // calling a queue.sync sidecar method while holding it deadlocks the two threads —
+        // calling a queue.sync sidecar method while holding it deadlocks the two threads вЂ”
         // call resolution parked on main exactly when the carrier dies is a watchdog kill.
         // `sendKeepalivePing()` below follows the same discipline for the same reason.
         self.lock.lock()
@@ -154,7 +154,7 @@ public final class WebProxyManager {
     }
     
     /// Registers a handler invoked on the main queue when the sidecar becomes ready, fails, or stops.
-    /// Multi-account: every Network must register — a single overwritten callback left other accounts stuck on the fail-closed loopback.
+    /// Multi-account: every Network must register вЂ” a single overwritten callback left other accounts stuck on the fail-closed loopback.
     @discardableResult
     public func addSidecarEventHandler(_ handler: @escaping (WebProxySidecarEvent) -> Void) -> SidecarEventToken {
         self.lock.lock()
@@ -184,7 +184,7 @@ public final class WebProxyManager {
             self.retryGeneration &+= 1
             self.scheduledRetryConfiguration = nil
             self.startingConfiguration = nil
-            // Turning the proxy off is an explicit user action — don't make re-enabling the same
+            // Turning the proxy off is an explicit user action вЂ” don't make re-enabling the same
             // server wait out a cooldown left over from an earlier failure.
             self.lastFailedConfiguration = nil
             self.consecutiveFailureCount = 0
@@ -415,7 +415,7 @@ public final class WebProxyManager {
     }
     
     /// Stop the current sidecar, then schedule a fresh one. Used when there is no live endpoint
-    /// or in-place transport reconnect failed. Not overlapping — only one listener at a time.
+    /// or in-place transport reconnect failed. Not overlapping вЂ” only one listener at a time.
     private func sequentialRestart(configuration: WebProxyConfiguration) {
         // Invalidate a previous asynchronous start before replacing the sidecar, and mark this
         // replacement as in-flight BEFORE clearing the live endpoint so concurrent `configure`
@@ -472,7 +472,7 @@ public final class WebProxyManager {
             let backoff = self.currentBackoffLocked()
             let elapsed = ProcessInfo.processInfo.systemUptime - self.lastFailureTime
             if elapsed < backoff {
-                // Nothing here used to arm a retry — the caller was simply told to come back
+                // Nothing here used to arm a retry вЂ” the caller was simply told to come back
                 // later, and the only things that come back later are a foreground, a network
                 // change or a settings edit. So a carrier that died mid-session stayed dead until
                 // one of those happened: in one day's log, four deaths out of five went unretried
@@ -554,7 +554,7 @@ public final class WebProxyManager {
         self.lock.unlock()
 
         if hasEndpoint, let sidecar = sidecar {
-            // Wi‑Fi↔cellular / VPN while the path stays satisfied: MtProto rebuilds loopback,
+            // WiвЂ‘Fiв†”cellular / VPN while the path stays satisfied: MtProto rebuilds loopback,
             // but the URLSession/WS to the relay is still bound to the old interface. Rebuild
             // the carrier in place whenever the interface set actually changed.
             let pathChanged = previousSignature != nil && previousSignature != signature
@@ -562,7 +562,7 @@ public final class WebProxyManager {
             guard pathChanged || returnedFromOffline else {
                 return
             }
-            WebProxyLog.log("network path changed while WEB endpoint live (\(previousSignature ?? "nil") → \(signature)), reconnecting carrier in place")
+            WebProxyLog.log("network path changed while WEB endpoint live (\(previousSignature ?? "nil") в†’ \(signature)), reconnecting carrier in place")
             self.performInPlaceCarrierResume(sidecar: sidecar, configuration: desired)
             return
         }
@@ -579,8 +579,8 @@ public final class WebProxyManager {
             return
         }
         WebProxyLog.log("network path returned, starting \(desired.hostname) without waiting out the offline cooldown")
-        // Forced: a start held back for want of a path leaves `startingConfiguration` set — by
-        // `sequentialRestart`, or by an attempt that never got off the ground — and the ordinary
+        // Forced: a start held back for want of a path leaves `startingConfiguration` set вЂ” by
+        // `sequentialRestart`, or by an attempt that never got off the ground вЂ” and the ordinary
         // path would read that marker as a bootstrap already running and return, stranding the
         // proxy for as long as the marker lives.
         self.scheduleStart(configuration: desired, replacingCurrentStart: true)
@@ -599,11 +599,11 @@ public final class WebProxyManager {
     /// outside event that may never come. Must be called with `startLock` held.
     ///
     /// The retry checks two things before it acts, because both can change while it waits: that
-    /// this configuration is still the one the app wants — the user may have turned the proxy off
-    /// or switched servers — and that a carrier is not already up for it.
+    /// this configuration is still the one the app wants вЂ” the user may have turned the proxy off
+    /// or switched servers вЂ” and that a carrier is not already up for it.
     private func scheduleRetryLocked(configuration: WebProxyConfiguration, after delay: Double) {
-        // A retry already owns this target. Anything else — no retry at all, or one armed for a
-        // server the user has since switched away from — has to be replaced: a single boolean
+        // A retry already owns this target. Anything else вЂ” no retry at all, or one armed for a
+        // server the user has since switched away from вЂ” has to be replaced: a single boolean
         // flag let the stale target hold the only slot, and the new one was dropped on the floor
         // and never retried at all.
         if self.scheduledRetryConfiguration == configuration {
@@ -723,8 +723,8 @@ public final class WebProxyManager {
 
             sidecar?.stop()
             // Clear the in-flight marker before arming the retry. Leaving it set made
-            // `scheduleRetryLocked` → `scheduleStart` hit the "already starting" gate and return
-            // without starting — so a failed bootstrap never came back without a path flap.
+            // `scheduleRetryLocked` в†’ `scheduleStart` hit the "already starting" gate and return
+            // without starting вЂ” so a failed bootstrap never came back without a path flap.
             if self.startingConfiguration == configuration {
                 self.startingConfiguration = nil
             }
@@ -769,14 +769,14 @@ public final class WebProxyManager {
         self.carrierRebuildSidecar = nil
         self.startGeneration &+= 1
         if let failedConfiguration = failedConfiguration {
-            // Do not leave `startingConfiguration` set — that made the armed retry's
+            // Do not leave `startingConfiguration` set вЂ” that made the armed retry's
             // `scheduleStart` no-op inside the 180s window (carrier deaths never recovered).
             if self.startingConfiguration == failedConfiguration {
                 self.startingConfiguration = nil
             }
             // The cooldown below used to cover bootstrap failures only. A carrier that bootstraps
-            // fine and then dies — a relay that sends `BYE`, a mismatched `X-Up-Ack`, a dropped
-            // session — landed here instead, which records nothing: the event fires, every account
+            // fine and then dies вЂ” a relay that sends `BYE`, a mismatched `X-Up-Ack`, a dropped
+            // session вЂ” landed here instead, which records nothing: the event fires, every account
             // re-applies its settings, that lands straight back in `scheduleStart`, and with no
             // failure recorded it starts a fresh bootstrap at once. Against a relay that accepts a
             // session and then drops it that is an unthrottled reconnect loop, two HTTPS requests
@@ -798,8 +798,8 @@ public final class WebProxyManager {
         
         self.notifySidecarEvent(.stopped)
         
-        // The auto-retry that used to be duplicated here — a second `asyncAfter` on the same
-        // backoff, guarded on `startGeneration` — could never run: `scheduleRetryLocked` above
+        // The auto-retry that used to be duplicated here вЂ” a second `asyncAfter` on the same
+        // backoff, guarded on `startGeneration` вЂ” could never run: `scheduleRetryLocked` above
         // fires 50ms earlier and its `scheduleStart` bumps that generation first.
     }
     
