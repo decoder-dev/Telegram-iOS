@@ -1,5 +1,13 @@
 import Foundation
 import Network
+import Darwin
+
+// Monotonic elapsed time including device sleep. systemUptime excludes sleep and
+// could make an overnight suspension look like a brief foreground flicker.
+// https://developer.apple.com/documentation/kernel/1646199-mach_continuous_time
+private func webProxyContinuousTime() -> Double {
+    return Double(clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW)) / 1_000_000_000.0
+}
 
 public struct WebProxyConfiguration: Equatable {
     public let hostname: String
