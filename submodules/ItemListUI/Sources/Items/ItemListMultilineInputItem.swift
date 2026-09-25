@@ -165,6 +165,7 @@ public class ItemListMultilineInputItemNode: ListViewItemNode, ASEditableTextNod
         var textColor: UIColor = .black
         if let item = self.item {
             textColor = item.presentationData.theme.list.itemPrimaryTextColor
+            self.textNode.tintColor = item.presentationData.theme.list.itemAccentColor
             self.textNode.typingAttributes = [NSAttributedString.Key.font.rawValue: Font.regular(item.presentationData.fontSize.itemListBaseFontSize), NSAttributedString.Key.foregroundColor.rawValue: textColor]
         } else {
             self.textNode.typingAttributes = [NSAttributedString.Key.font.rawValue: Font.regular(17.0), NSAttributedString.Key.foregroundColor.rawValue: textColor]
@@ -277,16 +278,15 @@ public class ItemListMultilineInputItemNode: ListViewItemNode, ASEditableTextNod
                         strongSelf.bottomStripeNode.backgroundColor = itemSeparatorColor
                         strongSelf.backgroundNode.backgroundColor = itemBackgroundColor
                         
-                        if strongSelf.isNodeLoaded {
-                            strongSelf.textNode.typingAttributes = [NSAttributedString.Key.font.rawValue: Font.regular(item.presentationData.fontSize.itemListBaseFontSize), NSAttributedString.Key.foregroundColor.rawValue: item.presentationData.theme.list.itemPrimaryTextColor]
-                            strongSelf.textNode.tintColor = item.presentationData.theme.list.itemAccentColor
-                        }
-                        
                         if let inlineAction = item.inlineAction {
                             strongSelf.inlineActionButtonNode?.setImage(generateTintedImage(image: inlineAction.icon, color: item.presentationData.theme.list.itemAccentColor), for: .normal)
                         }
                     }
                     
+                    // Font size can change without replacing the theme object.
+                    strongSelf.textNode.typingAttributes = [NSAttributedString.Key.font.rawValue: Font.regular(item.presentationData.fontSize.itemListBaseFontSize), NSAttributedString.Key.foregroundColor.rawValue: item.presentationData.theme.list.itemPrimaryTextColor]
+                    strongSelf.textNode.tintColor = item.presentationData.theme.list.itemAccentColor
+
                     let capitalizationType: UITextAutocapitalizationType = item.capitalization ? .sentences : .none
                     let autocorrectionType: UITextAutocorrectionType = item.autocorrection ? .default : .no
 
@@ -302,7 +302,7 @@ public class ItemListMultilineInputItemNode: ListViewItemNode, ASEditableTextNod
                     
                     let _ = textApply()
                     if let currentText = strongSelf.textNode.attributedText {
-                        if currentText.string != attributedText.string || updatedTheme != nil {
+                        if currentText.string != attributedText.string || updatedTheme != nil || currentItem?.presentationData.fontSize != item.presentationData.fontSize {
                             strongSelf.textNode.attributedText = attributedText
                         }
                     } else {

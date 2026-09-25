@@ -6,6 +6,12 @@
 
 ## [Unreleased]
 
+### Fixed — menu presentation
+- VLESS links use a multiline editor; validation errors appear directly below the field with the theme's error color and an explicit error label, without truncating pasted credentials.
+- Archive settings explain the fixed keep-archived policy and name both Archive and Saved Messages in the lock switch, with wrapping for narrow screens and large text.
+- Archive dialogs follow Telegram's light/dark appearance, accent and keyboard theme instead of inheriting the device appearance. Archive copy uses the same language fallback as other fork menus.
+- The phone-confirmation field title uses the current theme instead of hard-coded black. Multiline inputs initialize the accent cursor and update existing/typed text when the font size changes.
+
 ### Fixed — transport recovery and synchronization
 - Failed TCP endpoints share monotonic cooldown and a single recovery probe across contexts; duplicate connects reuse the existing connection, and closed interfaces release read buffers.
 - WEB resume requests coalesce per carrier. Stale callbacks cannot restart disabled/replaced profiles; duplicate failures count once and short-lived sessions retain backoff history.

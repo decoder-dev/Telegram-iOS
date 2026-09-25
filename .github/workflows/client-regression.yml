@@ -13,6 +13,10 @@ on:
       - 'submodules/TelegramPresentationData/Sources/PresentationData.swift'
       - 'Tests/ManagedProxy/**'
       - 'Tests/Customization/**'
+      - 'Tests/MenuPresentation/**'
+      - 'submodules/SettingsUI/Sources/**'
+      - 'submodules/ChatListUI/Sources/ArchiveLockLocalizedString.swift'
+      - 'submodules/ItemListUI/Sources/Items/ItemListMultilineInputItem.swift'
       - 'Tests/NetworkPolicies/**'
       - 'Tests/NetworkRecovery/**'
       - '.github/workflows/client-regression.yml'
@@ -27,5 +31,6 @@ jobs:
       - run: swift test --package-path submodules/TelegramVLESS
       - run: python3 Tests/ManagedProxy/run.py
       - run: python3 Tests/Customization/run.py
+      - run: python3 Tests/MenuPresentation/run.py
       - run: python3 Tests/NetworkPolicies/run.py
       - run: python3 Tests/NetworkRecovery/run.py

@@ -69,6 +69,7 @@ jobs:
         run: |
           python3 Tests/ManagedProxy/run.py
           python3 Tests/Customization/run.py
+          python3 Tests/MenuPresentation/run.py
           python3 Tests/NetworkPolicies/run.py
           python3 Tests/NetworkRecovery/run.py
       - name: Player regression tests and production build

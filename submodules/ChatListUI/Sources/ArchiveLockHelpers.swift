@@ -615,6 +615,16 @@ private func presentArchivePasswordAlert(
 }
 
 private func presentUIAlert(context: AccountContext, alert: UIAlertController, onUnavailableHost: @escaping () -> Void) {
+    let theme = context.sharedContext.currentPresentationData.with { $0 }.theme
+    // UIKit otherwise follows the device appearance, which can differ from
+    // Telegram's selected theme (including automatic night mode).
+    if #available(iOS 13.0, *) {
+        alert.overrideUserInterfaceStyle = theme.overallDarkAppearance ? .dark : .light
+    }
+    alert.view.tintColor = theme.actionSheet.controlAccentColor
+    for textField in alert.textFields ?? [] {
+        textField.keyboardAppearance = theme.rootController.keyboardColor.keyboardAppearance
+    }
     if let host = context.sharedContext.applicationBindings.getTopWindow()?.rootViewController {
         var presenter = host
         while let presented = presenter.presentedViewController {

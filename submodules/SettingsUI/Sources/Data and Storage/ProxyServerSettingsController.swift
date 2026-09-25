@@ -16,11 +16,13 @@ import WebProxyTransport
 import TelegramVLESS
 
 private final class ProxyServerSettingsControllerArguments {
+    let context: AccountContext
     let updateState: ((ProxyServerSettingsControllerState) -> ProxyServerSettingsControllerState) -> Void
     let share: () -> Void
     let usePasteboardSettings: () -> Void
     
-    init(updateState: @escaping ((ProxyServerSettingsControllerState) -> ProxyServerSettingsControllerState) -> Void, share: @escaping () -> Void, usePasteboardSettings: @escaping () -> Void) {
+    init(context: AccountContext, updateState: @escaping ((ProxyServerSettingsControllerState) -> ProxyServerSettingsControllerState) -> Void, share: @escaping () -> Void, usePasteboardSettings: @escaping () -> Void) {
+        self.context = context
         self.updateState = updateState
         self.share = share
         self.usePasteboardSettings = usePasteboardSettings
@@ -43,13 +45,13 @@ private enum ProxySettingsEntry: ItemListNodeEntry {
     case modeWeb(PresentationTheme, String, Bool)
     case webInfo(PresentationTheme, String)
     case modeVless(PresentationTheme, String, Bool)
-    case vlessInfo(PresentationTheme, String)
+    case vlessInfo(PresentationTheme, VlessEditorFeedback)
     case socks5Info(PresentationTheme, String)
     case mtpInfo(PresentationTheme, String)
     
     case connectionHeader(PresentationTheme, String)
     case connectionServer(PresentationTheme, PresentationStrings, String, String)
-    case connectionServerReadOnly(PresentationTheme, String, String)
+    case connectionVless(PresentationTheme, String)
     case connectionPort(PresentationTheme, PresentationStrings, String, String)
     
     case credentialsHeader(PresentationTheme, String)
@@ -63,9 +65,9 @@ private enum ProxySettingsEntry: ItemListNodeEntry {
         switch self {
             case .usePasteboardSettings:
                 return ProxySettingsSection.pasteboard.rawValue
-            case .modeSocks5, .modeMtp, .modeWeb, .webInfo, .modeVless, .vlessInfo, .socks5Info, .mtpInfo:
+            case .modeSocks5, .modeMtp, .modeWeb, .webInfo, .modeVless, .socks5Info, .mtpInfo:
                 return ProxySettingsSection.mode.rawValue
-            case .connectionHeader, .connectionServer, .connectionServerReadOnly, .connectionPort:
+            case .connectionHeader, .connectionServer, .connectionVless, .vlessInfo, .connectionPort:
                 return ProxySettingsSection.connection.rawValue
             case .credentialsHeader, .credentialsUsername, .credentialsPassword, .credentialsSecret:
                 return ProxySettingsSection.credentials.rawValue
@@ -84,10 +86,10 @@ private enum ProxySettingsEntry: ItemListNodeEntry {
             case .modeWeb: return 5
             case .webInfo: return 6
             case .modeVless: return 7
-            case .vlessInfo: return 8
-            case .connectionHeader: return 9
-            case .connectionServer: return 10
-            case .connectionServerReadOnly: return 11
+            case .vlessInfo: return 11
+            case .connectionHeader: return 8
+            case .connectionServer: return 9
+            case .connectionVless: return 10
             case .connectionPort: return 12
             case .credentialsHeader: return 13
             case .credentialsUsername: return 14
@@ -141,8 +143,12 @@ private enum ProxySettingsEntry: ItemListNodeEntry {
                         return state
                     }
                 })
-            case let .vlessInfo(_, text):
-                return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section)
+            case let .vlessInfo(_, feedback):
+                if feedback.isError {
+                    let text = NSAttributedString(string: feedback.text, font: Font.regular(presentationData.fontSize.itemListBaseHeaderFontSize), textColor: presentationData.theme.list.itemDestructiveColor)
+                    return ItemListTextItem(presentationData: presentationData, text: .custom(context: arguments.context, string: text), sectionId: self.section)
+                }
+                return ItemListTextItem(presentationData: presentationData, text: .plain(feedback.text), sectionId: self.section)
             case let .socks5Info(_, text):
                 return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section)
             case let .mtpInfo(_, text):
@@ -159,8 +165,16 @@ private enum ProxySettingsEntry: ItemListNodeEntry {
                         return state
                     }
                 }, action: {})
-            case let .connectionServerReadOnly(_, title, text):
-                return ItemListTextItem(presentationData: presentationData, text: .plain("\(title):\n\(text)"), sectionId: self.section)
+            case let .connectionVless(_, text):
+                // Preserve the complete pasted link: the parser reports oversize input
+                // instead of silently truncating credentials or transport parameters.
+                return ItemListMultilineInputItem(presentationData: presentationData, systemStyle: .glass, text: text, placeholder: "vless://…", maxLength: nil, sectionId: self.section, style: .blocks, capitalization: false, autocorrection: false, textUpdated: { value in
+                    arguments.updateState { current in
+                        var state = current
+                        state.host = value
+                        return state
+                    }
+                })
             case let .connectionPort(_, _, placeholder, text):
                 return ItemListSingleLineInputItem(presentationData: presentationData, systemStyle: .glass, title: NSAttributedString(), text: text, placeholder: placeholder, type: .number, sectionId: self.section, textUpdated: { value in
                     arguments.updateState { current in
@@ -303,9 +317,6 @@ private func proxyServerSettingsControllerEntries(presentationData: Presentation
         entries.append(.webInfo(presentationData.theme, ForkWebProxyStrings.callsNote))
     }
     entries.append(.modeVless(presentationData.theme, "VLESS", state.mode == .vless))
-    if state.mode == .vless {
-        entries.append(.vlessInfo(presentationData.theme, vlessEditorInfo(state.host)))
-    }
     
     let connectionHeaderTitle = state.mode == .vless ? "URL" : presentationData.strings.SocksProxySetup_Connection.uppercased()
     entries.append(.connectionHeader(presentationData.theme, connectionHeaderTitle))
@@ -318,7 +329,12 @@ private func proxyServerSettingsControllerEntries(presentationData: Presentation
         serverPlaceholder = presentationData.strings.SocksProxySetup_Hostname
     }
     
-    entries.append(.connectionServer(presentationData.theme, presentationData.strings, serverPlaceholder, state.host))
+    if state.mode == .vless {
+        entries.append(.connectionVless(presentationData.theme, state.host))
+        entries.append(.vlessInfo(presentationData.theme, vlessEditorInfo(state.host)))
+    } else {
+        entries.append(.connectionServer(presentationData.theme, presentationData.strings, serverPlaceholder, state.host))
+    }
     
     if state.mode != .web && state.mode != .vless {
         entries.append(.connectionPort(presentationData.theme, presentationData.strings, presentationData.strings.SocksProxySetup_Port, state.port))
@@ -451,7 +467,7 @@ func proxyServerSettingsController(sharedContext: SharedAccountContext, context:
     
     var shareImpl: (() -> Void)?
     
-    let arguments = ProxyServerSettingsControllerArguments(updateState: { f in
+    let arguments = ProxyServerSettingsControllerArguments(context: context, updateState: { f in
         updateState(f)
     }, share: {
         shareImpl?()

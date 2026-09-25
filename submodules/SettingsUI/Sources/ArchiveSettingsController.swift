@@ -129,7 +129,7 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
                 arguments.updateUnmuted(value)
             })
         case .unmutedFooter:
-            return ItemListTextItem(presentationData: presentationData, text: .markdown(presentationData.strings.ArchiveSettings_UnmutedChatsFooter), sectionId: self.section)
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ArchiveLockLocalizedString.keepArchivedPolicy), sectionId: self.section)
         case .foldersHeader:
             return ItemListSectionHeaderItem(presentationData: presentationData, text: presentationData.strings.ArchiveSettings_FolderChatsHeader, sectionId: self.section)
         case let .foldersValue(value):
@@ -151,7 +151,7 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
         case .passwordHeader:
             return ItemListSectionHeaderItem(presentationData: presentationData, text: ArchiveLockLocalizedString.passwordSection, sectionId: self.section)
         case let .passwordValue(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ArchiveLockLocalizedString.lockArchive, value: value, sectionId: self.section, style: .blocks, updated: { value in
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ArchiveLockLocalizedString.lockArchive, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.togglePassword(value)
             })
         case let .biometricsValue(isOn, isFaceId):

@@ -12,7 +12,8 @@ public enum ArchiveLockLocalizedString {
     private static let translations: [String: [String: String]] = [
         "en": [
             "ArchiveLock.PasswordSection": "PASSWORD",
-            "ArchiveLock.LockArchive": "Lock Archive",
+            "ArchiveLock.LockArchive": "Lock Archive and Saved Messages",
+            "ArchiveLock.KeepArchivedPolicy": "Archived chats always stay in the archive and remain muted. This is automatic and cannot be switched off here.",
             "ArchiveLock.LockNow": "Lock Now",
             "ArchiveLock.Footer": "Archive and Saved Messages are hidden. Tap Settings 10 times to reveal access, then enter the password or use biometrics. Access closes when leaving or backgrounding the app. Archived chats remain muted.",
             "ArchiveLock.EnterTitle": "Archive Password",
@@ -42,7 +43,8 @@ public enum ArchiveLockLocalizedString {
         ],
         "ru": [
             "ArchiveLock.PasswordSection": "ПАРОЛЬ",
-            "ArchiveLock.LockArchive": "Блокировать архив",
+            "ArchiveLock.LockArchive": "Блокировать архив и «Избранное»",
+            "ArchiveLock.KeepArchivedPolicy": "Архивированные чаты всегда остаются в архиве и без звука. Это происходит автоматически и не отключается здесь.",
             "ArchiveLock.LockNow": "Заблокировать сейчас",
             "ArchiveLock.Footer": "Архив и «Избранное» скрыты. Нажмите «Настройки» 10 раз, чтобы показать вход, затем введите пароль или используйте биометрию. При выходе или сворачивании приложения доступ закрывается. Архивированные чаты остаются без звука.",
             "ArchiveLock.EnterTitle": "Пароль архива",
@@ -66,38 +68,16 @@ public enum ArchiveLockLocalizedString {
             "ArchiveLock.ChangeCurrentText": "Введите текущий пароль, чтобы изменить его",
             "ArchiveLock.PasswordChanged": "Пароль архива изменён",
             "ArchiveLock.TooManyAttempts": "Слишком много неверных попыток. Повторите через %d с.",
-            "ArchiveLock.BiometricReason": "Разблокировать архив",
+            "ArchiveLock.BiometricReason": "Разблокировать архив и «Избранное»",
             "ArchiveLock.UseFaceId": "Разблокировать Face ID",
             "ArchiveLock.UseTouchId": "Разблокировать Touch ID",
         ],
     ]
     
     private static func languageCode() -> String {
-        // The app's language first — Telegram's own setting is independent of the device's.
-        // The device list stays as the fallback for the window before the first push. The fork
-        // serves Russian to ru/uk/be everywhere else (`ForkPresentationLanguage`), so the table
-        // follows the same rule instead of dropping those users to English mid-screen.
-        if let appLanguage = ForkPresentationLanguage.languageCode {
-            switch appLanguage {
-                case "ru", "uk", "be":
-                    return "ru"
-                case "en":
-                    return "en"
-                default:
-                    break
-            }
-        }
-        let candidates = Locale.preferredLanguages + Bundle.main.preferredLocalizations
-        for candidate in candidates {
-            let code = String(candidate.prefix(2)).lowercased()
-            if code == "ru" || code == "uk" || code == "be" {
-                return "ru"
-            }
-            if code == "en" {
-                return "en"
-            }
-        }
-        return "en"
+        // Use the same app-language fallback as the other fork menus. An
+        // unsupported app language must not fall back to a different device language.
+        return ForkPresentationLanguage.prefersRussianStrings ? "ru" : "en"
     }
     
     public static func string(forKey key: String) -> String {
@@ -121,6 +101,7 @@ public enum ArchiveLockLocalizedString {
         return key
     }
     
+    public static var keepArchivedPolicy: String { string(forKey: "ArchiveLock.KeepArchivedPolicy") }
     public static var passwordSection: String { string(forKey: "ArchiveLock.PasswordSection") }
     public static var lockArchive: String { string(forKey: "ArchiveLock.LockArchive") }
     public static var lockNow: String { string(forKey: "ArchiveLock.LockNow") }

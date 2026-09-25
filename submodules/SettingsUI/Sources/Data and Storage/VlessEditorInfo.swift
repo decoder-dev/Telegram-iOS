@@ -2,11 +2,16 @@ import Foundation
 import TelegramVLESS
 import TelegramUIPreferences
 
-func vlessEditorInfo(_ url: String) -> String {
+struct VlessEditorFeedback: Equatable {
+    let text: String
+    let isError: Bool
+}
+
+func vlessEditorInfo(_ url: String) -> VlessEditorFeedback {
     let ru = ForkPresentationLanguage.prefersRussianStrings
     let instruction = ru ? "Вставьте полную ссылку vless:// от вашего провайдера. Звонки используют прокси, если включено «Использовать для звонков»." : "Paste the complete vless:// link from your provider. Calls use the proxy when ‘Use for calls’ is enabled."
     if url.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-        return instruction
+        return VlessEditorFeedback(text: instruction, isError: false)
     }
     switch VlessProfileParser.parse(url) {
     case let .success(profile):
@@ -14,7 +19,7 @@ func vlessEditorInfo(_ url: String) -> String {
         if profile.allowInsecure {
             details += ru ? "\nПроверка сертификата отключена в ссылке." : "\nCertificate verification is disabled in this link."
         }
-        return instruction + "\n\n" + details
+        return VlessEditorFeedback(text: instruction + "\n\n" + details, isError: false)
     case let .failure(error):
         let message: String
         switch error {
@@ -37,6 +42,6 @@ func vlessEditorInfo(_ url: String) -> String {
         case .invalidAllowInsecure: message = ru ? "allowInsecure: 0, 1, false или true." : "allowInsecure must be 0, 1, false or true."
         default: message = ru ? "Некорректная ссылка. Нужен формат vless://UUID@сервер:порт?параметры." : "Invalid link. Expected vless://UUID@server:port?parameters."
         }
-        return instruction + "\n\n" + message
+        return VlessEditorFeedback(text: (ru ? "Ошибка: " : "Error: ") + message, isError: true)
     }
 }
