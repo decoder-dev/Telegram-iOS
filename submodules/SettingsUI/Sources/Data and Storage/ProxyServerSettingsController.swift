@@ -502,7 +502,7 @@ func proxyServerSettingsController(sharedContext: SharedAccountContext, context:
     
     let signal = combineLatest(updatedPresentationData, statePromise.get())
     |> deliverOnMainQueue
-    |> map { presentationData, state -> (ItemListControllerState, (ItemListNodeState, Any)) in
+    |> map { presentationData, state -> (ItemListControllerState, (ItemListNodeState, ProxyServerSettingsControllerArguments)) in
         var presentationData = presentationData
         let updatedTheme = presentationData.theme.withModalBlocksBackground()
         presentationData = presentationData.withUpdated(theme: updatedTheme)
