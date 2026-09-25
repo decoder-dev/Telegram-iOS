@@ -1,6 +1,7 @@
 import Foundation
 import Network
 import SwiftSignalKit
+import Darwin
 
 protocol MTTcpConnectionInterface: AnyObject {}
 protocol MTTcpConnectionInterfaceDelegate: AnyObject {
@@ -35,8 +36,9 @@ func waitFor(_ condition: () -> Bool) {
     while !condition(), Date() < deadline { RunLoop.main.run(until: Date().addingTimeInterval(0.01)) }
     precondition(condition(), "loopback check timed out")
 }
-if #available(macOS 14.0, *) {
-    let listener = try NWListener(using: .tcp, on: .any)
+@available(macOS 14.0, *)
+func checkEcho(port: NWEndpoint.Port) throws {
+    let listener = try NWListener(using: .tcp, on: port)
     var ready = false
     var accepted: [NWConnection] = []
     listener.stateUpdateHandler = { if case .ready = $0 { ready = true } }
@@ -65,4 +67,37 @@ if #available(macOS 14.0, *) {
     accepted.forEach { $0.cancel() }
     listener.cancel()
     print("Production NW interface: repeated connect deduplicated, queued write/read and disconnect passed")
+}
+
+if #available(macOS 14.0, *) {
+    try checkEcho(port: .any)
+    // Reserve a port without listening, so the first dial fails deterministically.
+    let descriptor = socket(AF_INET, SOCK_STREAM, 0)
+    precondition(descriptor >= 0)
+    var address = sockaddr_in()
+    address.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
+    address.sin_family = sa_family_t(AF_INET)
+    address.sin_addr = in_addr(s_addr: inet_addr("127.0.0.1"))
+    let bound = withUnsafePointer(to: &address) { pointer in
+        pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+            Darwin.bind(descriptor, $0, socklen_t(MemoryLayout<sockaddr_in>.size))
+        }
+    }
+    precondition(bound == 0)
+    var length = socklen_t(MemoryLayout<sockaddr_in>.size)
+    let named = withUnsafeMutablePointer(to: &address) { pointer in
+        pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) { getsockname(descriptor, $0, &length) }
+    }
+    precondition(named == 0)
+    let port = UInt16(bigEndian: address.sin_port)
+    let failure = Delegate()
+    let unavailable = NetworkFrameworkTcpConnectionInterface(delegate: failure, delegateQueue: .main)
+    _ = unavailable.connect(toHost: "127.0.0.1", onPort: port, viaInterface: nil, withTimeout: 3, error: nil)
+    waitFor { failure.disconnects == 1 }
+    precondition(failure.connects == 0)
+    Darwin.close(descriptor)
+    // The server recovers while the shared cooldown is active. Writes and reads queued
+    // before NWConnection.start must survive admission and reach the echo server.
+    try checkEcho(port: NWEndpoint.Port(rawValue: port)!)
+    print("Production NW interface: refused endpoint recovered with pre-admission writes and reads")
 }
