@@ -226,6 +226,7 @@ private final class FetchImpl {
         
         var pendingParts: [PendingPart] = []
         var completedRanges = RangeSet<Int64>()
+        var downloadedUpperBound: Int64 = 0
         
         var decryptionState: DecryptionState?
         var pendingReadyParts: [PendingReadyPart] = []
@@ -1065,7 +1066,7 @@ private final class FetchImpl {
                 // Requests can finish out of order, including empty replies beyond EOF.
                 // completedRanges tracks requested ranges, not bytes actually received, so
                 // its upper bound cannot be used to reject an earlier, shorter EOF.
-                let maxCompleted = state.completedRanges.ranges.last?.upperBound ?? 0
+                let maxCompleted = state.downloadedUpperBound
                 if resultingSize >= maxCompleted {
                     if let currentKnownSize = self.knownSize {
                         self.knownSize = min(currentKnownSize, resultingSize)
@@ -1078,6 +1079,10 @@ private final class FetchImpl {
                 let reportedSize = self.knownSize ?? resultingSize
                 Logger.shared.log("FetchV2", "\(self.loggingIdentifier): reporting resource size \(reportedSize)")
                 self.onNext(.resourceSizeUpdated(reportedSize))
+            }
+            
+            if actualLength > 0 {
+                state.downloadedUpperBound = max(state.downloadedUpperBound, fetchRange.lowerBound + actualLength)
             }
             
             state.completedRanges.formUnion(RangeSet<Int64>(partRange))
