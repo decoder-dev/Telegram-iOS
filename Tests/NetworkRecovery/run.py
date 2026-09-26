@@ -27,7 +27,10 @@ final class Logger {
     func log(_ category: String, _ message: String) {}
 }
 let logFetchV2Parts = false
-final class FetchingState { var completedRanges = RangeSet<Int64>() }
+final class FetchingState { 
+    var completedRanges = RangeSet<Int64>() 
+    var downloadedUpperBound: Int64 = 0 
+}
 enum Event {
     case resourceSizeUpdated(Int64)
     case dataPart(resourceOffset: Int64, data: Data, range: Range<Int64>, complete: Bool)
