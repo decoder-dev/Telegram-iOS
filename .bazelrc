@@ -39,4 +39,3 @@ common:index_build --noannounce_rc
 common:index_build --noshow_timestamps
 common:index_build --curses=no
 common:index_build --color=no
-build --//Telegram:enableWeb3Splash=true

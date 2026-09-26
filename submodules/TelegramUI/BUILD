@@ -47,10 +47,7 @@ swift_library(
     ]),
     copts = [
         "-warnings-as-errors",
-    ] + select({
-        "//Telegram:enableWeb3SplashSetting": ["-DENABLE_WEB3_SPLASH"],
-        "//conditions:default": [],
-    }),
+    ],
     deps = [
         "//third-party/recaptcha:RecaptchaEnterprise",
         "//submodules/SSignalKit/SwiftSignalKit:SwiftSignalKit",
@@ -542,9 +539,6 @@ swift_library(
         "//submodules/TelegramUI/Components/RichTextEditorMediaView",
         "//submodules/TelegramUI/Components/Chat/ChatRichTextEditorComposer",
     ] + select({
-        "//Telegram:enableWeb3SplashSetting": ["//submodules/TelegramCustom:TelegramCustom"],
-        "//conditions:default": [],
-    }) + select({
         "@build_bazel_rules_apple//apple:ios_arm64": appcenter_targets,
         "//build-system:ios_sim_arm64": [],
     }),
