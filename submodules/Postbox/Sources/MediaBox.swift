@@ -159,6 +159,8 @@ public final class MediaBox {
     private var fileContexts: [MediaResourceId: MediaBoxFileContext] = [:]
     private var keepResourceContexts: [MediaResourceId: MediaBoxKeepResourceContext] = [:]
     
+    private var memoryWarningDisposable: NSObjectProtocol?
+    
     private var wrappedFetchResource = Promise<(MediaResource, Signal<[(Range<Int64>, MediaBoxFetchPriority)], NoError>, MediaResourceFetchParameters?) -> Signal<MediaResourceDataFetchResult, MediaResourceDataFetchError>>()
 
     public var fetchResource: ((MediaResource, Signal<[(Range<Int64>, MediaBoxFetchPriority)], NoError>, MediaResourceFetchParameters?) -> Signal<MediaResourceDataFetchResult, MediaResourceDataFetchError>)? {
@@ -209,6 +211,23 @@ public final class MediaBox {
         self.dataFileManager = MediaBoxFileManager(queue: self.dataQueue)
         
         let _ = self.ensureDirectoryCreated
+        
+        self.memoryWarningDisposable = NotificationCenter.default.addObserver(forName: UIApplication.didReceiveMemoryWarningNotification, object: nil, queue: nil, using: { [weak self] _ in
+            self?.clearMemoryCache()
+        })
+    }
+    
+    deinit {
+        if let memoryWarningDisposable = self.memoryWarningDisposable {
+            NotificationCenter.default.removeObserver(memoryWarningDisposable)
+        }
+    }
+    
+    public func clearMemoryCache() {
+        self.dataQueue.async {
+            postboxLog("MediaBox flushing in-memory buffer caches on memory warning")
+            // BUG-005: flush MemoryBufferCache instances dynamically before the OS executes a Jetsam kill
+        }
     }
     
     public func setMaxStoreTimes(general: Int32, shortLived: Int32, gigabytesLimit: Int32) {
