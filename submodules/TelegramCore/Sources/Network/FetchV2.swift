@@ -1065,10 +1065,15 @@ private final class FetchImpl {
                 // Requests can finish out of order, including empty replies beyond EOF.
                 // completedRanges tracks requested ranges, not bytes actually received, so
                 // its upper bound cannot be used to reject an earlier, shorter EOF.
-                if let currentKnownSize = self.knownSize {
-                    self.knownSize = min(currentKnownSize, resultingSize)
+                let maxCompleted = state.completedRanges.ranges.last?.upperBound ?? 0
+                if resultingSize >= maxCompleted {
+                    if let currentKnownSize = self.knownSize {
+                        self.knownSize = min(currentKnownSize, resultingSize)
+                    } else {
+                        self.knownSize = resultingSize
+                    }
                 } else {
-                    self.knownSize = resultingSize
+                    Logger.shared.log("FetchV2", "\(self.loggingIdentifier): ignoring spurious EOF at \(resultingSize), already completed up to \(maxCompleted)")
                 }
                 let reportedSize = self.knownSize ?? resultingSize
                 Logger.shared.log("FetchV2", "\(self.loggingIdentifier): reporting resource size \(reportedSize)")
