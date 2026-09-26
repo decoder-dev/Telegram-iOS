@@ -16,12 +16,12 @@ import WebProxyTransport
 import TelegramVLESS
 
 private final class ProxyServerSettingsControllerArguments {
-    let context: AccountContext
+    let context: AccountContext?
     let updateState: ((ProxyServerSettingsControllerState) -> ProxyServerSettingsControllerState) -> Void
     let share: () -> Void
     let usePasteboardSettings: () -> Void
     
-    init(context: AccountContext, updateState: @escaping ((ProxyServerSettingsControllerState) -> ProxyServerSettingsControllerState) -> Void, share: @escaping () -> Void, usePasteboardSettings: @escaping () -> Void) {
+    init(context: AccountContext?, updateState: @escaping ((ProxyServerSettingsControllerState) -> ProxyServerSettingsControllerState) -> Void, share: @escaping () -> Void, usePasteboardSettings: @escaping () -> Void) {
         self.context = context
         self.updateState = updateState
         self.share = share
@@ -145,8 +145,12 @@ private enum ProxySettingsEntry: ItemListNodeEntry {
                 })
             case let .vlessInfo(_, feedback):
                 if feedback.isError {
-                    let text = NSAttributedString(string: feedback.text, font: Font.regular(presentationData.fontSize.itemListBaseHeaderFontSize), textColor: presentationData.theme.list.itemDestructiveColor)
-                    return ItemListTextItem(presentationData: presentationData, text: .custom(context: arguments.context, string: text), sectionId: self.section)
+                    if let context = arguments.context {
+                        let text = NSAttributedString(string: feedback.text, font: Font.regular(presentationData.fontSize.itemListBaseHeaderFontSize), textColor: presentationData.theme.list.itemDestructiveColor)
+                        return ItemListTextItem(presentationData: presentationData, text: .custom(context: context, string: text), sectionId: self.section)
+                    } else {
+                        return ItemListTextItem(presentationData: presentationData, text: .plain(feedback.text), sectionId: self.section)
+                    }
                 }
                 return ItemListTextItem(presentationData: presentationData, text: .plain(feedback.text), sectionId: self.section)
             case let .socks5Info(_, text):
@@ -502,7 +506,7 @@ func proxyServerSettingsController(sharedContext: SharedAccountContext, context:
     
     let signal = combineLatest(updatedPresentationData, statePromise.get())
     |> deliverOnMainQueue
-    |> map { presentationData, state -> (ItemListControllerState, (ItemListNodeState, Any)) in
+    |> map { presentationData, state -> (ItemListControllerState, (ItemListNodeState, ProxyServerSettingsControllerArguments)) in
         var presentationData = presentationData
         let updatedTheme = presentationData.theme.withModalBlocksBackground()
         presentationData = presentationData.withUpdated(theme: updatedTheme)
