@@ -113,6 +113,18 @@ let exactState = FetchingState()
 exact.commitPendingReadyPart(state: exactState, partRange: 0..<block, fetchRange: 0..<block, data: Data(count: Int(block)))
 exact.commitPendingReadyPart(state: exactState, partRange: block..<(2*block), fetchRange: block..<(2*block), data: Data())
 precondition(exact.knownSize == block)
+// A short reply behind bytes already received must not truncate MediaBox through
+// resourceSizeUpdated, even when there is no previously known file size.
+for knownSize: Int64? in [nil, 4 * block] {
+    let fetch = Fetch()
+    fetch.knownSize = knownSize
+    let state = FetchingState()
+    fetch.commitPendingReadyPart(state: state, partRange: block..<(2*block), fetchRange: block..<(2*block), data: Data(count: Int(block)))
+    fetch.events.removeAll()
+    fetch.commitPendingReadyPart(state: state, partRange: 0..<block, fetchRange: 0..<block, data: Data())
+    precondition(fetch.knownSize == knownSize)
+    precondition(fetch.events.isEmpty, "Rejected EOF leaked a resource size to the cache")
+}
 let tracker = Tracker()
 let active = PeerContext(); active.viewIds.insert(7)
 tracker.cachedDataContexts = [1: active, 2: PeerContext()]

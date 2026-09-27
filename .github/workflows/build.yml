@@ -64,7 +64,9 @@ jobs:
       - name: VLESS parser, configuration and lifecycle tests
         run: swift test --package-path submodules/TelegramVLESS
       - name: Archive session and account isolation tests
-        run: python3 Tests/ArchiveLock/run.py
+        run: |
+          python3 Tests/ArchiveLock/run.py
+          python3 Tests/ArchiveLock/password_flow.py
       - name: Managed proxy observation and customization tests
         run: |
           python3 Tests/ManagedProxy/run.py

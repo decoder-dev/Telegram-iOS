@@ -49,13 +49,15 @@ private enum MessageSavingHistoryEntry: ItemListNodeEntry {
         case let .record(_, record):
             let date = Date(timeIntervalSince1970: TimeInterval(record.date))
             let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: presentationData.strings.baseLanguageCode)
             formatter.dateStyle = .medium
             formatter.timeStyle = .short
             // AyuGram Android: customizable deleted mark (default 🧹) next to the timestamp in View Deleted too.
             let mark = record.kind == .deleted ? "\(MessageSavingBridge.deletedMark) " : ""
             let header = "\(record.authorName) · \(mark)\(formatter.string(from: date))"
             var body = record.text
-            if let mediaPath = record.mediaPath, messageSavingRecordHasFile(record) {
+            let hasAttachment = messageSavingRecordHasFile(record)
+            if let mediaPath = record.mediaPath, hasAttachment {
                 let name = (mediaPath as NSString).lastPathComponent
                 body += "\n📎 \(name)"
             }
@@ -65,11 +67,11 @@ private enum MessageSavingHistoryEntry: ItemListNodeEntry {
                 enabledEntityTypes: [],
                 sectionId: self.section,
                 style: .blocks,
-                action: {
+                action: hasAttachment ? {
                     if let mediaPath = record.mediaPath, messageSavingRecordHasFile(record) {
                         args?.openAttachment(mediaPath)
                     }
-                }
+                } : nil
             )
         }
     }
@@ -174,9 +176,9 @@ private func messageSavingHistoryController(
     // copy from before account scoping.
     let reconcileAccountPeerId = context.account.peerId
     let reconcileMediaBox = context.account.postbox.mediaBox
-    let reconcileRecords = messageSavingRecords(mode: mode, accountPeerId: reconcileAccountPeerId)
-    if !reconcileRecords.isEmpty {
-        DispatchQueue.global(qos: .utility).async {
+    DispatchQueue.global(qos: .utility).async {
+        let reconcileRecords = messageSavingRecords(mode: mode, accountPeerId: reconcileAccountPeerId)
+        if !reconcileRecords.isEmpty {
             var didFindFile = false
             for record in reconcileRecords where !messageSavingRecordHasFile(record) {
                 let path = MessageSavingBridge.reconcileStoredAttachment(
@@ -206,12 +208,15 @@ private func messageSavingHistoryController(
     // Also rebuild when the store itself changes: a durable attachment can be copied seconds
     // after this screen is opened (slow download), and without this the row would keep showing
     // no attachment until the controller is closed and reopened.
+    // Store reads may load JSON and sort thousands of records. Serialize those
+    // snapshots off the UI thread; only deliver the resulting list state on main.
+    let historyQueue = Queue(name: "MessageSavingHistory")
     let signal = combineLatest(
         context.sharedContext.presentationData,
         refresh.get(),
         MessageSavingStore.changes.get()
     )
-    |> deliverOnMainQueue
+    |> deliverOn(historyQueue)
     |> map { presentationData, _, _ -> (ItemListControllerState, (ItemListNodeState, Any)) in
         var rightButton: ItemListNavigationButton?
         if clearAction != nil {
@@ -239,6 +244,7 @@ private func messageSavingHistoryController(
         )
         return (controllerState, (listState, arguments))
     }
+    |> deliverOnMainQueue
 
     return ItemListController(context: context, state: signal)
 }

@@ -521,7 +521,7 @@ private func presentArchivePasswordAlert(
     verifyPassword: Bool,
     onSuccess: @escaping () -> Void,
     onCancel: @escaping () -> Void,
-    capturePassword: ((String) -> Void)? = nil
+    capturePassword: ((String) -> Bool)? = nil
 ) {
     let peerId = context.account.peerId
     let strings = context.sharedContext.currentPresentationData.with { $0 }.strings
@@ -557,7 +557,8 @@ private func presentArchivePasswordAlert(
         alert.addAction(UIAlertAction(title: strings.Common_Cancel, style: .cancel, handler: { _ in
             onCancel()
         }))
-        alert.addAction(UIAlertAction(title: confirmTitle, style: .default, handler: { _ in
+        alert.addAction(UIAlertAction(title: confirmTitle, style: .default, handler: { [weak alert] _ in
+            guard let alert else { return }
             let trimmed = (alert.textFields?.first?.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
             if verifyPassword {
                 if ArchivePasswordKeychain.matchesPassword(trimmed, peerId: peerId) {
@@ -590,11 +591,17 @@ private func presentArchivePasswordAlert(
                         confirm.addAction(UIAlertAction(title: strings.Common_Cancel, style: .cancel, handler: { _ in
                             onCancel()
                         }))
-                        confirm.addAction(UIAlertAction(title: strings.Common_Done, style: .default, handler: { _ in
+                        confirm.addAction(UIAlertAction(title: strings.Common_Done, style: .default, handler: { [weak confirm] _ in
+                            guard let confirm else { return }
                             let confirmValue = (confirm.textFields?.first?.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
                             if confirmValue == trimmed {
-                                capturePassword(trimmed)
-                                onSuccess()
+                                if capturePassword(trimmed) {
+                                    onSuccess()
+                                } else {
+                                    Queue.mainQueue().after(0.3) {
+                                        show(messageOverride: ArchiveLockLocalizedString.storageError)
+                                    }
+                                }
                             } else {
                                 Queue.mainQueue().after(0.3) {
                                     show(messageOverride: ArchiveLockLocalizedString.passwordsDoNotMatch)
@@ -653,11 +660,14 @@ public func setArchivePassword(context: AccountContext, present: @escaping (View
             completion(false)
         },
         capturePassword: { password in
-            _ = ArchivePasswordKeychain.store(password: password, peerId: context.account.peerId)
+            guard ArchivePasswordKeychain.store(password: password, peerId: context.account.peerId) else {
+                return false
+            }
             ArchivePasswordKeychain.clearFailureState(peerId: context.account.peerId)
             let _ = updateChatArchiveSettings(engine: context.engine) { current in
                 current.clearingLegacyPasswordHash().withUpdatedIsPasswordConfigured(true)
             }.startStandalone()
+            return true
         }
     )
 }
@@ -685,8 +695,11 @@ public func changeArchivePassword(context: AccountContext, present: @escaping (V
                     completion(false)
                 },
                 capturePassword: { password in
-                    _ = ArchivePasswordKeychain.store(password: password, peerId: context.account.peerId)
+                    guard ArchivePasswordKeychain.store(password: password, peerId: context.account.peerId) else {
+                        return false
+                    }
                     ArchivePasswordKeychain.clearFailureState(peerId: context.account.peerId)
+                    return true
                 }
             )
         },
@@ -721,7 +734,16 @@ public func removeArchivePassword(context: AccountContext, present: @escaping (V
             confirmTitle: ArchiveLockLocalizedString.remove,
             verifyPassword: true,
             onSuccess: {
-                _ = ArchivePasswordKeychain.clear(peerId: context.account.peerId)
+                guard ArchivePasswordKeychain.clear(peerId: context.account.peerId) else {
+                    completion(false)
+                    Queue.mainQueue().after(0.3) {
+                        let strings = context.sharedContext.currentPresentationData.with { $0 }.strings
+                        let alert = UIAlertController(title: ArchiveLockLocalizedString.removeTitle, message: ArchiveLockLocalizedString.storageError, preferredStyle: .alert)
+                        alert.addAction(UIAlertAction(title: strings.Common_OK, style: .cancel, handler: nil))
+                        presentUIAlert(context: context, alert: alert, onUnavailableHost: {})
+                    }
+                    return
+                }
                 let _ = updateChatArchiveSettings(engine: context.engine) { current in
                     current.clearingLegacyPasswordHash().withUpdatedIsPasswordConfigured(false)
                 }.startStandalone()

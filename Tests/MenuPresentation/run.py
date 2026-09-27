@@ -15,6 +15,10 @@ feedback = feedback.replace("import TelegramVLESS\n", "").replace("import Telegr
 language = read("submodules/TelegramUIPreferences/Sources/ForkPresentationLanguage.swift")
 archive = read("submodules/ChatListUI/Sources/ArchiveLockLocalizedString.swift")
 archive = archive.replace("import AppBundle\n", "").replace("import TelegramUIPreferences\n", "")
+extras_source = read("submodules/SettingsUI/Sources/ForkExtrasController.swift")
+extras_start = extras_source.index("private enum ForkExtrasLocalizedString {")
+extras_end = extras_source.index("\nprivate final class ForkExtrasControllerArguments", extras_start)
+extras = extras_source[extras_start:extras_end]
 
 tests = r'''
 // Only the app-bundle accessor is a fixture; all localization and parsing logic is production code.
@@ -35,6 +39,7 @@ for language in ["ru", "en", "de", "uk"] {
     }
     precondition(ArchiveLockLocalizedString.lockArchive.contains(russian ? "Избранное" : "Saved Messages"))
     precondition(ArchiveLockLocalizedString.keepArchivedPolicy.contains(russian ? "автоматически" : "automatic"))
+    precondition(ForkExtrasLocalizedString.string(forKey: "ForkExtras.Title") == (russian ? "Дополнительно" : "Extras"))
     let insecure = vlessEditorInfo(valid + "&allowInsecure=1")
     precondition(!insecure.isError)
     precondition(insecure.text.contains(russian ? "Проверка сертификата отключена" : "Certificate verification is disabled"))
@@ -51,5 +56,5 @@ with tempfile.TemporaryDirectory(prefix="telegram-menu-presentation-") as tmp:
 import PackageDescription
 let package = Package(name: "MenuPresentation", platforms: [.macOS(.v10_15)], dependencies: [.package(path: PATH)], targets: [.executableTarget(name: "MenuPresentation", dependencies: [.product(name: "SwiftSignalKit", package: "SSignalKit")])])
 '''.replace("PATH", dependency), encoding="utf-8")
-    (source / "main.swift").write_text(profile + feedback + language + archive + tests, encoding="utf-8")
+    (source / "main.swift").write_text(profile + feedback + language + archive + extras + tests, encoding="utf-8")
     subprocess.run(["swift", "run", "--package-path", tmp, "MenuPresentation"], check=True)

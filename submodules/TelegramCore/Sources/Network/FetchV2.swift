@@ -1073,12 +1073,13 @@ private final class FetchImpl {
                     } else {
                         self.knownSize = resultingSize
                     }
+                    if let reportedSize = self.knownSize {
+                        Logger.shared.log("FetchV2", "\(self.loggingIdentifier): reporting resource size \(reportedSize)")
+                        self.onNext(.resourceSizeUpdated(reportedSize))
+                    }
                 } else {
                     Logger.shared.log("FetchV2", "\(self.loggingIdentifier): ignoring spurious EOF at \(resultingSize), already completed up to \(maxCompleted)")
                 }
-                let reportedSize = self.knownSize ?? resultingSize
-                Logger.shared.log("FetchV2", "\(self.loggingIdentifier): reporting resource size \(reportedSize)")
-                self.onNext(.resourceSizeUpdated(reportedSize))
             }
             
             if actualLength > 0 {

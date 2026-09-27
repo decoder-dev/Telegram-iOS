@@ -190,7 +190,7 @@ public class ItemListMultilineInputItemNode: ListViewItemNode, ASEditableTextNod
             let itemBackgroundColor: UIColor
             let itemSeparatorColor: UIColor
             
-            let leftInset = 16.0 + params.rightInset
+            let leftInset = 16.0 + params.leftInset
             switch item.style {
                 case .plain:
                     itemBackgroundColor = item.presentationData.theme.list.plainBackgroundColor

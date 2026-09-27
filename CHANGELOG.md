@@ -6,6 +6,13 @@
 
 ## [Unreleased]
 
+### Fixed — September 27 audit
+- Archive password setup, rotation and removal no longer report success or change preference mirrors after a failed Keychain mutation. Password prompts release their action closures on dismissal.
+- Rejected short download replies no longer publish a false resource size to the media cache.
+- Multiline settings rows and fields respect asymmetric safe-area insets; actionable multiline rows expose a VoiceOver activation and a minimum 44-point row height.
+- Saved-message history snapshots are read and sorted off the main queue; dates use the app locale, and records without available attachments no longer pretend to be buttons.
+- Extras uses the same explicit app-language fallback as Archive, proxy and debug menus.
+
 ### Fixed — menu presentation
 - VLESS links use a multiline editor; validation errors appear directly below the field with the theme's error color and an explicit error label, without truncating pasted credentials.
 - Archive settings explain the fixed keep-archived policy and name both Archive and Saved Messages in the lock switch, with wrapping for narrow screens and large text.

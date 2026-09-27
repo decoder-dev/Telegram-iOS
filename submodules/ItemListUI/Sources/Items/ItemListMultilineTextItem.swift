@@ -131,6 +131,11 @@ public class ItemListMultilineTextItemNode: ListViewItemNode {
         
         self.addSubnode(self.textNode)
         self.addSubnode(self.activateArea)
+        self.activateArea.activate = { [weak self] in
+            guard let action = self?.item?.action else { return false }
+            action()
+            return true
+        }
     }
     
     override public func didLoad() {
@@ -166,6 +171,7 @@ public class ItemListMultilineTextItemNode: ListViewItemNode {
             let textColor: UIColor = item.presentationData.theme.list.itemPrimaryTextColor
             
             let leftInset: CGFloat
+            let rightInset: CGFloat = 16.0 + params.rightInset
             let itemBackgroundColor: UIColor
             let itemSeparatorColor: UIColor
             
@@ -177,7 +183,7 @@ public class ItemListMultilineTextItemNode: ListViewItemNode {
                 case .blocks:
                     itemBackgroundColor = item.presentationData.theme.list.itemBlocksBackgroundColor
                     itemSeparatorColor = item.presentationData.theme.list.itemBlocksSeparatorColor
-                    leftInset = 16.0 + params.rightInset
+                    leftInset = 16.0 + params.leftInset
             }
             
             let fontSize = item.presentationData.fontSize.itemListBaseFontSize
@@ -199,18 +205,19 @@ public class ItemListMultilineTextItemNode: ListViewItemNode {
             let entities = generateTextEntities(item.text, enabledTypes: item.enabledEntityTypes)
             let string = stringWithAppliedEntities(item.text, entities: entities, baseColor: textColor, linkColor: item.presentationData.theme.list.itemAccentColor, baseFont: baseFont, linkFont: linkFont, boldFont: boldFont, italicFont: italicFont, boldItalicFont: boldItalicFont, fixedFont: titleFixedFont, blockQuoteFont: baseFont, message: nil)
             
-            let (titleLayout, titleApply) = makeTextLayout(TextNodeLayoutArguments(attributedString: string, backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset * 2.0, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (titleLayout, titleApply) = makeTextLayout(TextNodeLayoutArguments(attributedString: string, backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: max(0.0, params.width - leftInset - rightInset), height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             let contentSize: CGSize
             let insets: UIEdgeInsets
             let separatorHeight = UIScreenPixel
+            let contentHeight = max(item.action == nil ? 0.0 : 44.0, titleLayout.size.height + 22.0)
             
             switch item.style {
                 case .plain:
-                    contentSize = CGSize(width: params.width, height: titleLayout.size.height + 22.0)
+                    contentSize = CGSize(width: params.width, height: contentHeight)
                     insets = itemListNeighborsPlainInsets(neighbors)
                 case .blocks:
-                    contentSize = CGSize(width: params.width, height: titleLayout.size.height + 22.0)
+                    contentSize = CGSize(width: params.width, height: contentHeight)
                     insets = itemListNeighborsGroupedInsets(neighbors, params)
             }
             
@@ -223,6 +230,7 @@ public class ItemListMultilineTextItemNode: ListViewItemNode {
                     
                     strongSelf.activateArea.frame = CGRect(origin: CGPoint(x: params.leftInset, y: 0.0), size: CGSize(width: params.width - params.leftInset - params.rightInset, height: layout.contentSize.height))
                     strongSelf.activateArea.accessibilityLabel = item.text
+                    strongSelf.activateArea.accessibilityTraits = item.action == nil ? .staticText : .button
                     
                     if let _ = updatedTheme {
                         strongSelf.topStripeNode.backgroundColor = itemSeparatorColor

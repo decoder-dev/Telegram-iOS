@@ -64,8 +64,11 @@ public enum ArchivePasswordKeychain {
     @discardableResult
     public static func clear(peerId: EnginePeer.Id) -> Bool {
         let status = SecItemDelete(self.query(peerId: peerId) as CFDictionary)
+        guard status == errSecSuccess || status == errSecItemNotFound else {
+            return false
+        }
         self.clearFailureState(peerId: peerId)
-        return status == errSecSuccess || status == errSecItemNotFound
+        return true
     }
 
     public static func matchesPassword(_ password: String, peerId: EnginePeer.Id) -> Bool {

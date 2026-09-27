@@ -12,6 +12,7 @@ public enum ArchiveLockLocalizedString {
     private static let translations: [String: [String: String]] = [
         "en": [
             "ArchiveLock.PasswordSection": "PASSWORD",
+            "ArchiveLock.StorageError": "Could not save the password change securely. Nothing was changed. Try again.",
             "ArchiveLock.LockArchive": "Lock Archive and Saved Messages",
             "ArchiveLock.KeepArchivedPolicy": "Archived chats always stay in the archive and remain muted. This is automatic and cannot be switched off here.",
             "ArchiveLock.LockNow": "Lock Now",
@@ -43,6 +44,7 @@ public enum ArchiveLockLocalizedString {
         ],
         "ru": [
             "ArchiveLock.PasswordSection": "ПАРОЛЬ",
+            "ArchiveLock.StorageError": "Не удалось безопасно сохранить изменение пароля. Ничего не изменено. Попробуйте ещё раз.",
             "ArchiveLock.LockArchive": "Блокировать архив и «Избранное»",
             "ArchiveLock.KeepArchivedPolicy": "Архивированные чаты всегда остаются в архиве и без звука. Это происходит автоматически и не отключается здесь.",
             "ArchiveLock.LockNow": "Заблокировать сейчас",
@@ -103,6 +105,7 @@ public enum ArchiveLockLocalizedString {
     
     public static var keepArchivedPolicy: String { string(forKey: "ArchiveLock.KeepArchivedPolicy") }
     public static var passwordSection: String { string(forKey: "ArchiveLock.PasswordSection") }
+    public static var storageError: String { string(forKey: "ArchiveLock.StorageError") }
     public static var lockArchive: String { string(forKey: "ArchiveLock.LockArchive") }
     public static var lockNow: String { string(forKey: "ArchiveLock.LockNow") }
     public static var footer: String { string(forKey: "ArchiveLock.Footer") }
