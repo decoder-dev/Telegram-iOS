@@ -641,7 +641,7 @@ private func presentArchivePasswordAlert(
 
 private func presentUIAlert(context: AccountContext, alert: UIAlertController, onUnavailableHost: @escaping () -> Void) {
     let disposable = MetaDisposable()
-    disposable.set(context.sharedContext.presentationData.deliverOnMainQueue().start(next: { [weak alert] presentationData in
+    disposable.set((context.sharedContext.presentationData |> deliverOnMainQueue).startStrict(next: { [weak alert] presentationData in
         guard let alert = alert else {
             disposable.dispose()
             return
