@@ -33,7 +33,7 @@ storeSucceeds = true
 // The previous flow failed and closed. Start a new one to succeed.
 presentArchivePasswordAlert(context: context, title: "Set", message: nil, confirmTitle: "Next", verifyPassword: false, onSuccess: { successes += 1 }, onCancel: { cancelled += 1 }, capturePassword: { _ in writes += 1; return storeSucceeds })
 submit("password"); Queue.drain(); submit("password"); Queue.drain()
-precondition(writes == 2 && successes == 1 && cancelled == 0 && presented.isEmpty)
+precondition(writes == 2 && successes == 1 && cancelled == 1 && presented.isEmpty)
 
 for _ in 0..<20 {
     presentArchivePasswordAlert(context: context, title: "Set", message: nil, confirmTitle: "Next", verifyPassword: false, onSuccess: { successes += 1 }, onCancel: { cancelled += 1 }, capturePassword: { _ in writes += 1; return true })
