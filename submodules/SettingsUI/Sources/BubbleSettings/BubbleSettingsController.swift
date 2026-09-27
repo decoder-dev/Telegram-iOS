@@ -119,8 +119,10 @@ private final class BubbleSettingsControllerNode: ASDisplayNode, ASScrollViewDel
             guard let strongSelf = self else {
                 return
             }
-            strongSelf.presentationThemeSettings.chatBubbleSettings.mainRadius = Int32(value)
-            strongSelf.presentationThemeSettings.chatBubbleSettings.auxiliaryRadius = Int32(value / 2)
+            strongSelf.presentationThemeSettings.chatBubbleSettings.mainRadius = Int32(max(4, min(30, value)))
+            // Sync auxiliary with the smooth curve used in higChatBubbleCorners
+            let r = CGFloat(max(4, min(30, value)))
+            strongSelf.presentationThemeSettings.chatBubbleSettings.auxiliaryRadius = Int32(floor(4.0 + (r - 4.0) * 0.4))
             strongSelf.updatePresentationThemeSettings(strongSelf.presentationThemeSettings)
         }
     }
@@ -504,7 +506,7 @@ private final class BubbleSettingsToolbarNode: ASDisplayNode {
             self?.updateMergeBubbleCorners?(value)
         })
         let cornerRadiusItem = BubbleSettingsRadiusItem(theme: self.presentationData.theme, value: Int(self.presentationData.chatBubbleCorners.mainRadius), enabled: true, disableLeadingInset: false, displayIcons: false, disableDecorations: true, force: false, sectionId: 0, updated: { [weak self] value in
-            self?.updateCornerRadius?(Int32(max(8, min(24, value))))
+            self?.updateCornerRadius?(Int32(max(4, min(30, value))))
         })
         
         switchItem.updateNode(async: { f in

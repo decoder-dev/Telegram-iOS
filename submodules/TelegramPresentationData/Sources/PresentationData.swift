@@ -80,10 +80,13 @@ public struct PresentationChatBubbleCorners: Equatable, Hashable {
 
 /// Tail-free bubbles with the user's selected corner geometry.
 public func higChatBubbleCorners(from settings: PresentationChatBubbleSettings) -> PresentationChatBubbleCorners {
-    let mainRadius = CGFloat(max(8, min(24, settings.mainRadius)))
+    let mainRadius = CGFloat(max(4, min(30, settings.mainRadius)))
+    // Smooth auxiliary curve: starts equal to mainRadius at 4pt, grows at 40% rate.
+    // Result: r=4→4, r=8→5, r=12→7, r=20→10, r=24→12, r=30→14
+    let auxiliaryRadius = floor(4.0 + (mainRadius - 4.0) * 0.4)
     return PresentationChatBubbleCorners(
         mainRadius: mainRadius,
-        auxiliaryRadius: min(mainRadius, CGFloat(max(0, settings.auxiliaryRadius))),
+        auxiliaryRadius: min(mainRadius, max(0, auxiliaryRadius)),
         mergeBubbleCorners: settings.mergeBubbleCorners,
         hasTails: false
     )
