@@ -23,6 +23,8 @@ private final class MessageSavingHistoryArguments {
 }
 
 private enum MessageSavingHistoryEntry: ItemListNodeEntry {
+    case loading
+    case error(String)
     case empty(String)
     case record(Int, MessageSavingRecord)
 
@@ -30,6 +32,10 @@ private enum MessageSavingHistoryEntry: ItemListNodeEntry {
 
     var stableId: Int32 {
         switch self {
+        case .loading:
+            return -3
+        case .error:
+            return -2
         case .empty:
             return -1
         case let .record(index, _):
@@ -44,6 +50,10 @@ private enum MessageSavingHistoryEntry: ItemListNodeEntry {
     func item(presentationData: ItemListPresentationData, arguments: Any) -> ListViewItem {
         let args = arguments as? MessageSavingHistoryArguments
         switch self {
+        case .loading:
+            return ItemListTextItem(presentationData: presentationData, text: .plain("Loading..."), sectionId: self.section)
+        case let .error(text):
+            return ItemListTextItem(presentationData: presentationData, text: .plain("Error: \(text)"), sectionId: self.section)
         case let .empty(text):
             return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section)
         case let .record(_, record):
