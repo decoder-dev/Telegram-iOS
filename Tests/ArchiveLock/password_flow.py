@@ -27,7 +27,11 @@ precondition(firstConfirmation == nil, "Confirmation retained by its action")
 Queue.drain()
 precondition(writes == 1 && successes == 0 && cancelled == 0)
 precondition(presented.last?.message == ArchiveLockLocalizedString.storageError)
+// Dismiss the storage error alert which has 1 OK button (index 0)
+submit("", cancel: true); Queue.drain()
 storeSucceeds = true
+// The previous flow failed and closed. Start a new one to succeed.
+presentArchivePasswordAlert(context: context, title: "Set", message: nil, confirmTitle: "Next", verifyPassword: false, onSuccess: { successes += 1 }, onCancel: { cancelled += 1 }, capturePassword: { _ in writes += 1; return storeSucceeds })
 submit("password"); Queue.drain(); submit("password"); Queue.drain()
 precondition(writes == 2 && successes == 1 && cancelled == 0 && presented.isEmpty)
 
@@ -40,7 +44,7 @@ for _ in 0..<20 {
     precondition(presented.last?.message == ArchiveLockLocalizedString.passwordsDoNotMatch)
     submit("", cancel: true); Queue.drain()
 }
-precondition(writes == 2 && successes == 1 && cancelled == 20)
+precondition(writes == 2 && successes == 1 && cancelled == 21)
 precondition(presented.isEmpty && Queue.callbacks.isEmpty)
 print("Archive password persistence failure/retry, mismatches and 20 prompt release cycles: passed")
 '''
