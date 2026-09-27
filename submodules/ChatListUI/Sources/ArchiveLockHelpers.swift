@@ -615,6 +615,7 @@ private func presentArchivePasswordAlert(
                             if confirmValue == trimmed {
                                 if capturePassword(trimmed) {
                                     wrappedOnSuccess()
+                                } else {
                                     Queue.mainQueue().after(0.3) {
                                         let errorAlert = UIAlertController(title: title, message: ArchiveLockLocalizedString.storageError, preferredStyle: .alert)
                                         errorAlert.addAction(UIAlertAction(title: strings.Common_OK, style: .cancel, handler: { _ in
