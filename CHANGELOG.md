@@ -7,6 +7,7 @@
 ## [Unreleased]
 
 ### Fixed — September 27 audit
+- Failed legacy Archive password migration preserves the only credential; successful migration updates the notification-protection flag before discarding the legacy hash.
 - Archive password setup, rotation and removal no longer report success or change preference mirrors after a failed Keychain mutation. Password prompts release their action closures on dismissal.
 - Rejected short download replies no longer publish a false resource size to the media cache.
 - Multiline settings rows and fields respect asymmetric safe-area insets; actionable multiline rows expose a VoiceOver activation and a minimum 44-point row height.

@@ -36,5 +36,6 @@ jobs:
       - run: python3 Tests/Customization/run.py
       - run: python3 Tests/MenuPresentation/run.py
       - run: python3 Tests/ArchiveLock/password_flow.py
+      - run: python3 Tests/ArchiveLock/migration.py
       - run: python3 Tests/NetworkPolicies/run.py
       - run: python3 Tests/NetworkRecovery/run.py

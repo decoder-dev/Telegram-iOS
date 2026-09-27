@@ -327,9 +327,11 @@ public func archiveSettingsController(context: AccountContext) -> ViewController
         let isPremiumDisabled = PremiumConfiguration.with(appConfiguration: appConfiguration).isPremiumDisabled
         let archiveSettings = archiveSettingsPreference?.get(ChatArchiveSettings.self) ?? .default
         let isPasswordProtected = archiveIsPasswordProtected(peerId: context.account.peerId, settings: archiveSettings)
-        if archiveSettings.legacyLockPasswordHash != nil {
+        // archiveIsPasswordProtected deliberately stays fail-closed when a legacy
+        // hash cannot be migrated. Do not discard the only credential in that case.
+        if archiveSettings.legacyLockPasswordHash != nil, ArchivePasswordKeychain.hasPassword(peerId: context.account.peerId) {
             let _ = updateChatArchiveSettings(engine: context.engine) { current in
-                current.clearingLegacyPasswordHash()
+                current.clearingLegacyPasswordHash().withUpdatedIsPasswordConfigured(true)
             }.startStandalone()
         }
 
