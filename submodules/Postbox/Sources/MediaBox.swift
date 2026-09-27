@@ -225,8 +225,40 @@ public final class MediaBox {
     
     public func clearMemoryCache() {
         self.dataQueue.async {
-            postboxLog("MediaBox flushing in-memory buffer caches on memory warning")
-            // BUG-005: flush MemoryBufferCache instances dynamically before the OS executes a Jetsam kill
+            let fileContextsBefore = self.fileContexts.count
+            let cachedRepBefore = self.cachedRepresentationContexts.count
+            
+            // R01/BUG-005: Evict cached representation contexts that have no active subscribers.
+            // These hold decoded image/video representations in memory and can accumulate
+            // hundreds of entries during gallery/chat scrolling.
+            var evictedRepKeys: [CachedMediaResourceRepresentationKey] = []
+            for (key, context) in self.cachedRepresentationContexts {
+                if context.disposable == nil {
+                    evictedRepKeys.append(key)
+                }
+            }
+            for key in evictedRepKeys {
+                self.cachedRepresentationContexts.removeValue(forKey: key)
+            }
+            
+            postboxLog("MediaBox memory warning: fileContexts \(fileContextsBefore), cachedRep \(cachedRepBefore) → \(self.cachedRepresentationContexts.count) (evicted \(evictedRepKeys.count))")
+        }
+        
+        self.statusQueue.async {
+            let statusBefore = self.statusContexts.count
+            // Evict status contexts with no subscribers
+            var evictedStatusKeys: [MediaResourceId] = []
+            for (key, context) in self.statusContexts {
+                if context.subscribers.isEmpty {
+                    evictedStatusKeys.append(key)
+                }
+            }
+            for key in evictedStatusKeys {
+                self.statusContexts.removeValue(forKey: key)
+            }
+            if !evictedStatusKeys.isEmpty {
+                postboxLog("MediaBox memory warning: statusContexts \(statusBefore) → \(self.statusContexts.count) (evicted \(evictedStatusKeys.count))")
+            }
         }
     }
     

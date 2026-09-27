@@ -302,8 +302,10 @@ public final class AccountContextImpl: AccountContext {
         
         self.memoryWarningDisposable = NotificationCenter.default.addObserver(forName: UIApplication.didReceiveMemoryWarningNotification, object: nil, queue: nil, using: { [weak self] _ in
             guard let self = self else { return }
-            // BUG-005: dynamically clear heavy memory buffer caches
+            // R01/BUG-005: dynamically clear heavy memory buffer caches
             self.account.postbox.mediaBox.clearMemoryCache()
+            // Also flush Postbox table-level in-memory caches (peer data, item cache, etc.)
+            self.account.postbox.clearCaches()
         })
         
         if sharedContext.applicationBindings.isMainApp && !temp {
