@@ -617,20 +617,12 @@ private func presentArchivePasswordAlert(
                                     wrappedOnSuccess()
                                 } else {
                                     Queue.mainQueue().after(0.3) {
-                                        let errorAlert = UIAlertController(title: title, message: ArchiveLockLocalizedString.storageError, preferredStyle: .alert)
-                                        errorAlert.addAction(UIAlertAction(title: strings.Common_OK, style: .cancel, handler: { _ in
-                                            wrappedOnCancel()
-                                        }))
-                                        presentUIAlert(context: context, alert: errorAlert, onUnavailableHost: wrappedOnCancel)
+                                        show(messageOverride: ArchiveLockLocalizedString.storageError)
                                     }
                                 }
                             } else {
                                 Queue.mainQueue().after(0.3) {
-                                    let errorAlert = UIAlertController(title: title, message: ArchiveLockLocalizedString.passwordsDoNotMatch, preferredStyle: .alert)
-                                    errorAlert.addAction(UIAlertAction(title: strings.Common_OK, style: .cancel, handler: { _ in
-                                        wrappedOnCancel()
-                                    }))
-                                    presentUIAlert(context: context, alert: errorAlert, onUnavailableHost: wrappedOnCancel)
+                                    show(messageOverride: ArchiveLockLocalizedString.passwordsDoNotMatch)
                                 }
                             }
                         }))

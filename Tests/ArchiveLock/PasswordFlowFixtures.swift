@@ -46,7 +46,8 @@ struct PresentationValue {
     func with<T>(_ body: (Presentation) -> T) -> T { body(Presentation()) }
 }
 struct SharedContext { let currentPresentationData = PresentationValue() }
-struct Account { let peerId: Int64 = 1 }
+enum EnginePeer { typealias Id = Int64 }
+struct Account { let peerId: EnginePeer.Id = 1 }
 final class AccountContext {
     let account = Account()
     let sharedContext = SharedContext()
