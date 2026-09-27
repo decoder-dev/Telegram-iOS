@@ -292,8 +292,10 @@ private final class FetchManagerCategoryContext {
                             }
                             |> then(.single(type))
                         }
+
                         return .single(type)
                     }
+                    |> retry(2.0, maxDelay: 60.0, onQueue: .mainQueue())
                     |> deliverOnMainQueue).start(next: { _ in
                         entryCompleted(id)
                     })
@@ -458,6 +460,7 @@ private final class FetchManagerCategoryContext {
                             }
                             return .single(type)
                         }
+                        |> retry(2.0, maxDelay: 60.0, onQueue: .mainQueue())
                         |> deliverOnMainQueue).start(next: { _ in
                             entryCompleted(topEntryId)
                         })
