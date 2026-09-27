@@ -212,7 +212,7 @@ public final class MediaBox {
         
         let _ = self.ensureDirectoryCreated
         
-        self.memoryWarningDisposable = NotificationCenter.default.addObserver(forName: UIApplication.didReceiveMemoryWarningNotification, object: nil, queue: nil, using: { [weak self] _ in
+        self.memoryWarningDisposable = NotificationCenter.default.addObserver(forName: NSNotification.Name("UIApplicationDidReceiveMemoryWarningNotification"), object: nil, queue: nil, using: { [weak self] _ in
             self?.clearMemoryCache()
         })
     }
@@ -233,7 +233,7 @@ public final class MediaBox {
             // hundreds of entries during gallery/chat scrolling.
             var evictedRepKeys: [CachedMediaResourceRepresentationKey] = []
             for (key, context) in self.cachedRepresentationContexts {
-                if context.disposable == nil {
+                if context.dataSubscribers.isEmpty {
                     evictedRepKeys.append(key)
                 }
             }
