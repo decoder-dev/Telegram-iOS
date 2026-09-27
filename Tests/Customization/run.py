@@ -20,15 +20,17 @@ public struct PresentationChatBubbleCorners {
 }
 '''
 tests = '''
-for radius: Int32 in [8, 10, 12, 14, 16, 18, 20, 22, 24] {
-    let corners = higChatBubbleCorners(from: .init(mainRadius: radius, auxiliaryRadius: radius / 2, mergeBubbleCorners: false))
-    precondition(corners.mainRadius == CGFloat(radius), "Saved radius ignored")
-    precondition(corners.auxiliaryRadius == CGFloat(radius / 2), "Adjacent radius ignored")
+// New range 4-30, smooth auxiliary curve: floor(4 + (r-4)*0.4)
+for radius: Int32 in [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30] {
+    let corners = higChatBubbleCorners(from: .init(mainRadius: radius, auxiliaryRadius: 0, mergeBubbleCorners: false))
+    precondition(corners.mainRadius == CGFloat(radius), "Saved radius ignored: \\(radius) -> \\(corners.mainRadius)")
+    let expectedAux = floor(4.0 + (CGFloat(radius) - 4.0) * 0.4)
+    precondition(corners.auxiliaryRadius == expectedAux, "Auxiliary mismatch at \\(radius): expected \\(expectedAux) got \\(corners.auxiliaryRadius)")
     precondition(!corners.mergeBubbleCorners && !corners.hasTails)
 }
-for radius: Int32 in [Int32.min, -1, 0, 8, 24, Int32.max] {
+for radius: Int32 in [Int32.min, -1, 0, 4, 30, Int32.max] {
     let corners = higChatBubbleCorners(from: .init(mainRadius: radius, auxiliaryRadius: Int32.max, mergeBubbleCorners: true))
-    precondition((8...24).contains(corners.mainRadius))
+    precondition((4...30).contains(corners.mainRadius), "Out of bounds: \\(corners.mainRadius)")
     precondition(corners.auxiliaryRadius <= corners.mainRadius)
     precondition(corners.mergeBubbleCorners)
 }
