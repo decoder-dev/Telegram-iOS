@@ -1073,6 +1073,7 @@ private final class FetchImpl {
                     } else {
                         self.knownSize = resultingSize
                     }
+                    // R04: Only report size when we actually accept the EOF
                     if let reportedSize = self.knownSize {
                         Logger.shared.log("FetchV2", "\(self.loggingIdentifier): reporting resource size \(reportedSize)")
                         self.onNext(.resourceSizeUpdated(reportedSize))
@@ -1086,7 +1087,18 @@ private final class FetchImpl {
                 state.downloadedUpperBound = max(state.downloadedUpperBound, fetchRange.lowerBound + actualLength)
             }
             
-            state.completedRanges.formUnion(RangeSet<Int64>(partRange))
+            // R04: When data is shorter than requested (EOF), only mark actually-received
+            // bytes as completed, not the full requested partRange. This prevents the
+            // download scheduler from considering truncated ranges as fully fetched.
+            let effectiveCompletedRange: Range<Int64>
+            if actualLength < requestedLength && actualLength >= 0 {
+                effectiveCompletedRange = partRange.lowerBound ..< min(partRange.upperBound, fetchRange.lowerBound + actualLength)
+            } else {
+                effectiveCompletedRange = partRange
+            }
+            if !effectiveCompletedRange.isEmpty {
+                state.completedRanges.formUnion(RangeSet<Int64>(effectiveCompletedRange))
+            }
             
             var actualData = data
             if partRange != fetchRange {

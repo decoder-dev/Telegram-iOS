@@ -3257,13 +3257,21 @@ final class PostboxImpl {
         let transaction = Transaction(queue: self.queue, postbox: self)
         self.afterBegin(transaction: transaction)
         let result = f(transaction)
+        let userCallbackTime = CFAbsoluteTimeGetCurrent()
         let (updatedTransactionState, updatedMasterClientId) = self.beforeCommit(currentTransaction: transaction)
+        let beforeCommitTime = CFAbsoluteTimeGetCurrent()
         transaction.disposed = true
         self.valueBox.commit()
         
         let endTime = CFAbsoluteTimeGetCurrent()
         let transactionDuration = endTime - startTime
-        if transactionDuration > 0.01 {
+        if transactionDuration > 0.1 {
+            // R03: Phase-level breakdown for slow transactions (>100ms)
+            let userMs = (userCallbackTime - startTime) * 1000.0
+            let commitMs = (beforeCommitTime - userCallbackTime) * 1000.0
+            let sqliteMs = (endTime - beforeCommitTime) * 1000.0
+            postboxLog("Postbox SLOW transaction \(transactionDuration * 1000.0) ms [user=\(String(format: "%.1f", userMs))ms commit=\(String(format: "%.1f", commitMs))ms sqlite=\(String(format: "%.1f", sqliteMs))ms], from: \(file):\(line)")
+        } else if transactionDuration > 0.01 {
             postboxLog("Postbox transaction took \(transactionDuration * 1000.0) ms, from: \(file):\(line)")
         }
         
