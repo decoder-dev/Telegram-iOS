@@ -513,6 +513,8 @@ public func ensureArchivedPeerAccessible(
     })
 }
 
+private var activePasswordPrompts: Set<EnginePeer.Id> = []
+
 private func presentArchivePasswordAlert(
     context: AccountContext,
     title: String,
@@ -524,6 +526,22 @@ private func presentArchivePasswordAlert(
     capturePassword: ((String) -> Bool)? = nil
 ) {
     let peerId = context.account.peerId
+    
+    // R07: Single-flight prompt ownership
+    if activePasswordPrompts.contains(peerId) {
+        return
+    }
+    activePasswordPrompts.insert(peerId)
+    
+    let wrappedOnSuccess: () -> Void = {
+        activePasswordPrompts.remove(peerId)
+        onSuccess()
+    }
+    let wrappedOnCancel: () -> Void = {
+        activePasswordPrompts.remove(peerId)
+        onCancel()
+    }
+    
     let strings = context.sharedContext.currentPresentationData.with { $0 }.strings
 
     func cooldownMessage(_ remaining: Double) -> String {
@@ -539,9 +557,9 @@ private func presentArchivePasswordAlert(
             if remaining > 0 {
                 let cooldownAlert = UIAlertController(title: title, message: cooldownMessage(remaining), preferredStyle: .alert)
                 cooldownAlert.addAction(UIAlertAction(title: strings.Common_OK, style: .cancel, handler: { _ in
-                    onCancel()
+                    wrappedOnCancel()
                 }))
-                presentUIAlert(context: context, alert: cooldownAlert, onUnavailableHost: onCancel)
+                presentUIAlert(context: context, alert: cooldownAlert, onUnavailableHost: wrappedOnCancel)
                 return
             }
         }
@@ -555,7 +573,7 @@ private func presentArchivePasswordAlert(
             field.returnKeyType = .done
         }
         alert.addAction(UIAlertAction(title: strings.Common_Cancel, style: .cancel, handler: { _ in
-            onCancel()
+            wrappedOnCancel()
         }))
         alert.addAction(UIAlertAction(title: confirmTitle, style: .default, handler: { [weak alert] _ in
             guard let alert else { return }
@@ -563,7 +581,7 @@ private func presentArchivePasswordAlert(
             if verifyPassword {
                 if ArchivePasswordKeychain.matchesPassword(trimmed, peerId: peerId) {
                     ArchivePasswordKeychain.clearFailureState(peerId: peerId)
-                    onSuccess()
+                    wrappedOnSuccess()
                 } else {
                     ArchivePasswordKeychain.recordFailure(peerId: peerId)
                     let remaining = ArchivePasswordKeychain.remainingCooldown(peerId: peerId)
@@ -578,7 +596,7 @@ private func presentArchivePasswordAlert(
                 }
             } else if let capturePassword {
                 if trimmed.isEmpty {
-                    onCancel()
+                    wrappedOnCancel()
                 } else {
                     Queue.mainQueue().after(0.2) {
                         let confirm = UIAlertController(title: ArchiveLockLocalizedString.confirmTitle, message: ArchiveLockLocalizedString.confirmText, preferredStyle: .alert)
@@ -589,14 +607,14 @@ private func presentArchivePasswordAlert(
                             field.autocapitalizationType = .none
                         }
                         confirm.addAction(UIAlertAction(title: strings.Common_Cancel, style: .cancel, handler: { _ in
-                            onCancel()
+                            wrappedOnCancel()
                         }))
                         confirm.addAction(UIAlertAction(title: strings.Common_Done, style: .default, handler: { [weak confirm] _ in
                             guard let confirm else { return }
                             let confirmValue = (confirm.textFields?.first?.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
                             if confirmValue == trimmed {
                                 if capturePassword(trimmed) {
-                                    onSuccess()
+                                    wrappedOnSuccess()
                                 } else {
                                     Queue.mainQueue().after(0.3) {
                                         show(messageOverride: ArchiveLockLocalizedString.storageError)
@@ -608,14 +626,14 @@ private func presentArchivePasswordAlert(
                                 }
                             }
                         }))
-                        presentUIAlert(context: context, alert: confirm, onUnavailableHost: onCancel)
+                        presentUIAlert(context: context, alert: confirm, onUnavailableHost: wrappedOnCancel)
                     }
                 }
             } else {
-                onCancel()
+                wrappedOnCancel()
             }
         }))
-        presentUIAlert(context: context, alert: alert, onUnavailableHost: onCancel)
+        presentUIAlert(context: context, alert: alert, onUnavailableHost: wrappedOnCancel)
     }
     
     show(messageOverride: nil)
