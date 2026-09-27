@@ -3925,6 +3925,11 @@ private func recordPeerActivityTimestamp(peerId: PeerId, timestamp: Int32, into 
     }
 }
 
+enum ReplayFinalStateError: Error {
+    case verificationFailed
+    case timeout
+}
+
 func replayFinalState(
     accountManager: AccountManager<TelegramAccountManagerTypes>,
     postbox: Postbox,
@@ -3937,12 +3942,12 @@ func replayFinalState(
     removePossiblyDeliveredMessagesUniqueIds: [Int64: PeerId],
     ignoreDate: Bool,
     skipVerification: Bool
-) -> AccountReplayedFinalState? {
+) throws -> AccountReplayedFinalState {
     if !skipVerification {
         let verified = verifyTransaction(transaction, finalState: finalState.state)
         if !verified {
             Logger.shared.log("State", "failed to verify final state")
-            return nil
+            throw ReplayFinalStateError.verificationFailed
         }
     }
     
@@ -4052,7 +4057,14 @@ func replayFinalState(
     
     var liveTypingDraftUpdates: [PeerAndThreadId: [LiveTypingDraftUpdate]] = [:]
 
+    let watchdogStartTime = CFAbsoluteTimeGetCurrent()
+
     for operation in finalState.state.operations {
+        if CFAbsoluteTimeGetCurrent() - watchdogStartTime > 3.0 {
+            Logger.shared.log("State", "Watchdog triggered: replayFinalState exceeded 3.0s budget")
+            throw ReplayFinalStateError.timeout
+        }
+        
         switch operation {
         case let .AddMessages(messages, location):
             if case .UpperHistoryBlock = location {
