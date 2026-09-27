@@ -48,10 +48,16 @@ private enum MessageSavingHistoryEntry: ItemListNodeEntry {
             return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section)
         case let .record(_, record):
             let date = Date(timeIntervalSince1970: TimeInterval(record.date))
-            let formatter = DateFormatter()
-            formatter.locale = Locale(identifier: presentationData.strings.baseLanguageCode)
-            formatter.dateStyle = .medium
-            formatter.timeStyle = .short
+            let formatter: DateFormatter
+            if let current = Thread.current.threadDictionary["messageSavingHistoryFormatter"] as? DateFormatter, current.locale.identifier == presentationData.strings.baseLanguageCode {
+                formatter = current
+            } else {
+                formatter = DateFormatter()
+                formatter.locale = Locale(identifier: presentationData.strings.baseLanguageCode)
+                formatter.dateStyle = .medium
+                formatter.timeStyle = .short
+                Thread.current.threadDictionary["messageSavingHistoryFormatter"] = formatter
+            }
             // AyuGram Android: customizable deleted mark (default 🧹) next to the timestamp in View Deleted too.
             let mark = record.kind == .deleted ? "\(MessageSavingBridge.deletedMark) " : ""
             let header = "\(record.authorName) · \(mark)\(formatter.string(from: date))"

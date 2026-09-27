@@ -73,7 +73,7 @@ public enum ChatHistoryEntry: Identifiable, Comparable {
             }
             return UInt64(message.stableId) | ((type << 40))
         case let .MessageGroupEntry(groupInfo, _, _):
-            return UInt64(bitPattern: groupInfo) | ((UInt64(2) << 40))
+            return (UInt64(bitPattern: groupInfo) & 0x000000FFFFFFFFFF) | ((UInt64(2) << 40))
         case .UnreadEntry:
             return UInt64(4) << 40
         case .ReplyCountEntry:

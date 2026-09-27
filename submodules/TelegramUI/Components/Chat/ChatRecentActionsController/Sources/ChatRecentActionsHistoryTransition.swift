@@ -749,9 +749,15 @@ struct ChatRecentActionsEntry: Comparable, Identifiable {
                         text += "\n"
                         
                         if let newBanInfo = newBanInfo, newBanInfo.rights.untilDate != 0 && newBanInfo.rights.untilDate != Int32.max {
-                            let formatter = DateFormatter()
-                            formatter.locale = Locale(identifier: self.presentationData.strings.baseLanguageCode)
-                            formatter.dateFormat = "E, d MMM HH:mm"
+                            let formatter: DateFormatter
+                            if let current = Thread.current.threadDictionary["chatRecentActionsFormatter"] as? DateFormatter, current.locale.identifier == self.presentationData.strings.baseLanguageCode {
+                                formatter = current
+                            } else {
+                                formatter = DateFormatter()
+                                formatter.locale = Locale(identifier: self.presentationData.strings.baseLanguageCode)
+                                formatter.dateFormat = "E, d MMM HH:mm"
+                                Thread.current.threadDictionary["chatRecentActionsFormatter"] = formatter
+                            }
                             let dateString = formatter.string(from: Date(timeIntervalSince1970: Double(newBanInfo.rights.untilDate)))
                             
                             if prevBanInfo?.rights.flags != newBanInfo.rights.flags {
