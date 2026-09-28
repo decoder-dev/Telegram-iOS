@@ -300,14 +300,7 @@ public final class AccountContextImpl: AccountContext {
         }
         self.fetchManager = FetchManagerImpl(postbox: account.postbox, storeManager: self.downloadedMediaStoreManager)
         
-        self.memoryWarningDisposable = NotificationCenter.default.addObserver(forName: UIApplication.didReceiveMemoryWarningNotification, object: nil, queue: nil, using: { [weak self] _ in
-            guard let self = self else { return }
-            // R01/BUG-005: dynamically clear heavy memory buffer caches
-            self.account.postbox.mediaBox.clearMemoryCache()
-            // Also flush Postbox table-level in-memory caches (peer data, item cache, etc.)
-            self.account.postbox.clearCaches()
-        })
-        
+        // memoryWarningDisposable assignment moved to the end of init
         if sharedContext.applicationBindings.isMainApp && !temp {
             self.prefetchManager = PrefetchManagerImpl(sharedContext: sharedContext, account: account, engine: self.engine, fetchManager: self.fetchManager)
             self.wallpaperUploadManager = WallpaperUploadManagerImpl(sharedContext: sharedContext, account: account, presentationData: sharedContext.presentationData)
@@ -551,6 +544,14 @@ public final class AccountContextImpl: AccountContext {
                 }
             })
         }
+        
+        self.memoryWarningDisposable = NotificationCenter.default.addObserver(forName: UIApplication.didReceiveMemoryWarningNotification, object: nil, queue: nil, using: { [weak self] _ in
+            guard let self = self else { return }
+            // R01/BUG-005: dynamically clear heavy memory buffer caches
+            self.account.postbox.mediaBox.clearMemoryCache()
+            // Also flush Postbox table-level in-memory caches (peer data, item cache, etc.)
+            self.account.postbox.clearCaches()
+        })
     }
     
     deinit {
@@ -566,6 +567,9 @@ public final class AccountContextImpl: AccountContext {
         self.isFrozenDisposable?.dispose()
         self.blockedPeersDisposable?.dispose()
         self.hideBlockedMessagesDisposable?.dispose()
+        if let memoryWarningDisposable = self.memoryWarningDisposable {
+            NotificationCenter.default.removeObserver(memoryWarningDisposable)
+        }
     }
     
     public func storeSecureIdPassword(password: String) {
