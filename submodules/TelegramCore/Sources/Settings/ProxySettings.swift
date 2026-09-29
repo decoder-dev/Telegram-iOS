@@ -123,8 +123,18 @@ func applySharedProxySettingsToNetwork(settings: ProxySettings, network: Network
     if (isActiveWebProxy || isActiveVlessProxy), resolvedProxySettings == nil {
         network.context.updateApiEnvironment { environment in
             network.pauseForWebProxyBootstrap()
+            let current = environment?.socksProxySettings
+            // If a previous loopback endpoint is still alive (e.g. the same profile
+            // restarted after a heartbeat failure), keep it so MTProto does not drop
+            // in-flight requests while the runtime warm-starts. Only block on the
+            // sentinel when there is no usable endpoint at all — mirrors WebProxy
+            // behaviour at lines 142-148 above.
             let blocked = ProxyServerSettings.managedBootstrapProxySettings
-            if environment?.socksProxySettings?.isEqual(blocked) == true {
+            if let current, !current.isEqual(blocked) {
+                // Non-sentinel: a real loopback endpoint from a prior start. Retain it.
+                return nil
+            }
+            if current?.isEqual(blocked) == true {
                 return nil
             }
             network.dropConnectionStatus()
@@ -203,10 +213,20 @@ public func registerWebProxySidecarReapply(network: Network, currentSettings: @e
 }
 
 public func registerVlessManagerReapply(network: Network, currentSettings: @escaping () -> ProxySettings?) -> Disposable {
-    return (VlessManager.shared.stateEvents |> deliverOnMainQueue).start(next: { [weak network] _ in
+    return (VlessManager.shared.stateEvents |> deliverOnMainQueue).start(next: { [weak network] state in
         guard let network = network, let settings = currentSettings() else {
             return
         }
-        applySharedProxySettingsToNetwork(settings: settings, network: network)
+        // When the runtime transitions to .running its loopback port is fresh and
+        // MTProto's route must be rebuilt immediately — pass forceTransportReconnect
+        // so the transport is torn down and re-established through the new endpoint.
+        // For all other state transitions (preparing, failed, idle) a plain reapply
+        // without a forced reconnect is sufficient: the bootstrap-pause logic above
+        // will block new dials until the runtime is ready again.
+        if case .running = state {
+            applySharedProxySettingsToNetwork(settings: settings, network: network, forceTransportReconnect: true)
+        } else {
+            applySharedProxySettingsToNetwork(settings: settings, network: network)
+        }
     })
 }

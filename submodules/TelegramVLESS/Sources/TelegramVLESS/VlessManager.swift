@@ -106,6 +106,7 @@ public final class VlessManager {
         retryAttempt = 0
         stateValue = url == nil ? .idle : .preparing
         lock.unlock()
+        Logger.shared.log("VlessManager", url == nil ? "stopping runtime" : "configuring profile (gen \(token))")
         notifyStateChange()
         runtimeQueue.async { [weak self] in
             guard let self = self, self.isCurrent(token) else { return }
@@ -181,6 +182,7 @@ public final class VlessManager {
         }
         stateValue = .running(sink: VlessProxySink(host: "127.0.0.1", port: socks.port, user: socks.user, password: socks.password))
         lock.unlock()
+        Logger.shared.log("VlessManager", "runtime running on 127.0.0.1:\(socks.port) (gen \(token))")
         notifyStateChange()
         startHeartbeat(url: url, token: token)
     }
@@ -189,9 +191,11 @@ public final class VlessManager {
         lock.lock()
         guard generation == token else { lock.unlock(); return }
         stateValue = .failed(error)
-        let delay = min(30.0, pow(2.0, Double(min(retryAttempt, 5))))
-        retryAttempt = min(retryAttempt + 1, 5)
+        // Exponential back-off: 1 → 2 → 4 → 8 → 16 → 32 → 60 s (capped).
+        let delay = min(60.0, pow(2.0, Double(min(retryAttempt, 6))))
+        retryAttempt = min(retryAttempt + 1, 6)
         lock.unlock()
+        Logger.shared.log("VlessManager", "runtime failed: \(error); retry \(retry ? "in \(Int(delay))s" : "suppressed")")
         notifyStateChange()
         guard retry else { return }
         runtimeQueue.asyncAfter(deadline: .now() + delay) { [weak self] in
@@ -251,12 +255,15 @@ public final class VlessManager {
     private func startHeartbeat(url: String, token: UInt64) {
         heartbeatTimer?.cancel()
         let timer = DispatchSource.makeTimerSource(queue: runtimeQueue)
-        timer.schedule(deadline: .now() + 2.0, repeating: 2.0)
+        // 5-second poll is frequent enough to catch a crashed runtime within one
+        // MTProto keepalive window while creating far less queue contention than 2 s.
+        timer.schedule(deadline: .now() + 5.0, repeating: 5.0)
         timer.setEventHandler { [weak self] in
             guard let self = self, self.isCurrent(token) else { return }
             if !self.runtime.isRunning() {
                 self.heartbeatTimer?.cancel()
                 self.heartbeatTimer = nil
+                Logger.shared.log("VlessManager", "heartbeat: runtime stopped unexpectedly, failing")
                 self.fail(.notRunning, url: url, token: token)
             }
         }
