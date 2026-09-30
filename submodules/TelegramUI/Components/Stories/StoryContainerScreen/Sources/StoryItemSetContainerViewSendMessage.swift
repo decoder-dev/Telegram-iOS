@@ -2691,7 +2691,8 @@ final class StoryItemSetContainerSendMessage: @unchecked(Sendable) {
                         let _ = (component.context.sharedContext.legacyCameraCapturedMediaSignals(
                             fromCameraScreenResult: result,
                             initialCaption: inputText,
-                            sendPaidMessageStars: 0
+                            sendPaidMessageStars: 0,
+                            timer: nil
                         )
                         |> deliverOnMainQueue).start(next: { [weak self, weak view] signals in
                             guard let self, let view else {
@@ -2754,7 +2755,8 @@ final class StoryItemSetContainerSendMessage: @unchecked(Sendable) {
                     let _ = (component.context.sharedContext.legacyCameraCapturedMediaSignals(
                         fromCameraScreenResult: result,
                         initialCaption: inputText,
-                        sendPaidMessageStars: 0
+                        sendPaidMessageStars: 0,
+                        timer: nil
                     )
                     |> deliverOnMainQueue).start(next: { [weak self, weak view] signals in
                         guard let self, let view else {
