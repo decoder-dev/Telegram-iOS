@@ -1128,6 +1128,14 @@ public func universalServiceMessageString(presentationData: (PresentationTheme, 
                     resultTitleString = isGroup ? strings.Notification_GiveawayStartedGroup(compactAuthorName) : strings.Notification_GiveawayStarted(compactAuthorName)
                 }
                 attributedString = addAttributesToStringWithRanges(resultTitleString._tuple, body: bodyAttributes, argumentAttributes: [0: boldAttributes])
+            case .joinedViaCommunity:
+                let text: (String, [(Int, NSRange)])
+                if let channel = message.peers[message.id.peerId] as? TelegramChannel, case .broadcast = channel.info {
+                    text = strings.Notification_JoinedChannel(authorName)._tuple
+                } else {
+                    text = strings.Notification_JoinedChat(authorName)._tuple
+                }
+                attributedString = addAttributesToStringWithRanges(text, body: bodyAttributes, argumentAttributes: peerMentionsAttributes(primaryTextColor: primaryTextColor, peerIds: [(0, message.author?.id)]))
             case .joinedChannel:
                 attributedString = NSAttributedString(string: strings.Notification_ChannelJoinedByYou, font: titleBoldFont, textColor: primaryTextColor)
             case let .giveawayResults(winners, unclaimed, stars):

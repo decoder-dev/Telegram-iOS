@@ -308,6 +308,7 @@ public enum TelegramMediaActionType: PostboxCoding, Equatable {
     case pollOptionAppended(TelegramMediaPollOption)
     case pollOptionDeleted(TelegramMediaPollOption)
     case communityChanged(communityId: PeerId?)
+    case joinedViaCommunity(communityId: PeerId)
     
     public init(decoder: PostboxDecoder) {
         let rawValue: Int32 = decoder.decodeInt32ForKey("_rawValue", orElse: 0)
@@ -491,6 +492,8 @@ public enum TelegramMediaActionType: PostboxCoding, Equatable {
             self = .pollOptionAppended(decoder.decodeObjectForKey("option", decoder: { TelegramMediaPollOption(decoder: $0) }) as! TelegramMediaPollOption)
         case 64:
             self = .pollOptionDeleted(decoder.decodeObjectForKey("option", decoder: { TelegramMediaPollOption(decoder: $0) }) as! TelegramMediaPollOption)
+        case 66:
+            self = .joinedViaCommunity(communityId: PeerId(decoder.decodeInt64ForKey("communityId", orElse: 0)))
         case 65:
             self = .communityChanged(communityId: decoder.decodeOptionalInt64ForKey("communityId").flatMap(PeerId.init))
         default:
@@ -1005,6 +1008,9 @@ public enum TelegramMediaActionType: PostboxCoding, Equatable {
         case let .pollOptionDeleted(option):
             encoder.encodeInt32(64, forKey: "_rawValue")
             encoder.encodeObject(option, forKey: "option")
+        case let .joinedViaCommunity(communityId):
+            encoder.encodeInt32(66, forKey: "_rawValue")
+            encoder.encodeInt64(communityId.toInt64(), forKey: "communityId")
         case let .communityChanged(communityId):
             encoder.encodeInt32(65, forKey: "_rawValue")
             if let communityId {
@@ -1072,6 +1078,8 @@ public enum TelegramMediaActionType: PostboxCoding, Equatable {
             return [groupCreatorChange.targetPeerId]
         case let .managedBotCreated(botId):
             return [botId]
+        case let .joinedViaCommunity(communityId):
+            return [communityId]
         case let .communityChanged(communityId):
             return communityId.flatMap { [$0] } ?? []
         default:
