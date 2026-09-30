@@ -1306,10 +1306,12 @@ public func universalServiceMessageString(presentationData: (PresentationTheme, 
                         attributedString = addAttributesToStringWithRanges(strings.Notification_StarsGift_Sent(authorName, starsPrice)._tuple, body: bodyAttributes, argumentAttributes: attributes)
                     }
                 }
-            case let .starGiftUnique(gift, isUpgrade, _, _, _, _, _, isPrepaidUpgrade, peerId, senderId, _, resaleStars, _, _, _, assigned, fromOffer, _, isCrafted):
+            case let .starGiftUnique(gift, isUpgrade, _, _, _, _, _, isPrepaidUpgrade, peerId, senderId, _, resaleStars, _, _, _, assigned, fromOffer, _, isCrafted, uniqueMessage):
                 if case let .unique(gift) = gift {
-                    if !forAdditionalServiceMessage && !"".isEmpty {
-                        attributedString = NSAttributedString(string: "\(gift.title) #\(formatCollectibleNumber(gift.number, dateTimeFormat: dateTimeFormat))", font: titleFont, textColor: primaryTextColor)
+                    if uniqueMessage.nameHidden {
+                        attributedString = NSAttributedString(string: strings.Notification_StarsGift_SentSomeone, font: titleFont, textColor: primaryTextColor)
+                    } else if !forAdditionalServiceMessage, let text = uniqueMessage.text, !text.isEmpty {
+                        attributedString = NSAttributedString(string: text, font: titleFont, textColor: primaryTextColor)
                     } else if let messagePeer = message.peers[message.id.peerId] {
                         var peerName = EnginePeer(messagePeer).compactDisplayTitle
                         var peerIds: [(Int, EnginePeer.Id?)] = [(0, messagePeer.id)]

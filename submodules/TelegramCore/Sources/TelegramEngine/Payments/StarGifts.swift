@@ -1549,7 +1549,7 @@ func _internal_dropStarGiftOriginalDetails(account: Account, reference: StarGift
                             storeForwardInfo = StoreMessageForwardInfo(authorId: forwardInfo.author?.id, sourceId: forwardInfo.source?.id, sourceMessageId: forwardInfo.sourceMessageId, date: forwardInfo.date, authorSignature: forwardInfo.authorSignature, psaType: forwardInfo.psaType, flags: forwardInfo.flags)
                         }
                         var media = currentMessage.media
-                        if let action = media.first(where: { $0 is TelegramMediaAction }) as? TelegramMediaAction, case let .starGiftUnique(gift, isUpgrade, isTransferred, savedToProfile, canExportDate, transferStars, isRefunded, isPrepaidUpgrade, peerId, senderId, savedId, resaleAmount, canTransferDate, canResaleDate, _, assigned, fromOffer, canCraftAt, isCrafted) = action.action, case let .unique(uniqueGift) = gift {
+                        if let action = media.first(where: { $0 is TelegramMediaAction }) as? TelegramMediaAction, case let .starGiftUnique(gift, isUpgrade, isTransferred, savedToProfile, canExportDate, transferStars, isRefunded, isPrepaidUpgrade, peerId, senderId, savedId, resaleAmount, canTransferDate, canResaleDate, _, assigned, fromOffer, canCraftAt, isCrafted, uniqueMessage) = action.action, case let .unique(uniqueGift) = gift {
                             let updatedAttributes = uniqueGift.attributes.filter { $0.attributeType != .originalInfo }
                             media = [
                                 TelegramMediaAction(
@@ -1572,7 +1572,8 @@ func _internal_dropStarGiftOriginalDetails(account: Account, reference: StarGift
                                         assigned: assigned,
                                         fromOffer: fromOffer,
                                         canCraftAt: canCraftAt,
-                                        isCrafted: isCrafted
+                                        isCrafted: isCrafted,
+                                        message: uniqueMessage
                                     )
                                 )
                             ]
@@ -1679,7 +1680,7 @@ func _internal_upgradeStarGift(account: Account, formId: Int64?, reference: Star
                         let message = updateNewMessageData.message
                         if let message = StoreMessage(apiMessage: message, accountPeerId: account.peerId, peerIsForum: false) {
                             for media in message.media {
-                                if let action = media as? TelegramMediaAction, case let .starGiftUnique(gift, _, _, savedToProfile, canExportDate, transferStars, _, _, peerId, _, savedId, _, canTransferDate, canResaleDate, dropOriginalDetailsStars, _, _, canCraftAt, _) = action.action, case let .Id(messageId) = message.id {
+                                if let action = media as? TelegramMediaAction, case let .starGiftUnique(gift, _, _, savedToProfile, canExportDate, transferStars, _, _, peerId, _, savedId, _, canTransferDate, canResaleDate, dropOriginalDetailsStars, _, _, canCraftAt, _, _) = action.action, case let .Id(messageId) = message.id {
                                     let reference: StarGiftReference
                                     if let peerId, let savedId {
                                         reference = .peer(peerId: peerId, id: savedId)
@@ -3448,7 +3449,7 @@ func _internal_craftStarGift(account: Account, references: [StarGiftReference]) 
                     let message = updateNewMessageData.message
                     if let message = StoreMessage(apiMessage: message, accountPeerId: account.peerId, peerIsForum: false) {
                         for media in message.media {
-                            if let action = media as? TelegramMediaAction, case let .starGiftUnique(gift, _, _, savedToProfile, canExportDate, transferStars, _, _, peerId, _, savedId, _, canTransferDate, canResaleDate, dropOriginalDetailsStars, _, _, canCraftAt, _) = action.action, case let .Id(messageId) = message.id {
+                            if let action = media as? TelegramMediaAction, case let .starGiftUnique(gift, _, _, savedToProfile, canExportDate, transferStars, _, _, peerId, _, savedId, _, canTransferDate, canResaleDate, dropOriginalDetailsStars, _, _, canCraftAt, _, _) = action.action, case let .Id(messageId) = message.id {
                                 let reference: StarGiftReference
                                 if let peerId, let savedId {
                                     reference = .peer(peerId: peerId, id: savedId)

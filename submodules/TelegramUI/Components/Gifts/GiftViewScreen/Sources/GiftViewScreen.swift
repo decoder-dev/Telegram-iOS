@@ -748,7 +748,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                         let updatedAttributes = uniqueGift.attributes.filter { $0.attributeType != .originalInfo }
                         self.subject = .profileGift(peerId, gift.withGift(.unique(uniqueGift.withAttributes(updatedAttributes))))
                     case let .message(message):
-                        if let action = message.media.first(where: { $0 is TelegramMediaAction }) as? TelegramMediaAction, case let .starGiftUnique(gift, isUpgrade, isTransferred, savedToProfile, canExportDate, transferStars, isRefunded, isPrepaidUpgrade, peerId, senderId, savedId, resaleAmount, canTransferDate, canResaleDate, _, assigned, fromOffer, canCraftAt, isCrafted) = action.action, case let .unique(uniqueGift) = gift {
+                        if let action = message.media.first(where: { $0 is TelegramMediaAction }) as? TelegramMediaAction, case let .starGiftUnique(gift, isUpgrade, isTransferred, savedToProfile, canExportDate, transferStars, isRefunded, isPrepaidUpgrade, peerId, senderId, savedId, resaleAmount, canTransferDate, canResaleDate, _, assigned, fromOffer, canCraftAt, isCrafted, uniqueMessage) = action.action, case let .unique(uniqueGift) = gift {
                             let updatedAttributes = uniqueGift.attributes.filter { $0.attributeType != .originalInfo }
                             let updatedMedia: [EngineMedia] = [
                                 .action(TelegramMediaAction(
@@ -771,7 +771,8 @@ private final class GiftViewSheetContent: CombinedComponent {
                                         assigned: assigned,
                                         fromOffer: fromOffer,
                                         canCraftAt: canCraftAt,
-                                        isCrafted: isCrafted
+                                        isCrafted: isCrafted,
+                                        message: uniqueMessage
                                     )
                                 ))
                             ]
@@ -5631,7 +5632,7 @@ public class GiftViewScreen: ViewControllerComponentContainer {
                         
                         let fromPeerId = senderId ?? message.author?.id
                         return (message.id.peerId, fromPeerId, message.author?.debugDisplayTitle, message.author?.compactDisplayTitle, message.id, reference, message.flags.contains(.Incoming), gift, message.timestamp, convertStars, text, entities, nameHidden, savedToProfile, nil, converted, upgraded, isRefunded, canUpgrade, upgradeStars, nil, nil, nil, upgradeMessageId, nil, nil, prepaidUpgradeHash, upgradeSeparate, nil, toPeerId, number, nil)
-                    case let .starGiftUnique(gift, isUpgrade, isTransferred, savedToProfile, canExportDate, transferStars, _, _, peerId, senderId, savedId, _, canTransferDate, canResaleDate, dropOriginalDetailsStars, _, _, canCraftDate, _):
+                    case let .starGiftUnique(gift, isUpgrade, isTransferred, savedToProfile, canExportDate, transferStars, _, _, peerId, senderId, savedId, _, canTransferDate, canResaleDate, dropOriginalDetailsStars, _, _, canCraftDate, _, uniqueMessage):
                         var reference: StarGiftReference
                         if let peerId, let savedId {
                             reference = .peer(peerId: peerId, id: savedId)
@@ -5657,7 +5658,7 @@ public class GiftViewScreen: ViewControllerComponentContainer {
                             resellAmounts = uniqueGift.resellAmounts
                             number = uniqueGift.number
                         }
-                        return (message.id.peerId, senderId ?? message.author?.id, message.author?.debugDisplayTitle, message.author?.compactDisplayTitle, message.id, reference, incoming, gift, message.timestamp, nil, nil, nil, false, savedToProfile, nil, false, false, false, false, nil, transferStars, resellAmounts, canExportDate, nil, canTransferDate, canResaleDate, nil, false, dropOriginalDetailsStars, nil, number, canCraftDate)
+                        return (message.id.peerId, uniqueMessage.nameHidden ? nil : (senderId ?? message.author?.id), uniqueMessage.nameHidden ? nil : message.author?.debugDisplayTitle, uniqueMessage.nameHidden ? nil : message.author?.compactDisplayTitle, message.id, reference, incoming, gift, message.timestamp, nil, uniqueMessage.text, uniqueMessage.entities, uniqueMessage.nameHidden, savedToProfile, nil, false, false, false, false, nil, transferStars, resellAmounts, canExportDate, nil, canTransferDate, canResaleDate, nil, false, dropOriginalDetailsStars, nil, number, canCraftDate)
                     case let .starGiftPurchaseOffer(gift, _, _, _, _), let .starGiftPurchaseOfferDeclined(gift, _, _):
                         if case let .unique(gift) = gift {
                             return (nil, nil, nil, nil, nil, nil, false, .unique(gift), 0, nil, nil, nil, false, false, nil, false, false, false, false, nil, nil, gift.resellAmounts, nil, nil, nil, nil, nil, false, nil, nil, nil, nil)

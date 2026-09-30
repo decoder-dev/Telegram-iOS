@@ -32,7 +32,8 @@ union RichText_Value {
     RichText_Mention,
     RichText_MentionName,
     RichText_Spoiler,
-    RichText_Date
+    RichText_Date,
+    RichText_Button
 }
 
 table RichText {
@@ -161,4 +162,8 @@ table RichText_Date {
     text:RichText (id: 0, required);
     date:int (id: 1);
     format:int = -1 (id: 2);
+}
+
+table RichText_Button {
+    payload:[ubyte] (id: 0, required);
 }

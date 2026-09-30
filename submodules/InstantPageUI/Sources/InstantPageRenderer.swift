@@ -57,6 +57,7 @@ public final class InstantPageV2RenderContext {
     public let fileReference: (TelegramMediaFile) -> FileMediaReference
     public let present: (ViewController, Any?) -> Void
     public let push: (ViewController) -> Void
+    public let canShareDocuments: Bool
     public let openUrl: (InstantPageUrlItem) -> Void
     public let baseNavigationController: () -> NavigationController?
     /// A reference to the message hosting this page, when rendered inside a chat bubble. Used to
@@ -87,7 +88,8 @@ public final class InstantPageV2RenderContext {
         shouldAutoDownloadImage: @escaping (TelegramMediaImage) -> Bool = { _ in false },
         shouldAutoDownloadFile: @escaping (TelegramMediaFile) -> Bool = { _ in false },
         shouldAutoplayVideo: @escaping (TelegramMediaFile) -> Bool = { _ in false },
-        message: MessageReference?
+        message: MessageReference?,
+        canShareDocuments: Bool = false
     ) {
         self.context = context
         self.webpage = webpage
@@ -98,6 +100,7 @@ public final class InstantPageV2RenderContext {
         self.push = push
         self.openUrl = openUrl
         self.baseNavigationController = baseNavigationController
+        self.canShareDocuments = canShareDocuments
         self.message = message
         self.shouldAutoDownloadImage = shouldAutoDownloadImage
         self.shouldAutoDownloadFile = shouldAutoDownloadFile

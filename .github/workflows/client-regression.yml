@@ -19,6 +19,8 @@ on:
       - 'Tests/ArchiveLock/**'
       - 'Tests/MessageSaving/**'
       - 'Tests/Camera/**'
+      - 'Tests/StreamingDrafts/**'
+      - 'submodules/Postbox/Sources/Postbox.swift'
       - 'Tests/ApiLayer/**'
       - 'submodules/TelegramApi/**'
       - 'submodules/TelegramCore/Sources/ApiUtils/**'
@@ -50,6 +52,7 @@ jobs:
       - run: python3 Tests/MenuPresentation/run.py
       - run: python3 Tests/MessageSaving/run.py
       - run: python3 Tests/Camera/run.py
+      - run: python3 Tests/StreamingDrafts/run.py
       - run: python3 Tests/ApiLayer/run.py
       - run: python3 -m unittest discover -s Tests/UISizing
       - run: python3 Tests/ArchiveLock/password_flow.py

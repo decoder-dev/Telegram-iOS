@@ -68,6 +68,7 @@ jobs:
           python3 Tests/ArchiveLock/run.py
           python3 Tests/MessageSaving/run.py
           python3 Tests/Camera/run.py
+          python3 Tests/StreamingDrafts/run.py
           python3 Tests/ApiLayer/run.py
           python3 -m unittest discover -s Tests/UISizing
           python3 Tests/ArchiveLock/password_flow.py

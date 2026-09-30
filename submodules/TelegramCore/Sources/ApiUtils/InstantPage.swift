@@ -338,8 +338,8 @@ extension InstantPageBlock {
                         return index == 0 ? [text] : [.plain("  "), text]
                     }
                 }))
-            case .pageBlockDocument:
-                self = .unsupported
+            case let .pageBlockDocument(value):
+                self = .document(id: MediaId(namespace: Namespaces.Media.CloudFile, id: value.documentId), caption: InstantPageCaption(apiCaption: value.caption))
             case .inputPageBlockMap:
                 self = .unsupported
         }
@@ -421,6 +421,9 @@ extension InstantPageBlock {
             }
             let videoId = mediaIdRemap[id] ?? id.id
             return .pageBlockVideo(Api.PageBlock.Cons_pageBlockVideo(flags: flags, videoId: videoId, caption: .pageCaption(Api.PageCaption.Cons_pageCaption(text: caption.text.apiRichText(), credit: caption.credit.apiRichText()))))
+        case let .document(id, caption):
+            let documentId = mediaIdRemap[id] ?? id.id
+            return .pageBlockDocument(Api.PageBlock.Cons_pageBlockDocument(documentId: documentId, caption: .pageCaption(Api.PageCaption.Cons_pageCaption(text: caption.text.apiRichText(), credit: caption.credit.apiRichText()))))
         case let .audio(id, caption):
             let audioId = mediaIdRemap[id] ?? id.id
             return .pageBlockAudio(Api.PageBlock.Cons_pageBlockAudio(audioId: audioId, caption: .pageCaption(Api.PageCaption.Cons_pageCaption(text: caption.text.apiRichText(), credit: caption.credit.apiRichText()))))

@@ -1607,11 +1607,11 @@ private func finalStateWithUpdatesAndServerTime(accountPeerId: PeerId, postbox: 
                         switch typingDraftData.text {
                         case let .plain(plain):
                             if case let .textWithEntities(textWithEntitiesData) = plain {
-                                updatedState.addPeerLiveTypingDraftUpdate(peerAndThreadId: PeerAndThreadId(peerId: PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(userId)), threadId: threadId), id: typingDraftData.randomId, timestamp: date, peerId: PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(userId)), content: .plain(text: textWithEntitiesData.text, entities: messageTextEntitiesFromApiEntities(textWithEntitiesData.entities)))
+                                updatedState.addPeerLiveTypingDraftUpdate(peerAndThreadId: PeerAndThreadId(peerId: PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(userId)), threadId: threadId), id: typingDraftData.randomId, timestamp: date, peerId: PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(userId)), content: .plain(text: textWithEntitiesData.text, entities: messageTextEntitiesFromApiEntities(textWithEntitiesData.entities), flags: typingDraftData.flags))
                             }
                         case let .rich(richMessage):
                             let parsedRichMessage = RichTextMessageAttribute(apiRichMessage: richMessage)
-                            updatedState.addPeerLiveTypingDraftUpdate(peerAndThreadId: PeerAndThreadId(peerId: PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(userId)), threadId: threadId), id: typingDraftData.randomId, timestamp: date, peerId: PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(userId)), content: .rich(parsedRichMessage))
+                            updatedState.addPeerLiveTypingDraftUpdate(peerAndThreadId: PeerAndThreadId(peerId: PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(userId)), threadId: threadId), id: typingDraftData.randomId, timestamp: date, peerId: PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(userId)), content: .rich(parsedRichMessage, flags: typingDraftData.flags))
                         }
                     } else {
                         let activity = PeerInputActivity(apiType: type, peerId: PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(userId)), timestamp: date)
@@ -1645,11 +1645,11 @@ private func finalStateWithUpdatesAndServerTime(accountPeerId: PeerId, postbox: 
                         switch text {
                         case let .textWithEntities(textWithEntitiesData):
                             let (text, entities) = (textWithEntitiesData.text, textWithEntitiesData.entities)
-                            updatedState.addPeerLiveTypingDraftUpdate(peerAndThreadId: PeerAndThreadId(peerId: channelPeerId, threadId: threadId), id: randomId, timestamp: date, peerId: userId.peerId, content: .plain(text: text, entities: messageTextEntitiesFromApiEntities(entities)))
+                            updatedState.addPeerLiveTypingDraftUpdate(peerAndThreadId: PeerAndThreadId(peerId: channelPeerId, threadId: threadId), id: randomId, timestamp: date, peerId: userId.peerId, content: .plain(text: text, entities: messageTextEntitiesFromApiEntities(entities), flags: sendMessageTextDraftActionData.flags))
                         }
                     } else if case let .sendMessageRichMessageDraftAction(sendMessageRichMessageDraftActionData) = type {
                         let parsedRichMessage = RichTextMessageAttribute(apiRichMessage: sendMessageRichMessageDraftActionData.richMessage)
-                        updatedState.addPeerLiveTypingDraftUpdate(peerAndThreadId: PeerAndThreadId(peerId: channelPeerId, threadId: threadId), id: sendMessageRichMessageDraftActionData.randomId, timestamp: date, peerId: userId.peerId, content: .rich(parsedRichMessage))
+                        updatedState.addPeerLiveTypingDraftUpdate(peerAndThreadId: PeerAndThreadId(peerId: channelPeerId, threadId: threadId), id: sendMessageRichMessageDraftActionData.randomId, timestamp: date, peerId: userId.peerId, content: .rich(parsedRichMessage, flags: sendMessageRichMessageDraftActionData.flags))
                     } else {
                         let activity = PeerInputActivity(apiType: type, peerId: nil, timestamp: date)
                         var category: PeerActivitySpace.Category = .global
@@ -6233,7 +6233,7 @@ func replayFinalState(
             }
             switch update {
             case let .update(update):
-                if let current, current.id > update.id {
+                if let current, current.id != update.id, current.timestamp > update.timestamp {
                     return current
                 }
                 var timestamp = update.timestamp
@@ -6249,16 +6249,16 @@ func replayFinalState(
                 let draftText: String
                 let draftAttributes: [MessageAttribute]
                 switch update.content {
-                case let .plain(text, entities):
+                case let .plain(text, entities, flags):
                     draftText = text
                     draftAttributes = [
-                        TypingDraftMessageAttribute(),
+                        TypingDraftMessageAttribute(id: update.id, canStop: (flags & 1) != 0, keepOnStop: (flags & 2) != 0),
                         TextEntitiesMessageAttribute(entities: entities)
                     ]
-                case let .rich(richData):
+                case let .rich(richData, flags):
                     draftText = ""
                     draftAttributes = [
-                        TypingDraftMessageAttribute(),
+                        TypingDraftMessageAttribute(id: update.id, canStop: (flags & 1) != 0, keepOnStop: (flags & 2) != 0),
                         richData
                     ]
                 }

@@ -117,7 +117,11 @@ func instantPageBlocks(from content: ChatInputContent, collectingMediaInto media
                 case .audio:
                     // music & voice both serialize as `.audio`; the file's `.Audio(isVoice:)` attribute (carried on
                     // the stored Media) drives the music-vs-voice render. No size/alignment is representable.
-                    result.append(.audio(id: mediaId, caption: caption))
+                    if let file = item.media as? TelegramMediaFile, !file.isMusic && !file.isVoice {
+                        result.append(.document(id: mediaId, caption: caption))
+                    } else {
+                        result.append(.audio(id: mediaId, caption: caption))
+                    }
                 default:
                     result.append(.video(id: mediaId, caption: caption, autoplay: false, loop: false, spoiler: item.isSpoiler))
                 }
@@ -357,7 +361,7 @@ func chatInputBlocks(fromInstantPageBlocks blocks: [InstantPageBlock], media: [M
                                                     displayMode: .slideshow,
                                                     caption: chatInputRuns(fromRichText: caption.text))))
             }
-        case let .audio(id, caption):
+        case let .document(id, caption), let .audio(id, caption):
             // Resolve the concrete `TelegramMediaFile` from the page `media` dict (the forward always stores it).
             // naturalSize/displayWidth/alignment restore the editor's media defaults, matching .image/.video.
             // Music vs voice is intrinsic to the file (`.Audio(isVoice:)`), so a single `.audio` kind suffices.

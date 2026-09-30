@@ -54,6 +54,7 @@ final class InstantPageV2AudioContentNode: ASDisplayNode {
     var play: () -> Void = {}
     var togglePlayPause: () -> Void = {}
     var fetch: () -> Void = {}
+    var cancelFetch: () -> Void = {}
 
     private var resourceStatusDisposable: Disposable?
     // EngineMediaResourceStatus is the TelegramCore typealias for Postbox's MediaResourceStatus;
@@ -140,7 +141,7 @@ final class InstantPageV2AudioContentNode: ASDisplayNode {
         self.addSubnode(self.titleNode)
         self.addSubnode(self.descriptionNode)
 
-        self.statusNode.transitionToState(.play, animated: false)
+        self.statusNode.transitionToState(file.isMusic || file.isVoice ? .play : .customIcon(UIImage(systemName: "doc.fill") ?? UIImage()), animated: false)
         self.streamingStatusNode.transitionToState(.none, animated: false)
 
         if let messageId = self.message?.id {
@@ -169,6 +170,8 @@ final class InstantPageV2AudioContentNode: ASDisplayNode {
         switch self.fetchStatus {
         case .Remote, .Paused:
             self.fetch()
+        case .Fetching where !self.file.isMusic && !self.file.isVoice:
+            self.cancelFetch()
         case .none, .Local, .Fetching:
             if self.isPlaying {
                 self.togglePlayPause()
@@ -241,7 +244,7 @@ final class InstantPageV2AudioContentNode: ASDisplayNode {
     private static func titleString(file: TelegramMediaFile, incoming: Bool, presentationData: PresentationData, overrideColor: UIColor? = nil) -> NSAttributedString {
         let messageTheme = incoming ? presentationData.theme.chat.message.incoming : presentationData.theme.chat.message.outgoing
         let titleFont = Font.regular(floor(presentationData.chatFontSize.baseDisplaySize * 17.0 / 17.0))
-        var title = file.fileName ?? "Unknown Track"
+        var title = file.fileName ?? presentationData.strings.Message_File
         for attribute in file.attributes {
             if case let .Audio(false, _, t, _, _) = attribute { title = t ?? title; break }
         }
@@ -263,6 +266,9 @@ final class InstantPageV2AudioContentNode: ASDisplayNode {
             }
         }
         var text = ""
+        if !file.isMusic && !file.isVoice {
+            text = file.size.map { ByteCountFormatter.string(fromByteCount: $0, countStyle: .file) } ?? file.mimeType
+        }
         if durationSeconds > 0 {
             text = String(format: "%d:%02d", Int32(durationSeconds / 60), Int32(durationSeconds % 60))
         }

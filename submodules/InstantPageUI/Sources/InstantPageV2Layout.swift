@@ -871,7 +871,7 @@ private func layoutBlock(
             return []
         }
 
-    case let .audio(audioId, caption):
+    case let .document(audioId, caption), let .audio(audioId, caption):
         guard case let .file(file) = context.media[audioId] else {
             return []
         }

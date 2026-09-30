@@ -1,3 +1,4 @@
+import ChatMessageItemView
 import Foundation
 import UIKit
 import AsyncDisplayKit
@@ -252,7 +253,8 @@ public class ChatMessageRichDataBubbleContentNode: ChatMessageBubbleContentNode 
                 guard enabled else { return false }
                 return policyContext.engine.resources.completedResourcePath(id: EngineMediaResource.Id(file.resource.id)) != nil
             },
-            message: messageReference
+            message: messageReference,
+            canShareDocuments: !item.associatedData.isCopyProtectionEnabled && !item.message.isCopyProtected()
         )
         let view = InstantPageV2View(renderContext: renderContext)
         self.pageView = view
@@ -1323,6 +1325,12 @@ public class ChatMessageRichDataBubbleContentNode: ChatMessageBubbleContentNode 
             return ChatMessageBubbleContentTapAction(content: .none)
         }
 
+        if let button = urlHit.urlItem.button {
+            guard self.item?.message.attributes.contains(where: { $0 is TypingDraftMessageAttribute }) != true, case .tap = gesture else { return ChatMessageBubbleContentTapAction(content: .none) }
+            return ChatMessageBubbleContentTapAction(content: .custom({ [weak self] in
+                (self?.itemNode as? ChatMessageItemView)?.performMessageButtonAction(button: button, progress: nil)
+            }))
+        }
         let split = self.splitAnchor(urlHit.urlItem.url)
         if split.base.isEmpty, let anchor = split.anchor {
             // Don't accept intra-message anchor taps while the message is still streaming.
@@ -1421,6 +1429,11 @@ public class ChatMessageRichDataBubbleContentNode: ChatMessageBubbleContentNode 
     /// chat layer's URL handler. `concealed: true` matches `tapActionAtPoint` for the same
     /// reason: V2 cannot reliably compare displayed link text to the resolved URL.
     private func openInstantPageUrl(_ url: InstantPageUrlItem) {
+        if let button = url.button {
+            guard self.item?.message.attributes.contains(where: { $0 is TypingDraftMessageAttribute }) != true else { return }
+            (self.itemNode as? ChatMessageItemView)?.performMessageButtonAction(button: button, progress: nil)
+            return
+        }
         guard let item = self.item else { return }
         item.controllerInteraction.openUrl(ChatControllerInteraction.OpenUrl(
             url: url.url,

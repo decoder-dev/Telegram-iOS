@@ -1091,7 +1091,7 @@ private func richTextIsEntityExpressible(_ text: RichText) -> Bool {
         return richTextIsEntityExpressible(inner)
     case .textMentionName(let inner, _):
         return richTextIsEntityExpressible(inner)
-    case .textDate:
+    case .button, .textDate:
         return false
     }
 }
