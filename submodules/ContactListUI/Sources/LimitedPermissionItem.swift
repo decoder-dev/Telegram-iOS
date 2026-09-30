@@ -96,6 +96,7 @@ public class LimitedPermissionItemNode: ListViewItemNode {
         self.activateArea.accessibilityTraits = .staticText
         
         self.actionButton = HighlightableButtonNode()
+        self.actionButton.hitTestSlop = UIEdgeInsets(top: -8.0, left: 0.0, bottom: -8.0, right: 0.0)
         
         self.actionButtonBackgroundNode = ASImageNode()
         self.actionButtonBackgroundNode.displaysAsynchronously = false
@@ -225,7 +226,7 @@ public class LimitedPermissionItemNode: ListViewItemNode {
                                                             
                     strongSelf.textNode.frame = CGRect(origin: CGPoint(x: leftInset, y: 10.0), size: textLayout.size)
                     
-                    let actionButtonSize = CGSize(width: max(buttonTextLayout.size.width + 26.0, 40.0), height: 28.0)
+                    let actionButtonSize = CGSize(width: max(buttonTextLayout.size.width + 26.0, 44.0), height: 28.0)
                     let actionButtonFrame = CGRect(origin: CGPoint(x: params.width - params.rightInset - actionButtonSize.width - 10.0, y: floor((layout.size.height - actionButtonSize.height) / 2.0)), size: actionButtonSize)
                     strongSelf.actionButton.frame = actionButtonFrame
                     strongSelf.actionButtonBackgroundNode.frame = actionButtonFrame

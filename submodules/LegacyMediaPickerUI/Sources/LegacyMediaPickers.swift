@@ -325,7 +325,7 @@ public enum LegacyCameraCapturedMedia {
     case asset(PHAsset, caption: NSAttributedString?, price: Int64?)
 }
 
-public func legacyCameraCapturedMediaSignals(_ media: [LegacyCameraCapturedMedia]) -> [Any] {
+public func legacyCameraCapturedMediaSignals(_ media: [LegacyCameraCapturedMedia], timer: Int32? = nil) -> [Any] {
     let generator = legacyAssetPickerItemGenerator()
     return media.compactMap { item -> Any? in
         let description = NSMutableDictionary()
@@ -364,6 +364,7 @@ public func legacyCameraCapturedMediaSignals(_ media: [LegacyCameraCapturedMedia
             caption = itemCaption
         }
 
+        if let timer { description["timer"] = NSNumber(value: timer) }
         guard let item = generator(description, caption, nil, nil) else {
             return nil
         }

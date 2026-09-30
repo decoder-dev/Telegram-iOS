@@ -202,7 +202,7 @@ public class ItemListSectionHeaderItemNode: ListViewItemNode, ItemListItemNode {
             if let actionText = item.actionText {
                 let actionLayoutAndApplyValue = makeActionLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: actionText, font: titleFont, textColor: item.presentationData.theme.list.itemAccentColor), backgroundColor: nil, maximumNumberOfLines: item.multiline ? 0 : 1, truncationType: .end, constrainedSize: CGSize(width: params.width - params.leftInset - params.rightInset - textRightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
                 actionLayoutAndApply = actionLayoutAndApplyValue
-                textRightInset += actionLayoutAndApplyValue.0.size.width + 2.0
+                textRightInset += max(44.0, actionLayoutAndApplyValue.0.size.width) + 2.0
             }
             
             let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.text, font: titleFont, textColor: item.presentationData.theme.list.sectionHeaderTextColor), backgroundColor: nil, maximumNumberOfLines: item.multiline ? 0 : 1, truncationType: .end, constrainedSize: CGSize(width: params.width - params.leftInset - params.rightInset - textRightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
@@ -224,7 +224,7 @@ public class ItemListSectionHeaderItemNode: ListViewItemNode, ItemListItemNode {
             let contentSize: CGSize
             var insets = UIEdgeInsets()
             
-            contentSize = CGSize(width: params.width, height: titleLayout.size.height + 13.0)
+            contentSize = CGSize(width: params.width, height: max(titleLayout.size.height + 13.0, actionLayoutAndApply != nil ? max(44.0, actionLayoutAndApply!.0.size.height) : 0.0))
             switch neighbors.top {
                 case .none:
                     insets.top += 24.0
@@ -248,7 +248,7 @@ public class ItemListSectionHeaderItemNode: ListViewItemNode, ItemListItemNode {
                     
                     strongSelf.highlightNode.backgroundColor = item.presentationData.theme.list.itemSearchHighlightColor
                     
-                    strongSelf.titleNode.frame = CGRect(origin: CGPoint(x: leftInset, y: 7.0), size: titleLayout.size)
+                    strongSelf.titleNode.frame = CGRect(origin: CGPoint(x: leftInset, y: actionLayoutAndApply != nil ? floor((contentSize.height - titleLayout.size.height) / 2.0) : 7.0), size: titleLayout.size)
                     strongSelf.highlightNode.frame = strongSelf.titleNode.frame.insetBy(dx: -3.0, dy: -2.0)
                     
                     if let (actionLayout, actionApply) = actionLayoutAndApply {
@@ -258,7 +258,7 @@ public class ItemListSectionHeaderItemNode: ListViewItemNode, ItemListItemNode {
                         } else {
                             actionButtonNode = HighlightableButtonNode()
                             strongSelf.actionButtonNode = actionButtonNode
-                            actionButtonNode.hitTestSlop = UIEdgeInsets(top: -4.0, left: -4.0, bottom: -4.0, right: -4.0)
+                            actionButtonNode.hitTestSlop = .zero
                             strongSelf.addSubnode(actionButtonNode)
                             actionButtonNode.addTarget(strongSelf, action: #selector(strongSelf.actionButtonPressed), forControlEvents: .touchUpInside)
                         }
@@ -270,9 +270,10 @@ public class ItemListSectionHeaderItemNode: ListViewItemNode, ItemListItemNode {
                             actionButtonNode.addSubnode(actionNode)
                         }
                         
-                        actionButtonNode.frame = CGRect(origin: CGPoint(x: params.width - leftInset - actionLayout.size.width, y: 7.0), size: actionLayout.size)
+                        let actionSize = CGSize(width: max(44.0, actionLayout.size.width), height: contentSize.height)
+                        actionButtonNode.frame = CGRect(origin: CGPoint(x: params.width - params.rightInset - 15.0 - actionSize.width, y: 0.0), size: actionSize)
                         
-                        actionNode.frame = CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: actionLayout.size)
+                        actionNode.frame = CGRect(origin: CGPoint(x: actionSize.width - actionLayout.size.width, y: floor((actionSize.height - actionLayout.size.height) / 2.0)), size: actionLayout.size)
                     } else {
                         if let actionNode = strongSelf.actionNode {
                             strongSelf.actionNode = nil

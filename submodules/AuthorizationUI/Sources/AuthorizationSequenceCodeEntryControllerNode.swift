@@ -212,6 +212,7 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
         self.textField.textField.tintColor = self.theme.list.itemAccentColor
         
         self.pasteButton = HighlightableButtonNode()
+        self.pasteButton.hitTestSlop = UIEdgeInsets(top: -10.0, left: 0.0, bottom: -10.0, right: 0.0)
         
         self.errorTextNode = ImmediateTextNode()
         self.errorTextNode.alpha = 0.0
@@ -849,7 +850,7 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
                 self.hintTextNode.frame = CGRect(origin: .zero, size: hintTextSize)
                 
                 let pasteSize = self.pasteButton.measure(layout.size)
-                let pasteButtonSize = CGSize(width: pasteSize.width + 16.0, height: 24.0)
+                let pasteButtonSize = CGSize(width: max(44.0, pasteSize.width + 16.0), height: 24.0)
                 let pasteOriginX: CGFloat
                 if case .compact = layout.metrics.widthClass {
                     pasteOriginX = layout.size.width - 40.0 - pasteButtonSize.width
@@ -864,7 +865,7 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
                 self.hintArrowNode.isHidden = true
                 
                 let pasteSize = self.pasteButton.measure(layout.size)
-                let pasteButtonSize = CGSize(width: pasteSize.width + 16.0, height: 24.0)
+                let pasteButtonSize = CGSize(width: max(44.0, pasteSize.width + 16.0), height: 24.0)
                 transition.updateFrame(node: self.pasteButton, frame: CGRect(origin: CGPoint(x: layout.size.width - 40.0 - pasteButtonSize.width, y: self.textField.frame.midY - pasteButtonSize.height / 2.0), size: pasteButtonSize))
             } else {
                 self.hintButtonNode.alpha = 0.0

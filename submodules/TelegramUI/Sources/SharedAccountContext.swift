@@ -4167,7 +4167,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         return controller
     }
 
-    public func legacyCameraCapturedMediaSignals(fromCameraScreenResult result: Any, initialCaption: NSAttributedString, sendPaidMessageStars: Int64) -> Signal<[Any], NoError> {
+    public func legacyCameraCapturedMediaSignals(fromCameraScreenResult result: Any, initialCaption: NSAttributedString, sendPaidMessageStars: Int64, timer: Int32?) -> Signal<[Any], NoError> {
         guard let resultSignal = result as? Signal<CameraScreenImpl.Result, NoError> else {
             return .complete()
         }
@@ -4196,7 +4196,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
                 return .complete()
             }
 
-            let signals = LegacyMediaPickerUI.legacyCameraCapturedMediaSignals(media)
+            let signals = LegacyMediaPickerUI.legacyCameraCapturedMediaSignals(media, timer: timer)
             if signals.isEmpty {
                 return .complete()
             }

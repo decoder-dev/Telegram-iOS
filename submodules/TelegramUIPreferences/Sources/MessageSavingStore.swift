@@ -9,6 +9,7 @@ public enum MessageSavingStore {
     private static let lock = NSLock()
     private static var memory: [MessageSavingRecord] = []
     private static var loaded = false
+    private static var loadFailed = false
 
     /// hasDeleted / hasEdits are called while building context menus, where a linear scan over
     /// up to 5000 records ran on the main thread for every menu open. These indexes make the
@@ -165,6 +166,7 @@ public enum MessageSavingStore {
         self.storeGeneration = 0
         self.pendingPersist = false
         self.loaded = false
+        self.loadFailed = false
         lock.unlock()
         writeLock.lock()
         self.lastWrittenGeneration = 0
@@ -190,12 +192,32 @@ public enum MessageSavingStore {
         defer { lock.unlock() }
         guard !loaded else { return }
         loaded = true
-        guard let data = try? Data(contentsOf: fileURL) else {
+        loadFailed = false
+        if !FileManager.default.fileExists(atPath: fileURL.path) {
             memory = []
-            return
+        } else {
+            do {
+                memory = try JSONDecoder().decode([MessageSavingRecord].self, from: Data(contentsOf: fileURL))
+            } catch {
+                loadFailed = true
+                memory = []
+            }
         }
-        memory = (try? JSONDecoder().decode([MessageSavingRecord].self, from: data)) ?? []
         rebuildIndexesLocked()
+    }
+
+    public static var historyReadFailed: Bool {
+        loadIfNeeded()
+        lock.lock()
+        defer { lock.unlock() }
+        return loadFailed
+    }
+
+    public static func retryHistoryRead() {
+        lock.lock()
+        if loadFailed { loaded = false }
+        lock.unlock()
+        loadIfNeeded()
     }
 
     private static var pendingPersist = false
@@ -226,6 +248,8 @@ public enum MessageSavingStore {
     private static func persistNow() {
         lock.lock()
         self.pendingPersist = false
+        // A failed read must never overwrite a recoverable database with an empty snapshot.
+        if self.loadFailed { lock.unlock(); return }
         let snapshot = self.memory
         let generation = self.storeGeneration
         lock.unlock()
@@ -240,8 +264,12 @@ public enum MessageSavingStore {
         writeLock.lock()
         defer { writeLock.unlock() }
         guard generation > self.lastWrittenGeneration else { return }
-        try? data.write(to: self.fileURL, options: .atomic)
-        self.lastWrittenGeneration = generation
+        do {
+            try data.write(to: self.fileURL, options: .atomic)
+            self.lastWrittenGeneration = generation
+        } catch {
+            // Leave the generation pending so a later flush can retry.
+        }
     }
 
     /// Force any coalesced write out to disk (called when the app leaves the foreground).
@@ -557,7 +585,9 @@ public enum MessageSavingStore {
         loadIfNeeded()
         lock.lock()
         let snapshot = memory
+        let failed = loadFailed
         lock.unlock()
+        guard !failed else { return nil }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         return try? encoder.encode(snapshot)
@@ -576,6 +606,8 @@ public enum MessageSavingStore {
         }
         loadIfNeeded()
         lock.lock()
+        if loadFailed && !replace { lock.unlock(); return .failure(.invalidData) }
+        let previous = memory
         if replace {
             memory = []
             rebuildIndexesLocked()
@@ -602,7 +634,25 @@ public enum MessageSavingStore {
             memory.removeFirst(overflow)
         }
         if added > 0 || replace {
-            schedulePersistLocked()
+            do {
+                let encoded = try JSONEncoder().encode(memory)
+                writeLock.lock()
+                do {
+                    try encoded.write(to: fileURL, options: .atomic)
+                } catch {
+                    writeLock.unlock()
+                    throw error
+                }
+                storeGeneration += 1
+                lastWrittenGeneration = storeGeneration
+                writeLock.unlock()
+                loadFailed = false
+            } catch {
+                memory = previous
+                rebuildIndexesLocked()
+                lock.unlock()
+                return .failure(.invalidData)
+            }
         }
         lock.unlock()
         if added > 0 || replace {
@@ -614,120 +664,86 @@ public enum MessageSavingStore {
     private static let bundleRecordsFileName = "records.json"
     private static let bundleAttachmentsFolderName = "Saved Attachments"
 
-    /// Build a self-contained export folder — `records.json` + a copy of Saved Attachments
-    /// (AyuGram DB backup parity). Returned as a folder rather than a zip: Foundation has no
-    /// built-in archive writer, and both AirDrop and Files "Save to Files" accept a folder.
-    /// Unique temp name per export so a still-open share sheet is not wiped by a re-export.
+    /// Copy every referenced attachment before publishing the export folder.
+    /// Missing/unreadable media makes the entire export fail, never silently incomplete.
     public static func exportBundle() -> URL? {
-        guard let data = exportJSONData() else {
+        guard let data = exportJSONData(), var records = try? JSONDecoder().decode([MessageSavingRecord].self, from: data) else {
             return nil
         }
-        let root = FileManager.default.temporaryDirectory
-            .appendingPathComponent("AyuGram Saved Messages-\(UUID().uuidString)", isDirectory: true)
-        guard (try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)) != nil else {
-            return nil
-        }
+        let fm = FileManager.default
+        let root = fm.temporaryDirectory.appendingPathComponent("AyuGram Saved Messages-\(UUID().uuidString)", isDirectory: true)
         do {
-            try data.write(to: root.appendingPathComponent(bundleRecordsFileName), options: .atomic)
+            let attachments = root.appendingPathComponent(bundleAttachmentsFolderName, isDirectory: true)
+            try fm.createDirectory(at: attachments, withIntermediateDirectories: true)
+            var copied: [String: String] = [:]
+            for index in records.indices {
+                guard let path = records[index].mediaPath, !path.isEmpty else { continue }
+                let name: String
+                if let existing = copied[path] {
+                    name = existing
+                } else {
+                    let source = URL(fileURLWithPath: path)
+                    let values = try source.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey])
+                    guard values.isRegularFile == true, values.isSymbolicLink != true else { throw ImportError.invalidData }
+                    name = UUID().uuidString + "-" + source.lastPathComponent
+                    try fm.copyItem(at: source, to: attachments.appendingPathComponent(name))
+                    copied[path] = name
+                }
+                records[index] = records[index].withMediaPath(name)
+            }
+            try JSONEncoder().encode(records).write(to: root.appendingPathComponent(bundleRecordsFileName), options: .atomic)
+            return root
         } catch {
-            try? FileManager.default.removeItem(at: root)
+            try? fm.removeItem(at: root)
             return nil
         }
-        let attachmentsSource = MessageSavingBridge.savedAttachmentsDirectory
-        if let contents = try? FileManager.default.contentsOfDirectory(at: attachmentsSource, includingPropertiesForKeys: nil), !contents.isEmpty {
-            let attachmentsDest = root.appendingPathComponent(bundleAttachmentsFolderName, isDirectory: true)
-            try? FileManager.default.createDirectory(at: attachmentsDest, withIntermediateDirectories: true)
-            for file in contents {
-                try? FileManager.default.copyItem(at: file, to: attachmentsDest.appendingPathComponent(file.lastPathComponent))
-            }
-        }
-        return root
     }
 
-    /// Import either a bare `records.json` (simple export) or a folder produced by
-    /// `exportBundle()` (`records.json` + `Saved Attachments/`). On replace, local attachment
-    /// bytes are cleared first. After copy, every record's `mediaPath` is rewritten to the
-    /// local Saved Attachments path (exports carry absolute paths from the source device).
+    /// Prepare immutable, uniquely named media before atomically committing the records.
+    /// Existing attachments stay untouched, including on replace or a failed import.
     @discardableResult
     public static func importBundle(from url: URL, replace: Bool) -> Result<Int, ImportError> {
+        let fm = FileManager.default
         var isDirectory: ObjCBool = false
-        guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) else {
-            return .failure(.invalidData)
-        }
-        let recordsURL: URL
-        var attachmentsURL: URL?
-        if isDirectory.boolValue {
-            recordsURL = url.appendingPathComponent(bundleRecordsFileName)
-            let candidate = url.appendingPathComponent(bundleAttachmentsFolderName, isDirectory: true)
-            var candidateIsDirectory: ObjCBool = false
-            if FileManager.default.fileExists(atPath: candidate.path, isDirectory: &candidateIsDirectory), candidateIsDirectory.boolValue {
-                attachmentsURL = candidate
+        guard fm.fileExists(atPath: url.path, isDirectory: &isDirectory) else { return .failure(.invalidData) }
+        let recordsURL = isDirectory.boolValue ? url.appendingPathComponent(bundleRecordsFileName) : url
+        let destination = MessageSavingBridge.savedAttachmentsDirectory
+        let staged = destination.appendingPathComponent("import-\(UUID().uuidString)", isDirectory: true)
+        do {
+            var incoming = try JSONDecoder().decode([MessageSavingRecord].self, from: Data(contentsOf: recordsURL))
+            var copied: [String: String] = [:]
+            for index in incoming.indices {
+                guard let path = incoming[index].mediaPath, !path.isEmpty else { continue }
+                let name = URL(fileURLWithPath: path).lastPathComponent
+                guard !name.isEmpty, name != ".", name != ".." else { throw ImportError.invalidData }
+                if isDirectory.boolValue {
+                    let localPath: String
+                    if let existing = copied[name] {
+                        localPath = existing
+                    } else {
+                        let source = url.appendingPathComponent(bundleAttachmentsFolderName).appendingPathComponent(name)
+                        guard isPath(source.resolvingSymlinksInPath().path, strictlyInside: url.resolvingSymlinksInPath()) else { throw ImportError.invalidData }
+                        let values = try source.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey])
+                        guard values.isRegularFile == true, values.isSymbolicLink != true else { throw ImportError.invalidData }
+                        try fm.createDirectory(at: staged, withIntermediateDirectories: true)
+                        let target = staged.appendingPathComponent(name)
+                        try fm.copyItem(at: source, to: target)
+                        localPath = target.path
+                        copied[name] = localPath
+                    }
+                    incoming[index] = incoming[index].withMediaPath(localPath)
+                } else {
+                    // Records-only imports cannot grant access to arbitrary absolute paths.
+                    let local = destination.appendingPathComponent(name)
+                    incoming[index] = incoming[index].withMediaPath(fm.fileExists(atPath: local.path) ? local.path : "")
+                }
             }
-        } else {
-            recordsURL = url
-        }
-        guard let data = try? Data(contentsOf: recordsURL) else {
-            return .failure(.invalidData)
-        }
-
-        let result = importJSONData(data, replace: replace)
-        guard case .success = result else {
+            let result = importJSONData(try JSONEncoder().encode(incoming), replace: replace)
+            if case .failure = result { try? fm.removeItem(at: staged) }
             return result
-        }
-
-        let dest = MessageSavingBridge.savedAttachmentsDirectory
-        if replace {
-            if let existing = try? FileManager.default.contentsOfDirectory(at: dest, includingPropertiesForKeys: nil) {
-                for file in existing {
-                    try? FileManager.default.removeItem(at: file)
-                }
-            }
-        }
-
-        if let attachmentsURL, let files = try? FileManager.default.contentsOfDirectory(at: attachmentsURL, includingPropertiesForKeys: nil) {
-            try? FileManager.default.createDirectory(at: dest, withIntermediateDirectories: true)
-            for file in files {
-                let destFile = dest.appendingPathComponent(file.lastPathComponent)
-                if replace || !FileManager.default.fileExists(atPath: destFile.path) {
-                    try? FileManager.default.removeItem(at: destFile)
-                    try? FileManager.default.copyItem(at: file, to: destFile)
-                }
-            }
-        }
-
-        rewireImportedMediaPaths(to: dest)
-        return result
-    }
-
-    /// Point imported records' `mediaPath` at local Saved Attachments by basename.
-    private static func rewireImportedMediaPaths(to dest: URL) {
-        loadIfNeeded()
-        lock.lock()
-        var didChange = false
-        for index in memory.indices {
-            guard let path = memory[index].mediaPath, !path.isEmpty else {
-                continue
-            }
-            let name = URL(fileURLWithPath: path).lastPathComponent
-            guard !name.isEmpty else {
-                continue
-            }
-            let localPath = dest.appendingPathComponent(name).path
-            guard localPath != path else {
-                continue
-            }
-            guard FileManager.default.fileExists(atPath: localPath) else {
-                continue
-            }
-            memory[index] = memory[index].withMediaPath(localPath)
-            didChange = true
-        }
-        if didChange {
-            schedulePersistLocked()
-        }
-        lock.unlock()
-        if didChange {
-            notifyChanged()
+        } catch {
+            try? fm.removeItem(at: staged)
+            return .failure(.invalidData)
         }
     }
 }

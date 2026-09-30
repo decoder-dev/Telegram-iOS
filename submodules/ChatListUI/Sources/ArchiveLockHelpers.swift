@@ -530,6 +530,8 @@ private func presentArchivePasswordAlert(
     
     // R07: Single-flight prompt ownership
     if activePasswordPrompts.contains(peerId) {
+        // Every caller must receive a terminal result, including duplicate requests.
+        onCancel()
         return
     }
     activePasswordPrompts.insert(peerId)

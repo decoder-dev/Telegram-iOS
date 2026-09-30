@@ -51,9 +51,9 @@ private enum MessageSavingHistoryEntry: ItemListNodeEntry {
         let args = arguments as? MessageSavingHistoryArguments
         switch self {
         case .loading:
-            return ItemListTextItem(presentationData: presentationData, text: .plain("Loading..."), sectionId: self.section)
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkMessageSavingStrings.loading), sectionId: self.section)
         case let .error(text):
-            return ItemListTextItem(presentationData: presentationData, text: .plain("Error: \(text)"), sectionId: self.section)
+            return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section)
         case let .empty(text):
             return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section)
         case let .record(_, record):
@@ -119,6 +119,9 @@ private func messageSavingRecords(mode: MessageSavingHistoryMode, accountPeerId:
 
 private func messageSavingHistoryEntries(mode: MessageSavingHistoryMode, accountPeerId: EnginePeer.Id, emptyText: String) -> [MessageSavingHistoryEntry] {
     let records = messageSavingRecords(mode: mode, accountPeerId: accountPeerId)
+    if MessageSavingStore.historyReadFailed {
+        return [.error(ForkMessageSavingStrings.readError)]
+    }
     if records.isEmpty {
         return [.empty(emptyText)]
     }
@@ -232,33 +235,49 @@ private func messageSavingHistoryController(
         refresh.get(),
         MessageSavingStore.changes.get()
     )
-    |> deliverOn(historyQueue)
-    |> map { presentationData, _, _ -> (ItemListControllerState, (ItemListNodeState, Any)) in
-        var rightButton: ItemListNavigationButton?
-        if clearAction != nil {
-            rightButton = ItemListNavigationButton(
-                content: .text(ForkMessageSavingStrings.clearDeleted),
-                style: .regular,
-                enabled: true,
-                action: {
-                    clearAction?()
-                    refresh.set(.single(Void()))
-                }
+    |> mapToSignal { presentationData, _, _ -> Signal<(ItemListControllerState, (ItemListNodeState, Any)), NoError> in
+        func makeState(_ entries: [MessageSavingHistoryEntry]) -> (ItemListControllerState, (ItemListNodeState, Any)) {
+            var rightButton: ItemListNavigationButton?
+            if entries.contains(where: { if case .error = $0 { return true }; return false }) {
+                rightButton = ItemListNavigationButton(content: .text(ForkMessageSavingStrings.retry), style: .regular, enabled: true, action: {
+                    historyQueue.async {
+                        MessageSavingStore.retryHistoryRead()
+                        refresh.set(.single(Void()))
+                    }
+                })
+            } else if clearAction != nil && !entries.contains(where: { if case .loading = $0 { return true }; return false }) {
+                rightButton = ItemListNavigationButton(
+                    content: .text(ForkMessageSavingStrings.clearDeleted),
+                    style: .regular,
+                    enabled: true,
+                    action: {
+                        clearAction?()
+                        refresh.set(.single(Void()))
+                    }
+                )
+            }
+            let controllerState = ItemListControllerState(
+                presentationData: ItemListPresentationData(presentationData),
+                title: .text(title),
+                leftNavigationButton: nil,
+                rightNavigationButton: rightButton,
+                backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back)
             )
+            let listState = ItemListNodeState(
+                presentationData: ItemListPresentationData(presentationData),
+                entries: entries,
+                style: .blocks
+            )
+            return (controllerState, (listState, arguments))
         }
-        let controllerState = ItemListControllerState(
-            presentationData: ItemListPresentationData(presentationData),
-            title: .text(title),
-            leftNavigationButton: nil,
-            rightNavigationButton: rightButton,
-            backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back)
-        )
-        let listState = ItemListNodeState(
-            presentationData: ItemListPresentationData(presentationData),
-            entries: messageSavingHistoryEntries(mode: mode, accountPeerId: context.account.peerId, emptyText: emptyText),
-            style: .blocks
-        )
-        return (controllerState, (listState, arguments))
+        return .single(makeState([.loading]))
+        |> then(Signal { subscriber in
+            historyQueue.async {
+                subscriber.putNext(makeState(messageSavingHistoryEntries(mode: mode, accountPeerId: context.account.peerId, emptyText: emptyText)))
+                subscriber.putCompletion()
+            }
+            return EmptyDisposable
+        })
     }
     |> deliverOnMainQueue
 

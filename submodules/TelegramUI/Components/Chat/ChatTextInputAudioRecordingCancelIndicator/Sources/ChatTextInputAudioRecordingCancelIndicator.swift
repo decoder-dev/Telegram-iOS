@@ -126,7 +126,7 @@ public final class ChatTextInputAudioRecordingCancelIndicator: UIView, GlassBack
     }
     
     override public func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-        if !self.cancelButton.alpha.isZero, self.cancelButton.frame.insetBy(dx: -5.0, dy: -5.0).contains(point) {
+        if !self.cancelButton.alpha.isZero, self.cancelButton.frame.insetBy(dx: -max(5.0, (44.0 - self.cancelButton.frame.width) / 2.0), dy: -max(5.0, (44.0 - self.cancelButton.frame.height) / 2.0)).contains(point) {
             return self.cancelButton.view
         }
         return super.hitTest(point, with: event)

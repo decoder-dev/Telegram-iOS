@@ -133,6 +133,10 @@ public enum ForkProxySettingsStrings {
 /// menus, the history screens and the clear action all read from here so the feature is spelled
 /// identically everywhere.
 public enum ForkMessageSavingStrings {
+    public static var loading: String { ForkPresentationLanguage.prefersRussianStrings ? "Загрузка…" : "Loading…" }
+    public static var readError: String { ForkPresentationLanguage.prefersRussianStrings ? "Не удалось прочитать историю. Повторите попытку." : "Could not read history. Please try again." }
+    public static var retry: String { ForkPresentationLanguage.prefersRussianStrings ? "Повторить" : "Retry" }
+
     public static var viewDeleted: String {
         return ForkPresentationLanguage.prefersRussianStrings ? "Удалённые" : "View Deleted"
     }
@@ -152,4 +156,9 @@ public enum ForkMessageSavingStrings {
     public static var noEdits: String {
         return ForkPresentationLanguage.prefersRussianStrings ? "Предыдущих версий нет." : "No previous versions saved."
     }
+}
+
+public enum ForkCameraStrings {
+    public static var send: String { ForkPresentationLanguage.prefersRussianStrings ? "Отправить" : "Send" }
+    public static var timer: String { ForkPresentationLanguage.prefersRussianStrings ? "Отправить с таймером" : "Send with a timer" }
 }

@@ -2225,6 +2225,8 @@ private class BlurView: UIVisualEffectView {
 }
 
 public class CameraScreenImpl: ViewController, CameraScreen {
+    public var recognizedCode: ((String) -> Bool)?
+    private var lastHandledCode: String?
     public enum Mode {
         case story
         case sticker
@@ -2925,6 +2927,7 @@ public class CameraScreenImpl: ViewController, CameraScreen {
                         return
                     }
                     let filteredCodes = codes.filter {
+                        if self.controller?.recognizedCode != nil { return true }
                         let message = $0.message.replacingOccurrences(of: "https://", with: "")
                         if message.hasPrefix("t.me/c/") || message.hasPrefix("t.me/+") || message.hasPrefix("t.me/contact/") || message.hasPrefix("t.me/") {
                             return true
@@ -4253,6 +4256,15 @@ public class CameraScreenImpl: ViewController, CameraScreen {
     }
     
     private func updateFocusedCode(_ code: CameraCode?) {
+        if let code {
+            if self.lastHandledCode == code.message { return }
+            if self.recognizedCode?(code.message) == true {
+                self.lastHandledCode = code.message
+                return
+            }
+        } else {
+            self.lastHandledCode = nil
+        }
         if self.focusedCode != code {
             self.focusedCode = code
             if code == nil {

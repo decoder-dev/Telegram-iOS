@@ -330,7 +330,8 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
                 let _ = (self.context.sharedContext.legacyCameraCapturedMediaSignals(
                     fromCameraScreenResult: result,
                     initialCaption: NSAttributedString(),
-                    sendPaidMessageStars: 0
+                    sendPaidMessageStars: 0,
+                    timer: nil
                 )
                 |> deliverOnMainQueue).start(next: { [weak self, weak controller] signals in
                     guard let self, let controller else {

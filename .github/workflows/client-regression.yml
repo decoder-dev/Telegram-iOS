@@ -17,6 +17,10 @@ on:
       - 'Tests/Customization/**'
       - 'Tests/MenuPresentation/**'
       - 'Tests/ArchiveLock/**'
+      - 'Tests/MessageSaving/**'
+      - 'Tests/UISizing/**'
+      - 'submodules/TelegramUIPreferences/Sources/MessageSavingStore.swift'
+      - 'submodules/TelegramUIPreferences/Sources/ForkPresentationLanguage.swift'
       - 'submodules/ChatListUI/Sources/ArchiveLockHelpers.swift'
       - 'submodules/TelegramUIPreferences/Sources/ArchivePasswordKeychain.swift'
       - 'submodules/SettingsUI/Sources/**'
@@ -38,6 +42,8 @@ jobs:
       - run: python3 Tests/ManagedProxy/bootstrap.py
       - run: python3 Tests/Customization/run.py
       - run: python3 Tests/MenuPresentation/run.py
+      - run: python3 Tests/MessageSaving/run.py
+      - run: python3 -m unittest discover -s Tests/UISizing
       - run: python3 Tests/ArchiveLock/password_flow.py
       - run: python3 Tests/ArchiveLock/theme_lifetime.py
       - run: python3 Tests/ArchiveLock/migration.py

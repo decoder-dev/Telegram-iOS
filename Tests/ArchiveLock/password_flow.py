@@ -17,6 +17,9 @@ presentArchivePasswordAlert(context: context, title: "Set", message: nil, confir
     writes += 1
     return storeSucceeds
 })
+var duplicateCancelled = 0
+presentArchivePasswordAlert(context: context, title: "Duplicate", message: nil, confirmTitle: "Next", verifyPassword: false, onSuccess: { preconditionFailure("Duplicate prompt unexpectedly succeeded") }, onCancel: { duplicateCancelled += 1 })
+precondition(duplicateCancelled == 1 && presented.count == 1)
 weak var firstPrompt = presented.last
 submit("password")
 precondition(firstPrompt == nil, "Password prompt retained by its action")
