@@ -20,21 +20,26 @@ final class MTNetworkUsageManager {
 }
 final class Logger {
     static let shared = Logger()
-    func log(_ category: String, _ text: String) {}
+    func log(_ category: String, _ text: String) {
+        fputs("[\(category)] \(text)\n", stderr)
+    }
 }
 final class Delegate: MTTcpConnectionInterfaceDelegate {
     var connects = 0
     var disconnects = 0
     var received = Data()
     func connectionInterfaceDidConnect() { connects += 1 }
-    func connectionInterfaceDidDisconnectWithError(_ error: Error?) { disconnects += 1 }
+    func connectionInterfaceDidDisconnectWithError(_ error: Error?) {
+        disconnects += 1
+        fputs("Disconnect: \(String(describing: error))\n", stderr)
+    }
     func connectionInterfaceDidRead(_ data: Data, withTag tag: Int, networkType: Int32) { received.append(data) }
     func connectionInterfaceDidReadPartialData(ofLength length: UInt, tag: Int) {}
 }
-func waitFor(_ condition: () -> Bool) {
+func waitFor(_ stage: String, _ condition: () -> Bool) {
     let deadline = Date().addingTimeInterval(5)
     while !condition(), Date() < deadline { RunLoop.main.run(until: Date().addingTimeInterval(0.01)) }
-    precondition(condition(), "loopback check timed out")
+    precondition(condition(), "loopback check timed out: \(stage)")
 }
 @available(macOS 14.0, *)
 func checkEcho(port: NWEndpoint.Port) throws {
@@ -51,7 +56,7 @@ func checkEcho(port: NWEndpoint.Port) throws {
         }
     }
     listener.start(queue: .main)
-    waitFor { ready }
+    waitFor("listener ready on \(port)") { ready }
     let delegate = Delegate()
     let client = NetworkFrameworkTcpConnectionInterface(delegate: delegate, delegateQueue: .main)
     for _ in 0..<20 {
@@ -60,10 +65,11 @@ func checkEcho(port: NWEndpoint.Port) throws {
     let payload = Data([1, 2, 3, 4])
     client.write(payload)
     client.readData(toLength: 4, withTimeout: 3, tag: 1)
-    waitFor { delegate.received == payload }
+    waitFor("echo on \(listener.port!): connects=\(delegate.connects), disconnects=\(delegate.disconnects)") { delegate.received == payload || delegate.disconnects != 0 }
+    precondition(delegate.received == payload, "Connection closed before echo arrived")
     precondition(accepted.count == 1 && delegate.connects == 1 && delegate.disconnects == 0)
     client.disconnect()
-    waitFor { delegate.disconnects == 1 }
+    waitFor("explicit disconnect") { delegate.disconnects == 1 }
     accepted.forEach { $0.cancel() }
     listener.cancel()
     print("Production NW interface: repeated connect deduplicated, queued write/read and disconnect passed")
@@ -93,7 +99,7 @@ if #available(macOS 14.0, *) {
     let failure = Delegate()
     let unavailable = NetworkFrameworkTcpConnectionInterface(delegate: failure, delegateQueue: .main)
     _ = unavailable.connect(toHost: "127.0.0.1", onPort: port, viaInterface: nil, withTimeout: 3, error: nil)
-    waitFor { failure.disconnects == 1 }
+    waitFor("refused endpoint disconnect") { failure.disconnects == 1 }
     precondition(failure.connects == 0)
     Darwin.close(descriptor)
     // The server recovers while the shared cooldown is active. Writes and reads queued

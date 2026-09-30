@@ -19,6 +19,8 @@ jobs:
       - run: bash Tests/MTConnection/run.sh
       - name: Reproduce failures on the previous release
         run: |
+          # The pinned baseline can be older than checkout's shallow history.
+          git fetch --no-tags --depth=1 origin 3762285be10792d9e6be0e8d8dcdb4bead91b1a8
           mkdir -p "$RUNNER_TEMP/mt-baseline"
           for file in MTTimer.m MTTcpConnectionBehaviour.m MTRequestMessageService.m MTTcpTransport.m MTProto.m; do
             git show 3762285be10792d9e6be0e8d8dcdb4bead91b1a8:submodules/MtProtoKit/Sources/$file > "$RUNNER_TEMP/mt-baseline/$file"
