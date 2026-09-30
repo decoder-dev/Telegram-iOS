@@ -914,9 +914,6 @@ public final class AccountStateManager {
                                                     }
                                                     
                                                     return (difference, replayedState, false, false)
-                                                } catch ReplayFinalStateError.timeout {
-                                                    Logger.shared.log("State", "replayFinalState exceeded budget, resetting state")
-                                                    return (nil, nil, false, true)
                                                 } catch {
                                                     // A concurrent state/channel update can invalidate the snapshot.
                                                     // Retry the difference from current PTS; this is not a reason to

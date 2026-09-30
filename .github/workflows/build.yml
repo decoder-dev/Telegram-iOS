@@ -67,10 +67,12 @@ jobs:
         run: |
           python3 Tests/ArchiveLock/run.py
           python3 Tests/ArchiveLock/password_flow.py
+          python3 Tests/ArchiveLock/theme_lifetime.py
           python3 Tests/ArchiveLock/migration.py
       - name: Managed proxy observation and customization tests
         run: |
           python3 Tests/ManagedProxy/run.py
+          python3 Tests/ManagedProxy/bootstrap.py
           python3 Tests/Customization/run.py
           python3 Tests/MenuPresentation/run.py
           python3 Tests/NetworkPolicies/run.py

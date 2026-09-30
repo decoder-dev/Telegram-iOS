@@ -5,7 +5,7 @@ import tempfile
 root = pathlib.Path(__file__).resolve().parents[2]
 source = (root / 'submodules/ChatListUI/Sources/ArchiveLockHelpers.swift').read_text(encoding='utf-8')
 start = source.index('private var activePasswordPrompts:')
-end = source.index('\nprivate func presentUIAlert(', start)
+end = source.index('\nprivate var archiveAlertThemeSubscriptionKey:', start)
 fixtures = (root / 'Tests/ArchiveLock/PasswordFlowFixtures.swift').read_text(encoding='utf-8')
 tests = '''
 let context = AccountContext()

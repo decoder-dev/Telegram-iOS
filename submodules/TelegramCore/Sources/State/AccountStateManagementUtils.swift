@@ -3927,7 +3927,6 @@ private func recordPeerActivityTimestamp(peerId: PeerId, timestamp: Int32, into 
 
 enum ReplayFinalStateError: Error {
     case verificationFailed
-    case timeout
 }
 
 func replayFinalState(
@@ -3943,6 +3942,16 @@ func replayFinalState(
     ignoreDate: Bool,
     skipVerification: Bool
 ) throws -> AccountReplayedFinalState {
+    let replayStartTime = ProcessInfo.processInfo.systemUptime
+    defer {
+        let duration = ProcessInfo.processInfo.systemUptime - replayStartTime
+        if duration > 3.0 {
+            Logger.shared.log("State", "Slow replayFinalState: \(duration)s, \(finalState.state.operations.count) operations")
+        }
+    }
+    // Postbox commits the enclosing transaction even when a caller catches an
+    // error. Only reject before mutations; never abort a partially applied replay
+    // on a time budget or reset PTS to getState after such an abort.
     if !skipVerification {
         let verified = verifyTransaction(transaction, finalState: finalState.state)
         if !verified {
@@ -4057,14 +4066,7 @@ func replayFinalState(
     
     var liveTypingDraftUpdates: [PeerAndThreadId: [LiveTypingDraftUpdate]] = [:]
 
-    let watchdogStartTime = CFAbsoluteTimeGetCurrent()
-
     for operation in finalState.state.operations {
-        if CFAbsoluteTimeGetCurrent() - watchdogStartTime > 3.0 {
-            Logger.shared.log("State", "Watchdog triggered: replayFinalState exceeded 3.0s budget")
-            throw ReplayFinalStateError.timeout
-        }
-        
         switch operation {
         case let .AddMessages(messages, location):
             if case .UpperHistoryBlock = location {

@@ -10,6 +10,8 @@ on:
       - 'submodules/TelegramCore/Sources/Network/MTWebSocketConnectionInterface.swift'
       - 'submodules/TelegramCore/Sources/Network/FetchV2.swift'
       - 'submodules/TelegramCore/Sources/State/**'
+      - 'submodules/TelegramCore/Sources/Settings/ProxySettings.swift'
+      - 'submodules/TelegramCore/Sources/Account/AccountManager.swift'
       - 'submodules/TelegramPresentationData/Sources/PresentationData.swift'
       - 'Tests/ManagedProxy/**'
       - 'Tests/Customization/**'
@@ -33,9 +35,11 @@ jobs:
       - uses: actions/checkout@v5
       - run: swift test --package-path submodules/TelegramVLESS
       - run: python3 Tests/ManagedProxy/run.py
+      - run: python3 Tests/ManagedProxy/bootstrap.py
       - run: python3 Tests/Customization/run.py
       - run: python3 Tests/MenuPresentation/run.py
       - run: python3 Tests/ArchiveLock/password_flow.py
+      - run: python3 Tests/ArchiveLock/theme_lifetime.py
       - run: python3 Tests/ArchiveLock/migration.py
       - run: python3 Tests/NetworkPolicies/run.py
       - run: python3 Tests/NetworkRecovery/run.py

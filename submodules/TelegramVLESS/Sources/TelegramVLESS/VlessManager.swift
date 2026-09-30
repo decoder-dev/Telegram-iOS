@@ -106,7 +106,7 @@ public final class VlessManager {
         retryAttempt = 0
         stateValue = url == nil ? .idle : .preparing
         lock.unlock()
-        Logger.shared.log("VlessManager", url == nil ? "stopping runtime" : "configuring profile (gen \(token))")
+        VlessLog.log(url == nil ? "stopping runtime" : "configuring profile (gen \(token))")
         notifyStateChange()
         runtimeQueue.async { [weak self] in
             guard let self = self, self.isCurrent(token) else { return }
@@ -182,7 +182,7 @@ public final class VlessManager {
         }
         stateValue = .running(sink: VlessProxySink(host: "127.0.0.1", port: socks.port, user: socks.user, password: socks.password))
         lock.unlock()
-        Logger.shared.log("VlessManager", "runtime running on 127.0.0.1:\(socks.port) (gen \(token))")
+        VlessLog.log("runtime running on 127.0.0.1:\(socks.port) (gen \(token))")
         notifyStateChange()
         startHeartbeat(url: url, token: token)
     }
@@ -195,7 +195,7 @@ public final class VlessManager {
         let delay = min(60.0, pow(2.0, Double(min(retryAttempt, 6))))
         retryAttempt = min(retryAttempt + 1, 6)
         lock.unlock()
-        Logger.shared.log("VlessManager", "runtime failed: \(error); retry \(retry ? "in \(Int(delay))s" : "suppressed")")
+        VlessLog.log("runtime failed: \(error); retry \(retry ? "in \(Int(delay))s" : "suppressed")")
         notifyStateChange()
         guard retry else { return }
         runtimeQueue.asyncAfter(deadline: .now() + delay) { [weak self] in
@@ -263,7 +263,7 @@ public final class VlessManager {
             if !self.runtime.isRunning() {
                 self.heartbeatTimer?.cancel()
                 self.heartbeatTimer = nil
-                Logger.shared.log("VlessManager", "heartbeat: runtime stopped unexpectedly, failing")
+                VlessLog.log("heartbeat: runtime stopped unexpectedly, failing")
                 self.fail(.notRunning, url: url, token: token)
             }
         }

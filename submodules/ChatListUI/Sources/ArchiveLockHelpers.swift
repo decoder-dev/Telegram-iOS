@@ -1,5 +1,6 @@
 import Foundation
 import UIKit
+import ObjectiveC
 import UserNotifications
 import Display
 import SwiftSignalKit
@@ -639,13 +640,23 @@ private func presentArchivePasswordAlert(
     show(messageOverride: nil)
 }
 
-private func presentUIAlert(context: AccountContext, alert: UIAlertController, onUnavailableHost: @escaping () -> Void) {
+private var archiveAlertThemeSubscriptionKey: UInt8 = 0
+
+private final class ArchiveAlertThemeSubscription {
     let disposable = MetaDisposable()
-    disposable.set((context.sharedContext.presentationData |> deliverOnMainQueue).startStrict(next: { [weak alert] presentationData in
-        guard let alert = alert else {
-            disposable.dispose()
-            return
-        }
+
+    deinit {
+        self.disposable.dispose()
+    }
+}
+
+private func presentUIAlert(context: AccountContext, alert: UIAlertController, onUnavailableHost: @escaping () -> Void) {
+    let subscription = ArchiveAlertThemeSubscription()
+    // The alert owns its subscription, which captures the alert only weakly.
+    // Releasing a dismissed alert disposes immediately, even if the theme never changes.
+    objc_setAssociatedObject(alert, &archiveAlertThemeSubscriptionKey, subscription, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+    subscription.disposable.set((context.sharedContext.presentationData |> deliverOnMainQueue).startStrict(next: { [weak alert] presentationData in
+        guard let alert = alert else { return }
         let theme = presentationData.theme
         if #available(iOS 13.0, *) {
             alert.overrideUserInterfaceStyle = theme.overallDarkAppearance ? .dark : .light

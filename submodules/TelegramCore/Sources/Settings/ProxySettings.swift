@@ -124,16 +124,10 @@ func applySharedProxySettingsToNetwork(settings: ProxySettings, network: Network
         network.context.updateApiEnvironment { environment in
             network.pauseForWebProxyBootstrap()
             let current = environment?.socksProxySettings
-            // If a previous loopback endpoint is still alive (e.g. the same profile
-            // restarted after a heartbeat failure), keep it so MTProto does not drop
-            // in-flight requests while the runtime warm-starts. Only block on the
-            // sentinel when there is no usable endpoint at all — mirrors WebProxy
-            // behaviour at lines 142-148 above.
+            // An unresolved managed profile must block every MTContext consumer,
+            // including workers that are not covered by the primary MTProto pause.
+            // The previous endpoint may belong to a different proxy/profile.
             let blocked = ProxyServerSettings.managedBootstrapProxySettings
-            if let current, !current.isEqual(blocked) {
-                // Non-sentinel: a real loopback endpoint from a prior start. Retain it.
-                return nil
-            }
             if current?.isEqual(blocked) == true {
                 return nil
             }
@@ -145,20 +139,7 @@ func applySharedProxySettingsToNetwork(settings: ProxySettings, network: Network
     
     network.context.updateApiEnvironment { environment in
         let current = environment?.socksProxySettings
-        let updated: MTSocksProxySettings?
-        if isActiveWebProxy {
-            if let resolvedProxySettings = resolvedProxySettings {
-                updated = resolvedProxySettings
-            } else if let current = current {
-                // Sidecar not ready yet (bootstrap / resume) — keep the previous endpoint
-                // rather than falling back to a direct connection.
-                updated = current
-            } else {
-                updated = nil
-            }
-        } else {
-            updated = resolvedProxySettings
-        }
+        let updated = resolvedProxySettings
         let updateNetwork: Bool
         if previousForceLocalDNS != settings.useLocalDNSForProxyHosts {
             updateNetwork = true
