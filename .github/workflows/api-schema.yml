@@ -1,5 +1,9 @@
 name: Generate and verify API schema
 on:
+  push:
+    paths:
+      - 'build-system/SwiftTL/**'
+      - '.github/workflows/api-schema.yml'
   workflow_dispatch:
 permissions:
   contents: read
