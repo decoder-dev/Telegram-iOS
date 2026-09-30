@@ -1196,7 +1196,9 @@ private func finalStateWithUpdatesAndServerTime(accountPeerId: PeerId, postbox: 
                         updatedState.addPreCachedStory(id: id, story: story)
                     }
                 }
-                updatedState.addMessages([StoreMessage(apiEphemeralMessage: apiMessage)], location: .Random)
+                if let message = StoreMessage(apiEphemeralMessage: apiMessage) {
+                    updatedState.addMessages([message], location: .Random)
+                }
             case let .updateEditEphemeralMessage(updateEditEphemeralMessageData):
                 let apiMessage = updateEditEphemeralMessageData.message
                 if let preCachedResources = apiMessage.preCachedResources {
@@ -1209,8 +1211,7 @@ private func finalStateWithUpdatesAndServerTime(accountPeerId: PeerId, postbox: 
                         updatedState.addPreCachedStory(id: id, story: story)
                     }
                 }
-                let message = StoreMessage(apiEphemeralMessage: apiMessage)
-                if case let .Id(messageId) = message.id {
+                if let message = StoreMessage(apiEphemeralMessage: apiMessage), case let .Id(messageId) = message.id {
                     updatedState.editMessage(messageId, message: message)
                 }
             case let .updateDeleteEphemeralMessages(updateDeleteEphemeralMessagesData):

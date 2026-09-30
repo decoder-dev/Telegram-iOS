@@ -19,3 +19,12 @@ roundTrip(Api.KeyboardInlineButton.keyboardInlineButton(.init(flags: 0, style: n
 roundTrip(Api.RichText.textButton(.init(flags: 0, text: .textPlain(.init(text: "Link")), type: .inlineButtonTypeUrl(.init(url: "https://telegram.org")), style: nil)))
 roundTrip(Api.PageBlock.pageBlockDocument(.init(documentId: 42, caption: .pageCaption(.init(text: .textEmpty, credit: .textEmpty)))))
 print("Layer 229 wire fixtures passed")
+
+roundTrip(Api.EphemeralMessage.ephemeralMessage(.init(flags: 1 << 5, id: 1, fromId: .peerUser(.init(userId: 7)), peerId: nil, receiverId: 8, topMsgId: nil, date: 1, message: "template", entities: nil, media: nil, replyMarkup: nil, replyTo: nil, richMessage: nil, chatInstance: nil, anchorMsgId: nil)))
+let deletion = Api.functions.ephemeral.deleteMessage(flags: 1, peer: .inputPeerSelf, receiverId: .inputUserSelf, id: 1)
+let deletionReader = BufferReader(deletion.1)
+precondition(UInt32(bitPattern: deletionReader.readInt32()!) == 0x92f6e797)
+precondition(deletionReader.readInt32() == 1)
+let peerBuffer = Buffer()
+Api.InputPeer.inputPeerSelf.serialize(peerBuffer, true)
+precondition(deletionReader.readInt32() == BufferReader(peerBuffer).readInt32())

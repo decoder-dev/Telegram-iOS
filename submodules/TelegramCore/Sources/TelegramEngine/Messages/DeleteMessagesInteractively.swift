@@ -42,7 +42,7 @@ func _internal_deleteMessagesInteractively(account: Account, messageIds: [Messag
         }
 
         let signals = ephemeralRequests.map { request -> Signal<Void, NoError> in
-            return account.network.request(Api.functions.ephemeral.deleteMessage(peer: request.peer, receiverId: request.receiverId, id: request.id))
+            return account.network.request(Api.functions.ephemeral.deleteMessage(flags: 1, peer: request.peer, receiverId: request.receiverId, id: request.id))
             |> `catch` { _ -> Signal<Api.Bool, NoError> in
                 return .single(.boolFalse)
             }

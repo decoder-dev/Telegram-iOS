@@ -370,6 +370,8 @@ func apiMessagePeerIds(_ message: Api.Message) -> [PeerId] {
                     result.append(PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(messageActionNewCreatorPending.newCreatorId)))
                 case let .messageActionChangeCreator(messageActionChangeCreator):
                     result.append(PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(messageActionChangeCreator.newCreatorId)))
+                case let .messageActionChatJoinedViaCommunity(value):
+                    result.append(PeerId(namespace: Namespaces.Peer.CloudChannel, id: PeerId.Id._internalFromInt64Value(value.communityId)))
                 case let .messageActionChangeCommunity(messageActionChangeCommunity):
                     if let communityId = messageActionChangeCommunity.communityId {
                         result.append(PeerId(namespace: Namespaces.Peer.CloudChannel, id: PeerId.Id._internalFromInt64Value(communityId)))
@@ -392,7 +394,7 @@ func apiEphemeralMessagePeerIds(_ message: Api.EphemeralMessage) -> [PeerId] {
             }
         }
 
-        appendUnique(peerId.peerId)
+        if let peerId { appendUnique(peerId.peerId) }
         appendUnique(fromId.peerId)
         appendUnique(PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(receiverId)))
         if let replyTo {
@@ -482,11 +484,11 @@ func apiMessageAssociatedMessageIds(_ message: Api.Message) -> (replyIds: Refere
 }
 
 extension StoreMessage {
-    convenience init(apiEphemeralMessage: Api.EphemeralMessage) {
+    convenience init?(apiEphemeralMessage: Api.EphemeralMessage) {
         switch apiEphemeralMessage {
         case let .ephemeralMessage(messageData):
             let (flags, id, fromId, apiPeerId, receiverId, topMsgId, text, entities, media, replyMarkup, replyTo) = (messageData.flags, messageData.id, messageData.fromId, messageData.peerId, messageData.receiverId, messageData.topMsgId, messageData.message, messageData.entities, messageData.media, messageData.replyMarkup, messageData.replyTo)
-            let peerId = apiPeerId.peerId
+            guard let peerId = apiPeerId?.peerId else { return nil }
             let authorId = fromId.peerId
 
             var attributes: [MessageAttribute] = [
@@ -562,6 +564,7 @@ extension StoreMessage {
 
             var date = messageData.date
             var storeFlags = StoreMessageFlags()
+            if (flags & (1 << 12)) != 0 { storeFlags.insert(.CopyProtected) }
             if (flags & (1 << 0)) == 0 {
                 storeFlags.insert(.Incoming)
                 date += 1
