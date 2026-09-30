@@ -2042,7 +2042,7 @@ extension ChatControllerImpl {
                 if self.presentationInterfaceState.renderedPeer?.peer?.id.namespace != Namespaces.Peer.SecretChat {
                     items.append(ActionSheetButtonItem(title: presentationData.strings.Conversation_SendMessage_ScheduleMessage, action: { [weak self, weak sheet] in
                         sheet?.dismissAnimated()
-                        self?.presentScheduleTimePicker(style: .media, presentInOverlay: true, completion: { result in
+                        self?.presentScheduleTimePicker(style: .media, presentInOverlay: true, cancelled: { returnToCameraImpl?() }, completion: { result in
                             send(result.silentPosting, result.time, nil)
                         })
                     }))
@@ -2051,7 +2051,7 @@ extension ChatControllerImpl {
                    peer.id.namespace == Namespaces.Peer.CloudUser || peer.id.namespace == Namespaces.Peer.SecretChat {
                     items.append(ActionSheetButtonItem(title: ForkCameraStrings.timer, action: { [weak self, weak sheet] in
                         sheet?.dismissAnimated()
-                        self?.presentTimerPicker(style: .media, completion: { timer in
+                        self?.presentTimerPicker(style: .media, cancelled: { returnToCameraImpl?() }, completion: { timer in
                             send(false, nil, timer)
                         })
                     }))

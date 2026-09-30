@@ -10831,14 +10831,16 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         })
     }
     
-    func presentScheduleTimePicker(style: ChatScheduleTimeControllerStyle = .default, selectedTime: Int32? = nil, selectedRepeatPeriod: Int32? = nil, dismissByTapOutside: Bool = true, presentInOverlay: Bool = false, completion: @escaping (ChatScheduleTimeScreen.Result) -> Void) {
+    func presentScheduleTimePicker(style: ChatScheduleTimeControllerStyle = .default, selectedTime: Int32? = nil, selectedRepeatPeriod: Int32? = nil, dismissByTapOutside: Bool = true, presentInOverlay: Bool = false, cancelled: (() -> Void)? = nil, completion: @escaping (ChatScheduleTimeScreen.Result) -> Void) {
         guard let peerId = self.chatLocation.peerId else {
+            cancelled?()
             return
         }
         let _ = (self.context.account.viewTracker.peerView(peerId)
         |> take(1)
         |> deliverOnMainQueue).startStandalone(next: { [weak self] peerView in
             guard let strongSelf = self, let peer = peerViewMainPeer(peerView) else {
+                cancelled?()
                 return
             }
             var sendWhenOnlineAvailable = false
@@ -10868,6 +10870,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                     completion(result)
                 }
             )
+            controller.cancelled = cancelled
             strongSelf.chatDisplayNode.dismissInput()
             if presentInOverlay || strongSelf.videoRecorderValue != nil {
                 strongSelf.present(controller, in: .window(.root))
@@ -10877,13 +10880,15 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         })
     }
     
-    func presentTimerPicker(style: ChatTimerScreenStyle = .default, selectedTime: Int32? = nil, completion: @escaping (Int32) -> Void) {
+    func presentTimerPicker(style: ChatTimerScreenStyle = .default, selectedTime: Int32? = nil, cancelled: (() -> Void)? = nil, completion: @escaping (Int32) -> Void) {
         guard case .peer = self.chatLocation else {
+            cancelled?()
             return
         }
         let controller = ChatTimerScreen(context: self.context, updatedPresentationData: self.updatedPresentationData, style: style, currentTime: selectedTime, completion: { time in
             completion(time)
         })
+        controller.cancelled = cancelled
         self.chatDisplayNode.dismissInput()
         self.present(controller, in: .window(.root))
     }

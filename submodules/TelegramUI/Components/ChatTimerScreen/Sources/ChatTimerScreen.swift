@@ -817,7 +817,7 @@ private final class ChatTimerSheetContentComponent: Component {
                         guard let self, let controller = self.environment?.controller() as? ChatTimerScreen else {
                             return
                         }
-                        controller.completion(value)
+                        controller.complete(value)
                         self.component?.dismiss()
                     }
                 )),
@@ -1041,6 +1041,23 @@ public final class ChatTimerScreen: ViewControllerComponentContainer {
     }
 
     fileprivate let completion: (Int32?) -> Void
+    public var cancelled: (() -> Void)?
+    private var selectionFinished = false
+
+    fileprivate func complete(_ value: Int32?) {
+        guard !self.selectionFinished else { return }
+        self.selectionFinished = true
+        self.completion(value)
+    }
+
+    override public func dismiss(completion: (() -> Void)? = nil) {
+        if !self.selectionFinished {
+            self.selectionFinished = true
+            self.cancelled?()
+        }
+        super.dismiss(completion: completion)
+    }
+
 
     private static func legacyConfiguration(
         style: ChatTimerScreenStyle,

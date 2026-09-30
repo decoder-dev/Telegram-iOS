@@ -572,7 +572,7 @@ private final class ChatScheduleTimeSheetContentComponent: Component {
                         guard let self, let component = self.component, let controller = self.environment?.controller() as? ChatScheduleTimeScreen else {
                             return
                         }
-                        controller.completion(
+                        controller.complete(
                             ChatScheduleTimeScreen.Result(
                                 time: Int32(self.date?.timeIntervalSince1970 ?? 0),
                                 repeatPeriod: self.repeatPeriod,
@@ -621,7 +621,7 @@ private final class ChatScheduleTimeSheetContentComponent: Component {
                             guard let self, let component = self.component, let controller = self.environment?.controller() as? ChatScheduleTimeScreen else {
                                 return
                             }
-                            controller.completion(
+                            controller.complete(
                                 ChatScheduleTimeScreen.Result(
                                     time: 0,
                                     repeatPeriod: nil,
@@ -663,7 +663,7 @@ private final class ChatScheduleTimeSheetContentComponent: Component {
                             guard let self, let component = self.component, let controller = self.environment?.controller() as? ChatScheduleTimeScreen else {
                                 return
                             }
-                            controller.completion(
+                            controller.complete(
                                 ChatScheduleTimeScreen.Result(
                                     time: scheduleWhenOnlineTimestamp,
                                     repeatPeriod: nil,
@@ -1111,6 +1111,23 @@ public class ChatScheduleTimeScreen: ViewControllerComponentContainer {
     }
     
     fileprivate let completion: (Result) -> Void
+    public var cancelled: (() -> Void)?
+    private var selectionFinished = false
+
+    fileprivate func complete(_ value: Result) {
+        guard !self.selectionFinished else { return }
+        self.selectionFinished = true
+        self.completion(value)
+    }
+
+    override public func dismiss(completion: (() -> Void)? = nil) {
+        if !self.selectionFinished {
+            self.selectionFinished = true
+            self.cancelled?()
+        }
+        super.dismiss(completion: completion)
+    }
+
     
     public init(
         context: AccountContext,
