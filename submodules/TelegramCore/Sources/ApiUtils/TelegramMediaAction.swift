@@ -369,6 +369,8 @@ func telegramMediaActionFromApiAction(_ action: Api.MessageAction) -> TelegramMe
         return TelegramMediaAction(action: .pollOptionAppended(TelegramMediaPollOption(apiOption: messageActionPollAppendAnswerData.answer)))
     case let .messageActionPollDeleteAnswer(messageActionPollDeleteAnswerData):
         return TelegramMediaAction(action: .pollOptionDeleted(TelegramMediaPollOption(apiOption: messageActionPollDeleteAnswerData.answer)))
+    case .messageActionChatJoinedViaCommunity:
+        return TelegramMediaAction(action: .joinedChannel)
     case let .messageActionChangeCommunity(messageActionChangeCommunityData):
         let communityId = messageActionChangeCommunityData.communityId.flatMap {
             PeerId(namespace: Namespaces.Peer.CloudChannel, id: PeerId.Id._internalFromInt64Value($0))

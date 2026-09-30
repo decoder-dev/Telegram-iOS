@@ -80,6 +80,14 @@ extension RichText {
             self = .textMentionName(text: RichText(apiText: textMentionNameData.text), peerId: textMentionNameData.userId)
         case let .textSpoiler(textSpoilerData):
             self = .textSpoiler(text: RichText(apiText: textSpoilerData.text))
+        case let .textButton(value):
+            let label = RichText(apiText: value.text)
+            if case let .inlineButtonTypeUrl(url) = value.type {
+                self = .url(text: label, url: url.url, webpageId: nil)
+            } else {
+                // Preserve the label; bot callbacks require a message context.
+                self = label
+            }
         case .textDiff:
             self = .empty
         }

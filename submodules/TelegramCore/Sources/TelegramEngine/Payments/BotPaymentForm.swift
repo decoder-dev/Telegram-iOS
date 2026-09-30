@@ -421,7 +421,7 @@ func _internal_parseInputInvoice(transaction: Transaction, source: BotPaymentInv
         if ton {
             flags |= 1 << 0
         }
-        return .inputInvoiceStarGiftResale(.init(flags: flags, slug: slug, toId: inputPeer))
+        return .inputInvoiceStarGiftResale(.init(flags: flags, slug: slug, toId: inputPeer, message: nil))
     case let .starGiftPrepaidUpgrade(peerId, hash):
         guard let peer = transaction.getPeer(peerId), let inputPeer = apiInputPeer(peer) else {
             return nil

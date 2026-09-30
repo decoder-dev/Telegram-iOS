@@ -588,7 +588,9 @@ private final class ChatMessageActionButtonNode: ASDisplayNode {
                     node.accessibilityArea.frame = CGRect(origin: CGPoint(), size: CGSize(width: width, height: 42.0))
                     
                     if let buttonView = node.buttonView {
-                        let isEnabled = customInfo?.isEnabled ?? true
+                        let protocolEnabled: Bool
+                        if case .disabled = button.action { protocolEnabled = false } else { protocolEnabled = true }
+                        let isEnabled = protocolEnabled && (customInfo?.isEnabled ?? true)
                         if buttonView.isEnabled != isEnabled {
                             buttonView.isEnabled = isEnabled
                             
