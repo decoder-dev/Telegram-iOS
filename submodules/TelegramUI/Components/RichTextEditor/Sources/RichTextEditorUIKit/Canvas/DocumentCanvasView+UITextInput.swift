@@ -717,7 +717,7 @@ extension DocumentCanvasView: UIKeyInput {
         // (merges with the previous sibling). Mirrors the flat empty-quote branch above, adapted for the
         // `BlockQuoteBox` container structure.
         if selFrom == selTo, isInsideBlockQuote(head),
-           let active = activeStack(at: head), let child = active.box as? BlockBox,
+           let active = activeStack(at: head), active.box is BlockBox,
            active.local == 0,
            active.stack.boxes.count == 1 {
             unwrapBlockQuoteLevel()   // already wraps itself in editing { }

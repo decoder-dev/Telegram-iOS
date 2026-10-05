@@ -258,7 +258,7 @@ kernel void videoTriPlanarToRGBA(
 ) {
     half y = inTextureY.read(threadPosition).r;
     uint2 uvPosition = uint2(threadPosition.x / 2, threadPosition.y / 2);
-    half2 inUV = (inTextureU.read(uvPosition).r, inTextureV.read(uvPosition).r);
+    half2 inUV = half2(inTextureU.read(uvPosition).r, inTextureV.read(uvPosition).r);
     half2 uv = inUV - half2(0.5, 0.5);
     
     half4 color(y + 1.403 * uv.y, y - 0.344 * uv.x - 0.714 * uv.y, y + 1.770 * uv.x, 1.0);

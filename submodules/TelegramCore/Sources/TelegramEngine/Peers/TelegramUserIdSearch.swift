@@ -57,15 +57,8 @@ func telegramSearchUserById(accountPeerId: PeerId, postbox: Postbox, network: Ne
                 return .single(nil)
             }
             return postbox.transaction { transaction -> FoundPeer? in
-                var foundUser: TelegramUser?
-                for apiUser in result {
-                    if let user = TelegramUser.merge(transaction: transaction, apiUser: apiUser) {
-                        if user.id == peerId {
-                            foundUser = user
-                        }
-                    }
-                }
-                guard let user = foundUser, telegramCanOpenIdSearchUser(user, accountPeerId: accountPeerId) else {
+                updatePeers(transaction: transaction, accountPeerId: accountPeerId, peers: AccumulatedPeers(users: result))
+                guard let user = transaction.getPeer(peerId) as? TelegramUser, telegramCanOpenIdSearchUser(user, accountPeerId: accountPeerId) else {
                     return nil
                 }
                 if case .bots = scope, user.botInfo == nil {
