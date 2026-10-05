@@ -28,6 +28,17 @@ public enum TelegramSearchPeersScope: Equatable, Hashable {
 }
 
 public func _internal_searchPeers(accountPeerId: PeerId, postbox: Postbox, network: Network, query: String, scope: TelegramSearchPeersScope) -> Signal<([FoundPeer], [FoundPeer]), NoError> {
+    if let userId = telegramUserIdFromSearchQuery(query) {
+        return telegramSearchUserById(accountPeerId: accountPeerId, postbox: postbox, network: network, userId: userId, scope: scope)
+        |> map { foundPeer -> ([FoundPeer], [FoundPeer]) in
+            if let foundPeer = foundPeer {
+                return ([], [foundPeer])
+            } else {
+                return ([], [])
+            }
+        }
+    }
+
     var flags: Int32 = 0
     switch scope {
     case .channels:
