@@ -12,7 +12,7 @@ public enum ProxyServerStatus: Equatable {
     case available(Double)
 }
 
-private let proxyStatusPingTimeout: Double = 15.0
+private let proxyStatusPingTimeout: Double = 7.0
 
 private func pingProxyStatus(context: MTContext, datacenterId: Int, settings: MTSocksProxySettings) -> Signal<ProxyServerStatus, NoError> {
     return Signal { subscriber in

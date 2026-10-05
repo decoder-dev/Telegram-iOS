@@ -139,7 +139,20 @@ func applySharedProxySettingsToNetwork(settings: ProxySettings, network: Network
     
     network.context.updateApiEnvironment { environment in
         let current = environment?.socksProxySettings
-        let updated = resolvedProxySettings
+        let updated: MTSocksProxySettings?
+        if isActiveWebProxy || isActiveVlessProxy {
+            if let resolvedProxySettings = resolvedProxySettings {
+                updated = resolvedProxySettings
+            } else if let current = current {
+                // Sidecar not ready yet (bootstrap / resume) — keep the previous endpoint
+                // rather than falling back to a direct connection.
+                updated = current
+            } else {
+                updated = nil
+            }
+        } else {
+            updated = resolvedProxySettings
+        }
         let updateNetwork: Bool
         if previousForceLocalDNS != settings.useLocalDNSForProxyHosts {
             updateNetwork = true

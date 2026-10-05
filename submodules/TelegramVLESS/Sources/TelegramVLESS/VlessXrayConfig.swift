@@ -44,16 +44,16 @@ public enum VlessXrayConfig {
             "security": profile.security.rawValue,
         ]
         
-        var sockopt: [String: Any] = [:]
+        var sockopt: [String: Any] = [
+            "tcpKeepAliveInterval": 15
+        ]
         if let downFrame = profile.sockoptDownFrame {
             sockopt["downFrame"] = downFrame
         }
         if let scStream = profile.sockoptScStreamDownServerSecs {
             sockopt["scStreamDownServerSecs"] = scStream
         }
-        if !sockopt.isEmpty {
-            stream["sockopt"] = sockopt
-        }
+        stream["sockopt"] = sockopt
         switch profile.transport {
         case .tcp:
             break
@@ -186,6 +186,10 @@ public enum VlessXrayConfig {
                         ],
                     ],
                     "streamSettings": stream,
+                    "mux": [
+                        "enabled": true,
+                        "concurrency": 8
+                    ]
                 ],
             ],
         ]
