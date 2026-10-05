@@ -2082,6 +2082,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         })
 
         WebProxyManager.shared.applicationDidEnterBackground()
+        TelegramSideloadNotificationEngine.shared.beginBackgroundKeepAlive(application: application)
 
         // Keep the WEB proxy carrier alive briefly in the background so the next foreground
         // resume can skip the carrier rebuild (avoids "Connecting" flicker). A single PING is
@@ -2148,6 +2149,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         }
 
         WebProxyManager.shared.applicationWillEnterForeground()
+        TelegramSideloadNotificationEngine.shared.endBackgroundKeepAlive(application: application)
         
         self.runForegroundTasks()
         
