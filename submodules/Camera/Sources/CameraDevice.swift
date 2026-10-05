@@ -341,7 +341,7 @@ final class CameraDevice {
     }
 
     private func clampedZoomFactor(_ value: CGFloat, for device: AVCaptureDevice) -> CGFloat {
-        let minimum = max(1.0, device.minAvailableVideoZoomFactor)
+        let minimum = device.minAvailableVideoZoomFactor
         let maximum = max(minimum, device.maxAvailableVideoZoomFactor)
         return min(maximum, max(minimum, value))
     }
