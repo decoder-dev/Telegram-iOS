@@ -44,10 +44,10 @@ func telegramSearchUserById(accountPeerId: PeerId, postbox: Postbox, network: Ne
             }
             return .single(FoundPeer(peer: EnginePeer(user), subscribers: nil))
         }
-        return network.request(Api.functions.users.getUsers(id: [.inputUser(userId: userId, accessHash: 0)]))
+        return network.request(Api.functions.users.getUsers(id: [.inputUser(.init(userId: userId, accessHash: 0))]))
         |> map(Optional.init)
         |> `catch` { _ in
-            return Signal<Api.Vector<Api.User>?, NoError>.single(nil)
+            return Signal<[Api.User]?, NoError>.single(nil)
         }
         |> mapToSignal { result -> Signal<FoundPeer?, NoError> in
             guard let result = result else {
