@@ -1,4 +1,4 @@
-import Foundation
+﻿import Foundation
 import SwiftSignalKit
 import Postbox
 import TelegramApi
@@ -1053,6 +1053,17 @@ public extension TelegramEngine {
         }
         
         public func storySubscriptions(isHidden: Bool, tempKeepNewlyArchived: Bool = false) -> Signal<EngineStorySubscriptions, NoError> {
+            // Shadow-banned peers leave the story strip, the archive strip and the viewer's peer sequence.
+            return combineLatest(
+                self.ArenaUnfilteredStorySubscriptions(isHidden: isHidden, tempKeepNewlyArchived: tempKeepNewlyArchived),
+                TelegramShadowBan.stateSignal()
+            )
+            |> map { subscriptions, state -> EngineStorySubscriptions in
+                return TelegramShadowBan.filteringHidden(subscriptions, state: state)
+            }
+        }
+
+        private func ArenaUnfilteredStorySubscriptions(isHidden: Bool, tempKeepNewlyArchived: Bool) -> Signal<EngineStorySubscriptions, NoError> {
             return `deferred` { () -> Signal<EngineStorySubscriptions, NoError> in
                 let debugTimerSignal: Signal<Bool, NoError>
 #if DEBUG && false

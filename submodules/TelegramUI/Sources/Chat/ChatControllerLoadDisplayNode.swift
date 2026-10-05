@@ -1,4 +1,4 @@
-import Foundation
+﻿import Foundation
 import UIKit
 import Postbox
 import SwiftSignalKit
@@ -1180,7 +1180,8 @@ extension ChatControllerImpl {
                 guard let self else {
                     return
                 }
-                let (results, state) = searchResult
+                let (unfilteredResults, state) = searchResult
+                let results = TelegramShadowBan.filteringHidden(unfilteredResults)
                 let isEmpty = results.totalCount == 0
                 if isEmpty {
                     self.alwaysShowSearchResultsAsList = true
@@ -2082,7 +2083,7 @@ extension ChatControllerImpl {
                 }
                 
                 strongSelf.commitPurposefulAction()
-                // Pass Message objects directly — re-fetching by id alone used to drop sources that
+                // Pass Message objects directly вЂ” re-fetching by id alone used to drop sources that
                 // were not yet in Postbox (search / partial history), so the first Forward tap
                 // opened an empty picker / sent nothing until a second attempt.
                 strongSelf.context.engine.messages.ensureMessagesAreLocallyAvailable(messages: messages.map(EngineMessage.init))
@@ -5150,6 +5151,9 @@ extension ChatControllerImpl {
                 if let activitySpace = activitySpace, let peerId = peerId {
                     self.peerInputActivitiesDisposable?.dispose()
                     self.peerInputActivitiesDisposable = (self.context.account.peerInputActivities(peerId: activitySpace)
+                    |> map { activities -> [(PeerId, PeerInputActivity)] in
+                        return activities.filter { !TelegramShadowBan.isPeerHidden($0.0, inChat: activitySpace.peerId) }
+                    }
                     |> mapToSignal { activities -> Signal<[(EnginePeer, PeerInputActivity)], NoError> in
                         var foundAllPeers = true
                         var cachedResult: [(EnginePeer, PeerInputActivity)] = []

@@ -94,21 +94,21 @@ private final class ContextControllerContentSourceImpl: ContextControllerContent
 }
 
 public class ChatListControllerImpl: TelegramBaseController, ChatListController {
-    private var donutgramSnowView: DGSnowView?
+    private var ArenaSnowView: DGSnowView?
     
-    /// Donutgram В«РЎРЅРµРіВ» over the whole list, header included. It is installed on the first layout, on top of
+    /// Arena В«РЎРЅРµРіВ» over the whole list, header included. It is installed on the first layout, on top of
     /// what exists by then; `DGSnowView` itself follows the toggle and stops while the list is off screen.
-    private func updateDonutgramSnow(size: CGSize) {
+    private func updateArenaSnow(size: CGSize) {
         if self.previewing {
             return
         }
         let snowView: DGSnowView
-        if let current = self.donutgramSnowView {
+        if let current = self.ArenaSnowView {
             snowView = current
         } else {
             snowView = DGSnowView()
             self.view.addSubview(snowView)
-            self.donutgramSnowView = snowView
+            self.ArenaSnowView = snowView
         }
         snowView.frame = CGRect(origin: CGPoint(), size: size)
         snowView.update(isDark: self.presentationData.theme.overallDarkAppearance)
@@ -3171,7 +3171,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
         self.validLayout = layout
         
         self.updateLayout(layout: layout, transition: transition)
-        self.updateDonutgramSnow(size: layout.size)
+        self.updateArenaSnow(size: layout.size)
         
         if layout.inVoiceOver != wasInVoiceOver {
             self.chatListDisplayNode.scrollToTop()
@@ -4537,7 +4537,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                     }
                 )
                 // `answered` is true only once the question below was answered.
-                storyContainerScreen.donutgramGhostPromptAnswered = answered
+                storyContainerScreen.ArenaGhostPromptAnswered = answered
                 if let componentView = self.chatListHeaderView() {
                     componentView.storyPeerListView()?.setPreviewedItem(signal: storyContainerScreen.focusedItem)
                 }
@@ -4548,7 +4548,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
             if skipGhostPrompt || peerId == self.context.account.peerId || storyContentState.slice == nil {
                 open(false)
             } else {
-                let _ = StoryContainerScreen.askDonutgramStoryGhostIfNeeded(context: self.context, parentController: self, open: open).startStandalone()
+                let _ = StoryContainerScreen.askArenaStoryGhostIfNeeded(context: self.context, parentController: self, open: open).startStandalone()
             }
         })
     }
@@ -7213,8 +7213,8 @@ private final class ChatListLocationContext {
         case let .chatList(groupId):
             if groupId == .root {
                 switch .chats {
-                case .donutgram:
-                    defaultTitle = "Donutgram"
+                case .Arena:
+                    defaultTitle = "Arena"
                 case .username:
                     if let addressName = accountPeer?.addressName, !addressName.isEmpty {
                         defaultTitle = "@\(addressName)"

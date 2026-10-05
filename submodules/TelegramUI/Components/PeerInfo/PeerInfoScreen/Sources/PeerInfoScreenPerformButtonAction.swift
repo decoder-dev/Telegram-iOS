@@ -1,4 +1,4 @@
-import Foundation
+﻿import Foundation
 import UIKit
 import Display
 import AccountContext
@@ -12,6 +12,7 @@ import NotificationExceptionsScreen
 import TranslateUI
 import TelegramNotices
 import AlertComponent
+
 import SettingsUI
 import TelegramUIPreferences
 
@@ -1279,7 +1280,39 @@ extension PeerInfoScreenNode {
                         }
                     }
                 }
-                
+
+                // Arena: В«РўРµРЅРµРІРѕР№ Р±Р°РЅВ» for people, bots and channels, В«РџРѕРєР°Р·Р°С‚СЊ СЃРєСЂС‹С‚С‹РµВ» for chats that hide messages.
+                var shadowBanItems: [ContextMenuItem] = []
+                if TelegramShadowBan.canBan(peer, accountPeerId: strongSelf.context.account.peerId) {
+                    let isBanned = ArenaSettings.shared.isShadowBanned(peer.id.toInt64())
+                    shadowBanItems.append(.action(ContextMenuActionItem(text: isBanned ? "РЈР±СЂР°С‚СЊ РёР· С‚РµРЅРµРІРѕРіРѕ Р±Р°РЅР°" : "РўРµРЅРµРІРѕР№ Р±Р°РЅ", icon: { theme in
+                        generateTintedImage(image: UIImage(systemName: isBanned ? "eye" : "eye.slash", withConfiguration: UIImage.SymbolConfiguration(pointSize: 18.0, weight: .regular)), color: theme.contextMenu.primaryColor)
+                    }, action: { [weak self] _, f in
+                        f(.dismissWithoutContent)
+                        guard let self, let controller = self.controller else {
+                            return
+                        }
+                        dgToggleShadowBan(context: self.context, peer: peer, present: { [weak controller] toast in
+                            controller?.present(toast, in: .current)
+                        })
+                    })))
+                }
+                if ArenaSettings.shared.hasShadowBans && TelegramShadowBan.appliesToChat(peer) {
+                    let isRevealed = ArenaSettings.shared.isShadowBanRevealed(chatPeerId: peer.id.toInt64())
+                    shadowBanItems.append(.action(ContextMenuActionItem(text: isRevealed ? "РЎРїСЂСЏС‚Р°С‚СЊ СЃРєСЂС‹С‚С‹Рµ СЃРѕРѕР±С‰РµРЅРёСЏ" : "РџРѕРєР°Р·Р°С‚СЊ СЃРєСЂС‹С‚С‹Рµ СЃРѕРѕР±С‰РµРЅРёСЏ", icon: { theme in
+                        generateTintedImage(image: UIImage(systemName: isRevealed ? "eye.slash" : "eye", withConfiguration: UIImage.SymbolConfiguration(pointSize: 18.0, weight: .regular)), color: theme.contextMenu.primaryColor)
+                    }, action: { _, f in
+                        f(.dismissWithoutContent)
+                        ArenaSettings.shared.setShadowBanRevealed(!isRevealed, chatPeerId: peer.id.toInt64())
+                    })))
+                }
+                if !shadowBanItems.isEmpty {
+                    if !items.isEmpty {
+                        items.append(.separator)
+                    }
+                    items.append(contentsOf: shadowBanItems)
+                }
+
                 return .single(items)
             }
             

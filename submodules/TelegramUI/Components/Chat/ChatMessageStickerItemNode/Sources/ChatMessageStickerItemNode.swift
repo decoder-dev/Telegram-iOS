@@ -1,4 +1,4 @@
-import Foundation
+﻿import Foundation
 import UIKit
 import AsyncDisplayKit
 import Display
@@ -760,7 +760,8 @@ public class ChatMessageStickerItemNode: ChatMessageItemView {
                     constrainedSize: CGSize(width: availableWidth, height: CGFloat.greatestFiniteMagnitude),
                     animationCache: item.controllerInteraction.presentationContext.animationCache,
                     animationRenderer: item.controllerInteraction.presentationContext.animationRenderer,
-                    associatedData: item.associatedData
+                    associatedData: item.associatedData,
+                    ArenaHidden: TelegramShadowBan.hidesReplyHeader(in: item.message)
                 ))
             }
             
@@ -1538,6 +1539,12 @@ public class ChatMessageStickerItemNode: ChatMessageItemView {
                 
                 if let replyInfoNode = self.replyInfoNode, replyInfoNode.frame.contains(location) {
                     if let item = self.item {
+                        // The hidden message is not in the chat, so there is nowhere to go.
+                        if TelegramShadowBan.hidesReplyHeader(in: item.message) {
+                            return .optionalAction({
+                                item.controllerInteraction.displayMessageTooltip(item.message.id, ChatMessageReplyInfoNode.ArenaHiddenTooltip, false, replyInfoNode, nil)
+                            })
+                        }
                         for attribute in item.message.attributes {
                             if let attribute = attribute as? ReplyMessageAttribute {
                                 return .optionalAction({

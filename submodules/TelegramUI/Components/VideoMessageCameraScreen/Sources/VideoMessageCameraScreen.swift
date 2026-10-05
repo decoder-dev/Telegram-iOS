@@ -31,7 +31,7 @@ import ChatControllerInteraction
 import LottieComponent
 import GlassBackgroundComponent
 
-// Donutgram: the round-video zoom control. Collapsed, it is a glass capsule like the camera buttons next to it, with one
+// Arena: the round-video zoom control. Collapsed, it is a glass capsule like the camera buttons next to it, with one
 // button per lens; the button of the lens in use shows the live zoom, as in the Camera app. A swipe on it or a pinch turns
 // the same capsule into a dial: the ticks move under a fixed center mark and the value sits above the mark, inside the
 // capsule, so nothing covers the video.

@@ -1263,7 +1263,7 @@ public final class AvatarNode: ASDisplayNode {
             return
         }
         guard self.isNodeLoaded else { return }
-        let enabled = DGSimpleSettings.shared.avatarGlow && !self.bounds.isEmpty
+        let enabled = ArenaSettings.shared.avatarGlow && !self.bounds.isEmpty
         if enabled { self.layer.shadowColor = self.contentNode.glowColor.cgColor }
         self.layer.shadowOffset = .zero
         self.layer.shadowRadius = min(12.0, self.bounds.width * 0.18)
@@ -1354,7 +1354,7 @@ public final class AvatarNode: ASDisplayNode {
             }
             self.updateStoryIndicator(transition: .immediate)
             self.updateGlow()
-            self.glowObserver = NotificationCenter.default.addObserver(forName: DGSimpleSettings.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
+            self.glowObserver = NotificationCenter.default.addObserver(forName: ArenaSettings.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
                 self?.updateGlow()
             }
         }
