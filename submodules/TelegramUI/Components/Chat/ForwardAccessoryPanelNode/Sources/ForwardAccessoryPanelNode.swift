@@ -170,10 +170,30 @@ public final class ForwardAccessoryPanelNode: AccessoryPanelNode {
             )
         }
         
-        self.messageDisposable.set((context.engine.data.get(EngineDataMap(messageIds.map(TelegramEngine.EngineData.Item.Messages.Message.init)))
-        |> map { messageMap -> [EngineRawMessage] in
-            return messageIds.compactMap { messageMap[$0]??._asMessage() }
+        self.messageDisposable.set((context.engine.messages.getMessagesLoadIfNecessary(messageIds, strategy: .cloud(skipLocal: false))
+        |> mapToSignal { result -> Signal<[EngineRawMessage], GetMessagesError> in
+            switch result {
+            case .progress:
+                return .never()
+            case let .result(messages):
+                return .single(messages)
+            }
         }
+        |> `catch` { _ -> Signal<[EngineRawMessage], NoError> in
+            return .single([])
+        }
+        |> mapToSignal { loaded -> Signal<[EngineRawMessage], NoError> in
+            if !loaded.isEmpty {
+                return .single(loaded)
+            }
+            return context.engine.data.get(EngineDataMap(
+                messageIds.map(TelegramEngine.EngineData.Item.Messages.Message.init)
+            ))
+            |> map { map in
+                map.values.compactMap { $0?._asMessage() }
+            }
+        }
+        |> take(1)
         |> deliverOnMainQueue).start(next: { [weak self] messages in
             if let strongSelf = self {
                 if messages.isEmpty {
