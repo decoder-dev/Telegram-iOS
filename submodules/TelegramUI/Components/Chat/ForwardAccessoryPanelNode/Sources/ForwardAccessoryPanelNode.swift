@@ -174,17 +174,17 @@ public final class ForwardAccessoryPanelNode: AccessoryPanelNode {
         |> mapToSignal { result -> Signal<[EngineRawMessage], GetMessagesError> in
             switch result {
             case .progress:
-                return .never()
+                return Signal<[EngineRawMessage], GetMessagesError>.never()
             case let .result(messages):
-                return .single(messages)
+                return Signal<[EngineRawMessage], GetMessagesError>.single(messages)
             }
         }
         |> `catch` { _ -> Signal<[EngineRawMessage], NoError> in
-            return .single([])
+            return Signal<[EngineRawMessage], NoError>.single([])
         }
         |> mapToSignal { loaded -> Signal<[EngineRawMessage], NoError> in
             if !loaded.isEmpty {
-                return .single(loaded)
+                return Signal<[EngineRawMessage], NoError>.single(loaded)
             }
             return context.engine.data.get(EngineDataMap(
                 messageIds.map(TelegramEngine.EngineData.Item.Messages.Message.init)
