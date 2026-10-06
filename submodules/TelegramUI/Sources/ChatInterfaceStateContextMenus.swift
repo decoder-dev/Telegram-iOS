@@ -1,4 +1,4 @@
-﻿import Foundation
+import Foundation
 import UIKit
 import TelegramCore
 import AsyncDisplayKit
@@ -38,9 +38,7 @@ import ChatMessageItemView
 import ChatMessageBubbleItemNode
 import AdsInfoScreen
 import AdsReportScreen
-
-
-import DGSettingsUI 
+ 
 private struct MessageContextMenuData {
     let starStatus: Bool?
     let canReply: Bool
