@@ -1,4 +1,4 @@
-﻿import Foundation
+import Foundation
 
 public class ArenaSettings {
     public static let shared = ArenaSettings()
@@ -40,4 +40,7 @@ public class ArenaSettings {
     }
     
     public var semiTransparentDeletedMessages: Bool { return true }
+    public var avatarGlow: Bool { return true }
+    public var stickerReplyOptions: Int { return 7 }
 }
+

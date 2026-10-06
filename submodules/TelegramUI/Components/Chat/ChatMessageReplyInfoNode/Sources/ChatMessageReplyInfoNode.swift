@@ -1,4 +1,4 @@
-﻿import Foundation
+import Foundation
 import UIKit
 import AsyncDisplayKit
 import Display
@@ -223,7 +223,8 @@ public class ChatMessageReplyInfoNode: ASDisplayNode {
             let isStickerReply = [arguments.message, Optional(arguments.parentMessage)].compactMap { $0 }.contains { message in
                 message.media.contains { ($0 as? TelegramMediaFile)?.isSticker == true }
             }
-            let replyOptions = isStickerReply ? ArenaSettings.shared.stickerReplyOptions : 7            let fontSize = floor(arguments.presentationData.fontSize.baseDisplaySize * 14.0 / 17.0)
+            let replyOptions = isStickerReply ? ArenaSettings.shared.stickerReplyOptions : 7
+            let fontSize = floor(arguments.presentationData.fontSize.baseDisplaySize * 14.0 / 17.0)
             let titleFont = Font.semibold(fontSize)
             let textFont = Font.regular(fontSize)
             

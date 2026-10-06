@@ -1,4 +1,4 @@
-﻿import Foundation
+import Foundation
 import UIKit
 import AsyncDisplayKit
 import Display
@@ -744,7 +744,8 @@ open class ChatMessageItemView: ListViewItemNode, ChatMessageItemNodeProtocol {
         let isRevealedShadowBanned = ArenaSettings.shared.isShadowBanRevealed(chatPeerId: item.message.id.peerId.toInt64()) && item.content.contains(where: { element in
             TelegramShadowBan.isBannedContent(element.0)
         })
-        self.alpha = (isDeleted && ArenaSettings.shared.semiTransparentDeletedMessages) || isRevealedShadowBanned ? 0.55 : 1.0    }
+        self.alpha = (isDeleted && ArenaSettings.shared.semiTransparentDeletedMessages) || isRevealedShadowBanned ? 0.55 : 1.0
+    }
     
     open func updateAccessibilityData(_ accessibilityData: ChatMessageAccessibilityData) {
         self.accessibilityData = accessibilityData
