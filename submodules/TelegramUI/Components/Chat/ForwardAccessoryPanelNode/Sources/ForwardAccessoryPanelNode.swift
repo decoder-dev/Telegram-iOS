@@ -189,8 +189,8 @@ public final class ForwardAccessoryPanelNode: AccessoryPanelNode {
             return context.engine.data.get(EngineDataMap(
                 messageIds.map(TelegramEngine.EngineData.Item.Messages.Message.init)
             ))
-            |> map { map in
-                map.values.compactMap { $0?._asMessage() }
+            |> map { messageMap -> [EngineRawMessage] in
+                return messageIds.compactMap { messageMap[$0]??._asMessage() }
             }
         }
         |> take(1)
