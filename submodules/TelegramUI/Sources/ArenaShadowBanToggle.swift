@@ -5,7 +5,7 @@ import Display
 import TelegramCore
 import UndoUI
 
-public func dgToggleShadowBan(context: AccountContext, peer: EnginePeer, present: @escaping (ViewController) -> Void) {
+public func arenaToggleShadowBan(context: AccountContext, peer: EnginePeer, present: @escaping (ViewController) -> Void) {
     let peerId = peer.id.toInt64()
     let isBanned = ArenaSettings.shared.isShadowBanned(peerId)
     ArenaSettings.shared.setShadowBanned(!isBanned, peerId: peerId)
@@ -30,3 +30,8 @@ public func dgToggleShadowBan(context: AccountContext, peer: EnginePeer, present
     )
     present(controller)
 }
+
+public func dgToggleShadowBan(context: AccountContext, peer: EnginePeer, present: @escaping (ViewController) -> Void) {
+    arenaToggleShadowBan(context: context, peer: peer, present: present)
+}
+

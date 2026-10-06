@@ -1,4 +1,4 @@
-﻿import Foundation
+import Foundation
 import UIKit
 import Display
 import AccountContext
@@ -1281,18 +1281,18 @@ extension PeerInfoScreenNode {
                     }
                 }
 
-                // Arena: В«РўРµРЅРµРІРѕР№ Р±Р°РЅВ» for people, bots and channels, В«РџРѕРєР°Р·Р°С‚СЊ СЃРєСЂС‹С‚С‹РµВ» for chats that hide messages.
+                // Arena: «Теневой бан» for people, bots and channels, «Показать скрытые» for chats that hide messages.
                 var shadowBanItems: [ContextMenuItem] = []
                 if TelegramShadowBan.canBan(peer, accountPeerId: strongSelf.context.account.peerId) {
                     let isBanned = ArenaSettings.shared.isShadowBanned(peer.id.toInt64())
-                    shadowBanItems.append(.action(ContextMenuActionItem(text: isBanned ? "РЈР±СЂР°С‚СЊ РёР· С‚РµРЅРµРІРѕРіРѕ Р±Р°РЅР°" : "РўРµРЅРµРІРѕР№ Р±Р°РЅ", icon: { theme in
+                    shadowBanItems.append(.action(ContextMenuActionItem(text: isBanned ? "Убрать из теневого бана" : "Теневой бан", icon: { theme in
                         generateTintedImage(image: UIImage(systemName: isBanned ? "eye" : "eye.slash", withConfiguration: UIImage.SymbolConfiguration(pointSize: 18.0, weight: .regular)), color: theme.contextMenu.primaryColor)
                     }, action: { [weak self] _, f in
                         f(.dismissWithoutContent)
                         guard let self, let controller = self.controller else {
                             return
                         }
-                        dgToggleShadowBan(context: self.context, peer: peer, present: { [weak controller] toast in
+                        arenaToggleShadowBan(context: self.context, peer: peer, present: { [weak controller] toast in
                             controller?.present(toast, in: .current)
                         })
                     })))
@@ -1348,3 +1348,30 @@ extension PeerInfoScreenNode {
         }
     }
 }
+
+private func arenaToggleShadowBan(context: AccountContext, peer: EnginePeer, present: @escaping (ViewController) -> Void) {
+    let peerId = peer.id.toInt64()
+    let isBanned = ArenaSettings.shared.isShadowBanned(peerId)
+    ArenaSettings.shared.setShadowBanned(!isBanned, peerId: peerId)
+    
+    let text = !isBanned ? "Добавлен в теневой бан" : "Удален из теневого бана"
+    
+    let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+    let controller = UndoOverlayController(
+        presentationData: presentationData,
+        content: .universal(
+            animation: !isBanned ? "anim_block" : "anim_unblock",
+            scale: 0.075,
+            colors: [:],
+            title: nil,
+            text: text,
+            customUndoText: nil,
+            timeout: nil
+        ),
+        elevatedLayout: false,
+        animateInAsReplacement: false,
+        action: { _ in return false }
+    )
+    present(controller)
+}
+

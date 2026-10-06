@@ -2018,7 +2018,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
                 return generateTintedImage(image: UIImage(systemName: isBanned ? "eye" : "eye.slash", withConfiguration: UIImage.SymbolConfiguration(pointSize: 18.0, weight: .regular)), color: theme.actionSheet.primaryTextColor)
             }, action: { _, f in
                 f(.dismissWithoutContent)
-                dgToggleShadowBan(context: context, peer: targetPeer, present: { controller in
+                arenaToggleShadowBan(context: context, peer: targetPeer, present: { controller in
                     controllerInteraction.presentControllerInCurrent(controller, nil)
                 })
             })))
