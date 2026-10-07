@@ -2014,7 +2014,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
         if message.flags.contains(.Incoming), TelegramShadowBan.appliesToChat(message.id.peerId, chatPeer: message.peers[message.id.peerId]), let target = TelegramShadowBan.banTarget(of: message), target.id != message.id.peerId, TelegramShadowBan.canBan(EnginePeer(target), accountPeerId: context.account.peerId) {
             let targetPeer = EnginePeer(target)
             let isBanned = ArenaSettings.shared.isShadowBanned(target.id.toInt64())
-            actions.append(.action(ContextMenuActionItem(text: isBanned ? "Убрать из теневого бана" : "Теневой бан", icon: { theme in
+            actions.append(.action(ContextMenuActionItem(text: arenaShadowBanString(isBanned ? "Убрать из теневого бана" : "Теневой бан", strings: chatPresentationInterfaceState.strings), icon: { theme in
                 return generateTintedImage(image: UIImage(systemName: isBanned ? "eye" : "eye.slash", withConfiguration: UIImage.SymbolConfiguration(pointSize: 18.0, weight: .regular)), color: theme.actionSheet.primaryTextColor)
             }, action: { _, f in
                 f(.dismissWithoutContent)

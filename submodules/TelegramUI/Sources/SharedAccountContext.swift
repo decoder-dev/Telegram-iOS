@@ -1178,6 +1178,9 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             goOfflineAutomatically: settings.ghostGoOfflineAutomatically,
             readOnInteract: settings.ghostReadOnInteract
         )
+        BananaTabBarLayout.current = BananaTabBarLayout(hidden: settings.hideTabBar, contacts: settings.showContactsTab, calls: true, wide: settings.wideTabBar, integratedSearch: settings.integratedTabSearch, searchOnLeft: settings.tabSearchOnLeft)
+        ArenaSettings.shared.avatarGlow = settings.avatarGlowEnabled
+        ArenaSettings.shared.reactionGlow = settings.reactionGlowEnabled
         ForkAyuForwardSettings.enabled = settings.ayuForward
         ForkBypassDownloadRestrictionsSettings.enabled = settings.bypassDownloadRestrictions
         ForkLocalPremiumSettings.enabled = settings.localPremium

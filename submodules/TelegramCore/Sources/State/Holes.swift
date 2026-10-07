@@ -1208,7 +1208,7 @@ func fetchChatListHole(postbox: Postbox, network: Network, accountPeerId: PeerId
             transaction.updateCurrentPeerNotificationSettings(fetchedChats.notificationSettings)
             let _ = transaction.addMessages(fetchedChats.storeMessages, location: .UpperHistoryBlock)
             let _ = transaction.addMessages(additionalMessages, location: .Random)
-            transaction.resetIncomingReadStates(fetchedChats.readStates)
+            bananaResetIncomingReadStates(transaction: transaction, accountPeerId: accountPeerId, fetchedChats.readStates)
             
             for (peerId, autoremoveValue) in fetchedChats.ttlPeriods {
                 transaction.updatePeerCachedData(peerIds: Set([peerId]), update: { _, current in

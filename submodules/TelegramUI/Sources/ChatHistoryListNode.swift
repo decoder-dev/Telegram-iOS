@@ -2683,7 +2683,7 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
             if apply {
                 switch strongSelf.chatLocation {
                 case .peer, .replyThread:
-                    if !(strongSelf.context.sharedContext.immediateExperimentalUISettings.skipReadHistory || ForkGhostModeSettings.shouldSuppressMessageReads) && !strongSelf.context.account.isSupportUser {
+                    if !strongSelf.context.sharedContext.immediateExperimentalUISettings.skipReadHistory && !strongSelf.context.account.isSupportUser {
                         strongSelf.context.applyMaxReadIndex(for: strongSelf.chatLocation, contextHolder: strongSelf.chatLocationContextHolder, messageIndex: messageIndex)
                     }
                 case .customChatContents:

@@ -25,6 +25,8 @@ private final class SynchronizePeerReadStatesContextImpl {
     private let postbox: Postbox
     private let stateManager: AccountStateManager
     
+    private var ghostSettingsObserver: NSObjectProtocol?
+    private var ghostHidesReadReceipts = ForkGhostModeSettings.suppressMessageReads
     private var disposable: Disposable?
     
     private var currentState: [PeerId : PeerReadStateSynchronizationOperation] = [:]
@@ -49,6 +51,10 @@ private final class SynchronizePeerReadStatesContextImpl {
         self.network = network
         self.postbox = postbox
         self.stateManager = stateManager
+        self.ghostSettingsObserver = NotificationCenter.default.addObserver(forName: ForkGhostModeSettings.didChangeNotification, object: nil, queue: nil, using: { [weak self] _ in
+            self?.queue.async { [weak self] in self?.updateGhostLocalReads(initial: false) }
+        })
+        self.updateGhostLocalReads(initial: true)
         
         self.disposable = (postbox.synchronizePeerReadStatesView()
         |> deliverOn(self.queue)).start(next: { [weak self] view in
@@ -62,6 +68,7 @@ private final class SynchronizePeerReadStatesContextImpl {
     
     deinit {
         self.disposable?.dispose()
+        if let observer = self.ghostSettingsObserver { NotificationCenter.default.removeObserver(observer) }
         for (_, disposable) in self.retryDisposables {
             disposable.dispose()
         }
@@ -70,7 +77,22 @@ private final class SynchronizePeerReadStatesContextImpl {
     func dispose() {
     }
     
-    /// Holds the peer out of `update()` for an exponentially growing window, then lets it back in.
+    private func updateGhostLocalReads(initial: Bool) {
+        let hidesReadReceipts = ForkGhostModeSettings.suppressMessageReads
+        if !initial && hidesReadReceipts == self.ghostHidesReadReceipts {
+            return
+        }
+        self.ghostHidesReadReceipts = hidesReadReceipts
+        let accountPeerId = self.stateManager.accountPeerId
+        if hidesReadReceipts || !TelegramSimpleSettings.shared.hasGhostLocalReads(accountPeerId: accountPeerId.toInt64()) {
+            return
+        }
+        let _ = self.postbox.transaction({ transaction -> Void in
+            guard !ForkGhostModeSettings.suppressMessageReads else { return }
+            bananaRestoreGhostLocalReads(transaction: transaction, accountPeerId: accountPeerId)
+        }).start()
+    }
+
     private func scheduleRetry(peerId: PeerId, operation: PeerReadStateSynchronizationOperation) {
         let failureCount = (self.failureCounts[peerId] ?? 0) + 1
         self.failureCounts[peerId] = failureCount

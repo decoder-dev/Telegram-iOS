@@ -185,7 +185,10 @@ private func validatePeerReadState(network: Network, postbox: Postbox, stateMana
                         case let .idBased(localMaxIncomingReadId, _, _, _, _):
                             if case let .idBased(updatedMaxIncomingReadId, _, _, updatedCount, updatedMarkedUnread) = readState {
                                 if updatedCount != 0 || updatedMarkedUnread {
-                                    if localMaxIncomingReadId > updatedMaxIncomingReadId {
+                                    // Banana: a chat read only on this device in ghost mode is ahead of
+                                    // the server on purpose; it takes the server's state below and gets its
+                                    // local read back on top of it.
+                                    if localMaxIncomingReadId > updatedMaxIncomingReadId && bananaGhostLocalReadState(accountPeerId: stateManager.accountPeerId, peerId: peerId) == nil {
                                         return .retry
                                     }
                                 }
@@ -211,7 +214,11 @@ private func validatePeerReadState(network: Network, postbox: Postbox, stateMana
                     }
                 }
             }
+            let ghostLocalCount = bananaGhostLocalReadCount(transaction: transaction, accountPeerId: stateManager.accountPeerId, peerId: peerId)
             transaction.resetIncomingReadStates([peerId: [Namespaces.Message.Cloud: updatedReadState]])
+            if case let .idBased(maxIncomingReadId, _, _, count, markedUnread) = updatedReadState {
+                bananaGhostLocalReadDidApplyServerState(transaction: transaction, accountPeerId: stateManager.accountPeerId, peerId: peerId, serverMaxIncomingReadId: maxIncomingReadId, serverCount: count, serverMarkedUnread: markedUnread, localCount: ghostLocalCount)
+            }
             return nil
         }
         |> mapToSignalPromotingError { error -> Signal<Never, PeerReadStateValidationError> in
@@ -324,20 +331,31 @@ private func pushPeerReadState(network: Network, postbox: Postbox, stateManager:
 }
 
 private func pushPeerReadState(network: Network, postbox: Postbox, stateManager: AccountStateManager, peerId: PeerId) -> Signal<Never, PeerReadStateValidationError> {
-    let currentReadState = postbox.transaction { transaction -> (MessageId.Namespace, PeerReadState)? in
+    let currentReadState = postbox.transaction { transaction -> (namespaceAndReadState: (MessageId.Namespace, PeerReadState)?, isGhostLocalRead: Bool) in
+        // Banana: what ghost mode read only on this device never goes to the server. This
+        // is checked in the transaction that reads the state to push, so a local read can't
+        // get into the push.
+        if bananaGhostLocalReadState(accountPeerId: stateManager.accountPeerId, peerId: peerId) != nil {
+            return (nil, true)
+        }
         if let readStates = transaction.getPeerReadStates(peerId) {
             for (namespace, readState) in readStates {
                 if namespace == Namespaces.Message.Cloud || namespace == Namespaces.Message.SecretIncoming {
-                    return (namespace, readState)
+                    return ((namespace, readState), false)
                 }
             }
         }
-        return nil
+        return (nil, false)
     }
     
     let pushedState = currentReadState
-    |> mapToSignalPromotingError { namespaceAndReadState -> Signal<(MessageId.Namespace, PeerReadState), PeerReadStateValidationError> in
-        if let (namespace, readState) = namespaceAndReadState {
+    |> mapToSignalPromotingError { result -> Signal<(MessageId.Namespace, PeerReadState), PeerReadStateValidationError> in
+        if result.isGhostLocalRead {
+            // The validation keeps the local read on top of the server's state.
+            return validatePeerReadState(network: network, postbox: postbox, stateManager: stateManager, peerId: peerId)
+            |> map { _ -> (MessageId.Namespace, PeerReadState) in }
+        }
+        if let (namespace, readState) = result.namespaceAndReadState {
             return pushPeerReadState(network: network, postbox: postbox, stateManager: stateManager, peerId: peerId, readState: readState)
             |> map { updatedReadState -> (MessageId.Namespace, PeerReadState) in
                 return (namespace, updatedReadState)

@@ -71,7 +71,28 @@ public class ArenaSettings {
     }
     
     public var semiTransparentDeletedMessages: Bool { return true }
-    public var avatarGlow: Bool { return true }
+    public var avatarGlow: Bool {
+        get { self.locked { self.defaults.object(forKey: "avatarGlow") as? Bool ?? true } }
+        set {
+            let changed = self.locked { () -> Bool in
+                guard self.avatarGlow != newValue else { return false }
+                self.defaults.set(newValue, forKey: "avatarGlow")
+                return true
+            }
+            if changed { NotificationCenter.default.post(name: Self.didChangeNotification, object: nil) }
+        }
+    }
+    public var reactionGlow: Bool {
+        get { self.locked { self.defaults.bool(forKey: "reactionGlow") } }
+        set {
+            let changed = self.locked { () -> Bool in
+                guard self.reactionGlow != newValue else { return false }
+                self.defaults.set(newValue, forKey: "reactionGlow")
+                return true
+            }
+            if changed { NotificationCenter.default.post(name: Self.didChangeNotification, object: nil) }
+        }
+    }
     public var stickerReplyOptions: Int { return 7 }
 }
 

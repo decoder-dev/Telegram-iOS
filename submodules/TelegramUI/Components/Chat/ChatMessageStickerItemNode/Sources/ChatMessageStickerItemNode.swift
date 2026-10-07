@@ -1,4 +1,4 @@
-﻿import Foundation
+import Foundation
 import UIKit
 import AsyncDisplayKit
 import Display
@@ -1542,7 +1542,7 @@ public class ChatMessageStickerItemNode: ChatMessageItemView {
                         // The hidden message is not in the chat, so there is nowhere to go.
                         if TelegramShadowBan.hidesReplyHeader(in: item.message) {
                             return .optionalAction({
-                                item.controllerInteraction.displayMessageTooltip(item.message.id, ChatMessageReplyInfoNode.ArenaHiddenTooltip, false, replyInfoNode, nil)
+                                item.controllerInteraction.displayMessageTooltip(item.message.id, ChatMessageReplyInfoNode.ArenaHiddenTooltip(strings: item.presentationData.strings), false, replyInfoNode, nil)
                             })
                         }
                         for attribute in item.message.attributes {

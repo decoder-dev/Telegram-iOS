@@ -2,6 +2,7 @@ import Foundation
 import UIKit
 import AccountContext
 import Display
+import TelegramPresentationData
 import TelegramCore
 import UndoUI
 
@@ -10,7 +11,7 @@ public func arenaToggleShadowBan(context: AccountContext, peer: EnginePeer, pres
     let isBanned = ArenaSettings.shared.isShadowBanned(peerId)
     ArenaSettings.shared.setShadowBanned(!isBanned, peerId: peerId)
     
-    let text = !isBanned ? "Добавлен в теневой бан" : "Удален из теневого бана"
+    let text = arenaShadowBanString(!isBanned ? "Добавлен в теневой бан" : "Удален из теневого бана", strings: context.sharedContext.currentPresentationData.with { $0 }.strings)
     
     let presentationData = context.sharedContext.currentPresentationData.with { $0 }
     let controller = UndoOverlayController(

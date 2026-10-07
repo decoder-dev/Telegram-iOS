@@ -57,7 +57,9 @@ private let groupIcon: UIImage = {
 
 public class ChatMessageReplyInfoNode: ASDisplayNode {
     /// The tooltip for a tap on the placeholder of a reply to a shadow-banned message.
-    public static let ArenaHiddenTooltip = "Сообщение скрыто теневым баном"
+    public static func ArenaHiddenTooltip(strings: PresentationStrings) -> String {
+        return arenaShadowBanString("Сообщение скрыто теневым баном", strings: strings)
+    }
 
     public final class TransitionReplyPanel {
         public let titleView: UIView
@@ -697,8 +699,8 @@ public class ChatMessageReplyInfoNode: ASDisplayNode {
             adjustedConstrainedTextSize.width -= textLeftInset
             
             if arguments.ArenaHidden {
-                titleString = NSAttributedString(string: "Скрытое сообщение", font: titleFont, textColor: titleColor)
-                messageText = NSAttributedString(string: "Автор в теневом бане", font: textFont, textColor: textColor)
+                titleString = NSAttributedString(string: arenaShadowBanString("Скрытое сообщение", strings: arguments.strings), font: titleFont, textColor: titleColor)
+                messageText = NSAttributedString(string: arenaShadowBanString("Автор в теневом бане", strings: arguments.strings), font: textFont, textColor: textColor)
             }
             if arguments.isSummarized {
                 titleString = NSAttributedString(string: arguments.presentationData.strings.Conversation_Summary_Title, font: titleFont, textColor: titleColor)

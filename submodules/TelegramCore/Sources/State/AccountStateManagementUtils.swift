@@ -4666,6 +4666,7 @@ func replayFinalState(
                 updateMessageMedia(transaction: transaction, id: id, media: media)
             case let .ReadInbox(messageId):
                 transaction.applyIncomingReadMaxId(messageId)
+                bananaGhostLocalReadDidReadOnServer(accountPeerId: accountPeerId, messageId: messageId)
             case let .ReadOutbox(messageId, timestamp):
                 transaction.applyOutgoingReadMaxId(messageId)
                 if messageId.peerId != accountPeerId, messageId.peerId.namespace == Namespaces.Peer.CloudUser, let timestamp = timestamp {
@@ -4778,7 +4779,9 @@ func replayFinalState(
                             switch currentState {
                             case let .idBased(localMaxIncomingReadId, _, _, localCount, localMarkedUnread):
                                 if count != 0 || markedUnreadValue {
-                                    if localMaxIncomingReadId > maxIncomingReadId {
+                                    // Banana: a chat read only on this device in ghost mode takes the
+                                    // server's state below; its local read is applied on top of it again.
+                                    if localMaxIncomingReadId > maxIncomingReadId && bananaGhostLocalReadState(accountPeerId: accountPeerId, peerId: peerId) == nil {
                                         transaction.setNeedsIncomingReadStateSynchronization(peerId)
                                         
                                         transaction.resetIncomingReadStates([peerId: [namespace: .idBased(maxIncomingReadId: localMaxIncomingReadId, maxOutgoingReadId: maxOutgoingReadId, maxKnownId: maxKnownId, count: localCount, markedUnread: localMarkedUnread)]])
@@ -4795,7 +4798,11 @@ func replayFinalState(
                     }
                 }
                 if !ignore {
+                    let ghostLocalCount = bananaGhostLocalReadCount(transaction: transaction, accountPeerId: accountPeerId, peerId: peerId)
                     transaction.resetIncomingReadStates([peerId: [namespace: .idBased(maxIncomingReadId: maxIncomingReadId, maxOutgoingReadId: maxOutgoingReadId, maxKnownId: maxKnownId, count: count, markedUnread: markedUnreadValue)]])
+                    if namespace == Namespaces.Message.Cloud {
+                        bananaGhostLocalReadDidApplyServerState(transaction: transaction, accountPeerId: accountPeerId, peerId: peerId, serverMaxIncomingReadId: maxIncomingReadId, serverCount: count, serverMarkedUnread: markedUnread, localCount: ghostLocalCount)
+                    }
                 }
             case let .ResetIncomingReadState(groupId, peerId, namespace, maxIncomingReadId, count, pts):
                 var ptsMatchesState = false
@@ -4834,9 +4841,14 @@ func replayFinalState(
                         invalidateGroupStats.insert(groupId)
                     }
                     let stateDict = Dictionary(updatedStates, uniquingKeysWith: { lhs, _ in lhs })
+                    let ghostLocalCount = bananaGhostLocalReadCount(transaction: transaction, accountPeerId: accountPeerId, peerId: peerId)
                     transaction.resetIncomingReadStates([peerId: stateDict])
+                    if namespace == Namespaces.Message.Cloud {
+                        bananaGhostLocalReadDidApplyServerState(transaction: transaction, accountPeerId: accountPeerId, peerId: peerId, serverMaxIncomingReadId: maxIncomingReadId, serverCount: count, serverMarkedUnread: nil, localCount: ghostLocalCount)
+                    }
                 } else {
                     transaction.applyIncomingReadMaxId(MessageId(peerId: peerId, namespace: namespace, id: maxIncomingReadId))
+                    bananaGhostLocalReadDidReadOnServer(accountPeerId: accountPeerId, messageId: MessageId(peerId: peerId, namespace: namespace, id: maxIncomingReadId))
                     transaction.setNeedsIncomingReadStateSynchronization(peerId)
                     invalidateGroupStats.insert(groupId)
                 }
@@ -4849,6 +4861,7 @@ func replayFinalState(
                         }
                     }
                 } else {
+                    bananaGhostLocalReadDidUpdateServerUnreadMark(accountPeerId: accountPeerId, peerId: peerId, namespace: namespace, value: value)
                     transaction.applyMarkUnread(peerId: peerId, namespace: namespace, value: value, interactive: false)
                 }
             case let .ResetMessageTagSummary(peerId, tag, namespace, count, range):

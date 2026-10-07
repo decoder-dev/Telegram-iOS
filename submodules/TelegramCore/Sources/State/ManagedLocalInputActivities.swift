@@ -328,6 +328,7 @@ public enum ForkBlockedPeersFilter {
 /// has no visibility into ForkExtrasSettings, same pattern as ManagedAudioSessionImpl.forceBuiltInMic.
 /// Mirrors AyuGram's granular Ghost Mode toggles.
 public enum ForkGhostModeSettings {
+    public static let didChangeNotification = Notification.Name("ForkGhostModeSettings.didChange")
     public struct State: Equatable {
         public var suppressOutgoingActivity: Bool = false
         public var suppressOnline: Bool = false
@@ -368,6 +369,7 @@ public enum ForkGhostModeSettings {
 
     public static func update(_ f: (State) -> State) {
         let _ = state.modify(f)
+        NotificationCenter.default.post(name: didChangeNotification, object: nil)
     }
 
     /// Replace preference-backed fields in one atomic write (keeps interact-override intact).

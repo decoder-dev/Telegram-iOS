@@ -18,6 +18,12 @@ public struct ForkExtrasSettings: Codable, Equatable {
     /// Legacy single Ghost Mode toggle. Still encoded for older builds; granular flags are source of truth.
     /// When true in old prefs (no granular keys), it seeds dont-read / dont-online / dont-typing.
     /// AyuGram: Don't Read Messages — suppress read receipts / seen reactions while browsing.
+    public var wideTabBar: Bool
+    public var integratedTabSearch: Bool
+    public var tabSearchOnLeft: Bool
+    public var avatarGlowEnabled: Bool
+    public var reactionGlowEnabled: Bool
+    public var showContactsTab: Bool
     public var ghostDontReadMessages: Bool
     /// AyuGram: Don't Read Stories — suppress story view increments.
     public var ghostDontReadStories: Bool
@@ -238,6 +244,12 @@ public struct ForkExtrasSettings: Codable, Equatable {
         outgoingPhotoQuality: Int32 = 0,
         streamerMode: Bool = false
     ) {
+        self.wideTabBar = false
+        self.integratedTabSearch = false
+        self.tabSearchOnLeft = false
+        self.avatarGlowEnabled = true
+        self.reactionGlowEnabled = false
+        self.showContactsTab = true
         self.ghostDontReadMessages = ghostDontReadMessages
         self.ghostDontReadStories = ghostDontReadStories
         self.ghostDontSendOnline = ghostDontSendOnline
@@ -299,6 +311,12 @@ public struct ForkExtrasSettings: Codable, Equatable {
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: StringCodingKey.self)
+        self.wideTabBar = try container.decodeIfPresent(Bool.self, forKey: "wideTabBar") ?? false
+        self.integratedTabSearch = try container.decodeIfPresent(Bool.self, forKey: "integratedTabSearch") ?? false
+        self.tabSearchOnLeft = try container.decodeIfPresent(Bool.self, forKey: "tabSearchOnLeft") ?? false
+        self.avatarGlowEnabled = try container.decodeIfPresent(Bool.self, forKey: "avatarGlowEnabled") ?? true
+        self.reactionGlowEnabled = try container.decodeIfPresent(Bool.self, forKey: "reactionGlowEnabled") ?? false
+        self.showContactsTab = try container.decodeIfPresent(Bool.self, forKey: "showContactsTab") ?? true
         let legacyGhost = try container.decodeIfPresent(Bool.self, forKey: "ghostMode") ?? false
         self.ghostDontReadMessages = try container.decodeIfPresent(Bool.self, forKey: "ghostDontReadMessages") ?? legacyGhost
         self.ghostDontReadStories = try container.decodeIfPresent(Bool.self, forKey: "ghostDontReadStories") ?? false
@@ -363,6 +381,12 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: StringCodingKey.self)
         // Legacy: true when full Ghost Mode (5 flags including stories + go-offline) is on.
+        try container.encode(self.wideTabBar, forKey: "wideTabBar")
+        try container.encode(self.integratedTabSearch, forKey: "integratedTabSearch")
+        try container.encode(self.tabSearchOnLeft, forKey: "tabSearchOnLeft")
+        try container.encode(self.avatarGlowEnabled, forKey: "avatarGlowEnabled")
+        try container.encode(self.reactionGlowEnabled, forKey: "reactionGlowEnabled")
+        try container.encode(self.showContactsTab, forKey: "showContactsTab")
         try container.encode(self.ghostMode, forKey: "ghostMode")
         try container.encode(self.ghostDontReadMessages, forKey: "ghostDontReadMessages")
         try container.encode(self.ghostDontReadStories, forKey: "ghostDontReadStories")

@@ -297,7 +297,7 @@ private struct ViewCountContextState {
 
 public final class AccountViewTracker {
     weak var account: Account?
-    private let accountPeerId: PeerId
+    let accountPeerId: PeerId
     private let queue = Queue()
     private var nextViewId: Int32 = 0
     
@@ -741,7 +741,8 @@ public final class AccountViewTracker {
                             guard let peer = transaction.getPeer(peerId), let inputPeer = apiInputPeer(peer) else {
                                 return .complete()
                             }
-                            return account.network.request(Api.functions.messages.getMessagesViews(peer: inputPeer, id: messageIds.map { $0.id }, increment: increment ? .boolTrue : .boolFalse))
+                            let incrementViews = increment && !ForkGhostModeSettings.shouldSuppressMessageReads
+                            return account.network.request(Api.functions.messages.getMessagesViews(peer: inputPeer, id: messageIds.map { $0.id }, increment: incrementViews ? .boolTrue : .boolFalse))
                             |> map(Optional.init)
                             |> `catch` { _ -> Signal<Api.messages.MessageViews?, NoError> in
                                 return .single(nil)

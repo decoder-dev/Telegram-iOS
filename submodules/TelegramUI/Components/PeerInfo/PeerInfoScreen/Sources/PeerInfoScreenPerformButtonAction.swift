@@ -1285,7 +1285,7 @@ extension PeerInfoScreenNode {
                 var shadowBanItems: [ContextMenuItem] = []
                 if TelegramShadowBan.canBan(peer, accountPeerId: strongSelf.context.account.peerId) {
                     let isBanned = ArenaSettings.shared.isShadowBanned(peer.id.toInt64())
-                    shadowBanItems.append(.action(ContextMenuActionItem(text: isBanned ? "Убрать из теневого бана" : "Теневой бан", icon: { theme in
+                    shadowBanItems.append(.action(ContextMenuActionItem(text: arenaShadowBanString(isBanned ? "Убрать из теневого бана" : "Теневой бан", strings: strongSelf.presentationData.strings), icon: { theme in
                         generateTintedImage(image: UIImage(systemName: isBanned ? "eye" : "eye.slash", withConfiguration: UIImage.SymbolConfiguration(pointSize: 18.0, weight: .regular)), color: theme.contextMenu.primaryColor)
                     }, action: { [weak self] _, f in
                         f(.dismissWithoutContent)
@@ -1299,7 +1299,7 @@ extension PeerInfoScreenNode {
                 }
                 if ArenaSettings.shared.hasShadowBans && TelegramShadowBan.appliesToChat(peer) {
                     let isRevealed = ArenaSettings.shared.isShadowBanRevealed(chatPeerId: peer.id.toInt64())
-                    shadowBanItems.append(.action(ContextMenuActionItem(text: isRevealed ? "Спрятать скрытые сообщения" : "Показать скрытые сообщения", icon: { theme in
+                    shadowBanItems.append(.action(ContextMenuActionItem(text: arenaShadowBanString(isRevealed ? "Спрятать скрытые сообщения" : "Показать скрытые сообщения", strings: strongSelf.presentationData.strings), icon: { theme in
                         generateTintedImage(image: UIImage(systemName: isRevealed ? "eye.slash" : "eye", withConfiguration: UIImage.SymbolConfiguration(pointSize: 18.0, weight: .regular)), color: theme.contextMenu.primaryColor)
                     }, action: { _, f in
                         f(.dismissWithoutContent)
@@ -1354,7 +1354,7 @@ private func arenaToggleShadowBan(context: AccountContext, peer: EnginePeer, pre
     let isBanned = ArenaSettings.shared.isShadowBanned(peerId)
     ArenaSettings.shared.setShadowBanned(!isBanned, peerId: peerId)
     
-    let text = !isBanned ? "Добавлен в теневой бан" : "Удален из теневого бана"
+    let text = arenaShadowBanString(!isBanned ? "Добавлен в теневой бан" : "Удален из теневого бана", strings: context.sharedContext.currentPresentationData.with { $0 }.strings)
     
     let presentationData = context.sharedContext.currentPresentationData.with { $0 }
     let controller = UndoOverlayController(

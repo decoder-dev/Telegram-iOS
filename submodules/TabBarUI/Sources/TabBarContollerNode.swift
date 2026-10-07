@@ -10,6 +10,7 @@ import GlassControls
 
 final class TabBarControllerNode: ASDisplayNode {
     private struct Params: Equatable {
+        let tabBarLayout: BananaTabBarLayout
         let layout: ContainerViewLayout
         let toolbar: Toolbar?
         let isTabBarHidden: Bool
@@ -21,6 +22,7 @@ final class TabBarControllerNode: ASDisplayNode {
             isTabBarHidden: Bool,
             currentControllerSearchState: ViewController.TabBarSearchState?
         ) {
+            self.tabBarLayout = BananaTabBarLayout.current
             self.layout = layout
             self.toolbar = toolbar
             self.isTabBarHidden = isTabBarHidden
@@ -70,9 +72,16 @@ final class TabBarControllerNode: ASDisplayNode {
     private weak var currentController: ViewController?
     
     private var layoutResult: LayoutResult?
+    private var tabSettingsObserver: NSObjectProtocol?
     private var isUpdateRequested: Bool = false
     private var isChangingSelectedIndex: Bool = false
     
+    deinit {
+        if let tabSettingsObserver = self.tabSettingsObserver {
+            NotificationCenter.default.removeObserver(tabSettingsObserver)
+        }
+    }
+
     func setCurrentController(_ controller: ViewController?) -> () -> Void {
         guard controller !== self.currentController else {
             return {}
@@ -121,6 +130,10 @@ final class TabBarControllerNode: ASDisplayNode {
         self.deactivateSearch = deactivateSearch
 
         super.init()
+        self.tabSettingsObserver = NotificationCenter.default.addObserver(forName: BananaTabBarLayout.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
+            guard let self, let result = self.layoutResult, result.params.tabBarLayout != BananaTabBarLayout.current else { return }
+            let _ = self.containerLayoutUpdated(result.params.layout, toolbar: result.params.toolbar, transition: UIAccessibility.isReduceMotionEnabled ? .immediate : .animated(duration: 0.35, curve: .spring))
+        }
         
         self.setViewBlock({
             return View(frame: CGRect())
@@ -283,7 +296,8 @@ final class TabBarControllerNode: ASDisplayNode {
                     )
                 },
                 selectedId: selectedId,
-                outerInsets: UIEdgeInsets(top: 0.0, left: sideInset, bottom: tabBarBottomInset, right: sideInset)
+                outerInsets: UIEdgeInsets(top: 0.0, left: sideInset, bottom: tabBarBottomInset, right: sideInset),
+                layout: params.tabBarLayout
             )),
             environment: {},
             containerSize: CGSize(width: params.layout.size.width - sideInset * 2.0, height: 100.0)

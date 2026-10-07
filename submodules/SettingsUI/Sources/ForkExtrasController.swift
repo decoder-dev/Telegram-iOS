@@ -84,6 +84,14 @@ private final class ForkExtrasMessageSavingImportPresenter: NSObject, UIDocument
 private enum ForkExtrasLocalizedString {
     private static let translations: [String: [String: String]] = [
         "en": [
+            "ForkExtras.wideTabBar": "Wide tab bar",
+            "ForkExtras.integratedTabSearch": "Search inside tab bar",
+            "ForkExtras.tabSearchOnLeft": "Search on the left",
+
+            "ForkExtras.AvatarGlow": "Avatar glow",
+            "ForkExtras.ReactionGlow": "Reaction glow",
+            "ForkExtras.ContactsTab": "Contacts tab",
+
             "ForkExtras.Title": "Extras",
             "ForkExtras.GhostModeMaster": "Ghost Mode",
             "ForkExtras.GhostDontReadMessages": "Don't Read Messages",
@@ -218,6 +226,14 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.OutgoingPhotoQualityFooter": "Size cap when sending photos from the camera roll. Maximum is like Telegram HD.",
         ],
         "ru": [
+            "ForkExtras.wideTabBar": "Широкая панель вкладок",
+            "ForkExtras.integratedTabSearch": "Поиск внутри панели",
+            "ForkExtras.tabSearchOnLeft": "Поиск слева",
+
+            "ForkExtras.AvatarGlow": "Свечение аватарок",
+            "ForkExtras.ReactionGlow": "Свечение реакций",
+            "ForkExtras.ContactsTab": "Вкладка Контакты",
+
             "ForkExtras.Title": "Дополнительно",
             "ForkExtras.GhostModeMaster": "Режим призрака",
             "ForkExtras.GhostDontReadMessages": "Не читать сообщения",
@@ -553,6 +569,9 @@ private final class ForkExtrasControllerArguments {
     let updateRememberLastFolder: (Bool) -> Void
     let updateHideTabBar: (Bool) -> Void
     let updateShowMessageSeconds: (Bool) -> Void
+    let context: AccountContext
+    let updateCallsTab: (Bool) -> Void
+    let updateAppearance: (WritableKeyPath<ForkExtrasSettings, Bool>, Bool) -> Void
     let updateWideChannelPosts: (Bool) -> Void
     let openStickerSize: () -> Void
     let updateDoubleTapToEdit: (Bool) -> Void
@@ -616,6 +635,9 @@ private final class ForkExtrasControllerArguments {
         updateRememberLastFolder: @escaping (Bool) -> Void,
         updateHideTabBar: @escaping (Bool) -> Void,
         updateShowMessageSeconds: @escaping (Bool) -> Void,
+        context: AccountContext,
+        updateCallsTab: @escaping (Bool) -> Void,
+        updateAppearance: @escaping (WritableKeyPath<ForkExtrasSettings, Bool>, Bool) -> Void,
         updateWideChannelPosts: @escaping (Bool) -> Void,
         openStickerSize: @escaping () -> Void,
         updateDoubleTapToEdit: @escaping (Bool) -> Void,
@@ -678,6 +700,9 @@ private final class ForkExtrasControllerArguments {
         self.updateRememberLastFolder = updateRememberLastFolder
         self.updateHideTabBar = updateHideTabBar
         self.updateShowMessageSeconds = updateShowMessageSeconds
+        self.context = context
+        self.updateCallsTab = updateCallsTab
+        self.updateAppearance = updateAppearance
         self.updateWideChannelPosts = updateWideChannelPosts
         self.openStickerSize = openStickerSize
         self.updateDoubleTapToEdit = updateDoubleTapToEdit
@@ -808,6 +833,9 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     case hideTabBarFooter
     case showMessageSeconds(Bool)
     case showMessageSecondsFooter
+    case tabPreview(BananaTabBarLayout)
+    case callsTab(Bool)
+    case appearanceToggle(Int32, String, Bool, WritableKeyPath<ForkExtrasSettings, Bool>)
     case wideChannelPosts(Bool)
     case wideChannelPostsFooter
     case stickerSize(Int32)
@@ -858,7 +886,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return ForkExtrasSection.proxy.rawValue
         case .hideAllChats, .hideAllChatsFooter, .rememberLastFolder, .rememberLastFolderFooter, .hideTabBar, .hideTabBarFooter:
             return ForkExtrasSection.folders.rawValue
-        case .showMessageSeconds, .showMessageSecondsFooter, .wideChannelPosts, .wideChannelPostsFooter, .stickerSize:
+        case .tabPreview, .callsTab, .appearanceToggle, .showMessageSeconds, .showMessageSecondsFooter, .wideChannelPosts, .wideChannelPostsFooter, .stickerSize:
             return ForkExtrasSection.appearance.rawValue
         case .doubleTapToEdit, .doubleTapToEditFooter, .quickTranslate, .quickTranslateFooter, .saveToCloud, .saveToCloudFooter, .selectFromAuthor, .selectFromAuthorFooter, .outgoingPhotoQuality, .outgoingPhotoQualityFooter:
             return ForkExtrasSection.chatExtras.rawValue
@@ -869,6 +897,9 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
 
     var stableId: Int32 {
         switch self {
+        case .tabPreview: return 1507
+        case .callsTab: return 1503
+        case let .appearanceToggle(id, _, _, _): return id
         case .hubNinja: return 0
         case .hubGhost: return 1
         case .hubPrivacy: return 2
@@ -990,6 +1021,14 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     func item(presentationData: ItemListPresentationData, arguments: Any) -> ListViewItem {
         let arguments = arguments as! ForkExtrasControllerArguments
         switch self {
+        case let .tabPreview(layout):
+            return BananaTabBarPreviewItem(context: arguments.context, theme: presentationData.theme, strings: presentationData.strings, sectionId: self.section, layout: layout)
+        case let .callsTab(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: presentationData.strings.Calls_TabTitle, value: value, sectionId: self.section, style: .blocks, updated: arguments.updateCallsTab)
+        case let .appearanceToggle(_, title, value, keyPath):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: title, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateAppearance(keyPath, value)
+            })
         case .hubNinja:
             return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.savedMessages, title: ForkExtrasLocalizedString.hubNinja, label: ForkExtrasLocalizedString.hubNinjaLabel, sectionId: self.section, style: .blocks, action: {
                 arguments.openCategory(.ninja)
@@ -1371,7 +1410,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     }
 }
 
-private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetchPublicMtProxy: Bool, focus: ForkExtrasControllerFocus) -> [ForkExtrasEntry] {
+private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetchPublicMtProxy: Bool, showCallsTab: Bool, focus: ForkExtrasControllerFocus) -> [ForkExtrasEntry] {
     let category = focus.resolvedCategory
     if category == .top {
         return [
@@ -1449,6 +1488,14 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .wideChannelPosts(settings.wideChannelPosts),
             .wideChannelPostsFooter,
             .stickerSize(settings.stickerSizePercent),
+            .appearanceToggle(1500, ForkExtrasLocalizedString.string(forKey: "ForkExtras.AvatarGlow"), settings.avatarGlowEnabled, \.avatarGlowEnabled),
+            .appearanceToggle(1501, ForkExtrasLocalizedString.string(forKey: "ForkExtras.ReactionGlow"), settings.reactionGlowEnabled, \.reactionGlowEnabled),
+            .appearanceToggle(1502, ForkExtrasLocalizedString.string(forKey: "ForkExtras.ContactsTab"), settings.showContactsTab, \.showContactsTab),
+            .callsTab(showCallsTab),
+            .appearanceToggle(1504, ForkExtrasLocalizedString.string(forKey: "ForkExtras.wideTabBar"), settings.wideTabBar, \.wideTabBar),
+            .appearanceToggle(1505, ForkExtrasLocalizedString.string(forKey: "ForkExtras.integratedTabSearch"), settings.integratedTabSearch, \.integratedTabSearch),
+            .appearanceToggle(1506, ForkExtrasLocalizedString.string(forKey: "ForkExtras.tabSearchOnLeft"), settings.tabSearchOnLeft, \.tabSearchOnLeft),
+            .tabPreview(BananaTabBarLayout(hidden: settings.hideTabBar, contacts: settings.showContactsTab, calls: showCallsTab, wide: settings.wideTabBar, integratedSearch: settings.integratedTabSearch, searchOnLeft: settings.tabSearchOnLeft)),
         ])
     case .chat:
         entries = [
@@ -2035,6 +2082,17 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
                 return updated
             }.start())
         },
+        context: context,
+        updateCallsTab: { value in
+            updateDisposable.set(updateCallListSettingsInteractively(accountManager: context.sharedContext.accountManager) { $0.withUpdatedShowTab(value) }.start())
+        },
+        updateAppearance: { keyPath, value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated[keyPath: keyPath] = value
+                return updated
+            }.start())
+        },
         updateWideChannelPosts: { value in
             updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
                 var updated = current
@@ -2119,12 +2177,12 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
     let signal = combineLatest(
         context.sharedContext.presentationData,
         forkExtrasSettings(accountManager: context.sharedContext.accountManager),
-        context.sharedContext.accountManager.sharedData(keys: [SharedDataKeys.proxySettings])
+        context.sharedContext.accountManager.sharedData(keys: [SharedDataKeys.proxySettings, ApplicationSpecificSharedDataKeys.callListSettings])
     )
     |> deliverOnMainQueue
     |> map { presentationData, settings, sharedData -> (ItemListControllerState, (ItemListNodeState, Any)) in
         let proxySettings = sharedData.entries[SharedDataKeys.proxySettings]?.get(ProxySettings.self) ?? .defaultSettings
-        let entries = forkExtrasControllerEntries(settings: settings, autoFetchPublicMtProxy: proxySettings.autoFetchPublicMtProxy, focus: focus)
+        let entries = forkExtrasControllerEntries(settings: settings, autoFetchPublicMtProxy: proxySettings.autoFetchPublicMtProxy, showCallsTab: (sharedData.entries[ApplicationSpecificSharedDataKeys.callListSettings]?.get(CallListSettings.self) ?? .defaultSettings).showTab, focus: focus)
         let focusedSection: ItemListSectionId?
         switch focus {
         case .messageSaving:

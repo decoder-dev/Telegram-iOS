@@ -1013,3 +1013,22 @@ public func themeDisplayName(strings: PresentationStrings, reference: Presentati
     }
     return name
 }
+
+// Shared strings for the local shadow-ban UI. Other languages use English until translated.
+public func arenaShadowBanString(_ text: String, strings: PresentationStrings) -> String {
+    if strings.primaryComponent.languageCode.lowercased().hasPrefix("ru") {
+        return text
+    }
+    let english: [String: String] = [
+        "Теневой бан": "Shadow ban",
+        "Убрать из теневого бана": "Remove shadow ban",
+        "Добавлен в теневой бан": "Added to shadow ban",
+        "Удален из теневого бана": "Removed from shadow ban",
+        "Спрятать скрытые сообщения": "Hide shadow-banned messages",
+        "Показать скрытые сообщения": "Show shadow-banned messages",
+        "Скрытое сообщение": "Hidden message",
+        "Автор в теневом бане": "Author is shadow-banned",
+        "Сообщение скрыто теневым баном": "Message hidden by shadow ban"
+    ]
+    return english[text] ?? text
+}

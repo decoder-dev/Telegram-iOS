@@ -10,6 +10,7 @@ swift_library(
         "-warnings-as-errors",
     ],
     deps = [
+        "//submodules/TelegramUI/Components/TabBarComponent",
         "//submodules/SSignalKit/SwiftSignalKit:SwiftSignalKit",
         "//submodules/AsyncDisplayKit:AsyncDisplayKit",
         "//submodules/Display:Display",

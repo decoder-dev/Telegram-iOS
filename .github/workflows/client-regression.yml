@@ -14,6 +14,7 @@ on:
       - 'submodules/TelegramCore/Sources/Account/AccountManager.swift'
       - 'submodules/TelegramPresentationData/Sources/PresentationData.swift'
       - 'Tests/ManagedProxy/**'
+      - 'Tests/GhostMode/**'
       - 'Tests/Customization/**'
       - 'Tests/MenuPresentation/**'
       - 'Tests/ArchiveLock/**'
@@ -49,6 +50,9 @@ jobs:
       - run: python3 Tests/ManagedProxy/run.py
       - run: python3 Tests/ManagedProxy/bootstrap.py
       - run: python3 Tests/Customization/run.py
+      - run: python3 Tests/Customization/shadow_ban.py
+      - run: python3 Tests/GhostMode/run.py
+      - run: python3 Tests/Camera/native_zoom.py
       - run: python3 Tests/MenuPresentation/run.py
       - run: python3 Tests/MessageSaving/run.py
       - run: python3 Tests/Camera/run.py
