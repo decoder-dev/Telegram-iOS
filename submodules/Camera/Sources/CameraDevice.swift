@@ -335,7 +335,9 @@ final class CameraDevice {
             return [1.0]
         }
         let neutralZoomFactor = max(device.neutralZoomFactor, 0.001)
-        var result: [CGFloat] = [1.0]
+        // Switch-over factors describe transitions to the other lenses; the
+        // widest lens starts at the minimum and has no switch-over entry.
+        var result: [CGFloat] = [device.minAvailableVideoZoomFactor / neutralZoomFactor, 1.0]
         if #available(iOS 13.0, *) {
             result.append(contentsOf: device.virtualDeviceSwitchOverVideoZoomFactors.map {
                 CGFloat($0.doubleValue) / neutralZoomFactor

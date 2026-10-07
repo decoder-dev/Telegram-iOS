@@ -6,6 +6,7 @@ import SwiftSignalKit
 /// comments and the Replies chat, with their typing, reaction avatars and stories. Private chats are never filtered,
 /// and nothing goes to the server: the person never learns about it.
 public enum TelegramShadowBan {
+    private static let stateQueue = Queue(name: "TelegramShadowBan.State")
     /// The ban list and the chats with В«РџРѕРєР°Р·Р°С‚СЊ СЃРєСЂС‹С‚С‹РµВ» on, read once for a whole computation.
     public struct State: Equatable {
         public var bannedPeerIds: Set<Int64>
@@ -17,18 +18,24 @@ public enum TelegramShadowBan {
         }
 
         public static var current: State {
-            let settings = ArenaSettings.shared
-            return State(bannedPeerIds: Set(settings.shadowBannedPeerIds), revealedChatIds: Set(settings.shadowBanRevealedChatIds))
+            let snapshot = ArenaSettings.shared.shadowBanSnapshot
+            return State(bannedPeerIds: Set(snapshot.bannedPeerIds), revealedChatIds: Set(snapshot.revealedChatIds))
         }
     }
 
     /// The current state, then every change of the list or of В«РџРѕРєР°Р·Р°С‚СЊ СЃРєСЂС‹С‚С‹РµВ».
     public static func stateSignal() -> Signal<State, NoError> {
         return Signal<State, NoError> { subscriber in
-            subscriber.putNext(State.current)
+            // Subscribe before the initial read; serialize reads and delivery without
+            // invoking subscribers while holding the settings lock.
             let observer = NotificationCenter.default.addObserver(forName: ArenaSettings.shadowBanDidChangeNotification, object: nil, queue: nil, using: { _ in
-                subscriber.putNext(State.current)
+                stateQueue.async {
+                    subscriber.putNext(State.current)
+                }
             })
+            stateQueue.async {
+                subscriber.putNext(State.current)
+            }
             return ActionDisposable {
                 NotificationCenter.default.removeObserver(observer)
             }
