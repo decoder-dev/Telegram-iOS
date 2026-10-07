@@ -30,12 +30,23 @@ public class ArenaSettings {
         NotificationCenter.default.post(name: ArenaSettings.shadowBanDidChangeNotification, object: nil)
     }
     
+    public var shadowBanRevealedChatIds: [Int64] {
+        get { return defaults.array(forKey: "shadowBanRevealedChatIds") as? [Int64] ?? [] }
+        set { defaults.set(newValue, forKey: "shadowBanRevealedChatIds") }
+    }
+    
     public func isShadowBanRevealed(chatPeerId: Int64) -> Bool {
-        return defaults.bool(forKey: "shadowBanRevealed_\(chatPeerId)")
+        return shadowBanRevealedChatIds.contains(chatPeerId)
     }
     
     public func setShadowBanRevealed(_ revealed: Bool, chatPeerId: Int64) {
-        defaults.set(revealed, forKey: "shadowBanRevealed_\(chatPeerId)")
+        var list = shadowBanRevealedChatIds
+        if revealed {
+            if !list.contains(chatPeerId) { list.append(chatPeerId) }
+        } else {
+            list.removeAll(where: { $0 == chatPeerId })
+        }
+        shadowBanRevealedChatIds = list
         NotificationCenter.default.post(name: ArenaSettings.shadowBanDidChangeNotification, object: nil)
     }
     

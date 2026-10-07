@@ -1,4 +1,4 @@
-﻿import Foundation
+import Foundation
 import Postbox
 import SwiftSignalKit
 
@@ -18,7 +18,7 @@ public enum TelegramShadowBan {
 
         public static var current: State {
             let settings = ArenaSettings.shared
-            return State(bannedPeerIds: settings.shadowBannedPeerIds, revealedChatIds: settings.shadowBanRevealedChatIds)
+            return State(bannedPeerIds: Set(settings.shadowBannedPeerIds), revealedChatIds: Set(settings.shadowBanRevealedChatIds))
         }
     }
 
@@ -89,7 +89,7 @@ public enum TelegramShadowBan {
     }
 
     public static func isBannedContent(_ message: Message) -> Bool {
-        return self.isBannedContent(message, bannedPeerIds: ArenaSettings.shared.shadowBannedPeerIds)
+        return self.isBannedContent(message, bannedPeerIds: Set(ArenaSettings.shared.shadowBannedPeerIds))
     }
 
     /// Whether `message` is hidden: banned content in a chat without В«РџРѕРєР°Р·Р°С‚СЊ СЃРєСЂС‹С‚С‹РµВ».
