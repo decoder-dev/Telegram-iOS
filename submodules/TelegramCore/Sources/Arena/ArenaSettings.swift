@@ -2,6 +2,7 @@ import Foundation
 
 public class ArenaSettings {
     public static let shared = ArenaSettings()
+    public static let didChangeNotification = Notification.Name("ArenaSettings_didChangeNotification")
     public static let shadowBanDidChangeNotification = Notification.Name("ArenaSettings_shadowBanDidChangeNotification")
     
     private let defaults = UserDefaults(suiteName: "group.ph.teleg.Telegrapf") ?? UserDefaults.standard
