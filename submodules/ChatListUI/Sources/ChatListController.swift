@@ -1,5 +1,4 @@
-﻿import Foundation
-import DGSnowEffect
+import Foundation
 import UIKit
 import Postbox
 import SwiftSignalKit
@@ -94,26 +93,6 @@ private final class ContextControllerContentSourceImpl: ContextControllerContent
 }
 
 public class ChatListControllerImpl: TelegramBaseController, ChatListController {
-    private var ArenaSnowView: DGSnowView?
-    
-    /// Arena В«РЎРЅРµРіВ» over the whole list, header included. It is installed on the first layout, on top of
-    /// what exists by then; `DGSnowView` itself follows the toggle and stops while the list is off screen.
-    private func updateArenaSnow(size: CGSize) {
-        if self.previewing {
-            return
-        }
-        let snowView: DGSnowView
-        if let current = self.ArenaSnowView {
-            snowView = current
-        } else {
-            snowView = DGSnowView()
-            self.view.addSubview(snowView)
-            self.ArenaSnowView = snowView
-        }
-        snowView.frame = CGRect(origin: CGPoint(), size: size)
-        snowView.update(isDark: self.presentationData.theme.overallDarkAppearance)
-    }
-    
     private var validLayout: ContainerViewLayout?
     
     public let context: AccountContext
@@ -3171,8 +3150,6 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
         self.validLayout = layout
         
         self.updateLayout(layout: layout, transition: transition)
-        self.updateArenaSnow(size: layout.size)
-        
         if layout.inVoiceOver != wasInVoiceOver {
             self.chatListDisplayNode.scrollToTop()
         }
