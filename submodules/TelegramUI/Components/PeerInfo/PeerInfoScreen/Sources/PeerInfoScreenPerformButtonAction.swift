@@ -1299,7 +1299,7 @@ extension PeerInfoScreenNode {
                 }
                 if ArenaSettings.shared.hasShadowBans && TelegramShadowBan.appliesToChat(peer) {
                     let isRevealed = ArenaSettings.shared.isShadowBanRevealed(chatPeerId: peer.id.toInt64())
-                    shadowBanItems.append(.action(ContextMenuActionItem(text: isRevealed ? "РЎРїСЂСЏС‚Р°С‚СЊ СЃРєСЂС‹С‚С‹Рµ СЃРѕРѕР±С‰РµРЅРёСЏ" : "РџРѕРєР°Р·Р°С‚СЊ СЃРєСЂС‹С‚С‹Рµ СЃРѕРѕР±С‰РµРЅРёСЏ", icon: { theme in
+                    shadowBanItems.append(.action(ContextMenuActionItem(text: isRevealed ? "Спрятать скрытые сообщения" : "Показать скрытые сообщения", icon: { theme in
                         generateTintedImage(image: UIImage(systemName: isRevealed ? "eye.slash" : "eye", withConfiguration: UIImage.SymbolConfiguration(pointSize: 18.0, weight: .regular)), color: theme.contextMenu.primaryColor)
                     }, action: { _, f in
                         f(.dismissWithoutContent)

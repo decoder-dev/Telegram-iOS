@@ -1976,7 +1976,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
             })))
         }
         if extras.selectFromAuthor, data.canSelect, let authorId = message.author?.id {
-            let selectTitle = extrasMenuIsRussian ? "Р’С‹Р±СЂР°С‚СЊ РѕС‚ Р°РІС‚РѕСЂР°" : "Select from Author"
+            let selectTitle = extrasMenuIsRussian ? "Выбрать от автора" : "Select from Author"
             actions.append(.action(ContextMenuActionItem(text: selectTitle, icon: { theme in
                 return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Select"), color: theme.actionSheet.primaryTextColor)
             }, action: { _, f in
@@ -2014,7 +2014,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
         if message.flags.contains(.Incoming), TelegramShadowBan.appliesToChat(message.id.peerId, chatPeer: message.peers[message.id.peerId]), let target = TelegramShadowBan.banTarget(of: message), target.id != message.id.peerId, TelegramShadowBan.canBan(EnginePeer(target), accountPeerId: context.account.peerId) {
             let targetPeer = EnginePeer(target)
             let isBanned = ArenaSettings.shared.isShadowBanned(target.id.toInt64())
-            actions.append(.action(ContextMenuActionItem(text: isBanned ? "РЈР±СЂР°С‚СЊ РёР· С‚РµРЅРµРІРѕРіРѕ Р±Р°РЅР°" : "РўРµРЅРµРІРѕР№ Р±Р°РЅ", icon: { theme in
+            actions.append(.action(ContextMenuActionItem(text: isBanned ? "Убрать из теневого бана" : "Теневой бан", icon: { theme in
                 return generateTintedImage(image: UIImage(systemName: isBanned ? "eye" : "eye.slash", withConfiguration: UIImage.SymbolConfiguration(pointSize: 18.0, weight: .regular)), color: theme.actionSheet.primaryTextColor)
             }, action: { _, f in
                 f(.dismissWithoutContent)

@@ -2478,7 +2478,7 @@ public class VideoMessageCameraScreen: ViewController {
         self.didConfigureCamera = true
         if false {
             let chooser = UIAlertController(title: "РљР°РјРµСЂР° РІ РєСЂСѓР¶РєР°С…", message: nil, preferredStyle: .alert)
-            for (title, position) in [("Р¤СЂРѕРЅС‚Р°Р»СЊРЅР°СЏ", Camera.Position.front), ("РћСЃРЅРѕРІРЅР°СЏ", Camera.Position.back)] {
+            for (title, position) in [("Фронтальная", Camera.Position.front), ("Основная", Camera.Position.back)] {
                 chooser.addAction(UIAlertAction(title: title, style: .default, handler: { [weak self] _ in
                     guard let self else { return }
                     self.node.cameraState = self.node.cameraState.updatedPosition(position)

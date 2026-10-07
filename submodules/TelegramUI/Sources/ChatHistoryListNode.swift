@@ -1343,7 +1343,8 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
             }
             self.TelegramShadowBanPromise.set(TelegramShadowBan.State.current)
             self.updateLoadedMessageItems(includeAllMessages: true)
-        })    }
+        })
+    }
 
     deinit {
 
@@ -1351,7 +1352,8 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
         
         if let TelegramShadowBanObserver = self.TelegramShadowBanObserver {
             NotificationCenter.default.removeObserver(TelegramShadowBanObserver)
-        }        self.historyDisposable.dispose()
+        }
+        self.historyDisposable.dispose()
         self.readHistoryDisposable.dispose()
         self.interactiveReadActionDisposable?.dispose()
         self.interactiveReadReactionsDisposable?.dispose()

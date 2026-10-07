@@ -4480,7 +4480,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                     guard let self else {
                         return
                     }
-                    let infoText = isRussian ? "Р¤РёР»СЊС‚СЂ РґРѕР±Р°РІР»РµРЅ" : "Filter added"
+                    let infoText = isRussian ? "Фильтр добавлен" : "Filter added"
                     self.present(UndoOverlayController(presentationData: self.presentationData, content: .info(title: nil, text: infoText, timeout: nil, customUndoText: nil), elevatedLayout: false, animateInAsReplacement: false, action: { _ in true }), in: .current)
                 })
             case let .quote(range):
