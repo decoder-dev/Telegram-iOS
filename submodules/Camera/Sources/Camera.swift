@@ -590,6 +590,26 @@ private final class CameraContext {
             self.mainDeviceContext?.device.setZoomDelta(zoomDelta)
         }
     }
+
+    private var visibleCameraDevice: CameraDevice? {
+        if self.initialConfiguration.isRoundVideo && self.positionValue == .front {
+            return self.additionalDeviceContext?.device
+        } else {
+            return self.mainDeviceContext?.device
+        }
+    }
+
+    var zoomFactorRange: ClosedRange<CGFloat> {
+        return self.visibleCameraDevice?.zoomFactorRange ?? (1.0 ... 1.0)
+    }
+
+    var nativeZoomFactors: [CGFloat] {
+        return self.visibleCameraDevice?.nativeZoomFactors ?? [1.0]
+    }
+
+    func setZoomFactor(_ zoomFactor: CGFloat, rampRate: CGFloat?) {
+        self.visibleCameraDevice?.setZoomFactor(zoomFactor, rampRate: rampRate)
+    }
     
     func rampZoom(_ zoomLevel: CGFloat, rate: CGFloat) {
         if self.initialConfiguration.isRoundVideo {
@@ -1093,6 +1113,42 @@ public final class Camera {
         self.queue.async {
             if let context = self.contextRef?.takeUnretainedValue() {
                 context.setZoomDelta(zoomDelta)
+            }
+        }
+    }
+
+    public var zoomFactorRange: Signal<ClosedRange<CGFloat>, NoError> {
+        return Signal { subscriber in
+            self.queue.async {
+                if let context = self.contextRef?.takeUnretainedValue() {
+                    subscriber.putNext(context.zoomFactorRange)
+                } else {
+                    subscriber.putNext(1.0 ... 1.0)
+                }
+                subscriber.putCompletion()
+            }
+            return EmptyDisposable
+        }
+    }
+
+    public var nativeZoomFactors: Signal<[CGFloat], NoError> {
+        return Signal { subscriber in
+            self.queue.async {
+                if let context = self.contextRef?.takeUnretainedValue() {
+                    subscriber.putNext(context.nativeZoomFactors)
+                } else {
+                    subscriber.putNext([1.0])
+                }
+                subscriber.putCompletion()
+            }
+            return EmptyDisposable
+        }
+    }
+
+    public func setZoomFactor(_ zoomFactor: CGFloat, rampRate: CGFloat? = nil) {
+        self.queue.async {
+            if let context = self.contextRef?.takeUnretainedValue() {
+                context.setZoomFactor(zoomFactor, rampRate: rampRate)
             }
         }
     }

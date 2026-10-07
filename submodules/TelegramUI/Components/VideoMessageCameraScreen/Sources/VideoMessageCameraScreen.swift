@@ -1291,8 +1291,7 @@ public class VideoMessageCameraScreen: ViewController {
                         
             let isDualCameraEnabled = Camera.isDualCameraSupported(forRoundVideo: true)
             
-            let initialCamera = cameraSettings.rememberRoundVideoCamera ? cameraSettings.lastRoundVideoCamera : cameraSettings.roundVideoCamera
-            let isFrontPosition = initialCamera != .rear
+            let isFrontPosition = true
             
             self.mainPreviewView = CameraSimplePreviewView(frame: .zero, main: true, roundVideo: true)
             self.additionalPreviewView = CameraSimplePreviewView(frame: .zero, main: false, roundVideo: true)
