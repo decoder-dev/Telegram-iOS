@@ -31,7 +31,7 @@ final class Transaction {
     var forum = false
     func getPeer(_ id: PeerId) -> Peer? { Peer(isForumOrMonoForum: forum) }
     func getPeerChatListIndex(_ id: PeerId) -> Int? { 1 }
-    func getPeerReadStates(_ id: PeerId) -> [(Int32, PeerReadState)]? { states[id].map { [(0, $0)] } }
+    func getPeerReadStates(_ id: PeerId) -> [(Int32, PeerReadState)]? { states[id].map { [(Int32(0), $0)] } }
     func getPeerReadStateSynchronizationOperation(_ id: PeerId) -> Operation? { operations[id] }
     func setNeedsIncomingReadStateSynchronization(_ id: PeerId) { operations[id] = .Validate }
     func resetIncomingReadStates(_ values: [PeerId: [Int32: PeerReadState]]) {
