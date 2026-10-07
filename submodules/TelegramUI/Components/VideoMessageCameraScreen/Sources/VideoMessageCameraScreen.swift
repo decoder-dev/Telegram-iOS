@@ -1291,8 +1291,6 @@ public class VideoMessageCameraScreen: ViewController {
                         
             let isDualCameraEnabled = Camera.isDualCameraSupported(forRoundVideo: true)
             
-            let isFrontPosition = true
-            
             self.mainPreviewView = CameraSimplePreviewView(frame: .zero, main: true, roundVideo: true)
             self.additionalPreviewView = CameraSimplePreviewView(frame: .zero, main: false, roundVideo: true)
             
@@ -1307,11 +1305,11 @@ public class VideoMessageCameraScreen: ViewController {
                 self.mainPreviewView.resetPlaceholder(front: false)
                 self.additionalPreviewView.resetPlaceholder(front: true)
             } else {
-                self.mainPreviewView.resetPlaceholder(front: isFrontPosition)
+                self.mainPreviewView.resetPlaceholder(front: true)
             }
             
             self.cameraState = CameraState(
-                position: isFrontPosition ? .front : .back,
+                position: .front,
                 flashMode: .off,
                 flashModeDidChange: false,
                 flashTint: .white,
@@ -1447,9 +1445,6 @@ public class VideoMessageCameraScreen: ViewController {
                 }
                 let previousPosition = self.cameraState.position
                 self.cameraState = self.cameraState.updatedPosition(position).updatedFlashMode(flashMode)
-                if false {
-                    
-                }
                 if self.zoomPosition != position {
                     self.zoomPosition = position
                     self.resetZoomForVisibleCamera()
@@ -1497,12 +1492,10 @@ public class VideoMessageCameraScreen: ViewController {
                     return
                 }
                 self.isPinchZooming = false
-                if !false {
-                    // Back to where the pinch started, such as a lens picked with a button, not always to 1Г—, and the
-                    // dial glides back along with the picture. A paused camera has nothing to animate, so it gets the
-                    // value at once.
-                    self.setDisplayedZoom(self.zoomBeforePinch, rampRate: self.previewState == nil ? 8.0 : nil, followsRamp: true)
-                }
+                // Back to where the pinch started, such as a lens picked with a button, not always to 1×, and the
+                // dial glides back along with the picture. A paused camera has nothing to animate, so it gets the
+                // value at once.
+                self.setDisplayedZoom(self.zoomBeforePinch, rampRate: self.previewState == nil ? 8.0 : nil, followsRamp: true)
                 self.endZoomGesture()
             default:
                 break
@@ -1518,7 +1511,7 @@ public class VideoMessageCameraScreen: ViewController {
             if abs(self.displayedZoom - value) > 0.01 {
                 // A ramp, so the recorded video glides over to the lens instead of jumping.
                 self.setDisplayedZoom(value, rampRate: 6.0, transition: .spring(duration: 0.3))
-            } else if true && self.maxZoom > self.minZoom && self.zoomButtonValues().count == 1 {
+            } else if self.maxZoom > self.minZoom && self.zoomButtonValues().count == 1 {
                 self.setZoomControlsExpanded(true)
                 self.scheduleZoomControlsCollapse(delay: 1.5)
             }
@@ -1526,7 +1519,7 @@ public class VideoMessageCameraScreen: ViewController {
 
         @objc private func handleZoomPan(_ gesture: UIPanGestureRecognizer) {
             // Only the start and the moves are gated: a swipe that outlives a pause must still close the dial.
-            let canZoom = true && self.previewState == nil && self.maxZoom > self.minZoom
+            let canZoom = self.previewState == nil && self.maxZoom > self.minZoom
             switch gesture.state {
             case .began:
                 self.isPanZooming = canZoom
@@ -1608,8 +1601,7 @@ public class VideoMessageCameraScreen: ViewController {
 
         // With the zoom slider turned off only the lenses up to 1Г— get a button, as before the dial existed.
         private func zoomButtonValues() -> [CGFloat] {
-            let extendedZoomEnabled = true
-            return self.zoomLensValues().filter { extendedZoomEnabled || $0 <= 1.0 }
+            return self.zoomLensValues()
         }
 
         private func scheduleZoomControlsCollapse(delay: Double) {
@@ -1703,10 +1695,9 @@ public class VideoMessageCameraScreen: ViewController {
             guard !self.animatingOut else {
                 return
             }
-            let extendedZoomEnabled = true
             // With the zoom slider turned off only the 0.5Г— lens switch is offered, as before the dial existed,
             // so a camera without an ultra-wide lens shows no zoom strip at all.
-            let enabled = self.previewState == nil && self.maxZoom > self.minZoom && (extendedZoomEnabled || self.minZoom < 1.0)
+            let enabled = self.previewState == nil && self.maxZoom > self.minZoom
             if !enabled {
                 // A hidden strip comes back collapsed, such as on В«record moreВ» right after a gesture.
                 self.zoomControlsExpanded = false
@@ -1718,7 +1709,7 @@ public class VideoMessageCameraScreen: ViewController {
                 minimumValue: self.minZoom,
                 maximumValue: self.maxZoom,
                 value: self.shownZoom,
-                isExpanded: extendedZoomEnabled && self.zoomControlsExpanded,
+                isExpanded: self.zoomControlsExpanded,
                 theme: self.presentationData.theme,
                 decimalSeparator: decimalSeparator,
                 transition: transition
@@ -1731,7 +1722,7 @@ public class VideoMessageCameraScreen: ViewController {
             self.zoomControlsView.accessibilityValue = roundVideoZoomTitle(self.displayedZoom, decimalSeparator: decimalSeparator)
             // The swipe only drives the dial, so with the slider turned off it must not begin at all: once begun, it
             // cancels the touch of the zoom button under the finger, and a tap that slides a little would be lost.
-            self.zoomPanGestureRecognizer?.isEnabled = extendedZoomEnabled
+            self.zoomPanGestureRecognizer?.isEnabled = true
         }
                 
         private var animatingIn = false
@@ -2475,22 +2466,7 @@ public class VideoMessageCameraScreen: ViewController {
     private func configureCameraIfReady() {
         guard self.audioSessionReady, !self.didConfigureCamera, self.view.window != nil else { return }
         self.didConfigureCamera = true
-        if false {
-            let chooser = UIAlertController(title: "РљР°РјРµСЂР° РІ РєСЂСѓР¶РєР°С…", message: nil, preferredStyle: .alert)
-            for (title, position) in [("Фронтальная", Camera.Position.front), ("Основная", Camera.Position.back)] {
-                chooser.addAction(UIAlertAction(title: title, style: .default, handler: { [weak self] _ in
-                    guard let self else { return }
-                    self.node.cameraState = self.node.cameraState.updatedPosition(position)
-                    if false {
-                        
-                    }
-                    self.node.setupCamera()
-                }))
-            }
-            self.present(chooser, animated: true)
-        } else {
-            self.node.setupCamera()
-        }
+        self.node.setupCamera()
     }
 
     override public func loadDisplayNode() {
@@ -2771,10 +2747,10 @@ public class VideoMessageCameraScreen: ViewController {
     
     private func requestAudioSession() {
         let audioSessionType: ManagedAudioSessionType
-        if !false {
-            audioSessionType = .record(speaker: false, video: false, withOthers: false)
+        if self.context.sharedContext.currentMediaInputSettings.with({ $0 }).pauseMusicOnRecording {
+            audioSessionType = .record(speaker: false, video: true, withOthers: false)
         } else {
-            audioSessionType = .record(speaker: false, video: false, withOthers: true)
+            audioSessionType = .record(speaker: false, video: true, withOthers: true)
         }
       
         self.audioSessionDisposable = self.context.sharedContext.mediaManager.audioSession.push(audioSessionType: audioSessionType, activate: { [weak self] _ in
