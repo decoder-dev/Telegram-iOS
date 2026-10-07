@@ -23,7 +23,7 @@ swift_library(
         "//submodules/TelegramUI/Components/EmojiTextAttachmentView",
         "//submodules/TelegramUI/Components/Chat/MessageInlineBlockBackgroundView",
         "//submodules/InvisibleInkDustNode",
-        "//submodules/SwiftSignalKit",
+        "//submodules/SSignalKit/SwiftSignalKit:SwiftSignalKit",
     ],
     visibility = [
         "//visibility:public",
