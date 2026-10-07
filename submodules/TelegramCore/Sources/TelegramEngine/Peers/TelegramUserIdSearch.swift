@@ -1,8 +1,6 @@
 import Foundation
 import Postbox
 import SwiftSignalKit
-import TelegramApi
-import MtProtoKit
 
 /// Telegram user ids are positive decimal integers. Reject phone numbers,
 /// usernames and ids outside Postbox's 56-bit peer-id representation.
@@ -26,7 +24,7 @@ func telegramCanOpenIdSearchUser(_ user: TelegramUser, accountPeerId: PeerId) ->
     return true
 }
 
-func telegramSearchUserById(accountPeerId: PeerId, postbox: Postbox, network: Network, userId: Int64, scope: TelegramSearchPeersScope) -> Signal<FoundPeer?, NoError> {
+func telegramSearchUserById(accountPeerId: PeerId, postbox: Postbox, userId: Int64, scope: TelegramSearchPeersScope) -> Signal<FoundPeer?, NoError> {
     switch scope {
     case .everywhere, .privateChats, .bots:
         break
@@ -34,38 +32,14 @@ func telegramSearchUserById(accountPeerId: PeerId, postbox: Postbox, network: Ne
         return .single(nil)
     }
     let peerId = PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(userId))
-    return postbox.transaction { transaction -> TelegramUser? in
-        return transaction.getPeer(peerId) as? TelegramUser
-    }
-    |> mapToSignal { cachedUser -> Signal<FoundPeer?, NoError> in
-        if let user = cachedUser, telegramCanOpenIdSearchUser(user, accountPeerId: accountPeerId) {
-            if case .bots = scope, user.botInfo == nil {
-                return .single(nil)
-            }
-            return .single(FoundPeer(peer: EnginePeer(user), subscribers: nil))
+    return postbox.transaction { transaction -> FoundPeer? in
+        guard let user = transaction.getPeer(peerId) as? TelegramUser,
+              telegramCanOpenIdSearchUser(user, accountPeerId: accountPeerId) else {
+            return nil
         }
-        let getUsersSignal: Signal<[Api.User]?, NoError> = network.request(Api.functions.users.getUsers(id: [.inputUser(.init(userId: userId, accessHash: 0))]))
-        |> map { result -> [Api.User]? in
-            return result
+        if case .bots = scope, user.botInfo == nil {
+            return nil
         }
-        |> `catch` { _ in
-            return Signal<[Api.User]?, NoError>.single(nil)
-        }
-        return getUsersSignal
-        |> mapToSignal { result -> Signal<FoundPeer?, NoError> in
-            guard let result = result else {
-                return .single(nil)
-            }
-            return postbox.transaction { transaction -> FoundPeer? in
-                updatePeers(transaction: transaction, accountPeerId: accountPeerId, peers: AccumulatedPeers(users: result))
-                guard let user = transaction.getPeer(peerId) as? TelegramUser, telegramCanOpenIdSearchUser(user, accountPeerId: accountPeerId) else {
-                    return nil
-                }
-                if case .bots = scope, user.botInfo == nil {
-                    return nil
-                }
-                return FoundPeer(peer: EnginePeer(user), subscribers: nil)
-            }
-        }
+        return FoundPeer(peer: EnginePeer(user), subscribers: nil)
     }
 }

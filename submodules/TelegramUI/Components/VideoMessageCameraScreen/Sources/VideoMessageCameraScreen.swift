@@ -52,7 +52,7 @@ private func roundVideoZoomTitle(_ value: CGFloat, decimalSeparator: String, suf
         text.removeLast(2)
     }
     text = text.replacingOccurrences(of: ".", with: decimalSeparator)
-    return suffix ? text + "Г—" : text
+    return suffix ? text + "×" : text
 }
 
 // A swipe or a pinch passes a short dead zone at every lens, so it rests on 0.5Г—, 1Г—, 2Г—вЂ¦ and leaves it without a jump.

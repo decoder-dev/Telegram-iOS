@@ -1308,7 +1308,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
                     isPoll = true
                     var text = poll.text
                     for option in poll.options {
-                        text.append("\nвЂ” \(option.text)")
+                        text.append("\n— \(option.text)")
                     }
                     messageText = poll.text
                     break
