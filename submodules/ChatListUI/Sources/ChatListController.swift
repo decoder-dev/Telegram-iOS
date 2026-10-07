@@ -2455,7 +2455,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
             return
         }
         
-        #if true && DEBUG
+        #if DEBUG
         DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 1.0, execute: { [weak self] in
             guard let strongSelf = self else {
                 return
@@ -3439,7 +3439,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                                     // and asks once it lapses.
                                     self.openStories(peerId: peer.id, completion: { storyController in
                                         presentTooltip(storyController)
-                                    }, skipGhostPrompt: true)
+                                    })
                                 })
                             } else {
                                 self.presentStealthModeUpgrade(action: { [weak self] in
@@ -4336,7 +4336,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
         self.openStories(peerId: peerId, completion: { _ in })
     }
     
-    public func openStories(peerId: EnginePeer.Id, completion: @escaping (StoryContainerScreen) -> Void = { _ in }, skipGhostPrompt: Bool = false) {
+    public func openStories(peerId: EnginePeer.Id, completion: @escaping (StoryContainerScreen) -> Void = { _ in }) {
         if let navigationBarView = self.chatListDisplayNode.navigationBarView.view as? ChatListNavigationBar.View {
             if navigationBarView.storiesUnlocked {
                 self.shouldFixStorySubscriptionOrder = true
@@ -4440,8 +4440,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                                     componentView.storyPeerListView()?.setLoadingItem(peerId: peerId, signal: signal)
                                 }
                             },
-                            completion: completion,
-                            skipGhostPrompt: skipGhostPrompt
+                            completion: completion
                         )
                         
                         return
@@ -4463,7 +4462,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                 return
             }
             
-            let open: (Bool) -> Void = { [weak self] answered in
+            let open: () -> Void = { [weak self] in
                 guard let self else {
                     return
                 }
@@ -4513,20 +4512,12 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                         return nil
                     }
                 )
-                // `answered` is true only once the question below was answered.
-                storyContainerScreen.ArenaGhostPromptAnswered = answered
                 if let componentView = self.chatListHeaderView() {
                     componentView.storyPeerListView()?.setPreviewedItem(signal: storyContainerScreen.focusedItem)
                 }
                 self.push(storyContainerScreen)
             }
-            // Own stories, В«РЎРјРѕС‚СЂРµС‚СЊ Р°РЅРѕРЅРёРјРЅРѕВ» and an empty list skip the
-            // question; the viewer asks it itself when a receipt needs it.
-            if skipGhostPrompt || peerId == self.context.account.peerId || storyContentState.slice == nil {
-                open(false)
-            } else {
-                let _ = StoryContainerScreen.askArenaStoryGhostIfNeeded(context: self.context, parentController: self, open: open).startStandalone()
-            }
+            open()
         })
     }
     
@@ -5383,7 +5374,6 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
             guard let strongSelf = self else {
                 return
             }
-            false = updatedValue
             strongSelf.chatListDisplayNode.mainContainerNode.updateState { state in
                 var state = state
                 if updatedValue {
@@ -6881,15 +6871,7 @@ private final class ChatListLocationContext {
             accountPeer = .single(nil)
         }
 
-        let appearanceChanges = Signal<Int, NoError> { subscriber in
-            subscriber.putNext(0)
-            let observer = NotificationCenter.default.addObserver(forName: Notification.Name("dummy"), object: nil, queue: .main) { _ in
-                subscriber.putNext(0)
-            }
-            return ActionDisposable {
-                NotificationCenter.default.removeObserver(observer)
-            }
-        }
+        let appearanceChanges: Signal<Int, NoError> = .single(0)
         let appearanceState = combineLatest(peerStatus, accountPeer, appearanceChanges)
         
         let networkState: Signal<AccountNetworkState, NoError>
@@ -7189,20 +7171,7 @@ private final class ChatListLocationContext {
         switch location {
         case let .chatList(groupId):
             if groupId == .root {
-                switch .chats {
-                case .Arena:
-                    defaultTitle = "Arena"
-                case .username:
-                    if let addressName = accountPeer?.addressName, !addressName.isEmpty {
-                        defaultTitle = "@\(addressName)"
-                    } else {
-                        defaultTitle = presentationData.strings.DialogList_Title
-                    }
-                case .nickname:
-                    defaultTitle = accountPeer?.displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder) ?? presentationData.strings.DialogList_Title
-                case .chats:
-                    defaultTitle = presentationData.strings.DialogList_Title
-                }
+                defaultTitle = presentationData.strings.DialogList_Title
             } else {
                 defaultTitle = presentationData.strings.ChatList_ArchivedChatsTitle
             }
@@ -7385,13 +7354,6 @@ private final class ChatListLocationContext {
                 self.proxyButton = nil
             }
             
-            if isRoot && false {
-                titleContent.text = defaultTitle
-                titleContent.activity = false
-            }
-            if isRoot && false {
-                titleContent.peerStatus = nil
-            }
             self.chatListTitle = titleContent
             
             if case .chatList(.root) = self.location, checkProxy {

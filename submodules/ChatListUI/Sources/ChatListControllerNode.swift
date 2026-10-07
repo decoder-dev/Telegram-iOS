@@ -1183,9 +1183,6 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
     private var currentOverscrollItemExpansionTimestamp: Double?
     
     private var containerLayout: (layout: ContainerViewLayout, navigationBarHeight: CGFloat, visualNavigationHeight: CGFloat, cleanNavigationBarHeight: CGFloat, storiesInset: CGFloat)?
-    private var appearanceObserver: NSObjectProtocol?
-    private var lastHideSearch = false
-    
     var contentScrollingEnded: ((ListView) -> Bool)?
     
     var requestDeactivateSearch: (() -> Void)?
@@ -1335,21 +1332,6 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
         self.inlineContentPanRecognizer = inlineContentPanRecognizer
         self.view.addGestureRecognizer(inlineContentPanRecognizer)
 
-        self.appearanceObserver = NotificationCenter.default.addObserver(forName: Notification.Name("dummy"), object: nil, queue: .main) { [weak self] _ in
-            guard let self else { return }
-            if self.location == .chatList(groupId: .root), self.lastHideSearch != false {
-                self.lastHideSearch = false
-                self.mainContainerNode.currentItemNode.scrollHeightTopInset = (self.lastHideSearch ? 0.0 : ChatListNavigationBar.searchScrollHeight) + ChatListNavigationBar.storiesScrollHeight
-                let _ = self.mainContainerNode.currentItemNode.scrollToOffsetFromTop(self.lastHideSearch ? 0.0 : ChatListNavigationBar.searchScrollHeight, animated: false)
-            }
-            self.controller?.requestLayout(transition: .immediate)
-        }
-    }
-
-    deinit {
-        if let appearanceObserver = self.appearanceObserver {
-            NotificationCenter.default.removeObserver(appearanceObserver)
-        }
     }
     
     override func didLoad() {
@@ -1543,7 +1525,7 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
             )
         }
         
-        let foldersAtBottom = true && self.location == .chatList(groupId: .root)
+        let foldersAtBottom = self.location == .chatList(groupId: .root)
         var bottomFolderTabs: AnyComponent<Empty>?
         var navigationHeaderPanels: AnyComponent<Empty>?
         if self.controller?.tabContainerData != nil || !panels.isEmpty {
@@ -1716,7 +1698,7 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
                 strings: self.presentationData.strings,
                 statusBarHeight: layout.statusBarHeight ?? 0.0,
                 sideInset: layout.safeInsets.left,
-                search: false && self.location == .chatList(groupId: .root) ? nil : ChatListNavigationBar.Search(isEnabled: true),
+                search: ChatListNavigationBar.Search(isEnabled: true),
                 activeSearch: self.isSearchDisplayControllerActive,
                 primaryContent: headerContent?.primaryContent,
                 secondaryContent: headerContent?.secondaryContent,
@@ -1927,7 +1909,7 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
         var storiesInset = storiesInset
         
         let navigationBarLayout = self.updateNavigationBar(layout: layout, deferScrollApplication: true, transition: ComponentTransition(transition))
-        self.mainContainerNode.initialScrollingOffset = (false && self.location == .chatList(groupId: .root) ? 0.0 : ChatListNavigationBar.searchScrollHeight) + navigationBarLayout.storiesInset
+        self.mainContainerNode.initialScrollingOffset = ChatListNavigationBar.searchScrollHeight + navigationBarLayout.storiesInset
         
         navigationBarHeight = navigationBarLayout.navigationHeight
         visualNavigationHeight = navigationBarLayout.navigationHeight
@@ -2561,9 +2543,6 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
 }
 
 func shouldDisplayStoriesInChatListHeader(storySubscriptions: EngineStorySubscriptions, isHidden: Bool) -> Bool {
-    if false {
-        return false
-    }
     if !storySubscriptions.items.isEmpty {
         return true
     }

@@ -947,10 +947,8 @@ func chatListNodeEntriesForView(view: EngineChatList, state: ChatListNodeState, 
                     groupId: groupReference.id,
 
                     peers: redactArchiveFolderContents ? [] : groupReference.items,
-                    message: redactArchiveFolderContents ? nil : groupReference.topMessage,
-
-                    peers: groupReference.items,
-                    message: groupReference.topMessage.flatMap { TelegramShadowBan.isHidden($0) ? nil : $0 },                    editing: state.editing,
+                    message: redactArchiveFolderContents ? nil : groupReference.topMessage.flatMap { TelegramShadowBan.isHidden($0) ? nil : $0 },
+                    editing: state.editing,
                     unreadCount: redactArchiveFolderContents ? 0 : groupReference.unreadCount,
                     revealed: forceArchiveCollapsed ? false : state.hiddenItemShouldBeTemporaryRevealed,
                     hiddenByDefault: hideArchivedFolderByDefault || forceArchiveCollapsed,
