@@ -738,9 +738,9 @@ open class ChatMessageItemView: ListViewItemNode, ChatMessageItemNodeProtocol {
 
 
         let isDeleted = item.content.contains(where: { element in
-            element.0.localTags.contains(.ArenaDeleted)
+            element.0.isLocallyDeleted
         })
-        // В«РџРѕРєР°Р·Р°С‚СЊ СЃРєСЂС‹С‚С‹РµВ» brings shadow-banned messages back half-transparent, so it's clear whose they are.
+        // Revealed shadow-banned messages remain half-transparent, so their state is clear.
         let isRevealedShadowBanned = ArenaSettings.shared.isShadowBanRevealed(chatPeerId: item.message.id.peerId.toInt64()) && item.content.contains(where: { element in
             TelegramShadowBan.isBannedContent(element.0)
         })
