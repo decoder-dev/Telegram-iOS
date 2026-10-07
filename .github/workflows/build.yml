@@ -334,7 +334,9 @@ jobs:
           if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
             TAG="${GITHUB_REF_NAME}"
           else
-            TAG="v${APP_VERSION}-${BUILD_NUMBER}"
+            # Manually published builds are prereleases. Stable releases are only
+            # produced from an explicit non-`-pre` tag.
+            TAG="v${APP_VERSION}-${BUILD_NUMBER}-pre"
           fi
           PRE_BANNER=""
           TITLE="Telegram ${APP_VERSION} (${BUILD_NUMBER}) sideload"
