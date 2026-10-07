@@ -1,4 +1,4 @@
-import Foundation
+﻿import Foundation
 import UIKit
 import AsyncDisplayKit
 import Display
@@ -425,7 +425,8 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
                             constrainedSize: CGSize(width: availableWidth, height: CGFloat.greatestFiniteMagnitude),
                             animationCache: item.controllerInteraction.presentationContext.animationCache,
                             animationRenderer: item.controllerInteraction.presentationContext.animationRenderer,
-                            associatedData: item.associatedData
+                            associatedData: item.associatedData,
+                            ArenaHidden: TelegramShadowBan.hidesReplyHeader(in: item.message)
                         ))
                     }
                 }
@@ -1587,6 +1588,11 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
                             }
                             if let replyInfoNode = self.replyInfoNode, replyInfoNode.frame.contains(location) {
                                 if let item = self.item {
+                                    // The hidden message is not in the chat, so there is nowhere to go.
+                                    if TelegramShadowBan.hidesReplyHeader(in: item.message) {
+                                        item.controllerInteraction.displayMessageTooltip(item.message.id, ChatMessageReplyInfoNode.ArenaHiddenTooltip, false, replyInfoNode, nil)
+                                        return
+                                    }
                                     for attribute in item.message.attributes {
                                         if let attribute = attribute as? ReplyMessageAttribute {
                                             item.controllerInteraction.navigateToMessage(item.message.id, attribute.messageId, NavigateToMessageParams(timestamp: nil, quote: attribute.isQuote ? attribute.quote.flatMap { quote in NavigateToMessageParams.Quote(string: quote.text, offset: quote.offset) } : nil))

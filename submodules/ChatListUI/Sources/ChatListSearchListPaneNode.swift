@@ -1,4 +1,4 @@
-import Foundation
+﻿import Foundation
 import UIKit
 import AsyncDisplayKit
 import Display
@@ -2427,7 +2427,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                             }
                         }
                     }
-                    // Search must not surface a peer sitting in a password-protected Archive —
+                    // Search must not surface a peer sitting in a password-protected Archive вЂ”
                     // that would defeat the lock without ever asking for the password. Reuses
                     // the same check notification redaction already relies on.
                     |> mapToSignal { peers -> Signal<[EngineRenderedPeer], NoError> in
@@ -3462,6 +3462,9 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                                 continue
                             }
                             existingPostIds.insert(message.id)
+                            if TelegramShadowBan.isHidden(message) {
+                                continue
+                            }
 
                             let headerId = listMessageDateHeaderId(timestamp: message.timestamp)
                             if firstHeaderId == nil {
@@ -3492,6 +3495,8 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                                 if searchState.deletedMessageIds.contains(message.id) {
                                     continue
                                 } else if message.id.namespace == Namespaces.Message.Cloud && searchState.deletedGlobalMessageIds.contains(message.id.id) {
+                                    continue
+                                } else if TelegramShadowBan.isHidden(message) {
                                     continue
                                 }
                                 let headerId = listMessageDateHeaderId(timestamp: message.timestamp)

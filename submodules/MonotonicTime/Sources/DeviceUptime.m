@@ -14,9 +14,9 @@ int32_t getDeviceUptimeSeconds(int32_t *bootTime) {
     if (sysctl(mib, 2, &boottime, &size, NULL, 0) != -1 && boottime.tv_sec != 0) {
         uptime = now - boottime.tv_sec;
         if (bootTime != NULL) {
-            *bootTime = boottime.tv_sec;
+            *bootTime = (int32_t)boottime.tv_sec;
         }
     }
 
-    return uptime;
+    return (int32_t)uptime;
 }

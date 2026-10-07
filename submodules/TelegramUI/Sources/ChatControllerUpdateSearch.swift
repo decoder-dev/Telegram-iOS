@@ -1,4 +1,4 @@
-import Foundation
+﻿import Foundation
 import TelegramPresentationData
 import AccountContext
 import ChatPresentationInterfaceState
@@ -93,6 +93,9 @@ extension ChatControllerImpl {
                         }
 
                         let search = self.context.engine.messages.searchMessages(location: searchState.location, query: searchState.query, state: nil, limit: limit)
+                        |> map { result, state -> (SearchMessagesResult, SearchMessagesState) in
+                            return (TelegramShadowBan.filteringHidden(result), state)
+                        }
                         |> delay(0.2, queue: Queue.mainQueue())
                         self.searchResult.set(search
                         |> map { (result, state) -> (SearchMessagesResult, SearchMessagesState, SearchMessagesLocation)? in
@@ -148,6 +151,9 @@ extension ChatControllerImpl {
                             self.searchDisposable = searchDisposable
                         }
                         searchDisposable.set((self.context.engine.messages.searchMessages(location: searchState.location, query: searchState.query, state: loadMoreState, limit: limit)
+                        |> map { result, state -> (SearchMessagesResult, SearchMessagesState) in
+                            return (TelegramShadowBan.filteringHidden(result), state)
+                        }
                         |> delay(0.2, queue: Queue.mainQueue())
                         |> deliverOnMainQueue).startStrict(next: { [weak self] results, updatedState in
                             guard let strongSelf = self else {

@@ -1,4 +1,4 @@
-import Foundation
+﻿import Foundation
 import UIKit
 import TelegramCore
 import TelegramPresentationData
@@ -615,7 +615,7 @@ func chatListNodeEntriesForView(view: EngineChatList, state: ChatListNodeState, 
     let savedMessagesPeer = hideSavedMessages ? nil : savedMessagesPeer
     let foundPeers = hideSavedMessages ? foundPeers.filter { $0.0.id != accountPeerId } : foundPeers
     var groupItems = view.groupItems
-    // Secret archive: until Settings is tapped 10× (or while fully omitted after close), the folder does not exist.
+    // Secret archive: until Settings is tapped 10Г— (or while fully omitted after close), the folder does not exist.
     if omitArchiveFolder {
         groupItems = []
     } else if isMainTab && state.archiveStoryState != nil && groupItems.isEmpty {
@@ -945,9 +945,12 @@ func chatListNodeEntriesForView(view: EngineChatList, state: ChatListNodeState, 
                     index: .chatList(EngineChatList.Item.Index.ChatList(pinningIndex: pinningIndex, messageIndex: messageIndex)),
                     presentationData: state.presentationData,
                     groupId: groupReference.id,
+
                     peers: redactArchiveFolderContents ? [] : groupReference.items,
                     message: redactArchiveFolderContents ? nil : groupReference.topMessage,
-                    editing: state.editing,
+
+                    peers: groupReference.items,
+                    message: groupReference.topMessage.flatMap { TelegramShadowBan.isHidden($0) ? nil : $0 },                    editing: state.editing,
                     unreadCount: redactArchiveFolderContents ? 0 : groupReference.unreadCount,
                     revealed: forceArchiveCollapsed ? false : state.hiddenItemShouldBeTemporaryRevealed,
                     hiddenByDefault: hideArchivedFolderByDefault || forceArchiveCollapsed,

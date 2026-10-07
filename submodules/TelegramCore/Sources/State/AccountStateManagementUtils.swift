@@ -1596,12 +1596,12 @@ private func finalStateWithUpdatesAndServerTime(accountPeerId: PeerId, postbox: 
                 let threadId = topMsgId.flatMap { Int64($0) }
             
                 if let date = updatesDate, date + 60 > serverTime {
-                    var typingDraftData: (randomId: Int64, text: TypingDraftText)?
+                    var typingDraftData: (randomId: Int64, flags: Int32, text: TypingDraftText)?
                     
                     if case let .sendMessageTextDraftAction(sendMessageTextDraftActionData) = type {
-                        typingDraftData = (sendMessageTextDraftActionData.randomId, .plain(sendMessageTextDraftActionData.text))
+                        typingDraftData = (sendMessageTextDraftActionData.randomId, sendMessageTextDraftActionData.flags, .plain(sendMessageTextDraftActionData.text))
                     } else if case let .sendMessageRichMessageDraftAction(sendMessageRichMessageDraftActionData) = type {
-                        typingDraftData = (sendMessageRichMessageDraftActionData.randomId, .rich(sendMessageRichMessageDraftActionData.richMessage))
+                        typingDraftData = (sendMessageRichMessageDraftActionData.randomId, sendMessageRichMessageDraftActionData.flags, .rich(sendMessageRichMessageDraftActionData.richMessage))
                     }
                     if let typingDraftData {
                         switch typingDraftData.text {

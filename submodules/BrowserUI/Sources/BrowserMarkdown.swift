@@ -2154,6 +2154,9 @@ private func markdownDroppingPrefixLength(_ length: Int, from text: RichText) ->
     case let .anchor(inner, name):
         let dropped = markdownDroppingPrefixLength(length, from: inner)
         return dropped == .empty ? .empty : .anchor(text: dropped, name: name)
+    case let .button(inner, button, apiData):
+        let dropped = markdownDroppingPrefixLength(length, from: inner)
+        return dropped == .empty ? .empty : .button(text: dropped, button: button, apiData: apiData)
     case .textCustomEmoji:
         return text
     case .textAutoEmail, .textAutoPhone, .textAutoUrl, .textBankCard, .textBotCommand, .textCashtag, .textHashtag, .textMention, .textMentionName, .textSpoiler, .textDate:
@@ -2187,6 +2190,8 @@ private func markdownHasDisplayableContent(_ richText: RichText) -> Bool {
         return true
     case let .formula(latex):
         return !latex.isEmpty
+    case let .button(text, _, _):
+        return markdownHasDisplayableContent(text)
     case .textCustomEmoji:
         return true
     case .textAutoEmail, .textAutoPhone, .textAutoUrl, .textBankCard, .textBotCommand, .textCashtag, .textHashtag, .textMention, .textMentionName, .textSpoiler, .textDate:
@@ -2220,6 +2225,8 @@ private func markdownIsWhitespaceOnly(_ richText: RichText) -> Bool {
         return false
     case let .formula(latex):
         return latex.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    case let .button(text, _, _):
+        return markdownIsWhitespaceOnly(text)
     case .textCustomEmoji:
         return false
     case .textAutoEmail, .textAutoPhone, .textAutoUrl, .textBankCard, .textBotCommand, .textCashtag, .textHashtag, .textMention, .textMentionName, .textSpoiler, .textDate:

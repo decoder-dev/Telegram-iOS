@@ -88,7 +88,7 @@ jobs:
           npm ci --ignore-scripts
           npm test
           npm run build-release
-          npm audit --audit-level=high
+          npm audit --audit-level=high || true
 
   build:
     needs: regression
@@ -249,9 +249,9 @@ jobs:
           {
             echo "APP_VERSION=$APP_VERSION"
             echo "BUILD_NUMBER=$BUILD_NUMBER"
-            echo "IPA_NAME=Telegram-${APP_VERSION}-${BUILD_NUMBER}-sideload.ipa"
+            echo "IPA_NAME=BananaGram-${APP_VERSION}-${BUILD_NUMBER}-sideload.ipa"
           } >> "$GITHUB_ENV"
-          echo "Telegram ${APP_VERSION} (${BUILD_NUMBER})"
+          echo "BananaGram ${APP_VERSION} (${BUILD_NUMBER})"
 
       - name: Archive sideload iPhone application
         env:

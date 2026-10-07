@@ -1,0 +1,86 @@
+﻿2026-10-05T08:44:33.0396120Z [36;1m  echo "::warning::LibXray layout: $(find third-party/libxray -maxdepth 3 | tr '\n' '|' | head -c 900)"[0m
+2026-10-05T08:44:33.0396930Z [36;1m  echo "::warning::LibXray binaries: $(find third-party/libxray -name '*.a' -o -name 'LibXray' -type f | head -5 | while read f; do echo -n "$f=$(file -b "$f" | head -c 60) "; done)"[0m
+2026-10-05T08:44:37.1404780Z [36;1m  echo "::warning::using $(basename "$CANDIDATE") instead of ${XCODE_VERSION}"[0m
+2026-10-05T08:45:08.0604830Z (node:3215) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-05T08:45:08.2039070Z (node:3215) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-10-05T08:45:29.9828260Z WARNING: Option 'local_cpu_resources' is deprecated: --local_cpu_resources is deprecated, please use --local_resources=cpu= instead.
+2026-10-05T08:45:30.2696230Z WARNING: For repository 'bazel_features', the root module requires module version bazel_features@1.33.0, but got bazel_features@1.42.1 in the resolved dependency graph. Please update the version in your MODULE.bazel or set --check_direct_dependencies=off
+2026-10-05T08:45:30.2710280Z WARNING: For repository 'bazel_skylib', the root module requires module version bazel_skylib@1.8.1, but got bazel_skylib@1.9.0 in the resolved dependency graph. Please update the version in your MODULE.bazel or set --check_direct_dependencies=off
+2026-10-05T08:45:30.2715720Z WARNING: For repository 'platforms', the root module requires module version platforms@0.0.11, but got platforms@1.0.0 in the resolved dependency graph. Please update the version in your MODULE.bazel or set --check_direct_dependencies=off
+2026-10-05T08:45:30.2963370Z WARNING: Option 'local_cpu_resources' is deprecated: --local_cpu_resources is deprecated, please use --local_resources=cpu= instead.
+2026-10-05T08:46:18.9160740Z libpng warning: Warning: Input PNG does not have an 8 bit input depth.  Please convert your PNG to 8-bit for optimal performance on iPhone OS.
+2026-10-05T08:46:19.0369480Z libpng warning: Warning: Input PNG does not have an 8 bit input depth.  Please convert your PNG to 8-bit for optimal performance on iPhone OS.
+2026-10-05T08:46:19.0787990Z libpng warning: Warning: Input PNG does not have an 8 bit input depth.  Please convert your PNG to 8-bit for optimal performance on iPhone OS.
+2026-10-05T08:46:19.1449630Z libpng warning: Warning: Input PNG does not have an 8 bit input depth.  Please convert your PNG to 8-bit for optimal performance on iPhone OS.
+2026-10-05T08:46:19.1662920Z libpng warning: Warning: Input PNG does not have an 8 bit input depth.  Please convert your PNG to 8-bit for optimal performance on iPhone OS.
+2026-10-05T08:46:19.1869290Z libpng warning: Warning: Input PNG does not have an 8 bit input depth.  Please convert your PNG to 8-bit for optimal performance on iPhone OS.
+2026-10-05T08:46:19.2128230Z libpng warning: Warning: Input PNG does not have an 8 bit input depth.  Please convert your PNG to 8-bit for optimal performance on iPhone OS.
+2026-10-05T08:46:19.2158010Z libpng warning: Warning: Input PNG does not have an 8 bit input depth.  Please convert your PNG to 8-bit for optimal performance on iPhone OS.
+2026-10-05T08:46:19.2323300Z libpng warning: Warning: Input PNG does not have an 8 bit input depth.  Please convert your PNG to 8-bit for optimal performance on iPhone OS.
+2026-10-05T08:46:19.2530630Z libpng warning: Warning: Input PNG does not have an 8 bit input depth.  Please convert your PNG to 8-bit for optimal performance on iPhone OS.
+2026-10-05T08:46:19.2749990Z libpng warning: Warning: Input PNG does not have an 8 bit input depth.  Please convert your PNG to 8-bit for optimal performance on iPhone OS.
+2026-10-05T08:46:21.3883450Z submodules/TelegramUI/Components/CameraScreen/MetalResources/cameraScreen.metal:127:19: warning: left operand of comma operator has no effect [-Wunused-value]
+2026-10-05T08:46:25.2130840Z submodules/TelegramUI/Components/Calls/CallScreen/Metal/CallScreenShaders.metal:261:19: warning: left operand of comma operator has no effect [-Wunused-value]
+2026-10-05T08:46:25.2354540Z configure: WARNING: using cross tools not prefixed with host triplet
+2026-10-05T08:46:25.2395400Z checking for -single_module linker flag... ld: warning: -single_module is obsolete
+2026-10-05T08:46:37.6457780Z submodules/TelegramUI/Components/RichTextEditor/Sources/RichTextEditorUIKit/Canvas/DocumentCanvasView+UITextInput.swift:720:52: warning: immutable value 'child' was never used; consider replacing with '_' or removing it [#no-usage]
+2026-10-05T08:46:37.6869960Z     |                                                    `- warning: immutable value 'child' was never used; consider replacing with '_' or removing it [#no-usage]
+2026-10-05T08:47:22.9415460Z submodules/MonotonicTime/Sources/DeviceUptime.m:17:34: warning: implicit conversion loses integer precision: '__darwin_time_t' (aka 'long') to 'int32_t' (aka 'int') [-Wshorten-64-to-32]
+2026-10-05T08:47:22.9770910Z submodules/MonotonicTime/Sources/DeviceUptime.m:21:12: warning: implicit conversion loses integer precision: 'time_t' (aka 'long') to 'int32_t' (aka 'int') [-Wshorten-64-to-32]
+2026-10-05T08:47:38.5855580Z ld: warning: ignoring duplicate libraries: '../../tdtl/libtdtl.a'
+2026-10-05T08:47:38.5957350Z ld: warning: ignoring duplicate libraries: '../../tdtl/libtdtl.a'
+2026-10-05T08:47:38.9545020Z CMake Warning:
+2026-10-05T08:47:43.1736970Z submodules/MozjpegBinding/Sources/MozjpegBinding.mm:25:21: warning: unused function 'JXLGetDistance' [-Wunused-function]
+2026-10-05T08:48:08.7426500Z ld: warning: -bitcode_bundle is no longer supported and will be ignored
+2026-10-05T08:48:10.8296300Z src/libavformat/rawdec.c:106:12: warning: unused function 'raw_data_read_header' [-Wunused-function]
+2026-10-05T08:48:10.8297610Z src/libavcodec/aac_ac3_parser.c:151:17: warning: unused variable 'profile' [-Wunused-variable]
+2026-10-05T08:48:10.8298840Z src/libavcodec/audiotoolboxdec.c:39:5: warning: '__MAC_OS_X_VERSION_MIN_REQUIRED' is not defined, evaluates to 0 [-Wundef]
+2026-10-05T08:48:10.8300350Z src/libavcodec/audiotoolboxenc.c:678:1: warning: 'ch_layouts' is deprecated [-Wdeprecated-declarations]
+2026-10-05T08:48:10.8304530Z src/libavcodec/audiotoolboxenc.c:678:1: warning: 'sample_fmts' is deprecated [-Wdeprecated-declarations]
+2026-10-05T08:48:10.8308570Z src/libavcodec/audiotoolboxenc.c:680:1: warning: 'ch_layouts' is deprecated [-Wdeprecated-declarations]
+2026-10-05T08:48:10.8321400Z src/libavcodec/audiotoolboxenc.c:680:1: warning: 'sample_fmts' is deprecated [-Wdeprecated-declarations]
+2026-10-05T08:48:10.8325140Z src/libavcodec/audiotoolboxenc.c:681:1: warning: 'ch_layouts' is deprecated [-Wdeprecated-declarations]
+2026-10-05T08:48:10.8329210Z src/libavcodec/audiotoolboxenc.c:681:1: warning: 'sample_fmts' is deprecated [-Wdeprecated-declarations]
+2026-10-05T08:48:10.8333660Z src/libavcodec/audiotoolboxenc.c:682:1: warning: 'ch_layouts' is deprecated [-Wdeprecated-declarations]
+2026-10-05T08:48:10.8337850Z src/libavcodec/audiotoolboxenc.c:682:1: warning: 'sample_fmts' is deprecated [-Wdeprecated-declarations]
+2026-10-05T08:48:10.8341890Z src/libavcodec/audiotoolboxenc.c:683:1: warning: 'ch_layouts' is deprecated [-Wdeprecated-declarations]
+2026-10-05T08:48:10.8361260Z src/libavcodec/audiotoolboxenc.c:683:1: warning: 'sample_fmts' is deprecated [-Wdeprecated-declarations]
+2026-10-05T08:48:10.8365470Z src/libavcodec/flacdec.c:830:8: warning: 'sample_fmts' is deprecated [-Wdeprecated-declarations]
+2026-10-05T08:48:10.8368780Z src/libavcodec/libopusdec.c:247:8: warning: 'sample_fmts' is deprecated [-Wdeprecated-declarations]
+2026-10-05T08:48:10.8374130Z src/libavcodec/mpegaudiodec_fixed.c:109:8: warning: 'sample_fmts' is deprecated [-Wdeprecated-declarations]
+2026-10-05T08:48:10.8377560Z src/libavcodec/pcm.c:287:39: warning: 'sample_fmts' is deprecated [-Wdeprecated-declarations]
+2026-10-05T08:48:10.8381790Z src/libavcodec/pcm.c:602:1: warning: 'sample_fmts' is deprecated [-Wdeprecated-declarations]
+2026-10-05T08:48:10.8390150Z src/libavcodec/pcm.c:611:1: warning: 'sample_fmts' is deprecated [-Wdeprecated-declarations]
+2026-10-05T08:48:10.8398020Z src/libavcodec/pcm.c:615:1: warning: 'sample_fmts' is deprecated [-Wdeprecated-declarations]
+2026-10-05T08:48:10.8408430Z src/libavcodec/pcm.c:41:20: warning: unused function 'pcm_encode_init' [-Wunused-function]
+2026-10-05T08:48:10.8409830Z src/libavcodec/pcm.c:96:12: warning: unused function 'pcm_encode_frame' [-Wunused-function]
+2026-10-05T08:48:10.8411600Z src/libavutil/hwcontext_videotoolbox.c:591:34: warning: comparison of different enumeration types ('enum AVColorPrimaries' and 'enum AVColorSpace') [-Wenum-compare]
+2026-10-05T08:50:54.3631830Z submodules/Sunrise/Sources/EDSunriseSet.m:150:20: warning: variable 'zs' set but not used [-Wunused-but-set-variable]
+2026-10-05T08:50:54.5064400Z bazel-out/ios_arm64-opt-ios-arm64-min13.0-ST-57b073d392e5/bin/Telegram/GeneratedPresentationStrings/Sources/PresentationStrings.m:249:36: warning: unused function 'getFormatted7' [-Wunused-function]
+2026-10-05T09:07:27.8034120Z ld: warning: object file (/Users/runner/work/Telegram-iOS/Telegram-iOS/third-party/libxray/LibXray.xcframework/ios-arm64/libXray.a[2](go.o)) was built for newer 'iOS' version (15.0) than being linked (13.0)
+2026-10-05T09:07:27.8168290Z ld: warning: object file (/Users/runner/work/Telegram-iOS/Telegram-iOS/third-party/libxray/LibXray.xcframework/ios-arm64/libXray.a[3](000000.o)) was built for newer 'iOS' version (15.0) than being linked (13.0)
+2026-10-05T09:07:27.8308140Z ld: warning: object file (/Users/runner/work/Telegram-iOS/Telegram-iOS/third-party/libxray/LibXray.xcframework/ios-arm64/libXray.a[4](000001.o)) was built for newer 'iOS' version (15.0) than being linked (13.0)
+2026-10-05T09:07:27.8450640Z ld: warning: object file (/Users/runner/work/Telegram-iOS/Telegram-iOS/third-party/libxray/LibXray.xcframework/ios-arm64/libXray.a[7](000004.o)) was built for newer 'iOS' version (15.0) than being linked (13.0)
+2026-10-05T09:07:27.8584060Z ld: warning: object file (/Users/runner/work/Telegram-iOS/Telegram-iOS/third-party/libxray/LibXray.xcframework/ios-arm64/libXray.a[8](000005.o)) was built for newer 'iOS' version (15.0) than being linked (13.0)
+2026-10-05T09:07:27.8716780Z ld: warning: object file (/Users/runner/work/Telegram-iOS/Telegram-iOS/third-party/libxray/LibXray.xcframework/ios-arm64/libXray.a[9](000006.o)) was built for newer 'iOS' version (15.0) than being linked (13.0)
+2026-10-05T09:07:27.8793060Z ld: warning: object file (/Users/runner/work/Telegram-iOS/Telegram-iOS/third-party/libxray/LibXray.xcframework/ios-arm64/libXray.a[10](000007.o)) was built for newer 'iOS' version (15.0) than being linked (13.0)
+2026-10-05T09:07:27.8801500Z ld: warning: object file (/Users/runner/work/Telegram-iOS/Telegram-iOS/third-party/libxray/LibXray.xcframework/ios-arm64/libXray.a[11](000008.o)) was built for newer 'iOS' version (15.0) than being linked (13.0)
+2026-10-05T09:07:27.8804950Z ld: warning: object file (/Users/runner/work/Telegram-iOS/Telegram-iOS/third-party/libxray/LibXray.xcframework/ios-arm64/libXray.a[13](000010.o)) was built for newer 'iOS' version (15.0) than being linked (13.0)
+2026-10-05T09:07:27.8808560Z ld: warning: object file (/Users/runner/work/Telegram-iOS/Telegram-iOS/third-party/libxray/LibXray.xcframework/ios-arm64/libXray.a[14](000011.o)) was built for newer 'iOS' version (15.0) than being linked (13.0)
+2026-10-05T09:07:27.8817380Z ld: warning: object file (/Users/runner/work/Telegram-iOS/Telegram-iOS/third-party/libxray/LibXray.xcframework/ios-arm64/libXray.a[15](000012.o)) was built for newer 'iOS' version (15.0) than being linked (13.0)
+2026-10-05T09:26:52.4519780Z ##[error]checking for -single_module linker flag... ld: warning: -single_module is obsolete
+2026-10-05T09:26:52.4525320Z ##[error]ld: warning: ignoring duplicate libraries: '../../tdtl/libtdtl.a'
+2026-10-05T09:26:52.4526930Z ##[error]ld: warning: ignoring duplicate libraries: '../../tdtl/libtdtl.a'
+2026-10-05T09:26:52.4528580Z ##[error]ld: warning: -bitcode_bundle is no longer supported and will be ignored
+2026-10-05T09:26:52.4532090Z ##[error]ld: warning: object file (/Users/runner/work/Telegram-iOS/Telegram-iOS/third-party/libxray/LibXray.xcframework/ios-arm64/libXray.a[2](go.o)) was built for newer 'iOS' version (15.0) than being linked (13.0)
+2026-10-05T09:26:52.4535470Z ##[error]ld: warning: object file (/Users/runner/work/Telegram-iOS/Telegram-iOS/third-party/libxray/LibXray.xcframework/ios-arm64/libXray.a[3](000000.o)) was built for newer 'iOS' version (15.0) than being linked (13.0)
+2026-10-05T09:26:52.4539220Z ##[error]ld: warning: object file (/Users/runner/work/Telegram-iOS/Telegram-iOS/third-party/libxray/LibXray.xcframework/ios-arm64/libXray.a[4](000001.o)) was built for newer 'iOS' version (15.0) than being linked (13.0)
+2026-10-05T09:26:52.4541620Z ##[error]ld: warning: object file (/Users/runner/work/Telegram-iOS/Telegram-iOS/third-party/libxray/LibXray.xcframework/ios-arm64/libXray.a[7](000004.o)) was built for newer 'iOS' version (15.0) than being linked (13.0)
+2026-10-05T09:26:52.4543830Z ##[error]ld: warning: object file (/Users/runner/work/Telegram-iOS/Telegram-iOS/third-party/libxray/LibXray.xcframework/ios-arm64/libXray.a[8](000005.o)) was built for newer 'iOS' version (15.0) than being linked (13.0)
+2026-10-05T09:26:52.4546030Z ##[error]ld: warning: object file (/Users/runner/work/Telegram-iOS/Telegram-iOS/third-party/libxray/LibXray.xcframework/ios-arm64/libXray.a[9](000006.o)) was built for newer 'iOS' version (15.0) than being linked (13.0)
+2026-10-05T09:26:52.4548320Z ##[error]ld: warning: object file (/Users/runner/work/Telegram-iOS/Telegram-iOS/third-party/libxray/LibXray.xcframework/ios-arm64/libXray.a[10](000007.o)) was built for newer 'iOS' version (15.0) than being linked (13.0)
+2026-10-05T09:26:52.4550900Z ##[error]ld: warning: object file (/Users/runner/work/Telegram-iOS/Telegram-iOS/third-party/libxray/LibXray.xcframework/ios-arm64/libXray.a[11](000008.o)) was built for newer 'iOS' version (15.0) than being linked (13.0)
+2026-10-05T09:26:52.4553220Z ##[error]ld: warning: object file (/Users/runner/work/Telegram-iOS/Telegram-iOS/third-party/libxray/LibXray.xcframework/ios-arm64/libXray.a[13](000010.o)) was built for newer 'iOS' version (15.0) than being linked (13.0)
+2026-10-05T09:26:52.4555440Z ##[error]ld: warning: object file (/Users/runner/work/Telegram-iOS/Telegram-iOS/third-party/libxray/LibXray.xcframework/ios-arm64/libXray.a[14](000011.o)) was built for newer 'iOS' version (15.0) than being linked (13.0)
+2026-10-05T09:26:52.4557640Z ##[error]ld: warning: object file (/Users/runner/work/Telegram-iOS/Telegram-iOS/third-party/libxray/LibXray.xcframework/ios-arm64/libXray.a[15](000012.o)) was built for newer 'iOS' version (15.0) than being linked (13.0)
+2026-10-05T09:26:53.2147870Z (node:93361) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.

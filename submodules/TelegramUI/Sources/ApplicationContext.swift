@@ -1,4 +1,4 @@
-import Foundation
+﻿import Foundation
 import UIKit
 import Intents
 import TelegramPresentationData
@@ -328,6 +328,9 @@ final class AuthorizedApplicationContext {
                     guard let message = item.0.first else {
                         return false
                     }
+                    if TelegramShadowBan.isHidden(message) {
+                        return false
+                    }
                     if let maybeChatListIndex = chatListIndexMap[message.id.peerId], maybeChatListIndex != nil {
                         return true
                     } else {
@@ -387,7 +390,7 @@ final class AuthorizedApplicationContext {
                         let _ = (combineLatest(
                             appLockContext.isCurrentlyLocked |> take(1),
                             // A locked, password-protected Archive peer must not produce an
-                            // in-app foreground toast either — that's a separate code path from
+                            // in-app foreground toast either вЂ” that's a separate code path from
                             // the OS push banner (NotificationService.swift) and was leaking
                             // sender name/text the same way.
                             context.account.postbox.transaction { transaction -> Bool in

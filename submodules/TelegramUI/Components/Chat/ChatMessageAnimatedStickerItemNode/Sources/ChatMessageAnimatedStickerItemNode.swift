@@ -1,4 +1,4 @@
-import Foundation
+﻿import Foundation
 import UIKit
 import AVFoundation
 import AsyncDisplayKit
@@ -387,7 +387,7 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
         }
         
         if let telegramDice = self.telegramDice {
-            if telegramDice.emoji == "🎰" {
+            if telegramDice.emoji == "рџЋ°" {
                 let animationNode = SlotMachineAnimationNode(account: item.context.account)
                 if !item.message.effectivelyIncoming(item.context.account.peerId) {
                     animationNode.success = { [weak self] onlyHaptic in
@@ -556,8 +556,8 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
                 let textEmoji = item.message.text.strippedEmoji
                 var additionalTextEmoji = textEmoji
                 let (basicEmoji, fitz) = item.message.text.basicEmoji
-                if ["💛", "💙", "💚", "💜", "🧡", "🖤", "🤎", "🤍"].contains(textEmoji) {
-                    additionalTextEmoji = "❤️".strippedEmoji
+                if ["рџ’›", "рџ’™", "рџ’љ", "рџ’њ", "рџ§Ў", "рџ–¤", "рџ¤Ћ", "рџ¤Ќ"].contains(textEmoji) {
+                    additionalTextEmoji = "вќ¤пёЏ".strippedEmoji
                 } else if fitz != nil {
                     additionalTextEmoji = basicEmoji
                 }
@@ -1274,7 +1274,8 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
                     constrainedSize: CGSize(width: availableContentWidth, height: CGFloat.greatestFiniteMagnitude),
                     animationCache: item.controllerInteraction.presentationContext.animationCache,
                     animationRenderer: item.controllerInteraction.presentationContext.animationRenderer,
-                    associatedData: item.associatedData
+                    associatedData: item.associatedData,
+                    ArenaHidden: TelegramShadowBan.hidesReplyHeader(in: item.message)
                 ))
             }
             
@@ -2176,8 +2177,8 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
         let textEmoji = item.message.text.strippedEmoji
         var additionalTextEmoji = textEmoji
         let (basicEmoji, fitz) = item.message.text.basicEmoji
-        if ["💛", "💙", "💚", "💜", "🧡", "🖤", "🤎", "🤍"].contains(textEmoji) {
-            additionalTextEmoji = "❤️".strippedEmoji
+        if ["рџ’›", "рџ’™", "рџ’љ", "рџ’њ", "рџ§Ў", "рџ–¤", "рџ¤Ћ", "рџ¤Ќ"].contains(textEmoji) {
+            additionalTextEmoji = "вќ¤пёЏ".strippedEmoji
         } else if fitz != nil {
             additionalTextEmoji = basicEmoji
         }
@@ -2327,6 +2328,12 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
             
             if let replyInfoNode = self.replyInfoNode, replyInfoNode.frame.contains(location) {
                 if let item = self.item {
+                    // The hidden message is not in the chat, so there is nowhere to go.
+                    if TelegramShadowBan.hidesReplyHeader(in: item.message) {
+                        return .optionalAction({
+                            item.controllerInteraction.displayMessageTooltip(item.message.id, ChatMessageReplyInfoNode.ArenaHiddenTooltip, false, replyInfoNode, nil)
+                        })
+                    }
                     for attribute in item.message.attributes {
                         if let attribute = attribute as? ReplyMessageAttribute {
                             return .optionalAction({
@@ -2401,13 +2408,13 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
                         var textEmoji = text.strippedEmoji
                         var additionalTextEmoji = textEmoji
                         if beatingHearts.contains(firstScalar.value) {
-                            textEmoji = "❤️"
+                            textEmoji = "вќ¤пёЏ"
                             firstScalar = UnicodeScalar(heart)!
                         }
                         
                         let (basicEmoji, fitz) = text.basicEmoji
-                        if ["💛", "💙", "💚", "💜", "🧡", "🖤", "🤎", "🤍", "❤️"].contains(textEmoji) {
-                            additionalTextEmoji = "❤️".strippedEmoji
+                        if ["рџ’›", "рџ’™", "рџ’љ", "рџ’њ", "рџ§Ў", "рџ–¤", "рџ¤Ћ", "рџ¤Ќ", "вќ¤пёЏ"].contains(textEmoji) {
+                            additionalTextEmoji = "вќ¤пёЏ".strippedEmoji
                         } else if fitz != nil {
                             additionalTextEmoji = basicEmoji
                         }

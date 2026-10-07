@@ -404,9 +404,11 @@ private func trimStart(_ input: RichText) -> RichText {
         break
     case .formula:
         break
+    case let .button(richText, button, apiData):
+        text = .button(text: trimStart(richText), button: button, apiData: apiData)
     case .textCustomEmoji:
         break
-    case .textAutoEmail, .textAutoPhone, .textAutoUrl, .textBankCard, .textBotCommand, .textCashtag, .textHashtag, .textMention, .textMentionName, .textSpoiler, .textDate, .button:
+    case .textAutoEmail, .textAutoPhone, .textAutoUrl, .textBankCard, .textBotCommand, .textCashtag, .textHashtag, .textMention, .textMentionName, .textSpoiler, .textDate:
         break
     }
     return text
@@ -452,9 +454,11 @@ private func trimEnd(_ input: RichText) -> RichText {
         break
     case .formula:
         break
+    case let .button(richText, button, apiData):
+        text = .button(text: trimEnd(richText), button: button, apiData: apiData)
     case .textCustomEmoji:
         break
-    case .textAutoEmail, .textAutoPhone, .textAutoUrl, .textBankCard, .textBotCommand, .textCashtag, .textHashtag, .textMention, .textMentionName, .textSpoiler, .textDate, .button:
+    case .textAutoEmail, .textAutoPhone, .textAutoUrl, .textBankCard, .textBotCommand, .textCashtag, .textHashtag, .textMention, .textMentionName, .textSpoiler, .textDate:
         break
     }
     return text
@@ -501,9 +505,11 @@ private func trim(_ input: RichText) -> RichText {
         break
     case .formula:
         break
+    case let .button(richText, button, apiData):
+        text = .button(text: trimStart(richText), button: button, apiData: apiData)
     case .textCustomEmoji:
         break
-    case .textAutoEmail, .textAutoPhone, .textAutoUrl, .textBankCard, .textBotCommand, .textCashtag, .textHashtag, .textMention, .textMentionName, .textSpoiler, .textDate, .button:
+    case .textAutoEmail, .textAutoPhone, .textAutoUrl, .textBankCard, .textBotCommand, .textCashtag, .textHashtag, .textMention, .textMentionName, .textSpoiler, .textDate:
         break
     }
     return text
@@ -551,7 +557,9 @@ private func addNewLine(_ input: RichText) -> RichText {
         text = .concat([.formula(latex: latex), .plain("\n")])
     case .textCustomEmoji:
         break
-    case .textAutoEmail, .textAutoPhone, .textAutoUrl, .textBankCard, .textBotCommand, .textCashtag, .textHashtag, .textMention, .textMentionName, .textSpoiler, .textDate, .button:
+    case let .button(richText, button, apiData):
+        text = .button(text: addNewLine(richText), button: button, apiData: apiData)
+    case .textAutoEmail, .textAutoPhone, .textAutoUrl, .textBankCard, .textBotCommand, .textCashtag, .textHashtag, .textMention, .textMentionName, .textSpoiler, .textDate:
         break
     }
     return text

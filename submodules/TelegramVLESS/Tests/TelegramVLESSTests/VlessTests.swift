@@ -86,6 +86,11 @@ final class VlessTests: XCTestCase {
             for inbound in json["inbounds"] as! [[String: Any]] {
                 XCTAssertEqual(inbound["listen"] as? String, "127.0.0.1")
             }
+            let outbounds = json["outbounds"] as! [[String: Any]]
+            let vlessOut = outbounds[0]
+            let mux = vlessOut["mux"] as! [String: Any]
+            XCTAssertEqual(mux["enabled"] as? Bool, true)
+            XCTAssertEqual(mux["concurrency"] as? Int, 8)
             XCTAssertNil(VlessXrayConfig.configJSON(profile: profile, socks: socks, http: socks))
         }
     }

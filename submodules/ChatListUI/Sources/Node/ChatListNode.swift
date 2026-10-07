@@ -1,4 +1,4 @@
-import Foundation
+﻿import Foundation
 import UIKit
 import Display
 import AsyncDisplayKit
@@ -1327,6 +1327,7 @@ public final class ChatListNode: ListViewImpl {
     private let chatListLocation = ValuePromise<ChatListNodeLocation>()
     private let chatListDisposable = MetaDisposable()
     private var activityStatusesDisposable: Disposable?
+    private var TelegramShadowBanObserver: NSObjectProtocol?
     
     private let scrollToTopOptionPromise = Promise<ChatListGlobalScrollOption>(.none)
     public var scrollToTopOption: Signal<ChatListGlobalScrollOption, NoError> {
@@ -2000,10 +2001,10 @@ public final class ChatListNode: ListViewImpl {
         }
         |> distinctUntilChanged
         
-        // Secret archive: omit until Settings ×10; on auto-close keep the row briefly
+        // Secret archive: omit until Settings Г—10; on auto-close keep the row briefly
         // (`.collapsing`) so ChatListItem can play the official 0.4s spring hide.
         //
-        // Only an account that actually has an Archive password gets that treatment — without one
+        // Only an account that actually has an Archive password gets that treatment вЂ” without one
         // the Archive is a stock Archive and is simply always listed. The two are combined here
         // rather than inside `ArchiveLockSession` on purpose: `combineLatest` withholds the first
         // emission until the stored password state is known, so an unprotected account never
@@ -2018,7 +2019,7 @@ public final class ChatListNode: ListViewImpl {
         |> distinctUntilChanged
         
         // Title-only Archive row while a password is set and the session is still locked.
-        // Combined here (not read ad hoc in the item) so Settings × 10 / unlock / relock
+        // Combined here (not read ad hoc in the item) so Settings Г— 10 / unlock / relock
         // rebuild the entry instead of leaving a previously laid-out preview on screen.
         let archiveFolderContentsHidden = combineLatest(
             ArchiveLockSession.shared.unlockedSignal,
@@ -2260,7 +2261,7 @@ public final class ChatListNode: ListViewImpl {
             accountIsPremium
         )
         |> mapToQueue { [weak self] (hideArchivedFolderByDefault, archiveFolderPresentation, archiveFolderContentsHidden, displayArchiveIntro, storageInfo, savedMessagesPeer, updateAndFilter, state, contacts, chatListFilters, accountIsPremium) -> Signal<ChatListNodeListViewTransition, NoError> in
-            // Weak-self gate only — the generation/staleness guard that used to touch `self`
+            // Weak-self gate only вЂ” the generation/staleness guard that used to touch `self`
             // was dropped; binding `strongSelf` here tripped [#no-usage] under release Swift.
             guard self != nil else {
                 return .complete()
@@ -2764,7 +2765,7 @@ public final class ChatListNode: ListViewImpl {
                 let originalList = chatListView.originalList
                 // Only the tab the user is actually on advances its location: an off-screen tab
                 // moving itself to `.navigation` is paginating work nobody asked for. Everything
-                // below — story stats, the hidden-item reveal reset — is not pagination and runs
+                // below вЂ” story stats, the hidden-item reveal reset вЂ” is not pagination and runs
                 // for every tab, as upstream does; gating the whole callback on this flag was
                 // wider than the pause it is named for.
                 if strongSelf.isActiveForFolderPagination, let range = range.loadedRange {
@@ -2844,7 +2845,10 @@ public final class ChatListNode: ListViewImpl {
         |> mapToSignal { activitiesByPeerId -> Signal<[ChatListNodePeerInputActivities.ItemId: [(EnginePeer, PeerInputActivity)]], NoError> in
             var activitiesByPeerId = activitiesByPeerId
             for key in activitiesByPeerId.keys {
-                activitiesByPeerId[key]?.removeAll(where: { _, activity in
+                activitiesByPeerId[key]?.removeAll(where: { peerId, activity in
+                    if TelegramShadowBan.isPeerHidden(peerId, inChat: key.peerId) {
+                        return true
+                    }
                     switch activity {
                     case .interactingWithEmoji:
                         return true
@@ -3275,9 +3279,26 @@ public final class ChatListNode: ListViewImpl {
             return strongSelf.isSelectionGestureEnabled
         }
         self.view.addGestureRecognizer(selectionRecognizer)
+
+        // Previews and typing read the shadow ban at layout time: a fresh presentation data object lays out every row again,
+        // as a theme change does.
+        self.TelegramShadowBanObserver = NotificationCenter.default.addObserver(forName: ArenaSettings.shadowBanDidChangeNotification, object: nil, queue: .main, using: { [weak self] _ in
+            guard let self else {
+                return
+            }
+            self.updateState { state in
+                var state = state
+                let current = state.presentationData
+                state.presentationData = ChatListPresentationData(theme: current.theme, fontSize: current.fontSize, strings: current.strings, dateTimeFormat: current.dateTimeFormat, nameSortOrder: current.nameSortOrder, nameDisplayOrder: current.nameDisplayOrder, disableAnimations: current.disableAnimations)
+                return state
+            }
+        })
     }
-    
+
     deinit {
+        if let TelegramShadowBanObserver = self.TelegramShadowBanObserver {
+            NotificationCenter.default.removeObserver(TelegramShadowBanObserver)
+        }
         self.chatListDisposable.dispose()
         self.activityStatusesDisposable?.dispose()
         self.updatedFilterDisposable.dispose()
@@ -3447,13 +3468,13 @@ public final class ChatListNode: ListViewImpl {
             
             // NOTHING may drop a transition here, and nothing upstream of here may drop one either.
             // Every transition is a *diff* against `previousView`, and `previousView` is advanced
-            // while the transition is computed, on the background queue — by the time one reaches
+            // while the transition is computed, on the background queue вЂ” by the time one reaches
             // this method the bookkeeping already says it was applied. Skip it and the list shows
-            // state N-1 while the next diff is computed as N → N+1, so it deletes and inserts at
+            // state N-1 while the next diff is computed as N в†’ N+1, so it deletes and inserts at
             // indices that do not match what is on screen: duplicated and mangled rows.
             //
             // `enqueueTransition`'s `preconditionFailure` on a double enqueue states the same
-            // invariant from the other side — transitions are strictly serialised and each one must
+            // invariant from the other side вЂ” transitions are strictly serialised and each one must
             // be consumed. Upstream has no filter anywhere along this path and does not need one:
             // `mapToSignal` disposes the previous `chatListViewForLocation` when the location
             // changes, so a superseded view cannot arrive after the switch in the first place.
@@ -3866,7 +3887,7 @@ public final class ChatListNode: ListViewImpl {
 
     /// None of these reset the location. Upstream does not either: a tab keeps its scroll window
     /// across switches, and only `displayedItemRangeChanged` ever moves a list to a `.navigation`
-    /// location — which is exactly what the pagination gate switches off, so a tab that was never
+    /// location вЂ” which is exactly what the pagination gate switches off, so a tab that was never
     /// active cannot be sitting on one.
     public func deactivateFolderPagination() {
         self.isActiveForFolderPagination = false
