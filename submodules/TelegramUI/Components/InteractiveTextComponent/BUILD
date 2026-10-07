@@ -11,6 +11,7 @@ swift_library(
     ],
     deps = [
         "//submodules/AsyncDisplayKit",
+        "//submodules/AvatarNode",
         "//submodules/Display",
         "//submodules/ComponentFlow",
         "//submodules/AppBundle",
@@ -22,6 +23,7 @@ swift_library(
         "//submodules/TelegramUI/Components/EmojiTextAttachmentView",
         "//submodules/TelegramUI/Components/Chat/MessageInlineBlockBackgroundView",
         "//submodules/InvisibleInkDustNode",
+        "//submodules/SwiftSignalKit",
     ],
     visibility = [
         "//visibility:public",
