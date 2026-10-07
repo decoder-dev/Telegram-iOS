@@ -57,7 +57,7 @@ public final class InstantPageV2RenderContext {
     public let fileReference: (TelegramMediaFile) -> FileMediaReference
     public let present: (ViewController, Any?) -> Void
     public let push: (ViewController) -> Void
-    public let canShareDocuments: Bool
+    public var canShareDocuments: Bool
     public let openUrl: (InstantPageUrlItem) -> Void
     public let baseNavigationController: () -> NavigationController?
     /// A reference to the message hosting this page, when rendered inside a chat bubble. Used to
@@ -729,7 +729,7 @@ public final class InstantPageV2View: UIView {
             v.update(item: media, theme: theme, renderContext: rc)
             return v
         case let .mediaAudio(media):
-            guard let v = existingView as? InstantPageV2MediaAudioView, let rc = self.renderContext else { return nil }
+            guard let v = existingView as? InstantPageV2MediaAudioView, v.item.media == media.media, let rc = self.renderContext else { return nil }
             v.update(item: media, theme: theme, renderContext: rc)
             return v
         case let .thinking(thinking):

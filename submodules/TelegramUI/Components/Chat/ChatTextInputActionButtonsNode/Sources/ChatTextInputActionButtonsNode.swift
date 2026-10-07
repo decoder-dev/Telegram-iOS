@@ -200,7 +200,7 @@ public final class ChatTextInputActionButtonsNode: ASDisplayNode, ChatSendMessag
         self.micButtonBackgroundView.contentView.addSubview(self.stopButtonIcon)
         self.stopButtonIcon.alpha = 0.0
         self.stopButton.isHidden = true
-        self.stopButton.accessibilityLabel = "Stop"
+        self.stopButton.accessibilityLabel = strings.GroupInfo_SetGroupPhotoStop
         
         self.sendContainerNode = ASDisplayNode()
         self.sendContainerNode.layer.allowsGroupOpacity = true
@@ -566,8 +566,7 @@ public final class ChatTextInputActionButtonsNode: ASDisplayNode, ChatSendMessag
     public func updateAccessibility() {
         self.accessibilityTraits = .button
         if !self.stopButtonIcon.alpha.isZero {
-            //TODO:localize
-            self.accessibilityLabel = "Stop"
+            self.accessibilityLabel = self.strings.GroupInfo_SetGroupPhotoStop
             self.accessibilityHint = nil
         } else if !self.micButton.alpha.isZero {
             switch self.micButton.mode {

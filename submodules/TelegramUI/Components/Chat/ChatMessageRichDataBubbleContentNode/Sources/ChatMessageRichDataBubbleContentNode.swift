@@ -194,6 +194,7 @@ public class ChatMessageRichDataBubbleContentNode: ChatMessageBubbleContentNode 
     private func ensurePageView(item: ChatMessageBubbleContentItem, webpage: TelegramMediaWebpage, richPageKey: ResolvedRichDataPageKey, showMoreExpanded: Bool) -> InstantPageV2View {
         let key = (id: item.message.id, stableVersion: item.message.stableVersion, pendingEditKey: (item.attributes.updatingMedia?.richText).map({ ObjectIdentifier($0) }), richPageKey: richPageKey, showMoreExpanded: showMoreExpanded)
         if let existing = self.pageView, let current = self.pageViewMessageKey, current.id == key.id {
+            existing.renderContext?.canShareDocuments = !item.associatedData.isCopyProtectionEnabled && !item.message.isCopyProtected()
             if current.stableVersion == key.stableVersion && current.pendingEditKey == key.pendingEditKey && current.richPageKey == key.richPageKey && current.showMoreExpanded == key.showMoreExpanded {
                 return existing
             }
