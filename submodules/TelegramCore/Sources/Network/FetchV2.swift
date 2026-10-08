@@ -346,6 +346,7 @@ private final class FetchImpl {
         private let defaultPartSize: Int64
         private let cdnPartSize: Int64
         private var state: State?
+        private var reportedFailure = false
         
         private let loggingIdentifier: String
         private static let loggingIdentifierPrefix = "telegram-cloud-"
@@ -735,6 +736,7 @@ private final class FetchImpl {
                             return
                         }
                         self.state = .failed
+                        self.update()
                     })
                 }
             case let .refreshingFileReference(state):
@@ -787,10 +789,18 @@ private final class FetchImpl {
                             self.state = .failed
                             self.update()
                         })
+                    } else {
+                        Logger.shared.log("FetchV2", "\(self.loggingIdentifier): no way to refresh the file reference")
+                        self.state = .failed
+                        self.update()
                     }
                 }
             case .failed:
-                break
+                if !self.reportedFailure {
+                    self.reportedFailure = true
+                    Logger.shared.log("FetchV2", "\(self.loggingIdentifier): failed")
+                    self.onError(.generic)
+                }
             }
         }
         

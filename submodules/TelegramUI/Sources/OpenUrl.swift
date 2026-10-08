@@ -7,6 +7,7 @@ import TelegramPresentationData
 import TelegramUIPreferences
 import AccountContext
 import UrlEscaping
+import UrlWhitelist
 import PassportUI
 import UrlHandling
 import OpenInExternalAppUI
@@ -458,6 +459,22 @@ private func handleAyuFiltersImportDeepLink(context: AccountContext, presentatio
 }
 
 func openExternalUrlImpl(context: AccountContext, urlContext: OpenURLContext, url: String, forceExternal: Bool, presentationData: PresentationData, navigationController: NavigationController?, dismissInput: @escaping () -> Void) {
+    // A login part hides the host a link really opens (see `externalUrlWithLoginPart`). Every external link leaves
+    // through here, whoever opens it, so it is confirmed here, with the address the link goes to.
+    if let loginPartUrl = externalUrlWithLoginPart(url) {
+        let controller = textAlertController(context: context, title: presentationData.strings.OpenLinkConfirmation_Title, text: urlRemovingLoginPart(loginPartUrl).absoluteString, actions: [
+            TextAlertAction(type: .genericAction, title: presentationData.strings.Common_Cancel, action: {}),
+            TextAlertAction(type: .defaultAction, title: presentationData.strings.OpenLinkConfirmation_Open, action: {
+                openCheckedExternalUrl(context: context, urlContext: urlContext, url: url, forceExternal: forceExternal, presentationData: presentationData, navigationController: navigationController, dismissInput: dismissInput)
+            })
+        ])
+        context.sharedContext.presentGlobalController(controller, nil)
+        return
+    }
+    openCheckedExternalUrl(context: context, urlContext: urlContext, url: url, forceExternal: forceExternal, presentationData: presentationData, navigationController: navigationController, dismissInput: dismissInput)
+}
+
+private func openCheckedExternalUrl(context: AccountContext, urlContext: OpenURLContext, url: String, forceExternal: Bool, presentationData: PresentationData, navigationController: NavigationController?, dismissInput: @escaping () -> Void) {
     if forceExternal || url.lowercased().hasPrefix("tel:") || url.lowercased().hasPrefix("calshow:") {
         if url.lowercased().hasPrefix("tel:+888") {
             context.sharedContext.presentGlobalController(textAlertController(context: context, title: nil, text: presentationData.strings.Conversation_CantPhoneCallAnonymousNumberError, actions: [
