@@ -8,7 +8,7 @@ root = pathlib.Path(__file__).resolve().parents[2]
 
 
 def extract(path, start, end):
-    text = (root / path).read_text()
+    text = (root / path).read_text(encoding="utf-8")
     offset = text.index(start)
     return text[offset:text.index(end, offset) + len(end)]
 
@@ -142,6 +142,11 @@ print("WebSocket connect coalescing across candidate gaps and terminal close: pa
 '''
 with tempfile.TemporaryDirectory(prefix='telegram-recovery-') as tmp:
     file = pathlib.Path(tmp) / 'main.swift'
+    handshake = extract('submodules/TelegramCore/Sources/Network/MTWebSocketConnectionInterface.swift',
+                        '        private func beginWebSocketHandshake()', '\n        }').replace('private func', 'func', 1)
+    handshake_fixture = (root / 'Tests/NetworkRecovery/HandshakeFixtures.swift').read_text(encoding='utf-8')
+    file.write_text(handshake_fixture.replace('// PRODUCTION_HANDSHAKE', handshake), encoding='utf-8')
+    subprocess.run(['swift', str(file)], check=True)
     file.write_text(fixture + health + tests)
     subprocess.run(['swift', str(file)], check=True)
     manager = (root / 'submodules/WebProxyTransport/Sources/WebProxyManager.swift').read_text()

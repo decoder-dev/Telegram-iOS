@@ -4,6 +4,17 @@ import Network
 import MtProtoKit
 import SwiftSignalKit
 
+func networkEndpointHealthKey(host: String, port: UInt16) -> String {
+    // Full and compressed IPv6 literals must share cooldown and probe ownership.
+    if let address = IPv6Address(host) {
+        return "v6:" + address.rawValue.map { String(format: "%02x", $0) }.joined() + ":" + String(port)
+    }
+    if let address = IPv4Address(host) {
+        return "v4:" + address.rawValue.map { String(format: "%02x", $0) }.joined() + ":" + String(port)
+    }
+    return host.lowercased() + ":" + String(port)
+}
+
 /// Shared by TCP contexts on their serial queue. Only endpoints with a failed dial are
 /// gated: established streams and unrelated DCs keep their normal concurrency.
 struct NetworkEndpointHealth {
@@ -148,7 +159,7 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
             // the cost of covering it is one call.
             self.leaveInFlight()
             self.admissionTimer?.invalidate()
-            Impl.endpointHealth.cancelled(endpoint: self.endpointDescription, attempt: self.attempt)
+            Impl.endpointHealth.cancelled(endpoint: self.endpointHealthKey, attempt: self.attempt)
             if let connection = self.connection {
                 self.connection = nil
                 connection.cancel()
@@ -166,6 +177,8 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
             }
         }
         
+        private var endpointHealthKey = ""
+
         func connect(host: String, port: UInt16, timeout: Double) {
             if self.connection != nil, self.endpointDescription == "\(host):\(port)" {
                 return
@@ -181,6 +194,7 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
             // that type has no `CustomStringConvertible` conformance, so interpolating it would
             // print whatever reflection makes of the case rather than the address.
             self.endpointDescription = "\(host):\(port)"
+            self.endpointHealthKey = networkEndpointHealthKey(host: host, port: port)
             Impl.nextAttempt &+= 1
             self.attempt = Impl.nextAttempt
             let connectTimeout = networkFrameworkConnectTimeout(host: host, requested: timeout)
@@ -280,7 +294,7 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
                 self.connectTimeoutTimer = nil
                 Logger.shared.log("Network", "NW connect to \(self.endpointDescription) timed out after \(connectTimeout)s (attempt \(self.attempt))")
                 if self.isCountedInFlight {
-                    Impl.endpointHealth.failed(endpoint: self.endpointDescription, attempt: self.attempt, now: ProcessInfo.processInfo.systemUptime)
+                    Impl.endpointHealth.failed(endpoint: self.endpointHealthKey, attempt: self.attempt, now: ProcessInfo.processInfo.systemUptime)
                 }
                 self.cancelWithError(error: nil)
             }, queue: self.queue)
@@ -292,7 +306,7 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
 
         private func startWhenAdmitted(_ connection: NWConnection) {
             guard self.connection === connection else { return }
-            let delay = Impl.endpointHealth.delay(endpoint: self.endpointDescription, attempt: self.attempt, now: ProcessInfo.processInfo.systemUptime)
+            let delay = Impl.endpointHealth.delay(endpoint: self.endpointHealthKey, attempt: self.attempt, now: ProcessInfo.processInfo.systemUptime)
             if delay > 0 {
                 // Keep the original connect deadline. Waiting for another context's health
                 // probe must neither create sockets nor extend a request indefinitely.
@@ -327,7 +341,7 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
             case .ready:
                 if self.isReady { return }
                 self.isReady = true
-                Impl.endpointHealth.succeeded(endpoint: self.endpointDescription)
+                Impl.endpointHealth.succeeded(endpoint: self.endpointHealthKey)
                 if let path = self.connection?.currentPath {
                     if path.usesInterfaceType(.cellular) {
                         self.currentInterfaceIsWifi = false
@@ -351,7 +365,7 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
                 self.processReadRequests()
             case let .failed(error):
                 if self.isCountedInFlight {
-                    Impl.endpointHealth.failed(endpoint: self.endpointDescription, attempt: self.attempt, now: ProcessInfo.processInfo.systemUptime)
+                    Impl.endpointHealth.failed(endpoint: self.endpointHealthKey, attempt: self.attempt, now: ProcessInfo.processInfo.systemUptime)
                 }
                 self.cancelWithError(error: error)
             case .cancelled:
@@ -503,7 +517,7 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
         private func discardConnectionWithoutNotifying() {
             self.admissionTimer?.invalidate()
             self.admissionTimer = nil
-            Impl.endpointHealth.cancelled(endpoint: self.endpointDescription, attempt: self.attempt)
+            Impl.endpointHealth.cancelled(endpoint: self.endpointHealthKey, attempt: self.attempt)
             self.readRequests.removeAll()
             self.currentReadRequest = nil
             self.isReady = false
@@ -528,7 +542,7 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
         private func cancelWithError(error: Error?) {
             self.admissionTimer?.invalidate()
             self.admissionTimer = nil
-            Impl.endpointHealth.cancelled(endpoint: self.endpointDescription, attempt: self.attempt)
+            Impl.endpointHealth.cancelled(endpoint: self.endpointHealthKey, attempt: self.attempt)
             self.readRequests.removeAll()
             self.currentReadRequest = nil
             self.isReady = false

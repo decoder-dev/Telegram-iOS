@@ -485,12 +485,13 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
 
             self.handshakeState = .sentUpgradeRequest
 
-            connection.send(content: requestData, completion: .contentProcessed({ [weak self] error in
-                guard let error = error else {
-                    return
-                }
-                self?.queue.async {
-                    self?.candidateFailed(error: error)
+            let queue = self.queue
+            connection.send(content: requestData, completion: .contentProcessed({ [weak self, weak connection] error in
+                guard let error = error else { return }
+                queue.async {
+                    // Cancellation may finish an old handshake after the next candidate started.
+                    guard let self, let connection, self.connection === connection else { return }
+                    self.candidateFailed(error: error)
                 }
             }))
 

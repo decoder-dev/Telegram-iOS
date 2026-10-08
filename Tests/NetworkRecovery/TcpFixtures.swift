@@ -107,3 +107,12 @@ if #available(macOS 14.0, *) {
     try checkEcho(port: NWEndpoint.Port(rawValue: port)!)
     print("Production NW interface: refused endpoint recovered with pre-admission writes and reads")
 }
+
+let expanded = networkEndpointHealthKey(host: "2001:067c:04e8:f002:0000:0000:0000:000a", port: 443)
+let compressed = networkEndpointHealthKey(host: "2001:67c:4e8:f002::a", port: 443)
+precondition(expanded == compressed)
+precondition(expanded != networkEndpointHealthKey(host: "2001:67c:4e8:f002::a", port: 80))
+var sharedHealth = NetworkEndpointHealth()
+sharedHealth.failed(endpoint: expanded, attempt: 1, now: 0)
+precondition(sharedHealth.delay(endpoint: compressed, attempt: 2, now: 0.5) > 0)
+print("IPv6 aliases share cooldown; different ports remain isolated")
