@@ -1341,8 +1341,9 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
             guard let self else {
                 return
             }
+            // Rebuild through the history transition pipeline. Its allUpdated flag
+            // refreshes reply headers as well as entries removed by the filter.
             self.TelegramShadowBanPromise.set(TelegramShadowBan.State.current)
-            self.updateLoadedMessageItems(includeAllMessages: true)
         })
     }
 
