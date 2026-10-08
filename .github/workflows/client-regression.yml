@@ -49,6 +49,7 @@ jobs:
       - run: swift test --package-path submodules/TelegramVLESS
       - run: python3 Tests/ManagedProxy/run.py
       - run: python3 Tests/ManagedProxy/bootstrap.py
+      - run: python3 Tests/ManagedProxy/automatic.py
       - run: python3 Tests/Customization/run.py
       - run: python3 Tests/Customization/shadow_ban.py
       - run: python3 Tests/Customization/appearance.py

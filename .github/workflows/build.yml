@@ -79,6 +79,7 @@ jobs:
         run: |
           python3 Tests/ManagedProxy/run.py
           python3 Tests/ManagedProxy/bootstrap.py
+          python3 Tests/ManagedProxy/automatic.py
           python3 Tests/Customization/run.py
           python3 Tests/Customization/shadow_ban.py
           python3 Tests/Customization/appearance.py

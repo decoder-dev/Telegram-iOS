@@ -413,6 +413,40 @@ private func automaticMtProxySortedAvailable(_ candidates: [ProxyServerSettings]
     return available.map { $0.0 }
 }
 
+// These reducers run inside the settings transaction: asynchronous probe results must not
+// overwrite a newer manual selection or the user's explicit OFF state.
+private func automaticMtProxyApplyCandidate(_ settings: ProxySettings, expectedActive: ProxyServerSettings?, candidate: ProxyServerSettings) -> ProxySettings {
+    guard settings.autoFetchPublicMtProxy, settings.enabled,
+          settings.activeServer == expectedActive,
+          settings.automaticServers.contains(candidate),
+          settings.activeServer == nil || settings.activeServer.map(settings.automaticServers.contains) == true else {
+        return settings
+    }
+    var settings = settings
+    settings.activeServer = candidate
+    return settings
+}
+
+private func automaticMtProxyMergeFetched(_ settings: ProxySettings, fetched: [ProxyServerSettings]) -> ProxySettings {
+    guard settings.autoFetchPublicMtProxy, !fetched.isEmpty else { return settings }
+    var settings = settings
+    let previousAutomatic = Set(settings.automaticServers)
+    let manual = settings.servers.filter { !previousAutomatic.contains($0) }
+    let manualSet = Set(manual)
+    var automatic = fetched.filter { !manualSet.contains($0) }
+    // A list refresh is not a health check. Retain the active automatic route until
+    // connectivity/probes actually fail, even when a publisher temporarily omits it.
+    if let active = settings.activeServer, previousAutomatic.contains(active), !automatic.contains(active) {
+        automatic.insert(active, at: 0)
+    }
+    settings.automaticServers = Array(automatic.prefix(automaticMtProxyStoredLimit))
+    settings.servers = manual
+    if settings.enabled, settings.activeServer == nil {
+        settings.activeServer = settings.automaticServers.first
+    }
+    return settings
+}
+
 private final class AutomaticMtProxyContext {
     private let accountManager: AccountManager<TelegramAccountManagerTypes>
     private let network: Network
@@ -438,6 +472,7 @@ private final class AutomaticMtProxyContext {
     private var lastVoluntarySwitchTimestamp: Double = 0.0
     private var cachedFetchedServers: [ProxyServerSettings] = []
     private var didReceiveSettings = false
+    private var waitingForNetwork = false
     
     init(accountManager: AccountManager<TelegramAccountManagerTypes>, network: Network) {
         self.accountManager = accountManager
@@ -458,6 +493,11 @@ private final class AutomaticMtProxyContext {
             let isInitial = !self.didReceiveSettings
             self.didReceiveSettings = true
             let wasEnabled = self.currentSettings.autoFetchPublicMtProxy
+            if self.currentSettings.activeServer != settings.activeServer || self.currentSettings.enabled != settings.enabled {
+                self.connectionFallbackTimer?.invalidate()
+                self.connectionFallbackTimer = nil
+                self.excludedActiveServer = nil
+            }
             self.currentSettings = settings
             if settings.autoFetchPublicMtProxy {
                 if self.cachedFetchedServers.isEmpty, !settings.automaticServers.isEmpty {
@@ -471,7 +511,11 @@ private final class AutomaticMtProxyContext {
                 } else {
                     probeSource = settings.automaticServers
                 }
-                let probe = Array(probeSource.prefix(automaticMtProxyProbeLimit))
+                var probe = Array(probeSource.prefix(automaticMtProxyProbeLimit))
+                if let active = settings.activeServer, settings.automaticServers.contains(active), !probe.contains(active) {
+                    probe = [active] + Array(probe.prefix(automaticMtProxyProbeLimit - 1))
+                }
+                if self.waitingForNetwork { probe = [] }
                 self.candidateServers.set(.single(probe))
                 if isInitial || !wasEnabled {
                     self.restartAutoFetch(with: probe)
@@ -488,7 +532,7 @@ private final class AutomaticMtProxyContext {
                 return
             }
             self.currentStatuses = statuses
-            guard self.currentSettings.autoFetchPublicMtProxy else {
+            guard self.currentSettings.autoFetchPublicMtProxy, !self.waitingForNetwork else {
                 return
             }
             if let active = self.currentSettings.activeServer, case .notAvailable? = statuses[active] {
@@ -549,7 +593,7 @@ private final class AutomaticMtProxyContext {
         self.connectionFallbackTimer?.invalidate()
         self.connectionFallbackTimer = nil
         if !probe.isEmpty {
-            self.storeFetchedServers(probe, force: true)
+            self.storeFetchedServers(self.cachedFetchedServers.isEmpty ? probe : self.cachedFetchedServers, force: true)
         }
         self.refreshProxyList()
     }
@@ -578,36 +622,37 @@ private final class AutomaticMtProxyContext {
         self.cachedFetchedServers = fetched
         
         let _ = updateProxySettingsInteractively(accountManager: self.accountManager, { settings in
-            var settings = settings
-            guard settings.autoFetchPublicMtProxy else {
-                return settings
-            }
-            let previousAutomatic = Set(settings.automaticServers)
-            let fetchedSet = Set(fetched)
-            let manual = settings.servers.filter { !previousAutomatic.contains($0) && !fetchedSet.contains($0) }
-            let manualSet = Set(manual)
-            let newAutomatic = fetched.filter { !manualSet.contains($0) }
-            settings.automaticServers = newAutomatic
-            settings.servers = manual
-            // Never take a server the user picked themselves. Without this, a refresh moves
-            // traffic off their own proxy on every fetch and on every launch, because a manual
-            // server is by definition not in newAutomatic.
-            let activeIsManual = settings.activeServer.map(manualSet.contains) ?? false
-            if !activeIsManual, settings.activeServer == nil || !(settings.activeServer.map(newAutomatic.contains) ?? false) {
-                settings.activeServer = newAutomatic.first
-                // Only switch the proxy on when this code is the one that chose the server.
-                // Unconditionally enabling here re-enabled a proxy the user had turned off.
-                if settings.activeServer != nil {
-                    settings.enabled = true
-                }
-            }
-            return settings
+            return automaticMtProxyMergeFetched(settings, fetched: fetched)
         }).start()
         
         self.scheduleBestProxySelection(immediate: true)
     }
     
     private func connectionStatusUpdated(_ status: ConnectionStatus) {
+        let wasWaiting = self.waitingForNetwork
+        if case .waitingForNetwork = status {
+            self.waitingForNetwork = true
+        } else {
+            self.waitingForNetwork = false
+        }
+        if self.waitingForNetwork {
+            self.connectionFallbackTimer?.invalidate()
+            self.connectionFallbackTimer = nil
+            self.selectionTimer?.invalidate()
+            self.selectionTimer = nil
+            self.currentStatuses = [:]
+            self.candidateServers.set(.single([]))
+            return
+        }
+        if wasWaiting, self.currentSettings.autoFetchPublicMtProxy {
+            // Recreate probes whose one-shot ping expired while the device was offline.
+            let pool = self.currentSettings.automaticServers
+            var probe = Array(pool.prefix(automaticMtProxyProbeLimit))
+            if let active = self.currentSettings.activeServer, pool.contains(active), !probe.contains(active) {
+                probe = [active] + Array(probe.prefix(automaticMtProxyProbeLimit - 1))
+            }
+            self.candidateServers.set(.single(probe))
+        }
         guard self.currentSettings.autoFetchPublicMtProxy, self.currentSettings.enabled else {
             self.connectionFallbackTimer?.invalidate()
             self.connectionFallbackTimer = nil
@@ -625,8 +670,13 @@ private final class AutomaticMtProxyContext {
             if proxyHasConnectionIssues || self.currentSettings.activeServer == nil {
                 self.scheduleConnectionFallback()
             }
-        case .waitingForNetwork, .updating:
-            self.scheduleBestProxySelection()
+        case .updating:
+            // Transport is connected and synchronizing; an old connect timeout is obsolete.
+            self.connectionFallbackTimer?.invalidate()
+            self.connectionFallbackTimer = nil
+            self.excludedActiveServer = nil
+        case .waitingForNetwork:
+            break
         }
     }
     
@@ -643,9 +693,10 @@ private final class AutomaticMtProxyContext {
             guard self.currentSettings.autoFetchPublicMtProxy, self.currentSettings.enabled else {
                 return
             }
-            if let activeServer, self.currentSettings.activeServer == activeServer {
-                self.excludedActiveServer = activeServer
+            guard !self.waitingForNetwork, self.currentSettings.activeServer == activeServer else {
+                return
             }
+            self.excludedActiveServer = activeServer
             self.scheduleBestProxySelection(immediate: true)
         }, queue: self.queue)
         self.connectionFallbackTimer?.start()
@@ -670,7 +721,7 @@ private final class AutomaticMtProxyContext {
     }
     
     private func activateBestProxyIfNeeded() {
-        guard self.currentSettings.autoFetchPublicMtProxy, self.currentSettings.enabled else {
+        guard self.currentSettings.autoFetchPublicMtProxy, self.currentSettings.enabled, !self.waitingForNetwork else {
             return
         }
         var pool = self.currentSettings.automaticServers
@@ -679,6 +730,10 @@ private final class AutomaticMtProxyContext {
         }
         if pool.isEmpty {
             pool = self.currentSettings.servers
+        }
+        // Public-list automation does not own manually selected SOCKS/MTProxy/VLESS routes.
+        if let active = self.currentSettings.activeServer, !self.currentSettings.automaticServers.contains(active) {
+            return
         }
         let ranked = automaticMtProxySortedAvailable(pool, statuses: self.currentStatuses, excluding: self.excludedActiveServer)
         let best: ProxyServerSettings?
@@ -714,19 +769,14 @@ private final class AutomaticMtProxyContext {
     }
     
     private func applyAutomaticActiveServer(_ best: ProxyServerSettings) {
+        let expectedActive = self.currentSettings.activeServer
+        let failureDriven = expectedActive != nil && expectedActive == self.excludedActiveServer
         let _ = updateProxySettingsInteractively(accountManager: self.accountManager, { settings in
-            var settings = settings
-            guard settings.autoFetchPublicMtProxy else {
-                return settings
+            let updated = automaticMtProxyApplyCandidate(settings, expectedActive: expectedActive, candidate: best)
+            if updated.activeServer != settings.activeServer {
+                Logger.shared.log("AutoMTProxy", "route changed: \(failureDriven ? "failover" : "selection"); candidates=\(settings.automaticServers.count)")
             }
-            let automatic = Set(settings.automaticServers)
-            settings.servers = settings.servers.filter { !automatic.contains($0) && $0 != best }
-            if !settings.automaticServers.contains(best) {
-                settings.automaticServers.insert(best, at: 0)
-            }
-            settings.activeServer = best
-            settings.enabled = true
-            return settings
+            return updated
         }).start()
     }
 }
