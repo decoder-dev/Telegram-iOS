@@ -779,11 +779,11 @@ public extension TelegramEngine {
         }
 
         public func updateChatListFiltersInteractively(_ f: @escaping ([ChatListFilter]) -> [ChatListFilter]) -> Signal<[ChatListFilter], NoError> {
-            return _internal_updateChatListFiltersInteractively(postbox: self.account.postbox, f)
+            return _internal_updateChatListFiltersInteractively(postbox: self.account.postbox, accountPeerId: self.account.peerId, f)
         }
         
         public func updateChatListFiltersDisplayTags(isEnabled: Bool) {
-            let _ = _internal_updateChatListFiltersDisplayTagsInteractively(postbox: self.account.postbox, displayTags: isEnabled).startStandalone()
+            let _ = _internal_updateChatListFiltersDisplayTagsInteractively(postbox: self.account.postbox, accountPeerId: self.account.peerId, displayTags: isEnabled).startStandalone()
         }
 
         public func updatedChatListFilters() -> Signal<[ChatListFilter], NoError> {
