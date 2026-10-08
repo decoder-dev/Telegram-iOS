@@ -106,7 +106,7 @@ public func forkSavedMessagesMenuTitle(_ strings: PresentationStrings) -> String
 
 /// Title for the message context-menu entry that opens a message's saved edit history.
 public func forkEditHistoryMenuTitle(_ strings: PresentationStrings) -> String {
-    switch strings.primaryComponent.languageCode {
+    switch String(strings.primaryComponent.languageCode.prefix(2)).lowercased() {
     case "ru", "uk", "be":
         return "История изменений"
     default:
@@ -116,7 +116,7 @@ public func forkEditHistoryMenuTitle(_ strings: PresentationStrings) -> String {
 
 /// Customization row: whether recently-used emoji feed the reaction picker.
 public func forkUseRecentEmojiInReactionsTitle(_ strings: PresentationStrings) -> String {
-    switch strings.primaryComponent.languageCode {
+    switch String(strings.primaryComponent.languageCode.prefix(2)).lowercased() {
     case "ru", "uk", "be":
         return "Недавние эмодзи в реакциях"
     default:
@@ -125,7 +125,7 @@ public func forkUseRecentEmojiInReactionsTitle(_ strings: PresentationStrings) -
 }
 
 public func forkUseRecentEmojiInReactionsInfo(_ strings: PresentationStrings) -> String {
-    switch strings.primaryComponent.languageCode {
+    switch String(strings.primaryComponent.languageCode.prefix(2)).lowercased() {
     case "ru", "uk", "be":
         return "Показывать недавно использованные эмодзи при выборе реакции. Если выключено, доступны только стандартные реакции и те, что разрешены в канале."
     default:
@@ -137,7 +137,7 @@ public func forkUseRecentEmojiInReactionsInfo(_ strings: PresentationStrings) ->
 /// and Security, which is not where anyone looks for it — it now lives in the main Settings list
 /// next to Developer Mode, and shares the same bilingual pattern.
 public func forkExtrasSettingsTitle(_ strings: PresentationStrings) -> String {
-    switch strings.primaryComponent.languageCode {
+    switch String(strings.primaryComponent.languageCode.prefix(2)).lowercased() {
     case "ru", "uk", "be":
         return "Дополнительно"
     default:
@@ -149,7 +149,7 @@ public func forkExtrasSettingsTitle(_ strings: PresentationStrings) -> String {
 /// localisation catalogue, so it follows the same bilingual pattern as the fork's other custom
 /// Settings strings.
 public func forkDeveloperModeSettingsTitle(_ strings: PresentationStrings) -> String {
-    switch strings.primaryComponent.languageCode {
+    switch String(strings.primaryComponent.languageCode.prefix(2)).lowercased() {
     case "ru", "uk", "be":
         return "Режим разработчика"
     default:
@@ -158,7 +158,7 @@ public func forkDeveloperModeSettingsTitle(_ strings: PresentationStrings) -> St
 }
 
 public func forkCustomizationSettingsTitle(_ strings: PresentationStrings) -> String {
-    switch strings.primaryComponent.languageCode {
+    switch String(strings.primaryComponent.languageCode.prefix(2)).lowercased() {
     case "ru", "uk", "be":
         return "Кастомизация"
     default:

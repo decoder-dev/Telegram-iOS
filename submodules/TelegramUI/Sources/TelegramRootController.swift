@@ -960,8 +960,14 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
             rootTabController.selectedIndex = index
         } else {
             let contacts = ContactsController(context: self.context)
-            contacts.switchToChatsController = { [weak self] in
-                self?.openChatsController(activateSearch: false)
+            contacts.switchToChatsController = { [weak self, weak contacts] in
+                guard let self else { return }
+                self.openChatsController(activateSearch: false)
+                // A purposeful action happens inside the newly opened chat. Remove only
+                // the standalone contacts screen, retaining the chat above it.
+                if let contacts, self.viewControllers.contains(where: { $0 === contacts }) {
+                    self.setViewControllers(self.viewControllers.filter { $0 !== contacts }, animated: false)
+                }
             }
             self.pushViewController(contacts, animated: true)
         }

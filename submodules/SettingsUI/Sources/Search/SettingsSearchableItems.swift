@@ -4103,7 +4103,6 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
             title: strings.Appearance_ShowNextMediaOnTap,
             icon: icon,
             breadcrumbs: [customizationTitle],
-            isVisible: false,
             present: { context, _, present in
                 presentAppearanceSettings(context, present, .tapForNextMedia)
             }
@@ -4126,7 +4125,6 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
                 title: strings.Appearance_SendWithCmdEnter,
                 icon: icon,
                 breadcrumbs: [customizationTitle],
-                isVisible: false,
                 present: { context, _, present in
                     presentAppearanceSettings(context, present, .sendWithCmdEnter)
                 }
