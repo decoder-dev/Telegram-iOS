@@ -2262,17 +2262,9 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
 
     let controller = ItemListController(context: context, state: signal)
     let linkGesture = BananaSettingsLinkGesture(controller: controller, context: context, focus: focus)
-    var didHighlight = false
-    controller.afterTransactionCompleted = { [weak controller] in
-        // Retain the gesture target for exactly the controller lifetime.
-        _ = linkGesture
-        guard !didHighlight, let focusItemId, let controller else { return }
-        controller.forEachItemNode { node in
-            if let item = node as? ItemListItemNode, let tag = item.tag as? BananaSettingsItemTag, tag.id == focusItemId {
-                didHighlight = true
-                item.displayHighlight()
-            }
-        }
+    controller.afterTransactionCompleted = {
+        // The callback owns its gesture target; the target only weakly references the controller.
+        linkGesture.highlight(id: focusItemId)
     }
     presentControllerImpl = { [weak controller] presented in
         controller?.present(presented, in: .window(.root))

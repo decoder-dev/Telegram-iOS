@@ -51,6 +51,7 @@ final class BananaSettingsLinkGesture: NSObject, UIGestureRecognizerDelegate {
     private weak var controller: ItemListController?
     private let context: AccountContext
     private let page: String
+    private var didHighlight = false
 
     init(controller: ItemListController, context: AccountContext, focus: ForkExtrasControllerFocus) {
         self.controller = controller
@@ -60,6 +61,16 @@ final class BananaSettingsLinkGesture: NSObject, UIGestureRecognizerDelegate {
         let gesture = UILongPressGestureRecognizer(target: self, action: #selector(pressed(_:)))
         gesture.delegate = self
         controller.displayNode.view.addGestureRecognizer(gesture)
+    }
+
+    func highlight(id: Int32?) {
+        guard !didHighlight, let id, let controller else { return }
+        controller.forEachItemNode { node in
+            if let item = node as? ItemListItemNode, let tag = item.tag as? BananaSettingsItemTag, tag.id == id {
+                self.didHighlight = true
+                item.displayHighlight()
+            }
+        }
     }
 
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
