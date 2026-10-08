@@ -1926,6 +1926,11 @@ func targetSize(cropSize: CGSize, rotateSideward: Bool = false) -> CGSize {
     return CGSize(width: renderWidth, height: renderHeight)
 }
 
+public func videoMessageDimensions(for cropSize: CGSize) -> CGSize {
+    let maxSide = MediaQualityPreset.videoMessage.maximumDimensions
+    return targetSize(cropSize: cropSize.aspectFitted(CGSize(width: maxSide, height: maxSide)))
+}
+
 public func recommendedVideoExportConfiguration(values: MediaEditorValues, duration: Double, image: Bool = false, forceFullHd: Bool = false, frameRate: Float, isSticker: Bool = false, isAvatar: Bool = false) -> MediaEditorVideoExport.Configuration {
     let compressionProperties: [String: Any]
     let codecType: Any

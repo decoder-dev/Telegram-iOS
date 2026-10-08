@@ -1,3 +1,4 @@
+import TelegramUIPreferences
 import Foundation
 import SwiftSignalKit
 import CoreMedia
@@ -437,7 +438,7 @@ final class ManagedAudioRecorderContext {
     
         if self.audioSessionDisposable == nil {
             let queue = self.queue
-            self.audioSessionDisposable = self.mediaManager.audioSession.push(audioSessionType: .record(speaker: self.beginWithTone, video: false, withOthers: false), activate: { [weak self] state in
+            self.audioSessionDisposable = self.mediaManager.audioSession.push(audioSessionType: .record(speaker: self.beginWithTone, video: false, withOthers: !BananaAudioPolicy.current.pauseMusicOnVoiceRecording), activate: { [weak self] state in
                 queue.async {
                     if let strongSelf = self, !strongSelf.paused {
                         strongSelf.hasAudioSession = true

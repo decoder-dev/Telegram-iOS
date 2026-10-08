@@ -246,7 +246,7 @@
                 if (controller.schedule != nil)
                     controller.schedule();
             }, ^{
-            })) {
+            }, nil)) {
                 return;
             }
             

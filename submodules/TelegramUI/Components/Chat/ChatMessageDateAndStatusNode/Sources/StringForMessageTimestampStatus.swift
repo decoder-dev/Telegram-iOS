@@ -248,5 +248,13 @@ public func stringForMessageTimestampStatus(
         }
     }
     
+    let showForwardCount: Bool
+    if case .minimal = format { showForwardCount = false } else { showForwardCount = BananaForwardCountSettings.enabled }
+    if showForwardCount,
+       let channel = message.peers[message.id.peerId] as? TelegramChannel, case .broadcast = channel.info,
+       let count = message.attributes.compactMap({ ($0 as? ForwardCountMessageAttribute)?.count }).first, count > 0 {
+        dateText = "↗ " + compactNumericCountString(count, decimalSeparator: dateTimeFormat.decimalSeparator) + " " + dateText
+    }
+
     return dateText
 }

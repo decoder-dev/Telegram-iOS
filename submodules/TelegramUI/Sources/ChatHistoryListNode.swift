@@ -1991,6 +1991,7 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
             // time, so an open chat only re-renders a toggle's effect when the history re-emits.
             // Without them in the fingerprint the toggle reaches just the messages that happen to
             // re-layout on their own, leaving the chat visually mixed until reopen.
+            var showChannelForwardCount: Bool
             var showMessageSeconds: Bool
             var wideChannelPosts: Bool
             var stickerSizePercent: Int32
@@ -2000,12 +2001,14 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
         }
         let messageFilterSettings: Signal<MessageFilterSettingsFingerprint, NoError> = forkExtrasSettings(accountManager: context.sharedContext.accountManager)
         |> map { settings -> MessageFilterSettingsFingerprint in
+            BananaForwardCountSettings.enabled = settings.showChannelForwardCount
             return MessageFilterSettingsFingerprint(
                 hideAds: settings.hideAds,
                 hideBlockedMessages: settings.hideBlockedMessages,
                 regexEnabled: settings.regexMessageFiltersEnabled,
                 regexCaseInsensitive: settings.regexMessageFiltersCaseInsensitive,
                 regexPatterns: settings.regexMessageFilterPatterns,
+                showChannelForwardCount: settings.showChannelForwardCount,
                 showMessageSeconds: settings.showMessageSeconds,
                 wideChannelPosts: settings.wideChannelPosts,
                 stickerSizePercent: settings.stickerSizePercent,

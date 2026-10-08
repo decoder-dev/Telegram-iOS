@@ -768,6 +768,7 @@ public final class AccountViewTracker {
                                                     let storeForwardInfo = currentMessage.forwardInfo.flatMap(StoreMessageForwardInfo.init)
                                                     var attributes = currentMessage.attributes
                                                     var foundReplies = false
+                                                    var foundForwards = false
                                                     var commentsChannelId: PeerId?
                                                     var recentRepliersPeerIds: [PeerId]?
                                                     var repliesCount: Int32?
@@ -802,6 +803,7 @@ public final class AccountViewTracker {
                                                                 attributes[j] = ViewCountMessageAttribute(count: max(attribute.count, Int(views)))
                                                             }
                                                         } else if let _ = attributes[j] as? ForwardCountMessageAttribute {
+                                                            foundForwards = true
                                                             if let forwards = forwards {
                                                                 attributes[j] = ForwardCountMessageAttribute(count: Int(forwards))
                                                             }
@@ -831,6 +833,9 @@ public final class AccountViewTracker {
                                                     resultStates[messageIds[i]] = ViewCountContextState(timestamp: Int32(CFAbsoluteTimeGetCurrent()), clientId: clientId, result: ViewCountContextState.ReplyInfo(commentsPeerId: commentsChannelId, maxReadIncomingMessageId: maxReadIncomingMessageId, maxMessageId: maxMessageId))
                                                     if !foundReplies, let repliesCount = repliesCount {
                                                         attributes.append(ReplyThreadMessageAttribute(count: repliesCount, latestUsers: recentRepliersPeerIds ?? [], commentsPeerId: commentsChannelId, maxMessageId: repliesMaxId, maxReadMessageId: repliesReadMaxId))
+                                                    }
+                                                    if !foundForwards, let forwards = forwards {
+                                                        attributes.append(ForwardCountMessageAttribute(count: Int(forwards)))
                                                     }
                                                     return .update(StoreMessage(id: currentMessage.id, customStableId: nil, globallyUniqueId: currentMessage.globallyUniqueId, groupingKey: currentMessage.groupingKey, threadId: currentMessage.threadId, timestamp: currentMessage.timestamp, flags: StoreMessageFlags(currentMessage.flags), tags: currentMessage.tags, globalTags: currentMessage.globalTags, localTags: currentMessage.localTags, forwardInfo: storeForwardInfo, authorId: currentMessage.author?.id, text: currentMessage.text, attributes: attributes, media: currentMessage.media))
                                                 })

@@ -1732,7 +1732,7 @@ static CGPoint TGCameraControllerClampPointToScreenSize(__unused id self, __unus
             }, ^{
                 if (controller.sendWithTimer != nil)
                     controller.sendWithTimer();
-            })) {
+            }, nil)) {
                 return;
             }
             

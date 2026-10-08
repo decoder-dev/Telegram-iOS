@@ -480,7 +480,9 @@ extension ChatControllerImpl {
     func resumeMediaRecorder() {
         self.recorderDataDisposable.set(nil)
         
-        self.context.sharedContext.mediaManager.playlistControl(.playback(.pause), type: nil)
+        let settings = self.context.sharedContext.currentMediaInputSettings.with { $0 }
+        let pauseMusic = self.videoRecorderValue != nil ? settings.pauseMusicOnRecording : settings.pauseMusicOnVoiceRecording
+        self.context.sharedContext.mediaManager.playlistControl(.playback(.pause), type: pauseMusic ? nil : .voice)
         
         if let videoRecorderValue = self.videoRecorderValue {
             self.updateChatPresentationInterfaceState(animated: true, interactive: true, {

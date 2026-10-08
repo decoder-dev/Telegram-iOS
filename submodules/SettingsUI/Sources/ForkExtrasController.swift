@@ -1049,83 +1049,83 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case let .designHeader(_, title):
             return ItemListSectionHeaderItem(presentationData: presentationData, text: title, sectionId: self.section)
         case let .brandTheme(dark):
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: dark ? "BananaGram Graphite" : "BananaGram Cream", label: ForkPresentationLanguage.prefersRussianStrings ? "Предпросмотр" : "Preview", sectionId: self.section, style: .blocks, action: { arguments.openBrandTheme(dark) })
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: dark ? "BananaGram Graphite" : "BananaGram Cream", label: ForkPresentationLanguage.prefersRussianStrings ? "Предпросмотр" : "Preview", sectionId: self.section, style: .blocks, action: { arguments.openBrandTheme(dark) }, tag: BananaSettingsItemTag(id: self.stableId))
         case let .tabPreview(layout):
             return BananaTabBarPreviewItem(context: arguments.context, theme: presentationData.theme, strings: presentationData.strings, sectionId: self.section, layout: layout)
         case let .callsTab(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: presentationData.strings.Calls_TabTitle, value: value, sectionId: self.section, style: .blocks, updated: arguments.updateCallsTab)
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: presentationData.strings.Calls_TabTitle, value: value, sectionId: self.section, style: .blocks, updated: arguments.updateCallsTab, tag: BananaSettingsItemTag(id: self.stableId))
         case let .appearanceToggle(_, title, value, keyPath):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: title, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateAppearance(keyPath, value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hubNinja:
             return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.savedMessages, title: ForkExtrasLocalizedString.hubNinja, label: ForkExtrasLocalizedString.hubNinjaLabel, sectionId: self.section, style: .blocks, action: {
                 arguments.openCategory(.ninja)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hubGhost:
             return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.stories, title: ForkExtrasLocalizedString.hubGhost, label: ForkExtrasLocalizedString.hubGhostLabel, sectionId: self.section, style: .blocks, action: {
                 arguments.openCategory(.ghost)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hubPrivacy:
             return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.security, title: ForkExtrasLocalizedString.hubPrivacy, label: ForkExtrasLocalizedString.hubPrivacyLabel, sectionId: self.section, style: .blocks, action: {
                 arguments.openCategory(.privacy)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hubInterface:
             return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.appearance, title: ForkExtrasLocalizedString.hubInterface, label: ForkExtrasLocalizedString.hubInterfaceLabel, sectionId: self.section, style: .blocks, action: {
                 arguments.openCategory(.interface)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hubChat:
             return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.privateChats, title: ForkExtrasLocalizedString.hubChat, label: ForkExtrasLocalizedString.hubChatLabel, sectionId: self.section, style: .blocks, action: {
                 arguments.openCategory(.chat)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hubNetwork:
             return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.proxy, title: ForkExtrasLocalizedString.hubNetwork, label: ForkExtrasLocalizedString.hubNetworkLabel, sectionId: self.section, style: .blocks, action: {
                 arguments.openCategory(.network)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hubFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.hubFooter), sectionId: self.section)
         case let .ghostModeMaster(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.ghostModeMaster, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateGhostModeMaster(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case let .ghostDontReadMessages(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.ghostDontReadMessages, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateGhostDontReadMessages(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case let .ghostDontReadStories(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.ghostDontReadStories, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateGhostDontReadStories(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case let .ghostDontSendOnline(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.ghostDontSendOnline, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateGhostDontSendOnline(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case let .ghostDontSendTyping(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.ghostDontSendTyping, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateGhostDontSendTyping(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case let .ghostGoOfflineAutomatically(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.ghostGoOfflineAutomatically, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateGhostGoOfflineAutomatically(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .ghostGoOfflineAutomaticallyFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.ghostGoOfflineAutomaticallyFooter), sectionId: self.section)
         case let .ghostReadOnInteract(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.ghostReadOnInteract, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateGhostReadOnInteract(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .ghostReadOnInteractFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.ghostReadOnInteractFooter), sectionId: self.section)
         case let .ghostAlertBeforeOpeningStory(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.ghostAlertBeforeOpeningStory, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateGhostAlertBeforeOpeningStory(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .ghostAlertBeforeOpeningStoryFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.ghostAlertBeforeOpeningStoryFooter), sectionId: self.section)
         case let .ghostScheduleMessages(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.ghostScheduleMessages, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateGhostScheduleMessages(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .ghostScheduleMessagesFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.ghostScheduleMessagesFooter), sectionId: self.section)
         case .ghostModeFooter:
@@ -1133,79 +1133,79 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case let .streamerMode(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.streamerMode, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateStreamerMode(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .streamerModeFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.streamerModeFooter), sectionId: self.section)
         case let .instantPasscode(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.instantPasscode, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateInstantPasscode(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .instantPasscodeFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.instantPasscodeFooter), sectionId: self.section)
         case let .hideMentions(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.hideMentions, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateHideMentions(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hideMentionsFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.hideMentionsFooter), sectionId: self.section)
         case let .hidePinned(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.hidePinned, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateHidePinned(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hidePinnedFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.hidePinnedFooter), sectionId: self.section)
         case let .sessionBackup(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.sessionBackup, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateSessionBackup(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .sessionBackupFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.sessionBackupFooter), sectionId: self.section)
         case let .compactChatList(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.compactChatList, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateCompactChatList(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case let .compactMessagePreview(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.compactMessagePreview, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateCompactMessagePreview(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case let .compactFolderNames(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.compactFolderNames, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateCompactFolderNames(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .uiDensityFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.uiDensityFooter), sectionId: self.section)
         case let .hideReactionsBar(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.hideReactionsBar, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateHideReactionsBar(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case let .showDC(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.showDC, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateShowDC(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case let .showProfileId(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.showProfileId, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateShowProfileId(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case let .accentSaturation(percent):
             return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.accentSaturation, label: "\(percent)%", sectionId: self.section, style: .blocks, action: {
                 arguments.openAccentSaturation()
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .privacyFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.privacyFooter), sectionId: self.section)
         case let .confirmBeforeCall(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.confirmBeforeCall, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateConfirmBeforeCall(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case let .sendWithReturnKey(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.sendWithReturnKey, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateSendWithReturnKey(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .sendWithReturnKeyFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.sendWithReturnKeyFooter), sectionId: self.section)
         case let .forceBuiltInMic(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.forceBuiltInMic, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateForceBuiltInMic(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .callsFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.forceBuiltInMicFooter + "\n\n" + ForkExtrasLocalizedString.callsFooter), sectionId: self.section)
         case let .translationBackend(backend):
@@ -1218,7 +1218,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             }
             return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.translationBackend, label: label, sectionId: self.section, style: .blocks, action: {
                 arguments.openTranslationBackend()
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case let .transcriptionBackend(backend):
             let label: String
             switch backend {
@@ -1229,53 +1229,53 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             }
             return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.transcriptionBackend, label: label, sectionId: self.section, style: .blocks, action: {
                 arguments.openTranscriptionBackend()
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .translationFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.translationFooter), sectionId: self.section)
         case let .scrollToNextChat(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.scrollToNextChat, value: !value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateScrollToNextChatDisabled(!value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .scrollToNextChatFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.scrollToNextChatFooter), sectionId: self.section)
         case let .saveDeletedMessages(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.saveDeletedMessages, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateSaveDeletedMessages(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .saveDeletedMessagesFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.saveDeletedMessagesFooter), sectionId: self.section)
         case let .saveMessagesHistory(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.saveMessagesHistory, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateSaveMessagesHistory(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .saveMessagesHistoryFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.saveMessagesHistoryFooter), sectionId: self.section)
         case let .saveMedia(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.saveMedia, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateSaveMedia(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .saveMediaFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.saveMediaFooter), sectionId: self.section)
         case let .saveForBots(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.saveForBots, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateSaveForBots(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case let .ayuForward(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.ayuForward, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateAyuForward(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .ayuForwardFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.ayuForwardFooter), sectionId: self.section)
         case let .bypassDownloadRestrictions(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.bypassDownloadRestrictions, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateBypassDownloadRestrictions(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .bypassDownloadRestrictionsFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.bypassDownloadRestrictionsFooter), sectionId: self.section)
         case let .proactiveSaveMedia(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.proactiveSaveMedia, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateProactiveSaveMedia(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .proactiveSaveMediaFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.proactiveSaveMediaFooter), sectionId: self.section)
         case let .deletedMessageMark(value):
@@ -1303,53 +1303,53 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case let .localPremium(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.localPremium, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateLocalPremium(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .localPremiumFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.localPremiumFooter), sectionId: self.section)
         case let .autoFetchMtProxy(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.autoFetchMtProxy, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateAutoFetchMtProxy(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .autoFetchMtProxyFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.autoFetchMtProxyFooter), sectionId: self.section)
         case let .hideAds(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.hideAds, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateHideAds(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hideAdsFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.hideAdsFooter), sectionId: self.section)
         case let .hideBlockedMessages(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.hideBlockedMessages, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateHideBlockedMessages(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hideBlockedMessagesFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.hideBlockedMessagesFooter), sectionId: self.section)
         case let .allowSecretScreenshots(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.allowSecretScreenshots, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateAllowSecretScreenshots(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .allowSecretScreenshotsFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.allowSecretScreenshotsFooter), sectionId: self.section)
         case let .expireTtlButton(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.expireTtlButton, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateExpireTtlButton(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .expireTtlButtonFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.expireTtlButtonFooter), sectionId: self.section)
         case let .keepBannedChats(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.keepBannedChats, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateKeepBannedChats(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .keepBannedChatsFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.keepBannedChatsFooter), sectionId: self.section)
         case let .regexFilters(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.regexFilters, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateRegexFiltersEnabled(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case let .regexFiltersCaseInsensitive(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.regexFiltersCaseInsensitive, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateRegexFiltersCaseInsensitive(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case let .regexFiltersPatterns(value):
             return ItemListMultilineInputItem(presentationData: presentationData, systemStyle: .glass, text: value, placeholder: ForkExtrasLocalizedString.regexFiltersPatterns, maxLength: ItemListMultilineInputItemTextLimit(value: 4000, display: false), sectionId: self.section, style: .blocks, capitalization: false, autocorrection: false, textUpdated: { value in
                 arguments.updateRegexFilterPatternsText(value)
@@ -1359,65 +1359,65 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case let .hideAllChats(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.hideAllChats, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateHideAllChats(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hideAllChatsFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.hideAllChatsFooter), sectionId: self.section)
         case let .rememberLastFolder(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.rememberLastFolder, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateRememberLastFolder(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .rememberLastFolderFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.rememberLastFolderFooter), sectionId: self.section)
         case let .hideTabBar(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.hideTabBar, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateHideTabBar(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hideTabBarFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.hideTabBarFooter), sectionId: self.section)
         case let .showMessageSeconds(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.showMessageSeconds, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateShowMessageSeconds(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .showMessageSecondsFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.showMessageSecondsFooter), sectionId: self.section)
         case let .wideChannelPosts(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.wideChannelPosts, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateWideChannelPosts(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .wideChannelPostsFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.wideChannelPostsFooter), sectionId: self.section)
         case let .stickerSize(percent):
             return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.stickerSize, label: "\(percent)%", sectionId: self.section, style: .blocks, action: {
                 arguments.openStickerSize()
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case let .doubleTapToEdit(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.doubleTapToEdit, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateDoubleTapToEdit(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .doubleTapToEditFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.doubleTapToEditFooter), sectionId: self.section)
         case let .quickTranslate(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.quickTranslate, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateQuickTranslateButton(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .quickTranslateFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.quickTranslateFooter), sectionId: self.section)
         case let .saveToCloud(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.saveToCloud, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateSaveToCloudMenu(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .saveToCloudFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.saveToCloudFooter), sectionId: self.section)
         case let .selectFromAuthor(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.selectFromAuthor, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateSelectFromAuthor(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .selectFromAuthorFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.selectFromAuthorFooter), sectionId: self.section)
         case let .downloadSpeedBoost(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.downloadSpeedBoost, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateDownloadSpeedBoost(value)
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .downloadSpeedBoostFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.downloadSpeedBoostFooter), sectionId: self.section)
         case let .outgoingPhotoQuality(value):
@@ -1432,7 +1432,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             }
             return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.outgoingPhotoQuality, label: label, sectionId: self.section, style: .blocks, action: {
                 arguments.openOutgoingPhotoQuality()
-            })
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .outgoingPhotoQualityFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.outgoingPhotoQualityFooter), sectionId: self.section)
         }
@@ -1519,6 +1519,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .stickerSize(settings.stickerSizePercent),
             .appearanceToggle(1499, ForkExtrasLocalizedString.string(forKey: "ForkExtras.BottomFolders"), settings.bottomChatFoldersEnabled, \.bottomChatFoldersEnabled),
             .appearanceToggle(1500, ForkExtrasLocalizedString.string(forKey: "ForkExtras.AvatarGlow"), settings.avatarGlowEnabled, \.avatarGlowEnabled),
+            .appearanceToggle(1508, ForkPresentationLanguage.prefersRussianStrings ? "Счётчик пересылок в каналах" : "Channel forward count", settings.showChannelForwardCount, \.showChannelForwardCount),
             .appearanceToggle(1501, ForkExtrasLocalizedString.string(forKey: "ForkExtras.ReactionGlow"), settings.reactionGlowEnabled, \.reactionGlowEnabled),
             .appearanceToggle(1502, ForkExtrasLocalizedString.string(forKey: "ForkExtras.ContactsTab"), settings.showContactsTab, \.showContactsTab),
             .callsTab(showCallsTab),
@@ -1648,7 +1649,7 @@ public enum ForkExtrasControllerFocus {
     }
 }
 
-public func forkExtrasController(context: AccountContext, focus: ForkExtrasControllerFocus = .top) -> ViewController {
+public func forkExtrasController(context: AccountContext, focus: ForkExtrasControllerFocus = .top, focusItemId: Int32? = nil) -> ViewController {
     let updateDisposable = MetaDisposable()
     /// Debounce regex pattern edits — each keystroke must not rewrite AccountManager + rebuild history filters.
     let regexPatternsDisposable = MetaDisposable()
@@ -2236,7 +2237,9 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
             focusedSection = nil
         }
         let initialScrollToItem: ListViewScrollToItem?
-        if let focusedSection, let index = entries.firstIndex(where: { $0.section == focusedSection }) {
+        if let focusItemId, let index = entries.firstIndex(where: { $0.stableId == focusItemId }) {
+            initialScrollToItem = ListViewScrollToItem(index: index, position: .top(0.0), animated: false, curve: .Default(duration: 0.0), directionHint: .Down)
+        } else if let focusedSection, let index = entries.firstIndex(where: { $0.section == focusedSection }) {
             initialScrollToItem = ListViewScrollToItem(index: index, position: .top(0.0), animated: false, curve: .Default(duration: 0.0), directionHint: .Down)
         } else {
             initialScrollToItem = nil
@@ -2258,6 +2261,19 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
     }
 
     let controller = ItemListController(context: context, state: signal)
+    let linkGesture = BananaSettingsLinkGesture(controller: controller, context: context, focus: focus)
+    var didHighlight = false
+    controller.afterTransactionCompleted = { [weak controller] in
+        // Retain the gesture target for exactly the controller lifetime.
+        _ = linkGesture
+        guard !didHighlight, let focusItemId, let controller else { return }
+        controller.forEachItemNode { node in
+            if let item = node as? ItemListItemNode, let tag = item.tag as? BananaSettingsItemTag, tag.id == focusItemId {
+                didHighlight = true
+                item.displayHighlight()
+            }
+        }
+    }
     presentControllerImpl = { [weak controller] presented in
         controller?.present(presented, in: .window(.root))
     }

@@ -14,6 +14,7 @@ import LocalMediaResources
 import LegacyUI
 import TextFormat
 import Photos
+import MediaEditor
 
 public func guessMimeTypeByFileExtension(_ ext: String) -> String {
     return TGMimeTypeMap.mimeType(forExtension: ext) ?? "application/binary"
@@ -892,6 +893,7 @@ public func legacyAssetPickerEnqueueMessages(
                                     break
                             }
                         case let .video(data, thumbnail, cover, adjustments, caption, asFile, asAnimation, stickers):
+                            let isRoundVideo = !asFile && !asAnimation && adjustments?.preset == TGMediaVideoConversionPresetVideoMessage
                             var finalDimensions: CGSize
                             var finalDuration: Double
                             switch data {
@@ -963,7 +965,9 @@ public func legacyAssetPickerEnqueueMessages(
                             if asAnimation {
                                 preset = TGMediaVideoConversionPresetAnimation
                             }
-                            if !asAnimation {
+                            if isRoundVideo, let adjustments {
+                                finalDimensions = videoMessageDimensions(for: adjustments.cropRect.size)
+                            } else if !asAnimation {
                                 finalDimensions = TGMediaVideoConverter.dimensions(for: finalDimensions, adjustments: adjustments, preset: TGMediaVideoConversionPresetCompressedMedium)
                             }
                             
@@ -1009,7 +1013,7 @@ public func legacyAssetPickerEnqueueMessages(
                                 fileAttributes.append(.Animated)
                             }
                             if !asFile {
-                                let flags: TelegramMediaVideoFlags = [.supportsStreaming]
+                                let flags: TelegramMediaVideoFlags = isRoundVideo ? [.instantRoundVideo] : [.supportsStreaming]
                                 fileAttributes.append(.Video(duration: finalDuration, size: PixelDimensions(finalDimensions), flags: flags, preloadSize: nil, coverTime: nil, videoCodec: nil))
                                 if let adjustments = adjustments {
                                     if adjustments.sendAsGif {
@@ -1045,11 +1049,11 @@ public func legacyAssetPickerEnqueueMessages(
                             
                             let media: EngineRawMedia
                             let mediaReference: AnyMediaReference
-                            if let adjustments, adjustments.isDefaultValuesForGif(), let originalMediaReference {
+                            if !isRoundVideo, let adjustments, adjustments.isDefaultValuesForGif(), let originalMediaReference {
                                 media = originalMediaReference.media
                                 mediaReference = originalMediaReference
                             } else {
-                                media = TelegramMediaFile(fileId: EngineMedia.Id(namespace: Namespaces.Media.LocalFile, id: Int64.random(in: Int64.min ... Int64.max)), partialReference: nil, resource: resource, previewRepresentations: previewRepresentations, videoThumbnails: [], videoCover: videoCover, immediateThumbnailData: nil, mimeType: "video/mp4", size: nil, attributes: fileAttributes, alternativeRepresentations: [])
+                                media = TelegramMediaFile(fileId: EngineMedia.Id(namespace: Namespaces.Media.LocalFile, id: Int64.random(in: Int64.min ... Int64.max)), partialReference: nil, resource: resource, previewRepresentations: previewRepresentations, videoThumbnails: [], videoCover: isRoundVideo ? nil : videoCover, immediateThumbnailData: nil, mimeType: "video/mp4", size: nil, attributes: fileAttributes, alternativeRepresentations: [])
                                 mediaReference = .standalone(media: media)
                             }
                             
@@ -1104,7 +1108,7 @@ public func legacyAssetPickerEnqueueMessages(
                                     )
                                 }
                             } else {
-                                messages.append(LegacyAssetPickerEnqueueMessage(message: .message(text: text.string, attributes: attributes, inlineStickers: [:], mediaReference: mediaReference, threadId: nil, replyToMessageId: nil, replyToStoryId: nil, localGroupingKey: item.groupedId, correlationId: nil, bubbleUpEmojiOrStickersets: bubbleUpEmojiOrStickersets), uniqueId: item.uniqueId, isFile: asFile))
+                                messages.append(LegacyAssetPickerEnqueueMessage(message: .message(text: text.string, attributes: attributes, inlineStickers: [:], mediaReference: mediaReference, threadId: nil, replyToMessageId: nil, replyToStoryId: nil, localGroupingKey: isRoundVideo ? nil : item.groupedId, correlationId: nil, bubbleUpEmojiOrStickersets: bubbleUpEmojiOrStickersets), uniqueId: item.uniqueId, isFile: asFile))
                             }
                     }
                 }

@@ -296,7 +296,7 @@
             if (sendController.schedule != nil)
                 sendController.schedule();
         }, ^{
-        })) {
+        }, nil)) {
             return;
         }
         [strongController presentViewController:sendController animated:false completion:nil];

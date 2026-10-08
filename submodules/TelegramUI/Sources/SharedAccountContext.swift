@@ -367,6 +367,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         self.currentAutomaticMediaDownloadSettings = initialPresentationDataAndSettings.automaticMediaDownloadSettings
         self.currentAutodownloadSettings = Atomic(value: initialPresentationDataAndSettings.autodownloadSettings)
         self.currentMediaInputSettings = Atomic(value: initialPresentationDataAndSettings.mediaInputSettings)
+        BananaAudioPolicy.current = initialPresentationDataAndSettings.mediaInputSettings
         self.currentMediaDisplaySettings = Atomic(value: initialPresentationDataAndSettings.mediaDisplaySettings)
         self.currentStickerSettings = Atomic(value: initialPresentationDataAndSettings.stickerSettings)
         self.currentInAppNotificationSettings = Atomic(value: initialPresentationDataAndSettings.inAppNotificationSettings)
@@ -499,6 +500,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             if let strongSelf = self {
                 if let settings = sharedData.entries[ApplicationSpecificSharedDataKeys.mediaInputSettings]?.get(MediaInputSettings.self) {
                     let _ = strongSelf.currentMediaInputSettings.swap(settings)
+                    BananaAudioPolicy.current = settings
                 }
             }
         })
@@ -1184,6 +1186,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             ArenaSettings.shared.avatarGlow = settings.avatarGlowEnabled
             ArenaSettings.shared.reactionGlow = settings.reactionGlowEnabled
         }
+        BananaForwardCountSettings.enabled = settings.showChannelForwardCount
         ForkAyuForwardSettings.enabled = settings.ayuForward
         ForkBypassDownloadRestrictionsSettings.enabled = settings.bypassDownloadRestrictions
         ForkLocalPremiumSettings.enabled = settings.localPremium

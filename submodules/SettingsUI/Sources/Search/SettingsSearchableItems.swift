@@ -3663,6 +3663,18 @@ private func dataSearchableItems(context: AccountContext) -> [SettingsSearchable
             }
         ),
         SettingsSearchableItem(
+            id: "data/pause-music-voice-recording",
+            title: String(strings.primaryComponent.languageCode.prefix(2)).lowercased() == "ru" ? "Пауза музыки при записи голосового" : "Pause music when recording voice messages",
+            alternate: [], icon: icon, breadcrumbs: [strings.Settings_ChatSettings],
+            present: { context, _, present in presentDataSettings(context, present, .pauseMusicOnVoiceRecording) }
+        ),
+        SettingsSearchableItem(
+            id: "data/pause-music-voice-playback",
+            title: String(strings.primaryComponent.languageCode.prefix(2)).lowercased() == "ru" ? "Пауза музыки при прослушивании голосового" : "Pause music when playing voice messages",
+            alternate: [], icon: icon, breadcrumbs: [strings.Settings_ChatSettings],
+            present: { context, _, present in presentDataSettings(context, present, .pauseMusicOnVoicePlayback) }
+        ),
+        SettingsSearchableItem(
             id: "data/raise-to-listen",
             title: strings.Settings_RaiseToListen,
             alternate: [],
@@ -4623,6 +4635,10 @@ func searchSettingsItems(items: [SettingsSearchableItem], query: String) -> [Set
 }
 
 public func handleSettingsPathUrl(context: AccountContext, path: String, navigationController: NavigationController) {
+    if let (focus, itemId) = bananaSettingsLinkTarget(path) {
+        navigationController.pushViewController(forkExtrasController(context: context, focus: focus, focusItemId: itemId))
+        return
+    }
     let forkExtrasFocus: ForkExtrasControllerFocus?
     switch path {
     case "ayu":

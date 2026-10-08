@@ -23,6 +23,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var tabSearchOnLeft: Bool
     public var bottomChatFoldersEnabled: Bool
     public var avatarGlowEnabled: Bool
+    public var showChannelForwardCount: Bool
     public var reactionGlowEnabled: Bool
     public var showContactsTab: Bool
     public var ghostDontReadMessages: Bool
@@ -250,6 +251,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.tabSearchOnLeft = false
         self.bottomChatFoldersEnabled = false
         self.avatarGlowEnabled = true
+        self.showChannelForwardCount = false
         self.reactionGlowEnabled = false
         self.showContactsTab = true
         self.ghostDontReadMessages = ghostDontReadMessages
@@ -318,6 +320,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.tabSearchOnLeft = try container.decodeIfPresent(Bool.self, forKey: "tabSearchOnLeft") ?? false
         self.bottomChatFoldersEnabled = try container.decodeIfPresent(Bool.self, forKey: "bottomChatFoldersEnabled") ?? false
         self.avatarGlowEnabled = try container.decodeIfPresent(Bool.self, forKey: "avatarGlowEnabled") ?? true
+        self.showChannelForwardCount = try container.decodeIfPresent(Bool.self, forKey: "showChannelForwardCount") ?? false
         self.reactionGlowEnabled = try container.decodeIfPresent(Bool.self, forKey: "reactionGlowEnabled") ?? false
         self.showContactsTab = try container.decodeIfPresent(Bool.self, forKey: "showContactsTab") ?? true
         let legacyGhost = try container.decodeIfPresent(Bool.self, forKey: "ghostMode") ?? false
@@ -389,6 +392,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.tabSearchOnLeft, forKey: "tabSearchOnLeft")
         try container.encode(self.bottomChatFoldersEnabled, forKey: "bottomChatFoldersEnabled")
         try container.encode(self.avatarGlowEnabled, forKey: "avatarGlowEnabled")
+        try container.encode(self.showChannelForwardCount, forKey: "showChannelForwardCount")
         try container.encode(self.reactionGlowEnabled, forKey: "reactionGlowEnabled")
         try container.encode(self.showContactsTab, forKey: "showContactsTab")
         try container.encode(self.ghostMode, forKey: "ghostMode")
@@ -870,5 +874,13 @@ public enum ForkExtrasNotificationBridge {
     
     public static var hidePinnedNotifications: Bool {
         return bool(forKey: hidePinnedKey)
+    }
+}
+
+public enum BananaForwardCountSettings {
+    private static let value = Atomic<Bool>(value: false)
+    public static var enabled: Bool {
+        get { return value.with { $0 } }
+        set { let _ = value.swap(newValue) }
     }
 }
