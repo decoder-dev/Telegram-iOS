@@ -2045,6 +2045,10 @@ extension PresentationBuiltinThemeReference: @retroactive Codable {
                     self = .nightAccent
                 case "night":
                     self = .night
+                case "bananagramcream":
+                    self = .bananaGramCream
+                case "bananagramgraphite":
+                    self = .bananaGramGraphite
                 default:
                     self = .dayClassic
             }
@@ -2064,6 +2068,10 @@ extension PresentationBuiltinThemeReference: @retroactive Codable {
                 try container.encode("nighttinted")
             case .night:
                 try container.encode("night")
+            case .bananaGramCream:
+                try container.encode("bananagramcream")
+            case .bananaGramGraphite:
+                try container.encode("bananagramgraphite")
         }
     }
 }

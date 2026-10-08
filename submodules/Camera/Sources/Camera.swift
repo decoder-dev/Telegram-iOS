@@ -593,7 +593,7 @@ private final class CameraContext {
 
     private var visibleCameraDevice: CameraDevice? {
         if self.initialConfiguration.isRoundVideo && self.positionValue == .front {
-            return self.additionalDeviceContext?.device
+            return self.additionalDeviceContext?.device ?? self.mainDeviceContext?.device
         } else {
             return self.mainDeviceContext?.device
         }

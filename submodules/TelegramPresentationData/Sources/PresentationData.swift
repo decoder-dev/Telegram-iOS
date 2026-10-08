@@ -94,7 +94,8 @@ public func higChatBubbleCorners(from settings: PresentationChatBubbleSettings) 
 
 public func forkNormalizedThemeSettings(_ settings: PresentationThemeSettings) -> PresentationThemeSettings {
     var updated = settings
-    updated.automaticThemeSwitchSetting.trigger = .none
+    updated.automaticThemeSwitchSetting.force = false
+    updated.automaticThemeSwitchSetting.trigger = .explicitNone
     return updated
 }
 
@@ -990,6 +991,10 @@ public func themeDisplayName(strings: PresentationStrings, reference: Presentati
             name = strings.Appearance_ThemeCarouselNewNight
         case .nightAccent:
             name = strings.Appearance_ThemeCarouselTintedNight
+        case .bananaGramCream:
+            name = "BananaGram Cream"
+        case .bananaGramGraphite:
+            name = "BananaGram Graphite"
         }
     case let .local(theme):
         name = theme.title
