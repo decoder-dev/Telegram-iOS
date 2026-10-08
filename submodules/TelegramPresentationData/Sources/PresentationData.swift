@@ -92,9 +92,10 @@ public func higChatBubbleCorners(from settings: PresentationChatBubbleSettings) 
     )
 }
 
-/// Preserve the user's theme and automatic-switch policy on every presentation-data read.
 public func forkNormalizedThemeSettings(_ settings: PresentationThemeSettings) -> PresentationThemeSettings {
-    return settings
+    var updated = settings
+    updated.automaticThemeSwitchSetting.trigger = .none
+    return updated
 }
 
 public func forkSavedMessagesMenuTitle(_ strings: PresentationStrings) -> String {
