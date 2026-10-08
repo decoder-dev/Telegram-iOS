@@ -71,23 +71,28 @@ public class ArenaSettings {
     }
     
     public var semiTransparentDeletedMessages: Bool { return true }
+    // Runtime projection of ForkExtrasSettings. Do not re-read shared defaults here:
+    // another process or an unavailable app-group suite must not override the UI choice.
+    private var avatarGlowValue = false
+    private var reactionGlowValue = false
+
     public var avatarGlow: Bool {
-        get { self.locked { self.defaults.object(forKey: "avatarGlow") as? Bool ?? true } }
+        get { self.locked { self.avatarGlowValue } }
         set {
             let changed = self.locked { () -> Bool in
                 guard self.avatarGlow != newValue else { return false }
-                self.defaults.set(newValue, forKey: "avatarGlow")
+                self.avatarGlowValue = newValue
                 return true
             }
             if changed { NotificationCenter.default.post(name: Self.didChangeNotification, object: nil) }
         }
     }
     public var reactionGlow: Bool {
-        get { self.locked { self.defaults.bool(forKey: "reactionGlow") } }
+        get { self.locked { self.reactionGlowValue } }
         set {
             let changed = self.locked { () -> Bool in
                 guard self.reactionGlow != newValue else { return false }
-                self.defaults.set(newValue, forKey: "reactionGlow")
+                self.reactionGlowValue = newValue
                 return true
             }
             if changed { NotificationCenter.default.post(name: Self.didChangeNotification, object: nil) }

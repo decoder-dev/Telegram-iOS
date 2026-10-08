@@ -88,6 +88,7 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.integratedTabSearch": "Search inside tab bar",
             "ForkExtras.tabSearchOnLeft": "Search on the left",
 
+            "ForkExtras.BottomFolders": "Folders at the bottom",
             "ForkExtras.AvatarGlow": "Avatar glow",
             "ForkExtras.ReactionGlow": "Reaction glow",
             "ForkExtras.ContactsTab": "Contacts tab",
@@ -230,6 +231,7 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.integratedTabSearch": "Поиск внутри панели",
             "ForkExtras.tabSearchOnLeft": "Поиск слева",
 
+            "ForkExtras.BottomFolders": "Папки снизу",
             "ForkExtras.AvatarGlow": "Свечение аватарок",
             "ForkExtras.ReactionGlow": "Свечение реакций",
             "ForkExtras.ContactsTab": "Вкладка Контакты",
@@ -1488,6 +1490,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .wideChannelPosts(settings.wideChannelPosts),
             .wideChannelPostsFooter,
             .stickerSize(settings.stickerSizePercent),
+            .appearanceToggle(1499, ForkExtrasLocalizedString.string(forKey: "ForkExtras.BottomFolders"), settings.bottomChatFoldersEnabled, \.bottomChatFoldersEnabled),
             .appearanceToggle(1500, ForkExtrasLocalizedString.string(forKey: "ForkExtras.AvatarGlow"), settings.avatarGlowEnabled, \.avatarGlowEnabled),
             .appearanceToggle(1501, ForkExtrasLocalizedString.string(forKey: "ForkExtras.ReactionGlow"), settings.reactionGlowEnabled, \.reactionGlowEnabled),
             .appearanceToggle(1502, ForkExtrasLocalizedString.string(forKey: "ForkExtras.ContactsTab"), settings.showContactsTab, \.showContactsTab),

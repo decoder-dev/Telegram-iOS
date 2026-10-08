@@ -21,6 +21,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var wideTabBar: Bool
     public var integratedTabSearch: Bool
     public var tabSearchOnLeft: Bool
+    public var bottomChatFoldersEnabled: Bool
     public var avatarGlowEnabled: Bool
     public var reactionGlowEnabled: Bool
     public var showContactsTab: Bool
@@ -247,6 +248,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.wideTabBar = false
         self.integratedTabSearch = false
         self.tabSearchOnLeft = false
+        self.bottomChatFoldersEnabled = false
         self.avatarGlowEnabled = true
         self.reactionGlowEnabled = false
         self.showContactsTab = true
@@ -314,6 +316,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.wideTabBar = try container.decodeIfPresent(Bool.self, forKey: "wideTabBar") ?? false
         self.integratedTabSearch = try container.decodeIfPresent(Bool.self, forKey: "integratedTabSearch") ?? false
         self.tabSearchOnLeft = try container.decodeIfPresent(Bool.self, forKey: "tabSearchOnLeft") ?? false
+        self.bottomChatFoldersEnabled = try container.decodeIfPresent(Bool.self, forKey: "bottomChatFoldersEnabled") ?? false
         self.avatarGlowEnabled = try container.decodeIfPresent(Bool.self, forKey: "avatarGlowEnabled") ?? true
         self.reactionGlowEnabled = try container.decodeIfPresent(Bool.self, forKey: "reactionGlowEnabled") ?? false
         self.showContactsTab = try container.decodeIfPresent(Bool.self, forKey: "showContactsTab") ?? true
@@ -384,6 +387,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.wideTabBar, forKey: "wideTabBar")
         try container.encode(self.integratedTabSearch, forKey: "integratedTabSearch")
         try container.encode(self.tabSearchOnLeft, forKey: "tabSearchOnLeft")
+        try container.encode(self.bottomChatFoldersEnabled, forKey: "bottomChatFoldersEnabled")
         try container.encode(self.avatarGlowEnabled, forKey: "avatarGlowEnabled")
         try container.encode(self.reactionGlowEnabled, forKey: "reactionGlowEnabled")
         try container.encode(self.showContactsTab, forKey: "showContactsTab")

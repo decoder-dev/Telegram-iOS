@@ -27,6 +27,24 @@ let observer = NotificationCenter.default.addObserver(forName: ArenaSettings.sha
 settings.setShadowBanned(true, peerId: 999)
 NotificationCenter.default.removeObserver(observer)
 precondition(!settings.isShadowBanned(999))
+// Rendering must follow the in-process projection, not stale app-group keys.
+defaults.set(true, forKey: "avatarGlow")
+defaults.set(true, forKey: "reactionGlow")
+var glowStates: [(Bool, Bool)] = []
+let glowObserver = NotificationCenter.default.addObserver(forName: ArenaSettings.didChangeNotification, object: nil, queue: nil) { _ in
+    glowStates.append((settings.avatarGlow, settings.reactionGlow))
+}
+settings.avatarGlow = true
+settings.reactionGlow = true
+settings.avatarGlow = false
+settings.reactionGlow = false
+precondition(!settings.avatarGlow && !settings.reactionGlow)
+precondition(glowStates.count == 4)
+precondition(glowStates[2].0 == false && glowStates[2].1 == true)
+precondition(glowStates[3].0 == false && glowStates[3].1 == false)
+settings.avatarGlow = false
+precondition(glowStates.count == 4, "Unchanged settings must not invalidate every avatar")
+NotificationCenter.default.removeObserver(glowObserver)
 print("Concurrent shadow-ban updates and reentrant notifications passed")
 """
 with tempfile.TemporaryDirectory() as directory:

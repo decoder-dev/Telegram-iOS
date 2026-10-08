@@ -1143,6 +1143,8 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
     private var tapRecognizer: UITapGestureRecognizer?
     var navigationBar: NavigationBar?
     let navigationBarView = ComponentView<Empty>()
+    private var folderSettingsDisposable: Disposable?
+    private var foldersAtBottom = false
     private var bottomFoldersPanel: ComponentView<Empty>?
     private var bottomFoldersInset: CGFloat = 0.0
 
@@ -1223,6 +1225,16 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
         self.controller = controller
         
         super.init()
+        self.foldersAtBottom = context.sharedContext.immediateForkExtrasSettings.bottomChatFoldersEnabled
+        self.folderSettingsDisposable = (forkExtrasSettings(accountManager: context.sharedContext.accountManager)
+        |> map { $0.bottomChatFoldersEnabled }
+        |> distinctUntilChanged
+        |> deliverOnMainQueue).start(next: { [weak self] enabled in
+            guard let self, self.foldersAtBottom != enabled else { return }
+            self.foldersAtBottom = enabled
+            self.controller?.requestLayout(transition: .immediate)
+        })
+
         
         self.setViewBlock({
             return UITracingLayerView()
@@ -1412,6 +1424,10 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
         }
     }
     
+    deinit {
+        self.folderSettingsDisposable?.dispose()
+    }
+
     func updatePresentationData(_ presentationData: PresentationData) {
         self.presentationData = presentationData
         
@@ -1525,7 +1541,7 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
             )
         }
         
-        let foldersAtBottom = self.location == .chatList(groupId: .root)
+        let foldersAtBottom = self.foldersAtBottom && self.location == .chatList(groupId: .root)
         var bottomFolderTabs: AnyComponent<Empty>?
         var navigationHeaderPanels: AnyComponent<Empty>?
         if self.controller?.tabContainerData != nil || !panels.isEmpty {
