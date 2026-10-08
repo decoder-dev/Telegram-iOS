@@ -17,10 +17,19 @@ title_functions = ['forkEditHistoryMenuTitle', 'forkUseRecentEmojiInReactionsTit
 functions += '\n' + '\n'.join(function(source, 'public func ' + name + '(') for name in title_functions)
 fixture = r"""
 import Foundation
+public enum AutomaticThemeSwitchTrigger: Equatable {
+    case system
+    case explicitNone
+    case brightness(threshold: Double)
+}
+public struct AutomaticThemeSwitchSetting: Equatable {
+    var force: Bool
+    var trigger: AutomaticThemeSwitchTrigger
+    var theme: String
+}
 public struct PresentationThemeSettings: Equatable {
     var theme: String
-    var automaticPolicy: String
-    var darkTheme: String
+    var automaticThemeSwitchSetting: AutomaticThemeSwitchSetting
     var wallpaper: String
 }
 public struct PresentationStrings {
@@ -29,10 +38,16 @@ public struct PresentationStrings {
 }
 """
 tests = r"""
-for theme in ["day", "night", "classic", "tinted", "local:BananaGram", "cloud:custom"] {
-    for policy in ["disabled", "system", "scheduled", "brightness", "force"] {
-        let saved = PresentationThemeSettings(theme: theme, automaticPolicy: policy, darkTheme: "custom-dark", wallpaper: "custom-wallpaper")
-        precondition(forkNormalizedThemeSettings(saved) == saved, "User appearance overwritten")
+let triggers: [AutomaticThemeSwitchTrigger] = [.system, .explicitNone, .brightness(threshold: 0.3)]
+for theme in ["day", "night", "classic", "tinted", "bananaGramCream", "bananaGramGraphite", "local:BananaGram", "cloud:custom"] {
+    for trigger in triggers {
+        for force in [false, true] {
+            let saved = PresentationThemeSettings(theme: theme, automaticThemeSwitchSetting: .init(force: force, trigger: trigger, theme: "custom-dark"), wallpaper: "custom-wallpaper")
+            let normalized = forkNormalizedThemeSettings(saved)
+            precondition(normalized.theme == theme && normalized.wallpaper == saved.wallpaper, "Selected theme or wallpaper overwritten")
+            precondition(normalized.automaticThemeSwitchSetting.theme == "custom-dark", "Dark theme choice overwritten")
+            precondition(!normalized.automaticThemeSwitchSetting.force && normalized.automaticThemeSwitchSetting.trigger == .explicitNone, "Automatic switching not disabled")
+        }
     }
 }
 for radius in 4...30 {
@@ -60,7 +75,7 @@ for title in [forkEditHistoryMenuTitle, forkUseRecentEmojiInReactionsTitle, fork
     }
     precondition(title(PresentationStrings(primaryComponent: .init(languageCode: "en-US"))) == english)
 }
-print("Theme persistence: 30 combinations; bubble slider: all radii and invalid values; localized Saved Messages: passed")
+print("Theme persistence and disabled auto-switching: 48 combinations; bubble slider: all radii and invalid values; localized Saved Messages: passed")
 """
 navigation_source = (root / 'submodules/TelegramUI/Sources/TelegramRootController.swift').read_text(encoding='utf-8')
 start = navigation_source.index('    public func openContacts()')

@@ -3969,25 +3969,6 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
             }
         ),
         SettingsSearchableItem(
-            id: "appearance/night-mode",
-            icon: icon,
-            breadcrumbs: [customizationTitle],
-            isVisible: false,
-            present: { context, _, present in
-                presentAppearanceSettings(context, present, .nightMode)
-            }
-        ),
-        SettingsSearchableItem(
-            id: "appearance/auto-night-mode",
-            title: strings.Appearance_AutoNightTheme,
-            alternate: synonyms(strings.SettingsSearch_Synonyms_Appearance_AutoNightTheme),
-            icon: icon,
-            breadcrumbs: [customizationTitle],
-            present: { context, _, present in
-                present(.push, themeAutoNightSettingsController(context: context))
-            }
-        ),
-        SettingsSearchableItem(
             id: "appearance/themes",
             title: strings.Themes_Title,
             alternate: synonyms(strings.SettingsSearch_Synonyms_Appearance_ColorTheme),
