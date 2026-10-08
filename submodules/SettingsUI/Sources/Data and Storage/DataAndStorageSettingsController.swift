@@ -192,23 +192,23 @@ private enum DataAndStorageEntry: ItemListNodeEntry {
             case .saveEditedPhotos:
                 return 32
             case .pauseMusicOnVoiceRecording:
-                return 40
+                return 34
             case .pauseMusicOnVoicePlayback:
-                return 41
+                return 35
             case .pauseMusicOnRecording:
                 return 33
             case .raiseToListen:
-                return 34
-            case .raiseToListenInfo:
-                return 35
-            case .sensitiveContent:
                 return 36
-            case .sensitiveContentInfo:
+            case .raiseToListenInfo:
                 return 37
-            case .connectionHeader:
+            case .sensitiveContent:
                 return 38
-            case .connectionProxy:
+            case .sensitiveContentInfo:
                 return 39
+            case .connectionHeader:
+                return 40
+            case .connectionProxy:
+                return 41
         }
     }
     

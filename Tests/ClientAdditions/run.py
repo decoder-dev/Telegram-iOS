@@ -42,6 +42,15 @@ class WiringTests(unittest.TestCase):
         ids += re.findall(r"case \.(?:tabPreview|callsTab): return (\d+)", source)
         self.assertEqual(len(ids), len(set(ids)), "Duplicate item IDs break list diffs")
 
+    def test_audio_rows_follow_stable_merge_order(self):
+        source = read("submodules/SettingsUI/Sources/Data and Storage/DataAndStorageSettingsController.swift")
+        rows = ["saveEditedPhotos", "pauseMusicOnRecording", "pauseMusicOnVoiceRecording", "pauseMusicOnVoicePlayback", "raiseToListen", "raiseToListenInfo", "sensitiveContent", "sensitiveContentInfo", "connectionHeader", "connectionProxy"]
+        ids = [int(re.search(r"case \." + row + r":\s+return (\d+)", source).group(1)) for row in rows]
+        self.assertEqual(ids, sorted(set(ids)), "Stable merge requires ordered, distinct row IDs")
+        extras = read("submodules/SettingsUI/Sources/ForkExtrasController.swift")
+        groups = extras[extras.index("private static let interfaceGroups"):extras.index("    case hubNinja")]
+        self.assertIn("1508", groups, "Forward count belongs in an explicit appearance group")
+
     def test_link_is_navigation_only(self):
         source = read("submodules/SettingsUI/Sources/BananaSettingsLinks.swift")
         self.assertNotIn("updateForkExtrasSettings", source)
