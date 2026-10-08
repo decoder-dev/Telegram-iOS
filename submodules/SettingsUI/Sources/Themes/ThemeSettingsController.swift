@@ -122,7 +122,7 @@ public enum ThemeSettingsEntryTag: ItemListItemTag {
 }
 
 private enum ThemeSettingsControllerEntry: ItemListNodeEntry {
-    case themeButton(PresentationTheme, PresentationThemeReference, String)
+    case themeButton(PresentationTheme, PresentationThemeReference, String, Bool)
     case themeListHeader(PresentationTheme, String)
     case chatPreview(PresentationTheme, TelegramWallpaper, PresentationFontSize, PresentationChatBubbleCorners, PresentationStrings, PresentationDateTimeFormat, PresentationPersonNameOrder, [ChatPreviewMessageItem])
     case chatTheme(PresentationTheme, String)
@@ -158,9 +158,9 @@ private enum ThemeSettingsControllerEntry: ItemListNodeEntry {
     
     var stableId: Int32 {
         switch self {
-        case let .themeButton(_, reference, _):
+        case let .themeButton(_, reference, _, _):
             switch reference {
-            case .builtin(.dayClassic): return -4
+            case .builtin(.day), .builtin(.dayClassic): return -4
             case .builtin(.night): return -3
             case .builtin(.bananaGramCream): return -2
             case .builtin(.bananaGramGraphite): return -1
@@ -205,8 +205,8 @@ private enum ThemeSettingsControllerEntry: ItemListNodeEntry {
     
     static func ==(lhs: ThemeSettingsControllerEntry, rhs: ThemeSettingsControllerEntry) -> Bool {
         switch lhs {
-            case let .themeButton(theme, reference, text):
-                if case let .themeButton(otherTheme, otherReference, otherText) = rhs { return theme === otherTheme && reference == otherReference && text == otherText }
+            case let .themeButton(theme, reference, text, selected):
+                if case let .themeButton(otherTheme, otherReference, otherText, otherSelected) = rhs { return theme === otherTheme && reference == otherReference && text == otherText && selected == otherSelected }
                 return false
             case let .chatPreview(lhsTheme, lhsWallpaper, lhsFontSize, lhsChatBubbleCorners, lhsStrings, lhsTimeFormat, lhsNameOrder, lhsItems):
                 if case let .chatPreview(rhsTheme, rhsWallpaper, rhsFontSize, rhsChatBubbleCorners, rhsStrings, rhsTimeFormat, rhsNameOrder, rhsItems) = rhs, lhsTheme === rhsTheme, lhsWallpaper == rhsWallpaper, lhsFontSize == rhsFontSize, lhsChatBubbleCorners == rhsChatBubbleCorners, lhsStrings === rhsStrings, lhsTimeFormat == rhsTimeFormat, lhsNameOrder == rhsNameOrder, lhsItems == rhsItems {
@@ -320,8 +320,8 @@ private enum ThemeSettingsControllerEntry: ItemListNodeEntry {
     func item(presentationData: ItemListPresentationData, arguments: Any) -> ListViewItem {
         let arguments = arguments as! ThemeSettingsControllerArguments
         switch self {
-            case let .themeButton(_, reference, text):
-                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: text, label: "", sectionId: self.section, style: .blocks, action: { arguments.selectTheme(reference) })
+            case let .themeButton(_, reference, text, selected):
+                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: text, label: selected ? "✓" : "", sectionId: self.section, style: .blocks, action: { arguments.selectTheme(reference) })
             case let .chatPreview(theme, wallpaper, fontSize, chatBubbleCorners, strings, dateTimeFormat, nameDisplayOrder, items):
                 return ThemeSettingsChatPreviewItem(context: arguments.context, systemStyle: .glass, theme: theme, componentTheme: theme, strings: strings, sectionId: self.section, fontSize: fontSize, chatBubbleCorners: chatBubbleCorners, wallpaper: wallpaper, dateTimeFormat: dateTimeFormat, nameDisplayOrder: nameDisplayOrder, messageItems: items)
             case let .chatTheme(_, text):
@@ -426,10 +426,16 @@ private func themeSettingsControllerEntries(
         profileColor = nil
     }
     
-    entries.append(.themeButton(presentationData.theme, .builtin(.dayClassic), "Classic White"))
-    entries.append(.themeButton(presentationData.theme, .builtin(.night), "Classic Black"))
-    entries.append(.themeButton(presentationData.theme, .builtin(.bananaGramCream), "BananaGram Cream"))
-    entries.append(.themeButton(presentationData.theme, .builtin(.bananaGramGraphite), "BananaGram Graphite"))
+    let themeButtons: [(PresentationBuiltinThemeReference, String)] = [
+        (.day, "Classic White"),
+        (.night, "Classic Black"),
+        (.bananaGramCream, "BananaGram Cream"),
+        (.bananaGramGraphite, "BananaGram Graphite")
+    ]
+    for (builtin, title) in themeButtons {
+        let isSelected = themeReference == .builtin(builtin) || (builtin == .day && themeReference == .builtin(.dayClassic))
+        entries.append(.themeButton(presentationData.theme, .builtin(builtin), title, isSelected))
+    }
     
     entries.append(.chatPreview(presentationData.theme, presentationData.chatWallpaper, presentationData.chatFontSize, presentationData.chatBubbleCorners, presentationData.strings, presentationData.dateTimeFormat, presentationData.nameDisplayOrder, [ChatPreviewMessageItem(outgoing: false, reply: (authorName, presentationData.strings.Appearance_PreviewReplyText), text: presentationData.strings.Appearance_PreviewIncomingText, nameColor: nameColor, backgroundEmojiId: accountPeer?.backgroundEmojiId), ChatPreviewMessageItem(outgoing: true, reply: nil, text: presentationData.strings.Appearance_PreviewOutgoingText, nameColor: .preset(.blue), backgroundEmojiId: nil)]))
     
