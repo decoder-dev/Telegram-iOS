@@ -1202,7 +1202,7 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
             var replyInnerSubject: EngineMessageReplyInnerSubject?
             var replyStory: StoryId?
             for attribute in item.message.attributes {
-                if let attribute = attribute as? InlineBotMessageAttribute {
+                if let attribute = attribute as? InlineBotMessageAttribute, !ForkMessageVisibility.hideViaBot {
                     var inlineBotNameString: String?
                     if let peerId = attribute.peerId, let bot = item.message.peers[peerId] as? TelegramUser {
                         inlineBotNameString = bot.addressName
@@ -1420,7 +1420,7 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
             } else if shouldDisplayInlineDateReactions(message: EngineMessage(item.message), isPremium: item.associatedData.isPremium, forceInline: item.associatedData.forceInlineReactions) {
                 reactions = ReactionsMessageAttribute(canViewList: false, isTags: false, reactions: [], recentPeers: [], topPeers: [])
             } else {
-                reactions = mergedMessageReactions(attributes: item.message.attributes, isTags: item.message.areReactionsTags(accountPeerId: item.context.account.peerId)) ?? ReactionsMessageAttribute(canViewList: false, isTags: false, reactions: [], recentPeers: [], topPeers: [])
+                reactions = forkVisibleMessageReactions(attributes: item.message.attributes, isTags: item.message.areReactionsTags(accountPeerId: item.context.account.peerId)) ?? ReactionsMessageAttribute(canViewList: false, isTags: false, reactions: [], recentPeers: [], topPeers: [])
             }
             var reactionButtonsFinalize: ((CGFloat) -> (CGSize, (_ animation: ListViewItemUpdateAnimation) -> ChatMessageReactionButtonsNode))?
             if !reactions.reactions.isEmpty {
@@ -2303,7 +2303,7 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
             if let viaBotNode = self.viaBotNode, viaBotNode.frame.contains(location) {
                 if let item = self.item {
                     for attribute in item.message.attributes {
-                        if let attribute = attribute as? InlineBotMessageAttribute {
+                        if let attribute = attribute as? InlineBotMessageAttribute, !ForkMessageVisibility.hideViaBot {
                             var botAddressName: String?
                             if let peerId = attribute.peerId, let botPeer = item.message.peers[peerId], let addressName = botPeer.addressName {
                                 botAddressName = addressName

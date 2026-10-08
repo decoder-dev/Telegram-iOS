@@ -1187,6 +1187,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             ArenaSettings.shared.reactionGlow = settings.reactionGlowEnabled
         }
         BananaForwardCountSettings.enabled = settings.showChannelForwardCount
+        ForkMessageVisibility.update(ForkMessageVisibility.State(hidePaidReactions: settings.hidePaidReactions, hideViaBot: settings.hideViaBot, removeLinkPreviews: settings.removeLinkPreviews))
         ForkAyuForwardSettings.enabled = settings.ayuForward
         ForkBypassDownloadRestrictionsSettings.enabled = settings.bypassDownloadRestrictions
         ForkLocalPremiumSettings.enabled = settings.localPremium

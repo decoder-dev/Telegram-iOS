@@ -372,7 +372,7 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
                 var replyInnerSubject: EngineMessageReplyInnerSubject?
                 var replyStory: StoryId?
                 for attribute in item.message.attributes {
-                    if let attribute = attribute as? InlineBotMessageAttribute {
+                    if let attribute = attribute as? InlineBotMessageAttribute, !ForkMessageVisibility.hideViaBot {
                         var inlineBotNameString: String?
                         if let peerId = attribute.peerId, let bot = item.message.peers[peerId] as? TelegramUser {
                             inlineBotNameString = bot.addressName
@@ -1565,7 +1565,7 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
                             if let viaBotNode = self.viaBotNode, viaBotNode.frame.contains(location) {
                                 if let item = self.item {
                                     for attribute in item.message.attributes {
-                                        if let attribute = attribute as? InlineBotMessageAttribute {
+                                        if let attribute = attribute as? InlineBotMessageAttribute, !ForkMessageVisibility.hideViaBot {
                                             var botAddressName: String?
                                             if let peerId = attribute.peerId, let botPeer = item.message.peers[peerId], let addressName = botPeer.addressName {
                                                 botAddressName = addressName

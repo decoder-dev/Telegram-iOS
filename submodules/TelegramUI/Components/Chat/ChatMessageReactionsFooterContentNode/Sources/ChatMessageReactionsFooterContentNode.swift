@@ -626,7 +626,7 @@ public final class ChatMessageReactionsFooterContentNode: ChatMessageBubbleConte
             }
             
             return (contentProperties, nil, CGFloat.greatestFiniteMagnitude, { constrainedSize, position in
-                let reactionsAttribute = mergedMessageReactions(attributes: item.message.attributes, isTags: item.message.areReactionsTags(accountPeerId: item.context.account.peerId)) ?? ReactionsMessageAttribute(canViewList: false, isTags: false, reactions: [], recentPeers: [], topPeers: [])
+                let reactionsAttribute = forkVisibleMessageReactions(attributes: item.message.attributes, isTags: item.message.areReactionsTags(accountPeerId: item.context.account.peerId)) ?? ReactionsMessageAttribute(canViewList: false, isTags: false, reactions: [], recentPeers: [], topPeers: [])
                 let buttonsUpdate = buttonsNode.prepareUpdate(
                     context: item.context,
                     presentationData: item.presentationData,

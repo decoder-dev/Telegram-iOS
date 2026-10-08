@@ -478,7 +478,7 @@ private func contentNodeMessagesAndClassesForItem(_ item: ChatMessageItem) -> ([
         }
     }
     
-    if !reactionsAreInline && !hideAllAdditionalInfo && !ForkExtrasHotFlags.hideReactionsBar, let reactionsAttribute = mergedMessageReactions(attributes: firstMessage.attributes, isTags: firstMessage.areReactionsTags(accountPeerId: item.context.account.peerId)), !reactionsAttribute.reactions.isEmpty {
+    if !reactionsAreInline && !hideAllAdditionalInfo && !ForkExtrasHotFlags.hideReactionsBar, let reactionsAttribute = forkVisibleMessageReactions(attributes: firstMessage.attributes, isTags: firstMessage.areReactionsTags(accountPeerId: item.context.account.peerId)), !reactionsAttribute.reactions.isEmpty {
         if result.last?.1 == ChatMessageTextBubbleContentNode.self {
         } else {
             if result.last?.1 == ChatMessagePollBubbleContentNode.self ||
@@ -1349,7 +1349,7 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
                 if let nameNode = strongSelf.nameNode, nameNode.frame.contains(point) {
                     if let item = strongSelf.item {
                         for attribute in item.message.attributes {
-                            if let _ = attribute as? InlineBotMessageAttribute {
+                            if let _ = attribute as? InlineBotMessageAttribute, !ForkMessageVisibility.hideViaBot {
                                 return .waitForSingleTap
                             }
                         }
@@ -2122,7 +2122,7 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
                 if let peer = firstMessage.peers[attribute.peerId] {
                     guestChatViaFromNameString = EnginePeer(peer).compactDisplayTitle
                 }
-            } else if let attribute = attribute as? InlineBotMessageAttribute {
+            } else if let attribute = attribute as? InlineBotMessageAttribute, !ForkMessageVisibility.hideViaBot {
                 if let peerId = attribute.peerId, let bot = firstMessage.peers[peerId] as? TelegramUser {
                     inlineBotNameString = bot.addressName
                 } else {
@@ -2347,7 +2347,7 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
         
         let bubbleReactions: ReactionsMessageAttribute
         if (needReactions || forceReactionsOutside) && !ForkExtrasHotFlags.hideReactionsBar {
-            bubbleReactions = mergedMessageReactions(attributes: item.message.attributes, isTags: item.message.areReactionsTags(accountPeerId: item.context.account.peerId)) ?? ReactionsMessageAttribute(canViewList: false, isTags: false, reactions: [], recentPeers: [], topPeers: [])
+            bubbleReactions = forkVisibleMessageReactions(attributes: item.message.attributes, isTags: item.message.areReactionsTags(accountPeerId: item.context.account.peerId)) ?? ReactionsMessageAttribute(canViewList: false, isTags: false, reactions: [], recentPeers: [], topPeers: [])
         } else {
             bubbleReactions = ReactionsMessageAttribute(canViewList: false, isTags: false, reactions: [], recentPeers: [], topPeers: [])
         }
@@ -5862,7 +5862,7 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
                 if let nameNode = self.nameNode, nameNode.frame.contains(location) {
                     if let item = self.item {
                         for attribute in item.message.attributes {
-                            if let attribute = attribute as? InlineBotMessageAttribute {
+                            if let attribute = attribute as? InlineBotMessageAttribute, !ForkMessageVisibility.hideViaBot {
                                 var botAddressName: String?
                                 if let peerId = attribute.peerId, let botPeer = item.message.peers[peerId], let addressName = botPeer.addressName {
                                     botAddressName = addressName

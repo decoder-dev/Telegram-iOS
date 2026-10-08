@@ -124,6 +124,12 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var outgoingPhotoQuality: Int32
     /// Hide own phone number and @username on profile and the Settings header (AyuGram Streamer Mode).
     public var streamerMode: Bool
+    /// Hide paid (star) reactions from messages and the reaction picker.
+    public var hidePaidReactions: Bool
+    /// Hide the "via @bot" label on messages sent through inline bots.
+    public var hideViaBot: Bool
+    /// Send messages without link previews.
+    public var removeLinkPreviews: Bool
 
     public static var defaultSettings: ForkExtrasSettings {
         return ForkExtrasSettings(
@@ -254,6 +260,9 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.showChannelForwardCount = false
         self.reactionGlowEnabled = false
         self.showContactsTab = true
+        self.hidePaidReactions = false
+        self.hideViaBot = false
+        self.removeLinkPreviews = false
         self.ghostDontReadMessages = ghostDontReadMessages
         self.ghostDontReadStories = ghostDontReadStories
         self.ghostDontSendOnline = ghostDontSendOnline
@@ -319,6 +328,9 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.integratedTabSearch = try container.decodeIfPresent(Bool.self, forKey: "integratedTabSearch") ?? false
         self.tabSearchOnLeft = try container.decodeIfPresent(Bool.self, forKey: "tabSearchOnLeft") ?? false
         self.bottomChatFoldersEnabled = try container.decodeIfPresent(Bool.self, forKey: "bottomChatFoldersEnabled") ?? false
+        self.hidePaidReactions = try container.decodeIfPresent(Bool.self, forKey: "hidePaidReactions") ?? false
+        self.hideViaBot = try container.decodeIfPresent(Bool.self, forKey: "hideViaBot") ?? false
+        self.removeLinkPreviews = try container.decodeIfPresent(Bool.self, forKey: "removeLinkPreviews") ?? false
         self.avatarGlowEnabled = try container.decodeIfPresent(Bool.self, forKey: "avatarGlowEnabled") ?? true
         self.showChannelForwardCount = try container.decodeIfPresent(Bool.self, forKey: "showChannelForwardCount") ?? false
         self.reactionGlowEnabled = try container.decodeIfPresent(Bool.self, forKey: "reactionGlowEnabled") ?? false
@@ -391,6 +403,9 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.integratedTabSearch, forKey: "integratedTabSearch")
         try container.encode(self.tabSearchOnLeft, forKey: "tabSearchOnLeft")
         try container.encode(self.bottomChatFoldersEnabled, forKey: "bottomChatFoldersEnabled")
+        try container.encode(self.hidePaidReactions, forKey: "hidePaidReactions")
+        try container.encode(self.hideViaBot, forKey: "hideViaBot")
+        try container.encode(self.removeLinkPreviews, forKey: "removeLinkPreviews")
         try container.encode(self.avatarGlowEnabled, forKey: "avatarGlowEnabled")
         try container.encode(self.showChannelForwardCount, forKey: "showChannelForwardCount")
         try container.encode(self.reactionGlowEnabled, forKey: "reactionGlowEnabled")

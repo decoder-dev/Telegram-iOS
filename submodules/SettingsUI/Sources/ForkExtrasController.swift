@@ -749,7 +749,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     private static let interfaceGroups: [[Int32]] = [
         [1600, 1610, 1611],
         [1601, 1499, 52, 59, 60, 61, 62, 63, 64, 1502, 1503, 1504, 1505, 1506, 1507],
-        [1602, 50, 51, 53, 54, 55, 56, 58, 65, 66, 67, 68, 69, 1508],
+        [1602, 50, 51, 53, 54, 55, 56, 58, 65, 66, 67, 68, 69, 1508, 1509, 1510, 1511],
         [1603, 1500, 1501, 57]
     ]
 
@@ -1520,6 +1520,9 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(1499, ForkExtrasLocalizedString.string(forKey: "ForkExtras.BottomFolders"), settings.bottomChatFoldersEnabled, \.bottomChatFoldersEnabled),
             .appearanceToggle(1500, ForkExtrasLocalizedString.string(forKey: "ForkExtras.AvatarGlow"), settings.avatarGlowEnabled, \.avatarGlowEnabled),
             .appearanceToggle(1508, ForkPresentationLanguage.prefersRussianStrings ? "Счётчик пересылок в каналах" : "Channel forward count", settings.showChannelForwardCount, \.showChannelForwardCount),
+            .appearanceToggle(1509, ForkPresentationLanguage.prefersRussianStrings ? "Скрыть платные реакции" : "Hide paid reactions", settings.hidePaidReactions, \.hidePaidReactions),
+            .appearanceToggle(1510, ForkPresentationLanguage.prefersRussianStrings ? "Скрыть «через бота»" : "Hide \"via bot\"", settings.hideViaBot, \.hideViaBot),
+            .appearanceToggle(1511, ForkPresentationLanguage.prefersRussianStrings ? "Отправлять без превью ссылок" : "Send without link previews", settings.removeLinkPreviews, \.removeLinkPreviews),
             .appearanceToggle(1501, ForkExtrasLocalizedString.string(forKey: "ForkExtras.ReactionGlow"), settings.reactionGlowEnabled, \.reactionGlowEnabled),
             .appearanceToggle(1502, ForkExtrasLocalizedString.string(forKey: "ForkExtras.ContactsTab"), settings.showContactsTab, \.showContactsTab),
             .callsTab(showCallsTab),
