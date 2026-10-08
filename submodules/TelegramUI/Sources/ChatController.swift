@@ -7559,7 +7559,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                 TelegramShadowBan.stateSignal()
             )
             |> map { pinnedMessages, topMessage, referenceMessage, shadowBanState -> ChatPinnedMessage? in
-                // Shadow-banned pins leave the bar, and the В«N of MВ» count follows the visible ones.
+                // Shadow-banned pins leave the bar, and the «N of M» count follows the visible ones.
                 var pinnedMessages = pinnedMessages
                 var topMessage = topMessage
                 if !shadowBanState.bannedPeerIds.isEmpty {

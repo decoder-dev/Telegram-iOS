@@ -240,7 +240,7 @@ public enum TelegramShadowBan {
         case later
     }
 
-    /// Walks the history past windows where every message is hidden, so a chat doesn't show В«no messagesВ» while it has
+    /// Walks the history past windows where every message is hidden, so a chat doesn't show «no messages» while it has
     /// visible ones elsewhere. It keeps one direction (newer when there is something newer, otherwise older) and turns
     /// around once at that end; nil means nothing is left to load, so the chat has no visible messages.
     public struct HiddenWindowWalk: Equatable {

@@ -3969,7 +3969,7 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
         self.maxVisibleIncomingMessageIndex.set(index)
     }
 
-    /// Every message of the loaded window is hidden by the shadow ban: load the next window instead of showing В«no messagesВ».
+    /// Every message of the loaded window is hidden by the shadow ban: load the next window instead of showing «no messages».
     /// Returns false when nothing is left to load, so the chat really has no visible messages.
     private func ArenaLoadPastHiddenWindow(_ historyView: ChatHistoryView) -> Bool {
         let originalView = historyView.originalView
