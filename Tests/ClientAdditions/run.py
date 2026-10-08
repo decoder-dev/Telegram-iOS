@@ -51,6 +51,14 @@ class WiringTests(unittest.TestCase):
         groups = extras[extras.index("private static let interfaceGroups"):extras.index("    case hubNinja")]
         self.assertIn("1508", groups, "Forward count belongs in an explicit appearance group")
 
+    def test_settings_link_localization_symbols_exist(self):
+        catalog = read("Telegram/Telegram-iOS/en.lproj/Localizable.strings")
+        symbols = {key.replace(".", "_") for key in re.findall(r'^"([^"\n]+)"\s*=', catalog, re.MULTILINE)}
+        source = read("submodules/SettingsUI/Sources/BananaSettingsLinks.swift")
+        references = set(re.findall(r"\bstrings\.([A-Za-z_][A-Za-z_0-9]*)", source))
+        self.assertTrue(references, "Expected localized menu labels")
+        self.assertFalse(references - symbols, "Unknown PresentationStrings symbols: " + str(sorted(references - symbols)))
+
     def test_link_is_navigation_only(self):
         source = read("submodules/SettingsUI/Sources/BananaSettingsLinks.swift")
         self.assertNotIn("updateForkExtrasSettings", source)

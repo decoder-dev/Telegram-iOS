@@ -103,7 +103,7 @@ final class BananaSettingsLinkGesture: NSObject, UIGestureRecognizerDelegate {
         let url = "tg://settings/bananagram/\(page)/\(target)"
         let sheet = ActionSheetController(presentationData: data)
         sheet.setItemGroups([
-            ActionSheetItemGroup(items: [ActionSheetTextItem(title: url), ActionSheetButtonItem(title: data.strings.Common_Copy, action: { [weak sheet] in
+            ActionSheetItemGroup(items: [ActionSheetTextItem(title: url), ActionSheetButtonItem(title: data.strings.Conversation_LinkDialogCopy, action: { [weak sheet] in
                 UIPasteboard.general.string = url
                 sheet?.dismissAnimated()
             })]),
