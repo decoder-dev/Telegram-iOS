@@ -731,14 +731,14 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
             navigationBarPresentationData = nil
         default:
             // Glass buttons over a bar with no background of its own. `.legacy` here was what
-            // gave the chat a plain "вЂ№ Back" label floating on the wallpaper next to a glass
-            // title capsule вЂ” the two halves of the same bar drawn in two different styles.
+            // gave the chat a plain "‹ Back" label floating on the wallpaper next to a glass
+            // title capsule — the two halves of the same bar drawn in two different styles.
             // `.glass` puts the chevron in its own capsule and drops the label (NavigationBarImpl
             // blanks the back title in glass mode), which is what Messages shows.
             //
             // `hideBackground: true` is kept, and is what separates this from the pre-fork state:
             // in glass mode NavigationBarImpl never adds `backgroundNode` at all, so the bar has
-            // no fill and the wallpaper still runs underneath вЂ” only the capsules are glass.
+            // no fill and the wallpaper still runs underneath — only the capsules are glass.
             navigationBarPresentationData = NavigationBarPresentationData(presentationData: self.presentationData, hideBackground: true, hideBadge: false, style: .glass, glassStyle: .default)
         }
         
@@ -5562,7 +5562,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                 return
             }
             // Find the bubble for this message (it must be at least partially
-            // visible вЂ” we got here from a tap inside it) and compute the
+            // visible — we got here from a tap inside it) and compute the
             // anchor's y in item-local coords. .bottom(anchorY) places the item
             // so the anchor lands at the visual top of the rotated chat list's
             // content area; .center(.custom) is bypassed for short items, so it
@@ -6995,7 +6995,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
             return
         }
         guard let message = self.chatDisplayNode.historyNode.messageInCurrentHistoryView(messageId)?._asMessage() else {
-            // No `add` will fire (so the completion observer won't run) вЂ” drop the accumulator here,
+            // No `add` will fire (so the completion observer won't run) — drop the accumulator here,
             // otherwise it lingers stale and a later toggle could revert an intervening edit.
             self.richTextCheckboxAccumulators.removeValue(forKey: messageId)
             return
@@ -7027,7 +7027,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
             }
             for messageId in Array(self.richTextCheckboxAccumulators.keys) {
                 // Once the message is neither pending nor has a queued (debounced) toggle, the server
-                // state is authoritative вЂ” drop the accumulator so the next toggle re-bases from it.
+                // state is authoritative — drop the accumulator so the next toggle re-bases from it.
                 if pendingMap[messageId] == nil && self.richTextCheckboxDebounceTimers[messageId] == nil {
                     self.richTextCheckboxAccumulators.removeValue(forKey: messageId)
                 }
@@ -7268,7 +7268,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         let presentationTheme: PresentationTheme
         if let forcedNavigationBarTheme = self.forcedNavigationBarTheme {
             presentationTheme = forcedNavigationBarTheme
-            // Must match the style chosen in init вЂ” NavigationBarImpl builds its glass views once,
+            // Must match the style chosen in init — NavigationBarImpl builds its glass views once,
             // at init, from that style, so handing it a `.legacy` theme later leaves the capsules
             // in place but stops maintaining them.
             navigationBarTheme = NavigationBarTheme(rootControllerTheme: forcedNavigationBarTheme, hideBackground: true, hideBadge: true, edgeEffectColor: .clear, style: .glass, glassStyle: self.presentationInterfaceState.preferredGlassType == .clear ? .clear : .default)
@@ -8983,7 +8983,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         if case .scheduledMessages = self.presentationInterfaceState.subject {
             isScheduledMessagesSubject = true
         }
-        // Hoist once per send вЂ” albums must share one schedule base timestamp.
+        // Hoist once per send — albums must share one schedule base timestamp.
         // Android full Ghost = dont-read + dont-online + dont-typing + go-offline.
         let applyGhostSchedule = scheduleTime == nil
             && !isScheduledMessagesSubject
@@ -9106,7 +9106,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         }
     }
 
-    /// AyuGram Ghost Mode: Read on Interact вЂ” open the override window and flush pending reads.
+    /// AyuGram Ghost Mode: Read on Interact — open the override window and flush pending reads.
     func beginGhostReadOnInteractIfEnabled() {
         guard ForkGhostModeSettings.readOnInteract else {
             return
@@ -9114,7 +9114,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         ForkGhostModeSettings.beginReadOnInteractOverride()
         // The override only *permits* online reporting; poke the presence manager so the
         // "briefly show online" half of the feature actually fires (and re-pokes itself
-        // offline when the window closes вЂ” see performGhostInteractPresenceBlink).
+        // offline when the window closes — see performGhostInteractPresenceBlink).
         self.context.account.performGhostInteractPresenceBlink()
         if self.isNodeLoaded {
             self.chatDisplayNode.historyNode.updateReadHistoryActions()
@@ -9156,7 +9156,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
             return
         }
 
-        // AyuGram Ghost Mode: Read on Interact вЂ” briefly allow read receipts + online blink on send.
+        // AyuGram Ghost Mode: Read on Interact — briefly allow read receipts + online blink on send.
         // Skip when Ghost Schedule Messages will actually delay this send (Android does not mark
         // read on a scheduled outgoing).
         var isScheduledMessagesSubject = false

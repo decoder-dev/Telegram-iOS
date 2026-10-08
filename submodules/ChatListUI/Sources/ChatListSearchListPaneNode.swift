@@ -2427,7 +2427,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                             }
                         }
                     }
-                    // Search must not surface a peer sitting in a password-protected Archive вЂ”
+                    // Search must not surface a peer sitting in a password-protected Archive —
                     // that would defeat the lock without ever asking for the password. Reuses
                     // the same check notification redaction already relies on.
                     |> mapToSignal { peers -> Signal<[EngineRenderedPeer], NoError> in

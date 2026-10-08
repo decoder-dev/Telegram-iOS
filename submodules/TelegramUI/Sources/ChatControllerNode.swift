@@ -845,7 +845,7 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
         // all. One line per chat opened is enough to place any later failure on a screen.
         //
         // The count is the other half of it. A chat screen is the heaviest object graph the app
-        // builds вЂ” history list, item nodes, decoded media, the input panel вЂ” so a few of them
+        // builds — history list, item nodes, decoded media, the input panel — so a few of them
         // outliving their screen would on its own account for a footprint that climbs with use
         // and never comes back, which is exactly what the logs show. Opens without closes cannot
         // answer that; a number that returns to its floor between screens can. 251 opens in a day,
@@ -1246,10 +1246,10 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
             }
         }
         
-        // Cheap namespace test first вЂ” non-secret chats must not touch fork statics on every layout.
+        // Cheap namespace test first — non-secret chats must not touch fork statics on every layout.
         let isSecretChat = self.chatLocation.peerId?.namespace == Namespaces.Peer.SecretChat
         var isSecret = self.chatPresentationInterfaceState.copyProtectionEnabled || isSecretChat || self.chatLocation.peerId?.isVerificationCodes == true
-        // AyuGram: Screenshots in Secret Chats вЂ” Core static Bool, never copy ForkExtrasSettings.
+        // AyuGram: Screenshots in Secret Chats — Core static Bool, never copy ForkExtrasSettings.
         if isSecretChat, ForkSecretScreenshotSettings.allow {
             isSecret = self.chatPresentationInterfaceState.copyProtectionEnabled || self.chatLocation.peerId?.isVerificationCodes == true
         }
@@ -3696,7 +3696,7 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
         }
     }
         
-    // Local empty keyboard stand-in вЂ” TextFieldComponent and
+    // Local empty keyboard stand-in — TextFieldComponent and
     // ChatEntityKeyboardInputNode both export a public EmptyInputView.
     private final class MediaModeEmptyInputView: UIView, UIInputViewAudioFeedback {
         var enableInputClicksWhenVisible: Bool {
@@ -4174,7 +4174,7 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
         // In overlay chat mode (self.containerNode != nil) historyNodeContainer is
         // reparented out of contentContainerNode (see line ~1299), making the
         // `aboveSubview: historyNodeContainer.view` insertion invalid. Return nil
-        // so callers fall back to CCEPN's clipping path вЂ” portal-style transitions
+        // so callers fall back to CCEPN's clipping path — portal-style transitions
         // are not supported in overlay mode.
         guard self.containerNode == nil else { return nil }
         let parent = self.contentContainerNode.contentNode.view
@@ -4694,11 +4694,11 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
             
             // The composer's chat input STATE is the single source of truth for this handoff (both
             // directions flow through `ChatInputContent`, not a direct node poke), so undo / drafts / send /
-            // state-observers all see one consistent value. OUT: convert the live composer content в†’
+            // state-observers all see one consistent value. OUT: convert the live composer content →
             // `(Document, media, emojiFiles)` to seed the expanded editor. IN: convert the editor's
-            // `(document, media, emojiFiles)` в†’ a `ChatTextInputState` and apply it through the canonical
+            // `(document, media, emojiFiles)` → a `ChatTextInputState` and apply it through the canonical
             // interface-state mutation (the panel SET path then lands it on the node). Media AND custom-emoji
-            // files ride the `ChatInputContent` converters вЂ” the emoji files are required so a custom emoji
+            // files ride the `ChatInputContent` converters — the emoji files are required so a custom emoji
             // round-trips (the editor `Document` carries only fileIds; the file must be re-attached to render).
             let (seedDocument, seedMedia, seedEmojiFiles) = await documentMediaAndEmojiAsync(engine: self.context.engine, fromChatInputContent: textInputPanelNode.inputTextState.content)
             let editorScreen = RichTextAttachmentScreen(
@@ -5171,7 +5171,7 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
                         }
                     }
 
-                    // bubble-up parity: same harvested source + dedupe + ">1 в†’ clear" rule as the text loop,
+                    // bubble-up parity: same harvested source + dedupe + ">1 → clear" rule as the text loop,
                     // applied to this single rich message.
                     var bubbleUpEmojiOrStickersets: [ItemCollectionId] = []
                     for packId in bubbleUpEmojiOrStickersetsById.values {

@@ -40,12 +40,12 @@ import GlassBackgroundComponent
 private let roundVideoZoomPointsPerOctave: CGFloat = 60.0
 
 // The zoom as the titles show it, to one decimal. The highlighted button is picked by the same value, so a zoom that reads
-// В«1Г—В» never shows up on the В«0,5В» button next to В«1В».
+// «1×» never shows up on the «0,5» button next to «1».
 private func roundVideoZoomShownValue(_ value: CGFloat) -> CGFloat {
     return (value * 10.0).rounded() / 10.0
 }
 
-// В«1Г—В», В«1,4Г—В», В«0,5В»: one decimal at most, with the decimal separator of the app's number format.
+// «1×», «1,4×», «0,5»: one decimal at most, with the decimal separator of the app's number format.
 private func roundVideoZoomTitle(_ value: CGFloat, decimalSeparator: String, suffix: Bool = true) -> String {
     var text = String(format: "%.1f", Double(roundVideoZoomShownValue(value)))
     if text.hasSuffix(".0") {
@@ -55,8 +55,8 @@ private func roundVideoZoomTitle(_ value: CGFloat, decimalSeparator: String, suf
     return suffix ? text + "×" : text
 }
 
-// A swipe or a pinch passes a short dead zone at every lens, so it rests on 0.5Г—, 1Г—, 2Г—вЂ¦ and leaves it without a jump.
-// A position is log2 of the zoom plus `2 Г— halfWidth` of extra travel for every lens below it; the zone spans the
+// A swipe or a pinch passes a short dead zone at every lens, so it rests on 0.5×, 1×, 2×… and leaves it without a jump.
+// A position is log2 of the zoom plus `2 × halfWidth` of extra travel for every lens below it; the zone spans the
 // travel of В±4 % of zoom around the lens.
 private struct RoundVideoZoomDetents {
     private let lenses: [(log: CGFloat, value: CGFloat)]
@@ -96,7 +96,7 @@ private struct RoundVideoZoomDetents {
     }
 }
 
-// The whole values the dial labels besides the lenses, as a log ruler does: towards 10Г— an octave is too short to fit
+// The whole values the dial labels besides the lenses, as a log ruler does: towards 10× an octave is too short to fit
 // 7 and 9 as well.
 private let roundVideoZoomDialWholeValues: [CGFloat] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 8.0, 10.0]
 
@@ -1502,7 +1502,7 @@ public class VideoMessageCameraScreen: ViewController {
             }
         }
 
-        // A tap on another lens zooms over to it. The lone В«1Г—В» of a single-lens camera has nowhere to go, so its tap shows
+        // A tap on another lens zooms over to it. The lone «1×» of a single-lens camera has nowhere to go, so its tap shows
         // the dial for a moment instead; with several lenses a missed tap on the active one must not hide the others.
         private func zoomPresetPressed(_ value: CGFloat) {
             guard self.previewState == nil else {
@@ -1528,7 +1528,7 @@ public class VideoMessageCameraScreen: ViewController {
                     self.beginZoomGesture()
                 }
             case .changed:
-                // Consumed even while paused, so a swipe that outlives the pause doesn't jump on В«record moreВ».
+                // Consumed even while paused, so a swipe that outlives the pause doesn't jump on «record more».
                 let translation = gesture.translation(in: self.zoomControlsView)
                 gesture.setTranslation(CGPoint(), in: self.zoomControlsView)
                 guard self.isPanZooming && canZoom else {
@@ -1599,7 +1599,7 @@ public class VideoMessageCameraScreen: ViewController {
             return self.zoomPresets.filter { $0 >= self.minZoom && $0 <= self.maxZoom }
         }
 
-        // With the zoom slider turned off only the lenses up to 1Г— get a button, as before the dial existed.
+        // With the zoom slider turned off only the lenses up to 1× get a button, as before the dial existed.
         private func zoomButtonValues() -> [CGFloat] {
             return self.zoomLensValues()
         }
@@ -1656,10 +1656,10 @@ public class VideoMessageCameraScreen: ViewController {
             }
         }
 
-        // Each camera has its own zoom, limit and lenses, so a flip starts over at 1Г—. The limit and the buttons come
-        // from the camera, not from `camera.metrics.zoomLevels`: that table belongs to the attachment camera, ends at 2Г—
-        // on every iPhone except the Pro models from the 14 Pro on, gives the 16 Pro 3Г— instead of its 5Г— lens and
-        // knows neither the 11вЂ“13 nor the plain 16.
+        // Each camera has its own zoom, limit and lenses, so a flip starts over at 1×. The limit and the buttons come
+        // from the camera, not from `camera.metrics.zoomLevels`: that table belongs to the attachment camera, ends at 2×
+        // on every iPhone except the Pro models from the 14 Pro on, gives the 16 Pro 3× instead of its 5× lens and
+        // knows neither the 11–13 nor the plain 16.
         private func resetZoomForVisibleCamera() {
             guard let camera = self.camera else {
                 return
@@ -1683,7 +1683,7 @@ public class VideoMessageCameraScreen: ViewController {
                 self.minZoom = max(0.5, zoomRange.lowerBound)
                 self.maxZoom = max(self.minZoom, min(zoomRange.upperBound, maxRoundVideoZoom))
                 // One button per lens or 48 MP crop of the camera on screen, so a digital step never looks like a lens;
-                // the dial labels the same values and rests on them. A single-lens camera, like the front one, gets В«1Г—В».
+                // the dial labels the same values and rests on them. A single-lens camera, like the front one, gets «1×».
                 self.zoomPresets = nativeZoomFactors
                 // Re-clamps a value set while the previous camera's limit still applied.
                 self.setDisplayedZoom(self.displayedZoom)
@@ -1695,11 +1695,11 @@ public class VideoMessageCameraScreen: ViewController {
             guard !self.animatingOut else {
                 return
             }
-            // With the zoom slider turned off only the 0.5Г— lens switch is offered, as before the dial existed,
+            // With the zoom slider turned off only the 0.5× lens switch is offered, as before the dial existed,
             // so a camera without an ultra-wide lens shows no zoom strip at all.
             let enabled = self.previewState == nil && self.maxZoom > self.minZoom
             if !enabled {
-                // A hidden strip comes back collapsed, such as on В«record moreВ» right after a gesture.
+                // A hidden strip comes back collapsed, such as on «record more» right after a gesture.
                 self.zoomControlsExpanded = false
             }
             let decimalSeparator = self.presentationData.dateTimeFormat.decimalSeparator

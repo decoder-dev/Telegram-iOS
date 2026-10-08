@@ -1363,7 +1363,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
                                     if let richMessageInstantPage {
                                         // Copy a rich message in the new WYSIWYG-editor clipboard formats
                                         // (fragment + RTF + plain) so it pastes into the composer with full
-                                        // structure and cross-app as RTF вЂ” not raw markdown text.
+                                        // structure and cross-app as RTF — not raw markdown text.
                                         UIPasteboard.general.items = [richMessagePasteboardItem(fromInstantPage: richMessageInstantPage)]
                                         Queue.mainQueue().after(0.2, {
                                             let content: UndoOverlayContent = .copy(text: chatPresentationInterfaceState.strings.Conversation_MessageCopied)
@@ -2010,7 +2010,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
             })))
         }
 
-        // В«РўРµРЅРµРІРѕР№ Р±Р°РЅВ» bans the sender of an incoming message in a group, channel or comments.
+        // «Теневой бан» bans the sender of an incoming message in a group, channel or comments.
         if message.flags.contains(.Incoming), TelegramShadowBan.appliesToChat(message.id.peerId, chatPeer: message.peers[message.id.peerId]), let target = TelegramShadowBan.banTarget(of: message), target.id != message.id.peerId, TelegramShadowBan.canBan(EnginePeer(target), accountPeerId: context.account.peerId) {
             let targetPeer = EnginePeer(target)
             let isBanned = ArenaSettings.shared.isShadowBanned(target.id.toInt64())

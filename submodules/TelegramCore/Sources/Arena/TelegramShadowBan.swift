@@ -7,7 +7,7 @@ import SwiftSignalKit
 /// and nothing goes to the server: the person never learns about it.
 public enum TelegramShadowBan {
     private static let stateQueue = Queue(name: "TelegramShadowBan.State")
-    /// The ban list and the chats with В«РџРѕРєР°Р·Р°С‚СЊ СЃРєСЂС‹С‚С‹РµВ» on, read once for a whole computation.
+    /// The ban list and the chats with «Показать скрытые» on, read once for a whole computation.
     public struct State: Equatable {
         public var bannedPeerIds: Set<Int64>
         public var revealedChatIds: Set<Int64>
@@ -23,7 +23,7 @@ public enum TelegramShadowBan {
         }
     }
 
-    /// The current state, then every change of the list or of В«РџРѕРєР°Р·Р°С‚СЊ СЃРєСЂС‹С‚С‹РµВ».
+    /// The current state, then every change of the list or of «Показать скрытые».
     public static func stateSignal() -> Signal<State, NoError> {
         return Signal<State, NoError> { subscriber in
             // Subscribe before the initial read; serialize reads and delivery without
@@ -64,7 +64,7 @@ public enum TelegramShadowBan {
         return self.appliesToChat(chatPeer.id, chatPeer: chatPeer._asPeer())
     }
 
-    /// Whether `message` comes from a banned author in a filtered chat, ignoring В«РџРѕРєР°Р·Р°С‚СЊ СЃРєСЂС‹С‚С‹РµВ»: the sender, the
+    /// Whether `message` comes from a banned author in a filtered chat, ignoring «Показать скрытые»: the sender, the
     /// forwarded author or source, or the inline bot. The chat itself never counts, so a banned channel's own posts stay
     /// visible in that channel.
     public static func isBannedContent(_ message: Message, bannedPeerIds: Set<Int64>) -> Bool {
@@ -99,7 +99,7 @@ public enum TelegramShadowBan {
         return self.isBannedContent(message, bannedPeerIds: Set(ArenaSettings.shared.shadowBannedPeerIds))
     }
 
-    /// Whether `message` is hidden: banned content in a chat without В«РџРѕРєР°Р·Р°С‚СЊ СЃРєСЂС‹С‚С‹РµВ».
+    /// Whether `message` is hidden: banned content in a chat without «Показать скрытые».
     public static func isHidden(_ message: Message, state: State) -> Bool {
         if state.bannedPeerIds.isEmpty || state.revealedChatIds.contains(message.id.peerId.toInt64()) {
             return false

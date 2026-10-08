@@ -2749,7 +2749,7 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
                             rankBadgeColor = UIColor(rgb: 0x49a355)
                         case let .member(rank):
                             if let rank, !rank.isEmpty {
-                                if rank == "0пёЏвѓЈ" {
+                                if rank == "0️⃣" {
                                     string = item.presentationData.strings.Chat_TagPlaceholder
                                     defaultRankColor = defaultRankColor.withMultipliedAlpha(0.5)
                                 } else {
@@ -3050,14 +3050,14 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
                 case .never:
                     hideBackground = false
                 case .whenNoHeader:
-                    // Wallpaper no longer decides this вЂ” only whether there is a header to hold.
+                    // Wallpaper no longer decides this — only whether there is a header to hold.
                     //
                     // Stock keeps the bubble behind media on any non-solid wallpaper, so a photo
                     // sent in a chat with a picture background gets a frame of bubble colour around
                     // it while the same photo in a chat on the default background gets none. On a
                     // gradient that frame is soft; on this fork's flat #007AFF it reads as a blue
-                    // outline drawn around the image, and it is the difference in wallpaper вЂ” not
-                    // anything about the message вЂ” that decides which photos get one.
+                    // outline drawn around the image, and it is the difference in wallpaper — not
+                    // anything about the message — that decides which photos get one.
                     //
                     // Messages, which this fork follows, never frames a photo. Dropping the
                     // wallpaper term makes every media-only message render the way it already
@@ -3065,7 +3065,7 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
                     // an exercised path rather than opening a new one. The header term stays: a
                     // reply preview or author name needs the bubble behind it to stay readable,
                     // and the date falls back to the floating pill, which the theme defines
-                    // separately for custom wallpapers (serviceMessage вЂ¦ withCustomWallpaper).
+                    // separately for custom wallpapers (serviceMessage … withCustomWallpaper).
                     hideBackground = !displayHeader
                 case .always:
                     hideBackground = true

@@ -142,7 +142,7 @@ func chatHistoryEntriesForView(
         }
     }
     
-    // Hot flags / precompiled regex only вЂ” never copy ForkExtrasSettings per rebuild/message.
+    // Hot flags / precompiled regex only — never copy ForkExtrasSettings per rebuild/message.
     let hotFlags = ForkExtrasHotFlags.current
     let hideBlockedMessages = hotFlags.hideBlockedMessages
     let regexSnapshot = ForkRegexMessageFilters.currentSnapshot()
@@ -711,7 +711,7 @@ func chatHistoryEntriesForView(
             }
         }
         
-        // AyuGram Message Filters: Hide Ads вЂ” skip sponsored injection.
+        // AyuGram Message Filters: Hide Ads — skip sponsored injection.
         let hideAds = hotFlags.hideAds
         if !hideAds, !dynamicAdMessages.isEmpty {
             assert(entries.sorted() == entries)

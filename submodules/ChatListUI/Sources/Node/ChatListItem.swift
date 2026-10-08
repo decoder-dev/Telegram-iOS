@@ -71,7 +71,7 @@ private func forkShouldHideChatListMessage(accountPeerId: EnginePeer.Id, message
 
     let hotFlags = ForkExtrasHotFlags.current
     let regexSnapshot = ForkRegexMessageFilters.currentSnapshot()
-    // Cheap exit when no filter feature can hide this row вЂ” skip cache key / Atomic traffic.
+    // Cheap exit when no filter feature can hide this row — skip cache key / Atomic traffic.
     if !hotFlags.hideBlockedMessages && !regexSnapshot.active {
         return false
     }
@@ -339,7 +339,7 @@ public enum ChatListItemContent {
 }
 
 /// Password-protected Archive folder row must stay title-only until unlock, even if the
-/// row itself is already visible (Settings Г— 10 reveal). `contentsHidden` is the list-entry
+/// row itself is already visible (Settings × 10 reveal). `contentsHidden` is the list-entry
 /// flag; the live session check is defense in depth if an older entry is still on screen.
 private func shouldHideArchiveGroupContents(_ data: ChatListItemContent.GroupReferenceData) -> Bool {
     if data.contentsHidden {
@@ -2403,7 +2403,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
         let currentCustomTextEntities = self.cachedCustomTextEntities
         
         return { item, params, first, last, firstWithHeader, nextIsPinned, nextHasActiveRevealControls in
-            // Hot flags only вЂ” never copy the full ForkExtrasSettings (regex patterns etc.) on scroll.
+            // Hot flags only — never copy the full ForkExtrasSettings (regex patterns etc.) on scroll.
             let hotFlags = ForkExtrasHotFlags.current
             let compactChatList = hotFlags.compactChatList
             let compactMessagePreview = hotFlags.compactMessagePreview
@@ -5550,7 +5550,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                     } else {
                         leftSeparatorInset = editingOffset + leftInset + rawContentRect.origin.x
                         // Trailing edge, not inset. Telegram insets row separators 16 pt on the right;
-                    // iOS tables вЂ” and Messages, which this fork follows вЂ” inset only on the leading
+                    // iOS tables — and Messages, which this fork follows — inset only on the leading
                     // side and run the hairline to the trailing edge. A gap on both sides reads as an
                     // unfinished line rather than a divider.
                         rightSeparatorInset = higCardInset

@@ -387,7 +387,7 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
         }
         
         if let telegramDice = self.telegramDice {
-            if telegramDice.emoji == "рџЋ°" {
+            if telegramDice.emoji == "🎰" {
                 let animationNode = SlotMachineAnimationNode(account: item.context.account)
                 if !item.message.effectivelyIncoming(item.context.account.peerId) {
                     animationNode.success = { [weak self] onlyHaptic in
@@ -556,8 +556,8 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
                 let textEmoji = item.message.text.strippedEmoji
                 var additionalTextEmoji = textEmoji
                 let (basicEmoji, fitz) = item.message.text.basicEmoji
-                if ["рџ’›", "рџ’™", "рџ’љ", "рџ’њ", "рџ§Ў", "рџ–¤", "рџ¤Ћ", "рџ¤Ќ"].contains(textEmoji) {
-                    additionalTextEmoji = "вќ¤пёЏ".strippedEmoji
+                if ["💛", "💙", "💚", "💜", "🧡", "🖤", "🤎", "🤍"].contains(textEmoji) {
+                    additionalTextEmoji = "❤️".strippedEmoji
                 } else if fitz != nil {
                     additionalTextEmoji = basicEmoji
                 }
@@ -2177,8 +2177,8 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
         let textEmoji = item.message.text.strippedEmoji
         var additionalTextEmoji = textEmoji
         let (basicEmoji, fitz) = item.message.text.basicEmoji
-        if ["рџ’›", "рџ’™", "рџ’љ", "рџ’њ", "рџ§Ў", "рџ–¤", "рџ¤Ћ", "рџ¤Ќ"].contains(textEmoji) {
-            additionalTextEmoji = "вќ¤пёЏ".strippedEmoji
+        if ["💛", "💙", "💚", "💜", "🧡", "🖤", "🤎", "🤍"].contains(textEmoji) {
+            additionalTextEmoji = "❤️".strippedEmoji
         } else if fitz != nil {
             additionalTextEmoji = basicEmoji
         }
@@ -2408,13 +2408,13 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
                         var textEmoji = text.strippedEmoji
                         var additionalTextEmoji = textEmoji
                         if beatingHearts.contains(firstScalar.value) {
-                            textEmoji = "вќ¤пёЏ"
+                            textEmoji = "❤️"
                             firstScalar = UnicodeScalar(heart)!
                         }
                         
                         let (basicEmoji, fitz) = text.basicEmoji
-                        if ["рџ’›", "рџ’™", "рџ’љ", "рџ’њ", "рџ§Ў", "рџ–¤", "рџ¤Ћ", "рџ¤Ќ", "вќ¤пёЏ"].contains(textEmoji) {
-                            additionalTextEmoji = "вќ¤пёЏ".strippedEmoji
+                        if ["💛", "💙", "💚", "💜", "🧡", "🖤", "🤎", "🤍", "❤️"].contains(textEmoji) {
+                            additionalTextEmoji = "❤️".strippedEmoji
                         } else if fitz != nil {
                             additionalTextEmoji = basicEmoji
                         }

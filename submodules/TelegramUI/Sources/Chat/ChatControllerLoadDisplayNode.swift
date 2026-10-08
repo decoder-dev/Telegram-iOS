@@ -2083,7 +2083,7 @@ extension ChatControllerImpl {
                 }
                 
                 strongSelf.commitPurposefulAction()
-                // Pass Message objects directly вЂ” re-fetching by id alone used to drop sources that
+                // Pass Message objects directly — re-fetching by id alone used to drop sources that
                 // were not yet in Postbox (search / partial history), so the first Forward tap
                 // opened an empty picker / sent nothing until a second attempt.
                 strongSelf.context.engine.messages.ensureMessagesAreLocallyAvailable(messages: messages.map(EngineMessage.init))

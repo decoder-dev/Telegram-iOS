@@ -615,7 +615,7 @@ func chatListNodeEntriesForView(view: EngineChatList, state: ChatListNodeState, 
     let savedMessagesPeer = hideSavedMessages ? nil : savedMessagesPeer
     let foundPeers = hideSavedMessages ? foundPeers.filter { $0.0.id != accountPeerId } : foundPeers
     var groupItems = view.groupItems
-    // Secret archive: until Settings is tapped 10Г— (or while fully omitted after close), the folder does not exist.
+    // Secret archive: until Settings is tapped 10× (or while fully omitted after close), the folder does not exist.
     if omitArchiveFolder {
         groupItems = []
     } else if isMainTab && state.archiveStoryState != nil && groupItems.isEmpty {

@@ -1,15 +1,15 @@
 # Build a sideload-oriented Telegram IPA on GitHub Actions.
 #
 # Research (upstream #1120/#1136 + ad/Telegram-iOS fake-codesigning docs):
-#   вЂў Build release_arm64 (not ci_arm64 dbg) with bundled fake-codesigning.
-#   вЂў Keep bundle_id/team_id matching fake profiles (ph.teleg.Telegrapf / C67CF9S4VU).
-#   вЂў Disable extensions + Siri/iCloud for personal-Apple-ID re-sign.
-#   вЂў Publish the Make.py IPA (embedded.mobileprovision + _CodeSignature intact).
-#   вЂў Final device install still requires Sideloadly/AltStore re-sign вЂ” see docs/SIDELOAD.md.
+#   • Build release_arm64 (not ci_arm64 dbg) with bundled fake-codesigning.
+#   • Keep bundle_id/team_id matching fake profiles (ph.teleg.Telegrapf / C67CF9S4VU).
+#   • Disable extensions + Siri/iCloud for personal-Apple-ID re-sign.
+#   • Publish the Make.py IPA (embedded.mobileprovision + _CodeSignature intact).
+#   • Final device install still requires Sideloadly/AltStore re-sign — see docs/SIDELOAD.md.
 #
-# Triggers (on-demand only вЂ” not every master push):
-#   вЂў Actions в†’ Build sideload IPA в†’ Run workflow
-#   вЂў or push a version tag: git tag vX.Y.Z && git push --tags
+# Triggers (on-demand only — not every master push):
+#   • Actions → Build sideload IPA → Run workflow
+#   • or push a version tag: git tag vX.Y.Z && git push --tags
 #
 # Optional secrets: TELEGRAM_API_ID / TELEGRAM_API_HASH
 
@@ -101,7 +101,7 @@ jobs:
 
   build:
     needs: regression
-    # Xcode 27 preview IPA crashed on device вЂ” stay on macos-26 / Xcode 26.2.
+    # Xcode 27 preview IPA crashed on device — stay on macos-26 / Xcode 26.2.
     name: Build IPA (macos-26)
     runs-on: macos-26
     timeout-minutes: 240
@@ -265,7 +265,7 @@ jobs:
       - name: Archive sideload iPhone application
         env:
           # `release_arm64` is an optimised, stripped build, so a crash address in it resolves to
-          # nothing at all вЂ” not from the binary, not from a dSYM that was never produced. Symbols
+          # nothing at all — not from the binary, not from a dSYM that was never produced. Symbols
           # are off by default because `dsymutil` is slow and most builds never need them; ask for
           # them on the run where a crash has to be named.
           DSYM_FLAG: ${{ inputs.generate_dsym && ' ' || '--skipDsym' }}
@@ -310,7 +310,7 @@ jobs:
       - name: Collect Make.py IPA (keep fake signature)
         run: |
           set -euo pipefail
-          # Prefer the Bazel/Make.py IPA вЂ” keeps embedded.mobileprovision + _CodeSignature.
+          # Prefer the Bazel/Make.py IPA — keeps embedded.mobileprovision + _CodeSignature.
           # Do NOT re-package in a way that drops signing metadata.
           SRC="$(find build/artifacts bazel-bin/Telegram bazel-out \
             -name 'Telegram.ipa' -type f 2>/dev/null | head -1 || true)"
@@ -349,12 +349,12 @@ jobs:
           fi
           PRE_BANNER=""
           TITLE="Telegram ${APP_VERSION} (${BUILD_NUMBER}) sideload"
-          # Do not expand an empty array under `set -u` вЂ” bash treats
+          # Do not expand an empty array under `set -u` — bash treats
           # "${RELEASE_FLAGS[@]}" as unbound when the array has no elements
           # (breaks non-*-pre / Latest releases).
           RELEASE_EXTRA_ARGS=()
           if [[ "$TAG" == *-pre ]]; then
-            PRE_BANNER="вљ пёЏ **Pre-release** for device testing. Not marked Latest."
+            PRE_BANNER="⚠️ **Pre-release** for device testing. Not marked Latest."
             TITLE="Telegram ${APP_VERSION} (${BUILD_NUMBER}) sideload pre-release"
             RELEASE_EXTRA_ARGS=(--prerelease --latest=false)
           fi
@@ -366,7 +366,7 @@ jobs:
           import re, sys
           tag, path, out = sys.argv[1], sys.argv[2], sys.argv[3]
           text = open(path, encoding="utf-8").read()
-          # ## [v12.9.2-3845] or ## v12.9.2-3845 вЂ¦
+          # ## [v12.9.2-3845] or ## v12.9.2-3845 …
           pat = re.compile(
               r"^##\s*\[?" + re.escape(tag) + r"\]?[^\n]*\n(.*?)(?=^##\s|\Z)",
               re.M | re.S,
@@ -390,10 +390,10 @@ jobs:
             fi
           fi
           cat > "$NOTES" <<EOF
-          Telegram iOS ${APP_VERSION} (${BUILD_NUMBER}) вЂ” sideload IPA
+          Telegram iOS ${APP_VERSION} (${BUILD_NUMBER}) — sideload IPA
           ${PRE_BANNER}
           Fake-signed \`release_arm64\` build for re-signing with Sideloadly / AltStore.
-          This is **not** App StoreвЂ“installable as-is.
+          This is **not** App Store–installable as-is.
 
           ### Changelog
           $(cat "$CHANGELOG_BODY")
@@ -407,7 +407,7 @@ jobs:
 
           ### Build
           - Configuration: \`release_arm64\` + \`build-system/fake-codesigning\`
-          - Toolchain: Xcode 26.2 (\`runs-on: macos-26\`) вЂ” Xcode 27 preview parked (device crash)
+          - Toolchain: Xcode 26.2 (\`runs-on: macos-26\`) — Xcode 27 preview parked (device crash)
           - Bundle / team (build-time): \`ph.teleg.Telegrapf\` / \`C67CF9S4VU\`
           - Extensions / Siri / iCloud: disabled
           - Commit: \`${GITHUB_SHA}\`

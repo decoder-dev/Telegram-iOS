@@ -1336,7 +1336,7 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
         // These settings are read at layout time, so refresh the affected loaded messages.
         
 
-        // The shadow ban list or В«РџРѕРєР°Р·Р°С‚СЊ СЃРєСЂС‹С‚С‹РµВ» changed: rebuild the entries, then the reply headers of loaded messages.
+        // The shadow ban list or «Показать скрытые» changed: rebuild the entries, then the reply headers of loaded messages.
         self.TelegramShadowBanObserver = NotificationCenter.default.addObserver(forName: ArenaSettings.shadowBanDidChangeNotification, object: nil, queue: .main, using: { [weak self] _ in
             guard let self else {
                 return
@@ -1980,7 +1980,7 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
 
         // Re-run the current history view as soon as message-filter settings change. The
         // underlying Postbox view does not emit for an AccountManager preference update.
-        // (Named Equatable fingerprint вЂ” a 5-tuple + combineLatest was too heavy for the type checker.)
+        // (Named Equatable fingerprint — a 5-tuple + combineLatest was too heavy for the type checker.)
         struct MessageFilterSettingsFingerprint: Equatable {
             var hideAds: Bool
             var hideBlockedMessages: Bool
@@ -2019,7 +2019,7 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
         }
         |> distinctUntilChanged
         // SharedAccountContext already projects hot flags / regex compiles on settings change.
-        // Here we only re-emit the latest history when the fingerprint changes вЂ” no per-update
+        // Here we only re-emit the latest history when the fingerprint changes — no per-update
         // Atomic writes or regex re-apply on every scroll/media history tick.
         let historyViewUpdateForFilters = historyViewUpdate
         historyViewUpdate = combineLatest(historyViewUpdateForFilters, messageFilterSettings)
@@ -2029,7 +2029,7 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
         // Coalesce blocked-list page loads: switchToLatest cancels prior delayed emissions so a
         // 200-peer fetch does not rebuild every open history 20 times.
         //
-        // Revision 0 is the promise's seed вЂ” it means no blocked-list update has happened in this
+        // Revision 0 is the promise's seed — it means no blocked-list update has happened in this
         // process yet, so there is nothing to coalesce. It must not be delayed: `combineLatest`
         // holds its first output until *both* inputs have produced one, so delaying the seed puts
         // the full 0.25s in front of the first history transition of every chat that is opened.
@@ -4229,7 +4229,7 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
             } else {
                 // The batch is not eligible for the dust effect (empty, or a found item is too tall to snapshot).
                 // The ids were tentatively marked applied above, which would give them the custom 0.8s delete
-                // duration (getCustomItemDeleteAnimationDuration) WITHOUT any dust вЂ” a slow, dust-less collapse
+                // duration (getCustomItemDeleteAnimationDuration) WITHOUT any dust — a slow, dust-less collapse
                 // with the item never hidden. Drop them so they fall back to the default list delete animation.
                 // They stay consumed from currentDeleteAnimationCorrelationIds, so they are not re-processed.
                 appliedDeleteAnimationCorrelationIds.removeAll()
