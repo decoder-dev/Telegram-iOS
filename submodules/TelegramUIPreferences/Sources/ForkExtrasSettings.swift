@@ -18,6 +18,14 @@ public struct ForkExtrasSettings: Codable, Equatable {
     /// Legacy single Ghost Mode toggle. Still encoded for older builds; granular flags are source of truth.
     /// When true in old prefs (no granular keys), it seeds dont-read / dont-online / dont-typing.
     /// AyuGram: Don't Read Messages — suppress read receipts / seen reactions while browsing.
+    public var wideTabBar: Bool
+    public var integratedTabSearch: Bool
+    public var tabSearchOnLeft: Bool
+    public var bottomChatFoldersEnabled: Bool
+    public var avatarGlowEnabled: Bool
+    public var showChannelForwardCount: Bool
+    public var reactionGlowEnabled: Bool
+    public var showContactsTab: Bool
     public var ghostDontReadMessages: Bool
     /// AyuGram: Don't Read Stories — suppress story view increments.
     public var ghostDontReadStories: Bool
@@ -116,6 +124,17 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var outgoingPhotoQuality: Int32
     /// Hide own phone number and @username on profile and the Settings header (AyuGram Streamer Mode).
     public var streamerMode: Bool
+    /// Hide paid (star) reactions from messages and the reaction picker.
+    public var hidePaidReactions: Bool
+    /// Hide the "via @bot" label on messages sent through inline bots.
+    public var hideViaBot: Bool
+    /// Send messages without link previews.
+    public var removeLinkPreviews: Bool
+    public var hideBirthdayNotifications: Bool
+    public var hideBotAutomation: Bool
+    public var showPinnedWithBot: Bool
+    public var stopAfterVoice: Bool
+    public var stopAfterRoundVideo: Bool
 
     public static var defaultSettings: ForkExtrasSettings {
         return ForkExtrasSettings(
@@ -238,6 +257,22 @@ public struct ForkExtrasSettings: Codable, Equatable {
         outgoingPhotoQuality: Int32 = 0,
         streamerMode: Bool = false
     ) {
+        self.wideTabBar = false
+        self.integratedTabSearch = false
+        self.tabSearchOnLeft = false
+        self.bottomChatFoldersEnabled = false
+        self.avatarGlowEnabled = true
+        self.showChannelForwardCount = false
+        self.reactionGlowEnabled = false
+        self.showContactsTab = true
+        self.hidePaidReactions = false
+        self.hideViaBot = false
+        self.removeLinkPreviews = false
+        self.hideBirthdayNotifications = false
+        self.hideBotAutomation = false
+        self.showPinnedWithBot = false
+        self.stopAfterVoice = false
+        self.stopAfterRoundVideo = false
         self.ghostDontReadMessages = ghostDontReadMessages
         self.ghostDontReadStories = ghostDontReadStories
         self.ghostDontSendOnline = ghostDontSendOnline
@@ -299,6 +334,22 @@ public struct ForkExtrasSettings: Codable, Equatable {
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: StringCodingKey.self)
+        self.wideTabBar = try container.decodeIfPresent(Bool.self, forKey: "wideTabBar") ?? false
+        self.integratedTabSearch = try container.decodeIfPresent(Bool.self, forKey: "integratedTabSearch") ?? false
+        self.tabSearchOnLeft = try container.decodeIfPresent(Bool.self, forKey: "tabSearchOnLeft") ?? false
+        self.bottomChatFoldersEnabled = try container.decodeIfPresent(Bool.self, forKey: "bottomChatFoldersEnabled") ?? false
+        self.hidePaidReactions = try container.decodeIfPresent(Bool.self, forKey: "hidePaidReactions") ?? false
+        self.hideViaBot = try container.decodeIfPresent(Bool.self, forKey: "hideViaBot") ?? false
+        self.removeLinkPreviews = try container.decodeIfPresent(Bool.self, forKey: "removeLinkPreviews") ?? false
+        self.hideBirthdayNotifications = try container.decodeIfPresent(Bool.self, forKey: "hideBirthdayNotifications") ?? false
+        self.hideBotAutomation = try container.decodeIfPresent(Bool.self, forKey: "hideBotAutomation") ?? false
+        self.showPinnedWithBot = try container.decodeIfPresent(Bool.self, forKey: "showPinnedWithBot") ?? false
+        self.stopAfterVoice = try container.decodeIfPresent(Bool.self, forKey: "stopAfterVoice") ?? false
+        self.stopAfterRoundVideo = try container.decodeIfPresent(Bool.self, forKey: "stopAfterRoundVideo") ?? false
+        self.avatarGlowEnabled = try container.decodeIfPresent(Bool.self, forKey: "avatarGlowEnabled") ?? true
+        self.showChannelForwardCount = try container.decodeIfPresent(Bool.self, forKey: "showChannelForwardCount") ?? false
+        self.reactionGlowEnabled = try container.decodeIfPresent(Bool.self, forKey: "reactionGlowEnabled") ?? false
+        self.showContactsTab = try container.decodeIfPresent(Bool.self, forKey: "showContactsTab") ?? true
         let legacyGhost = try container.decodeIfPresent(Bool.self, forKey: "ghostMode") ?? false
         self.ghostDontReadMessages = try container.decodeIfPresent(Bool.self, forKey: "ghostDontReadMessages") ?? legacyGhost
         self.ghostDontReadStories = try container.decodeIfPresent(Bool.self, forKey: "ghostDontReadStories") ?? false
@@ -363,6 +414,22 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: StringCodingKey.self)
         // Legacy: true when full Ghost Mode (5 flags including stories + go-offline) is on.
+        try container.encode(self.wideTabBar, forKey: "wideTabBar")
+        try container.encode(self.integratedTabSearch, forKey: "integratedTabSearch")
+        try container.encode(self.tabSearchOnLeft, forKey: "tabSearchOnLeft")
+        try container.encode(self.bottomChatFoldersEnabled, forKey: "bottomChatFoldersEnabled")
+        try container.encode(self.hidePaidReactions, forKey: "hidePaidReactions")
+        try container.encode(self.hideViaBot, forKey: "hideViaBot")
+        try container.encode(self.removeLinkPreviews, forKey: "removeLinkPreviews")
+        try container.encode(self.hideBirthdayNotifications, forKey: "hideBirthdayNotifications")
+        try container.encode(self.hideBotAutomation, forKey: "hideBotAutomation")
+        try container.encode(self.showPinnedWithBot, forKey: "showPinnedWithBot")
+        try container.encode(self.stopAfterVoice, forKey: "stopAfterVoice")
+        try container.encode(self.stopAfterRoundVideo, forKey: "stopAfterRoundVideo")
+        try container.encode(self.avatarGlowEnabled, forKey: "avatarGlowEnabled")
+        try container.encode(self.showChannelForwardCount, forKey: "showChannelForwardCount")
+        try container.encode(self.reactionGlowEnabled, forKey: "reactionGlowEnabled")
+        try container.encode(self.showContactsTab, forKey: "showContactsTab")
         try container.encode(self.ghostMode, forKey: "ghostMode")
         try container.encode(self.ghostDontReadMessages, forKey: "ghostDontReadMessages")
         try container.encode(self.ghostDontReadStories, forKey: "ghostDontReadStories")
@@ -842,5 +909,13 @@ public enum ForkExtrasNotificationBridge {
     
     public static var hidePinnedNotifications: Bool {
         return bool(forKey: hidePinnedKey)
+    }
+}
+
+public enum BananaForwardCountSettings {
+    private static let value = Atomic<Bool>(value: false)
+    public static var enabled: Bool {
+        get { return value.with { $0 } }
+        set { let _ = value.swap(newValue) }
     }
 }

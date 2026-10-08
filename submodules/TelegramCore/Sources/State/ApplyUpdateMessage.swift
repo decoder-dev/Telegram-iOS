@@ -103,6 +103,13 @@ func applyMediaResourceChanges(from: InstantPageBlock, fromMedia: [MediaId: Medi
         if let lhsMedia = fromMedia[lhsId], let rhsMedia = toMedia[rhsId] {
             applyMediaResourceChanges(from: lhsMedia, to: rhsMedia, postbox: postbox, force: force, skipPreviews: skipPreviews)
         }
+    case let .document(lhsId, _):
+        guard case let .document(rhsId, _) = to else {
+            return
+        }
+        if let lhsMedia = fromMedia[lhsId], let rhsMedia = toMedia[rhsId] {
+            applyMediaResourceChanges(from: lhsMedia, to: rhsMedia, postbox: postbox, force: force, skipPreviews: skipPreviews)
+        }
     case let .audio(lhsId, _):
         guard case let .audio(rhsId, _) = to else {
             return

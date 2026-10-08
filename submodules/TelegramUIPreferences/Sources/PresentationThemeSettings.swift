@@ -14,6 +14,8 @@ public enum PresentationBuiltinThemeReference: Int32 {
     case night = 1
     case day = 2
     case nightAccent = 3
+    case bananaGramCream = 4
+    case bananaGramGraphite = 5
     
     public init(baseTheme: TelegramBaseTheme) {
         switch baseTheme {
@@ -32,9 +34,9 @@ public enum PresentationBuiltinThemeReference: Int32 {
         switch self {
             case .dayClassic:
                 return .classic
-            case .day:
+            case .day, .bananaGramCream:
                 return .day
-            case .night:
+            case .night, .bananaGramGraphite:
                 return .night
             case .nightAccent:
                 return .tinted
@@ -558,7 +560,7 @@ public struct PresentationChatBubbleSettings: Codable, Equatable {
     public var auxiliaryRadius: Int32
     public var mergeBubbleCorners: Bool
     
-    public static var `default`: PresentationChatBubbleSettings = PresentationChatBubbleSettings(mainRadius: 20, auxiliaryRadius: 10, mergeBubbleCorners: true)
+    public static var `default`: PresentationChatBubbleSettings = PresentationChatBubbleSettings(mainRadius: 14, auxiliaryRadius: 7, mergeBubbleCorners: true)
     
     public init(mainRadius: Int32, auxiliaryRadius: Int32, mergeBubbleCorners: Bool) {
         self.mainRadius = mainRadius
@@ -569,8 +571,8 @@ public struct PresentationChatBubbleSettings: Codable, Equatable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: StringCodingKey.self)
 
-        self.mainRadius = try container.decodeIfPresent(Int32.self, forKey: "mainRadius") ?? 16
-        self.auxiliaryRadius = try container.decodeIfPresent(Int32.self, forKey: "auxiliaryRadius") ?? 8
+        self.mainRadius = try container.decodeIfPresent(Int32.self, forKey: "mainRadius") ?? 14
+        self.auxiliaryRadius = try container.decodeIfPresent(Int32.self, forKey: "auxiliaryRadius") ?? 7
         self.mergeBubbleCorners = (try container.decodeIfPresent(Int32.self, forKey: "mergeBubbleCorners") ?? 1) != 0
     }
     

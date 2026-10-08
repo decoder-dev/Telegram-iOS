@@ -4,6 +4,7 @@ import SwiftSignalKit
 import TelegramApi
 import MtProtoKit
 import WebProxyTransport
+import TelegramVLESS
 import MTWebSocketTransport
 
 private enum AccountKind {
@@ -257,11 +258,14 @@ private var declaredEncodables: Void = {
 public func initializeAccountManagement() {
     let _ = declaredEncodables
 
-    // Both transports sit below TelegramCore in the dependency graph and so cannot reach `Logger`
+    // These transports sit below TelegramCore in the dependency graph and cannot reach `Logger`
     // themselves. Installing their sinks here is the one place that runs before either can be
     // asked to do anything, and is idempotent — a second call reinstalls the same closure.
     WebProxyLog.handler = { message in
         Logger.shared.log("WebProxy", message)
+    }
+    VlessLog.handler = { message in
+        Logger.shared.log("VlessManager", message)
     }
     WebSocketTransportLog.handler = { message in
         Logger.shared.log("MTWebSocket", message)

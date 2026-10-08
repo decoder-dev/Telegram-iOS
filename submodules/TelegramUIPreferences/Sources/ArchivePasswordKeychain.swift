@@ -64,8 +64,11 @@ public enum ArchivePasswordKeychain {
     @discardableResult
     public static func clear(peerId: EnginePeer.Id) -> Bool {
         let status = SecItemDelete(self.query(peerId: peerId) as CFDictionary)
+        guard status == errSecSuccess || status == errSecItemNotFound else {
+            return false
+        }
         self.clearFailureState(peerId: peerId)
-        return status == errSecSuccess || status == errSecItemNotFound
+        return true
     }
 
     public static func matchesPassword(_ password: String, peerId: EnginePeer.Id) -> Bool {
@@ -300,9 +303,20 @@ private func pbkdf2HexHash(password: String, salt: Data, iterations: Int) -> Str
         return nil
     }
     let passwordData = Data(password.utf8)
+    
+    let startTime = CFAbsoluteTimeGetCurrent()
     guard let derived = CryptoPBKDF2HMACSHA256(passwordData, salt, Int32(iterations), Int32(archivePasswordPBKDF2DerivedKeyLength)) else {
         return nil
     }
+    let duration = CFAbsoluteTimeGetCurrent() - startTime
+    
+    if duration > 0.016 {
+        #if DEBUG
+        print("ArchivePassword PBKDF2 hash took \(duration * 1000.0) ms for \(iterations) iterations")
+        #endif
+        NSLog("ArchivePassword PBKDF2 hash took %.2f ms for %d iterations", duration * 1000.0, iterations)
+    }
+    
     return archivePasswordHexString(derived)
 }
 

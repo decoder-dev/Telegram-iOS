@@ -1,3 +1,4 @@
+import ChatMessageItemView
 import Foundation
 import UIKit
 import AsyncDisplayKit
@@ -193,6 +194,7 @@ public class ChatMessageRichDataBubbleContentNode: ChatMessageBubbleContentNode 
     private func ensurePageView(item: ChatMessageBubbleContentItem, webpage: TelegramMediaWebpage, richPageKey: ResolvedRichDataPageKey, showMoreExpanded: Bool) -> InstantPageV2View {
         let key = (id: item.message.id, stableVersion: item.message.stableVersion, pendingEditKey: (item.attributes.updatingMedia?.richText).map({ ObjectIdentifier($0) }), richPageKey: richPageKey, showMoreExpanded: showMoreExpanded)
         if let existing = self.pageView, let current = self.pageViewMessageKey, current.id == key.id {
+            existing.renderContext?.canShareDocuments = !item.associatedData.isCopyProtectionEnabled && !item.message.isCopyProtected()
             if current.stableVersion == key.stableVersion && current.pendingEditKey == key.pendingEditKey && current.richPageKey == key.richPageKey && current.showMoreExpanded == key.showMoreExpanded {
                 return existing
             }
@@ -252,7 +254,8 @@ public class ChatMessageRichDataBubbleContentNode: ChatMessageBubbleContentNode 
                 guard enabled else { return false }
                 return policyContext.engine.resources.completedResourcePath(id: EngineMediaResource.Id(file.resource.id)) != nil
             },
-            message: messageReference
+            message: messageReference,
+            canShareDocuments: !item.associatedData.isCopyProtectionEnabled && !item.message.isCopyProtected()
         )
         let view = InstantPageV2View(renderContext: renderContext)
         self.pageView = view
@@ -351,7 +354,7 @@ public class ChatMessageRichDataBubbleContentNode: ChatMessageBubbleContentNode 
                 let showMoreExpanded = (showMoreExpandedState?.messageId == item.message.id) ? (showMoreExpandedState?.value ?? false) : false
                 let page = (showMoreExpanded ? attribute.fullInstantPage : nil) ?? attribute.instantPage
                 if let lastBlock = page.blocks.last, richDataBlockEndsWithVisualMedia(lastBlock) {
-                    let reactions = mergedMessageReactions(attributes: item.message.attributes, isTags: item.message.areReactionsTags(accountPeerId: item.context.account.peerId))
+                    let reactions = forkVisibleMessageReactions(attributes: item.message.attributes, isTags: item.message.areReactionsTags(accountPeerId: item.context.account.peerId))
                     let hasReactions = !(reactions?.reactions.isEmpty ?? true)
                     let inline = shouldDisplayInlineDateReactions(message: EngineMessage(item.message), isPremium: item.associatedData.isPremium, forceInline: item.associatedData.forceInlineReactions)
                     wantsReactionsOutside = hasReactions && !inline
@@ -723,7 +726,7 @@ public class ChatMessageRichDataBubbleContentNode: ChatMessageBubbleContentNode 
                 var showMoreFramePageLocal: CGRect?
                 if showMore, let pageLayout {
                     let title = item.presentationData.strings.Chat_RichText_ShowMore
-                    let attributedTitle = NSAttributedString(string: title, font: Font.regular(17.0), textColor: messageTheme.linkTextColor)
+                    let attributedTitle = NSAttributedString(string: title, font: Font.regular(item.presentationData.fontSize.baseDisplaySize), textColor: messageTheme.linkTextColor)
                     // The link only fits within the existing bubble width (it does not widen the
                     // bubble the way the status node does); the short fixed string never needs more,
                     // and `.end` truncation is a safe fallback for a pathologically narrow bubble.
@@ -1323,6 +1326,12 @@ public class ChatMessageRichDataBubbleContentNode: ChatMessageBubbleContentNode 
             return ChatMessageBubbleContentTapAction(content: .none)
         }
 
+        if let button = urlHit.urlItem.button {
+            guard self.item?.message.attributes.contains(where: { $0 is TypingDraftMessageAttribute }) != true, case .tap = gesture else { return ChatMessageBubbleContentTapAction(content: .none) }
+            return ChatMessageBubbleContentTapAction(content: .custom({ [weak self] in
+                (self?.itemNode as? ChatMessageItemView)?.performMessageButtonAction(button: button, progress: nil)
+            }))
+        }
         let split = self.splitAnchor(urlHit.urlItem.url)
         if split.base.isEmpty, let anchor = split.anchor {
             // Don't accept intra-message anchor taps while the message is still streaming.
@@ -1421,6 +1430,11 @@ public class ChatMessageRichDataBubbleContentNode: ChatMessageBubbleContentNode 
     /// chat layer's URL handler. `concealed: true` matches `tapActionAtPoint` for the same
     /// reason: V2 cannot reliably compare displayed link text to the resolved URL.
     private func openInstantPageUrl(_ url: InstantPageUrlItem) {
+        if let button = url.button {
+            guard self.item?.message.attributes.contains(where: { $0 is TypingDraftMessageAttribute }) != true else { return }
+            (self.itemNode as? ChatMessageItemView)?.performMessageButtonAction(button: button, progress: nil)
+            return
+        }
         guard let item = self.item else { return }
         item.controllerInteraction.openUrl(ChatControllerInteraction.OpenUrl(
             url: url.url,

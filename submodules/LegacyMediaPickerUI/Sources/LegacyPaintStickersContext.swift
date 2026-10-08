@@ -582,7 +582,8 @@ public typealias LegacyMediaPickerSendActionMenuPresenter = (
     @escaping () -> Void,
     @escaping () -> Void,
     @escaping () -> Void,
-    @escaping () -> Void
+    @escaping () -> Void,
+    (() -> Void)?
 ) -> Bool
 
 private final class LegacyMediaPickerSendActionMenuReferenceContentSource: ContextReferenceContentSource {
@@ -605,13 +606,22 @@ public func makeLegacyMediaPickerSendActionMenuPresenter(
     presentationData: PresentationData? = nil,
     presentInGlobalOverlay: ((ViewController) -> Void)? = nil
 ) -> LegacyMediaPickerSendActionMenuPresenter {
-    return { sourceView, canSendSilently, canSendWhenOnline, canSchedule, reminder, hasTimer, sendSilently, sendWhenOnline, schedule, sendWithTimer in
+    return { sourceView, canSendSilently, canSendWhenOnline, canSchedule, reminder, hasTimer, sendSilently, sendWhenOnline, schedule, sendWithTimer, sendAsRoundVideo in
         guard sourceView.window != nil else {
             return false
         }
 
         let presentationData = (presentationData ?? context.sharedContext.currentPresentationData.with { $0 }).withUpdated(theme: defaultDarkPresentationTheme)
         var items: [ContextMenuItem] = []
+
+        if let sendAsRoundVideo {
+            items.append(.action(ContextMenuActionItem(text: String(presentationData.strings.primaryComponent.languageCode.prefix(2)).lowercased() == "ru" ? "Отправить как кружок" : "Send as video message", icon: { theme in
+                return generateTintedImage(image: UIImage(systemName: "video.circle"), color: theme.contextMenu.primaryColor)
+            }, action: { _, f in
+                f(.default)
+                sendAsRoundVideo()
+            })))
+        }
 
         if canSendSilently {
             items.append(.action(ContextMenuActionItem(text: presentationData.strings.Conversation_SendMessage_SendSilently, icon: { theme in

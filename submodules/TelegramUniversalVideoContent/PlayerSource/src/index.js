@@ -89,6 +89,7 @@ window.bridgeInvokeAsync = bridgeInvokeAsync
 export function bridgeInvokeCallback(callbackId, result) {
     const callback = window.bridgeCallbackMap[callbackId];
     if (callback) {
+        delete window.bridgeCallbackMap[callbackId];
         callback(result);
     }
 }
@@ -110,6 +111,7 @@ if (typeof window !== 'undefined') {
     };
 
     URL.revokeObjectURL = function(url) {
+        delete window.mediaSourceMap[url];
     };
 
     if (global.isJsCore) {
@@ -155,7 +157,7 @@ export class HlsPlayerInstance {
         this.hls = new Hls({
             startLevel: 0,
             testBandwidth: false,
-            debug: params['debug'] || true,
+            debug: params['debug'] === true,
             autoStartLoad: false,
             backBufferLength: 30,
             maxBufferLength: 60,
@@ -276,12 +278,18 @@ export class HlsPlayerInstance {
     }
 
     refreshPlayerCurrentTime() {
+        if (this.currentTimeUpdateTimeout !== null) {
+            clearTimeout(this.currentTimeUpdateTimeout);
+            this.currentTimeUpdateTimeout = null;
+        }
         postPlayerEvent(this.id, 'playerCurrentTime', {
             'value': this.video.currentTime
         });
-        this.currentTimeUpdateTimeout = setTimeout(() => {
-            this.refreshPlayerCurrentTime()
-        }, 200);
+        if (!this.video.paused && !this.video.ended && this.video.readyState > 2) {
+            this.currentTimeUpdateTimeout = setTimeout(() => {
+                this.refreshPlayerCurrentTime();
+            }, 200);
+        }
     }
 }
 
@@ -306,6 +314,11 @@ window.hlsPlayer_destroyInstance = function(id) {
         delete window.hlsPlayer_instances[id];
         instance.video.pause();
         instance.hls.destroy();
+        if (instance.currentTimeUpdateTimeout !== null) {
+            clearTimeout(instance.currentTimeUpdateTimeout);
+            instance.currentTimeUpdateTimeout = null;
+        }
+        delete window.bridgeObjectMap[instance.video.bridgeId];
     }
 }
 

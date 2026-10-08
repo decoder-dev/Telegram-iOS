@@ -56,6 +56,11 @@ private let groupIcon: UIImage = {
 }()
 
 public class ChatMessageReplyInfoNode: ASDisplayNode {
+    /// The tooltip for a tap on the placeholder of a reply to a shadow-banned message.
+    public static func ArenaHiddenTooltip(strings: PresentationStrings) -> String {
+        return arenaShadowBanString("Сообщение скрыто теневым баном", strings: strings)
+    }
+
     public final class TransitionReplyPanel {
         public let titleView: UIView
         public let textView: UIView
@@ -90,6 +95,8 @@ public class ChatMessageReplyInfoNode: ASDisplayNode {
         public let animationCache: AnimationCache?
         public let animationRenderer: MultiAnimationRenderer?
         public let associatedData: ChatMessageItemAssociatedData
+        /// The reply points to a shadow-banned message: draw a placeholder, nothing of that message.
+        public let ArenaHidden: Bool
         
         public init(
             presentationData: ChatPresentationData,
@@ -106,7 +113,8 @@ public class ChatMessageReplyInfoNode: ASDisplayNode {
             constrainedSize: CGSize,
             animationCache: AnimationCache?,
             animationRenderer: MultiAnimationRenderer?,
-            associatedData: ChatMessageItemAssociatedData
+            associatedData: ChatMessageItemAssociatedData,
+            ArenaHidden: Bool = false
         ) {
             self.presentationData = presentationData
             self.strings = strings
@@ -123,6 +131,7 @@ public class ChatMessageReplyInfoNode: ASDisplayNode {
             self.animationCache = animationCache
             self.animationRenderer = animationRenderer
             self.associatedData = associatedData
+            self.ArenaHidden = ArenaHidden
         }
     }
     
@@ -192,6 +201,27 @@ public class ChatMessageReplyInfoNode: ASDisplayNode {
         let isQuoteExpanded = maybeNode?.isQuoteExpanded ?? false
         
         return { arguments in
+
+
+            // A reply to a shadow-banned message keeps only a placeholder: nothing of that message reaches the layout.
+            let arguments: Arguments = arguments.ArenaHidden ? Arguments(
+                presentationData: arguments.presentationData,
+                strings: arguments.strings,
+                context: arguments.context,
+                type: arguments.type,
+                message: nil,
+                replyForward: nil,
+                quote: nil,
+                innerSubject: nil,
+                story: nil,
+                isSummarized: arguments.isSummarized,
+                parentMessage: arguments.parentMessage,
+                constrainedSize: arguments.constrainedSize,
+                animationCache: arguments.animationCache,
+                animationRenderer: arguments.animationRenderer,
+                associatedData: arguments.associatedData,
+                ArenaHidden: true
+            ) : arguments
             let fontSize = floor(arguments.presentationData.fontSize.baseDisplaySize * 14.0 / 17.0)
             let titleFont = Font.semibold(fontSize)
             let textFont = Font.regular(fontSize)
@@ -668,6 +698,10 @@ public class ChatMessageReplyInfoNode: ASDisplayNode {
             }
             adjustedConstrainedTextSize.width -= textLeftInset
             
+            if arguments.ArenaHidden {
+                titleString = NSAttributedString(string: arenaShadowBanString("Скрытое сообщение", strings: arguments.strings), font: titleFont, textColor: titleColor)
+                messageText = NSAttributedString(string: arenaShadowBanString("Автор в теневом бане", strings: arguments.strings), font: textFont, textColor: textColor)
+            }
             if arguments.isSummarized {
                 titleString = NSAttributedString(string: arguments.presentationData.strings.Conversation_Summary_Title, font: titleFont, textColor: titleColor)
                 messageText = NSAttributedString(string: arguments.presentationData.strings.Conversation_Summary_Text, font: textFont, textColor: titleColor)

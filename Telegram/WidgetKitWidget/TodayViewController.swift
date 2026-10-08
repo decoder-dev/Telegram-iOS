@@ -65,11 +65,7 @@ private func rootPathForBasePath(_ appGroupPath: String) -> String {
 }
 
 private func widgetAppIsLocked(rootPath: String) -> Bool {
-    guard let data = try? Data(contentsOf: URL(fileURLWithPath: appLockStatePath(rootPath: rootPath))),
-          let state = try? JSONDecoder().decode(LockState.self, from: data) else {
-        return false
-    }
-    return isAppLocked(state: state)
+    return isAppLockedFailClosed(rootPath: rootPath)
 }
 
 @available(iOS 14.0, *)

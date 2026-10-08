@@ -983,27 +983,27 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         }, getAvailableAlternateIcons: {
             if #available(iOS 10.3, *) {
                 let icons = [
-                    PresentationAppIcon(name: "BlueIcon", imageName: "BlueIcon", isDefault: buildConfig.isAppStoreBuild, isPremium: true),
-                    PresentationAppIcon(name: "BlueClassicIcon", imageName: "BlueClassicIcon", isPremium: true),
-                    PresentationAppIcon(name: "BlueFilledIcon", imageName: "BlueFilledIcon", isPremium: true),
-                    PresentationAppIcon(name: "BlackIcon", imageName: "BlackIcon", isPremium: true),
-                    PresentationAppIcon(name: "BlackClassicIcon", imageName: "BlackClassicIcon", isPremium: true),
-                    PresentationAppIcon(name: "BlackFilledIcon", imageName: "BlackFilledIcon", isPremium: true),
-                    PresentationAppIcon(name: "WhiteFilledIcon", imageName: "WhiteFilledIcon", isPremium: true),
-                    PresentationAppIcon(name: "New1", imageName: "New1", isPremium: true),
-                    PresentationAppIcon(name: "New2", imageName: "New2", isPremium: true),
-                    PresentationAppIcon(name: "Premium", imageName: "Premium", isPremium: true),
-                    PresentationAppIcon(name: "PremiumTurbo", imageName: "PremiumTurbo", isPremium: true),
-                    PresentationAppIcon(name: "PremiumBlack", imageName: "PremiumBlack", isPremium: true),
-                    PresentationAppIcon(name: "PremiumNight", imageName: "PremiumNight", isPremium: true),
-                    PresentationAppIcon(name: "PremiumRose", imageName: "PremiumRose", isPremium: true),
-                    PresentationAppIcon(name: "PremiumEmerald", imageName: "PremiumEmerald", isPremium: true),
-                    PresentationAppIcon(name: "PremiumSunset", imageName: "PremiumSunset", isPremium: true),
-                    PresentationAppIcon(name: "PremiumIce", imageName: "PremiumIce", isPremium: true),
-                    PresentationAppIcon(name: "PremiumCarbon", imageName: "PremiumCarbon", isPremium: true),
-                    PresentationAppIcon(name: "PremiumRoyal", imageName: "PremiumRoyal", isPremium: true),
-                    PresentationAppIcon(name: "PremiumAurora", imageName: "PremiumAurora", isPremium: true),
-                    PresentationAppIcon(name: "PatriotPlaneIcon", imageName: "PatriotPlaneIcon", isPremium: true),
+                    PresentationAppIcon(name: "BlueIcon", imageName: "BlueIcon", isDefault: true, isPremium: false),
+                    PresentationAppIcon(name: "BlueClassicIcon", imageName: "BlueClassicIcon", isPremium: false),
+                    PresentationAppIcon(name: "BlueFilledIcon", imageName: "BlueFilledIcon", isPremium: false),
+                    PresentationAppIcon(name: "BlackIcon", imageName: "BlackIcon", isPremium: false),
+                    PresentationAppIcon(name: "BlackClassicIcon", imageName: "BlackClassicIcon", isPremium: false),
+                    PresentationAppIcon(name: "BlackFilledIcon", imageName: "BlackFilledIcon", isPremium: false),
+                    PresentationAppIcon(name: "WhiteFilledIcon", imageName: "WhiteFilledIcon", isPremium: false),
+                    PresentationAppIcon(name: "New1", imageName: "New1", isPremium: false),
+                    PresentationAppIcon(name: "New2", imageName: "New2", isPremium: false),
+                    PresentationAppIcon(name: "Premium", imageName: "Premium", isPremium: false),
+                    PresentationAppIcon(name: "PremiumTurbo", imageName: "PremiumTurbo", isPremium: false),
+                    PresentationAppIcon(name: "PremiumBlack", imageName: "PremiumBlack", isPremium: false),
+                    PresentationAppIcon(name: "PremiumNight", imageName: "PremiumNight", isPremium: false),
+                    PresentationAppIcon(name: "PremiumRose", imageName: "PremiumRose", isPremium: false),
+                    PresentationAppIcon(name: "PremiumEmerald", imageName: "PremiumEmerald", isPremium: false),
+                    PresentationAppIcon(name: "PremiumSunset", imageName: "PremiumSunset", isPremium: false),
+                    PresentationAppIcon(name: "PremiumIce", imageName: "PremiumIce", isPremium: false),
+                    PresentationAppIcon(name: "PremiumCarbon", imageName: "PremiumCarbon", isPremium: false),
+                    PresentationAppIcon(name: "PremiumRoyal", imageName: "PremiumRoyal", isPremium: false),
+                    PresentationAppIcon(name: "PremiumAurora", imageName: "PremiumAurora", isPremium: false),
+                    PresentationAppIcon(name: "PatriotPlaneIcon", imageName: "PatriotPlaneIcon", isPremium: false),
                 ]
                 
                 return icons
@@ -2082,6 +2082,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         })
 
         WebProxyManager.shared.applicationDidEnterBackground()
+        TelegramSideloadNotificationEngine.shared.beginBackgroundKeepAlive(application: application)
 
         // Keep the WEB proxy carrier alive briefly in the background so the next foreground
         // resume can skip the carrier rebuild (avoids "Connecting" flicker). A single PING is
@@ -2124,6 +2125,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             |> deliverOnMainQueue).start(next: { activeAccounts in
                 for (_, context, _) in activeAccounts.accounts {
                     context.account.postbox.clearCaches()
+                    context.account.trimCachedData()
                 }
                 Queue.mainQueue().after(1.0, {
                     let after = ForkPerformanceTelemetry.mallocHeap()
@@ -2147,6 +2149,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         }
 
         WebProxyManager.shared.applicationWillEnterForeground()
+        TelegramSideloadNotificationEngine.shared.endBackgroundKeepAlive(application: application)
         
         self.runForegroundTasks()
         
@@ -2204,7 +2207,18 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
     }
     
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
-        Logger.shared.log("App \(self.episodeId)", "register for notifications: didRegisterForRemoteNotificationsWithDeviceToken (deviceToken: \(hexString(deviceToken)))")
+        // Log only a fingerprint: the full APNs device token identifies this
+        // installation to anyone who can read the logs (and the token is forwarded
+        // server-side for push delivery). Length plus the first/last bytes are enough
+        // to correlate registrations in support logs.
+        let tokenHex = hexString(deviceToken)
+        let tokenFingerprint: String
+        if tokenHex.count > 8 {
+            tokenFingerprint = String(tokenHex.prefix(4)) + "…" + String(tokenHex.suffix(4)) + " (\(tokenHex.count / 2) bytes)"
+        } else {
+            tokenFingerprint = "(\(tokenHex.count / 2) bytes)"
+        }
+        Logger.shared.log("App \(self.episodeId)", "register for notifications: didRegisterForRemoteNotificationsWithDeviceToken (deviceToken: \(tokenFingerprint))")
         self.notificationTokenPromise.set(.single(deviceToken))
     }
     
@@ -2749,6 +2763,21 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
     
     func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
         if #available(iOS 10.0, *) {
+            // A call started from the iOS Phone app's Recents tab resumes as an activity whose
+            // handle carries the peer id (TGCA<id>) rather than a phone number; without this the
+            // chat opens but the call never starts (upstream PR #2304).
+            let startCallHandlePrefix = "TGCA"
+            if userActivity.activityType == NSStringFromClass(INStartCallIntent.self),
+               let handle = userActivity.userInfo?["handle"] as? String,
+               handle.hasPrefix(startCallHandlePrefix),
+               let peerIdValue = Int64(handle.dropFirst(startCallHandlePrefix.count)) {
+                let peerId = PeerId(peerIdValue)
+                if peerId.namespace == Namespaces.Peer.CloudUser {
+                    self.startCallWhenReady(accountId: nil, peerId: peerId, isVideo: false)
+                    return true
+                }
+            }
+
             var startCallContacts: [INPerson]?
             var isVideo = false
             if let startCallIntent = userActivity.interaction?.intent as? SupportedStartCallIntent {

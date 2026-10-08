@@ -245,20 +245,22 @@
         CFAbsoluteTime minWaitTime = DBL_MAX;
         bool needTimer = false;
         bool needTransaction = false;
+        NSHashTable *pendingRequestIds = nil;
         
         for (MTRequest *request in _requests)
         {
             if (request.errorContext != nil)
             {
                 if (request.errorContext.waitingForRequestToComplete != nil) {
-                    bool foundDependency = false;
-                    for (MTRequest *anotherRequest in _requests) {
-                        if (request.errorContext.waitingForRequestToComplete == anotherRequest.internalId) {
-                            foundDependency = true;
-                            break;
+                    // Build once, only when dependencies exist. Repeated linear scans
+                    // made each timer update quadratic in the pending request count.
+                    if (pendingRequestIds == nil) {
+                        pendingRequestIds = [NSHashTable hashTableWithOptions:NSPointerFunctionsStrongMemory | NSPointerFunctionsObjectPointerPersonality];
+                        for (MTRequest *anotherRequest in _requests) {
+                            [pendingRequestIds addObject:anotherRequest.internalId];
                         }
                     }
-
+                    bool foundDependency = [pendingRequestIds containsObject:request.errorContext.waitingForRequestToComplete];
                     if (!foundDependency) {
                         needTransaction = true;
                     }
@@ -325,6 +327,7 @@
     CFAbsoluteTime currentTime = MTAbsoluteSystemTime();
     
     bool needTimer = false;
+    NSHashTable *pendingRequestIds = nil;
     
     for (MTRequest *request in _requests) {
         if (!request.needsTimeoutTimer) {
@@ -332,13 +335,13 @@
         }
         if (request.errorContext != nil) {
             if (request.errorContext.waitingForRequestToComplete != nil) {
-                bool foundDependency = false;
-                for (MTRequest *anotherRequest in _requests) {
-                    if (request.errorContext.waitingForRequestToComplete == anotherRequest.internalId) {
-                        foundDependency = true;
-                        break;
+                if (pendingRequestIds == nil) {
+                    pendingRequestIds = [NSHashTable hashTableWithOptions:NSPointerFunctionsStrongMemory | NSPointerFunctionsObjectPointerPersonality];
+                    for (MTRequest *anotherRequest in _requests) {
+                        [pendingRequestIds addObject:anotherRequest.internalId];
                     }
                 }
+                bool foundDependency = [pendingRequestIds containsObject:request.errorContext.waitingForRequestToComplete];
                 
                 if (!foundDependency) {
                     needTimer = true;

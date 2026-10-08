@@ -20,6 +20,7 @@ enum DescriptionParser {
     private static let skipContains: [String] = ["{X:Type}"]
 
     private static func shouldSkipLine(_ line: String) -> Bool {
+        line.trimmingCharacters(in: .whitespaces).hasPrefix("//") ||
         skipPrefixes.contains { line.hasPrefix($0) } ||
         skipContains.contains { line.contains($0) }
     }

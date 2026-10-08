@@ -44,12 +44,14 @@ private func legacyCameraCapturedMediaSignals(
     from result: Any,
     context: AccountContext,
     initialCaption: NSAttributedString,
-    sendPaidMessageStars: Int64
+    sendPaidMessageStars: Int64,
+    timer: Int32? = nil
 ) -> Signal<[Any], NoError> {
     return context.sharedContext.legacyCameraCapturedMediaSignals(
         fromCameraScreenResult: result,
         initialCaption: initialCaption,
-        sendPaidMessageStars: sendPaidMessageStars
+        sendPaidMessageStars: sendPaidMessageStars,
+        timer: timer
     )
 }
 
@@ -2007,37 +2009,71 @@ extension ChatControllerImpl {
 
             var returnToCameraImpl: (() -> Void)?
             let presentCapturedResult: (Any, @escaping () -> Void) -> Void = { [weak self] result, commit in
-                guard let strongSelf = self else {
-                    returnToCameraImpl?()
-                    return
+                guard let self else { returnToCameraImpl?(); return }
+                let presentationData = self.context.sharedContext.currentPresentationData.with { $0 }
+                let sheet = ActionSheetController(presentationData: presentationData)
+                sheet.dismissed = { cancelled in
+                    if cancelled { returnToCameraImpl?() }
                 }
-
-                var didSend = false
-                let _ = (legacyCameraCapturedMediaSignals(
-                    from: result,
-                    context: strongSelf.context,
-                    initialCaption: inputText,
-                    sendPaidMessageStars: sendPaidMessageStars
-                )
-                |> deliverOnMainQueue).startStandalone(next: { [weak self] signals in
-                    guard let strongSelf = self else {
-                        return
-                    }
-                    didSend = true
-                    // Schedule/silent/timer params are not yet exposed by CameraScreen completion;
-                    // send immediately (same temporary gap as the CameraHolder path).
-                    strongSelf.enqueueMediaMessages(signals: signals, silentPosting: false, scheduleTime: nil, completion: {
-                        commit()
+                let send: (Bool, Int32?, Int32?) -> Void = { [weak self] silent, schedule, timer in
+                    guard let self else { returnToCameraImpl?(); return }
+                    var didSend = false
+                    let _ = (legacyCameraCapturedMediaSignals(from: result, context: self.context, initialCaption: inputText, sendPaidMessageStars: sendPaidMessageStars, timer: timer)
+                    |> deliverOnMainQueue).startStandalone(next: { [weak self] signals in
+                        guard let self else { return }
+                        didSend = true
+                        self.enqueueMediaMessages(signals: signals, silentPosting: silent, scheduleTime: schedule, completion: commit)
+                        if !inputText.string.isEmpty { self.clearInputText() }
+                        self.attachmentController?.dismiss(animated: false, completion: nil)
+                    }, completed: {
+                        if !didSend { returnToCameraImpl?() }
                     })
-                    if !inputText.string.isEmpty {
-                        strongSelf.clearInputText()
-                    }
-                    strongSelf.attachmentController?.dismiss(animated: false, completion: nil)
-                }, completed: {
-                    if !didSend {
+                }
+                var items: [ActionSheetItem] = [ActionSheetButtonItem(title: ForkCameraStrings.send, action: { [weak sheet] in
+                    sheet?.dismissAnimated()
+                    send(false, nil, nil)
+                })]
+                if let peer = self.presentationInterfaceState.renderedPeer?.peer, peer.id != self.context.account.peerId {
+                    items.append(ActionSheetButtonItem(title: presentationData.strings.Conversation_SendMessage_SendSilently, action: { [weak sheet] in
+                        sheet?.dismissAnimated()
+                        send(true, nil, nil)
+                    }))
+                }
+                if self.presentationInterfaceState.renderedPeer?.peer?.id.namespace != Namespaces.Peer.SecretChat {
+                    items.append(ActionSheetButtonItem(title: presentationData.strings.Conversation_SendMessage_ScheduleMessage, action: { [weak self, weak sheet] in
+                        sheet?.dismissAnimated()
+                        self?.presentScheduleTimePicker(style: .media, presentInOverlay: true, cancelled: { returnToCameraImpl?() }, completion: { result in
+                            send(result.silentPosting, result.time, nil)
+                        })
+                    }))
+                }
+                if let peer = self.presentationInterfaceState.renderedPeer?.peer, peer.id != self.context.account.peerId,
+                   peer.id.namespace == Namespaces.Peer.CloudUser || peer.id.namespace == Namespaces.Peer.SecretChat {
+                    items.append(ActionSheetButtonItem(title: ForkCameraStrings.timer, action: { [weak self, weak sheet] in
+                        sheet?.dismissAnimated()
+                        self?.presentTimerPicker(style: .media, cancelled: { returnToCameraImpl?() }, completion: { timer in
+                            send(false, nil, timer)
+                        })
+                    }))
+                }
+                sheet.setItemGroups([
+                    ActionSheetItemGroup(items: items),
+                    ActionSheetItemGroup(items: [ActionSheetButtonItem(title: presentationData.strings.Common_Cancel, action: { [weak sheet] in
+                        sheet?.dismissAnimated()
                         returnToCameraImpl?()
-                    }
-                })
+                    })])
+                ])
+                self.presentInGlobalOverlay(sheet)
+            }
+
+            let configureCamera: (ViewController) -> Void = { [weak self] controller in
+                guard let camera = controller as? CameraScreen else { return }
+                camera.recognizedCode = { [weak self, weak controller] code in
+                    guard let self, let (host, port, username, password, secret) = parseProxyUrl(sharedContext: self.context.sharedContext, url: code) else { return false }
+                    controller?.dismiss()
+                    self.openResolved(result: .proxy(host: host, port: port, username: username, password: password, secret: secret), sourceMessageId: nil)
+                    return true
+                }
             }
 
             if let cameraHolder = cameraView as? CameraHolder {
@@ -2066,6 +2102,7 @@ extension ChatControllerImpl {
                     }
                 )
 
+                configureCamera(cameraScreen)
                 if let presentCameraScreen {
                     presentCameraScreen(cameraScreen)
                 } else {
@@ -2080,9 +2117,7 @@ extension ChatControllerImpl {
                 return
             }
 
-            // Non-CameraHolder path (nil / legacy TGAttachmentCameraView): present Swift CameraScreen
-            // without a live preview holder. Schedule/silent posting remains a temporary gap until
-            // CameraScreen completion grows those parameters.
+            // Camera capture without an attachment preview holder uses the same send options.
             let cameraScreen = strongSelf.context.sharedContext.makeCameraScreen(
                 context: strongSelf.context,
                 mode: .sticker,
@@ -2095,6 +2130,7 @@ extension ChatControllerImpl {
                 transitionedOut: nil
             )
 
+            configureCamera(cameraScreen)
             if let presentCameraScreen {
                 presentCameraScreen(cameraScreen)
             } else {

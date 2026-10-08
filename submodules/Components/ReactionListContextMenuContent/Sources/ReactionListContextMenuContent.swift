@@ -1,4 +1,4 @@
-import Foundation
+﻿import Foundation
 import AsyncDisplayKit
 import Display
 import ComponentFlow
@@ -771,12 +771,13 @@ public final class ReactionListContextMenuContent: ContextControllerItemsContent
         private struct ItemsState {
             let listState: EngineMessageReactionListContext.State
             let readStats: MessageReadStats?
-            
+            let chatPeerId: EnginePeer.Id
             let mergedItems: [EngineMessageReactionListContext.Item]
             
-            init(listState: EngineMessageReactionListContext.State, readStats: MessageReadStats?, accountPeerId: EnginePeer.Id) {
+            init(listState: EngineMessageReactionListContext.State, readStats: MessageReadStats?, accountPeerId: EnginePeer.Id, chatPeerId: EnginePeer.Id) {
                 self.listState = listState
                 self.readStats = readStats
+                self.chatPeerId = chatPeerId
                 
                 // AyuGram Message Filters: Hide Blocked Users also hides their reactions/seen entries here.
                 let hideBlocked = ForkExtrasHotFlags.hideBlockedMessages
@@ -786,7 +787,7 @@ public final class ReactionListContextMenuContent: ContextControllerItemsContent
                 }
                 
                 var mergedItems: [EngineMessageReactionListContext.Item] = listState.items.filter { !isBlocked($0.peer.id) }
-                if !listState.canLoadMore, let readStats = readStats {                    
+                if !listState.canLoadMore, let readStats = readStats {
                     var existingPeers = Set(mergedItems.map(\.peer.id))
                     for peer in readStats.peers {
                         if isBlocked(peer.id) {
@@ -798,7 +799,9 @@ public final class ReactionListContextMenuContent: ContextControllerItemsContent
                         }
                     }
                 }
-                
+                // Shadow-banned people leave the list; the tab counts stay as the server gives them.
+                mergedItems.removeAll(where: { TelegramShadowBan.isPeerHidden($0.peer.id, inChat: chatPeerId) })
+
                 self.mergedItems = mergedItems
             }
             
@@ -895,8 +898,12 @@ public final class ReactionListContextMenuContent: ContextControllerItemsContent
             self.deleteReaction = deleteReaction
             
             self.listContext = context.engine.messages.messageReactionList(message: message, readStats: readStats, reaction: reaction)
-            self.state = ItemsState(listState: EngineMessageReactionListContext.State(message: message, readStats: readStats, reaction: reaction), readStats: readStats, accountPeerId: context.account.peerId)
-            
+            self.state = ItemsState(
+                listState: EngineMessageReactionListContext.State(message: message, readStats: readStats, reaction: reaction),
+                readStats: readStats,
+                accountPeerId: context.account.peerId,
+                chatPeerId: message.id.peerId
+            )
             self.scrollNode = ASScrollNode()
             self.separatorNode = ASDisplayNode()
             self.deleteReactionInfoText = ComponentView<Empty>()
@@ -926,7 +933,13 @@ public final class ReactionListContextMenuContent: ContextControllerItemsContent
                 guard let strongSelf = self else {
                     return
                 }
-                let updatedState = ItemsState(listState: state, readStats: strongSelf.state.readStats, accountPeerId: strongSelf.context.account.peerId)
+
+                let updatedState = ItemsState(
+                    listState: state,
+                    readStats: strongSelf.state.readStats,
+                    accountPeerId: strongSelf.context.account.peerId,
+                    chatPeerId: strongSelf.state.chatPeerId
+                )
                 var animateIn = false
                 if strongSelf.state.item(at: 0) == nil && updatedState.item(at: 0) != nil {
                     animateIn = true

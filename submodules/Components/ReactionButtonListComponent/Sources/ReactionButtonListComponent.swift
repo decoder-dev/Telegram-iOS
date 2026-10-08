@@ -979,6 +979,32 @@ public final class ReactionButtonAsyncNode: ContextControllerSourceView {
     }
     
     private var layout: Layout?
+    private var glowObserver: NSObjectProtocol?
+
+    private func updateGlow() {
+        guard let layout = self.layout else {
+            self.buttonNode.layer.shadowOpacity = 0.0
+            self.buttonNode.layer.shadowPath = nil
+            return
+        }
+        let enabled = ArenaSettings.shared.reactionGlow
+        let color: UIColor
+        switch layout.spec.component.reaction.value {
+        case .stars, .builtin("👍"):
+            color = UIColor(rgb: 0xffc94d)
+        case .builtin("❤️"):
+            color = UIColor(rgb: 0xff537b)
+        case .builtin("🔥"):
+            color = UIColor(rgb: 0xff8c40)
+        default:
+            color = layout.spec.component.context.sharedContext.currentPresentationData.with { $0 }.theme.list.itemAccentColor
+        }
+        self.buttonNode.layer.shadowColor = color.cgColor
+        self.buttonNode.layer.shadowOffset = .zero
+        self.buttonNode.layer.shadowRadius = 7.0
+        self.buttonNode.layer.shadowOpacity = enabled ? 0.75 : 0.0
+        self.buttonNode.layer.shadowPath = enabled ? UIBezierPath(roundedRect: CGRect(origin: .zero, size: layout.size), cornerRadius: layout.size.height / 2.0).cgPath : nil
+    }
     
     public let containerView: ContextExtractedContentContainingView
     private let buttonNode: ContainerButtonNode
@@ -1035,6 +1061,9 @@ public final class ReactionButtonAsyncNode: ContextControllerSourceView {
         }
         
         self.buttonNode.addTarget(self, action: #selector(self.pressed), for: .touchUpInside)
+        self.glowObserver = NotificationCenter.default.addObserver(forName: ArenaSettings.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
+            self?.updateGlow()
+        }
         
         self.isGestureEnabled = true
         self.beginDelay = 0.0
@@ -1082,11 +1111,13 @@ public final class ReactionButtonAsyncNode: ContextControllerSourceView {
     
     deinit {
         self.iconImageDisposable.dispose()
+        if let glowObserver = self.glowObserver { NotificationCenter.default.removeObserver(glowObserver) }
     }
     
     func reset() {
         self.iconView?.reset()
         self.layout = nil
+        self.updateGlow()
         
         self.buttonNode.reset()
     }
@@ -1298,6 +1329,7 @@ public final class ReactionButtonAsyncNode: ContextControllerSourceView {
         }
         
         self.layout = layout
+        self.updateGlow()
     }
     
     public static func asyncLayout(_ item: ReactionNodePool.Item?) -> (ReactionButtonComponent) -> (size: CGSize, apply: (_ animation: ListViewItemUpdateAnimation, _ arguments: ReactionButtonsAsyncLayoutContainer.Arguments) -> ReactionNodePool.Item) {

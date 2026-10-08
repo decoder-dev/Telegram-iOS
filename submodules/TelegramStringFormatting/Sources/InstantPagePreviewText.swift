@@ -137,7 +137,7 @@ extension RichText {
             )
         case let .textCustomEmoji(_, alt):
             return NSAttributedString(string: alt)
-        case let .textAutoEmail(value), let .textAutoPhone(value), let .textAutoUrl(value), let .textBankCard(value), let .textBotCommand(value), let .textCashtag(value), let .textHashtag(value), let .textMention(value), let .textMentionName(value, _), let .textSpoiler(value), let .textDate(value, _, _):
+        case let .textAutoEmail(value), let .textAutoPhone(value), let .textAutoUrl(value), let .textBankCard(value), let .textBotCommand(value), let .textCashtag(value), let .textHashtag(value), let .textMention(value), let .textMentionName(value, _), let .textSpoiler(value), let .textDate(value, _, _), let .button(value, _, _):
             return value.previewAttributedText(strings: strings)
         }
     }
@@ -232,6 +232,8 @@ extension InstantPageBlock {
             return NSAttributedString(string: strings.Message_Photo)
         case .video(_, _, _, _, _):
             return NSAttributedString(string: strings.Message_Video)
+        case .document:
+            return NSAttributedString(string: strings.Message_File)
         case let .audio(id, _):
             if let file = media[id] as? TelegramMediaFile, file.isVoice {
                 return NSAttributedString(string: strings.Message_Audio)

@@ -1192,6 +1192,7 @@ func fetchChatListHole(postbox: Postbox, network: Network, accountPeerId: PeerId
             }
             |> ignoreValues
         }
+        Logger.shared.log("ChatListSync", "Fetched page group=\(groupId.rawValue) dialogs=\(fetchedChats.chatPeerIds.count) messages=\(fetchedChats.storeMessages.count) hasMore=\(fetchedChats.lowerNonPinnedIndex != nil)")
         return withResolvedAssociatedMessages(postbox: postbox, source: .network(network), accountPeerId: accountPeerId, parsedPeers: fetchedChats.peers, storeMessages: fetchedChats.storeMessages, resolveThreads: false, { transaction, additionalPeers, additionalMessages -> Void in
             updatePeers(transaction: transaction, accountPeerId: accountPeerId, peers: fetchedChats.peers.union(with: additionalPeers))
             _internal_applyFetchedChatInputStates(transaction: transaction, accountPeerId: accountPeerId, inputStates: fetchedChats.inputStates)
@@ -1208,7 +1209,7 @@ func fetchChatListHole(postbox: Postbox, network: Network, accountPeerId: PeerId
             transaction.updateCurrentPeerNotificationSettings(fetchedChats.notificationSettings)
             let _ = transaction.addMessages(fetchedChats.storeMessages, location: .UpperHistoryBlock)
             let _ = transaction.addMessages(additionalMessages, location: .Random)
-            transaction.resetIncomingReadStates(fetchedChats.readStates)
+            bananaResetIncomingReadStates(transaction: transaction, accountPeerId: accountPeerId, fetchedChats.readStates)
             
             for (peerId, autoremoveValue) in fetchedChats.ttlPeriods {
                 transaction.updatePeerCachedData(peerIds: Set([peerId]), update: { _, current in

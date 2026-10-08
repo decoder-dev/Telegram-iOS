@@ -80,6 +80,12 @@ extension RichText {
             self = .textMentionName(text: RichText(apiText: textMentionNameData.text), peerId: textMentionNameData.userId)
         case let .textSpoiler(textSpoilerData):
             self = .textSpoiler(text: RichText(apiText: textSpoilerData.text))
+        case let .textButton(value):
+            let label = RichText(apiText: value.text)
+            let button = ReplyMarkupButton(apiButton: .keyboardInlineButton(.init(flags: 0, style: nil, text: label.plainText, type: value.type)))
+            let buffer = Buffer()
+            apiText.serialize(buffer, true)
+            self = .button(text: label, button: button, apiData: buffer.makeData())
         case .textDiff:
             self = .empty
         }
@@ -87,6 +93,8 @@ extension RichText {
     
     func apiRichText() -> Api.RichText {
         switch self {
+        case let .button(text, _, data):
+            return (Api.parse(Buffer(data: data)) as? Api.RichText) ?? text.apiRichText()
         case .empty:
             return .textPlain(Api.RichText.Cons_textPlain(text: ""))
         case let .plain(value):

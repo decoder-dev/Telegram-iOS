@@ -1033,6 +1033,7 @@ public final class CameraScreenTransitionOut {
 }
 
 public protocol CameraScreen: ViewController {
+    var recognizedCode: ((String) -> Bool)? { get set }
     func returnFromEditor()
 }
 
@@ -1527,7 +1528,7 @@ public protocol SharedAccountContext: AnyObject {
     func makeStickerPackScreen(context: AccountContext, updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>)?, mainStickerPack: StickerPackReference, stickerPacks: [StickerPackReference], loadedStickerPacks: [LoadedStickerPack], actionTitle: String?, isEditing: Bool, expandIfNeeded: Bool, parentNavigationController: NavigationController?, sendSticker: ((FileMediaReference, UIView?, CGRect?) -> Bool)?, actionPerformed: (([StickerPackScreenActionResult]) -> Void)?) -> ViewController
     func makeCameraScreen(context: AccountContext, mode: CameraScreenMode, cameraHolder: Any?, transitionIn: CameraScreenTransitionIn?, transitionOut: @escaping (Bool) -> CameraScreenTransitionOut?, completion: @escaping (Any, @escaping () -> Void) -> Void, transitionedOut: (() -> Void)?) -> ViewController
     /// Maps an opaque `makeCameraScreen` completion payload (`Signal<CameraScreenImpl.Result, NoError>`) into legacy enqueue/edit media signals without requiring the caller to import `CameraScreen` (avoids CameraScreen ↔ StoryContainerScreen cycles).
-    func legacyCameraCapturedMediaSignals(fromCameraScreenResult result: Any, initialCaption: NSAttributedString, sendPaidMessageStars: Int64) -> Signal<[Any], NoError>
+    func legacyCameraCapturedMediaSignals(fromCameraScreenResult result: Any, initialCaption: NSAttributedString, sendPaidMessageStars: Int64, timer: Int32?) -> Signal<[Any], NoError>
     func makeMediaPickerScreen(context: AccountContext, hasSearch: Bool, completion: @escaping (Any) -> Void) -> ViewController
     func makeStoryMediaEditorScreen(context: AccountContext, source: Any?, text: String?, link: (url: String, name: String?)?, remainingCount: Int32, completion: @escaping ([MediaEditorScreenResult], MediaEditorTransitionOutExternalState, @escaping (@escaping () -> Void) -> Void) -> Void) -> ViewController
     func makeBotPreviewEditorScreen(context: AccountContext, source: Any?, target: Stories.PendingTarget, transitionArguments: (UIView, CGRect, UIImage?)?, transitionOut: @escaping () -> BotPreviewEditorTransitionOut?, externalState: MediaEditorTransitionOutExternalState, completion: @escaping (MediaEditorScreenResult, @escaping (@escaping () -> Void) -> Void) -> Void, cancelled: @escaping () -> Void) -> ViewController

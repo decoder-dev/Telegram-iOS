@@ -1,0 +1,2875 @@
+diff --git a/tgcalls/EncryptedConnection.cpp b/tgcalls/EncryptedConnection.cpp
+index d6a464d..18f003f 100644
+--- a/tgcalls/EncryptedConnection.cpp
++++ b/tgcalls/EncryptedConnection.cpp
+@@ -485,6 +485,7 @@ auto EncryptedConnection::processPacket(
+     auto firstMessageRequiringAck = true;
+     auto newRequiringAckReceived = false;
+ 
++    const auto packetCounter = CounterFromSeq(packetSeq);
+     auto currentSeq = packetSeq;
+     auto currentCounter = CounterFromSeq(currentSeq);
+     rtc::ByteBufferReader reader(rtc::ArrayView<const uint8_t>(
+@@ -516,7 +517,9 @@ auto EncryptedConnection::processPacket(
+             const auto messageRequiresAck = ((currentSeq & kMessageRequiresAckSeqBit) != 0);
+             const auto skipMessage = messageRequiresAck
+                 ? !registerSentAck(currentCounter, firstMessageRequiringAck)
+-                : (additionalMessage && !registerIncomingCounter(currentCounter));
++                : (additionalMessage
++                    && (currentCounter > packetCounter
++                        || !registerIncomingCounter(currentCounter)));
+             if (messageRequiresAck) {
+                 firstMessageRequiringAck = false;
+                 if (!skipMessage) {
+@@ -571,6 +574,7 @@ auto EncryptedConnection::processRawPacket(
+     auto firstMessageRequiringAck = true;
+     auto newRequiringAckReceived = false;
+ 
++    const auto packetCounter = CounterFromSeq(packetSeq);
+     auto currentSeq = packetSeq;
+     auto currentCounter = CounterFromSeq(currentSeq);
+     rtc::ByteBufferReader reader(rtc::ArrayView<const uint8_t>(
+@@ -605,7 +609,9 @@ auto EncryptedConnection::processRawPacket(
+                 const auto messageRequiresAck = ((currentSeq & kMessageRequiresAckSeqBit) != 0);
+                 const auto skipMessage = messageRequiresAck
+                     ? !registerSentAck(currentCounter, firstMessageRequiringAck)
+-                    : (additionalMessage && !registerIncomingCounter(currentCounter));
++                    : (additionalMessage
++                        && (currentCounter > packetCounter
++                            || !registerIncomingCounter(currentCounter)));
+                 if (messageRequiresAck) {
+                     firstMessageRequiringAck = false;
+                     if (!skipMessage) {
+diff --git a/tgcalls/Instance.h b/tgcalls/Instance.h
+index 1ade11d..4eda2d1 100644
+--- a/tgcalls/Instance.h
++++ b/tgcalls/Instance.h
+@@ -40,6 +40,7 @@ struct FilePath {
+ struct Proxy {
+ 	std::string host;
+ 	uint16_t port = 0;
++	bool managed = false;
+ 	std::string login;
+ 	std::string password;
+ };
+@@ -216,6 +217,8 @@ public:
+ 
+ };
+ 
++void PostCallTeardownBarrier(std::function<void()> completion);
++
+ template <typename Implementation>
+ bool Register();
+ 
+diff --git a/tgcalls/InstanceImpl.cpp b/tgcalls/InstanceImpl.cpp
+index 2363bdc..613c395 100644
+--- a/tgcalls/InstanceImpl.cpp
++++ b/tgcalls/InstanceImpl.cpp
+@@ -3,6 +3,7 @@
+ #include "LogSinkImpl.h"
+ #include "Manager.h"
+ #include "MediaManager.h"
++#include "StaticThreads.h"
+ #include "VideoCaptureInterfaceImpl.h"
+ #include "VideoCapturerInterface.h"
+ 
+@@ -25,6 +26,19 @@ rtc::Thread *getManagerThread() {
+ 
+ } // namespace
+ 
++void PostCallTeardownBarrier(std::function<void()> completion) {
++	getManagerThread()->PostTask([completion = std::move(completion)] {
++		StaticThreads::getMediaThread()->PostTask([
++				completion = std::move(completion)] {
++			StaticThreads::getWorkerThread()->PostTask([
++					completion = std::move(completion)] {
++				StaticThreads::getNetworkThread()->PostTask(
++					std::move(completion));
++			});
++		});
++	});
++}
++
+ InstanceImpl::InstanceImpl(Descriptor &&descriptor)
+ : _logSink(std::make_unique<LogSinkImpl>(descriptor.config.logPath)) {
+     rtc::LogMessage::LogToDebug(rtc::LS_INFO);
+diff --git a/tgcalls/group/GroupInstanceCustomImpl.cpp b/tgcalls/group/GroupInstanceCustomImpl.cpp
+index 762d1b9..3a3a91b 100644
+--- a/tgcalls/group/GroupInstanceCustomImpl.cpp
++++ b/tgcalls/group/GroupInstanceCustomImpl.cpp
+@@ -1,5 +1,6 @@
+ #include "GroupInstanceCustomImpl.h"
+ 
++#include <charconv>
+ #include <memory>
+ #include <iomanip>
+ 
+@@ -129,6 +130,32 @@ static uint16_t stringToUInt16(std::string const &string) {
+     return value;
+ }
+ 
++static bool parseUnsignedDecimal(
++        const std::string &string,
++        uint32_t &value) {
++    if (string.empty()) {
++        return false;
++    }
++    const auto parsed = std::from_chars(
++        string.data(),
++        string.data() + string.size(),
++        value);
++    return parsed.ec == std::errc()
++        && parsed.ptr == string.data() + string.size();
++}
++
++static bool isSafeManagedCandidateDescription(
++        const GroupJoinTransportDescription::Candidate &candidate) {
++    auto port = uint32_t();
++    auto component = uint32_t();
++    return candidate.protocol == cricket::UDP_PROTOCOL_NAME
++        && parseUnsignedDecimal(candidate.port, port)
++        && port > 0
++        && port <= 65535
++        && parseUnsignedDecimal(candidate.component, component)
++        && component == 1;
++}
++
+ static std::string formatTimestampMillis(int64_t timestamp) {
+     std::ostringstream stringStream;
+     stringStream.imbue(std::locale::classic());
+@@ -2127,6 +2154,8 @@ public:
+     _videoContentType(descriptor.videoContentType),
+     _videoCodecPreferences(std::move(descriptor.videoCodecPreferences)),
+     _e2eEncryptDecrypt(descriptor.e2eEncryptDecrypt),
++    _managedRoute(descriptor.proxy && descriptor.proxy->managed),
++    _proxy(std::move(descriptor.proxy)),
+     _eventLog(std::make_unique<webrtc::RtcEventLogNull>()),
+     _webrtcEnvironment(webrtc::EnvironmentFactory().Create()),
+     _netEqFactory(createNetEqFactory()),
+@@ -2202,8 +2231,9 @@ public:
+         );
+ 
+         bool takeAudioLevelFromNetwork = _e2eEncryptDecrypt == nullptr;
++        auto proxy = std::move(_proxy);
+ 
+-        _networkManager.reset(new ThreadLocalObject<GroupNetworkManager>(_threads->getNetworkThread(), [weak, threads = _threads, takeAudioLevelFromNetwork] () mutable {
++        _networkManager.reset(new ThreadLocalObject<GroupNetworkManager>(_threads->getNetworkThread(), [weak, threads = _threads, takeAudioLevelFromNetwork, proxy = std::move(proxy)] () mutable {
+             return std::make_shared<GroupNetworkManager>(
+                 fieldTrialsBasedConfig,
+                 [=](const GroupNetworkManager::State &state) {
+@@ -2212,7 +2242,9 @@ public:
+                         if (!strong) {
+                             return;
+                         }
+-                        strong->setIsRtcConnected(state.isReadyToSendData);
++                        strong->setIsRtcConnected(
++                            state.isReadyToSendData,
++                            state.isFailed);
+                     });
+                 },
+                 [=](uint32_t ssrc, int payloadType) {
+@@ -2253,7 +2285,7 @@ public:
+                             strong->updateSsrcActivity(ssrc);
+                         }
+                     });
+-                }, threads);
++                }, threads, std::move(proxy));
+         }));
+ 
+     #if USE_RNNOISE
+@@ -3224,11 +3256,13 @@ public:
+         });
+     }
+ 
+-    void setIsRtcConnected(bool isConnected) {
+-        if (_isRtcConnected == isConnected) {
++    void setIsRtcConnected(bool isConnected, bool isFailed) {
++        if (_isRtcConnected == isConnected
++            && _isRtcFailed == isFailed) {
+             return;
+         }
+         _isRtcConnected = isConnected;
++        _isRtcFailed = isFailed;
+ 
+         RTC_LOG(LS_INFO) << formatTimestampMillis(rtc::TimeMillis()) << ": " << "setIsRtcConnected: " << _isRtcConnected;
+ 
+@@ -3274,8 +3308,11 @@ public:
+         effectiveNetworkState.isConnected = isEffectivelyConnected;
+         effectiveNetworkState.isTransitioningFromBroadcastToRtc = isTransitioningFromBroadcastToRtc;
+         effectiveNetworkState.connectionMode = _connectionMode;
++        effectiveNetworkState.isFailed = _isRtcFailed;
+ 
+-        if (_effectiveNetworkState.isConnected != effectiveNetworkState.isConnected || _effectiveNetworkState.isTransitioningFromBroadcastToRtc != effectiveNetworkState.isTransitioningFromBroadcastToRtc) {
++        if (_effectiveNetworkState.isConnected != effectiveNetworkState.isConnected
++            || _effectiveNetworkState.isTransitioningFromBroadcastToRtc != effectiveNetworkState.isTransitioningFromBroadcastToRtc
++            || _effectiveNetworkState.isFailed != effectiveNetworkState.isFailed) {
+             _effectiveNetworkState = effectiveNetworkState;
+ 
+             if (_networkStateUpdated) {
+@@ -3285,7 +3322,7 @@ public:
+ 
+         NetworkStateLogRecord record;
+         record.isConnected = effectiveNetworkState.isConnected;
+-        record.isFailed = false;
++        record.isFailed = effectiveNetworkState.isFailed;
+ 
+         if (effectiveNetworkState.isConnected && !_hasBeenConnected) {
+             _hasBeenConnected = true;
+@@ -3855,6 +3892,9 @@ public:
+         auto parsedPayload = GroupJoinResponsePayload::parse(payload);
+         if (!parsedPayload) {
+             RTC_LOG(LS_ERROR) << "Could not parse json response payload";
++            _networkManager->perform([](GroupNetworkManager *networkManager) {
++                networkManager->failManagedRoute();
++            });
+             return;
+         }
+ 
+@@ -3866,13 +3906,20 @@ public:
+             setServerBandwidthProbingChannelSsrc(parsedPayload->videoInformation->serverVideoBandwidthProbingSsrc);
+         }
+ 
+-        _networkManager->perform([parsedTransport = parsedPayload->transport](GroupNetworkManager *networkManager) {
++        _networkManager->perform([
++                parsedTransport = parsedPayload->transport,
++                managedRoute = _managedRoute](
++                GroupNetworkManager *networkManager) {
+             PeerIceParameters remoteIceParameters;
+             remoteIceParameters.ufrag = parsedTransport.ufrag;
+             remoteIceParameters.pwd = parsedTransport.pwd;
+ 
+             std::vector<cricket::Candidate> iceCandidates;
+             for (auto const &candidate : parsedTransport.candidates) {
++                if (managedRoute
++                    && !isSafeManagedCandidateDescription(candidate)) {
++                    continue;
++                }
+                 rtc::SocketAddress address(candidate.ip, stringToInt(candidate.port));
+ 
+                 std::string candidateType = candidate.type;
+@@ -4437,6 +4484,8 @@ private:
+     VideoContentType _videoContentType{VideoContentType::None};
+     std::vector<VideoCodecName> _videoCodecPreferences;
+     std::function<std::vector<uint8_t>(std::vector<uint8_t> const &, int64_t, bool, int32_t)> _e2eEncryptDecrypt;
++    bool _managedRoute = false;
++    std::unique_ptr<Proxy> _proxy;
+ 
+     int _nextMediaChannelDescriptionsRequestId = 0;
+     std::map<int, RequestedMediaChannelDescriptions> _requestedMediaChannelDescriptions;
+@@ -4505,6 +4554,7 @@ private:
+     std::shared_ptr<ExternalAudioRecorder> _externalAudioRecorder;
+ 
+     bool _isRtcConnected = false;
++    bool _isRtcFailed = false;
+     bool _isBroadcastConnected = false;
+     absl::optional<int64_t> _broadcastEnabledUntilRtcIsConnectedAtTimestamp;
+     bool _isDataChannelOpen = false;
+diff --git a/tgcalls/group/GroupInstanceImpl.h b/tgcalls/group/GroupInstanceImpl.h
+index 962f192..f65725f 100644
+--- a/tgcalls/group/GroupInstanceImpl.h
++++ b/tgcalls/group/GroupInstanceImpl.h
+@@ -94,6 +94,7 @@ struct GroupNetworkState {
+     bool isConnected = false;
+     bool isTransitioningFromBroadcastToRtc = false;
+     GroupConnectionMode connectionMode = GroupConnectionMode::GroupConnectionModeRtc;
++    bool isFailed = false;
+ };
+ 
+ enum class VideoContentType {
+@@ -188,6 +189,7 @@ struct GroupInstanceDescriptor {
+     std::function<void(bool)> onMutedSpeechActivityDetected;
+     std::function<std::vector<uint8_t>(std::vector<uint8_t> const &, int64_t, bool, int32_t)> e2eEncryptDecrypt;
+     bool isConference{false};
++    std::unique_ptr<Proxy> proxy;
+ };
+ 
+ template <typename T>
+diff --git a/tgcalls/group/GroupNetworkManager.cpp b/tgcalls/group/GroupNetworkManager.cpp
+index e8376b7..8b3cacf 100644
+--- a/tgcalls/group/GroupNetworkManager.cpp
++++ b/tgcalls/group/GroupNetworkManager.cpp
+@@ -1,10 +1,13 @@
+ #include "group/GroupNetworkManager.h"
+ 
++#include <cstring>
++#include <utility>
++
++#include "api/packet_socket_factory.h"
+ #include "p2p/base/basic_packet_socket_factory.h"
+ #include "p2p/client/basic_port_allocator.h"
+ #include "p2p/base/p2p_transport_channel.h"
+ #include "p2p/base/basic_async_resolver_factory.h"
+-#include "api/packet_socket_factory.h"
+ #include "rtc_base/rtc_certificate_generator.h"
+ #include "p2p/base/ice_credentials_iterator.h"
+ #include "api/jsep_ice_candidate.h"
+@@ -14,16 +17,242 @@
+ #include "pc/dtls_transport.h"
+ #include "modules/rtp_rtcp/source/rtp_util.h"
+ #include "modules/rtp_rtcp/source/byte_io.h"
++#include "rtc_base/ip_address.h"
++#include "rtc_base/proxy_info.h"
+ #include "platform/PlatformInterface.h"
+ #include "TurnCustomizerImpl.h"
+ #include "SctpDataChannelProviderInterfaceImpl.h"
+ #include "StaticThreads.h"
++#include "Instance.h"
+ #include "call/rtp_packet_sink_interface.h"
+ #include "modules/rtp_rtcp/source/rtp_packet_received.h"
+ #include "modules/rtp_rtcp/source/rtp_header_extensions.h"
++#include "v2/Socks5UdpSocketFactory.h"
+ 
+ namespace tgcalls {
+ 
++namespace {
++
++[[nodiscard]] bool IsInternetFamily(int family) {
++    return family == AF_INET || family == AF_INET6;
++}
++
++[[nodiscard]] bool IsPublicIpv4(const rtc::IPAddress &address) {
++    const auto value = address.ipv4_address();
++    const auto bytes = reinterpret_cast<const uint8_t*>(&value);
++    const auto first = bytes[0];
++    const auto second = bytes[1];
++    const auto third = bytes[2];
++    return first != 0
++        && first != 10
++        && first != 127
++        && first < 224
++        && !(first == 100 && (second & 0xC0) == 0x40)
++        && !(first == 169 && second == 254)
++        && !(first == 172 && (second & 0xF0) == 16)
++        && !(first == 192 && second == 0 && third == 0)
++        && !(first == 192 && second == 0 && third == 2)
++        && !(first == 192 && second == 88 && third == 99)
++        && !(first == 192 && second == 168)
++        && !(first == 198 && (second == 18 || second == 19))
++        && !(first == 198 && second == 51 && third == 100)
++        && !(first == 203 && second == 0 && third == 113);
++}
++
++[[nodiscard]] bool IsPublicIpv6(const rtc::IPAddress &address) {
++    const auto value = address.ipv6_address();
++    const auto bytes = reinterpret_cast<const uint8_t*>(&value);
++    const auto globalUnicast = (bytes[0] & 0xE0) == 0x20;
++    const auto teredo = bytes[0] == 0x20
++        && bytes[1] == 0x01
++        && bytes[2] == 0
++        && bytes[3] == 0;
++    const auto benchmarking = bytes[0] == 0x20
++        && bytes[1] == 0x01
++        && bytes[2] == 0
++        && bytes[3] == 2
++        && bytes[4] == 0
++        && bytes[5] == 0;
++    const auto orchid = bytes[0] == 0x20
++        && bytes[1] == 0x01
++        && bytes[2] == 0
++        && ((bytes[3] & 0xF0) == 0x10
++            || (bytes[3] & 0xF0) == 0x20);
++    const auto documentation = bytes[0] == 0x20
++        && bytes[1] == 0x01
++        && bytes[2] == 0x0D
++        && bytes[3] == 0xB8;
++    const auto sixToFour = bytes[0] == 0x20 && bytes[1] == 0x02;
++    const auto documentationSecond = bytes[0] == 0x3F
++        && bytes[1] == 0xFF
++        && (bytes[2] & 0xF0) == 0;
++    return globalUnicast
++        && !teredo
++        && !benchmarking
++        && !orchid
++        && !documentation
++        && !sixToFour
++        && !documentationSecond;
++}
++
++[[nodiscard]] bool IsValidManagedGroupProxy(const Proxy &proxy) {
++    const auto address = rtc::SocketAddress(proxy.host, proxy.port);
++    return !proxy.host.empty()
++        && proxy.host.find('\0') == std::string::npos
++        && address.port()
++        && !address.IsUnresolvedIP()
++        && IsInternetFamily(address.family())
++        && address.IsLoopbackIP()
++        && (address.family() != AF_INET6 || address.scope_id() == 0)
++        && !proxy.login.empty()
++        && proxy.login.size() <= 255
++        && proxy.login.find('\0') == std::string::npos
++        && !proxy.password.empty()
++        && proxy.password.size() <= 255
++        && proxy.password.find('\0') == std::string::npos;
++}
++
++class GroupCryptStringImpl final : public rtc::CryptStringImpl {
++public:
++    explicit GroupCryptStringImpl(const std::string &value)
++    : _value(value) {
++    }
++
++    size_t GetLength() const override {
++        return _value.size();
++    }
++
++    void CopyTo(char *destination, bool nullTerminate) const override {
++        std::memcpy(destination, _value.data(), _value.size());
++        if (nullTerminate) {
++            destination[_value.size()] = 0;
++        }
++    }
++
++    std::string UrlEncode() const override {
++        return _value;
++    }
++
++    CryptStringImpl *Copy() const override {
++        return new GroupCryptStringImpl(_value);
++    }
++
++    void CopyRawTo(std::vector<unsigned char> *destination) const override {
++        destination->resize(_value.size());
++        std::memcpy(destination->data(), _value.data(), _value.size());
++    }
++
++private:
++    std::string _value;
++
++};
++
++class ManagedGroupPacketSocketFactory final
++    : public rtc::PacketSocketFactory {
++public:
++    ManagedGroupPacketSocketFactory(
++        rtc::SocketFactory *socketFactory,
++        std::unique_ptr<rtc::ProxyInfo> proxy,
++        std::function<void()> managedRouteFailed)
++    : _socketFactory(socketFactory)
++    , _proxy(std::move(proxy))
++    , _managedRouteFailed(std::move(managedRouteFailed)) {
++    }
++
++    rtc::AsyncPacketSocket *CreateUdpSocket(
++            const rtc::SocketAddress &,
++            uint16_t,
++            uint16_t) override {
++        if (!_socketFactory || !_proxy) {
++            if (_managedRouteFailed) {
++                _managedRouteFailed();
++            }
++            return nullptr;
++        }
++        return CreateSocks5UdpSocket(
++            _socketFactory,
++            *_proxy,
++            [failed = _managedRouteFailed](int) {
++                if (failed) {
++                    failed();
++                }
++            });
++    }
++
++    rtc::AsyncListenSocket *CreateServerTcpSocket(
++            const rtc::SocketAddress &,
++            uint16_t,
++            uint16_t,
++            int) override {
++        return nullptr;
++    }
++
++    rtc::AsyncPacketSocket *CreateClientTcpSocket(
++            const rtc::SocketAddress &,
++            const rtc::SocketAddress &,
++            const rtc::ProxyInfo &,
++            const std::string &,
++            const rtc::PacketSocketTcpOptions &) override {
++        return nullptr;
++    }
++
++    std::unique_ptr<webrtc::AsyncDnsResolverInterface>
++    CreateAsyncDnsResolver() override {
++        return nullptr;
++    }
++
++private:
++    rtc::SocketFactory *_socketFactory = nullptr;
++    std::unique_ptr<rtc::ProxyInfo> _proxy;
++    std::function<void()> _managedRouteFailed;
++
++};
++
++} // namespace
++
++std::unique_ptr<rtc::PacketSocketFactory> CreateGroupPacketSocketFactory(
++        rtc::SocketFactory *socketFactory,
++        const Proxy *proxy,
++        std::function<void()> managedRouteFailed) {
++    if (!proxy || !proxy->managed) {
++        return std::make_unique<rtc::BasicPacketSocketFactory>(socketFactory);
++    }
++    auto proxyInfo = std::unique_ptr<rtc::ProxyInfo>();
++    if (IsValidManagedGroupProxy(*proxy)) {
++        proxyInfo = std::make_unique<rtc::ProxyInfo>();
++        proxyInfo->type = rtc::PROXY_SOCKS5;
++        proxyInfo->address = rtc::SocketAddress(proxy->host, proxy->port);
++        proxyInfo->username = proxy->login;
++        proxyInfo->password = rtc::CryptString(
++            GroupCryptStringImpl(proxy->password));
++    }
++    return std::make_unique<ManagedGroupPacketSocketFactory>(
++        socketFactory,
++        std::move(proxyInfo),
++        std::move(managedRouteFailed));
++}
++
++bool IsSafeManagedGroupCandidate(const cricket::Candidate &candidate) {
++    return candidate.component() == 1
++        && candidate.protocol() == cricket::UDP_PROTOCOL_NAME
++        && IsSafeManagedGroupAddress(candidate.address());
++}
++
++bool IsSafeManagedGroupAddress(const rtc::SocketAddress &address) {
++    if (!address.port()
++        || address.IsUnresolvedIP()
++        || !IsInternetFamily(address.family())
++        || address.IsAnyIP()
++        || address.IsLoopbackIP()
++        || rtc::IPIsPrivate(address.ipaddr())
++        || (address.family() == AF_INET6 && address.scope_id() != 0)) {
++        return false;
++    }
++    return (address.family() == AF_INET)
++        ? IsPublicIpv4(address.ipaddr())
++        : IsPublicIpv6(address.ipaddr());
++}
++
+ enum {
+     kRtcpExpectedVersion = 2,
+     kRtcpMinHeaderLength = 4,
+@@ -335,7 +564,8 @@ GroupNetworkManager::GroupNetworkManager(
+     std::function<void(uint32_t, uint8_t, bool)> audioActivityUpdated,
+     bool zeroAudioLevel,
+     std::function<void(uint32_t)> anyActivityUpdated,
+-    std::shared_ptr<Threads> threads) :
++    std::shared_ptr<Threads> threads,
++    std::unique_ptr<Proxy> proxy) :
+ _threads(std::move(threads)),
+ _stateUpdated(std::move(stateUpdated)),
+ _unknownSsrcPacketReceived(std::move(unknownSsrcPacketReceived)),
+@@ -346,13 +576,20 @@ _zeroAudioLevel(zeroAudioLevel),
+ _anyActivityUpdated(anyActivityUpdated) {
+     assert(_threads->getNetworkThread()->IsCurrent());
+ 
++    _managedRoute = proxy && proxy->managed;
++    _managedRouteIsValid = !_managedRoute
++        || IsValidManagedGroupProxy(*proxy);
++
+     _localIceParameters = PeerIceParameters(rtc::CreateRandomString(cricket::ICE_UFRAG_LENGTH), rtc::CreateRandomString(cricket::ICE_PWD_LENGTH), false);
+ 
+     _localCertificate = rtc::RTCCertificateGenerator::GenerateCertificate(rtc::KeyParams(rtc::KT_ECDSA), absl::nullopt);
+ 
+     _networkMonitorFactory = PlatformInterface::SharedInstance()->createNetworkMonitorFactory();
+ 
+-    _socketFactory.reset(new rtc::BasicPacketSocketFactory(_threads->getNetworkThread()->socketserver()));
++    _socketFactory = CreateGroupPacketSocketFactory(
++        _threads->getNetworkThread()->socketserver(),
++        proxy.get(),
++        [this] { setTerminalFailure(); });
+     _networkManager = std::make_unique<rtc::BasicNetworkManager>(_networkMonitorFactory.get(), _threads->getNetworkThread()->socketserver());
+     _asyncResolverFactory = std::make_unique<webrtc::BasicAsyncDnsResolverFactory>();
+ 
+@@ -391,6 +628,15 @@ void GroupNetworkManager::resetDtlsSrtpTransport() {
+     flags |=
+         cricket::PORTALLOCATOR_ENABLE_IPV6 |
+         cricket::PORTALLOCATOR_ENABLE_IPV6_ON_WIFI;
++
++    if (_managedRoute) {
++        flags |= cricket::PORTALLOCATOR_DISABLE_TCP;
++        flags |= cricket::PORTALLOCATOR_DISABLE_STUN;
++        flags |= cricket::PORTALLOCATOR_DISABLE_RELAY;
++        if (!_managedRouteIsValid) {
++            portAllocator->SetCandidateFilter(cricket::CF_NONE);
++        }
++    }
+     
+     portAllocator->set_flags(flags);
+     portAllocator->Initialize();
+@@ -443,6 +689,12 @@ void GroupNetworkManager::resetDtlsSrtpTransport() {
+ }
+ 
+ void GroupNetworkManager::start() {
++    if (_managedRoute && !_managedRouteIsValid) {
++        setTerminalFailure();
++        return;
++    } else if (_terminalFailure) {
++        return;
++    }
+     _transportChannel->MaybeStartGathering();
+ 
+     restartDataChannel();
+@@ -501,6 +753,12 @@ void GroupNetworkManager::stop() {
+     resetDtlsSrtpTransport();
+ }
+ 
++void GroupNetworkManager::failManagedRoute() {
++    if (_managedRoute) {
++        setTerminalFailure();
++    }
++}
++
+ PeerIceParameters GroupNetworkManager::getLocalIceParameters() {
+     return _localIceParameters;
+ }
+@@ -516,6 +774,25 @@ std::unique_ptr<rtc::SSLFingerprint> GroupNetworkManager::getLocalFingerprint()
+ void GroupNetworkManager::setRemoteParams(PeerIceParameters const &remoteIceParameters, std::vector<cricket::Candidate> const &iceCandidates, rtc::SSLFingerprint *fingerprint) {
+     _remoteIceParameters = remoteIceParameters;
+ 
++    auto acceptedCandidates = std::vector<cricket::Candidate>();
++    if (_managedRoute) {
++        if (!_managedRouteIsValid || _terminalFailure) {
++            setTerminalFailure();
++            return;
++        }
++        for (const auto &candidate : iceCandidates) {
++            if (IsSafeManagedGroupCandidate(candidate)) {
++                acceptedCandidates.push_back(candidate);
++            }
++        }
++        if (acceptedCandidates.empty()) {
++            RTC_LOG(LS_ERROR)
++                << "Managed group route has no safe UDP SFU candidate.";
++            setTerminalFailure();
++            return;
++        }
++    }
++
+     cricket::IceParameters parameters(
+         remoteIceParameters.ufrag,
+         remoteIceParameters.pwd,
+@@ -524,7 +801,10 @@ void GroupNetworkManager::setRemoteParams(PeerIceParameters const &remoteIcePara
+ 
+     _transportChannel->SetRemoteIceParameters(parameters);
+ 
+-    for (const auto &candidate : iceCandidates) {
++    const auto &candidates = _managedRoute
++        ? acceptedCandidates
++        : iceCandidates;
++    for (const auto &candidate : candidates) {
+         _transportChannel->AddRemoteCandidate(candidate);
+     }
+ 
+@@ -647,6 +927,13 @@ void GroupNetworkManager::UpdateAggregateStates_n() {
+     assert(_threads->getNetworkThread()->IsCurrent());
+ 
+     auto state = _transportChannel->GetIceTransportState();
++    if (_managedRoute
++        && state == webrtc::IceTransportState::kFailed) {
++        setTerminalFailure();
++        return;
++    } else if (_terminalFailure) {
++        return;
++    }
+     bool isConnected = false;
+     switch (state) {
+         case webrtc::IceTransportState::kConnected:
+@@ -677,4 +964,17 @@ void GroupNetworkManager::UpdateAggregateStates_n() {
+ void GroupNetworkManager::sctpReadyToSendData() {
+ }
+ 
++void GroupNetworkManager::setTerminalFailure() {
++    assert(_threads->getNetworkThread()->IsCurrent());
++    if (_terminalFailure) {
++        return;
++    }
++    _terminalFailure = true;
++    _isConnected = false;
++    auto state = State();
++    state.isFailed = true;
++    _stateUpdated(state);
++    _dataChannelStateUpdated(false);
++}
++
+ } // namespace tgcalls
+diff --git a/tgcalls/group/GroupNetworkManager.h b/tgcalls/group/GroupNetworkManager.h
+index cc77c06..23aeee3 100644
+--- a/tgcalls/group/GroupNetworkManager.h
++++ b/tgcalls/group/GroupNetworkManager.h
+@@ -22,9 +22,10 @@
+ #include "ThreadLocalObject.h"
+ 
+ namespace rtc {
+-class BasicPacketSocketFactory;
+ class BasicNetworkManager;
++class PacketSocketFactory;
+ class PacketTransportInternal;
++class SocketFactory;
+ struct NetworkRoute;
+ } // namespace rtc
+ 
+@@ -45,9 +46,22 @@ class RtpTransport;
+ namespace tgcalls {
+ 
+ struct Message;
++struct Proxy;
+ class SctpDataChannelProviderInterfaceImpl;
+ class Threads;
+ 
++[[nodiscard]] std::unique_ptr<rtc::PacketSocketFactory>
++CreateGroupPacketSocketFactory(
++    rtc::SocketFactory *socketFactory,
++    const Proxy *proxy,
++    std::function<void()> managedRouteFailed);
++
++[[nodiscard]] bool IsSafeManagedGroupCandidate(
++    const cricket::Candidate &candidate);
++
++[[nodiscard]] bool IsSafeManagedGroupAddress(
++    const rtc::SocketAddress &address);
++
+ class GroupNetworkManager : public sigslot::has_slots<>, public std::enable_shared_from_this<GroupNetworkManager> {
+ public:
+     struct State {
+@@ -66,11 +80,13 @@ public:
+         std::function<void(uint32_t, uint8_t, bool)> audioActivityUpdated,
+         bool zeroAudioLevel,
+         std::function<void(uint32_t)> anyActivityUpdated,
+-        std::shared_ptr<Threads> threads);
++        std::shared_ptr<Threads> threads,
++        std::unique_ptr<Proxy> proxy);
+     ~GroupNetworkManager();
+ 
+     void start();
+     void stop();
++    void failManagedRoute();
+ 
+     PeerIceParameters getLocalIceParameters();
+     std::unique_ptr<rtc::SSLFingerprint> getLocalFingerprint();
+@@ -99,6 +115,7 @@ private:
+     void OnRtcpPacketReceived_n(rtc::CopyOnWriteBuffer *packet, int64_t packet_time_us);
+ 
+     void sctpReadyToSendData();
++    void setTerminalFailure();
+ 
+     std::shared_ptr<Threads> _threads;
+     std::function<void(const GroupNetworkManager::State &)> _stateUpdated;
+@@ -110,7 +127,7 @@ private:
+     std::function<void(uint32_t)> _anyActivityUpdated;
+ 
+     std::unique_ptr<rtc::NetworkMonitorFactory> _networkMonitorFactory;
+-    std::unique_ptr<rtc::BasicPacketSocketFactory> _socketFactory;
++    std::unique_ptr<rtc::PacketSocketFactory> _socketFactory;
+     std::unique_ptr<rtc::BasicNetworkManager> _networkManager;
+     std::unique_ptr<webrtc::TurnCustomizer> _turnCustomizer;
+     std::unique_ptr<cricket::BasicPortAllocator> _portAllocator;
+@@ -126,6 +143,9 @@ private:
+     absl::optional<PeerIceParameters> _remoteIceParameters;
+ 
+     bool _isConnected = false;
++    bool _managedRoute = false;
++    bool _managedRouteIsValid = true;
++    bool _terminalFailure = false;
+     int64_t _lastNetworkActivityMs = 0;
+ };
+ 
+diff --git a/tgcalls/v2/ContentNegotiation.cpp b/tgcalls/v2/ContentNegotiation.cpp
+index 49bbf19..f33987a 100644
+--- a/tgcalls/v2/ContentNegotiation.cpp
++++ b/tgcalls/v2/ContentNegotiation.cpp
+@@ -382,6 +382,7 @@ std::unique_ptr<ContentNegotiationContext::NegotiationContents> ContentNegotiati
+             // race condition detected — call initiator wins
+             if (!_isOutgoing) {
+                 _pendingOutgoingOffer.reset();
++                _needNegotiation = true;
+                 return getAnswer(std::move(remoteNegotiationContent));
+             } else {
+                 return nullptr;
+diff --git a/tgcalls/v2/CustomDcSctpSocket.cpp b/tgcalls/v2/CustomDcSctpSocket.cpp
+index 6a13446..4d0cb80 100644
+--- a/tgcalls/v2/CustomDcSctpSocket.cpp
++++ b/tgcalls/v2/CustomDcSctpSocket.cpp
+@@ -261,6 +261,7 @@ bool CustomDcSctpSocket::IsConsistent() const {
+       return (tcb_ != nullptr && !t1_init_->is_running() &&
+               !t1_cookie_->is_running() && t2_shutdown_->is_running());
+   }
++  return {};
+ }
+ 
+ constexpr absl::string_view CustomDcSctpSocket::ToString(CustomDcSctpSocket::State state) {
+@@ -282,6 +283,7 @@ constexpr absl::string_view CustomDcSctpSocket::ToString(CustomDcSctpSocket::Sta
+     case CustomDcSctpSocket::State::kShutdownAckSent:
+       return "SHUTDOWN_ACK_SENT";
+   }
++  return "UNKNOWN";
+ }
+ 
+ void CustomDcSctpSocket::SetState(State state, absl::string_view reason) {
+@@ -598,6 +600,7 @@ SocketState CustomDcSctpSocket::state() const {
+     case State::kShutdownAckSent:
+       return SocketState::kShuttingDown;
+   }
++  return {};
+ }
+ 
+ void CustomDcSctpSocket::SetMaxMessageSize(size_t max_message_size) {
+@@ -1818,7 +1821,7 @@ CustomDcSctpSocket::GetHandoverStateAndClose() {
+     InternalClose(ErrorKind::kNoError, "handover");
+   }
+ 
+-  return std::move(state);
++  return state;
+ }
+ 
+ }  // namespace dcsctp
+diff --git a/tgcalls/v2/NativeNetworkingImpl.cpp b/tgcalls/v2/NativeNetworkingImpl.cpp
+index 0dbd393..2b21068 100644
+--- a/tgcalls/v2/NativeNetworkingImpl.cpp
++++ b/tgcalls/v2/NativeNetworkingImpl.cpp
+@@ -1,5 +1,7 @@
+ #include "v2/NativeNetworkingImpl.h"
+ 
++#include <algorithm>
++
+ #include "p2p/base/basic_packet_socket_factory.h"
+ #include "p2p/client/basic_port_allocator.h"
+ #include "p2p/base/p2p_transport_channel.h"
+@@ -14,6 +16,8 @@
+ #include "pc/dtls_transport.h"
+ #include "pc/jsep_transport_controller.h"
+ #include "api/async_dns_resolver.h"
++#include "rtc_base/ip_address.h"
++#include "rtc_base/proxy_info.h"
+ 
+ #include "TurnCustomizerImpl.h"
+ #include "ReflectorRelayPortFactory.h"
+@@ -22,9 +26,10 @@
+ #include "platform/PlatformInterface.h"
+ #include "p2p/base/turn_port.h"
+ 
+-#include "ReflectorPort.h"
+-#include "FieldTrialsConfig.h"
+ #include "EncryptedConnection.h"
++#include "FieldTrialsConfig.h"
++#include "ReflectorPort.h"
++#include "Socks5UdpSocketFactory.h"
+ 
+ namespace tgcalls {
+ 
+@@ -39,6 +44,83 @@ bool getCustomParameterBool(std::map<std::string, json11::Json> const &parameter
+     }
+ }
+ 
++bool isInternetFamily(int family) {
++    return family == AF_INET || family == AF_INET6;
++}
++
++bool isValidManagedProxy(Proxy const &proxy, rtc::SocketAddress const &address) {
++    return !proxy.host.empty()
++        && proxy.host.find('\0') == std::string::npos
++        && address.port()
++        && !address.IsUnresolvedIP()
++        && isInternetFamily(address.family())
++        && address.IsLoopbackIP()
++        && (address.family() != AF_INET6 || address.scope_id() == 0)
++        && !proxy.login.empty()
++        && proxy.login.size() <= 255
++        && !proxy.password.empty()
++        && proxy.password.size() <= 255;
++}
++
++bool isHexCharacter(char value) {
++    return (value >= '0' && value <= '9')
++        || (value >= 'a' && value <= 'f')
++        || (value >= 'A' && value <= 'F');
++}
++
++bool isSafeManagedAddress(RtcServer const &server) {
++    const auto address = rtc::SocketAddress(server.host, server.port);
++    return !server.host.empty()
++        && server.host.find('\0') == std::string::npos
++        && address.port()
++        && !address.IsUnresolvedIP()
++        && isInternetFamily(address.family())
++        && !address.IsAnyIP()
++        && !address.IsLoopbackIP()
++        && !rtc::IPIsPrivate(address.ipaddr())
++        && (address.family() != AF_INET6 || address.scope_id() == 0);
++}
++
++bool isSafeManagedReflector(RtcServer const &server) {
++    if (!server.isTurn
++        || server.id == 0
++        || server.login != "reflector"
++        || server.password.size() != 32
++        || !std::all_of(
++            server.password.begin(),
++            server.password.end(),
++            &isHexCharacter)) {
++        return false;
++    }
++
++    return isSafeManagedAddress(server);
++}
++
++bool isSafeManagedTurn(RtcServer const &server) {
++    return server.isTurn
++        && !server.isTcp
++        && server.id == 0
++        && server.login != "reflector"
++        && !server.login.empty()
++        && server.login.size() <= 255
++        && server.login.find('\0') == std::string::npos
++        && !server.password.empty()
++        && server.password.size() <= 255
++        && server.password.find('\0') == std::string::npos
++        && isSafeManagedAddress(server);
++}
++
++std::vector<RtcServer> managedRelays(
++        std::vector<RtcServer> const &servers) {
++    auto result = std::vector<RtcServer>();
++    for (const auto &server : servers) {
++        if (isSafeManagedReflector(server) || isSafeManagedTurn(server)) {
++            result.push_back(server);
++        }
++    }
++    return result;
++}
++
+ class CryptStringImpl : public rtc::CryptStringImpl {
+ public:
+     CryptStringImpl(std::string const &value) :
+@@ -173,15 +255,28 @@ private:
+ 
+ class WrappedBasicPacketSocketFactory : public rtc::PacketSocketFactory {
+ public:
+-    WrappedBasicPacketSocketFactory(std::unique_ptr<rtc::BasicPacketSocketFactory> &&impl, bool standaloneReflectorMode) :
++    WrappedBasicPacketSocketFactory(
++        std::unique_ptr<rtc::BasicPacketSocketFactory> &&impl,
++        bool standaloneReflectorMode,
++        rtc::SocketFactory *underlyingSocketFactory,
++        const rtc::ProxyInfo *managedProxy) :
+     _impl(std::move(impl)),
+-    _standaloneReflectorMode(standaloneReflectorMode) {
++    _standaloneReflectorMode(standaloneReflectorMode),
++    _underlyingSocketFactory(underlyingSocketFactory),
++    _managedProxy(managedProxy
++        ? std::make_unique<rtc::ProxyInfo>(*managedProxy)
++        : nullptr) {
+     }
+ 
+     virtual ~WrappedBasicPacketSocketFactory() {
+     }
+ 
+     virtual rtc::AsyncPacketSocket *CreateUdpSocket(const rtc::SocketAddress& address, uint16_t min_port, uint16_t max_port) override {
++        if (_managedProxy) {
++            return CreateSocks5UdpSocket(
++                _underlyingSocketFactory,
++                *_managedProxy);
++        }
+         in_addr v4addr;
+         inet_pton(AF_INET, "0.1.2.3", &v4addr);
+         rtc::IPAddress ipAddress(v4addr);
+@@ -197,6 +292,9 @@ public:
+     }
+     
+     virtual rtc::AsyncListenSocket *CreateServerTcpSocket(const rtc::SocketAddress &local_address, uint16_t min_port, uint16_t max_port, int opts) override {
++        if (_managedProxy) {
++            return nullptr;
++        }
+         in_addr v4addr;
+         inet_pton(AF_INET, "0.1.2.3", &v4addr);
+         rtc::IPAddress ipAddress(v4addr);
+@@ -208,6 +306,9 @@ public:
+     }
+ 
+     virtual rtc::AsyncPacketSocket *CreateClientTcpSocket(const rtc::SocketAddress &local_address, const rtc::SocketAddress& remote_address, const rtc::ProxyInfo& proxy_info, const std::string &user_agent, const rtc::PacketSocketTcpOptions& tcp_options) override {
++        if (_managedProxy) {
++            return nullptr;
++        }
+         in_addr v4addr;
+         inet_pton(AF_INET, "0.1.2.3", &v4addr);
+         rtc::IPAddress ipAddress(v4addr);
+@@ -224,6 +325,9 @@ public:
+ private:
+     std::unique_ptr<rtc::BasicPacketSocketFactory> _impl;
+     bool _standaloneReflectorMode = false;
++    rtc::SocketFactory *_underlyingSocketFactory = nullptr;
++    std::unique_ptr<rtc::ProxyInfo> _managedProxy;
++
+ };
+ 
+ class WrappedNetworkManager: public rtc::NetworkManager, public sigslot::has_slots<> {
+@@ -519,11 +623,34 @@ _dataChannelMessageReceived(configuration.dataChannelMessageReceived) {
+     _underlyingSocketFactory = _threads->getNetworkThread()->socketserver();
+     
+     _networkMonitorFactory = PlatformInterface::SharedInstance()->createNetworkMonitorFactory();
+-    if (getCustomParameterBool(_customParameters, "network_standalone_reflectors")) {
+-        _socketFactory = std::make_unique<WrappedBasicPacketSocketFactory>(std::make_unique<rtc::BasicPacketSocketFactory>(_threads->getNetworkThread()->socketserver()), true);
++    const auto standaloneReflectorMode = getCustomParameterBool(
++        _customParameters,
++        "network_standalone_reflectors");
++    auto managedProxy = std::unique_ptr<rtc::ProxyInfo>();
++    if (_proxy && _proxy->managed) {
++        managedProxy = std::make_unique<rtc::ProxyInfo>();
++        managedProxy->type = rtc::PROXY_SOCKS5;
++        managedProxy->address = rtc::SocketAddress(
++            _proxy->host,
++            _proxy->port);
++        managedProxy->username = _proxy->login;
++        managedProxy->password = rtc::CryptString(
++            CryptStringImpl(_proxy->password));
++    }
++    if (standaloneReflectorMode || managedProxy) {
++        _socketFactory = std::make_unique<WrappedBasicPacketSocketFactory>(
++            std::make_unique<rtc::BasicPacketSocketFactory>(
++                _underlyingSocketFactory),
++            standaloneReflectorMode,
++            _underlyingSocketFactory,
++            managedProxy.get());
++    } else {
++        _socketFactory = std::make_unique<rtc::BasicPacketSocketFactory>(
++            _underlyingSocketFactory);
++    }
++    if (standaloneReflectorMode) {
+         _networkManager = std::make_unique<WrappedNetworkManager>(_networkMonitorFactory.get(), _threads->getNetworkThread()->socketserver());
+     } else {
+-        _socketFactory = std::make_unique<rtc::BasicPacketSocketFactory>(_threads->getNetworkThread()->socketserver());
+         _networkManager = std::make_unique<rtc::BasicNetworkManager>(_networkMonitorFactory.get(), _threads->getNetworkThread()->socketserver());
+     }
+     
+@@ -579,7 +706,22 @@ void NativeNetworkingImpl::resetDtlsSrtpTransport() {
+         }
+     }
+     
+-    _relayPortFactory.reset(new ReflectorRelayPortFactory(_rtcServers, standaloneReflectorMode, standaloneReflectorRoleId, _underlyingSocketFactory));
++    auto rtcServers = _rtcServers;
++    const auto managedRoute = _proxy && _proxy->managed;
++    auto managedProxyIsValid = false;
++    auto managedProxyAddress = rtc::SocketAddress();
++    if (managedRoute) {
++        managedProxyAddress = rtc::SocketAddress(_proxy->host, _proxy->port);
++        managedProxyIsValid = isValidManagedProxy(*_proxy, managedProxyAddress);
++        rtcServers = managedProxyIsValid
++            ? managedRelays(_rtcServers)
++            : std::vector<RtcServer>();
++        _managedRouteIsValid = managedProxyIsValid && !rtcServers.empty();
++    } else {
++        _managedRouteIsValid = true;
++    }
++
++    _relayPortFactory.reset(new ReflectorRelayPortFactory(rtcServers, standaloneReflectorMode, standaloneReflectorRoleId, _underlyingSocketFactory));
+ 
+     _portAllocator.reset(new cricket::BasicPortAllocator(_networkManager.get(), _socketFactory.get(), _turnCustomizer.get(), _relayPortFactory.get()));
+ 
+@@ -597,16 +739,35 @@ void NativeNetworkingImpl::resetDtlsSrtpTransport() {
+         cricket::PORTALLOCATOR_ENABLE_IPV6 |
+         cricket::PORTALLOCATOR_ENABLE_IPV6_ON_WIFI;
+ 
+-    if (!_enableTCP) {
++    if (managedRoute) {
+         flags |= cricket::PORTALLOCATOR_DISABLE_TCP;
+-    }
+-    
+-    if (_proxy || !_enableP2P) {
+         flags |= cricket::PORTALLOCATOR_DISABLE_UDP;
+         flags |= cricket::PORTALLOCATOR_DISABLE_STUN;
+-        uint32_t candidateFilter = _portAllocator->candidate_filter();
+-        candidateFilter &= ~(cricket::CF_REFLEXIVE);
+-        _portAllocator->SetCandidateFilter(candidateFilter);
++        _portAllocator->SetCandidateFilter(
++            _managedRouteIsValid ? cricket::CF_RELAY : cricket::CF_NONE);
++        if (!_managedRouteIsValid) {
++            flags |= cricket::PORTALLOCATOR_DISABLE_RELAY;
++        }
++        if (managedProxyIsValid) {
++            auto proxyInfo = rtc::ProxyInfo();
++            proxyInfo.type = rtc::PROXY_SOCKS5;
++            proxyInfo.address = managedProxyAddress;
++            proxyInfo.username = _proxy->login;
++            proxyInfo.password = rtc::CryptString(
++                CryptStringImpl(_proxy->password));
++            _portAllocator->set_proxy("t/1.0", proxyInfo);
++        }
++    } else {
++        if (!_enableTCP) {
++            flags |= cricket::PORTALLOCATOR_DISABLE_TCP;
++        }
++        if (_proxy || !_enableP2P) {
++            flags |= cricket::PORTALLOCATOR_DISABLE_UDP;
++            flags |= cricket::PORTALLOCATOR_DISABLE_STUN;
++            uint32_t candidateFilter = _portAllocator->candidate_filter();
++            candidateFilter &= ~(cricket::CF_REFLEXIVE);
++            _portAllocator->SetCandidateFilter(candidateFilter);
++        }
+     }
+     
+     _portAllocator->set_step_delay(cricket::kMinimumStepDelay);
+@@ -617,7 +778,7 @@ void NativeNetworkingImpl::resetDtlsSrtpTransport() {
+     cricket::ServerAddresses stunServers;
+     std::vector<cricket::RelayServerConfig> turnServers;
+ 
+-    for (auto &server : _rtcServers) {
++    for (auto &server : rtcServers) {
+         if (server.isTurn) {
+             turnServers.push_back(cricket::RelayServerConfig(
+                 rtc::SocketAddress(server.host, server.port),
+@@ -692,6 +853,13 @@ void NativeNetworkingImpl::resetDtlsSrtpTransport() {
+ }
+ 
+ void NativeNetworkingImpl::start() {
++    if (!_managedRouteIsValid) {
++        RTC_LOG(LS_ERROR) << "Managed proxy route was rejected.";
++        _isFailed = true;
++        notifyStateUpdated();
++        return;
++    }
++
+     _transportChannel->MaybeStartGathering();
+ 
+     rtc::PacketTransportInternal *sctpPacketTransport = nullptr;
+diff --git a/tgcalls/v2/NativeNetworkingImpl.h b/tgcalls/v2/NativeNetworkingImpl.h
+index 6810b0e..d0b3de4 100644
+--- a/tgcalls/v2/NativeNetworkingImpl.h
++++ b/tgcalls/v2/NativeNetworkingImpl.h
+@@ -101,6 +101,7 @@ private:
+     bool _enableP2P = false;
+     std::vector<RtcServer> _rtcServers;
+     absl::optional<Proxy> _proxy;
++    bool _managedRouteIsValid = true;
+     std::map<std::string, json11::Json> _customParameters;
+ 
+     std::function<void(const InstanceNetworking::State &)> _stateUpdated;
+diff --git a/tgcalls/v2/RawTcpSocketFactory.cpp b/tgcalls/v2/RawTcpSocketFactory.cpp
+new file mode 100644
+index 0000000..c53abe6
+--- /dev/null
++++ b/tgcalls/v2/RawTcpSocketFactory.cpp
+@@ -0,0 +1,140 @@
++/*
++ *  Copyright 2004 The WebRTC Project Authors. All rights reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++#include "v2/RawTcpSocketFactory.h"
++
++#include <memory>
++#include <string>
++
++#include "rtc_base/async_packet_socket.h"
++#include "rtc_base/ip_address.h"
++#include "rtc_base/logging.h"
++#include "rtc_base/socket.h"
++#include "rtc_base/socket_factory.h"
++
++#include "v2/RawTcpSocket.h"
++#include "v2/Socks5ProxySocket.h"
++
++namespace tgcalls {
++namespace {
++
++[[nodiscard]] bool IsInternetFamily(int family) {
++    return family == AF_INET || family == AF_INET6;
++}
++
++[[nodiscard]] bool ValidRemoteAddress(
++        const rtc::SocketAddress &address) {
++    if (!address.port()) {
++        return false;
++    } else if (address.IsUnresolvedIP()) {
++        const auto hostname = address.hostname();
++        return !hostname.empty()
++            && hostname.size() <= 255
++            && hostname.find('\0') == std::string::npos;
++    }
++    return IsInternetFamily(address.family())
++        && !address.IsAnyIP()
++        && (address.family() != AF_INET6 || address.scope_id() == 0);
++}
++
++[[nodiscard]] bool ValidSocks5Proxy(const rtc::ProxyInfo &proxy) {
++    const auto userLength = proxy.username.size();
++    const auto passwordLength = proxy.password.GetLength();
++    return proxy.type == rtc::PROXY_SOCKS5
++        && proxy.address.port()
++        && !proxy.address.IsUnresolvedIP()
++        && IsInternetFamily(proxy.address.family())
++        && !proxy.address.IsAnyIP()
++        && userLength > 0
++        && userLength <= 255
++        && passwordLength > 0
++        && passwordLength <= 255;
++}
++
++[[nodiscard]] int BindSocket(
++        rtc::Socket *socket,
++        const rtc::SocketAddress &address) {
++    const auto result = socket->Bind(address);
++    if (result < 0 && address.IsAnyIP()) {
++        RTC_LOG(LS_WARNING)
++            << "TCP wildcard bind failed with error "
++            << socket->GetError()
++            << "; allowing Connect to bind the socket.";
++        return 0;
++    }
++    return result;
++}
++
++} // namespace
++
++rtc::AsyncPacketSocket *CreateRawTcpSocket(
++        rtc::SocketFactory *socketFactory,
++        const rtc::SocketAddress &localAddress,
++        const rtc::SocketAddress &remoteAddress,
++        const rtc::ProxyInfo &proxy) {
++    if (!socketFactory || !ValidRemoteAddress(remoteAddress)) {
++        RTC_LOG(LS_ERROR) << "Invalid raw TCP socket input.";
++        return nullptr;
++    }
++
++    const auto proxied = (proxy.type != rtc::PROXY_NONE);
++    if (proxied && !ValidSocks5Proxy(proxy)) {
++        RTC_LOG(LS_ERROR) << "Invalid or unsupported raw TCP proxy.";
++        return nullptr;
++    } else if (!proxied && !IsInternetFamily(localAddress.family())) {
++        RTC_LOG(LS_ERROR) << "Invalid direct raw TCP local address.";
++        return nullptr;
++    }
++
++    const auto socketFamily = proxied
++        ? proxy.address.family()
++        : localAddress.family();
++    auto socket = std::unique_ptr<rtc::Socket>(
++        socketFactory->CreateSocket(socketFamily, SOCK_STREAM));
++    if (!socket) {
++        return nullptr;
++    }
++
++    // A loopback sidecar cannot be reached from a socket bound to a selected
++    // external interface address. For proxied sockets, bind a wildcard address
++    // in the proxy's family and let the OS select the loopback source address.
++    const auto bindAddress = proxied
++        ? rtc::SocketAddress(rtc::GetAnyIP(socketFamily), 0)
++        : localAddress;
++    if (BindSocket(socket.get(), bindAddress) < 0) {
++        RTC_LOG(LS_ERROR)
++            << "TCP bind failed with error "
++            << socket->GetError();
++        return nullptr;
++    }
++
++    if (socket->SetOption(rtc::Socket::OPT_NODELAY, 1) != 0) {
++        RTC_LOG(LS_ERROR)
++            << "Setting TCP_NODELAY failed with error "
++            << socket->GetError();
++    }
++
++    if (proxied) {
++        socket = std::make_unique<Socks5ProxySocket>(
++            socket.release(),
++            proxy.address,
++            proxy.username,
++            proxy.password);
++    }
++    if (socket->Connect(remoteAddress) < 0) {
++        RTC_LOG(LS_ERROR)
++            << "TCP connect failed with error "
++            << socket->GetError();
++        return nullptr;
++    }
++    return new rtc::RawTcpSocket(socket.release());
++}
++
++} // namespace tgcalls
+diff --git a/tgcalls/v2/RawTcpSocketFactory.h b/tgcalls/v2/RawTcpSocketFactory.h
+new file mode 100644
+index 0000000..5f3c847
+--- /dev/null
++++ b/tgcalls/v2/RawTcpSocketFactory.h
+@@ -0,0 +1,37 @@
++/*
++ *  Copyright 2004 The WebRTC Project Authors. All rights reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++#ifndef TGCALLS_V2_RAW_TCP_SOCKET_FACTORY_H_
++#define TGCALLS_V2_RAW_TCP_SOCKET_FACTORY_H_
++
++#include "rtc_base/proxy_info.h"
++#include "rtc_base/socket_address.h"
++
++namespace rtc {
++class AsyncPacketSocket;
++class SocketFactory;
++} // namespace rtc
++
++namespace tgcalls {
++
++// Creates a Telegram-framed raw TCP packet socket. Ownership is transferred
++// to the caller. PROXY_NONE preserves the direct legacy path. PROXY_SOCKS5
++// requires a resolved proxy address and nonempty RFC 1929 credentials. Every
++// other proxy type, invalid proxy input, and proxy failure returns nullptr;
++// there is no direct fallback.
++[[nodiscard]] rtc::AsyncPacketSocket *CreateRawTcpSocket(
++    rtc::SocketFactory *socketFactory,
++    const rtc::SocketAddress &localAddress,
++    const rtc::SocketAddress &remoteAddress,
++    const rtc::ProxyInfo &proxy);
++
++} // namespace tgcalls
++
++#endif // TGCALLS_V2_RAW_TCP_SOCKET_FACTORY_H_
+diff --git a/tgcalls/v2/ReflectorPort.cpp b/tgcalls/v2/ReflectorPort.cpp
+index 2004c43..1130c88 100644
+--- a/tgcalls/v2/ReflectorPort.cpp
++++ b/tgcalls/v2/ReflectorPort.cpp
+@@ -23,7 +23,7 @@
+ #include "system_wrappers/include/field_trial.h"
+ #include "rtc_base/byte_order.h"
+ 
+-#include "RawTcpSocket.h"
++#include "v2/RawTcpSocketFactory.h"
+ 
+ namespace tgcalls {
+ 
+@@ -41,73 +41,6 @@ rtc::CopyOnWriteBuffer parseHex(std::string const &string) {
+     return result;
+ }
+ 
+-int BindSocket(rtc::Socket* socket,
+-               const rtc::SocketAddress& local_address,
+-               uint16_t min_port,
+-               uint16_t max_port) {
+-    int ret = -1;
+-    if (min_port == 0 && max_port == 0) {
+-        // If there's no port range, let the OS pick a port for us.
+-        ret = socket->Bind(local_address);
+-    } else {
+-        // Otherwise, try to find a port in the provided range.
+-        for (int port = min_port; ret < 0 && port <= max_port; ++port) {
+-            ret = socket->Bind(rtc::SocketAddress(local_address.ipaddr(), port));
+-        }
+-    }
+-    return ret;
+-}
+-
+-rtc::AsyncPacketSocket *CreateClientRawTcpSocket(
+-                                              rtc::SocketFactory *socket_factory_,
+-                                              const rtc::SocketAddress& local_address,
+-                                              const rtc::SocketAddress& remote_address,
+-                                              const rtc::ProxyInfo& proxy_info,
+-                                              const std::string& user_agent,
+-                                              const rtc::PacketSocketTcpOptions& tcp_options) {
+-    rtc::Socket* socket =
+-    socket_factory_->CreateSocket(local_address.family(), SOCK_STREAM);
+-    if (!socket) {
+-        return NULL;
+-    }
+-    
+-    if (BindSocket(socket, local_address, 0, 0) < 0) {
+-        // Allow BindSocket to fail if we're binding to the ANY address, since this
+-        // is mostly redundant in the first place. The socket will be bound when we
+-        // call Connect() instead.
+-        if (local_address.IsAnyIP()) {
+-            RTC_LOG(LS_WARNING) << "TCP bind failed with error " << socket->GetError()
+-            << "; ignoring since socket is using 'any' address.";
+-        } else {
+-            RTC_LOG(LS_ERROR) << "TCP bind failed with error " << socket->GetError();
+-            delete socket;
+-            return NULL;
+-        }
+-    }
+-    
+-    // Set TCP_NODELAY (via OPT_NODELAY) for improved performance; this causes
+-    // small media packets to be sent immediately rather than being buffered up,
+-    // reducing latency.
+-    //
+-    // Must be done before calling Connect, otherwise it may fail.
+-    if (socket->SetOption(rtc::Socket::OPT_NODELAY, 1) != 0) {
+-        RTC_LOG(LS_ERROR) << "Setting TCP_NODELAY option failed with error "
+-        << socket->GetError();
+-    }
+-    
+-    if (socket->Connect(remote_address) < 0) {
+-        RTC_LOG(LS_ERROR) << "TCP connect failed with error " << socket->GetError();
+-        delete socket;
+-        return NULL;
+-    }
+-    
+-    // Finally, wrap that socket in a TCP or STUN TCP packet socket.
+-    rtc::AsyncPacketSocket* tcp_socket;
+-    tcp_socket = new rtc::RawTcpSocket(socket);
+-    
+-    return tcp_socket;
+-}
+-
+ }
+ 
+ static int GetRelayPreference(cricket::ProtocolType proto) {
+@@ -228,13 +161,12 @@ ReflectorPort::~ReflectorPort() {
+         Release();
+     }
+ 
++    if (server_address_.proto == cricket::PROTO_TCP && socket_) {
++        socket_->UnsubscribeCloseEvent(this);
++    }
+     if (!SharedSocket()) {
+         delete socket_;
+     }
+-    
+-    if (server_address_.proto == cricket::PROTO_TCP) {
+-        socket_->UnsubscribeCloseEvent(this);
+-    }
+ }
+ 
+ rtc::SocketAddress ReflectorPort::GetLocalAddress() const {
+@@ -374,14 +306,11 @@ bool ReflectorPort::CreateReflectorClientSocket() {
+         }
+     } else if (server_address_.proto == cricket::PROTO_TCP) {
+         RTC_DCHECK(!SharedSocket());
+-        int opts = 0;
+-
+-        rtc::PacketSocketTcpOptions tcp_options;
+-        tcp_options.opts = opts;
+-        socket_ = CreateClientRawTcpSocket(
++        socket_ = CreateRawTcpSocket(
+             underlying_socket_factory_,
+-            rtc::SocketAddress(Network()->GetBestIP(), 0), server_address_.address,
+-            proxy(), user_agent(), tcp_options);
++            rtc::SocketAddress(Network()->GetBestIP(), 0),
++            server_address_.address,
++            proxy());
+     }
+ 
+     if (!socket_) {
+diff --git a/tgcalls/v2/Socks5ProxySocket.cpp b/tgcalls/v2/Socks5ProxySocket.cpp
+new file mode 100644
+index 0000000..9e5c7c2
+--- /dev/null
++++ b/tgcalls/v2/Socks5ProxySocket.cpp
+@@ -0,0 +1,362 @@
++/*
++ *  Copyright 2004 The WebRTC Project Authors. All rights reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++#include "v2/Socks5ProxySocket.h"
++
++#include <cstring>
++#include <string>
++
++#include "rtc_base/byte_buffer.h"
++#include "rtc_base/checks.h"
++#include "rtc_base/socket.h"
++
++namespace tgcalls {
++namespace {
++
++constexpr auto kSocksVersion = uint8_t(5);
++constexpr auto kPasswordAuthentication = uint8_t(2);
++constexpr auto kAuthenticationVersion = uint8_t(1);
++constexpr auto kConnectCommand = uint8_t(1);
++constexpr auto kAddressIpv4 = uint8_t(1);
++constexpr auto kAddressDomain = uint8_t(3);
++constexpr auto kAddressIpv6 = uint8_t(4);
++constexpr auto kHandshakeBufferSize = size_t(1024);
++
++[[nodiscard]] bool IsInternetFamily(int family) {
++    return family == AF_INET || family == AF_INET6;
++}
++
++[[nodiscard]] bool IsValidProxyAddress(
++        const rtc::SocketAddress &address) {
++    return address.port()
++        && !address.IsUnresolvedIP()
++        && IsInternetFamily(address.family())
++        && !address.IsAnyIP();
++}
++
++[[nodiscard]] bool IsValidDestination(
++        const rtc::SocketAddress &address) {
++    if (!address.port()) {
++        return false;
++    } else if (address.IsUnresolvedIP()) {
++        const auto hostname = address.hostname();
++        return !hostname.empty()
++            && hostname.size() <= 255
++            && hostname.find('\0') == std::string::npos;
++    }
++    return IsInternetFamily(address.family())
++        && !address.IsAnyIP()
++        && (address.family() != AF_INET6 || address.scope_id() == 0);
++}
++
++} // namespace
++
++Socks5ProxySocket::Socks5ProxySocket(
++    rtc::Socket *socket,
++    const rtc::SocketAddress &proxy,
++    absl::string_view username,
++    const rtc::CryptString &password)
++: rtc::BufferedReadAdapter(socket, kHandshakeBufferSize)
++, _proxy(proxy)
++, _username(username.data(), username.size())
++, _password(password.GetLength()) {
++    password.CopyTo(_password.data(), false);
++}
++
++Socks5ProxySocket::~Socks5ProxySocket() {
++    clearSensitiveState();
++}
++
++int Socks5ProxySocket::Connect(const rtc::SocketAddress &destination) {
++    if (_state != State::Idle
++        || !IsValidProxyAddress(_proxy)
++        || _username.empty()
++        || _username.size() > 255
++        || _password.empty()
++        || _password.size() > 255
++        || !IsValidDestination(destination)) {
++        if (_state == State::Idle) {
++            enterTerminal(SOCKET_EACCES);
++        } else {
++            SetError(SOCKET_EACCES);
++        }
++        return -1;
++    }
++    _destination = destination;
++    _state = State::Initial;
++    BufferInput(true);
++    const auto result = rtc::BufferedReadAdapter::Connect(_proxy);
++    if (result < 0) {
++        enterTerminal(GetError());
++    }
++    return result;
++}
++
++rtc::SocketAddress Socks5ProxySocket::GetRemoteAddress() const {
++    return _destination;
++}
++
++int Socks5ProxySocket::Close() {
++    enterTerminal(0);
++    return rtc::BufferedReadAdapter::Close();
++}
++
++rtc::Socket::ConnState Socks5ProxySocket::GetState() const {
++    if (_state == State::Tunnel) {
++        return rtc::Socket::CS_CONNECTED;
++    } else if (_state == State::Idle || _state == State::Error) {
++        return rtc::Socket::CS_CLOSED;
++    }
++    return rtc::Socket::CS_CONNECTING;
++}
++
++void Socks5ProxySocket::OnConnectEvent(rtc::Socket *) {
++    if (_state != State::Initial) {
++        fail(SOCKET_EACCES);
++        return;
++    }
++    sendGreeting();
++}
++
++void Socks5ProxySocket::OnWriteEvent(rtc::Socket *socket) {
++    if (_state == State::Tunnel) {
++        rtc::BufferedReadAdapter::OnWriteEvent(socket);
++    } else if (_state != State::Error) {
++        flushHandshake();
++    }
++}
++
++void Socks5ProxySocket::OnCloseEvent(rtc::Socket *, int error) {
++    if (!enterTerminal(error)) {
++        return;
++    }
++    SignalCloseEvent(this, error);
++}
++
++void Socks5ProxySocket::ProcessInput(char *data, size_t *length) {
++    RTC_DCHECK(_state != State::Tunnel);
++    RTC_DCHECK(_state != State::Error);
++    if (!_pendingOutput.empty()) {
++        fail(SOCKET_EACCES);
++        return;
++    }
++
++    auto response = rtc::ByteBufferReader(rtc::MakeArrayView(
++        reinterpret_cast<const uint8_t*>(data),
++        *length));
++    if (_state == State::Greeting) {
++        auto version = uint8_t();
++        auto method = uint8_t();
++        if (!response.ReadUInt8(&version) || !response.ReadUInt8(&method)) {
++            return;
++        }
++        if (version != kSocksVersion || method != kPasswordAuthentication) {
++            fail(SOCKET_EACCES);
++            return;
++        }
++        if (!sendAuthentication()) {
++            return;
++        }
++    } else if (_state == State::Authentication) {
++        auto version = uint8_t();
++        auto status = uint8_t();
++        if (!response.ReadUInt8(&version) || !response.ReadUInt8(&status)) {
++            return;
++        }
++        if (version != kAuthenticationVersion || status != 0) {
++            fail(SOCKET_EACCES);
++            return;
++        }
++        if (!sendConnect()) {
++            return;
++        }
++    } else if (_state == State::Connect) {
++        auto version = uint8_t();
++        auto reply = uint8_t();
++        auto reserved = uint8_t();
++        auto addressType = uint8_t();
++        if (!response.ReadUInt8(&version)
++            || !response.ReadUInt8(&reply)
++            || !response.ReadUInt8(&reserved)
++            || !response.ReadUInt8(&addressType)) {
++            return;
++        }
++        if (version != kSocksVersion || reply != 0 || reserved != 0) {
++            fail(SOCKET_EACCES);
++            return;
++        }
++
++        if (addressType == kAddressIpv4) {
++            if (!response.Consume(4 + 2)) {
++                return;
++            }
++        } else if (addressType == kAddressDomain) {
++            auto addressLength = uint8_t();
++            if (!response.ReadUInt8(&addressLength)) {
++                return;
++            }
++            if (!addressLength) {
++                fail(SOCKET_EACCES);
++                return;
++            }
++            if (!response.Consume(size_t(addressLength) + 2)) {
++                return;
++            }
++        } else if (addressType == kAddressIpv6) {
++            if (!response.Consume(16 + 2)) {
++                return;
++            }
++        } else {
++            fail(SOCKET_EACCES);
++            return;
++        }
++        _state = State::Tunnel;
++    } else {
++        fail(SOCKET_EACCES);
++        return;
++    }
++
++    *length = response.Length();
++    if (*length) {
++        std::memmove(data, response.Data(), *length);
++    }
++    if (_state != State::Tunnel) {
++        return;
++    } else if (*length != 0) {
++        // Reflectors do not send application data before the client hello.
++        // Reject ambiguous bytes rather than exposing them across the state
++        // transition or risking a use-after-free after SignalConnectEvent.
++        *length = 0;
++        fail(SOCKET_EACCES);
++        return;
++    }
++    BufferInput(false);
++    SignalConnectEvent(this);
++}
++
++bool Socks5ProxySocket::sendGreeting() {
++    auto request = rtc::ByteBufferWriter();
++    request.WriteUInt8(kSocksVersion);
++    request.WriteUInt8(1);
++    request.WriteUInt8(kPasswordAuthentication);
++    _state = State::Greeting;
++    return queueHandshake(request.Data(), request.Length());
++}
++
++bool Socks5ProxySocket::sendAuthentication() {
++    auto request = rtc::ByteBufferWriterT<rtc::ZeroOnFreeBuffer<char>>();
++    request.WriteUInt8(kAuthenticationVersion);
++    request.WriteUInt8(static_cast<uint8_t>(_username.size()));
++    request.WriteString(absl::string_view(
++        _username.data(),
++        _username.size()));
++    request.WriteUInt8(static_cast<uint8_t>(_password.size()));
++    request.WriteString(absl::string_view(_password.data(), _password.size()));
++    _state = State::Authentication;
++    return queueHandshake(request.Data(), request.Length());
++}
++
++bool Socks5ProxySocket::sendConnect() {
++    auto request = rtc::ByteBufferWriter();
++    request.WriteUInt8(kSocksVersion);
++    request.WriteUInt8(kConnectCommand);
++    request.WriteUInt8(0);
++    if (_destination.IsUnresolvedIP()) {
++        const auto hostname = _destination.hostname();
++        request.WriteUInt8(kAddressDomain);
++        request.WriteUInt8(static_cast<uint8_t>(hostname.size()));
++        request.WriteString(hostname);
++    } else if (_destination.family() == AF_INET) {
++        const auto address = _destination.ipaddr().ipv4_address();
++        request.WriteUInt8(kAddressIpv4);
++        request.WriteBytes(
++            reinterpret_cast<const uint8_t*>(&address),
++            sizeof(address));
++    } else if (_destination.family() == AF_INET6) {
++        const auto address = _destination.ipaddr().ipv6_address();
++        request.WriteUInt8(kAddressIpv6);
++        request.WriteBytes(
++            reinterpret_cast<const uint8_t*>(&address),
++            sizeof(address));
++    } else {
++        fail(SOCKET_EACCES);
++        return false;
++    }
++    request.WriteUInt16(_destination.port());
++    _state = State::Connect;
++    return queueHandshake(request.Data(), request.Length());
++}
++
++bool Socks5ProxySocket::queueHandshake(const void *data, size_t length) {
++    if (!_pendingOutput.empty() || _pendingOffset != 0 || !length) {
++        fail(SOCKET_EACCES);
++        return false;
++    }
++    _pendingOutput = rtc::ZeroOnFreeBuffer<char>(
++        static_cast<const char*>(data),
++        length);
++    return flushHandshake();
++}
++
++bool Socks5ProxySocket::flushHandshake() {
++    while (_pendingOffset < _pendingOutput.size()) {
++        const auto sent = DirectSend(
++            _pendingOutput.data() + _pendingOffset,
++            _pendingOutput.size() - _pendingOffset);
++        if (sent > 0) {
++            _pendingOffset += size_t(sent);
++            continue;
++        } else if (sent < 0 && rtc::IsBlockingError(GetError())) {
++            return true;
++        }
++        fail((sent < 0) ? GetError() : SOCKET_EACCES);
++        return false;
++    }
++    _pendingOutput.Clear();
++    _pendingOffset = 0;
++    if (_state == State::Authentication) {
++        clearCredentials();
++    }
++    return true;
++}
++
++void Socks5ProxySocket::clearCredentials() {
++    _username.Clear();
++    _password.Clear();
++}
++
++void Socks5ProxySocket::clearSensitiveState() {
++    clearCredentials();
++    _pendingOutput.Clear();
++    _pendingOffset = 0;
++}
++
++bool Socks5ProxySocket::enterTerminal(int error) {
++    if (_state == State::Error) {
++        return false;
++    }
++    _state = State::Error;
++    BufferInput(false);
++    _destination.Clear();
++    clearSensitiveState();
++    SetError(error);
++    return true;
++}
++
++void Socks5ProxySocket::fail(int error) {
++    const auto terminalError = error ? error : SOCKET_EACCES;
++    if (!enterTerminal(terminalError)) {
++        return;
++    }
++    rtc::BufferedReadAdapter::Close();
++    SignalCloseEvent(this, terminalError);
++}
++
++} // namespace tgcalls
+diff --git a/tgcalls/v2/Socks5ProxySocket.h b/tgcalls/v2/Socks5ProxySocket.h
+new file mode 100644
+index 0000000..4acb01b
+--- /dev/null
++++ b/tgcalls/v2/Socks5ProxySocket.h
+@@ -0,0 +1,84 @@
++/*
++ *  Copyright 2004 The WebRTC Project Authors. All rights reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++#ifndef TGCALLS_V2_SOCKS5_PROXY_SOCKET_H_
++#define TGCALLS_V2_SOCKS5_PROXY_SOCKET_H_
++
++#include <cstddef>
++#include <cstdint>
++
++#include "absl/strings/string_view.h"
++#include "rtc_base/buffer.h"
++#include "rtc_base/crypt_string.h"
++#include "rtc_base/socket_adapters.h"
++#include "rtc_base/socket_address.h"
++
++namespace tgcalls {
++
++// A SOCKS5 CONNECT adapter which requires RFC 1929 username/password
++// authentication. The wrapped socket connects only to `proxy`; `destination`
++// is sent inside the SOCKS tunnel.
++class Socks5ProxySocket final : public rtc::BufferedReadAdapter {
++public:
++    Socks5ProxySocket(
++        rtc::Socket *socket,
++        const rtc::SocketAddress &proxy,
++        absl::string_view username,
++        const rtc::CryptString &password);
++    ~Socks5ProxySocket() override;
++
++    Socks5ProxySocket(const Socks5ProxySocket &) = delete;
++    Socks5ProxySocket &operator=(const Socks5ProxySocket &) = delete;
++
++    int Connect(const rtc::SocketAddress &destination) override;
++    rtc::SocketAddress GetRemoteAddress() const override;
++    int Close() override;
++    ConnState GetState() const override;
++
++protected:
++    void OnConnectEvent(rtc::Socket *socket) override;
++    void OnWriteEvent(rtc::Socket *socket) override;
++    void OnCloseEvent(rtc::Socket *socket, int error) override;
++    void ProcessInput(char *data, size_t *length) override;
++
++private:
++    enum class State {
++        Idle,
++        Initial,
++        Greeting,
++        Authentication,
++        Connect,
++        Tunnel,
++        Error,
++    };
++
++    bool sendGreeting();
++    bool sendAuthentication();
++    bool sendConnect();
++    bool queueHandshake(const void *data, size_t length);
++    bool flushHandshake();
++    void clearCredentials();
++    void clearSensitiveState();
++    bool enterTerminal(int error);
++    void fail(int error);
++
++    State _state = State::Idle;
++    rtc::SocketAddress _proxy;
++    rtc::SocketAddress _destination;
++    rtc::ZeroOnFreeBuffer<char> _username;
++    rtc::ZeroOnFreeBuffer<char> _password;
++    rtc::ZeroOnFreeBuffer<char> _pendingOutput;
++    size_t _pendingOffset = 0;
++
++};
++
++} // namespace tgcalls
++
++#endif // TGCALLS_V2_SOCKS5_PROXY_SOCKET_H_
+diff --git a/tgcalls/v2/Socks5UdpSocketFactory.cpp b/tgcalls/v2/Socks5UdpSocketFactory.cpp
+new file mode 100644
+index 0000000..cd48abe
+--- /dev/null
++++ b/tgcalls/v2/Socks5UdpSocketFactory.cpp
+@@ -0,0 +1,921 @@
++/*
++ *  Copyright 2004 The WebRTC Project Authors. All rights reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++#include "v2/Socks5UdpSocketFactory.h"
++
++#include <algorithm>
++#include <array>
++#include <cstdint>
++#include <cstring>
++#include <deque>
++#include <memory>
++#include <string>
++#include <utility>
++#include <vector>
++
++#include "rtc_base/network/received_packet.h"
++#include "rtc_base/network/sent_packet.h"
++#include "rtc_base/async_packet_socket.h"
++#include "rtc_base/buffer.h"
++#include "rtc_base/ip_address.h"
++#include "rtc_base/logging.h"
++#include "rtc_base/proxy_info.h"
++#include "rtc_base/socket.h"
++#include "rtc_base/socket_factory.h"
++#include "rtc_base/time_utils.h"
++
++namespace tgcalls {
++namespace {
++
++constexpr auto kSocksVersion = uint8_t(5);
++constexpr auto kPasswordAuthentication = uint8_t(2);
++constexpr auto kAuthenticationVersion = uint8_t(1);
++constexpr auto kUdpAssociateCommand = uint8_t(3);
++constexpr auto kAddressIpv4 = uint8_t(1);
++constexpr auto kAddressIpv6 = uint8_t(4);
++constexpr auto kMaxHandshakeInput = size_t(64);
++constexpr auto kMaxQueuedPackets = size_t(16);
++constexpr auto kMaxQueuedBytes = size_t(64 * 1024);
++constexpr auto kMaxUdpPayload = size_t(65507 - 22);
++constexpr auto kReceiveBufferSize = size_t(65536);
++
++#ifdef TDESKTOP_VLESS_DEBUG_LOGS
++void DebugStage(const char *stage) {
++    RTC_LOG(LS_INFO) << "VLESS_CALL_UDP stage=" << stage;
++}
++
++void DebugFailure(const char *stage, int error) {
++    RTC_LOG(LS_INFO)
++        << "VLESS_CALL_UDP failure_stage=" << stage
++        << " error=" << error;
++}
++#else
++void DebugStage(const char *) {
++}
++
++void DebugFailure(const char *, int) {
++}
++#endif // TDESKTOP_VLESS_DEBUG_LOGS
++
++[[nodiscard]] bool IsInternetFamily(int family) {
++    return family == AF_INET || family == AF_INET6;
++}
++
++[[nodiscard]] bool IsValidProxyAddress(
++        const rtc::SocketAddress &address) {
++    return address.port()
++        && !address.IsUnresolvedIP()
++        && IsInternetFamily(address.family())
++        && address.IsLoopbackIP()
++        && (address.family() != AF_INET6 || address.scope_id() == 0);
++}
++
++[[nodiscard]] bool IsValidLogicalAddress(
++        const rtc::SocketAddress &address) {
++    return address.port()
++        && !address.IsUnresolvedIP()
++        && IsInternetFamily(address.family())
++        && !address.IsAnyIP()
++        && !address.IsLoopbackIP()
++        && (address.family() != AF_INET6 || address.scope_id() == 0);
++}
++
++struct Credentials {
++    rtc::ZeroOnFreeBuffer<char> username;
++    rtc::ZeroOnFreeBuffer<char> password;
++};
++
++[[nodiscard]] std::unique_ptr<Credentials> CopyCredentials(
++        const rtc::ProxyInfo &proxy) {
++    const auto usernameSize = proxy.username.size();
++    const auto passwordSize = proxy.password.GetLength();
++    if (usernameSize == 0
++        || usernameSize > 255
++        || passwordSize == 0
++        || passwordSize > 255) {
++        return nullptr;
++    }
++    auto result = std::make_unique<Credentials>();
++    result->username = rtc::ZeroOnFreeBuffer<char>(
++        proxy.username.data(),
++        usernameSize);
++    result->password.SetSize(passwordSize);
++    proxy.password.CopyTo(result->password.data(), false);
++    if (std::find(
++            result->username.begin(),
++            result->username.end(),
++            '\0') != result->username.end()
++        || std::find(
++            result->password.begin(),
++            result->password.end(),
++            '\0') != result->password.end()) {
++        return nullptr;
++    }
++    return result;
++}
++
++void AppendAddress(
++        std::vector<uint8_t> &result,
++        const rtc::SocketAddress &address) {
++    if (address.family() == AF_INET) {
++        const auto value = address.ipaddr().ipv4_address();
++        result.push_back(kAddressIpv4);
++        const auto bytes = reinterpret_cast<const uint8_t*>(&value);
++        result.insert(result.end(), bytes, bytes + sizeof(value));
++    } else {
++        const auto value = address.ipaddr().ipv6_address();
++        result.push_back(kAddressIpv6);
++        const auto bytes = reinterpret_cast<const uint8_t*>(&value);
++        result.insert(result.end(), bytes, bytes + sizeof(value));
++    }
++    result.push_back(uint8_t(address.port() >> 8));
++    result.push_back(uint8_t(address.port()));
++}
++
++[[nodiscard]] bool ReadAddress(
++        const uint8_t *data,
++        size_t size,
++        rtc::SocketAddress &address,
++        size_t &consumed) {
++    if (size < 1) {
++        return false;
++    }
++    const auto type = data[0];
++    const auto addressSize = (type == kAddressIpv4)
++        ? size_t(4)
++        : (type == kAddressIpv6)
++        ? size_t(16)
++        : size_t();
++    if (!addressSize || size < 1 + addressSize + 2) {
++        return false;
++    }
++    auto ip = rtc::IPAddress();
++    if (type == kAddressIpv4) {
++        auto value = in_addr();
++        std::memcpy(&value, data + 1, sizeof(value));
++        ip = rtc::IPAddress(value);
++    } else {
++        auto value = in6_addr();
++        std::memcpy(&value, data + 1, sizeof(value));
++        ip = rtc::IPAddress(value);
++    }
++    const auto portOffset = 1 + addressSize;
++    const auto port = (uint16_t(data[portOffset]) << 8)
++        | uint16_t(data[portOffset + 1]);
++    address = rtc::SocketAddress(ip, port);
++    consumed = portOffset + 2;
++    return true;
++}
++
++class Socks5UdpSocket final : public rtc::AsyncPacketSocket {
++public:
++    Socks5UdpSocket(
++        std::unique_ptr<rtc::Socket> tcp,
++        std::unique_ptr<rtc::Socket> udp,
++        const rtc::SocketAddress &proxy,
++        std::unique_ptr<Credentials> credentials,
++        std::function<void(int)> terminalFailure);
++    ~Socks5UdpSocket() override;
++
++    bool Start();
++
++    rtc::SocketAddress GetLocalAddress() const override;
++    rtc::SocketAddress GetRemoteAddress() const override;
++    int Send(
++        const void *data,
++        size_t size,
++        const rtc::PacketOptions &options) override;
++    int SendTo(
++        const void *data,
++        size_t size,
++        const rtc::SocketAddress &address,
++        const rtc::PacketOptions &options) override;
++    int Close() override;
++    State GetState() const override;
++    int GetOption(rtc::Socket::Option option, int *value) override;
++    int SetOption(rtc::Socket::Option option, int value) override;
++    int GetError() const override;
++    void SetError(int error) override;
++
++private:
++    enum class Stage {
++        Initial,
++        Greeting,
++        Authentication,
++        Association,
++        RelayConnecting,
++        Ready,
++        Closed,
++    };
++
++    struct PendingPacket {
++        std::vector<uint8_t> payload;
++        rtc::SocketAddress address;
++        rtc::PacketOptions options;
++    };
++
++    void OnTcpConnect(rtc::Socket *socket);
++    void OnTcpRead(rtc::Socket *socket);
++    void OnTcpWrite(rtc::Socket *socket);
++    void OnTcpClose(rtc::Socket *socket, int error);
++    void OnUdpConnect(rtc::Socket *socket);
++    void OnUdpRead(rtc::Socket *socket);
++    void OnUdpWrite(rtc::Socket *socket);
++    void OnUdpClose(rtc::Socket *socket, int error);
++
++    bool SendGreeting();
++    bool SendAuthentication();
++    bool SendAssociation();
++    bool QueueControl(const void *data, size_t size);
++    bool FlushControl();
++    void ProcessControlInput();
++    bool ConnectRelay(const rtc::SocketAddress &reported);
++    void RelayConnected();
++    bool FlushPackets();
++    bool SendPacket(const PendingPacket &packet);
++    void ReadRelayDatagram();
++    void EmitSent(
++        size_t payloadSize,
++        const rtc::PacketOptions &options);
++    void ClearCredentials();
++    void ClearSensitiveState();
++    bool EnterTerminal(int error);
++    void Fail(int error, const char *stage);
++
++    std::unique_ptr<rtc::Socket> _tcp;
++    std::unique_ptr<rtc::Socket> _udp;
++    rtc::SocketAddress _proxy;
++    rtc::SocketAddress _relay;
++    rtc::ZeroOnFreeBuffer<char> _username;
++    rtc::ZeroOnFreeBuffer<char> _password;
++    rtc::ZeroOnFreeBuffer<char> _controlOutput;
++    size_t _controlOffset = 0;
++    std::vector<uint8_t> _controlInput;
++    std::deque<PendingPacket> _pendingPackets;
++    size_t _pendingBytes = 0;
++    std::array<uint8_t, kReceiveBufferSize> _receiveBuffer = {};
++    Stage _stage = Stage::Initial;
++    int _error = 0;
++    std::shared_ptr<bool> _alive = std::make_shared<bool>(true);
++    std::function<void(int)> _terminalFailure;
++
++};
++
++Socks5UdpSocket::Socks5UdpSocket(
++    std::unique_ptr<rtc::Socket> tcp,
++    std::unique_ptr<rtc::Socket> udp,
++    const rtc::SocketAddress &proxy,
++    std::unique_ptr<Credentials> credentials,
++    std::function<void(int)> terminalFailure)
++: _tcp(std::move(tcp))
++, _udp(std::move(udp))
++, _proxy(proxy)
++, _username(std::move(credentials->username))
++, _password(std::move(credentials->password))
++, _terminalFailure(std::move(terminalFailure)) {
++}
++
++Socks5UdpSocket::~Socks5UdpSocket() {
++    *_alive = false;
++    EnterTerminal(0);
++    if (_tcp) {
++        _tcp->Close();
++    }
++    if (_udp) {
++        _udp->Close();
++    }
++}
++
++bool Socks5UdpSocket::Start() {
++    _tcp->SignalConnectEvent.connect(this, &Socks5UdpSocket::OnTcpConnect);
++    _tcp->SignalReadEvent.connect(this, &Socks5UdpSocket::OnTcpRead);
++    _tcp->SignalWriteEvent.connect(this, &Socks5UdpSocket::OnTcpWrite);
++    _tcp->SignalCloseEvent.connect(this, &Socks5UdpSocket::OnTcpClose);
++    _udp->SignalConnectEvent.connect(this, &Socks5UdpSocket::OnUdpConnect);
++    _udp->SignalReadEvent.connect(this, &Socks5UdpSocket::OnUdpRead);
++    _udp->SignalWriteEvent.connect(this, &Socks5UdpSocket::OnUdpWrite);
++    _udp->SignalCloseEvent.connect(this, &Socks5UdpSocket::OnUdpClose);
++    DebugStage("proxy_connecting");
++    const auto connected = _tcp->Connect(_proxy);
++    if (connected < 0 && !rtc::IsBlockingError(_tcp->GetError())) {
++        _error = _tcp->GetError();
++        Fail(_error, "proxy_connect_failed");
++        return false;
++    }
++    if (_stage == Stage::Initial
++        && _tcp->GetState() == rtc::Socket::CS_CONNECTED) {
++        OnTcpConnect(_tcp.get());
++    }
++    return _stage != Stage::Closed;
++}
++
++rtc::SocketAddress Socks5UdpSocket::GetLocalAddress() const {
++    return _udp ? _udp->GetLocalAddress() : rtc::SocketAddress();
++}
++
++rtc::SocketAddress Socks5UdpSocket::GetRemoteAddress() const {
++    return rtc::SocketAddress();
++}
++
++int Socks5UdpSocket::Send(
++        const void *,
++        size_t,
++        const rtc::PacketOptions &) {
++    SetError(SOCKET_EACCES);
++    return -1;
++}
++
++int Socks5UdpSocket::SendTo(
++        const void *data,
++        size_t size,
++        const rtc::SocketAddress &address,
++        const rtc::PacketOptions &options) {
++    if (_stage == Stage::Closed
++        || !data
++        || !size
++        || size > kMaxUdpPayload
++        || !IsValidLogicalAddress(address)
++        || _pendingPackets.size() >= kMaxQueuedPackets
++        || size > kMaxQueuedBytes - _pendingBytes) {
++        SetError((_stage == Stage::Closed) ? ENOTCONN : SOCKET_EACCES);
++        return -1;
++    }
++    auto packet = PendingPacket();
++    const auto bytes = static_cast<const uint8_t*>(data);
++    packet.payload.assign(bytes, bytes + size);
++    packet.address = address;
++    packet.options = options;
++    _pendingBytes += size;
++    _pendingPackets.push_back(std::move(packet));
++    if (_stage == Stage::Ready && !FlushPackets()) {
++        return -1;
++    }
++    return static_cast<int>(size);
++}
++
++int Socks5UdpSocket::Close() {
++    if (_stage == Stage::Closed) {
++        return 0;
++    }
++    EnterTerminal(0);
++    const auto tcpResult = _tcp ? _tcp->Close() : 0;
++    const auto udpResult = _udp ? _udp->Close() : 0;
++    return (tcpResult < 0) ? tcpResult : udpResult;
++}
++
++rtc::AsyncPacketSocket::State Socks5UdpSocket::GetState() const {
++    if (_stage == Stage::Closed) {
++        return STATE_CLOSED;
++    } else if (_stage == Stage::Ready) {
++        return STATE_BOUND;
++    }
++    return STATE_BINDING;
++}
++
++int Socks5UdpSocket::GetOption(rtc::Socket::Option option, int *value) {
++    return _udp->GetOption(option, value);
++}
++
++int Socks5UdpSocket::SetOption(rtc::Socket::Option option, int value) {
++    return _udp->SetOption(option, value);
++}
++
++int Socks5UdpSocket::GetError() const {
++    return _error;
++}
++
++void Socks5UdpSocket::SetError(int error) {
++    _error = error;
++    if (_udp) {
++        _udp->SetError(error);
++    }
++}
++
++void Socks5UdpSocket::OnTcpConnect(rtc::Socket *socket) {
++    if (socket != _tcp.get() || _stage != Stage::Initial) {
++        Fail(SOCKET_EACCES, "unexpected_tcp_connect");
++        return;
++    }
++    DebugStage("proxy_connected");
++    SendGreeting();
++}
++
++void Socks5UdpSocket::OnTcpRead(rtc::Socket *socket) {
++    if (socket != _tcp.get()
++        || _stage == Stage::Closed
++        || _stage == Stage::Ready
++        || _stage == Stage::RelayConnecting) {
++        Fail(SOCKET_EACCES, "unexpected_control_read");
++        return;
++    }
++    auto buffer = std::array<uint8_t, kMaxHandshakeInput>();
++    while (_stage != Stage::Closed) {
++        auto timestamp = int64_t();
++        const auto received = _tcp->Recv(
++            buffer.data(),
++            buffer.size(),
++            &timestamp);
++        if (received > 0) {
++            if (_controlInput.size() + size_t(received)
++                    > kMaxHandshakeInput) {
++                Fail(SOCKET_EACCES, "control_reply_oversize");
++                return;
++            }
++            _controlInput.insert(
++                _controlInput.end(),
++                buffer.begin(),
++                buffer.begin() + received);
++        } else if (received == 0) {
++            Fail(ECONNRESET, "control_eof");
++            return;
++        } else if (rtc::IsBlockingError(_tcp->GetError())) {
++            break;
++        } else {
++            Fail(_tcp->GetError(), "control_read_failed");
++            return;
++        }
++    }
++    ProcessControlInput();
++}
++
++void Socks5UdpSocket::OnTcpWrite(rtc::Socket *socket) {
++    if (socket != _tcp.get() || _stage == Stage::Closed) {
++        return;
++    }
++    FlushControl();
++}
++
++void Socks5UdpSocket::OnTcpClose(rtc::Socket *socket, int error) {
++    if (socket == _tcp.get() && _stage != Stage::Closed) {
++        Fail(error ? error : ECONNRESET, "control_closed");
++    }
++}
++
++void Socks5UdpSocket::OnUdpConnect(rtc::Socket *socket) {
++    if (socket != _udp.get() || _stage != Stage::RelayConnecting) {
++        Fail(SOCKET_EACCES, "unexpected_relay_connect");
++        return;
++    }
++    RelayConnected();
++}
++
++void Socks5UdpSocket::OnUdpRead(rtc::Socket *socket) {
++    if (socket != _udp.get() || _stage != Stage::Ready) {
++        Fail(SOCKET_EACCES, "unexpected_relay_read");
++        return;
++    }
++    ReadRelayDatagram();
++}
++
++void Socks5UdpSocket::OnUdpWrite(rtc::Socket *socket) {
++    if (socket != _udp.get() || _stage != Stage::Ready) {
++        return;
++    }
++    if (FlushPackets()
++        && _stage == Stage::Ready
++        && _pendingPackets.empty()) {
++        SignalReadyToSend.emit(this);
++    }
++}
++
++void Socks5UdpSocket::OnUdpClose(rtc::Socket *socket, int error) {
++    if (socket == _udp.get() && _stage != Stage::Closed) {
++        Fail(error ? error : ECONNRESET, "relay_closed");
++    }
++}
++
++bool Socks5UdpSocket::SendGreeting() {
++    const auto request = std::array<uint8_t, 3>{
++        kSocksVersion,
++        1,
++        kPasswordAuthentication,
++    };
++    _stage = Stage::Greeting;
++    DebugStage("greeting_sent");
++    return QueueControl(request.data(), request.size());
++}
++
++bool Socks5UdpSocket::SendAuthentication() {
++    auto request = rtc::ZeroOnFreeBuffer<char>();
++    request.SetSize(3 + _username.size() + _password.size());
++    auto offset = size_t();
++    request[offset++] = char(kAuthenticationVersion);
++    request[offset++] = char(_username.size());
++    std::memcpy(request.data() + offset, _username.data(), _username.size());
++    offset += _username.size();
++    request[offset++] = char(_password.size());
++    std::memcpy(request.data() + offset, _password.data(), _password.size());
++    _stage = Stage::Authentication;
++    DebugStage("authentication_sent");
++    return QueueControl(request.data(), request.size());
++}
++
++bool Socks5UdpSocket::SendAssociation() {
++    auto request = std::vector<uint8_t>{
++        kSocksVersion,
++        kUdpAssociateCommand,
++        0,
++    };
++    const auto wildcard = rtc::SocketAddress(
++        rtc::GetAnyIP(_proxy.family()),
++        0);
++    AppendAddress(request, wildcard);
++    _stage = Stage::Association;
++    DebugStage("association_sent");
++    return QueueControl(request.data(), request.size());
++}
++
++bool Socks5UdpSocket::QueueControl(const void *data, size_t size) {
++    if (_stage == Stage::Closed
++        || !data
++        || !size
++        || !_controlOutput.empty()
++        || _controlOffset != 0) {
++        Fail(SOCKET_EACCES, "control_queue_failed");
++        return false;
++    }
++    _controlOutput = rtc::ZeroOnFreeBuffer<char>(
++        static_cast<const char*>(data),
++        size);
++    return FlushControl();
++}
++
++bool Socks5UdpSocket::FlushControl() {
++    while (_stage != Stage::Closed
++        && _controlOffset < _controlOutput.size()) {
++        const auto sent = _tcp->Send(
++            _controlOutput.data() + _controlOffset,
++            _controlOutput.size() - _controlOffset);
++        if (sent > 0) {
++            _controlOffset += size_t(sent);
++        } else if (sent < 0 && rtc::IsBlockingError(_tcp->GetError())) {
++            return true;
++        } else {
++            Fail(
++                (sent < 0) ? _tcp->GetError() : SOCKET_EACCES,
++                "control_write_failed");
++            return false;
++        }
++    }
++    if (_stage == Stage::Closed) {
++        return false;
++    }
++    _controlOutput.Clear();
++    _controlOffset = 0;
++    if (_stage == Stage::Authentication) {
++        ClearCredentials();
++    }
++    return true;
++}
++
++void Socks5UdpSocket::ProcessControlInput() {
++    if (_stage == Stage::Closed || !_controlOutput.empty()) {
++        if (_stage != Stage::Closed && !_controlInput.empty()) {
++            Fail(SOCKET_EACCES, "premature_control_reply");
++        }
++        return;
++    }
++    if (_stage == Stage::Greeting) {
++        if (_controlInput.size() < 2) {
++            return;
++        } else if (_controlInput.size() != 2
++            || _controlInput[0] != kSocksVersion
++            || _controlInput[1] != kPasswordAuthentication) {
++            Fail(SOCKET_EACCES, "greeting_rejected");
++            return;
++        }
++        _controlInput.clear();
++        SendAuthentication();
++    } else if (_stage == Stage::Authentication) {
++        if (_controlInput.size() < 2) {
++            return;
++        } else if (_controlInput.size() != 2
++            || _controlInput[0] != kAuthenticationVersion
++            || _controlInput[1] != 0) {
++            Fail(SOCKET_EACCES, "authentication_rejected");
++            return;
++        }
++        _controlInput.clear();
++        DebugStage("authentication_ok");
++        SendAssociation();
++    } else if (_stage == Stage::Association) {
++        if (_controlInput.size() < 4) {
++            return;
++        } else if (_controlInput[0] != kSocksVersion
++            || _controlInput[1] != 0
++            || _controlInput[2] != 0
++            || (_controlInput[3] != kAddressIpv4
++                && _controlInput[3] != kAddressIpv6)) {
++            Fail(SOCKET_EACCES, "association_rejected");
++            return;
++        }
++        const auto expected = (_controlInput[3] == kAddressIpv4)
++            ? size_t(10)
++            : size_t(22);
++        if (_controlInput.size() < expected) {
++            return;
++        } else if (_controlInput.size() != expected) {
++            Fail(SOCKET_EACCES, "association_reply_ambiguous");
++            return;
++        }
++        auto relay = rtc::SocketAddress();
++        auto consumed = size_t();
++        if (!ReadAddress(
++                _controlInput.data() + 3,
++                _controlInput.size() - 3,
++                relay,
++                consumed)
++            || consumed + 3 != _controlInput.size()) {
++            Fail(SOCKET_EACCES, "association_address_invalid");
++            return;
++        }
++        _controlInput.clear();
++        ConnectRelay(relay);
++    } else if (!_controlInput.empty()) {
++        Fail(SOCKET_EACCES, "unexpected_control_data");
++    }
++}
++
++bool Socks5UdpSocket::ConnectRelay(
++        const rtc::SocketAddress &reported) {
++    if (!reported.port()
++        || reported.family() != _proxy.family()
++        || (reported.family() == AF_INET6 && reported.scope_id() != 0)) {
++        Fail(SOCKET_EACCES, "relay_address_rejected");
++        return false;
++    }
++    auto relay = reported;
++    if (relay.IsAnyIP()) {
++        relay.SetIP(_proxy.ipaddr());
++    }
++    if (!relay.IsLoopbackIP()) {
++        Fail(SOCKET_EACCES, "relay_not_loopback");
++        return false;
++    }
++    _relay = relay;
++    _stage = Stage::RelayConnecting;
++    DebugStage("relay_connecting");
++    const auto alive = _alive;
++    const auto connected = _udp->Connect(_relay);
++    if (!*alive) {
++        return false;
++    }
++    if (connected < 0 && !rtc::IsBlockingError(_udp->GetError())) {
++        Fail(_udp->GetError(), "relay_connect_failed");
++        return false;
++    }
++    if (_stage == Stage::RelayConnecting
++        && _udp->GetState() == rtc::Socket::CS_CONNECTED) {
++        RelayConnected();
++    }
++    if (!*alive) {
++        return false;
++    }
++    return _stage != Stage::Closed;
++}
++
++void Socks5UdpSocket::RelayConnected() {
++    if (_stage != Stage::RelayConnecting
++        || _udp->GetRemoteAddress() != _relay) {
++        Fail(SOCKET_EACCES, "relay_connection_mismatch");
++        return;
++    }
++    _stage = Stage::Ready;
++    DebugStage("ready");
++    const auto local = GetLocalAddress();
++    const auto alive = _alive;
++    SignalAddressReady.emit(this, local);
++    if (!*alive) {
++        return;
++    }
++    if (!FlushPackets() || _stage != Stage::Ready) {
++        return;
++    }
++    SignalReadyToSend.emit(this);
++}
++
++bool Socks5UdpSocket::FlushPackets() {
++    while (_stage == Stage::Ready && !_pendingPackets.empty()) {
++        auto &packet = _pendingPackets.front();
++        const auto alive = _alive;
++        const auto sent = SendPacket(packet);
++        if (!*alive) {
++            return false;
++        } else if (!sent) {
++            return _stage != Stage::Closed;
++        }
++        const auto payloadSize = packet.payload.size();
++        const auto options = packet.options;
++        _pendingBytes -= payloadSize;
++        std::fill(packet.payload.begin(), packet.payload.end(), uint8_t());
++        _pendingPackets.pop_front();
++        EmitSent(payloadSize, options);
++        if (!*alive) {
++            return false;
++        }
++    }
++    return _stage != Stage::Closed;
++}
++
++bool Socks5UdpSocket::SendPacket(const PendingPacket &packet) {
++    auto framed = std::vector<uint8_t>{ 0, 0, 0 };
++    framed.reserve(packet.payload.size() + 22);
++    AppendAddress(framed, packet.address);
++    framed.insert(
++        framed.end(),
++        packet.payload.begin(),
++        packet.payload.end());
++    const auto sent = _udp->Send(framed.data(), framed.size());
++    if (sent == int(framed.size())) {
++        return true;
++    } else if (sent < 0 && rtc::IsBlockingError(_udp->GetError())) {
++        return false;
++    }
++    Fail(
++        (sent < 0) ? _udp->GetError() : SOCKET_EACCES,
++        "relay_write_failed");
++    return false;
++}
++
++void Socks5UdpSocket::ReadRelayDatagram() {
++    while (_stage == Stage::Ready) {
++        auto timestamp = int64_t();
++        const auto received = _udp->Recv(
++            _receiveBuffer.data(),
++            _receiveBuffer.size(),
++            &timestamp);
++        if (received < 0 && rtc::IsBlockingError(_udp->GetError())) {
++            return;
++        } else if (received <= 0) {
++            Fail(
++                (received < 0) ? _udp->GetError() : ECONNRESET,
++                "relay_read_failed");
++            return;
++        }
++        const auto size = size_t(received);
++        if (size < 4
++            || _receiveBuffer[0] != 0
++            || _receiveBuffer[1] != 0
++            || _receiveBuffer[2] != 0) {
++            Fail(SOCKET_EACCES, "relay_frame_rejected");
++            return;
++        }
++        auto source = rtc::SocketAddress();
++        auto headerSize = size_t();
++        if (!ReadAddress(
++                _receiveBuffer.data() + 3,
++                size - 3,
++                source,
++                headerSize)
++            || !IsValidLogicalAddress(source)
++            || 3 + headerSize > size) {
++            Fail(SOCKET_EACCES, "relay_source_rejected");
++            return;
++        }
++        const auto payloadOffset = 3 + headerSize;
++        NotifyPacketReceived(rtc::ReceivedPacket::CreateFromLegacy(
++            _receiveBuffer.data() + payloadOffset,
++            size - payloadOffset,
++            rtc::TimeMicros(),
++            source));
++        return;
++    }
++}
++
++void Socks5UdpSocket::EmitSent(
++        size_t payloadSize,
++        const rtc::PacketOptions &options) {
++    auto sent = rtc::SentPacket(
++        options.packet_id,
++        rtc::TimeMillis(),
++        options.info_signaled_after_sent);
++    rtc::CopySocketInformationToPacketInfo(
++        payloadSize,
++        *this,
++        true,
++        &sent.info);
++    SignalSentPacket.emit(this, sent);
++}
++
++void Socks5UdpSocket::ClearCredentials() {
++    _username.Clear();
++    _password.Clear();
++}
++
++void Socks5UdpSocket::ClearSensitiveState() {
++    ClearCredentials();
++    _controlOutput.Clear();
++    _controlOffset = 0;
++    std::fill(_controlInput.begin(), _controlInput.end(), uint8_t());
++    _controlInput.clear();
++    for (auto &packet : _pendingPackets) {
++        std::fill(packet.payload.begin(), packet.payload.end(), uint8_t());
++    }
++    _pendingPackets.clear();
++    _pendingBytes = 0;
++    std::fill(_receiveBuffer.begin(), _receiveBuffer.end(), uint8_t());
++}
++
++bool Socks5UdpSocket::EnterTerminal(int error) {
++    if (_stage == Stage::Closed) {
++        return false;
++    }
++    _stage = Stage::Closed;
++    _proxy.Clear();
++    _relay.Clear();
++    ClearSensitiveState();
++    SetError(error);
++    return true;
++}
++
++void Socks5UdpSocket::Fail(int error, const char *stage) {
++    const auto terminalError = error ? error : SOCKET_EACCES;
++    if (!EnterTerminal(terminalError)) {
++        return;
++    }
++    const auto alive = _alive;
++    const auto terminalFailure = _terminalFailure;
++    DebugFailure(stage, terminalError);
++    if (_tcp) {
++        _tcp->Close();
++    }
++    if (_udp) {
++        _udp->Close();
++    }
++    if (terminalFailure) {
++        terminalFailure(terminalError);
++    }
++    if (!*alive) {
++        return;
++    }
++    NotifyClosed(terminalError);
++}
++
++} // namespace
++
++rtc::AsyncPacketSocket *CreateSocks5UdpSocket(
++        rtc::SocketFactory *socketFactory,
++        const rtc::ProxyInfo &proxy,
++        std::function<void(int)> terminalFailure) {
++    if (!socketFactory
++        || proxy.type != rtc::PROXY_SOCKS5
++        || !IsValidProxyAddress(proxy.address)) {
++        RTC_LOG(LS_ERROR) << "Invalid managed SOCKS5 UDP proxy.";
++        if (terminalFailure) {
++            terminalFailure(SOCKET_EACCES);
++        }
++        return nullptr;
++    }
++    auto credentials = CopyCredentials(proxy);
++    if (!credentials) {
++        RTC_LOG(LS_ERROR) << "Invalid managed SOCKS5 UDP credentials.";
++        if (terminalFailure) {
++            terminalFailure(SOCKET_EACCES);
++        }
++        return nullptr;
++    }
++
++    const auto family = proxy.address.family();
++    const auto local = rtc::SocketAddress(rtc::GetLoopbackIP(family), 0);
++    auto udp = std::unique_ptr<rtc::Socket>(
++        socketFactory->CreateSocket(family, SOCK_DGRAM));
++    if (!udp || udp->Bind(local) < 0) {
++        RTC_LOG(LS_ERROR) << "Managed SOCKS5 UDP bind failed.";
++        if (terminalFailure) {
++            terminalFailure(udp ? udp->GetError() : SOCKET_EACCES);
++        }
++        return nullptr;
++    }
++    auto tcp = std::unique_ptr<rtc::Socket>(
++        socketFactory->CreateSocket(family, SOCK_STREAM));
++    if (!tcp || tcp->Bind(local) < 0) {
++        RTC_LOG(LS_ERROR) << "Managed SOCKS5 control bind failed.";
++        if (terminalFailure) {
++            terminalFailure(tcp ? tcp->GetError() : SOCKET_EACCES);
++        }
++        return nullptr;
++    }
++    if (tcp->SetOption(rtc::Socket::OPT_NODELAY, 1) != 0) {
++        RTC_LOG(LS_WARNING) << "Managed SOCKS5 TCP_NODELAY failed.";
++    }
++
++    auto result = std::make_unique<Socks5UdpSocket>(
++        std::move(tcp),
++        std::move(udp),
++        proxy.address,
++        std::move(credentials),
++        std::move(terminalFailure));
++    if (!result->Start()) {
++        return nullptr;
++    }
++    return result.release();
++}
++
++} // namespace tgcalls
+diff --git a/tgcalls/v2/Socks5UdpSocketFactory.h b/tgcalls/v2/Socks5UdpSocketFactory.h
+new file mode 100644
+index 0000000..e2e115d
+--- /dev/null
++++ b/tgcalls/v2/Socks5UdpSocketFactory.h
+@@ -0,0 +1,31 @@
++/*
++ *  Copyright 2004 The WebRTC Project Authors. All rights reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license
++ *  that can be found in the LICENSE file in the root of the source
++ *  tree. An additional intellectual property rights grant can be found
++ *  in the file PATENTS.  All contributing project authors may
++ *  be found in the AUTHORS file in the root of the source tree.
++ */
++
++#ifndef TGCALLS_V2_SOCKS5_UDP_SOCKET_FACTORY_H_
++#define TGCALLS_V2_SOCKS5_UDP_SOCKET_FACTORY_H_
++
++#include <functional>
++
++namespace rtc {
++class AsyncPacketSocket;
++class SocketFactory;
++struct ProxyInfo;
++} // namespace rtc
++
++namespace tgcalls {
++
++[[nodiscard]] rtc::AsyncPacketSocket *CreateSocks5UdpSocket(
++    rtc::SocketFactory *socketFactory,
++    const rtc::ProxyInfo &proxy,
++    std::function<void(int)> terminalFailure = {});
++
++} // namespace tgcalls
++
++#endif // TGCALLS_V2_SOCKS5_UDP_SOCKET_FACTORY_H_

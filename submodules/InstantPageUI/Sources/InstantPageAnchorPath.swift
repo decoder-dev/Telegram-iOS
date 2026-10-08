@@ -149,7 +149,7 @@ private func richTextContainsAnchor(_ text: RichText, name: String) -> Bool {
         return richTextContainsAnchor(inner, name: name)
     case let .textMentionName(inner, _):
         return richTextContainsAnchor(inner, name: name)
-    case let .textDate(inner, _, _):
+    case let .button(inner, _, _), let .textDate(inner, _, _):
         return richTextContainsAnchor(inner, name: name)
     }
 }

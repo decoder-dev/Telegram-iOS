@@ -611,8 +611,8 @@ def remote_build_tart(macos_version, bazel_cache_host, configuration, build_inpu
         guest_build_sh += '--codesigningInformationPath=$HOME/telegram-build-input \\'
         guest_build_sh += '--outputBuildArtifactsPath=/Users/Shared/telegram-ios/build/artifacts \\'
 
-        guest_build_file_path = tempfile.mktemp()
-        with open(guest_build_file_path, 'w+') as file:
+        guest_build_fd, guest_build_file_path = tempfile.mkstemp()
+        with os.fdopen(guest_build_fd, 'w+') as file:
             file.write(guest_build_sh)
         session.upload_file(local_path=guest_build_file_path, remote_path='guest-build-telegram.sh')
         os.unlink(guest_build_file_path)

@@ -2766,19 +2766,47 @@ enum GCDAsyncSocketConfig
 		{
 			[self removeStreamsFromRunLoop];
 			
-			if (readStream)
+			// The read and write stream of a pair created over one socket share a single
+			// SocketStream core, and closing either member invalidates the underlying
+			// CFSocket (CFSocketInvalidate, under CFNetwork's process-wide
+			// __CFAllSocketsLock), which in turn releases the socket's references to the
+			// streams. With the previous per-stream close-then-release order, our own two
+			// references were the only ones left by the time the SECOND CFStreamClose ran,
+			// so the core was destroyed inside CFSocketInvalidate, and its destructor
+			// immediately invalidated the remaining schedulables on the same thread:
+			// recursive lock of __CFAllSocketsLock —
+			// "BUG IN CLIENT OF LIBPLATFORM: Trying to recursively lock an os_unfair_lock"
+			// (EXC_BREAKPOINT). Seen as a 100% repro when many transports time out at once
+			// during a network path change (airplane mode over a VPN tun interface, where
+			// the path stays satisfied and half-open connects pile up) — upstream issue
+			// TelegramMessenger/Telegram-iOS#2306.
+			//
+			// Closing both streams while BOTH of our references are alive pins the core
+			// through both CFSocketInvalidate calls, so its destructor runs later, from our
+			// own CFRelease below, on this thread with no CF lock held.
+			CFReadStreamRef theReadStream = readStream;
+			CFWriteStreamRef theWriteStream = writeStream;
+			readStream = NULL;
+			writeStream = NULL;
+			
+			if (theReadStream)
 			{
-				CFReadStreamSetClient(readStream, kCFStreamEventNone, NULL, NULL);
-				CFReadStreamClose(readStream);
-				CFRelease(readStream);
-				readStream = NULL;
+				CFReadStreamSetClient(theReadStream, kCFStreamEventNone, NULL, NULL);
+				CFReadStreamClose(theReadStream);
 			}
-			if (writeStream)
+			if (theWriteStream)
 			{
-				CFWriteStreamSetClient(writeStream, kCFStreamEventNone, NULL, NULL);
-				CFWriteStreamClose(writeStream);
-				CFRelease(writeStream);
-				writeStream = NULL;
+				CFWriteStreamSetClient(theWriteStream, kCFStreamEventNone, NULL, NULL);
+				CFWriteStreamClose(theWriteStream);
+			}
+			
+			if (theReadStream)
+			{
+				CFRelease(theReadStream);
+			}
+			if (theWriteStream)
+			{
+				CFRelease(theWriteStream);
 			}
 		}
 	}
@@ -7045,17 +7073,30 @@ static void CFWriteStreamCallback (CFWriteStreamRef stream, CFStreamEventType ty
 	{
 		LogWarn(@"Unable to create read and write stream...");
 		
-		if (readStream)
+		// Same paired close-then-release order as in closeWithError: — the two streams
+		// share a SocketStream core, and neither must be released while its sibling is
+		// still being closed (re-entrant CFSocketInvalidate under __CFAllSocketsLock).
+		CFReadStreamRef theReadStream = readStream;
+		CFWriteStreamRef theWriteStream = writeStream;
+		readStream = NULL;
+		writeStream = NULL;
+		
+		if (theReadStream)
 		{
-			CFReadStreamClose(readStream);
-			CFRelease(readStream);
-			readStream = NULL;
+			CFReadStreamClose(theReadStream);
 		}
-		if (writeStream)
+		if (theWriteStream)
 		{
-			CFWriteStreamClose(writeStream);
-			CFRelease(writeStream);
-			writeStream = NULL;
+			CFWriteStreamClose(theWriteStream);
+		}
+		
+		if (theReadStream)
+		{
+			CFRelease(theReadStream);
+		}
+		if (theWriteStream)
+		{
+			CFRelease(theWriteStream);
 		}
 		
 		return NO;

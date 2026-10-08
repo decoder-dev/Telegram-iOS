@@ -1,4 +1,4 @@
-import Foundation
+﻿import Foundation
 import UIKit
 import Intents
 import TelegramPresentationData
@@ -326,6 +326,9 @@ final class AuthorizedApplicationContext {
             |> map { chatListIndexMap -> [([Message], PeerGroupId, Bool, MessageHistoryThreadData?)] in
                 return messageList.filter { item in
                     guard let message = item.0.first else {
+                        return false
+                    }
+                    if TelegramShadowBan.isHidden(message) {
                         return false
                     }
                     if let maybeChatListIndex = chatListIndexMap[message.id.peerId], maybeChatListIndex != nil {

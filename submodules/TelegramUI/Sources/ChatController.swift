@@ -1,4 +1,4 @@
-import Foundation
+﻿import Foundation
 import UIKit
 import Postbox
 import SwiftSignalKit
@@ -1233,7 +1233,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                             self.push(controller)
                             return true
                         case .starGift, .starGiftUnique:
-                            if case let .starGiftUnique(gift, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _) = action.action, case let .unique(uniqueGift) = gift, uniqueGift.flags.contains(.isBurned) {
+                            if case let .starGiftUnique(gift, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _) = action.action, case let .unique(uniqueGift) = gift, uniqueGift.flags.contains(.isBurned) {
                                 self.present(textAlertController(context: context, updatedPresentationData: updatedPresentationData, title: nil, text: self.presentationData.strings.Resolve_GiftErrorBurned, actions: [TextAlertAction(type: .defaultAction, title: self.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
                             } else {
                                 let controller = self.context.sharedContext.makeGiftViewScreen(context: self.context, message: EngineMessage(message), shareStory: { [weak self] uniqueGift in
@@ -7555,9 +7555,29 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
             topPinnedMessage = combineLatest(queue: .mainQueue(),
                 adjustedReplyHistory,
                 topMessage,
-                referenceMessage ?? .single(nil)
+                referenceMessage ?? .single(nil),
+                TelegramShadowBan.stateSignal()
             )
-            |> map { pinnedMessages, topMessage, referenceMessage -> ChatPinnedMessage? in
+            |> map { pinnedMessages, topMessage, referenceMessage, shadowBanState -> ChatPinnedMessage? in
+                // Shadow-banned pins leave the bar, and the «N of M» count follows the visible ones.
+                var pinnedMessages = pinnedMessages
+                var topMessage = topMessage
+                if !shadowBanState.bannedPeerIds.isEmpty {
+                    var visibleMessages: [PinnedHistory.PinnedMessage] = []
+                    var hiddenBefore = 0
+                    for pinnedMessage in pinnedMessages.messages {
+                        if TelegramShadowBan.isHidden(pinnedMessage.message, state: shadowBanState) {
+                            hiddenBefore += 1
+                        } else {
+                            visibleMessages.append(PinnedHistory.PinnedMessage(message: pinnedMessage.message, index: pinnedMessage.index - hiddenBefore))
+                        }
+                    }
+                    pinnedMessages = PinnedHistory(messages: visibleMessages, totalCount: max(0, pinnedMessages.totalCount - hiddenBefore))
+                    if let topMessageValue = topMessage, TelegramShadowBan.isHidden(topMessageValue.message, state: shadowBanState) {
+                        topMessage = nil
+                    }
+                }
+
                 var message: ChatPinnedMessage?
                 
                 let topMessageId: MessageId
@@ -9987,12 +10007,14 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                             return
                         }
                         if let botApp = botAppStart.botApp {
-                            self.presentBotApp(botApp: botApp, botPeer: peer, payload: botAppStart.payload, mode: botAppStart.mode, concealed: concealed, commit: {
+                            self.presentBotApp(botApp: botApp, botPeer: peer, payload: botAppStart.payload, mode: botAppStart.mode, botStartPayload: botAppStart.botStartPayload, concealed: concealed, commit: {
                                 dismissWebAppControllers()
                                 commit()
                             })
                         } else {
-                            self.context.sharedContext.openWebApp(
+                            // Called directly rather than through SharedAccountContext.openWebApp (a plain forwarder to
+                            // this function) so that the module-internal dismissal callback can be passed.
+                            openWebAppImpl(
                                 context: self.context,
                                 parentController: self,
                                 updatedPresentationData: self.updatedPresentationData,
@@ -10005,7 +10027,10 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                                 source: .generic,
                                 skipTermsOfService: false,
                                 payload: botAppStart.payload,
-                                verifyAgeCompletion: nil
+                                verifyAgeCompletion: nil,
+                                launchDismissedWithoutConfirmation: { [weak self] in
+                                    self?.applyBotStartPayloadFallback(botPeerId: peer.id, payload: botAppStart.botStartPayload)
+                                }
                             )
                             commit()
                         }
@@ -10826,14 +10851,16 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         })
     }
     
-    func presentScheduleTimePicker(style: ChatScheduleTimeControllerStyle = .default, selectedTime: Int32? = nil, selectedRepeatPeriod: Int32? = nil, dismissByTapOutside: Bool = true, presentInOverlay: Bool = false, completion: @escaping (ChatScheduleTimeScreen.Result) -> Void) {
+    func presentScheduleTimePicker(style: ChatScheduleTimeControllerStyle = .default, selectedTime: Int32? = nil, selectedRepeatPeriod: Int32? = nil, dismissByTapOutside: Bool = true, presentInOverlay: Bool = false, cancelled: (() -> Void)? = nil, completion: @escaping (ChatScheduleTimeScreen.Result) -> Void) {
         guard let peerId = self.chatLocation.peerId else {
+            cancelled?()
             return
         }
         let _ = (self.context.account.viewTracker.peerView(peerId)
         |> take(1)
         |> deliverOnMainQueue).startStandalone(next: { [weak self] peerView in
             guard let strongSelf = self, let peer = peerViewMainPeer(peerView) else {
+                cancelled?()
                 return
             }
             var sendWhenOnlineAvailable = false
@@ -10863,6 +10890,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                     completion(result)
                 }
             )
+            controller.cancelled = cancelled
             strongSelf.chatDisplayNode.dismissInput()
             if presentInOverlay || strongSelf.videoRecorderValue != nil {
                 strongSelf.present(controller, in: .window(.root))
@@ -10872,13 +10900,15 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         })
     }
     
-    func presentTimerPicker(style: ChatTimerScreenStyle = .default, selectedTime: Int32? = nil, completion: @escaping (Int32) -> Void) {
+    func presentTimerPicker(style: ChatTimerScreenStyle = .default, selectedTime: Int32? = nil, cancelled: (() -> Void)? = nil, completion: @escaping (Int32) -> Void) {
         guard case .peer = self.chatLocation else {
+            cancelled?()
             return
         }
         let controller = ChatTimerScreen(context: self.context, updatedPresentationData: self.updatedPresentationData, style: style, currentTime: selectedTime, completion: { time in
             completion(time)
         })
+        controller.cancelled = cancelled
         self.chatDisplayNode.dismissInput()
         self.present(controller, in: .window(.root))
     }

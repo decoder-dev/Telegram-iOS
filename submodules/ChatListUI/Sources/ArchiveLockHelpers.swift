@@ -1,5 +1,6 @@
 import Foundation
 import UIKit
+import ObjectiveC
 import UserNotifications
 import Display
 import SwiftSignalKit
@@ -21,7 +22,7 @@ public enum ArchiveUnlockResult {
 private func migrateAndResolvePasswordProtected(context: AccountContext, settings: ChatArchiveSettings) -> Bool {
     let peerId = context.account.peerId
     let protected = archiveIsPasswordProtected(peerId: peerId, settings: settings)
-    if settings.legacyLockPasswordHash != nil || (protected && !settings.isPasswordConfigured) {
+    if ArchivePasswordKeychain.hasPassword(peerId: peerId), settings.legacyLockPasswordHash != nil || (protected && !settings.isPasswordConfigured) {
         // Also backfills isPasswordConfigured for accounts that set a password before that
         // flag existed, so the notification/CallKit redaction check (which only has Postbox,
         // not Keychain, access in the Notification Service Extension) stays correct.
@@ -84,7 +85,7 @@ public func clearStaleArchiveNotifications(context: AccountContext, peerIds: [En
                 return peerId.toInt64()
             })
         }
-        return Set(transaction.chatListGetAllPeerIds(groupId: Namespaces.PeerGroup.archive).map { $0.toInt64() })
+        return Set(archiveLockedPeerIds(transaction: transaction).map { $0.toInt64() })
     }
     |> deliverOnMainQueue).startStandalone(next: { peerIds in
         clearDeliveredNotifications(forPeerIds: peerIds)
@@ -216,7 +217,7 @@ public func removeArchiveLockSwitcherCover(context: AccountContext) {
     guard let coveringView = archiveSwitcherCoveringView else {
         return
     }
-    if archiveControllersRemainOnStack(context: context) {
+    if !ArchiveLockSession.shared.isUnlocked && archiveControllersRemainOnStack(context: context) {
         return
     }
     archiveSwitcherCoveringView = nil
@@ -404,6 +405,7 @@ public func ensureArchiveUnlocked(
     completion: @escaping (ArchiveUnlockResult) -> Void
 ) {
     bindArchiveLockSession(context: context)
+    let authorizationGeneration = ArchiveLockSession.shared.authorizationGeneration
     
     let _ = (context.engine.data.get(
         TelegramEngine.EngineData.Item.Configuration.ApplicationSpecificPreference(key: ApplicationSpecificPreferencesKeys.chatArchiveSettings)
@@ -427,6 +429,10 @@ public func ensureArchiveUnlocked(
                 confirmTitle: ArchiveLockLocalizedString.unlock,
                 verifyPassword: true,
                 onSuccess: {
+                    guard ArchiveLockSession.shared.authorizationGeneration == authorizationGeneration else {
+                        completion(.cancelled)
+                        return
+                    }
                     ArchiveLockSession.shared.unlock()
                     completion(.unlocked)
                 },
@@ -457,6 +463,10 @@ public func ensureArchiveUnlocked(
             |> deliverOnMainQueue).start(next: { success, _ in
                 endSuppress()
                 if success {
+                    guard ArchiveLockSession.shared.authorizationGeneration == authorizationGeneration else {
+                        completion(.cancelled)
+                        return
+                    }
                     // Same reset the password path does on success. Both outcomes mean the owner
                     // proved who they are, and the counter throttles guessing, not the owner — but
                     // only one of the two was clearing it, so unlocking with Face ID left the
@@ -492,7 +502,7 @@ public func ensureArchivedPeerAccessible(
     |> deliverOnMainQueue).startStandalone(next: { group, preference in
         let settings = preference?.get(ChatArchiveSettings.self) ?? .default
         let protected = migrateAndResolvePasswordProtected(context: context, settings: settings)
-        guard group == .archive, protected else {
+        guard (group == .archive || peerId == context.account.peerId), protected else {
             completion(.notProtected)
             return
         }
@@ -504,6 +514,8 @@ public func ensureArchivedPeerAccessible(
     })
 }
 
+private var activePasswordPrompts: Set<EnginePeer.Id> = []
+
 private func presentArchivePasswordAlert(
     context: AccountContext,
     title: String,
@@ -512,9 +524,27 @@ private func presentArchivePasswordAlert(
     verifyPassword: Bool,
     onSuccess: @escaping () -> Void,
     onCancel: @escaping () -> Void,
-    capturePassword: ((String) -> Void)? = nil
+    capturePassword: ((String) -> Bool)? = nil
 ) {
     let peerId = context.account.peerId
+    
+    // R07: Single-flight prompt ownership
+    if activePasswordPrompts.contains(peerId) {
+        // Every caller must receive a terminal result, including duplicate requests.
+        onCancel()
+        return
+    }
+    activePasswordPrompts.insert(peerId)
+    
+    let wrappedOnSuccess: () -> Void = {
+        activePasswordPrompts.remove(peerId)
+        onSuccess()
+    }
+    let wrappedOnCancel: () -> Void = {
+        activePasswordPrompts.remove(peerId)
+        onCancel()
+    }
+    
     let strings = context.sharedContext.currentPresentationData.with { $0 }.strings
 
     func cooldownMessage(_ remaining: Double) -> String {
@@ -530,9 +560,9 @@ private func presentArchivePasswordAlert(
             if remaining > 0 {
                 let cooldownAlert = UIAlertController(title: title, message: cooldownMessage(remaining), preferredStyle: .alert)
                 cooldownAlert.addAction(UIAlertAction(title: strings.Common_OK, style: .cancel, handler: { _ in
-                    onCancel()
+                    wrappedOnCancel()
                 }))
-                presentUIAlert(context: context, alert: cooldownAlert, onUnavailableHost: onCancel)
+                presentUIAlert(context: context, alert: cooldownAlert, onUnavailableHost: wrappedOnCancel)
                 return
             }
         }
@@ -546,14 +576,15 @@ private func presentArchivePasswordAlert(
             field.returnKeyType = .done
         }
         alert.addAction(UIAlertAction(title: strings.Common_Cancel, style: .cancel, handler: { _ in
-            onCancel()
+            wrappedOnCancel()
         }))
-        alert.addAction(UIAlertAction(title: confirmTitle, style: .default, handler: { _ in
+        alert.addAction(UIAlertAction(title: confirmTitle, style: .default, handler: { [weak alert] _ in
+            guard let alert else { return }
             let trimmed = (alert.textFields?.first?.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
             if verifyPassword {
                 if ArchivePasswordKeychain.matchesPassword(trimmed, peerId: peerId) {
                     ArchivePasswordKeychain.clearFailureState(peerId: peerId)
-                    onSuccess()
+                    wrappedOnSuccess()
                 } else {
                     ArchivePasswordKeychain.recordFailure(peerId: peerId)
                     let remaining = ArchivePasswordKeychain.remainingCooldown(peerId: peerId)
@@ -568,7 +599,7 @@ private func presentArchivePasswordAlert(
                 }
             } else if let capturePassword {
                 if trimmed.isEmpty {
-                    onCancel()
+                    wrappedOnCancel()
                 } else {
                     Queue.mainQueue().after(0.2) {
                         let confirm = UIAlertController(title: ArchiveLockLocalizedString.confirmTitle, message: ArchiveLockLocalizedString.confirmText, preferredStyle: .alert)
@@ -579,33 +610,65 @@ private func presentArchivePasswordAlert(
                             field.autocapitalizationType = .none
                         }
                         confirm.addAction(UIAlertAction(title: strings.Common_Cancel, style: .cancel, handler: { _ in
-                            onCancel()
+                            wrappedOnCancel()
                         }))
-                        confirm.addAction(UIAlertAction(title: strings.Common_Done, style: .default, handler: { _ in
+                        confirm.addAction(UIAlertAction(title: strings.Common_Done, style: .default, handler: { [weak confirm] _ in
+                            guard let confirm else { return }
                             let confirmValue = (confirm.textFields?.first?.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
                             if confirmValue == trimmed {
-                                capturePassword(trimmed)
-                                onSuccess()
+                                if capturePassword(trimmed) {
+                                    wrappedOnSuccess()
+                                } else {
+                                    Queue.mainQueue().after(0.3) {
+                                        show(messageOverride: ArchiveLockLocalizedString.storageError)
+                                    }
+                                }
                             } else {
                                 Queue.mainQueue().after(0.3) {
                                     show(messageOverride: ArchiveLockLocalizedString.passwordsDoNotMatch)
                                 }
                             }
                         }))
-                        presentUIAlert(context: context, alert: confirm, onUnavailableHost: onCancel)
+                        presentUIAlert(context: context, alert: confirm, onUnavailableHost: wrappedOnCancel)
                     }
                 }
             } else {
-                onCancel()
+                wrappedOnCancel()
             }
         }))
-        presentUIAlert(context: context, alert: alert, onUnavailableHost: onCancel)
+        presentUIAlert(context: context, alert: alert, onUnavailableHost: wrappedOnCancel)
     }
     
     show(messageOverride: nil)
 }
 
+private var archiveAlertThemeSubscriptionKey: UInt8 = 0
+
+private final class ArchiveAlertThemeSubscription {
+    let disposable = MetaDisposable()
+
+    deinit {
+        self.disposable.dispose()
+    }
+}
+
 private func presentUIAlert(context: AccountContext, alert: UIAlertController, onUnavailableHost: @escaping () -> Void) {
+    let subscription = ArchiveAlertThemeSubscription()
+    // The alert owns its subscription, which captures the alert only weakly.
+    // Releasing a dismissed alert disposes immediately, even if the theme never changes.
+    objc_setAssociatedObject(alert, &archiveAlertThemeSubscriptionKey, subscription, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+    subscription.disposable.set((context.sharedContext.presentationData |> deliverOnMainQueue).startStrict(next: { [weak alert] presentationData in
+        guard let alert = alert else { return }
+        let theme = presentationData.theme
+        if #available(iOS 13.0, *) {
+            alert.overrideUserInterfaceStyle = theme.overallDarkAppearance ? .dark : .light
+        }
+        alert.view.tintColor = theme.actionSheet.controlAccentColor
+        for textField in alert.textFields ?? [] {
+            textField.keyboardAppearance = theme.rootController.keyboardColor.keyboardAppearance
+        }
+    }))
+    
     if let host = context.sharedContext.applicationBindings.getTopWindow()?.rootViewController {
         var presenter = host
         while let presented = presenter.presentedViewController {
@@ -634,11 +697,14 @@ public func setArchivePassword(context: AccountContext, present: @escaping (View
             completion(false)
         },
         capturePassword: { password in
-            _ = ArchivePasswordKeychain.store(password: password, peerId: context.account.peerId)
+            guard ArchivePasswordKeychain.store(password: password, peerId: context.account.peerId) else {
+                return false
+            }
             ArchivePasswordKeychain.clearFailureState(peerId: context.account.peerId)
             let _ = updateChatArchiveSettings(engine: context.engine) { current in
                 current.clearingLegacyPasswordHash().withUpdatedIsPasswordConfigured(true)
             }.startStandalone()
+            return true
         }
     )
 }
@@ -666,8 +732,11 @@ public func changeArchivePassword(context: AccountContext, present: @escaping (V
                     completion(false)
                 },
                 capturePassword: { password in
-                    _ = ArchivePasswordKeychain.store(password: password, peerId: context.account.peerId)
+                    guard ArchivePasswordKeychain.store(password: password, peerId: context.account.peerId) else {
+                        return false
+                    }
                     ArchivePasswordKeychain.clearFailureState(peerId: context.account.peerId)
+                    return true
                 }
             )
         },
@@ -702,7 +771,16 @@ public func removeArchivePassword(context: AccountContext, present: @escaping (V
             confirmTitle: ArchiveLockLocalizedString.remove,
             verifyPassword: true,
             onSuccess: {
-                _ = ArchivePasswordKeychain.clear(peerId: context.account.peerId)
+                guard ArchivePasswordKeychain.clear(peerId: context.account.peerId) else {
+                    completion(false)
+                    Queue.mainQueue().after(0.3) {
+                        let strings = context.sharedContext.currentPresentationData.with { $0 }.strings
+                        let alert = UIAlertController(title: ArchiveLockLocalizedString.removeTitle, message: ArchiveLockLocalizedString.storageError, preferredStyle: .alert)
+                        alert.addAction(UIAlertAction(title: strings.Common_OK, style: .cancel, handler: nil))
+                        presentUIAlert(context: context, alert: alert, onUnavailableHost: {})
+                    }
+                    return
+                }
                 let _ = updateChatArchiveSettings(engine: context.engine) { current in
                     current.clearingLegacyPasswordHash().withUpdatedIsPasswordConfigured(false)
                 }.startStandalone()
@@ -810,7 +888,7 @@ private func archiveLockShouldDismiss(_ controller: UIViewController, archivedPe
     if let chat = controller as? ChatController, let peerId = chat.chatLocation.peerId, archivedPeerIds.contains(peerId) {
         return true
     }
-    if let peerInfo = controller as? PeerInfoScreen, archivedPeerIds.contains(peerInfo.peerId) {
+    if let peerInfo = controller as? PeerInfoScreen, peerInfo.archiveLockProtectsContents, archivedPeerIds.contains(peerInfo.peerId) {
         return true
     }
     if let overlayPlayer = controller as? OverlayAudioPlayerController, let peerId = overlayPlayer.chatLocation.peerId, archivedPeerIds.contains(peerId) {
@@ -884,6 +962,14 @@ private func dismissPresentedArchiveControllers(from navigationController: UINav
 public func dismissOpenArchiveControllers(from navigationController: UINavigationController?, context: AccountContext? = nil) {
     let apply: (Set<EnginePeer.Id>) -> Void = { archivedPeerIds in
         let work = {
+            defer {
+                if let context {
+                    // Presented controllers can finish dismissing on the next runloop.
+                    Queue.mainQueue().async {
+                        removeArchiveLockSwitcherCover(context: context)
+                    }
+                }
+            }
             if let context {
                 stopOverlayMediaForArchivedPeers(context: context, archivedPeerIds: archivedPeerIds)
             }
@@ -901,7 +987,12 @@ public func dismissOpenArchiveControllers(from navigationController: UINavigatio
             }
             // Prefer a single pop when only the top controller is leaving — cheaper and less
             // crash-prone than replacing the whole stack mid-transition.
-            if controllers.count == filtered.count + 1 {
+            guard !filtered.isEmpty else {
+                return
+            }
+            if controllers.count == filtered.count + 1,
+               let topController = controllers.last,
+               archiveLockShouldDismiss(topController, archivedPeerIds: archivedPeerIds) {
                 navigationController.popViewController(animated: false)
             } else {
                 navigationController.setViewControllers(filtered, animated: false)
@@ -923,7 +1014,9 @@ public func dismissOpenArchiveControllers(from navigationController: UINavigatio
     // the folder match (empty ids still dismisses `.archive` chat lists) is available.
     if let context {
         let _ = (context.account.postbox.transaction { transaction -> Set<EnginePeer.Id> in
-            return Set(transaction.chatListGetAllPeerIds(groupId: Namespaces.PeerGroup.archive))
+            var peerIds = Set(transaction.chatListGetAllPeerIds(groupId: Namespaces.PeerGroup.archive))
+            peerIds.insert(context.account.peerId)
+            return peerIds
         }
         |> deliverOnMainQueue).startStandalone(next: apply)
     } else {

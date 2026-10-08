@@ -28,6 +28,23 @@ public enum TelegramSearchPeersScope: Equatable, Hashable {
 }
 
 public func _internal_searchPeers(accountPeerId: PeerId, postbox: Postbox, network: Network, query: String, scope: TelegramSearchPeersScope) -> Signal<([FoundPeer], [FoundPeer]), NoError> {
+    if let userId = telegramUserIdFromSearchQuery(query) {
+        return telegramSearchUserById(accountPeerId: accountPeerId, postbox: postbox, userId: userId, scope: scope)
+        |> mapToSignal { foundPeer -> Signal<([FoundPeer], [FoundPeer]), NoError> in
+            if let foundPeer = foundPeer {
+                return .single(([], [foundPeer]))
+            } else {
+                // Telegram cannot resolve an arbitrary user id without an access hash.
+                // Preserve ordinary numeric query search when the user is not cached.
+                return _internal_searchPeersNormally(accountPeerId: accountPeerId, postbox: postbox, network: network, query: query, scope: scope)
+            }
+        }
+    }
+
+    return _internal_searchPeersNormally(accountPeerId: accountPeerId, postbox: postbox, network: network, query: query, scope: scope)
+}
+
+private func _internal_searchPeersNormally(accountPeerId: PeerId, postbox: Postbox, network: Network, query: String, scope: TelegramSearchPeersScope) -> Signal<([FoundPeer], [FoundPeer]), NoError> {
     var flags: Int32 = 0
     switch scope {
     case .channels:

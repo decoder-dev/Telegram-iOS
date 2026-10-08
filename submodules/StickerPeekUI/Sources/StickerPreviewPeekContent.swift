@@ -193,7 +193,7 @@ public final class StickerPreviewPeekContentNode: ASDisplayNode, PeekControllerC
                 self.animationNode = nil
             }
             
-            self.imageNode.setSignal(chatMessageSticker(account: context.account, userLocation: .other, file: file, small: false, fetched: true))
+            self.imageNode.setSignal(chatMessageSticker(account: context.account, userLocation: .other, file: file, small: false, fetched: true, onlyFullSize: false, blurThumbnail: false))
         } else if case .portal = item {
             self._ready.set(.single(true))
         }
@@ -266,7 +266,7 @@ public final class StickerPreviewPeekContentNode: ASDisplayNode, PeekControllerC
     public func updateLayout(size: CGSize, transition: ContainedViewLayoutTransition) -> CGSize {
         let boundingSize: CGSize
         if self.item.file?.isCustomEmoji == true {
-            boundingSize = CGSize(width: 120.0, height: 120.0)
+            boundingSize = CGSize(width: 180.0, height: 180.0).fitted(size)
         } else if let _ = self.additionalAnimationNode {
             boundingSize = CGSize(width: 240.0, height: 240.0).fitted(size)
         } else {

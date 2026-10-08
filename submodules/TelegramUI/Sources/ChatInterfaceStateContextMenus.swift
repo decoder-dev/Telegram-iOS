@@ -1187,7 +1187,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
             let sendGiftTitle: String
             var isIncoming = message.effectivelyIncoming(context.account.peerId)
             for media in message.media {
-                if let action = media as? TelegramMediaAction, case let .starGiftUnique(_, isUpgrade, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _) = action.action {
+                if let action = media as? TelegramMediaAction, case let .starGiftUnique(_, isUpgrade, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _) = action.action {
                     if isUpgrade && message.author?.id == context.account.peerId {
                         isIncoming = true
                     }
@@ -1957,14 +1957,14 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
         // Russian app whenever the two disagreed. Same source and same language set the fork's
         // other custom titles use.
         let extrasMenuIsRussian: Bool
-        switch chatPresentationInterfaceState.strings.primaryComponent.languageCode {
+        switch String(chatPresentationInterfaceState.strings.primaryComponent.languageCode.prefix(2)).lowercased() {
         case "ru", "uk", "be":
             extrasMenuIsRussian = true
         default:
             extrasMenuIsRussian = false
         }
         if extras.saveToCloudMenu, message.id.peerId != context.account.peerId, message.id.namespace == Namespaces.Message.Cloud, !isCopyProtected || ForkAyuForwardSettings.enabled {
-            let saveTitle = extrasMenuIsRussian ? "В Избранное" : "Save to Saved Messages"
+            let saveTitle = forkSavedMessagesMenuTitle(chatPresentationInterfaceState.strings)
             actions.append(.action(ContextMenuActionItem(text: saveTitle, icon: { theme in
                 return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Fave"), color: theme.actionSheet.primaryTextColor)
             }, action: { _, f in
@@ -2007,6 +2007,20 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
                 return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Restrict"), color: theme.actionSheet.destructiveActionTextColor)
             }, action: { controller, f in
                 interfaceInteraction.blockMessageAuthor(message, controller)
+            })))
+        }
+
+        // «Теневой бан» bans the sender of an incoming message in a group, channel or comments.
+        if message.flags.contains(.Incoming), TelegramShadowBan.appliesToChat(message.id.peerId, chatPeer: message.peers[message.id.peerId]), let target = TelegramShadowBan.banTarget(of: message), target.id != message.id.peerId, TelegramShadowBan.canBan(EnginePeer(target), accountPeerId: context.account.peerId) {
+            let targetPeer = EnginePeer(target)
+            let isBanned = ArenaSettings.shared.isShadowBanned(target.id.toInt64())
+            actions.append(.action(ContextMenuActionItem(text: arenaShadowBanString(isBanned ? "Убрать из теневого бана" : "Теневой бан", strings: chatPresentationInterfaceState.strings), icon: { theme in
+                return generateTintedImage(image: UIImage(systemName: isBanned ? "eye" : "eye.slash", withConfiguration: UIImage.SymbolConfiguration(pointSize: 18.0, weight: .regular)), color: theme.actionSheet.primaryTextColor)
+            }, action: { _, f in
+                f(.dismissWithoutContent)
+                arenaToggleShadowBan(context: context, peer: targetPeer, present: { controller in
+                    controllerInteraction.presentControllerInCurrent(controller, nil)
+                })
             })))
         }
         
@@ -3795,7 +3809,7 @@ private final class ChatReadReportContextItemNode: ASDisplayNode, ContextMenuCus
             if self.item.message.id.peerId.namespace == Namespaces.Peer.CloudUser || self.item.isEdit {
             } else if let recentPeers = self.item.message.reactionsAttribute?.recentPeers, !recentPeers.isEmpty {
                 for recentPeer in recentPeers {
-                    if let peer = self.item.message.peers[recentPeer.peerId] {
+                    if let peer = self.item.message.peers[recentPeer.peerId], !TelegramShadowBan.isPeerHidden(recentPeer.peerId, inChat: self.item.message.id.peerId) {
                         if !avatarsPeers.contains(where: { $0.id == peer.id }) {
                             avatarsPeers.append(EnginePeer(peer))
                             if avatarsPeers.count == 3 {
@@ -3805,9 +3819,12 @@ private final class ChatReadReportContextItemNode: ASDisplayNode, ContextMenuCus
                     }
                 }
             } else if let peers = self.currentStats?.peers {
-                for i in 0 ..< min(3, peers.count) {
-                    if !avatarsPeers.contains(where: { $0.id == peers[i].id }) {
-                        avatarsPeers.append(peers[i])
+                for peer in peers where !TelegramShadowBan.isPeerHidden(peer.id, inChat: self.item.message.id.peerId) {
+                    if !avatarsPeers.contains(where: { $0.id == peer.id }) {
+                        avatarsPeers.append(peer)
+                        if avatarsPeers.count == 3 {
+                            break
+                        }
                     }
                 }
             }

@@ -508,6 +508,8 @@ public final class QrCodeScreen: ViewControllerComponentContainer {
                     if let password, !password.isEmpty {
                         link += "&pass=\(password.addingPercentEncoding(withAllowedCharacters: CharacterSet.urlQueryValueAllowed) ?? "")"
                     }
+                case let .vless(secret):
+                    link = String(data: secret, encoding: .utf8) ?? ""
                 case let .web(secret):
                     let secret = MTProxySecret.parseData(secret)?.serializeToString() ?? ""
                     link = "\(externalLink ? "https://t.me/webproxy" : "tg://webproxy")?server=\(serverHost)"

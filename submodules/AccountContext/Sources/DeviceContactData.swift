@@ -204,19 +204,23 @@ public final class DeviceContactInstantMessagingProfileData: Equatable, Hashable
 }
 
 public let phonebookUsernamePathPrefix = "@id"
-private let phonebookUsernamePrefix = "https://t.me/" + phonebookUsernamePathPrefix
+// Entries saved by older builds carried https://t.me/@id<peerId>, which is not a working
+// deep link. New entries save the peer's @username instead (upstream PR #740); the legacy
+// prefix is kept only so those old entries still map back to their peer.
+private let phonebookLegacyAppProfilePrefix = "https://t.me/" + phonebookUsernamePathPrefix
+private let phonebookUsernamePrefix = "https://t.me/"
 
 public extension DeviceContactUrlData {
-    convenience init(appProfile: EnginePeer.Id) {
-        self.init(label: "Telegram", value: "\(phonebookUsernamePrefix)\(appProfile.id._internalGetInt64Value())")
+    convenience init(addressName: String) {
+        self.init(label: "Telegram", value: "\(phonebookUsernamePrefix)\(addressName)")
     }
 }
 
 public func parseAppSpecificContactReference(_ value: String) -> EnginePeer.Id? {
-    if !value.hasPrefix(phonebookUsernamePrefix) {
+    if !value.hasPrefix(phonebookLegacyAppProfilePrefix) {
         return nil
     }
-    let idString = String(value[value.index(value.startIndex, offsetBy: phonebookUsernamePrefix.count)...])
+    let idString = String(value[value.index(value.startIndex, offsetBy: phonebookLegacyAppProfilePrefix.count)...])
     if let id = Int64(idString) {
         return EnginePeer.Id(namespace: Namespaces.Peer.CloudUser, id: EnginePeer.Id.Id._internalFromInt64Value(id))
     }

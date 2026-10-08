@@ -221,6 +221,17 @@ public final class Transaction {
         self.postbox?.confirmSynchronizedIncomingReadState(peerId)
     }
     
+    /// The pending synchronization of the peer's read state with the server.
+    public func getPeerReadStateSynchronizationOperation(_ peerId: PeerId) -> PeerReadStateSynchronizationOperation? {
+        assert(!self.disposed)
+        guard let postbox = self.postbox else {
+            return nil
+        }
+        return postbox.synchronizeReadStateTable.get(peerId, getCombinedPeerReadState: { peerId in
+            return postbox.readStateTable.getCombinedState(peerId)
+        })
+    }
+
     public func applyIncomingReadMaxId(_ messageId: MessageId) {
         assert(!self.disposed)
         self.postbox?.applyIncomingReadMaxId(messageId)
@@ -1419,6 +1430,23 @@ public final class Transaction {
         }
     }
     
+    /// Reject late packets for a stopped generation, including its all-topics mirror.
+    public func stopTypingDraft(location: PeerAndThreadId, id: Int64, keep: Bool, attributes: [MessageAttribute]) {
+        assert(!self.disposed)
+        var locations: Set<PeerAndThreadId> = [location]
+        locations.insert(PeerAndThreadId(peerId: location.peerId, threadId: nil))
+        for key in locations {
+            guard self.postbox!.currentTypingDrafts[key]?.id == id else { continue }
+            self.postbox!.combineTypingDrafts(locations: [key], update: { _, current in
+                guard var current, current.id == id else { return current }
+                if !keep { return nil }
+                current.attributes = attributes
+                return current
+            })
+            self.postbox!.stoppedTypingDrafts[key, default: [:]][id] = CFAbsoluteTimeGetCurrent()
+        }
+    }
+
     public func combineTypingDrafts(locations: Set<PeerAndThreadId>, update: (PeerAndThreadId, (id: Int64, namespace: MessageId.Namespace, threadId: Int64?, authorId: PeerId, timestamp: Int32, text: String, attributes: [MessageAttribute])?) -> (id: Int64, namespace: MessageId.Namespace, threadId: Int64?, authorId: PeerId, timestamp: Int32, text: String, attributes: [MessageAttribute])?) {
         assert(!self.disposed)
         self.postbox!.combineTypingDrafts(locations: locations, update: update)
@@ -1732,6 +1760,7 @@ final class PostboxImpl {
         var value: TypingDraft?
     }
     
+    fileprivate var stoppedTypingDrafts: [PeerAndThreadId: [Int64: Double]] = [:]
     fileprivate(set) var currentTypingDrafts: [PeerAndThreadId: TypingDraft] = [:]
     private var currentUpdatedTypingDrafts: [PeerAndThreadId: TypingDraftUpdate] = [:]
     private var nextTypingDraftExpirationTimestamp: Double?
@@ -2513,6 +2542,16 @@ final class PostboxImpl {
             } else {
                 updated = update(location, nil)
             }
+            // Keep the blocklist bounded; typing updates older than 60s are rejected upstream.
+            let now = CFAbsoluteTimeGetCurrent()
+            for (key, values) in self.stoppedTypingDrafts {
+                let retainedId = self.currentTypingDrafts[key]?.id
+                let values = values.filter { $0.key == retainedId || now - $0.value < 120.0 }
+                self.stoppedTypingDrafts[key] = values.isEmpty ? nil : values
+            }
+            if let updated, self.stoppedTypingDrafts[location]?[updated.id] != nil {
+                continue
+            }
             if let updated {
                 let stableId: UInt32
                 let stableVersion: UInt32
@@ -2539,7 +2578,8 @@ final class PostboxImpl {
         let expirationTimeout: Double = 20.0
         
         var nextTypingDraftExpirationTimestamp: Double?
-        for (_, draft) in self.currentTypingDrafts {
+        for (key, draft) in self.currentTypingDrafts {
+            if self.stoppedTypingDrafts[key]?[draft.id] != nil { continue }
             if let nextTypingDraftExpirationTimestampValue = nextTypingDraftExpirationTimestamp {
                 nextTypingDraftExpirationTimestamp = min(draft.addedAtTimestamp + expirationTimeout, nextTypingDraftExpirationTimestampValue)
             } else {
@@ -2552,10 +2592,13 @@ final class PostboxImpl {
                 let timeout = nextTypingDraftExpirationTimestamp - CFAbsoluteTimeGetCurrent()
                 
                 self.nextTypingDraftExpirationTimer?.invalidate()
-                self.nextTypingDraftExpirationTimer = SwiftSignalKit.Timer(timeout: max(0.0, timeout - 0.1), repeat: false, completion: { [weak self] in
+                self.nextTypingDraftExpirationTimestamp = nextTypingDraftExpirationTimestamp
+                self.nextTypingDraftExpirationTimer = SwiftSignalKit.Timer(timeout: max(0.01, timeout), repeat: false, completion: { [weak self] in
                     guard let self else {
                         return
                     }
+                    self.nextTypingDraftExpirationTimer = nil
+                    self.nextTypingDraftExpirationTimestamp = nil
                     let _ = self.transaction { _ in
                         self.processTypingDraftExpirations(expirationTimeout: expirationTimeout)
                     }.startStandalone()
@@ -2575,7 +2618,7 @@ final class PostboxImpl {
         let timestamp = CFAbsoluteTimeGetCurrent()
         var removedKeys: [PeerAndThreadId] = []
         for (key, draft) in self.currentTypingDrafts {
-            if draft.addedAtTimestamp + expirationTimeout >= timestamp {
+            if self.stoppedTypingDrafts[key]?[draft.id] == nil && draft.addedAtTimestamp + expirationTimeout <= timestamp {
                 removedKeys.append(key)
             }
         }
@@ -3257,13 +3300,21 @@ final class PostboxImpl {
         let transaction = Transaction(queue: self.queue, postbox: self)
         self.afterBegin(transaction: transaction)
         let result = f(transaction)
+        let userCallbackTime = CFAbsoluteTimeGetCurrent()
         let (updatedTransactionState, updatedMasterClientId) = self.beforeCommit(currentTransaction: transaction)
+        let beforeCommitTime = CFAbsoluteTimeGetCurrent()
         transaction.disposed = true
         self.valueBox.commit()
         
         let endTime = CFAbsoluteTimeGetCurrent()
         let transactionDuration = endTime - startTime
-        if transactionDuration > 0.01 {
+        if transactionDuration > 0.1 {
+            // R03: Phase-level breakdown for slow transactions (>100ms)
+            let userMs = (userCallbackTime - startTime) * 1000.0
+            let commitMs = (beforeCommitTime - userCallbackTime) * 1000.0
+            let sqliteMs = (endTime - beforeCommitTime) * 1000.0
+            postboxLog("Postbox SLOW transaction \(transactionDuration * 1000.0) ms [user=\(String(format: "%.1f", userMs))ms commit=\(String(format: "%.1f", commitMs))ms sqlite=\(String(format: "%.1f", sqliteMs))ms], from: \(file):\(line)")
+        } else if transactionDuration > 0.01 {
             postboxLog("Postbox transaction took \(transactionDuration * 1000.0) ms, from: \(file):\(line)")
         }
         

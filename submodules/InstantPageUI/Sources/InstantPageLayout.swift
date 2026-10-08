@@ -918,7 +918,7 @@ public func layoutInstantPageBlock(webpage: TelegramMediaWebpage, userLocation: 
         case let .anchor(name):
             let item = InstantPageAnchorItem(frame: CGRect(origin: CGPoint(), size: CGSize(width: boundingWidth, height: 0.0)), anchor: name)
             return InstantPageLayout(origin: CGPoint(), contentSize: item.frame.size, items: [item])
-        case let .audio(audioId, caption):
+        case let .document(audioId, caption), let .audio(audioId, caption):
             var contentSize = CGSize(width: boundingWidth, height: 0.0)
             var items: [InstantPageItem] = []
             

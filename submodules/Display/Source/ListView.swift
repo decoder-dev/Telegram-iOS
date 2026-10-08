@@ -5244,6 +5244,31 @@ open class ListViewImpl: ASDisplayNode, ListView, ASScrollViewDelegate, ASGestur
         }
     }
     
+    private func displayedContentItemIndex(at point: CGPoint) -> Int? {
+        // UIKit hit-testing walks the PRESENTATION state of the layer tree — what the
+        // user actually sees — while itemIndexAtPoint(_:) resolves item nodes by their
+        // MODEL frames. After an interrupted or uncommitted layout animation these can
+        // disagree, and a tap would otherwise select the row that used to be under the
+        // finger — in the chat list, opening a completely different chat (upstream
+        // issue #2124). Returns the index of the item node actually displayed at
+        // `point`, or nil when UIKit's hit does not land inside any item node (header
+        // overlays, gaps, accessory items), in which case callers keep the
+        // model-frame result.
+        guard let hitView = self.view.hitTest(point, with: nil) else {
+            return nil
+        }
+        var currentView: UIView? = hitView
+        while let view = currentView {
+            for itemNode in self.itemNodes {
+                if let index = itemNode.index, itemNode.view === view {
+                    return index
+                }
+            }
+            currentView = view.superview
+        }
+        return nil
+    }
+    
     override open func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         let isSecondary: Bool
         if #available(iOS 13.4, *) {
@@ -5257,13 +5282,19 @@ open class ListViewImpl: ASDisplayNode, ListView, ASScrollViewDelegate, ASGestur
             
             if isSecondary {
                 if let index = index {
-                    if self.items[index].selectable {
-                        self.highlightedItemIndex = index
-                        for itemNode in self.itemNodes {
-                            if itemNode.index == index {
-                                itemNode.secondaryAction(at: selectionTouchLocation)
-                                self.items[index].performSecondaryAction(listView: self)
-                                break
+                    if index < self.items.count, self.items[index].selectable {
+                        if let displayedIndex = self.displayedContentItemIndex(at: selectionTouchLocation), displayedIndex != index {
+                            // The row actually displayed under the touch is not the row
+                            // the model frames resolved to — do not act on the wrong
+                            // item (upstream issue #2124).
+                        } else {
+                            self.highlightedItemIndex = index
+                            for itemNode in self.itemNodes {
+                                if itemNode.index == index {
+                                    itemNode.secondaryAction(at: selectionTouchLocation)
+                                    self.items[index].performSecondaryAction(listView: self)
+                                    break
+                                }
                             }
                         }
                     }
@@ -5299,14 +5330,25 @@ open class ListViewImpl: ASDisplayNode, ListView, ASScrollViewDelegate, ASGestur
             }
         }
                 
-        if !isSecondary, let highlightedItemIndex = self.highlightedItemIndex {
-            for itemNode in self.itemNodes {
-                if itemNode.index == highlightedItemIndex {
-                    itemNode.selected()
-                    break
-                }
+        if !isSecondary, let highlightedItemIndex = self.highlightedItemIndex, highlightedItemIndex < self.items.count {
+            // Cross-check the resolved index against the item actually displayed under
+            // the touch (see displayedContentItemIndex). On mismatch, cancel the
+            // selection instead of acting on a row the user cannot see there — a
+            // dropped tap is recoverable, opening a different chat is not
+            // (upstream issue #2124).
+            var dispatchSelection = true
+            if let selectionTouchLocation = self.selectionTouchLocation, let displayedIndex = self.displayedContentItemIndex(at: selectionTouchLocation), displayedIndex != highlightedItemIndex {
+                dispatchSelection = false
             }
-            self.items[highlightedItemIndex].selected(listView: self)
+            if dispatchSelection {
+                for itemNode in self.itemNodes {
+                    if itemNode.index == highlightedItemIndex {
+                        itemNode.selected()
+                        break
+                    }
+                }
+                self.items[highlightedItemIndex].selected(listView: self)
+            }
         }
         self.selectionTouchLocation = nil
         

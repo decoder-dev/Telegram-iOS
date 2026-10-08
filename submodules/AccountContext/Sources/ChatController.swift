@@ -349,12 +349,16 @@ public struct ChatControllerInitialBotAppStart {
     public let payload: String?
     public let justInstalled: Bool
     public let mode: ResolvedStartAppMode
-    
-    public init(botApp: BotApp?, payload: String?, justInstalled: Bool, mode: ResolvedStartAppMode) {
+    // The `start` payload the link carried alongside `startapp`, used for the chat's Start button
+    // if the Mini App launch confirmation is dismissed. (Upstream PR #2289.)
+    public let botStartPayload: String?
+
+    public init(botApp: BotApp?, payload: String?, justInstalled: Bool, mode: ResolvedStartAppMode, botStartPayload: String? = nil) {
         self.botApp = botApp
         self.payload = payload
         self.justInstalled = justInstalled
         self.mode = mode
+        self.botStartPayload = botStartPayload
     }
 }
 
@@ -1066,6 +1070,7 @@ public enum PeerInfoAvatarUploadStatus {
 
 public protocol PeerInfoScreen: ViewController {
     var peerId: EnginePeer.Id { get }
+    var archiveLockProtectsContents: Bool { get }
     var privacySettings: Promise<AccountPrivacySettings?> { get }
     var twoStepAuthData: Promise<TwoStepAuthData?> { get }
     var notificationExceptions: Promise<NotificationExceptionsList?> { get }
@@ -1081,6 +1086,10 @@ public protocol PeerInfoScreen: ViewController {
     
     func updateProfilePhoto(_ image: UIImage)
     func updateProfileVideo(_ image: UIImage, video: Any?, values: Any?, markup: UploadPeerPhotoMarkup?)
+}
+
+public extension PeerInfoScreen {
+    var archiveLockProtectsContents: Bool { true }
 }
 
 public extension EngineRawPeer {

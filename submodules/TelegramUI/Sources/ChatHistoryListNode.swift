@@ -1,4 +1,4 @@
-import Foundation
+﻿import Foundation
 import UIKit
 import SwiftSignalKit
 import Display
@@ -87,6 +87,8 @@ struct ChatHistoryView {
     let locationInput: ChatHistoryLocationInput?
     let ignoreMessagesInTimestampRange: ClosedRange<Int32>?
     let ignoreMessageIds: Set<MessageId>
+    // Messages of this window hidden by the shadow ban; the loading and read fixes run only when it's above zero.
+    var ArenaHiddenCount: Int = 0
 }
 
 enum ChatHistoryViewTransitionReason {
@@ -194,6 +196,45 @@ private func maxMessageIndexForEntries(_ view: ChatHistoryView, indexRange: (Int
         }
     }
     return (incoming, overall)
+}
+
+/// Unseen mentions in shadow-banned messages between the neighbours of the visible range: they're never on screen, so they're
+/// consumed when their place is, like visible ones, and, like them, not while their content is unconsumed.
+private func ArenaHiddenUnseenMentions(_ view: ChatHistoryView, indexRange: (Int, Int)) -> [MessageId] {
+    var lowerBound: MessageIndex?
+    if indexRange.0 > 0 && indexRange.0 <= view.filteredEntries.count {
+        lowerBound = view.filteredEntries[indexRange.0 - 1].index
+    }
+    var upperBound: MessageIndex?
+    if indexRange.1 >= 0 && indexRange.1 + 1 < view.filteredEntries.count {
+        upperBound = view.filteredEntries[indexRange.1 + 1].index
+    }
+    var result: [MessageId] = []
+    for entry in view.originalView.entries {
+        if let lowerBound, entry.index <= lowerBound {
+            continue
+        }
+        if let upperBound, entry.index >= upperBound {
+            break
+        }
+        let message = entry.message
+        if !message.tags.contains(.unseenPersonalMessage) || !TelegramShadowBan.isHidden(message) {
+            continue
+        }
+        var hasMention = false
+        var hasUnconsumedContent = false
+        for attribute in message.attributes {
+            if let attribute = attribute as? ConsumablePersonalMentionMessageAttribute, !attribute.pending {
+                hasMention = true
+            } else if let attribute = attribute as? ConsumableContentMessageAttribute, !attribute.consumed {
+                hasUnconsumedContent = true
+            }
+        }
+        if hasMention && !hasUnconsumedContent {
+            result.append(message.id)
+        }
+    }
+    return result
 }
 
 extension ListMessageItemInteraction {
@@ -652,6 +693,12 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
             }
         }
     }
+
+    private let TelegramShadowBanPromise = ValuePromise<TelegramShadowBan.State>(TelegramShadowBan.State.current, ignoreRepeated: true)
+    private var TelegramShadowBanObserver: NSObjectProtocol?
+    private var ArenaHiddenWindowWalk = TelegramShadowBan.HiddenWindowWalk()
+    private var ArenaHiddenWindowWalkProgressIndex: MessageIndex?
+    private var ArenaReadIndexCache: (view: ObjectIdentifier, windowEnd: MessageIndex?, index: MessageIndex, result: MessageIndex)?
     
     private let justSentTextMessagePromise = ValuePromise<Bool>(false)
     var justSentTextMessage: Bool = false {
@@ -1190,7 +1237,7 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
                     }
                 }
                 if let maxMessage {
-                    strongSelf.updateMaxVisibleReadIncomingMessageIndex(maxMessage)
+                    strongSelf.updateMaxVisibleReadIncomingMessageIndex(strongSelf.ArenaReadIndexPastHiddenMessages(maxMessage))
                 }
                 
                 strongSelf.messageReadMetricsTracker?.reportUserActivity()
@@ -1283,9 +1330,30 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
         self.listView.view.addGestureRecognizer(selectionRecognizer)
 
         self.loadNextGenericReactionEffect(context: context)
+
+
+        
+        // These settings are read at layout time, so refresh the affected loaded messages.
+        
+
+        // The shadow ban list or «Показать скрытые» changed: rebuild the entries, then the reply headers of loaded messages.
+        self.TelegramShadowBanObserver = NotificationCenter.default.addObserver(forName: ArenaSettings.shadowBanDidChangeNotification, object: nil, queue: .main, using: { [weak self] _ in
+            guard let self else {
+                return
+            }
+            // Rebuild through the history transition pipeline. Its allUpdated flag
+            // refreshes reply headers as well as entries removed by the filter.
+            self.TelegramShadowBanPromise.set(TelegramShadowBan.State.current)
+        })
     }
-    
+
     deinit {
+
+
+        
+        if let TelegramShadowBanObserver = self.TelegramShadowBanObserver {
+            NotificationCenter.default.removeObserver(TelegramShadowBanObserver)
+        }
         self.historyDisposable.dispose()
         self.readHistoryDisposable.dispose()
         self.interactiveReadActionDisposable?.dispose()
@@ -1827,7 +1895,8 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
             self.currentlyPlayingMessageIdPromise.get(),
             self.scrollToMessageIdPromise.get(),
             self.chatHasBotsPromise.get(),
-            self.allAdMessagesPromise.get()
+            self.allAdMessagesPromise.get(),
+            self.TelegramShadowBanPromise.get()
         )
         
         let contentSettings = self.context.engine.data.subscribe(TelegramEngine.EngineData.Item.Configuration.ContentSettings())
@@ -1922,6 +1991,7 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
             // time, so an open chat only re-renders a toggle's effect when the history re-emits.
             // Without them in the fingerprint the toggle reaches just the messages that happen to
             // re-layout on their own, leaving the chat visually mixed until reopen.
+            var showChannelForwardCount: Bool
             var showMessageSeconds: Bool
             var wideChannelPosts: Bool
             var stickerSizePercent: Int32
@@ -1931,12 +2001,14 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
         }
         let messageFilterSettings: Signal<MessageFilterSettingsFingerprint, NoError> = forkExtrasSettings(accountManager: context.sharedContext.accountManager)
         |> map { settings -> MessageFilterSettingsFingerprint in
+            BananaForwardCountSettings.enabled = settings.showChannelForwardCount
             return MessageFilterSettingsFingerprint(
                 hideAds: settings.hideAds,
                 hideBlockedMessages: settings.hideBlockedMessages,
                 regexEnabled: settings.regexMessageFiltersEnabled,
                 regexCaseInsensitive: settings.regexMessageFiltersCaseInsensitive,
                 regexPatterns: settings.regexMessageFilterPatterns,
+                showChannelForwardCount: settings.showChannelForwardCount,
                 showMessageSeconds: settings.showMessageSeconds,
                 wideChannelPosts: settings.wideChannelPosts,
                 stickerSizePercent: settings.stickerSizePercent,
@@ -2009,7 +2081,7 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
             deviceContactsNumbers |> debug_measureTimeToFirstEvent(label: "chatHistoryNode_deviceContactsNumbers"),
             contentSettings |> debug_measureTimeToFirstEvent(label: "chatHistoryNode_contentSettings")
         ) |> debug_measureTimeToFirstEvent(label: "chatHistoryNode_firstChatHistoryTransition")).startStrict(next: { [weak self] update, chatPresentationData, selectedMessages, updatingMedia, networkType, preferredStoryHighQuality, animatedEmojiStickers, additionalAnimatedEmojiStickers, customChannelDiscussionReadState, customThreadOutgoingReadState, availableReactions, availableMessageEffects, savedMessageTags, defaultReaction, accountPeer, accountCountry, suggestAudioTranscription, promises, topicAuthorId, translationState, maxReadStoryId, recommendedChannels, audioTranscriptionTrial, chatThemes, deviceContactsNumbers, contentSettings in
-            let (historyAppearsCleared, pendingUnpinnedAllMessages, pendingRemovedMessages, currentlyPlayingMessageIdAndType, scrollToMessageId, chatHasBots, allAdMessages) = promises
+            let (historyAppearsCleared, pendingUnpinnedAllMessages, pendingRemovedMessages, currentlyPlayingMessageIdAndType, scrollToMessageId, chatHasBots, allAdMessages, shadowBanState) = promises
             
             if measure_isFirstTime {
                 measure_isFirstTime = false
@@ -2283,7 +2355,7 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
                 }
                                 
                 let previousChatHistoryEntriesForViewState = chatHistoryEntriesForViewState.with({ $0 })
-                let (filteredEntries, updatedChatHistoryEntriesForViewState) = chatHistoryEntriesForView(
+                let (filteredEntries, updatedChatHistoryEntriesForViewState, ArenaHiddenCount) = chatHistoryEntriesForView(
                     currentState: previousChatHistoryEntriesForViewState,
                     context: context,
                     location: chatLocation,
@@ -2302,6 +2374,7 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
                     skipViewOnceMedia: mode != .bubbles,
                     pendingUnpinnedAllMessages: pendingUnpinnedAllMessages,
                     pendingRemovedMessages: pendingRemovedMessages,
+                    shadowBan: mode == .bubbles ? shadowBanState : nil,
                     associatedData: associatedData,
                     updatingMedia: updatingMedia,
                     customChannelDiscussionReadState: customChannelDiscussionReadState,
@@ -2313,7 +2386,7 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
                     pinToTopStableId: pinToTopStableId
                 )
                 let lastHeaderId = filteredEntries.last.flatMap { listMessageDateHeaderId(timestamp: $0.index.timestamp) } ?? 0
-                let processedView = ChatHistoryView(originalView: view, filteredEntries: filteredEntries, associatedData: associatedData, lastHeaderId: lastHeaderId, id: id, locationInput: update.2, ignoreMessagesInTimestampRange: update.3, ignoreMessageIds: update.4)
+                let processedView = ChatHistoryView(originalView: view, filteredEntries: filteredEntries, associatedData: associatedData, lastHeaderId: lastHeaderId, id: id, locationInput: update.2, ignoreMessagesInTimestampRange: update.3, ignoreMessageIds: update.4, ArenaHiddenCount: ArenaHiddenCount)
                 let previousValueAndVersion = previousView.swap((processedView, update.1, selectedMessages, allAdMessages.version))
                 let _ = chatHistoryEntriesForViewState.swap(updatedChatHistoryEntriesForViewState)
                 let previous = previousValueAndVersion?.0
@@ -2614,7 +2687,7 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
             if apply {
                 switch strongSelf.chatLocation {
                 case .peer, .replyThread:
-                    if !(strongSelf.context.sharedContext.immediateExperimentalUISettings.skipReadHistory || ForkGhostModeSettings.shouldSuppressMessageReads) && !strongSelf.context.account.isSupportUser {
+                    if !strongSelf.context.sharedContext.immediateExperimentalUISettings.skipReadHistory && !strongSelf.context.account.isSupportUser {
                         strongSelf.context.applyMaxReadIndex(for: strongSelf.chatLocation, contextHolder: strongSelf.chatLocationContextHolder, messageIndex: messageIndex)
                     }
                 case .customChatContents:
@@ -3343,6 +3416,10 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
                 }
             }
             
+            if historyView.ArenaHiddenCount > 0 {
+                messageIdsWithUnseenPersonalMention.append(contentsOf: ArenaHiddenUnseenMentions(historyView, indexRange: indexRange))
+            }
+
             if !messageIdsWithViewCount.isEmpty {
                 self.messageProcessingManager.add(messageIdsWithViewCount.map { MessageAndThreadId(messageId: $0, threadId: nil) })
             }
@@ -3498,6 +3575,16 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
         })
         
         if let loaded = displayedRange.visibleRange, let firstEntry = historyView.filteredEntries.first, let lastEntry = historyView.filteredEntries.last {
+            // Shadow-banned messages are not entries: anchor on the window's real edges, or loading stalls behind 22+ of them,
+            // and grow the window with them, or a hidden run of 45+ (at the bottom too) yields windows with nothing visible.
+            var earlierAnchorIndex = firstEntry.index
+            var laterAnchorIndex = lastEntry.index
+            if historyView.ArenaHiddenCount > 0 {
+                earlierAnchorIndex = historyView.originalView.entries.first?.index ?? earlierAnchorIndex
+                laterAnchorIndex = historyView.originalView.entries.last?.index ?? laterAnchorIndex
+            }
+            let windowCount = TelegramShadowBan.historyWindowCount(historyMessageCount, hiddenCount: historyView.ArenaHiddenCount)
+
             var mathesFirst = false
             if loaded.firstIndex <= 5 {
                 var firstHasGroups = false
@@ -3539,16 +3626,16 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
             }
             
             if mathesFirst && historyView.originalView.laterId != nil {
-                let locationInput: ChatHistoryLocation = .Navigation(index: .message(lastEntry.index), anchorIndex: .message(lastEntry.index), count: historyMessageCount, highlight: false)
+                let locationInput: ChatHistoryLocation = .Navigation(index: .message(laterAnchorIndex), anchorIndex: .message(laterAnchorIndex), count: windowCount, highlight: false)
                 if self.chatHistoryLocationValue?.content != locationInput {
                     self.chatHistoryLocationValue = ChatHistoryLocationInput(content: locationInput, id: self.takeNextHistoryLocationId())
                 }
             } else if mathesFirst, historyView.originalView.laterId == nil, !historyView.originalView.holeLater, let chatHistoryLocationValue = self.chatHistoryLocationValue, !chatHistoryLocationValue.isAtUpperBound, historyView.originalView.anchorIndex != .upperBound {
                 if self.chatHistoryLocationValue == historyView.locationInput {
-                    self.chatHistoryLocationValue = ChatHistoryLocationInput(content: .Navigation(index: .upperBound, anchorIndex: .upperBound, count: historyMessageCount, highlight: false), id: self.takeNextHistoryLocationId())
+                    self.chatHistoryLocationValue = ChatHistoryLocationInput(content: .Navigation(index: .upperBound, anchorIndex: .upperBound, count: windowCount, highlight: false), id: self.takeNextHistoryLocationId())
                 }
             } else if mathesLast {
-                let locationInput: ChatHistoryLocation = .Navigation(index: .message(firstEntry.index), anchorIndex: .message(firstEntry.index), count: historyMessageCount, highlight: false)
+                let locationInput: ChatHistoryLocation = .Navigation(index: .message(earlierAnchorIndex), anchorIndex: .message(earlierAnchorIndex), count: windowCount, highlight: false)
                 if historyView.originalView.earlierId != nil {
                     if self.chatHistoryLocationValue?.content != locationInput {
                         self.chatHistoryLocationValue = ChatHistoryLocationInput(content: locationInput, id: self.takeNextHistoryLocationId())
@@ -3880,6 +3967,58 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
     
     private func updateMaxVisibleReadIncomingMessageIndex(_ index: MessageIndex) {
         self.maxVisibleIncomingMessageIndex.set(index)
+    }
+
+    /// Every message of the loaded window is hidden by the shadow ban: load the next window instead of showing «no messages».
+    /// Returns false when nothing is left to load, so the chat really has no visible messages.
+    private func ArenaLoadPastHiddenWindow(_ historyView: ChatHistoryView) -> Bool {
+        let originalView = historyView.originalView
+        guard let firstEntry = originalView.entries.first, let lastEntry = originalView.entries.last else {
+            return false
+        }
+        let canLoadEarlier = originalView.earlierId != nil || originalView.holeEarlier
+        let canLoadLater = originalView.laterId != nil || originalView.holeLater
+        guard let direction = self.ArenaHiddenWindowWalk.next(canLoadEarlier: canLoadEarlier, canLoadLater: canLoadLater) else {
+            return false
+        }
+        let anchorIndex = direction == .earlier ? firstEntry.index : lastEntry.index
+        let windowCount = TelegramShadowBan.historyWindowCount(historyMessageCount, hiddenCount: originalView.entries.count)
+        let locationInput: ChatHistoryLocation = .Navigation(index: .message(anchorIndex), anchorIndex: .message(anchorIndex), count: windowCount, highlight: false)
+        if self.chatHistoryLocationValue?.content != locationInput {
+            self.chatHistoryLocationValue = ChatHistoryLocationInput(content: locationInput, id: self.takeNextHistoryLocationId())
+        }
+        return true
+    }
+
+    /// Shadow-banned messages after the newest read one, up to the next visible message, are never on screen: count them as
+    /// read, or the chat keeps an unread badge for them.
+    private func ArenaReadIndexPastHiddenMessages(_ index: MessageIndex) -> MessageIndex {
+        guard let historyView = (self.listView.opaqueTransactionState as? ChatHistoryTransactionOpaqueState)?.historyView, historyView.ArenaHiddenCount > 0 else {
+            return index
+        }
+        // Called on every scroll frame, and windows grow with hidden messages: compute once per history view and index.
+        let viewKey = ObjectIdentifier(historyView.originalView)
+        let windowEnd = historyView.originalView.entries.last?.index
+        if let cache = self.ArenaReadIndexCache, cache.view == viewKey, cache.windowEnd == windowEnd, cache.index == index {
+            return cache.result
+        }
+        var visibleIndices: [MessageIndex] = []
+        for entry in historyView.filteredEntries {
+            switch entry {
+            case let .MessageEntry(message, _, _, _, _, _):
+                if message.adAttribute == nil {
+                    visibleIndices.append(message.index)
+                }
+            case let .MessageGroupEntry(_, messages, _):
+                visibleIndices.append(contentsOf: messages.map { $0.0.index })
+            default:
+                break
+            }
+        }
+        visibleIndices.sort()
+        let result = TelegramShadowBan.readIndexPastHidden(index, visibleIndices: visibleIndices, windowIndices: historyView.originalView.entries.map(\.index))
+        self.ArenaReadIndexCache = (viewKey, windowEnd, index, result)
+        return result
     }
     
     private func enqueueHistoryViewTransition(_ transition: ChatHistoryListViewTransition) {
@@ -4267,7 +4406,13 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
                 }
                 
                 strongSelf.historyView = transition.historyView
-                
+                if let newestEntryIndex = transition.historyView.filteredEntries.last?.index, newestEntryIndex != strongSelf.ArenaHiddenWindowWalkProgressIndex {
+                    // New visible messages: the walk past hidden ones starts over. Back at the same place it keeps its steps,
+                    // so a hidden run too long for the windows to bridge can't make the list reload forever.
+                    strongSelf.ArenaHiddenWindowWalkProgressIndex = newestEntryIndex
+                    strongSelf.ArenaHiddenWindowWalk = TelegramShadowBan.HiddenWindowWalk()
+                }
+
                 let loadState: ChatHistoryNodeLoadState
                 var alwaysHasMessages = false
                 if case .custom = strongSelf.source {
@@ -4281,6 +4426,8 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
                 } else if let historyView = strongSelf.historyView {
                     if historyView.filteredEntries.isEmpty {
                         if historyView.originalView.isLoading {
+                            loadState = .loading(false)
+                        } else if historyView.ArenaHiddenCount > 0, strongSelf.ArenaLoadPastHiddenWindow(historyView) {
                             loadState = .loading(false)
                         } else if let firstEntry = historyView.originalView.entries.first {
                             var emptyType = ChatHistoryNodeLoadState.EmptyType.generic
@@ -4352,7 +4499,22 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
                         f(loadState, isAnimated)
                     }
                 }
-                
+
+                if transition.historyView.ArenaHiddenCount > 0 && !transition.historyView.filteredEntries.isEmpty {
+                    // A hidden message can arrive without changing the list, and then no scroll callback reads it:
+                    // at the bottom of the chat everything up to the newest message is read.
+                    if strongSelf.isScrollAtBottomPosition && transition.historyView.originalView.laterId == nil && !transition.historyView.originalView.holeLater, let lastIndex = transition.historyView.originalView.entries.last?.index {
+                        strongSelf.updateMaxVisibleReadIncomingMessageIndex(lastIndex)
+                    }
+                    // The displayed-range pass then consumes its unseen mention. Force it only when the list didn't change:
+                    // a transaction that did reports its new range itself, and the 10 s refresh timer covers the rest.
+                    if transition.insertItems.isEmpty && transition.deleteItems.isEmpty && transition.updateItems.isEmpty {
+                        Queue.mainQueue().justDispatch { [weak self] in
+                            self?.listView.updateVisibleItemRange(force: true)
+                        }
+                    }
+                }
+
                 var hasAnyMessages = false
                 var hasAtLeast3Messages = false
                 var hasPlentyOfMessages = false

@@ -10,16 +10,18 @@ import AccountContext
 import ContextUI
 
 public final class InstantPageUrlItem: Equatable {
+    public let button: ReplyMarkupButton?
     public let url: String
     public let webpageId: EngineMedia.Id?
     
-    public init(url: String, webpageId: EngineMedia.Id?) {
+    public init(url: String, webpageId: EngineMedia.Id?, button: ReplyMarkupButton? = nil) {
+        self.button = button
         self.url = url
         self.webpageId = webpageId
     }
     
     public static func ==(lhs: InstantPageUrlItem, rhs: InstantPageUrlItem) -> Bool {
-        return lhs.url == rhs.url && lhs.webpageId == rhs.webpageId
+        return lhs.url == rhs.url && lhs.webpageId == rhs.webpageId && lhs.button == rhs.button
     }
 }
 
@@ -761,6 +763,14 @@ func attributedStringForRichText(_ text: RichText, styleStack: InstantPageTextSt
         case let .fixed(text):
             styleStack.push(.fontFixed(true))
             let result = attributedStringForRichText(text, styleStack: styleStack, url: url, formatDate: formatDate)
+            styleStack.pop()
+            return result
+        case let .button(text, button, _):
+            if case .disabled = button.action {
+                return attributedStringForRichText(text, styleStack: styleStack, formatDate: formatDate)
+            }
+            styleStack.push(.link(false))
+            let result = attributedStringForRichText(text, styleStack: styleStack, url: InstantPageUrlItem(url: "", webpageId: nil, button: button), formatDate: formatDate)
             styleStack.pop()
             return result
         case let .url(text, url, webpageId):

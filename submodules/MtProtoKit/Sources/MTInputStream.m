@@ -7,22 +7,6 @@
 #   import <endian.h>
 #endif
 
-static inline int roundUpInput(int numToRound, int multiple)
-{
-    if (multiple == 0)
-    {
-        return numToRound;
-    }
-    
-    int remainder = numToRound % multiple;
-    if (remainder == 0)
-    {
-        return numToRound;
-    }
-    
-    return numToRound + multiple - remainder;
-}
-
 @interface MTInputStream ()
 {
     NSInputStream *_wrappedInputStream;
@@ -115,7 +99,18 @@ static inline int roundUpInput(int numToRound, int multiple)
 
 - (NSData *)readData:(int)length failed:(bool *)failed
 {
+    if (length < 0) {
+        *failed = true;
+        return nil;
+    }
+    if (length == 0) {
+        return [NSMutableData data];
+    }
     uint8_t *bytes = (uint8_t *)malloc(length);
+    if (bytes == NULL) {
+        *failed = true;
+        return nil;
+    }
     NSInteger readLen = [_wrappedInputStream read:bytes maxLength:length];
     if (readLen != length)
     {
@@ -129,7 +124,18 @@ static inline int roundUpInput(int numToRound, int multiple)
 
 - (NSMutableData *)readMutableData:(NSUInteger)length failed:(bool *)failed
 {
+    if (length == 0) {
+        return [NSMutableData data];
+    }
+    if (length > NSIntegerMax) {
+        *failed = true;
+        return nil;
+    }
     uint8_t *bytes = (uint8_t *)malloc(length);
+    if (bytes == NULL) {
+        *failed = true;
+        return nil;
+    }
     NSInteger readLen = [_wrappedInputStream read:bytes maxLength:length];
     if (readLen != length)
     {
@@ -143,100 +149,45 @@ static inline int roundUpInput(int numToRound, int multiple)
 
 - (NSString *)readString:(bool *)failed
 {
-    uint8_t tmp = 0;
-    [_wrappedInputStream read:&tmp maxLength:1];
-    
-    int paddingBytes = 0;
-    
-    int32_t length = tmp;
-    if (length == 254)
-    {
-        length = 0;
-        [_wrappedInputStream read:((uint8_t *)&length) + 1 maxLength:3];
-        length >>= 8;
-        
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-#elif __BYTE_ORDER == __BIG_ENDIAN
-#   error "Big endian is not implemented"
-#else
-#   error "Unknown byte order"
-#endif
-        
-        paddingBytes = roundUpInput(length, 4) - length;
+    NSData *data = [self readBytes:failed];
+    if (data == nil) {
+        return nil;
     }
-    else
-    {
-        paddingBytes = roundUpInput(length + 1, 4) - (length + 1);
+    NSString *string = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+    if (string == nil) {
+        *failed = true;
     }
-    
-    NSString *string = nil;
-    
-    if (length > 0)
-    {
-        uint8_t *bytes = (uint8_t *)malloc(length);
-        NSInteger readLen = [_wrappedInputStream read:bytes maxLength:length];
-        if (readLen != length)
-        {
-            free(bytes);
-            *failed = true;
-            return nil;
-        }
-        
-        string = [[NSString alloc] initWithBytesNoCopy:bytes length:length encoding:NSUTF8StringEncoding freeWhenDone:true];
-    }
-    else
-    {
-        string = @"";
-    }
-    
-    for (int i = 0; i < paddingBytes; i++)
-        [_wrappedInputStream read:&tmp maxLength:1];
-    
     return string;
 }
 
 - (NSData *)readBytes:(bool *)failed
 {
-    uint8_t tmp = 0;
-    [_wrappedInputStream read:&tmp maxLength:1];
-    
-    int paddingBytes = 0;
-    
-    int32_t length = tmp;
-    if (length == 254)
-    {
-        length = 0;
-        [_wrappedInputStream read:((uint8_t *)&length) + 1 maxLength:3];
-        length >>= 8;
-        
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-#elif __BYTE_ORDER == __BIG_ENDIAN
-#   error "Big endian is not implemented"
-#else
-#   error "Unknown byte order"
-#endif
-        
-        paddingBytes = roundUpInput(length, 4) - length;
-    }
-    else
-    {
-        paddingBytes = roundUpInput(length + 1, 4) - (length + 1);
-    }
-    
-    uint8_t *bytes = (uint8_t *)malloc(length);
-    NSInteger readLen = [_wrappedInputStream read:bytes maxLength:length];
-    if (readLen != length)
-    {
-        free(bytes);
+    uint8_t marker = 0;
+    if ([_wrappedInputStream read:&marker maxLength:1] != 1 || marker == 255) {
         *failed = true;
         return nil;
     }
-    
-    NSData *result = [NSData dataWithBytesNoCopy:bytes length:length freeWhenDone:true];
-    
-    for (int i = 0; i < paddingBytes; i++)
-        [_wrappedInputStream read:&tmp maxLength:1];
-    
+    int32_t length = marker;
+    int prefixLength = 1;
+    if (marker == 254) {
+        uint8_t encodedLength[3];
+        if ([_wrappedInputStream read:encodedLength maxLength:3] != 3) {
+            *failed = true;
+            return nil;
+        }
+        length = (int32_t)encodedLength[0] | ((int32_t)encodedLength[1] << 8) | ((int32_t)encodedLength[2] << 16);
+        prefixLength = 4;
+    }
+    NSData *result = [self readData:length failed:failed];
+    if (result == nil) {
+        return nil;
+    }
+    NSUInteger paddingLength = (4 - ((length + prefixLength) % 4)) % 4;
+    uint8_t padding[3];
+    if (paddingLength != 0 && [_wrappedInputStream read:padding maxLength:paddingLength] != (NSInteger)paddingLength) {
+        *failed = true;
+        return nil;
+    }
     return result;
 }
 

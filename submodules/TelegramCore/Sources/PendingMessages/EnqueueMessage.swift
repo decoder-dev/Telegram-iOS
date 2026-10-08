@@ -1238,7 +1238,7 @@ func enqueueMessages(transaction: Transaction, account: Account, peerId: PeerId,
                         }
                     }
                     
-                    for attribute in filterMessageAttributesForOutgoingMessage(requestedAttributes) {
+                    for attribute in forkOutgoingMessageAttributes(filterMessageAttributesForOutgoingMessage(requestedAttributes)) {
                         if let attribute = attribute as? AutoremoveTimeoutMessageAttribute {
                             if let _ = peer as? TelegramSecretChat {
                                 peerAutoremoveTimeout = nil
@@ -1283,7 +1283,7 @@ func enqueueMessages(transaction: Transaction, account: Account, peerId: PeerId,
                         attributes.append(ReplyStoryAttribute(storyId: replyToStoryId))
                     }
                     var mediaList: [Media] = []
-                    if let mediaReference = mediaReference {
+                    if let mediaReference = mediaReference, !(ForkMessageVisibility.removeLinkPreviews && mediaReference.media is TelegramMediaWebpage) {
                         let augmentedMedia = augmentMediaWithReference(mediaReference)
                         mediaList.append(augmentedMedia)
                     }

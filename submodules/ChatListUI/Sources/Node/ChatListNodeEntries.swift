@@ -1,4 +1,4 @@
-import Foundation
+﻿import Foundation
 import UIKit
 import TelegramCore
 import TelegramPresentationData
@@ -611,6 +611,9 @@ struct ChatListContactPeer {
 }
 
 func chatListNodeEntriesForView(view: EngineChatList, state: ChatListNodeState, savedMessagesPeer: EnginePeer?, foundPeers: [(EnginePeer, EnginePeer?)], hideArchivedFolderByDefault: Bool, displayArchiveIntro: Bool, mode: ChatListNodeMode, chatListLocation: ChatListControllerLocation, contacts: [ChatListContactPeer], accountPeerId: EnginePeer.Id, isMainTab: Bool, omitArchiveFolder: Bool = false, forceArchiveCollapsed: Bool = false, redactArchiveFolderContents: Bool = false) -> (entries: [ChatListNodeEntry], loading: Bool) {
+    let hideSavedMessages = redactArchiveFolderContents
+    let savedMessagesPeer = hideSavedMessages ? nil : savedMessagesPeer
+    let foundPeers = hideSavedMessages ? foundPeers.filter { $0.0.id != accountPeerId } : foundPeers
     var groupItems = view.groupItems
     // Secret archive: until Settings is tapped 10× (or while fully omitted after close), the folder does not exist.
     if omitArchiveFolder {
@@ -677,6 +680,9 @@ func chatListNodeEntriesForView(view: EngineChatList, state: ChatListNodeState, 
     var hasPinned = false
     
     loop: for entry in view.items {
+        if hideSavedMessages && entry.renderedPeer.peerId == accountPeerId {
+            continue loop
+        }
         var peerId: EnginePeer.Id?
         var threadId: Int64?
         var activityItemId: ChatListNodePeerInputActivities.ItemId?
@@ -939,8 +945,9 @@ func chatListNodeEntriesForView(view: EngineChatList, state: ChatListNodeState, 
                     index: .chatList(EngineChatList.Item.Index.ChatList(pinningIndex: pinningIndex, messageIndex: messageIndex)),
                     presentationData: state.presentationData,
                     groupId: groupReference.id,
+
                     peers: redactArchiveFolderContents ? [] : groupReference.items,
-                    message: redactArchiveFolderContents ? nil : groupReference.topMessage,
+                    message: redactArchiveFolderContents ? nil : groupReference.topMessage.flatMap { TelegramShadowBan.isHidden($0) ? nil : $0 },
                     editing: state.editing,
                     unreadCount: redactArchiveFolderContents ? 0 : groupReference.unreadCount,
                     revealed: forceArchiveCollapsed ? false : state.hiddenItemShouldBeTemporaryRevealed,

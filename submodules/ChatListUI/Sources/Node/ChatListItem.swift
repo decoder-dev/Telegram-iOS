@@ -1,4 +1,4 @@
-import Foundation
+﻿import Foundation
 import UIKit
 import AsyncDisplayKit
 import Display
@@ -2585,6 +2585,12 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                         messages = []
                     }
                 }
+            }
+
+            // A shadow-banned last message leaves the preview empty, as cleared history does; the row keeps its date and
+            // its tap, which still opens the chat or topic through peerData.messages.
+            if let messageValue = messages.last, TelegramShadowBan.isHidden(messageValue) {
+                messages = []
             }
             let isLastMessageFiltered = messages.last.flatMap { message in
                 return forkShouldHideChatListMessage(accountPeerId: item.context.account.peerId, message: message)

@@ -457,7 +457,7 @@ public func topMessageReactions(context: AccountContext, message: EngineRawMessa
             }
         }
         
-        if allowedReactionsAndFiles.areStarsEnabled {
+        if allowedReactionsAndFiles.areStarsEnabled && !ForkMessageVisibility.hidePaidReactions {
             result.removeAll(where: { $0.reaction.rawValue == .stars })
             if let reaction = availableReactions.reactions.first(where: { $0.value == .stars }) {
                 if let centerAnimation = reaction.centerAnimation, let aroundAnimation = reaction.aroundAnimation {

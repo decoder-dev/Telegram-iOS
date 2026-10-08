@@ -1,3 +1,4 @@
+import Foundation
 import Postbox
 import FlatBuffers
 import FlatSerialization
@@ -32,6 +33,7 @@ private enum RichTextTypes: Int32 {
     case textMentionName = 26
     case textSpoiler = 27
     case textDate = 28
+    case button = 29
 }
 
 public indirect enum RichText: PostboxCoding, Equatable {
@@ -64,6 +66,8 @@ public indirect enum RichText: PostboxCoding, Equatable {
     case textMentionName(text: RichText, peerId: Int64)
     case textSpoiler(text: RichText)
     case textDate(text: RichText, date: Int32, format: MessageTextEntityType.DateTimeFormat?)
+
+    case button(text: RichText, button: ReplyMarkupButton, apiData: Data)
 
     public init(decoder: PostboxDecoder) {
         switch decoder.decodeInt32ForKey("r", orElse: 0) {
@@ -131,6 +135,14 @@ public indirect enum RichText: PostboxCoding, Equatable {
                 self = .textSpoiler(text: decoder.decodeObjectForKey("t", decoder: { RichText(decoder: $0) }) as! RichText)
             case RichTextTypes.textDate.rawValue:
                 self = .textDate(text: decoder.decodeObjectForKey("t", decoder: { RichText(decoder: $0) }) as! RichText, date: decoder.decodeInt32ForKey("dt", orElse: 0), format: decoder.decodeOptionalInt32ForKey("df").flatMap { MessageTextEntityType.DateTimeFormat(rawValue: $0) })
+            case RichTextTypes.button.rawValue:
+                guard let text = decoder.decodeObjectForKey("t", decoder: { RichText(decoder: $0) }) as? RichText,
+                    let button = decoder.decodeObjectForKey("b", decoder: { ReplyMarkupButton(decoder: $0) }) as? ReplyMarkupButton,
+                    let data = decoder.decodeDataForKey("api") else {
+                    self = .empty
+                    return
+                }
+                self = .button(text: text, button: button, apiData: data)
             default:
                 self = .empty
         }
@@ -138,6 +150,11 @@ public indirect enum RichText: PostboxCoding, Equatable {
     
     public func encode(_ encoder: PostboxEncoder) {
         switch self {
+        case let .button(text, button, apiData):
+            encoder.encodeInt32(RichTextTypes.button.rawValue, forKey: "r")
+            encoder.encodeObject(text, forKey: "t")
+            encoder.encodeObject(button, forKey: "b")
+            encoder.encodeData(apiData, forKey: "api")
             case .empty:
                 encoder.encodeInt32(RichTextTypes.empty.rawValue, forKey: "r")
             case let .plain(string):
@@ -251,6 +268,11 @@ public indirect enum RichText: PostboxCoding, Equatable {
 
     public static func ==(lhs: RichText, rhs: RichText) -> Bool {
         switch lhs {
+        case let .button(text, button, data):
+            if case let .button(otherText, otherButton, otherData) = rhs {
+                return text == otherText && button == otherButton && data == otherData
+            }
+            return false
             case .empty:
                 if case .empty = rhs {
                     return true
@@ -388,6 +410,8 @@ public indirect enum RichText: PostboxCoding, Equatable {
 public extension RichText {
     var plainText: String {
         switch self {
+        case let .button(text, _, _):
+            return text.plainText
             case .empty:
                 return ""
             case let .plain(string):
@@ -603,6 +627,11 @@ extension RichText {
             }
             let formatValue = value.format
             self = .textDate(text: try RichText(flatBuffersObject: value.text), date: value.date, format: formatValue == -1 ? nil : MessageTextEntityType.DateTimeFormat(rawValue: formatValue))
+        case .richtextButton:
+            guard let value = flatBuffersObject.value(type: TelegramCore_RichText_Button.self) else {
+                throw FlatBuffersError.missingRequiredField()
+            }
+            self = RichText(decoder: PostboxDecoder(buffer: MemoryBuffer(data: Data(value.payload))))
         case .none_:
             self = .empty
         }
@@ -613,6 +642,14 @@ extension RichText {
         let offset: Offset
         
         switch self {
+        case .button:
+            valueType = .richtextButton
+            let encoder = PostboxEncoder()
+            self.encode(encoder)
+            let payload = builder.createVector([UInt8](encoder.makeData()))
+            let start = TelegramCore_RichText_Button.startRichText_Button(&builder)
+            TelegramCore_RichText_Button.addVectorOf(payload: payload, &builder)
+            offset = TelegramCore_RichText_Button.endRichText_Button(&builder, start: start)
         case .empty:
             valueType = .richtextEmpty
             let start = TelegramCore_RichText_Empty.startRichText_Empty(&builder)

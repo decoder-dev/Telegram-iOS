@@ -706,20 +706,20 @@ extension ChatControllerImpl {
                 
                 let globalPrivacySettings = context.engine.data.get(TelegramEngine.EngineData.Item.Configuration.GlobalPrivacy())
                 
-                let canStopIncomingStreamingMessage: Signal<Bool, NoError> = .single(false)
-                /*if let peerId = chatLocation.peerId {
+                let canStopIncomingStreamingMessage: Signal<Bool, NoError>
+                if let peerId = chatLocation.peerId {
                     let key = PeerAndThreadId(peerId: peerId, threadId: chatLocation.threadId)
                     canStopIncomingStreamingMessage = context.account.postbox.combinedView(keys: [PostboxViewKey.typingDrafts(key)])
                     |> map { views -> Bool in
                         guard let view = views.views[PostboxViewKey.typingDrafts(key)] as? TypingDraftsView else {
                             return false
                         }
-                        return view.typingDraft != nil
+                        return view.typingDraft?.attributes.contains(where: { ($0 as? TypingDraftMessageAttribute)?.canStop == true }) ?? false
                     }
                     |> distinctUntilChanged
                 } else {
                     canStopIncomingStreamingMessage = .single(false)
-                }*/
+                }
 
                 self.peerDisposable = combineLatest(
                     queue: Queue.mainQueue(),
@@ -1405,20 +1405,20 @@ extension ChatControllerImpl {
                 
                 let globalPrivacySettings = context.engine.data.get(TelegramEngine.EngineData.Item.Configuration.GlobalPrivacy())
                 
-                let canStopIncomingStreamingMessage: Signal<Bool, NoError> = .single(false)
-                /*if let peerId = chatLocation.peerId {
+                let canStopIncomingStreamingMessage: Signal<Bool, NoError>
+                if let peerId = chatLocation.peerId {
                     let key = PeerAndThreadId(peerId: peerId, threadId: chatLocation.threadId)
                     canStopIncomingStreamingMessage = context.account.postbox.combinedView(keys: [PostboxViewKey.typingDrafts(key)])
                     |> map { views -> Bool in
                         guard let view = views.views[PostboxViewKey.typingDrafts(key)] as? TypingDraftsView else {
                             return false
                         }
-                        return view.typingDraft != nil
+                        return view.typingDraft?.attributes.contains(where: { ($0 as? TypingDraftMessageAttribute)?.canStop == true }) ?? false
                     }
                     |> distinctUntilChanged
                 } else {
                     canStopIncomingStreamingMessage = .single(false)
-                }*/
+                }
                 
                 self.peerDisposable = (combineLatest(queue: Queue.mainQueue(),
                     peerView,

@@ -1196,7 +1196,9 @@ private func finalStateWithUpdatesAndServerTime(accountPeerId: PeerId, postbox: 
                         updatedState.addPreCachedStory(id: id, story: story)
                     }
                 }
-                updatedState.addMessages([StoreMessage(apiEphemeralMessage: apiMessage)], location: .Random)
+                if let message = StoreMessage(apiEphemeralMessage: apiMessage) {
+                    updatedState.addMessages([message], location: .Random)
+                }
             case let .updateEditEphemeralMessage(updateEditEphemeralMessageData):
                 let apiMessage = updateEditEphemeralMessageData.message
                 if let preCachedResources = apiMessage.preCachedResources {
@@ -1209,8 +1211,7 @@ private func finalStateWithUpdatesAndServerTime(accountPeerId: PeerId, postbox: 
                         updatedState.addPreCachedStory(id: id, story: story)
                     }
                 }
-                let message = StoreMessage(apiEphemeralMessage: apiMessage)
-                if case let .Id(messageId) = message.id {
+                if let message = StoreMessage(apiEphemeralMessage: apiMessage), case let .Id(messageId) = message.id {
                     updatedState.editMessage(messageId, message: message)
                 }
             case let .updateDeleteEphemeralMessages(updateDeleteEphemeralMessagesData):
@@ -1595,22 +1596,22 @@ private func finalStateWithUpdatesAndServerTime(accountPeerId: PeerId, postbox: 
                 let threadId = topMsgId.flatMap { Int64($0) }
             
                 if let date = updatesDate, date + 60 > serverTime {
-                    var typingDraftData: (randomId: Int64, text: TypingDraftText)?
+                    var typingDraftData: (randomId: Int64, flags: Int32, text: TypingDraftText)?
                     
                     if case let .sendMessageTextDraftAction(sendMessageTextDraftActionData) = type {
-                        typingDraftData = (sendMessageTextDraftActionData.randomId, .plain(sendMessageTextDraftActionData.text))
+                        typingDraftData = (sendMessageTextDraftActionData.randomId, sendMessageTextDraftActionData.flags, .plain(sendMessageTextDraftActionData.text))
                     } else if case let .sendMessageRichMessageDraftAction(sendMessageRichMessageDraftActionData) = type {
-                        typingDraftData = (sendMessageRichMessageDraftActionData.randomId, .rich(sendMessageRichMessageDraftActionData.richMessage))
+                        typingDraftData = (sendMessageRichMessageDraftActionData.randomId, sendMessageRichMessageDraftActionData.flags, .rich(sendMessageRichMessageDraftActionData.richMessage))
                     }
                     if let typingDraftData {
                         switch typingDraftData.text {
                         case let .plain(plain):
                             if case let .textWithEntities(textWithEntitiesData) = plain {
-                                updatedState.addPeerLiveTypingDraftUpdate(peerAndThreadId: PeerAndThreadId(peerId: PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(userId)), threadId: threadId), id: typingDraftData.randomId, timestamp: date, peerId: PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(userId)), content: .plain(text: textWithEntitiesData.text, entities: messageTextEntitiesFromApiEntities(textWithEntitiesData.entities)))
+                                updatedState.addPeerLiveTypingDraftUpdate(peerAndThreadId: PeerAndThreadId(peerId: PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(userId)), threadId: threadId), id: typingDraftData.randomId, timestamp: date, peerId: PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(userId)), content: .plain(text: textWithEntitiesData.text, entities: messageTextEntitiesFromApiEntities(textWithEntitiesData.entities), flags: typingDraftData.flags))
                             }
                         case let .rich(richMessage):
                             let parsedRichMessage = RichTextMessageAttribute(apiRichMessage: richMessage)
-                            updatedState.addPeerLiveTypingDraftUpdate(peerAndThreadId: PeerAndThreadId(peerId: PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(userId)), threadId: threadId), id: typingDraftData.randomId, timestamp: date, peerId: PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(userId)), content: .rich(parsedRichMessage))
+                            updatedState.addPeerLiveTypingDraftUpdate(peerAndThreadId: PeerAndThreadId(peerId: PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(userId)), threadId: threadId), id: typingDraftData.randomId, timestamp: date, peerId: PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(userId)), content: .rich(parsedRichMessage, flags: typingDraftData.flags))
                         }
                     } else {
                         let activity = PeerInputActivity(apiType: type, peerId: PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(userId)), timestamp: date)
@@ -1644,11 +1645,11 @@ private func finalStateWithUpdatesAndServerTime(accountPeerId: PeerId, postbox: 
                         switch text {
                         case let .textWithEntities(textWithEntitiesData):
                             let (text, entities) = (textWithEntitiesData.text, textWithEntitiesData.entities)
-                            updatedState.addPeerLiveTypingDraftUpdate(peerAndThreadId: PeerAndThreadId(peerId: channelPeerId, threadId: threadId), id: randomId, timestamp: date, peerId: userId.peerId, content: .plain(text: text, entities: messageTextEntitiesFromApiEntities(entities)))
+                            updatedState.addPeerLiveTypingDraftUpdate(peerAndThreadId: PeerAndThreadId(peerId: channelPeerId, threadId: threadId), id: randomId, timestamp: date, peerId: userId.peerId, content: .plain(text: text, entities: messageTextEntitiesFromApiEntities(entities), flags: sendMessageTextDraftActionData.flags))
                         }
                     } else if case let .sendMessageRichMessageDraftAction(sendMessageRichMessageDraftActionData) = type {
                         let parsedRichMessage = RichTextMessageAttribute(apiRichMessage: sendMessageRichMessageDraftActionData.richMessage)
-                        updatedState.addPeerLiveTypingDraftUpdate(peerAndThreadId: PeerAndThreadId(peerId: channelPeerId, threadId: threadId), id: sendMessageRichMessageDraftActionData.randomId, timestamp: date, peerId: userId.peerId, content: .rich(parsedRichMessage))
+                        updatedState.addPeerLiveTypingDraftUpdate(peerAndThreadId: PeerAndThreadId(peerId: channelPeerId, threadId: threadId), id: sendMessageRichMessageDraftActionData.randomId, timestamp: date, peerId: userId.peerId, content: .rich(parsedRichMessage, flags: sendMessageRichMessageDraftActionData.flags))
                     } else {
                         let activity = PeerInputActivity(apiType: type, peerId: nil, timestamp: date)
                         var category: PeerActivitySpace.Category = .global
@@ -3925,6 +3926,10 @@ private func recordPeerActivityTimestamp(peerId: PeerId, timestamp: Int32, into 
     }
 }
 
+enum ReplayFinalStateError: Error {
+    case verificationFailed
+}
+
 func replayFinalState(
     accountManager: AccountManager<TelegramAccountManagerTypes>,
     postbox: Postbox,
@@ -3937,12 +3942,22 @@ func replayFinalState(
     removePossiblyDeliveredMessagesUniqueIds: [Int64: PeerId],
     ignoreDate: Bool,
     skipVerification: Bool
-) -> AccountReplayedFinalState? {
+) throws -> AccountReplayedFinalState {
+    let replayStartTime = ProcessInfo.processInfo.systemUptime
+    defer {
+        let duration = ProcessInfo.processInfo.systemUptime - replayStartTime
+        if duration > 3.0 {
+            Logger.shared.log("State", "Slow replayFinalState: \(duration)s, \(finalState.state.operations.count) operations")
+        }
+    }
+    // Postbox commits the enclosing transaction even when a caller catches an
+    // error. Only reject before mutations; never abort a partially applied replay
+    // on a time budget or reset PTS to getState after such an abort.
     if !skipVerification {
         let verified = verifyTransaction(transaction, finalState: finalState.state)
         if !verified {
             Logger.shared.log("State", "failed to verify final state")
-            return nil
+            throw ReplayFinalStateError.verificationFailed
         }
     }
     
@@ -4651,6 +4666,7 @@ func replayFinalState(
                 updateMessageMedia(transaction: transaction, id: id, media: media)
             case let .ReadInbox(messageId):
                 transaction.applyIncomingReadMaxId(messageId)
+                bananaGhostLocalReadDidReadOnServer(accountPeerId: accountPeerId, messageId: messageId)
             case let .ReadOutbox(messageId, timestamp):
                 transaction.applyOutgoingReadMaxId(messageId)
                 if messageId.peerId != accountPeerId, messageId.peerId.namespace == Namespaces.Peer.CloudUser, let timestamp = timestamp {
@@ -4763,7 +4779,9 @@ func replayFinalState(
                             switch currentState {
                             case let .idBased(localMaxIncomingReadId, _, _, localCount, localMarkedUnread):
                                 if count != 0 || markedUnreadValue {
-                                    if localMaxIncomingReadId > maxIncomingReadId {
+                                    // Banana: a chat read only on this device in ghost mode takes the
+                                    // server's state below; its local read is applied on top of it again.
+                                    if localMaxIncomingReadId > maxIncomingReadId && bananaGhostLocalReadState(accountPeerId: accountPeerId, peerId: peerId) == nil {
                                         transaction.setNeedsIncomingReadStateSynchronization(peerId)
                                         
                                         transaction.resetIncomingReadStates([peerId: [namespace: .idBased(maxIncomingReadId: localMaxIncomingReadId, maxOutgoingReadId: maxOutgoingReadId, maxKnownId: maxKnownId, count: localCount, markedUnread: localMarkedUnread)]])
@@ -4780,7 +4798,11 @@ func replayFinalState(
                     }
                 }
                 if !ignore {
+                    let ghostLocalCount = bananaGhostLocalReadCount(transaction: transaction, accountPeerId: accountPeerId, peerId: peerId)
                     transaction.resetIncomingReadStates([peerId: [namespace: .idBased(maxIncomingReadId: maxIncomingReadId, maxOutgoingReadId: maxOutgoingReadId, maxKnownId: maxKnownId, count: count, markedUnread: markedUnreadValue)]])
+                    if namespace == Namespaces.Message.Cloud {
+                        bananaGhostLocalReadDidApplyServerState(transaction: transaction, accountPeerId: accountPeerId, peerId: peerId, serverMaxIncomingReadId: maxIncomingReadId, serverCount: count, serverMarkedUnread: markedUnread, localCount: ghostLocalCount)
+                    }
                 }
             case let .ResetIncomingReadState(groupId, peerId, namespace, maxIncomingReadId, count, pts):
                 var ptsMatchesState = false
@@ -4819,9 +4841,14 @@ func replayFinalState(
                         invalidateGroupStats.insert(groupId)
                     }
                     let stateDict = Dictionary(updatedStates, uniquingKeysWith: { lhs, _ in lhs })
+                    let ghostLocalCount = bananaGhostLocalReadCount(transaction: transaction, accountPeerId: accountPeerId, peerId: peerId)
                     transaction.resetIncomingReadStates([peerId: stateDict])
+                    if namespace == Namespaces.Message.Cloud {
+                        bananaGhostLocalReadDidApplyServerState(transaction: transaction, accountPeerId: accountPeerId, peerId: peerId, serverMaxIncomingReadId: maxIncomingReadId, serverCount: count, serverMarkedUnread: nil, localCount: ghostLocalCount)
+                    }
                 } else {
                     transaction.applyIncomingReadMaxId(MessageId(peerId: peerId, namespace: namespace, id: maxIncomingReadId))
+                    bananaGhostLocalReadDidReadOnServer(accountPeerId: accountPeerId, messageId: MessageId(peerId: peerId, namespace: namespace, id: maxIncomingReadId))
                     transaction.setNeedsIncomingReadStateSynchronization(peerId)
                     invalidateGroupStats.insert(groupId)
                 }
@@ -4834,6 +4861,7 @@ func replayFinalState(
                         }
                     }
                 } else {
+                    bananaGhostLocalReadDidUpdateServerUnreadMark(accountPeerId: accountPeerId, peerId: peerId, namespace: namespace, value: value)
                     transaction.applyMarkUnread(peerId: peerId, namespace: namespace, value: value, interactive: false)
                 }
             case let .ResetMessageTagSummary(peerId, tag, namespace, count, range):
@@ -6218,7 +6246,7 @@ func replayFinalState(
             }
             switch update {
             case let .update(update):
-                if let current, current.id > update.id {
+                if let current, current.id != update.id, current.timestamp > update.timestamp {
                     return current
                 }
                 var timestamp = update.timestamp
@@ -6234,16 +6262,16 @@ func replayFinalState(
                 let draftText: String
                 let draftAttributes: [MessageAttribute]
                 switch update.content {
-                case let .plain(text, entities):
+                case let .plain(text, entities, flags):
                     draftText = text
                     draftAttributes = [
-                        TypingDraftMessageAttribute(),
+                        TypingDraftMessageAttribute(id: update.id, canStop: (flags & 1) != 0, keepOnStop: (flags & 2) != 0),
                         TextEntitiesMessageAttribute(entities: entities)
                     ]
-                case let .rich(richData):
+                case let .rich(richData, flags):
                     draftText = ""
                     draftAttributes = [
-                        TypingDraftMessageAttribute(),
+                        TypingDraftMessageAttribute(id: update.id, canStop: (flags & 1) != 0, keepOnStop: (flags & 2) != 0),
                         richData
                     ]
                 }

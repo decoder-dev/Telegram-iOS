@@ -129,7 +129,7 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
                 arguments.updateUnmuted(value)
             })
         case .unmutedFooter:
-            return ItemListTextItem(presentationData: presentationData, text: .markdown(presentationData.strings.ArchiveSettings_UnmutedChatsFooter), sectionId: self.section)
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ArchiveLockLocalizedString.keepArchivedPolicy), sectionId: self.section)
         case .foldersHeader:
             return ItemListSectionHeaderItem(presentationData: presentationData, text: presentationData.strings.ArchiveSettings_FolderChatsHeader, sectionId: self.section)
         case let .foldersValue(value):
@@ -151,7 +151,7 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
         case .passwordHeader:
             return ItemListSectionHeaderItem(presentationData: presentationData, text: ArchiveLockLocalizedString.passwordSection, sectionId: self.section)
         case let .passwordValue(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ArchiveLockLocalizedString.lockArchive, value: value, sectionId: self.section, style: .blocks, updated: { value in
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ArchiveLockLocalizedString.lockArchive, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.togglePassword(value)
             })
         case let .biometricsValue(isOn, isFaceId):
@@ -327,9 +327,11 @@ public func archiveSettingsController(context: AccountContext) -> ViewController
         let isPremiumDisabled = PremiumConfiguration.with(appConfiguration: appConfiguration).isPremiumDisabled
         let archiveSettings = archiveSettingsPreference?.get(ChatArchiveSettings.self) ?? .default
         let isPasswordProtected = archiveIsPasswordProtected(peerId: context.account.peerId, settings: archiveSettings)
-        if archiveSettings.legacyLockPasswordHash != nil {
+        // archiveIsPasswordProtected deliberately stays fail-closed when a legacy
+        // hash cannot be migrated. Do not discard the only credential in that case.
+        if archiveSettings.legacyLockPasswordHash != nil, ArchivePasswordKeychain.hasPassword(peerId: context.account.peerId) {
             let _ = updateChatArchiveSettings(engine: context.engine) { current in
-                current.clearingLegacyPasswordHash()
+                current.clearingLegacyPasswordHash().withUpdatedIsPasswordConfigured(true)
             }.startStandalone()
         }
 

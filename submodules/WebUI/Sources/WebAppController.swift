@@ -990,7 +990,22 @@ public final class WebAppController: ViewController, AttachmentContainable {
                 
                 let topInset: CGFloat = controller.isFullscreen ? 0.0 : navigationBarHeight
                 
-                let webViewFrame = CGRect(origin: CGPoint(x: 0.0, y: topInset), size: CGSize(width: layout.size.width, height: max(1.0, layout.size.height - topInset - frameBottomInset)))
+                // A keyboard transition can transiently report an inputHeight larger than
+                // the space actually available below the navigation bar. Clamping the
+                // resulting degenerate frame with max(1.0, ...) - as this used to -
+                // collapsed the web view to a 1px strip and published a viewport height
+                // of 1 to the Mini App, after which the page's innerHeight and
+                // visualViewport stayed 1 and it stopped accepting touches (upstream
+                // issue #2235). Bound the insets instead: the keyboard may overlay the
+                // web view during the transition, and the normal geometry resumes once
+                // it completes.
+                let minimumUsableHeight: CGFloat = 88.0
+                let availableHeight = layout.size.height - topInset
+                if frameBottomInset > availableHeight - minimumUsableHeight {
+                    frameBottomInset = max(0.0, availableHeight - minimumUsableHeight)
+                }
+                
+                let webViewFrame = CGRect(origin: CGPoint(x: 0.0, y: topInset), size: CGSize(width: layout.size.width, height: max(1.0, availableHeight - frameBottomInset)))
                 if !webView.frame.width.isZero && webView.frame != webViewFrame {
                     self.updateWebViewWhenStable = true
                 }
@@ -999,7 +1014,10 @@ public final class WebAppController: ViewController, AttachmentContainable {
                 if (self.validLayout?.0.inputHeight ?? 0.0) < 44.0 {
                     viewportBottomInset += layout.additionalInsets.bottom
                 }
-                let viewportFrame = CGRect(origin: CGPoint(x: layout.safeInsets.left, y: topInset), size: CGSize(width: layout.size.width - layout.safeInsets.left - layout.safeInsets.right, height: max(1.0, layout.size.height - topInset - viewportBottomInset)))
+                if viewportBottomInset > availableHeight - minimumUsableHeight {
+                    viewportBottomInset = max(0.0, availableHeight - minimumUsableHeight)
+                }
+                let viewportFrame = CGRect(origin: CGPoint(x: layout.safeInsets.left, y: topInset), size: CGSize(width: layout.size.width - layout.safeInsets.left - layout.safeInsets.right, height: max(1.0, availableHeight - viewportBottomInset)))
                 
                 if webView.scrollView.contentInset != scrollInset {
                     webView.scrollView.contentInset = scrollInset
@@ -1049,7 +1067,16 @@ public final class WebAppController: ViewController, AttachmentContainable {
                 webView.customInsets = customInsets
                 
                 if let controller = self.controller {
-                    webView.updateMetrics(height: viewportFrame.height, isExpanded: controller.isContainerExpanded(), isStable: !controller.isContainerPanning(), transition: transition)
+                    var isViewportStable = !controller.isContainerPanning()
+                    if self.updateWebViewWhenStable {
+                        // The web view's geometry is changing in this layout pass (e.g. an
+                        // in-flight keyboard transition). Intermediate geometry must not
+                        // be reported to the Mini App as a stable viewport (upstream
+                        // issue #2235); the next pass with unchanged geometry reports the
+                        // settled state.
+                        isViewportStable = false
+                    }
+                    webView.updateMetrics(height: viewportFrame.height, isExpanded: controller.isContainerExpanded(), isStable: isViewportStable, transition: transition)
                     
                     let data: JSON = [
                         "top": Double(contentTopInset),
@@ -2693,6 +2720,13 @@ public final class WebAppController: ViewController, AttachmentContainable {
         private var fullscreenSwitchSnapshotView: UIView?
         fileprivate func setIsFullscreen(_ isFullscreen: Bool) {
             guard let controller = self.controller else {
+                // Never silently ignore a fullscreen request - the Mini App contract
+                // requires either fullscreen_changed or fullscreen_failed, otherwise
+                // bots hang waiting for a response (upstream issue #2241).
+                let data: JSON = [
+                    "error": "UNSUPPORTED"
+                ]
+                self.webView?.sendEvent(name: "fullscreen_failed", data: data.string)
                 return
             }
             guard controller.isFullscreen != isFullscreen else {

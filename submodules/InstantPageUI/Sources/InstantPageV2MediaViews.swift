@@ -684,7 +684,14 @@ final class InstantPageV2MediaAudioView: UIView, InstantPageItemView {
 
         self.audioNode.play = {
             guard let wrapper = wrapperRef.view else { return }
-            handleOpenAudioTap(tapped: itemMedia, wrapper: wrapper, renderContext: renderContextRef, playlistId: playlistId)
+            if !audioFile.isMusic && !audioFile.isVoice {
+                guard renderContextRef.context.account.postbox.mediaBox.completedResourcePath(audioFile.resource) != nil else { return }
+                let data = renderContextRef.context.sharedContext.currentPresentationData.with { $0 }
+                let controller = InstantPageDocumentPreviewController(theme: data.theme, strings: data.strings, postbox: renderContextRef.context.account.postbox, file: audioFile, canShare: renderContextRef.canShareDocuments)
+                renderContextRef.context.sharedContext.applicationBindings.presentNativeController(controller)
+            } else {
+                handleOpenAudioTap(tapped: itemMedia, wrapper: wrapper, renderContext: renderContextRef, playlistId: playlistId)
+            }
         }
 
         let fetchContext = renderContext.context
@@ -698,6 +705,10 @@ final class InstantPageV2MediaAudioView: UIView, InstantPageItemView {
             let _ = messageMediaFileInteractiveFetched(fetchManager: fetchContext.fetchManager, messageId: messageId, messageReference: message, file: file, userInitiated: true, priority: .userInitiated).startStandalone()
         }
 
+        self.audioNode.cancelFetch = {
+            fetchContext.fetchManager.cancelInteractiveFetches(resourceId: audioFile.resource.id.stringRepresentation)
+        }
+
         let mediaForPlayback = item.media
         let playlistTypeForPlayback: MediaManagerPlayerType
         if case let .file(f) = mediaForPlayback.media, f.isVoice { playlistTypeForPlayback = .voice } else { playlistTypeForPlayback = .music }
@@ -708,7 +719,9 @@ final class InstantPageV2MediaAudioView: UIView, InstantPageItemView {
         }
 
         let stateSignal = contextForPlayback.sharedContext.mediaManager.filteredPlaylistState(accountId: contextForPlayback.account.id, playlistId: playlistId, itemId: InstantPageMediaPlaylistItemId(index: mediaForPlayback.index), type: playlistTypeForPlayback)
-        self.audioNode.setPlaybackStatusSignal(stateSignal)
+        if audioFile.isMusic || audioFile.isVoice {
+            self.audioNode.setPlaybackStatusSignal(stateSignal)
+        }
 
         self.update(item: item, theme: theme, renderContext: renderContext)
     }

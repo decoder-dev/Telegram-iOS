@@ -23,6 +23,8 @@ private final class MessageSavingHistoryArguments {
 }
 
 private enum MessageSavingHistoryEntry: ItemListNodeEntry {
+    case loading
+    case error(String)
     case empty(String)
     case record(Int, MessageSavingRecord)
 
@@ -30,6 +32,10 @@ private enum MessageSavingHistoryEntry: ItemListNodeEntry {
 
     var stableId: Int32 {
         switch self {
+        case .loading:
+            return -3
+        case .error:
+            return -2
         case .empty:
             return -1
         case let .record(index, _):
@@ -44,18 +50,30 @@ private enum MessageSavingHistoryEntry: ItemListNodeEntry {
     func item(presentationData: ItemListPresentationData, arguments: Any) -> ListViewItem {
         let args = arguments as? MessageSavingHistoryArguments
         switch self {
+        case .loading:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkMessageSavingStrings.loading), sectionId: self.section)
+        case let .error(text):
+            return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section)
         case let .empty(text):
             return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section)
         case let .record(_, record):
             let date = Date(timeIntervalSince1970: TimeInterval(record.date))
-            let formatter = DateFormatter()
-            formatter.dateStyle = .medium
-            formatter.timeStyle = .short
+            let formatter: DateFormatter
+            if let current = Thread.current.threadDictionary["messageSavingHistoryFormatter"] as? DateFormatter, current.locale.identifier == presentationData.strings.baseLanguageCode {
+                formatter = current
+            } else {
+                formatter = DateFormatter()
+                formatter.locale = Locale(identifier: presentationData.strings.baseLanguageCode)
+                formatter.dateStyle = .medium
+                formatter.timeStyle = .short
+                Thread.current.threadDictionary["messageSavingHistoryFormatter"] = formatter
+            }
             // AyuGram Android: customizable deleted mark (default 🧹) next to the timestamp in View Deleted too.
             let mark = record.kind == .deleted ? "\(MessageSavingBridge.deletedMark) " : ""
             let header = "\(record.authorName) · \(mark)\(formatter.string(from: date))"
             var body = record.text
-            if let mediaPath = record.mediaPath, messageSavingRecordHasFile(record) {
+            let hasAttachment = messageSavingRecordHasFile(record)
+            if let mediaPath = record.mediaPath, hasAttachment {
                 let name = (mediaPath as NSString).lastPathComponent
                 body += "\n📎 \(name)"
             }
@@ -65,11 +83,11 @@ private enum MessageSavingHistoryEntry: ItemListNodeEntry {
                 enabledEntityTypes: [],
                 sectionId: self.section,
                 style: .blocks,
-                action: {
+                action: hasAttachment ? {
                     if let mediaPath = record.mediaPath, messageSavingRecordHasFile(record) {
                         args?.openAttachment(mediaPath)
                     }
-                }
+                } : nil
             )
         }
     }
@@ -101,6 +119,9 @@ private func messageSavingRecords(mode: MessageSavingHistoryMode, accountPeerId:
 
 private func messageSavingHistoryEntries(mode: MessageSavingHistoryMode, accountPeerId: EnginePeer.Id, emptyText: String) -> [MessageSavingHistoryEntry] {
     let records = messageSavingRecords(mode: mode, accountPeerId: accountPeerId)
+    if MessageSavingStore.historyReadFailed {
+        return [.error(ForkMessageSavingStrings.readError)]
+    }
     if records.isEmpty {
         return [.empty(emptyText)]
     }
@@ -174,9 +195,9 @@ private func messageSavingHistoryController(
     // copy from before account scoping.
     let reconcileAccountPeerId = context.account.peerId
     let reconcileMediaBox = context.account.postbox.mediaBox
-    let reconcileRecords = messageSavingRecords(mode: mode, accountPeerId: reconcileAccountPeerId)
-    if !reconcileRecords.isEmpty {
-        DispatchQueue.global(qos: .utility).async {
+    DispatchQueue.global(qos: .utility).async {
+        let reconcileRecords = messageSavingRecords(mode: mode, accountPeerId: reconcileAccountPeerId)
+        if !reconcileRecords.isEmpty {
             var didFindFile = false
             for record in reconcileRecords where !messageSavingRecordHasFile(record) {
                 let path = MessageSavingBridge.reconcileStoredAttachment(
@@ -206,39 +227,59 @@ private func messageSavingHistoryController(
     // Also rebuild when the store itself changes: a durable attachment can be copied seconds
     // after this screen is opened (slow download), and without this the row would keep showing
     // no attachment until the controller is closed and reopened.
+    // Store reads may load JSON and sort thousands of records. Serialize those
+    // snapshots off the UI thread; only deliver the resulting list state on main.
+    let historyQueue = Queue(name: "MessageSavingHistory")
     let signal = combineLatest(
         context.sharedContext.presentationData,
         refresh.get(),
         MessageSavingStore.changes.get()
     )
-    |> deliverOnMainQueue
-    |> map { presentationData, _, _ -> (ItemListControllerState, (ItemListNodeState, Any)) in
-        var rightButton: ItemListNavigationButton?
-        if clearAction != nil {
-            rightButton = ItemListNavigationButton(
-                content: .text(ForkMessageSavingStrings.clearDeleted),
-                style: .regular,
-                enabled: true,
-                action: {
-                    clearAction?()
-                    refresh.set(.single(Void()))
-                }
+    |> mapToSignal { presentationData, _, _ -> Signal<(ItemListControllerState, (ItemListNodeState, Any)), NoError> in
+        func makeState(_ entries: [MessageSavingHistoryEntry]) -> (ItemListControllerState, (ItemListNodeState, Any)) {
+            var rightButton: ItemListNavigationButton?
+            if entries.contains(where: { if case .error = $0 { return true }; return false }) {
+                rightButton = ItemListNavigationButton(content: .text(ForkMessageSavingStrings.retry), style: .regular, enabled: true, action: {
+                    historyQueue.async {
+                        MessageSavingStore.retryHistoryRead()
+                        refresh.set(.single(Void()))
+                    }
+                })
+            } else if clearAction != nil && !entries.contains(where: { if case .loading = $0 { return true }; return false }) {
+                rightButton = ItemListNavigationButton(
+                    content: .text(ForkMessageSavingStrings.clearDeleted),
+                    style: .regular,
+                    enabled: true,
+                    action: {
+                        clearAction?()
+                        refresh.set(.single(Void()))
+                    }
+                )
+            }
+            let controllerState = ItemListControllerState(
+                presentationData: ItemListPresentationData(presentationData),
+                title: .text(title),
+                leftNavigationButton: nil,
+                rightNavigationButton: rightButton,
+                backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back)
             )
+            let listState = ItemListNodeState(
+                presentationData: ItemListPresentationData(presentationData),
+                entries: entries,
+                style: .blocks
+            )
+            return (controllerState, (listState, arguments))
         }
-        let controllerState = ItemListControllerState(
-            presentationData: ItemListPresentationData(presentationData),
-            title: .text(title),
-            leftNavigationButton: nil,
-            rightNavigationButton: rightButton,
-            backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back)
-        )
-        let listState = ItemListNodeState(
-            presentationData: ItemListPresentationData(presentationData),
-            entries: messageSavingHistoryEntries(mode: mode, accountPeerId: context.account.peerId, emptyText: emptyText),
-            style: .blocks
-        )
-        return (controllerState, (listState, arguments))
+        return .single(makeState([.loading]))
+        |> then(Signal { subscriber in
+            historyQueue.async {
+                subscriber.putNext(makeState(messageSavingHistoryEntries(mode: mode, accountPeerId: context.account.peerId, emptyText: emptyText)))
+                subscriber.putCompletion()
+            }
+            return EmptyDisposable
+        })
     }
+    |> deliverOnMainQueue
 
     return ItemListController(context: context, state: signal)
 }

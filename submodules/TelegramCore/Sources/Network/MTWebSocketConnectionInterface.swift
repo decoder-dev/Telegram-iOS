@@ -51,7 +51,7 @@ final class MTWebSocketFallbackCoordinator {
     /// fallback is engaged it answers true exactly once per wait, and false to everything else until
     /// that attempt has reported success or failure.
     func shouldAttemptWebSocket() -> Bool {
-        let timestamp = CFAbsoluteTimeGetCurrent()
+        let timestamp = ProcessInfo.processInfo.systemUptime
         var grantedProbe = false
         let state = self.state.modify { state in
             var state = state
@@ -86,7 +86,7 @@ final class MTWebSocketFallbackCoordinator {
     }
 
     func recordAllEndpointsFailed() {
-        let timestamp = CFAbsoluteTimeGetCurrent()
+        let timestamp = ProcessInfo.processInfo.systemUptime
         var engagedFallback = false
         var probeFailed = false
         let state = self.state.modify { state in
@@ -200,6 +200,7 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
 
         private var connection: NWConnection?
         private var reportedDisconnection = false
+        private var didRequestConnect = false
         private var currentInterfaceIsWifi = true
 
         private var connectTimeout: Double = 12.0
@@ -316,10 +317,10 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
         }
 
         func connect(timeout: Double) {
-            if self.connection != nil {
-                assertionFailure("A connection already exists")
-                return
-            }
+            // The interface owns one MTProto stream, including the jitter gap where its
+            // NWConnection is temporarily nil. Repeated requests must not reset candidates.
+            guard !self.didRequestConnect, !self.reportedDisconnection else { return }
+            self.didRequestConnect = true
             self.connectTimeout = timeout
             self.endpointSelector.reset()
             self.dialCurrentCandidate()
@@ -484,12 +485,13 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
 
             self.handshakeState = .sentUpgradeRequest
 
-            connection.send(content: requestData, completion: .contentProcessed({ [weak self] error in
-                guard let error = error else {
-                    return
-                }
-                self?.queue.async {
-                    self?.candidateFailed(error: error)
+            let queue = self.queue
+            connection.send(content: requestData, completion: .contentProcessed({ [weak self, weak connection] error in
+                guard let error = error else { return }
+                queue.async {
+                    // Cancellation may finish an old handshake after the next candidate started.
+                    guard let self, let connection, self.connection === connection else { return }
+                    self.candidateFailed(error: error)
                 }
             }))
 
@@ -755,8 +757,14 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
             }
 
             if let _ = self.endpointSelector.advance() {
-                Logger.shared.log("MTWebSocket", "[WS] trying secondary endpoint")
-                self.dialCurrentCandidate()
+                Logger.shared.log("MTWebSocket", "[WS] trying secondary endpoint with jitter")
+                
+                let delay = Double.random(in: 0.1...1.5)
+                let generation = self.connectionGeneration
+                self.queue.after(delay, { [weak self] in
+                    guard let self = self, self.connectionGeneration == generation else { return }
+                    self.dialCurrentCandidate()
+                })
             } else {
                 self.cancelWithError(error: error)
             }

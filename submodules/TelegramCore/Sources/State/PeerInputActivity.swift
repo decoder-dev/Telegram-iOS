@@ -117,7 +117,7 @@ public enum PeerInputActivity: Comparable {
 extension PeerInputActivity {
     init?(apiType: Api.SendMessageAction, peerId: PeerId?, timestamp: Int32) {
         switch apiType {
-        case .sendMessageCancelAction, .sendMessageChooseContactAction, .sendMessageGeoLocationAction, .sendMessageRecordVideoAction:
+        case .sendMessageStopDraftAction, .sendMessageCancelAction, .sendMessageChooseContactAction, .sendMessageGeoLocationAction, .sendMessageRecordVideoAction:
             return nil
         case .sendMessageGamePlayAction:
             self = .playingGame

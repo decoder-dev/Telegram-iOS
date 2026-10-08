@@ -37,7 +37,8 @@ union InstantPageBlock_Value {
     InstantPageBlock_Map,
     InstantPageBlock_Heading,
     InstantPageBlock_Formula,
-    InstantPageBlock_Thinking
+    InstantPageBlock_Thinking,
+    InstantPageBlock_Document
 }
 
 table InstantPageBlock {
@@ -254,4 +255,9 @@ table InstantPageRelatedArticle {
     photoId:MediaId (id: 4);
     author:string (id: 5);
     date:int32 (id: 6);
+}
+
+table InstantPageBlock_Document {
+    id:MediaId (id: 0, required);
+    caption:InstantPageCaption (id: 1, required);
 }

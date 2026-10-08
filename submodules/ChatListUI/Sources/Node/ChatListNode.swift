@@ -1,4 +1,4 @@
-import Foundation
+﻿import Foundation
 import UIKit
 import Display
 import AsyncDisplayKit
@@ -1301,9 +1301,9 @@ public final class ChatListNode: ListViewImpl {
     }
     
     private var currentLocation: ChatListNodeLocation?
-    /// Defaults to false. Only the visible folder tab (or standalone lists that opt in) may paginate;
-    /// adjacent preloaded tabs must stay false or background pagination corrupts their item state.
-    private(set) var isActiveForFolderPagination: Bool = false
+    /// Defaults to true, as upstream: a list paginates as soon as the user scrolls it. Nothing in the main chat list
+    /// ever activated a list that started out paused, so a false default left every tab on its first page of chats.
+    private(set) var isActiveForFolderPagination: Bool = true
     public private(set) var chatListFilter: ChatListFilter? {
         didSet {
             self.chatListFilterValue.set(.single(self.chatListFilter))
@@ -1327,6 +1327,7 @@ public final class ChatListNode: ListViewImpl {
     private let chatListLocation = ValuePromise<ChatListNodeLocation>()
     private let chatListDisposable = MetaDisposable()
     private var activityStatusesDisposable: Disposable?
+    private var TelegramShadowBanObserver: NSObjectProtocol?
     
     private let scrollToTopOptionPromise = Promise<ChatListGlobalScrollOption>(.none)
     public var scrollToTopOption: Signal<ChatListGlobalScrollOption, NoError> {
@@ -2844,7 +2845,10 @@ public final class ChatListNode: ListViewImpl {
         |> mapToSignal { activitiesByPeerId -> Signal<[ChatListNodePeerInputActivities.ItemId: [(EnginePeer, PeerInputActivity)]], NoError> in
             var activitiesByPeerId = activitiesByPeerId
             for key in activitiesByPeerId.keys {
-                activitiesByPeerId[key]?.removeAll(where: { _, activity in
+                activitiesByPeerId[key]?.removeAll(where: { peerId, activity in
+                    if TelegramShadowBan.isPeerHidden(peerId, inChat: key.peerId) {
+                        return true
+                    }
                     switch activity {
                     case .interactingWithEmoji:
                         return true
@@ -3275,9 +3279,26 @@ public final class ChatListNode: ListViewImpl {
             return strongSelf.isSelectionGestureEnabled
         }
         self.view.addGestureRecognizer(selectionRecognizer)
+
+        // Previews and typing read the shadow ban at layout time: a fresh presentation data object lays out every row again,
+        // as a theme change does.
+        self.TelegramShadowBanObserver = NotificationCenter.default.addObserver(forName: ArenaSettings.shadowBanDidChangeNotification, object: nil, queue: .main, using: { [weak self] _ in
+            guard let self else {
+                return
+            }
+            self.updateState { state in
+                var state = state
+                let current = state.presentationData
+                state.presentationData = ChatListPresentationData(theme: current.theme, fontSize: current.fontSize, strings: current.strings, dateTimeFormat: current.dateTimeFormat, nameSortOrder: current.nameSortOrder, nameDisplayOrder: current.nameDisplayOrder, disableAnimations: current.disableAnimations)
+                return state
+            }
+        })
     }
-    
+
     deinit {
+        if let TelegramShadowBanObserver = self.TelegramShadowBanObserver {
+            NotificationCenter.default.removeObserver(TelegramShadowBanObserver)
+        }
         self.chatListDisposable.dispose()
         self.activityStatusesDisposable?.dispose()
         self.updatedFilterDisposable.dispose()

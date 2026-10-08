@@ -3663,6 +3663,18 @@ private func dataSearchableItems(context: AccountContext) -> [SettingsSearchable
             }
         ),
         SettingsSearchableItem(
+            id: "data/pause-music-voice-recording",
+            title: String(strings.primaryComponent.languageCode.prefix(2)).lowercased() == "ru" ? "Пауза музыки при записи голосового" : "Pause music when recording voice messages",
+            alternate: [], icon: icon, breadcrumbs: [strings.Settings_ChatSettings],
+            present: { context, _, present in presentDataSettings(context, present, .pauseMusicOnVoiceRecording) }
+        ),
+        SettingsSearchableItem(
+            id: "data/pause-music-voice-playback",
+            title: String(strings.primaryComponent.languageCode.prefix(2)).lowercased() == "ru" ? "Пауза музыки при прослушивании голосового" : "Pause music when playing voice messages",
+            alternate: [], icon: icon, breadcrumbs: [strings.Settings_ChatSettings],
+            present: { context, _, present in presentDataSettings(context, present, .pauseMusicOnVoicePlayback) }
+        ),
+        SettingsSearchableItem(
             id: "data/raise-to-listen",
             title: strings.Settings_RaiseToListen,
             alternate: [],
@@ -3790,7 +3802,7 @@ private func proxySearchableItems(context: AccountContext, servers: [ProxyServer
     var hasCallProxyServers = false
     for server in servers {
         switch server.connection {
-            case .socks5, .web:
+            case .socks5, .web, .vless:
                 hasCallProxyServers = true
             case .mtp:
                 break
@@ -3957,32 +3969,11 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
             }
         ),
         SettingsSearchableItem(
-            id: "appearance/night-mode",
-            icon: icon,
-            breadcrumbs: [customizationTitle],
-            isVisible: false,
-            present: { context, _, present in
-                presentAppearanceSettings(context, present, .nightMode)
-            }
-        ),
-        SettingsSearchableItem(
-            id: "appearance/auto-night-mode",
-            title: strings.Appearance_AutoNightTheme,
-            alternate: synonyms(strings.SettingsSearch_Synonyms_Appearance_AutoNightTheme),
-            icon: icon,
-            breadcrumbs: [customizationTitle],
-            isVisible: false,
-            present: { context, _, present in
-                present(.push, themeAutoNightSettingsController(context: context))
-            }
-        ),
-        SettingsSearchableItem(
             id: "appearance/themes",
             title: strings.Themes_Title,
             alternate: synonyms(strings.SettingsSearch_Synonyms_Appearance_ColorTheme),
             icon: icon,
             breadcrumbs: [customizationTitle],
-            isVisible: false,
             present: { context, _, present in
                 let controller = themePickerController(context: context)
                 present(.push, controller)
@@ -3994,7 +3985,6 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
             alternate: [],
             icon: icon,
             breadcrumbs: [customizationTitle, strings.Themes_Title],
-            isVisible: false,
             present: { context, _, present in
                 let controller = themePickerController(context: context, focusOnItemTag: .edit)
                 present(.push, controller)
@@ -4006,7 +3996,6 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
             alternate: [],
             icon: icon,
             breadcrumbs: [customizationTitle, strings.Themes_Title],
-            isVisible: false,
             present: { context, navigationController, present in
                 let _ = (context.sharedContext.accountManager.transaction { transaction -> PresentationThemeReference in
                     let settings = transaction.getSharedData(ApplicationSpecificSharedDataKeys.presentationThemeSettings)?.get(PresentationThemeSettings.self) ?? PresentationThemeSettings.defaultSettings
@@ -4107,7 +4096,6 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
             title: strings.Appearance_ShowNextMediaOnTap,
             icon: icon,
             breadcrumbs: [customizationTitle],
-            isVisible: false,
             present: { context, _, present in
                 presentAppearanceSettings(context, present, .tapForNextMedia)
             }
@@ -4130,7 +4118,6 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
                 title: strings.Appearance_SendWithCmdEnter,
                 icon: icon,
                 breadcrumbs: [customizationTitle],
-                isVisible: false,
                 present: { context, _, present in
                     presentAppearanceSettings(context, present, .sendWithCmdEnter)
                 }
@@ -4452,10 +4439,15 @@ func settingsSearchableItems(
             icon: .savedMessages,
             breadcrumbs: [],
             present: { context, _, present in
-                present(.push, context.sharedContext.makeChatController(context: context, chatLocation: .peer(id: context.account.peerId), subject: nil, botStart: nil, mode: .standard(.default), params: nil))
+                ensureArchiveUnlocked(context: context, present: { present(.modal, $0) }, completion: { result in
+                    if case .cancelled = result { return }
+                    present(.push, context.sharedContext.makeChatController(context: context, chatLocation: .peer(id: context.account.peerId), subject: nil, botStart: nil, mode: .standard(.default), params: nil))
+                })
             }
         )
-        allItems.append(savedMessages)
+        if ArchiveLockSession.shared.isRevealed {
+            allItems.append(savedMessages)
+        }
         
         let devicesItems = devicesSearchableItems(context: context, activeSessionsContext: activeSessionsContext, webSessionsContext: activeWebSessionsContext)
         allItems.append(contentsOf: devicesItems)
@@ -4624,6 +4616,10 @@ func searchSettingsItems(items: [SettingsSearchableItem], query: String) -> [Set
 }
 
 public func handleSettingsPathUrl(context: AccountContext, path: String, navigationController: NavigationController) {
+    if let (focus, itemId) = bananaSettingsLinkTarget(path) {
+        navigationController.pushViewController(forkExtrasController(context: context, focus: focus, focusItemId: itemId))
+        return
+    }
     let forkExtrasFocus: ForkExtrasControllerFocus?
     switch path {
     case "ayu":

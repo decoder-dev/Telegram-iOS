@@ -1116,16 +1116,21 @@ public func deviceContactInfoController(context: ShareControllerAccountContext, 
             if let editingName = state.editingState?.editingName, case let .personName(firstName, lastName, _) = editingName, (!firstName.isEmpty || !lastName.isEmpty) {
                 var urls = filteredData.urls
                 if let createForPeer = createForPeer {
-                    let appProfile = DeviceContactUrlData(appProfile: createForPeer.id)
-                    var found = false
-                    for url in urls {
-                        if url.label == appProfile.label && url.value == appProfile.value {
-                            found = true
-                            break
+                    // Save the peer's @username as the Telegram link (upstream PR #740): the old
+                    // https://t.me/@id<peerId> value is not a working deep link. A peer without a
+                    // username gets no Telegram URL row at all rather than a broken one.
+                    if let addressName = createForPeer.addressName, !addressName.isEmpty {
+                        let appProfile = DeviceContactUrlData(addressName: addressName)
+                        var found = false
+                        for url in urls {
+                            if url.label == appProfile.label && url.value == appProfile.value {
+                                found = true
+                                break
+                            }
                         }
-                    }
-                    if !found {
-                        urls.append(appProfile)
+                        if !found {
+                            urls.append(appProfile)
+                        }
                     }
                 }
                 composedContactData = DeviceContactExtendedData(basicData: DeviceContactBasicData(firstName: firstName, lastName: lastName, phoneNumbers: filteredPhoneNumbers), middleName: filteredData.middleName, prefix: filteredData.prefix, suffix: filteredData.suffix, organization: filteredData.organization, jobTitle: filteredData.jobTitle, department: filteredData.department, emailAddresses: filteredData.emailAddresses, urls: urls, addresses: filteredData.addresses, birthdayDate: filteredData.birthdayDate, socialProfiles: filteredData.socialProfiles, instantMessagingProfiles: filteredData.instantMessagingProfiles, note: filteredData.note)

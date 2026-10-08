@@ -442,6 +442,8 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         return self.mediaActionButtons.micButton
     }
     
+    private let stopDraftDisposable = MetaDisposable()
+    private var stoppingDraft = false
     private let statusDisposable = MetaDisposable()
     override public var interfaceInteraction: ChatPanelInterfaceInteraction? {
         didSet {
@@ -986,6 +988,20 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             }
         }
         
+        self.mediaActionButtons.stopPressed = { [weak self] in
+            guard let self, !self.stoppingDraft, let context = self.context,
+                let state = self.presentationInterfaceState, state.canStopIncomingStreamingMessage,
+                let peerId = state.chatLocation.peerId else { return }
+            self.stoppingDraft = true
+            self.mediaActionButtons.stopButton.isEnabled = false
+            self.stopDraftDisposable.set((context.engine.messages.stopIncomingTypingDraft(peerId: peerId, threadId: state.chatLocation.threadId)
+            |> deliverOnMainQueue).start(next: { [weak self] _ in
+                guard let self else { return }
+                self.stoppingDraft = false
+                self.mediaActionButtons.stopButton.isEnabled = true
+            }))
+        }
+
         self.mediaActionButtons.micButton.beginRecording = { [weak self] in
             if let strongSelf = self, let presentationInterfaceState = strongSelf.presentationInterfaceState, let interfaceInteraction = strongSelf.interfaceInteraction {
                 let isVideo: Bool
@@ -1166,6 +1182,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
     }
     
     deinit {
+        self.stopDraftDisposable.dispose()
         self.statusDisposable.dispose()
         self.tooltipController?.dismiss()
         self.currentEmojiSuggestion?.disposable.dispose()
@@ -4870,6 +4887,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             }
         }
         
+        self.mediaActionButtons.stopButton.isHidden = !displayStop
         if displayStop {
             let alphaTransition = ComponentTransition(alphaTransition)
             alphaTransition.setAlpha(view: self.mediaActionButtons.micButton, alpha: 0.0)

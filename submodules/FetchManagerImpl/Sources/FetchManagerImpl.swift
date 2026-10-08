@@ -292,10 +292,11 @@ private final class FetchManagerCategoryContext {
                             }
                             |> then(.single(type))
                         }
+
                         return .single(type)
                     }
+                    |> retry(2.0, maxDelay: 60.0, onQueue: .mainQueue())
                     |> deliverOnMainQueue).start(next: { _ in
-                        Logger.shared.log("FetchManager", "Completed fetching \(entry.resourceReference.resource.id.stringRepresentation)")
                         entryCompleted(id)
                     })
                 } else {
@@ -459,8 +460,8 @@ private final class FetchManagerCategoryContext {
                             }
                             return .single(type)
                         }
+                        |> retry(2.0, maxDelay: 60.0, onQueue: .mainQueue())
                         |> deliverOnMainQueue).start(next: { _ in
-                            Logger.shared.log("FetchManager", "Completed fetching \(entry.resourceReference.resource.id.stringRepresentation)")
                             entryCompleted(topEntryId)
                         })
                     }
@@ -505,7 +506,7 @@ private final class FetchManagerCategoryContext {
             // cancelled one. Reading a log, that is the difference between "the client keeps
             // abandoning fetches" and "a video is streaming in ranges" — and there was nothing in
             // the line to tell them apart.
-            Logger.shared.log("FetchManager", "\(isCompleted ? "Completed" : "Cancel") fetching \(entry.resourceReference.resource.id.stringRepresentation)")
+            Logger.shared.log("FetchManager", "\(isCompleted ? "Completed" : "Cancel") fetching \(entry.resourceReference.resource.id.stringRepresentation) [\(entry.id.location), episode \(entry.episode)]")
             self.entries.removeValue(forKey: id)
             entriesRemoved = true
             

@@ -30,9 +30,17 @@ export class XMLHttpRequestStub extends EventTarget {
         this._user = null;
         this._password = null;
         this._responseType = "";
+        this._generation = 0;
     }
   
     open(method, url, async = true, user = null, password = null) {
+        this._generation += 1;
+        this.status = 0;
+        this.statusText = "";
+        this.responseText = "";
+        this._responseData = null;
+        this._requestHeaders = {};
+        this._responseHeaders = {};
         this._method = method;
         this._url = url;
         this._async = async;
@@ -57,6 +65,7 @@ export class XMLHttpRequestStub extends EventTarget {
     }
   
     send(body = null) {
+        const generation = ++this._generation;
         this.readyState = 2;
         this._triggerReadyStateChange();
 
@@ -70,13 +79,19 @@ export class XMLHttpRequestStub extends EventTarget {
             "url": this._url,
             "requestHeaders": this._requestHeaders
         }).then((result) => {
+            if (generation !== this._generation) {
+                return;
+            }
             if (result["error"]) {
+                this.status = 0;
+                this.readyState = 4;
+                this._triggerReadyStateChange();
                 this.dispatchEvent(new Event("error"));
             } else {
                 this.status = result["status"];
                 this.statusText = result["statusText"];
 
-                if (result["responseData"]) {
+                if (typeof result["responseData"] === "string") {
                     if (this._responseType === "arraybuffer") {
                         this._responseData = base64ToArrayBuffer(result["responseData"]);
                     } else {
@@ -84,11 +99,14 @@ export class XMLHttpRequestStub extends EventTarget {
                     }
                     this.responseXML = null;
                 } else {
-                    this.response = null;
+                    this._responseData = null;
                     this.responseText = result["responseText"] || null;
                     this.responseXML = result["responseXML"] || null;
                 }
-                this._responseHeaders = result["responseHeaders"];
+                this._responseHeaders = {};
+                for (const [name, value] of Object.entries(result["responseHeaders"] || {})) {
+                    this._responseHeaders[name.toLowerCase()] = value;
+                }
 
                 this.readyState = 4; // Done
                 this._triggerReadyStateChange();
@@ -101,6 +119,7 @@ export class XMLHttpRequestStub extends EventTarget {
     }
   
     abort() {
+        this._generation += 1;
         this.dispatchEvent(new Event("abort"));
 
         window.bridgeInvokeAsync(this.bridgeId, "XMLHttpRequest", "abort", {
@@ -111,6 +130,7 @@ export class XMLHttpRequestStub extends EventTarget {
         this.statusText = '';
         this.responseText = '';
         this.responseXML = null;
+        this._responseData = null;
         this._responseHeaders = {};
         this._triggerReadyStateChange();
     }

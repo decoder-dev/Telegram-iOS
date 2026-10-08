@@ -78,46 +78,37 @@ public struct PresentationChatBubbleCorners: Equatable, Hashable {
     }
 }
 
-/// Apple HIG / iMessage geometry for every chat: continuous corners, no comic tails.
+/// Tail-free bubbles with the user's selected corner geometry.
 public func higChatBubbleCorners(from settings: PresentationChatBubbleSettings) -> PresentationChatBubbleCorners {
+    let mainRadius = CGFloat(max(4, min(30, settings.mainRadius)))
+    // Smooth auxiliary curve: starts equal to mainRadius at 4pt, grows at 40% rate.
+    // Result: r=4→4, r=8→5, r=12→7, r=20→10, r=24→12, r=30→14
+    let auxiliaryRadius = floor(4.0 + (mainRadius - 4.0) * 0.4)
     return PresentationChatBubbleCorners(
-        // Pinned to Messages geometry rather than floored against the stored setting: the
-        // defaults are 20/10, so a floor would never reach 18/4. This makes the radius sliders
-        // in Bubble Settings inert, which is the cost of matching Messages exactly.
-        mainRadius: 18.0,
-        auxiliaryRadius: 4.0,
+        mainRadius: mainRadius,
+        auxiliaryRadius: min(mainRadius, max(0, auxiliaryRadius)),
         mergeBubbleCorners: settings.mergeBubbleCorners,
         hasTails: false
     )
 }
 
-/// The fork ships two themes and no picker — the Appearance row is gone from Settings — so the
-/// system's light/dark setting has to be what decides, the way any app without a theme setting
-/// behaves. Stored settings are left on disk untouched; this rewrites only the copy each read
-/// hands to the rest of the pipeline, so nothing is destroyed and removing this function restores
-/// whatever the user last chose.
-///
-/// Three fields carry it: `theme` is the light choice, `automaticThemeSwitchSetting.theme` the dark
-/// one, and the `.system` trigger is what makes `automaticThemeShouldSwitchNow` follow the OS.
-/// `force` stays false — with a `.system` trigger, forcing it would pin the app to dark.
-///
-/// Left alone deliberately: `themeSpecificAccentColors` (the accent still colours buttons, links
-/// and checkmarks; only the bubble is pinned, in the theme builders) and `themeSpecificChatWallpapers`,
-/// so per-chat and custom wallpapers survive.
 public func forkNormalizedThemeSettings(_ settings: PresentationThemeSettings) -> PresentationThemeSettings {
-    var settings = settings
-    settings.theme = .builtin(.day)
-    settings.automaticThemeSwitchSetting = AutomaticThemeSwitchSetting(
-        force: false,
-        trigger: .system,
-        theme: .builtin(.night)
-    )
-    return settings
+    var updated = settings
+    updated.automaticThemeSwitchSetting.force = false
+    updated.automaticThemeSwitchSetting.trigger = .explicitNone
+    return updated
+}
+
+public func forkSavedMessagesMenuTitle(_ strings: PresentationStrings) -> String {
+    switch String(strings.primaryComponent.languageCode.prefix(2)).lowercased() {
+    case "ru", "uk", "be": return "В Избранное"
+    default: return "Save to Saved Messages"
+    }
 }
 
 /// Title for the message context-menu entry that opens a message's saved edit history.
 public func forkEditHistoryMenuTitle(_ strings: PresentationStrings) -> String {
-    switch strings.primaryComponent.languageCode {
+    switch String(strings.primaryComponent.languageCode.prefix(2)).lowercased() {
     case "ru", "uk", "be":
         return "История изменений"
     default:
@@ -127,7 +118,7 @@ public func forkEditHistoryMenuTitle(_ strings: PresentationStrings) -> String {
 
 /// Customization row: whether recently-used emoji feed the reaction picker.
 public func forkUseRecentEmojiInReactionsTitle(_ strings: PresentationStrings) -> String {
-    switch strings.primaryComponent.languageCode {
+    switch String(strings.primaryComponent.languageCode.prefix(2)).lowercased() {
     case "ru", "uk", "be":
         return "Недавние эмодзи в реакциях"
     default:
@@ -136,7 +127,7 @@ public func forkUseRecentEmojiInReactionsTitle(_ strings: PresentationStrings) -
 }
 
 public func forkUseRecentEmojiInReactionsInfo(_ strings: PresentationStrings) -> String {
-    switch strings.primaryComponent.languageCode {
+    switch String(strings.primaryComponent.languageCode.prefix(2)).lowercased() {
     case "ru", "uk", "be":
         return "Показывать недавно использованные эмодзи при выборе реакции. Если выключено, доступны только стандартные реакции и те, что разрешены в канале."
     default:
@@ -148,7 +139,7 @@ public func forkUseRecentEmojiInReactionsInfo(_ strings: PresentationStrings) ->
 /// and Security, which is not where anyone looks for it — it now lives in the main Settings list
 /// next to Developer Mode, and shares the same bilingual pattern.
 public func forkExtrasSettingsTitle(_ strings: PresentationStrings) -> String {
-    switch strings.primaryComponent.languageCode {
+    switch String(strings.primaryComponent.languageCode.prefix(2)).lowercased() {
     case "ru", "uk", "be":
         return "Дополнительно"
     default:
@@ -160,7 +151,7 @@ public func forkExtrasSettingsTitle(_ strings: PresentationStrings) -> String {
 /// localisation catalogue, so it follows the same bilingual pattern as the fork's other custom
 /// Settings strings.
 public func forkDeveloperModeSettingsTitle(_ strings: PresentationStrings) -> String {
-    switch strings.primaryComponent.languageCode {
+    switch String(strings.primaryComponent.languageCode.prefix(2)).lowercased() {
     case "ru", "uk", "be":
         return "Режим разработчика"
     default:
@@ -169,7 +160,7 @@ public func forkDeveloperModeSettingsTitle(_ strings: PresentationStrings) -> St
 }
 
 public func forkCustomizationSettingsTitle(_ strings: PresentationStrings) -> String {
-    switch strings.primaryComponent.languageCode {
+    switch String(strings.primaryComponent.languageCode.prefix(2)).lowercased() {
     case "ru", "uk", "be":
         return "Кастомизация"
     default:
@@ -1000,6 +991,10 @@ public func themeDisplayName(strings: PresentationStrings, reference: Presentati
             name = strings.Appearance_ThemeCarouselNewNight
         case .nightAccent:
             name = strings.Appearance_ThemeCarouselTintedNight
+        case .bananaGramCream:
+            name = "BananaGram Cream"
+        case .bananaGramGraphite:
+            name = "BananaGram Graphite"
         }
     case let .local(theme):
         name = theme.title
@@ -1011,4 +1006,23 @@ public func themeDisplayName(strings: PresentationStrings, reference: Presentati
         }
     }
     return name
+}
+
+// Shared strings for the local shadow-ban UI. Other languages use English until translated.
+public func arenaShadowBanString(_ text: String, strings: PresentationStrings) -> String {
+    if strings.primaryComponent.languageCode.lowercased().hasPrefix("ru") {
+        return text
+    }
+    let english: [String: String] = [
+        "Теневой бан": "Shadow ban",
+        "Убрать из теневого бана": "Remove shadow ban",
+        "Добавлен в теневой бан": "Added to shadow ban",
+        "Удален из теневого бана": "Removed from shadow ban",
+        "Спрятать скрытые сообщения": "Hide shadow-banned messages",
+        "Показать скрытые сообщения": "Show shadow-banned messages",
+        "Скрытое сообщение": "Hidden message",
+        "Автор в теневом бане": "Author is shadow-banned",
+        "Сообщение скрыто теневым баном": "Message hidden by shadow ban"
+    ]
+    return english[text] ?? text
 }

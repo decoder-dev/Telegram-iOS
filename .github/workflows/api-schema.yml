@@ -1,0 +1,24 @@
+name: Generate and verify API schema
+on:
+  push:
+    paths:
+      - 'build-system/SwiftTL/**'
+      - '.github/workflows/api-schema.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  generate:
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - name: Generate layer 229
+        run: |
+          swift run --package-path build-system/SwiftTL SwiftTL build-system/SwiftTL/api-229.tl generated-api
+          test -s generated-api/Api0.swift
+      - uses: actions/upload-artifact@v4
+        with:
+          name: generated-api-229
+          path: generated-api/
+          if-no-files-found: error

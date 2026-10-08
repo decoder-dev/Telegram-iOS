@@ -3,6 +3,7 @@ import Postbox
 import SwiftSignalKit
 import MtProtoKit
 import WebProxyTransport
+import TelegramVLESS
 
 public func updateProxySettingsInteractively(accountManager: AccountManager<TelegramAccountManagerTypes>, _ f: @escaping (ProxySettings) -> ProxySettings) -> Signal<Bool, NoError> {
     return accountManager.transaction { transaction -> Bool in
@@ -25,11 +26,31 @@ public func isSupportedWebProxySecret(_ secret: Data) -> Bool {
 }
 
 extension ProxyServerSettings {
+    /// Managed proxies connect through their current loopback endpoint, not the
+    /// public profile hostname. A stale/direct online state must not confirm a switch.
+    public func matchesConnectedProxyAddress(_ address: String?) -> Bool {
+        guard let address, let settings = self.mtProxySettings else { return false }
+        return settings.ip == address
+    }
+
+    /// A closed local endpoint keeps every MTContext consumer, including download
+    /// workers, off a direct route while a managed proxy is unavailable.
+    static var managedBootstrapProxySettings: MTSocksProxySettings {
+        return MTSocksProxySettings(ip: "127.0.0.1", port: 1, username: nil, password: nil, secret: nil)
+    }
+
     var webProxyConfiguration: WebProxyConfiguration? {
         guard case let .web(secret) = self.connection else {
             return nil
         }
         return WebProxyConfiguration(hostname: self.host, secret: secret)
+    }
+
+    public var vlessProxyURL: String? {
+        guard case let .vless(secret) = self.connection else {
+            return nil
+        }
+        return String(data: secret, encoding: .utf8)
     }
 
     var mtProxySettings: MTSocksProxySettings? {
@@ -42,15 +63,30 @@ extension ProxyServerSettings {
                 guard let configuration = self.webProxyConfiguration else {
                     return nil
                 }
-                WebProxyManager.shared.configure(activeWebProxy: configuration)
-                guard WebProxyManager.shared.isReady(for: configuration),
-                      let endpoint = WebProxyManager.shared.activeLoopbackEndpoint else {
+                guard let endpoint = WebProxyManager.shared.loopbackEndpoint(for: configuration) else {
                     return nil
                 }
                 return MTSocksProxySettings(ip: endpoint.host, port: endpoint.port, username: nil, password: nil, secret: configuration.secret)
+            case .vless:
+                guard let url = self.vlessProxyURL,
+                      let endpoint = VlessManager.shared.loopbackEndpoint(for: url) else {
+                    return nil
+                }
+                return MTSocksProxySettings(ip: endpoint.host, port: UInt16(clamping: endpoint.port), username: endpoint.user, password: endpoint.password, secret: nil)
         }
     }
 }
+
+/// Whether a `vless://` share link is fully supported by the embedded runtime (strict
+/// allowlist parsing). Re-exported so the settings editor validates against the same
+/// rule the runtime applies.
+public func isValidVlessProxyURL(_ url: String) -> Bool {
+    if case .success = VlessProfileParser.parse(url) {
+        return true
+    }
+    return false
+}
+
 
 public func updateProxySettingsInteractively(transaction: AccountManagerModifier<TelegramAccountManagerTypes>, _ f: @escaping (ProxySettings) -> ProxySettings) -> Bool {
     var hasChanges = false
@@ -69,46 +105,42 @@ func applySharedProxySettingsToNetwork(settings: ProxySettings, network: Network
 
     let activeServer = settings.effectiveActiveServer
     let isActiveWebProxy = activeServer?.connection.isWebProxy ?? false
-    if !isActiveWebProxy {
+    if isActiveWebProxy, let configuration = activeServer?.webProxyConfiguration {
+        WebProxyManager.shared.configure(activeWebProxy: configuration)
+    } else {
         WebProxyManager.shared.configure(activeWebProxy: nil)
     }
+    
+    let isActiveVlessProxy = activeServer?.connection.isVlessProxy ?? false
+    if isActiveVlessProxy, let url = activeServer?.vlessProxyURL {
+        VlessManager.shared.configure(activeProfileURL: url)
+    } else {
+        VlessManager.shared.configure(activeProfileURL: nil)
+    }
 
-    // mtProxySettings configures (or reuses) the WEB proxy sidecar as a side effect;
-    // calling it here as well as above would start it twice.
     let resolvedProxySettings = activeServer?.mtProxySettings
 
-    if isActiveWebProxy, resolvedProxySettings == nil {
-        if let configuration = activeServer?.webProxyConfiguration {
-            WebProxyManager.shared.configure(activeWebProxy: configuration)
-        }
-        network.context.updateApiEnvironment { _ in
+    if (isActiveWebProxy || isActiveVlessProxy), resolvedProxySettings == nil {
+        network.context.updateApiEnvironment { environment in
             network.pauseForWebProxyBootstrap()
-            return nil
+            let current = environment?.socksProxySettings
+            // An unresolved managed profile must block every MTContext consumer,
+            // including workers that are not covered by the primary MTProto pause.
+            // The previous endpoint may belong to a different proxy/profile.
+            let blocked = ProxyServerSettings.managedBootstrapProxySettings
+            if current?.isEqual(blocked) == true {
+                return nil
+            }
+            network.dropConnectionStatus()
+            return environment?.withUpdatedSocksProxySettings(blocked)
         }
         return
     }
     
-    // Clear the bootstrap pause whenever we have a resolvable route (ready WEB, SOCKS/MTProxy,
-    // or direct). Leaving WEB while paused used to leave `webProxyBootstrapPaused` stuck true,
-    // so rebuildTransport / shouldKeepConnection never resumed MtProto.
-    network.resumeIfWebProxyBootstrapPaused()
-
     network.context.updateApiEnvironment { environment in
         let current = environment?.socksProxySettings
-        let updated: MTSocksProxySettings?
-        if isActiveWebProxy {
-            if let resolvedProxySettings = resolvedProxySettings {
-                updated = resolvedProxySettings
-            } else if let current = current {
-                // Sidecar not ready yet (bootstrap / resume) — keep the previous endpoint
-                // rather than falling back to a direct connection.
-                updated = current
-            } else {
-                updated = nil
-            }
-        } else {
-            updated = resolvedProxySettings
-        }
+        // Unresolved managed profiles returned through the fail-closed path above.
+        let updated = resolvedProxySettings
         let updateNetwork: Bool
         if previousForceLocalDNS != settings.useLocalDNSForProxyHosts {
             updateNetwork = true
@@ -123,6 +155,14 @@ func applySharedProxySettingsToNetwork(settings: ProxySettings, network: Network
         } else {
             return nil
         }
+    }
+
+    // MTContext serializes these blocks. The first block must finish notifying MTProto
+    // listeners (enqueueing their route updates) before we enqueue a resume. Resuming
+    // before updateApiEnvironment could briefly dial the previous/direct route.
+    network.context.updateApiEnvironment { _ in
+        network.resumeIfWebProxyBootstrapPaused()
+        return nil
     }
 
     if forceTransportReconnect,
@@ -152,4 +192,23 @@ public func registerWebProxySidecarReapply(network: Network, currentSettings: @e
     return ActionDisposable {
         WebProxyManager.shared.removeSidecarEventHandler(token)
     }
+}
+
+public func registerVlessManagerReapply(network: Network, currentSettings: @escaping () -> ProxySettings?) -> Disposable {
+    return (VlessManager.shared.stateEvents |> deliverOnMainQueue).start(next: { [weak network] state in
+        guard let network = network, let settings = currentSettings() else {
+            return
+        }
+        // When the runtime transitions to .running its loopback port is fresh and
+        // MTProto's route must be rebuilt immediately — pass forceTransportReconnect
+        // so the transport is torn down and re-established through the new endpoint.
+        // For all other state transitions (preparing, failed, idle) a plain reapply
+        // without a forced reconnect is sufficient: the bootstrap-pause logic above
+        // will block new dials until the runtime is ready again.
+        if case .running = state {
+            applySharedProxySettingsToNetwork(settings: settings, network: network, forceTransportReconnect: true)
+        } else {
+            applySharedProxySettingsToNetwork(settings: settings, network: network)
+        }
+    })
 }

@@ -638,7 +638,7 @@ plist_fragment(
     template =
     """
     <key>CFBundleDisplayName</key>
-    <string>Телеграм</string>
+    <string>BananaGram</string>
     """
 )
 
@@ -1026,7 +1026,8 @@ swift_library(
     ],
     deps = [
         "//submodules/TelegramUI",
-        "//submodules/TelegramUI/Components/ShareExtensionContext"
+        "//submodules/TelegramUI/Components/ShareExtensionContext",
+        "//third-party/libxray:LibXray",
     ],
 )
 
@@ -1582,11 +1583,11 @@ plist_fragment(
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleDisplayName</key>
-    <string>Телеграм</string>
+    <string>BananaGram</string>
     <key>CFBundleIdentifier</key>
     <string>{telegram_bundle_id}</string>
     <key>CFBundleName</key>
-    <string>Телеграм</string>
+    <string>BananaGram</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleSignature</key>
@@ -1624,6 +1625,7 @@ plist_fragment(
         <string>moovit</string>
         <string>alook</string>
         <string>dgis</string>
+        <string>casva</string>
         <string>microsoft-edge-http</string>
         <string>brave</string>
         <string>onionhttp</string>

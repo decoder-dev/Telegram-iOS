@@ -725,6 +725,7 @@ struct ctr_state {
     uint8_t _quickAckByte;
     
     MTTimer *_responseTimeoutTimer;
+    MTTimer *_setupTimeoutTimer;
     
     bool _readingPartialData;
     NSData *_packetHead;
@@ -901,12 +902,14 @@ struct ctr_state {
     _socket = nil;
     
     MTTimer *responseTimeoutTimer = _responseTimeoutTimer;
+    MTTimer *setupTimeoutTimer = _setupTimeoutTimer;
     
     MTMetaDisposable *resolveDisposable = _resolveDisposable;
     
     [[MTTcpConnection tcpQueue] dispatchOnQueue:^
     {
         [responseTimeoutTimer invalidate];
+        [setupTimeoutTimer invalidate];
         
         [resolveDisposable dispose];
     }];
@@ -942,9 +945,18 @@ struct ctr_state {
 {
     [[MTTcpConnection tcpQueue] dispatchOnQueue:^
     {
+        if (_closed) {
+            return;
+        }
         _tlsHashMismatch = false;
         if (_socket == nil)
         {
+            // A TCP timeout alone does not bound DNS or SOCKS/FakeTLS handshakes.
+            __weak MTTcpConnection *setupWeakSelf = self;
+            _setupTimeoutTimer = [[MTTimer alloc] initWithTimeout:30.0 repeat:false completion:^{
+                [setupWeakSelf closeAndNotifyWithError:true];
+            } queue:[MTTcpConnection tcpQueue].nativeQueue];
+            [_setupTimeoutTimer start];
             if (_makeTcpConnectionInterface) {
                 _socket = _makeTcpConnectionInterface(self, [[MTTcpConnection tcpQueue] nativeQueue], _datacenterId, _scheme.address.preferForMedia, _isTestingEnvironment);
             }
@@ -969,10 +981,14 @@ struct ctr_state {
                 }
                 
                 if (isHostname) {
-                    int32_t port = _socksPort;
-                    resolveSignal = [(_forceLocalDNS ? [MTDNS resolveHostnameNative:_socksIp port:port] : [MTDNS resolveHostnameUniversal:_socksIp port:port]) map:^id(NSString *resolvedIp) {
-                        return [[MTTcpConnectionData alloc] initWithIp:resolvedIp port:port isSocks:true];
-                    }];
+                    if (_forceLocalDNS) {
+                        int32_t port = _socksPort;
+                        resolveSignal = [[MTDNS resolveHostnameNative:_socksIp port:port] map:^id(NSString *resolvedIp) {
+                            return [[MTTcpConnectionData alloc] initWithIp:resolvedIp port:port isSocks:true];
+                        }];
+                    } else {
+                        resolveSignal = [MTSignal single:[[MTTcpConnectionData alloc] initWithIp:_socksIp port:_socksPort isSocks:true]];
+                    }
                 } else {
                     resolveSignal = [MTSignal single:[[MTTcpConnectionData alloc] initWithIp:_socksIp port:_socksPort isSocks:true]];
                 }
@@ -987,10 +1003,14 @@ struct ctr_state {
                 }
                 
                 if (isHostname) {
-                    int32_t port = _mtpPort;
-                    resolveSignal = [(_forceLocalDNS ? [MTDNS resolveHostnameNative:_mtpIp port:port] : [MTDNS resolveHostnameUniversal:_mtpIp port:port]) map:^id(NSString *resolvedIp) {
-                        return [[MTTcpConnectionData alloc] initWithIp:resolvedIp port:port isSocks:false];
-                    }];
+                    if (_forceLocalDNS) {
+                        int32_t port = _mtpPort;
+                        resolveSignal = [[MTDNS resolveHostnameNative:_mtpIp port:port] map:^id(NSString *resolvedIp) {
+                            return [[MTTcpConnectionData alloc] initWithIp:resolvedIp port:port isSocks:false];
+                        }];
+                    } else {
+                        resolveSignal = [MTSignal single:[[MTTcpConnectionData alloc] initWithIp:_mtpIp port:_mtpPort isSocks:false]];
+                    }
                 } else {
                     resolveSignal = [MTSignal single:[[MTTcpConnectionData alloc] initWithIp:_mtpIp port:_mtpPort isSocks:false]];
                 }
@@ -1000,7 +1020,7 @@ struct ctr_state {
             [_resolveDisposable setDisposable:[resolveSignal startWithNextStrict:^(MTTcpConnectionData *connectionData) {
                 [[MTTcpConnection tcpQueue] dispatchOnQueue:^{
                     __strong MTTcpConnection *strongSelf = weakSelf;
-                    if (strongSelf == nil || connectionData == nil) {
+                    if (strongSelf == nil || strongSelf->_closed || connectionData == nil) {
                         return;
                     }
                     if (![connectionData.ip respondsToSelector:@selector(characterAtIndex:)]) {
@@ -1017,10 +1037,10 @@ struct ctr_state {
                             if (strongSelf->_socksUsername.length == 0) {
                                 MTLog(@"[MTTcpConnection#%" PRIxPTR " connecting to %@:%d via %@:%d]", (intptr_t)strongSelf, strongSelf->_scheme.address.ip, (int)strongSelf->_scheme.address.port, strongSelf->_socksIp, (int)strongSelf->_socksPort);
                             } else {
-                                MTLog(@"[MTTcpConnection#%" PRIxPTR " connecting to %@:%d via %@:%d using %@:%@]", (intptr_t)strongSelf, strongSelf->_scheme.address.ip, (int)strongSelf->_scheme.address.port, strongSelf->_socksIp, (int)strongSelf->_socksPort, strongSelf->_socksUsername, strongSelf->_socksPassword);
+                                MTLog(@"[MTTcpConnection#%" PRIxPTR " connecting to %@:%d via %@:%d with authentication]", (intptr_t)strongSelf, strongSelf->_scheme.address.ip, (int)strongSelf->_scheme.address.port, strongSelf->_socksIp, (int)strongSelf->_socksPort);
                             }
                         } else if (strongSelf->_mtpIp != nil) {
-                            MTLog(@"[MTTcpConnection#%" PRIxPTR " connecting to %@:%d via mtp://%@:%d:%@]", (intptr_t)strongSelf, strongSelf->_scheme.address.ip, (int)strongSelf->_scheme.address.port, strongSelf->_mtpIp, (int)strongSelf->_mtpPort, strongSelf->_mtpSecret);
+                            MTLog(@"[MTTcpConnection#%" PRIxPTR " connecting to %@:%d via mtp://%@:%d]", (intptr_t)strongSelf, strongSelf->_scheme.address.ip, (int)strongSelf->_scheme.address.port, strongSelf->_mtpIp, (int)strongSelf->_mtpPort);
                         } else {
                             MTLog(@"[MTTcpConnection#%" PRIxPTR " connecting to %@:%d]", (intptr_t)strongSelf, strongSelf->_scheme.address.ip, (int)strongSelf->_scheme.address.port);
                         }
@@ -1122,6 +1142,11 @@ struct ctr_state {
         if (!_closed)
         {
             _closed = true;
+            [_resolveDisposable dispose];
+            [_setupTimeoutTimer invalidate];
+            _setupTimeoutTimer = nil;
+            [_responseTimeoutTimer invalidate];
+            _responseTimeoutTimer = nil;
 
             // Detach first, then close off this queue. Nothing here may touch the socket again,
             // and the close itself blocks — see `tcpSocketTeardownQueue`. The block holds the only
@@ -1591,6 +1616,8 @@ struct ctr_state {
         
         return;
     } else if (tag == MTTcpSocksReceiveBindAddrPort) {
+        [_setupTimeoutTimer invalidate];
+        _setupTimeoutTimer = nil;
         if (_connectionOpened)
             _connectionOpened();
         id<MTTcpConnectionDelegate> delegate = _delegate;
@@ -1721,6 +1748,8 @@ struct ctr_state {
             return;
         }
         
+        [_setupTimeoutTimer invalidate];
+        _setupTimeoutTimer = nil;
         _readyToSendData = true;
         [self sendDataIfNeeded];
         
@@ -2021,6 +2050,11 @@ struct ctr_state {
     // this, a connection that has already reported itself closed would report itself opened again.
     if (_closed)
         return;
+
+    if (_socksIp == nil && ![_mtpSecret isKindOfClass:[MTProxySecretType2 class]]) {
+        [_setupTimeoutTimer invalidate];
+        _setupTimeoutTimer = nil;
+    }
     
     if (_socksIp != nil) {
         

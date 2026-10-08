@@ -22,6 +22,7 @@
 #include <string>
 #include <vector>
 
+#ifdef USE_JPEGXL
 static inline float JXLGetDistance(int32_t quality) {
     if (quality == 0) {
         return 1.0f;
@@ -31,6 +32,7 @@ static inline float JXLGetDistance(int32_t quality) {
         return 6.24f + (float)pow(2.5f, (30.0 - quality) / 5.0) / 6.25f;
     }
 }
+#endif
 
 NSData * _Nullable compressJPEGXLData(UIImage * _Nonnull sourceImage, int quality) {
     #ifdef USE_JPEGXL

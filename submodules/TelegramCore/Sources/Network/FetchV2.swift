@@ -226,6 +226,7 @@ private final class FetchImpl {
         
         var pendingParts: [PendingPart] = []
         var completedRanges = RangeSet<Int64>()
+        var downloadedUpperBound: Int64 = 0
         
         var decryptionState: DecryptionState?
         var pendingReadyParts: [PendingReadyPart] = []
@@ -345,6 +346,7 @@ private final class FetchImpl {
         private let defaultPartSize: Int64
         private let cdnPartSize: Int64
         private var state: State?
+        private var reportedFailure = false
         
         private let loggingIdentifier: String
         private static let loggingIdentifierPrefix = "telegram-cloud-"
@@ -734,6 +736,7 @@ private final class FetchImpl {
                             return
                         }
                         self.state = .failed
+                        self.update()
                     })
                 }
             case let .refreshingFileReference(state):
@@ -786,10 +789,18 @@ private final class FetchImpl {
                             self.state = .failed
                             self.update()
                         })
+                    } else {
+                        Logger.shared.log("FetchV2", "\(self.loggingIdentifier): no way to refresh the file reference")
+                        self.state = .failed
+                        self.update()
                     }
                 }
             case .failed:
-                break
+                if !self.reportedFailure {
+                    self.reportedFailure = true
+                    Logger.shared.log("FetchV2", "\(self.loggingIdentifier): failed")
+                    self.onError(.generic)
+                }
             }
         }
         
@@ -1062,18 +1073,42 @@ private final class FetchImpl {
             
             if actualLength < requestedLength {
                 let resultingSize = fetchRange.lowerBound + actualLength
-                if let currentKnownSize = self.knownSize {
-                    Logger.shared.log("FetchV2", "\(self.loggingIdentifier): setting known size to min(\(currentKnownSize), \(resultingSize)) = \(min(currentKnownSize, resultingSize))")
-                    self.knownSize = min(currentKnownSize, resultingSize)
+                // Requests can finish out of order, including empty replies beyond EOF.
+                // completedRanges tracks requested ranges, not bytes actually received, so
+                // its upper bound cannot be used to reject an earlier, shorter EOF.
+                let maxCompleted = state.downloadedUpperBound
+                if resultingSize >= maxCompleted {
+                    if let currentKnownSize = self.knownSize {
+                        self.knownSize = min(currentKnownSize, resultingSize)
+                    } else {
+                        self.knownSize = resultingSize
+                    }
+                    // R04: Only report size when we actually accept the EOF
+                    if let reportedSize = self.knownSize {
+                        Logger.shared.log("FetchV2", "\(self.loggingIdentifier): reporting resource size \(reportedSize)")
+                        self.onNext(.resourceSizeUpdated(reportedSize))
+                    }
                 } else {
-                    Logger.shared.log("FetchV2", "\(self.loggingIdentifier): setting known size to \(resultingSize)")
-                    self.knownSize = resultingSize
+                    Logger.shared.log("FetchV2", "\(self.loggingIdentifier): ignoring spurious EOF at \(resultingSize), already completed up to \(maxCompleted)")
                 }
-                Logger.shared.log("FetchV2", "\(self.loggingIdentifier): reporting resource size \(resultingSize)")
-                self.onNext(.resourceSizeUpdated(resultingSize))
             }
             
-            state.completedRanges.formUnion(RangeSet<Int64>(partRange))
+            if actualLength > 0 {
+                state.downloadedUpperBound = max(state.downloadedUpperBound, fetchRange.lowerBound + actualLength)
+            }
+            
+            // R04: When data is shorter than requested (EOF), only mark actually-received
+            // bytes as completed, not the full requested partRange. This prevents the
+            // download scheduler from considering truncated ranges as fully fetched.
+            let effectiveCompletedRange: Range<Int64>
+            if actualLength < requestedLength && actualLength >= 0 {
+                effectiveCompletedRange = partRange.lowerBound ..< min(partRange.upperBound, fetchRange.lowerBound + actualLength)
+            } else {
+                effectiveCompletedRange = partRange
+            }
+            if !effectiveCompletedRange.isEmpty {
+                state.completedRanges.formUnion(RangeSet<Int64>(effectiveCompletedRange))
+            }
             
             var actualData = data
             if partRange != fetchRange {

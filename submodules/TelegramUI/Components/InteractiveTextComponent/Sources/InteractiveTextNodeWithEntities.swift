@@ -1,4 +1,4 @@
-import Foundation
+﻿import Foundation
 import UIKit
 import AsyncDisplayKit
 import Display
@@ -11,6 +11,8 @@ import AnimationCache
 import MultiAnimationRenderer
 import TelegramCore
 import EmojiTextAttachmentView
+import AvatarNode
+import SwiftSignalKit
 
 private final class InlineStickerItem: Hashable {
     let emoji: ChatTextInputTextCustomEmojiAttribute
@@ -54,7 +56,160 @@ private final class RunDelegateData {
     }
 }
 
+private final class MentionAvatarItem: Hashable {
+    let peer: EnginePeer?
+    let username: String?
+    let glyph: NSAttributedString
+    let font: UIFont
+    let avatarSize: CGFloat
+    let width: CGFloat
+
+    init(peer: EnginePeer?, username: String?, glyph: NSAttributedString, font: UIFont) {
+        self.peer = peer
+        self.username = username
+        self.glyph = glyph
+        self.font = font
+        self.avatarSize = ceil(font.pointSize)
+        self.width = self.avatarSize + 3.0 + ceil(glyph.size().width)
+    }
+
+    static func == (lhs: MentionAvatarItem, rhs: MentionAvatarItem) -> Bool {
+        return lhs.peer == rhs.peer && lhs.username == rhs.username && lhs.glyph.isEqual(to: rhs.glyph) && lhs.font == rhs.font
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(self.peer?.id)
+        hasher.combine(self.username)
+        hasher.combine(self.glyph.string)
+        hasher.combine(self.font.fontName)
+        hasher.combine(self.font.pointSize)
+    }
+}
+
+/// Reserves room for an avatar without changing the text or any UTF-16 entity offsets.
+public func textWithMentionAvatars(_ text: NSAttributedString, entities: [MessageTextEntity], peers: [EnginePeer]) -> NSAttributedString {
+    let result = NSMutableAttributedString(attributedString: text)
+    let string = text.string as NSString
+    let excludedRanges = entities.compactMap { entity -> NSRange? in
+        switch entity.type {
+        case .Spoiler, .Code, .Pre:
+            return NSRange(location: entity.range.lowerBound, length: entity.range.count)
+        default:
+            return nil
+        }
+    }
+    var count = 0
+    for entity in entities {
+        guard count < 40, !entity.range.isEmpty, entity.range.lowerBound >= 0, entity.range.upperBound <= string.length else {
+            continue
+        }
+        let mentionRange = NSRange(location: entity.range.lowerBound, length: entity.range.count)
+        guard !excludedRanges.contains(where: { NSIntersectionRange($0, mentionRange).length > 0 }) else {
+            continue
+        }
+        let peer: EnginePeer?
+        let username: String?
+        switch entity.type {
+        case let .TextMention(peerId):
+            peer = peers.first(where: { $0.id == peerId })
+            username = nil
+            guard peer != nil else { continue }
+        case .Mention:
+            let mention = string.substring(with: mentionRange)
+            guard mention.hasPrefix("@") else { continue }
+            let name = String(mention.dropFirst())
+            guard !name.isEmpty else { continue }
+            username = name
+            peer = peers.first(where: { peer in
+                peer.addressName?.lowercased() == name.lowercased() || peer.usernames.contains(where: { $0.flags.contains(.isActive) && $0.username.lowercased() == name.lowercased() })
+            })
+        default:
+            continue
+        }
+        let range = string.rangeOfComposedCharacterSequence(at: mentionRange.location)
+        guard NSMaxRange(range) <= NSMaxRange(mentionRange), result.attribute(NSAttributedString.Key("Attribute__EmbeddedItem"), at: range.location, effectiveRange: nil) == nil, result.attribute(ChatTextInputAttributes.customEmoji, at: range.location, effectiveRange: nil) == nil, let font = result.attribute(.font, at: range.location, effectiveRange: nil) as? UIFont else {
+            continue
+        }
+        let item = MentionAvatarItem(peer: peer, username: username, glyph: result.attributedSubstring(from: range), font: font)
+        let metrics = RunDelegateData(ascent: max(font.ascender, item.avatarSize + font.descender), descent: -font.descender, width: item.width)
+        var callbacks = CTRunDelegateCallbacks(version: kCTRunDelegateCurrentVersion, dealloc: { pointer in
+            Unmanaged<RunDelegateData>.fromOpaque(pointer).release()
+        }, getAscent: { pointer in
+            return Unmanaged<RunDelegateData>.fromOpaque(pointer).takeUnretainedValue().ascent
+        }, getDescent: { pointer in
+            return Unmanaged<RunDelegateData>.fromOpaque(pointer).takeUnretainedValue().descent
+        }, getWidth: { pointer in
+            return Unmanaged<RunDelegateData>.fromOpaque(pointer).takeUnretainedValue().width
+        })
+        let retainedMetrics = Unmanaged.passRetained(metrics)
+        if let delegate = CTRunDelegateCreate(&callbacks, retainedMetrics.toOpaque()) {
+            result.addAttribute(NSAttributedString.Key(kCTRunDelegateAttributeName as String), value: delegate, range: range)
+            result.addAttribute(NSAttributedString.Key("Attribute__EmbeddedItem"), value: AnyHashable(item), range: range)
+            count += 1
+        } else {
+            retainedMetrics.release()
+        }
+    }
+    return result
+}
+
+private final class MentionAvatarView: UIView {
+    private static var resolvedPeers: [String: EnginePeer] = [:]
+    private let avatarNode: AvatarNode
+    private let label = UILabel()
+    private let disposable = MetaDisposable()
+    private let item: MentionAvatarItem
+
+    init(context: AccountContext, item: MentionAvatarItem, synchronousLoad: Bool) {
+        self.item = item
+        self.avatarNode = AvatarNode(font: Font.regular(max(8.0, item.avatarSize * 0.5)))
+        super.init(frame: .zero)
+        self.isUserInteractionEnabled = false
+        self.label.attributedText = item.glyph
+        self.addSubview(self.avatarNode.view)
+        self.addSubview(self.label)
+        let setPeer: (EnginePeer) -> Void = { [weak self] peer in
+            guard let self else { return }
+            self.avatarNode.setPeer(context: context, theme: context.sharedContext.currentPresentationData.with { $0 }.theme, peer: peer, synchronousLoad: synchronousLoad, displayDimensions: CGSize(width: item.avatarSize, height: item.avatarSize))
+        }
+        if let peer = item.peer {
+            setPeer(peer)
+        } else if let username = item.username {
+            let key = "\(context.account.peerId.toInt64()):\(username.lowercased())"
+            if let cached = Self.resolvedPeers[key] {
+                setPeer(cached)
+            } else {
+                self.avatarNode.setCustomLetters([String(username.prefix(1)).uppercased()])
+                self.disposable.set((context.engine.peers.resolvePeerByName(name: username, referrer: nil)
+                |> deliverOnMainQueue).start(next: { result in
+                    guard case let .result(peer?) = result else { return }
+                    if Self.resolvedPeers.count >= 256 {
+                        Self.resolvedPeers.removeAll()
+                    }
+                    Self.resolvedPeers[key] = peer
+                    setPeer(peer)
+                }))
+            }
+        }
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    deinit {
+        self.disposable.dispose()
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        self.avatarNode.frame = CGRect(x: 0.0, y: floor((self.bounds.height - self.item.avatarSize) * 0.5), width: self.item.avatarSize, height: self.item.avatarSize)
+        self.label.frame = CGRect(x: self.item.avatarSize + 3.0, y: (self.bounds.height - self.item.font.lineHeight) * 0.5, width: self.bounds.width - self.item.avatarSize - 3.0, height: self.item.font.lineHeight)
+    }
+}
+
 public final class InteractiveTextNodeWithEntities {
+    private var mentionAvatarViews: [Int: (MentionAvatarItem, MentionAvatarView)] = [:]
     public final class Arguments {
         public let context: AccountContext
         public let cache: AnimationCache
@@ -299,6 +454,7 @@ public final class InteractiveTextNodeWithEntities {
         
         var nextIndexById: [Int64: Int] = [:]
         var validIds: [InlineStickerItemLayer.Key] = []
+        var mentionIndex = 0
         
         if let textLayout {
             for i in 0 ..< textLayout.segments.count {
@@ -308,7 +464,23 @@ public final class InteractiveTextNodeWithEntities {
                 }
                 
                 for item in segment.embeddedItems {
-                    if let stickerItem = item.value as? InlineStickerItem {
+                    if let mention = item.value as? MentionAvatarItem {
+                        let index = mentionIndex
+                        mentionIndex += 1
+                        let view: MentionAvatarView
+                        if let current = self.mentionAvatarViews[index], current.0 == mention {
+                            view = current.1
+                        } else {
+                            self.mentionAvatarViews.removeValue(forKey: index)?.1.removeFromSuperview()
+                            view = MentionAvatarView(context: context, item: mention, synchronousLoad: attemptSynchronousLoad)
+                            self.mentionAvatarViews[index] = (mention, view)
+                        }
+                        if view.superview !== segmentLayer.renderNode.view {
+                            segmentLayer.renderNode.view.addSubview(view)
+                        }
+                        view.frame = item.rect.offsetBy(dx: segmentParams.item.contentOffset.x, dy: segmentParams.item.contentOffset.y)
+                        view.alpha = item.isHiddenBySpoiler ? 0.0 : 1.0
+                    } else if let stickerItem = item.value as? InlineStickerItem {
                         let index: Int
                         if let currentNext = nextIndexById[stickerItem.emoji.fileId] {
                             index = currentNext
@@ -365,6 +537,9 @@ public final class InteractiveTextNodeWithEntities {
         }
         for key in removeKeys {
             self.inlineStickerItemLayers.removeValue(forKey: key)
+        }
+        for index in Array(self.mentionAvatarViews.keys) where index >= mentionIndex {
+            self.mentionAvatarViews.removeValue(forKey: index)?.1.removeFromSuperview()
         }
     }
 }

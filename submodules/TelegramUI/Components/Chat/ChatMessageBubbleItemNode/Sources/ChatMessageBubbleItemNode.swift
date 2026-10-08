@@ -478,7 +478,7 @@ private func contentNodeMessagesAndClassesForItem(_ item: ChatMessageItem) -> ([
         }
     }
     
-    if !reactionsAreInline && !hideAllAdditionalInfo && !ForkExtrasHotFlags.hideReactionsBar, let reactionsAttribute = mergedMessageReactions(attributes: firstMessage.attributes, isTags: firstMessage.areReactionsTags(accountPeerId: item.context.account.peerId)), !reactionsAttribute.reactions.isEmpty {
+    if !reactionsAreInline && !hideAllAdditionalInfo && !ForkExtrasHotFlags.hideReactionsBar, let reactionsAttribute = forkVisibleMessageReactions(attributes: firstMessage.attributes, isTags: firstMessage.areReactionsTags(accountPeerId: item.context.account.peerId)), !reactionsAttribute.reactions.isEmpty {
         if result.last?.1 == ChatMessageTextBubbleContentNode.self {
         } else {
             if result.last?.1 == ChatMessagePollBubbleContentNode.self ||
@@ -1349,7 +1349,7 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
                 if let nameNode = strongSelf.nameNode, nameNode.frame.contains(point) {
                     if let item = strongSelf.item {
                         for attribute in item.message.attributes {
-                            if let _ = attribute as? InlineBotMessageAttribute {
+                            if let _ = attribute as? InlineBotMessageAttribute, !ForkMessageVisibility.hideViaBot {
                                 return .waitForSingleTap
                             }
                         }
@@ -2122,7 +2122,7 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
                 if let peer = firstMessage.peers[attribute.peerId] {
                     guestChatViaFromNameString = EnginePeer(peer).compactDisplayTitle
                 }
-            } else if let attribute = attribute as? InlineBotMessageAttribute {
+            } else if let attribute = attribute as? InlineBotMessageAttribute, !ForkMessageVisibility.hideViaBot {
                 if let peerId = attribute.peerId, let bot = firstMessage.peers[peerId] as? TelegramUser {
                     inlineBotNameString = bot.addressName
                 } else {
@@ -2347,7 +2347,7 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
         
         let bubbleReactions: ReactionsMessageAttribute
         if (needReactions || forceReactionsOutside) && !ForkExtrasHotFlags.hideReactionsBar {
-            bubbleReactions = mergedMessageReactions(attributes: item.message.attributes, isTags: item.message.areReactionsTags(accountPeerId: item.context.account.peerId)) ?? ReactionsMessageAttribute(canViewList: false, isTags: false, reactions: [], recentPeers: [], topPeers: [])
+            bubbleReactions = forkVisibleMessageReactions(attributes: item.message.attributes, isTags: item.message.areReactionsTags(accountPeerId: item.context.account.peerId)) ?? ReactionsMessageAttribute(canViewList: false, isTags: false, reactions: [], recentPeers: [], topPeers: [])
         } else {
             bubbleReactions = ReactionsMessageAttribute(canViewList: false, isTags: false, reactions: [], recentPeers: [], topPeers: [])
         }
@@ -3025,7 +3025,8 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
                     constrainedSize: CGSize(width: maximumNodeWidth - layoutConstants.text.bubbleInsets.left - layoutConstants.text.bubbleInsets.right - 6.0, height: CGFloat.greatestFiniteMagnitude),
                     animationCache: item.controllerInteraction.presentationContext.animationCache,
                     animationRenderer: item.controllerInteraction.presentationContext.animationRenderer,
-                    associatedData: item.associatedData
+                    associatedData: item.associatedData,
+                    ArenaHidden: TelegramShadowBan.hidesReplyHeader(in: firstMessage)
                 ))
                 replyInfoSizeApply = (sizeAndApply.0, { realSize, synchronousLoads, animation in sizeAndApply.1(realSize, synchronousLoads, animation) })
                 
@@ -5861,7 +5862,7 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
                 if let nameNode = self.nameNode, nameNode.frame.contains(location) {
                     if let item = self.item {
                         for attribute in item.message.attributes {
-                            if let attribute = attribute as? InlineBotMessageAttribute {
+                            if let attribute = attribute as? InlineBotMessageAttribute, !ForkMessageVisibility.hideViaBot {
                                 var botAddressName: String?
                                 if let peerId = attribute.peerId, let botPeer = item.message.peers[peerId], let addressName = botPeer.addressName {
                                     botAddressName = addressName
@@ -5903,6 +5904,13 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
                             }))
                         }
                         
+                        // The hidden message is not in the chat, so there is nowhere to go.
+                        if TelegramShadowBan.hidesReplyHeader(in: item.message) {
+                            return .action(InternalBubbleTapAction.Action({ [weak replyInfoNode] in
+                                item.controllerInteraction.displayMessageTooltip(item.message.id, ChatMessageReplyInfoNode.ArenaHiddenTooltip(strings: item.presentationData.strings), false, replyInfoNode, nil)
+                            }, contextMenuOnLongPress: true))
+                        }
+
                         for attribute in item.message.attributes {
                             if let attribute = attribute as? ReplyMessageAttribute {
                                 if let threadId = item.message.threadId, Int32(clamping: threadId) == attribute.messageId.id, let quotedReply = item.message.attributes.first(where: { $0 is QuotedReplyMessageAttribute }) as? QuotedReplyMessageAttribute {
@@ -6234,7 +6242,7 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
                         return .action(InternalBubbleTapAction.Action {})
                     }
                     if let replyInfoNode = self.replyInfoNode, self.item?.controllerInteraction.tapMessage == nil, replyInfoNode.frame.contains(location) {
-                        if self.selectionNode != nil, let attribute = item.message.attributes.first(where: { $0 is ReplyMessageAttribute }) as? ReplyMessageAttribute {
+                        if self.selectionNode != nil, !TelegramShadowBan.hidesReplyHeader(in: item.message), let attribute = item.message.attributes.first(where: { $0 is ReplyMessageAttribute }) as? ReplyMessageAttribute {
                             return .action(InternalBubbleTapAction.Action({ [weak self] in
                                 guard let self else {
                                     return

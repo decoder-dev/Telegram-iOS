@@ -11,6 +11,13 @@ func _internal_applyMaxReadIndexInteractively(postbox: Postbox, stateManager: Ac
 }
     
 func _internal_applyMaxReadIndexInteractively(transaction: Transaction, stateManager: AccountStateManager, index: MessageIndex) {
+    if ForkGhostModeSettings.shouldSuppressMessageReads {
+        if bananaApplyGhostLocalRead(transaction: transaction, accountPeerId: stateManager.accountPeerId, index: index) {
+            stateManager.notifyAppliedIncomingReadMessages([index.id])
+        }
+        return
+    }
+    bananaGhostLocalReadWillReadOnServer(transaction: transaction, accountPeerId: stateManager.accountPeerId, peerId: index.id.peerId)
     let messageIds = transaction.applyInteractiveReadMaxIndex(index)
     
     if let peer = transaction.getPeer(index.id.peerId), peer.isForumOrMonoForum {
@@ -292,6 +299,20 @@ func _internal_togglePeerUnreadMarkInteractively(transaction: Transaction, netwo
             }
         }
         
+        let accountPeerId = viewTracker.accountPeerId
+        if !hasUnread && (setToValue == nil || setToValue!) {
+            // Banana: a chat read only on this device is unread on the server already.
+            if bananaGhostLocalReadMarkUnread(transaction: transaction, accountPeerId: accountPeerId, peerId: peerId) {
+                return
+            }
+        } else if setToValue == nil || !(setToValue!) {
+            // Banana: reading a chat explicitly also sends what was read only on this device.
+            if bananaGhostLocalReadState(accountPeerId: accountPeerId, peerId: peerId) != nil {
+                bananaGhostLocalReadWillReadOnServer(transaction: transaction, accountPeerId: accountPeerId, peerId: peerId)
+                hasUnread = true
+            }
+        }
+
         if hasUnread {
             if setToValue == nil || !(setToValue!) {
                 if let index = transaction.getTopPeerMessageIndex(peerId: peerId) {
@@ -330,7 +351,11 @@ public func clearPeerUnseenReactionsAndPollVotesInteractively(account: Account, 
 }
 
 func _internal_markAllChatsAsReadInteractively(transaction: Transaction, network: Network, viewTracker: AccountViewTracker, groupId: PeerGroupId, filterPredicate: ChatListFilterPredicate?) {
-    for peerId in transaction.getUnreadChatListPeerIds(groupId: groupId, filterPredicate: filterPredicate, additionalFilter: nil, stopOnFirstMatch: false) {
+    // Banana: chats read only on this device are unread on the server, so they are read too.
+    let ghostLocalReads = bananaGhostLocalReadsPrepareReadAll(transaction: transaction, accountPeerId: viewTracker.accountPeerId)
+    let peerIds = transaction.getUnreadChatListPeerIds(groupId: groupId, filterPredicate: filterPredicate, additionalFilter: nil, stopOnFirstMatch: false)
+    bananaGhostLocalReadsFinishReadAll(transaction: transaction, accountPeerId: viewTracker.accountPeerId, before: ghostLocalReads, readPeerIds: Set(peerIds))
+    for peerId in peerIds {
         _internal_togglePeerUnreadMarkInteractively(transaction: transaction, network: network, viewTracker: viewTracker, peerId: peerId, setToValue: false)
     }
 }

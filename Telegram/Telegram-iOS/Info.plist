@@ -11,7 +11,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>${APP_NAME}</string>
+	<string>BananaGram</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIcons</key>
@@ -259,6 +259,7 @@
 		<string>moovit</string>
 		<string>alook</string>
 		<string>dgis</string>
+		<string>casva</string>
 		<string>microsoft-edge-http</string>
 		<string>brave</string>
 		<string>onionhttp</string>

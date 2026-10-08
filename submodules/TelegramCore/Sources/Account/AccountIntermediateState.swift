@@ -14,8 +14,8 @@ struct AccountStateChannelState: Equatable {
 }
 
 enum PeerLiveTypingDraftUpdateContent {
-    case plain(text: String, entities: [MessageTextEntity])
-    case rich(RichTextMessageAttribute)
+    case plain(text: String, entities: [MessageTextEntity], flags: Int32)
+    case rich(RichTextMessageAttribute, flags: Int32)
 }
 
 final class AccountInitialState {

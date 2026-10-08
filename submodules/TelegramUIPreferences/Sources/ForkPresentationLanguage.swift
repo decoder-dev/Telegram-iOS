@@ -80,6 +80,44 @@ public enum ForkWebProxyStrings {
     }
 }
 
+/// Per-type proxy descriptions shown across the proxy settings UI (edit form,
+/// add-proxy menu and the preview card). Every proxy type carries a short
+/// explanation of what it tunnels and how calls behave, so no type is a mystery
+/// label. Localized the same way as `ForkWebProxyStrings`.
+public enum ForkProxyDescriptionStrings {
+    public static var socks5: String {
+        return ForkPresentationLanguage.prefersRussianStrings ? "Классический SOCKS5-прокси. Через него идёт трафик приложения, а звонки — если включить «Использовать для звонков»." : "A classic SOCKS5 proxy. Carries app traffic; calls too when 'Use for calls' is enabled."
+    }
+
+    public static var mtp: String {
+        return ForkPresentationLanguage.prefersRussianStrings ? "Прокси собственного протокола Telegram. Помогает там, где SOCKS5 и HTTP заблокированы. Звонки через него не маршрутизируются." : "Telegram's own proxy protocol. Works where SOCKS5 and HTTP are blocked. Calls are not routed through it."
+    }
+
+    public static var web: String {
+        return ForkPresentationLanguage.prefersRussianStrings ? "Трафик маскируется под обычный HTTPS к сайту-маскировщику и проходит через WebView-мост. Обходит DPI-блокировки." : "Traffic is disguised as plain HTTPS to a masking site and goes through a WebView bridge. Works around DPI blocks."
+    }
+
+    public static var vless: String {
+        return ForkPresentationLanguage.prefersRussianStrings ? "VLESS на основе Xray-core: TCP, WebSocket, gRPC, HTTPUpgrade и XHTTP; TLS/REALITY/MLKEM. Вставьте ссылку vless://. Соединения Telegram используют туннель, звонки — если включено «Использовать для звонков». Внешние сайты и Mini Apps могут использовать отдельные соединения." : "VLESS with an embedded Xray core: TCP, WebSocket, gRPC, HTTPUpgrade and XHTTP; TLS/REALITY/MLKEM. Paste a vless:// link. Telegram connections use the tunnel; calls do so when ‘Use for calls’ is enabled. External sites and Mini Apps may use separate connections."
+    }
+
+    /// Short one-liners for the add-proxy action sheet.
+    public enum Menu {
+        public static var socks5: String {
+            return ForkPresentationLanguage.prefersRussianStrings ? "Универсальный, нужен сервер и порт" : "Universal; needs a server and port"
+        }
+        public static var mtp: String {
+            return ForkPresentationLanguage.prefersRussianStrings ? "Протокол Telegram, устойчив к блокировкам" : "Telegram protocol, block-resistant"
+        }
+        public static var web: String {
+            return ForkPresentationLanguage.prefersRussianStrings ? "Маскировка под HTTPS-трафик" : "Disguised as HTTPS traffic"
+        }
+        public static var vless: String {
+            return ForkPresentationLanguage.prefersRussianStrings ? "Туннель со встроенным Xray (Reality/XHTTP)" : "Tunnel with an embedded Xray core (Reality/XHTTP)"
+        }
+    }
+}
+
 /// Shared value strings for the Settings rows that summarize the active proxy mode (the
 /// Data & Storage row and the peer-info settings row). Same reason as `ForkWebProxyStrings`:
 /// fork-private keys are never in Telegram's localisation catalogue.
@@ -95,6 +133,10 @@ public enum ForkProxySettingsStrings {
 /// menus, the history screens and the clear action all read from here so the feature is spelled
 /// identically everywhere.
 public enum ForkMessageSavingStrings {
+    public static var loading: String { ForkPresentationLanguage.prefersRussianStrings ? "Загрузка…" : "Loading…" }
+    public static var readError: String { ForkPresentationLanguage.prefersRussianStrings ? "Не удалось прочитать историю. Повторите попытку." : "Could not read history. Please try again." }
+    public static var retry: String { ForkPresentationLanguage.prefersRussianStrings ? "Повторить" : "Retry" }
+
     public static var viewDeleted: String {
         return ForkPresentationLanguage.prefersRussianStrings ? "Удалённые" : "View Deleted"
     }
@@ -114,4 +156,9 @@ public enum ForkMessageSavingStrings {
     public static var noEdits: String {
         return ForkPresentationLanguage.prefersRussianStrings ? "Предыдущих версий нет." : "No previous versions saved."
     }
+}
+
+public enum ForkCameraStrings {
+    public static var send: String { ForkPresentationLanguage.prefersRussianStrings ? "Отправить" : "Send" }
+    public static var timer: String { ForkPresentationLanguage.prefersRussianStrings ? "Отправить с таймером" : "Send with a timer" }
 }

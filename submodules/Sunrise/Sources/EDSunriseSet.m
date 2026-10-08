@@ -147,7 +147,7 @@
 -(void) sun_RA_decAtDay:(double)d RA:(double*)RA decl:(double *)dec  r:(double *)r
 {
     double lon, obl_ecl;
-    double xs, ys, zs;
+    double xs, ys;
     double xe, ye, ze;
     
     /* Compute Sun's ecliptical coordinates */
@@ -157,7 +157,7 @@
     /* Compute ecliptic rectangular coordinates */
     xs = *r * cosd(lon);
     ys = *r * sind(lon);
-    zs = 0; /* because the Sun is always in the ecliptic plane! */
+    // zs = 0; /* because the Sun is always in the ecliptic plane! */
     
     /* Compute obliquity of ecliptic (inclination of Earth's axis) */
     obl_ecl = 23.4393 - 3.563E-7 * d;

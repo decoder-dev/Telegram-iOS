@@ -367,6 +367,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         self.currentAutomaticMediaDownloadSettings = initialPresentationDataAndSettings.automaticMediaDownloadSettings
         self.currentAutodownloadSettings = Atomic(value: initialPresentationDataAndSettings.autodownloadSettings)
         self.currentMediaInputSettings = Atomic(value: initialPresentationDataAndSettings.mediaInputSettings)
+        BananaAudioPolicy.current = initialPresentationDataAndSettings.mediaInputSettings
         self.currentMediaDisplaySettings = Atomic(value: initialPresentationDataAndSettings.mediaDisplaySettings)
         self.currentStickerSettings = Atomic(value: initialPresentationDataAndSettings.stickerSettings)
         self.currentInAppNotificationSettings = Atomic(value: initialPresentationDataAndSettings.inAppNotificationSettings)
@@ -499,6 +500,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             if let strongSelf = self {
                 if let settings = sharedData.entries[ApplicationSpecificSharedDataKeys.mediaInputSettings]?.get(MediaInputSettings.self) {
                     let _ = strongSelf.currentMediaInputSettings.swap(settings)
+                    BananaAudioPolicy.current = settings
                 }
             }
         })
@@ -555,7 +557,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         // Eager Core / filter pushdown from current immediate defaults (sharedData signal is async).
         do {
             let settings = immediateForkExtrasSettingsValue.with { $0 }
-            Self.pushForkExtrasToEngineStatics(settings)
+            Self.pushForkExtrasToEngineStatics(settings, applyAppearance: false)
         }
         self.forkExtrasSettingsDisposable = (self.accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.forkExtrasSettings])
         |> map { sharedData -> ForkExtrasSettings in
@@ -1169,7 +1171,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
     
     /// Push Extras flags into TelegramCore statics + precompile regex filters.
     /// Kept off the chat scroll path: history filtering reads the compiled cache only.
-    private static func pushForkExtrasToEngineStatics(_ settings: ForkExtrasSettings) {
+    private static func pushForkExtrasToEngineStatics(_ settings: ForkExtrasSettings, applyAppearance: Bool = true) {
         ForkGhostModeSettings.applyPreferences(
             suppressOutgoingActivity: settings.ghostDontSendTyping,
             suppressOnline: settings.ghostDontSendOnline,
@@ -1178,6 +1180,14 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             goOfflineAutomatically: settings.ghostGoOfflineAutomatically,
             readOnInteract: settings.ghostReadOnInteract
         )
+        // Wait for persisted preferences before enabling visual effects on cold launch.
+        if applyAppearance {
+            BananaTabBarLayout.current = BananaTabBarLayout(hidden: settings.hideTabBar, contacts: settings.showContactsTab, calls: true, wide: settings.wideTabBar, integratedSearch: settings.integratedTabSearch, searchOnLeft: settings.tabSearchOnLeft)
+            ArenaSettings.shared.avatarGlow = settings.avatarGlowEnabled
+            ArenaSettings.shared.reactionGlow = settings.reactionGlowEnabled
+        }
+        BananaForwardCountSettings.enabled = settings.showChannelForwardCount
+        ForkMessageVisibility.update(ForkMessageVisibility.State(hidePaidReactions: settings.hidePaidReactions, hideViaBot: settings.hideViaBot, removeLinkPreviews: settings.removeLinkPreviews, hideBirthdayNotifications: settings.hideBirthdayNotifications, hideBotAutomation: settings.hideBotAutomation, showPinnedWithBot: settings.showPinnedWithBot, stopAfterVoice: settings.stopAfterVoice, stopAfterRoundVideo: settings.stopAfterRoundVideo))
         ForkAyuForwardSettings.enabled = settings.ayuForward
         ForkBypassDownloadRestrictionsSettings.enabled = settings.bypassDownloadRestrictions
         ForkLocalPremiumSettings.enabled = settings.localPremium
@@ -2065,7 +2075,16 @@ public final class SharedAccountContextImpl: SharedAccountContext {
     }
     
     public func makePeerInfoController(context: AccountContext, updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>)?, peer: EnginePeer, mode: PeerInfoControllerMode, avatarInitiallyExpanded: Bool, fromChat: Bool, requestsContext: PeerInvitationImportersContext?) -> ViewController? {
-        if !fromChat && !archivePeerInfoAllowed(context: context, peerId: peer.id) {
+        let isOwnPublicProfile: Bool
+        switch mode {
+        case .myProfile, .myProfileGifts, .upgradableGifts, .storyAlbum, .giftCollection:
+            isOwnPublicProfile = peer.id == context.account.peerId
+        default:
+            isOwnPublicProfile = false
+        }
+        // Saved Messages uses the same peer ID, but locking it must not disable
+        // the user's public profile, profile editing, gifts or story albums.
+        if !fromChat && !isOwnPublicProfile && !archivePeerInfoAllowed(context: context, peerId: peer.id) {
             return nil
         }
         let controller = peerInfoControllerImpl(context: context, updatedPresentationData: updatedPresentationData, peer: peer, mode: mode, avatarInitiallyExpanded: avatarInitiallyExpanded, isOpenedFromChat: fromChat)
@@ -4158,7 +4177,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         return controller
     }
 
-    public func legacyCameraCapturedMediaSignals(fromCameraScreenResult result: Any, initialCaption: NSAttributedString, sendPaidMessageStars: Int64) -> Signal<[Any], NoError> {
+    public func legacyCameraCapturedMediaSignals(fromCameraScreenResult result: Any, initialCaption: NSAttributedString, sendPaidMessageStars: Int64, timer: Int32?) -> Signal<[Any], NoError> {
         guard let resultSignal = result as? Signal<CameraScreenImpl.Result, NoError> else {
             return .complete()
         }
@@ -4187,7 +4206,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
                 return .complete()
             }
 
-            let signals = LegacyMediaPickerUI.legacyCameraCapturedMediaSignals(media)
+            let signals = LegacyMediaPickerUI.legacyCameraCapturedMediaSignals(media, timer: timer)
             if signals.isEmpty {
                 return .complete()
             }

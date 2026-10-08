@@ -10,6 +10,11 @@ import PresentationDataUtils
 import AppBundle
 import TelegramUIPreferences
 
+func bananaAppIconColumnCount(availableWidth: CGFloat) -> Int {
+    // 74-point item, 8-point minimum gap and 8-point outer margins.
+    return max(1, min(4, Int(max(0.0, availableWidth - 8.0) / 82.0)))
+}
+
 private func generateBorderImage(theme: PresentationTheme, bordered: Bool, selected: Bool) -> UIImage? {
     return generateImage(CGSize(width: 30.0, height: 30.0), rotatedContext: { size, context in
         let bounds = CGRect(origin: CGPoint(), size: size)
@@ -149,11 +154,16 @@ private final class ThemeSettingsAppIconNode : ASDisplayNode {
             action()
         }
         
+        self.activateAreaNode.activate = { [weak self] in
+            guard let self, !self.locked, let action = self.action else { return false }
+            action()
+            return true
+        }
         self.activateAreaNode.accessibilityLabel = title.string
         if locked {
             self.activateAreaNode.accessibilityTraits = [.button, .notEnabled]
         } else {
-            self.activateAreaNode.accessibilityTraits = [.button]
+            self.activateAreaNode.accessibilityTraits = selected ? [.button, .selected] : [.button]
         }
         
         self.setNeedsLayout()
@@ -257,7 +267,8 @@ class ThemeSettingsAppIconItemNode: ListViewItemNode, ItemListItemNode {
             let separatorHeight = UIScreenPixel
             
             let nodeSize = CGSize(width: 74.0, height: 102.0)
-            let height: CGFloat = nodeSize.height * ceil(CGFloat(item.icons.count) / 4.0) + 12.0
+            let columns = bananaAppIconColumnCount(availableWidth: params.width - params.leftInset - params.rightInset)
+            let height: CGFloat = nodeSize.height * ceil(CGFloat(item.icons.count) / CGFloat(columns)) + 12.0
             
             contentSize = CGSize(width: params.width, height: height)
             insets = itemListNeighborsGroupedInsets(neighbors, params)
@@ -346,7 +357,7 @@ class ThemeSettingsAppIconItemNode: ListViewItemNode, ItemListItemNode {
                     strongSelf.containerNode.frame = CGRect(origin: CGPoint(x: params.leftInset, y: 2.0), size: CGSize(width: layoutSize.width - params.leftInset - params.rightInset, height: layoutSize.height))
                     
                     let sideInset: CGFloat = 8.0
-                    let spacing: CGFloat = floorToScreenPixels((params.width - sideInset * 2.0 - params.leftInset - params.rightInset - nodeSize.width * 4.0) / 3.0)
+                    let spacing: CGFloat = columns > 1 ? max(0.0, floorToScreenPixels((params.width - sideInset * 2.0 - params.leftInset - params.rightInset - nodeSize.width * CGFloat(columns)) / CGFloat(columns - 1))) : 0.0
                     let verticalSpacing: CGFloat = 0.0
                     
                     var x: CGFloat = sideInset
@@ -354,7 +365,7 @@ class ThemeSettingsAppIconItemNode: ListViewItemNode, ItemListItemNode {
                     
                     var i = 0
                     for icon in item.icons {
-                        if i > 0 && i % 4 == 0 {
+                        if i > 0 && i % columns == 0 {
                             x = sideInset
                             y += nodeSize.height + verticalSpacing
                         }
@@ -375,39 +386,32 @@ class ThemeSettingsAppIconItemNode: ListViewItemNode, ItemListItemNode {
                             let selected = icon.name == item.currentIconName
 
                             var name = "Icon"
-                            var bordered = true
+                            let bordered = false
                             switch icon.name {
-                                case "BlueIcon":
-                                    name = item.strings.Appearance_AppIconDefault
-                                case "BlackIcon":
-                                    name = item.strings.Appearance_AppIconDefaultX
-                                case "BlueClassicIcon":
-                                    name = item.strings.Appearance_AppIconClassic
-                                case "BlackClassicIcon":
-                                    name = item.strings.Appearance_AppIconClassicX
-                                case "BlueFilledIcon":
-                                    name = item.strings.Appearance_AppIconFilled
-                                    bordered = false
-                                case "BlackFilledIcon":
-                                    name = item.strings.Appearance_AppIconFilledX
-                                    bordered = false
-                                case "WhiteFilled":
-                                    name = "⍺ White"
-                                case "New1":
-                                    name = item.strings.Appearance_AppIconNew1
-                                case "New2":
-                                    name = item.strings.Appearance_AppIconNew2
-                                case "Premium":
-                                    name = item.strings.Appearance_AppIconPremium
-                                case "PremiumBlack":
-                                    name = item.strings.Appearance_AppIconBlack
-                                case "PremiumTurbo":
-                                    name = item.strings.Appearance_AppIconTurbo
-                                case "PatriotPlaneIcon":
-                                    name = ForkPresentationLanguage.prefersRussianStrings ? "Патриот" : "Patriot"
-                                default:
-                                    name = icon.name
+                            case "BlueIcon": name = "Banana"
+                            case "BlackIcon": name = "Graphite"
+                            case "BlueClassicIcon": name = "Cream"
+                            case "BlackClassicIcon": name = "Ink"
+                            case "BlueFilledIcon": name = "Ocean"
+                            case "BlackFilledIcon": name = "Slate"
+                            case "WhiteFilledIcon": name = "Paper"
+                            case "New1": name = "Mint"
+                            case "New2": name = "Lavender"
+                            case "Premium": name = "Gold"
+                            case "PremiumBlack": name = "Noir"
+                            case "PremiumTurbo": name = "Volt"
+                            case "PremiumNight": name = "Midnight"
+                            case "PremiumRose": name = "Rose"
+                            case "PremiumEmerald": name = "Emerald"
+                            case "PremiumSunset": name = "Sunset"
+                            case "PremiumIce": name = "Ice"
+                            case "PremiumCarbon": name = "Carbon"
+                            case "PremiumRoyal": name = "Royal"
+                            case "PremiumAurora": name = "Aurora"
+                            case "PatriotPlaneIcon": name = "Coral"
+                            default: name = "BananaGram"
                             }
+
                         
                             imageNode.setup(theme: item.theme, icon: image, title: NSAttributedString(string: name, font: selected ? selectedTextFont : textFont, textColor: selected  ? item.theme.list.itemAccentColor : item.theme.list.itemPrimaryTextColor, paragraphAlignment: .center), locked: !item.isPremium && icon.isPremium, color: item.theme.list.itemPrimaryTextColor, bordered: bordered, selected: selected, action: {
                                 item.updated(icon)

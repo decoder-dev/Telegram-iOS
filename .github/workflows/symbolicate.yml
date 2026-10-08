@@ -47,31 +47,42 @@ jobs:
           path: symbols
 
       - name: Resolve
+        env:
+          SYMBOL_RUN_ID: ${{ inputs.run_id }}
+          SYMBOL_FRAMEWORK: ${{ inputs.framework }}
+          SYMBOL_OFFSETS: ${{ inputs.offsets }}
         run: |
           set -euo pipefail
+          [[ "$SYMBOL_RUN_ID" =~ ^[0-9]+$ ]] || { echo '::error::Invalid run id'; exit 1; }
+          [[ "$SYMBOL_FRAMEWORK" =~ ^[A-Za-z0-9_.-]+$ ]] || { echo '::error::Invalid framework name'; exit 1; }
+          read -r -a OFFSETS <<< "$SYMBOL_OFFSETS"
+          ((${#OFFSETS[@]})) || { echo '::error::No offsets supplied'; exit 1; }
+          for offset in "${OFFSETS[@]}"; do
+            [[ "$offset" =~ ^0x[0-9A-Fa-f]+$ ]] || { echo '::error::Invalid hexadecimal offset'; exit 1; }
+          done
 
           ZIP="$(find symbols -name 'Telegram.DSYMs.zip' | head -1)"
           if [ -z "$ZIP" ]; then
-            echo "::error::run ${{ inputs.run_id }} has no dSYMs artifact — rebuild it with 'Also produce debug symbols' enabled"
+            echo "::error::run $SYMBOL_RUN_ID has no dSYMs artifact — rebuild it with 'Also produce debug symbols' enabled"
             exit 1
           fi
           unzip -q "$ZIP" -d unpacked
 
           # The DWARF payload sits under <name>.dSYM/Contents/Resources/DWARF/<name>.
-          BIN="$(find unpacked -type f -path "*${{ inputs.framework }}.dSYM/Contents/Resources/DWARF/*" | head -1)"
+          BIN="$(find unpacked -type f -path "*/${SYMBOL_FRAMEWORK}.dSYM/Contents/Resources/DWARF/*" | head -1)"
           if [ -z "$BIN" ]; then
-            echo "::error::no dSYM for ${{ inputs.framework }}. Present:"
+            echo "::error::no dSYM for $SYMBOL_FRAMEWORK. Present:"
             find unpacked -name '*.dSYM' -maxdepth 4 -exec basename {} \;
             exit 1
           fi
 
-          echo "### ${{ inputs.framework }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "### $SYMBOL_FRAMEWORK" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           dwarfdump --uuid "$BIN" | tee -a "$GITHUB_STEP_SUMMARY"
           echo >> "$GITHUB_STEP_SUMMARY"
 
           # `-l 0` because the log already carries file offsets rather than runtime addresses.
-          for offset in ${{ inputs.offsets }}; do
+          for offset in "${OFFSETS[@]}"; do
             printf '%-12s %s\n' "$offset" "$(atos -o "$BIN" -arch arm64 -l 0 "$offset" 2>&1)" \
               | tee -a "$GITHUB_STEP_SUMMARY"
           done

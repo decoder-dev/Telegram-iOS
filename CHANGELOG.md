@@ -6,7 +6,172 @@
 
 ## [Unreleased]
 
+### Fixed — September 27 audit
+- Failed legacy Archive password migration preserves the only credential; successful migration updates the notification-protection flag before discarding the legacy hash.
+- Archive password setup, rotation and removal no longer report success or change preference mirrors after a failed Keychain mutation. Password prompts release their action closures on dismissal.
+- Rejected short download replies no longer publish a false resource size to the media cache.
+- Multiline settings rows and fields respect asymmetric safe-area insets; actionable multiline rows expose a VoiceOver activation and a minimum 44-point row height.
+- Saved-message history snapshots are read and sorted off the main queue; dates use the app locale, and records without available attachments no longer pretend to be buttons.
+- Extras uses the same explicit app-language fallback as Archive, proxy and debug menus.
+
+### Fixed — menu presentation
+- VLESS links use a multiline editor; validation errors appear directly below the field with the theme's error color and an explicit error label, without truncating pasted credentials.
+- Archive settings explain the fixed keep-archived policy and name both Archive and Saved Messages in the lock switch, with wrapping for narrow screens and large text.
+- Archive dialogs follow Telegram's light/dark appearance, accent and keyboard theme instead of inheriting the device appearance. Archive copy uses the same language fallback as other fork menus.
+- The phone-confirmation field title uses the current theme instead of hard-coded black. Multiline inputs initialize the accent cursor and update existing/typed text when the font size changes.
+
+### Fixed — transport recovery and synchronization
+- Failed TCP endpoints share monotonic cooldown and a single recovery probe across contexts; duplicate connects reuse the existing connection, and closed interfaces release read buffers.
+- WEB resume requests coalesce per carrier. Stale callbacks cannot restart disabled/replaced profiles; duplicate failures count once and short-lived sessions retain backoff history.
+- Foreground events join an existing WEB bootstrap and respect its cooldown instead of superseding it; queued obsolete starts exit before opening a new session.
+- WEB elapsed-time checks use a continuous monotonic clock, including device sleep, for background dwell, session health and cooldown.
+- Removed the global WebSocket fallback cancellation and the mid-transaction state replay timeout. State replay finishes atomically instead of committing a prefix and resetting synchronization.
+- Stale PTS snapshots retry difference synchronization without a full account reset. WebSocket dial requests are one-shot across fallback gaps and use a monotonic fallback clock.
+- Fetch completion is logged once at queue removal, with location and episode, rather than again in the result observer. TCP attempts have IDs for correlation and log the effective connection deadline.
+- Download EOF handling accepts empty boundary responses and out-of-order partial responses, without treating requested ranges as received bytes.
+- Memory-pressure cache trimming retains contexts owned by open peer views.
+- Recovery tests exercise production EOF handling, endpoint health, WEB manager lifecycle and the Network.framework interface against a loopback echo server.
+
+### Fixed — managed proxy observation and customization
+- Proxy status initialization now defers callbacks until the row context exists, preventing lost results and permanently checking rows. Connection previews validate the effective managed route instead of the external VLESS hostname or any previous online state.
+- Unsupported-message refresh failures permit retry after 30 seconds instead of suppressing refresh for ten hours; malformed quick-reply requests no longer leave never-completing subscriptions. Successful refreshes retain their normal cache interval.
+- Listing or inspecting saved WEB/VLESS proxies no longer reconfigures the process-wide active tunnel. Status checks observe readiness changes, cancel stale probes, and leave inactive managed profiles untested instead of falsely declaring them unavailable.
+- VLESS and WEB endpoints are resolved atomically for the requested profile; VLESS readiness applies the same whitespace normalization as startup.
+- Bubble radius settings now affect actual rendering and previews. The slider supports the stored default radius, adjacent-corner controls are visible, and preview toolbar presentation data updates with the preview.
+
+### Fixed — MTProto connection lifecycle
+- Corrected authenticated envelope padding validation to exclude the 32-byte header, validate signed body lengths before subtraction, and accept the full specified padding range. Incoming parsing now consumes exactly the declared body and records its size instead of copying the remaining packet and padding in 128-byte chunks.
+- Request scheduling and timeout tracking index dependency identities once per pass, replacing quadratic scans with lazy linear indexing while preserving pointer identity and delayed-request semantics.
+- Timer callbacks can safely rearm themselves; repeated starts cancel the previous timer and ignore stale events.
+- Offline/stopped transports stop retrying, pending retries are cancelled, and returning online reconnects even after the old socket was cleared. Retry throttling uses monotonic time.
+- DNS, TCP and SOCKS/FakeTLS setup share a 30-second deadline; closing a connection cancels DNS subscriptions and timers and rejects late callbacks/restarts.
+- SOCKS credentials and MTProxy secrets are omitted from connection logs.
+- Native regression tests cover timer rearming, replacement deadlines, disabled retries and retry rate limiting.
+
+### Fixed — release hardening, VLESS and media playback
+- Unavailable managed proxies install a closed local route in the shared MTContext, covering download workers as well as the paused main connection, including cold starts.
+- Locking Saved Messages leaves the account's public profile, profile editing, gifts and story albums accessible from Settings search.
+- Proxy bootstrap resumes MTProto only after the new route has been queued to its listeners, avoiding a resume on the previous route.
+- Legacy Archive credentials survive unrelated settings writes until Keychain migration succeeds; notification redaction applies before migration. Locking also clears already-delivered Saved Messages notifications.
+- Reader mode removes mixed-case and control-character-obfuscated JavaScript links. Build tools atomically create temporary files; signing keys are removed even when certificate repository loading fails.
+- Fixed libxray API v3 decoding: successful replies contain a JSON object in `data` and an empty `error` string. The previous adapter rejected successful calls, preventing the embedded runtime from starting.
+- Protected Saved Messages now shares Archive's ten-tap reveal and password/biometric gate; entries in Settings, chat lists, search, sharing, widgets and Spotlight are hidden while protected as appropriate to each surface.
+- Archive cleanup removes the actual protected controller instead of blindly popping the top screen, clears its privacy cover after cleanup, isolates authentication across account switches, rejects late unlock callbacks after relock and retains legacy hashes if Keychain migration has not succeeded.
+- VLESS profile switching and cancellation now serialize Xray operations and invalidate stale starts; runtime failures retry with bounded backoff and keep MTProto paused until the selected tunnel is ready.
+- Proxy editor rows now have ordered identifiers; VLESS shows validation errors and profile details, preserves drafts when changing type, and rejects invalid ports. Proxy descriptions no longer promise protection for unrelated web connections.
+- MTProto TL reader rejects truncated lengths/padding, invalid markers and invalid UTF-8, and handles negative lengths/allocation failures safely.
+- HLS bridge fixes empty responses, case-insensitive headers, stale responses after abort, repeated playback timers and media-source listeners. Native range requests validate bounds before slicing files.
+- All five pending Dependabot branches merged; additional player development dependencies updated to clear the npm audit, and the shipped production bundle rebuilt.
+- Release tags target the actual build commit; release builds run accessibility, MTProto, VLESS and player regression checks before compiling the IPA. Symbolication inputs no longer interpolate shell code.
+- Validation scope: automated checks and source review. Full device UI/theme, real VLESS server and call-routing acceptance tests remain necessary; this release does not certify every screen or third-party library as defect-free.
+
+## [v12.9.2-4039-pre]
+
+### Fixed — VLESS: современные ссылки Xray не вставлялись
+- **XHTTP-транспорт (`type=xhttp`)**: парсер принимал только tcp/ws/grpc/httpupgrade — ссылки с XHTTP (включая легаси-алиас `splithttp`) отвергались как unsupportedTransport. Теперь: `xhttpSettings` с path/host/mode (auto/packet-up/stream-up/stream-one).
+- **Post-quantum encryption (`encryption=mlkem768x25519plus.native.0rtt.<ключ>`)**: парсер требовал строго `none`. Теперь ключ-выражение валидируется по формату ядра (KEM/реализация/RTT-тройка + base64url) и передаётся в outbound user settings как есть; криптопроверку делает сам Xray при старте.
+- **`extra=<JSON>`**: параметры XHTTP-экстры (xmux, xPaddingBytes/Header/Key/Method/Placement, uplinkHTTPMethod и т.д.) не были в allowlist. Ссылки кодируют JSON дважды — принимаются обе формы (одинарная/двойная кодировка), объект валидируется, каноникализируется, лимит 4 КБ; кладётся в `xhttpSettings.extra`, ядро само вмерживает (top-level path/host/mode приоритетнее).
+- **`allowInsecure=0/1`**: не было в allowlist → все ссылки современных клиентов (всегда егонесут) отвергались. Принимается 0/1/true/false; при true ставится в tls/reality settings.
+- **Лимит длины ссылки**: 4096 → 8192 (ключ mlkem768x25519plus один ~1.6 КБ, ссылка целиком ~3.2 КБ).
+- Строгость сохранена: extra/mode по-прежнему отвергаются на чужих транспортах, невалидные mode/extra/allowInsecure дают понятные ошибки (invalidExtra/invalidAllowInsecure).
+- Проверено по исходникам Xray-core (vless.go, transport_method.go): формат mlkem-шифрования, поля SplitHTTPConfig, merge-семантика extra. Поля `downFrame`/`scStreamDownServerSecs` ядро молча игнорирует (unknown fields) — безопасный passthrough.
+
+## [v12.9.2-4038-pre]
+
 ### Fixed
+- **Сборка Slice 3:** `AccountContext` не имеет `callManager` (он на `sharedContext`) — обращение в PresentationGroupCall чинится на `accountContext.sharedContext.callManager?.resolvedCallProxyServer()` (ошибка всплыла только в 4037: раны 4034–4036 отменялись до компиляции).
+
+## [v12.9.2-4037-pre]
+
+### Fixed — кросс-форк пакет 3
+- **Nicegram #139 (Google DoH в MTDNS):** хостнеймы SOCKS-/MTT-прокси больше НЕ резолвятся через Google DoH (`https://google.com/resolve`) — всегда системный резолвер. Убирает утечку имени прокси-сервера в Google и 10-секундный ста́лл в регионах, где google.com душится (DoH висел до таймаута, потом fallback). Проверено: в форке Google DoH использовался только на этих двух сайтах — теперь его в приложении нет вообще.
+- **Upstream #740 (сохранение контакта):** в телефонную книгу писалась битая ссылка `https://t.me/@id<peerId>` (не работает как deep-link). Теперь пишется `https://t.me/<username>`; у пира без юзернейма строка Telegram-URL не пишется вовсе (вместо битой). Легаси-записи `@id<peerId>` по-прежнему парсятся обратно в пира.
+- **Upstream #2070 (Storage Usage):** при очистке кэша size-label не скрывался и накладывался на галочку — теперь `isHidden` вместе с alpha (коммит 67433ab).
+- **Upstream #1430 (Mini App клавиатура, частично):** убран teardown keyboard-обсерверов в `didMoveToSuperview` WebAppWebView. Математику скролла к активному элементу НЕ переносил: у форка другая конвенция фрейма (к моменту JS-колбэка фрейм уже уменьшен на клавиатуру — фикс #2235), вычитание inputHeight по апстрим-рецепту дало бы двойной учёт клавиатуры.
+
+### Проанализировано и не перенесено
+- **Upstream #735 (IPv6 SOCKS AddrType):** уже в форке (inet_aton/IPv6/Domain → AddrType 1/4/3), причём с клампом длины домена в 255 байт.
+- **TelegramSwift #1425 (guard noteHeightOfRow):** macOS/TGUIKit-специфика; на iOS идея уже применена фиксом #2124 (bounds-проверки индексов в ListView).
+- **TelegramSwift #1416 (fallback unsupported media):** на iOS уже есть — `updateUnsupportedMediaForMessageIds` в ChatHistoryListNode; не хватало только macOS-форку.
+
+## [v12.9.2-4036-pre]
+
+### Fixed — порт upstream-PR, пакет 2
+- **#2304 (звонки из Phone Recents):** звонок, начатый из вкладки «Недавние» системного приложения Phone, открывал чат, но сам звонок не стартовал — handle активности (`TGCA<peerId>`) не распознавался. Теперь маппится напрямую на peer и запускается.
+- **#2297 (мыльные стикеры в fullscreen/peek):** увеличенные просмотрщики (наборы стикеров, peek) больше не блюрят ожидающий thumbnail — `blurThumbnail: false` + острый апскейл превью; peek кастомных emoji 120pt → 180pt (cap по размеру экрана).
+- **#2217 (SIGSEGV DrawingContext):** guard на нулевой `imageBuffer.mutableBytes` при неудачном malloc (сверхразмерный drawingSize) — вместо segfault в memset init теперь честно фейлится.
+
+### Skipped
+- **#2315 (infinite GIF reader loop):** уже в форке — портирован ранее вместе с фиксом #2246 (zero-frame EOF → decode failure вместо вечного reopen-loop).
+
+## [v12.9.2-4035-pre]
+
+### Fixed — порт upstream-PR, пакет 1 (стабильность + memory safety)
+- **#2220 + #2221 (крэши DCTAnimationCache):** `DecompressedData` кэшировал указатель из `withUnsafeBytes` после выхода из замыкания — dangling-pointer чтение, коррумпирующее кучу (SIGABRT в libsystem_malloc). Указатель теперь перевыводится на каждый `read()` со счётчиком consumed-байт; убран двойной dealloc `stream` в failure-пути init (ARC вызывает deinit и у failed-init экземпляра).
+- **#2218 (крэш-луп локализаций):** бинарный декодер localization-записей делал raw memcpy без bounds-check — повреждённая/обрезанная запись (в т.ч. серверный push) роняла приложение и лупила на каждом перезапуске. Все length-prefixed чтения теперь bounds-checked, негативный count отвергается.
+- **#2223 (hang Share Extension):** без залогиненного аккаунта `combineLatest([])` + `.never()` держали extension в вечном ожидании. Теперь оба пути завершаются `.fail(.unauthorized)` → показывается корректный экран авторизации.
+- **#2212 (панель закреплённого + managing-bot):** бот-панель вытесняла панель закреплённого сообщения — теперь показываются обе (pinned сверху).
+- **#2291 (мыльные крупные emoji):** размер одиночного emoji приведён к растровым ступеням Apple Color Emoji (48/40/32/28/24/20/16) + TextNode держится на screen scale — на Retina 2x/3x нет апскейла размытых глифов.
+- **#2203 (галерея):** haptic-отклик при пересечении границ сообщений/альбомов при свайпе в галерее.
+- **#2227:** CASVA добавлен в список «Open location in».
+- **#2330 (Rich Text):** заголовок «Show more» теперь тоже масштабируется с Text Size (остальная типографика Rich-сообщений в форке уже скейлилась).
+
+### Added
+- **#2289 (startapp + start):** ссылка может нести `start` вместе со `startapp` — Mini App сохраняет приоритет, но payload `start` больше не теряется: при отмене confirm-алерта запуска он остаётся на кнопке Start чата; при недоступности Mini App — сразу открывается bot-start с этим payload. Реферальные payload (`_tgr_`) игнорируются.
+
+## [v12.9.2-4034-pre]
+
+### Added
+- **Групповые звонки через прокси (Slice 3, закрытие утечки IP).** Медиа групповых звонков (и скринкаста in-process) теперь идёт через тот же managed SOCKS5-мост, что и звонки 1-на-1: `GroupInstanceDescriptor.proxy` прокидывается из активного прокси (VLESS → loopback-мост Xray; WEB → sidecar-мост; SOCKS5-loopback), настройка «Use for calls» уважается. В managed-режиме tgcalls глушит прямые P2P/STUN/relay-кандидаты и фильтрует адреса до публичных — групповой звонок физически не может обойти туннель. Оставшийся прямой путь — скринкаст через BroadcastUploadExtension (отдельный процесс, IPC-вариант).
+
+### Fixed
+- **Upstream #2323** (Rich-таблицы): `<caption>` создавал мёртвую зону внизу таблицы высотой с сам caption — хит-тест ячеек (`findTextItem`/`findAnchorFrame`/`collectSelectableTextItems`) не учитывал `gridOffsetY` (сдвиг сетки на высоту заголовка, который рендерер применяет). Тапы по нижним строкам не доходили до ссылок; теперь координаты совпадают с отрисовкой.
+- **Upstream #2337** (загрузка фото): HEIF 10-bit 4:2:2 с профессиональных камер (Sony FX3) зависал на 0% навсегда — при отказе декодирования PHImageManager фетч молча не завершался. Теперь: fallback на оригинальные байты ассета (PHAssetResource) с декодом через ImageIO/CI (10-bit рендерится в 8-bit RGBA), а при полном провале — видимая ошибка вместо вечного спиннера; resize тоже получил fallback на неотмасштабированное изображение.
+
+## [v12.9.2-4033-pre]
+
+### Added
+- **Описания всех типов прокси во всех местах UI.** В меню добавления (Add Proxy) под каждой опцией — краткая строка (SOCKS5 / MTProto / VLESS / Web); в редакторе под выбранным типом — полное описание; в карточке предпросмотра (инфо-иконка) — описание типа сверху таблицы. RU/EN через `ForkProxyDescriptionStrings`.
+
+### Changed
+- **Детали протокола VLESS в карточке предпросмотра**: security (TLS/Reality), transport (TCP/WebSocket/gRPC/HTTP-Upgrade) и flow (Vision) парсятся локально из ссылки и показываются строкой «VLESS».
+- **`vless://` в буфере обмена распознаётся при открытии редактора прокси** — форма заполняется одним тапом (как с https://-ссылками Web-прокси).
+
+## [v12.9.2-4032-pre]
+
+### Added
+- **VLESS как тип прокси в настройках (Settings → Data and Storage → Proxy → Add Proxy → VLESS).** Вставляешь `vless://`-ссылку — весь трафик приложения идёт через встроенный Xray-туннель (XTLS/libxray, REALITY/TLS, vision-flow, ws/grpc/httpupgrade), поднимающий аутентифицированный локальный SOCKS5-мост. Звонки (1-на-1) идут через него в managed-режиме — без P2P/STN-утечек; при ненастроенном туннеле сеть не падает в прямой обход, а ждёт готовности моста (та же bootstrap-семантика, что у WEB-прокси). Поддержаны: список прокси, QR-шеринг ссылки, статус-проверка, поиск по настройкам, «Use for calls».
+
+## [v12.9.2-4021-pre]
+
+### Added
+- **Calls through an on-device proxy bridge (managed SOCKS5 media routing).** Call media can now flow exclusively through an authenticated SOCKS5 server on 127.0.0.1 — the shape exposed by an on-device VLESS client — using authenticated SOCKS5 UDP/TCP transports in tgcalls, with direct P2P/STUN candidates suppressed so call traffic cannot leak around the proxy. Remote SOCKS5 proxies keep the previous TCP-only behavior. Includes call-setup reliability fixes from the same branch (simultaneous-offer glare handling, connection replay-filter hardening, SCTP undefined-behavior fixes) and anti-SSRF validation for managed relays. Add the local proxy in Settings → Data and Storage → Proxy (host 127.0.0.1, username and password set) with "Use for calls" enabled.
+- **Embedded VLESS support, part 1: the TelegramVLESS core package** (pure Swift): a strict `vless://` profile parser (tcp/websocket/grpc/httpupgrade transports; none/TLS/REALITY security; xtls-rprx-vision flow; uTLS fingerprints, ALPN, SNI, REALITY public key/short id/spiderX), Xray configuration assembly with authenticated loopback SOCKS5+HTTP inbounds, a runtime lifecycle manager, and a libxray adapter. The libxray binary (XTLS/libxray v26.9.9, checksum-pinned) is fetched by CI. App-side wiring (settings UI, proxy-state integration, kill switch) lands next.
+
+## [v12.9.2-4020-pre]
+
+### Fixed
+- **Video messages: recording stuck on an infinite loading state.** A wedged capture session never emitted the preview-ready signal the hold-to-record button waits for, so the button spun forever and recording never started — only restarting the phone helped (upstream issue #1772). Camera readiness now has a 10s timeout: the capture session is torn down and recreated (bounded at 2 resets per screen), and a timed-out recording attempt fails cleanly instead of spinning.
+- **Video messages: silent audio track after a phone call.** When a call ended, the capture session resumed video but the app's audio session was never reactivated, so the rest of the recording had a live video track and a permanently silent audio track (upstream issue #2113). The audio session is now reactivated on interruption-end while recording, and an audio watchdog fails the recording (instead of saving a mute tail) if audio samples stop arriving for more than 4 seconds while video keeps flowing.
+- **Video messages: recorded with the wrong microphone.** Round video recording did not opt into the video audio-session configuration, so on devices with multiple microphones it kept the automatically selected (often the quiet earpiece-adjacent) input, while voice messages used the bottom mic (upstream issue #1195). Video notes now use the video-recording session mode with the bottom microphone preference.
+- **Camera: freeze on rapid front/back switching.** Each switch is a full blocking session cycle (stop → reconfigure → start); rapid toggles queued N full cycles and froze the preview for seconds (upstream issue #1396). Switches are now coalesced into at most one pending switch with the last requested target.
+- **Privacy: full APNs device token written to the app log.** Registrations are now logged as a fingerprint (length + first/last bytes) — enough to correlate entries, without exposing the installation identifier to anyone who can read the logs.
+- **Media downloads: `WEBFILE_NOT_AVAILABLE` permanently poisoned web-referenced media (inline GIFs).** The multipart fetcher completed the resource with a size of 0, which MediaBox persisted as a "fully downloaded 0-byte file" — the GIF tile then stayed blank forever, surviving restarts, since nothing would ever fetch it again (upstream issue #2244). The fetch now keeps the resource retryable: `WEBFILE_NOT_AVAILABLE` retries with exponential backoff (1–16s, 5 attempts) and then fails the fetch, which re-fetches when the consumer re-subscribes. Defensive guard added in both MediaBox file contexts: a reported size of 0 is no longer accepted as evidence of a completed resource.
+- **Saved GIFs: infinite software-decode loop, 100% CPU until force quit.** A GIF whose stream reaches EOF without producing a single decodable frame (e.g. H.264 in a pixel format the software decoder can't handle) made `BatchVideoRenderingContext` reopen the FFmpeg reader forever in a synchronous loop. A reader that produced no frames is now treated as a decoding failure — the animation stops and shows a placeholder instead of spinning (upstream issue #2246; same fix as upstream PR #2315).
+- **Chat list: tapping one chat could open a different chat.** ListView dispatched selection by resolving the touch through item nodes' MODEL frames; after an interrupted or uncommitted layout animation (fast folder switching) the model frame could disagree with the row actually displayed under the finger, opening an unrelated chat (upstream issue #2124). The selection (and secondary action) is now cross-checked against UIKit's presentation-based hit-testing, and cancelled on mismatch — a dropped tap instead of a wrong chat. Also bounds-checks the item index against the live items array.
+- **Siri extension crash (EXC_BREAKPOINT via Postbox).** The device encryption parameters file (`.tempkey` in the app group) was written non-atomically; an extension reading it mid-write saw a wrong-length file, generated a NEW random key and wrote it back — permanently diverging from the key the database is encrypted with, trapping every later Postbox open in the extension (upstream issue #2308). The key file is now written atomically (temp + rename), and the Siri extension no longer force-unwraps the key/salt constructors.
+- **Mini Apps: WebView collapsing to 1px after opening the keyboard.** A keyboard transition can transiently report an input height larger than the space below the navigation bar; the degenerate frame was clamped to `max(1.0, …)` and height 1 was published to the Mini App as a STABLE viewport, after which the page stopped accepting touches (upstream issue #2235). Keyboard insets are now bounded so the web view keeps a minimum usable height, and intermediate (still-changing) geometry is no longer reported as a stable viewport.
+- **Mini Apps: `requestFullscreen()` silently ignored.** A fullscreen request that could not be handled was dropped without any event, leaving bots hanging on the `fullscreenChanged`/`fullscreenFailed` contract (upstream issue #2241). The unhandleable path now responds with `fullscreen_failed` / `UNSUPPORTED`.
+- **Story publishing: settings unreachable on small screens.** The share/privacy screen disables scrolling for stories in favor of the dismiss pan gesture; on iPhone SE with a full set of options the bottom rows were permanently cut off (upstream issue #2329). The screen now becomes scrollable whenever the content actually overflows the available height.
+- **Networking: `EXC_BREAKPOINT` crash "BUG IN CLIENT OF LIBPLATFORM: Trying to recursively lock an os_unfair_lock" in `CFSocketInvalidate`** during mass socket teardown on a network path change (100% repro: VPN with a tun interface + airplane mode — the path stays satisfied, half-open connects to DCs pile up and all time out together; upstream issue TelegramMessenger/Telegram-iOS#2306, independently confirmed on the official build). The vendored GCDAsyncSocket creates a CFStream pair over every socket and tore them down one stream at a time — close, release, close, release. Releasing the first stream before closing the second could destroy the pair's shared CFNetwork `SocketStream` core inside `CFSocketInvalidate`, which holds the process-wide `__CFAllSocketsLock`; the core's destructor then invalidated the remaining schedulables on the same thread, re-entering `CFSocketInvalidate` and aborting. Both streams are now closed while both references are still alive and released only afterwards, so the core is always destroyed outside any CF lock, from our own `CFRelease`. (The fork's own transports — `NWConnection`-based — never used CFStream and were not affected.)
+- **App Lock: eternal "Try again in 1 minute" after reboot.** After 6+ failed passcode attempts, a reboot made the cooldown permanent — the persisted `bootTimestamp` could never match the new session's, so even the correct passcode was rejected forever (the gate survives restart and offload because the counter is persisted). Policy now: a boot-session change expires the wait; the failure count itself persists, so the next wrong attempt immediately re-arms the full interval.
+- **App Lock: fail-closed extension reads of `lockState.json`.** The notification service, Siri and the widget each parsed the lock state with `try?` chains in which a corrupt or unreadable file fell through to the *unlocked* branch — private message content could surface through notifications and Siri while the app was locked. A single fail-closed helper (`isAppLockedFailClosed`) now defines the rule for all 15 call sites: no file at all = no passcode = unlocked; file present but unparseable = locked. Main-app writes were already atomic (`.atomic`); this covers corruption from other sources.
+
+## [v12.9.2-4015-pre]
+
+### Fixed
+- **WEB proxy crash on carrier drops (lock inversion):** `activeSocksBridgeEndpoint` held the manager lock while calling a `queue.sync` method on the sidecar — whose failure handler takes that same lock from the sidecar's own queue. A call being resolved on main at the moment the carrier died deadlocked both threads into a watchdog kill. The getter now snapshots under the lock and leaves it before touching the sidecar, the same discipline `sendKeepalivePing` already followed.
+||||||| 2129d62a6c
 - **Accent-saturation static made atomic:** `PeerNameColors.saturationPercent` (written on the main queue when Extras change, read while colors are constructed during background text layout) was a plain static var — a formal data race, benign only because aligned Int32 loads don't tear. It now uses the same `Atomic` discipline as the fork's other cross-queue statics.
 - **Hide Mention/Pinned notifications never reached the NSE:** the settings bridge wrote the flags into the `group.<app bundle id>` App Group suite, but the extension's candidate list only contained `group.<full NSE bundle id>` (the NSE derives its app group by stripping the `.NotificationService` suffix, the bridge didn't), so the Notification Service always read `false` and mention/pinned pushes were never suppressed on the push path. The bridge now derives the same stripped base bundle id, so both processes land on the same suite. (Delivery still requires a working App Group container — i.e. an entitled build; a bare sideload degrades as documented in docs/network-audit.md F-2.)
 - **Ghost "Read on Interact": the online blink never fired.** The interact-override window only un-suppressed online reporting — nothing poked the presence manager while the app stayed foreground, so the "briefly show online after sending" half of the feature was a silent no-op (read receipts worked; presence didn't), and a presence update landing inside the window lingered online until the 30s timer. Presence is now re-asserted when the window opens and once more just after it closes, keeping the blink at the designed 1.5s.
@@ -22,7 +187,6 @@
 - **WEB proxy calls bridge (F-1b, client half):** the carrier parses WELCOME capability flags (bit 0 = arbitrary stream targets) and the sidecar then runs a loopback-only SOCKS5 listener — RFC 1929 auth with per-start random credentials, since iOS loopback is not app-isolated — mapping each SOCKS CONNECT to one carrier stream. Calls resolve a WEB proxy to this bridge at call-creation time (`PresentationCallManager.resolvedCallProxyServer()`), or stay direct when the relay lacks the capability, which is every current relay: the feature is inert until a relay implements `docs/webproxy-socks-bridge.md` (which now also carries the operator rollout guide).
 
 ### Fixed
-- **WEB proxy crash on carrier drops (lock inversion):** `activeSocksBridgeEndpoint` held the manager lock while calling a `queue.sync` method on the sidecar — whose failure handler takes that same lock from the sidecar's own queue. A call being resolved on main at the moment the carrier died deadlocked both threads into a watchdog kill. The getter now snapshots under the lock and leaves it before touching the sidecar, the same discipline `sendKeepalivePing` already followed.
 - **UI consistency audit (docs/ui-audit.md):** the WEB calls note now reflects the bridge ("calls go through only if the relay supports call tunneling"); "Use for calls" is visible and controllable with a WEB proxy active (was silently applied with its stored default); uk/be app languages no longer get mixed RU/EN fork strings (table lookups follow the same rule as the ternary strings); the WEB catalog sheet got a title; the saved-messages feature is spelled from one string source; the "Auto" proxy summary value comes from one place; "WEB" is findable in settings search; dead `usePasteboardInfo`/`catalogPick` and a verbatim-duplicated status branch removed.
 - **Visual bug hunt (docs/ui-audit.md §4):** layout-affecting Extras toggles (compact chat list/preview, folder-tab font, timestamp seconds, sticker size, wide channel posts, reactions bar, deleted/edited marks) now apply live — the chat list re-lays out via a new `refreshForkItemLayouts()`/folders-subscription path, and open chats re-emit history through the fork's settings fingerprint, instead of leaving a half-old half-new UI until restart. Restored a missing `!` in `ChatListNodeState ==` that made every state comparison report a change (constant needless list re-layout churn on typing ticks). Localized the profile "registered" diagnostic label (was English-only).
 

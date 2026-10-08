@@ -31,6 +31,7 @@ export class VideoElementStub extends EventTarget {
         this.textTracks = new TextTrackListStub();
         this.isWaiting = false;
         this.currentMedia = null;
+        this._bufferChanged = () => this.updateBufferedFromMediaSource();
 
         window.bridgeInvokeAsync(this.bridgeId, "VideoElement", "constructor", {
             "instanceId": this.instanceId
@@ -84,16 +85,14 @@ export class VideoElementStub extends EventTarget {
 
     set src(value) {
         if (this.currentMedia) {
-            this.currentMedia.removeEventListener("bufferChanged", false);
+            this.currentMedia.removeEventListener("bufferChanged", this._bufferChanged, false);
         }
 
         this._src = value;
         var media = window.mediaSourceMap[this._src];
         this.currentMedia = media;
         if (media) {
-            media.addEventListener("bufferChanged", () => {
-                this.updateBufferedFromMediaSource();
-            }, false);
+            media.addEventListener("bufferChanged", this._bufferChanged, false);
             window.bridgeInvokeAsync(this.bridgeId, "VideoElement", "setMediaSource", {
                 "instanceId": this.instanceId,
                 "mediaSourceId": media.bridgeId

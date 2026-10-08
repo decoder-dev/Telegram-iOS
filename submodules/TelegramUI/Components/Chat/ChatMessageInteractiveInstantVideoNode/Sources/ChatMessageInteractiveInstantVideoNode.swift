@@ -372,7 +372,7 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
                 var replyInnerSubject: EngineMessageReplyInnerSubject?
                 var replyStory: StoryId?
                 for attribute in item.message.attributes {
-                    if let attribute = attribute as? InlineBotMessageAttribute {
+                    if let attribute = attribute as? InlineBotMessageAttribute, !ForkMessageVisibility.hideViaBot {
                         var inlineBotNameString: String?
                         if let peerId = attribute.peerId, let bot = item.message.peers[peerId] as? TelegramUser {
                             inlineBotNameString = bot.addressName
@@ -425,7 +425,8 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
                             constrainedSize: CGSize(width: availableWidth, height: CGFloat.greatestFiniteMagnitude),
                             animationCache: item.controllerInteraction.presentationContext.animationCache,
                             animationRenderer: item.controllerInteraction.presentationContext.animationRenderer,
-                            associatedData: item.associatedData
+                            associatedData: item.associatedData,
+                            ArenaHidden: TelegramShadowBan.hidesReplyHeader(in: item.message)
                         ))
                     }
                 }
@@ -1564,7 +1565,7 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
                             if let viaBotNode = self.viaBotNode, viaBotNode.frame.contains(location) {
                                 if let item = self.item {
                                     for attribute in item.message.attributes {
-                                        if let attribute = attribute as? InlineBotMessageAttribute {
+                                        if let attribute = attribute as? InlineBotMessageAttribute, !ForkMessageVisibility.hideViaBot {
                                             var botAddressName: String?
                                             if let peerId = attribute.peerId, let botPeer = item.message.peers[peerId], let addressName = botPeer.addressName {
                                                 botAddressName = addressName
@@ -1587,6 +1588,11 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
                             }
                             if let replyInfoNode = self.replyInfoNode, replyInfoNode.frame.contains(location) {
                                 if let item = self.item {
+                                    // The hidden message is not in the chat, so there is nowhere to go.
+                                    if TelegramShadowBan.hidesReplyHeader(in: item.message) {
+                                        item.controllerInteraction.displayMessageTooltip(item.message.id, ChatMessageReplyInfoNode.ArenaHiddenTooltip(strings: item.presentationData.strings), false, replyInfoNode, nil)
+                                        return
+                                    }
                                     for attribute in item.message.attributes {
                                         if let attribute = attribute as? ReplyMessageAttribute {
                                             item.controllerInteraction.navigateToMessage(item.message.id, attribute.messageId, NavigateToMessageParams(timestamp: nil, quote: attribute.isQuote ? attribute.quote.flatMap { quote in NavigateToMessageParams.Quote(string: quote.text, offset: quote.offset) } : nil))

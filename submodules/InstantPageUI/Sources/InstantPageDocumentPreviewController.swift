@@ -1,0 +1,195 @@
+import Foundation
+import UIKit
+import SwiftSignalKit
+import Postbox
+import TelegramCore
+import QuickLook
+import Display
+import TelegramPresentationData
+
+private final class InstantPageDocumentPreviewItem: NSObject, QLPreviewItem {
+    private let url: URL
+    private let title: String
+
+    var previewItemURL: URL? {
+        return self.url
+    }
+
+    var previewItemTitle: String? {
+        return self.title
+    }
+
+    init(url: URL, title: String) {
+        self.url = url
+        self.title = title
+    }
+}
+
+final class InstantPageDocumentPreviewController: QLPreviewController, QLPreviewControllerDelegate, QLPreviewControllerDataSource {
+    private let postbox: Postbox
+    private let file: TelegramMediaFile
+    private let canShare: Bool
+
+    private var item: InstantPageDocumentPreviewItem?
+
+    private var tempFile: TempBoxFile?
+
+    init(theme: PresentationTheme, strings: PresentationStrings, postbox: Postbox, file: TelegramMediaFile, canShare: Bool = true) {
+        self.postbox = postbox
+        self.file = file
+        self.canShare = canShare
+
+        super.init(nibName: nil, bundle: nil)
+
+        self.delegate = self
+        self.dataSource = self
+
+        if let path = self.postbox.mediaBox.completedResourcePath(self.file.resource) {
+            var updatedPath = path
+            if let fileName = self.file.fileName {
+                let tempFile = TempBox.shared.file(path: path, fileName: (fileName as NSString).lastPathComponent)
+                updatedPath = tempFile.path
+                self.tempFile = tempFile
+            }
+            self.item = InstantPageDocumentPreviewItem(url: URL(fileURLWithPath: updatedPath), title: self.file.fileName ?? strings.Message_File)
+        }
+    }
+
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    deinit {
+        if let tempFile = self.tempFile {
+            TempBox.shared.dispose(tempFile)
+        }
+    }
+
+    @objc private func cancelPressed() {
+        self.presentingViewController?.dismiss(animated: true, completion: nil)
+    }
+
+    func numberOfPreviewItems(in controller: QLPreviewController) -> Int {
+        if self.item != nil {
+            return 1
+        } else {
+            return 0
+        }
+    }
+
+    func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem {
+        if let item = self.item {
+            return item
+        } else {
+            assertionFailure()
+            return InstantPageDocumentPreviewItem(url: URL(fileURLWithPath: ""), title: "")
+        }
+    }
+
+    func previewControllerWillDismiss(_ controller: QLPreviewController) {
+        self.cancelPressed()
+    }
+
+    func previewControllerDidDismiss(_ controller: QLPreviewController) {
+        //self.cancelPressed()
+    }
+
+    private var navigationBars: [UINavigationBar] = []
+    private var toolbars: [UIView] = []
+    private var observations : [NSKeyValueObservation] = []
+
+    private var hideShareScheduled = false
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+
+        if !self.canShare {
+            // Apply on every layout — QLPreview rebuilds chrome asynchronously.
+            // Avoid the former 100 Hz Timer that walked the hierarchy continuously.
+            self.tick()
+            if !self.hideShareScheduled {
+                self.hideShareScheduled = true
+                self.scheduleHideShareChromeRetries()
+            }
+        }
+    }
+
+    private func scheduleHideShareChromeRetries() {
+        // A handful of delayed passes covers late-created share buttons without a busy loop.
+        for delay in [0.05, 0.15, 0.35, 0.75, 1.5] as [Double] {
+            Queue.mainQueue().after(delay, { [weak self] in
+                self?.tick()
+            })
+        }
+    }
+
+    private func tick() {
+        let (navigationBars, toolbars) = navigationAndToolbarsInSubviews(forView: self.view)
+        self.navigationBars = navigationBars
+        self.toolbars = toolbars
+
+        if #available(iOS 16.0, *) {
+            if let navigationController = self.children.first as? UINavigationController, let topController = navigationController.topViewController {
+                topController.navigationItem.titleMenuProvider = nil
+            }
+
+            for toolbar in self.toolbars {
+                toolbar.isHidden = true
+            }
+
+            if let navigationBar = navigationBars.first {
+                let imageViews = imageViewsInSubviews(forView: navigationBar)
+                for imageView in imageViews {
+                    if imageView.frame.height > 4.0 {
+                        imageView.isHidden = true
+                        imageView.superview?.isUserInteractionEnabled = false
+                    }
+                }
+            }
+        } else {
+            self.navigationItem.rightBarButtonItems = [UIBarButtonItem()]
+            self.navigationItem.setRightBarButton(UIBarButtonItem(), animated: false)
+
+            self.navigationController?.toolbar.isHidden = true
+
+            for navigationBar in self.navigationBars {
+                navigationBar.topItem?.rightBarButtonItem = UIBarButtonItem()
+                navigationBar.topItem?.rightBarButtonItems = [UIBarButtonItem()]
+            }
+
+            for toolbar in self.toolbars {
+                toolbar.isHidden = true
+            }
+        }
+    }
+
+    private func navigationAndToolbarsInSubviews(forView view: UIView) -> ([UINavigationBar], [UIView]) {
+        var navigationBars: [UINavigationBar] = []
+        var toolbars: [UIView] = []
+        for subview in view.subviews {
+            if let subview = subview as? UINavigationBar {
+                navigationBars.append(subview)
+            } else if let subview = subview as? UIToolbar {
+                toolbars.append(subview)
+            } else {
+                let (subNavigationBars, subToolbars) = navigationAndToolbarsInSubviews(forView: subview)
+                navigationBars.append(contentsOf: subNavigationBars)
+                toolbars.append(contentsOf: subToolbars)
+            }
+        }
+        return (navigationBars, toolbars)
+    }
+
+    private func imageViewsInSubviews(forView view: UIView) -> [UIView] {
+        var result: [UIView] = []
+        for subview in view.subviews {
+            if let subview = subview as? UIImageView {
+                result.append(subview)
+            } else {
+                let imageViews = imageViewsInSubviews(forView: subview)
+                result.append(contentsOf: imageViews)
+            }
+        }
+        return result
+    }
+}

@@ -7,6 +7,7 @@ import TelegramPresentationData
 import TelegramUIPreferences
 import AccountContext
 import UrlEscaping
+import UrlWhitelist
 import PassportUI
 import UrlHandling
 import OpenInExternalAppUI
@@ -15,6 +16,7 @@ import OverlayStatusController
 import PresentationDataUtils
 import SettingsUI
 import ChatListUI
+import ProxyServerPreviewScreen
 
 public struct ParsedSecureIdUrl {
     public let peerId: EnginePeer.Id
@@ -28,6 +30,11 @@ public struct ParsedSecureIdUrl {
 public func parseProxyUrl(sharedContext: SharedAccountContext, url: URL) -> ProxyServerSettings? {
     if let webProxy = parseWebProxyUrl(sharedContext: sharedContext, url: url.absoluteString) {
         return ProxyServerSettings(host: webProxy.host, port: 443, connection: .web(secret: webProxy.secret))
+    }
+    if url.absoluteString.lowercased().hasPrefix("vless://"), isValidVlessProxyURL(url.absoluteString), let data = url.absoluteString.data(using: .utf8) {
+        if let components = URLComponents(string: url.absoluteString), let host = components.host, let port = components.port {
+            return ProxyServerSettings(host: host, port: Int32(port), connection: .vless(secret: data))
+        }
     }
     guard let proxy = parseProxyUrl(sharedContext: sharedContext, url: url.absoluteString) else {
         return nil
@@ -452,6 +459,22 @@ private func handleAyuFiltersImportDeepLink(context: AccountContext, presentatio
 }
 
 func openExternalUrlImpl(context: AccountContext, urlContext: OpenURLContext, url: String, forceExternal: Bool, presentationData: PresentationData, navigationController: NavigationController?, dismissInput: @escaping () -> Void) {
+    // A login part hides the host a link really opens (see `externalUrlWithLoginPart`). Every external link leaves
+    // through here, whoever opens it, so it is confirmed here, with the address the link goes to.
+    if let loginPartUrl = externalUrlWithLoginPart(url) {
+        let controller = textAlertController(context: context, title: presentationData.strings.OpenLinkConfirmation_Title, text: urlRemovingLoginPart(loginPartUrl).absoluteString, actions: [
+            TextAlertAction(type: .genericAction, title: presentationData.strings.Common_Cancel, action: {}),
+            TextAlertAction(type: .defaultAction, title: presentationData.strings.OpenLinkConfirmation_Open, action: {
+                openCheckedExternalUrl(context: context, urlContext: urlContext, url: url, forceExternal: forceExternal, presentationData: presentationData, navigationController: navigationController, dismissInput: dismissInput)
+            })
+        ])
+        context.sharedContext.presentGlobalController(controller, nil)
+        return
+    }
+    openCheckedExternalUrl(context: context, urlContext: urlContext, url: url, forceExternal: forceExternal, presentationData: presentationData, navigationController: navigationController, dismissInput: dismissInput)
+}
+
+private func openCheckedExternalUrl(context: AccountContext, urlContext: OpenURLContext, url: String, forceExternal: Bool, presentationData: PresentationData, navigationController: NavigationController?, dismissInput: @escaping () -> Void) {
     if forceExternal || url.lowercased().hasPrefix("tel:") || url.lowercased().hasPrefix("calshow:") {
         if url.lowercased().hasPrefix("tel:+888") {
             context.sharedContext.presentGlobalController(textAlertController(context: context, title: nil, text: presentationData.strings.Conversation_CantPhoneCallAnonymousNumberError, actions: [
@@ -474,6 +497,15 @@ func openExternalUrlImpl(context: AccountContext, urlContext: OpenURLContext, ur
     }
     
     var parsedUrl = canonicalUrl
+    
+    if parsedUrl.scheme?.lowercased() == "vless" {
+        if let proxy = parseProxyUrl(sharedContext: context.sharedContext, url: parsedUrl) {
+            dismissInput()
+            let controller = ProxyServerPreviewScreen(context: context, server: proxy)
+            navigationController?.pushViewController(controller)
+            return
+        }
+    }
     
     if let host = parsedUrl.host?.lowercased() {
         if host == "itunes.apple.com" {

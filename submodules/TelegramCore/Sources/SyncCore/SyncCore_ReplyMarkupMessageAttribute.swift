@@ -257,6 +257,7 @@ public enum ReplyMarkupButtonAction: PostboxCoding, Equatable {
     case openWebView(url: String, simple: Bool)
     case requestPeer(peerType: ReplyMarkupButtonRequestPeerType, buttonId: Int32, maxQuantity: Int32)
     case copyText(payload: String)
+    case disabled
     
     public init(decoder: PostboxDecoder) {
         switch decoder.decodeInt32ForKey("v", orElse: 0) {
@@ -286,6 +287,8 @@ public enum ReplyMarkupButtonAction: PostboxCoding, Equatable {
                 self = .openWebView(url: decoder.decodeStringForKey("u", orElse: ""), simple: decoder.decodeInt32ForKey("s", orElse: 0) != 0)
             case 12:
                 self = .requestPeer(peerType: decoder.decode(ReplyMarkupButtonRequestPeerType.self, forKey: "pt") ?? ReplyMarkupButtonRequestPeerType.user(ReplyMarkupButtonRequestPeerType.User(isBot: nil, isPremium: nil)), buttonId: decoder.decodeInt32ForKey("b", orElse: 0), maxQuantity: decoder.decodeInt32ForKey("q", orElse: 1))
+            case 14:
+                self = .disabled
             case 13:
                 self = .copyText(payload: decoder.decodeStringForKey("p", orElse: ""))
             default:
@@ -340,6 +343,8 @@ public enum ReplyMarkupButtonAction: PostboxCoding, Equatable {
             encoder.encodeInt32(buttonId, forKey: "b")
             encoder.encode(peerType, forKey: "pt")
             encoder.encodeInt32(maxQuantity, forKey: "q")
+        case .disabled:
+            encoder.encodeInt32(14, forKey: "v")
         case let .copyText(payload):
             encoder.encodeInt32(13, forKey: "v")
             encoder.encodeString(payload, forKey: "p")

@@ -1,0 +1,1514 @@
+[
+  {
+    "file": "Telegram/Telegram-iOS/BlackClassicIcon.alticon/BlackClassicIcon@2x.png",
+    "size": [
+      120,
+      120
+    ],
+    "palette": "BlackClassicIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlackClassicIcon.alticon/BlackClassicIcon@3x.png",
+    "size": [
+      180,
+      180
+    ],
+    "palette": "BlackClassicIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlackClassicIcon.alticon/BlackClassicIconIpad.png",
+    "size": [
+      76,
+      76
+    ],
+    "palette": "BlackClassicIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlackClassicIcon.alticon/BlackClassicIconIpad@2x.png",
+    "size": [
+      152,
+      152
+    ],
+    "palette": "BlackClassicIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlackClassicIcon.alticon/BlackClassicIconLargeIpad@2x.png",
+    "size": [
+      167,
+      167
+    ],
+    "palette": "BlackClassicIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlackClassicIcon.alticon/BlackClassicNotificationIcon.png",
+    "size": [
+      20,
+      20
+    ],
+    "palette": "BlackClassicIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlackClassicIcon.alticon/BlackClassicNotificationIcon@2x.png",
+    "size": [
+      40,
+      40
+    ],
+    "palette": "BlackClassicIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlackClassicIcon.alticon/BlackClassicNotificationIcon@3x.png",
+    "size": [
+      60,
+      60
+    ],
+    "palette": "BlackClassicIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlackFilledIcon.alticon/BlackFilledIcon@2x.png",
+    "size": [
+      120,
+      120
+    ],
+    "palette": "BlackFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlackFilledIcon.alticon/BlackFilledIcon@3x.png",
+    "size": [
+      180,
+      180
+    ],
+    "palette": "BlackFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlackFilledIcon.alticon/BlackFilledIconIpad.png",
+    "size": [
+      76,
+      76
+    ],
+    "palette": "BlackFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlackFilledIcon.alticon/BlackFilledIconIpad@2x.png",
+    "size": [
+      152,
+      152
+    ],
+    "palette": "BlackFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlackFilledIcon.alticon/BlackFilledIconLargeIpad@2x.png",
+    "size": [
+      167,
+      167
+    ],
+    "palette": "BlackFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlackIcon.alticon/BlackIcon@2x.png",
+    "size": [
+      120,
+      120
+    ],
+    "palette": "BlackIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlackIcon.alticon/BlackIcon@3x.png",
+    "size": [
+      180,
+      180
+    ],
+    "palette": "BlackIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlackIcon.alticon/BlackIconIpad.png",
+    "size": [
+      76,
+      76
+    ],
+    "palette": "BlackIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlackIcon.alticon/BlackIconIpad@2x.png",
+    "size": [
+      152,
+      152
+    ],
+    "palette": "BlackIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlackIcon.alticon/BlackIconLargeIpad@2x.png",
+    "size": [
+      167,
+      167
+    ],
+    "palette": "BlackIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlackIcon.alticon/BlackNotificationIcon.png",
+    "size": [
+      20,
+      20
+    ],
+    "palette": "BlackIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlackIcon.alticon/BlackNotificationIcon@2x.png",
+    "size": [
+      40,
+      40
+    ],
+    "palette": "BlackIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlackIcon.alticon/BlackNotificationIcon@3x.png",
+    "size": [
+      60,
+      60
+    ],
+    "palette": "BlackIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlueClassicIcon.alticon/BlueClassicIcon@2x.png",
+    "size": [
+      120,
+      120
+    ],
+    "palette": "BlueClassicIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlueClassicIcon.alticon/BlueClassicIcon@3x.png",
+    "size": [
+      180,
+      180
+    ],
+    "palette": "BlueClassicIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlueClassicIcon.alticon/BlueClassicIconIpad.png",
+    "size": [
+      76,
+      76
+    ],
+    "palette": "BlueClassicIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlueClassicIcon.alticon/BlueClassicIconIpad@2x.png",
+    "size": [
+      152,
+      152
+    ],
+    "palette": "BlueClassicIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlueClassicIcon.alticon/BlueClassicIconLargeIpad@2x.png",
+    "size": [
+      167,
+      167
+    ],
+    "palette": "BlueClassicIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlueClassicIcon.alticon/BlueClassicNotificationIcon.png",
+    "size": [
+      20,
+      20
+    ],
+    "palette": "BlueClassicIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlueClassicIcon.alticon/BlueClassicNotificationIcon@2x.png",
+    "size": [
+      40,
+      40
+    ],
+    "palette": "BlueClassicIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlueClassicIcon.alticon/BlueClassicNotificationIcon@3x.png",
+    "size": [
+      60,
+      60
+    ],
+    "palette": "BlueClassicIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlueFilledIcon.alticon/BlueFilledIcon@2x.png",
+    "size": [
+      120,
+      120
+    ],
+    "palette": "BlueFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlueFilledIcon.alticon/BlueFilledIcon@3x.png",
+    "size": [
+      180,
+      180
+    ],
+    "palette": "BlueFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlueFilledIcon.alticon/BlueFilledIconIpad.png",
+    "size": [
+      76,
+      76
+    ],
+    "palette": "BlueFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlueFilledIcon.alticon/BlueFilledIconIpad@2x.png",
+    "size": [
+      152,
+      152
+    ],
+    "palette": "BlueFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlueFilledIcon.alticon/BlueFilledIconLargeIpad@2x.png",
+    "size": [
+      167,
+      167
+    ],
+    "palette": "BlueFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlueIcon.alticon/BlueIcon@2x.png",
+    "size": [
+      120,
+      120
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlueIcon.alticon/BlueIcon@3x.png",
+    "size": [
+      180,
+      180
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlueIcon.alticon/BlueIconIpad.png",
+    "size": [
+      76,
+      76
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlueIcon.alticon/BlueIconIpad@2x.png",
+    "size": [
+      152,
+      152
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlueIcon.alticon/BlueIconLargeIpad@2x.png",
+    "size": [
+      167,
+      167
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlueIcon.alticon/BlueNotificationIcon.png",
+    "size": [
+      20,
+      20
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlueIcon.alticon/BlueNotificationIcon@2x.png",
+    "size": [
+      40,
+      40
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/BlueIcon.alticon/BlueNotificationIcon@3x.png",
+    "size": [
+      60,
+      60
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/New1.alticon/New1-76.png",
+    "size": [
+      76,
+      76
+    ],
+    "palette": "New1"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/New1.alticon/New1-76@2x.png",
+    "size": [
+      152,
+      152
+    ],
+    "palette": "New1"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/New1.alticon/New1-83.5@2x.png",
+    "size": [
+      167,
+      167
+    ],
+    "palette": "New1"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/New1.alticon/New1@2x.png",
+    "size": [
+      120,
+      120
+    ],
+    "palette": "New1"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/New1.alticon/New1@3x.png",
+    "size": [
+      180,
+      180
+    ],
+    "palette": "New1"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/New1.alticon/New1_29x29.png",
+    "size": [
+      29,
+      29
+    ],
+    "palette": "New1"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/New1.alticon/New1_58x58.png",
+    "size": [
+      58,
+      58
+    ],
+    "palette": "New1"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/New1.alticon/New1_80x80.png",
+    "size": [
+      80,
+      80
+    ],
+    "palette": "New1"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/New1.alticon/New1_87x87.png",
+    "size": [
+      87,
+      87
+    ],
+    "palette": "New1"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/New1.alticon/New1_notification.png",
+    "size": [
+      20,
+      20
+    ],
+    "palette": "New1"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/New1.alticon/New1_notification@2x.png",
+    "size": [
+      40,
+      40
+    ],
+    "palette": "New1"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/New1.alticon/New1_notification@3x.png",
+    "size": [
+      60,
+      60
+    ],
+    "palette": "New1"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/New2.alticon/New2-76.png",
+    "size": [
+      76,
+      76
+    ],
+    "palette": "New2"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/New2.alticon/New2-76@2x.png",
+    "size": [
+      152,
+      152
+    ],
+    "palette": "New2"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/New2.alticon/New2-83.5@2x.png",
+    "size": [
+      167,
+      167
+    ],
+    "palette": "New2"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/New2.alticon/New2-Small-40.png",
+    "size": [
+      40,
+      40
+    ],
+    "palette": "New2"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/New2.alticon/New2-Small-40@2x.png",
+    "size": [
+      80,
+      80
+    ],
+    "palette": "New2"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/New2.alticon/New2-Small.png",
+    "size": [
+      29,
+      29
+    ],
+    "palette": "New2"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/New2.alticon/New2-Small@2x.png",
+    "size": [
+      58,
+      58
+    ],
+    "palette": "New2"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/New2.alticon/New2-Small@3x.png",
+    "size": [
+      87,
+      87
+    ],
+    "palette": "New2"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/New2.alticon/New2@2x.png",
+    "size": [
+      120,
+      120
+    ],
+    "palette": "New2"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/New2.alticon/New2@3x.png",
+    "size": [
+      180,
+      180
+    ],
+    "palette": "New2"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/New2.alticon/New2_notification.png",
+    "size": [
+      20,
+      20
+    ],
+    "palette": "New2"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/New2.alticon/New2_notification@3x.png",
+    "size": [
+      60,
+      60
+    ],
+    "palette": "New2"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/PatriotPlaneIcon.alticon/PatriotPlaneIcon@2x.png",
+    "size": [
+      120,
+      120
+    ],
+    "palette": "PatriotPlaneIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/PatriotPlaneIcon.alticon/PatriotPlaneIcon@3x.png",
+    "size": [
+      180,
+      180
+    ],
+    "palette": "PatriotPlaneIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/Premium.alticon/Premium@2x.png",
+    "size": [
+      120,
+      120
+    ],
+    "palette": "Premium"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/Premium.alticon/Premium@3x.png",
+    "size": [
+      180,
+      180
+    ],
+    "palette": "Premium"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/PremiumAurora.alticon/PremiumAurora@2x.png",
+    "size": [
+      120,
+      120
+    ],
+    "palette": "PremiumAurora"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/PremiumAurora.alticon/PremiumAurora@3x.png",
+    "size": [
+      180,
+      180
+    ],
+    "palette": "PremiumAurora"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/PremiumBlack.alticon/PremiumBlack@2x.png",
+    "size": [
+      120,
+      120
+    ],
+    "palette": "PremiumBlack"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/PremiumBlack.alticon/PremiumBlack@3x.png",
+    "size": [
+      180,
+      180
+    ],
+    "palette": "PremiumBlack"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/PremiumCarbon.alticon/PremiumCarbon@2x.png",
+    "size": [
+      120,
+      120
+    ],
+    "palette": "PremiumCarbon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/PremiumCarbon.alticon/PremiumCarbon@3x.png",
+    "size": [
+      180,
+      180
+    ],
+    "palette": "PremiumCarbon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/PremiumEmerald.alticon/PremiumEmerald@2x.png",
+    "size": [
+      120,
+      120
+    ],
+    "palette": "PremiumEmerald"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/PremiumEmerald.alticon/PremiumEmerald@3x.png",
+    "size": [
+      180,
+      180
+    ],
+    "palette": "PremiumEmerald"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/PremiumIce.alticon/PremiumIce@2x.png",
+    "size": [
+      120,
+      120
+    ],
+    "palette": "PremiumIce"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/PremiumIce.alticon/PremiumIce@3x.png",
+    "size": [
+      180,
+      180
+    ],
+    "palette": "PremiumIce"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/PremiumNight.alticon/PremiumNight@2x.png",
+    "size": [
+      120,
+      120
+    ],
+    "palette": "PremiumNight"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/PremiumNight.alticon/PremiumNight@3x.png",
+    "size": [
+      180,
+      180
+    ],
+    "palette": "PremiumNight"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/PremiumRose.alticon/PremiumRose@2x.png",
+    "size": [
+      120,
+      120
+    ],
+    "palette": "PremiumRose"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/PremiumRose.alticon/PremiumRose@3x.png",
+    "size": [
+      180,
+      180
+    ],
+    "palette": "PremiumRose"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/PremiumRoyal.alticon/PremiumRoyal@2x.png",
+    "size": [
+      120,
+      120
+    ],
+    "palette": "PremiumRoyal"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/PremiumRoyal.alticon/PremiumRoyal@3x.png",
+    "size": [
+      180,
+      180
+    ],
+    "palette": "PremiumRoyal"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/PremiumSunset.alticon/PremiumSunset@2x.png",
+    "size": [
+      120,
+      120
+    ],
+    "palette": "PremiumSunset"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/PremiumSunset.alticon/PremiumSunset@3x.png",
+    "size": [
+      180,
+      180
+    ],
+    "palette": "PremiumSunset"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/PremiumTurbo.alticon/PremiumTurbo@2x.png",
+    "size": [
+      120,
+      120
+    ],
+    "palette": "PremiumTurbo"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/PremiumTurbo.alticon/PremiumTurbo@3x.png",
+    "size": [
+      180,
+      180
+    ],
+    "palette": "PremiumTurbo"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/WhiteFilledIcon.alticon/WhiteFilledIcon@2x.png",
+    "size": [
+      120,
+      120
+    ],
+    "palette": "WhiteFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/WhiteFilledIcon.alticon/WhiteFilledIcon@3x.png",
+    "size": [
+      180,
+      180
+    ],
+    "palette": "WhiteFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlackFilledIcon.appiconset/Icon4@120x120-1.png",
+    "size": [
+      120,
+      120
+    ],
+    "palette": "BlackFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlackFilledIcon.appiconset/Icon4@120x120.png",
+    "size": [
+      120,
+      120
+    ],
+    "palette": "BlackFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlackFilledIcon.appiconset/Icon4@152x152.png",
+    "size": [
+      152,
+      152
+    ],
+    "palette": "BlackFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlackFilledIcon.appiconset/Icon4@167x167.png",
+    "size": [
+      167,
+      167
+    ],
+    "palette": "BlackFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlackFilledIcon.appiconset/Icon4@180x180.png",
+    "size": [
+      180,
+      180
+    ],
+    "palette": "BlackFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlackFilledIcon.appiconset/Icon4@20x20.png",
+    "size": [
+      20,
+      20
+    ],
+    "palette": "BlackFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlackFilledIcon.appiconset/Icon4@29x29.png",
+    "size": [
+      29,
+      29
+    ],
+    "palette": "BlackFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlackFilledIcon.appiconset/Icon4@40x40-1.png",
+    "size": [
+      40,
+      40
+    ],
+    "palette": "BlackFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlackFilledIcon.appiconset/Icon4@40x40-2.png",
+    "size": [
+      40,
+      40
+    ],
+    "palette": "BlackFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlackFilledIcon.appiconset/Icon4@40x40.png",
+    "size": [
+      40,
+      40
+    ],
+    "palette": "BlackFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlackFilledIcon.appiconset/Icon4@58x58-2.png",
+    "size": [
+      58,
+      58
+    ],
+    "palette": "BlackFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlackFilledIcon.appiconset/Icon4@58x58.png",
+    "size": [
+      58,
+      58
+    ],
+    "palette": "BlackFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlackFilledIcon.appiconset/Icon4@60x60.png",
+    "size": [
+      60,
+      60
+    ],
+    "palette": "BlackFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlackFilledIcon.appiconset/Icon4@76x76.png",
+    "size": [
+      76,
+      76
+    ],
+    "palette": "BlackFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlackFilledIcon.appiconset/Icon4@80x80-1.png",
+    "size": [
+      80,
+      80
+    ],
+    "palette": "BlackFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlackFilledIcon.appiconset/Icon4@80x80.png",
+    "size": [
+      80,
+      80
+    ],
+    "palette": "BlackFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlackFilledIcon.appiconset/Icon4@87x87.png",
+    "size": [
+      87,
+      87
+    ],
+    "palette": "BlackFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlackIcon.appiconset/Icon2@120x120-1.png",
+    "size": [
+      120,
+      120
+    ],
+    "palette": "BlackIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlackIcon.appiconset/Icon2@120x120.png",
+    "size": [
+      120,
+      120
+    ],
+    "palette": "BlackIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlackIcon.appiconset/Icon2@152x152.png",
+    "size": [
+      152,
+      152
+    ],
+    "palette": "BlackIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlackIcon.appiconset/Icon2@167x167.png",
+    "size": [
+      167,
+      167
+    ],
+    "palette": "BlackIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlackIcon.appiconset/Icon2@180x180.png",
+    "size": [
+      180,
+      180
+    ],
+    "palette": "BlackIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlackIcon.appiconset/Icon2@20x20.png",
+    "size": [
+      20,
+      20
+    ],
+    "palette": "BlackIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlackIcon.appiconset/Icon2@29x29.png",
+    "size": [
+      29,
+      29
+    ],
+    "palette": "BlackIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlackIcon.appiconset/Icon2@40x40-1.png",
+    "size": [
+      40,
+      40
+    ],
+    "palette": "BlackIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlackIcon.appiconset/Icon2@40x40-2.png",
+    "size": [
+      40,
+      40
+    ],
+    "palette": "BlackIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlackIcon.appiconset/Icon2@40x40.png",
+    "size": [
+      40,
+      40
+    ],
+    "palette": "BlackIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlackIcon.appiconset/Icon2@58x58-1.png",
+    "size": [
+      58,
+      58
+    ],
+    "palette": "BlackIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlackIcon.appiconset/Icon2@58x58.png",
+    "size": [
+      58,
+      58
+    ],
+    "palette": "BlackIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlackIcon.appiconset/Icon2@60x60.png",
+    "size": [
+      60,
+      60
+    ],
+    "palette": "BlackIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlackIcon.appiconset/Icon2@76x76.png",
+    "size": [
+      76,
+      76
+    ],
+    "palette": "BlackIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlackIcon.appiconset/Icon2@80x80-1.png",
+    "size": [
+      80,
+      80
+    ],
+    "palette": "BlackIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlackIcon.appiconset/Icon2@80x80.png",
+    "size": [
+      80,
+      80
+    ],
+    "palette": "BlackIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlackIcon.appiconset/Icon2@87x87.png",
+    "size": [
+      87,
+      87
+    ],
+    "palette": "BlackIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlueFilledIcon.appiconset/Icon3@120x120-1.png",
+    "size": [
+      120,
+      120
+    ],
+    "palette": "BlueFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlueFilledIcon.appiconset/Icon3@120x120.png",
+    "size": [
+      120,
+      120
+    ],
+    "palette": "BlueFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlueFilledIcon.appiconset/Icon3@152x152.png",
+    "size": [
+      152,
+      152
+    ],
+    "palette": "BlueFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlueFilledIcon.appiconset/Icon3@167x167.png",
+    "size": [
+      167,
+      167
+    ],
+    "palette": "BlueFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlueFilledIcon.appiconset/Icon3@180x180.png",
+    "size": [
+      180,
+      180
+    ],
+    "palette": "BlueFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlueFilledIcon.appiconset/Icon3@20x20.png",
+    "size": [
+      20,
+      20
+    ],
+    "palette": "BlueFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlueFilledIcon.appiconset/Icon3@29x29.png",
+    "size": [
+      29,
+      29
+    ],
+    "palette": "BlueFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlueFilledIcon.appiconset/Icon3@40x40-1.png",
+    "size": [
+      40,
+      40
+    ],
+    "palette": "BlueFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlueFilledIcon.appiconset/Icon3@40x40-2.png",
+    "size": [
+      40,
+      40
+    ],
+    "palette": "BlueFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlueFilledIcon.appiconset/Icon3@40x40.png",
+    "size": [
+      40,
+      40
+    ],
+    "palette": "BlueFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlueFilledIcon.appiconset/Icon3@58x58-1.png",
+    "size": [
+      58,
+      58
+    ],
+    "palette": "BlueFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlueFilledIcon.appiconset/Icon3@58x58.png",
+    "size": [
+      58,
+      58
+    ],
+    "palette": "BlueFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlueFilledIcon.appiconset/Icon3@60x60.png",
+    "size": [
+      60,
+      60
+    ],
+    "palette": "BlueFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlueFilledIcon.appiconset/Icon3@76x76.png",
+    "size": [
+      76,
+      76
+    ],
+    "palette": "BlueFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlueFilledIcon.appiconset/Icon3@80x80-1.png",
+    "size": [
+      80,
+      80
+    ],
+    "palette": "BlueFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlueFilledIcon.appiconset/Icon3@80x80.png",
+    "size": [
+      80,
+      80
+    ],
+    "palette": "BlueFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlueFilledIcon.appiconset/Icon3@87x87.png",
+    "size": [
+      87,
+      87
+    ],
+    "palette": "BlueFilledIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlueIcon.appiconset/Icon1@120x120-1.png",
+    "size": [
+      120,
+      120
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlueIcon.appiconset/Icon1@120x120.png",
+    "size": [
+      120,
+      120
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlueIcon.appiconset/Icon1@152x152.png",
+    "size": [
+      152,
+      152
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlueIcon.appiconset/Icon1@167x167.png",
+    "size": [
+      167,
+      167
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlueIcon.appiconset/Icon1@180x180.png",
+    "size": [
+      180,
+      180
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlueIcon.appiconset/Icon1@20x20.png",
+    "size": [
+      20,
+      20
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlueIcon.appiconset/Icon1@29x29.png",
+    "size": [
+      29,
+      29
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlueIcon.appiconset/Icon1@40x40-1.png",
+    "size": [
+      40,
+      40
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlueIcon.appiconset/Icon1@40x40-2.png",
+    "size": [
+      40,
+      40
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlueIcon.appiconset/Icon1@40x40.png",
+    "size": [
+      40,
+      40
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlueIcon.appiconset/Icon1@58x58-1.png",
+    "size": [
+      58,
+      58
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlueIcon.appiconset/Icon1@58x58.png",
+    "size": [
+      58,
+      58
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlueIcon.appiconset/Icon1@60x60.png",
+    "size": [
+      60,
+      60
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlueIcon.appiconset/Icon1@76x76.png",
+    "size": [
+      76,
+      76
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlueIcon.appiconset/Icon1@80x80-1.png",
+    "size": [
+      80,
+      80
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlueIcon.appiconset/Icon1@80x80.png",
+    "size": [
+      80,
+      80
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/BlueIcon.appiconset/Icon1@87x87.png",
+    "size": [
+      87,
+      87
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/DefaultAppIcon.xcassets/AppIconLLC.appiconset/BlueIcon@2x-1.png",
+    "size": [
+      120,
+      120
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/DefaultAppIcon.xcassets/AppIconLLC.appiconset/BlueIcon@2x.png",
+    "size": [
+      120,
+      120
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/DefaultAppIcon.xcassets/AppIconLLC.appiconset/BlueIcon@3x.png",
+    "size": [
+      180,
+      180
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/DefaultAppIcon.xcassets/AppIconLLC.appiconset/BlueIconIpad@2x.png",
+    "size": [
+      152,
+      152
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/DefaultAppIcon.xcassets/AppIconLLC.appiconset/BlueIconLargeIpad@2x.png",
+    "size": [
+      167,
+      167
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/DefaultAppIcon.xcassets/AppIconLLC.appiconset/BlueNotificationIcon.png",
+    "size": [
+      20,
+      20
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/DefaultAppIcon.xcassets/AppIconLLC.appiconset/BlueNotificationIcon@2x-1.png",
+    "size": [
+      40,
+      40
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/DefaultAppIcon.xcassets/AppIconLLC.appiconset/BlueNotificationIcon@2x.png",
+    "size": [
+      40,
+      40
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/DefaultAppIcon.xcassets/AppIconLLC.appiconset/BlueNotificationIcon@3x.png",
+    "size": [
+      60,
+      60
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/DefaultAppIcon.xcassets/AppIconLLC.appiconset/Simple-iTunesArtwork.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/DefaultAppIcon.xcassets/AppIconLLC.appiconset/Simple@29x29.png",
+    "size": [
+      29,
+      29
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/DefaultAppIcon.xcassets/AppIconLLC.appiconset/Simple@40x40-1.png",
+    "size": [
+      40,
+      40
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/DefaultAppIcon.xcassets/AppIconLLC.appiconset/Simple@58x58-1.png",
+    "size": [
+      58,
+      58
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/DefaultAppIcon.xcassets/AppIconLLC.appiconset/Simple@58x58.png",
+    "size": [
+      58,
+      58
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/DefaultAppIcon.xcassets/AppIconLLC.appiconset/Simple@80x80-1.png",
+    "size": [
+      80,
+      80
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/DefaultAppIcon.xcassets/AppIconLLC.appiconset/Simple@80x80.png",
+    "size": [
+      80,
+      80
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/DefaultAppIcon.xcassets/AppIconLLC.appiconset/Simple@87x87.png",
+    "size": [
+      87,
+      87
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Watch/App/Assets.xcassets/AppIcon.appiconset/Simple-iTunesArtwork.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Watch/App/Assets.xcassets/AppIcon.appiconset/Simple@58x58.png",
+    "size": [
+      58,
+      58
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Watch/App/Assets.xcassets/AppIcon.appiconset/Simple@80x80.png",
+    "size": [
+      80,
+      80
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Watch/App/Assets.xcassets/AppIcon.appiconset/Simple@87x87.png",
+    "size": [
+      87,
+      87
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Watch/App/Assets.xcassets/AppIcon.appiconset/Watch100@2x.png",
+    "size": [
+      100,
+      100
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Watch/App/Assets.xcassets/AppIcon.appiconset/Watch172@2x.png",
+    "size": [
+      172,
+      172
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Watch/App/Assets.xcassets/AppIcon.appiconset/Watch196@2x.png",
+    "size": [
+      196,
+      196
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Watch/App/Assets.xcassets/AppIcon.appiconset/Watch216@2x.png",
+    "size": [
+      216,
+      216
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Watch/App/Assets.xcassets/AppIcon.appiconset/Watch48@2x.png",
+    "size": [
+      48,
+      48
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Watch/App/Assets.xcassets/AppIcon.appiconset/Watch55@2x.png",
+    "size": [
+      55,
+      55
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Watch/App/Assets.xcassets/AppIcon.appiconset/Watch88@2x.png",
+    "size": [
+      88,
+      88
+    ],
+    "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/WatchApp/tgwatch Watch App/Assets.xcassets/AppIcon.appiconset/AppIcon.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "palette": "BlueIcon"
+  }
+]

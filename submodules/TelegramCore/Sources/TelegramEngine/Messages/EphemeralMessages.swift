@@ -242,7 +242,7 @@ private func outgoingEphemeralMessage(from updates: Api.Updates, prepared: Prepa
         case let .updateNewEphemeralMessage(updateNewEphemeralMessageData):
             let message = updateNewEphemeralMessageData.message
             if case let .ephemeralMessage(messageData) = message {
-                if (messageData.flags & (1 << 0)) != 0 && messageData.peerId.peerId == prepared.peerId && messageData.fromId.peerId == accountPeerId && PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(messageData.receiverId)) == prepared.botPeerId {
+                if (messageData.flags & (1 << 0)) != 0 && messageData.peerId?.peerId == prepared.peerId && messageData.fromId.peerId == accountPeerId && PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(messageData.receiverId)) == prepared.botPeerId {
                     return message
                 }
             }
@@ -281,8 +281,7 @@ func _internal_failStaleEphemeralOutgoingMessages(postbox: Postbox) -> Signal<Vo
 
 private func completePendingEphemeralMessage(account: Account, prepared: PreparedEphemeralMessageSend, apiMessage: Api.EphemeralMessage) -> Signal<MessageId?, NoError> {
     return account.postbox.transaction { transaction -> MessageId? in
-        let message = StoreMessage(apiEphemeralMessage: apiMessage)
-        guard case let .Id(serverId) = message.id else {
+        guard let message = StoreMessage(apiEphemeralMessage: apiMessage), case let .Id(serverId) = message.id else {
             return nil
         }
 
@@ -372,7 +371,7 @@ private func performPreparedEphemeralMessageSend(account: Account, prepared: Pre
             return failPendingEphemeralMessage(account: account, peerId: prepared.peerId, localId: prepared.localId, randomId: prepared.randomId)
         }
 
-        return account.network.request(Api.functions.ephemeral.sendMessage(flags: flags, peer: prepared.inputPeer, receiverId: prepared.inputUser, queryId: nil, message: messageText, entities: apiEntities.isEmpty ? nil : apiEntities, media: media, replyMarkup: nil, richMessage: nil, randomId: prepared.randomId, replyTo: prepared.replyTo))
+        return account.network.request(Api.functions.ephemeral.sendMessage(flags: flags | (1 << 8), peer: prepared.inputPeer, receiverId: prepared.inputUser, queryId: nil, message: messageText, entities: apiEntities.isEmpty ? nil : apiEntities, media: media, replyMarkup: nil, richMessage: nil, randomId: prepared.randomId, replyTo: prepared.replyTo))
         |> map { result -> Api.Updates? in
             return result
         }

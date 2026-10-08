@@ -228,6 +228,9 @@ public class UnauthorizedAccount {
         self.managedDisposables.add(registerWebProxySidecarReapply(network: network, currentSettings: {
             latestProxySettings.with { $0 }
         }))
+        self.managedDisposables.add(registerVlessManagerReapply(network: network, currentSettings: {
+            latestProxySettings.with { $0 }
+        }))
         
         let webSocketTransportIsInitialApply = Atomic<Bool>(value: true)
         self.managedDisposables.add((accountManager.sharedData(keys: [SharedDataKeys.proxySettings])
@@ -1579,6 +1582,9 @@ public class Account {
         self.managedOperationsDisposable.add(registerWebProxySidecarReapply(network: network, currentSettings: {
             latestProxySettings.with { $0 }
         }))
+        self.managedOperationsDisposable.add(registerVlessManagerReapply(network: network, currentSettings: {
+            latestProxySettings.with { $0 }
+        }))
 
         // `initializedNetwork` already applied these values, so the first emission has nothing to
         // change and must not force a transport rebuild on a connection that is still coming up.
@@ -1701,6 +1707,10 @@ public class Account {
     
     public func resetCachedData() {
         self.viewTracker.reset()
+    }
+
+    public func trimCachedData() {
+        self.viewTracker.trimCachedData()
     }
     
     public func cleanupTasks(lowImpact: Bool) -> Signal<Never, NoError> {

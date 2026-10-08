@@ -260,7 +260,7 @@ private func navigateToChatControllerImpl(_ params: NavigateToChatControllerPara
                         controller.presentAttachmentBot(botId: attachBotStart.botId, payload: attachBotStart.payload, justInstalled: attachBotStart.justInstalled)
                     }
                     if let botAppStart = params.botAppStart, case let .peer(peer) = params.chatLocation {
-                        controller.presentBotApp(botApp: botAppStart.botApp, botPeer: peer, payload: botAppStart.payload, mode: botAppStart.mode)
+                        controller.presentBotApp(botApp: botAppStart.botApp, botPeer: peer, payload: botAppStart.payload, mode: botAppStart.mode, botStartPayload: botAppStart.botStartPayload)
                     }
                     params.setupController(controller)
                     found = true
@@ -286,7 +286,7 @@ private func navigateToChatControllerImpl(_ params: NavigateToChatControllerPara
                 }
                 if let botAppStart = params.botAppStart, case let .peer(peer) = params.chatLocation {
                     Queue.mainQueue().after(0.1) {
-                        controller.presentBotApp(botApp: botAppStart.botApp, botPeer: peer, payload: botAppStart.payload, mode: botAppStart.mode)
+                        controller.presentBotApp(botApp: botAppStart.botApp, botPeer: peer, payload: botAppStart.payload, mode: botAppStart.mode, botStartPayload: botAppStart.botStartPayload)
                     }
                 }
                 
@@ -300,7 +300,7 @@ private func navigateToChatControllerImpl(_ params: NavigateToChatControllerPara
                 
                 if let botAppStart = params.botAppStart, case let .peer(peer) = params.chatLocation {
                     Queue.mainQueue().after(0.1) {
-                        controller.presentBotApp(botApp: botAppStart.botApp, botPeer: peer, payload: botAppStart.payload, mode: botAppStart.mode)
+                        controller.presentBotApp(botApp: botAppStart.botApp, botPeer: peer, payload: botAppStart.payload, mode: botAppStart.mode, botStartPayload: botAppStart.botStartPayload)
                     }
                 }
             }

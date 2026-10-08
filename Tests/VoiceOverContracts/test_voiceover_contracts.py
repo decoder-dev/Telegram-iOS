@@ -390,9 +390,12 @@ class AccessibilityPreferencesContractTests(unittest.TestCase):
             "UIFontMetrics(forTextStyle: .footnote)",
             "UIFontMetrics(forTextStyle: .headline)",
             "override func contentSizeCategoryUpdated()",
-            "preferredContentSizeCategory.isAccessibilityCategory",
+            "self.usesAccessibilityContentSizeCategory ? .vertical : .horizontal",
         ):
             self.assertIn(contract, contents)
+        base = source("submodules/Display/Source/AlertContentNode.swift")
+        self.assertIn("preferredContentSizeCategory", base)
+        self.assertIn("return category.isAccessibilityCategory", base)
 
 
 class ReleaseGateContractTests(unittest.TestCase):

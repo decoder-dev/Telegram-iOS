@@ -57,6 +57,7 @@ public final class InstantPageV2RenderContext {
     public let fileReference: (TelegramMediaFile) -> FileMediaReference
     public let present: (ViewController, Any?) -> Void
     public let push: (ViewController) -> Void
+    public var canShareDocuments: Bool
     public let openUrl: (InstantPageUrlItem) -> Void
     public let baseNavigationController: () -> NavigationController?
     /// A reference to the message hosting this page, when rendered inside a chat bubble. Used to
@@ -87,7 +88,8 @@ public final class InstantPageV2RenderContext {
         shouldAutoDownloadImage: @escaping (TelegramMediaImage) -> Bool = { _ in false },
         shouldAutoDownloadFile: @escaping (TelegramMediaFile) -> Bool = { _ in false },
         shouldAutoplayVideo: @escaping (TelegramMediaFile) -> Bool = { _ in false },
-        message: MessageReference?
+        message: MessageReference?,
+        canShareDocuments: Bool = false
     ) {
         self.context = context
         self.webpage = webpage
@@ -98,6 +100,7 @@ public final class InstantPageV2RenderContext {
         self.push = push
         self.openUrl = openUrl
         self.baseNavigationController = baseNavigationController
+        self.canShareDocuments = canShareDocuments
         self.message = message
         self.shouldAutoDownloadImage = shouldAutoDownloadImage
         self.shouldAutoDownloadFile = shouldAutoDownloadFile
@@ -726,7 +729,7 @@ public final class InstantPageV2View: UIView {
             v.update(item: media, theme: theme, renderContext: rc)
             return v
         case let .mediaAudio(media):
-            guard let v = existingView as? InstantPageV2MediaAudioView, let rc = self.renderContext else { return nil }
+            guard let v = existingView as? InstantPageV2MediaAudioView, v.item.media == media.media, let rc = self.renderContext else { return nil }
             v.update(item: media, theme: theme, renderContext: rc)
             return v
         case let .thinking(thinking):
@@ -2425,8 +2428,12 @@ private func findTextItem(
                 }
             }
         case let .table(table):
+            // The renderer shifts the grid down by the caption (title) height — the hit-test
+            // mapping must apply the same offset, or a captioned table's bottom rows become
+            // untappable with a dead band exactly as tall as the caption (upstream #2323).
+            let gridOffsetY = table.titleFrame?.height ?? 0.0
             for cell in table.cells {
-                let cellAbs = cell.frame.offsetBy(dx: f.minX + table.contentInset, dy: f.minY)
+                let cellAbs = cell.frame.offsetBy(dx: f.minX + table.contentInset, dy: f.minY + gridOffsetY)
                 if !cellAbs.contains(point) { continue }
                 if let sub = cell.subLayout {
                     if let hit = findTextItem(in: sub, point: point,
@@ -2502,9 +2509,10 @@ private func findAnchorFrame(
                 }
             }
         case let .table(table):
+            let gridOffsetY = table.titleFrame?.height ?? 0.0
             for cell in table.cells {
                 if let sub = cell.subLayout {
-                    let cellOffset = CGPoint(x: f.minX + table.contentInset + cell.frame.minX, y: f.minY + cell.frame.minY)
+                    let cellOffset = CGPoint(x: f.minX + table.contentInset + cell.frame.minX, y: f.minY + gridOffsetY + cell.frame.minY)
                     if let hit = findAnchorFrame(in: sub, name: name, accumulatedOffset: cellOffset) {
                         return hit
                     }
@@ -2566,11 +2574,12 @@ private func collectSelectableTextItems(
                 )
                 collectSelectableTextItems(in: titleLayout, accumulatedOffset: titleOffset, into: &result)
             }
+            let gridOffsetY = table.titleFrame?.height ?? 0.0
             for cell in table.cells {
                 if let sub = cell.subLayout {
                     let cellOffset = CGPoint(
                         x: accumulatedOffset.x + table.frame.minX + table.contentInset + cell.frame.minX,
-                        y: accumulatedOffset.y + table.frame.minY + cell.frame.minY
+                        y: accumulatedOffset.y + table.frame.minY + gridOffsetY + cell.frame.minY
                     )
                     collectSelectableTextItems(in: sub, accumulatedOffset: cellOffset, into: &result)
                 }

@@ -29,6 +29,8 @@ private final class DataAndStorageControllerArguments {
     let toggleVoiceUseLessData: (Bool) -> Void
     let openSaveIncoming: (AutomaticSaveIncomingPeerType) -> Void
     let toggleSaveEditedPhotos: (Bool) -> Void
+    let togglePauseMusicOnVoiceRecording: (Bool) -> Void
+    let togglePauseMusicOnVoicePlayback: (Bool) -> Void
     let togglePauseMusicOnRecording: (Bool) -> Void
     let toggleRaiseToListen: (Bool) -> Void
     let toggleDownloadInBackground: (Bool) -> Void
@@ -44,6 +46,8 @@ private final class DataAndStorageControllerArguments {
         toggleVoiceUseLessData: @escaping (Bool) -> Void,
         openSaveIncoming: @escaping (AutomaticSaveIncomingPeerType) -> Void,
         toggleSaveEditedPhotos: @escaping (Bool) -> Void,
+        togglePauseMusicOnVoiceRecording: @escaping (Bool) -> Void,
+        togglePauseMusicOnVoicePlayback: @escaping (Bool) -> Void,
         togglePauseMusicOnRecording: @escaping (Bool) -> Void,
         toggleRaiseToListen: @escaping (Bool) -> Void,
         toggleDownloadInBackground: @escaping (Bool) -> Void,
@@ -58,6 +62,8 @@ private final class DataAndStorageControllerArguments {
         self.toggleVoiceUseLessData = toggleVoiceUseLessData
         self.openSaveIncoming = openSaveIncoming
         self.toggleSaveEditedPhotos = toggleSaveEditedPhotos
+        self.togglePauseMusicOnVoiceRecording = togglePauseMusicOnVoiceRecording
+        self.togglePauseMusicOnVoicePlayback = togglePauseMusicOnVoicePlayback
         self.togglePauseMusicOnRecording = togglePauseMusicOnRecording
         self.toggleRaiseToListen = toggleRaiseToListen
         self.toggleDownloadInBackground = toggleDownloadInBackground
@@ -81,6 +87,8 @@ public enum DataAndStorageEntryTag: ItemListItemTag, Equatable {
     case automaticDownloadReset
     case saveEditedPhotos
     case downloadInBackground
+    case pauseMusicOnVoiceRecording
+    case pauseMusicOnVoicePlayback
     case pauseMusicOnRecording
     case raiseToListen
     case autoSave(AutomaticSaveIncomingPeerType)
@@ -116,6 +124,8 @@ private enum DataAndStorageEntry: ItemListNodeEntry {
     case otherHeader(PresentationTheme, String)
     case shareSheet(PresentationTheme, String)
     case saveEditedPhotos(PresentationTheme, String, Bool)
+    case pauseMusicOnVoiceRecording(PresentationTheme, String, Bool)
+    case pauseMusicOnVoicePlayback(PresentationTheme, String, Bool)
     case pauseMusicOnRecording(PresentationTheme, String, Bool)
     case raiseToListen(PresentationTheme, String, Bool)
     case raiseToListenInfo(PresentationTheme, String)
@@ -138,7 +148,7 @@ private enum DataAndStorageEntry: ItemListNodeEntry {
                 return DataAndStorageSection.backgroundDownload.rawValue
             case .useLessVoiceData, .useLessVoiceDataInfo:
                 return DataAndStorageSection.voiceCalls.rawValue
-            case .otherHeader, .shareSheet, .saveEditedPhotos, .pauseMusicOnRecording, .raiseToListen, .raiseToListenInfo:
+            case .otherHeader, .shareSheet, .saveEditedPhotos, .pauseMusicOnVoiceRecording, .pauseMusicOnVoicePlayback, .pauseMusicOnRecording, .raiseToListen, .raiseToListenInfo:
                 return DataAndStorageSection.other.rawValue
             case .sensitiveContent, .sensitiveContentInfo:
                 return DataAndStorageSection.sensitiveContent.rawValue
@@ -181,20 +191,24 @@ private enum DataAndStorageEntry: ItemListNodeEntry {
                 return 31
             case .saveEditedPhotos:
                 return 32
+            case .pauseMusicOnVoiceRecording:
+                return 34
+            case .pauseMusicOnVoicePlayback:
+                return 35
             case .pauseMusicOnRecording:
                 return 33
             case .raiseToListen:
-                return 34
-            case .raiseToListenInfo:
-                return 35
-            case .sensitiveContent:
                 return 36
-            case .sensitiveContentInfo:
+            case .raiseToListenInfo:
                 return 37
-            case .connectionHeader:
+            case .sensitiveContent:
                 return 38
-            case .connectionProxy:
+            case .sensitiveContentInfo:
                 return 39
+            case .connectionHeader:
+                return 40
+            case .connectionProxy:
+                return 41
         }
     }
     
@@ -280,6 +294,18 @@ private enum DataAndStorageEntry: ItemListNodeEntry {
                 }
             case let .saveEditedPhotos(lhsTheme, lhsText, lhsValue):
                 if case let .saveEditedPhotos(rhsTheme, rhsText, rhsValue) = rhs, lhsTheme === rhsTheme, lhsText == rhsText, lhsValue == rhsValue {
+                    return true
+                } else {
+                    return false
+                }
+            case let .pauseMusicOnVoiceRecording(lhsTheme, lhsText, lhsValue):
+                if case let .pauseMusicOnVoiceRecording(rhsTheme, rhsText, rhsValue) = rhs, lhsTheme === rhsTheme, lhsText == rhsText, lhsValue == rhsValue {
+                    return true
+                } else {
+                    return false
+                }
+            case let .pauseMusicOnVoicePlayback(lhsTheme, lhsText, lhsValue):
+                if case let .pauseMusicOnVoicePlayback(rhsTheme, rhsText, rhsValue) = rhs, lhsTheme === rhsTheme, lhsText == rhsText, lhsValue == rhsValue {
                     return true
                 } else {
                     return false
@@ -409,8 +435,16 @@ private enum DataAndStorageEntry: ItemListNodeEntry {
                 return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: text, value: value, sectionId: self.section, style: .blocks, updated: { value in
                     arguments.toggleSaveEditedPhotos(value)
                 }, tag: DataAndStorageEntryTag.saveEditedPhotos)
+            case let .pauseMusicOnVoiceRecording(_, text, value):
+                return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: text, value: value, maximumNumberOfLines: 2, sectionId: self.section, style: .blocks, updated: { value in
+                    arguments.togglePauseMusicOnVoiceRecording(value)
+                }, tag: DataAndStorageEntryTag.pauseMusicOnVoiceRecording)
+            case let .pauseMusicOnVoicePlayback(_, text, value):
+                return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: text, value: value, maximumNumberOfLines: 2, sectionId: self.section, style: .blocks, updated: { value in
+                    arguments.togglePauseMusicOnVoicePlayback(value)
+                }, tag: DataAndStorageEntryTag.pauseMusicOnVoicePlayback)
             case let .pauseMusicOnRecording(_, text, value):
-                return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: text, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: text, value: value, maximumNumberOfLines: 2, sectionId: self.section, style: .blocks, updated: { value in
                     arguments.togglePauseMusicOnRecording(value)
                 }, tag: DataAndStorageEntryTag.pauseMusicOnRecording)
             case let .raiseToListen(_, text, value):
@@ -637,7 +671,10 @@ private func dataAndStorageControllerEntries(context: AccountContext, state: Dat
         entries.append(.shareSheet(presentationData.theme, presentationData.strings.ChatSettings_IntentsSettings))
     }
     entries.append(.saveEditedPhotos(presentationData.theme, presentationData.strings.Settings_SaveEditedPhotos, data.generatedMediaStoreSettings.storeEditedPhotos))
-    entries.append(.pauseMusicOnRecording(presentationData.theme, presentationData.strings.Settings_PauseMusicOnRecording, data.mediaInputSettings.pauseMusicOnRecording))
+    let russian = String(presentationData.strings.primaryComponent.languageCode.prefix(2)).lowercased() == "ru"
+    entries.append(.pauseMusicOnRecording(presentationData.theme, russian ? "Пауза музыки при записи видео" : "Pause music when recording video", data.mediaInputSettings.pauseMusicOnRecording))
+    entries.append(.pauseMusicOnVoiceRecording(presentationData.theme, russian ? "Пауза музыки при записи голосового" : "Pause music when recording voice messages", data.mediaInputSettings.pauseMusicOnVoiceRecording))
+    entries.append(.pauseMusicOnVoicePlayback(presentationData.theme, russian ? "Пауза музыки при прослушивании голосового" : "Pause music when playing voice messages", data.mediaInputSettings.pauseMusicOnVoicePlayback))
     entries.append(.raiseToListen(presentationData.theme, presentationData.strings.Settings_RaiseToListen, data.mediaInputSettings.enableRaiseToSpeak))
     entries.append(.raiseToListenInfo(presentationData.theme, presentationData.strings.Settings_RaiseToListenInfo))
 
@@ -658,6 +695,8 @@ private func dataAndStorageControllerEntries(context: AccountContext, state: Dat
                     proxyValue = presentationData.strings.SocksProxySetup_ProxyTelegram
                 case .web:
                     proxyValue = ForkWebProxyStrings.proxyType
+                case .vless:
+                    proxyValue = "VLESS"
             }
         } else {
             proxyValue = presentationData.strings.GroupInfo_SharedMediaNone
@@ -874,6 +913,10 @@ public func dataAndStorageController(context: AccountContext, focusOnItemTag: Da
         let _ = updateGeneratedMediaStoreSettingsInteractively(accountManager: context.sharedContext.accountManager, { current in
             return current.withUpdatedStoreEditedPhotos(value)
         }).start()
+    }, togglePauseMusicOnVoiceRecording: { value in
+        let _ = updateMediaInputSettingsInteractively(accountManager: context.sharedContext.accountManager, { $0.withUpdatedVoiceMusicPolicy(recording: value) }).start()
+    }, togglePauseMusicOnVoicePlayback: { value in
+        let _ = updateMediaInputSettingsInteractively(accountManager: context.sharedContext.accountManager, { $0.withUpdatedVoiceMusicPolicy(playback: value) }).start()
     }, togglePauseMusicOnRecording: { value in
         let _ = updateMediaInputSettingsInteractively(accountManager: context.sharedContext.accountManager, { current in
             return current.withUpdatedPauseMusicOnRecording(value)

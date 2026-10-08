@@ -124,7 +124,13 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
             case .addProxy:
                 return .index(2)
             case let .server(_, _, _, settings, _, _, _, _, _):
-                return .server(settings.host, settings.port, settings.connection)
+                let displayHost: String
+                if case .vless = settings.connection, let vlessURL = settings.vlessProxyURL {
+                    displayHost = vlessURL
+                } else {
+                    displayHost = settings.host
+                }
+                return .server(displayHost, settings.port, settings.connection)
             case .shareProxyList:
                 return .index(3)
             case .useLocalDNS:
@@ -458,8 +464,12 @@ private func proxySettingsControllerEntries(theme: PresentationTheme, strings: P
                     text = strings.SocksProxySetup_ProxyTelegram
                 case .web:
                     text = ForkWebProxyStrings.proxyType
+                case .vless:
+                    text = "VLESS"
             }
             switch status {
+                case .notChecked:
+                    displayStatus = DisplayProxyServerStatus(activity: false, text: text, textActive: false)
                 case .notAvailable:
                     text = text + ", " + strings.SocksProxySetup_ProxyStatusUnavailable
                     displayStatus = DisplayProxyServerStatus(activity: false, text: text, textActive: false)
@@ -542,6 +552,10 @@ private func proxySettingsControllerEntries(theme: PresentationTheme, strings: P
                 // use it and there is no bridge for it.
                 entries.append(.useForCalls(theme, strings.SocksProxySetup_UseForCalls, proxySettings.useForCalls))
                 entries.append(.useForCallsInfo(theme, ForkWebProxyStrings.callsNote))
+            case .vless:
+                entries.append(.useForCalls(theme, strings.SocksProxySetup_UseForCalls, proxySettings.useForCalls))
+                let vlessCallsInfo = preferRussian ? "Звонки идут через встроенный VLESS-туннель (без P2P-утечек)." : "Calls go through the embedded VLESS tunnel (no P2P leaks)."
+                entries.append(.useForCallsInfo(theme, vlessCallsInfo))
             case .mtp:
                 break
         }
@@ -690,7 +704,7 @@ public func proxySettingsController(accountManager: AccountManager<TelegramAccou
     })
     
     let signal = combineLatest(updatedPresentationData, statePromise.get(), proxySettings.get(), statusesContext.statuses(), network.connectionStatus)
-    |> map { presentationData, state, proxySettings, statuses, connectionStatus -> (ItemListControllerState, (ItemListNodeState, Any)) in
+    |> map { presentationData, state, proxySettings, statuses, connectionStatus -> (ItemListControllerState, (ItemListNodeState, ProxySettingsControllerArguments)) in
         var presentationData = presentationData
         let updatedTheme = presentationData.theme.withModalBlocksBackground()
         presentationData = presentationData.withUpdated(theme: updatedTheme)
@@ -729,7 +743,7 @@ public func proxySettingsController(accountManager: AccountManager<TelegramAccou
         return (controllerState, (listState, arguments))
     }
     
-    let controller = ItemListController(presentationData: ItemListPresentationData(presentationData), updatedPresentationData: updatedPresentationData |> map(ItemListPresentationData.init(_:)), state: signal, tabBarItem: nil)
+    let controller = ItemListController(presentationData: ItemListPresentationData(presentationData), updatedPresentationData: updatedPresentationData |> map { ItemListPresentationData($0) }, state: signal, tabBarItem: nil)
     controller.navigationPresentation = .modal
     pushControllerImpl = { [weak controller] c in
         (controller?.navigationController as? NavigationController)?.pushViewController(c)
@@ -821,6 +835,8 @@ public func proxySettingsController(accountManager: AccountManager<TelegramAccou
                         let secret = MTProxySecret.parseData(secret)?.serializeToString() ?? ""
                         string = "https://t.me/webproxy?server=\(server.host)"
                         string += "&secret=\((secret as NSString).addingPercentEncoding(withAllowedCharacters: CharacterSet.urlQueryValueAllowed) ?? "")"
+                    case let .vless(secret):
+                        string = String(data: secret, encoding: .utf8) ?? ""
                     }
                     
                     result += string
@@ -844,10 +860,17 @@ public func proxySettingsController(accountManager: AccountManager<TelegramAccou
                 actionSheet?.dismissAnimated()
                 addServer(.socks5)
             }),
+            ActionSheetTextItem(title: ForkProxyDescriptionStrings.Menu.socks5),
             ActionSheetButtonItem(title: presentationData.strings.SocksProxySetup_ProxyTelegram, color: .accent, action: { [weak actionSheet] in
                 actionSheet?.dismissAnimated()
                 addServer(.mtp)
             }),
+            ActionSheetTextItem(title: ForkProxyDescriptionStrings.Menu.mtp),
+            ActionSheetButtonItem(title: "VLESS", color: .accent, action: { [weak actionSheet] in
+                actionSheet?.dismissAnimated()
+                addServer(.vless)
+            }),
+            ActionSheetTextItem(title: ForkProxyDescriptionStrings.Menu.vless),
             ActionSheetButtonItem(title: ForkWebProxyStrings.proxyType, color: .accent, action: { [weak actionSheet, weak strongController] in
                 actionSheet?.dismissAnimated()
                 // If there are catalog entries, offer a pick sheet; otherwise go straight to manual.
@@ -895,7 +918,8 @@ public func proxySettingsController(accountManager: AccountManager<TelegramAccou
                     ])
                     controller.present(sheet, in: .window(.root))
                 }
-            })
+            }),
+            ActionSheetTextItem(title: ForkProxyDescriptionStrings.Menu.web),
         ]), ActionSheetItemGroup(items: [
             ActionSheetButtonItem(title: presentationData.strings.Common_Cancel, color: .accent, font: .bold, action: { [weak actionSheet] in
                 actionSheet?.dismissAnimated()

@@ -277,7 +277,7 @@ final class OverlayAudioPlayerControlsNode: ASDisplayNode {
         self.infoNode.displaysAsynchronously = false
         
         self.rateButton = AudioRateButton()
-        self.rateButton.hitTestSlop = UIEdgeInsets(top: -8.0, left: -4.0, bottom: -8.0, right: -4.0)
+        self.rateButton.hitTestSlop = UIEdgeInsets(top: -8.0, left: -10.0, bottom: -8.0, right: -10.0)
         self.rateButton.displaysAsynchronously = false
         
         self.backwardButton = IconButtonNode()

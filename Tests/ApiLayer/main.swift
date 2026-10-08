@@ -1,0 +1,30 @@
+import Foundation
+func roundTrip(_ value: TypeConstructorDescription) {
+    let buffer = Buffer()
+    Api.serializeObject(value, buffer: buffer, boxed: true)
+    guard let decoded = Api.parse(Buffer(data: buffer.makeData())) as? TypeConstructorDescription else { fatalError("Decode failed") }
+    let encoded = Buffer()
+    Api.serializeObject(decoded, buffer: encoded, boxed: true)
+    precondition(buffer.makeData() == encoded.makeData(), "Wire round trip changed")
+}
+let text = Api.TextWithEntities.textWithEntities(.init(text: "draft", entities: []))
+roundTrip(Api.SendMessageAction.sendMessageTextDraftAction(.init(flags: 3, randomId: 123, text: text)))
+roundTrip(Api.SendMessageAction.sendMessageStopDraftAction(.init(randomId: 123)))
+roundTrip(Api.MessageAction.messageActionChatJoinedViaCommunity(.init(communityId: 321)))
+let callback = Api.InlineButtonType.inlineButtonTypeCallback(.init(flags: 1, data: Buffer(data: Data([0, 1, 255]))))
+let button = Api.KeyboardInlineButton.keyboardInlineButton(.init(flags: 0, style: nil, text: "Callback", type: callback))
+roundTrip(Api.ReplyMarkup.replyInlineMarkup(.init(flags: 1 << 5, rows: [.keyboardInlineButtonRow(.init(buttons: [button]))])))
+roundTrip(Api.KeyboardButton.keyboardButton(.init(flags: 0, style: nil, text: "Phone", type: .buttonTypeRequestPhone)))
+roundTrip(Api.KeyboardInlineButton.keyboardInlineButton(.init(flags: 0, style: nil, text: "Disabled", type: .inlineButtonTypeDisabled)))
+roundTrip(Api.RichText.textButton(.init(flags: 0, text: .textPlain(.init(text: "Link")), type: .inlineButtonTypeUrl(.init(url: "https://telegram.org")), style: nil)))
+roundTrip(Api.PageBlock.pageBlockDocument(.init(documentId: 42, caption: .pageCaption(.init(text: .textEmpty, credit: .textEmpty)))))
+print("Layer 229 wire fixtures passed")
+
+roundTrip(Api.EphemeralMessage.ephemeralMessage(.init(flags: 1 << 5, id: 1, fromId: .peerUser(.init(userId: 7)), peerId: nil, receiverId: 8, topMsgId: nil, date: 1, message: "template", entities: nil, media: nil, replyMarkup: nil, replyTo: nil, richMessage: nil, chatInstance: nil, anchorMsgId: nil)))
+let deletion = Api.functions.ephemeral.deleteMessage(flags: 1, peer: .inputPeerSelf, receiverId: .inputUserSelf, id: 1)
+let deletionReader = BufferReader(deletion.1)
+precondition(UInt32(bitPattern: deletionReader.readInt32()!) == 0x92f6e797)
+precondition(deletionReader.readInt32() == 1)
+let peerBuffer = Buffer()
+Api.InputPeer.inputPeerSelf.serialize(peerBuffer, true)
+precondition(deletionReader.readInt32() == BufferReader(peerBuffer).readInt32())

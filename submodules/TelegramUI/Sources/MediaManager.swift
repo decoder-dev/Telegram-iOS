@@ -515,7 +515,9 @@ public final class MediaManagerImpl: NSObject, MediaManager {
                 strongSelf.nextPlayerIndex += 1
                 switch type {
                     case .voice:
-                        strongSelf.musicMediaPlayer?.control(.playback(.pause))
+                        if BananaAudioPolicy.current.pauseMusicOnVoicePlayback {
+                            strongSelf.musicMediaPlayer?.control(.playback(.pause))
+                        }
                         if let (context, playlist, settings, storedState) = inputData {
                             if areSharedMediaPlaylistsEqual(playlist, strongSelf.voiceMediaPlayer?.playlist), case .seek = control {
                                 strongSelf.voiceMediaPlayer?.control(control)

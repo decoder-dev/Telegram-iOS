@@ -137,6 +137,8 @@ public final class ChatTextInputActionButtonsNode: ASDisplayNode, ChatSendMessag
     public let micButtonBackgroundView: GlassBackgroundView
     public let micButtonTintMaskView: UIImageView
     public let micButton: ChatTextInputMediaRecordingButton
+    public let stopButton = UIButton(type: .custom)
+    public var stopPressed: (() -> Void)?
     public let stopButtonIcon: GlassBackgroundView.ContentImageView
     
     public let sendContainerNode: ASDisplayNode
@@ -197,6 +199,8 @@ public final class ChatTextInputActionButtonsNode: ASDisplayNode, ChatSendMessag
         self.stopButtonIcon = GlassBackgroundView.ContentImageView()
         self.micButtonBackgroundView.contentView.addSubview(self.stopButtonIcon)
         self.stopButtonIcon.alpha = 0.0
+        self.stopButton.isHidden = true
+        self.stopButton.accessibilityLabel = strings.GroupInfo_SetGroupPhotoStop
         
         self.sendContainerNode = ASDisplayNode()
         self.sendContainerNode.layer.allowsGroupOpacity = true
@@ -218,6 +222,7 @@ public final class ChatTextInputActionButtonsNode: ASDisplayNode, ChatSendMessag
         self.expandMediaInputButtonIcon.setMonochromaticEffect(tintColor: theme.chat.inputPanel.panelControlColor)
         
         super.init()
+        self.stopButton.addTarget(self, action: #selector(self.stopButtonPressed), for: .touchUpInside)
         
         self.isAccessibilityElement = true
         self.accessibilityTraits = [.button, .notEnabled]
@@ -245,6 +250,7 @@ public final class ChatTextInputActionButtonsNode: ASDisplayNode, ChatSendMessag
         self.micButton.layer.allowsGroupOpacity = true
         self.view.addSubview(self.micButtonBackgroundView)
         self.micButtonBackgroundView.contentView.addSubview(self.micButton)
+        self.micButtonBackgroundView.contentView.addSubview(self.stopButton)
             
         self.addSubnode(self.sendContainerNode)
         self.sendContainerNode.view.addSubview(self.sendButtonBackgroundView)
@@ -268,6 +274,10 @@ public final class ChatTextInputActionButtonsNode: ASDisplayNode, ChatSendMessag
         self.slowmodeProgressTimer?.invalidate()
     }
     
+    @objc private func stopButtonPressed() {
+        self.stopPressed?()
+    }
+
     override public func didLoad() {
         super.didLoad()
         
@@ -371,6 +381,7 @@ public final class ChatTextInputActionButtonsNode: ASDisplayNode, ChatSendMessag
         transition.updatePosition(layer: self.micButton.layer, position: CGRect(origin: CGPoint(), size: size).center)
         transition.updateBounds(layer: self.micButton.layer, bounds: CGRect(origin: CGPoint(), size: size))
         self.micButton.layoutItems()
+        self.stopButton.frame = CGRect(origin: CGPoint(), size: size)
         
         if self.stopButtonIcon.image == nil {
             self.stopButtonIcon.image = generateImage(CGSize(width: 14.0, height: 14.0), rotatedContext: { size, context in
@@ -555,8 +566,7 @@ public final class ChatTextInputActionButtonsNode: ASDisplayNode, ChatSendMessag
     public func updateAccessibility() {
         self.accessibilityTraits = .button
         if !self.stopButtonIcon.alpha.isZero {
-            //TODO:localize
-            self.accessibilityLabel = "Stop"
+            self.accessibilityLabel = self.strings.GroupInfo_SetGroupPhotoStop
             self.accessibilityHint = nil
         } else if !self.micButton.alpha.isZero {
             switch self.micButton.mode {

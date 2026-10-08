@@ -1054,6 +1054,11 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
                 let attributedText = stringWithAppliedEntities(item.message.text, entities: item.message.textEntitiesAttribute?.entities ?? [], baseColor: textColor, linkColor: textColor, baseFont: font, linkFont: font, boldFont: font, italicFont: font, boldItalicFont: font, fixedFont: font, blockQuoteFont: font, message: item.message, adjustQuoteFontSize: true)
                 textLayoutAndApply = textLayout(TextNodeLayoutArguments(attributedString: attributedText, backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: maximumContentWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .natural))
                 
+                // Keep large-emoji TextNode at screen scale so Apple Color Emoji bitmaps stay sharp on Retina. (Upstream PR #2291.)
+                let screenScale = UIScreen.main.scale
+                self.textNode.textNode.contentsScale = screenScale
+                self.textNode.textNode.layer.contentsScale = screenScale
+                
                 imageSize = CGSize(width: textLayoutAndApply!.0.size.width, height: textLayoutAndApply!.0.size.height)
                 isEmoji = true
                 
@@ -1197,7 +1202,7 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
             var replyInnerSubject: EngineMessageReplyInnerSubject?
             var replyStory: StoryId?
             for attribute in item.message.attributes {
-                if let attribute = attribute as? InlineBotMessageAttribute {
+                if let attribute = attribute as? InlineBotMessageAttribute, !ForkMessageVisibility.hideViaBot {
                     var inlineBotNameString: String?
                     if let peerId = attribute.peerId, let bot = item.message.peers[peerId] as? TelegramUser {
                         inlineBotNameString = bot.addressName
@@ -1269,7 +1274,8 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
                     constrainedSize: CGSize(width: availableContentWidth, height: CGFloat.greatestFiniteMagnitude),
                     animationCache: item.controllerInteraction.presentationContext.animationCache,
                     animationRenderer: item.controllerInteraction.presentationContext.animationRenderer,
-                    associatedData: item.associatedData
+                    associatedData: item.associatedData,
+                    ArenaHidden: TelegramShadowBan.hidesReplyHeader(in: item.message)
                 ))
             }
             
@@ -1414,7 +1420,7 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
             } else if shouldDisplayInlineDateReactions(message: EngineMessage(item.message), isPremium: item.associatedData.isPremium, forceInline: item.associatedData.forceInlineReactions) {
                 reactions = ReactionsMessageAttribute(canViewList: false, isTags: false, reactions: [], recentPeers: [], topPeers: [])
             } else {
-                reactions = mergedMessageReactions(attributes: item.message.attributes, isTags: item.message.areReactionsTags(accountPeerId: item.context.account.peerId)) ?? ReactionsMessageAttribute(canViewList: false, isTags: false, reactions: [], recentPeers: [], topPeers: [])
+                reactions = forkVisibleMessageReactions(attributes: item.message.attributes, isTags: item.message.areReactionsTags(accountPeerId: item.context.account.peerId)) ?? ReactionsMessageAttribute(canViewList: false, isTags: false, reactions: [], recentPeers: [], topPeers: [])
             }
             var reactionButtonsFinalize: ((CGFloat) -> (CGSize, (_ animation: ListViewItemUpdateAnimation) -> ChatMessageReactionButtonsNode))?
             if !reactions.reactions.isEmpty {
@@ -2297,7 +2303,7 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
             if let viaBotNode = self.viaBotNode, viaBotNode.frame.contains(location) {
                 if let item = self.item {
                     for attribute in item.message.attributes {
-                        if let attribute = attribute as? InlineBotMessageAttribute {
+                        if let attribute = attribute as? InlineBotMessageAttribute, !ForkMessageVisibility.hideViaBot {
                             var botAddressName: String?
                             if let peerId = attribute.peerId, let botPeer = item.message.peers[peerId], let addressName = botPeer.addressName {
                                 botAddressName = addressName
@@ -2322,6 +2328,12 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
             
             if let replyInfoNode = self.replyInfoNode, replyInfoNode.frame.contains(location) {
                 if let item = self.item {
+                    // The hidden message is not in the chat, so there is nowhere to go.
+                    if TelegramShadowBan.hidesReplyHeader(in: item.message) {
+                        return .optionalAction({
+                            item.controllerInteraction.displayMessageTooltip(item.message.id, ChatMessageReplyInfoNode.ArenaHiddenTooltip(strings: item.presentationData.strings), false, replyInfoNode, nil)
+                        })
+                    }
                     for attribute in item.message.attributes {
                         if let attribute = attribute as? ReplyMessageAttribute {
                             return .optionalAction({
@@ -3323,29 +3335,24 @@ private func fontSizeForEmojiString(_ string: String) -> CGFloat {
     
     let length = max(maxLineLength, linesCount)
     
-    let basicSize: CGFloat = 94.0
-    let multiplier: CGFloat
+    // Prefer Apple Color Emoji bitmap rungs (16/20/24/28/32/40/48) so 2x/3x
+    // Retina does not upsample soft glyphs. The previous 94pt single-emoji size was
+    // ~2x Android TYPE_EMOJIS (~41dp) and looked oversized + blurry on high-DPI screens.
+    // (Upstream PR #2291.)
     switch length {
         case 1:
-            multiplier = 1.0
+            return 48.0
         case 2:
-            multiplier = 0.84
+            return 40.0
         case 3:
-            multiplier = 0.69
+            return 32.0
         case 4:
-            multiplier = 0.53
+            return 28.0
         case 5:
-            multiplier = 0.46
-        case 6:
-            multiplier = 0.38
-        case 7:
-            multiplier = 0.32
-        case 8:
-            multiplier = 0.27
-        case 9:
-            multiplier = 0.24
+            return 24.0
+        case 6, 7, 8:
+            return 20.0
         default:
-            multiplier = 0.21
+            return 16.0
     }
-    return floor(basicSize * multiplier)
 }

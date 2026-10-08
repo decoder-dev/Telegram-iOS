@@ -199,7 +199,7 @@ class CallListGroupCallItemNode: ItemListRevealOptionsItemNode {
         self.titleNode = TextNode()
         
         self.joinButtonNode = HighlightableButtonNode()
-        self.joinButtonNode.hitTestSlop = UIEdgeInsets(top: -6.0, left: -6.0, bottom: -6.0, right: -10.0)
+        self.joinButtonNode.hitTestSlop = UIEdgeInsets(top: -8.0, left: -6.0, bottom: -8.0, right: -10.0)
         
         self.joinTitleNode = TextNode()
         self.joinBackgroundNode = ASImageNode()

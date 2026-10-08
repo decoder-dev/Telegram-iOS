@@ -2294,12 +2294,13 @@ static bool isDataEqualToDataConstTime(NSData *data1, NSData *data2) {
     int32_t messageDataLength = 0;
     [decryptedData getBytes:&messageDataLength range:NSMakeRange(28, 4)];
 
-    int32_t paddingLength = ((int32_t)decryptedData.length) - messageDataLength;
-    if (paddingLength < 12 || paddingLength > 1024) {
+    // The encrypted envelope has a 32-byte header before the declared body.
+    // Validate before subtracting: signed malformed lengths must not overflow.
+    if (messageDataLength < 4 || messageDataLength % 4 != 0 || (NSUInteger)messageDataLength > decryptedData.length - 32) {
         return nil;
     }
-
-    if (messageDataLength < 0 || messageDataLength > (int32_t)decryptedData.length) {
+    NSUInteger paddingLength = decryptedData.length - 32 - (NSUInteger)messageDataLength;
+    if (paddingLength < 12 || paddingLength > 1024) {
         return nil;
     }
     
@@ -2412,8 +2413,8 @@ static bool isDataEqualToDataConstTime(NSData *data1, NSData *data2) {
             return nil;
         }
         
-        [is readInt32:&readError];
-        if (readError)
+        topMessageSize = [is readInt32:&readError];
+        if (readError || topMessageSize < 4)
         {
             if (parseError != NULL) {
                 *parseError = true;
@@ -2422,15 +2423,12 @@ static bool isDataEqualToDataConstTime(NSData *data1, NSData *data2) {
         }
     }
     
-    NSMutableData *topMessageData = [[NSMutableData alloc] init];
-    uint8_t buffer[128];
-    while (true)
-    {
-        NSInteger readBytes = [[is wrappedInputStream] read:buffer maxLength:128];
-        if (readBytes <= 0) {
-            break;
+    NSData *topMessageData = [is readData:topMessageSize failed:&readError];
+    if (readError || topMessageData == nil) {
+        if (parseError != NULL) {
+            *parseError = true;
         }
-        [topMessageData appendBytes:buffer length:readBytes];
+        return nil;
     }
     
     id topObject = [self parseMessage:topMessageData];

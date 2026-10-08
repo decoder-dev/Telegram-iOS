@@ -26,7 +26,11 @@ public func messageSingleBubbleLikeImage(fillColor: UIColor, strokeColor: UIColo
     })!.stretchableImage(withLeftCapWidth: Int(diameter / 2.0), topCapHeight: Int(diameter / 2.0))
 }
 
-private let minRadiusForFullTailCorner: CGFloat = 14.0
+// Bubbles whose main corner radius is at or above this threshold get the full curved
+// tail shape (two quadratic Bézier arcs); smaller radii fall back to a rectangular
+// tail stub. Kept just below the default mainRadius (14 pt) so the curved form is
+// always used at the factory setting.
+private let minRadiusForFullTailCorner: CGFloat = 13.0
 
 func mediaBubbleCornerImage(incoming: Bool, radius: CGFloat, inset: CGFloat) -> UIImage {
     let imageSize = CGSize(width: radius + 7.0, height: 8.0)
@@ -249,12 +253,9 @@ public func messageBubbleImage(maxCornerRadius: CGFloat, minCornerRadius: CGFloa
         let borderWidth: CGFloat
         let borderOffset: CGFloat
         
-        let innerExtension: CGFloat
-        if knockout && !mask {
-            innerExtension = 0.25
-        } else {
-            innerExtension = 0.25
-        }
+        // A quarter-pixel inward extension softens the stroke boundary regardless of
+        // whether the image is used as a knockout mask or a direct outline.
+        let innerExtension: CGFloat = 0.25
         
         if abs(UIScreenPixel - 0.5) < CGFloat.ulpOfOne {
             borderWidth = UIScreenPixel + innerExtension

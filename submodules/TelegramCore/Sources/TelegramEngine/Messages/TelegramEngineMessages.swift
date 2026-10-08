@@ -1,4 +1,4 @@
-import Foundation
+﻿import Foundation
 import SwiftSignalKit
 import Postbox
 import TelegramApi
@@ -91,6 +91,48 @@ public extension TelegramEngine {
 
         init(account: Account) {
             self.account = account
+        }
+
+        /// Returns false on transport/server failure so the stop control remains retryable.
+        public func stopIncomingTypingDraft(peerId: PeerId, threadId: Int64?) -> Signal<Bool, NoError> {
+            let account = self.account
+            let location = PeerAndThreadId(peerId: peerId, threadId: threadId)
+            return account.postbox.transaction { transaction -> (Api.InputPeer, Int64)? in
+                guard let peer = transaction.getPeer(peerId), let inputPeer = apiInputPeer(peer),
+                    let draft = transaction.getCurrentTypingDraft(location: location),
+                    let attribute = draft.attributes.compactMap({ $0 as? TypingDraftMessageAttribute }).first,
+                    attribute.canStop else {
+                    return nil
+                }
+                return (inputPeer, draft.id)
+            }
+            |> mapToSignal { value -> Signal<Bool, NoError> in
+                guard let (inputPeer, id) = value else { return .single(false) }
+                let topMsgId: Int32?
+                if let threadId {
+                    guard let value = Int32(exactly: threadId) else { return .single(false) }
+                    topMsgId = value
+                } else {
+                    topMsgId = nil
+                }
+                return account.network.request(Api.functions.messages.setTyping(flags: topMsgId == nil ? 0 : 1, peer: inputPeer, topMsgId: topMsgId, action: .sendMessageStopDraftAction(.init(randomId: id))))
+                |> map { result -> Bool in
+                    if case .boolTrue = result { return true }
+                    return false
+                }
+                |> `catch` { _ in .single(false) }
+                |> mapToSignal { success -> Signal<Bool, NoError> in
+                    guard success else { return .single(false) }
+                    return account.postbox.transaction { transaction -> Bool in
+                        guard let draft = transaction.getCurrentTypingDraft(location: location), draft.id == id,
+                            let attribute = draft.attributes.compactMap({ $0 as? TypingDraftMessageAttribute }).first else {
+                            return true
+                        }
+                        transaction.stopTypingDraft(location: location, id: id, keep: attribute.keepOnStop, attributes: draft.attributes.filter { !($0 is TypingDraftMessageAttribute) })
+                        return true
+                    }
+                }
+            }
         }
 
         public func clearCloudDraftsInteractively() -> Signal<Void, NoError> {
@@ -1011,6 +1053,17 @@ public extension TelegramEngine {
         }
         
         public func storySubscriptions(isHidden: Bool, tempKeepNewlyArchived: Bool = false) -> Signal<EngineStorySubscriptions, NoError> {
+            // Shadow-banned peers leave the story strip, the archive strip and the viewer's peer sequence.
+            return combineLatest(
+                self.ArenaUnfilteredStorySubscriptions(isHidden: isHidden, tempKeepNewlyArchived: tempKeepNewlyArchived),
+                TelegramShadowBan.stateSignal()
+            )
+            |> map { subscriptions, state -> EngineStorySubscriptions in
+                return TelegramShadowBan.filteringHidden(subscriptions, state: state)
+            }
+        }
+
+        private func ArenaUnfilteredStorySubscriptions(isHidden: Bool, tempKeepNewlyArchived: Bool) -> Signal<EngineStorySubscriptions, NoError> {
             return `deferred` { () -> Signal<EngineStorySubscriptions, NoError> in
                 let debugTimerSignal: Signal<Bool, NoError>
 #if DEBUG && false

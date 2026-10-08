@@ -398,9 +398,16 @@ public final class MediaBoxFileContextV2Impl: MediaBoxFileContext {
                     }
                 }
             case let .resourceSizeUpdated(size):
-                if self.fileMap.truncationSize != size {
-                    self.fileMap.truncate(size)
-                    self.fileMap.serialize(manager: self.manager, to: self.metaPath)
+                // See the matching guard in MediaBoxFile.swift: a reported size of 0 is
+                // not evidence of a completed resource (WEBFILE_NOT_AVAILABLE used to
+                // produce exactly this, upstream issue #2244). Real media resources are
+                // never 0 bytes; treat 0 as "no information" rather than truncating the
+                // file to a complete 0-byte resource.
+                if size > 0 {
+                    if self.fileMap.truncationSize != size {
+                        self.fileMap.truncate(size)
+                        self.fileMap.serialize(manager: self.manager, to: self.metaPath)
+                    }
                 }
             case let .progressUpdated(progress):
                 self.fileMap.progressUpdated(progress)

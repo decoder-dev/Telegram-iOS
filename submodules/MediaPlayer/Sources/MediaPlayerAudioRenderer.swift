@@ -377,7 +377,7 @@ private final class AudioPlayerRendererContext {
                 AUGraphStop(audioGraph)
             }
         }
-        self.audioSessionControl?.setType(self.ambient ? .ambient : (self.playAndRecord ? .playWithPossiblePortOverride : .play(mixWithOthers: self.mixWithOthers)), completion: { [weak self] in
+        self.audioSessionControl?.setType(self.managedAudioSessionType, completion: { [weak self] in
             audioPlayerRendererQueue.async {
                 guard let self else {
                     return
@@ -430,10 +430,20 @@ private final class AudioPlayerRendererContext {
         }
     }
     
+    private var managedAudioSessionType: ManagedAudioSessionType {
+        if self.ambient {
+            return .ambient
+        } else if self.playAndRecord {
+            return self.mixWithOthers ? .playWithPossiblePortOverrideAndMixWithOthers : .playWithPossiblePortOverride
+        } else {
+            return .play(mixWithOthers: self.mixWithOthers)
+        }
+    }
+
     private func acquireAudioSession() {
         switch self.audioSession {
             case let .manager(manager):
-                self.audioSessionDisposable.set(manager.push(audioSessionType: self.ambient ? .ambient : (self.playAndRecord ? .playWithPossiblePortOverride : .play(mixWithOthers: self.mixWithOthers)), outputMode: self.forceAudioToSpeaker ? .speakerIfNoHeadphones : .system, once: self.ambient, manualActivate: { [weak self] control in
+                self.audioSessionDisposable.set(manager.push(audioSessionType: self.managedAudioSessionType, outputMode: self.forceAudioToSpeaker ? .speakerIfNoHeadphones : .system, once: self.ambient, manualActivate: { [weak self] control in
                     audioPlayerRendererQueue.async {
                         if let strongSelf = self {
                             strongSelf.audioSessionControl = control

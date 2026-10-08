@@ -533,7 +533,9 @@ public enum RequestUpdateChatListFilterError {
 
 func _internal_requestUpdateChatListFilter(postbox: Postbox, network: Network, id: Int32, filter: ChatListFilter?) -> Signal<Never, RequestUpdateChatListFilterError> {
     return postbox.transaction { transaction -> Api.DialogFilter? in
-        return filter?.apiFilter(transaction: transaction)
+        let settings = transaction.getPreferencesEntry(key: PreferencesKeys.chatListFilters)?.get(ChatListFiltersState.self) ?? .default
+        // Also protect direct folder updates outside the sync loop.
+        return filter.flatMap { settings.donutgramServerFilters([$0]).first }?.apiFilter(transaction: transaction)
     }
     |> castError(RequestUpdateChatListFilterError.self)
     |> mapToSignal { inputFilter -> Signal<Never, RequestUpdateChatListFilterError> in
@@ -918,7 +920,7 @@ private func loadAndStorePeerChatInfos(accountPeerId: PeerId, postbox: Postbox, 
                         
                         ttlPeriods[peer.peerId] = .known(ttlPeriod.flatMap(CachedPeerAutoremoveTimeout.Value.init(peerValue:)))
                         
-                        transaction.resetIncomingReadStates([peerId: [Namespaces.Message.Cloud: .idBased(maxIncomingReadId: readInboxMaxId, maxOutgoingReadId: readOutboxMaxId, maxKnownId: topMessage, count: unreadCount, markedUnread: false)]])
+                        bananaResetIncomingReadStates(transaction: transaction, accountPeerId: accountPeerId, [peerId: [Namespaces.Message.Cloud: .idBased(maxIncomingReadId: readInboxMaxId, maxOutgoingReadId: readOutboxMaxId, maxKnownId: topMessage, count: unreadCount, markedUnread: false)]])
                         
                         transaction.replaceMessageTagSummary(peerId: peerId, threadId: nil, tagMask: .unseenPersonalMessage, namespace: Namespaces.Message.Cloud, customTag: nil, count: unreadMentionsCount, maxId: topMessage)
                         transaction.replaceMessageTagSummary(peerId: peerId, threadId: nil, tagMask: .unseenReaction, namespace: Namespaces.Message.Cloud, customTag: nil, count: unreadReactionsCount, maxId: topMessage)
@@ -1017,6 +1019,31 @@ struct ChatListFiltersState: Codable, Equatable {
     
     var remoteDisplayTags: Bool?
     var displayTags: Bool
+    // Per-account Postbox storage; these presentation overrides never reach Telegram.
+    var donutgramLocalFolderColors: [Int32: Int32] = [:]
+    var donutgramLocalDisplayTags: Bool?
+
+    func donutgramApplyingLocalColors(_ filters: [ChatListFilter]) -> [ChatListFilter] {
+        return filters.map { filter in
+            guard case let .filter(id, title, emoticon, data) = filter, let value = self.donutgramLocalFolderColors[id] else { return filter }
+            var updatedData = data
+            updatedData.color = value == -1 ? nil : PeerNameColor(rawValue: value)
+            return .filter(id: id, title: title, emoticon: emoticon, data: updatedData)
+        }
+    }
+
+    func donutgramServerFilters(_ filters: [ChatListFilter]) -> [ChatListFilter] {
+        return filters.map { filter in
+            guard case let .filter(id, title, emoticon, data) = filter, self.donutgramLocalFolderColors[id] != nil else { return filter }
+            var updatedData = data
+            if let remoteFilter = self.remoteFilters?.first(where: { $0.id == id }), case let .filter(_, _, _, remoteData) = remoteFilter {
+                updatedData.color = remoteData.color
+            } else {
+                updatedData.color = nil
+            }
+            return .filter(id: id, title: title, emoticon: emoticon, data: updatedData)
+        }
+    }
     
     static var `default` = ChatListFiltersState(filters: [], remoteFilters: nil, updates: [], remoteDisplayTags: nil, displayTags: false)
     
@@ -1036,6 +1063,8 @@ struct ChatListFiltersState: Codable, Equatable {
         self.updates = try container.decodeIfPresent([ChatListFilterUpdates].self, forKey: "updates") ?? []
         self.remoteDisplayTags = try container.decodeIfPresent(Bool.self, forKey: "remoteDisplayTags")
         self.displayTags = try container.decodeIfPresent(Bool.self, forKey: "displayTags") ?? false
+        self.donutgramLocalFolderColors = try container.decodeIfPresent([Int32: Int32].self, forKey: "donutgramLocalFolderColors") ?? [:]
+        self.donutgramLocalDisplayTags = try container.decodeIfPresent(Bool.self, forKey: "donutgramLocalDisplayTags")
     }
     
     func encode(to encoder: Encoder) throws {
@@ -1046,9 +1075,12 @@ struct ChatListFiltersState: Codable, Equatable {
         try container.encode(self.updates, forKey: "updates")
         try container.encodeIfPresent(self.remoteDisplayTags, forKey: "remoteDisplayTags")
         try container.encode(self.displayTags, forKey: "displayTags")
+        try container.encode(self.donutgramLocalFolderColors, forKey: "donutgramLocalFolderColors")
+        try container.encodeIfPresent(self.donutgramLocalDisplayTags, forKey: "donutgramLocalDisplayTags")
     }
     
     mutating func normalize() {
+        self.donutgramLocalFolderColors = self.donutgramLocalFolderColors.filter { id, _ in self.filters.contains { $0.id == id } }
         if self.updates.isEmpty {
             return
         }
@@ -1065,7 +1097,13 @@ func _internal_generateNewChatListFilterId(filters: [ChatListFilter]) -> Int32 {
     }
 }
 
-func _internal_updateChatListFiltersInteractively(postbox: Postbox, _ f: @escaping ([ChatListFilter]) -> [ChatListFilter]) -> Signal<[ChatListFilter], NoError> {
+private func donutgramUsesLocalFolderPresentation(transaction: Transaction, accountPeerId: PeerId) -> Bool {
+    guard ForkLocalPremiumSettings.enabled else { return false }
+    // Peer.isPremium includes local Premium; read the actual subscription flag.
+    return !((transaction.getPeer(accountPeerId) as? TelegramUser)?.flags.contains(.isPremium) ?? false)
+}
+
+func _internal_updateChatListFiltersInteractively(postbox: Postbox, accountPeerId: PeerId, _ f: @escaping ([ChatListFilter]) -> [ChatListFilter]) -> Signal<[ChatListFilter], NoError> {
     return postbox.transaction { transaction -> [ChatListFilter] in
         var updated: [ChatListFilter] = []
         var hasUpdates = false
@@ -1073,8 +1111,24 @@ func _internal_updateChatListFiltersInteractively(postbox: Postbox, _ f: @escapi
             var state = entry?.get(ChatListFiltersState.self) ?? ChatListFiltersState.default
             let updatedFilters = f(state.filters)
             if updatedFilters != state.filters {
+                if donutgramUsesLocalFolderPresentation(transaction: transaction, accountPeerId: accountPeerId) {
+                    for filter in updatedFilters {
+                        if case let .filter(id, _, _, data) = filter {
+                            var previousColor: PeerNameColor?
+                            if let previousFilter = state.filters.first(where: { $0.id == id }), case let .filter(_, _, _, previousData) = previousFilter {
+                                previousColor = previousData.color
+                            }
+                            if data.color != previousColor {
+                                state.donutgramLocalFolderColors[id] = data.color?.rawValue ?? -1
+                            }
+                        }
+                    }
+                    hasUpdates = state.donutgramServerFilters(updatedFilters) != state.donutgramServerFilters(state.filters)
+                } else {
+                    state.donutgramLocalFolderColors = [:]
+                    hasUpdates = true
+                }
                 state.filters = updatedFilters
-                hasUpdates = true
             }
             updated = updatedFilters
             
@@ -1089,11 +1143,17 @@ func _internal_updateChatListFiltersInteractively(postbox: Postbox, _ f: @escapi
     }
 }
 
-func _internal_updateChatListFiltersDisplayTagsInteractively(postbox: Postbox, displayTags: Bool) -> Signal<Never, NoError> {
+func _internal_updateChatListFiltersDisplayTagsInteractively(postbox: Postbox, accountPeerId: PeerId, displayTags: Bool) -> Signal<Never, NoError> {
     return postbox.transaction { transaction -> Void in
         var hasUpdates = false
         transaction.updatePreferencesEntry(key: PreferencesKeys.chatListFilters, { entry in
             var state = entry?.get(ChatListFiltersState.self) ?? ChatListFiltersState.default
+            let localPresentation = donutgramUsesLocalFolderPresentation(transaction: transaction, accountPeerId: accountPeerId)
+            if localPresentation {
+                state.donutgramLocalDisplayTags = displayTags
+            } else {
+                state.donutgramLocalDisplayTags = nil
+            }
             if displayTags != state.displayTags {
                 state.displayTags = displayTags
                 
@@ -1106,17 +1166,20 @@ func _internal_updateChatListFiltersDisplayTagsInteractively(postbox: Postbox, d
                             if data.color == nil {
                                 var data = data
                                 data.color = PeerNameColor(rawValue: Int32.random(in: 0 ... 7))
+                                if localPresentation {
+                                    state.donutgramLocalFolderColors[id] = data.color?.rawValue ?? -1
+                                }
                                 state.filters[i] = .filter(id: id, title: title, emoticon: emoticon, data: data)
                             }
                         }
                     }
                 }
                 
-                hasUpdates = true
+                hasUpdates = !localPresentation
             }
-            
+
             state.normalize()
-            
+
             return PreferencesEntry(state)
         })
         if hasUpdates {
@@ -1536,9 +1599,10 @@ private func synchronizeChatListFilters(transaction: Transaction, accountPeerId:
     switch operation.content {
     case .sync:
         let settings = transaction.getPreferencesEntry(key: PreferencesKeys.chatListFilters)?.get(ChatListFiltersState.self) ?? ChatListFiltersState.default
-        let localFilters = settings.filters
+        let localPresentation = donutgramUsesLocalFolderPresentation(transaction: transaction, accountPeerId: accountPeerId)
+        let localFilters = settings.donutgramServerFilters(settings.filters)
         let locallyKnownRemoteFilters = settings.remoteFilters ?? []
-        let localDisplayTags = settings.displayTags
+        let localDisplayTags = settings.donutgramLocalDisplayTags != nil ? (settings.remoteDisplayTags ?? false) : settings.displayTags
         let locallyKnownRemoteDisplayTags = settings.remoteDisplayTags ?? false
         
         return requestChatListFilters(accountPeerId: accountPeerId, postbox: postbox, network: network)
@@ -1550,10 +1614,10 @@ private func synchronizeChatListFilters(transaction: Transaction, accountPeerId:
                 return postbox.transaction { transaction -> Void in
                     let _ = updateChatListFiltersState(transaction: transaction, { state in
                         var state = state
-                        state.filters = remoteFilters
-                        state.remoteFilters = state.filters
-                        state.displayTags = remoteTagsEnabled
-                        state.remoteDisplayTags = state.displayTags
+                        state.remoteFilters = remoteFilters
+                        state.filters = localPresentation ? state.donutgramApplyingLocalColors(remoteFilters) : remoteFilters
+                        state.remoteDisplayTags = remoteTagsEnabled
+                        state.displayTags = localPresentation ? (state.donutgramLocalDisplayTags ?? remoteTagsEnabled) : remoteTagsEnabled
                         return state
                     })
                 }
@@ -1654,9 +1718,10 @@ private func synchronizeChatListFilters(transaction: Transaction, accountPeerId:
                 postbox.transaction { transaction -> Void in
                     let _ = updateChatListFiltersState(transaction: transaction, { state in
                         var state = state
-                        state.filters = mergedFilters
-                        state.remoteFilters = state.filters
-                        state.remoteDisplayTags = state.displayTags
+                        state.remoteFilters = mergedFilters
+                        state.filters = localPresentation ? state.donutgramApplyingLocalColors(mergedFilters) : mergedFilters
+                        state.remoteDisplayTags = localDisplayTags
+                        state.displayTags = localPresentation ? (state.donutgramLocalDisplayTags ?? localDisplayTags) : localDisplayTags
                         return state
                     })
                 }

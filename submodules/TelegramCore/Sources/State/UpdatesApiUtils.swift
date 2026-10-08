@@ -199,17 +199,17 @@ extension Api.Message {
 }
 
 extension Api.EphemeralMessage {
-    var peerId: PeerId {
+    var peerId: PeerId? {
         switch self {
         case let .ephemeralMessage(messageData):
-            return messageData.peerId.peerId
+            return messageData.peerId?.peerId
         }
     }
 
-    var id: MessageId {
+    var id: MessageId? {
         switch self {
         case let .ephemeralMessage(messageData):
-            return MessageId(peerId: messageData.peerId.peerId, namespace: Namespaces.Message.EphemeralLocal, id: messageData.id)
+            return messageData.peerId.map { MessageId(peerId: $0.peerId, namespace: Namespaces.Message.EphemeralLocal, id: messageData.id) }
         }
     }
 

@@ -104,4 +104,5 @@ do {
     }
 } catch let e {
     print("\(e)")
+    exit(1)
 }

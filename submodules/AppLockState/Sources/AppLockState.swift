@@ -60,3 +60,23 @@ public func isAppLocked(state: LockState) -> Bool {
     }
     return false
 }
+
+/// Fail-closed app-lock check for extension processes (NSE, Siri, widgets).
+///
+/// - No lock-state file at all → no passcode was ever set up → unlocked.
+/// - File exists but cannot be read or parsed → assume LOCKED. A corrupt or partially
+///   written state must never surface private content through a notification, Siri
+///   response, or widget; the main app rewrites the file atomically on its next state
+///   change. The cost of a false "locked" (generic text instead of message content) is
+///   trivial next to the cost of a false "unlocked".
+public func isAppLockedFailClosed(rootPath: String) -> Bool {
+    let path = appLockStatePath(rootPath: rootPath)
+    guard FileManager.default.fileExists(atPath: path) else {
+        return false
+    }
+    guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
+          let state = try? JSONDecoder().decode(LockState.self, from: data) else {
+        return true
+    }
+    return isAppLocked(state: state)
+}

@@ -12,6 +12,38 @@ import LegacyMediaPickerUI
 import Photos
 import MediaAssetsContext
 
+func bananaRoundVideoGeometry(size: CGSize, crop: CGRect?, duration: Double, trimStart: Double, trimEnd: Double) -> (CGRect, Double, Double)? {
+    guard size.width.isFinite, size.height.isFinite, size.width >= 16, size.height >= 16,
+          duration.isFinite, duration > 0, trimStart.isFinite, trimEnd.isFinite else { return nil }
+    let bounds = CGRect(origin: .zero, size: size)
+    var rect = crop ?? bounds
+    guard rect.origin.x.isFinite, rect.origin.y.isFinite, rect.width.isFinite, rect.height.isFinite else { return nil }
+    if rect.isEmpty { rect = bounds }
+    rect = rect.intersection(bounds)
+    let side = min(rect.width, rect.height)
+    guard !rect.isNull, side.isFinite, side >= 16 else { return nil }
+    rect = CGRect(x: rect.midX - side / 2, y: rect.midY - side / 2, width: side, height: side)
+    let start = max(0, trimStart)
+    let end = min(duration, trimEnd > 0 ? trimEnd : duration, start + 60)
+    guard end > start else { return nil }
+    return (rect, start, end)
+}
+
+private func roundVideoAdjustments(for item: TGMediaEditableItem, editingContext: TGMediaEditingContext) -> TGVideoEditAdjustments? {
+    guard item.isVideo, let originalSize = item.originalSize, let duration = item.originalDuration else { return nil }
+    let current = editingContext.adjustments(for: item) as? TGVideoEditAdjustments
+    guard let (cropRect, trimStart, trimEnd) = bananaRoundVideoGeometry(size: originalSize, crop: current?.cropRect, duration: duration, trimStart: current?.trimStartValue ?? 0, trimEnd: current?.trimEndValue ?? 0) else { return nil }
+    var values = current?.dictionary() ?? [:]
+    values["originalSize"] = NSValue(cgSize: originalSize)
+    values["cropRect"] = NSValue(cgRect: cropRect)
+    values["trimStart"] = trimStart
+    values["trimEnd"] = trimEnd
+    values["sendAsGif"] = false
+    values["bounce"] = false
+    values["preset"] = NSNumber(value: TGMediaVideoConversionPresetVideoMessage.rawValue)
+    return TGVideoEditAdjustments(dictionary: values)
+}
+
 private func galleryFetchResultItems(
     fetchResult: PHFetchResult<PHAsset>,
     index: Int,
@@ -326,16 +358,16 @@ func presentLegacyMediaPickerGallery(
                     }
                 }
                 
-                let sendWhenOnlineAvailable: Signal<Bool, NoError>
+                let sendWhenOnlineAvailable: Signal<(Bool, Bool), NoError>
                 if let peer {
                     if case .secretChat = peer {
                         effectiveHasSchedule = false
                     }
                     sendWhenOnlineAvailable = context.account.viewTracker.peerView(peer.id)
                     |> take(1)
-                    |> map { peerView -> Bool in
+                    |> map { peerView -> (Bool, Bool) in
                         guard let peer = peerViewMainPeer(peerView) else {
-                            return false
+                            return (false, false)
                         }
                         var sendWhenOnlineAvailable = false
                         if let presence = peerView.peerPresences[peer.id] as? TelegramUserPresence, case let .present(until) = presence.status {
@@ -347,15 +379,15 @@ func presentLegacyMediaPickerGallery(
                         if peer.id.namespace == Namespaces.Peer.CloudUser && peer.id.id._internalGetInt64Value() == 777000 {
                             sendWhenOnlineAvailable = false
                         }
-                        return sendWhenOnlineAvailable
+                        return (sendWhenOnlineAvailable, (peerView.cachedData as? CachedUserData)?.voiceMessagesAvailable ?? true)
                     }
                 } else {
-                    sendWhenOnlineAvailable = .single(false)
+                    sendWhenOnlineAvailable = .single((false, false))
                 }
                 
                 let _ = (sendWhenOnlineAvailable
                 |> take(1)
-                |> deliverOnMainQueue).start(next: { sendWhenOnlineAvailable in
+                |> deliverOnMainQueue).start(next: { sendWhenOnlineAvailable, voiceMessagesAvailable in
                     let dismissImpl = { [weak model] in
                         model?.dismiss(true, false)
                         dismissAll()
@@ -399,7 +431,38 @@ func presentLegacyMediaPickerGallery(
                         }
                     }
 
-                    if let sourceView, let paintStickersContext, paintStickersContext.presentMediaPickerSendActionMenu?(sourceView, hasSilentPosting, sendWhenOnlineAvailable && effectiveHasSchedule, effectiveHasSchedule, reminder, hasTimer, sendSilently, sendWhenOnline, schedule, sendWithTimer) == true {
+                    var sendAsRoundVideo: (() -> Void)?
+                    let selectedItems = selectionContext.selectedItems() ?? []
+                    let onlyCurrentItemSelected = selectedItems.isEmpty || (selectedItems.count == 1 && (selectedItems.first as? TGMediaSelectableItem)?.uniqueIdentifier == item.asset.uniqueIdentifier)
+                    var canSendRoundVideo = true
+                    if case let .channel(channel) = peer {
+                        canSendRoundVideo = channel.hasBannedPermission(.banSendInstantVideos) == nil
+                    } else if case let .legacyGroup(group) = peer {
+                        canSendRoundVideo = !group.hasBannedPermission(.banSendInstantVideos)
+                    }
+                    if !asFile, onlyCurrentItemSelected, canSendRoundVideo, voiceMessagesAvailable, let editingContext,
+                       editingContext.price(for: item.asset) == nil,
+                       let adjustments = roundVideoAdjustments(for: item.asset, editingContext: editingContext) {
+                        sendAsRoundVideo = {
+                            let sheet = ActionSheetController(presentationData: presentationData)
+                            let russian = String(presentationData.strings.primaryComponent.languageCode.prefix(2)).lowercased() == "ru"
+                            let duration = Int(ceil(adjustments.trimEndValue - adjustments.trimStartValue))
+                            sheet.setItemGroups([
+                                ActionSheetItemGroup(items: [
+                                    ActionSheetTextItem(title: russian ? "Кружок: квадратная обрезка по центру выбранной области, \(duration) с. Остальная часть видео не отправится." : "Video message: centered square crop of the selected area, \(duration) s. The rest of the video will not be sent."),
+                                    ActionSheetButtonItem(title: russian ? "Отправить" : "Send", action: { [weak sheet] in
+                                        sheet?.dismissAnimated()
+                                        editingContext.setAdjustments(adjustments, for: item.asset)
+                                        send()
+                                    })
+                                ]),
+                                ActionSheetItemGroup(items: [ActionSheetButtonItem(title: presentationData.strings.Common_Cancel, action: { [weak sheet] in sheet?.dismissAnimated() })])
+                            ])
+                            present(sheet, nil)
+                        }
+                    }
+
+                    if let sourceView, let paintStickersContext, paintStickersContext.presentMediaPickerSendActionMenu?(sourceView, hasSilentPosting, sendWhenOnlineAvailable && effectiveHasSchedule, effectiveHasSchedule, reminder, hasTimer, sendSilently, sendWhenOnline, schedule, sendWithTimer, sendAsRoundVideo) == true {
                         let hapticFeedback = HapticFeedback()
                         hapticFeedback.impact()
                         return

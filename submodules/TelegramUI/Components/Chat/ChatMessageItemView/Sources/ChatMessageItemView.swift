@@ -735,6 +735,16 @@ open class ChatMessageItemView: ListViewItemNode, ChatMessageItemNodeProtocol {
     
     open func setupItem(_ item: ChatMessageItem, synchronousLoad: Bool) {
         self.item = item
+
+
+        let isDeleted = item.content.contains(where: { element in
+            element.0.isLocallyDeleted
+        })
+        // Revealed shadow-banned messages remain half-transparent, so their state is clear.
+        let isRevealedShadowBanned = ArenaSettings.shared.isShadowBanRevealed(chatPeerId: item.message.id.peerId.toInt64()) && item.content.contains(where: { element in
+            TelegramShadowBan.isBannedContent(element.0)
+        })
+        self.alpha = (isDeleted && ArenaSettings.shared.semiTransparentDeletedMessages) || isRevealedShadowBanned ? 0.55 : 1.0
     }
     
     open func updateAccessibilityData(_ accessibilityData: ChatMessageAccessibilityData) {
@@ -970,6 +980,8 @@ open class ChatMessageItemView: ListViewItemNode, ChatMessageItemNodeProtocol {
                 case let .openWebView(url, simple):
                     item.controllerInteraction.openWebView(button.title, url, simple, .generic)
                 case .requestPeer:
+                    break
+                case .disabled:
                     break
                 case let .copyText(payload):
                     item.controllerInteraction.copyText(payload)

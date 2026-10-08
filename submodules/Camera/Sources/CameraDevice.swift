@@ -319,6 +319,55 @@ final class CameraDevice {
             device.videoZoomFactor = self.clampedZoomFactor(target, for: device)
         }
     }
+
+    var zoomFactorRange: ClosedRange<CGFloat> {
+        guard let device = self.videoDevice else {
+            return 1.0 ... 1.0
+        }
+        let neutralZoomFactor = max(device.neutralZoomFactor, 0.001)
+        let minimum = device.minAvailableVideoZoomFactor / neutralZoomFactor
+        let maximum = max(device.minAvailableVideoZoomFactor, device.maxAvailableVideoZoomFactor) / neutralZoomFactor
+        return minimum ... maximum
+    }
+
+    var nativeZoomFactors: [CGFloat] {
+        guard let device = self.videoDevice else {
+            return [1.0]
+        }
+        let neutralZoomFactor = max(device.neutralZoomFactor, 0.001)
+        // Switch-over factors describe transitions to the other lenses; the
+        // widest lens starts at the minimum and has no switch-over entry.
+        var result: [CGFloat] = [device.minAvailableVideoZoomFactor / neutralZoomFactor, 1.0]
+        if #available(iOS 13.0, *) {
+            result.append(contentsOf: device.virtualDeviceSwitchOverVideoZoomFactors.map {
+                CGFloat($0.doubleValue) / neutralZoomFactor
+            })
+        }
+        let range = self.zoomFactorRange
+        return result
+            .filter { $0 >= range.lowerBound - 0.001 && $0 <= range.upperBound + 0.001 }
+            .sorted()
+            .reduce(into: []) { values, value in
+                if values.last.map({ abs($0 - value) > 0.001 }) ?? true {
+                    values.append(value)
+                }
+            }
+    }
+
+    func setZoomFactor(_ zoomFactor: CGFloat, rampRate: CGFloat?) {
+        guard let device = self.videoDevice else {
+            return
+        }
+        self.transaction(device) { device in
+            let target = self.clampedZoomFactor(device.neutralZoomFactor * zoomFactor, for: device)
+            if let rampRate, rampRate > 0.0 {
+                device.ramp(toVideoZoomFactor: target, withRate: Float(rampRate))
+            } else {
+                device.cancelVideoZoomRamp()
+                device.videoZoomFactor = target
+            }
+        }
+    }
     
     func rampZoom(_ zoomLevel: CGFloat, rate: CGFloat) {
         guard let device = self.videoDevice else {
@@ -341,7 +390,7 @@ final class CameraDevice {
     }
 
     private func clampedZoomFactor(_ value: CGFloat, for device: AVCaptureDevice) -> CGFloat {
-        let minimum = max(1.0, device.minAvailableVideoZoomFactor)
+        let minimum = device.minAvailableVideoZoomFactor
         let maximum = max(minimum, device.maxAvailableVideoZoomFactor)
         return min(maximum, max(minimum, value))
     }

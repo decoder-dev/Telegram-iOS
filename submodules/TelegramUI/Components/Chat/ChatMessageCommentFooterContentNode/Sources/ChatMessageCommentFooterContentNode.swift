@@ -1,4 +1,4 @@
-import Foundation
+﻿import Foundation
 import UIKit
 import Display
 import AsyncDisplayKit
@@ -131,6 +131,9 @@ public final class ChatMessageCommentFooterContentNode: ChatMessageBubbleContent
                     if let attribute = attribute as? ReplyThreadMessageAttribute {
                         dateReplies = Int(attribute.count)
                         replyPeers = attribute.latestUsers.compactMap { peerId -> EnginePeer? in
+                            if TelegramShadowBan.isPeerHidden(peerId, inChat: item.message.id.peerId) {
+                                return nil
+                            }
                             return item.message.peers[peerId].flatMap(EnginePeer.init)
                         }
                         if let maxMessageId = attribute.maxMessageId, let maxReadMessageId = attribute.maxReadMessageId {

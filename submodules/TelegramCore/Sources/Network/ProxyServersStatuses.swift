@@ -2,15 +2,17 @@ import Foundation
 import SwiftSignalKit
 import MtProtoKit
 import WebProxyTransport
+import TelegramVLESS
 
 
 public enum ProxyServerStatus: Equatable {
+    case notChecked
     case checking
     case notAvailable
     case available(Double)
 }
 
-private let proxyStatusPingTimeout: Double = 15.0
+private let proxyStatusPingTimeout: Double = 7.0
 
 private func pingProxyStatus(context: MTContext, datacenterId: Int, settings: MTSocksProxySettings) -> Signal<ProxyServerStatus, NoError> {
     return Signal { subscriber in
@@ -39,6 +41,16 @@ private func socksSettingsForPing(server: ProxyServerSettings) -> MTSocksProxySe
             return MTSocksProxySettings(ip: server.host, port: UInt16(clamping: server.port), username: nil, password: nil, secret: secret)
         case .web:
             return nil
+        case .vless:
+            // The embedded runtime exposes an authenticated loopback SOCKS5; resolve it
+            // through the manager so the ping goes through the actual VLESS tunnel.
+            guard let url = server.vlessProxyURL else {
+                return nil
+            }
+            guard let endpoint = VlessManager.shared.loopbackEndpoint(for: url) else {
+                return nil
+            }
+            return MTSocksProxySettings(ip: endpoint.host, port: UInt16(clamping: endpoint.port), username: endpoint.user, password: endpoint.password, secret: nil)
     }
 }
 
@@ -51,10 +63,33 @@ private func webConfiguration(for server: ProxyServerSettings) -> WebProxyConfig
 
 private final class ProxyServerItemContext {
     private var disposable = MetaDisposable()
+    private var stateDisposable = MetaDisposable()
     private var sidecarEventToken: WebProxyManager.SidecarEventToken?
     var value: ProxyServerStatus = .checking
     
     init(queue: Queue, context: MTContext, datacenterId: Int, server: ProxyServerSettings, updated: @escaping (ProxyServerStatus) -> Void) {
+        if let url = server.vlessProxyURL {
+            // Observing a saved profile must never replace the application's active tunnel.
+            var previousEndpoint: VlessProxySink?
+            let refresh: () -> Void = { [weak self] in
+                guard let self else { return }
+                guard let endpoint = VlessManager.shared.loopbackEndpoint(for: url) else {
+                    previousEndpoint = nil
+                    self.disposable.set(nil)
+                    updated(.notChecked)
+                    return
+                }
+                guard endpoint != previousEndpoint else { return }
+                previousEndpoint = endpoint
+                updated(.checking)
+                let settings = MTSocksProxySettings(ip: endpoint.host, port: UInt16(clamping: endpoint.port), username: endpoint.user, password: endpoint.password, secret: nil)
+                self.disposable.set((pingProxyStatus(context: context, datacenterId: datacenterId, settings: settings)
+                |> deliverOn(queue)).start(next: updated))
+            }
+            self.stateDisposable.set((VlessManager.shared.stateEvents |> deliverOn(queue)).start(next: { _ in refresh() }))
+            queue.async { refresh() }
+            return
+        }
         if let configuration = webConfiguration(for: server) {
             self.startWebProxyPing(queue: queue, context: context, datacenterId: datacenterId, server: server, configuration: configuration, updated: updated)
             return
@@ -83,10 +118,10 @@ private final class ProxyServerItemContext {
             guard let self else {
                 return
             }
-            guard WebProxyManager.shared.isReady(for: configuration),
-                  let endpoint = WebProxyManager.shared.activeLoopbackEndpoint else {
+            guard let endpoint = WebProxyManager.shared.loopbackEndpoint(for: configuration) else {
+                self.disposable.set(nil)
                 queue.async {
-                    updated(.checking)
+                    updated(.notChecked)
                 }
                 return
             }
@@ -97,15 +132,15 @@ private final class ProxyServerItemContext {
             }))
         }
         
-        WebProxyManager.shared.configure(activeWebProxy: configuration)
         self.sidecarEventToken = WebProxyManager.shared.addSidecarEventHandler { _ in
-            runPing()
+            queue.async { runPing() }
         }
         runPing()
     }
     
     deinit {
         self.disposable.dispose()
+        self.stateDisposable.dispose()
         if let sidecarEventToken = self.sidecarEventToken {
             WebProxyManager.shared.removeSidecarEventHandler(sidecarEventToken)
         }
@@ -135,7 +170,9 @@ final class ProxyServersStatusesImpl {
                     for key in validKeys {
                         if strongSelf.contexts[key] == nil {
                             let context = ProxyServerItemContext(queue: strongSelf.queue, context: network.context, datacenterId: network.datacenterId, server: key, updated: { value in
-                                queue.async {
+                                // Queue.async executes inline on this queue. Defer until the
+                                // new context has been inserted, or its initial status is lost.
+                                queue.justDispatch {
                                     if let strongSelf = self {
                                         strongSelf.contexts[key]?.value = value
                                         strongSelf.updateValues()

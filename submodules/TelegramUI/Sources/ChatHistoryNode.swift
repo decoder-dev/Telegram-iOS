@@ -19,6 +19,7 @@ public enum ChatHistoryNodeLoadState: Equatable {
     case loading(Bool)
     case empty(EmptyType)
     case messages
+    case error(String)
 }
 
 public protocol ChatHistoryNode: AnyObject {

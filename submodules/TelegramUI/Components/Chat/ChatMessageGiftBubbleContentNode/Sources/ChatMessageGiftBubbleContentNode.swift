@@ -282,7 +282,7 @@ public class ChatMessageGiftBubbleContentNode: ChatMessageBubbleContentNode {
                 switch action.action {
                 case let .starGift(gift, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _):
                     releasedBy = gift.releasedBy
-                case let .starGiftUnique(gift, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _):
+                case let .starGiftUnique(gift, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _):
                     releasedBy = gift.releasedBy
                 default:
                     break
@@ -690,7 +690,7 @@ public class ChatMessageGiftBubbleContentNode: ChatMessageBubbleContentNode {
                                     }
                                 }
                             }
-                        case let .starGiftUnique(gift, isUpgrade, _, _, _, _, isRefunded, _, _, _, _, _, _, _, _, _, fromOffer, _, isCrafted):
+                        case let .starGiftUnique(gift, isUpgrade, _, _, _, _, isRefunded, _, _, _, _, _, _, _, _, _, fromOffer, _, isCrafted, uniqueMessage):
                             if case let .unique(uniqueGift) = gift {
                                 isStarGift = true
                                 
@@ -719,12 +719,16 @@ public class ChatMessageGiftBubbleContentNode: ChatMessageBubbleContentNode {
                                     } else {
                                         title = item.presentationData.strings.Notification_StarGift_Purchased_Title
                                     }
-                                } else if item.message.id.peerId.isTelegramNotifications {
+                                } else if uniqueMessage.nameHidden || item.message.id.peerId.isTelegramNotifications {
                                     title = item.presentationData.strings.Notification_StarGift_TitleShort
                                 } else {
                                     title = item.presentationData.strings.Notification_StarGift_Title(authorName).string
                                 }    
                                 text = isStoryEntity ? "**\(item.presentationData.strings.Notification_StarGift_Collectible) #\(formatCollectibleNumber(uniqueGift.number, dateTimeFormat: item.presentationData.dateTimeFormat))**" : "**\(uniqueGift.title) #\(formatCollectibleNumber(uniqueGift.number, dateTimeFormat: item.presentationData.dateTimeFormat))**"
+                                if !isStoryEntity, let giftText = uniqueMessage.text, !giftText.isEmpty {
+                                    text = giftText
+                                    entities = uniqueMessage.entities
+                                }
                                 if fromOffer {
                                     ribbonTitle = incoming ? "" : item.presentationData.strings.Notification_StarGift_Sold
                                     customRibbonColors = [UIColor(rgb: 0xd9433a), UIColor(rgb: 0xff645b)]
@@ -765,7 +769,7 @@ public class ChatMessageGiftBubbleContentNode: ChatMessageBubbleContentNode {
                             } else if isRefunded, case let .generic(gift) = gift {
                                 isStarGift = true
                                 let authorName = item.message.author.flatMap { EnginePeer($0) }?.compactDisplayTitle ?? ""
-                                title = item.presentationData.strings.Notification_StarGift_Title(authorName).string
+                                title = uniqueMessage.nameHidden ? item.presentationData.strings.Notification_StarGift_TitleShort : item.presentationData.strings.Notification_StarGift_Title(authorName).string
                                 text = item.presentationData.strings.Notification_StarGift_Subtitle_Refunded
                                 animationFile = gift.file
                             }

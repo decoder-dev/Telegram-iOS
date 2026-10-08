@@ -29,7 +29,8 @@ func openWebAppImpl(
     source: ChatOpenWebViewSource,
     skipTermsOfService: Bool,
     payload: String?,
-    verifyAgeCompletion: ((Int) -> Void)?
+    verifyAgeCompletion: ((Int) -> Void)?,
+    launchDismissedWithoutConfirmation: (() -> Void)? = nil
 ) {
     if context.isFrozen {
         parentController.push(context.sharedContext.makeAccountFreezeInfoScreen(context: context))
@@ -387,6 +388,11 @@ func openWebAppImpl(
                     let controller = webAppLaunchConfirmationController(context: context, updatedPresentationData: updatedPresentationData, peer: botPeer, completion: { _ in
                         let _ = ApplicationSpecificNotice.setBotGameNotice(accountManager: context.sharedContext.accountManager, peerId: botPeer.id).startStandalone()
                         openWebView(false)
+                    }, dismissedWithoutConfirmation: {
+                        // The title panel's progress state is set before the confirmation is presented, and is
+                        // otherwise only cleared once the web view request settles — which never happens here.
+                        updateProgress()
+                        launchDismissedWithoutConfirmation?()
                     }, showMore: nil, openTerms: {
                         if let navigationController = parentController.navigationController as? NavigationController {
                             context.sharedContext.openExternalUrl(context: context, urlContext: .generic, url: presentationData.strings.WebApp_LaunchTermsConfirmation_URL, forceExternal: false, presentationData: presentationData, navigationController: navigationController, dismissInput: {})
@@ -683,7 +689,7 @@ public extension ChatControllerImpl {
                     navigationController = main
                 }
                 if case let .peer(peer, navigation) = result, case let .withBotApp(botApp) = navigation, let botPeer = peer.flatMap(EnginePeer.init), let parentController = navigationController?.viewControllers.last as? ViewController {
-                    self.presentBotApp(context: context, parentController: parentController, botApp: botApp.botApp, botPeer: botPeer, payload: botApp.payload, mode: botApp.mode)
+                    self.presentBotApp(context: context, parentController: parentController, botApp: botApp.botApp, botPeer: botPeer, payload: botApp.payload, mode: botApp.mode, botStartPayload: botApp.botStartPayload)
                 } else {
                     context.sharedContext.openResolvedUrl(result, context: context, urlContext: .generic, navigationController: navigationController, forceExternal: false, forceUpdate: forceUpdate, openPeer: { peer, navigation in
                         if let navigationController {
@@ -701,11 +707,25 @@ public extension ChatControllerImpl {
         }
     }
     
-    func presentBotApp(botApp: BotApp?, botPeer: EnginePeer, payload: String?, mode: ResolvedStartAppMode, concealed: Bool = false, commit: @escaping () -> Void = {}) {
-        ChatControllerImpl.presentBotApp(context: self.context, parentController: self, botApp: botApp, botPeer: botPeer, payload: payload, mode: mode, concealed: concealed, commit: commit)
+    // Leaves the `start` payload that a link carried alongside `startapp` on the chat's Start button,
+    // so that dismissing the Mini App launch confirmation does not discard it. (Upstream PR #2289.)
+    internal func applyBotStartPayloadFallback(botPeerId: EnginePeer.Id, payload: String?) {
+        guard let payload, !payload.isEmpty else {
+            return
+        }
+        guard self.chatLocation.peerId == botPeerId else {
+            return
+        }
+        self.updateChatPresentationInterfaceState(animated: true, interactive: true, { state in
+            return state.updatedBotStartPayload(payload)
+        })
+    }
+
+    func presentBotApp(botApp: BotApp?, botPeer: EnginePeer, payload: String?, mode: ResolvedStartAppMode, botStartPayload: String? = nil, concealed: Bool = false, commit: @escaping () -> Void = {}) {
+        ChatControllerImpl.presentBotApp(context: self.context, parentController: self, botApp: botApp, botPeer: botPeer, payload: payload, mode: mode, botStartPayload: botStartPayload, concealed: concealed, commit: commit)
     }
     
-    fileprivate static func presentBotApp(context: AccountContext, parentController: ViewController, botApp: BotApp?, botPeer: EnginePeer, payload: String?, mode: ResolvedStartAppMode, concealed: Bool = false, commit: @escaping () -> Void = {}) {
+    fileprivate static func presentBotApp(context: AccountContext, parentController: ViewController, botApp: BotApp?, botPeer: EnginePeer, payload: String?, mode: ResolvedStartAppMode, botStartPayload: String? = nil, concealed: Bool = false, commit: @escaping () -> Void = {}) {
         let chatController = parentController as? ChatControllerImpl
         let peerId: EnginePeer.Id
         let threadId = chatController?.chatLocation.threadId
@@ -713,6 +733,12 @@ public extension ChatControllerImpl {
             peerId = chatPeerId
         } else {
             peerId = botPeer.id
+        }
+
+        // If the link carried a `start` payload alongside `startapp` and the user dismisses the Mini App
+        // launch confirmation, leave that payload on the chat's Start button instead of a bare /start.
+        let applyBotStartPayloadFallback: () -> Void = { [weak chatController] in
+            chatController?.applyBotStartPayloadFallback(botPeerId: botPeer.id, payload: botStartPayload)
         }
         
         var skipTermsOfService = false
@@ -860,6 +886,8 @@ public extension ChatControllerImpl {
                             let controller = webAppLaunchConfirmationController(context: context, updatedPresentationData: updatedPresentationData, peer: botPeer, requestWriteAccess: botApp.flags.contains(.notActivated) && botApp.flags.contains(.requiresWriteAccess), completion: { allowWrite in
                                 let _ = ApplicationSpecificNotice.setBotGameNotice(accountManager: context.sharedContext.accountManager, peerId: botPeer.id).startStandalone()
                                 openBotApp(allowWrite, false, appSettings)
+                            }, dismissedWithoutConfirmation: {
+                                applyBotStartPayloadFallback()
                             }, showMore: chatController == nil ? nil : { [weak chatController] in
                                 if let chatController {
                                     chatController.openResolved(result: .peer(botPeer._asPeer(), .info(nil)), sourceMessageId: nil)
@@ -875,7 +903,9 @@ public extension ChatControllerImpl {
                 }
             })
         } else {
-            context.sharedContext.openWebApp(
+            // Called directly rather than through SharedAccountContext.openWebApp (a plain forwarder to this
+            // function) so that the module-internal dismissal callback can be passed.
+            openWebAppImpl(
                 context: context,
                 parentController: parentController,
                 updatedPresentationData: updatedPresentationData,
@@ -888,7 +918,10 @@ public extension ChatControllerImpl {
                 source: .generic,
                 skipTermsOfService: false,
                 payload: payload,
-                verifyAgeCompletion: nil
+                verifyAgeCompletion: nil,
+                launchDismissedWithoutConfirmation: {
+                    applyBotStartPayloadFallback()
+                }
             )
         }
     }

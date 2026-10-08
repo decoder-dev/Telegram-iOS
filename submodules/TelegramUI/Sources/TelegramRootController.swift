@@ -89,6 +89,9 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
     
     private var applicationInFocusDisposable: Disposable?
     private var storyUploadEventsDisposable: Disposable?
+    private var contactsTabDisposable: Disposable?
+    private var currentShowContactsTab = true
+    private var currentShowCallsTab = false
     private var hideTabBarDisposable: Disposable?
     
     override public var minimizedContainer: MinimizedContainer? {
@@ -148,6 +151,7 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
         self.presentationDataDisposable?.dispose()
         self.applicationInFocusDisposable?.dispose()
         self.storyUploadEventsDisposable?.dispose()
+        self.contactsTabDisposable?.dispose()
         self.hideTabBarDisposable?.dispose()
     }
     
@@ -202,6 +206,8 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
     }
     
     public func addRootControllers(showCallsTab: Bool) {
+        self.currentShowCallsTab = showCallsTab
+        self.currentShowContactsTab = self.context.sharedContext.immediateForkExtrasSettings.showContactsTab
         let tabBarController = TabBarControllerImpl(theme: self.presentationData.theme, strings: self.presentationData.strings)
         tabBarController.navigationPresentation = .master
         let chatListController = self.context.sharedContext.makeChatListController(context: self.context, location: .chatList(groupId: .root), controlsHistoryPreload: true, hideNetworkActivityStatus: false, previewing: false, enableDebugActions: !GlobalExperimentalSettings.isAppStoreBuild)
@@ -216,7 +222,9 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
         contactsController.switchToChatsController = {  [weak self] in
             self?.openChatsController(activateSearch: false)
         }
-        controllers.append(contactsController)
+        if self.currentShowContactsTab {
+            controllers.append(contactsController)
+        }
         
         if showCallsTab {
             controllers.append(callListController)
@@ -255,6 +263,15 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
         self.accountSettingsController = accountSettingsController
         self.rootTabController = tabBarController
         self.pushViewController(tabBarController, animated: false)
+        self.contactsTabDisposable?.dispose()
+        self.contactsTabDisposable = (forkExtrasSettings(accountManager: self.context.sharedContext.accountManager)
+        |> map { $0.showContactsTab }
+        |> distinctUntilChanged
+        |> deliverOnMainQueue).start(next: { [weak self] showContacts in
+            guard let self else { return }
+            self.currentShowContactsTab = showContacts
+            self.updateRootControllers(showCallsTab: self.currentShowCallsTab)
+        })
         self.hideTabBarDisposable?.dispose()
         var appliedHideTabBar = false
         self.hideTabBarDisposable = (forkExtrasSettings(accountManager: self.context.sharedContext.accountManager)
@@ -272,18 +289,23 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
     }
         
     public func updateRootControllers(showCallsTab: Bool) {
+        self.currentShowCallsTab = showCallsTab
         guard let rootTabController = self.rootTabController as? TabBarControllerImpl else {
             return
         }
         var controllers: [ViewController] = []
-        controllers.append(self.contactsController!)
+        if self.currentShowContactsTab {
+            controllers.append(self.contactsController!)
+        }
         if showCallsTab {
             controllers.append(self.callListController!)
         }
         controllers.append(self.chatListController!)
         controllers.append(self.accountSettingsController!)
         
-        rootTabController.setControllers(controllers, selectedIndex: nil)
+        let selected = rootTabController.currentController
+        let selectedIndex = controllers.firstIndex(where: { $0 === selected }) ?? controllers.firstIndex(where: { $0 === self.chatListController })
+        rootTabController.setControllers(controllers, selectedIndex: selectedIndex)
     }
     
     public func openChatsController(activateSearch: Bool, filter: ChatListSearchFilter = .chats, query: String? = nil) {
@@ -330,7 +352,8 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
                 let _ = (self.context.sharedContext.legacyCameraCapturedMediaSignals(
                     fromCameraScreenResult: result,
                     initialCaption: NSAttributedString(),
-                    sendPaidMessageStars: 0
+                    sendPaidMessageStars: 0,
+                    timer: nil
                 )
                 |> deliverOnMainQueue).start(next: { [weak self, weak controller] signals in
                     guard let self, let controller else {
@@ -935,6 +958,18 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
     
         if let index = rootTabController.controllers.firstIndex(where: { $0 is ContactsController }) {
             rootTabController.selectedIndex = index
+        } else {
+            let contacts = ContactsController(context: self.context)
+            contacts.switchToChatsController = { [weak self, weak contacts] in
+                guard let self else { return }
+                self.openChatsController(activateSearch: false)
+                // A purposeful action happens inside the newly opened chat. Remove only
+                // the standalone contacts screen, retaining the chat above it.
+                if let contacts, self.viewControllers.contains(where: { $0 === contacts }) {
+                    self.setViewControllers(self.viewControllers.filter { $0 !== contacts }, animated: false)
+                }
+            }
+            self.pushViewController(contacts, animated: true)
         }
     }
         

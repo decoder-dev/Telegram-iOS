@@ -51,13 +51,6 @@ public func customizeDefaultDarkPresentationTheme(theme: PresentationTheme, edit
     
     var bubbleColors = bubbleColors
     var monochrome = false
-    // Night's outgoing bubble is iOS blue, full stop — same reasoning as the Day theme: a stored
-    // accent used to repaint it, so anyone who had ever opened the colour picker never saw the
-    // blue. Gift and chat themes arrive with `editing: false` and keep the colours their sender
-    // chose.
-    if editing {
-        bubbleColors = [UIColor(rgb: 0x007AFF).rgb]
-    }
     if bubbleColors.isEmpty, editing {
         let accentColor = accentColor ?? UIColor(rgb: 0xffffff)
         if accentColor.rgb == 0xffffff {

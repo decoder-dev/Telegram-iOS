@@ -1,4 +1,4 @@
-import Foundation
+﻿import Foundation
 import UIKit
 import Display
 import AsyncDisplayKit
@@ -186,7 +186,7 @@ public final class MessageReactionButtonsNode: ASDisplayNode {
                 } else {
                     for recentPeer in reactions.recentPeers {
                         if recentPeer.value == reaction.value {
-                            if let peer = message.peers[recentPeer.peerId] {
+                            if let peer = message.peers[recentPeer.peerId], !TelegramShadowBan.isPeerHidden(recentPeer.peerId, inChat: message.id.peerId) {
                                 peers.append(EnginePeer(peer))
                             }
                         }
@@ -626,7 +626,7 @@ public final class ChatMessageReactionsFooterContentNode: ChatMessageBubbleConte
             }
             
             return (contentProperties, nil, CGFloat.greatestFiniteMagnitude, { constrainedSize, position in
-                let reactionsAttribute = mergedMessageReactions(attributes: item.message.attributes, isTags: item.message.areReactionsTags(accountPeerId: item.context.account.peerId)) ?? ReactionsMessageAttribute(canViewList: false, isTags: false, reactions: [], recentPeers: [], topPeers: [])
+                let reactionsAttribute = forkVisibleMessageReactions(attributes: item.message.attributes, isTags: item.message.areReactionsTags(accountPeerId: item.context.account.peerId)) ?? ReactionsMessageAttribute(canViewList: false, isTags: false, reactions: [], recentPeers: [], topPeers: [])
                 let buttonsUpdate = buttonsNode.prepareUpdate(
                     context: item.context,
                     presentationData: item.presentationData,

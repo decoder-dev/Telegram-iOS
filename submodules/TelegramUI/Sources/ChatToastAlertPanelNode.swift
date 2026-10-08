@@ -33,7 +33,9 @@ final class ChatToastAlertPanelNode: ChatTitleAccessoryPanelNode {
         self.separatorNode.isLayerBacked = true
         
         self.titleNode = ImmediateTextNode()
-        self.titleNode.attributedText = NSAttributedString(string: "", font: Font.regular(14.0), textColor: UIColor.black)
+        // Colour is applied in updateLayout from the active theme; .clear avoids a
+        // brief flash of black text before the first layout pass in dark themes.
+        self.titleNode.attributedText = NSAttributedString(string: "", font: Font.regular(14.0), textColor: .clear)
         self.titleNode.maximumNumberOfLines = 1
         self.titleNode.insets = UIEdgeInsets(top: 2.0, left: 2.0, bottom: 2.0, right: 2.0)
         

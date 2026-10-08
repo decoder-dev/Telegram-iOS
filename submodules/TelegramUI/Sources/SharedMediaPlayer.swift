@@ -232,9 +232,10 @@ final class SharedMediaPlayer {
                             case .voice, .music:
                                 switch playbackData.source {
                                     case let .telegramFile(fileReference, _, _):
-                                    strongSelf.playbackItem = .audio(MediaPlayer(audioSessionManager: strongSelf.audioSession, postbox: strongSelf.engine.account.postbox, userLocation: .other,  userContentType: .audio, resourceReference: fileReference.resourceReference(fileReference.media.resource), streamable: playbackData.type == .music ? .conservative : .none, video: false, preferSoftwareDecoding: false, enableSound: true, baseRate: rateValue, fetchAutomatically: true, playAndRecord: controlPlaybackWithProximity, isAudioVideoMessage: playbackData.type == .voice))
+                                    strongSelf.playbackItem = .audio(MediaPlayer(audioSessionManager: strongSelf.audioSession, postbox: strongSelf.engine.account.postbox, userLocation: .other,  userContentType: .audio, resourceReference: fileReference.resourceReference(fileReference.media.resource), streamable: playbackData.type == .music ? .conservative : .none, video: false, preferSoftwareDecoding: false, enableSound: true, baseRate: rateValue, fetchAutomatically: true, playAndRecord: controlPlaybackWithProximity, mixWithOthers: playbackData.type == .voice && !BananaAudioPolicy.current.pauseMusicOnVoicePlayback, isAudioVideoMessage: playbackData.type == .voice))
                                 }
                             case .instantVideo:
+                                strongSelf.mediaManager?.playlistControl(.playback(.pause), type: .music)
                                 if let mediaManager = strongSelf.mediaManager, let context = strongSelf.context, let item = item as? MessageMediaPlaylistItem {
                                     switch playbackData.source {
                                         case let .telegramFile(fileReference, _, _):
@@ -253,6 +254,22 @@ final class SharedMediaPlayer {
                         playbackItem.setActionAtEnd({
                             Queue.mainQueue().async {
                                 if let strongSelf = self {
+                                    if strongSelf.type == .voice, let completedType = state.item?.playbackData?.type {
+                                        var shouldStop = false
+                                        switch completedType {
+                                        case .voice:
+                                            shouldStop = ForkMessageVisibility.shouldStopAfterMedia(isRoundVideo: false)
+                                        case .instantVideo:
+                                            shouldStop = ForkMessageVisibility.shouldStopAfterMedia(isRoundVideo: true)
+                                        default:
+                                            break
+                                        }
+                                        if shouldStop {
+                                            strongSelf.playbackItem?.pause()
+                                            strongSelf.playedToEnd?()
+                                            return
+                                        }
+                                    }
                                     switch strongSelf.playlist.looping {
                                         case .item:
                                             strongSelf.playbackItem?.seek(0.0)
