@@ -1,3 +1,4 @@
+import SwiftSignalKit
 import Postbox
 import AccountContext
 import Foundation
@@ -28,11 +29,33 @@ func makeBananaGramTheme(dark: Bool) -> PresentationTheme {
     return PresentationTheme(name: .custom(title), index: theme.index, referenceTheme: theme.referenceTheme, overallDarkAppearance: dark, intro: theme.intro, passcode: theme.passcode, rootController: root, list: list, chatList: chats, chat: theme.chat, actionSheet: theme.actionSheet.withUpdated(opaqueItemBackgroundColor: surface, itemBackgroundColor: surface, opaqueItemSeparatorColor: separator, standardActionTextColor: accent, primaryTextColor: foreground, secondaryTextColor: secondary), contextMenu: theme.contextMenu.withUpdated(backgroundColor: surface, itemSeparatorColor: separator, sectionSeparatorColor: background, itemBackgroundColor: surface, primaryColor: foreground, secondaryColor: secondary), inAppNotification: theme.inAppNotification, chart: theme.chart)
 }
 
+func bananaGramAppliedThemeSettings(_ settings: PresentationThemeSettings, reference: PresentationThemeReference, autoNightModeTriggered: Bool) -> PresentationThemeSettings {
+    var updated = settings
+    if autoNightModeTriggered {
+        var automatic = settings.automaticThemeSwitchSetting
+        automatic.theme = reference
+        updated = settings.withUpdatedAutomaticThemeSwitchSetting(automatic)
+    } else {
+        updated = settings.withUpdatedTheme(reference)
+    }
+    var wallpapers = updated.themeSpecificChatWallpapers
+    wallpapers[reference.index] = nil
+    return updated.withUpdatedThemeSpecificChatWallpapers(wallpapers)
+}
+
 func bananaGramThemePreviewController(context: AccountContext, dark: Bool) -> ViewController? {
     let theme = makeBananaGramTheme(dark: dark)
     guard let encoded = encodePresentationTheme(theme), let data = encoded.data(using: .utf8) else { return nil }
     let resource = LocalFileMediaResource(fileId: Int64.random(in: Int64.min ... Int64.max))
     context.sharedContext.accountManager.resources.storeResourceData(id: EngineMediaResource.Id(resource.id), data: data)
     let reference = PresentationThemeReference.local(PresentationLocalTheme(title: theme.name.string, resource: resource, resolvedWallpaper: nil))
-    return ThemePreviewController(context: context, previewTheme: theme, source: .settings(reference, nil, false))
+    let controller = ThemePreviewController(context: context, previewTheme: theme, source: .settings(reference, nil, false))
+    // Bundled presets are local themes: applying one must also work offline.
+    controller.customApply = {
+        let autoNightModeTriggered = context.sharedContext.currentPresentationData.with { $0 }.autoNightModeTriggered
+        let _ = updatePresentationThemeSettingsInteractively(accountManager: context.sharedContext.accountManager, { settings in
+            return bananaGramAppliedThemeSettings(settings, reference: reference, autoNightModeTriggered: autoNightModeTriggered)
+        }).start()
+    }
+    return controller
 }
