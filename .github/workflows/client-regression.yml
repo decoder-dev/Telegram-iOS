@@ -52,6 +52,7 @@ jobs:
       - run: python3 Tests/Customization/run.py
       - run: python3 Tests/Customization/shadow_ban.py
       - run: python3 Tests/Customization/appearance.py
+      - run: python3 -m unittest discover -s Tests/Branding
       - run: python3 Tests/GhostMode/run.py
       - run: python3 Tests/Camera/native_zoom.py
       - run: python3 Tests/MenuPresentation/run.py

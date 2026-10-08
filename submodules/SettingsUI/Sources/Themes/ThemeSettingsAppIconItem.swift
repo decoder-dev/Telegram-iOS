@@ -375,39 +375,32 @@ class ThemeSettingsAppIconItemNode: ListViewItemNode, ItemListItemNode {
                             let selected = icon.name == item.currentIconName
 
                             var name = "Icon"
-                            var bordered = true
+                            let bordered = false
                             switch icon.name {
-                                case "BlueIcon":
-                                    name = item.strings.Appearance_AppIconDefault
-                                case "BlackIcon":
-                                    name = item.strings.Appearance_AppIconDefaultX
-                                case "BlueClassicIcon":
-                                    name = item.strings.Appearance_AppIconClassic
-                                case "BlackClassicIcon":
-                                    name = item.strings.Appearance_AppIconClassicX
-                                case "BlueFilledIcon":
-                                    name = item.strings.Appearance_AppIconFilled
-                                    bordered = false
-                                case "BlackFilledIcon":
-                                    name = item.strings.Appearance_AppIconFilledX
-                                    bordered = false
-                                case "WhiteFilled":
-                                    name = "⍺ White"
-                                case "New1":
-                                    name = item.strings.Appearance_AppIconNew1
-                                case "New2":
-                                    name = item.strings.Appearance_AppIconNew2
-                                case "Premium":
-                                    name = item.strings.Appearance_AppIconPremium
-                                case "PremiumBlack":
-                                    name = item.strings.Appearance_AppIconBlack
-                                case "PremiumTurbo":
-                                    name = item.strings.Appearance_AppIconTurbo
-                                case "PatriotPlaneIcon":
-                                    name = ForkPresentationLanguage.prefersRussianStrings ? "Патриот" : "Patriot"
-                                default:
-                                    name = icon.name
+                            case "BlueIcon": name = "Banana"
+                            case "BlackIcon": name = "Graphite"
+                            case "BlueClassicIcon": name = "Cream"
+                            case "BlackClassicIcon": name = "Ink"
+                            case "BlueFilledIcon": name = "Ocean"
+                            case "BlackFilledIcon": name = "Slate"
+                            case "WhiteFilledIcon": name = "Paper"
+                            case "New1": name = "Mint"
+                            case "New2": name = "Lavender"
+                            case "Premium": name = "Gold"
+                            case "PremiumBlack": name = "Noir"
+                            case "PremiumTurbo": name = "Volt"
+                            case "PremiumNight": name = "Midnight"
+                            case "PremiumRose": name = "Rose"
+                            case "PremiumEmerald": name = "Emerald"
+                            case "PremiumSunset": name = "Sunset"
+                            case "PremiumIce": name = "Ice"
+                            case "PremiumCarbon": name = "Carbon"
+                            case "PremiumRoyal": name = "Royal"
+                            case "PremiumAurora": name = "Aurora"
+                            case "PatriotPlaneIcon": name = "Coral"
+                            default: name = "BananaGram"
                             }
+
                         
                             imageNode.setup(theme: item.theme, icon: image, title: NSAttributedString(string: name, font: selected ? selectedTextFont : textFont, textColor: selected  ? item.theme.list.itemAccentColor : item.theme.list.itemPrimaryTextColor, paragraphAlignment: .center), locked: !item.isPremium && icon.isPremium, color: item.theme.list.itemPrimaryTextColor, bordered: bordered, selected: selected, action: {
                                 item.updated(icon)
