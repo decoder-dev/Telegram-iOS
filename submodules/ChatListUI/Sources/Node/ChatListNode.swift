@@ -1301,9 +1301,9 @@ public final class ChatListNode: ListViewImpl {
     }
     
     private var currentLocation: ChatListNodeLocation?
-    /// Defaults to false. Only the visible folder tab (or standalone lists that opt in) may paginate;
-    /// adjacent preloaded tabs must stay false or background pagination corrupts their item state.
-    private(set) var isActiveForFolderPagination: Bool = false
+    /// Defaults to true, as upstream: a list paginates as soon as the user scrolls it. Nothing in the main chat list
+    /// ever activated a list that started out paused, so a false default left every tab on its first page of chats.
+    private(set) var isActiveForFolderPagination: Bool = true
     public private(set) var chatListFilter: ChatListFilter? {
         didSet {
             self.chatListFilterValue.set(.single(self.chatListFilter))
