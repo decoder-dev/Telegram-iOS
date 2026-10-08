@@ -1192,6 +1192,7 @@ func fetchChatListHole(postbox: Postbox, network: Network, accountPeerId: PeerId
             }
             |> ignoreValues
         }
+        Logger.shared.log("ChatListSync", "Fetched page group=\(groupId.rawValue) dialogs=\(fetchedChats.chatPeerIds.count) messages=\(fetchedChats.storeMessages.count) hasMore=\(fetchedChats.lowerNonPinnedIndex != nil)")
         return withResolvedAssociatedMessages(postbox: postbox, source: .network(network), accountPeerId: accountPeerId, parsedPeers: fetchedChats.peers, storeMessages: fetchedChats.storeMessages, resolveThreads: false, { transaction, additionalPeers, additionalMessages -> Void in
             updatePeers(transaction: transaction, accountPeerId: accountPeerId, peers: fetchedChats.peers.union(with: additionalPeers))
             _internal_applyFetchedChatInputStates(transaction: transaction, accountPeerId: accountPeerId, inputStates: fetchedChats.inputStates)

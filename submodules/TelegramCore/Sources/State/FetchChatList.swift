@@ -237,6 +237,17 @@ struct FetchedChatList {
     var inputStates: [(PeerId, Api.DraftMessage)]
 }
 
+// A persisted pagination cursor can outlive its peer record. Never wait for a
+// missing peer: the serial hole loader would then stop loading every other page.
+func resolvedChatListOffset(upperBound: MessageIndex, peer: Peer?) -> (Int32, Int32, Api.InputPeer) {
+    if upperBound.id.peerId.namespace == Namespaces.Peer.Empty {
+        return (0, 0, .inputPeerEmpty)
+    }
+    // Keep the original date/id boundary and the existing empty-peer fallback.
+    // Restarting at zero could loop on a page whose final peer has no access hash.
+    return (upperBound.timestamp, upperBound.id.id, peer.flatMap(apiInputPeer) ?? .inputPeerEmpty)
+}
+
 func fetchChatList(accountPeerId: PeerId, postbox: Postbox, network: Network, location: FetchChatListLocation, upperBound: MessageIndex, hash: Int64, limit: Int32) -> Signal<FetchedChatList?, NoError> {
     return postbox.stateView()
     |> mapToSignal { view -> Signal<AuthorizedAccountState, NoError> in
@@ -252,10 +263,12 @@ func fetchChatList(accountPeerId: PeerId, postbox: Postbox, network: Network, lo
         if upperBound.id.peerId.namespace == Namespaces.Peer.Empty {
             offset = single((0, 0, Api.InputPeer.inputPeerEmpty), NoError.self)
         } else {
-            offset = postbox.loadedPeerWithId(upperBound.id.peerId)
-            |> take(1)
-            |> map { peer in
-                return (upperBound.timestamp, upperBound.id.id, apiInputPeer(peer) ?? .inputPeerEmpty)
+            offset = postbox.transaction { transaction in
+                let offset = resolvedChatListOffset(upperBound: upperBound, peer: transaction.getPeer(upperBound.id.peerId))
+                if case .inputPeerEmpty = offset.2 {
+                    Logger.shared.log("ChatListSync", "Loading pagination cursor without a resolvable peer")
+                }
+                return offset
             }
         }
         

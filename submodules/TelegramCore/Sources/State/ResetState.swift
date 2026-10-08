@@ -2,6 +2,7 @@ import Foundation
 import SwiftSignalKit
 import Postbox
 import TelegramApi
+import MtProtoKit
 
 func _internal_resetAccountState(postbox: Postbox, network: Network, accountPeerId: PeerId) -> Signal<Never, NoError> {
     return network.request(Api.functions.updates.getState())
@@ -15,7 +16,9 @@ func _internal_resetAccountState(postbox: Postbox, network: Network, accountPeer
                 return .never()
             }
             return withResolvedAssociatedMessages(postbox: postbox, source: .network(network), accountPeerId: accountPeerId, parsedPeers: fetchedChats.peers, storeMessages: fetchedChats.storeMessages, resolveThreads: false, { transaction, additionalPeers, additionalMessages -> Void in
-                for peerId in transaction.chatListGetAllPeerIds() {
+                let previousPeerIds = transaction.chatListGetAllPeerIds()
+                Logger.shared.log("ChatListSync", "Resetting dialog index: previous=\(previousPeerIds.count) firstPage=\(fetchedChats.chatPeerIds.count) hasMore=\(fetchedChats.lowerNonPinnedIndex != nil)")
+                for peerId in previousPeerIds {
                     if peerId.namespace != Namespaces.Peer.SecretChat {
                         transaction.updatePeerChatListInclusion(peerId, inclusion: .notIncluded)
                     }

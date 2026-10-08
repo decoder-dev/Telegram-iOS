@@ -16,6 +16,7 @@ on:
       - 'Tests/ManagedProxy/**'
       - 'Tests/GhostMode/**'
       - 'Tests/ClientAdditions/**'
+      - 'Tests/ChatListSync/**'
       - 'Tests/Customization/**'
       - 'Tests/MenuPresentation/**'
       - 'Tests/ArchiveLock/**'
@@ -53,6 +54,7 @@ jobs:
       - run: python3 Tests/ManagedProxy/automatic.py
       - run: python3 Tests/Customization/run.py
       - run: python3 Tests/ClientAdditions/run.py
+      - run: python3 Tests/ChatListSync/run.py
       - run: python3 Tests/Customization/theme_selection.py
       - run: python3 Tests/Customization/shadow_ban.py
       - run: python3 Tests/Customization/appearance.py
