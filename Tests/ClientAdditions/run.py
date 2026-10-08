@@ -70,6 +70,7 @@ def swift_tests():
     page = declaration("submodules/SettingsUI/Sources/BananaSettingsLinks.swift", "func bananaSettingsPage(")
     fixture = r'''
 import Foundation
+import CoreGraphics
 enum ForkExtrasControllerFocus: Equatable {
     case top, ninja, ghost, privacy, interface, chat, network, messageSaving, messageFilters
     var resolvedCategory: Self { switch self { case .messageSaving, .messageFilters: return .ninja; default: return self } }
@@ -118,7 +119,7 @@ print("Audio settings migration/round trips, navigation-only links, round video 
 '''
     with tempfile.TemporaryDirectory(prefix="banana-additions-") as tmp:
         path = pathlib.Path(tmp) / "main.swift"
-        path.write_text(fixture + key + prefs + geometry + parser + page + tests, encoding="utf-8")
+        path.write_text("\n\n".join([fixture, key, prefs, geometry, parser, page, tests]), encoding="utf-8")
         subprocess.run(["swift", str(path)], check=True)
         for source in [
             "submodules/SettingsUI/Sources/BananaSettingsLinks.swift",
