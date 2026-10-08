@@ -1498,7 +1498,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(1504, ForkExtrasLocalizedString.string(forKey: "ForkExtras.wideTabBar"), settings.wideTabBar, \.wideTabBar),
             .appearanceToggle(1505, ForkExtrasLocalizedString.string(forKey: "ForkExtras.integratedTabSearch"), settings.integratedTabSearch, \.integratedTabSearch),
             .appearanceToggle(1506, ForkExtrasLocalizedString.string(forKey: "ForkExtras.tabSearchOnLeft"), settings.tabSearchOnLeft, \.tabSearchOnLeft),
-            .tabPreview(BananaTabBarLayout(hidden: settings.hideTabBar, contacts: settings.showContactsTab, calls: showCallsTab, wide: settings.wideTabBar, integratedSearch: settings.integratedTabSearch, searchOnLeft: settings.tabSearchOnLeft)),
+            .tabPreview(BananaTabBarLayout(hidden: ForkExtrasHotFlags.hidesTabBar(settings.hideTabBar, isPad: UIDevice.current.userInterfaceIdiom == .pad), contacts: settings.showContactsTab, calls: showCallsTab, wide: settings.wideTabBar, integratedSearch: settings.integratedTabSearch, searchOnLeft: settings.tabSearchOnLeft)),
         ])
     case .chat:
         entries = [

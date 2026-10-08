@@ -8,6 +8,10 @@ source = (root / "submodules/TelegramUIPreferences/Sources/ForkExtrasSettings.sw
 source = source[:source.index("/// Last opened chat-list folder.")]
 for module in ("TelegramCore", "SwiftSignalKit", "Postbox"):
     source = source.replace(f"import {module}\n", "")
+icon_source = (root / "submodules/SettingsUI/Sources/Themes/ThemeSettingsAppIconItem.swift").read_text(encoding="utf-8")
+start = icon_source.index("func bananaAppIconColumnCount(")
+end = icon_source.index("\n}", start) + 2
+source += "\n" + icon_source[start:end] + "\n"
 fixture = r'''
 import Foundation
 public struct StringCodingKey: CodingKey, ExpressibleByStringLiteral {
@@ -21,6 +25,13 @@ public enum MessageSavingBridge { public static let defaultDeletedMark = "delete
 enum ForkPresentationLanguage { static let prefersRussianStrings = false }
 '''
 tests = r'''
+for width in [240.0, 280.0, 320.0, 375.0, 768.0] {
+    let columns = bananaAppIconColumnCount(availableWidth: CGFloat(width))
+    precondition(columns >= 1 && columns <= 4)
+    precondition(Double(columns) * 74.0 + Double(columns - 1) * 8.0 + 16.0 <= width)
+}
+precondition(bananaAppIconColumnCount(availableWidth: 320) == 3)
+precondition(bananaAppIconColumnCount(availableWidth: 375) == 4)
 let decoder = JSONDecoder()
 let encoder = JSONEncoder()
 let old = try decoder.decode(ForkExtrasSettings.self, from: Data("{}".utf8))

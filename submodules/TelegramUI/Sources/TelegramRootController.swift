@@ -958,6 +958,12 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
     
         if let index = rootTabController.controllers.firstIndex(where: { $0 is ContactsController }) {
             rootTabController.selectedIndex = index
+        } else {
+            let contacts = ContactsController(context: self.context)
+            contacts.switchToChatsController = { [weak self] in
+                self?.openChatsController(activateSearch: false)
+            }
+            self.pushViewController(contacts, animated: true)
         }
     }
         

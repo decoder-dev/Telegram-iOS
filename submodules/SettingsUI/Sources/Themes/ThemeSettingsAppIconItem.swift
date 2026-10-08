@@ -10,6 +10,11 @@ import PresentationDataUtils
 import AppBundle
 import TelegramUIPreferences
 
+func bananaAppIconColumnCount(availableWidth: CGFloat) -> Int {
+    // 74-point item, 8-point minimum gap and 8-point outer margins.
+    return max(1, min(4, Int(max(0.0, availableWidth - 8.0) / 82.0)))
+}
+
 private func generateBorderImage(theme: PresentationTheme, bordered: Bool, selected: Bool) -> UIImage? {
     return generateImage(CGSize(width: 30.0, height: 30.0), rotatedContext: { size, context in
         let bounds = CGRect(origin: CGPoint(), size: size)
@@ -149,11 +154,16 @@ private final class ThemeSettingsAppIconNode : ASDisplayNode {
             action()
         }
         
+        self.activateAreaNode.activate = { [weak self] in
+            guard let self, !self.locked, let action = self.action else { return false }
+            action()
+            return true
+        }
         self.activateAreaNode.accessibilityLabel = title.string
         if locked {
             self.activateAreaNode.accessibilityTraits = [.button, .notEnabled]
         } else {
-            self.activateAreaNode.accessibilityTraits = [.button]
+            self.activateAreaNode.accessibilityTraits = selected ? [.button, .selected] : [.button]
         }
         
         self.setNeedsLayout()
@@ -257,7 +267,8 @@ class ThemeSettingsAppIconItemNode: ListViewItemNode, ItemListItemNode {
             let separatorHeight = UIScreenPixel
             
             let nodeSize = CGSize(width: 74.0, height: 102.0)
-            let height: CGFloat = nodeSize.height * ceil(CGFloat(item.icons.count) / 4.0) + 12.0
+            let columns = bananaAppIconColumnCount(availableWidth: params.width - params.leftInset - params.rightInset)
+            let height: CGFloat = nodeSize.height * ceil(CGFloat(item.icons.count) / CGFloat(columns)) + 12.0
             
             contentSize = CGSize(width: params.width, height: height)
             insets = itemListNeighborsGroupedInsets(neighbors, params)
@@ -346,7 +357,7 @@ class ThemeSettingsAppIconItemNode: ListViewItemNode, ItemListItemNode {
                     strongSelf.containerNode.frame = CGRect(origin: CGPoint(x: params.leftInset, y: 2.0), size: CGSize(width: layoutSize.width - params.leftInset - params.rightInset, height: layoutSize.height))
                     
                     let sideInset: CGFloat = 8.0
-                    let spacing: CGFloat = floorToScreenPixels((params.width - sideInset * 2.0 - params.leftInset - params.rightInset - nodeSize.width * 4.0) / 3.0)
+                    let spacing: CGFloat = columns > 1 ? max(0.0, floorToScreenPixels((params.width - sideInset * 2.0 - params.leftInset - params.rightInset - nodeSize.width * CGFloat(columns)) / CGFloat(columns - 1))) : 0.0
                     let verticalSpacing: CGFloat = 0.0
                     
                     var x: CGFloat = sideInset
@@ -354,7 +365,7 @@ class ThemeSettingsAppIconItemNode: ListViewItemNode, ItemListItemNode {
                     
                     var i = 0
                     for icon in item.icons {
-                        if i > 0 && i % 4 == 0 {
+                        if i > 0 && i % columns == 0 {
                             x = sideInset
                             y += nodeSize.height + verticalSpacing
                         }
