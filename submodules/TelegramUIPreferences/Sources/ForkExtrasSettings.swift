@@ -130,6 +130,11 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var hideViaBot: Bool
     /// Send messages without link previews.
     public var removeLinkPreviews: Bool
+    public var hideBirthdayNotifications: Bool
+    public var hideBotAutomation: Bool
+    public var showPinnedWithBot: Bool
+    public var stopAfterVoice: Bool
+    public var stopAfterRoundVideo: Bool
 
     public static var defaultSettings: ForkExtrasSettings {
         return ForkExtrasSettings(
@@ -263,6 +268,11 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.hidePaidReactions = false
         self.hideViaBot = false
         self.removeLinkPreviews = false
+        self.hideBirthdayNotifications = false
+        self.hideBotAutomation = false
+        self.showPinnedWithBot = false
+        self.stopAfterVoice = false
+        self.stopAfterRoundVideo = false
         self.ghostDontReadMessages = ghostDontReadMessages
         self.ghostDontReadStories = ghostDontReadStories
         self.ghostDontSendOnline = ghostDontSendOnline
@@ -331,6 +341,11 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.hidePaidReactions = try container.decodeIfPresent(Bool.self, forKey: "hidePaidReactions") ?? false
         self.hideViaBot = try container.decodeIfPresent(Bool.self, forKey: "hideViaBot") ?? false
         self.removeLinkPreviews = try container.decodeIfPresent(Bool.self, forKey: "removeLinkPreviews") ?? false
+        self.hideBirthdayNotifications = try container.decodeIfPresent(Bool.self, forKey: "hideBirthdayNotifications") ?? false
+        self.hideBotAutomation = try container.decodeIfPresent(Bool.self, forKey: "hideBotAutomation") ?? false
+        self.showPinnedWithBot = try container.decodeIfPresent(Bool.self, forKey: "showPinnedWithBot") ?? false
+        self.stopAfterVoice = try container.decodeIfPresent(Bool.self, forKey: "stopAfterVoice") ?? false
+        self.stopAfterRoundVideo = try container.decodeIfPresent(Bool.self, forKey: "stopAfterRoundVideo") ?? false
         self.avatarGlowEnabled = try container.decodeIfPresent(Bool.self, forKey: "avatarGlowEnabled") ?? true
         self.showChannelForwardCount = try container.decodeIfPresent(Bool.self, forKey: "showChannelForwardCount") ?? false
         self.reactionGlowEnabled = try container.decodeIfPresent(Bool.self, forKey: "reactionGlowEnabled") ?? false
@@ -406,6 +421,11 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.hidePaidReactions, forKey: "hidePaidReactions")
         try container.encode(self.hideViaBot, forKey: "hideViaBot")
         try container.encode(self.removeLinkPreviews, forKey: "removeLinkPreviews")
+        try container.encode(self.hideBirthdayNotifications, forKey: "hideBirthdayNotifications")
+        try container.encode(self.hideBotAutomation, forKey: "hideBotAutomation")
+        try container.encode(self.showPinnedWithBot, forKey: "showPinnedWithBot")
+        try container.encode(self.stopAfterVoice, forKey: "stopAfterVoice")
+        try container.encode(self.stopAfterRoundVideo, forKey: "stopAfterRoundVideo")
         try container.encode(self.avatarGlowEnabled, forKey: "avatarGlowEnabled")
         try container.encode(self.showChannelForwardCount, forKey: "showChannelForwardCount")
         try container.encode(self.reactionGlowEnabled, forKey: "reactionGlowEnabled")

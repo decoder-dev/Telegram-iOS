@@ -9,8 +9,18 @@ public enum ForkMessageVisibility {
         public var hidePaidReactions: Bool = false
         public var hideViaBot: Bool = false
         public var removeLinkPreviews: Bool = false
+        public var hideBirthdayNotifications: Bool = false
+        public var hideBotAutomation: Bool = false
+        public var showPinnedWithBot: Bool = false
+        public var stopAfterVoice: Bool = false
+        public var stopAfterRoundVideo: Bool = false
 
-        public init(hidePaidReactions: Bool = false, hideViaBot: Bool = false, removeLinkPreviews: Bool = false) {
+        public init(hidePaidReactions: Bool = false, hideViaBot: Bool = false, removeLinkPreviews: Bool = false, hideBirthdayNotifications: Bool = false, hideBotAutomation: Bool = false, showPinnedWithBot: Bool = false, stopAfterVoice: Bool = false, stopAfterRoundVideo: Bool = false) {
+            self.hideBirthdayNotifications = hideBirthdayNotifications
+            self.hideBotAutomation = hideBotAutomation
+            self.showPinnedWithBot = showPinnedWithBot
+            self.stopAfterVoice = stopAfterVoice
+            self.stopAfterRoundVideo = stopAfterRoundVideo
             self.hidePaidReactions = hidePaidReactions
             self.hideViaBot = hideViaBot
             self.removeLinkPreviews = removeLinkPreviews
@@ -37,6 +47,22 @@ public enum ForkMessageVisibility {
 
     public static var removeLinkPreviews: Bool {
         return state.with { $0.removeLinkPreviews }
+    }
+
+    public static var hideBirthdayNotifications: Bool {
+        return state.with { $0.hideBirthdayNotifications }
+    }
+
+    public static var hideBotAutomation: Bool {
+        return state.with { $0.hideBotAutomation }
+    }
+
+    public static var showPinnedWithBot: Bool {
+        return state.with { $0.showPinnedWithBot }
+    }
+
+    public static func shouldStopAfterMedia(isRoundVideo: Bool) -> Bool {
+        return state.with { isRoundVideo ? $0.stopAfterRoundVideo : $0.stopAfterVoice }
     }
 }
 

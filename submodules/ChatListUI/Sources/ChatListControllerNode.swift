@@ -1442,7 +1442,16 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
         let headerContent = self.controller?.updateHeaderContent()
         
         var panels: [HeaderPanelContainerComponent.Panel] = []
-        if let chatListNotice = self.controller?.globalControlPanelsContextState?.chatListNotice {
+        var visibleChatListNotice = self.controller?.globalControlPanelsContextState?.chatListNotice
+        if ForkMessageVisibility.hideBirthdayNotifications, let notice = visibleChatListNotice {
+            switch notice {
+            case .setupBirthday, .birthdayPremiumGift:
+                visibleChatListNotice = nil
+            default:
+                break
+            }
+        }
+        if let chatListNotice = visibleChatListNotice {
             panels.append(HeaderPanelContainerComponent.Panel(
                 key: "chatListNotice",
                 orderIndex: 0,

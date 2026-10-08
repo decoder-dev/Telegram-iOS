@@ -254,6 +254,22 @@ final class SharedMediaPlayer {
                         playbackItem.setActionAtEnd({
                             Queue.mainQueue().async {
                                 if let strongSelf = self {
+                                    if strongSelf.type == .voice, let completedType = state.item?.playbackData?.type {
+                                        var shouldStop = false
+                                        switch completedType {
+                                        case .voice:
+                                            shouldStop = ForkMessageVisibility.shouldStopAfterMedia(isRoundVideo: false)
+                                        case .instantVideo:
+                                            shouldStop = ForkMessageVisibility.shouldStopAfterMedia(isRoundVideo: true)
+                                        default:
+                                            break
+                                        }
+                                        if shouldStop {
+                                            strongSelf.playbackItem?.pause()
+                                            strongSelf.playedToEnd?()
+                                            return
+                                        }
+                                    }
                                     switch strongSelf.playlist.looping {
                                         case .item:
                                             strongSelf.playbackItem?.seek(0.0)

@@ -181,7 +181,7 @@ func titlePanelForChatPresentationInterfaceState(_ chatPresentationInterfaceStat
                 panel.interfaceInteraction = interfaceInteraction
                 return panel
             }
-        } else if !chatPresentationInterfaceState.peerIsBlocked && !inhibitTitlePanelDisplay, let contactStatus = chatPresentationInterfaceState.contactStatus, contactStatus.managingBot != nil {
+        } else if !chatPresentationInterfaceState.peerIsBlocked && !inhibitTitlePanelDisplay, let contactStatus = chatPresentationInterfaceState.contactStatus, contactStatus.managingBot != nil, !ForkMessageVisibility.hideBotAutomation {
             if let currentPanel = currentPanel as? ChatManagingBotTitlePanelNode {
                 return currentPanel
             } else {
