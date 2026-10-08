@@ -11,7 +11,8 @@ SOURCE = ROOT / "submodules/TelegramCore/Sources/State/FetchChatList.swift"
 class WiringTests(unittest.TestCase):
     def test_missing_peer_does_not_wait_forever(self):
         source = SOURCE.read_text(encoding="utf-8")
-        offset = source[source.index("let offset: Signal<"):source.index("return offset\n")]
+        offset = source[source.index("let offset: Signal<"):source.index("\n        return offset\n")]
+        self.assertEqual(offset.count("{"), offset.count("}"), "Extract complete offset block")
         self.assertNotIn("loadedPeerWithId", offset)
         self.assertIn("postbox.transaction", offset)
         self.assertIn("transaction.getPeer(upperBound.id.peerId)", offset)
@@ -33,7 +34,7 @@ def run_swift():
     start = source.index("func resolvedChatListOffset(")
     function = source[start:source.index("\n}", start) + 2]
     offset_start = source.index("        let offset: Signal<")
-    offset_block = source[offset_start:source.index("        return offset\n", offset_start)]
+    offset_block = source[offset_start:source.index("\n        return offset\n", offset_start)]
     offset_source = "func loadOffset(postbox: Postbox, upperBound: MessageIndex) -> Signal<(Int32, Int32, Api.InputPeer), NoError> {\n" + offset_block + "\nreturn offset\n}"
     fixture = r"""
 import Foundation
