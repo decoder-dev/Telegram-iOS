@@ -555,7 +555,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         // Eager Core / filter pushdown from current immediate defaults (sharedData signal is async).
         do {
             let settings = immediateForkExtrasSettingsValue.with { $0 }
-            Self.pushForkExtrasToEngineStatics(settings)
+            Self.pushForkExtrasToEngineStatics(settings, applyAppearance: false)
         }
         self.forkExtrasSettingsDisposable = (self.accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.forkExtrasSettings])
         |> map { sharedData -> ForkExtrasSettings in
@@ -1169,7 +1169,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
     
     /// Push Extras flags into TelegramCore statics + precompile regex filters.
     /// Kept off the chat scroll path: history filtering reads the compiled cache only.
-    private static func pushForkExtrasToEngineStatics(_ settings: ForkExtrasSettings) {
+    private static func pushForkExtrasToEngineStatics(_ settings: ForkExtrasSettings, applyAppearance: Bool = true) {
         ForkGhostModeSettings.applyPreferences(
             suppressOutgoingActivity: settings.ghostDontSendTyping,
             suppressOnline: settings.ghostDontSendOnline,
@@ -1178,9 +1178,12 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             goOfflineAutomatically: settings.ghostGoOfflineAutomatically,
             readOnInteract: settings.ghostReadOnInteract
         )
-        BananaTabBarLayout.current = BananaTabBarLayout(hidden: settings.hideTabBar, contacts: settings.showContactsTab, calls: true, wide: settings.wideTabBar, integratedSearch: settings.integratedTabSearch, searchOnLeft: settings.tabSearchOnLeft)
-        ArenaSettings.shared.avatarGlow = settings.avatarGlowEnabled
-        ArenaSettings.shared.reactionGlow = settings.reactionGlowEnabled
+        // Wait for persisted preferences before enabling visual effects on cold launch.
+        if applyAppearance {
+            BananaTabBarLayout.current = BananaTabBarLayout(hidden: settings.hideTabBar, contacts: settings.showContactsTab, calls: true, wide: settings.wideTabBar, integratedSearch: settings.integratedTabSearch, searchOnLeft: settings.tabSearchOnLeft)
+            ArenaSettings.shared.avatarGlow = settings.avatarGlowEnabled
+            ArenaSettings.shared.reactionGlow = settings.reactionGlowEnabled
+        }
         ForkAyuForwardSettings.enabled = settings.ayuForward
         ForkBypassDownloadRestrictionsSettings.enabled = settings.bypassDownloadRestrictions
         ForkLocalPremiumSettings.enabled = settings.localPremium
