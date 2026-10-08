@@ -1,4 +1,5 @@
 import Foundation
+import Postbox
 import UIKit
 import Display
 import SwiftSignalKit
@@ -572,6 +573,7 @@ private final class ForkExtrasControllerArguments {
     let updateHideTabBar: (Bool) -> Void
     let updateShowMessageSeconds: (Bool) -> Void
     let context: AccountContext
+    let openBrandTheme: (Bool) -> Void
     let updateCallsTab: (Bool) -> Void
     let updateAppearance: (WritableKeyPath<ForkExtrasSettings, Bool>, Bool) -> Void
     let updateWideChannelPosts: (Bool) -> Void
@@ -638,6 +640,7 @@ private final class ForkExtrasControllerArguments {
         updateHideTabBar: @escaping (Bool) -> Void,
         updateShowMessageSeconds: @escaping (Bool) -> Void,
         context: AccountContext,
+        openBrandTheme: @escaping (Bool) -> Void,
         updateCallsTab: @escaping (Bool) -> Void,
         updateAppearance: @escaping (WritableKeyPath<ForkExtrasSettings, Bool>, Bool) -> Void,
         updateWideChannelPosts: @escaping (Bool) -> Void,
@@ -703,6 +706,7 @@ private final class ForkExtrasControllerArguments {
         self.updateHideTabBar = updateHideTabBar
         self.updateShowMessageSeconds = updateShowMessageSeconds
         self.context = context
+        self.openBrandTheme = openBrandTheme
         self.updateCallsTab = updateCallsTab
         self.updateAppearance = updateAppearance
         self.updateWideChannelPosts = updateWideChannelPosts
@@ -739,6 +743,16 @@ private enum ForkExtrasSection: Int32 {
 }
 
 private enum ForkExtrasEntry: ItemListNodeEntry {
+    case designHeader(Int32, String)
+    case brandTheme(Bool)
+
+    private static let interfaceGroups: [[Int32]] = [
+        [1600, 1610, 1611],
+        [1601, 1499, 52, 59, 60, 61, 62, 63, 64, 1502, 1503, 1504, 1505, 1506, 1507],
+        [1602, 50, 51, 53, 54, 55, 56, 58, 65, 66, 67, 68, 69],
+        [1603, 1500, 1501, 57]
+    ]
+
     case hubNinja
     case hubGhost
     case hubPrivacy
@@ -855,7 +869,11 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     case outgoingPhotoQualityFooter
 
     var section: ItemListSectionId {
+        if let group = Self.interfaceGroups.firstIndex(where: { $0.contains(self.stableId) }) {
+            return Int32(100 + group)
+        }
         switch self {
+        case .designHeader, .brandTheme: return 100
         case .hubNinja, .hubGhost, .hubPrivacy, .hubInterface, .hubChat, .hubNetwork, .hubFooter:
             return ForkExtrasSection.hub.rawValue
         case .ghostModeMaster, .ghostDontReadMessages, .ghostDontReadStories, .ghostDontSendOnline, .ghostDontSendTyping, .ghostGoOfflineAutomatically, .ghostGoOfflineAutomaticallyFooter, .ghostReadOnInteract, .ghostReadOnInteractFooter, .ghostAlertBeforeOpeningStory, .ghostAlertBeforeOpeningStoryFooter, .ghostScheduleMessages, .ghostScheduleMessagesFooter, .ghostModeFooter:
@@ -899,6 +917,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
 
     var stableId: Int32 {
         switch self {
+        case let .designHeader(id, _): return id
+        case let .brandTheme(dark): return dark ? 1611 : 1610
         case .tabPreview: return 1507
         case .callsTab: return 1503
         case let .appearanceToggle(id, _, _, _): return id
@@ -1017,12 +1037,19 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     }
 
     static func <(lhs: ForkExtrasEntry, rhs: ForkExtrasEntry) -> Bool {
-        return lhs.stableId < rhs.stableId
+        let order = Self.interfaceGroups.flatMap { $0 }
+        let left = order.firstIndex(of: lhs.stableId).map { 1000 + $0 } ?? Int(lhs.stableId)
+        let right = order.firstIndex(of: rhs.stableId).map { 1000 + $0 } ?? Int(rhs.stableId)
+        return left < right
     }
 
     func item(presentationData: ItemListPresentationData, arguments: Any) -> ListViewItem {
         let arguments = arguments as! ForkExtrasControllerArguments
         switch self {
+        case let .designHeader(_, title):
+            return ItemListSectionHeaderItem(presentationData: presentationData, text: title, sectionId: self.section)
+        case let .brandTheme(dark):
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: dark ? "BananaGram Graphite" : "BananaGram Cream", label: ForkPresentationLanguage.prefersRussianStrings ? "Предпросмотр" : "Preview", sectionId: self.section, style: .blocks, action: { arguments.openBrandTheme(dark) })
         case let .tabPreview(layout):
             return BananaTabBarPreviewItem(context: arguments.context, theme: presentationData.theme, strings: presentationData.strings, sectionId: self.section, layout: layout)
         case let .callsTab(value):
@@ -1500,6 +1527,14 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(1506, ForkExtrasLocalizedString.string(forKey: "ForkExtras.tabSearchOnLeft"), settings.tabSearchOnLeft, \.tabSearchOnLeft),
             .tabPreview(BananaTabBarLayout(hidden: ForkExtrasHotFlags.hidesTabBar(settings.hideTabBar, isPad: UIDevice.current.userInterfaceIdiom == .pad), contacts: settings.showContactsTab, calls: showCallsTab, wide: settings.wideTabBar, integratedSearch: settings.integratedTabSearch, searchOnLeft: settings.tabSearchOnLeft)),
         ])
+        let russian = ForkPresentationLanguage.prefersRussianStrings
+        entries.append(contentsOf: [
+            .designHeader(1600, russian ? "Темы BananaGram" : "BananaGram themes"), .brandTheme(false), .brandTheme(true),
+            .designHeader(1601, russian ? "Навигация" : "Navigation"),
+            .designHeader(1602, russian ? "Чаты" : "Chats"),
+            .designHeader(1603, russian ? "Эффекты" : "Effects")
+        ])
+        entries.sort()
     case .chat:
         entries = [
             .confirmBeforeCall(settings.confirmBeforeCall),
@@ -2086,6 +2121,14 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
             }.start())
         },
         context: context,
+        openBrandTheme: { dark in
+            let theme = makeBananaGramTheme(dark: dark)
+            guard let encoded = encodePresentationTheme(theme), let data = encoded.data(using: .utf8) else { return }
+            let resource = LocalFileMediaResource(fileId: Int64.random(in: Int64.min ... Int64.max))
+            context.sharedContext.accountManager.resources.storeResourceData(id: EngineMediaResource.Id(resource.id), data: data)
+            let reference = PresentationThemeReference.local(PresentationLocalTheme(title: theme.name.string, resource: resource, resolvedWallpaper: nil))
+            pushControllerImpl?(ThemePreviewController(context: context, previewTheme: theme, source: .settings(reference, nil, false)))
+        },
         updateCallsTab: { value in
             updateDisposable.set(updateCallListSettingsInteractively(accountManager: context.sharedContext.accountManager) { $0.withUpdatedShowTab(value) }.start())
         },
