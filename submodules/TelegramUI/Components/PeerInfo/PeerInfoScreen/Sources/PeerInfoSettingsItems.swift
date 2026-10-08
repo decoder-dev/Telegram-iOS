@@ -244,14 +244,7 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
     items[.advanced]!.append(PeerInfoScreenDisclosureItem(id: 2, text: presentationData.strings.Settings_ChatSettings, icon: PresentationResourcesSettings.dataAndStorage, action: {
         interaction.openSettings(.dataAndStorage)
     }))
-    // The Appearance row is gone: Messages has no theme picker, and the theme, bubble colour and
-    // corner radius are all fixed by the fork now, so the picker had nothing left to pick.
-    //
-    // The screen itself survives, trimmed to the controls that do still change something —
-    // wallpaper, name colour, text size, bubble settings, app icon — and retitled "Customization".
-    // This row carries that title rather than naming one of its rows, so the label matches the
-    // screen it opens. `.appearance` also stays reachable from Settings search and
-    // `tg://settings/theme`.
+    // Main entry for themes, wallpaper, bubble geometry and application icons.
     items[.advanced]!.append(PeerInfoScreenDisclosureItem(id: 3, text: forkCustomizationSettingsTitle(presentationData.strings), icon: PresentationResourcesSettings.appearance, action: {
         interaction.openSettings(.appearance)
     }))

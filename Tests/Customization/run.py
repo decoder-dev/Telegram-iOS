@@ -3,7 +3,7 @@ import subprocess
 import tempfile
 
 root = pathlib.Path(__file__).resolve().parents[2]
-source = (root / 'submodules/TelegramPresentationData/Sources/PresentationData.swift').read_text()
+source = (root / 'submodules/TelegramPresentationData/Sources/PresentationData.swift').read_text(encoding='utf-8')
 begin = source.index('public func higChatBubbleCorners(')
 end = source.index('\n}', begin) + 2
 fixture = '''import Foundation
@@ -38,5 +38,5 @@ print("Saved bubble geometry and boundary values: passed")
 '''
 with tempfile.TemporaryDirectory(prefix='telegram-customization-') as tmp:
     file = pathlib.Path(tmp) / 'main.swift'
-    file.write_text(fixture + source[begin:end] + tests)
+    file.write_text(fixture + source[begin:end] + tests, encoding='utf-8')
     subprocess.run(['swift', str(file)], check=True)

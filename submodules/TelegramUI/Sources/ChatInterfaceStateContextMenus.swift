@@ -1957,14 +1957,14 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
         // Russian app whenever the two disagreed. Same source and same language set the fork's
         // other custom titles use.
         let extrasMenuIsRussian: Bool
-        switch chatPresentationInterfaceState.strings.primaryComponent.languageCode {
+        switch String(chatPresentationInterfaceState.strings.primaryComponent.languageCode.prefix(2)).lowercased() {
         case "ru", "uk", "be":
             extrasMenuIsRussian = true
         default:
             extrasMenuIsRussian = false
         }
         if extras.saveToCloudMenu, message.id.peerId != context.account.peerId, message.id.namespace == Namespaces.Message.Cloud, !isCopyProtected || ForkAyuForwardSettings.enabled {
-            let saveTitle = extrasMenuIsRussian ? "Р’ РР·Р±СЂР°РЅРЅРѕРµ" : "Save to Saved Messages"
+            let saveTitle = forkSavedMessagesMenuTitle(chatPresentationInterfaceState.strings)
             actions.append(.action(ContextMenuActionItem(text: saveTitle, icon: { theme in
                 return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Fave"), color: theme.actionSheet.primaryTextColor)
             }, action: { _, f in

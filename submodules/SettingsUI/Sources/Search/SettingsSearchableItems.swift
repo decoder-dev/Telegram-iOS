@@ -3971,7 +3971,6 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
             alternate: synonyms(strings.SettingsSearch_Synonyms_Appearance_AutoNightTheme),
             icon: icon,
             breadcrumbs: [customizationTitle],
-            isVisible: false,
             present: { context, _, present in
                 present(.push, themeAutoNightSettingsController(context: context))
             }
@@ -3982,7 +3981,6 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
             alternate: synonyms(strings.SettingsSearch_Synonyms_Appearance_ColorTheme),
             icon: icon,
             breadcrumbs: [customizationTitle],
-            isVisible: false,
             present: { context, _, present in
                 let controller = themePickerController(context: context)
                 present(.push, controller)
@@ -3994,7 +3992,6 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
             alternate: [],
             icon: icon,
             breadcrumbs: [customizationTitle, strings.Themes_Title],
-            isVisible: false,
             present: { context, _, present in
                 let controller = themePickerController(context: context, focusOnItemTag: .edit)
                 present(.push, controller)
@@ -4006,7 +4003,6 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
             alternate: [],
             icon: icon,
             breadcrumbs: [customizationTitle, strings.Themes_Title],
-            isVisible: false,
             present: { context, navigationController, present in
                 let _ = (context.sharedContext.accountManager.transaction { transaction -> PresentationThemeReference in
                     let settings = transaction.getSharedData(ApplicationSpecificSharedDataKeys.presentationThemeSettings)?.get(PresentationThemeSettings.self) ?? PresentationThemeSettings.defaultSettings

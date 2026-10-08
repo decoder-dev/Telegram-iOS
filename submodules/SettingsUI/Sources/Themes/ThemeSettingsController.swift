@@ -26,6 +26,7 @@ import DeviceModel
 
 private final class ThemeSettingsControllerArguments {
     let context: AccountContext
+    let openBrandTheme: (Bool) -> Void
     let selectTheme: (PresentationThemeReference) -> Void
     let openThemeSettings: () -> Void
     let openWallpaperSettings: () -> Void
@@ -48,6 +49,7 @@ private final class ThemeSettingsControllerArguments {
     
     init(
         context: AccountContext,
+        openBrandTheme: @escaping (Bool) -> Void,
         selectTheme: @escaping (PresentationThemeReference) -> Void,
         openThemeSettings: @escaping () -> Void,
         openWallpaperSettings: @escaping () -> Void,
@@ -69,6 +71,7 @@ private final class ThemeSettingsControllerArguments {
         colorContextAction: @escaping (Bool, PresentationThemeReference, ThemeSettingsColorOption?, ASDisplayNode, ContextGesture?) -> Void
     ) {
         self.context = context
+        self.openBrandTheme = openBrandTheme
         self.selectTheme = selectTheme
         self.openThemeSettings = openThemeSettings
         self.openWallpaperSettings = openWallpaperSettings
@@ -125,6 +128,7 @@ public enum ThemeSettingsEntryTag: ItemListItemTag {
 }
 
 private enum ThemeSettingsControllerEntry: ItemListNodeEntry {
+    case brandTheme(PresentationTheme, Bool)
     case themeListHeader(PresentationTheme, String)
     case chatPreview(PresentationTheme, TelegramWallpaper, PresentationFontSize, PresentationChatBubbleCorners, PresentationStrings, PresentationDateTimeFormat, PresentationPersonNameOrder, [ChatPreviewMessageItem])
     case themes(PresentationTheme, PresentationStrings, [PresentationThemeReference], PresentationThemeReference, Bool, [String: [StickerPackItem]], [Int64: PresentationThemeAccentColor], [Int64: TelegramWallpaper])
@@ -148,7 +152,7 @@ private enum ThemeSettingsControllerEntry: ItemListNodeEntry {
     
     var section: ItemListSectionId {
         switch self {
-        case .themeListHeader, .chatPreview, .themes, .chatTheme, .wallpaper, .nameColor:
+        case .brandTheme, .themeListHeader, .chatPreview, .themes, .chatTheme, .wallpaper, .nameColor:
                 return ThemeSettingsControllerSection.chatPreview.rawValue
             case .autoNight, .autoNightTheme:
                 return ThemeSettingsControllerSection.nightMode.rawValue
@@ -165,6 +169,8 @@ private enum ThemeSettingsControllerEntry: ItemListNodeEntry {
     
     var stableId: Int32 {
         switch self {
+        case let .brandTheme(_, dark):
+            return dark ? -1 : -2
         case .themeListHeader:
             return 0
         case .chatPreview:
@@ -210,6 +216,9 @@ private enum ThemeSettingsControllerEntry: ItemListNodeEntry {
     
     static func ==(lhs: ThemeSettingsControllerEntry, rhs: ThemeSettingsControllerEntry) -> Bool {
         switch lhs {
+            case let .brandTheme(theme, dark):
+                if case let .brandTheme(otherTheme, otherDark) = rhs { return theme === otherTheme && dark == otherDark }
+                return false
             case let .chatPreview(lhsTheme, lhsWallpaper, lhsFontSize, lhsChatBubbleCorners, lhsStrings, lhsTimeFormat, lhsNameOrder, lhsItems):
                 if case let .chatPreview(rhsTheme, rhsWallpaper, rhsFontSize, rhsChatBubbleCorners, rhsStrings, rhsTimeFormat, rhsNameOrder, rhsItems) = rhs, lhsTheme === rhsTheme, lhsWallpaper == rhsWallpaper, lhsFontSize == rhsFontSize, lhsChatBubbleCorners == rhsChatBubbleCorners, lhsStrings === rhsStrings, lhsTimeFormat == rhsTimeFormat, lhsNameOrder == rhsNameOrder, lhsItems == rhsItems {
                     return true
@@ -340,6 +349,8 @@ private enum ThemeSettingsControllerEntry: ItemListNodeEntry {
     func item(presentationData: ItemListPresentationData, arguments: Any) -> ListViewItem {
         let arguments = arguments as! ThemeSettingsControllerArguments
         switch self {
+            case let .brandTheme(_, dark):
+                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: dark ? "BananaGram Graphite" : "BananaGram Cream", label: "", sectionId: self.section, style: .blocks, action: { arguments.openBrandTheme(dark) })
             case let .chatPreview(theme, wallpaper, fontSize, chatBubbleCorners, strings, dateTimeFormat, nameDisplayOrder, items):
                 return ThemeSettingsChatPreviewItem(context: arguments.context, systemStyle: .glass, theme: theme, componentTheme: theme, strings: strings, sectionId: self.section, fontSize: fontSize, chatBubbleCorners: chatBubbleCorners, wallpaper: wallpaper, dateTimeFormat: dateTimeFormat, nameDisplayOrder: nameDisplayOrder, messageItems: items)
             case let .themes(theme, strings, chatThemes, currentTheme, nightMode, animatedEmojiStickers, themeSpecificAccentColors, themeSpecificChatWallpapers):
@@ -460,8 +471,12 @@ private func themeSettingsControllerEntries(
         profileColor = nil
     }
     
+    entries.append(.brandTheme(presentationData.theme, false))
+    entries.append(.brandTheme(presentationData.theme, true))
     entries.append(.chatPreview(presentationData.theme, presentationData.chatWallpaper, presentationData.chatFontSize, presentationData.chatBubbleCorners, presentationData.strings, presentationData.dateTimeFormat, presentationData.nameDisplayOrder, [ChatPreviewMessageItem(outgoing: false, reply: (authorName, presentationData.strings.Appearance_PreviewReplyText), text: presentationData.strings.Appearance_PreviewIncomingText, nameColor: nameColor, backgroundEmojiId: accountPeer?.backgroundEmojiId), ChatPreviewMessageItem(outgoing: true, reply: nil, text: presentationData.strings.Appearance_PreviewOutgoingText, nameColor: .preset(.blue), backgroundEmojiId: nil)]))
     
+    entries.append(.themes(presentationData.theme, strings, chatThemes, themeReference, presentationData.autoNightModeTriggered, animatedEmojiStickers, presentationThemeSettings.themeSpecificAccentColors, presentationThemeSettings.themeSpecificChatWallpapers))
+    entries.append(.chatTheme(presentationData.theme, strings.Themes_Title))
     entries.append(.wallpaper(presentationData.theme, strings.Settings_ChatBackground))
     
     let colors: PeerNameColors.Colors
@@ -474,6 +489,8 @@ private func themeSettingsControllerEntries(
     let profileColors = profileColor.flatMap { nameColors.getProfile($0, dark: presentationData.theme.overallDarkAppearance, subject: .palette) }
     entries.append(.nameColor(presentationData.theme, presentationData.strings.Settings_YourColor, accountPeer?.compactDisplayTitle ?? "", colors, profileColors))
     
+    entries.append(.autoNightTheme(presentationData.theme, strings.Appearance_AutoNightTheme, ""))
+
     let textSizeValue: String
     if presentationThemeSettings.useSystemFont {
         textSizeValue = strings.Appearance_TextSize_Automatic
@@ -582,7 +599,11 @@ public func themeSettingsController(context: AccountContext, focusOnItemTag: The
         return animatedEmojiStickers
     }
     
-    let arguments = ThemeSettingsControllerArguments(context: context, selectTheme: { theme in
+    let arguments = ThemeSettingsControllerArguments(context: context, openBrandTheme: { dark in
+        if let controller = bananaGramThemePreviewController(context: context, dark: dark) {
+            pushControllerImpl?(controller)
+        }
+    }, selectTheme: { theme in
         selectThemeImpl?(theme)
     }, openThemeSettings: {
         pushControllerImpl?(themePickerController(context: context))
@@ -1135,24 +1156,8 @@ public func themeSettingsController(context: AccountContext, focusOnItemTag: The
             themeReference = settings.theme
         }
         
-        // Messages offers one light look and one dark look, and neither is tinted: white with
-        // grey/blue bubbles, black with grey/blue bubbles. The two tinted built-ins — Classic
-        // (blue-green wallpaper) and Tinted Night (navy) — are what makes this app read as "a
-        // Telegram theme" rather than as Messages, so they are no longer offered.
-        //
-        // A user already on one of them keeps it: the `availableThemes` fallback just below
-        // re-adds the current theme when it is not in this list, so the row stays selectable
-        // until they pick Day or Night, and nothing switches under them on upgrade.
-        var defaultThemes: [PresentationThemeReference] = []
-        if presentationData.autoNightModeTriggered {
-            defaultThemes.append(contentsOf: [.builtin(.night)])
-        } else {
-            defaultThemes.append(contentsOf: [
-                .builtin(.day),
-                .builtin(.night)
-            ])
-        }
-        
+        let defaultThemes: [PresentationThemeReference] = [.builtin(.dayClassic), .builtin(.day), .builtin(.night), .builtin(.nightAccent)]
+
         let cloudThemes: [PresentationThemeReference] = cloudThemes.map { .cloud(PresentationCloudTheme(theme: $0, resolvedWallpaper: nil, creatorAccountId: $0.isCreator ? context.account.id : nil)) }.filter { !removedThemeIndexes.contains($0.index) }
         
         var availableThemes = defaultThemes

@@ -1,3 +1,5 @@
+import Postbox
+import AccountContext
 import Foundation
 import UIKit
 import Display
@@ -14,7 +16,7 @@ func makeBananaGramTheme(dark: Bool) -> PresentationTheme {
     let separator = UIColor(rgb: dark ? 0x363C45 : 0xDDD8CD)
     let title = dark ? "BananaGram Graphite" : "BananaGram Cream"
     let base = makeDefaultPresentationTheme(reference: dark ? .night : .day, serviceBackgroundColor: nil)
-    // Preserve preset bubble colors: the legacy editor forces blue when editing is true.
+    // Build the preset directly, preserving its explicit bubble palette.
     let theme = customizePresentationTheme(base, editing: false, title: title, accentColor: accent, outgoingAccentColor: nil, backgroundColors: [dark ? 0x181B20 : 0xF6F3EB], bubbleColors: [dark ? 0x49412B : 0xF6E5B5], animateBubbleColors: false)
     let list = theme.list.withUpdated(blocksBackgroundColor: background, modalBlocksBackgroundColor: background, plainBackgroundColor: surface, modalPlainBackgroundColor: surface, itemPrimaryTextColor: foreground, itemSecondaryTextColor: secondary, itemAccentColor: accent, itemBlocksBackgroundColor: surface, itemModalBlocksBackgroundColor: surface, itemBlocksSeparatorColor: separator, itemPlainSeparatorColor: separator, sectionHeaderTextColor: secondary, freeTextColor: secondary)
     let root = theme.rootController.withUpdated(
@@ -24,4 +26,13 @@ func makeBananaGramTheme(dark: Bool) -> PresentationTheme {
     )
     let chats = theme.chatList.withUpdated(backgroundColor: surface, itemSeparatorColor: separator, itemBackgroundColor: surface, pinnedItemBackgroundColor: background, titleColor: foreground, dateTextColor: secondary, authorNameColor: foreground, messageTextColor: secondary, messageHighlightedTextColor: foreground, sectionHeaderFillColor: background, sectionHeaderTextColor: secondary)
     return PresentationTheme(name: .custom(title), index: theme.index, referenceTheme: theme.referenceTheme, overallDarkAppearance: dark, intro: theme.intro, passcode: theme.passcode, rootController: root, list: list, chatList: chats, chat: theme.chat, actionSheet: theme.actionSheet.withUpdated(opaqueItemBackgroundColor: surface, itemBackgroundColor: surface, opaqueItemSeparatorColor: separator, standardActionTextColor: accent, primaryTextColor: foreground, secondaryTextColor: secondary), contextMenu: theme.contextMenu.withUpdated(backgroundColor: surface, itemSeparatorColor: separator, sectionSeparatorColor: background, itemBackgroundColor: surface, primaryColor: foreground, secondaryColor: secondary), inAppNotification: theme.inAppNotification, chart: theme.chart)
+}
+
+func bananaGramThemePreviewController(context: AccountContext, dark: Bool) -> ViewController? {
+    let theme = makeBananaGramTheme(dark: dark)
+    guard let encoded = encodePresentationTheme(theme), let data = encoded.data(using: .utf8) else { return nil }
+    let resource = LocalFileMediaResource(fileId: Int64.random(in: Int64.min ... Int64.max))
+    context.sharedContext.accountManager.resources.storeResourceData(id: EngineMediaResource.Id(resource.id), data: data)
+    let reference = PresentationThemeReference.local(PresentationLocalTheme(title: theme.name.string, resource: resource, resolvedWallpaper: nil))
+    return ThemePreviewController(context: context, previewTheme: theme, source: .settings(reference, nil, false))
 }

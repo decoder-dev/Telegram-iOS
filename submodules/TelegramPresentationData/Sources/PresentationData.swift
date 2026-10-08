@@ -92,28 +92,16 @@ public func higChatBubbleCorners(from settings: PresentationChatBubbleSettings) 
     )
 }
 
-/// The fork ships two themes and no picker — the Appearance row is gone from Settings — so the
-/// system's light/dark setting has to be what decides, the way any app without a theme setting
-/// behaves. Stored settings are left on disk untouched; this rewrites only the copy each read
-/// hands to the rest of the pipeline, so nothing is destroyed and removing this function restores
-/// whatever the user last chose.
-///
-/// Three fields carry it: `theme` is the light choice, `automaticThemeSwitchSetting.theme` the dark
-/// one, and the `.system` trigger is what makes `automaticThemeShouldSwitchNow` follow the OS.
-/// `force` stays false — with a `.system` trigger, forcing it would pin the app to dark.
-///
-/// Left alone deliberately: `themeSpecificAccentColors` (the accent still colours buttons, links
-/// and checkmarks; only the bubble is pinned, in the theme builders) and `themeSpecificChatWallpapers`,
-/// so per-chat and custom wallpapers survive.
+/// Preserve the user's theme and automatic-switch policy on every presentation-data read.
 public func forkNormalizedThemeSettings(_ settings: PresentationThemeSettings) -> PresentationThemeSettings {
-    var settings = settings
-    settings.theme = .builtin(.day)
-    settings.automaticThemeSwitchSetting = AutomaticThemeSwitchSetting(
-        force: false,
-        trigger: .system,
-        theme: .builtin(.night)
-    )
     return settings
+}
+
+public func forkSavedMessagesMenuTitle(_ strings: PresentationStrings) -> String {
+    switch String(strings.primaryComponent.languageCode.prefix(2)).lowercased() {
+    case "ru", "uk", "be": return "В Избранное"
+    default: return "Save to Saved Messages"
+    }
 }
 
 /// Title for the message context-menu entry that opens a message's saved edit history.

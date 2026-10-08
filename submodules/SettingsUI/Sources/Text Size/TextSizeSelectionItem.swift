@@ -11,7 +11,17 @@ import ItemListUI
 import PresentationDataUtils
 import AppBundle
 
+func bubbleRadiusSliderValue(_ radius: Int) -> CGFloat {
+    return CGFloat(max(4, min(30, radius)) - 4)
+}
+
+func bubbleRadiusFromSliderValue(_ value: CGFloat) -> Int {
+    guard value.isFinite else { return 4 }
+    return Int(max(0, min(26, value)).rounded()) + 4
+}
+
 class BubbleSettingsRadiusItem: ListViewItem, ItemListItem {
+    let accessibilityLabel: String
     let theme: PresentationTheme
     let value: Int
     let disableLeadingInset: Bool
@@ -23,7 +33,8 @@ class BubbleSettingsRadiusItem: ListViewItem, ItemListItem {
     let updated: (Int) -> Void
     let tag: ItemListItemTag?
     
-    init(theme: PresentationTheme, value: Int, enabled: Bool = true, disableLeadingInset: Bool = false, displayIcons: Bool = true, disableDecorations: Bool = false, force: Bool = false, sectionId: ItemListSectionId, updated: @escaping (Int) -> Void, tag: ItemListItemTag? = nil) {
+    init(theme: PresentationTheme, accessibilityLabel: String, value: Int, enabled: Bool = true, disableLeadingInset: Bool = false, displayIcons: Bool = true, disableDecorations: Bool = false, force: Bool = false, sectionId: ItemListSectionId, updated: @escaping (Int) -> Void, tag: ItemListItemTag? = nil) {
+        self.accessibilityLabel = accessibilityLabel
         self.theme = theme
         self.value = value
         self.enabled = enabled
@@ -76,6 +87,8 @@ class BubbleSettingsRadiusItemNode: ListViewItemNode, ItemListItemNode {
     private let bottomStripeNode: ASDisplayNode
     private let maskNode: ASImageNode
     
+    private let valueNode = ASTextNode()
+    private let accessibilityArea = AccessibilityAreaNode()
     private var sliderView: EditorStyleSliderView?
     private let leftIconNode: ASImageNode
     private let rightIconNode: ASImageNode
@@ -116,29 +129,34 @@ class BubbleSettingsRadiusItemNode: ListViewItemNode, ItemListItemNode {
         self.addSubnode(self.rightIconNode)
         
         self.addSubnode(self.disabledOverlayNode)
+        self.addSubnode(self.valueNode)
+        self.addSubnode(self.accessibilityArea)
+        self.accessibilityArea.accessibilityTraits = [.adjustable]
+        self.accessibilityArea.increment = { [weak self] in self?.adjustRadius(by: 1) }
+        self.accessibilityArea.decrement = { [weak self] in self?.adjustRadius(by: -1) }
     }
     
     override func didLoad() {
         super.didLoad()
         
-        self.accessibilityTraits = [.adjustable]
+        self.isAccessibilityElement = false
         
         let sliderView = EditorStyleSliderView()
-        sliderView.enablePanHandling = true
+        sliderView.isAccessibilityElement = false
         sliderView.enablePanHandling = true
         sliderView.trackCornerRadius = 2.0
         sliderView.lineSize = 4.0
         sliderView.dotSize = 8.0
         sliderView.minimumValue = 0.0
-        sliderView.maximumValue = 13.0
+        sliderView.maximumValue = 26.0
         sliderView.startValue = 0.0
-        sliderView.positionsCount = 14
+        sliderView.positionsCount = 27
         sliderView.useLinesForPositions = true
         sliderView.disablesInteractiveTransitionGestureRecognizer = true
         if let item = self.item, let params = self.layoutParams {
             sliderView.isUserInteractionEnabled = item.enabled
             
-            sliderView.value = CGFloat((max(4, min(30, item.value)) - 4) / 2)
+            sliderView.value = bubbleRadiusSliderValue(item.value)
             sliderView.backgroundColor = item.theme.list.itemBlocksBackgroundColor
             sliderView.backColor = item.theme.list.itemSwitchColors.frameColor
             sliderView.trackColor = item.enabled ? item.theme.list.itemAccentColor : item.theme.list.itemDisabledTextColor
@@ -146,7 +164,7 @@ class BubbleSettingsRadiusItemNode: ListViewItemNode, ItemListItemNode {
             
             let sliderInset: CGFloat = item.displayIcons ? 38.0 : 16.0
             
-            sliderView.frame = CGRect(origin: CGPoint(x: params.leftInset + sliderInset, y: 8.0), size: CGSize(width: params.width - params.leftInset - params.rightInset - sliderInset * 2.0, height: 44.0))
+            sliderView.frame = CGRect(origin: CGPoint(x: params.leftInset + sliderInset, y: 8.0), size: CGSize(width: max(0.0, params.width - params.leftInset - params.rightInset - sliderInset * 2.0 - 40.0), height: 44.0))
         }
         self.view.insertSubview(sliderView, belowSubview: self.disabledOverlayNode.view)
         sliderView.addTarget(self, action: #selector(self.sliderValueChanged), for: .valueChanged)
@@ -185,14 +203,20 @@ class BubbleSettingsRadiusItemNode: ListViewItemNode, ItemListItemNode {
             
             return (layout, { [weak self] in
                 if let strongSelf = self {
-                    let firstTime = strongSelf.item == nil || item.force
                     strongSelf.item = item
                     strongSelf.layoutParams = params
+                    let radius = bubbleRadiusFromSliderValue(bubbleRadiusSliderValue(item.value))
+                    strongSelf.accessibilityArea.accessibilityLabel = item.accessibilityLabel
+                    strongSelf.accessibilityArea.accessibilityValue = "\(radius)"
+                    strongSelf.accessibilityArea.frame = CGRect(origin: .zero, size: layoutSize)
+                    strongSelf.valueNode.attributedText = NSAttributedString(string: "\(radius)", font: Font.regular(16.0), textColor: item.theme.list.itemPrimaryTextColor)
+                    let valueSize = strongSelf.valueNode.measure(CGSize(width: 40.0, height: 44.0))
+                    strongSelf.valueNode.frame = CGRect(x: params.width - params.rightInset - 16.0 - valueSize.width, y: floor((60.0 - valueSize.height) / 2.0), width: valueSize.width, height: valueSize.height)
                     
                     if item.enabled {
-                        strongSelf.accessibilityTraits.remove(.notEnabled)
+                        strongSelf.accessibilityArea.accessibilityTraits.remove(.notEnabled)
                     } else {
-                        strongSelf.accessibilityTraits.insert(.notEnabled)
+                        strongSelf.accessibilityArea.accessibilityTraits.insert(.notEnabled)
                     }
                     
                     strongSelf.backgroundNode.backgroundColor = item.theme.list.itemBlocksBackgroundColor
@@ -273,10 +297,8 @@ class BubbleSettingsRadiusItemNode: ListViewItemNode, ItemListItemNode {
                             sliderView.knobImage = PresentationResourcesItemList.knobImage(item.theme)
                         }
                         
-                        let value: CGFloat = CGFloat((max(4, min(30, item.value)) - 4) / 2)
-                        if firstTime {
-                            sliderView.value = value
-                        }
+                        let value: CGFloat = bubbleRadiusSliderValue(item.value)
+                        sliderView.value = value
                         
                         let sliderInset: CGFloat = item.displayIcons ? 38.0 : 16.0
                         sliderView.frame = CGRect(origin: CGPoint(x: params.leftInset + sliderInset, y: 8.0), size: CGSize(width: params.width - params.leftInset - params.rightInset - sliderInset * 2.0, height: 44.0))
@@ -294,11 +316,19 @@ class BubbleSettingsRadiusItemNode: ListViewItemNode, ItemListItemNode {
         self.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.15, removeOnCompletion: false)
     }
     
+    private func adjustRadius(by delta: Int) {
+        guard let item = self.item, item.enabled else { return }
+        let current = bubbleRadiusFromSliderValue(bubbleRadiusSliderValue(item.value))
+        let value = max(4, min(30, current + delta))
+        if value != current { item.updated(value) }
+    }
+
     @objc func sliderValueChanged() {
         guard let sliderView = self.sliderView else {
             return
         }
-        let value = Int(sliderView.value.rounded()) * 2 + 4
-        self.item?.updated(value)
+        guard let item = self.item, item.enabled else { return }
+        let value = bubbleRadiusFromSliderValue(sliderView.value)
+        if value != item.value { item.updated(value) }
     }
 }

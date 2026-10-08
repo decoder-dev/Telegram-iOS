@@ -2122,12 +2122,9 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
         },
         context: context,
         openBrandTheme: { dark in
-            let theme = makeBananaGramTheme(dark: dark)
-            guard let encoded = encodePresentationTheme(theme), let data = encoded.data(using: .utf8) else { return }
-            let resource = LocalFileMediaResource(fileId: Int64.random(in: Int64.min ... Int64.max))
-            context.sharedContext.accountManager.resources.storeResourceData(id: EngineMediaResource.Id(resource.id), data: data)
-            let reference = PresentationThemeReference.local(PresentationLocalTheme(title: theme.name.string, resource: resource, resolvedWallpaper: nil))
-            pushControllerImpl?(ThemePreviewController(context: context, previewTheme: theme, source: .settings(reference, nil, false)))
+            if let controller = bananaGramThemePreviewController(context: context, dark: dark) {
+                pushControllerImpl?(controller)
+            }
         },
         updateCallsTab: { value in
             updateDisposable.set(updateCallListSettingsInteractively(accountManager: context.sharedContext.accountManager) { $0.withUpdatedShowTab(value) }.start())

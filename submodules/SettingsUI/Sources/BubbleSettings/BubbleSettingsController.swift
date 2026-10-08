@@ -49,7 +49,7 @@ private final class BubbleSettingsControllerNode: ASDisplayNode, ASScrollViewDel
     init(context: AccountContext, presentationThemeSettings: PresentationThemeSettings, dismiss: @escaping () -> Void, apply: @escaping (PresentationChatBubbleSettings) -> Void) {
         self.context = context
         
-        self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
+        self.presentationData = context.sharedContext.currentPresentationData.with { $0 }.withChatBubbleCorners(higChatBubbleCorners(from: presentationThemeSettings.chatBubbleSettings))
         self.presentationThemeSettings = presentationThemeSettings
         
         let calendar = Calendar(identifier: .gregorian)
@@ -258,10 +258,20 @@ private final class BubbleSettingsControllerNode: ASDisplayNode, ASScrollViewDel
         dateHeaderNode.updateLayout(size: self.messagesContainerNode.frame.size, leftInset: layout.safeInsets.left, rightInset: layout.safeInsets.right, transition: .immediate)
     }
     
+    func updatePresentationData(_ presentationData: PresentationData) {
+        self.presentationData = presentationData.withChatBubbleCorners(higChatBubbleCorners(from: self.presentationThemeSettings.chatBubbleSettings))
+        self.backgroundColor = presentationData.theme.list.plainBackgroundColor
+        self.maskNode.image = generateMaskImage(color: presentationData.theme.chatList.backgroundColor)
+        self.chatBackgroundNode.update(wallpaper: presentationData.chatWallpaper, animated: false)
+        self.updatePresentationThemeSettings(self.presentationThemeSettings)
+    }
+
     func updatePresentationThemeSettings(_ presentationThemeSettings: PresentationThemeSettings) {
+        self.presentationThemeSettings = presentationThemeSettings
         let chatBubbleCorners = higChatBubbleCorners(from: presentationThemeSettings.chatBubbleSettings)
         
         self.presentationData = self.presentationData.withChatBubbleCorners(chatBubbleCorners)
+        self.chatBackgroundNode.updateBubbleTheme(bubbleTheme: self.presentationData.theme, bubbleCorners: chatBubbleCorners)
         self.toolbarNode.updatePresentationData(presentationData: self.presentationData)
         self.toolbarNode.updatePresentationThemeSettings(presentationThemeSettings: self.presentationThemeSettings)
         if let (layout, navigationBarHeight) = self.validLayout {
@@ -290,7 +300,7 @@ private final class BubbleSettingsControllerNode: ASDisplayNode, ASScrollViewDel
         self.chatBackgroundNode.updateLayout(size: chatFrame.size, displayMode: .aspectFill, transition: transition)
         self.messagesContainerNode.frame = chatFrame
         
-        transition.updateFrame(node: self.toolbarNode, frame: CGRect(origin: CGPoint(x: 0.0, y: layout.size.height - toolbarHeight), size: CGSize(width: layout.size.width, height: toolbarHeight + layout.intrinsicInsets.bottom)))
+        transition.updateFrame(node: self.toolbarNode, frame: CGRect(origin: CGPoint(x: 0.0, y: layout.size.height - toolbarHeight), size: CGSize(width: layout.size.width, height: toolbarHeight)))
         
         self.updateMessagesLayout(layout: layout, bottomInset: toolbarHeight + bottomInset, transition: transition)
         
@@ -340,6 +350,11 @@ final class BubbleSettingsController: ViewController {
         |> deliverOnMainQueue).start(next: { [weak self] presentationData in
             if let strongSelf = self {
                 strongSelf.presentationData = presentationData
+                strongSelf.navigationItem.title = presentationData.strings.Appearance_BubbleCorners_Title
+                strongSelf.statusBar.statusBarStyle = presentationData.theme.rootController.statusBarStyle.style
+                if strongSelf.isNodeLoaded {
+                    strongSelf.controllerNode.updatePresentationData(presentationData)
+                }
             }
         })
     }
@@ -505,7 +520,7 @@ private final class BubbleSettingsToolbarNode: ASDisplayNode {
         let switchItem = ItemListSwitchItem(presentationData: ItemListPresentationData(self.presentationData), title: self.presentationData.strings.Appearance_BubbleCorners_AdjustAdjacent, value: self.presentationThemeSettings.chatBubbleSettings.mergeBubbleCorners, disableLeadingInset: true, sectionId: 0, style: .blocks, updated: { [weak self] value in
             self?.updateMergeBubbleCorners?(value)
         })
-        let cornerRadiusItem = BubbleSettingsRadiusItem(theme: self.presentationData.theme, value: Int(self.presentationData.chatBubbleCorners.mainRadius), enabled: true, disableLeadingInset: false, displayIcons: false, disableDecorations: true, force: false, sectionId: 0, updated: { [weak self] value in
+        let cornerRadiusItem = BubbleSettingsRadiusItem(theme: self.presentationData.theme, accessibilityLabel: self.presentationData.strings.Appearance_BubbleCornersSetting, value: Int(self.presentationData.chatBubbleCorners.mainRadius), enabled: true, disableLeadingInset: false, displayIcons: false, disableDecorations: true, force: false, sectionId: 0, updated: { [weak self] value in
             self?.updateCornerRadius?(Int32(max(4, min(30, value))))
         })
         
