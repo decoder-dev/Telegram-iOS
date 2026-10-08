@@ -26,15 +26,12 @@ import DeviceModel
 
 private final class ThemeSettingsControllerArguments {
     let context: AccountContext
-    let openBrandTheme: (Bool) -> Void
     let selectTheme: (PresentationThemeReference) -> Void
     let openThemeSettings: () -> Void
     let openWallpaperSettings: () -> Void
     let openNameColorSettings: () -> Void
     let selectAccentColor: (PresentationThemeAccentColor?) -> Void
     let openAccentColorPicker: (PresentationThemeReference, Bool) -> Void
-    let toggleNightTheme: (Bool) -> Void
-    let openAutoNightTheme: () -> Void
     let openTextSize: () -> Void
     let openBubbleSettings: () -> Void
     let openPowerSavingSettings: () -> Void
