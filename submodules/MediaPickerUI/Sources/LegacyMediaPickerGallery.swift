@@ -443,22 +443,11 @@ func presentLegacyMediaPickerGallery(
                     if !asFile, onlyCurrentItemSelected, canSendRoundVideo, voiceMessagesAvailable, let editingContext,
                        editingContext.price(for: item.asset) == nil,
                        let adjustments = roundVideoAdjustments(for: item.asset, editingContext: editingContext) {
+                        // The menu entry itself is the confirmation. A second action sheet presented right after the
+                        // context menu closed ended up behind the gallery window, leaving the screen unresponsive.
                         sendAsRoundVideo = {
-                            let sheet = ActionSheetController(presentationData: presentationData)
-                            let russian = String(presentationData.strings.primaryComponent.languageCode.prefix(2)).lowercased() == "ru"
-                            let duration = Int(ceil(adjustments.trimEndValue - adjustments.trimStartValue))
-                            sheet.setItemGroups([
-                                ActionSheetItemGroup(items: [
-                                    ActionSheetTextItem(title: russian ? "Кружок: квадратная обрезка по центру выбранной области, \(duration) с. Остальная часть видео не отправится." : "Video message: centered square crop of the selected area, \(duration) s. The rest of the video will not be sent."),
-                                    ActionSheetButtonItem(title: russian ? "Отправить" : "Send", action: { [weak sheet] in
-                                        sheet?.dismissAnimated()
-                                        editingContext.setAdjustments(adjustments, for: item.asset)
-                                        send()
-                                    })
-                                ]),
-                                ActionSheetItemGroup(items: [ActionSheetButtonItem(title: presentationData.strings.Common_Cancel, action: { [weak sheet] in sheet?.dismissAnimated() })])
-                            ])
-                            present(sheet, nil)
+                            editingContext.setAdjustments(adjustments, for: item.asset)
+                            send()
                         }
                     }
 
