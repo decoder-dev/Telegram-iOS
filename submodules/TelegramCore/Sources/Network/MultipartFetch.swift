@@ -371,6 +371,9 @@ private enum MultipartFetchSource {
                                             return .single((resultData, info))
                                         case let .fileCdnRedirect(fileCdnRedirectData):
                                             let (dcId, fileToken, encryptionKey, encryptionIv, partHashes) = (fileCdnRedirectData.dcId, fileCdnRedirectData.fileToken, fileCdnRedirectData.encryptionKey, fileCdnRedirectData.encryptionIv, fileCdnRedirectData.fileHashes)
+                                            if encryptionKey.makeData().count != 32 || encryptionIv.makeData().count != 16 {
+                                                return .fail(.generic)
+                                            }
                                             var parsedPartHashes: [Int64: Data] = [:]
                                             for part in partHashes {
                                                 switch part {

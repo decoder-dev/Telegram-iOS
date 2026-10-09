@@ -915,6 +915,10 @@ private final class FetchImpl {
                             case let .fileCdnRedirect(fileCdnRedirectData):
                                 let (dcId, fileToken, encryptionKey, encryptionIv, fileHashes) = (fileCdnRedirectData.dcId, fileCdnRedirectData.fileToken, fileCdnRedirectData.encryptionKey, fileCdnRedirectData.encryptionIv, fileCdnRedirectData.fileHashes)
                                 let _ = fileHashes
+                                // A CDN redirect needs an AES-256 key and a 16-byte IV; anything else is hostile or broken.
+                                if encryptionKey.makeData().count != 32 || encryptionIv.makeData().count != 16 {
+                                    return .failure
+                                }
                                 return .cdnRedirect(CdnData(
                                     id: Int(dcId),
                                     sourceDatacenterId: sourceDatacenterId,

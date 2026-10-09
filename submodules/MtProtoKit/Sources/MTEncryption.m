@@ -448,13 +448,29 @@ static inline uint64_t mygcd(uint64_t a, uint64_t b)
 
 bool MTFactorize(uint64_t what, uint64_t *resA, uint64_t *resB)
 {
+    // pq comes from the server. 0 and 1 divide by zero or never terminate, so only [4, 2^63) is factored.
+    if (what < 4 || what >= ((uint64_t)1 << 63))
+    {
+        return false;
+    }
+    
+    if ((what & 1) == 0)
+    {
+        if (resA != NULL)
+            *resA = 2;
+        if (resB != NULL)
+            *resB = what / 2;
+        
+        return true;
+    }
+    
     int it = 0;
     uint64_t g = 0;
     for (int i = 0; i < 3 || it < 1000; i++)
     {
-        int q = ((lrand48() & 15) + 17) % what;
+        uint64_t q = ((uint64_t)(lrand48() & 15) + 17) % what;
         uint64_t x = (uint64_t)lrand48 () % (what - 1) + 1, y = x;
-        int lim = 1 << (i + 18);
+        int lim = 1 << (MIN(i, 5) + 18);
         int j;
         for (j = 1; j < lim; j++)
         {
@@ -734,7 +750,7 @@ uint64_t MTRsaFingerprint(id<EncryptionProvider> provider, NSString *key) {
     [buffer appendTLBytes:eData];
     
     NSData *sha1Data = MTSha1(buffer.data);
-    static uint8_t sha1Buffer[20];
+    uint8_t sha1Buffer[20];
     [sha1Data getBytes:sha1Buffer length:20];
     
     uint64_t fingerprint = (((uint64_t) sha1Buffer[19]) << 56) |

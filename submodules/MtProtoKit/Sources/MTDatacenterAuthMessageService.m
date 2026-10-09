@@ -435,6 +435,14 @@ static NSData *encryptRSAModernPadding(id<EncryptionProvider> encryptionProvider
             {
                 NSData *pqBytes = resPqMessage.pq;
                 
+                // pq is a big-endian integer of at most 8 bytes; anything else is a malformed or hostile answer.
+                if (pqBytes.length < 1 || pqBytes.length > 8)
+                {
+                    [self reset:mtProto];
+                    
+                    return;
+                }
+                
                 uint64_t pq = 0;
                 for (int i = 0; i < (int)pqBytes.length; i++)
                 {
