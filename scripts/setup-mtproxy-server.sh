@@ -16,6 +16,21 @@ DIR=/opt/mtg
 
 [ "$(id -u)" -eq 0 ] || { echo "run as root" >&2; exit 1; }
 
+# Some VPS networks have a broken IPv6 route (registry/CDN requests time out on an IPv6 address).
+# Prefer IPv4 for name resolution so image pulls and downloads do not hang.
+if ! grep -q '^precedence ::ffff:0:0/96  100' /etc/gai.conf 2>/dev/null; then
+  echo 'precedence ::ffff:0:0/96  100' >> /etc/gai.conf
+fi
+
+pull_with_retry() {
+  for attempt in 1 2 3 4 5; do
+    docker pull "$1" >/dev/null && return 0
+    echo "docker pull failed (attempt $attempt), retrying..." >&2
+    sleep $((attempt * 3))
+  done
+  return 1
+}
+
 if ! command -v docker >/dev/null 2>&1; then
   apt-get update -y
   apt-get install -y docker.io curl
@@ -23,7 +38,7 @@ if ! command -v docker >/dev/null 2>&1; then
 fi
 
 mkdir -p "$DIR"
-docker pull nineseconds/mtg:2 >/dev/null
+pull_with_retry nineseconds/mtg:2
 
 if [ ! -s "$DIR/secret" ]; then
   docker run --rm nineseconds/mtg:2 generate-secret --hex "$DOMAIN" > "$DIR/secret"
