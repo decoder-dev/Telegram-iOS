@@ -66,16 +66,39 @@ export class TextTrackListStub extends EventTarget {
         return this._tracks[index];
     }
 
+    // Players index the list like a DOM TextTrackList (`textTracks[i].kind`), so mirror the
+    // tracks as numeric own properties; without them hls.js reads `undefined.kind`.
+    _sync() {
+        const previous = this._indexed || 0;
+        for (let i = 0; i < this._tracks.length; i++) {
+            this[i] = this._tracks[i];
+        }
+        for (let i = this._tracks.length; i < previous; i++) {
+            delete this[i];
+        }
+        this._indexed = this._tracks.length;
+    }
+
+    getTrackById(id) {
+        return this._tracks.find(track => track.id === id) || null;
+    }
+
     _add(track) {
         this._tracks.push(track);
-        this.dispatchEvent(new Event('addtrack'));
+        this._sync();
+        const event = new Event('addtrack');
+        event.track = track;
+        this.dispatchEvent(event);
     }
 
     _remove(track) {
         const index = this._tracks.indexOf(track);
         if (index !== -1) {
-        this._tracks.splice(index, 1);
-        this.dispatchEvent(new Event('removetrack'));
+            this._tracks.splice(index, 1);
+            this._sync();
+            const event = new Event('removetrack');
+            event.track = track;
+            this.dispatchEvent(event);
         }
     }
 

@@ -186,14 +186,17 @@ final class CameraOutput: NSObject {
                 Logger.shared.log("Camera", "Can't add audio output")
             }
         }
-        if photo, session.session.canAddOutput(self.photoOutput) {
-            if session.hasMultiCam {
-                session.session.addOutputWithNoConnections(self.photoOutput)
+        if photo {
+            if session.session.canAddOutput(self.photoOutput) {
+                if session.hasMultiCam {
+                    session.session.addOutputWithNoConnections(self.photoOutput)
+                } else {
+                    session.session.addOutput(self.photoOutput)
+                }
             } else {
-                session.session.addOutput(self.photoOutput)
+                // Only a failure when a photo output was asked for; video messages never add one.
+                Logger.shared.log("Camera", "Can't add photo output")
             }
-        } else {
-            Logger.shared.log("Camera", "Can't add photo output")
         }
         if metadata, session.session.canAddOutput(self.metadataOutput) {
             session.session.addOutput(self.metadataOutput)

@@ -115,12 +115,21 @@
     return [[MTSignal alloc] initWithGenerator:^id<MTDisposable>(MTSubscriber *subscriber) {
         MTDatacenterAddressSet *addressSet = [context addressSetForDatacenterWithId:datacenterId];
         NSMutableArray *signals = [[NSMutableArray alloc] init];
+        // A probe answers "does this proxy reach the datacenter", so a couple of addresses are enough.
+        // Dialling every address of the datacenter for every candidate opened hundreds of simultaneous
+        // connections when the automatic proxy list was probed (200+ in flight, thousands per hour).
+        const NSUInteger maxProbeAddresses = 2;
         for (MTDatacenterAddress *address in addressSet.addressList) {
-            if (!address.isIpv6) {
+            if (!address.isIpv6 && signals.count < maxProbeAddresses) {
                 [signals addObject:[self pingWithAddress:address datacenterId:datacenterId settings:settings context:context]];
             }
-            if (address.isIpv6) {
-                [signals addObject:[self pingWithAddress:address datacenterId:datacenterId settings:settings context:context]];
+        }
+        if (signals.count == 0) {
+            for (MTDatacenterAddress *address in addressSet.addressList) {
+                if (address.isIpv6) {
+                    [signals addObject:[self pingWithAddress:address datacenterId:datacenterId settings:settings context:context]];
+                    break;
+                }
             }
         }
         
