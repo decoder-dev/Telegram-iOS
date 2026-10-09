@@ -16,6 +16,23 @@ DIR=/opt/mtg
 
 [ "$(id -u)" -eq 0 ] || { echo "run as root" >&2; exit 1; }
 
+export DEBIAN_FRONTEND=noninteractive
+step() { echo; echo "==> $*"; }
+
+# apt on a host with a broken IPv6 route stalls for minutes per mirror; force IPv4 and fail fast.
+cat > /etc/apt/apt.conf.d/99mtproxy-network <<'APT'
+Acquire::ForceIPv4 "true";
+Acquire::Retries "3";
+Acquire::http::Timeout "20";
+Acquire::https::Timeout "20";
+APT
+
+# A fresh VPS often runs unattended-upgrades right after boot and holds the dpkg lock.
+step "waiting for the package manager lock"
+for _ in $(seq 1 60); do
+  if fuser /var/lib/dpkg/lock-frontend /var/lib/apt/lists/lock >/dev/null 2>&1; then sleep 5; else break; fi
+done
+
 # Some VPS networks have a broken IPv6 route (registry/CDN requests time out on an IPv6 address).
 # Prefer IPv4 for name resolution so image pulls and downloads do not hang.
 if ! grep -q '^precedence ::ffff:0:0/96  100' /etc/gai.conf 2>/dev/null; then
@@ -24,7 +41,7 @@ fi
 
 pull_with_retry() {
   for attempt in 1 2 3 4 5; do
-    docker pull "$1" >/dev/null && return 0
+    timeout 120 docker pull "$1" >/dev/null && return 0
     echo "docker pull failed (attempt $attempt), retrying..." >&2
     sleep $((attempt * 3))
   done
@@ -45,18 +62,21 @@ install_docker() {
   esac
   CODENAME="${UBUNTU_CODENAME:-${VERSION_CODENAME:-}}"
 
+  step "installing prerequisites"
   apt-get update -y
-  apt-get install -y ca-certificates curl gnupg
+  apt-get install -y ca-certificates curl gnupg psmisc
   for old in docker.io docker-doc docker-compose podman-docker containerd runc; do
     apt-get remove -y "$old" >/dev/null 2>&1 || true
   done
 
+  step "adding the Docker repository"
   install -m 0755 -d /etc/apt/keyrings
   curl -4 -fsSL --retry 5 "https://download.docker.com/linux/$ID/gpg" -o /etc/apt/keyrings/docker.asc
   chmod a+r /etc/apt/keyrings/docker.asc
   echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/$ID $CODENAME stable" \
     > /etc/apt/sources.list.d/docker.list
 
+  step "installing Docker Engine"
   apt-get update -y
   apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
   systemctl enable --now docker
@@ -68,7 +88,9 @@ fi
 systemctl enable --now docker >/dev/null 2>&1 || true
 
 mkdir -p "$DIR"
+step "pulling the mtg image"
 pull_with_retry nineseconds/mtg:2
+step "starting the proxy"
 
 if [ ! -s "$DIR/secret" ]; then
   docker run --rm nineseconds/mtg:2 generate-secret --hex "$DOMAIN" > "$DIR/secret"
