@@ -1186,6 +1186,12 @@ final class WebProxyHttpCarrier {
         self.multiplexWsOpen = true
         self.multiplexOpenCompletion = completion
         self.armMultiplexReceive()
+        // The start completes on the first successful send or received frame, and on a cold start nothing is queued to
+        // send (MtProto stays paused until the sidecar is ready) while a relay need not push anything on its own. A PING
+        // on stream 0 gives the open something to complete on, so the 20 s timeout is not the only way out.
+        if self.multiplexWsUplink.count - self.multiplexWsUplinkOffset <= 0 {
+            self.multiplexWsUplink.append(WebProxyFrameCodec.encode(WebProxyFrame(type: .ping, streamId: 0, payload: Data([0xCA, 0xFE]))))
+        }
         self.flushMultiplexWsUplink()
         
         self.queue.asyncAfter(deadline: .now() + WebProxyHttpCarrier.wsLaneConnectTimeout) { [weak self] in

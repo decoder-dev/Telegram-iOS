@@ -596,7 +596,12 @@ public final class WebProxySidecar {
         // yet would leave a stream registered here and unknown there, and its later DATA frames
         // rejected. Refuse the connection instead — MtProto redials, and by then the carrier is
         // either up or the sidecar is gone.
-        guard let carrier = self.carrier, carrier.isAcceptingFrames else {
+        //
+        // Also refused while a transport reconnect is in flight: the new carrier reports itself ready as soon as its
+        // session exists, which is before the reconnect finishes and discards every stream opened on the old session.
+        // A stream accepted, or old stream data flushed, in that window goes to a relay session that has never seen its
+        // OPEN (an https-lanes lane then gets a decoy 404 and fails the whole new carrier), or is cancelled without a CLOSE.
+        guard !self.transportReconnectInFlight, let carrier = self.carrier, carrier.isAcceptingFrames else {
             connection.cancel()
             return
         }
@@ -652,7 +657,7 @@ public final class WebProxySidecar {
     }
 
     private func acceptSocks(connection: NWConnection) {
-        guard let carrier = self.carrier, carrier.isAcceptingFrames else {
+        guard !self.transportReconnectInFlight, let carrier = self.carrier, carrier.isAcceptingFrames else {
             connection.cancel()
             return
         }
@@ -857,7 +862,7 @@ public final class WebProxySidecar {
         // send credit into a carrier that cannot take it loses those bytes outright instead of
         // delaying them, which corrupts the stream rather than stalling it. Hold them here; the
         // per-stream ceiling in `sendStreamData` bounds how long that can go on.
-        guard let carrier = self.carrier, carrier.isAcceptingFrames else {
+        guard !self.transportReconnectInFlight, let carrier = self.carrier, carrier.isAcceptingFrames else {
             return
         }
         var frames: [WebProxyFrame] = []
@@ -979,7 +984,7 @@ public final class WebProxySidecar {
         // on believing those bytes are still outstanding, spends its implicit window and stops
         // sending, and the download stalls part-way with the connection nominally up. The credit
         // stays pending until there is a carrier to announce it to.
-        guard let carrier = self.carrier, carrier.isAcceptingFrames else {
+        guard !self.transportReconnectInFlight, let carrier = self.carrier, carrier.isAcceptingFrames else {
             return
         }
         let delta = stream.pendingWindowCredit
