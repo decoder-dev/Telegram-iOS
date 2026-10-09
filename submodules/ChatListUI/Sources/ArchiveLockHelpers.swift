@@ -7,6 +7,7 @@ import SwiftSignalKit
 import TelegramCore
 import TelegramPresentationData
 import TelegramUIPreferences
+import TelegramIntents
 import AccountContext
 import LocalAuth
 import GalleryUI
@@ -87,23 +88,24 @@ private func notificationPeerIdValue(_ userInfo: [AnyHashable: Any]) -> Int64? {
 /// Sweep currently-delivered notifications for peers in a password-protected Archive.
 /// Call after password-protection turns on, and after moving chats into Archive while a password is set.
 public func clearStaleArchiveNotifications(context: AccountContext, peerIds: [EnginePeer.Id]? = nil) {
-    let _ = (context.account.postbox.transaction { transaction -> Set<Int64> in
+    let _ = (context.account.postbox.transaction { transaction -> [EnginePeer.Id] in
         let settings = transaction.getPreferencesEntry(key: ApplicationSpecificPreferencesKeys.chatArchiveSettings)?.get(ChatArchiveSettings.self) ?? .default
         guard settings.isPasswordConfigured else {
             return []
         }
         if let peerIds {
-            return Set(peerIds.compactMap { peerId -> Int64? in
-                guard archiveNotificationShouldRedact(transaction: transaction, peerId: peerId) else {
-                    return nil
-                }
-                return peerId.toInt64()
-            })
+            return peerIds.filter { archiveNotificationShouldRedact(transaction: transaction, peerId: $0) }
         }
-        return Set(archiveLockedPeerIds(transaction: transaction).map { $0.toInt64() })
+        return Array(archiveLockedPeerIds(transaction: transaction))
     }
     |> deliverOnMainQueue).startStandalone(next: { peerIds in
-        clearDeliveredNotifications(forPeerIds: peerIds)
+        clearDeliveredNotifications(forPeerIds: Set(peerIds.map { $0.toInt64() }))
+        // Donated "send message" intents feed the iOS share sheet and Siri suggestions with the chat's name and avatar.
+        // Swiping a chat into the Archive removed them; archiving from another device, the server's auto-archive and
+        // chats archived before the password was set did not.
+        for peerId in peerIds {
+            deleteSendMessageIntents(peerId: peerId)
+        }
     })
 }
 
@@ -464,6 +466,13 @@ public func ensureArchiveUnlocked(
                         completion(.cancelled)
                         return
                     }
+                    // The password proves the owner, so this is the moment to record which faces / fingers
+                    // are enrolled: Face ID is trusted only against a snapshot taken after the password.
+                    if settings.useBiometrics, settings.biometricsDomainState == nil, let domainState = LocalAuth.currentBiometricsDomainState(), !domainState.isEmpty {
+                        let _ = updateChatArchiveSettings(engine: context.engine) { current in
+                            current.withUpdatedBiometricsDomainState(domainState)
+                        }.startStandalone()
+                    }
                     ArchiveLockSession.shared.unlock()
                     completion(.unlocked)
                 },
@@ -503,11 +512,13 @@ public func ensureArchiveUnlocked(
                     showPasswordPrompt()
                     return
                 }
-                if success, settings.biometricsDomainState == nil, let domainState, !domainState.isEmpty {
-                    // Accounts that enabled biometrics before the enrollment was recorded: trust the current one from now on.
-                    let _ = updateChatArchiveSettings(engine: context.engine) { current in
-                        current.withUpdatedBiometricsDomainState(domainState)
-                    }.startStandalone()
+                if success, settings.biometricsDomainState == nil {
+                    // Biometrics were switched on before the enrolment was recorded. Trusting whatever face scans first
+                    // would let anyone who knows the device passcode enrol their own face and open the Archive, so this
+                    // unlock goes through the password once; the password path above then records the enrolment.
+                    Logger.shared.log("ArchiveLock", "no recorded biometric enrolment; asking for the password once")
+                    showPasswordPrompt()
+                    return
                 }
                 if success {
                     guard ArchiveLockSession.shared.authorizationGeneration == authorizationGeneration else {
