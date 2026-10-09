@@ -1443,11 +1443,14 @@ class Keychain: NSObject, MTKeychain {
     let get: (String) -> Data?
     let set: (String, Data) -> Void
     let remove: (String) -> Void
+    /// False once another instance of the same account has taken over the keychain.
+    let isCurrent: Signal<Bool, NoError>
     
-    init(get: @escaping (String) -> Data?, set: @escaping (String, Data) -> Void, remove: @escaping (String) -> Void) {
+    init(get: @escaping (String) -> Data?, set: @escaping (String, Data) -> Void, remove: @escaping (String) -> Void, isCurrent: Signal<Bool, NoError> = .single(true)) {
         self.get = get
         self.set = set
         self.remove = remove
+        self.isCurrent = isCurrent
     }
     
     func setObject(_ object: Any!, forKey aKey: String!, group: String!) {

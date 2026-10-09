@@ -2369,7 +2369,7 @@ final class PostboxImpl {
     }
     
     fileprivate func setNeedsIncomingReadStateSynchronization(_ peerId: PeerId) {
-        self.synchronizeReadStateTable.set(peerId, operation: .Validate, operations: &self.currentUpdatedSynchronizeReadStateOperations)
+        self.synchronizeReadStateTable.setValidate(peerId, getCombinedPeerReadState: { self.readStateTable.getCombinedState($0) }, operations: &self.currentUpdatedSynchronizeReadStateOperations)
     }
     
     fileprivate func confirmSynchronizedIncomingReadState(_ peerId: PeerId) {

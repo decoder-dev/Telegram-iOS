@@ -36,6 +36,20 @@ final class MessageHistorySynchronizeReadStateTable: Table {
         operations[peerId] = operation
     }
     
+    /// Schedules a validation without discarding a read that hasn't reached the server yet.
+    ///
+    /// A plain `.Validate` overwrote a pending `.Push`. If that push then failed, the local read
+    /// state stayed ahead of the server's, and validation refuses to roll it back (`.retry`), so it
+    /// retried forever while the server never learned about the read. Pushing first and then
+    /// syncing (`thenSync`) settles both.
+    func setValidate(_ peerId: PeerId, getCombinedPeerReadState: (PeerId) -> CombinedPeerReadState?, operations: inout [PeerId: PeerReadStateSynchronizationOperation?]) {
+        if case .Push? = self.get(peerId, getCombinedPeerReadState: { _ in nil }) {
+            self.set(peerId, operation: .Push(state: getCombinedPeerReadState(peerId), thenSync: true), operations: &operations)
+        } else {
+            self.set(peerId, operation: .Validate, operations: &operations)
+        }
+    }
+    
     func get(getCombinedPeerReadState: (PeerId) -> CombinedPeerReadState?) -> [PeerId: PeerReadStateSynchronizationOperation] {
         self.beforeCommit()
         

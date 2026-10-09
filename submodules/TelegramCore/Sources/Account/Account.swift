@@ -7,6 +7,7 @@ import CryptoUtils
 import EncryptionProvider
 
 private let accountRecordToActiveKeychainId = Atomic<[AccountRecordId: Int]>(value: [:])
+private let accountRecordToActiveKeychainIdPromise = ValuePromise<[AccountRecordId: Int]>([:], ignoreRepeated: true)
 
 private func makeExclusiveKeychain(id: AccountRecordId, postbox: Postbox) -> Keychain {
     var keychainId = 0
@@ -21,6 +22,12 @@ private func makeExclusiveKeychain(id: AccountRecordId, postbox: Postbox) -> Key
         }
         return dict
     }
+    accountRecordToActiveKeychainIdPromise.set(accountRecordToActiveKeychainId.with { $0 })
+    let isCurrent = accountRecordToActiveKeychainIdPromise.get()
+    |> map { dict -> Bool in
+        return dict[id] == keychainId
+    }
+    |> distinctUntilChanged
     return Keychain(get: { [weak postbox] key in
         let enabled = accountRecordToActiveKeychainId.with { dict -> Bool in
             return dict[id] == keychainId
@@ -49,7 +56,7 @@ private func makeExclusiveKeychain(id: AccountRecordId, postbox: Postbox) -> Key
         } else {
             Logger.shared.log("Keychain", "couldn't remove \(key) — not current")
         }
-    })
+    }, isCurrent: isCurrent)
 }
 
 func _internal_test(_ network: Network) -> Signal<Bool, String> {
@@ -1476,11 +1483,25 @@ public class Account {
         // requests with the revoked key — every one answered with 401, re-firing `loggedOut` and
         // writing auth info into a keychain that is no longer current (seen as a 401 burst every
         // ~90 s for an hour after a manual logout).
+        //
+        // The same goes for an instance superseded by a newer one for the same account record: its
+        // keychain writes are already refused ("couldn't set … — not current"), but its network
+        // kept running alongside the current instance's.
         let isLoggedOut = self._loggedOut.get()
+        let keychainIsCurrent = (self.network.context.keychain as? Keychain)?.isCurrent ?? .single(true)
+        let accountId = self.id
+        let isSuperseded = keychainIsCurrent
+        |> map { !$0 }
+        |> distinctUntilChanged
+        |> beforeNext { isSuperseded in
+            if isSuperseded {
+                Logger.shared.log("Account", "\(accountId) superseded by a newer instance, pausing its network")
+            }
+        }
         let unlessLoggedOut: (Signal<Bool, NoError>) -> Signal<Bool, NoError> = { signal in
-            return combineLatest(signal, isLoggedOut)
-            |> map { value, isLoggedOut -> Bool in
-                return value && !isLoggedOut
+            return combineLatest(signal, isLoggedOut, isSuperseded)
+            |> map { value, isLoggedOut, isSuperseded -> Bool in
+                return value && !isLoggedOut && !isSuperseded
             }
             |> distinctUntilChanged
         }

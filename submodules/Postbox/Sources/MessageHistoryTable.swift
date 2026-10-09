@@ -410,7 +410,7 @@ final class MessageHistoryTable: Table {
         }
         
         if invalidateReadState {
-            self.synchronizeReadStateTable.set(peerId, operation: .Validate, operations: &updatedPeerReadStateOperations)
+            self.synchronizeReadStateTable.setValidate(peerId, getCombinedPeerReadState: { self.readStateTable.getCombinedState($0) }, operations: &updatedPeerReadStateOperations)
         }
         
         if processedOperationsByPeerId[peerId] == nil {
@@ -674,7 +674,7 @@ final class MessageHistoryTable: Table {
         }
         
         if invalidated {
-            self.synchronizeReadStateTable.set(messageId.peerId, operation: .Validate, operations: &updatedPeerReadStateOperations)
+            self.synchronizeReadStateTable.setValidate(messageId.peerId, getCombinedPeerReadState: { self.readStateTable.getCombinedState($0) }, operations: &updatedPeerReadStateOperations)
         }
     }
     
@@ -690,7 +690,7 @@ final class MessageHistoryTable: Table {
         }
         
         if invalidated {
-            self.synchronizeReadStateTable.set(messageId.peerId, operation: .Validate, operations: &updatedPeerReadStateOperations)
+            self.synchronizeReadStateTable.setValidate(messageId.peerId, getCombinedPeerReadState: { self.readStateTable.getCombinedState($0) }, operations: &updatedPeerReadStateOperations)
         }
     }
     
@@ -709,7 +709,7 @@ final class MessageHistoryTable: Table {
         }
         
         if invalidated {
-            self.synchronizeReadStateTable.set(messageIndex.id.peerId, operation: .Validate, operations: &updatedPeerReadStateOperations)
+            self.synchronizeReadStateTable.setValidate(messageIndex.id.peerId, getCombinedPeerReadState: { self.readStateTable.getCombinedState($0) }, operations: &updatedPeerReadStateOperations)
         }
         
         return messageIds
