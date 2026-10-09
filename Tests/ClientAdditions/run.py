@@ -27,7 +27,9 @@ class WiringTests(unittest.TestCase):
         self.assertIn("onlyCurrentItemSelected", source)
         self.assertIn(".banSendInstantVideos", source)
         self.assertIn("editingContext.price(for: item.asset) == nil", source)
-        self.assertIn("ActionSheetButtonItem(title: presentationData.strings.Common_Cancel", source)
+        # The menu entry is the confirmation: a second action sheet opened behind the gallery and froze the screen.
+        self.assertNotIn("ActionSheetController(presentationData", source)
+        self.assertIn("editingContext.setAdjustments(adjustments, for: item.asset)", source)
 
     def test_round_metadata_matches_conversion(self):
         source = read("submodules/LegacyMediaPickerUI/Sources/LegacyMediaPickers.swift")
