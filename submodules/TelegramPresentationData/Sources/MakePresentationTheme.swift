@@ -124,7 +124,20 @@ private func makeBananaGramTheme(dark: Bool) -> PresentationTheme {
         historyNavigation: theme.chat.historyNavigation.withUpdated(fillColor: surface, strokeColor: separator, foregroundColor: secondary, badgeBackgroundColor: accent, badgeTextColor: onAccent)
     )
     
-    return PresentationTheme(name: .custom(title), index: PresentationThemeReference.builtin(dark ? .bananaGramGraphite : .bananaGramCream).index, referenceTheme: theme.referenceTheme, overallDarkAppearance: dark, intro: theme.intro, passcode: theme.passcode, rootController: root, list: list, chatList: chats, chat: chat, actionSheet: theme.actionSheet.withUpdated(opaqueItemBackgroundColor: surface, itemBackgroundColor: surface, opaqueItemSeparatorColor: separator, standardActionTextColor: accent, primaryTextColor: foreground, secondaryTextColor: secondary, controlAccentColor: accent), contextMenu: theme.contextMenu.withUpdated(backgroundColor: surface, itemSeparatorColor: separator, sectionSeparatorColor: background, itemBackgroundColor: surface, primaryColor: foreground, secondaryColor: secondary), inAppNotification: theme.inAppNotification, chart: theme.chart)
+    // The same palette for the sheets, menus, banners and the passcode screen that appear over every other screen.
+    let actionSheet = theme.actionSheet.withUpdated(opaqueItemBackgroundColor: surface, itemBackgroundColor: surface, opaqueItemHighlightedBackgroundColor: highlighted, itemHighlightedBackgroundColor: highlighted.withAlphaComponent(0.8), opaqueItemSeparatorColor: separator, standardActionTextColor: accent, disabledActionTextColor: disabled, primaryTextColor: foreground, secondaryTextColor: secondary, controlAccentColor: accent, inputBackgroundColor: searchBar, inputHollowBackgroundColor: searchBar, inputBorderColor: separator, inputPlaceholderColor: secondary, inputTextColor: foreground, inputClearButtonColor: secondary, checkContentColor: onAccent)
+    let contextMenu = theme.contextMenu.withUpdated(backgroundColor: surface, itemSeparatorColor: separator, sectionSeparatorColor: background, itemBackgroundColor: surface, itemHighlightedBackgroundColor: highlighted, primaryColor: foreground, secondaryColor: secondary)
+    let inAppNotification = theme.inAppNotification.withUpdated(
+        fillColor: raisedSurface,
+        primaryTextColor: foreground,
+        expandedNotification: theme.inAppNotification.expandedNotification.withUpdated(
+            navigationBar: theme.inAppNotification.expandedNotification.navigationBar.withUpdated(backgroundColor: surface, primaryTextColor: foreground, controlColor: accent, separatorColor: separator)
+        )
+    )
+    // The passcode screen is a full-bleed gradient with white keys: gold for Cream, charcoal for Graphite.
+    let passcode = theme.passcode.withUpdated(backgroundColors: PresentationThemeGradientColors(topColor: UIColor(rgb: dark ? 0x4A4F59 : 0xA7761C), bottomColor: UIColor(rgb: dark ? 0x23272E : 0x7A5200)))
+    
+    return PresentationTheme(name: .custom(title), index: PresentationThemeReference.builtin(dark ? .bananaGramGraphite : .bananaGramCream).index, referenceTheme: theme.referenceTheme, overallDarkAppearance: dark, intro: theme.intro, passcode: passcode, rootController: root, list: list, chatList: chats, chat: chat, actionSheet: actionSheet, contextMenu: contextMenu, inAppNotification: inAppNotification, chart: theme.chart)
 }
 
 public func customizePresentationTheme(_ theme: PresentationTheme, editing: Bool, title: String? = nil, accentColor: UIColor?, outgoingAccentColor: UIColor?, backgroundColors: [UInt32], bubbleColors: [UInt32], animateBubbleColors: Bool?, wallpaper: TelegramWallpaper? = nil, baseColor: PresentationThemeBaseColor? = nil) -> PresentationTheme {
