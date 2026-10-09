@@ -33,12 +33,18 @@ protocol CallControllerNodeProtocol: AnyObject {
     func updateAudioOutputs(availableOutputs: [AudioSessionOutput], currentOutput: AudioSessionOutput?)
     func updateCallState(_ callState: PresentationCallState)
     func updatePeer(accountPeer: EnginePeer, peer: EnginePeer, hasOther: Bool)
+    func updatePresentationData(_ presentationData: PresentationData)
     
     func animateIn()
     func animateOut(completion: @escaping () -> Void)
     func expandFromPipIfPossible()
     
     func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition)
+}
+
+extension CallControllerNodeProtocol {
+    func updatePresentationData(_ presentationData: PresentationData) {
+    }
 }
 
 public final class CallController: ViewController {
@@ -82,6 +88,7 @@ public final class CallController: ViewController {
     
     private var isAnimatingDismiss: Bool = false
     private var isDismissed: Bool = false
+    private var presentationDataDisposable: Disposable?
     
     public init(sharedContext: SharedAccountContext, account: Account, call: PresentationCall, easyDebugAccess: Bool) {
         self.sharedContext = sharedContext
@@ -119,6 +126,18 @@ public final class CallController: ViewController {
             self?.callStateUpdated(callState)
         })
         
+        // The call screen follows the theme, including a change made while a call is going on.
+        self.presentationDataDisposable = (sharedContext.presentationData
+        |> deliverOnMainQueue).start(next: { [weak self] presentationData in
+            guard let self else {
+                return
+            }
+            self.presentationData = presentationData
+            if self.isNodeLoaded {
+                self.controllerNode.updatePresentationData(presentationData)
+            }
+        })
+        
         self.callMutedDisposable = (call.isMuted
         |> deliverOnMainQueue).start(next: { [weak self] value in
             if let strongSelf = self {
@@ -147,6 +166,7 @@ public final class CallController: ViewController {
     deinit {
         self.peerDisposable?.dispose()
         self.disposable?.dispose()
+        self.presentationDataDisposable?.dispose()
         self.callMutedDisposable?.dispose()
         self.audioOutputStateDisposable?.dispose()
         self.idleTimerExtensionDisposable.dispose()

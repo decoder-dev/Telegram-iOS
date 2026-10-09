@@ -83,6 +83,7 @@ public final class PrivateCallScreen: OverlayMaskContainerView, AVPictureInPictu
         public var isEnergySavingEnabled: Bool
         public var isConferencePossible: Bool
         public var enableVideoSharpening: Bool
+        public var palette: CallScreenPalette
         
         public init(
             strings: PresentationStrings,
@@ -99,7 +100,8 @@ public final class PrivateCallScreen: OverlayMaskContainerView, AVPictureInPictu
             isRemoteBatteryLow: Bool,
             isEnergySavingEnabled: Bool,
             isConferencePossible: Bool,
-            enableVideoSharpening: Bool
+            enableVideoSharpening: Bool,
+            palette: CallScreenPalette = .classicDay
         ) {
             self.strings = strings
             self.lifecycleState = lifecycleState
@@ -116,6 +118,7 @@ public final class PrivateCallScreen: OverlayMaskContainerView, AVPictureInPictu
             self.isEnergySavingEnabled = isEnergySavingEnabled
             self.isConferencePossible = isConferencePossible
             self.enableVideoSharpening = enableVideoSharpening
+            self.palette = palette
         }
         
         public static func ==(lhs: State, rhs: State) -> Bool {
@@ -162,6 +165,9 @@ public final class PrivateCallScreen: OverlayMaskContainerView, AVPictureInPictu
                 return false
             }
             if lhs.enableVideoSharpening != rhs.enableVideoSharpening {
+                return false
+            }
+            if lhs.palette != rhs.palette {
                 return false
             }
             return true
@@ -767,7 +773,7 @@ public final class PrivateCallScreen: OverlayMaskContainerView, AVPictureInPictu
         case .terminated:
             backgroundStateIndex = 0
         }
-        self.backgroundLayer.update(stateIndex: backgroundStateIndex, isEnergySavingEnabled: params.state.isEnergySavingEnabled, transition: transition)
+        self.backgroundLayer.update(stateIndex: backgroundStateIndex, palette: params.state.palette, isEnergySavingEnabled: params.state.isEnergySavingEnabled, transition: transition)
         
         let backgroundAlpha = self.isAnimatedOutToGroupCall ? 0.0 : 1.0
         if CGFloat(self.backgroundLayer.opacity) != backgroundAlpha {

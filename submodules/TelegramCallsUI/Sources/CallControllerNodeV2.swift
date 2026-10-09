@@ -29,7 +29,7 @@ final class CallControllerNodeV2: ViewControllerTracingNode, CallControllerNodeP
     }
     
     private let sharedContext: SharedAccountContext
-    private let presentationData: PresentationData
+    private var presentationData: PresentationData
     private let statusBar: StatusBar
     private let call: PresentationCall
     
@@ -184,7 +184,8 @@ final class CallControllerNodeV2: ViewControllerTracingNode, CallControllerNodeP
             isRemoteBatteryLow: false,
             isEnergySavingEnabled: !self.sharedContext.energyUsageSettings.fullTranslucency,
             isConferencePossible: false,
-            enableVideoSharpening: enableVideoSharpening
+            enableVideoSharpening: enableVideoSharpening,
+            palette: CallScreenPalette(theme: presentationData.theme)
         )
         
         self.isMicrophoneMutedDisposable = (call.isMuted
@@ -744,6 +745,18 @@ final class CallControllerNodeV2: ViewControllerTracingNode, CallControllerNodeP
             }
         default:
             break
+        }
+    }
+    
+    /// A theme or language change while the call is on screen: the background colours blend to the new
+    /// theme's set and the strings are replaced, without touching the call itself.
+    func updatePresentationData(_ presentationData: PresentationData) {
+        self.presentationData = presentationData
+        if var callScreenState = self.callScreenState {
+            callScreenState.strings = presentationData.strings
+            callScreenState.palette = CallScreenPalette(theme: presentationData.theme)
+            self.callScreenState = callScreenState
+            self.update(transition: .animated(duration: 0.4, curve: .easeInOut))
         }
     }
     

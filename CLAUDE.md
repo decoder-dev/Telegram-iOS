@@ -105,6 +105,11 @@ code rather than left to settings. Treat these as invariants — several of them
 - **Bubble radius is 18/4 with no tails** — `higChatBubbleCorners`, same file.
 - **Settings has a "Customization" row** (`PeerInfoSettingsItems.swift`) that opens the Appearance
   controller (themes, wallpaper, bubble geometry, app icons).
+- **The call screen follows the theme.** `CallScreenPalette` (`CallScreen/Sources/CallScreenPalette.swift`) holds the three
+  background colour sets (connecting / connected / weak signal) per theme: hand-tuned for Classic White, Classic Black,
+  Cream and Graphite while they keep their own accent, derived from the accent for any other theme. Every colour is held to
+  3:1 against the white text drawn on it (`Tests/Branding/test_themes.py` checks the sets). `CallController` pushes theme
+  changes into the open call, and the in-call status bar takes its connected / speaking gradients from the same palette.
 - **Composer controls are 40 pt circles.** The mic, send and attachment buttons all
   derive their background from a size the caller passes; handing them the input field's
   height produces ovals. See the comments in `ChatTextInputPanelNode` and

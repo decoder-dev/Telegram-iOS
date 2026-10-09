@@ -94,8 +94,9 @@ final class CallBackgroundLayer: MetalEngineSubjectLayer, MetalEngineSubject {
         }
     }
     
-    private let colorSets: [ColorSet]
+    private var colorSets: [ColorSet]
     private let colorTransition: AnimatedProperty<ColorSet>
+    private var palette: CallScreenPalette = .classicDay
     private var stateIndex: Int = 0
     private var isEnergySavingEnabled: Bool = false
     private let phaseAcceleration = AnimatedProperty<CGFloat>(0.0)
@@ -104,26 +105,7 @@ final class CallBackgroundLayer: MetalEngineSubjectLayer, MetalEngineSubject {
         self.blurredLayer = MetalEngineSubjectLayer()
         self.externalBlurredLayer = MetalEngineSubjectLayer()
         
-        self.colorSets = [
-            ColorSet(colors: [
-                hexToFloat(0x568FD6),
-                hexToFloat(0x626ED5),
-                hexToFloat(0xA667D5),
-                hexToFloat(0x7664DA)
-            ]),
-            ColorSet(colors: [
-                hexToFloat(0xACBD65),
-                hexToFloat(0x459F8D),
-                hexToFloat(0x53A4D1),
-                hexToFloat(0x3E917A)
-            ]),
-            ColorSet(colors: [
-                hexToFloat(0xC0508D),
-                hexToFloat(0xF09536),
-                hexToFloat(0xCE5081),
-                hexToFloat(0xFC7C4C)
-            ])
-        ]
+        self.colorSets = CallBackgroundLayer.colorSets(for: .classicDay)
         self.colorTransition = AnimatedProperty<ColorSet>(colorSets[0])
         
         super.init()
@@ -170,8 +152,27 @@ final class CallBackgroundLayer: MetalEngineSubjectLayer, MetalEngineSubject {
         fatalError("init(coder:) has not been implemented")
     }
     
-    func update(stateIndex: Int, isEnergySavingEnabled: Bool, transition: ComponentTransition) {
+    private static func colorSets(for palette: CallScreenPalette) -> [ColorSet] {
+        return [palette.connecting, palette.active, palette.weakSignal].map { colors in
+            return ColorSet(colors: colors.map { hexToFloat(Int($0)) })
+        }
+    }
+    
+    func update(stateIndex: Int, palette: CallScreenPalette, isEnergySavingEnabled: Bool, transition: ComponentTransition) {
         self.isEnergySavingEnabled = isEnergySavingEnabled
+        
+        // A theme change in the middle of a call blends from the colours on screen to the new set.
+        if self.palette != palette {
+            self.palette = palette
+            self.colorSets = CallBackgroundLayer.colorSets(for: palette)
+            let target = self.colorSets[self.stateIndex % self.colorSets.count]
+            if !transition.animation.isImmediate {
+                self.colorTransition.animate(to: target, duration: 0.4, curve: .easeInOut)
+            } else {
+                self.colorTransition.set(to: target)
+            }
+            self.setNeedsUpdate()
+        }
         
         if self.stateIndex != stateIndex {
             self.stateIndex = stateIndex

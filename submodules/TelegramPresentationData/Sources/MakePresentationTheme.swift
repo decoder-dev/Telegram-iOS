@@ -53,13 +53,21 @@ private func makeBananaGramTheme(dark: Bool) -> PresentationTheme {
     let base = makeDefaultPresentationTheme(reference: dark ? .night : .day, serviceBackgroundColor: nil)
     let theme = customizePresentationTheme(base, editing: false, title: title, accentColor: accent, outgoingAccentColor: outgoingAccent, backgroundColors: [], bubbleColors: outgoingBubbleColors, animateBubbleColors: false, wallpaper: wallpaper)
     
-    let list = theme.list.withUpdated(blocksBackgroundColor: background, modalBlocksBackgroundColor: background, plainBackgroundColor: surface, modalPlainBackgroundColor: surface, itemPrimaryTextColor: foreground, itemSecondaryTextColor: secondary, itemAccentColor: accent, itemBlocksBackgroundColor: surface, itemModalBlocksBackgroundColor: surface, itemBlocksSeparatorColor: separator, itemPlainSeparatorColor: separator, sectionHeaderTextColor: secondary, freeTextColor: secondary, itemCheckColors: theme.list.itemCheckColors.withUpdated(fillColor: accent, foregroundColor: onAccent))
+    // Pressed rows, the faint chevrons and disabled text, and the field boxes: the stock Day / Night values are neutral greys
+    // that sit coldly on the warm surfaces, so they are replaced rather than inherited.
+    let highlighted = UIColor(rgb: dark ? 0x2F343C : 0xF1ECDD)
+    let disclosure = UIColor(rgb: dark ? 0x6B717B : 0xB9B3A6)
+    let disabled = UIColor(rgb: dark ? 0x6B717B : 0xA39E91)
+    let selectedRow = surface.mixedWith(accent, alpha: dark ? 0.16 : 0.12)
+    let fieldFill = dark ? raisedSurface : UIColor(rgb: 0xFFFFFF)
+    let list = theme.list.withUpdated(blocksBackgroundColor: background, modalBlocksBackgroundColor: background, plainBackgroundColor: surface, modalPlainBackgroundColor: surface, itemPrimaryTextColor: foreground, itemSecondaryTextColor: secondary, itemDisabledTextColor: disabled, itemAccentColor: accent, itemPlaceholderTextColor: secondary.withAlphaComponent(0.8), itemBlocksBackgroundColor: surface, itemModalBlocksBackgroundColor: surface, itemHighlightedBackgroundColor: highlighted, itemBlocksSeparatorColor: separator, itemPlainSeparatorColor: separator, disclosureArrowColor: disclosure, sectionHeaderTextColor: secondary, freeTextColor: secondary, itemCheckColors: theme.list.itemCheckColors.withUpdated(fillColor: accent, foregroundColor: onAccent), controlSecondaryColor: disclosure, freeInputField: theme.list.freeInputField.withUpdated(backgroundColor: fieldFill, strokeColor: separator, placeholderColor: secondary, primaryColor: foreground, controlColor: secondary), freePlainInputField: theme.list.freePlainInputField.withUpdated(backgroundColor: fieldFill, strokeColor: separator, placeholderColor: secondary, primaryColor: foreground, controlColor: secondary), itemInputField: theme.list.itemInputField.withUpdated(backgroundColor: surface, strokeColor: surface, placeholderColor: secondary, primaryColor: foreground, controlColor: secondary))
     let root = theme.rootController.withUpdated(
         tabBar: theme.rootController.tabBar.withUpdated(backgroundColor: surface, separatorColor: separator, selectedIconColor: accent, selectedTextColor: accent),
         navigationBar: theme.rootController.navigationBar.withUpdated(buttonColor: accent, primaryTextColor: foreground, secondaryTextColor: secondary, accentTextColor: accent, blurredBackgroundColor: surface.withAlphaComponent(0.95), opaqueBackgroundColor: surface, separatorColor: separator),
         navigationSearchBar: theme.rootController.navigationSearchBar.withUpdated(backgroundColor: surface, accentColor: accent, inputFillColor: background, inputTextColor: foreground, inputPlaceholderTextColor: secondary, inputIconColor: secondary, separatorColor: separator)
     )
-    let chats = theme.chatList.withUpdated(backgroundColor: surface, itemSeparatorColor: separator, itemBackgroundColor: surface, pinnedItemBackgroundColor: background, titleColor: foreground, dateTextColor: secondary, authorNameColor: foreground, messageTextColor: secondary, messageHighlightedTextColor: foreground, checkmarkColor: accent, unreadBadgeActiveBackgroundColor: accent, unreadBadgeActiveTextColor: onAccent, sectionHeaderFillColor: background, sectionHeaderTextColor: secondary)
+    let searchBar = UIColor(rgb: dark ? 0x2B3038 : 0xEFEADF)
+    let chats = theme.chatList.withUpdated(backgroundColor: surface, itemSeparatorColor: separator, itemBackgroundColor: surface, pinnedItemBackgroundColor: background, itemHighlightedBackgroundColor: highlighted, pinnedItemHighlightedBackgroundColor: highlighted, itemSelectedBackgroundColor: selectedRow, titleColor: foreground, dateTextColor: secondary, authorNameColor: foreground, messageTextColor: secondary, messageHighlightedTextColor: foreground, checkmarkColor: accent, muteIconColor: secondary, unreadBadgeActiveBackgroundColor: accent, unreadBadgeActiveTextColor: onAccent, unreadBadgeInactiveBackgroundColor: UIColor(rgb: dark ? 0x535962 : 0x8B8678), pinnedBadgeColor: disclosure, pinnedSearchBarColor: searchBar, regularSearchBarColor: searchBar, sectionHeaderFillColor: background, sectionHeaderTextColor: secondary, storySeenColors: PresentationThemeGradientColors(topColor: UIColor(rgb: dark ? 0x4A5059 : 0xCFC9BA), bottomColor: UIColor(rgb: dark ? 0x4A5059 : 0xCFC9BA)))
     
     // Chat screen: incoming bubbles on the raised surface, the input bar on the list surface, the send button in the accent.
     let incoming = theme.chat.message.incoming
@@ -83,11 +91,36 @@ private func makeBananaGramTheme(dark: Bool) -> PresentationTheme {
         primaryTextColor: foreground,
         secondaryTextColor: secondary
     )
+    // The sticker / emoji / GIF panel and the bot keyboard sit under the input bar, so they take the same surface.
+    let mediaPanel = theme.chat.inputMediaPanel.withUpdated(
+        panelSeparatorColor: separator,
+        panelIconColor: secondary,
+        panelHighlightedIconBackgroundColor: accent.withAlphaComponent(0.2),
+        panelHighlightedIconColor: accent,
+        stickersBackgroundColor: surface,
+        stickersSectionTextColor: secondary,
+        stickersSearchBackgroundColor: searchBar,
+        stickersSearchPlaceholderColor: secondary,
+        stickersSearchPrimaryColor: foreground,
+        stickersSearchControlColor: secondary,
+        gifsBackgroundColor: surface,
+        backgroundColor: surface
+    )
+    let buttonPanel = theme.chat.inputButtonPanel.withUpdated(
+        panelSeparatorColor: separator,
+        panelBackgroundColor: surface.withAlphaComponent(0.94),
+        buttonFillColor: dark ? raisedSurface : UIColor(rgb: 0xFFFFFF),
+        buttonStrokeColor: separator,
+        buttonHighlightedFillColor: highlighted,
+        buttonTextColor: foreground
+    )
     let chat = theme.chat.withUpdated(
         message: theme.chat.message.withUpdated(
             incoming: incoming.withUpdated(bubble: incomingBubble, primaryTextColor: foreground, secondaryTextColor: secondary)
         ),
         inputPanel: inputPanel,
+        inputMediaPanel: mediaPanel,
+        inputButtonPanel: buttonPanel,
         historyNavigation: theme.chat.historyNavigation.withUpdated(fillColor: surface, strokeColor: separator, foregroundColor: secondary, badgeBackgroundColor: accent, badgeTextColor: onAccent)
     )
     

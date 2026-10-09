@@ -5,6 +5,7 @@ import Display
 import SwiftSignalKit
 import TelegramCore
 import TelegramPresentationData
+import CallScreen
 import TelegramUIPreferences
 import AccountContext
 import AnimatedCountLabelNode
@@ -72,6 +73,16 @@ private class CallStatusBarBackgroundNode: ASDisplayNode {
         }
     }
     
+    /// The theme's call colours: the connected and speaking bars follow the theme, like the call screen does.
+    /// The "can't speak" and "late" gradients keep their fixed colours, which carry meaning.
+    var palette: CallScreenPalette = .classicDay {
+        didSet {
+            if self.palette != oldValue {
+                self.updateGradientColors()
+            }
+        }
+    }
+    
     private func updateGradientColors() {
         let initialColors = self.foregroundGradientLayer.colors
         let targetColors: [CGColor]
@@ -79,9 +90,9 @@ private class CallStatusBarBackgroundNode: ASDisplayNode {
             case .connecting:
                 targetColors = [connectingColor.cgColor, connectingColor.cgColor]
             case .active:
-                targetColors = [blue.cgColor, lightBlue.cgColor]
+                targetColors = self.palette.statusBarActive.map { $0.cgColor }
             case .speaking:
-                targetColors = [green.cgColor, activeBlue.cgColor]
+                targetColors = self.palette.statusBarSpeaking.map { $0.cgColor }
             case .cantSpeak:
                 targetColors = [purple.cgColor, pink.cgColor]
             case .late:
@@ -563,6 +574,7 @@ public class CallStatusBarNodeImpl: CallStatusBarNode {
             }
             
             self.backgroundNode.connectingColor = color
+            self.backgroundNode.palette = CallScreenPalette(theme: presentationData.theme)
             
             if requiresTimer {
                 if self.currentCallTimer == nil {
