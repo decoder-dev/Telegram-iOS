@@ -17,17 +17,22 @@ public struct ChatArchiveSettings: Equatable, Codable {
     /// Notification Service Extension) can still decide whether to redact a locked-archived
     /// peer's notifications, without needing the password hash itself.
     public var isPasswordConfigured: Bool
+    /// Copy of the salted PBKDF2 verifier (never the password) kept next to the account's data. The Keychain item is
+    /// bound to the app's signing identity, so a re-signed or re-installed sideload build can no longer read it; this copy
+    /// lets the Keychain be restored instead of silently leaving the Archive unprotected or unopenable.
+    public var passwordVerifier: String?
 
     public static var `default`: ChatArchiveSettings {
         return ChatArchiveSettings(isHiddenByDefault: false, hiddenPsaPeerId: nil, legacyLockPasswordHash: nil, useBiometrics: false, isPasswordConfigured: false)
     }
 
-    public init(isHiddenByDefault: Bool, hiddenPsaPeerId: EnginePeer.Id?, legacyLockPasswordHash: String? = nil, useBiometrics: Bool = false, isPasswordConfigured: Bool = false) {
+    public init(isHiddenByDefault: Bool, hiddenPsaPeerId: EnginePeer.Id?, legacyLockPasswordHash: String? = nil, useBiometrics: Bool = false, isPasswordConfigured: Bool = false, passwordVerifier: String? = nil) {
         self.isHiddenByDefault = isHiddenByDefault
         self.hiddenPsaPeerId = hiddenPsaPeerId
         self.legacyLockPasswordHash = legacyLockPasswordHash
         self.useBiometrics = useBiometrics
         self.isPasswordConfigured = isPasswordConfigured
+        self.passwordVerifier = passwordVerifier
     }
 
     public init(from decoder: Decoder) throws {
@@ -44,8 +49,13 @@ public struct ChatArchiveSettings: Equatable, Codable {
         }
         self.useBiometrics = ((try container.decodeIfPresent(Int32.self, forKey: "useBiometrics")) ?? 0) != 0
         self.isPasswordConfigured = ((try container.decodeIfPresent(Int32.self, forKey: "isPasswordConfigured")) ?? 0) != 0
+        if let verifier = try container.decodeIfPresent(String.self, forKey: "passwordVerifier"), !verifier.isEmpty {
+            self.passwordVerifier = verifier
+        } else {
+            self.passwordVerifier = nil
+        }
         // Extensions must redact before the main app has migrated the legacy credential.
-        self.isPasswordConfigured = self.isPasswordConfigured || self.legacyLockPasswordHash != nil
+        self.isPasswordConfigured = self.isPasswordConfigured || self.legacyLockPasswordHash != nil || self.passwordVerifier != nil
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -62,18 +72,23 @@ public struct ChatArchiveSettings: Equatable, Codable {
         try container.encodeNil(forKey: "lockPassword")
         try container.encode((self.useBiometrics ? 1 : 0) as Int32, forKey: "useBiometrics")
         try container.encode((self.isPasswordConfigured ? 1 : 0) as Int32, forKey: "isPasswordConfigured")
+        try container.encodeIfPresent(self.passwordVerifier, forKey: "passwordVerifier")
     }
 
     public func clearingLegacyPasswordHash() -> ChatArchiveSettings {
-        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: nil, useBiometrics: self.useBiometrics, isPasswordConfigured: self.isPasswordConfigured)
+        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: nil, useBiometrics: self.useBiometrics, isPasswordConfigured: self.isPasswordConfigured, passwordVerifier: self.passwordVerifier)
     }
 
     public func withUpdatedUseBiometrics(_ useBiometrics: Bool) -> ChatArchiveSettings {
-        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: self.legacyLockPasswordHash, useBiometrics: useBiometrics, isPasswordConfigured: self.isPasswordConfigured)
+        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: self.legacyLockPasswordHash, useBiometrics: useBiometrics, isPasswordConfigured: self.isPasswordConfigured, passwordVerifier: self.passwordVerifier)
     }
 
     public func withUpdatedIsPasswordConfigured(_ isPasswordConfigured: Bool) -> ChatArchiveSettings {
-        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: self.legacyLockPasswordHash, useBiometrics: isPasswordConfigured ? self.useBiometrics : false, isPasswordConfigured: isPasswordConfigured)
+        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: self.legacyLockPasswordHash, useBiometrics: isPasswordConfigured ? self.useBiometrics : false, isPasswordConfigured: isPasswordConfigured, passwordVerifier: isPasswordConfigured ? self.passwordVerifier : nil)
+    }
+
+    public func withUpdatedPasswordVerifier(_ passwordVerifier: String?) -> ChatArchiveSettings {
+        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: self.legacyLockPasswordHash, useBiometrics: self.useBiometrics, isPasswordConfigured: self.isPasswordConfigured || passwordVerifier != nil, passwordVerifier: passwordVerifier)
     }
 }
 
@@ -590,6 +605,13 @@ public func updateChatArchiveSettings(engine: TelegramEngine, _ f: @escaping (Ch
 /// Whether Archive is password-protected for this account (Keychain, with prefs migration).
 public func archiveIsPasswordProtected(peerId: EnginePeer.Id, settings: ChatArchiveSettings) -> Bool {
     if ArchivePasswordKeychain.migrateFromPreferencesIfNeeded(peerId: peerId, legacyHash: settings.legacyLockPasswordHash) {
+        return true
+    }
+    // A re-signed build cannot read the old Keychain item. Put the backup verifier back so the password keeps working.
+    if let verifier = settings.passwordVerifier, !verifier.isEmpty {
+        if !ArchivePasswordKeychain.hasPassword(peerId: peerId) {
+            _ = ArchivePasswordKeychain.storeHash(verifier, peerId: peerId)
+        }
         return true
     }
     return settings.isPasswordConfigured || ArchivePasswordKeychain.hasPassword(peerId: peerId)

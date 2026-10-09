@@ -25,6 +25,12 @@ private func migrateAndResolvePasswordProtected(context: AccountContext, setting
     // The state that decides whether the Archive asks for a password. Logged because a password that "stops working"
     // after a reinstall is almost always one of these three sources disagreeing (the Keychain is tied to the signing identity).
     Logger.shared.log("ArchiveLock", "protected=\(protected) keychainHash=\(ArchivePasswordKeychain.hasPassword(peerId: peerId)) mirror=\(settings.isPasswordConfigured) legacyHash=\(settings.legacyLockPasswordHash != nil) biometrics=\(settings.useBiometrics) unlocked=\(ArchiveLockSession.shared.isUnlocked)")
+    if let hash = ArchivePasswordKeychain.loadHash(peerId: peerId), settings.passwordVerifier != hash, ArchivePasswordKeychain.hasPassword(peerId: peerId) {
+        // Keep a copy of the verifier beside the account's data so a re-signed build can restore the Keychain from it.
+        let _ = updateChatArchiveSettings(engine: context.engine) { current in
+            current.withUpdatedPasswordVerifier(hash)
+        }.startStandalone()
+    }
     if ArchivePasswordKeychain.hasPassword(peerId: peerId), settings.legacyLockPasswordHash != nil || (protected && !settings.isPasswordConfigured) {
         // Also backfills isPasswordConfigured for accounts that set a password before that
         // flag existed, so the notification/CallKit redaction check (which only has Postbox,
@@ -704,8 +710,9 @@ public func setArchivePassword(context: AccountContext, present: @escaping (View
                 return false
             }
             ArchivePasswordKeychain.clearFailureState(peerId: context.account.peerId)
+            let verifier = ArchivePasswordKeychain.loadHash(peerId: context.account.peerId)
             let _ = updateChatArchiveSettings(engine: context.engine) { current in
-                current.clearingLegacyPasswordHash().withUpdatedIsPasswordConfigured(true)
+                current.clearingLegacyPasswordHash().withUpdatedIsPasswordConfigured(true).withUpdatedPasswordVerifier(verifier)
             }.startStandalone()
             return true
         }
@@ -739,6 +746,10 @@ public func changeArchivePassword(context: AccountContext, present: @escaping (V
                         return false
                     }
                     ArchivePasswordKeychain.clearFailureState(peerId: context.account.peerId)
+                    let verifier = ArchivePasswordKeychain.loadHash(peerId: context.account.peerId)
+                    let _ = updateChatArchiveSettings(engine: context.engine) { current in
+                        current.withUpdatedPasswordVerifier(verifier)
+                    }.startStandalone()
                     return true
                 }
             )
