@@ -26,7 +26,12 @@ private func migrateAndResolvePasswordProtected(context: AccountContext, setting
     // after a reinstall is almost always one of these three sources disagreeing (the Keychain is tied to the signing identity).
     Logger.shared.log("ArchiveLock", "protected=\(protected) keychainHash=\(ArchivePasswordKeychain.hasPassword(peerId: peerId)) mirror=\(settings.isPasswordConfigured) legacyHash=\(settings.legacyLockPasswordHash != nil) biometrics=\(settings.useBiometrics) unlocked=\(ArchiveLockSession.shared.isUnlocked)")
     // Only fill a missing backup: a differing one may be the newer password (the Keychain can hold a stale one from another install).
-    if settings.passwordVerifier == nil, let hash = ArchivePasswordKeychain.loadHash(peerId: peerId) {
+    // The exception is a backup still holding a pre-PBKDF2 SHA-256 hash once the Keychain has been
+    // upgraded: that copy sits in the app-group database (included in device backups) and cracks
+    // offline almost instantly, so it is replaced by the PBKDF2 verifier.
+    let keychainHash = ArchivePasswordKeychain.loadHash(peerId: peerId)
+    let backupIsWeak = settings.passwordVerifier.flatMap { !ArchivePasswordKeychain.isStrongVerifier($0) } ?? false
+    if let hash = keychainHash, settings.passwordVerifier == nil || (backupIsWeak && ArchivePasswordKeychain.isStrongVerifier(hash)) {
         // Keep a copy of the verifier beside the account's data so a re-signed build can restore the Keychain from it.
         let _ = updateChatArchiveSettings(engine: context.engine) { current in
             current.withUpdatedPasswordVerifier(hash)
@@ -765,15 +770,20 @@ private func presentLostArchivePasswordRecovery(context: AccountContext, present
         let _ = (LocalAuth.authenticateDeviceOwner(reason: ArchiveLockLocalizedString.lostReason)
         |> deliverOnMainQueue).startStandalone(next: { result in
             ArchiveLockSession.shared.endSuppressBackgroundRelock()
-            // `nil`: the device has no passcode, so there is no stronger proof of ownership to ask for.
-            guard result != false else {
+            // Only a successful device-owner check may wipe the password. A device without a
+            // passcode (`nil`) offers no proof of ownership at all, and resetting there would let
+            // anyone holding the phone open the archive.
+            guard result == true else {
                 completion(.cancelled)
                 return
             }
             let peerId = context.account.peerId
             let _ = ArchivePasswordKeychain.clear(peerId: peerId)
             let _ = (updateChatArchiveSettings(engine: context.engine) { current in
-                current.clearingLegacyPasswordHash().withUpdatedIsPasswordConfigured(false)
+                // The verifier copy and the enrolled-biometrics snapshot go too: with the verifier
+                // left behind, `archiveIsPasswordProtected` restored the old password into the
+                // Keychain on the next check, so "Remove password" silently undid itself.
+                current.clearingLegacyPasswordHash().withUpdatedIsPasswordConfigured(false).withUpdatedPasswordVerifier(nil).withUpdatedBiometricsDomainState(nil)
             }
             |> deliverOnMainQueue).startStandalone(completed: {
                 Logger.shared.log("ArchiveLock", "lost password reset by device owner")
@@ -867,7 +877,10 @@ public func removeArchivePassword(context: AccountContext, present: @escaping (V
                     return
                 }
                 let _ = updateChatArchiveSettings(engine: context.engine) { current in
-                    current.clearingLegacyPasswordHash().withUpdatedIsPasswordConfigured(false)
+                    // The verifier copy and the enrolled-biometrics snapshot go too: with the verifier
+                // left behind, `archiveIsPasswordProtected` restored the old password into the
+                // Keychain on the next check, so "Remove password" silently undid itself.
+                current.clearingLegacyPasswordHash().withUpdatedIsPasswordConfigured(false).withUpdatedPasswordVerifier(nil).withUpdatedBiometricsDomainState(nil)
                 }.startStandalone()
                 completion(true)
             },

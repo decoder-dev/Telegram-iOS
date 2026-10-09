@@ -4,6 +4,7 @@ import Postbox
 import TelegramCore
 import Contacts
 import Intents
+import TelegramUIPreferences
 
 extension MessageId {
     init?(string: String) {
@@ -21,6 +22,10 @@ func getMessages(account: Account, ids: [MessageId]) -> Signal<[INMessage], NoEr
     return account.postbox.transaction { transaction -> [INMessage] in
         var messages: [INMessage] = []
         for id in ids {
+            // Chats in a password-locked Archive stay out of Siri, as in contact resolution.
+            if archiveNotificationShouldRedact(transaction: transaction, peerId: id.peerId) {
+                continue
+            }
             if let message = transaction.getMessage(id).flatMap(messageWithTelegramMessage) {
                 messages.append(message)
             }
@@ -104,21 +109,27 @@ struct CallRecord {
 func missedCalls(account: Account) -> Signal<[CallRecord], NoError> {
     return account.viewTracker.callListView(type: .missed, index: MessageIndex.absoluteUpperBound(), count: 30)
     |> take(1)
-    |> map { view -> [CallRecord] in
-        var calls: [CallRecord] = []
-        for entry in view.entries {
-            switch entry {
-                case let .message(_, messages):
-                    for message in messages {
-                        if let call = callWithTelegramMessage(message, account: account) {
-                            calls.append(call)
+    |> mapToSignal { view -> Signal<[CallRecord], NoError> in
+        return account.postbox.transaction { transaction -> [CallRecord] in
+            var calls: [CallRecord] = []
+            for entry in view.entries {
+                switch entry {
+                    case let .message(_, messages):
+                        for message in messages {
+                            // Callers from a password-locked Archive are not handed to Siri.
+                            if archiveNotificationShouldRedact(transaction: transaction, peerId: message.id.peerId) {
+                                continue
+                            }
+                            if let call = callWithTelegramMessage(message, account: account) {
+                                calls.append(call)
+                            }
                         }
-                    }
-                default:
-                    break
+                    default:
+                        break
+                }
             }
+            return calls.sorted { $0.date.compare($1.date) == .orderedDescending }
         }
-        return calls.sorted { $0.date.compare($1.date) == .orderedDescending }
     }
 }
 

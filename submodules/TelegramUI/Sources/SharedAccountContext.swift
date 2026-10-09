@@ -828,6 +828,9 @@ public final class SharedAccountContextImpl: SharedAccountContext {
                 }
                 for id in removedIds {
                     hadUpdates = true
+                    // The account is gone (logged out or removed): its Keychain session copy goes
+                    // with it. Nothing else deleted it, and Keychain items outlive the app itself.
+                    SessionKeychainBackup.delete(accountId: String(id.int64))
                     if let index = self.activeAccountsValue?.accounts.firstIndex(where: { $0.0 == id }) {
                         self.activeAccountsValue?.accounts.remove(at: index)
                         self.managedAccountDisposables.set(nil, forKey: id)

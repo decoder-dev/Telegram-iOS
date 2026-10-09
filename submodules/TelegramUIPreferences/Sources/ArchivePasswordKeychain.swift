@@ -127,6 +127,11 @@ public enum ArchivePasswordKeychain {
         return false
     }
 
+    /// Whether `stored` is a PBKDF2 verifier rather than a pre-PBKDF2 SHA-256 hash.
+    public static func isStrongVerifier(_ stored: String) -> Bool {
+        return decodePBKDF2StoredBlob(stored) != nil
+    }
+
     /// Move a legacy prefs-stored hash into Keychain and return whether a password exists afterwards.
     public static func migrateFromPreferencesIfNeeded(peerId: EnginePeer.Id, legacyHash: String?) -> Bool {
         if self.hasPassword(peerId: peerId) {
@@ -158,6 +163,16 @@ public enum ArchivePasswordKeychain {
     private struct FailureState: Codable {
         var count: Int
         var lastFailureTimestamp: Double
+        /// `CLOCK_MONOTONIC` at the last failure. Wall-clock time can be moved forward in Settings
+        /// without the device passcode, which cleared the cooldown outright.
+        var lastFailureMonotonic: Double?
+    }
+
+    /// Seconds since boot, counting sleep and unaffected by clock changes.
+    private static func monotonicNow() -> Double {
+        var value = timespec()
+        clock_gettime(CLOCK_MONOTONIC, &value)
+        return Double(value.tv_sec) + Double(value.tv_nsec) / 1_000_000_000.0
     }
 
     private static func failureQuery(peerId: EnginePeer.Id) -> [String: Any] {
@@ -202,7 +217,8 @@ public enum ArchivePasswordKeychain {
         case ..<5:
             return 0
         default:
-            return min(300, 5 * pow(2.0, Double(count - 5)))
+            // Capped at an hour (was five minutes, about 288 guesses a day indefinitely).
+            return min(3600, 5 * pow(2.0, Double(count - 5)))
         }
     }
 
@@ -217,8 +233,24 @@ public enum ArchivePasswordKeychain {
         guard cooldown > 0 else {
             return 0
         }
-        // A clock moved backwards would make `elapsed` negative and the wait arbitrarily long, locking the owner out.
-        let elapsed = max(0, Date().timeIntervalSince1970 - state.lastFailureTimestamp)
+        let elapsed: Double
+        if let lastMonotonic = state.lastFailureMonotonic {
+            let now = self.monotonicNow()
+            if now >= lastMonotonic {
+                elapsed = now - lastMonotonic
+            } else {
+                // The device rebooted since the failure: the monotonic clock restarted. Start the
+                // cooldown over from now rather than trusting the wall clock.
+                var restarted = state
+                restarted.lastFailureMonotonic = now
+                self.storeFailureState(restarted, peerId: peerId)
+                elapsed = 0
+            }
+        } else {
+            // State written by an older build. A clock moved backwards would make `elapsed`
+            // negative and the wait arbitrarily long, locking the owner out.
+            elapsed = max(0, Date().timeIntervalSince1970 - state.lastFailureTimestamp)
+        }
         return min(cooldown, max(0, cooldown - elapsed))
     }
 
@@ -233,7 +265,7 @@ public enum ArchivePasswordKeychain {
         self.failureLock.lock()
         defer { self.failureLock.unlock() }
         let previous = self.loadFailureState(peerId: peerId)?.count ?? 0
-        self.storeFailureState(FailureState(count: previous + 1, lastFailureTimestamp: Date().timeIntervalSince1970), peerId: peerId)
+        self.storeFailureState(FailureState(count: previous + 1, lastFailureTimestamp: Date().timeIntervalSince1970, lastFailureMonotonic: self.monotonicNow()), peerId: peerId)
     }
 
     public static func clearFailureState(peerId: EnginePeer.Id) {

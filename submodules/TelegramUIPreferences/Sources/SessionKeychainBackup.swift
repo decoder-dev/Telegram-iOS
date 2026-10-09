@@ -54,6 +54,17 @@ public enum SessionKeychainBackup {
         return items.compactMap { try? JSONDecoder().decode(AccountBackupData.self, from: $0) }
     }
     
+    /// Drops one account's copy. Called on logout: the auth keys of a session that no longer
+    /// exists must not outlive it in the Keychain (items also survive deleting the app).
+    public static func delete(accountId: String) {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: accountId
+        ]
+        SecItemDelete(query as CFDictionary)
+    }
+    
     public static func deleteAll() {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,

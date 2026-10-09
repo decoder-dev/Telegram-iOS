@@ -2070,6 +2070,18 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                         |> delay(0.1, queue: .mainQueue())
                     }
                 }
+                // Downloads were the one search tab not filtered for the locked Archive: file names,
+                // previews and chat names of archived chats showed here, and tapping one opened the
+                // media without the password.
+                |> mapToSignal { value -> Signal<(inProgressItems: [DownloadItem], doneItems: [RenderedRecentDownloadItem]), NoError> in
+                    return context.account.postbox.transaction { transaction -> (inProgressItems: [DownloadItem], doneItems: [RenderedRecentDownloadItem]) in
+                        return (
+                            value.inProgressItems.filter { !archiveNotificationShouldRedact(transaction: transaction, peerId: $0.message.id.peerId) },
+                            value.doneItems.filter { !archiveNotificationShouldRedact(transaction: transaction, peerId: $0.message.id.peerId) }
+                        )
+                    }
+                    |> deliverOnMainQueue
+                }
             }
         } else {
             downloadItems = .single(([], []))

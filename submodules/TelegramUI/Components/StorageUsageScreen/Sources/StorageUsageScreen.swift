@@ -9,6 +9,7 @@ import ComponentDisplayAdapters
 import TelegramPresentationData
 import AccountContext
 import TelegramCore
+import TelegramUIPreferences
 import MultilineTextComponent
 import EmojiStatusComponent
 import Markdown
@@ -2338,8 +2339,17 @@ final class StorageUsageScreenComponent: Component {
                 return
             }
             
+            // Chats in a password-locked Archive are left out of the per-chat list and the media
+            // grids: this screen showed their names, avatars and media (and opened them) without
+            // asking for the password. Their bytes still count toward the category totals.
+            let lockedPeerIdsContext = component.context
             self.statsDisposable = (component.context.engine.resources.collectStorageUsageStats()
-            |> deliverOnMainQueue).start(next: { [weak self] stats in
+            |> mapToSignal { stats -> Signal<(AllStorageUsageStats, Set<EnginePeer.Id>), NoError> in
+                return lockedPeerIdsContext.account.postbox.transaction { transaction -> (AllStorageUsageStats, Set<EnginePeer.Id>) in
+                    return (stats, archiveLockedPeerIds(transaction: transaction))
+                }
+            }
+            |> deliverOnMainQueue).start(next: { [weak self] stats, lockedPeerIds in
                 guard let self, let component = self.component else {
                     completion()
                     return
@@ -2357,6 +2367,9 @@ final class StorageUsageScreenComponent: Component {
                         })
                         return lhsSize > rhsSize
                     }) {
+                        if lockedPeerIds.contains(item.peer.id) {
+                            continue
+                        }
                         let itemSize: Int64 = item.stats.categories.values.reduce(0, {
                             $0 + $1.size
                         })
@@ -2397,6 +2410,7 @@ final class StorageUsageScreenComponent: Component {
                 |> map { messages -> RenderResult in
                     let result = RenderResult()
 
+                    let messages = lockedPeerIds.isEmpty ? messages : messages.filter { !lockedPeerIds.contains($0.key.peerId) }
                     result.messages = messages
                     
                     var mergedMedia: [EngineMessage.Id: Int64] = [:]

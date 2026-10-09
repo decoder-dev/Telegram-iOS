@@ -23,7 +23,8 @@ assert "presentLostArchivePasswordRecovery(" in helpers, "A password no copy can
 assert "biometricsDomainState" in helpers, "Face ID unlock must reject a changed biometric enrollment"
 
 keychain = read("submodules/TelegramUIPreferences/Sources/ArchivePasswordKeychain.swift")
-assert re.search(r"let elapsed = max\(0,", keychain), "A clock moved backwards must not extend the cooldown"
+assert re.search(r"elapsed = max\(0,", keychain), "A clock moved backwards must not extend the cooldown"
+assert "CLOCK_MONOTONIC" in keychain and "lastFailureMonotonic" in keychain, "The cooldown must not be clearable by moving the clock forward"
 
 service = read("Telegram/NotificationService/Sources/NotificationService.swift")
 assert "stagedContent.redactLockedArchive(" in service, "Unredacted text must never be staged before the Archive check"
