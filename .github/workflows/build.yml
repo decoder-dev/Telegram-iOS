@@ -28,6 +28,13 @@ on:
         description: Also produce debug symbols (slower; needed to name a crash)
         type: boolean
         default: false
+      toolchain:
+        description: Build toolchain. xcode27 uses the Xcode 27 / iOS 27 SDK preview runner (separate cache); xcode26 is the proven default.
+        type: choice
+        options:
+          - xcode26
+          - xcode27
+        default: xcode26
 
 concurrency:
   group: telegram-ios-ipa-${{ github.ref }}
@@ -101,9 +108,10 @@ jobs:
 
   build:
     needs: regression
-    # Xcode 27 preview IPA crashed on device — stay on macos-26 / Xcode 26.2.
-    name: Build IPA (macos-26)
-    runs-on: macos-26
+    # Default stays on macos-26 / Xcode 26.2: the first Xcode 27 preview IPA crashed on device.
+    # Dispatch with toolchain=xcode27 to build against the Xcode 27 / iOS 27 SDK runner instead.
+    name: Build IPA (${{ inputs.toolchain == 'xcode27' && 'xcode-27' || 'macos-26' }})
+    runs-on: ${{ inputs.toolchain == 'xcode27' && 'xcode-27' || 'macos-26' }}
     timeout-minutes: 240
 
     env:
@@ -162,19 +170,61 @@ jobs:
           git apply ../patches/vless-media-socks.patch
 
       - name: Select Xcode
+        env:
+          TOOLCHAIN: ${{ inputs.toolchain || 'xcode26' }}
         run: |
           set -euo pipefail
-          XCODE_VERSION="$(python3 -c 'import json; print(json.load(open("versions.json"))["xcode"])')"
-          DEVELOPER_DIR="/Applications/Xcode_${XCODE_VERSION}.app/Contents/Developer"
-          if [ ! -d "$DEVELOPER_DIR" ]; then
-            CANDIDATE="$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1 || true)"
-            [ -n "$CANDIDATE" ] || { echo "::error::No Xcode 26.x found"; exit 1; }
-            DEVELOPER_DIR="${CANDIDATE}/Contents/Developer"
-            echo "::warning::using $(basename "$CANDIDATE") instead of ${XCODE_VERSION}"
+          if [ "$TOOLCHAIN" = "xcode27" ]; then
+            # Preview images ship betas as Xcode_27_beta_N.app (+ optional Xcode_27.0.app). Never accept Xcode 26 here.
+            DEVELOPER_DIR=""
+            for CANDIDATE in /Applications/Xcode_27.0.app $(ls -d /Applications/Xcode_27*.app 2>/dev/null | sort -V | tail -1); do
+              if [ -d "$CANDIDATE" ]; then DEVELOPER_DIR="$CANDIDATE/Contents/Developer"; break; fi
+            done
+            if [ -z "$DEVELOPER_DIR" ]; then
+              echo "::error::No Xcode 27.x found under /Applications"
+              ls -d /Applications/Xcode*.app 2>/dev/null || true
+              exit 1
+            fi
+          else
+            XCODE_VERSION="$(python3 -c 'import json; print(json.load(open("versions.json"))["xcode"])')"
+            DEVELOPER_DIR="/Applications/Xcode_${XCODE_VERSION}.app/Contents/Developer"
+            if [ ! -d "$DEVELOPER_DIR" ]; then
+              CANDIDATE="$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1 || true)"
+              [ -n "$CANDIDATE" ] || { echo "::error::No Xcode 26.x found"; exit 1; }
+              DEVELOPER_DIR="${CANDIDATE}/Contents/Developer"
+              echo "::warning::using $(basename "$CANDIDATE") instead of ${XCODE_VERSION}"
+            fi
           fi
           sudo xcode-select -s "$DEVELOPER_DIR"
           xcodebuild -version
+          echo "DEVELOPER_DIR=$DEVELOPER_DIR"
           echo "CPUS=$(sysctl -n hw.ncpu)"
+
+      - name: Adapt sources to the Xcode 27 SDK
+        if: ${{ inputs.toolchain == 'xcode27' }}
+        run: |
+          set -euo pipefail
+          # The iOS 27 SDK libc++ rejects deployment targets below iOS 15.
+          sed -i '' 's/^minimum_os_version = "13.0"/minimum_os_version = "15.0"/' Telegram/BUILD
+          grep -n '^minimum_os_version' Telegram/BUILD
+          # Keep Swift diagnostic groups that are new in Xcode 27 as warnings (the BUILD files use -warnings-as-errors).
+          python3 - <<'PY'
+          import os, re
+          flags = '        "-Wwarning", "ImplicitStrongCapture",\n        "-Wwarning", "DeprecatedDeclaration",\n        "-Wwarning", "NoUseUnstructuredThrowingTask",\n'
+          changed = 0
+          for root, dirs, files in os.walk('.'):
+              dirs[:] = [d for d in dirs if d not in ('.git', 'node_modules', 'build-input', 'bazel-out')]
+              if 'BUILD' not in files:
+                  continue
+              path = os.path.join(root, 'BUILD')
+              text = open(path, encoding='utf-8').read()
+              if '"-warnings-as-errors",' not in text or 'ImplicitStrongCapture' in text:
+                  continue
+              text = re.sub(r'(\n[ \t]*)"-warnings-as-errors",\n', lambda m: m.group(0) + flags, text)
+              open(path, 'w', encoding='utf-8').write(text)
+              changed += 1
+          print("patched BUILD files:", changed)
+          PY
 
       - name: Prepare Metal toolchain
         run: |
@@ -202,6 +252,7 @@ jobs:
           df -h /
 
       - name: Cache Bazel (warm incremental compiles)
+        if: ${{ inputs.toolchain != 'xcode27' }}
         uses: actions/cache@v4
         with:
           path: |
@@ -217,6 +268,17 @@ jobs:
             bazel-pm-
             bazel-turbo-
             bazel-
+
+      - name: Cache Bazel (Xcode 27, isolated from Xcode 26 caches)
+        if: ${{ inputs.toolchain == 'xcode27' }}
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.BAZEL_CACHE_DIR }}
+            ${{ env.BAZEL_REPO_CACHE }}
+          key: bazel-warm-xcode27-release_arm64-${{ hashFiles('versions.json', 'MODULE.bazel', 'MODULE.bazel.lock') }}
+          restore-keys: |
+            bazel-warm-xcode27-release_arm64-
 
       - name: Write sideload configuration
         env:
@@ -336,6 +398,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.create_release == true)
         env:
           GH_TOKEN: ${{ github.token }}
+          TOOLCHAIN_LABEL: ${{ inputs.toolchain == 'xcode27' && 'Xcode 27 / iOS 27 SDK (xcode-27 runner)' || 'Xcode 26.2 (macos-26)' }}
         run: |
           set -euo pipefail
           IPA="$PWD/artifacts/${IPA_NAME}"
@@ -407,7 +470,7 @@ jobs:
 
           ### Build
           - Configuration: \`release_arm64\` + \`build-system/fake-codesigning\`
-          - Toolchain: Xcode 26.2 (\`runs-on: macos-26\`) — Xcode 27 preview parked (device crash)
+          - Toolchain: ${TOOLCHAIN_LABEL}
           - Bundle / team (build-time): \`ph.teleg.Telegrapf\` / \`C67CF9S4VU\`
           - Extensions / Siri / iCloud: disabled
           - Commit: \`${GITHUB_SHA}\`

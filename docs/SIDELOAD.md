@@ -113,4 +113,4 @@ than fixing it; restored to 4 bytes.
 
 ## Toolchain note (Xcode / iOS)
 
-CI stays on **Xcode 26.2** (`versions.json`, `runs-on: macos-26`). An attempt to ship on the Xcode 27 preview runner produced an installable IPA that **crashed on device**; that toolchain bump is parked until the beta runtime is stable. Make.py uses `--overrideXcodeVersion`.
+CI defaults to **Xcode 26.2** (`versions.json`, `runs-on: macos-26`). The first attempt to ship on the Xcode 27 preview runner produced an installable IPA that **crashed on device**, so Xcode 27 is opt-in: dispatch *Build sideload IPA* with `toolchain = xcode27` to build on the `xcode-27` runner against the iOS 27 SDK (iOS 15 minimum, the new Swift diagnostics kept as warnings, a separate Bazel cache). Make.py uses `--overrideXcodeVersion`.
