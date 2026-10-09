@@ -22,6 +22,9 @@ public enum ArchiveUnlockResult {
 private func migrateAndResolvePasswordProtected(context: AccountContext, settings: ChatArchiveSettings) -> Bool {
     let peerId = context.account.peerId
     let protected = archiveIsPasswordProtected(peerId: peerId, settings: settings)
+    // The state that decides whether the Archive asks for a password. Logged because a password that "stops working"
+    // after a reinstall is almost always one of these three sources disagreeing (the Keychain is tied to the signing identity).
+    Logger.shared.log("ArchiveLock", "protected=\(protected) keychainHash=\(ArchivePasswordKeychain.hasPassword(peerId: peerId)) mirror=\(settings.isPasswordConfigured) legacyHash=\(settings.legacyLockPasswordHash != nil) biometrics=\(settings.useBiometrics) unlocked=\(ArchiveLockSession.shared.isUnlocked)")
     if ArchivePasswordKeychain.hasPassword(peerId: peerId), settings.legacyLockPasswordHash != nil || (protected && !settings.isPasswordConfigured) {
         // Also backfills isPasswordConfigured for accounts that set a password before that
         // flag existed, so the notification/CallKit redaction check (which only has Postbox,
