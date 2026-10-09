@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Set up a Fake-TLS MTProxy (mtg v2) on a fresh Debian/Ubuntu VPS for the BananaGram client.
+# Set up a Fake-TLS MTProxy (mtg v2, plain binary + systemd, no Docker) on a Linux VPS for the BananaGram client.
 #
 # The client speaks stock MTProxy, including the Fake-TLS ("ee" secret) handshake with SNI,
 # so no client-side changes are needed: add the printed tg://proxy link in Settings > Data and Storage > Proxy.
@@ -11,121 +11,93 @@ set -euo pipefail
 
 PORT="${1:-443}"
 DOMAIN="${2:-storage.googleapis.com}"
-NAME=mtg
-DIR=/opt/mtg
+DIR=/etc/mtg
+BIN=/usr/local/bin/mtg
+FALLBACK_VERSION=2.2.8
 
 [ "$(id -u)" -eq 0 ] || { echo "run as root" >&2; exit 1; }
-
-export DEBIAN_FRONTEND=noninteractive
 step() { echo; echo "==> $*"; }
 
-# apt on a host with a broken IPv6 route stalls for minutes per mirror; force IPv4 and fail fast.
-cat > /etc/apt/apt.conf.d/99mtproxy-network <<'APT'
-Acquire::ForceIPv4 "true";
-Acquire::Retries "3";
-Acquire::http::Timeout "20";
-Acquire::https::Timeout "20";
-APT
+# Prefer IPv4: some VPS networks have a broken IPv6 route and downloads stall on it.
+grep -q '^precedence ::ffff:0:0/96  100' /etc/gai.conf 2>/dev/null || echo 'precedence ::ffff:0:0/96  100' >> /etc/gai.conf
 
-# A fresh VPS often runs unattended-upgrades right after boot and holds the dpkg lock.
-step "waiting for the package manager lock"
-for _ in $(seq 1 60); do
-  if fuser /var/lib/dpkg/lock-frontend /var/lib/apt/lists/lock >/dev/null 2>&1; then sleep 5; else break; fi
-done
+step "checking the system"
+case "$(uname -m)" in
+  x86_64|amd64)  ARCH=amd64 ;;
+  aarch64|arm64) ARCH=arm64 ;;
+  armv7l)        ARCH=armv7 ;;
+  *) echo "unsupported architecture: $(uname -m)" >&2; exit 1 ;;
+esac
+command -v curl >/dev/null 2>&1 || { apt-get update -y && apt-get install -y curl ca-certificates; }
+command -v systemctl >/dev/null 2>&1 || { echo "systemd is required" >&2; exit 1; }
 
-# Some VPS networks have a broken IPv6 route (registry/CDN requests time out on an IPv6 address).
-# Prefer IPv4 for name resolution so image pulls and downloads do not hang.
-if ! grep -q '^precedence ::ffff:0:0/96  100' /etc/gai.conf 2>/dev/null; then
-  echo 'precedence ::ffff:0:0/96  100' >> /etc/gai.conf
-fi
+step "downloading mtg"
+TAG="$(curl -4 -fsSL -m 20 -o /dev/null -w '%{url_effective}' https://github.com/9seconds/mtg/releases/latest 2>/dev/null | sed 's|.*/tag/v||' || true)"
+case "$TAG" in [0-9]*.[0-9]*.[0-9]*) ;; *) TAG="$FALLBACK_VERSION" ;; esac
+echo "version $TAG, linux-$ARCH"
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+URL="https://github.com/9seconds/mtg/releases/download/v${TAG}/mtg-${TAG}-linux-${ARCH}.tar.gz"
+curl -4 -fL --retry 5 --retry-delay 3 --connect-timeout 15 -m 180 "$URL" -o "$TMP/mtg.tar.gz"
+tar -xzf "$TMP/mtg.tar.gz" -C "$TMP"
+FOUND="$(find "$TMP" -type f -name mtg | head -1)"
+[ -n "$FOUND" ] || { echo "mtg binary not found in the archive" >&2; exit 1; }
+install -m 0755 "$FOUND" "$BIN"
+"$BIN" --version || true
 
-pull_with_retry() {
-  for attempt in 1 2 3 4 5; do
-    timeout 120 docker pull "$1" >/dev/null && return 0
-    echo "docker pull failed (attempt $attempt), retrying..." >&2
-    sleep $((attempt * 3))
-  done
-  return 1
-}
-
-# Install Docker Engine from Docker's official apt repository
-# (https://docs.docker.com/engine/install/ubuntu/ and /debian/).
-install_docker() {
-  . /etc/os-release
-  case "$ID" in
-    ubuntu|debian) ;;
-    *) case "${ID_LIKE:-}" in
-         *ubuntu*) ID=ubuntu ;;
-         *debian*) ID=debian ;;
-         *) echo "unsupported distro: $ID (need Debian or Ubuntu)" >&2; exit 1 ;;
-       esac ;;
-  esac
-  CODENAME="${UBUNTU_CODENAME:-${VERSION_CODENAME:-}}"
-
-  step "installing prerequisites"
-  apt-get update -y
-  apt-get install -y ca-certificates curl gnupg psmisc
-  for old in docker.io docker-doc docker-compose podman-docker containerd runc; do
-    apt-get remove -y "$old" >/dev/null 2>&1 || true
-  done
-
-  step "adding the Docker repository"
-  install -m 0755 -d /etc/apt/keyrings
-  curl -4 -fsSL --retry 5 "https://download.docker.com/linux/$ID/gpg" -o /etc/apt/keyrings/docker.asc
-  chmod a+r /etc/apt/keyrings/docker.asc
-  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/$ID $CODENAME stable" \
-    > /etc/apt/sources.list.d/docker.list
-
-  step "installing Docker Engine"
-  apt-get update -y
-  apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-  systemctl enable --now docker
-}
-
-if ! command -v docker >/dev/null 2>&1; then
-  install_docker
-fi
-systemctl enable --now docker >/dev/null 2>&1 || true
-
+step "generating the secret"
 mkdir -p "$DIR"
-step "pulling the mtg image"
-pull_with_retry nineseconds/mtg:2
-step "starting the proxy"
-
-if [ ! -s "$DIR/secret" ]; then
-  docker run --rm nineseconds/mtg:2 generate-secret --hex "$DOMAIN" > "$DIR/secret"
+if [ ! -s "$DIR/secret" ] || ! grep -q . "$DIR/secret"; then
+  "$BIN" generate-secret --hex "$DOMAIN" > "$DIR/secret"
+  chmod 600 "$DIR/secret"
 fi
 SECRET="$(tr -d '\n' < "$DIR/secret")"
 
 cat > "$DIR/config.toml" <<TOML
 secret = "$SECRET"
-bind-to = "0.0.0.0:3128"
+bind-to = "0.0.0.0:$PORT"
 prefer-ip = "prefer-ipv4"
-domain-fronting-port = 443
 tolerate-time-skewness = "5s"
-
-[network]
-doh-ip = "1.1.1.1"
 TOML
+chmod 600 "$DIR/config.toml"
 
-docker rm -f "$NAME" >/dev/null 2>&1 || true
-docker run -d --name "$NAME" --restart always \
-  -p "$PORT:3128" \
-  -v "$DIR/config.toml:/config.toml:ro" \
-  nineseconds/mtg:2 run /config.toml >/dev/null
+step "starting the service"
+cat > /etc/systemd/system/mtg.service <<UNIT
+[Unit]
+Description=mtg MTProxy (Fake-TLS)
+After=network-online.target
+Wants=network-online.target
 
-# Firewall + TCP tuning (best effort).
+[Service]
+ExecStart=$BIN run $DIR/config.toml
+Restart=always
+RestartSec=3
+LimitNOFILE=65536
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+systemctl daemon-reload
+systemctl enable mtg >/dev/null 2>&1
+systemctl restart mtg
+sleep 2
+systemctl is-active mtg || { journalctl -u mtg --no-pager -n 20; exit 1; }
+
+step "firewall and TCP tuning"
 if command -v ufw >/dev/null 2>&1 && ufw status | grep -q "Status: active"; then
   ufw allow "$PORT/tcp" >/dev/null
 fi
-grep -q 'tcp_congestion_control=bbr' /etc/sysctl.d/99-mtproxy.conf 2>/dev/null || {
+if [ ! -f /etc/sysctl.d/99-mtproxy.conf ]; then
   printf 'net.core.default_qdisc=fq\nnet.ipv4.tcp_congestion_control=bbr\n' > /etc/sysctl.d/99-mtproxy.conf
   sysctl --system >/dev/null 2>&1 || true
-}
+fi
 
-IP="$(curl -4 -fsS https://api.ipify.org || hostname -I | awk '{print $1}')"
-sleep 2
-docker ps --filter "name=$NAME" --format '{{.Status}}'
+IP="$(curl -4 -fsS -m 10 https://api.ipify.org 2>/dev/null || hostname -I | awk '{print $1}')"
 echo
+echo "Done. Add this proxy in the client:"
 echo "tg://proxy?server=$IP&port=$PORT&secret=$SECRET"
 echo "https://t.me/proxy?server=$IP&port=$PORT&secret=$SECRET"
