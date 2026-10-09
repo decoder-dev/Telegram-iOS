@@ -1,5 +1,6 @@
 import Foundation
 import UIKit
+import Display
 import Postbox
 import TelegramUIPreferences
 import TelegramCore
@@ -23,24 +24,74 @@ public func makeDefaultPresentationTheme(reference: PresentationBuiltinThemeRefe
     return theme
 }
 
+/// BananaGram's two branded themes, built on the stock Day / Night themes so every screen the stock themes cover stays
+/// covered. Cream is a warm paper surface with a dark-gold accent; Graphite is a warm charcoal surface with a banana-yellow
+/// accent. Accent foregrounds are chosen for contrast (white on dark gold, near-black on yellow), and the chat screen
+/// (bubbles, input bar, scroll-down button, wallpaper) uses the same palette as the lists so the app reads as one theme.
 private func makeBananaGramTheme(dark: Bool) -> PresentationTheme {
     let background = UIColor(rgb: dark ? 0x181B20 : 0xF6F3EB)
     let surface = UIColor(rgb: dark ? 0x23272E : 0xFFFCF5)
+    let raisedSurface = UIColor(rgb: dark ? 0x2B3038 : 0xFFFEFA)
     let foreground = UIColor(rgb: dark ? 0xF3F0E7 : 0x292D32)
-    let secondary = UIColor(rgb: dark ? 0xB8BDC5 : 0x656970)
+    let secondary = UIColor(rgb: dark ? 0xB8BDC5 : 0x65686E)
     let accent = UIColor(rgb: dark ? 0xF4D66F : 0x805600)
+    // Text and glyphs drawn on an accent fill: white on dark gold, near-black on banana yellow.
+    let onAccent = UIColor(rgb: dark ? 0x1B1A16 : 0xFFFFFF)
     let separator = UIColor(rgb: dark ? 0x363C45 : 0xDDD8CD)
     let title = dark ? "BananaGram Graphite" : "BananaGram Cream"
+    
+    // Outgoing bubbles: soft banana cream with dark-gold details by day, deep olive gold with white text by night.
+    let outgoingBubbleColors: [UInt32] = dark ? [0x5B4B22, 0x4A3D1D] : [0xF8EAC0, 0xF3DD9E]
+    let outgoingAccent: UIColor? = dark ? nil : UIColor(rgb: 0x7A5200)
+    // Branded pattern wallpaper. Negative intensity draws the colours through the pattern on a dark base.
+    let wallpaper = defaultBuiltinWallpaper(
+        data: .default,
+        colors: dark ? [0x6B5A2A, 0x30343B, 0x8A7232, 0x262A30] : [0xF7EBC9, 0xEFDDB1, 0xFAF2DC, 0xEBD8A7],
+        intensity: dark ? -45 : 40
+    )
+    
     let base = makeDefaultPresentationTheme(reference: dark ? .night : .day, serviceBackgroundColor: nil)
-    let theme = customizePresentationTheme(base, editing: false, title: title, accentColor: accent, outgoingAccentColor: nil, backgroundColors: [dark ? 0x181B20 : 0xF6F3EB], bubbleColors: [dark ? 0x49412B : 0xF6E5B5], animateBubbleColors: false)
-    let list = theme.list.withUpdated(blocksBackgroundColor: background, modalBlocksBackgroundColor: background, plainBackgroundColor: surface, modalPlainBackgroundColor: surface, itemPrimaryTextColor: foreground, itemSecondaryTextColor: secondary, itemAccentColor: accent, itemBlocksBackgroundColor: surface, itemModalBlocksBackgroundColor: surface, itemBlocksSeparatorColor: separator, itemPlainSeparatorColor: separator, sectionHeaderTextColor: secondary, freeTextColor: secondary)
+    let theme = customizePresentationTheme(base, editing: false, title: title, accentColor: accent, outgoingAccentColor: outgoingAccent, backgroundColors: [], bubbleColors: outgoingBubbleColors, animateBubbleColors: false, wallpaper: wallpaper)
+    
+    let list = theme.list.withUpdated(blocksBackgroundColor: background, modalBlocksBackgroundColor: background, plainBackgroundColor: surface, modalPlainBackgroundColor: surface, itemPrimaryTextColor: foreground, itemSecondaryTextColor: secondary, itemAccentColor: accent, itemBlocksBackgroundColor: surface, itemModalBlocksBackgroundColor: surface, itemBlocksSeparatorColor: separator, itemPlainSeparatorColor: separator, sectionHeaderTextColor: secondary, freeTextColor: secondary, itemCheckColors: theme.list.itemCheckColors.withUpdated(fillColor: accent, foregroundColor: onAccent))
     let root = theme.rootController.withUpdated(
         tabBar: theme.rootController.tabBar.withUpdated(backgroundColor: surface, separatorColor: separator, selectedIconColor: accent, selectedTextColor: accent),
         navigationBar: theme.rootController.navigationBar.withUpdated(buttonColor: accent, primaryTextColor: foreground, secondaryTextColor: secondary, accentTextColor: accent, blurredBackgroundColor: surface.withAlphaComponent(0.95), opaqueBackgroundColor: surface, separatorColor: separator),
         navigationSearchBar: theme.rootController.navigationSearchBar.withUpdated(backgroundColor: surface, accentColor: accent, inputFillColor: background, inputTextColor: foreground, inputPlaceholderTextColor: secondary, inputIconColor: secondary, separatorColor: separator)
     )
-    let chats = theme.chatList.withUpdated(backgroundColor: surface, itemSeparatorColor: separator, itemBackgroundColor: surface, pinnedItemBackgroundColor: background, titleColor: foreground, dateTextColor: secondary, authorNameColor: foreground, messageTextColor: secondary, messageHighlightedTextColor: foreground, sectionHeaderFillColor: background, sectionHeaderTextColor: secondary)
-    return PresentationTheme(name: .custom(title), index: PresentationThemeReference.builtin(dark ? .bananaGramGraphite : .bananaGramCream).index, referenceTheme: theme.referenceTheme, overallDarkAppearance: dark, intro: theme.intro, passcode: theme.passcode, rootController: root, list: list, chatList: chats, chat: theme.chat, actionSheet: theme.actionSheet.withUpdated(opaqueItemBackgroundColor: surface, itemBackgroundColor: surface, opaqueItemSeparatorColor: separator, standardActionTextColor: accent, primaryTextColor: foreground, secondaryTextColor: secondary), contextMenu: theme.contextMenu.withUpdated(backgroundColor: surface, itemSeparatorColor: separator, sectionSeparatorColor: background, itemBackgroundColor: surface, primaryColor: foreground, secondaryColor: secondary), inAppNotification: theme.inAppNotification, chart: theme.chart)
+    let chats = theme.chatList.withUpdated(backgroundColor: surface, itemSeparatorColor: separator, itemBackgroundColor: surface, pinnedItemBackgroundColor: background, titleColor: foreground, dateTextColor: secondary, authorNameColor: foreground, messageTextColor: secondary, messageHighlightedTextColor: foreground, checkmarkColor: accent, unreadBadgeActiveBackgroundColor: accent, unreadBadgeActiveTextColor: onAccent, sectionHeaderFillColor: background, sectionHeaderTextColor: secondary)
+    
+    // Chat screen: incoming bubbles on the raised surface, the input bar on the list surface, the send button in the accent.
+    let incoming = theme.chat.message.incoming
+    let incomingBubble = incoming.bubble.withUpdated(
+        withWallpaper: incoming.bubble.withWallpaper.withUpdated(fill: [raisedSurface], highlightedFill: raisedSurface.withMultipliedBrightnessBy(dark ? 1.15 : 0.95)),
+        withoutWallpaper: incoming.bubble.withoutWallpaper.withUpdated(fill: [raisedSurface], highlightedFill: raisedSurface.withMultipliedBrightnessBy(dark ? 1.15 : 0.95))
+    )
+    let inputPanel = theme.chat.inputPanel.withUpdated(
+        panelBackgroundColor: surface.withAlphaComponent(0.94),
+        panelBackgroundColorNoWallpaper: surface,
+        panelSeparatorColor: separator,
+        panelControlAccentColor: accent,
+        panelControlColor: secondary,
+        inputBackgroundColor: dark ? raisedSurface : UIColor(rgb: 0xFFFFFF),
+        inputStrokeColor: separator,
+        inputPlaceholderColor: secondary,
+        inputTextColor: foreground,
+        inputControlColor: secondary,
+        actionControlFillColor: accent,
+        actionControlForegroundColor: onAccent,
+        primaryTextColor: foreground,
+        secondaryTextColor: secondary
+    )
+    let chat = theme.chat.withUpdated(
+        message: theme.chat.message.withUpdated(
+            incoming: incoming.withUpdated(bubble: incomingBubble, primaryTextColor: foreground, secondaryTextColor: secondary)
+        ),
+        inputPanel: inputPanel,
+        historyNavigation: theme.chat.historyNavigation.withUpdated(fillColor: surface, strokeColor: separator, foregroundColor: secondary, badgeBackgroundColor: accent, badgeTextColor: onAccent)
+    )
+    
+    return PresentationTheme(name: .custom(title), index: PresentationThemeReference.builtin(dark ? .bananaGramGraphite : .bananaGramCream).index, referenceTheme: theme.referenceTheme, overallDarkAppearance: dark, intro: theme.intro, passcode: theme.passcode, rootController: root, list: list, chatList: chats, chat: chat, actionSheet: theme.actionSheet.withUpdated(opaqueItemBackgroundColor: surface, itemBackgroundColor: surface, opaqueItemSeparatorColor: separator, standardActionTextColor: accent, primaryTextColor: foreground, secondaryTextColor: secondary, controlAccentColor: accent), contextMenu: theme.contextMenu.withUpdated(backgroundColor: surface, itemSeparatorColor: separator, sectionSeparatorColor: background, itemBackgroundColor: surface, primaryColor: foreground, secondaryColor: secondary), inAppNotification: theme.inAppNotification, chart: theme.chart)
 }
 
 public func customizePresentationTheme(_ theme: PresentationTheme, editing: Bool, title: String? = nil, accentColor: UIColor?, outgoingAccentColor: UIColor?, backgroundColors: [UInt32], bubbleColors: [UInt32], animateBubbleColors: Bool?, wallpaper: TelegramWallpaper? = nil, baseColor: PresentationThemeBaseColor? = nil) -> PresentationTheme {

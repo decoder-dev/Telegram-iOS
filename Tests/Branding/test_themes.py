@@ -11,13 +11,16 @@ def luminance(rgb):
 
 class ThemeTests(unittest.TestCase):
     def test_text_contrast(self):
-        source = (ROOT/'submodules/SettingsUI/Sources/BananaGramTheme.swift').read_text(encoding='utf-8')
+        source = (ROOT/'submodules/TelegramPresentationData/Sources/MakePresentationTheme.swift').read_text(encoding='utf-8')
         palette = {name: (int(dark,16), int(light,16)) for name,dark,light in re.findall(r'let (\w+) = UIColor\(rgb: dark \? (0x[0-9A-F]+) : (0x[0-9A-F]+)\)',source)}
         for mode in (0,1):
             for text in ('foreground','secondary','accent'):
-                for background in ('background','surface'):
+                for background in ('background','surface','raisedSurface'):
                     a,b=sorted((luminance(palette[text][mode]),luminance(palette[background][mode])))
                     self.assertGreaterEqual((b+.05)/(a+.05),4.5,(mode,text,background))
+            # Glyphs on accent fills (send button, checkmarks, unread badges).
+            a,b=sorted((luminance(palette['onAccent'][mode]),luminance(palette['accent'][mode])))
+            self.assertGreaterEqual((b+.05)/(a+.05),4.5,(mode,'onAccent','accent'))
     def test_interface_groups_have_unique_ids(self):
         source = (ROOT/'submodules/SettingsUI/Sources/ForkExtrasController.swift').read_text(encoding='utf-8')
         block=source.split('private static let interfaceGroups: [[Int32]] = ',1)[1].split('\n    ]',1)[0]+'\n    ]'

@@ -99,6 +99,9 @@ code rather than left to settings. Treat these as invariants — several of them
   selected theme is always honoured. Stored settings on disk are never mutated. Any *new* code path that builds
   a theme from `presentationThemeSettings` must route through it.
 - **Bubble colours follow the selected theme and its accent**; the old `#007AFF` pin was removed.
+- **The BananaGram themes style the chat screen too** (incoming/outgoing bubbles, input bar, send button, scroll-down
+  button, branded pattern wallpaper), not just lists. Accent foregrounds are picked for contrast (white on Cream's dark
+  gold, near-black on Graphite's yellow); `Tests/Branding/test_themes.py` checks the palette against WCAG AA.
 - **Bubble radius is 18/4 with no tails** — `higChatBubbleCorners`, same file.
 - **Settings has a "Customization" row** (`PeerInfoSettingsItems.swift`) that opens the Appearance
   controller (themes, wallpaper, bubble geometry, app icons).
