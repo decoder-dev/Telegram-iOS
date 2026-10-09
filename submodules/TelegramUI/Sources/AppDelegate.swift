@@ -1692,6 +1692,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             }
 
             let value = getMemoryConsumption()
+            ForkPerformanceTelemetry.noteMemorySample(bytes: Int(value))
             // Was 1 MB, which on a client that churns hundreds of megabytes meant a line every
             // few seconds: 11,193 of them in one 21-hour log, the largest single line shape in
             // the file outside the fetch tags. The minute-by-minute heartbeat now carries the

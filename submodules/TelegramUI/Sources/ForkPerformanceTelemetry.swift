@@ -296,6 +296,83 @@ public enum ForkPerformanceTelemetry {
         return parts.joined(separator: " ")
     }
 
+    // MARK: - Memory spikes
+    
+    private static var lastMemorySampleBytes = 0
+    private static var lastMemorySpikeReport: Double = 0.0
+    
+    /// Called from the 0.5 s memory timer on the main thread. When resident memory jumps by hundreds of megabytes inside
+    /// one tick, the minute-by-minute heartbeat is useless (it lands after the spike has fallen back), and the spike
+    /// line alone says only how big it was. This writes what could explain it: which screens are up, how many views and
+    /// list rows are alive, and the malloc heap — enough to tell a screen that decodes something huge from a cache that
+    /// grew, the next time a log shows 1.7 GB for four seconds.
+    static func noteMemorySample(bytes: Int) {
+        let previous = self.lastMemorySampleBytes
+        self.lastMemorySampleBytes = bytes
+        let megabytes = bytes / (1024 * 1024)
+        let jump = (bytes - previous) / (1024 * 1024)
+        guard previous > 0, jump >= 250 || (megabytes >= 1000 && jump >= 100) else {
+            return
+        }
+        guard Logger.shared.logToFile || Logger.shared.logToConsole else {
+            return
+        }
+        let now = CFAbsoluteTimeGetCurrent()
+        guard now - self.lastMemorySpikeReport > 30.0 else {
+            return
+        }
+        self.lastMemorySpikeReport = now
+        
+        var parts: [String] = ["resident=\(megabytes)MB", "jump=+\(jump)MB"]
+        if let heap = self.mallocHeap() {
+            parts.append("malloc=\(heap.bytes / (1024 * 1024))MB")
+            parts.append("blocks=\(heap.blocks / 1000)k")
+        }
+        parts.append("rows=\(ListViewItemNode.liveInstanceCount.with({ $0 }))")
+        var viewCount = 0
+        var screens: [String] = []
+        for scene in UIApplication.shared.connectedScenes {
+            guard let windowScene = scene as? UIWindowScene else {
+                continue
+            }
+            for window in windowScene.windows {
+                viewCount += self.countViews(window, limit: 200_000)
+                if let root = window.rootViewController {
+                    self.collectScreens(root, into: &screens, depth: 0)
+                }
+            }
+        }
+        parts.append("views=\(viewCount)")
+        parts.append("screens=[\(screens.prefix(12).joined(separator: ", "))]")
+        parts.append("state=\(UIApplication.shared.applicationState == .background ? "background" : "foreground")")
+        Logger.shared.log("MemorySpike", parts.joined(separator: " "))
+    }
+    
+    private static func countViews(_ view: UIView, limit: Int) -> Int {
+        var count = 1
+        for subview in view.subviews {
+            if count >= limit {
+                break
+            }
+            count += self.countViews(subview, limit: limit - count)
+        }
+        return count
+    }
+    
+    /// Class names only: no titles, peer names or other content.
+    private static func collectScreens(_ controller: UIViewController, into screens: inout [String], depth: Int) {
+        guard depth < 8 else {
+            return
+        }
+        screens.append(String(describing: type(of: controller)))
+        for child in controller.children {
+            self.collectScreens(child, into: &screens, depth: depth + 1)
+        }
+        if let presented = controller.presentedViewController {
+            self.collectScreens(presented, into: &screens, depth: depth + 1)
+        }
+    }
+    
     private static let heartbeatInterval: Double = 60.0
     private static let heartbeatQueue = DispatchQueue(label: "ForkTelemetryHeartbeat", qos: .utility)
     private static var heartbeatTimer: DispatchSourceTimer?
