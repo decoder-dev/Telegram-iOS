@@ -560,7 +560,9 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         // Eager Core / filter pushdown from current immediate defaults (sharedData signal is async).
         do {
             let settings = immediateForkExtrasSettingsValue.with { $0 }
-            Self.pushForkExtrasToEngineStatics(settings, applyAppearance: false)
+            // Ghost flags are left alone here: these are defaults, not the user's settings, and
+            // `ForkGhostModeSettings` already starts from the last applied values.
+            Self.pushForkExtrasToEngineStatics(settings, applyAppearance: false, applyGhost: false)
         }
         self.forkExtrasSettingsDisposable = (self.accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.forkExtrasSettings])
         |> map { sharedData -> ForkExtrasSettings in
@@ -1177,15 +1179,17 @@ public final class SharedAccountContextImpl: SharedAccountContext {
     
     /// Push Extras flags into TelegramCore statics + precompile regex filters.
     /// Kept off the chat scroll path: history filtering reads the compiled cache only.
-    private static func pushForkExtrasToEngineStatics(_ settings: ForkExtrasSettings, applyAppearance: Bool = true) {
-        ForkGhostModeSettings.applyPreferences(
-            suppressOutgoingActivity: settings.ghostDontSendTyping,
-            suppressOnline: settings.ghostDontSendOnline,
-            suppressMessageReads: settings.ghostDontReadMessages,
-            suppressStoryViews: settings.ghostDontReadStories,
-            goOfflineAutomatically: settings.ghostGoOfflineAutomatically,
-            readOnInteract: settings.ghostReadOnInteract
-        )
+    private static func pushForkExtrasToEngineStatics(_ settings: ForkExtrasSettings, applyAppearance: Bool = true, applyGhost: Bool = true) {
+        if applyGhost {
+            ForkGhostModeSettings.applyPreferences(
+                suppressOutgoingActivity: settings.ghostDontSendTyping,
+                suppressOnline: settings.ghostDontSendOnline,
+                suppressMessageReads: settings.ghostDontReadMessages,
+                suppressStoryViews: settings.ghostDontReadStories,
+                goOfflineAutomatically: settings.ghostGoOfflineAutomatically,
+                readOnInteract: settings.ghostReadOnInteract
+            )
+        }
         // Wait for persisted preferences before enabling visual effects on cold launch.
         if applyAppearance {
             BananaTabBarLayout.current = BananaTabBarLayout(hidden: settings.hideTabBar, contacts: settings.showContactsTab, calls: true, wide: settings.wideTabBar, integratedSearch: settings.integratedTabSearch, searchOnLeft: settings.tabSearchOnLeft)

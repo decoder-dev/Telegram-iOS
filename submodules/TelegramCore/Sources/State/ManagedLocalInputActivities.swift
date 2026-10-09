@@ -361,7 +361,26 @@ public enum ForkGhostModeSettings {
         }
     }
 
-    private static let state = Atomic<State>(value: State())
+    /// Last applied preference flags, readable synchronously at launch. The real settings arrive
+    /// through an asynchronous shared-data read, and until then every flag read as off: a cold
+    /// launch could report the user online and undo device-only reads before they landed.
+    private static let persistedPreferencesKey = "ForkGhostModeSettings.preferences.v1"
+
+    private static func loadPersistedState() -> State {
+        guard let values = UserDefaults.standard.dictionary(forKey: persistedPreferencesKey) as? [String: Bool] else {
+            return State()
+        }
+        return State(
+            suppressOutgoingActivity: values["typing"] ?? false,
+            suppressOnline: values["online"] ?? false,
+            suppressMessageReads: values["reads"] ?? false,
+            suppressStoryViews: values["stories"] ?? false,
+            goOfflineAutomatically: values["autoOffline"] ?? false,
+            readOnInteract: values["readOnInteract"] ?? false
+        )
+    }
+
+    private static let state = Atomic<State>(value: loadPersistedState())
 
     public static var current: State {
         return state.with { $0 }
@@ -391,6 +410,14 @@ public enum ForkGhostModeSettings {
             next.readOnInteract = readOnInteract
             return next
         }
+        UserDefaults.standard.set([
+            "typing": suppressOutgoingActivity,
+            "online": suppressOnline,
+            "reads": suppressMessageReads,
+            "stories": suppressStoryViews,
+            "autoOffline": goOfflineAutomatically,
+            "readOnInteract": readOnInteract
+        ], forKey: persistedPreferencesKey)
     }
 
     /// Don't Send Typing — suppress typing / upload / sticker activity.
