@@ -722,6 +722,36 @@ private func presentUIAlert(context: AccountContext, alert: UIAlertController, o
     }
 }
 
+public func setArchivePassword(context: AccountContext, present: @escaping (ViewController) -> Void, completion: @escaping (Bool) -> Void) {
+    presentArchivePasswordAlert(
+        context: context,
+        title: ArchiveLockLocalizedString.setTitle,
+        message: ArchiveLockLocalizedString.setText,
+        confirmTitle: ArchiveLockLocalizedString.continueAction,
+        verifyPassword: false,
+        onSuccess: {
+            ArchiveLockSession.shared.unlock()
+            alignKeepArchivedUnmutedIfNeeded(context: context)
+            clearStaleArchiveNotifications(context: context)
+            completion(true)
+        },
+        onCancel: {
+            completion(false)
+        },
+        capturePassword: { password in
+            guard ArchivePasswordKeychain.store(password: password, peerId: context.account.peerId) else {
+                return false
+            }
+            ArchivePasswordKeychain.clearFailureState(peerId: context.account.peerId)
+            let verifier = ArchivePasswordKeychain.loadHash(peerId: context.account.peerId)
+            let _ = updateChatArchiveSettings(engine: context.engine) { current in
+                current.clearingLegacyPasswordHash().withUpdatedIsPasswordConfigured(true).withUpdatedPasswordVerifier(verifier)
+            }.startStandalone()
+            return true
+        }
+    )
+}
+
 /// Recovery for a password whose verifier no copy can provide any more (typically a sideload re-signed with another identity
 /// before the backup verifier existed). Requires device-owner authentication (passcode or biometrics), then asks for a new password.
 private func presentLostArchivePasswordRecovery(context: AccountContext, present: @escaping (ViewController) -> Void, completion: @escaping (ArchiveUnlockResult) -> Void) {
@@ -756,36 +786,6 @@ private func presentLostArchivePasswordRecovery(context: AccountContext, present
     presentUIAlert(context: context, alert: alert, onUnavailableHost: {
         completion(.cancelled)
     })
-}
-
-public func setArchivePassword(context: AccountContext, present: @escaping (ViewController) -> Void, completion: @escaping (Bool) -> Void) {
-    presentArchivePasswordAlert(
-        context: context,
-        title: ArchiveLockLocalizedString.setTitle,
-        message: ArchiveLockLocalizedString.setText,
-        confirmTitle: ArchiveLockLocalizedString.continueAction,
-        verifyPassword: false,
-        onSuccess: {
-            ArchiveLockSession.shared.unlock()
-            alignKeepArchivedUnmutedIfNeeded(context: context)
-            clearStaleArchiveNotifications(context: context)
-            completion(true)
-        },
-        onCancel: {
-            completion(false)
-        },
-        capturePassword: { password in
-            guard ArchivePasswordKeychain.store(password: password, peerId: context.account.peerId) else {
-                return false
-            }
-            ArchivePasswordKeychain.clearFailureState(peerId: context.account.peerId)
-            let verifier = ArchivePasswordKeychain.loadHash(peerId: context.account.peerId)
-            let _ = updateChatArchiveSettings(engine: context.engine) { current in
-                current.clearingLegacyPasswordHash().withUpdatedIsPasswordConfigured(true).withUpdatedPasswordVerifier(verifier)
-            }.startStandalone()
-            return true
-        }
-    )
 }
 
 /// Rotate the Archive password: verify the current one, then capture and store a new one.
