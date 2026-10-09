@@ -1269,6 +1269,7 @@ public class Account {
     private var networkTypeDisposable: Disposable?
     
     private let _loggedOut = ValuePromise<Bool>(false, ignoreRepeated: true)
+    private let didReportNetworkLoggedOut = Atomic<Bool>(value: false)
     public var loggedOut: Signal<Bool, NoError> {
         return self._loggedOut.get()
     }
@@ -1366,8 +1367,11 @@ public class Account {
         self.pendingPeerMediaUploadManager = PendingPeerMediaUploadManager(postbox: postbox, network: network, stateManager: self.stateManager, accountPeerId: self.peerId)
         
         self.network.loggedOut = { [weak self] in
-            Logger.shared.log("Account", "network logged out")
             if let strongSelf = self {
+                if strongSelf.didReportNetworkLoggedOut.swap(true) {
+                    return
+                }
+                Logger.shared.log("Account", "network logged out")
                 strongSelf._loggedOut.set(true)
                 strongSelf.callSessionManager.dropAll()
             }
@@ -1467,9 +1471,22 @@ public class Account {
         }
         |> distinctUntilChanged
 
-        self.network.shouldKeepConnection.set(steadyShouldBeMaster)
-        self.network.shouldExplicitelyKeepWorkerConnections.set(self.shouldExplicitelyKeepWorkerConnections.get())
-        self.network.shouldKeepBackgroundDownloadConnections.set(self.shouldKeepBackgroundDownloadConnections.get())
+        // A logged-out account has no business on the network. If anything keeps this instance
+        // alive after logout, its MTProto would otherwise keep reconnecting and re-sending queued
+        // requests with the revoked key — every one answered with 401, re-firing `loggedOut` and
+        // writing auth info into a keychain that is no longer current (seen as a 401 burst every
+        // ~90 s for an hour after a manual logout).
+        let isLoggedOut = self._loggedOut.get()
+        let unlessLoggedOut: (Signal<Bool, NoError>) -> Signal<Bool, NoError> = { signal in
+            return combineLatest(signal, isLoggedOut)
+            |> map { value, isLoggedOut -> Bool in
+                return value && !isLoggedOut
+            }
+            |> distinctUntilChanged
+        }
+        self.network.shouldKeepConnection.set(unlessLoggedOut(steadyShouldBeMaster))
+        self.network.shouldExplicitelyKeepWorkerConnections.set(unlessLoggedOut(self.shouldExplicitelyKeepWorkerConnections.get()))
+        self.network.shouldKeepBackgroundDownloadConnections.set(unlessLoggedOut(self.shouldKeepBackgroundDownloadConnections.get()))
 
         self.managedServiceViewsDisposable.set(steadyShouldBeMaster.start(next: { [weak self] value in
             guard let strongSelf = self else {

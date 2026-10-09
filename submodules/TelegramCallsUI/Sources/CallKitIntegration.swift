@@ -58,8 +58,10 @@ public final class CallKitIntegration {
         }
     }
     
-    func startCall(context: AccountContext, peerId: EnginePeer.Id, phoneNumber: String?, localContactId: String?, isVideo: Bool, displayTitle: String) {
-        sharedProviderDelegate?.startCall(context: context, peerId: peerId, phoneNumber: phoneNumber, isVideo: isVideo, displayTitle: displayTitle)
+    /// `failed` runs on the main queue when the system refuses the start-call transaction; the
+    /// call has then not been started at all and the caller has to place it without CallKit.
+    func startCall(context: AccountContext, peerId: EnginePeer.Id, phoneNumber: String?, localContactId: String?, isVideo: Bool, displayTitle: String, failed: (() -> Void)? = nil) {
+        sharedProviderDelegate?.startCall(context: context, peerId: peerId, phoneNumber: phoneNumber, isVideo: isVideo, displayTitle: displayTitle, failed: failed)
         self.donateIntent(peerId: peerId, displayTitle: displayTitle, localContactId: localContactId)
     }
     
@@ -212,7 +214,7 @@ class CallKitProviderDelegate: NSObject, CXProviderDelegate {
         self.requestTransaction(transaction)
     }
     
-    func startCall(context: AccountContext, peerId: EnginePeer.Id, phoneNumber: String?, isVideo: Bool, displayTitle: String) {
+    func startCall(context: AccountContext, peerId: EnginePeer.Id, phoneNumber: String?, isVideo: Bool, displayTitle: String, failed: (() -> Void)?) {
         let uuid = UUID()
         self.currentStartCallAccount = (uuid, context)
         let handle: CXHandle
@@ -232,7 +234,20 @@ class CallKitProviderDelegate: NSObject, CXProviderDelegate {
         
         Logger.shared.log("CallKitIntegration", "initiate call \(uuid)")
         
-        self.requestTransaction(transaction, completion: { _ in
+        self.requestTransaction(transaction, completion: { success in
+            if !success {
+                // The system rejected the transaction (CXErrorCodeRequestTransactionError, e.g.
+                // `.invalidAction`), so `perform CXStartCallAction` will never arrive and nothing
+                // would start the call — the tap on "Call" just did nothing.
+                Queue.mainQueue().async {
+                    if let current = self.currentStartCallAccount, current.0 == uuid {
+                        self.currentStartCallAccount = nil
+                    }
+                    self.uuidToPeerIdMapping.removeValue(forKey: uuid)
+                    failed?()
+                }
+                return
+            }
             let update = CXCallUpdate()
             update.remoteHandle = handle
             update.localizedCallerName = displayTitle

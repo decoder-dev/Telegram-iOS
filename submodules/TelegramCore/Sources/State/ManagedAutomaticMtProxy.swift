@@ -63,6 +63,12 @@ private let automaticMtProxySwitchRttFactor: Double = 0.7
 /// And no more often than this, unless the server in use has actually failed (`excludedActiveServer`,
 /// which bypasses both of these).
 private let automaticMtProxyMinimumSwitchInterval: Double = 60.0
+/// Every authorized account runs its own `AutomaticMtProxyContext`, but they all steer the one
+/// shared `ProxySettings.activeServer`. With a per-context dwell timer two signed-in accounts took
+/// turns overriding each other — logs show "route changed" two or three times within a second or
+/// two, each one tearing down every connection of every account. The dwell is therefore
+/// process-wide and stamped by any switch, failover included.
+private let automaticMtProxyLastSwitchTimestamp = Atomic<Double>(value: 0.0)
 
 private func automaticMtProxyHostIsIPAddress(_ host: String) -> Bool {
     let normalizedHost = host.trimmingCharacters(in: CharacterSet(charactersIn: "[]"))
@@ -469,7 +475,6 @@ private final class AutomaticMtProxyContext {
     private var lastStoredAutomaticServers: [ProxyServerSettings] = []
     /// When the last voluntary (not failure-driven) proxy switch happened. Confined to `self.queue`
     /// like the rest of this class's state.
-    private var lastVoluntarySwitchTimestamp: Double = 0.0
     private var cachedFetchedServers: [ProxyServerSettings] = []
     private var didReceiveSettings = false
     private var waitingForNetwork = false
@@ -587,7 +592,7 @@ private final class AutomaticMtProxyContext {
         self.lastStoredAutomaticServers = []
         // Turning the feature on is the user asking for a pick right now — don't make them wait
         // out a dwell interval left over from the previous session.
-        self.lastVoluntarySwitchTimestamp = 0.0
+        let _ = automaticMtProxyLastSwitchTimestamp.swap(0.0)
         self.selectionTimer?.invalidate()
         self.selectionTimer = nil
         self.connectionFallbackTimer?.invalidate()
@@ -755,7 +760,7 @@ private final class AutomaticMtProxyContext {
         // and skips all of it, so failover stays as immediate as it was.
         if let active = self.currentSettings.activeServer, self.excludedActiveServer != active {
             let now = CFAbsoluteTimeGetCurrent()
-            if now - self.lastVoluntarySwitchTimestamp < automaticMtProxyMinimumSwitchInterval {
+            if now - automaticMtProxyLastSwitchTimestamp.with({ $0 }) < automaticMtProxyMinimumSwitchInterval {
                 return
             }
             if case let .available(activeRtt)? = self.currentStatuses[active],
@@ -763,7 +768,9 @@ private final class AutomaticMtProxyContext {
                bestRtt >= activeRtt * automaticMtProxySwitchRttFactor {
                 return
             }
-            self.lastVoluntarySwitchTimestamp = now
+            // Claim the slot now: the settings transaction is asynchronous, and another
+            // account's context may run this same check before it lands.
+            let _ = automaticMtProxyLastSwitchTimestamp.swap(now)
         }
         self.applyAutomaticActiveServer(best)
     }
@@ -774,6 +781,7 @@ private final class AutomaticMtProxyContext {
         let _ = updateProxySettingsInteractively(accountManager: self.accountManager, { settings in
             let updated = automaticMtProxyApplyCandidate(settings, expectedActive: expectedActive, candidate: best)
             if updated.activeServer != settings.activeServer {
+                let _ = automaticMtProxyLastSwitchTimestamp.swap(CFAbsoluteTimeGetCurrent())
                 Logger.shared.log("AutoMTProxy", "route changed: \(failureDriven ? "failover" : "selection"); candidates=\(settings.automaticServers.count)")
             }
             return updated

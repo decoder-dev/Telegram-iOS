@@ -540,7 +540,13 @@ public final class PresentationCallManagerImpl: PresentationCallManager {
                     if let peer = peer as? TelegramUser, let phone = peer.phone {
                         phoneNumber = formatPhoneNumber(context: context, number: phone)
                     }
-                    strongSelf.callKitIntegration?.startCall(context: context, peerId: peerId, phoneNumber: phoneNumber, localContactId: localContactId, isVideo: isVideo, displayTitle: peer.debugDisplayTitle)
+                    strongSelf.callKitIntegration?.startCall(context: context, peerId: peerId, phoneNumber: phoneNumber, localContactId: localContactId, isVideo: isVideo, displayTitle: peer.debugDisplayTitle, failed: { [weak self] in
+                        guard let strongSelf = self, strongSelf.currentCall == nil else {
+                            return
+                        }
+                        Logger.shared.log("PresentationCallManager", "CallKit refused the outgoing call, placing it without system integration")
+                        let _ = strongSelf.startCall(context: context, peerId: peerId, isVideo: isVideo, bypassCallKit: true).start()
+                    })
                 }))
             }
             if let currentCall = self.currentCall {
@@ -609,7 +615,8 @@ public final class PresentationCallManagerImpl: PresentationCallManager {
         context: AccountContext,
         peerId: PeerId,
         isVideo: Bool,
-        internalId: CallSessionInternalId = CallSessionInternalId()
+        internalId: CallSessionInternalId = CallSessionInternalId(),
+        bypassCallKit: Bool = false
     ) -> Signal<Bool, NoError> {
         let (presentationData, present, openSettings) = self.getDeviceAccessData()
         
@@ -688,7 +695,7 @@ public final class PresentationCallManagerImpl: PresentationCallManager {
                         context: context,
                         audioSession: strongSelf.audioSession,
                         callSessionManager: context.account.callSessionManager,
-                        callKitIntegration: callKitIntegrationIfEnabled(
+                        callKitIntegration: bypassCallKit ? nil : callKitIntegrationIfEnabled(
                             strongSelf.callKitIntegration,
                             settings: strongSelf.callSettings
                         ),
