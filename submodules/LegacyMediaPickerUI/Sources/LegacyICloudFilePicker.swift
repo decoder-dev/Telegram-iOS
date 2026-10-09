@@ -75,7 +75,8 @@ public func legacyICloudFilePicker(theme: PresentationTheme, mode: LegacyICloudF
     legacyController.statusBar.statusBarStyle = .Black
     
     let controller: DocumentPickerViewController
-    if case .export = mode, let url {
+    // UIKit raises an exception, not an error, when asked to export a file that does not exist.
+    if case .export = mode, let url, FileManager.default.fileExists(atPath: url.path) {
         if #available(iOS 14.0, *) {
             controller = DocumentPickerViewController(forExporting: [url], asCopy: true)
         } else {
