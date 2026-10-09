@@ -446,8 +446,11 @@ func presentLegacyMediaPickerGallery(
                         // The menu entry itself is the confirmation. A second action sheet presented right after the
                         // context menu closed ended up behind the gallery window, leaving the screen unresponsive.
                         sendAsRoundVideo = {
+                            Logger.shared.log("RoundVideo", "gallery: send as video message, crop=\(adjustments.cropRect) trim=\(adjustments.trimStartValue)..\(adjustments.trimEndValue)")
                             editingContext.setAdjustments(adjustments, for: item.asset)
+                            Logger.shared.log("RoundVideo", "gallery: adjustments applied, sending")
                             send()
+                            Logger.shared.log("RoundVideo", "gallery: send returned")
                         }
                     }
 

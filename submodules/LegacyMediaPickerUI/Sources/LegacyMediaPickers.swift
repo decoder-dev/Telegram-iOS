@@ -894,6 +894,9 @@ public func legacyAssetPickerEnqueueMessages(
                             }
                         case let .video(data, thumbnail, cover, adjustments, caption, asFile, asAnimation, stickers):
                             let isRoundVideo = !asFile && !asAnimation && adjustments?.preset == TGMediaVideoConversionPresetVideoMessage
+                            if isRoundVideo {
+                                Logger.shared.log("RoundVideo", "enqueue: round video message, crop=\(String(describing: adjustments?.cropRect))")
+                            }
                             var finalDimensions: CGSize
                             var finalDuration: Double
                             switch data {
