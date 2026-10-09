@@ -107,9 +107,29 @@ func saveMediaToFiles(context: AccountContext, fileReference: FileMediaReference
                 if !nameComponents.isEmpty {
                     try? FileManager.default.removeItem(atPath: symlinkPath)
                     
-                    let fileName = "\(nameComponents.joined(separator: " – ")).\(fileExtension)"
-                    symlinkPath = symlinkPath.replacingOccurrences(of: audioUrl.lastPathComponent, with: fileName)
-                    let _ = try? FileManager.default.linkItem(atPath: data.path, toPath: symlinkPath)
+                    // Titles and performers come from the file's tags and often contain "/" or ":", which are not
+                    // valid in a file name; linking to such a path fails and the picker then crashes on a missing file.
+                    var safeName = nameComponents.joined(separator: " – ")
+                    for character in ["/", ":", "\\", "\u{0}"] {
+                        safeName = safeName.replacingOccurrences(of: character, with: "_")
+                    }
+                    safeName = safeName.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if safeName.isEmpty || safeName.utf8.count > 200 {
+                        safeName = String(safeName.prefix(100)).trimmingCharacters(in: .whitespacesAndNewlines)
+                    }
+                    if !safeName.isEmpty {
+                        let fileName = "\(safeName).\(fileExtension)"
+                        symlinkPath = symlinkPath.replacingOccurrences(of: audioUrl.lastPathComponent, with: fileName)
+                        let _ = try? FileManager.default.linkItem(atPath: data.path, toPath: symlinkPath)
+                    }
+                }
+                
+                // If the renamed link could not be created, fall back to the downloaded file itself.
+                if !FileManager.default.fileExists(atPath: symlinkPath) {
+                    symlinkPath = data.path
+                }
+                guard FileManager.default.fileExists(atPath: symlinkPath) else {
+                    return
                 }
                 
                 let url = URL(fileURLWithPath: symlinkPath)
