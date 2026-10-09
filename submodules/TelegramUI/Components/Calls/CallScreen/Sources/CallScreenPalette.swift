@@ -39,6 +39,11 @@ public struct CallScreenPalette: Equatable {
     
     /// Darkens a colour in small steps until white reads on it.
     private static func legible(_ colors: [UInt32]) -> [UInt32] {
+        // The shader reads exactly four colours; a shorter set is padded and a longer one trimmed.
+        var colors = Array(colors.prefix(4))
+        while colors.count < 4 {
+            colors.append(colors.last ?? 0x4A7FC4)
+        }
         return colors.map { rgb in
             var color = UIColor(rgb: rgb)
             var steps = 0
