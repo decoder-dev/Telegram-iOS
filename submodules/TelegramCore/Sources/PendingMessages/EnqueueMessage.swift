@@ -308,10 +308,14 @@ private func convertMediaForAyuForward(_ media: Media, mediaBox: MediaBox) -> Me
         return TelegramMediaImage(
             imageId: MediaId(namespace: Namespaces.Media.LocalImage, id: Int64.random(in: Int64.min ... Int64.max)),
             representations: representations,
+            videoRepresentations: image.videoRepresentations,
             immediateThumbnailData: image.immediateThumbnailData,
             reference: nil,
             partialReference: nil,
-            flags: []
+            // The Live Photo flag and its paired video travel with the copy: an AyuForward of a live
+            // photo arrived as a plain still.
+            flags: image.flags,
+            video: image.video.flatMap { convertMediaForAyuForward($0, mediaBox: mediaBox) as? TelegramMediaFile }
         )
     } else {
         return media

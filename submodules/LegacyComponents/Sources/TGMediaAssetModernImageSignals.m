@@ -776,15 +776,26 @@
                             [subscriber putNext:[[AVPlayerItem alloc] initWithURL:fileUrl]];
                             [subscriber putCompletion];
                         } else {
-                            [[PHAssetResourceManager defaultManager] writeDataForAssetResource:videoResource toFile:fileUrl options:nil completionHandler:^(NSError * _Nullable error)
+                            NSURL *partialUrl = [fileUrl URLByAppendingPathExtension:@"partial"];
+                            [[NSFileManager defaultManager] removeItemAtURL:partialUrl error:nil];
+                            [[PHAssetResourceManager defaultManager] writeDataForAssetResource:videoResource toFile:partialUrl options:nil completionHandler:^(NSError * _Nullable error)
                              {
                                 if (error == nil)
                                 {
-                                    [subscriber putNext:[[AVPlayerItem alloc] initWithURL:fileUrl]];
-                                    [subscriber putCompletion];
+                                    [[NSFileManager defaultManager] removeItemAtURL:fileUrl error:nil];
+                                    if ([[NSFileManager defaultManager] moveItemAtURL:partialUrl toURL:fileUrl error:nil])
+                                    {
+                                        [subscriber putNext:[[AVPlayerItem alloc] initWithURL:fileUrl]];
+                                        [subscriber putCompletion];
+                                    }
+                                    else
+                                    {
+                                        [subscriber putError:nil];
+                                    }
                                 }
                                 else
                                 {
+                                    [[NSFileManager defaultManager] removeItemAtURL:partialUrl error:nil];
                                     [subscriber putError:nil];
                                 }
                             }];
@@ -867,9 +878,11 @@
                 {
                     PHLivePhotoRequestOptions *requestOptions = [[PHLivePhotoRequestOptions alloc] init];
                     requestOptions.networkAccessAllowed = networkAccessAllowed;
+                    // Opportunistic delivery calls the handler twice (degraded, then final); each call
+                    // started a write to the same file.
+                    requestOptions.deliveryMode = PHImageRequestOptionsDeliveryModeHighQualityFormat;
                     if (networkAccessAllowed)
                     {
-                        requestOptions.deliveryMode = PHImageRequestOptionsDeliveryModeHighQualityFormat;
                         requestOptions.progressHandler = ^(double progress, __unused NSError *error, __unused BOOL *stop, __unused NSDictionary *info)
                         {
                             [subscriber putNext:@(progress)];
@@ -880,6 +893,9 @@
                     {
                         bool cancelled = [info[PHImageCancelledKey] boolValue];
                         if (cancelled)
+                            return;
+                        
+                        if ([info[PHImageResultIsDegradedKey] boolValue])
                             return;
                         
                         if (livePhoto == nil && !networkAccessAllowed)
@@ -903,15 +919,30 @@
                             
                             if (videoResource != nil)
                             {
-                                [[PHAssetResourceManager defaultManager] writeDataForAssetResource:videoResource toFile:fileUrl options:nil completionHandler:^(NSError * _Nullable error)
+                                // Written beside the final name and moved into place: the cache check above
+                                // treats an existing file as complete, so a write interrupted by a kill or a
+                                // failure left a truncated video that was then uploaded.
+                                NSURL *partialUrl = [fileUrl URLByAppendingPathExtension:@"partial"];
+                                [[NSFileManager defaultManager] removeItemAtURL:partialUrl error:nil];
+                                [[PHAssetResourceManager defaultManager] writeDataForAssetResource:videoResource toFile:partialUrl options:nil completionHandler:^(NSError * _Nullable error)
                                 {
                                     if (error == nil)
                                     {
-                                        [subscriber putNext:[[AVURLAsset alloc] initWithURL:fileUrl options:nil]];
-                                        [subscriber putCompletion];
+                                        [[NSFileManager defaultManager] removeItemAtURL:fileUrl error:nil];
+                                        NSError *moveError = nil;
+                                        if ([[NSFileManager defaultManager] moveItemAtURL:partialUrl toURL:fileUrl error:&moveError])
+                                        {
+                                            [subscriber putNext:[[AVURLAsset alloc] initWithURL:fileUrl options:nil]];
+                                            [subscriber putCompletion];
+                                        }
+                                        else
+                                        {
+                                            [subscriber putError:nil];
+                                        }
                                     }
                                     else
                                     {
+                                        [[NSFileManager defaultManager] removeItemAtURL:partialUrl error:nil];
                                         [subscriber putError:nil];
                                     }
                                 }];

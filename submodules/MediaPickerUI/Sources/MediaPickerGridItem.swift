@@ -784,7 +784,10 @@ final class MediaPickerGridItemNode: GridItemNode {
             return
         }
         var effectiveMode: TGMediaLivePhotoMode
-        if let mode, mode != .off {
+        // A stored `.off` is an explicit choice for this photo (the send code honours it); only a
+        // photo with no stored mode follows the global toggle. Treating `.off` as "unset" showed the
+        // Live icon on photos that were then sent as stills.
+        if let mode {
             effectiveMode = mode
         } else {
             if self.interaction?.editingState.isForceLivePhotoEnabled() == true {

@@ -142,8 +142,20 @@
                         _cachedAVAsset = next;
                     }]]];
                 } else {
-                    [_avAssetVariable set:[[[TGMediaAssetImageSignals avAssetForVideoAsset:_originalAsset allowNetworkAccess:false] mapToSignal:^SSignal *(AVURLAsset *asset) {
+                    // A live photo or video that is only in iCloud has no local data: the request without
+                    // network access fails, and that error used to abort the whole send. Retry once with
+                    // network access allowed (its progress values are not assets, so they are dropped here).
+                    TGMediaAsset *originalAsset = _originalAsset;
+                    SSignal *localSignal = [[TGMediaAssetImageSignals avAssetForVideoAsset:originalAsset allowNetworkAccess:false] mapToSignal:^SSignal *(AVURLAsset *asset) {
                         return [SSignal single:asset];
+                    }];
+                    SSignal *networkSignal = [[TGMediaAssetImageSignals avAssetForVideoAsset:originalAsset allowNetworkAccess:true] mapToSignal:^SSignal *(id next) {
+                        if ([next isKindOfClass:[AVAsset class]])
+                            return [SSignal single:next];
+                        return [SSignal complete];
+                    }];
+                    [_avAssetVariable set:[[localSignal catch:^SSignal *(__unused id error) {
+                        return networkSignal;
                     }] onNext:^(id next) {
                         _cachedAVAsset = next;
                     }]];

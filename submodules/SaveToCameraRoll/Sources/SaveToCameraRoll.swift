@@ -99,6 +99,20 @@ public func fetchMediaData(context: AccountContext, userLocation: MediaResourceU
 
 public func saveToCameraRoll(context: AccountContext, userLocation: MediaResourceUserLocation, customUserContentType: MediaResourceUserContentType? = nil, mediaReference: AnyMediaReference, video: AnyMediaReference? = nil) -> Signal<Float, NoError> {
     let mediaData: Signal<(FetchMediaDataState, Bool), NoError> = fetchMediaData(context: context, userLocation: userLocation, customUserContentType: customUserContentType, mediaReference: mediaReference)
+    // A live photo saves as a live photo from every entry point, not only from the video gallery:
+    // the context menu, the share sheet and the image gallery passed no paired video and saved the
+    // still alone.
+    var video = video
+    if video == nil, let image = mediaReference.media as? TelegramMediaImage, let pairedVideo = image.video {
+        switch mediaReference {
+        case let .message(message, _):
+            video = .message(message: message, media: pairedVideo)
+        case .standalone:
+            video = .standalone(media: pairedVideo)
+        default:
+            break
+        }
+    }
     let videoData: Signal<FetchMediaDataState?, NoError>
     if let video {
         videoData = fetchMediaData(context: context, userLocation: userLocation, customUserContentType: customUserContentType, mediaReference: video)
@@ -153,24 +167,52 @@ public func saveToCameraRoll(context: AccountContext, userLocation: MediaResourc
                     }
 
                     let tempVideoPath = NSTemporaryDirectory() + "\(Int64.random(in: Int64.min ... Int64.max)).mp4"
+                    // Saves only the still. Used when the live pair can't be built, so the user gets
+                    // the photo instead of a hung progress bar and a "saved" that saved nothing.
+                    let saveStillOnly: () -> Void = {
+                        PHPhotoLibrary.shared().performChanges({
+                            if let imageData = try? Data(contentsOf: URL(fileURLWithPath: mainData.path)) {
+                                PHAssetCreationRequest.forAsset().addResource(with: .photo, data: imageData, options: nil)
+                            }
+                        }, completionHandler: { _, error in
+                            if let error {
+                                print("\(error)")
+                            }
+                            subscriber.putNext(1.0)
+                            subscriber.putCompletion()
+                        })
+                    }
                     if isImage, let videoData, let imageData = try? Data(contentsOf: URL(fileURLWithPath: mainData.path)) {
                         let id = UUID().uuidString
 
-                        let jpegWithID = addAssetIdentifierToJPEG(imageData, assetIdentifier: id)!
+                        guard let jpegWithID = addAssetIdentifierToJPEG(imageData, assetIdentifier: id) else {
+                            saveStillOnly()
+                            return
+                        }
                         let outputVideoURL = URL(fileURLWithPath: NSTemporaryDirectory() + "\(id).mov")
 
                         try? FileManager.default.copyItem(atPath: videoData.path, toPath: tempVideoPath)
 
                         addAssetIdentifierToVideo(inputURL: URL(fileURLWithPath: tempVideoPath), outputURL: outputVideoURL, assetIdentifier: id) { success in
-                            guard success else { return }
+                            guard success else {
+                                let _ = try? FileManager.default.removeItem(atPath: tempVideoPath)
+                                let _ = try? FileManager.default.removeItem(at: outputVideoURL)
+                                saveStillOnly()
+                                return
+                            }
 
                             PHPhotoLibrary.shared().performChanges({
                                 let request = PHAssetCreationRequest.forAsset()
 
                                 request.addResource(with: .photo, data: jpegWithID, options: nil)
                                 request.addResource(with: .pairedVideo, fileURL: outputVideoURL, options: nil)
-                            }, completionHandler: { _, error in
+                            }, completionHandler: { saved, error in
                                 let _ = try? FileManager.default.removeItem(atPath: tempVideoPath)
+                                let _ = try? FileManager.default.removeItem(at: outputVideoURL)
+                                if !saved || error != nil {
+                                    saveStillOnly()
+                                    return
+                                }
                                 subscriber.putNext(1.0)
                                 subscriber.putCompletion()
                             })
