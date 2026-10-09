@@ -98,12 +98,12 @@ public struct CallScreenPalette: Equatable {
         if abs(hue - greenHue) > 0.5 {
             towardsGreen = greenHue
         }
-        func green(_ hueShift: CGFloat, _ brightnessFactor: CGFloat = 1.0) -> UInt32 {
+        func green(_ hueShift: CGFloat, _ saturationFactor: CGFloat = 1.0, _ brightnessFactor: CGFloat = 1.0) -> UInt32 {
             var shifted = (towardsGreen + hueShift).truncatingRemainder(dividingBy: 1.0)
             if shifted < 0.0 {
                 shifted += 1.0
             }
-            return UIColor(hue: shifted, saturation: min(1.0, saturation * 0.95), brightness: min(1.0, brightness * brightnessFactor), alpha: 1.0).rgb
+            return UIColor(hue: shifted, saturation: min(1.0, saturation * 0.95 * saturationFactor), brightness: min(1.0, brightness * brightnessFactor), alpha: 1.0).rgb
         }
         return CallScreenPalette(
             connecting: [color(0.0), color(0.04), color(-0.05, 1.0, 0.92), color(0.08, 0.9, 0.95)],
