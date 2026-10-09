@@ -554,6 +554,9 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         // (settings stayed disabled / append was nil), so View Deleted stayed empty.
         MessageSavingStore.installBridge()
         MessageSavingStore.applySettings(immediateForkExtrasSettingsValue.with { $0 })
+        if applicationBindings.isMainApp {
+            MessageSavingStore.scheduleAttachmentCleanup()
+        }
         // Eager Core / filter pushdown from current immediate defaults (sharedData signal is async).
         do {
             let settings = immediateForkExtrasSettingsValue.with { $0 }

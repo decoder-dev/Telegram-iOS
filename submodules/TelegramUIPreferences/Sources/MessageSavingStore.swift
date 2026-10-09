@@ -147,6 +147,11 @@ public enum MessageSavingStore {
             dir = base.appendingPathComponent("MessageSaving", isDirectory: true)
         }
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        // Deleted and edited message text stays out of iCloud/computer backups.
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = true
+        var excludedDirectory = dir
+        try? excludedDirectory.setResourceValues(values)
         return dir.appendingPathComponent("records.json")
     }
 
@@ -197,13 +202,101 @@ public enum MessageSavingStore {
             memory = []
         } else {
             do {
-                memory = try JSONDecoder().decode([MessageSavingRecord].self, from: Data(contentsOf: fileURL))
+                // Records are decoded one by one: a single entry this build can't read (a field
+                // added later, a truncated value) used to fail the whole file, and with
+                // `loadFailed` set every later deletion and edit stayed in memory only and was lost
+                // when the app was killed. Only a file that isn't a JSON array at all still fails.
+                let entries = try JSONDecoder().decode([LenientRecord].self, from: Data(contentsOf: fileURL))
+                memory = entries.compactMap { $0.record }
             } catch {
                 loadFailed = true
                 memory = []
             }
         }
         rebuildIndexesLocked()
+    }
+
+    private struct LenientRecord: Decodable {
+        let record: MessageSavingRecord?
+
+        init(from decoder: Decoder) throws {
+            self.record = try? MessageSavingRecord(from: decoder)
+        }
+    }
+
+    /// Unreferenced copies younger than this are kept: they exist so that a secret, view-once or
+    /// timed message deleted later still has its media, and those timers run for days.
+    private static let unreferencedAttachmentLifetime: TimeInterval = 14 * 24 * 60 * 60
+    private static var attachmentCleanupScheduled = false
+
+    /// Removes saved attachments that no record points at once they are old enough.
+    ///
+    /// Media is copied into Saved Attachments before anyone knows whether the message will be
+    /// deleted: every played voice note, every opened secret or one-time media, every message the
+    /// other side consumed. Copies for messages that were never deleted were referenced by nothing
+    /// and never removed, and records dropped by the 5000-record cap left their files behind too, so
+    /// the folder only ever grew. Runs once per process, shortly after launch, off the main thread.
+    public static func scheduleAttachmentCleanup() {
+        lock.lock()
+        if attachmentCleanupScheduled {
+            lock.unlock()
+            return
+        }
+        attachmentCleanupScheduled = true
+        lock.unlock()
+        queue.asyncAfter(deadline: .now() + 30.0) {
+            self.removeStaleUnreferencedAttachments()
+        }
+    }
+
+    private static func removeStaleUnreferencedAttachments() {
+        loadIfNeeded()
+        lock.lock()
+        // Never collect against a store that failed to load: every file would look unreferenced.
+        if loadFailed {
+            lock.unlock()
+            return
+        }
+        // Compared by the path below `Saved Attachments`, not the absolute path: iOS can move the
+        // app container between launches, and records keep the path they were written with.
+        let referenced = Set(memory.compactMap { $0.mediaPath.flatMap(self.attachmentRelativePath) })
+        lock.unlock()
+
+        let root = MessageSavingBridge.savedAttachmentsDirectory
+        let cutoff = Date().addingTimeInterval(-self.unreferencedAttachmentLifetime)
+        guard let enumerator = FileManager.default.enumerator(at: root, includingPropertiesForKeys: [.isRegularFileKey, .contentModificationDateKey], options: [.skipsHiddenFiles]) else {
+            return
+        }
+        var removedCount = 0
+        var removedBytes: Int64 = 0
+        for case let url as URL in enumerator {
+            guard let values = try? url.resourceValues(forKeys: [.isRegularFileKey, .contentModificationDateKey, .fileSizeKey]), values.isRegularFile == true else {
+                continue
+            }
+            guard let modified = values.contentModificationDate, modified < cutoff else {
+                continue
+            }
+            guard let relative = self.attachmentRelativePath(url.path), !referenced.contains(relative) else {
+                continue
+            }
+            if (try? FileManager.default.removeItem(at: url)) != nil {
+                removedCount += 1
+                removedBytes += Int64(values.fileSize ?? 0)
+            }
+        }
+        if removedCount != 0 {
+            Logger.shared.log("MessageSaving", "removed \(removedCount) unreferenced saved attachments (\(removedBytes / (1024 * 1024)) MB)")
+        }
+    }
+
+    /// The part of an attachment path below the `Saved Attachments` folder, or nil.
+    private static func attachmentRelativePath(_ path: String) -> String? {
+        let marker = "/Saved Attachments/"
+        guard let range = path.range(of: marker, options: .backwards) else {
+            return nil
+        }
+        let relative = String(path[range.upperBound...])
+        return relative.isEmpty ? nil : relative
     }
 
     public static var historyReadFailed: Bool {

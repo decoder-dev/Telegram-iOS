@@ -17,10 +17,29 @@ private final class AccountPresenceManagerImpl {
     private var onlineTimer: SignalKitTimer?
     
     private var wasOnline: Bool = false
+    private var ghostSettingsObserver: NSObjectProtocol?
+    private var lastSuppressOnline: Bool = ForkGhostModeSettings.shouldSuppressOnline
     
     init(queue: Queue, shouldKeepOnlinePresence: Signal<Bool, NoError>, network: Network) {
         self.queue = queue
         self.network = network
+        
+        // Ghost Mode "Don't Send Online" takes effect when toggled, not on the next foreground
+        // change: turning it off left the user offline until they left and reopened the app (the
+        // suppressed branch had cancelled the online timer), turning it on left them online for
+        // up to 30 s.
+        self.ghostSettingsObserver = NotificationCenter.default.addObserver(forName: ForkGhostModeSettings.didChangeNotification, object: nil, queue: nil, using: { [weak self] _ in
+            queue.async {
+                guard let self else {
+                    return
+                }
+                let suppressOnline = ForkGhostModeSettings.shouldSuppressOnline
+                if suppressOnline != self.lastSuppressOnline {
+                    self.lastSuppressOnline = suppressOnline
+                    self.updatePresence(self.wasOnline)
+                }
+            }
+        })
         
         self.shouldKeepOnlinePresenceDisposable = (shouldKeepOnlinePresence
         |> distinctUntilChanged
@@ -37,6 +56,9 @@ private final class AccountPresenceManagerImpl {
     
     deinit {
         assert(self.queue.isCurrent())
+        if let observer = self.ghostSettingsObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
         self.shouldKeepOnlinePresenceDisposable?.dispose()
         self.currentRequestDisposable.dispose()
         self.onlineTimer?.invalidate()

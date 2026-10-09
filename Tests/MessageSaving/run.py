@@ -25,6 +25,10 @@ public final class ValuePromise<T> {
 enum MessageSavingBridge {
     static var savedAttachmentsDirectory = URL(fileURLWithPath: "/unused")
 }
+final class Logger {
+    static let shared = Logger()
+    func log(_ tag: String, _ message: @autoclosure () -> String) {}
+}
 func requireSuccess(_ result: Result<Int, MessageSavingStore.ImportError>) {
     guard case .success = result else { preconditionFailure("Expected successful import") }
 }
@@ -91,7 +95,13 @@ precondition(try Data(contentsOf: recordsFile) == Data("broken-json".utf8))
 try originalData.write(to: recordsFile)
 MessageSavingStore.retryHistoryRead()
 precondition(!MessageSavingStore.historyReadFailed && MessageSavingStore.recordCount == 1)
-print("Partial copy, failed commit rollback, backup roundtrip, incomplete export and read retry: passed")
+// One unreadable entry is skipped instead of failing the whole store (and with it every later save).
+var mixed = try JSONSerialization.jsonObject(with: originalData) as! [Any]
+mixed.append(["id": "broken"])
+try JSONSerialization.data(withJSONObject: mixed).write(to: recordsFile)
+MessageSavingStore.resetForTesting(directory: database)
+precondition(!MessageSavingStore.historyReadFailed && MessageSavingStore.recordCount == 1)
+print("Partial copy, failed commit rollback, backup roundtrip, incomplete export, read retry and lenient load: passed")
 '''
 # Swift precondition's autoclosure is nonthrowing; perform throwing reads first.
 tests = tests.replace('precondition(try Data(contentsOf: originalFile) == Data([1,2,3]))',

@@ -15,10 +15,14 @@ enum MessageSavingAttachments {
     private static let cachedDirectoryURL: URL = {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? FileManager.default.temporaryDirectory
-        let dir = base
-            .appendingPathComponent("MessageSaving", isDirectory: true)
-            .appendingPathComponent("Saved Attachments", isDirectory: true)
+        var root = base.appendingPathComponent("MessageSaving", isDirectory: true)
+        let dir = root.appendingPathComponent("Saved Attachments", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        // Saved deleted messages and copies of secret/view-once media must not go into iCloud or
+        // computer backups in plaintext; Telegram's own data root is excluded the same way.
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = true
+        try? root.setResourceValues(values)
         return dir
     }()
 
