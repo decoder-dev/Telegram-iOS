@@ -181,6 +181,9 @@ public final class VlessManager {
             return
         }
         stateValue = .running(sink: VlessProxySink(host: "127.0.0.1", port: socks.port, user: socks.user, password: socks.password))
+        // A runtime that came up resets the back-off: otherwise a crash hours later waited the
+        // 60 s earned by start-up failures, with MTProto held on the fail-closed route meanwhile.
+        retryAttempt = 0
         lock.unlock()
         VlessLog.log("runtime running on 127.0.0.1:\(socks.port) (gen \(token))")
         notifyStateChange()

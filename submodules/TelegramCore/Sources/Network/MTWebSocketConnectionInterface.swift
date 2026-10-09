@@ -515,13 +515,25 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
                     if let data = data, !data.isEmpty {
                         self.networkUsageManager?.addIncomingBytes(UInt(data.count), interface: self.currentInterfaceIsWifi ? MTNetworkUsageManagerInterfaceOther : MTNetworkUsageManagerInterfaceWWAN)
                         self.handleIncomingBytes(data)
+                        // Handling the bytes may itself have failed this candidate (a gateway's
+                        // `HTTP 403 … Connection: close`) and scheduled the next endpoint. The FIN
+                        // delivered in the same callback must not then tear the whole attempt down.
+                        guard self.connectionGeneration == generation, self.connection != nil else {
+                            return
+                        }
                     }
                     if let error = error {
                         self.candidateFailed(error: error)
                         return
                     }
                     if isComplete {
-                        self.cancelWithError(error: nil)
+                        // Before the upgrade completes a closed connection is just a failed
+                        // candidate: fall over to the next endpoint instead of giving up.
+                        if self.didReportConnection {
+                            self.cancelWithError(error: nil)
+                        } else {
+                            self.candidateFailed(error: nil)
+                        }
                         return
                     }
                     if self.connection != nil {

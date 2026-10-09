@@ -89,7 +89,7 @@ public enum WebSocketFrameEncoder {
 }
 
 public enum WebSocketFrameDecoder {
-    private static let maxPayloadLength = 16 * 1024 * 1024
+    static let maxPayloadLength = 16 * 1024 * 1024
 
     /// Attempts to parse a single frame from the front of `buffer`. Never mutates `buffer` — the caller
     /// removes exactly `consumed` bytes once it accepts the result. Index arithmetic is relative to
@@ -218,6 +218,14 @@ public final class WebSocketMessageReassembler {
                 case .continuation:
                     guard let opcode = self.fragmentedOpcode else {
                         events.append(.protocolError("continuation frame without an initiating fragment"))
+                        continue parseLoop
+                    }
+                    // Each frame is capped, but a peer streaming non-FIN continuations could grow
+                    // the reassembled message without bound.
+                    if self.fragmentedPayload.count + payload.count > WebSocketFrameDecoder.maxPayloadLength {
+                        events.append(.protocolError("fragmented message exceeds the \(WebSocketFrameDecoder.maxPayloadLength)-byte limit"))
+                        self.fragmentedOpcode = nil
+                        self.fragmentedPayload = Data()
                         continue parseLoop
                     }
                     self.fragmentedPayload.append(payload)

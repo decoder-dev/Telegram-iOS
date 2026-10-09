@@ -116,6 +116,10 @@ private final class ProxyFailoverContext {
             self.probeDisposable?.dispose()
             self.probeDisposable = nil
             self.isChecking = false
+            // `connectionStatus` is distinct-until-changed: while the link stays stuck on the same
+            // `.connecting`, nothing else would ever arm the timer again, so any proxy-settings
+            // write during a stall stopped rotation for good. Turning rotation on mid-stall starts it.
+            self.rescheduleConnectingTimerIfNeeded()
         })
         
         self.connectionStatusDisposable = (self.network.connectionStatus
@@ -138,6 +142,15 @@ private final class ProxyFailoverContext {
     
     private func connectionStatusUpdated(_ status: ConnectionStatus) {
         guard self.shouldManageRotation else {
+            // Still track whether we are stuck connecting through a proxy, so enabling rotation
+            // later in the same stall can pick it up.
+            if case let .connecting(proxyAddress, proxyHasConnectionIssues) = status {
+                self.isConnectingViaProxy = proxyAddress != nil
+                self.activeProxyHasConnectionIssues = proxyHasConnectionIssues
+            } else {
+                self.isConnectingViaProxy = false
+                self.activeProxyHasConnectionIssues = false
+            }
             self.cancelConnectingTimer()
             return
         }

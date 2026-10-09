@@ -1158,6 +1158,10 @@ final class WebProxyHttpCarrier {
         // Subprotocol carries the session bearer (PROTOCOL.md). Prefer the protocols:
         // form so URLSession negotiates Sec-WebSocket-Protocol correctly. Never log it.
         let task = self.session.webSocketTask(with: url, protocols: [subprotocol])
+        // The default receive limit is 1 MiB, below a single maximum-size frame (1 MiB payload
+        // plus header) and far below a relay batch; such a message failed `receive` and killed
+        // the carrier, so large downloads looped through carrier restarts.
+        task.maximumMessageSize = 8 * 1024 * 1024
         return task
     }
     
