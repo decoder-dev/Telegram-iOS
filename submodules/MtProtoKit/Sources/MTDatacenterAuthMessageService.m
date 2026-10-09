@@ -584,6 +584,16 @@ static NSData *encryptRSAModernPadding(id<EncryptionProvider> encryptionProvider
                 [tmpAesIv appendData:newNonce0_4];
                 
                 NSData *answerWithHash = MTAesDecrypt(((MTServerDhParamsOkMessage *)serverDhParamsMessage).encryptedResponse, tmpAesKey, tmpAesIv);
+                // A short or undecryptable encrypted_answer must fail the handshake instead of reading past the buffer.
+                if (answerWithHash == nil || answerWithHash.length < 20 + 4)
+                {
+                    if (MTLogEnabled()) {
+                        MTLog(@"[MTDatacenterAuthMessageService#%p invalid encrypted DH answer]", self);
+                    }
+                    [self reset:mtProto];
+                    
+                    return;
+                }
                 NSData *answerHash = [[NSData alloc] initWithBytes:((uint8_t *)answerWithHash.bytes) length:20];
                 
                 NSMutableData *answerData = [[NSMutableData alloc] initWithBytes:(((uint8_t *)answerWithHash.bytes) + 20) length:(answerWithHash.length - 20)];
@@ -597,6 +607,10 @@ static NSData *encryptRSAModernPadding(id<EncryptionProvider> encryptionProvider
                         break;
                     }
                     
+                    if (answerData.length == 0)
+                    {
+                        break;
+                    }
                     [answerData replaceBytesInRange:NSMakeRange(answerData.length - 1, 1) withBytes:NULL length:0];
                 }
                 
@@ -686,7 +700,12 @@ static NSData *encryptRSAModernPadding(id<EncryptionProvider> encryptionProvider
                 }
                 
                 uint8_t bBytes[256];
-                __unused int result = SecRandomCopyBytes(kSecRandomDefault, 256, bBytes);
+                if (SecRandomCopyBytes(kSecRandomDefault, 256, bBytes) != errSecSuccess)
+                {
+                    [self reset:mtProto];
+                    
+                    return;
+                }
                 NSData *b = [[NSData alloc] initWithBytes:bBytes length:256];
                 
                 int32_t tmpG = innerDataG;
@@ -696,6 +715,20 @@ static NSData *encryptRSAModernPadding(id<EncryptionProvider> encryptionProvider
                 NSData *g_b = MTExp(_encryptionProvider, g, b, innerDataDhPrime);
                 
                 NSData *authKey = MTExp(_encryptionProvider, innerDataGA, b, innerDataDhPrime);
+                if (g_b == nil || authKey == nil || authKey.length == 0 || authKey.length > 256)
+                {
+                    [self reset:mtProto];
+                    
+                    return;
+                }
+                if (authKey.length < 256)
+                {
+                    // The key is a 256-byte big-endian number; a result with leading zero bytes must be left-padded
+                    // or its id and hash differ from the server's in roughly one handshake in 256.
+                    NSMutableData *paddedAuthKey = [[NSMutableData alloc] initWithLength:256 - authKey.length];
+                    [paddedAuthKey appendData:authKey];
+                    authKey = paddedAuthKey;
+                }
                 
                 NSData *authKeyHash = MTSha1(authKey);
                 
