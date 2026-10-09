@@ -55,29 +55,42 @@ private final class ForkExtrasMessageSavingImportPresenter: NSObject, UIDocument
     }
 
     func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
-        guard let url = urls.first else {
+        // Released as soon as the picker is done: a singleton holding the context kept a logged-out
+        // or switched-away account (postbox, network, media box) alive for the rest of the process.
+        let replace = self.replace
+        let context = self.context
+        let present = self.present
+        self.context = nil
+        self.present = nil
+        guard let url = urls.first, let context else {
             return
         }
-        let access = url.startAccessingSecurityScopedResource()
-        defer {
+        // Decoding the records and copying every attachment (possibly out of iCloud Drive) took
+        // seconds on the main thread for a large store — enough for the watchdog to kill the app.
+        DispatchQueue.global(qos: .userInitiated).async {
+            let access = url.startAccessingSecurityScopedResource()
+            let result = MessageSavingStore.importBundle(from: url, replace: replace)
             if access {
                 url.stopAccessingSecurityScopedResource()
             }
+            DispatchQueue.main.async {
+                let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+                switch result {
+                case let .success(count):
+                    let text = ForkExtrasLocalizedString.importMessageSavingDone.replacingOccurrences(of: "{count}", with: "\(count)")
+                    let alert = textAlertController(context: context, title: nil, text: text, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})])
+                    present?(alert)
+                case .failure:
+                    let alert = textAlertController(context: context, title: nil, text: ForkExtrasLocalizedString.importMessageSavingFailed, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})])
+                    present?(alert)
+                }
+            }
         }
-        let result = MessageSavingStore.importBundle(from: url, replace: self.replace)
-        let presentationData = context?.sharedContext.currentPresentationData.with { $0 }
-        guard let context = self.context, let presentationData else {
-            return
-        }
-        switch result {
-        case let .success(count):
-            let text = ForkExtrasLocalizedString.importMessageSavingDone.replacingOccurrences(of: "{count}", with: "\(count)")
-            let alert = textAlertController(context: context, title: nil, text: text, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})])
-            present?(alert)
-        case .failure:
-            let alert = textAlertController(context: context, title: nil, text: ForkExtrasLocalizedString.importMessageSavingFailed, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})])
-            present?(alert)
-        }
+    }
+
+    func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+        self.context = nil
+        self.present = nil
     }
 }
 
@@ -2061,15 +2074,20 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
             ).start())
         },
         exportMessageSavingDatabase: {
+            // Encoding the store and copying every saved attachment runs off the main thread: with
+            // a few GB of media it blocked the UI long enough for the watchdog to kill the app.
+            DispatchQueue.global(qos: .userInitiated).async {
             MessageSavingStore.flush()
-            guard let url = MessageSavingStore.exportBundle() else {
+            let exportedUrl = MessageSavingStore.exportBundle()
+            let exportedRecordCount = MessageSavingStore.recordCount
+            DispatchQueue.main.async {
+            guard let url = exportedUrl else {
                 // Was a silent no-op — with a failed bundle the row looked simply dead.
                 let presentationData = context.sharedContext.currentPresentationData.with { $0 }
                 let alert = textAlertController(context: context, title: nil, text: ForkExtrasLocalizedString.exportMessageSavingFailed, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})])
                 presentControllerImpl?(alert)
                 return
             }
-            let exportedRecordCount = MessageSavingStore.recordCount
             // Folder URL: AirDrop / "Save to Files" accept it. Import the folder itself (not a
             // zip — the picker does not open archives).
             let activity = UIActivityViewController(activityItems: [url], applicationActivities: nil)
@@ -2083,6 +2101,8 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
                 presentControllerImpl?(alert)
             }
             forkExtrasPresentNativeController(activity, context: context)
+            }
+            }
         },
         importMessageSavingDatabase: {
             presentPicker(

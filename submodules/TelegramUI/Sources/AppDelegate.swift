@@ -2295,7 +2295,10 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
     public func pushRegistry(_ registry: PKPushRegistry, didUpdate credentials: PKPushCredentials, for type: PKPushType) {
         if #available(iOS 9.0, *) {
             if case PKPushType.voIP = type {
-                Logger.shared.log("App \(self.episodeId)", "pushRegistry credentials: \(credentials.token as NSData)")
+                // Fingerprint only, like the APNs token above: the VoIP token addresses this device.
+                let tokenHex = hexString(credentials.token)
+                let tokenFingerprint = tokenHex.count > 8 ? String(tokenHex.prefix(4)) + "…" + String(tokenHex.suffix(4)) + " (\(tokenHex.count / 2) bytes)" : "(\(tokenHex.count / 2) bytes)"
+                Logger.shared.log("App \(self.episodeId)", "pushRegistry credentials: \(tokenFingerprint)")
                 
                 self.voipTokenPromise.set(.single(credentials.token))
             }

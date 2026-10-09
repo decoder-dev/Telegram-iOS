@@ -112,6 +112,17 @@ public enum ForkPerformanceTelemetry {
     /// trouble. The recovery line carries the total.
     private static var stallReported = false
 
+    /// Bumped whenever the watchdog is reset, so a reply to a ping sent before a reset (for
+    /// instance one that sat in the main queue while the process was suspended) is ignored.
+    private static var stallGeneration = 0
+    private static var stallTimerSuspended = false
+
+    /// Monotonic seconds. `CFAbsoluteTimeGetCurrent()` is wall-clock: an NTP or manual clock change
+    /// read as a stall of that size.
+    private static func stallClock() -> Double {
+        return Double(DispatchTime.now().uptimeNanoseconds) / 1_000_000_000.0
+    }
+
     private static func installMainThreadStallWatchdog() {
         let timer = DispatchSource.makeTimerSource(queue: self.stallQueue)
         timer.schedule(deadline: .now() + 1.0, repeating: 1.0)
@@ -119,7 +130,7 @@ public enum ForkPerformanceTelemetry {
             if self.stallAwaitingReply {
                 // The previous ping has not come back yet: the main thread is still busy. Say so
                 // once, then keep waiting rather than piling on pings or repeating the line.
-                let outstanding = CFAbsoluteTimeGetCurrent() - self.stallPingSentAt
+                let outstanding = self.stallClock() - self.stallPingSentAt
                 if outstanding >= self.stallReportThreshold, !self.stallReported {
                     self.stallReported = true
                     Logger.shared.log("Stall", "main thread unresponsive, \(String(format: "%.1f", outstanding))s so far")
@@ -127,21 +138,54 @@ public enum ForkPerformanceTelemetry {
                 return
             }
             self.stallAwaitingReply = true
-            let sentAt = CFAbsoluteTimeGetCurrent()
+            let sentAt = self.stallClock()
+            let generation = self.stallGeneration
             self.stallPingSentAt = sentAt
             DispatchQueue.main.async {
-                let waited = CFAbsoluteTimeGetCurrent() - sentAt
+                let repliedAt = self.stallClock()
                 self.stallQueue.async {
+                    guard generation == self.stallGeneration else {
+                        return
+                    }
                     self.stallAwaitingReply = false
                     if self.stallReported {
                         self.stallReported = false
-                        Logger.shared.log("Stall", "main thread recovered after \(String(format: "%.1f", waited))s")
+                        Logger.shared.log("Stall", "main thread recovered after \(String(format: "%.1f", repliedAt - sentAt))s")
                     }
                 }
             }
         }
         timer.resume()
         self.stallTimer = timer
+
+        // A suspended process can't answer pings, and the time it spends suspended is not a
+        // stall: logs showed "recovered after 39.0s" for nothing more than a trip to the home
+        // screen. The watchdog also has no business waking the CPU once a second in background
+        // execution (a call, audio). It only runs while the app is in the foreground.
+        NotificationCenter.default.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main, using: { _ in
+            self.stallQueue.async {
+                self.resetStallWatchdog()
+                if !self.stallTimerSuspended {
+                    self.stallTimerSuspended = true
+                    self.stallTimer?.suspend()
+                }
+            }
+        })
+        NotificationCenter.default.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main, using: { _ in
+            self.stallQueue.async {
+                self.resetStallWatchdog()
+                if self.stallTimerSuspended {
+                    self.stallTimerSuspended = false
+                    self.stallTimer?.resume()
+                }
+            }
+        })
+    }
+
+    private static func resetStallWatchdog() {
+        self.stallGeneration += 1
+        self.stallAwaitingReply = false
+        self.stallReported = false
     }
 
     private static var stallTimer: DispatchSourceTimer?
@@ -181,10 +225,15 @@ public enum ForkPerformanceTelemetry {
             ForkPerformanceTelemetry.lastPathSummary = summary
             Logger.shared.log("Net", "path \(summary)")
         }
-        monitor.start(queue: self.heartbeatQueue)
         self.pathMonitor = monitor
-        self.lastPathSummary = self.describe(monitor.currentPath)
-        Logger.shared.log("Net", "path at launch \(self.lastPathSummary ?? "unknown")")
+        // Everything touching `lastPathSummary` runs on `heartbeatQueue`; the handler may fire
+        // there as soon as `start` returns.
+        self.heartbeatQueue.async {
+            let summary = self.describe(monitor.currentPath)
+            self.lastPathSummary = summary
+            Logger.shared.log("Net", "path at launch \(summary)")
+            monitor.start(queue: self.heartbeatQueue)
+        }
     }
 
     /// One token for the heartbeat: the carrying interface, plus a tunnel marker when one is up.
@@ -261,9 +310,11 @@ public enum ForkPerformanceTelemetry {
                 return
             }
 
-            // `applicationState` and the memory reader both want the main thread, and hopping
-            // there also means a heartbeat that stops appearing is itself a signal.
-            DispatchQueue.main.async {
+            // Measured here, off the main thread: walking the malloc zones and asking the volume
+            // for free capacity are not free, and doing them on main once a minute put a hitch
+            // exactly where the stall watchdog is looking. Only `applicationState` needs main;
+            // the line is finished there, so a heartbeat that stops appearing is still a signal.
+            do {
                 let megabytes = getMemoryConsumption() / (1024 * 1024)
 
                 var parts: [String] = []
@@ -292,14 +343,19 @@ public enum ForkPerformanceTelemetry {
                 if let path = self.pathMonitor?.currentPath {
                     parts.append("net=\(self.shortDescription(path))")
                 }
-                parts.append("state=\(UIApplication.shared.applicationState == .background ? "background" : "foreground")")
-                parts.append("thermal=\(ForkPerformanceTelemetry.describe(self.thermalState))")
-                if let freeMegabytes = self.availableDiskMegabytes() {
-                    parts.append("disk=\(freeMegabytes)MB")
-                }
-                parts.append("uptime=\(Int(CFAbsoluteTimeGetCurrent() - self.installedAt))s")
+                let freeMegabytes = self.availableDiskMegabytes()
+                let uptime = Int(CFAbsoluteTimeGetCurrent() - self.installedAt)
+                DispatchQueue.main.async {
+                    var parts = parts
+                    parts.append("state=\(UIApplication.shared.applicationState == .background ? "background" : "foreground")")
+                    parts.append("thermal=\(ForkPerformanceTelemetry.describe(self.thermalState))")
+                    if let freeMegabytes {
+                        parts.append("disk=\(freeMegabytes)MB")
+                    }
+                    parts.append("uptime=\(uptime)s")
 
-                Logger.shared.log("Heartbeat", parts.joined(separator: " "))
+                    Logger.shared.log("Heartbeat", parts.joined(separator: " "))
+                }
             }
         }
         timer.resume()
