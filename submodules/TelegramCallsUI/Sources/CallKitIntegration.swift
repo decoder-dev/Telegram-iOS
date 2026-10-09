@@ -234,31 +234,57 @@ class CallKitProviderDelegate: NSObject, CXProviderDelegate {
         
         Logger.shared.log("CallKitIntegration", "initiate call \(uuid)")
         
-        self.requestTransaction(transaction, completion: { success in
-            if !success {
-                // The system rejected the transaction (CXErrorCodeRequestTransactionError, e.g.
-                // `.invalidAction`), so `perform CXStartCallAction` will never arrive and nothing
-                // would start the call — the tap on "Call" just did nothing.
-                Queue.mainQueue().async {
-                    if let current = self.currentStartCallAccount, current.0 == uuid {
-                        self.currentStartCallAccount = nil
-                    }
-                    self.uuidToPeerIdMapping.removeValue(forKey: uuid)
-                    failed?()
-                }
+        // Hands the call to the non-CallKit path at most once, whichever of the transaction error
+        // or the watchdog below comes first. After that `perform CXStartCallAction` for this uuid
+        // finds no pending start and fails the action, so CallKit drops its half of the call.
+        var didFallBack = false
+        let fallBack: (String) -> Void = { [weak self] reason in
+            guard let self, !didFallBack else {
                 return
             }
-            let update = CXCallUpdate()
-            update.remoteHandle = handle
-            update.localizedCallerName = displayTitle
-            update.supportsHolding = false
-            update.supportsGrouping = false
-            update.supportsUngrouping = false
-            update.supportsDTMF = false
-            
-            self.provider.reportCall(with: uuid, updated: update)
-            
-            self.activeCalls.insert(uuid)
+            guard let current = self.currentStartCallAccount, current.0 == uuid else {
+                return
+            }
+            didFallBack = true
+            Logger.shared.log("CallKitIntegration", "start call \(uuid) falls back without CallKit: \(reason)")
+            self.currentStartCallAccount = nil
+            self.uuidToPeerIdMapping.removeValue(forKey: uuid)
+            self.activeCalls.remove(uuid)
+            failed?()
+        }
+        
+        // `perform CXStartCallAction` normally arrives within tens of milliseconds. Logs show it
+        // sometimes not arriving at all while the app is in the foreground: the call screen never
+        // appears, the user closes the app, and CallKit relaunches it only to deliver the action
+        // to a process that knows nothing about the call. Don't leave the tap hanging that long.
+        Queue.mainQueue().after(1.5, {
+            fallBack("perform action did not arrive in time")
+        })
+        
+        self.requestTransaction(transaction, completion: { success in
+            Queue.mainQueue().async {
+                if !success {
+                    // The system rejected the transaction (CXErrorCodeRequestTransactionError, e.g.
+                    // `.invalidAction`), so `perform CXStartCallAction` will never arrive.
+                    fallBack("transaction rejected")
+                    return
+                }
+                if didFallBack {
+                    return
+                }
+                let update = CXCallUpdate()
+                update.remoteHandle = handle
+                update.localizedCallerName = displayTitle
+                update.supportsHolding = false
+                update.supportsGrouping = false
+                update.supportsUngrouping = false
+                update.supportsDTMF = false
+                update.hasVideo = isVideo
+                
+                self.provider.reportCall(with: uuid, updated: update)
+                
+                self.activeCalls.insert(uuid)
+            }
         })
     }
     
@@ -334,6 +360,11 @@ class CallKitProviderDelegate: NSObject, CXProviderDelegate {
         Logger.shared.log("CallKitIntegration", "provider perform start call action \(action)")
         
         guard let startCall = self.startCall, let (uuid, context) = self.currentStartCallAccount, uuid == action.callUUID else {
+            // Stale (a previous process, a superseded tap, or a start already placed without
+            // CallKit): fail it so the system doesn't keep a phantom call in its call list.
+            Logger.shared.log("CallKitIntegration", "no pending start for \(action.callUUID), failing the action")
+            self.activeCalls.remove(action.callUUID)
+            self.uuidToPeerIdMapping.removeValue(forKey: action.callUUID)
             action.fail()
             return
         }
@@ -349,10 +380,14 @@ class CallKitProviderDelegate: NSObject, CXProviderDelegate {
             if let strongSelf = self, let disposable = disposable {
                 strongSelf.disposableSet.remove(disposable)
             }
-        }).start(next: { result in
+        }).start(next: { [weak self] result in
             if result {
                 action.fulfill()
             } else {
+                // Without this the uuid stayed in `activeCalls` and `hasActiveCalls` reported a
+                // call in progress until the next provider reset.
+                self?.activeCalls.remove(action.callUUID)
+                self?.uuidToPeerIdMapping.removeValue(forKey: action.callUUID)
                 action.fail()
             }
         }))
