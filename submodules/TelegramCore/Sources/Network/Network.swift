@@ -757,6 +757,14 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
             
             network.usesNetworkFrameworkTcpConnection = useNetworkFrameworkTcpConnection
             network.webSocketFallbackCoordinator = webSocketFallbackCoordinator
+            network.supersededDisposable.set((keychain.isCurrent
+            |> map { !$0 }
+            |> distinctUntilChanged).start(next: { [weak network] isSuperseded in
+                if isSuperseded {
+                    Logger.shared.log("Network", "\(accountId) superseded by a newer network, pausing it")
+                }
+                network?.isSuperseded.set(isSuperseded)
+            }))
             
             if let data = appConfiguration.data, let notifyInterval = data["upload_premium_speedup_notify_period"] as? Double {
                 network.updateNetworkSpeedLimitedEventNotifyInterval(value: notifyInterval)
@@ -1024,6 +1032,12 @@ public final class Network: NSObject, MTRequestMessageServiceDelegate {
     
     public let shouldKeepConnection = Promise<Bool>(false)
     private let shouldKeepConnectionDisposable = MetaDisposable()
+    /// Set once another network for the same account record has taken over the keychain. Such a
+    /// network can never persist anything ("couldn't set … — not current"), yet it kept its
+    /// connections and workers alive: logs showed it for as long as the app ran, after account
+    /// switches that start a second load of the same account before the first one was discarded.
+    fileprivate let isSuperseded = ValuePromise<Bool>(false, ignoreRepeated: true)
+    fileprivate let supersededDisposable = MetaDisposable()
     
     public let shouldExplicitelyKeepWorkerConnections = Promise<Bool>(false)
     public let shouldKeepBackgroundDownloadConnections = Promise<Bool>(false)
@@ -1137,7 +1151,10 @@ public final class Network: NSObject, MTRequestMessageServiceDelegate {
             return nil
         })
         
-        let shouldKeepConnectionSignal = self.shouldKeepConnection.get()
+        let shouldKeepConnectionSignal = combineLatest(queue: queue, self.shouldKeepConnection.get(), self.isSuperseded.get())
+        |> map { shouldKeepConnection, isSuperseded -> Bool in
+            return shouldKeepConnection && !isSuperseded
+        }
         |> distinctUntilChanged |> deliverOn(queue)
         self.shouldKeepConnectionDisposable.set(shouldKeepConnectionSignal.start(next: { [weak self] value in
             if let strongSelf = self {
@@ -1158,6 +1175,7 @@ public final class Network: NSObject, MTRequestMessageServiceDelegate {
     
     deinit {
         self.shouldKeepConnectionDisposable.dispose()
+        self.supersededDisposable.dispose()
         self.appDataDisposable.dispose()
     }
     
@@ -1198,8 +1216,11 @@ public final class Network: NSObject, MTRequestMessageServiceDelegate {
     
     private func makeWorker(datacenterId: Int, isCdn: Bool, isMedia: Bool, tag: MediaResourceFetchTag?, continueInBackground: Bool = false) -> Download {
         let queue = Queue.mainQueue()
-        let shouldKeepWorkerConnection: Signal<Bool, NoError> = combineLatest(queue: queue, self.shouldKeepConnection.get(), self.shouldExplicitelyKeepWorkerConnections.get(), self.shouldKeepBackgroundDownloadConnections.get())
-        |> map { shouldKeepConnection, shouldExplicitelyKeepWorkerConnections, shouldKeepBackgroundDownloadConnections -> Bool in
+        let shouldKeepWorkerConnection: Signal<Bool, NoError> = combineLatest(queue: queue, self.shouldKeepConnection.get(), self.shouldExplicitelyKeepWorkerConnections.get(), self.shouldKeepBackgroundDownloadConnections.get(), self.isSuperseded.get())
+        |> map { shouldKeepConnection, shouldExplicitelyKeepWorkerConnections, shouldKeepBackgroundDownloadConnections, isSuperseded -> Bool in
+            if isSuperseded {
+                return false
+            }
             return shouldKeepConnection || shouldExplicitelyKeepWorkerConnections || (continueInBackground && shouldKeepBackgroundDownloadConnections)
         }
         |> distinctUntilChanged
