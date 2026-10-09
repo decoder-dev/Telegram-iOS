@@ -41,6 +41,10 @@ public enum ArchiveLockLocalizedString {
             "ArchiveLock.BiometricReason": "Unlock Archive and Saved Messages",
             "ArchiveLock.UseFaceId": "Unlock with Face ID",
             "ArchiveLock.UseTouchId": "Unlock with Touch ID",
+            "ArchiveLock.LostTitle": "Archive Password Unavailable",
+            "ArchiveLock.LostText": "This build cannot read the saved Archive password (it was stored by a differently signed install). Confirm it is you with the device passcode, then set a new password.",
+            "ArchiveLock.LostReset": "Reset Password",
+            "ArchiveLock.LostReason": "Reset the Archive password",
         ],
         "ru": [
             "ArchiveLock.PasswordSection": "ПАРОЛЬ",
@@ -73,6 +77,10 @@ public enum ArchiveLockLocalizedString {
             "ArchiveLock.BiometricReason": "Разблокировать архив и «Избранное»",
             "ArchiveLock.UseFaceId": "Разблокировать Face ID",
             "ArchiveLock.UseTouchId": "Разблокировать Touch ID",
+            "ArchiveLock.LostTitle": "Пароль архива недоступен",
+            "ArchiveLock.LostText": "Эта сборка не может прочитать сохранённый пароль архива: его записала установка с другой подписью. Подтвердите, что это вы, код-паролем устройства и задайте новый пароль.",
+            "ArchiveLock.LostReset": "Сбросить пароль",
+            "ArchiveLock.LostReason": "Сброс пароля архива",
         ],
     ]
     
@@ -130,6 +138,10 @@ public enum ArchiveLockLocalizedString {
     public static var biometricReason: String { string(forKey: "ArchiveLock.BiometricReason") }
     public static var useFaceId: String { string(forKey: "ArchiveLock.UseFaceId") }
     public static var useTouchId: String { string(forKey: "ArchiveLock.UseTouchId") }
+    public static var lostTitle: String { string(forKey: "ArchiveLock.LostTitle") }
+    public static var lostText: String { string(forKey: "ArchiveLock.LostText") }
+    public static var lostReset: String { string(forKey: "ArchiveLock.LostReset") }
+    public static var lostReason: String { string(forKey: "ArchiveLock.LostReason") }
 
     public static func incorrectPassword(attemptsLeft: Int) -> String {
         return String(format: string(forKey: "ArchiveLock.IncorrectPassword"), attemptsLeft)

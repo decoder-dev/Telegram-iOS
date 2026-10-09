@@ -70,5 +70,6 @@ jobs:
       - run: python3 Tests/ArchiveLock/password_flow.py
       - run: python3 Tests/ArchiveLock/theme_lifetime.py
       - run: python3 Tests/ArchiveLock/migration.py
+      - run: python3 Tests/ArchiveLock/wiring.py
       - run: python3 Tests/NetworkPolicies/run.py
       - run: python3 Tests/NetworkRecovery/run.py

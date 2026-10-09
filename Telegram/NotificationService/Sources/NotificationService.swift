@@ -1352,7 +1352,12 @@ private final class NotificationServiceHandler {
                                 action = .poll(peerId: peerId, content: content, messageId: messageIdValue, reportDelivery: reportDelivery, enableInlineEmoji: enableInlineEmoji)
                             }
                             
-                            updateCurrentContent(content)
+                            // Whether this peer sits in a password-locked Archive is only known after a Postbox read. Stage a redacted
+                            // copy until the poll below delivers the final (already redaction-checked) content: if the extension times
+                            // out first, iOS shows whatever was staged last, and that must never be a locked chat's text.
+                            var stagedContent = content
+                            stagedContent.redactLockedArchive(genericText: genericArchiveMessageText)
+                            updateCurrentContent(stagedContent)
                         } else if let aps = payloadJson["aps"] as? [String: Any], let url = payloadJson["url"] as? String {
                             var content: NotificationContent = NotificationContent(isLockedMessage: nil)
                             content.userInfo["url"] = url

@@ -1,5 +1,6 @@
 import Foundation
 import Security
+import SwiftSignalKit
 import TelegramCore
 import CryptoUtils
 
@@ -71,7 +72,44 @@ public enum ArchivePasswordKeychain {
         return true
     }
 
+    /// Latest backup verifier seen in this account's settings (see `ChatArchiveSettings.passwordVerifier`).
+    private static let backupVerifiers = Atomic<[EnginePeer.Id: String]>(value: [:])
+
+    public static func noteBackupVerifier(_ verifier: String?, peerId: EnginePeer.Id) {
+        let _ = self.backupVerifiers.modify { current in
+            var current = current
+            current[peerId] = verifier
+            return current
+        }
+    }
+
+    /// The Keychain copy and the backup can disagree after installs with different signing identities (one side keeps an older
+    /// password). Accept a match against either, and converge the Keychain on the copy that matched.
     public static func matchesPassword(_ password: String, peerId: EnginePeer.Id) -> Bool {
+        if self.matchesStoredPassword(password, peerId: peerId) {
+            return true
+        }
+        guard let backup = self.backupVerifiers.with({ $0[peerId] }), !backup.isEmpty, backup != self.loadHash(peerId: peerId) else {
+            return false
+        }
+        if self.verify(password, stored: backup, peerId: peerId) {
+            _ = self.storeHash(backup, peerId: peerId)
+            return true
+        }
+        return false
+    }
+
+    private static func verify(_ password: String, stored: String, peerId: EnginePeer.Id) -> Bool {
+        if let blob = decodePBKDF2StoredBlob(stored) {
+            guard let expected = pbkdf2HexHash(password: password, saltHex: blob.salt, iterations: blob.iterations) else {
+                return false
+            }
+            return hexStringsEqual(expected, blob.hash)
+        }
+        return stored == saltedArchivePasswordHash(password, peerId: peerId) || stored == archivePasswordHash(password)
+    }
+
+    private static func matchesStoredPassword(_ password: String, peerId: EnginePeer.Id) -> Bool {
         guard let stored = self.loadHash(peerId: peerId) else {
             return false
         }
@@ -179,8 +217,9 @@ public enum ArchivePasswordKeychain {
         guard cooldown > 0 else {
             return 0
         }
-        let elapsed = Date().timeIntervalSince1970 - state.lastFailureTimestamp
-        return max(0, cooldown - elapsed)
+        // A clock moved backwards would make `elapsed` negative and the wait arbitrarily long, locking the owner out.
+        let elapsed = max(0, Date().timeIntervalSince1970 - state.lastFailureTimestamp)
+        return min(cooldown, max(0, cooldown - elapsed))
     }
 
     /// Total recorded failures since the last success (persists across dialog dismissal).

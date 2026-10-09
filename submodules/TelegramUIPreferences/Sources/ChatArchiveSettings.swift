@@ -21,18 +21,22 @@ public struct ChatArchiveSettings: Equatable, Codable {
     /// bound to the app's signing identity, so a re-signed or re-installed sideload build can no longer read it; this copy
     /// lets the Keychain be restored instead of silently leaving the Archive unprotected or unopenable.
     public var passwordVerifier: String?
+    /// Biometric enrollment (`LAContext.evaluatedPolicyDomainState`) at the time Face ID / Touch ID unlock was trusted.
+    /// A different enrollment (a newly added face or finger) must not open the Archive.
+    public var biometricsDomainState: Data?
 
     public static var `default`: ChatArchiveSettings {
         return ChatArchiveSettings(isHiddenByDefault: false, hiddenPsaPeerId: nil, legacyLockPasswordHash: nil, useBiometrics: false, isPasswordConfigured: false)
     }
 
-    public init(isHiddenByDefault: Bool, hiddenPsaPeerId: EnginePeer.Id?, legacyLockPasswordHash: String? = nil, useBiometrics: Bool = false, isPasswordConfigured: Bool = false, passwordVerifier: String? = nil) {
+    public init(isHiddenByDefault: Bool, hiddenPsaPeerId: EnginePeer.Id?, legacyLockPasswordHash: String? = nil, useBiometrics: Bool = false, isPasswordConfigured: Bool = false, passwordVerifier: String? = nil, biometricsDomainState: Data? = nil) {
         self.isHiddenByDefault = isHiddenByDefault
         self.hiddenPsaPeerId = hiddenPsaPeerId
         self.legacyLockPasswordHash = legacyLockPasswordHash
         self.useBiometrics = useBiometrics
         self.isPasswordConfigured = isPasswordConfigured
         self.passwordVerifier = passwordVerifier
+        self.biometricsDomainState = biometricsDomainState
     }
 
     public init(from decoder: Decoder) throws {
@@ -54,6 +58,7 @@ public struct ChatArchiveSettings: Equatable, Codable {
         } else {
             self.passwordVerifier = nil
         }
+        self.biometricsDomainState = try container.decodeIfPresent(Data.self, forKey: "biometricsDomainState")
         // Extensions must redact before the main app has migrated the legacy credential.
         self.isPasswordConfigured = self.isPasswordConfigured || self.legacyLockPasswordHash != nil || self.passwordVerifier != nil
     }
@@ -73,22 +78,29 @@ public struct ChatArchiveSettings: Equatable, Codable {
         try container.encode((self.useBiometrics ? 1 : 0) as Int32, forKey: "useBiometrics")
         try container.encode((self.isPasswordConfigured ? 1 : 0) as Int32, forKey: "isPasswordConfigured")
         try container.encodeIfPresent(self.passwordVerifier, forKey: "passwordVerifier")
+        try container.encodeIfPresent(self.biometricsDomainState, forKey: "biometricsDomainState")
     }
 
     public func clearingLegacyPasswordHash() -> ChatArchiveSettings {
-        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: nil, useBiometrics: self.useBiometrics, isPasswordConfigured: self.isPasswordConfigured, passwordVerifier: self.passwordVerifier)
+        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: nil, useBiometrics: self.useBiometrics, isPasswordConfigured: self.isPasswordConfigured, passwordVerifier: self.passwordVerifier, biometricsDomainState: self.biometricsDomainState)
     }
 
     public func withUpdatedUseBiometrics(_ useBiometrics: Bool) -> ChatArchiveSettings {
-        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: self.legacyLockPasswordHash, useBiometrics: useBiometrics, isPasswordConfigured: self.isPasswordConfigured, passwordVerifier: self.passwordVerifier)
+        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: self.legacyLockPasswordHash, useBiometrics: useBiometrics, isPasswordConfigured: self.isPasswordConfigured, passwordVerifier: self.passwordVerifier, biometricsDomainState: self.biometricsDomainState)
     }
 
     public func withUpdatedIsPasswordConfigured(_ isPasswordConfigured: Bool) -> ChatArchiveSettings {
-        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: self.legacyLockPasswordHash, useBiometrics: isPasswordConfigured ? self.useBiometrics : false, isPasswordConfigured: isPasswordConfigured, passwordVerifier: isPasswordConfigured ? self.passwordVerifier : nil)
+        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: self.legacyLockPasswordHash, useBiometrics: isPasswordConfigured ? self.useBiometrics : false, isPasswordConfigured: isPasswordConfigured, passwordVerifier: isPasswordConfigured ? self.passwordVerifier : nil, biometricsDomainState: isPasswordConfigured ? self.biometricsDomainState : nil)
+    }
+
+    public func withUpdatedBiometricsDomainState(_ biometricsDomainState: Data?) -> ChatArchiveSettings {
+        var result = self
+        result.biometricsDomainState = biometricsDomainState
+        return result
     }
 
     public func withUpdatedPasswordVerifier(_ passwordVerifier: String?) -> ChatArchiveSettings {
-        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: self.legacyLockPasswordHash, useBiometrics: self.useBiometrics, isPasswordConfigured: self.isPasswordConfigured || passwordVerifier != nil, passwordVerifier: passwordVerifier)
+        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: self.legacyLockPasswordHash, useBiometrics: self.useBiometrics, isPasswordConfigured: self.isPasswordConfigured || passwordVerifier != nil, passwordVerifier: passwordVerifier, biometricsDomainState: self.biometricsDomainState)
     }
 }
 
@@ -604,6 +616,7 @@ public func updateChatArchiveSettings(engine: TelegramEngine, _ f: @escaping (Ch
 
 /// Whether Archive is password-protected for this account (Keychain, with prefs migration).
 public func archiveIsPasswordProtected(peerId: EnginePeer.Id, settings: ChatArchiveSettings) -> Bool {
+    ArchivePasswordKeychain.noteBackupVerifier(settings.passwordVerifier, peerId: peerId)
     if ArchivePasswordKeychain.migrateFromPreferencesIfNeeded(peerId: peerId, legacyHash: settings.legacyLockPasswordHash) {
         return true
     }

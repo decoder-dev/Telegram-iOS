@@ -1293,7 +1293,9 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
             guard let self, let controller = self.controller else {
                 return
             }
-            controller.push(self.context.sharedContext.makeArchiveSettingsController(context: self.context))
+            let archiveSettings = self.context.sharedContext.makeArchiveSettingsController(context: self.context)
+            markArchiveLockProtected(archiveSettings)
+            controller.push(archiveSettings)
         }
         
         self.mainContainerNode.onFilterSwitch = { [weak self] in

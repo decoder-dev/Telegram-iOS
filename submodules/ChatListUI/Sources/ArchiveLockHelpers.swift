@@ -25,7 +25,8 @@ private func migrateAndResolvePasswordProtected(context: AccountContext, setting
     // The state that decides whether the Archive asks for a password. Logged because a password that "stops working"
     // after a reinstall is almost always one of these three sources disagreeing (the Keychain is tied to the signing identity).
     Logger.shared.log("ArchiveLock", "protected=\(protected) keychainHash=\(ArchivePasswordKeychain.hasPassword(peerId: peerId)) mirror=\(settings.isPasswordConfigured) legacyHash=\(settings.legacyLockPasswordHash != nil) biometrics=\(settings.useBiometrics) unlocked=\(ArchiveLockSession.shared.isUnlocked)")
-    if let hash = ArchivePasswordKeychain.loadHash(peerId: peerId), settings.passwordVerifier != hash, ArchivePasswordKeychain.hasPassword(peerId: peerId) {
+    // Only fill a missing backup: a differing one may be the newer password (the Keychain can hold a stale one from another install).
+    if settings.passwordVerifier == nil, let hash = ArchivePasswordKeychain.loadHash(peerId: peerId) {
         // Keep a copy of the verifier beside the account's data so a re-signed build can restore the Keychain from it.
         let _ = updateChatArchiveSettings(engine: context.engine) { current in
             current.withUpdatedPasswordVerifier(hash)
@@ -121,7 +122,15 @@ public func archivePasswordProtectionSignal(context: AccountContext) -> Signal<B
         if settings.isPasswordConfigured {
             return true
         }
-        return archiveIsPasswordProtected(peerId: peerId, settings: settings)
+        let protected = archiveIsPasswordProtected(peerId: peerId, settings: settings)
+        if protected {
+            // Accounts that set the password before the Postbox mirror existed: write the mirror now, so search, contacts,
+            // notifications and a launch with the device still locked (Keychain unreadable) all see the lock.
+            let _ = updateChatArchiveSettings(engine: context.engine) { current in
+                current.withUpdatedIsPasswordConfigured(true)
+            }.startStandalone()
+        }
+        return protected
     }
     |> distinctUntilChanged
 }
@@ -429,6 +438,14 @@ public func ensureArchiveUnlocked(
             completion(.unlocked)
             return
         }
+        // Protected, but no copy of the verifier is readable anywhere: no password can ever match. Without this the owner
+        // is locked out for good (remove and change both need the old password), so let them reset it as the device owner.
+        let peerId = context.account.peerId
+        if !ArchivePasswordKeychain.hasPassword(peerId: peerId), (settings.passwordVerifier ?? "").isEmpty, settings.legacyLockPasswordHash == nil {
+            Logger.shared.log("ArchiveLock", "password configured but no verifier is readable; offering device-owner reset")
+            presentLostArchivePasswordRecovery(context: context, present: present, completion: completion)
+            return
+        }
 
         func showPasswordPrompt() {
             presentArchivePasswordAlert(
@@ -469,8 +486,24 @@ public func ensureArchiveUnlocked(
                 ArchiveLockSession.shared.endSuppressBackgroundRelock()
             }
             let _ = (LocalAuth.auth(reason: ArchiveLockLocalizedString.biometricReason)
-            |> deliverOnMainQueue).start(next: { success, _ in
+            |> deliverOnMainQueue).start(next: { success, domainState in
                 endSuppress()
+                if success, let trusted = settings.biometricsDomainState, let domainState, !domainState.isEmpty, domainState != trusted {
+                    // Biometric enrollment changed since Face ID / Touch ID was turned on: fall back to the password and stop
+                    // trusting biometrics until the owner turns it on again.
+                    Logger.shared.log("ArchiveLock", "biometric enrollment changed; biometrics disabled for the Archive")
+                    let _ = updateChatArchiveSettings(engine: context.engine) { current in
+                        current.withUpdatedUseBiometrics(false).withUpdatedBiometricsDomainState(nil)
+                    }.startStandalone()
+                    showPasswordPrompt()
+                    return
+                }
+                if success, settings.biometricsDomainState == nil, let domainState, !domainState.isEmpty {
+                    // Accounts that enabled biometrics before the enrollment was recorded: trust the current one from now on.
+                    let _ = updateChatArchiveSettings(engine: context.engine) { current in
+                        current.withUpdatedBiometricsDomainState(domainState)
+                    }.startStandalone()
+                }
                 if success {
                     guard ArchiveLockSession.shared.authorizationGeneration == authorizationGeneration else {
                         completion(.cancelled)
@@ -689,6 +722,42 @@ private func presentUIAlert(context: AccountContext, alert: UIAlertController, o
     }
 }
 
+/// Recovery for a password whose verifier no copy can provide any more (typically a sideload re-signed with another identity
+/// before the backup verifier existed). Requires device-owner authentication (passcode or biometrics), then asks for a new password.
+private func presentLostArchivePasswordRecovery(context: AccountContext, present: @escaping (ViewController) -> Void, completion: @escaping (ArchiveUnlockResult) -> Void) {
+    let strings = context.sharedContext.currentPresentationData.with { $0 }.strings
+    let alert = UIAlertController(title: ArchiveLockLocalizedString.lostTitle, message: ArchiveLockLocalizedString.lostText, preferredStyle: .alert)
+    alert.addAction(UIAlertAction(title: strings.Common_Cancel, style: .cancel, handler: { _ in
+        completion(.cancelled)
+    }))
+    alert.addAction(UIAlertAction(title: ArchiveLockLocalizedString.lostReset, style: .destructive, handler: { _ in
+        ArchiveLockSession.shared.beginSuppressBackgroundRelock()
+        let _ = (LocalAuth.authenticateDeviceOwner(reason: ArchiveLockLocalizedString.lostReason)
+        |> deliverOnMainQueue).startStandalone(next: { result in
+            ArchiveLockSession.shared.endSuppressBackgroundRelock()
+            // `nil`: the device has no passcode, so there is no stronger proof of ownership to ask for.
+            guard result != false else {
+                completion(.cancelled)
+                return
+            }
+            let peerId = context.account.peerId
+            let _ = ArchivePasswordKeychain.clear(peerId: peerId)
+            let _ = (updateChatArchiveSettings(engine: context.engine) { current in
+                current.clearingLegacyPasswordHash().withUpdatedIsPasswordConfigured(false)
+            }
+            |> deliverOnMainQueue).startStandalone(completed: {
+                Logger.shared.log("ArchiveLock", "lost password reset by device owner")
+                setArchivePassword(context: context, present: present, completion: { didSet in
+                    completion(didSet ? .unlocked : .notProtected)
+                })
+            })
+        })
+    }))
+    presentUIAlert(context: context, alert: alert, onUnavailableHost: {
+        completion(.cancelled)
+    })
+}
+
 public func setArchivePassword(context: AccountContext, present: @escaping (ViewController) -> Void, completion: @escaping (Bool) -> Void) {
     presentArchivePasswordAlert(
         context: context,
@@ -763,8 +832,10 @@ public func changeArchivePassword(context: AccountContext, present: @escaping (V
 /// Toggle per-account Face ID/Touch ID as a convenience unlock. Only meaningful while a
 /// password is set; the settings UI hides this row otherwise.
 public func setArchiveUseBiometrics(context: AccountContext, enabled: Bool) {
+    // Remember which enrollment was trusted; a face or finger added later must not open the Archive.
+    let domainState = enabled ? LocalAuth.currentBiometricsDomainState() : nil
     let _ = updateChatArchiveSettings(engine: context.engine) { current in
-        current.withUpdatedUseBiometrics(enabled)
+        current.withUpdatedUseBiometrics(enabled).withUpdatedBiometricsDomainState(domainState)
     }.startStandalone()
 }
 
@@ -892,8 +963,19 @@ private func stopOverlayMediaForArchivedPeers(context: AccountContext, archivedP
     })
 }
 
+private var archiveLockProtectedControllerKey: UInt8 = 0
+
+/// Marks a screen that only makes sense while the Archive is unlocked (e.g. Archive settings opened from the Archive),
+/// so a relock closes it together with the Archive list.
+public func markArchiveLockProtected(_ controller: UIViewController) {
+    objc_setAssociatedObject(controller, &archiveLockProtectedControllerKey, true as NSNumber, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+}
+
 private func archiveLockShouldDismiss(_ controller: UIViewController, archivedPeerIds: Set<EnginePeer.Id>) -> Bool {
     if let chatList = controller as? ChatListControllerImpl, case .chatList(groupId: .archive) = chatList.location {
+        return true
+    }
+    if (objc_getAssociatedObject(controller, &archiveLockProtectedControllerKey) as? NSNumber)?.boolValue == true {
         return true
     }
     if archivedPeerIds.isEmpty {

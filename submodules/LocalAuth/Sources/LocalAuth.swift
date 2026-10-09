@@ -113,6 +113,34 @@ public struct LocalAuth {
         return nil
     }()
     
+    /// Current biometric enrollment fingerprint, read fresh (unlike `evaluatedPolicyDomainState`, which is cached at launch).
+    public static func currentBiometricsDomainState() -> Data? {
+        let context = LAContext()
+        guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil) else {
+            return nil
+        }
+        return context.evaluatedPolicyDomainState
+    }
+    
+    /// Device-owner check that accepts the device passcode as well as biometrics. `nil` when the device has no passcode.
+    public static func authenticateDeviceOwner(reason: String) -> Signal<Bool?, NoError> {
+        return Signal { subscriber in
+            let context = LAContext()
+            if context.canEvaluatePolicy(.deviceOwnerAuthentication, error: nil) {
+                context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason, reply: { result, _ in
+                    subscriber.putNext(result)
+                    subscriber.putCompletion()
+                })
+            } else {
+                subscriber.putNext(nil)
+                subscriber.putCompletion()
+            }
+            return ActionDisposable {
+                context.invalidate()
+            }
+        }
+    }
+    
     public static func auth(reason: String) -> Signal<(Bool, Data?), NoError> {
         return Signal { subscriber in
             let context = LAContext()
