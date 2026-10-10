@@ -4694,6 +4694,9 @@ extension ChatControllerImpl {
             default:
                 break
             }
+            if !useSystemTranslation, self.context.sharedContext.immediateForkExtrasSettings.translationBackend == .system, #available(iOS 18.0, *) {
+                useSystemTranslation = true
+            }
 
             if useSystemTranslation {
                 presentTranslateScreen(

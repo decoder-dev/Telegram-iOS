@@ -4409,6 +4409,10 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                         default:
                             break
                         }
+                        // "Apple" as the translation backend has to work whatever the server's translation config says.
+                        if !useSystemTranslation, self.context.sharedContext.immediateForkExtrasSettings.translationBackend == .system, #available(iOS 18.0, *) {
+                            useSystemTranslation = true
+                        }
                         
                         if useSystemTranslation {
                             presentTranslateScreen(

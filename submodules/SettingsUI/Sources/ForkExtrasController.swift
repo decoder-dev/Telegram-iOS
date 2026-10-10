@@ -237,8 +237,8 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.OutgoingPhotoQuality": "Outgoing Photo Quality",
             "ForkExtras.OutgoingPhotoQualityDefault": "Default (1280)",
             "ForkExtras.OutgoingPhotoQualityBetter": "Better (1920)",
-            "ForkExtras.OutgoingPhotoQualityMax": "Maximum (2560)",
-            "ForkExtras.OutgoingPhotoQualityFooter": "Size cap when sending photos from the camera roll. Maximum is like Telegram HD.",
+            "ForkExtras.OutgoingPhotoQualityMax": "Maximum (1920, best quality)",
+            "ForkExtras.OutgoingPhotoQualityFooter": "Size cap when sending photos from the camera roll. Better and Maximum both cap at 1920 px; Maximum compresses less. Battery saver or a hot device falls back to 1280.",
         ],
         "ru": [
             "ForkExtras.wideTabBar": "Широкая панель вкладок",
@@ -380,8 +380,8 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.OutgoingPhotoQuality": "Качество исходящих фото",
             "ForkExtras.OutgoingPhotoQualityDefault": "Обычное (1280)",
             "ForkExtras.OutgoingPhotoQualityBetter": "Лучше (1920)",
-            "ForkExtras.OutgoingPhotoQualityMax": "Максимум (2560)",
-            "ForkExtras.OutgoingPhotoQualityFooter": "Ограничение размера при отправке фото из галереи. Максимум как HD в Telegram.",
+            "ForkExtras.OutgoingPhotoQualityMax": "Максимум (1920, лучшее качество)",
+            "ForkExtras.OutgoingPhotoQualityFooter": "Ограничение размера при отправке фото из галереи. «Лучше» и «Максимум» ограничены 1920 px, «Максимум» сжимает слабее. В режиме экономии или при нагреве используется 1280.",
         ],
     ]
     

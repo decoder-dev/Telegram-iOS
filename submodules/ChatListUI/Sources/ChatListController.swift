@@ -4842,7 +4842,8 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
         completion?()
         
         self.updateTabBarSearchState(ViewController.TabBarSearchState(isActive: false), transition: transition)
-        (self.parent as? TabBarController)?.updateIsTabBarHidden(false, transition: transition)
+        // Closing search used to bring the tab bar back even with "Hide tab bar" on.
+        (self.parent as? TabBarController)?.updateIsTabBarHidden(ForkExtrasHotFlags.hidesTabBar(isPad: UIDevice.current.userInterfaceIdiom == .pad), transition: transition)
         
         self.isSearchActive = false
         if let navigationController = self.navigationController as? NavigationController {
