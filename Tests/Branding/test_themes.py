@@ -10,6 +10,13 @@ def luminance(rgb):
     return sum(a * b for a, b in zip(linear, (0.2126, 0.7152, 0.0722)))
 
 class ThemeTests(unittest.TestCase):
+    def test_unread_badges_in_the_bars_follow_the_accent(self):
+        # The stock tab bar / navigation bar badge is red; the BananaGram themes carry their own.
+        source = (ROOT/'submodules/TelegramPresentationData/Sources/MakePresentationTheme.swift').read_text(encoding='utf-8')
+        body = source.split('private func makeBananaGramTheme', 1)[1].split('return PresentationTheme(', 1)[0]
+        self.assertRegex(body, r'tabBar: theme\.rootController\.tabBar\.withUpdated\([^\n]*badgeBackgroundColor: accent[^\n]*badgeTextColor: onAccent')
+        self.assertRegex(body, r'navigationBar: theme\.rootController\.navigationBar\.withUpdated\([^\n]*badgeBackgroundColor: accent[^\n]*badgeTextColor: onAccent')
+    
     def test_text_contrast(self):
         source = (ROOT/'submodules/TelegramPresentationData/Sources/MakePresentationTheme.swift').read_text(encoding='utf-8')
         palette = {name: (int(dark,16), int(light,16)) for name,dark,light in re.findall(r'let (\w+) = UIColor\(rgb: dark \? (0x[0-9A-F]+) : (0x[0-9A-F]+)\)',source)}
