@@ -78,18 +78,16 @@ final class ChatGiftPreviewItem: ListViewItem, ItemListItem, ListItemComponentAd
     }
     
     func nodeConfiguredForParams(async: @escaping (@escaping () -> Void) -> Void, params: ListViewItemLayoutParams, synchronousLoads: Bool, previousItem: ListViewItem?, nextItem: ListViewItem?, completion: @escaping (ListViewItemNode, @escaping () -> (Signal<Void, NoError>?, (ListViewItemApply) -> Void)) -> Void) {
-        async {
+        Queue.mainQueue().async {
             let node = ChatGiftPreviewItemNode()
             let (layout, apply) = node.asyncLayout()(self, params, itemListNeighbors(item: self, topItem: previousItem as? ItemListItem, bottomItem: nextItem as? ItemListItem))
             
             node.contentSize = layout.contentSize
             node.insets = layout.insets
             
-            Queue.mainQueue().async {
-                completion(node, {
-                    return (nil, { _ in apply() })
-                })
-            }
+            completion(node, {
+                return (nil, { _ in apply() })
+            })
         }
     }
     
@@ -98,14 +96,10 @@ final class ChatGiftPreviewItem: ListViewItem, ItemListItem, ListItemComponentAd
             if let nodeValue = node() as? ChatGiftPreviewItemNode {
                 let makeLayout = nodeValue.asyncLayout()
                 
-                async {
-                    let (layout, apply) = makeLayout(self, params, itemListNeighbors(item: self, topItem: previousItem as? ItemListItem, bottomItem: nextItem as? ItemListItem))
-                    Queue.mainQueue().async {
-                        completion(layout, { _ in
-                            apply()
-                        })
-                    }
-                }
+                let (layout, apply) = makeLayout(self, params, itemListNeighbors(item: self, topItem: previousItem as? ItemListItem, bottomItem: nextItem as? ItemListItem))
+                completion(layout, { _ in
+                    apply()
+                })
             }
         }
     }
