@@ -1515,10 +1515,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .showProfileId(settings.showProfileId),
             .accentSaturation(settings.accentColorSaturation),
             .privacyFooter,
-            .hideAllChats(settings.hideAllChats),
-            .hideAllChatsFooter,
-            .rememberLastFolder(settings.rememberLastFolder),
-            .rememberLastFolderFooter,
+            // "Hide the All Chats tab" and "Remember last folder" are not listed: nothing reads them, so the switches did nothing.
         ]
         if UIDevice.current.userInterfaceIdiom != .pad {
             entries.append(.hideTabBar(settings.hideTabBar))

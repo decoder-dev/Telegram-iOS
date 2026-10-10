@@ -92,7 +92,11 @@ func convertEligibleMessagesToDeletedMarkers(transaction: Transaction, mediaBox:
 ///   (user interactive delete), always hard-remove — including existing markers.
 public func _internal_deleteMessages(transaction: Transaction, mediaBox: MediaBox, ids: [MessageId], deleteMedia: Bool = true, allowDeletedMarkers: Bool = true, manualAddMessageThreadStatsDifference: ((MessageThreadKey, Int, Int) -> Void)? = nil) {
     // Snapshot before any hard delete / conversion. Duplicates are deduped in MessageSavingStore.
-    MessageSavingBridge.snapshotDeletedMessages(transaction: transaction, messageIds: ids, mediaBox: mediaBox)
+    // A user's own interactive delete (allowDeletedMarkers == false) is not a deletion to preserve: it used to land in
+    // "View Deleted" although the bubble was removed for good.
+    if allowDeletedMarkers {
+        MessageSavingBridge.snapshotDeletedMessages(transaction: transaction, messageIds: ids, mediaBox: mediaBox)
+    }
 
     var hardDeleteIds = ids
     if allowDeletedMarkers {
