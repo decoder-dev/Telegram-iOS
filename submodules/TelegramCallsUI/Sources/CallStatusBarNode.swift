@@ -6,6 +6,7 @@ import SwiftSignalKit
 import TelegramCore
 import TelegramPresentationData
 import CallScreen
+import AvatarNode
 import TelegramUIPreferences
 import AccountContext
 import AnimatedCountLabelNode
@@ -54,7 +55,42 @@ private class CallStatusBarBackgroundNode: ASDisplayNode {
     var audioLevel: Float = 0.0  {
         didSet {
             self.maskCurveView.updateLevel(CGFloat(audioLevel))
+            self.updateBreath()
         }
+    }
+    
+    /// A soft light that rises from the bottom edge of the bar with the voice on the call, like the bar breathing in
+    /// time with the conversation. It rises quickly and falls slowly so speech reads as swells, not flicker, and it only
+    /// exists where the wave animations do (energy settings with full translucency).
+    private let breathLayer = CAGradientLayer()
+    private var smoothedLevel: Float = 0.0
+    var breathingEnabled: Bool = false {
+        didSet {
+            if self.breathingEnabled != oldValue {
+                if !self.breathingEnabled {
+                    self.smoothedLevel = 0.0
+                    self.breathLayer.opacity = 0.0
+                }
+            }
+        }
+    }
+    
+    private func updateBreath() {
+        guard self.breathingEnabled else {
+            return
+        }
+        let level = min(1.0, max(0.0, self.audioLevel))
+        self.smoothedLevel = level > self.smoothedLevel ? self.smoothedLevel + (level - self.smoothedLevel) * 0.7 : self.smoothedLevel * 0.82
+        CATransaction.begin()
+        CATransaction.setAnimationDuration(0.18)
+        CATransaction.setAnimationTimingFunction(CAMediaTimingFunction(name: .easeOut))
+        self.breathLayer.opacity = 0.06 + 0.64 * self.smoothedLevel
+        CATransaction.commit()
+    }
+    
+    private func updateBreathColors() {
+        let glow = self.palette.statusBarHighlight
+        self.breathLayer.colors = [glow.withAlphaComponent(0.0).cgColor, glow.withAlphaComponent(0.55).cgColor]
     }
     
     var connectingColor: UIColor = UIColor(rgb: 0xb6b6bb) {
@@ -79,6 +115,7 @@ private class CallStatusBarBackgroundNode: ASDisplayNode {
         didSet {
             if self.palette != oldValue {
                 self.updateGradientColors()
+                self.updateBreathColors()
             }
         }
     }
@@ -160,6 +197,12 @@ private class CallStatusBarBackgroundNode: ASDisplayNode {
         
         self.view.addSubview(self.foregroundView)
         self.foregroundView.layer.addSublayer(self.foregroundGradientLayer)
+        
+        self.breathLayer.startPoint = CGPoint(x: 0.5, y: 0.0)
+        self.breathLayer.endPoint = CGPoint(x: 0.5, y: 1.0)
+        self.breathLayer.opacity = 0.0
+        self.updateBreathColors()
+        self.view.layer.addSublayer(self.breathLayer)
     }
     
     override func layout() {
@@ -172,6 +215,7 @@ private class CallStatusBarBackgroundNode: ASDisplayNode {
             self.foregroundGradientLayer.frame = self.bounds
             self.maskCurveView.frame = self.bounds
         }
+        self.breathLayer.frame = self.bounds
         CATransaction.commit()
     }
     
@@ -220,6 +264,13 @@ public class CallStatusBarNodeImpl: CallStatusBarNode {
     private let subtitleNode: ImmediateAnimatedCountLabelNode
     private let speakerNode: ImmediateTextNode
     private var messageView: ComponentView<Empty>?
+    
+    /// The caller's avatar in the bar of a private call, ringed in the theme's highlight; the ring swells with their voice.
+    private var avatarNode: AvatarNode?
+    private let avatarRingLayer = CAShapeLayer()
+    private var avatarPeerId: EnginePeer.Id?
+    private static let avatarDiameter: CGFloat = 18.0
+    private static let avatarSpacing: CGFloat = 6.0
     
     private let audioLevelDisposable = MetaDisposable()
     private let stateDisposable = MetaDisposable()
@@ -292,6 +343,11 @@ public class CallStatusBarNodeImpl: CallStatusBarNode {
         if self.currentContent != content {
             self.currentContent = content
             self.backgroundNode.animationsEnabled = content.sharedContext.energyUsageSettings.fullTranslucency
+            if case .call = content {
+                self.backgroundNode.breathingEnabled = content.sharedContext.energyUsageSettings.fullTranslucency
+            } else {
+                self.backgroundNode.breathingEnabled = false
+            }
             if self.isCurrentlyInHierarchy {
                 self.update()
             }
@@ -305,6 +361,71 @@ public class CallStatusBarNodeImpl: CallStatusBarNode {
 
     private let callTextFont = Font.with(size: 13.0, design: .regular, weight: .regular, traits: [.monospacedNumbers])
     private let groupCallTextFont = Font.with(size: 13.0, design: .regular, weight: .regular, traits: [])
+    
+    /// Creates, updates or removes the caller's avatar and returns how much horizontal room it takes in front of the title
+    /// (zero when there is none). Only a private call has one; a group call's title already names the chat.
+    private func updateAvatar(verticalOrigin: CGFloat, contentHeight: CGFloat) -> CGFloat {
+        guard case let .call(_, _, call)? = self.currentContent, let peer = self.currentPeer, let presentationData = self.presentationData else {
+            if let avatarNode = self.avatarNode {
+                self.avatarNode = nil
+                self.avatarPeerId = nil
+                avatarNode.removeFromSupernode()
+                self.avatarRingLayer.removeFromSuperlayer()
+            }
+            return 0.0
+        }
+        let diameter = CallStatusBarNodeImpl.avatarDiameter
+        let avatarNode: AvatarNode
+        if let current = self.avatarNode {
+            avatarNode = current
+        } else {
+            avatarNode = AvatarNode(font: avatarPlaceholderFont(size: 8.0))
+            avatarNode.isUserInteractionEnabled = false
+            self.avatarNode = avatarNode
+            self.avatarPeerId = nil
+            self.addSubnode(avatarNode)
+            self.avatarRingLayer.fillColor = UIColor.clear.cgColor
+            self.avatarRingLayer.lineWidth = 1.5
+            self.view.layer.addSublayer(self.avatarRingLayer)
+        }
+        if self.avatarPeerId != peer.id {
+            self.avatarPeerId = peer.id
+            avatarNode.setPeer(context: call.context, theme: presentationData.theme, peer: peer, displayDimensions: CGSize(width: diameter, height: diameter))
+        }
+        self.avatarRingLayer.strokeColor = CallScreenPalette(theme: presentationData.theme).statusBarHighlight.cgColor
+        return diameter + CallStatusBarNodeImpl.avatarSpacing
+    }
+    
+    private func layoutAvatar(originX: CGFloat, verticalOrigin: CGFloat, contentHeight: CGFloat) {
+        guard let avatarNode = self.avatarNode else {
+            return
+        }
+        let diameter = CallStatusBarNodeImpl.avatarDiameter
+        let frame = CGRect(x: originX, y: verticalOrigin + floor((contentHeight - diameter) / 2.0), width: diameter, height: diameter)
+        avatarNode.frame = frame
+        // The ring sits just outside the avatar, a point clear of it.
+        let ringFrame = frame.insetBy(dx: -2.5, dy: -2.5)
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        // bounds + position, not `frame`: the ring carries a scale transform while the voice swells it.
+        self.avatarRingLayer.bounds = CGRect(origin: CGPoint(), size: ringFrame.size)
+        self.avatarRingLayer.position = CGPoint(x: ringFrame.midX, y: ringFrame.midY)
+        self.avatarRingLayer.path = UIBezierPath(ovalIn: CGRect(origin: CGPoint(), size: ringFrame.size).insetBy(dx: 0.75, dy: 0.75)).cgPath
+        CATransaction.commit()
+    }
+    
+    /// The ring brightens and swells a little with the caller's voice. Cheap: two layer properties, no layout.
+    private func updateAvatarRing(level: Float) {
+        guard self.avatarNode != nil, self.backgroundNode.breathingEnabled else {
+            return
+        }
+        let value = CGFloat(min(1.0, max(0.0, level)))
+        CATransaction.begin()
+        CATransaction.setAnimationDuration(0.15)
+        self.avatarRingLayer.opacity = Float(0.45 + 0.55 * value)
+        self.avatarRingLayer.transform = CATransform3DMakeScale(1.0 + 0.12 * value, 1.0 + 0.12 * value, 1.0)
+        CATransaction.commit()
+    }
     
     private func update() {
         guard let size = self.currentSize, let content = self.currentContent else {
@@ -329,6 +450,14 @@ public class CallStatusBarNodeImpl: CallStatusBarNode {
             switch content {
                 case let .call(sharedContext, account, call):
                     self.presentationData = sharedContext.currentPresentationData.with { $0 }
+                    // The bar follows a theme change made during the call, like the call screen does.
+                    self.presentationDataDisposable.set((sharedContext.presentationData
+                    |> deliverOnMainQueue).start(next: { [weak self] presentationData in
+                        if let strongSelf = self {
+                            strongSelf.presentationData = presentationData
+                            strongSelf.update()
+                        }
+                    }))
                     let callPeer = TelegramEngine(account: account).data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: call.peerId))
                     |> mapToSignal { peer -> Signal<EnginePeer, NoError> in
                         if let peer {
@@ -368,6 +497,7 @@ public class CallStatusBarNodeImpl: CallStatusBarNode {
                             return
                         }
                         strongSelf.backgroundNode.audioLevel = audioLevel
+                        strongSelf.updateAvatarRing(level: audioLevel)
                     }))
                 case let .groupCall(sharedContext, account, call):
                     self.presentationData = sharedContext.currentPresentationData.with { $0 }
@@ -666,18 +796,23 @@ public class CallStatusBarNodeImpl: CallStatusBarNode {
         let subtitleSize = self.subtitleNode.updateLayout(size: CGSize(width: 150.0, height: size.height), animated: true)
         let speakerSize = self.speakerNode.updateLayout(CGSize(width: 150.0, height: size.height))
         
+        let avatarOffset = self.updateAvatar(verticalOrigin: verticalOrigin, contentHeight: contentHeight)
+        
         var totalWidth = titleSize.width
         if totalWidth > 0.0 {
             totalWidth += spacing
         }
         totalWidth += subtitleSize.width
+        totalWidth += avatarOffset
         let horizontalOrigin: CGFloat = floor((size.width - totalWidth) / 2.0)
+        self.layoutAvatar(originX: horizontalOrigin, verticalOrigin: verticalOrigin, contentHeight: contentHeight)
+        let titleOriginX = horizontalOrigin + avatarOffset
         
         let sizeChanged = self.titleNode.frame.size.width != titleSize.width
         
         let transition: ContainedViewLayoutTransition = wasEmpty || sizeChanged ? .immediate : .animated(duration: 0.2, curve: .easeInOut)
-        transition.updateFrame(node: self.titleNode, frame: CGRect(origin: CGPoint(x: horizontalOrigin, y: verticalOrigin + floor((contentHeight - titleSize.height) / 2.0)), size: titleSize))
-        transition.updateFrame(node: self.subtitleNode, frame: CGRect(origin: CGPoint(x: horizontalOrigin + titleSize.width + spacing, y: verticalOrigin + floor((contentHeight - subtitleSize.height) / 2.0)), size: subtitleSize))
+        transition.updateFrame(node: self.titleNode, frame: CGRect(origin: CGPoint(x: titleOriginX, y: verticalOrigin + floor((contentHeight - titleSize.height) / 2.0)), size: titleSize))
+        transition.updateFrame(node: self.subtitleNode, frame: CGRect(origin: CGPoint(x: titleOriginX + titleSize.width + spacing, y: verticalOrigin + floor((contentHeight - subtitleSize.height) / 2.0)), size: subtitleSize))
         
         if displaySpeakerSubtitle {
             let speakerOriginX: CGFloat = title.isEmpty ? floor((size.width - speakerSize.width) / 2.0) : horizontalOrigin + titleSize.width + spacing

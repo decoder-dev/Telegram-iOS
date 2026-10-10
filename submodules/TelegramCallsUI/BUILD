@@ -82,6 +82,7 @@ swift_library(
         "//submodules/UndoUI:UndoUI",
         "//submodules/AudioBlob:AudioBlob",
         "//submodules/AnimatedAvatarSetNode:AnimatedAvatarSetNode",
+        "//submodules/AvatarNode:AvatarNode",
         "//submodules/AlertUI:AlertUI",
         "//submodules/DirectionalPanGesture:DirectionalPanGesture",
         "//submodules/AnimatedCountLabelNode:AnimatedCountLabelNode",

@@ -141,6 +141,12 @@ public struct CallScreenPalette: Equatable {
         return [UIColor(rgb: self.connecting[0]), UIColor(rgb: self.connecting[1])]
     }
     
+    /// A light tone of the theme for what is drawn over the status bar's gradient: the ring around the caller's avatar and the
+    /// glow that follows their voice. The connected colour pulled well towards white, so it stays visible on every palette.
+    public var statusBarHighlight: UIColor {
+        return UIColor(rgb: self.active[0]).mixedWith(UIColor(rgb: 0xFFFFFF), alpha: 0.7)
+    }
+    
     public var statusBarSpeaking: [UIColor] {
         return [UIColor(rgb: self.active[0]), UIColor(rgb: self.active[1])]
     }
