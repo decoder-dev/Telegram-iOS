@@ -1339,6 +1339,14 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         // `chatInputTextNode(shouldChangeTextIn:)`; the native editor never calls that delegate, so it fires
         // this hook instead (and gates out caret moves / programmatic content sets — see the node).
         richTextInputNode.onTypingActivity = { [weak self] in self?.updateActivity() }
+        richTextInputNode.onSoftwareReturn = { [weak self] in
+            // "Send with Return" in the native editor, as the legacy field does for a "\n" it is about to insert.
+            guard let self, let context = self.context, context.sharedContext.immediateForkExtrasSettings.sendWithReturnKey else {
+                return true
+            }
+            self.sendButtonPressed()
+            return false
+        }
         richTextInputNode.inputHitTestSlop = UIEdgeInsets(top: -5.0, left: -12.0, bottom: -5.0, right: -5.0)
         richTextInputNode.keyboardAppearance = keyboardAppearance
         richTextInputNode.inputTintColor = tintColor

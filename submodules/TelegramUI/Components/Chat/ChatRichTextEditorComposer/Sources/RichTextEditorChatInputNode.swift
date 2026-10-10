@@ -70,6 +70,9 @@ public final class RichTextEditorChatInputNode: ASDisplayNode, ChatRichTextInput
     /// ONLY on a genuine text edit — see the gating in `didLoad`. The legacy backend reports this via the
     /// `chatInputTextNode(shouldChangeTextIn:)` delegate, which this engine never calls; this is its replacement.
     public var onTypingActivity: (() -> Void)?
+    
+    /// On-screen Return: false when the panel sent the message ("Send with Return"), true to insert a paragraph break.
+    public var onSoftwareReturn: (() -> Bool)? { didSet { self.editorView.onSoftwareReturn = self.onSoftwareReturn } }
 
     /// fileId → the file-bearing custom-emoji attribute, harvested from each `attributedText` /
     /// `setInputContent` push. The editor hosts inline emoji by their `EmojiRef` fileId STRING only

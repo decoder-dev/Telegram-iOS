@@ -209,6 +209,10 @@ final class DocumentCanvasView: UIView {
     /// (e.g. sent the message) and the editor does nothing. The SOFTWARE keyboard's Return never triggers a
     /// keyCommand, so it always inserts a newline (there's a separate send button) — matching the legacy input.
     var onHardwareReturn: ((UIKeyModifierFlags) -> Bool)?
+    /// Asked before a Return from the on-screen keyboard inserts a paragraph break: true inserts it, false means the host
+    /// consumed the key (send-on-Return). The hardware Return goes through `onHardwareReturn` instead.
+    var onSoftwareReturn: (() -> Bool)?
+    var isPerformingHardwareReturn = false
 
     /// Interior content margins — interactable padding around the document, ADDED to the built-in
     /// `pageMargin`. Unlike the host's scroll insets (covered by chrome/keyboard, content scrolls under),
@@ -700,7 +704,11 @@ final class DocumentCanvasView: UIView {
     /// Ask the host first (send-on-Enter etc.). true (or no host) → insert a newline like a normal Return;
     /// false → the host consumed it (sent the message), so the editor does nothing.
     func performHardwareReturn(_ modifierFlags: UIKeyModifierFlags) {
-        if onHardwareReturn?(modifierFlags) ?? true { insertText("\n") }
+        if onHardwareReturn?(modifierFlags) ?? true {
+            isPerformingHardwareReturn = true
+            insertText("\n")
+            isPerformingHardwareReturn = false
+        }
     }
     @objc private func keyToggleBold() { toggleBold() }
     @objc private func keyToggleItalic() { toggleItalic() }

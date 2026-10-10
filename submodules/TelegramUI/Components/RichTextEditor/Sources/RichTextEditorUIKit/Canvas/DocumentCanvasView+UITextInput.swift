@@ -299,6 +299,9 @@ extension DocumentCanvasView: UIKeyInput {
     var hasText: Bool { documentSize > 0 }
 
     func insertText(_ text: String) {
+        if text == "\n", !isPerformingHardwareReturn, let onSoftwareReturn, !onSoftwareReturn() {
+            return
+        }
         imageObjectDeletePending = nil   // a non-delete edit cancels a pending structural-media delete
         // A committing keystroke while composing: replace the WHOLE marked range with `text`, then
         // finalize the composition as one undo step. (The system delivers a confirming char this way.)
