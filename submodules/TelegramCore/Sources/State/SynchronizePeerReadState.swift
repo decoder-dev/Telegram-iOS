@@ -180,11 +180,15 @@ private func validatePeerReadState(network: Network, postbox: Postbox, stateMana
         // A secret chat has no Api.InputPeer, so there is no dialog to read an authoritative
         // read state from: every step below fails at inputPeer and asks to retry, forever.
         // Treat it like a peer the server reports no dialog for, which is already confirmed
-        // rather than retried.
+        // rather than retried. This does discard a validation that a detected inconsistency
+        // asked for - a hole among deleted unread messages, an undercount - without
+        // recounting, so a wrong unread badge survives until something else corrects it. A
+        // local recount is the honest answer, since for a secret chat the client is the
+        // authority; the loop this replaces recounted nothing either.
         return confirmSynchronized(postbox: postbox, peerId: peerId)
         |> ignoreValues
     }
-    
+
     let readStateWithInitialState = dialogReadState(network: network, postbox: postbox, peerId: peerId)
     
     let maybeAppliedReadState = readStateWithInitialState
@@ -251,19 +255,25 @@ private func validatePeerReadState(network: Network, postbox: Postbox, stateMana
 
 private func pushPeerReadState(network: Network, postbox: Postbox, stateManager: AccountStateManager, peerId: PeerId, readState: PeerReadState) -> Signal<PeerReadState, PeerReadStateValidationError> {
     if peerId.namespace == Namespaces.Peer.SecretChat {
-        // Decide whether a request is needed before looking the peer up.
+        // Decide whether a request is needed before looking the peer up: inputSecretChat goes
+        // through loadedPeerWithId, which never emits when the peer row is missing and fails
+        // with .retry when it is not a TelegramSecretChat. Either would strand or respin an
+        // operation that has already been decided against.
         guard case let .indexBased(maxIncomingReadIndex, _, _, _) = readState else {
             return .single(readState)
         }
-        // The marker is still at MessageIndex.lowerBound while nothing has been read. Its zero
-        // date is not one the server accepts (MAX_DATE_INVALID), and there is nothing to report.
+        // The marker is still at MessageIndex.lowerBound while nothing has been read, and
+        // several paths schedule a push without moving it - marking the chat unread, or a
+        // bare .Push that no read state change accompanied. Its zero date is not one the
+        // server accepts: it answers MAX_DATE_INVALID, and there is nothing to report.
         if maxIncomingReadIndex.timestamp <= 0 {
             return .single(readState)
         }
         return inputSecretChat(postbox: postbox, peerId: peerId)
         |> mapToSignal { inputPeer -> Signal<PeerReadState, PeerReadStateValidationError> in
             // A rejected push must not be retried: the operation is only cleared once it
-            // succeeds, so a permanent rejection would loop without end.
+            // succeeds, so a permanent rejection would loop without end. The cloud branches
+            // below drop their errors the same way.
             return network.request(Api.functions.messages.readEncryptedHistory(peer: inputPeer, maxDate: maxIncomingReadIndex.timestamp))
             |> `catch` { _ -> Signal<Api.Bool, NoError> in
                 return .complete()
@@ -391,7 +401,7 @@ private func pushPeerReadState(network: Network, postbox: Postbox, stateManager:
         } else {
             // No read state to push, so the verification below never runs and would never
             // confirm. Completing on its own leaves the persisted operation in place for the
-            // manager to pick straight back up.
+            // manager to pick straight back up - the same unbounded restart this guards.
             return confirmSynchronized(postbox: postbox, peerId: peerId)
             |> mapToSignal { _ -> Signal<(MessageId.Namespace, PeerReadState), PeerReadStateValidationError> in
                 return .complete()
