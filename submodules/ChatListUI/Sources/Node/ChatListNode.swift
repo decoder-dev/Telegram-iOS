@@ -3426,6 +3426,16 @@ public final class ChatListNode: ListViewImpl {
         }
     }
     
+    /// Rebuilds every row with the current layout settings (compact list), without waiting for a theme or language change.
+    public func refreshItemLayout() {
+        let current = self.currentState.presentationData
+        self.updateState { state in
+            var state = state
+            state.presentationData = ChatListPresentationData(theme: current.theme, fontSize: current.fontSize, strings: current.strings, dateTimeFormat: current.dateTimeFormat, nameSortOrder: current.nameSortOrder, nameDisplayOrder: current.nameDisplayOrder, disableAnimations: current.disableAnimations)
+            return state
+        }
+    }
+    
     public func updateState(_ f: (ChatListNodeState) -> ChatListNodeState) {
         let state = f(self.currentState)
         if state != self.currentState {

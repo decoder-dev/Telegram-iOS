@@ -16,6 +16,7 @@ import EdgeEffect
 import ComponentDisplayAdapters
 
 final class ChatListContainerItemNode: ASDisplayNode {
+    private var compactLayoutObserver: NSObjectProtocol?
     private final class TopPanelItem {
         let view = ComponentView<Empty>()
         var size: CGSize?
@@ -230,6 +231,10 @@ final class ChatListContainerItemNode: ASDisplayNode {
             })
         }
         
+        self.compactLayoutObserver = NotificationCenter.default.addObserver(forName: ForkExtrasHotFlags.compactLayoutDidChangeNotification, object: nil, queue: .main, using: { [weak self] _ in
+            self?.listNode.refreshItemLayout()
+        })
+        
         if case let .forum(peerId) = location {
             self.peerDataDisposable = (context.engine.data.subscribe(
                 TelegramEngine.EngineData.Item.Peer.StatusSettings(id: peerId)
@@ -253,6 +258,9 @@ final class ChatListContainerItemNode: ASDisplayNode {
     }
     
     deinit {
+        if let compactLayoutObserver = self.compactLayoutObserver {
+            NotificationCenter.default.removeObserver(compactLayoutObserver)
+        }
         self.pollFilterUpdatesDisposable?.dispose()
         self.chatFilterUpdatesDisposable?.dispose()
         self.peerDataDisposable?.dispose()

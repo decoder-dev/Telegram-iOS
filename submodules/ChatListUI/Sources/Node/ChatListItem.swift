@@ -1151,6 +1151,9 @@ private let telegramCodeRegex = try? NSRegularExpression(pattern: "(?<=: )\\b\\d
 private let loginCodeRegex = try? NSRegularExpression(pattern: "\\b\\d{5,8}\\b", options: [])
 
 public class ChatListItemNode: ItemListRevealOptionsItemNode {
+    /// How much smaller the avatar is in the compact chat list.
+    static let compactAvatarDivisor: CGFloat = 1.3
+    
     final class TopicItemNode: ASDisplayNode {
         let topicTitleNode: TextNode
         let titleTopicIconView: ComponentHostView<Empty>?
@@ -2123,6 +2126,9 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
             }
             
             var avatarDiameter = min(52.0, floor(item.presentationData.fontSize.baseDisplaySize * 52.0 / 17.0))
+            if ForkExtrasHotFlags.compactChatList {
+                avatarDiameter = floor(avatarDiameter / ChatListItemNode.compactAvatarDivisor)
+            }
             
             if case let .peer(peerData) = item.content, let customMessageListData = peerData.customMessageListData, customMessageListData.commandPrefix != nil {
                 avatarDiameter = 40.0
@@ -2689,6 +2695,9 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
             
             // if changed, adjust setupItem accordingly
             var avatarDiameter = min(52.0, floor(item.presentationData.fontSize.baseDisplaySize * 52.0 / 17.0))
+            if compactChatList {
+                avatarDiameter = floor(avatarDiameter / ChatListItemNode.compactAvatarDivisor)
+            }
             let higChatListCardInset: CGFloat = {
                 if !useChatListLayout || item.useCommunityViewLayout || item.interaction.isInlineMode {
                     return 0.0
@@ -2788,6 +2797,10 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
             var inlineAuthorPrefix: String?
             var useInlineAuthorPrefix = false
             if case .groupReference = item.content {
+                useInlineAuthorPrefix = true
+            }
+            // A compact row has one line of text, so the author goes in front of it instead of on a line of its own.
+            if compactChatList {
                 useInlineAuthorPrefix = true
             }
             if !itemTags.isEmpty {
@@ -3859,7 +3872,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
             }
             badgeSize = max(badgeSize, reorderInset)
             
-            if !itemTags.isEmpty {
+            if !itemTags.isEmpty || (compactChatList && !hasDraft) {
                 authorAttributedString = nil
             }
             
@@ -3966,7 +3979,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
             let (textLayout, textApply) = textLayout(TextNodeLayoutArguments(
                 attributedString: textAttributedString,
                 backgroundColor: nil,
-                maximumNumberOfLines: (!compactMessagePreview && authorAttributedString == nil && itemTags.isEmpty && forumThread == nil && topForumTopicItems.isEmpty) ? 2 : 1,
+                maximumNumberOfLines: (!compactChatList && !compactMessagePreview && authorAttributedString == nil && itemTags.isEmpty && forumThread == nil && topForumTopicItems.isEmpty) ? 2 : 1,
                 truncationType: .end,
                 constrainedSize: CGSize(width: textMaxWidth, height: .greatestFiniteMagnitude),
                 alignment: .natural,
@@ -4194,7 +4207,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
             
             let titleSpacing: CGFloat = -1.0
             let authorSpacing: CGFloat = -3.0
-            var itemHeight: CGFloat = (compactChatList ? 6.0 : 10.0) * 2.0 + 1.0
+            var itemHeight: CGFloat = 10.0 * 2.0 + 1.0
             itemHeight -= 21.0
             if case let .peer(peerData) = item.content, let customMessageListData = peerData.customMessageListData, customMessageListData.commandPrefix != nil {
                 itemHeight += measureLayout.size.height * 2.0
@@ -4207,6 +4220,10 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
             }
             // HIG: interactive rows are at least 44 pt; regular chat rows match the ~76 pt mockup (52 pt avatar + 12 pt padding).
             // Compact / overlay rows still have to clear the avatar, or the 52 pt circle clips the 44 pt min height.
+            if compactChatList, case let .peer(peerData) = item.content, peerData.customMessageListData == nil {
+                // One line of title and one of text, with the padding of the regular row.
+                itemHeight = titleLayout.size.height + measureLayout.size.height + titleSpacing + 21.0 - 3.0
+            }
             itemHeight = max(itemHeight, 44.0)
             itemHeight = max(itemHeight, avatarDiameter + 8.0)
             if !compactChatList, case let .peer(peerData) = item.content, peerData.customMessageListData == nil {

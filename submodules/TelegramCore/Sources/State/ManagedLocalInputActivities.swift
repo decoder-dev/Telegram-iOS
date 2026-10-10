@@ -184,8 +184,14 @@ public enum ForkExtrasHotFlags {
         return state.with { $0 }
     }
 
+    /// Posted when a setting that changes the size of chat list rows changes, so open lists rebuild their rows.
+    public static let compactLayoutDidChangeNotification = Notification.Name("ForkExtrasHotFlags.compactLayoutDidChange")
+
     public static func update(_ next: State) {
-        let _ = state.swap(next)
+        let previous = state.swap(next)
+        if previous.compactChatList != next.compactChatList || previous.compactMessagePreview != next.compactMessagePreview {
+            NotificationCenter.default.post(name: compactLayoutDidChangeNotification, object: nil)
+        }
     }
 
     public static var hideAds: Bool {
