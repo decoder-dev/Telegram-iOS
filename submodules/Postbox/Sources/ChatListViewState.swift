@@ -12,6 +12,17 @@ enum ChatListViewSpacePinned {
             return true
         }
     }
+    
+    /// The index a table entry is keyed by inside a space with this mode. A space that
+    /// shows pinned chats as unpinned is keyed by the index with the pinning stripped.
+    func spaceIndex(for index: ChatListIndex) -> ChatListIndex {
+        switch self {
+        case .includePinnedAsUnpinned:
+            return ChatListIndex(pinningIndex: nil, messageIndex: index.messageIndex)
+        case .notPinned, .includePinned:
+            return index
+        }
+    }
 }
 
 enum ChatListViewSpace: Hashable {
@@ -669,7 +680,7 @@ private final class ChatListViewSpaceState {
                                     if self.orderedEntries.indicesForPeerId(peer.id) == nil {
                                         switch entry {
                                         case let .message(index, messageIndex):
-                                            if self.add(entry: .IntermediateMessageEntry(index: index, messageIndex: messageIndex)) {
+                                            if self.add(entry: .IntermediateMessageEntry(index: pinned.spaceIndex(for: index), messageIndex: messageIndex)) {
                                                 hasUpdates = true
                                             } else {
                                                 hasUpdates = true
@@ -923,7 +934,7 @@ private final class ChatListViewSpaceState {
                                     if self.orderedEntries.indicesForPeerId(peer.id) == nil {
                                         switch entry {
                                         case let .message(index, messageIndex):
-                                            if self.add(entry: .IntermediateMessageEntry(index: index, messageIndex: messageIndex)) {
+                                            if self.add(entry: .IntermediateMessageEntry(index: pinned.spaceIndex(for: index), messageIndex: messageIndex)) {
                                                 hasUpdates = true
                                             } else {
                                                 hasUpdates = true
