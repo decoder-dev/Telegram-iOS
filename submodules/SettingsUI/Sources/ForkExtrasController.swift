@@ -784,7 +784,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         [65, 66],
         [67, 68],
         [69],
-        [1508, 1509, 1510, 1511, 1512, 1513, 1514, 1515, 1516, 1517, 1518],
+        [1508, 1509, 1510, 1511, 1512, 1513, 1514, 1515, 1516, 1517, 1518, 1519, 1520],
         [1603, 1500, 1501, 57]
     ]
 
@@ -1575,6 +1575,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(1516, ForkPresentationLanguage.prefersRussianStrings ? "Останавливать после кружка" : "Stop after a round video", settings.stopAfterRoundVideo, \.stopAfterRoundVideo),
             .appearanceToggle(1517, ForkPresentationLanguage.prefersRussianStrings ? "Без приветственного стикера" : "No greeting sticker", settings.hideGreetingSticker, \.hideGreetingSticker),
             .appearanceToggle(1518, ForkPresentationLanguage.prefersRussianStrings ? "Хэштег ищет в этом чате" : "Hashtags search this chat", settings.hashtagsPreferCurrentChat, \.hashtagsPreferCurrentChat),
+            .appearanceToggle(1519, ForkPresentationLanguage.prefersRussianStrings ? "Дата оригинала у пересланных" : "Original date on forwards", settings.showOriginalForwardDate, \.showOriginalForwardDate),
+            .appearanceToggle(1520, ForkPresentationLanguage.prefersRussianStrings ? "Запрещённые GIF как видео" : "Send banned GIFs as video", settings.sendBannedGifsAsVideo, \.sendBannedGifsAsVideo),
             .appearanceToggle(1501, ForkExtrasLocalizedString.string(forKey: "ForkExtras.ReactionGlow"), settings.reactionGlowEnabled, \.reactionGlowEnabled),
             .appearanceToggle(1502, ForkExtrasLocalizedString.string(forKey: "ForkExtras.ContactsTab"), settings.showContactsTab, \.showContactsTab),
             .callsTab(showCallsTab),
