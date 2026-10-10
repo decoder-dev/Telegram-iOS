@@ -405,32 +405,33 @@ func messageMediaEditingOptions(message: EngineRawMessage) -> MessageMediaEditin
     }
     
     var options: MessageMediaEditingOptions = []
+    // The media class the server files a grouped item under: a photo or a (non-animated) video belongs to a
+    // photo/video album, any other document to a file album.
+    var isPhotoOrVideo = false
     
     for media in message.media {
         if let _ = media as? TelegramMediaImage {
+            isPhotoOrVideo = true
             options.formUnion([.imageOrVideo, .file])
         } else if let file = media as? TelegramMediaFile {
+            if file.isVideo && !file.isAnimated {
+                isPhotoOrVideo = true
+            }
             for attribute in file.attributes {
                 switch attribute {
                     case .Sticker:
                         return []
-                    case .Animated:
-                        break
                     case let .Video(_, _, flags, _, _, _):
                         if flags.contains(.instantRoundVideo) {
                             return []
-                        } else {
-                            options.formUnion([.imageOrVideo, .file])
                         }
                     case let .Audio(isVoice, _, _, _, _):
                         if isVoice {
                             return []
-                        } else {
-                            if let _ = message.groupingKey {
-                                return []
-                            } else {
-                                options.formUnion([.imageOrVideo, .file])
-                            }
+                        }
+                        // Album audio cannot be replaced piecemeal.
+                        if let _ = message.groupingKey {
+                            return []
                         }
                     default:
                         break
@@ -441,7 +442,8 @@ func messageMediaEditingOptions(message: EngineRawMessage) -> MessageMediaEditin
     }
     
     if message.groupingKey != nil {
-        options.remove(.file)
+        // An album holds one kind of media, so a replacement must stay in that kind.
+        options.remove(isPhotoOrVideo ? .file : .imageOrVideo)
     }
     
     return options
