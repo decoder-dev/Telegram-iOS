@@ -148,8 +148,42 @@
     }] startOn:[MTTcpConnection tcpQueue]];
 }
 
++ (void)_startBackoffRoundOf:(MTSignal *)signal delay:(NSTimeInterval)delay maxDelay:(NSTimeInterval)maxDelay queue:(MTQueue *)queue subscriber:(MTSubscriber *)subscriber currentDisposable:(MTMetaDisposable *)currentDisposable isDisposed:(MTAtomic *)isDisposed
+{
+    if ([[isDisposed value] boolValue]) {
+        return;
+    }
+    NSTimeInterval nextDelay = MIN(delay * 2.0, maxDelay);
+    MTSignal *round = [signal then:[[MTSignal complete] delay:delay onQueue:queue]];
+    // The recursion happens from the delay timer's completion, so it never grows the stack,
+    // and the meta disposable disposes immediately if the outer subscription went away meanwhile.
+    [currentDisposable setDisposable:[round startWithNext:^(id next) {
+        [subscriber putNext:next];
+    } error:^(id error) {
+        [subscriber putError:error];
+    } completed:^{
+        [self _startBackoffRoundOf:signal delay:nextDelay maxDelay:maxDelay queue:queue subscriber:subscriber currentDisposable:currentDisposable isDisposed:isDisposed];
+    }]];
+}
+
+// Re-runs `signal` after it completes, waiting `initialDelay` before the second run and doubling
+// the wait each time up to `maxDelay`. Values pass straight through; `take:` to stop.
++ (MTSignal *)repeatSignal:(MTSignal *)signal withBackoffFrom:(NSTimeInterval)initialDelay upTo:(NSTimeInterval)maxDelay onQueue:(MTQueue *)queue
+{
+    return [[MTSignal alloc] initWithGenerator:^id<MTDisposable>(MTSubscriber *subscriber) {
+        MTAtomic *isDisposed = [[MTAtomic alloc] initWithValue:@false];
+        MTMetaDisposable *currentDisposable = [[MTMetaDisposable alloc] init];
+        [self _startBackoffRoundOf:signal delay:initialDelay maxDelay:maxDelay queue:queue subscriber:subscriber currentDisposable:currentDisposable isDisposed:isDisposed];
+        return [[MTBlockDisposable alloc] initWithBlock:^{
+            [isDisposed swap:@true];
+            [currentDisposable dispose];
+        }];
+    }];
+}
+
 + (MTSignal *)discoverSchemeWithContext:(MTContext *)context datacenterId:(NSInteger)datacenterId addressList:(NSArray *)addressList media:(bool)media isProxy:(bool)isProxy
 {
+    MTSocksProxySettings *proxySettings = context.apiEnvironment.socksProxySettings;
     NSMutableArray *bestAddressList = [[NSMutableArray alloc] init];
     
     for (MTDatacenterAddress *address in addressList)
@@ -161,6 +195,27 @@
     
     if (bestAddressList.count == 0 && media)
         [bestAddressList addObjectsFromArray:addressList];
+
+    if (proxySettings != nil && proxySettings.secret != nil) {
+        // An MTProxy chooses the datacenter from the obfuscated header and ignores the address,
+        // so every probe through it lands in the same place: N probes carry the information of
+        // one, and each is a connection opened through the proxy. Probe one address, IPv4 first.
+        MTDatacenterAddress *chosen = nil;
+        for (MTDatacenterAddress *address in bestAddressList) {
+            if (![self isIpv6:address.ip]) {
+                chosen = address;
+                break;
+            }
+        }
+        if (chosen == nil) {
+            chosen = bestAddressList.firstObject;
+        }
+        [bestAddressList removeAllObjects];
+        if (chosen != nil) {
+            [bestAddressList addObject:chosen];
+        }
+    }
+
     
     NSMutableArray *bestTcp4Signals = [[NSMutableArray alloc] init];
     NSMutableArray *bestTcp6Signals = [[NSMutableArray alloc] init];
@@ -197,7 +252,8 @@
             }];
             [bestTcp4Signals addObject:signal];
             
-            NSArray *alternatePorts = @[@80, @5222];
+            // The alternate ports exist to get past local port filtering, which a proxy already does.
+            NSArray *alternatePorts = proxySettings != nil ? @[] : @[@80, @5222];
             for (NSNumber *nPort in alternatePorts) {
                 NSSet *ipsWithPort = tcpIpsByPort[nPort];
                 if (![ipsWithPort containsObject:address.ip]) {
@@ -216,12 +272,15 @@
         }
     }
     
-    MTSignal *repeatDelaySignal = [[MTSignal complete] delay:1.0 onQueue:[MTQueue concurrentDefaultQueue]];
+    // A round that finds nothing used to be retried after a fixed second, forever; while the network
+    // or the proxy is down that is a probe per address every few seconds without end. The pause now
+    // doubles from 1 s to a 15 s cap, and restarts from 1 s whenever discovery is restarted.
+    MTQueue *retryQueue = [MTQueue concurrentDefaultQueue];
     MTSignal *optimalDelaySignal = [[MTSignal complete] delay:30.0 onQueue:[MTQueue concurrentDefaultQueue]];
     
-    MTSignal *firstTcp4Match = [[[[MTSignal mergeSignals:bestTcp4Signals] then:repeatDelaySignal] restart] take:1];
-    MTSignal *firstTcp6Match = [[[[MTSignal mergeSignals:bestTcp6Signals] then:repeatDelaySignal] restart] take:1];
-    MTSignal *firstHttpMatch = [[[[MTSignal mergeSignals:bestHttpSignals] then:repeatDelaySignal] restart] take:1];
+    MTSignal *firstTcp4Match = [[self repeatSignal:[MTSignal mergeSignals:bestTcp4Signals] withBackoffFrom:1.0 upTo:15.0 onQueue:retryQueue] take:1];
+    MTSignal *firstTcp6Match = [[self repeatSignal:[MTSignal mergeSignals:bestTcp6Signals] withBackoffFrom:1.0 upTo:15.0 onQueue:retryQueue] take:1];
+    MTSignal *firstHttpMatch = [[self repeatSignal:[MTSignal mergeSignals:bestHttpSignals] withBackoffFrom:1.0 upTo:15.0 onQueue:retryQueue] take:1];
     
     MTSignal *optimalTcp4Match = [[[[MTSignal mergeSignals:bestTcp4Signals] then:optimalDelaySignal] restart] take:1];
     MTSignal *optimalTcp6Match = [[[[MTSignal mergeSignals:bestTcp6Signals] then:optimalDelaySignal] restart] take:1];

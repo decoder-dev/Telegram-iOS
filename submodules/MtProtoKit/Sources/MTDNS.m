@@ -271,57 +271,6 @@
     }];
 }
 
-+ (MTSignal *)resolveHostname:(NSString *)hostname {
-    return [[MTSignal alloc] initWithGenerator:^id<MTDisposable>(MTSubscriber *subscriber) {
-        NSString *cached = [self cachedIp:hostname];
-        if (cached != nil) {
-            [subscriber putNext:cached];
-            [subscriber putCompletion];
-            return nil;
-        }
-        NSDictionary *headers = @{@"Host": @"dns.google.com"};
-        
-        return [[[MTHttpRequestOperation dataForHttpUrl:[NSURL URLWithString:[NSString stringWithFormat:@"https://google.com/resolve?name=%@", hostname]] headers:headers] mapToSignal:^MTSignal *(MTHttpResponse *response) {
-            NSData *data = response.data;
-            
-            NSDictionary *dict = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
-            if ([dict respondsToSelector:@selector(objectForKey:)]) {
-                NSArray *answer = dict[@"Answer"];
-                if ([answer respondsToSelector:@selector(objectAtIndex:)]) {
-                    for (NSDictionary *item in answer) {
-                        if ([item respondsToSelector:@selector(objectForKey:)]) {
-                            NSString *itemData = item[@"data"];
-                            if ([itemData respondsToSelector:@selector(characterAtIndex:)]) {
-                                bool isIp = true;
-                                struct in_addr ip4;
-                                struct in6_addr ip6;
-                                if (inet_aton(itemData.UTF8String, &ip4) == 0) {
-                                    if (inet_pton(AF_INET6, itemData.UTF8String, &ip6) == 0) {
-                                        isIp = false;
-                                    }
-                                }
-                                if (isIp) {
-                                    [self cacheIp:hostname ip:itemData];
-                                    return [MTSignal single:itemData];
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            [subscriber putNext:hostname];
-            [subscriber putCompletion];
-            return nil;
-        }] startWithNext:^(id next) {
-            [subscriber putNext:next];
-            [subscriber putCompletion];
-        } error:^(id error) {
-            [subscriber putNext:hostname];
-            [subscriber putCompletion];
-        } completed:nil];
-    }];
-}
-
 + (MTSignal *)resolveHostnameNative:(NSString *)hostname port:(int32_t)port {
     return [[MTDNSContext shared] mapToSignal:^MTSignal *(MTDNSContext *context) {
         return [[MTSignal alloc] initWithGenerator:^id<MTDisposable>(MTSubscriber *subscriber) {
@@ -334,7 +283,14 @@
 }
 
 + (MTSignal *)resolveHostnameUniversal:(NSString *)hostname port:(int32_t)port {
-    return [[self resolveHostname:hostname] timeout:10.0 onQueue:[MTQueue concurrentDefaultQueue] orSignal:[self resolveHostnameNative:hostname port:port]];
+    // This used to race the native lookup against an HTTPS query to https://google.com/resolve
+    // (a spoofed Host header). That endpoint answers 404, the status was never checked and only
+    // successes were cached, so every connection through a hostname proxy paid one dead HTTPS
+    // round trip; with an unreachable proxy that meant hundreds per push in the notification
+    // extension. The native lookup coalesces concurrent callers and retries until it succeeds;
+    // the 10 s bound keeps the old fallback of handing the socket the bare hostname. take:1
+    // keeps a late native answer from reaching the connection as a second address.
+    return [[[self resolveHostnameNative:hostname port:port] timeout:10.0 onQueue:[MTQueue concurrentDefaultQueue] orSignal:[MTSignal single:hostname]] take:1];
 }
 
 @end

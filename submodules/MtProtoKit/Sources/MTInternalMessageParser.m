@@ -663,20 +663,28 @@
 
 + (NSData *)readBytes:(NSData *)data skippingLength:(NSUInteger)skipLength
 {
+    // The wrapper comes straight off the wire: every length is checked before it is used for slicing.
     NSUInteger offset = skipLength;
+    if (offset >= data.length)
+        return nil;
     
     uint8_t tmp = 0;
     [data getBytes:&tmp range:NSMakeRange(offset, 1)];
     offset += 1;
     
-    int32_t length = tmp;
+    NSUInteger length = tmp;
     if (length == 254)
     {
-        length = 0;
-        [data getBytes:((uint8_t *)&length) + 1 range:NSMakeRange(offset, 3)];
+        if (data.length - offset < 3)
+            return nil;
+        uint8_t lengthBytes[3];
+        [data getBytes:lengthBytes range:NSMakeRange(offset, 3)];
         offset += 3;
-        length >>= 8;
+        length = ((NSUInteger)lengthBytes[0]) | (((NSUInteger)lengthBytes[1]) << 8) | (((NSUInteger)lengthBytes[2]) << 16);
     }
+    
+    if (length > data.length - offset)
+        return nil;
     
     return [data subdataWithRange:NSMakeRange(offset, length)];
 }
@@ -713,7 +721,9 @@
         return nil;
     }
     
-    result = [NSMutableData dataWithCapacity:(length * 4)];
+    // Untrusted input: never reserve or produce more than the ceiling.
+    const NSUInteger kMaxUnpackedLength = 32 * 1024 * 1024;
+    result = [NSMutableData dataWithCapacity:MIN(length * 4, kMaxUnpackedLength)];
     do
     {
         stream.avail_out = kMemoryChunkSize;
@@ -727,7 +737,14 @@
         }
         gotBack = kMemoryChunkSize - stream.avail_out;
         if (gotBack > 0)
+        {
+            if (result.length + gotBack > kMaxUnpackedLength)
+            {
+                inflateEnd(&stream);
+                return nil;
+            }
             [result appendBytes:output length:gotBack];
+        }
     } while( retCode == Z_OK);
     inflateEnd(&stream);
     
@@ -745,11 +762,11 @@
     if (signature == (int32_t)0x3072cfa1)
     {
         NSData *packedData = [self readBytes:data skippingLength:4];
-        if (packedData != nil)
-        {
-            NSData *unpackedData = [self decompressGZip:packedData];
-            return unpackedData;
-        }
+        if (packedData == nil)
+            return nil;
+        
+        NSData *unpackedData = [self decompressGZip:packedData];
+        return unpackedData;
     }
     
     return data;

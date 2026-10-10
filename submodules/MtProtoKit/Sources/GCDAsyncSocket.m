@@ -2419,7 +2419,7 @@ enum GCDAsyncSocketConfig
     if (_useTcpNodelay || true)
     {
         int flag = 1;
-        setsockopt(socketFD, SOL_SOCKET, TCP_NODELAY, &flag, sizeof(flag));
+        setsockopt(socketFD, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag));
     }
 
     // Bound how long a blocking `connect()` can hold its thread.

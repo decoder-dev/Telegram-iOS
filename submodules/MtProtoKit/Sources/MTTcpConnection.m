@@ -1910,8 +1910,8 @@ struct ctr_state {
         
         if ((length & 0x80000000) == 0x80000000) {
             int32_t ackId = length;
+            // Intermediate framing echoes the little-endian token as-is; only abridged byte-swaps it.
             ackId &= ((uint32_t)0xffffffff ^ (uint32_t)(((uint32_t)1) << 31));
-            ackId = (int32_t)OSSwapInt32(ackId);
             
             id<MTTcpConnectionDelegate> delegate = _delegate;
             if ([delegate respondsToSelector:@selector(tcpConnectionReceivedQuickAck:quickAck:)])
@@ -1990,7 +1990,6 @@ struct ctr_state {
                     int32_t ackId = 0;
                     [packetData getBytes:&ackId range:NSMakeRange(4, 4)];
                     ackId &= ((uint32_t)0xffffffff ^ (uint32_t)(((uint32_t)1) << 31));
-                    ackId = (int32_t)OSSwapInt32(ackId);
                     
                     id<MTTcpConnectionDelegate> delegate = _delegate;
                     if ([delegate respondsToSelector:@selector(tcpConnectionReceivedQuickAck:quickAck:)]) {

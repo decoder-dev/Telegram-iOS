@@ -7,6 +7,7 @@
 - (bool)readBytes:(void *)bytes length:(NSUInteger)length;
 - (bool)readInt32:(int32_t *)value;
 - (bool)readInt64:(int64_t *)value;
+- (NSData *)readData:(NSUInteger)length;
 - (NSData *)readRest;
 
 @end
