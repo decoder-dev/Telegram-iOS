@@ -110,9 +110,13 @@ private func canEditMessage(accountPeerId: EnginePeer.Id, limitsConfiguration: E
                     hasEditRights = true
                 }
             case .group:
-                if peer.hasPermission(.pinMessages) {
-                    unlimitedInterval = true
+                // Sent as the group by an anonymous admin. Only the sender's copy is outgoing; the
+                // pin right lifts the time limit, as it does for the admin's own messages.
+                if !message.flags.contains(.Incoming) {
                     hasEditRights = true
+                    if peer.hasPermission(.pinMessages) {
+                        unlimitedInterval = true
+                    }
                 }
             }
         }
