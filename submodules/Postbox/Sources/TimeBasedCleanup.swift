@@ -98,6 +98,7 @@ private final class TempScanDatabase {
         
         while true {
             var lastKey: ValueBoxKey?
+            var stopped = false
             self.valueBox.range(self.accessTimeTable, start: startKey, end: endKey, values: { key, value in
                 var result = true
                 withExtendedLifetime(value, {
@@ -117,9 +118,19 @@ private final class TempScanDatabase {
                 })
                 
                 lastKey = key
+                if !result {
+                    stopped = true
+                }
                 
                 return result
             }, limit: 512)
+            
+            // A `false` from `f` ends the whole walk, not just the current page. The
+            // eviction closure unlinks every file it is handed before it re-checks the
+            // limit, so resuming from `lastKey` would delete the rest of the cache.
+            if stopped {
+                break
+            }
             
             if let lastKey = lastKey {
                 startKey = lastKey
