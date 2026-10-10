@@ -208,6 +208,36 @@ jobs:
           # The iOS 27 SDK libc++ rejects deployment targets below iOS 15.
           sed -i '' 's/^minimum_os_version = "13.0"/minimum_os_version = "15.0"/' Telegram/BUILD
           grep -n '^minimum_os_version' Telegram/BUILD
+          # The iOS 27 SDK refuses to launch an app without a scene manifest. The app builds its own window, so the
+          # manifest only registers TelegramSceneDelegate (submodules/TelegramUI/Sources/SceneDelegate.swift), which
+          # hands the scene to AppDelegate. Other toolchains keep the plist as it is.
+          python3 - <<'PY'
+          path = 'Telegram/BUILD'
+          text = open(path, encoding='utf-8').read()
+          marker = '    <key>UILaunchStoryboardName</key>\n'
+          assert text.count(marker) == 1, "launch storyboard key not found exactly once"
+          manifest = (
+              '    <key>UIApplicationSceneManifest</key>\n'
+              '    <dict>\n'
+              '        <key>UIApplicationSupportsMultipleScenes</key>\n'
+              '        <false/>\n'
+              '        <key>UISceneConfigurations</key>\n'
+              '        <dict>\n'
+              '            <key>UIWindowSceneSessionRoleApplication</key>\n'
+              '            <array>\n'
+              '                <dict>\n'
+              '                    <key>UISceneConfigurationName</key>\n'
+              '                    <string>Default Configuration</string>\n'
+              '                    <key>UISceneDelegateClassName</key>\n'
+              '                    <string>TelegramSceneDelegate</string>\n'
+              '                </dict>\n'
+              '            </array>\n'
+              '        </dict>\n'
+              '    </dict>\n'
+          )
+          open(path, 'w', encoding='utf-8').write(text.replace(marker, manifest + marker))
+          print("scene manifest added to Telegram/BUILD")
+          PY
           # Keep Swift diagnostic groups that are new in Xcode 27 as warnings (the BUILD files use -warnings-as-errors).
           python3 - <<'PY'
           import os, re

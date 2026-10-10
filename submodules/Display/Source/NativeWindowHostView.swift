@@ -195,7 +195,8 @@ private final class WindowRootViewController: UIViewController, UIWindowSceneDel
             self._systemUserInterfaceStyle.set(.light)
         }
         
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
+        // A scene manifest installs its own delegate, which receives the open-URL and shortcut callbacks; keep it.
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene, windowScene.delegate == nil {
             windowScene.delegate = self
         }
     }

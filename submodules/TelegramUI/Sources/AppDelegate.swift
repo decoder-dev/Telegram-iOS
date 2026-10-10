@@ -94,8 +94,13 @@ private class ApplicationStatusBarHost: StatusBarHost {
         self.scene = scene
     }
     
+    // With a scene manifest the host is created in `didFinishLaunching`, before any scene is connected.
+    private var currentScene: UIWindowScene? {
+        return self.scene ?? (UIApplication.shared.connectedScenes.first as? UIWindowScene)
+    }
+    
     var isApplicationInForeground: Bool {
-        guard let scene = self.scene else {
+        guard let scene = self.currentScene else {
             return false
         }
         switch scene.activationState {
@@ -113,7 +118,7 @@ private class ApplicationStatusBarHost: StatusBarHost {
     }
     
     var statusBarFrame: CGRect {
-        guard let scene = self.scene else {
+        guard let scene = self.currentScene else {
             return CGRect()
         }
         return scene.statusBarManager?.statusBarFrame ?? CGRect()
@@ -2694,6 +2699,28 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             } else {
                 return .complete()
             }
+        }
+    }
+    
+    /// Scene adoption (required by the iOS 27 SDK). The window is built in `didFinishLaunching`, before UIKit has
+    /// connected a scene, so the scene delegate hands it over here. Once the app is scene based UIKit stops calling the
+    /// application-level open-URL, user-activity and shortcut callbacks, so what arrived with the scene is routed to them.
+    func attach(toScene scene: UIWindowScene, connectionOptions: UIScene.ConnectionOptions) {
+        if let window = self.window {
+            if window.windowScene !== scene {
+                window.windowScene = scene
+            }
+            window.makeKeyAndVisible()
+        }
+        let application = UIApplication.shared
+        for context in connectionOptions.urlContexts {
+            let _ = self.application(application, open: context.url, options: [:])
+        }
+        for activity in connectionOptions.userActivities {
+            let _ = self.application(application, continue: activity, restorationHandler: { _ in })
+        }
+        if let shortcutItem = connectionOptions.shortcutItem {
+            self.application(application, performActionFor: shortcutItem, completionHandler: { _ in })
         }
     }
     
