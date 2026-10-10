@@ -65,13 +65,16 @@ final class MediaBoxFileMap {
                     throw FileMapError.generic
                 }
                 
-                if count < 0 || length < 4 + 4 + 4 + 8 + count * 2 * 8 {
+                // `count` comes straight from the file; size the payload in 64-bit arithmetic,
+                // since `count * 2 * 8` in Int32 overflows (and traps) for large counts.
+                let payloadLength: Int64 = 8 + Int64(count) * 2 * 8
+                if length < 4 + 4 + 4 + payloadLength {
                     throw FileMapError.generic
                 }
                 
                 var truncationSizeValue: Int64 = 0
                 
-                var data = Data(count: Int(8 + count * 2 * 8))
+                var data = Data(count: Int(payloadLength))
                 let dataCount = data.count
                 if !(data.withUnsafeMutableBytes { rawBytes -> Bool in
                     let bytes = rawBytes.baseAddress!.assumingMemoryBound(to: UInt8.self)
