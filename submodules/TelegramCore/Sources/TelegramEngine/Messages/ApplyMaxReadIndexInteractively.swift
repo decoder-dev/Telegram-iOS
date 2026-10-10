@@ -9,7 +9,23 @@ func _internal_applyMaxReadIndexInteractively(postbox: Postbox, stateManager: Ac
         _internal_applyMaxReadIndexInteractively(transaction: transaction, stateManager: stateManager, index: index)
     }
 }
-    
+
+/// Applies a read from a caller that has only a message id and no `MessageIndex` - a
+/// notification action or a Siri intent.
+///
+/// Never applies to a secret chat: reading there starts every message's autoremove
+/// countdown and sends read receipts for messages the user never opened, and an invented
+/// zero-date index would become the chat's read marker, which the server rejects.
+func _internal_applyMaxReadMessageIdInteractively(postbox: Postbox, stateManager: AccountStateManager, messageId: MessageId) -> Signal<Void, NoError> {
+    return postbox.transaction { transaction -> Void in
+        guard messageId.peerId.namespace != Namespaces.Peer.SecretChat else {
+            return
+        }
+        let index = transaction.getMessage(messageId)?.index ?? MessageIndex(id: messageId, timestamp: 0)
+        _internal_applyMaxReadIndexInteractively(transaction: transaction, stateManager: stateManager, index: index)
+    }
+}
+
 func _internal_applyMaxReadIndexInteractively(transaction: Transaction, stateManager: AccountStateManager, index: MessageIndex) {
     if ForkGhostModeSettings.shouldSuppressMessageReads {
         if bananaApplyGhostLocalRead(transaction: transaction, accountPeerId: stateManager.accountPeerId, index: index) {
