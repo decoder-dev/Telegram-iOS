@@ -884,7 +884,7 @@ public final class AccountContextImpl: AccountContext {
                     return
                 }
                 let presentationData = strongSelf.sharedContext.currentPresentationData.with { $0 }
-                strongSelf.sharedContext.mainWindow?.present(textAlertController(context: strongSelf, title: nil, text: "Call \(peer.compactDisplayTitle)?", actions: [
+                strongSelf.sharedContext.mainWindow?.present(textAlertController(context: strongSelf, title: nil, text: ForkPresentationLanguage.prefersRussianStrings ? "Позвонить: «\(peer.compactDisplayTitle)»?" : "Call \(peer.compactDisplayTitle)?", actions: [
                     TextAlertAction(type: .genericAction, title: presentationData.strings.Common_Cancel, action: {}),
                     TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {
                         guard let strongSelf = self else {

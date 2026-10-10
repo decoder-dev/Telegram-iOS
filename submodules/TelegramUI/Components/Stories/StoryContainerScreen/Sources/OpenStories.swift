@@ -21,11 +21,11 @@ public extension StoryContainerScreen {
             return
         }
         let presentationData = context.sharedContext.currentPresentationData.with { $0 }
-        let languageCode = (Locale.preferredLanguages.first ?? "en").prefix(2).lowercased()
+        let languageCode = String(presentationData.strings.primaryComponent.languageCode.prefix(2)).lowercased()
         let title: String
         let text: String
         let openTitle: String
-        if languageCode == "ru" {
+        if ["ru", "uk", "be"].contains(languageCode) {
             title = "Режим призрака"
             text = "Открыть историю? Просмотр может быть замечен, если не включено «Не читать истории»."
             openTitle = "Открыть"
