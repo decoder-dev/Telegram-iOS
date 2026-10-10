@@ -10,6 +10,14 @@ def luminance(rgb):
     return sum(a * b for a, b in zip(linear, (0.2126, 0.7152, 0.0722)))
 
 class ThemeTests(unittest.TestCase):
+    def test_primary_controls_and_chat_title_use_the_foreground(self):
+        # The glass bars draw the chat title and their buttons with panelControlColor; the stock themes use full-strength
+        # white / black there, so a dimmed value turns the nickname grey.
+        source = (ROOT/'submodules/TelegramPresentationData/Sources/MakePresentationTheme.swift').read_text(encoding='utf-8')
+        body = source.split('private func makeBananaGramTheme', 1)[1].split('return PresentationTheme(', 1)[0]
+        self.assertIn('panelControlColor: foreground', body)
+        self.assertNotIn('panelControlColor: secondary', body)
+    
     def test_unread_badges_in_the_bars_follow_the_accent(self):
         # The stock tab bar / navigation bar badge is red; the BananaGram themes carry their own.
         source = (ROOT/'submodules/TelegramPresentationData/Sources/MakePresentationTheme.swift').read_text(encoding='utf-8')
