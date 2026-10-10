@@ -3947,6 +3947,20 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                 }
             }
 
+            // A compact row has a single line of text under the title. The topic (or community source) line of a forum,
+            // which would be drawn as a second line and clipped by the row, goes in front of the message instead.
+            if compactChatList, !forumThreads.isEmpty {
+                if let textAttributedStringValue = textAttributedString {
+                    let mutableTextAttributedString = NSMutableAttributedString()
+                    mutableTextAttributedString.append(NSAttributedString(string: forumThreads[0].title.string + ": ", font: textFont, textColor: theme.authorNameColor))
+                    mutableTextAttributedString.append(textAttributedStringValue)
+                    textAttributedString = mutableTextAttributedString
+                }
+                forumThreads = []
+                authorTopicArrowColor = nil
+                isFirstForumThreadSelectable = false
+            }
+            
             let (authorLayout, authorApply) = authorLayout(item.context, rawContentWidth - badgeSize, item.presentationData.theme, effectiveAuthorTitle, forumThreads, authorTopicArrowColor)
             
             var textBottomRightCutout: CGFloat = 0.0
@@ -4798,7 +4812,8 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                     strongSelf.statusNode.fontSize = item.presentationData.fontSize.itemListBaseFontSize
                     let _ = strongSelf.statusNode.transitionToState(statusState, animated: animateContent)
                     
-                    let rightAccessoryVerticalOffset: CGFloat = floorToScreenPixels(-4.0 * min(1.0, item.presentationData.fontSize.itemListBaseFontSize / 17.0))
+                    // The compact row is shorter, so the badge sits below the date instead of overlapping it.
+                    let rightAccessoryVerticalOffset: CGFloat = compactChatList ? 2.0 : floorToScreenPixels(-4.0 * min(1.0, item.presentationData.fontSize.itemListBaseFontSize / 17.0))
                     var nextBadgeX: CGFloat = contentRect.maxX
                     if let _ = currentBadgeBackgroundImage {
                         let badgeFrame = CGRect(x: nextBadgeX - badgeLayout.width, y: contentRect.maxY - badgeLayout.height + rightAccessoryVerticalOffset, width: badgeLayout.width, height: badgeLayout.height)
