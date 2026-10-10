@@ -1207,29 +1207,19 @@ private final class NotificationServiceHandler {
                             // payloads omit it, which previously skipped the filter entirely.
                             let categoryString = (aps["category"] as? String) ?? ""
                             let locKey = ((payloadJson["loc-key"] as? String) ?? "").uppercased()
-                            let alertTitle = ((aps["alert"] as? [String: Any])?["title"] as? String)?.uppercased() ?? ""
-                            let alertBody = ((aps["alert"] as? [String: Any])?["body"] as? String)?.uppercased()
-                                ?? (aps["alert"] as? String)?.uppercased()
-                                ?? ""
+                            // Only the push's own type is consulted. The old check also searched the title and body for
+                            // "mention" / "закреп", which are the sender's name and the text of the message, so an ordinary
+                            // message containing one of those words was hidden.
                             let looksMention = locKey.contains("MENTION")
-                                || locKey.contains("MENTIONED")
                                 || payloadJson["mention"] != nil
                                 || payloadJson["mentioned"] as? Bool == true
-                                || alertTitle.contains("MENTION")
-                                || alertBody.contains("MENTION")
-                                || alertTitle.contains("УПОМЯН")
-                                || alertBody.contains("УПОМЯН")
                             let looksPinned = locKey.contains("PINNED") || locKey.contains("PIN_")
                                 || categoryString.lowercased().contains("pin")
-                                || alertTitle.contains("PINNED")
-                                || alertBody.contains("PINNED")
-                                || alertTitle.contains("ЗАКРЕП")
-                                || alertBody.contains("ЗАКРЕП")
-                            if looksMention && ForkExtrasNotificationBridge.hideMentionNotifications {
-                                completed()
-                                return
-                            }
-                            if looksPinned && ForkExtrasNotificationBridge.hidePinnedNotifications {
+                            if (looksMention && ForkExtrasNotificationBridge.hideMentionNotifications) || (looksPinned && ForkExtrasNotificationBridge.hidePinnedNotifications) {
+                                // Completing without content hands the original push back, so the generic notification
+                                // still appeared. An empty content is what the system treats as "nothing to show" (fully
+                                // hidden where the notification filtering entitlement is present).
+                                updateCurrentContent(NotificationContent(isLockedMessage: nil))
                                 completed()
                                 return
                             }
