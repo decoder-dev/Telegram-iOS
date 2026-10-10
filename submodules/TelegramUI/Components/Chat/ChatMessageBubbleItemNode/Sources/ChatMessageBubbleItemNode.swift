@@ -5755,6 +5755,9 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
         guard isOwn else {
             return false
         }
+        if let canSetupEditMessage = item.controllerInteraction.canSetupEditMessage, !canSetupEditMessage(message.id) {
+            return false
+        }
         item.controllerInteraction.setupEditMessage(message.id)
         return true
     }

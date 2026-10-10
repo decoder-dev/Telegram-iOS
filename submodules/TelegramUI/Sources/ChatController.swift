@@ -5983,6 +5983,13 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         controllerInteraction.enableFullTranslucency = context.sharedContext.energyUsageSettings.fullTranslucency
         
         self.controllerInteraction = controllerInteraction
+        controllerInteraction.canSetupEditMessage = { [weak self] messageId in
+            guard let self, let message = self.chatDisplayNode.historyNode.messageInCurrentHistoryView(messageId)?._asMessage() else {
+                return false
+            }
+            let limits = self.context.currentLimitsConfiguration.with { EngineConfiguration.Limits($0) }
+            return canEditMessage(context: self.context, limitsConfiguration: limits, message: message)
+        }
         
         self.navigationBar?.allowsCustomTransition = { [weak self] in
             guard let strongSelf = self else {
