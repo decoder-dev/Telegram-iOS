@@ -129,6 +129,7 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
         private static var nextAttempt: UInt64 = 0
         private var attempt: UInt64 = 0
         private var isCountedInFlight: Bool = false
+        private var connectStartUptime: Double = 0.0
 
         /// Kept only so the log lines can name the endpoint.
         ///
@@ -319,6 +320,7 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
                 return
             }
             self.isCountedInFlight = true
+            self.connectStartUptime = ProcessInfo.processInfo.systemUptime
             Impl.inFlightConnectCount += 1
             Logger.shared.log("Network", "NW connect starting to \(self.endpointDescription), \(Impl.inFlightConnectCount) in flight (attempt \(self.attempt))")
             
@@ -341,6 +343,7 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
             case .ready:
                 if self.isReady { return }
                 self.isReady = true
+                Logger.shared.log("Network", "NW connect ready to \(self.endpointDescription) in \(Int((ProcessInfo.processInfo.systemUptime - self.connectStartUptime) * 1000.0)) ms (attempt \(self.attempt))")
                 Impl.endpointHealth.succeeded(endpoint: self.endpointHealthKey)
                 if let path = self.connection?.currentPath {
                     if path.usesInterfaceType(.cellular) {
@@ -364,6 +367,9 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
                 }
                 self.processReadRequests()
             case let .failed(error):
+                // The log used to say only that a connection started, so a retry loop could not be told apart from
+                // a refused, reset or silently dropped one.
+                Logger.shared.log("Network", "NW connect failed to \(self.endpointDescription) after \(Int((ProcessInfo.processInfo.systemUptime - self.connectStartUptime) * 1000.0)) ms: \(error) (attempt \(self.attempt))")
                 if self.isCountedInFlight {
                     Impl.endpointHealth.failed(endpoint: self.endpointHealthKey, attempt: self.attempt, now: ProcessInfo.processInfo.systemUptime)
                 }
