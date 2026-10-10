@@ -6,6 +6,8 @@ import TelegramCore
 import TelegramPresentationData
 import LocalizedPeerData
 import AccountContext
+import TelegramUIPreferences
+import TelegramStringFormatting
 import AvatarNode
 import TextLoadingEffect
 import SwiftSignalKit
@@ -278,13 +280,13 @@ public class ChatMessageForwardInfoNode: ASDisplayNode {
         }
     }
     
-    public static func asyncLayout(_ maybeNode: ChatMessageForwardInfoNode?) -> (_ context: AccountContext, _ presentationData: ChatPresentationData, _ strings: PresentationStrings, _ type: ChatMessageForwardInfoType, _ peer: EnginePeer?, _ authorName: String?, _ psaType: String?, _ storyData: StoryData?, _ constrainedSize: CGSize) -> (CGSize, (CGFloat) -> ChatMessageForwardInfoNode) {
+    public static func asyncLayout(_ maybeNode: ChatMessageForwardInfoNode?) -> (_ context: AccountContext, _ presentationData: ChatPresentationData, _ strings: PresentationStrings, _ type: ChatMessageForwardInfoType, _ peer: EnginePeer?, _ authorName: String?, _ psaType: String?, _ storyData: StoryData?, _ originalDate: Int32?, _ constrainedSize: CGSize) -> (CGSize, (CGFloat) -> ChatMessageForwardInfoNode) {
         let titleNodeLayout = TextNode.asyncLayout(maybeNode?.titleNode)
         let nameNodeLayout = TextNode.asyncLayout(maybeNode?.nameNode)
         
         let previousPeer = maybeNode?.previousPeer
         
-        return { context, presentationData, strings, type, peer, authorName, psaType, storyData, constrainedSize in
+        return { context, presentationData, strings, type, peer, authorName, psaType, storyData, originalDate, constrainedSize in
             let originalPeer = peer
             let peer = peer ?? previousPeer
             
@@ -405,6 +407,13 @@ public class ChatMessageForwardInfoNode: ASDisplayNode {
                 }
             }
             
+            // forwardInfo.date is the original message's creation time, not the forwarding time.
+            var showOriginalDate = false
+            if storyData == nil, psaType == nil, let originalDate, originalDate > 0, let author = authorString, context.sharedContext.immediateForkExtrasSettings.showOriginalForwardDate {
+                showOriginalDate = true
+                authorString = author + ", " + stringForMediumDate(timestamp: originalDate, strings: presentationData.strings, dateTimeFormat: presentationData.dateTimeFormat)
+            }
+            
             var currentCredibilityIconImage: UIImage?
             var highlight = true
             if let peer = peer {
@@ -472,7 +481,7 @@ public class ChatMessageForwardInfoNode: ASDisplayNode {
             
             var nameLayoutAndApply: (TextNodeLayout, () -> TextNode)?
             if let authorString {
-                nameLayoutAndApply = nameNodeLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: authorString, font: peer != nil ? peerFont : prefixFont, textColor: titleColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: constrainedSize.width - credibilityIconWidth - infoWidth - authorAvatarInset, height: constrainedSize.height), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+                nameLayoutAndApply = nameNodeLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: authorString, font: peer != nil ? peerFont : prefixFont, textColor: titleColor), backgroundColor: nil, maximumNumberOfLines: showOriginalDate ? 2 : 1, truncationType: .end, constrainedSize: CGSize(width: constrainedSize.width - credibilityIconWidth - infoWidth - authorAvatarInset, height: constrainedSize.height), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             }
             
             let titleAuthorSpacing: CGFloat = 0.0
