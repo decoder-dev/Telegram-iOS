@@ -1215,9 +1215,9 @@ func peerInfoScreenData(
                     var currentValue: TelegramUserPresence? = nil
                     var updateManager: QueueLocalObject<PeerPresenceStatusManager>? = nil
                 }
-                let manager = Atomic<Manager>(value: Manager())
+                let statusManager = Atomic<Manager>(value: Manager())
                 let notify: () -> Void = {
-                    let data = manager.with { manager -> PeerInfoStatusData? in
+                    let data = statusManager.with { manager -> PeerInfoStatusData? in
                         if let presence = manager.currentValue {
                             let timestamp = CFAbsoluteTimeGetCurrent() + NSTimeIntervalSince1970
                             let (text, isActivity) = stringAndActivityForUserPresence(strings: strings, dateTimeFormat: dateTimeFormat, presence: EnginePeer.Presence(presence), relativeTo: Int32(timestamp), expanded: true)
@@ -1272,7 +1272,7 @@ func peerInfoScreenData(
                         if case let .presence(value) = inputData {
                             presence = value
                         }
-                        let _ = manager.with { manager -> Void in
+                        let _ = statusManager.with { manager -> Void in
                             manager.currentValue = presence
                             if let presence = presence {
                                 let updateManager: QueueLocalObject<PeerPresenceStatusManager>
@@ -1282,8 +1282,18 @@ func peerInfoScreenData(
                                     updateManager = QueueLocalObject<PeerPresenceStatusManager>(queue: .mainQueue(), generate: {
                                         return PeerPresenceStatusManager(update: {
                                             notify()
+                                            // The refresh timer fires once: schedule the next tick so the text keeps moving on.
+                                            statusManager.with { manager in
+                                                if let presence = manager.currentValue {
+                                                    manager.updateManager?.with { updateManager in
+                                                        updateManager.reset(presence: EnginePeer.Presence(presence))
+                                                    }
+                                                }
+                                            }
                                         })
                                     })
+                                    // Keep the manager alive: otherwise it is released at once and its timer never fires.
+                                    manager.updateManager = updateManager
                                 }
                                 updateManager.with { updateManager in
                                     updateManager.reset(presence: EnginePeer.Presence(presence))
@@ -1295,7 +1305,12 @@ func peerInfoScreenData(
                         notify()
                     }
                 })
-                return disposable
+                return ActionDisposable {
+                    disposable.dispose()
+                    statusManager.with { manager in
+                        manager.updateManager = nil
+                    }
+                }
             }
             |> distinctUntilChanged
             

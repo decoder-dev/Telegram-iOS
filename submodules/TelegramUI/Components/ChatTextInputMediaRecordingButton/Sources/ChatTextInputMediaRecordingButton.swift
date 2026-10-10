@@ -527,6 +527,11 @@ public final class ChatTextInputMediaRecordingButton: TGModernConversationInputM
     }
     
     public func micButtonInteractionLocked() {
+        // A lock ends the slide to cancel, so the finger's drift to the left no longer counts. The base class reports the
+        // reset only from `animateLock`, which it skips until the button has animated in; a round video locked by a quick
+        // flick up gets there first, and "Cancel" stayed faded out for the whole recording. It is set without
+        // `updateCancelTranslation`: the panel may be locking from inside its own layout.
+        self.cancelTranslation = 0.0
         self.updateLocked(true)
     }
     

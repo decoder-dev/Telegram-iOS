@@ -4,8 +4,10 @@ import TelegramCore
 import TelegramUIPreferences
 import AccountContext
 
-public let maximumNumberOfAccounts = 3
-public let maximumPremiumNumberOfAccounts = 4
+// The account capacity does not depend on Premium status.
+public let maximumForkNumberOfAccounts = 500
+public let maximumNumberOfAccounts = maximumForkNumberOfAccounts
+public let maximumPremiumNumberOfAccounts = maximumForkNumberOfAccounts
 
 public func activeAccountsAndPeers(context: AccountContext, includePrimary: Bool = false) -> Signal<((AccountContext, EnginePeer)?, [(AccountContext, EnginePeer, Int32)]), NoError> {
     let sharedContext = context.sharedContext
