@@ -12,7 +12,27 @@ import GeneratedSources
 import WidgetItems
 import TelegramUIPreferences
 
+/// The account the extension opened for an earlier request. The process outlives a single
+/// request, and opening an account costs time Siri does not give us, so it is kept - but only
+/// while it is still the account the app has current (see `usableAccountRecordId`). Read and
+/// written on the main queue only.
 private var accountCache: Account?
+
+/// The account record the extension may answer from: the app's current record, unless that
+/// record has been logged out. Logging out marks the record before the app moves its
+/// selection, so a request in that window, or a cached account opened for that record, must
+/// not read or send with the revoked session.
+private func usableAccountRecordId(_ record: AccountRecord<TelegramAccountManagerTypes.Attribute>?) -> AccountRecordId? {
+    guard let record = record else {
+        return nil
+    }
+    for attribute in record.attributes {
+        if case .loggedOut = attribute {
+            return nil
+        }
+    }
+    return record.id
+}
 
 private var installedSharedLogger = false
 
@@ -136,8 +156,12 @@ class DefaultIntentHandler: INExtension, INSendMessageIntentHandling, INSearchFo
         let encryptionParameters = ValueBoxEncryptionParameters(forceEncryptionIfNoSet: false, key: encryptionKey, salt: encryptionSalt)
         self.encryptionParameters = encryptionParameters
 
-        self.allAccounts.set(accountManager.accountRecords()
+        // One read of the account records serves both the account list and the choice of the
+        // account to answer from.
+        let accountRecords = accountManager.accountRecords()
         |> take(1)
+
+        self.allAccounts.set(accountRecords
         |> map { view -> [(AccountRecordId, PeerId, Bool)] in
             var result: [(AccountRecordId, Int, PeerId, Bool)] = []
             for record in view.records {
@@ -176,11 +200,26 @@ class DefaultIntentHandler: INExtension, INSendMessageIntentHandling, INSearchFo
             }
         })
         
-        let account: Signal<Account?, NoError>
-        if let accountCache = accountCache {
-            account = .single(accountCache)
-        } else {
-            account = currentAccount(allocateIfNotExists: false, networkArguments: NetworkInitializationArguments(apiId: apiId, apiHash: apiHash, languagesCategory: languagesCategory, appVersion: appVersion, voipMaxLayer: 0, voipVersions: [], appData: .single(buildConfig.bundleData(withAppToken: nil, tokenType: nil, tokenEnvironment: nil, signatureDict: nil)), externalRequestVerificationStream: .never(), externalRecaptchaRequestVerification: { _, _ in return .never() }, autolockDeadine: .single(nil), encryptionProvider: OpenSSLEncryptionProvider(), deviceModelName: nil, useBetaFeatures: !buildConfig.isAppStoreBuild, isICloudEnabled: false), supplementary: true, manager: accountManager, rootPath: rootPath, auxiliaryMethods: accountAuxiliaryMethods, encryptionParameters: encryptionParameters)
+        let account: Signal<Account?, NoError> = accountRecords
+        |> map { view in
+            return usableAccountRecordId(view.currentRecord)
+        }
+        |> deliverOnMainQueue
+        |> mapToSignal { currentRecordId -> Signal<Account?, NoError> in
+            if let accountCache = accountCache, accountCache.id == currentRecordId {
+                return .single(accountCache)
+            }
+            if let previous = accountCache {
+                // The app switched accounts (or logged this one out): the account opened for
+                // the previous record must not stay connected from the extension while the
+                // new one is opened beside it.
+                previous.shouldBeServiceTaskMaster.set(.single(.never))
+                accountCache = nil
+            }
+            guard currentRecordId != nil else {
+                return .single(nil)
+            }
+            return currentAccount(allocateIfNotExists: false, networkArguments: NetworkInitializationArguments(apiId: apiId, apiHash: apiHash, languagesCategory: languagesCategory, appVersion: appVersion, voipMaxLayer: 0, voipVersions: [], appData: .single(buildConfig.bundleData(withAppToken: nil, tokenType: nil, tokenEnvironment: nil, signatureDict: nil)), externalRequestVerificationStream: .never(), externalRecaptchaRequestVerification: { _, _ in return .never() }, autolockDeadine: .single(nil), encryptionProvider: OpenSSLEncryptionProvider(), deviceModelName: nil, useBetaFeatures: !buildConfig.isAppStoreBuild, isICloudEnabled: false), supplementary: true, manager: accountManager, rootPath: rootPath, auxiliaryMethods: accountAuxiliaryMethods, encryptionParameters: encryptionParameters)
             |> mapToSignal { account -> Signal<Account?, NoError> in
                 if let account = account {
                     switch account {
