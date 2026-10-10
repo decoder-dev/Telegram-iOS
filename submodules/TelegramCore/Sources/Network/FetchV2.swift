@@ -192,6 +192,10 @@ private final class FetchImpl {
                     Logger.shared.log("FetchV2", "\(loggingIdentifier): not decrypting part \(offset) ..< \(offset + data.count) (decryptedSize == 0)")
                     return nil
                 }
+                if self.aesKey.count != 32 || self.aesIv.count != 32 {
+                    Logger.shared.log("FetchV2", "\(loggingIdentifier): not decrypting part \(offset) ..< \(offset + data.count) (invalid key/iv length: key=\(self.aesKey.count) iv=\(self.aesIv.count))")
+                    return nil
+                }
                 if decryptedData.count % 16 != 0 {
                     Logger.shared.log("FetchV2", "\(loggingIdentifier): not decrypting part \(offset) ..< \(offset + data.count) (decryptedData.count % 16 != 0)")
                 }
@@ -605,7 +609,15 @@ private final class FetchImpl {
                     excludedInHigherPriorities.subtract(filteredRequiredRanges[i])
                 }
                 
-                if state.pendingParts.count < state.maxPendingParts && state.pendingReadyParts.count < state.maxPendingParts {
+                var maxPendingParts = state.maxPendingParts
+                if self.knownSize == nil && state.completedRanges.isEmpty {
+                    // With an unknown size, a small resource would otherwise be requested at several
+                    // offsets past its end. Keep a single part in flight until the size is known or
+                    // the first part has completed.
+                    maxPendingParts = 1
+                }
+                
+                if state.pendingParts.count < maxPendingParts && state.pendingReadyParts.count < state.maxPendingParts {
                     var debugRangesString = ""
                     for priorityIndex in 0 ..< 3 {
                         if filteredRequiredRanges[priorityIndex].isEmpty {
@@ -633,7 +645,7 @@ private final class FetchImpl {
                         Logger.shared.log("FetchV2", "\(self.loggingIdentifier): will fetch \(debugRangesString)")
                     }
                     
-                    while state.pendingParts.count < state.maxPendingParts && state.pendingReadyParts.count < state.maxPendingParts {
+                    while state.pendingParts.count < maxPendingParts && state.pendingReadyParts.count < state.maxPendingParts {
                         var found = false
                         inner: for i in 0 ..< filteredRequiredRanges.count {
                             let priorityIndex = (state.nextRangePriorityIndex + i) % filteredRequiredRanges.count
