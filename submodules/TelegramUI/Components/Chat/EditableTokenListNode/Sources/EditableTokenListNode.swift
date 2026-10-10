@@ -110,7 +110,14 @@ private final class TokenNode: ASDisplayNode {
         switch token.subject {
         case let .peer(peer):
             self.addSubnode(self.avatarNode)
-            self.avatarNode.setPeer(context: context, theme: theme, peer: peer)
+            // The token is titled "Saved Messages" / "Replies" for these peers, so draw those icons too.
+            var overrideImage: AvatarNodeImageOverride?
+            if peer.id == context.account.peerId {
+                overrideImage = .savedMessagesIcon
+            } else if peer.id.isReplies {
+                overrideImage = .repliesIcon
+            }
+            self.avatarNode.setPeer(context: context, theme: theme, peer: peer, overrideImage: overrideImage)
         case let .category(image):
             self.addSubnode(self.categoryAvatarNode)
             self.categoryAvatarNode.image = image

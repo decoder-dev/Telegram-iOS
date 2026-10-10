@@ -427,6 +427,10 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
     }
     var canReadHistoryDisposable: Disposable?
     var computedCanReadHistoryPromise = ValuePromise<Bool>(false, ignoreRepeated: true)
+    // Screen-capture reporting must not follow canReadHistoryValue: that is also cleared while
+    // sheets and context menus are shown over a still-visible chat, which let a secret-chat
+    // screenshot go unreported. Visibility is traceVisibility()'s job.
+    private var isApplicationInForegroundValue = true
     
     var chatThemeAndDarkAppearancePreviewPromise = Promise<(ChatTheme?, Bool?)>((nil, nil))
     var didSetPresentationData = false
@@ -6944,6 +6948,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         self.applicationInForegroundDisposable = (context.sharedContext.applicationBindings.applicationInForeground
         |> distinctUntilChanged
         |> deliverOn(Queue.mainQueue())).startStrict(next: { [weak self] value in
+            self?.isApplicationInForegroundValue = value
             if let strongSelf = self, strongSelf.isNodeLoaded {
                 if !value {
                     strongSelf.saveInterfaceState()
@@ -7886,10 +7891,8 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                     // AyuGram: skip capture detection entirely when secret screenshots are allowed.
                     if !ForkSecretScreenshotSettings.allow {
                         self.screenCaptureManager = ScreenCaptureDetectionManager(check: { [weak self] in
-                            if let strongSelf = self, strongSelf.traceVisibility() {
-                                if strongSelf.canReadHistoryValue {
-                                    let _ = strongSelf.context.engine.messages.addSecretChatMessageScreenshot(peerId: peerId).startStandalone()
-                                }
+                            if let strongSelf = self, strongSelf.isApplicationInForegroundValue, strongSelf.traceVisibility() {
+                                let _ = strongSelf.context.engine.messages.addSecretChatMessageScreenshot(peerId: peerId).startStandalone()
                                 return true
                             } else {
                                 return false

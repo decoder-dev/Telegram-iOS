@@ -1567,20 +1567,39 @@ public class ChatMessageRichDataBubbleContentNode: ChatMessageBubbleContentNode 
     override public func updateSearchTextHighlightState(text: String?, messages: [EngineMessage.Index]?) {
     }
     
-    override public func willUpdateIsExtractedToContextPreview(_ value: Bool) {
-        if !value, let textSelectionNode = self.textSelectionNode {
-            self.textSelectionNode = nil
+    /// Removes the selection overlay built by `updateIsExtractedToContextPreview(true)`.
+    ///
+    /// Every un-extract path must reach this: the selection node claims every hit inside the bubble
+    /// content, so a leftover one silently kills tap-to-open on the page's media. The send
+    /// animation only fires `updateIsExtractedToContextPreview`, never `willUpdate...`.
+    private func tearDownTextSelection() {
+        if let adapter = self.textSelectionAdapter {
             self.textSelectionAdapter = nil
-            textSelectionNode.highlightAreaNode.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.2, removeOnCompletion: false)
-            textSelectionNode.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.2, removeOnCompletion: false, completion: { [weak textSelectionNode] _ in
-                textSelectionNode?.highlightAreaNode.removeFromSupernode()
-                textSelectionNode?.removeFromSupernode()
-            })
+            adapter.removeFromSupernode()
+        }
+        guard let textSelectionNode = self.textSelectionNode else {
+            return
+        }
+        self.textSelectionNode = nil
+        textSelectionNode.highlightAreaNode.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.2, removeOnCompletion: false)
+        textSelectionNode.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.2, removeOnCompletion: false, completion: { [weak textSelectionNode] _ in
+            textSelectionNode?.highlightAreaNode.removeFromSupernode()
+            textSelectionNode?.removeFromSupernode()
+        })
+    }
+    
+    override public func willUpdateIsExtractedToContextPreview(_ value: Bool) {
+        if !value {
+            self.tearDownTextSelection()
         }
     }
 
     override public func updateIsExtractedToContextPreview(_ value: Bool) {
-        guard value, self.textSelectionNode == nil, let messageItem = self.item, self.currentPageLayout?.layout != nil, let pageView = self.pageView, let rootNode = messageItem.controllerInteraction.chatControllerNode() else {
+        if !value {
+            self.tearDownTextSelection()
+            return
+        }
+        guard self.textSelectionNode == nil, let messageItem = self.item, self.currentPageLayout?.layout != nil, let pageView = self.pageView, let rootNode = messageItem.controllerInteraction.chatControllerNode() else {
             return
         }
 

@@ -9,6 +9,14 @@ import LegacyMediaPickerUI
 import SaveToCameraRoll
 import PresentationDataUtils
 
+private func sanitizedFileNameComponent(_ value: String) -> String? {
+    let result = (value as NSString).lastPathComponent.replacingOccurrences(of: "/", with: "_")
+    if result.isEmpty || result == "." || result == ".." {
+        return nil
+    }
+    return result
+}
+
 func saveMediaToFiles(context: AccountContext, fileReference: FileMediaReference, present: @escaping (ViewController, Any?) -> Void) -> Disposable {
     var title: String?
     var performer: String?
@@ -69,17 +77,19 @@ func saveMediaToFiles(context: AccountContext, fileReference: FileMediaReference
                 
                 var fileExtension = "mp3"
                 if let filename = fileReference.media.fileName {
-                    if let dotIndex = filename.lastIndex(of: ".") {
-                        fileExtension = String(filename[filename.index(after: dotIndex)...])
+                    if let value = sanitizedFileNameComponent((filename as NSString).pathExtension) {
+                        fileExtension = value
                     }
                 }
                 
                 var nameComponents: [String] = []
                 if let title {
-                    if let performer {
-                        nameComponents.append(performer)
+                    if let performer, let value = sanitizedFileNameComponent(performer) {
+                        nameComponents.append(value)
                     }
-                    nameComponents.append(title)
+                    if let value = sanitizedFileNameComponent(title) {
+                        nameComponents.append(value)
+                    }
                 } else {
                     var artist: String?
                     var title: String?
@@ -91,17 +101,14 @@ func saveMediaToFiles(context: AccountContext, fileReference: FileMediaReference
                             title = data.stringValue
                         }
                     }
-                    if let artist, !artist.isEmpty {
-                        nameComponents.append(artist)
+                    if let artist, !artist.isEmpty, let value = sanitizedFileNameComponent(artist) {
+                        nameComponents.append(value)
                     }
-                    if let title, !title.isEmpty {
-                        nameComponents.append(title)
+                    if let title, !title.isEmpty, let value = sanitizedFileNameComponent(title) {
+                        nameComponents.append(value)
                     }
-                    if nameComponents.isEmpty, var filename = fileReference.media.fileName {
-                        if let dotIndex = filename.lastIndex(of: ".") {
-                            filename = String(filename[..<dotIndex])
-                        }
-                        nameComponents.append(filename)
+                    if nameComponents.isEmpty, let filename = fileReference.media.fileName, let value = sanitizedFileNameComponent((filename as NSString).deletingPathExtension) {
+                        nameComponents.append(value)
                     }
                 }
                 if !nameComponents.isEmpty {

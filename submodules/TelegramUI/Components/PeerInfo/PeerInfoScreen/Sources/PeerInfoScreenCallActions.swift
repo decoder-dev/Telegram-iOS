@@ -44,10 +44,12 @@ extension PeerInfoScreenNode {
             return
         }
         
-        guard case let .user(peer) = self.data?.peer, let cachedUserData = self.data?.cachedData as? CachedUserData else {
+        guard case let .user(peer) = self.data?.peer else {
             return
         }
-        if cachedUserData.callsPrivate {
+        // The Call button is shown before CachedUserData has arrived, so this must not require it;
+        // start the call optimistically and let the server enforce the privacy setting.
+        if let cachedUserData = self.data?.cachedData as? CachedUserData, cachedUserData.callsPrivate {
             self.controller?.push(self.context.sharedContext.makeSendInviteLinkScreen(context: self.context, subject: .groupCall(.create), peers: [TelegramForbiddenInvitePeer(
                 peer: EnginePeer(peer),
                 canInviteWithPremium: false,

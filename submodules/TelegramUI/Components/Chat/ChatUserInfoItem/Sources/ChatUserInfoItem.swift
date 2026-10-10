@@ -94,6 +94,10 @@ public final class ChatUserInfoItemNode: ListViewItemNode, ASGestureRecognizerDe
     public var controllerInteraction: ChatControllerInteraction?
     
     public let offsetContainer: ASDisplayNode
+    
+    /// The vertical offset the list last asked this node to hold via `updateTrailingItemSpace`; kept so a
+    /// re-layout does not reset the container frame to zero and spring it back on animated passes.
+    private var trailingItemSpaceOffset: CGFloat = 0.0
     public let titleNode: TextNode
     public let subtitleNode: TextNode
     
@@ -460,7 +464,7 @@ public final class ChatUserInfoItemNode: ListViewItemNode, ASGestureRecognizerDe
                                         
                     strongSelf.controllerInteraction = item.controllerInteraction
                     
-                    strongSelf.offsetContainer.frame = CGRect(origin: CGPoint(), size: itemLayout.contentSize)
+                    strongSelf.offsetContainer.frame = CGRect(origin: CGPoint(x: 0.0, y: strongSelf.trailingItemSpaceOffset), size: itemLayout.contentSize)
                     
                     let _ = titleApply()
                     var contentOriginY = backgroundFrame.origin.y + verticalInset
@@ -594,11 +598,8 @@ public final class ChatUserInfoItemNode: ListViewItemNode, ASGestureRecognizerDe
     }
     
     override public func updateTrailingItemSpace(_ height: CGFloat, transition: ContainedViewLayoutTransition) {
-        if height.isLessThanOrEqualTo(0.0) {
-            transition.updateFrame(node: self.offsetContainer, frame: CGRect(origin: CGPoint(), size: self.offsetContainer.bounds.size))
-        } else {
-            transition.updateFrame(node: self.offsetContainer, frame: CGRect(origin: CGPoint(x: 0.0, y: -floorToScreenPixels(height / 2.0)), size: self.offsetContainer.bounds.size))
-        }
+        self.trailingItemSpaceOffset = height.isLessThanOrEqualTo(0.0) ? 0.0 : -floorToScreenPixels(height / 2.0)
+        transition.updateFrame(node: self.offsetContainer, frame: CGRect(origin: CGPoint(x: 0.0, y: self.trailingItemSpaceOffset), size: self.offsetContainer.bounds.size))
     }
     
     override public func animateAdded(_ currentTimestamp: Double, duration: Double) {

@@ -398,7 +398,12 @@ public final class ChatTextInputActionButtonsNode: ASDisplayNode, ChatSendMessag
         }
         if let image = self.stopButtonIcon.image {
             self.stopButtonIcon.tintColor = interfaceState.theme.chat.inputPanel.panelControlColor
-            transition.updateFrame(view: self.stopButtonIcon, frame: image.size.centered(in: CGRect(origin: CGPoint(), size: size)))
+            // The icon carries a scale transform (cross-fade against the mic button). Writing `frame`
+            // under a non-identity transform makes UIKit inflate the bounds by 1/scale, so drive
+            // position and bounds directly, as micButton does above.
+            let iconFrame = image.size.centered(in: CGRect(origin: CGPoint(), size: size))
+            transition.updatePosition(layer: self.stopButtonIcon.layer, position: iconFrame.center)
+            transition.updateBounds(layer: self.stopButtonIcon.layer, bounds: CGRect(origin: CGPoint(), size: iconFrame.size))
         }
         
         var sendSlowmodeTimerTimestamp: (duration: Int32, timestamp: Int32)?
