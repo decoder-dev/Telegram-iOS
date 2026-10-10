@@ -30,6 +30,7 @@ import ChatControllerInteraction
 import WallpaperBackgroundNode
 import TelegramStringFormatting
 import InvisibleInkDustNode
+import LocalAudioTranscription
 
 public struct ChatMessageInstantVideoItemLayoutResult {
     public let contentSize: CGSize
@@ -874,7 +875,8 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
                     var displayTranscribe = false
                     if item.message.id.peerId.namespace != Namespaces.Peer.SecretChat && statusDisplayType == .free && !isViewOnceMessage && !item.presentationData.isPreview {
                         let premiumConfiguration = PremiumConfiguration.with(appConfiguration: item.context.currentAppConfiguration.with { $0 })
-                        if item.associatedData.isPremium || item.associatedData.alwaysDisplayTranscribeButton.providedByGroupBoost {
+                        // On-device transcription needs no Premium.
+                        if item.associatedData.isPremium || item.associatedData.alwaysDisplayTranscribeButton.providedByGroupBoost || item.context.sharedContext.immediateForkExtrasSettings.transcriptionBackend == .apple || item.context.sharedContext.immediateExperimentalUISettings.localTranscription {
                             displayTranscribe = true
                         } else if premiumConfiguration.audioTransciptionTrialCount > 0 {
                             if incoming {
@@ -1884,8 +1886,12 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
         let presentationData = item.context.sharedContext.currentPresentationData.with { $0 }
         let premiumConfiguration = PremiumConfiguration.with(appConfiguration: item.context.currentAppConfiguration.with { $0 })
         
+        // On-device (Apple) transcription doesn't use Telegram's paid server-side feature, so it
+        // bypasses the Premium paywall — mirrors ChatMessageInteractiveFileNode.transcribe().
+        let useLocalTranscription = item.context.sharedContext.immediateExperimentalUISettings.localTranscription || item.context.sharedContext.immediateForkExtrasSettings.transcriptionBackend == .apple
+
         let transcriptionText = transcribedText(message: EngineMessage(item.message))
-        if transcriptionText == nil && !item.associatedData.alwaysDisplayTranscribeButton.providedByGroupBoost {
+        if transcriptionText == nil && !item.associatedData.alwaysDisplayTranscribeButton.providedByGroupBoost && !useLocalTranscription {
             if premiumConfiguration.audioTransciptionTrialCount > 0 {
                 if !item.associatedData.isPremium {
                     if self.presentAudioTranscriptionTooltip(finished: false) {
@@ -1944,21 +1950,75 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
             if self.transcribeDisposable == nil {
                 self.audioTranscriptionState = .inProgress
                 self.requestUpdateLayout(true)
-                
-                self.transcribeDisposable = (item.context.engine.messages.transcribeAudio(messageId: item.message.id)
-                |> deliverOnMainQueue).startStrict(next: { [weak self] result in
-                    guard let strongSelf = self else {
-                        return
+
+                if useLocalTranscription {
+                    let context = item.context
+                    let messageId = item.message.id
+                    let appLocale = presentationData.strings.baseLanguageCode
+
+                    // The round video's mp4 is fed to SFSpeechURLRecognitionRequest directly
+                    // (it reads the audio track of an MPEG-4 container); no Opus→AAC step is
+                    // needed, unlike voice notes.
+                    let signal: Signal<LocallyTranscribedAudio?, NoError> = context.engine.data.get(TelegramEngine.EngineData.Item.Messages.Message(id: messageId))
+                    |> mapToSignal { message -> Signal<String?, NoError> in
+                        guard let message = message else {
+                            return .single(nil)
+                        }
+                        guard let file = message.media.first(where: { $0 is TelegramMediaFile }) as? TelegramMediaFile else {
+                            return .single(nil)
+                        }
+                        return context.engine.resources.data(id: EngineMediaResource.Id(file.resource.id))
+                        |> take(1)
+                        |> mapToSignal { data -> Signal<String?, NoError> in
+                            if !data.isComplete {
+                                return .single(nil)
+                            }
+                            return .single(data.path)
+                        }
                     }
-                    strongSelf.transcribeDisposable?.dispose()
-                    strongSelf.transcribeDisposable = nil
-                    
-                    if let item = strongSelf.item, !item.associatedData.isPremium && !item.associatedData.alwaysDisplayTranscribeButton.providedByGroupBoost {
-                        Queue.mainQueue().after(0.1, {
-                            let _ = strongSelf.presentAudioTranscriptionTooltip(finished: true)
-                        })
+                    |> mapToSignal { result -> Signal<LocallyTranscribedAudio?, NoError> in
+                        guard let result = result else {
+                            return .single(nil)
+                        }
+                        return transcribeAudio(path: result, appLocale: appLocale)
                     }
-                })
+
+                    self.transcribeDisposable = (signal
+                    |> deliverOnMainQueue).startStrict(next: { [weak self] result in
+                        guard let strongSelf = self else {
+                            return
+                        }
+
+                        if let result = result {
+                            let _ = context.engine.messages.storeLocallyTranscribedAudio(messageId: messageId, text: result.text, isFinal: result.isFinal, error: nil).startStandalone()
+                        } else {
+                            strongSelf.audioTranscriptionState = .collapsed
+                            strongSelf.requestUpdateLayout(true)
+                            strongSelf.updateTranscriptionExpanded?(strongSelf.audioTranscriptionState)
+                        }
+                    }, completed: { [weak self] in
+                        guard let strongSelf = self else {
+                            return
+                        }
+                        strongSelf.transcribeDisposable?.dispose()
+                        strongSelf.transcribeDisposable = nil
+                    })
+                } else {
+                    self.transcribeDisposable = (item.context.engine.messages.transcribeAudio(messageId: item.message.id)
+                    |> deliverOnMainQueue).startStrict(next: { [weak self] result in
+                        guard let strongSelf = self else {
+                            return
+                        }
+                        strongSelf.transcribeDisposable?.dispose()
+                        strongSelf.transcribeDisposable = nil
+
+                        if let item = strongSelf.item, !item.associatedData.isPremium && !item.associatedData.alwaysDisplayTranscribeButton.providedByGroupBoost {
+                            Queue.mainQueue().after(0.1, {
+                                let _ = strongSelf.presentAudioTranscriptionTooltip(finished: true)
+                            })
+                        }
+                    })
+                }
             }
         }
         

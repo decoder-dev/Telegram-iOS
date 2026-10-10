@@ -32,6 +32,7 @@ swift_library(
         "//submodules/Markdown",
         "//submodules/TextFormat",
         "//submodules/InvisibleInkDustNode",
+        "//submodules/Media/LocalAudioTranscription",
         "//submodules/TelegramUI/Components/Chat/ChatMessageForwardInfoNode",
         "//submodules/TelegramUI/Components/Chat/ChatMessageDateAndStatusNode",
         "//submodules/TelegramUI/Components/Chat/ChatMessageItemCommon",
