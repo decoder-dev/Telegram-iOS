@@ -418,12 +418,21 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                     strongSelf.chatListDisplayNode.willScrollToTop()
                     strongSelf.chatListDisplayNode.effectiveContainerNode.currentItemNode.scrollToPosition(.top(adjustForTempInset: false))
                 case let .known(offset):
-                    let isFirstFilter = strongSelf.chatListDisplayNode.effectiveContainerNode.currentItemNode.chatListFilter == strongSelf.chatListDisplayNode.mainContainerNode.availableFilters.first?.filter
+                    // With the All Chats tab hidden the first folder is the first filter, not the hidden All page.
+                    var visibleFilters = strongSelf.chatListDisplayNode.mainContainerNode.availableFilters
+                    if ForkExtrasHotFlags.hideAllChats && visibleFilters.count > 1 {
+                        visibleFilters.removeAll { $0 == .all }
+                    }
+                    let isFirstFilter = strongSelf.chatListDisplayNode.effectiveContainerNode.currentItemNode.chatListFilter == visibleFilters.first?.filter
                     
                     if offset <= ChatListNavigationBar.searchScrollHeight + 1.0 && strongSelf.chatListDisplayNode.inlineStackContainerNode != nil {
                         strongSelf.setInlineChatList(location: nil)
                     } else if offset <= ChatListNavigationBar.searchScrollHeight + 1.0 && !isFirstFilter {
-                        let firstFilter = strongSelf.chatListDisplayNode.effectiveContainerNode.availableFilters.first ?? .all
+                        var firstFilters = strongSelf.chatListDisplayNode.effectiveContainerNode.availableFilters
+                        if ForkExtrasHotFlags.hideAllChats && firstFilters.count > 1 {
+                            firstFilters.removeAll { $0 == .all }
+                        }
+                        let firstFilter = firstFilters.first ?? .all
                         let targetTab: ChatListFilterTabEntryId
                         switch firstFilter {
                             case .all:

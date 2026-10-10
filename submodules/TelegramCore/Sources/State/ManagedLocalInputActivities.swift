@@ -187,11 +187,31 @@ public enum ForkExtrasHotFlags {
     /// Posted when a setting that changes the size of chat list rows changes, so open lists rebuild their rows.
     public static let compactLayoutDidChangeNotification = Notification.Name("ForkExtrasHotFlags.compactLayoutDidChange")
 
+    /// Posted when "Hide the All Chats tab" changes.
+    public static let hideAllChatsDidChangeNotification = Notification.Name("ForkExtrasHotFlags.hideAllChatsDidChange")
+
     public static func update(_ next: State) {
         let previous = state.swap(next)
         if previous.compactChatList != next.compactChatList || previous.compactMessagePreview != next.compactMessagePreview {
             NotificationCenter.default.post(name: compactLayoutDidChangeNotification, object: nil)
         }
+        if previous.hideAllChats != next.hideAllChats {
+            NotificationCenter.default.post(name: hideAllChatsDidChangeNotification, object: nil)
+        }
+    }
+
+    /// The current value of "Hide the All Chats tab", re-emitted when it changes.
+    public static var hideAllChatsSignal: Signal<Bool, NoError> {
+        return Signal { subscriber in
+            subscriber.putNext(ForkExtrasHotFlags.hideAllChats)
+            let observer = NotificationCenter.default.addObserver(forName: hideAllChatsDidChangeNotification, object: nil, queue: nil, using: { _ in
+                subscriber.putNext(ForkExtrasHotFlags.hideAllChats)
+            })
+            return ActionDisposable {
+                NotificationCenter.default.removeObserver(observer)
+            }
+        }
+        |> distinctUntilChanged
     }
 
     public static var hideAds: Bool {

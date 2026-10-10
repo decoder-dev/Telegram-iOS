@@ -1209,17 +1209,23 @@ func _internal_updateChatListFiltersInteractively(transaction: Transaction, _ f:
 func _internal_updatedChatListFilters(postbox: Postbox, hiddenIds: Signal<Set<Int32>, NoError> = .single(Set())) -> Signal<[ChatListFilter], NoError> {
     return combineLatest(
         postbox.preferencesView(keys: [PreferencesKeys.chatListFilters]),
-        hiddenIds
+        hiddenIds,
+        ForkExtrasHotFlags.hideAllChatsSignal
     )
-    |> map { preferences, hiddenIds -> [ChatListFilter] in
+    |> map { preferences, hiddenIds, hideAllChats -> [ChatListFilter] in
         let filtersState = preferences.values[PreferencesKeys.chatListFilters]?.get(ChatListFiltersState.self) ?? ChatListFiltersState.default
-        return filtersState.filters.filter { filter in
+        var filters = filtersState.filters.filter { filter in
             if hiddenIds.contains(filter.id) {
                 return false
             } else {
                 return true
             }
         }
+        // "Hide the All Chats tab": only while there is another folder to show.
+        if hideAllChats && filters.count > 1 {
+            filters.removeAll { $0 == .allChats }
+        }
+        return filters
     }
     |> distinctUntilChanged
 }
