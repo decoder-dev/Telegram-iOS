@@ -266,12 +266,13 @@ MTAtomic *sharedFetchConfigKeychains() {
          {
              if (error == nil) {
                  __strong MTContext *strongCurrentContext = weakCurrentContext;
+                 __block bool updated = false;
                  if (strongCurrentContext != nil) {
                      [result.addressList enumerateKeysAndObjectsUsingBlock:^(NSNumber *nDatacenterId, NSArray *list, __unused BOOL *stop) {
                          MTDatacenterAddressSet *addressSet = [[MTDatacenterAddressSet alloc] initWithAddressList:list];
                          
-                         MTDatacenterAddressSet *currentAddressSet = [context addressSetForDatacenterWithId:[nDatacenterId integerValue]];
-                         
+                         MTDatacenterAddressSet *currentAddressSet = [strongCurrentContext addressSetForDatacenterWithId:[nDatacenterId integerValue]];
+
                          if (currentAddressSet == nil || ![addressSet isEqual:currentAddressSet])
                          {
                              if (MTLogEnabled()) {
@@ -279,11 +280,13 @@ MTAtomic *sharedFetchConfigKeychains() {
                              }
                              
                              [strongCurrentContext updateAddressSetForDatacenterWithId:[nDatacenterId integerValue] addressSet:addressSet forceUpdateSchemes:true];
-                             [subscriber putNext:@true];
-                             [subscriber putCompletion];
+                             updated = true;
                          }
                      }];
                  }
+                 // Answered either way, so the fetch ends and a later one can start.
+                 [subscriber putNext:@(updated)];
+                 [subscriber putCompletion];
              } else {
                  [subscriber putCompletion];
              }

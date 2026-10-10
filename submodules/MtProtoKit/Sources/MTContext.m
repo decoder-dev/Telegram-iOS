@@ -1631,7 +1631,7 @@ static void copyKeychainDictionaryKey(NSString * _Nonnull group, NSString * _Non
         int32_t timestamp = (int32_t)CFAbsoluteTimeGetCurrent();
         NSNumber *currentTimestamp = _datacenterCheckKeyRemovedActionTimestamps[@(datacenterId)];
         if (currentTimestamp == nil || [currentTimestamp intValue] + 60 < timestamp) {
-            _datacenterCheckKeyRemovedActionTimestamps[@(datacenterId)] = currentTimestamp;
+            _datacenterCheckKeyRemovedActionTimestamps[@(datacenterId)] = @(timestamp);
             [_datacenterCheckKeyRemovedActions[@(datacenterId)] dispose];
             __weak MTContext *weakSelf = self;
             _datacenterCheckKeyRemovedActions[@(datacenterId)] = [[MTDiscoverConnectionSignals checkIfAuthKeyRemovedWithContext:self datacenterId:datacenterId authKey:[[MTDatacenterAuthKey alloc] initWithAuthKey:authInfo.authKey authKeyId:authInfo.authKeyId validUntilTimestamp:authInfo.validUntilTimestamp notBound:false]] startWithNextStrict:^(NSNumber* isRemoved) {
