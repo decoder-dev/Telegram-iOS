@@ -995,7 +995,42 @@ open class ChatMessageItemView: ListViewItemNode, ChatMessageItemNodeProtocol {
                 case let .url(url):
                     item.controllerInteraction.longTap(.url(url), ChatControllerInteraction.LongTapParams(message: item.message))
                 default:
-                    break
+                    let presentationData = item.context.sharedContext.currentPresentationData.with { $0 }
+                    let isRussian: Bool
+                    switch String(presentationData.strings.primaryComponent.languageCode.prefix(2)).lowercased() {
+                    case "ru", "uk", "be":
+                        isRussian = true
+                    default:
+                        isRussian = false
+                    }
+                    let controllerInteraction = item.controllerInteraction
+                    let title = button.title
+                    let controller = ActionSheetController(presentationData: presentationData)
+                    var items: [ActionSheetItem] = [ActionSheetTextItem(title: title, parseMarkdown: false)]
+                    items.append(ActionSheetButtonItem(title: isRussian ? "Копировать название" : "Copy Button Title", action: { [weak controller] in
+                        controller?.dismissAnimated()
+                        controllerInteraction.copyText(title)
+                    }))
+                    if case let .callback(_, data) = button.action {
+                        // Callback payloads are arbitrary bytes: a non-UTF-8 payload is copied as a hex string.
+                        let bytes = data.makeData()
+                        let payloadText = String(data: bytes, encoding: .utf8) ?? bytes.map { String(format: "%02x", $0) }.joined()
+                        if !bytes.isEmpty {
+                            items.append(ActionSheetButtonItem(title: isRussian ? "Копировать callback-данные" : "Copy Callback Data", action: { [weak controller] in
+                                controller?.dismissAnimated()
+                                controllerInteraction.copyText(payloadText)
+                            }))
+                        }
+                    }
+                    controller.setItemGroups([
+                        ActionSheetItemGroup(items: items),
+                        ActionSheetItemGroup(items: [
+                            ActionSheetButtonItem(title: presentationData.strings.Common_Cancel, action: { [weak controller] in
+                                controller?.dismissAnimated()
+                            })
+                        ])
+                    ])
+                    controllerInteraction.presentController(controller, nil)
             }
         }
     }

@@ -351,10 +351,13 @@ private final class ChatMessageActionButtonNode: ASDisplayNode {
                     node.wallpaperBackgroundNode = backgroundNode
                     node.button = button
                     
-                    switch button.action {
-                    case .url:
+                    // Every regular bot button can be long-pressed: links open the link menu,
+                    // the others offer to copy the button title (and callback data).
+                    if customInfo == nil {
                         node.longTapRecognizer?.isEnabled = true
-                    default:
+                    } else if case .url = button.action {
+                        node.longTapRecognizer?.isEnabled = true
+                    } else {
                         node.longTapRecognizer?.isEnabled = false
                     }
                     
