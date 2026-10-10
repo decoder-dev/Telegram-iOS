@@ -19,10 +19,10 @@ open class ActionSheetItemNode: ASDisplayNode {
         self.theme = theme
         
         self.backgroundNode = ASDisplayNode()
-        self.backgroundNode.backgroundColor = self.theme.itemBackgroundColor
+        self.backgroundNode.backgroundColor = self.theme.effectiveItemBackgroundColor
         
         self.overflowSeparatorNode = ASDisplayNode()
-        self.overflowSeparatorNode.backgroundColor = self.theme.itemHighlightedBackgroundColor
+        self.overflowSeparatorNode.backgroundColor = self.theme.effectiveSeparatorColor
         
         super.init()
         

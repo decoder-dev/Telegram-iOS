@@ -95,14 +95,14 @@ public class ActionSheetButtonNode: ActionSheetItemNode {
     override func setHighlighted(_ highlighted: Bool, animated: Bool) {
         self.highlightedUpdated(highlighted)
         if highlighted {
-            self.backgroundNode.backgroundColor = self.theme.itemHighlightedBackgroundColor
+            self.backgroundNode.backgroundColor = self.theme.effectiveItemHighlightedBackgroundColor
         } else {
             if animated {
                 UIView.animate(withDuration: 0.3, animations: {
-                    self.backgroundNode.backgroundColor = self.theme.itemBackgroundColor
+                    self.backgroundNode.backgroundColor = self.theme.effectiveItemBackgroundColor
                 })
             } else {
-                self.backgroundNode.backgroundColor = self.theme.itemBackgroundColor
+                self.backgroundNode.backgroundColor = self.theme.effectiveItemBackgroundColor
             }
         }
     }

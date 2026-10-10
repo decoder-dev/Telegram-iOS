@@ -2,6 +2,11 @@ import UIKit
 import AsyncDisplayKit
 
 final class ActionSheetItemGroupNode: ASDisplayNode, ASScrollViewDelegate {
+    /// Corner radius of a group. The glass sheets of iOS 26 are rounder than the flat ones.
+    private static func cornerRadius(for theme: ActionSheetControllerTheme) -> CGFloat {
+        return theme.usesGlass ? 26.0 : 16.0
+    }
+    
     private let theme: ActionSheetControllerTheme
     
     private let centerDimView: UIImageView
@@ -24,7 +29,7 @@ final class ActionSheetItemGroupNode: ASDisplayNode, ASScrollViewDelegate {
         self.theme = theme
         
         self.centerDimView = UIImageView()
-        self.centerDimView.image = generateStretchableFilledCircleImage(radius: 16.0, color: nil, backgroundColor: self.theme.dimColor)
+        self.centerDimView.image = generateStretchableFilledCircleImage(radius: ActionSheetItemGroupNode.cornerRadius(for: self.theme), color: nil, backgroundColor: self.theme.dimColor)
         
         self.topDimView = UIView()
         self.topDimView.backgroundColor = self.theme.dimColor
@@ -39,12 +44,20 @@ final class ActionSheetItemGroupNode: ASDisplayNode, ASScrollViewDelegate {
         
         self.clippingNode = ASDisplayNode()
         self.clippingNode.clipsToBounds = true
-        self.clippingNode.cornerRadius = 16.0
+        self.clippingNode.cornerRadius = ActionSheetItemGroupNode.cornerRadius(for: self.theme)
         if UIAccessibility.isReduceTransparencyEnabled {
             self.clippingNode.backgroundColor = self.theme.itemBackgroundColor.withAlphaComponent(1.0)
         }
         
-        self.backgroundEffectView = UIVisualEffectView(effect: UIAccessibility.isReduceTransparencyEnabled ? nil : UIBlurEffect(style: self.theme.backgroundType == .light ? .light : .dark))
+        let backgroundEffect: UIVisualEffect?
+        if UIAccessibility.isReduceTransparencyEnabled {
+            backgroundEffect = nil
+        } else if #available(iOS 26.0, *) {
+            backgroundEffect = UIGlassEffect(style: .regular)
+        } else {
+            backgroundEffect = UIBlurEffect(style: self.theme.backgroundType == .light ? .light : .dark)
+        }
+        self.backgroundEffectView = UIVisualEffectView(effect: backgroundEffect)
         
         self.scrollNode = ASScrollNode()
         self.scrollNode.canCancelAllTouchesInViews = true

@@ -98,10 +98,10 @@ public class ActionSheetCheckboxItemNode: ActionSheetItemNode {
         self.button.highligthedChanged = { [weak self] highlighted in
             if let strongSelf = self {
                 if highlighted {
-                    strongSelf.backgroundNode.backgroundColor = strongSelf.theme.itemHighlightedBackgroundColor
+                    strongSelf.backgroundNode.backgroundColor = strongSelf.theme.effectiveItemHighlightedBackgroundColor
                 } else {
                     UIView.animate(withDuration: 0.3, animations: {
-                        strongSelf.backgroundNode.backgroundColor = strongSelf.theme.itemBackgroundColor
+                        strongSelf.backgroundNode.backgroundColor = strongSelf.theme.effectiveItemBackgroundColor
                     })
                 }
             }

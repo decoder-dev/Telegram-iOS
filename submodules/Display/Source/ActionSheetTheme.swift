@@ -90,3 +90,32 @@ public final class ActionSheetControllerTheme: Equatable {
         return true
     }
 }
+
+extension ActionSheetControllerTheme {
+    /// From iOS 26 the groups of an action sheet are Liquid Glass. Their items must then leave the glass visible instead of
+    /// painting the theme's flat card colour over it. Reduce Transparency keeps the flat look.
+    var usesGlass: Bool {
+        if #available(iOS 26.0, *) {
+            return !UIAccessibility.isReduceTransparencyEnabled
+        }
+        return false
+    }
+    
+    var effectiveItemBackgroundColor: UIColor {
+        return self.usesGlass ? .clear : self.itemBackgroundColor
+    }
+    
+    var effectiveItemHighlightedBackgroundColor: UIColor {
+        if self.usesGlass {
+            return self.backgroundType == .light ? UIColor(white: 0.0, alpha: 0.08) : UIColor(white: 1.0, alpha: 0.14)
+        }
+        return self.itemHighlightedBackgroundColor
+    }
+    
+    var effectiveSeparatorColor: UIColor {
+        if self.usesGlass {
+            return self.backgroundType == .light ? UIColor(white: 0.0, alpha: 0.10) : UIColor(white: 1.0, alpha: 0.12)
+        }
+        return self.itemHighlightedBackgroundColor
+    }
+}
