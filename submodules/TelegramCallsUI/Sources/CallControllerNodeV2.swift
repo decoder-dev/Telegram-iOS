@@ -359,6 +359,7 @@ final class CallControllerNodeV2: ViewControllerTracingNode, CallControllerNodeP
                             return
                         }
                         
+                        Logger.shared.log("CallVideo", "camera preview view \(outgoingVideoView == nil ? "was not created" : "created")")
                         if let outgoingVideoView = outgoingVideoView {
                             outgoingVideoView.view.backgroundColor = .black
                             outgoingVideoView.view.clipsToBounds = true

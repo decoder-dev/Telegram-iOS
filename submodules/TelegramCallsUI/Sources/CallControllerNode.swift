@@ -1,5 +1,6 @@
 import Foundation
 import UIKit
+import AVFoundation
 import Display
 import AsyncDisplayKit
 import TelegramCore
@@ -143,6 +144,8 @@ final class CallVideoNode: ASDisplayNode, PreviewVideoNode {
                     return
                 }
                 if !strongSelf.isReady {
+                    // Shown as a black picture from here on: the video source produced no frame in three seconds.
+                    Logger.shared.log("CallVideo", "no first frame within 3 s (camera authorization \(AVCaptureDevice.authorizationStatus(for: .video).rawValue)), showing the view anyway")
                     strongSelf.isReady = true
                     strongSelf.readyPromise.set(true)
                     strongSelf.isReadyUpdated()
