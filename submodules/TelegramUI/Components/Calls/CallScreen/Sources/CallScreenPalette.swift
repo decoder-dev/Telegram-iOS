@@ -69,13 +69,13 @@ public struct CallScreenPalette: Equatable {
     
     public static let bananaGramCream = CallScreenPalette(
         connecting: [0xA7761C, 0x8C5F14, 0xB48A2E, 0x7A5200],
-        active: [0x7C8A2A, 0x4F8A5B, 0x9A8A2E, 0x3F7A52],
+        active: [0x9A6A1C, 0x7A5A2A, 0xA67A22, 0x6B4C1E],
         weakSignal: [0xB5532F, 0xC77A22, 0xA64A2E, 0xC96A2B]
     )
     
     public static let bananaGramGraphite = CallScreenPalette(
         connecting: [0x57524A, 0x3E3A33, 0x6B5C2A, 0x35322C],
-        active: [0x6F6A2A, 0x3F5A3A, 0x8A7A2C, 0x2F3F3A],
+        active: [0x7A5F22, 0x4F4630, 0x8A6A24, 0x34302A],
         weakSignal: [0x7A3A2A, 0x8A5A22, 0x5A2F2F, 0x7A4A24]
     )
     
