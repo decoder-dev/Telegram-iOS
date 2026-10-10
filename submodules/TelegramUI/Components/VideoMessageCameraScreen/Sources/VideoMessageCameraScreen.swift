@@ -1895,10 +1895,26 @@ public class VideoMessageCameraScreen: ViewController {
             let _ = enqueueMessages(account: self.context.engine.account, peerId: self.context.engine.account.peerId, messages: [message]).startStandalone()
         }
         
+        /// Whether `view` is a control the component host put on screen.
+        private func isComponentControl(_ view: UIView?) -> Bool {
+            guard let view, let componentView = self.componentHost.view, view.isDescendant(of: componentView) else {
+                return false
+            }
+            if view is UIControl {
+                return true
+            }
+            if let gestureRecognizers = view.gestureRecognizers, !gestureRecognizers.isEmpty {
+                return true
+            }
+            return false
+        }
+        
         override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
             let result = super.hitTest(point, with: event)
             
-            if let resultPreviewView = self.resultPreviewView {
+            // The preview is claimed by its bounding square while only the inscribed circle is visible,
+            // so controls near its corners must win when the regular hit test landed on one.
+            if let resultPreviewView = self.resultPreviewView, !self.isComponentControl(result) {
                 if resultPreviewView.bounds.contains(self.view.convert(point, to: resultPreviewView)) {
                     return resultPreviewView
                 }
