@@ -144,6 +144,8 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.SendWithReturnKey": "Send With Return Key",
             "ForkExtras.SendWithReturnKeyFooter": "Tapping Return on the keyboard sends the message instead of adding a new line.",
             "ForkExtras.ForceBuiltInMic": "Force Built-in Microphone",
+            "ForkExtras.KeepAliveInBackground": "Keep App Alive in Background",
+            "ForkExtras.KeepAliveInBackgroundFooter": "Plays a silent sound so iOS does not suspend the app. Incoming calls and messages then arrive with the screen locked, because this build has no push notifications. Uses noticeably more battery.",
             "ForkExtras.ForceBuiltInMicFooter": "Use the device's built-in microphone instead of a connected Bluetooth device for calls and voice messages.",
             "ForkExtras.CallsFooter": "Ask for confirmation before dialing a call.",
             "ForkExtras.TranslationBackend": "Translation",
@@ -287,6 +289,8 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.SendWithReturnKey": "Отправка по Enter",
             "ForkExtras.SendWithReturnKeyFooter": "Нажатие Enter на клавиатуре отправляет сообщение вместо новой строки.",
             "ForkExtras.ForceBuiltInMic": "Только встроенный микрофон",
+            "ForkExtras.KeepAliveInBackground": "Держать приложение в фоне",
+            "ForkExtras.KeepAliveInBackgroundFooter": "Тихий звук не даёт iOS усыпить приложение. Входящие звонки и сообщения тогда приходят при заблокированном экране, потому что в этой сборке нет push-уведомлений. Заметно увеличивает расход батареи.",
             "ForkExtras.ForceBuiltInMicFooter": "Использовать встроенный микрофон устройства вместо подключённого Bluetooth-устройства для звонков и голосовых сообщений.",
             "ForkExtras.CallsFooter": "Запрашивать подтверждение перед началом звонка.",
             "ForkExtras.TranslationBackend": "Перевод",
@@ -435,6 +439,8 @@ private enum ForkExtrasLocalizedString {
     static var sendWithReturnKeyFooter: String { string(forKey: "ForkExtras.SendWithReturnKeyFooter") }
     static var forceBuiltInMic: String { string(forKey: "ForkExtras.ForceBuiltInMic") }
     static var forceBuiltInMicFooter: String { string(forKey: "ForkExtras.ForceBuiltInMicFooter") }
+    static var keepAliveInBackground: String { string(forKey: "ForkExtras.KeepAliveInBackground") }
+    static var keepAliveInBackgroundFooter: String { string(forKey: "ForkExtras.KeepAliveInBackgroundFooter") }
     static var callsFooter: String { string(forKey: "ForkExtras.CallsFooter") }
     static var translationBackend: String { string(forKey: "ForkExtras.TranslationBackend") }
     static var transcriptionBackend: String { string(forKey: "ForkExtras.TranscriptionBackend") }
@@ -555,6 +561,7 @@ private final class ForkExtrasControllerArguments {
     let updateConfirmBeforeCall: (Bool) -> Void
     let updateSendWithReturnKey: (Bool) -> Void
     let updateForceBuiltInMic: (Bool) -> Void
+    let updateKeepAliveInBackground: (Bool) -> Void
     let openTranslationBackend: () -> Void
     let openTranscriptionBackend: () -> Void
     let updateScrollToNextChatDisabled: (Bool) -> Void
@@ -622,6 +629,7 @@ private final class ForkExtrasControllerArguments {
         updateConfirmBeforeCall: @escaping (Bool) -> Void,
         updateSendWithReturnKey: @escaping (Bool) -> Void,
         updateForceBuiltInMic: @escaping (Bool) -> Void,
+        updateKeepAliveInBackground: @escaping (Bool) -> Void,
         openTranslationBackend: @escaping () -> Void,
         openTranscriptionBackend: @escaping () -> Void,
         updateScrollToNextChatDisabled: @escaping (Bool) -> Void,
@@ -688,6 +696,7 @@ private final class ForkExtrasControllerArguments {
         self.updateConfirmBeforeCall = updateConfirmBeforeCall
         self.updateSendWithReturnKey = updateSendWithReturnKey
         self.updateForceBuiltInMic = updateForceBuiltInMic
+        self.updateKeepAliveInBackground = updateKeepAliveInBackground
         self.openTranslationBackend = openTranslationBackend
         self.openTranscriptionBackend = openTranscriptionBackend
         self.updateScrollToNextChatDisabled = updateScrollToNextChatDisabled
@@ -823,6 +832,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     case sendWithReturnKey(Bool)
     case sendWithReturnKeyFooter
     case forceBuiltInMic(Bool)
+    case keepAliveInBackground(Bool)
     case callsFooter
     case translationBackend(ForkTranslationBackend)
     case transcriptionBackend(ForkTranscriptionBackend)
@@ -914,7 +924,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return ForkExtrasSection.uiDensity.rawValue
         case .hideReactionsBar, .showDC, .showProfileId, .accentSaturation, .privacyFooter:
             return ForkExtrasSection.privacy.rawValue
-        case .confirmBeforeCall, .sendWithReturnKey, .sendWithReturnKeyFooter, .forceBuiltInMic, .callsFooter:
+        case .confirmBeforeCall, .sendWithReturnKey, .sendWithReturnKeyFooter, .forceBuiltInMic, .keepAliveInBackground, .callsFooter:
             return ForkExtrasSection.calls.rawValue
         case .translationBackend, .transcriptionBackend, .translationFooter:
             return ForkExtrasSection.translation.rawValue
@@ -1009,6 +1019,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case .sendWithReturnKey: return 81
         case .sendWithReturnKeyFooter: return 82
         case .forceBuiltInMic: return 83
+        case .keepAliveInBackground: return 146
         case .callsFooter: return 84
         case .translationBackend: return 85
         case .transcriptionBackend: return 86
@@ -1232,8 +1243,12 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.forceBuiltInMic, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateForceBuiltInMic(value)
             }, tag: BananaSettingsItemTag(id: self.stableId))
+        case let .keepAliveInBackground(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.keepAliveInBackground, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateKeepAliveInBackground(value)
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .callsFooter:
-            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.forceBuiltInMicFooter + "\n\n" + ForkExtrasLocalizedString.callsFooter), sectionId: self.section)
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.forceBuiltInMicFooter + "\n\n" + ForkExtrasLocalizedString.keepAliveInBackgroundFooter + "\n\n" + ForkExtrasLocalizedString.callsFooter), sectionId: self.section)
         case let .translationBackend(backend):
             let label: String
             switch backend {
@@ -1580,6 +1595,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .sendWithReturnKey(settings.sendWithReturnKey),
             .sendWithReturnKeyFooter,
             .forceBuiltInMic(settings.forceBuiltInMic),
+            .keepAliveInBackground(settings.keepAliveInBackground),
             .callsFooter,
             .translationBackend(settings.translationBackend),
             .transcriptionBackend(settings.transcriptionBackend),
@@ -1884,6 +1900,13 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
             updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
                 var updated = current
                 updated.forceBuiltInMic = value
+                return updated
+            }.start())
+        },
+        updateKeepAliveInBackground: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.keepAliveInBackground = value
                 return updated
             }.start())
         },

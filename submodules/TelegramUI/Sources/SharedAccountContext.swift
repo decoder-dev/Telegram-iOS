@@ -596,6 +596,8 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             PeerNameColors.saturationPercent = settings.accentColorSaturation
             // TelegramAudio has no visibility into ForkExtrasSettings either — same pattern.
             ManagedAudioSessionImpl.forceBuiltInMic = settings.forceBuiltInMic
+            // Looping silence keeps a build without push notifications alive in the background, so calls reach a locked phone.
+            ForkBackgroundKeepAlive.shared.update(enabled: settings.keepAliveInBackground)
             self?.pushForkExtrasRuntime(settings)
         })
         

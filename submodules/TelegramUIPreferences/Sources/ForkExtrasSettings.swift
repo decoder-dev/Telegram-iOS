@@ -56,6 +56,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var confirmBeforeCall: Bool
     public var sendWithReturnKey: Bool
     public var forceBuiltInMic: Bool
+    public var keepAliveInBackground: Bool
     public var translationBackend: ForkTranslationBackend
     public var transcriptionBackend: ForkTranscriptionBackend
     public var scrollToNextChatDisabled: Bool
@@ -160,6 +161,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
             confirmBeforeCall: false,
             sendWithReturnKey: false,
             forceBuiltInMic: false,
+            keepAliveInBackground: false,
             translationBackend: .default,
             transcriptionBackend: .default,
             scrollToNextChatDisabled: false,
@@ -221,6 +223,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         confirmBeforeCall: Bool,
         sendWithReturnKey: Bool,
         forceBuiltInMic: Bool,
+        keepAliveInBackground: Bool,
         translationBackend: ForkTranslationBackend,
         transcriptionBackend: ForkTranscriptionBackend,
         scrollToNextChatDisabled: Bool,
@@ -295,6 +298,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.confirmBeforeCall = confirmBeforeCall
         self.sendWithReturnKey = sendWithReturnKey
         self.forceBuiltInMic = forceBuiltInMic
+        self.keepAliveInBackground = keepAliveInBackground
         self.translationBackend = translationBackend
         self.transcriptionBackend = transcriptionBackend
         self.scrollToNextChatDisabled = scrollToNextChatDisabled
@@ -373,6 +377,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.confirmBeforeCall = try container.decodeIfPresent(Bool.self, forKey: "confirmBeforeCall") ?? false
         self.sendWithReturnKey = try container.decodeIfPresent(Bool.self, forKey: "sendWithReturnKey") ?? false
         self.forceBuiltInMic = try container.decodeIfPresent(Bool.self, forKey: "forceBuiltInMic") ?? false
+        self.keepAliveInBackground = try container.decodeIfPresent(Bool.self, forKey: "keepAliveInBackground") ?? false
         self.translationBackend = (try container.decodeIfPresent(String.self, forKey: "translationBackend")).flatMap(ForkTranslationBackend.init(rawValue:)) ?? .default
         self.transcriptionBackend = (try container.decodeIfPresent(String.self, forKey: "transcriptionBackend")).flatMap(ForkTranscriptionBackend.init(rawValue:)) ?? .default
         self.scrollToNextChatDisabled = try container.decodeIfPresent(Bool.self, forKey: "scrollToNextChatDisabled") ?? false
@@ -453,6 +458,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.confirmBeforeCall, forKey: "confirmBeforeCall")
         try container.encode(self.sendWithReturnKey, forKey: "sendWithReturnKey")
         try container.encode(self.forceBuiltInMic, forKey: "forceBuiltInMic")
+        try container.encode(self.keepAliveInBackground, forKey: "keepAliveInBackground")
         try container.encode(self.translationBackend.rawValue, forKey: "translationBackend")
         try container.encode(self.transcriptionBackend.rawValue, forKey: "transcriptionBackend")
         try container.encode(self.scrollToNextChatDisabled, forKey: "scrollToNextChatDisabled")
