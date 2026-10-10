@@ -6,6 +6,7 @@ import SwiftSignalKit
 import TelegramCore
 import TelegramPresentationData
 import CallScreen
+import GlassBackgroundComponent
 import AvatarNode
 import TelegramUIPreferences
 import AccountContext
@@ -269,6 +270,10 @@ public class CallStatusBarNodeImpl: CallStatusBarNode {
     private var avatarNode: AvatarNode?
     private let avatarRingLayer = CAShapeLayer()
     private var avatarPeerId: EnginePeer.Id?
+    
+    /// iOS 26 Liquid Glass capsule that holds the avatar, title and timer, tinted with the theme's call colour. The bar's
+    /// gradient and waves stay behind it, so the glass refracts them.
+    private let glassView = GlassBackgroundView()
     private static let avatarDiameter: CGFloat = 18.0
     private static let avatarSpacing: CGFloat = 6.0
     
@@ -317,6 +322,8 @@ public class CallStatusBarNodeImpl: CallStatusBarNode {
         self.addSubnode(self.hierarchyTrackingNode)
                 
         self.addSubnode(self.backgroundNode)
+        self.glassView.isUserInteractionEnabled = false
+        self.view.insertSubview(self.glassView, aboveSubview: self.backgroundNode.view)
         self.addSubnode(self.titleNode)
         self.addSubnode(self.subtitleNode)
         self.addSubnode(self.speakerNode)
@@ -807,6 +814,16 @@ public class CallStatusBarNodeImpl: CallStatusBarNode {
         let horizontalOrigin: CGFloat = floor((size.width - totalWidth) / 2.0)
         self.layoutAvatar(originX: horizontalOrigin, verticalOrigin: verticalOrigin, contentHeight: contentHeight)
         let titleOriginX = horizontalOrigin + avatarOffset
+        
+        // Liquid Glass capsule around the cluster; hidden while a group-call message replaces the title.
+        let glassPadding: CGFloat = avatarOffset > 0.0 ? 5.0 : 12.0
+        let glassHeight: CGFloat = 26.0
+        let glassWidth = min(size.width - 16.0, totalWidth + glassPadding * 2.0 + (avatarOffset > 0.0 ? 7.0 : 0.0))
+        let glassFrame = CGRect(x: floor((size.width - glassWidth) / 2.0), y: verticalOrigin + floor((contentHeight - glassHeight) / 2.0), width: glassWidth, height: glassHeight)
+        let glassPalette = self.presentationData.flatMap { CallScreenPalette(theme: $0.theme) } ?? .classicDay
+        self.glassView.frame = glassFrame
+        self.glassView.update(size: glassFrame.size, cornerRadius: glassHeight / 2.0, isDark: true, tintColor: GlassBackgroundView.TintColor(kind: .custom(style: .default, color: glassPalette.statusBarActive[0].withAlphaComponent(0.32))), transition: .immediate)
+        ContainedViewLayoutTransition.animated(duration: 0.2, curve: .easeInOut).updateAlpha(layer: self.glassView.layer, alpha: isDisplayingMessage ? 0.0 : 1.0)
         
         let sizeChanged = self.titleNode.frame.size.width != titleSize.width
         
