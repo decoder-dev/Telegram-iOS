@@ -807,7 +807,7 @@
                     else
                     {
                         NSData *unwrappedData = [MTInternalMessageParser unwrapMessage:rpcResultMessage.data];
-                        rpcResult = request.responseParser(unwrappedData);
+                        rpcResult = unwrappedData != nil ? request.responseParser(unwrappedData) : nil;
                         if (rpcResult == nil)
                         {
                             rpcError = [[MTRpcError alloc] initWithErrorCode:500 errorDescription:@"TL_PARSING_ERROR"];

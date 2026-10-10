@@ -2310,6 +2310,8 @@ static bool isDataEqualToDataConstTime(NSData *data1, NSData *data2) {
 - (id)parseMessage:(NSData *)data
 {
     NSData *unwrappedData = [MTInternalMessageParser unwrapMessage:data];
+    if (unwrappedData == nil)
+        return nil;
     id internalMessage = [MTInternalMessageParser parseMessage:unwrappedData];
     if (internalMessage != nil)
         return internalMessage;

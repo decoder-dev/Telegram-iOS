@@ -3,6 +3,6 @@
 @interface MTInternalMessageParser : NSObject
 
 + (id)parseMessage:(NSData *)data;
-+ (id)unwrapMessage:(NSData *)data;
++ (NSData *)unwrapMessage:(NSData *)data;
 
 @end
