@@ -886,19 +886,27 @@ public final class ManagedAudioSessionImpl: NSObject, ManagedAudioSession {
                         options.insert(.mixWithOthers)
                     }
                 case .voiceCall, .videoCall:
-                    #if canImport(AlarmKit) //Xcode 26
-                    options.insert(.allowBluetoothHFP)
-                    #else
-                    options.insert(.allowBluetooth)
-                    #endif
+                    // "Force built-in microphone": without HFP no Bluetooth device can be the input, while A2DP still
+                    // lets a Bluetooth headset play the audio.
+                    if !ManagedAudioSessionImpl.forceBuiltInMic {
+                        #if canImport(AlarmKit) //Xcode 26
+                        options.insert(.allowBluetoothHFP)
+                        #else
+                        options.insert(.allowBluetooth)
+                        #endif
+                    }
                     options.insert(.allowBluetoothA2DP)
                     options.insert(.mixWithOthers)
                 case let .record(_, video, mixWithOthers):
-                    #if canImport(AlarmKit) //Xcode 26
-                    options.insert(.allowBluetoothHFP)
-                    #else
-                    options.insert(.allowBluetooth)
-                    #endif
+                    if !ManagedAudioSessionImpl.forceBuiltInMic {
+                        #if canImport(AlarmKit) //Xcode 26
+                        options.insert(.allowBluetoothHFP)
+                        #else
+                        options.insert(.allowBluetooth)
+                        #endif
+                    } else {
+                        options.insert(.allowBluetoothA2DP)
+                    }
                     if video {
                         options.insert(.allowBluetoothA2DP)
                     }
@@ -946,6 +954,16 @@ public final class ManagedAudioSessionImpl: NSObject, ManagedAudioSession {
                     case .voiceCall, .videoCall:
                         managedAudioSessionLog("ManagedAudioSession resetting options")
                         try AVAudioSession.sharedInstance().setCategory(nativeCategory, options: options)
+                    default:
+                        break
+                    }
+                }
+                if ManagedAudioSessionImpl.forceBuiltInMic {
+                    switch type {
+                    case .voiceCall, .videoCall, .record:
+                        if let inputs = AVAudioSession.sharedInstance().availableInputs, let builtIn = inputs.first(where: { $0.portType == .builtInMic }) {
+                            let _ = try? AVAudioSession.sharedInstance().setPreferredInput(builtIn)
+                        }
                     default:
                         break
                     }
