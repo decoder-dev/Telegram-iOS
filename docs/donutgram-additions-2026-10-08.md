@@ -100,14 +100,19 @@ labels, birthdays, bot automation panel and pinned messages with bot panel, shad
 for people, bots and channels, Ghost mode read/view guards, save-to-cloud and
 select-from-author menu items, bottom folders, avatar and reaction glow.
 
+### Adapted later, 10 October 2026
+
+- Hashtags open the This Chat tab (`f0d0b06`): Interface > Chats switch.
+- Banned GIFs as silent looping videos (c7bb578): Interface > Chats switch, off by default.
+  Only chats that ban GIFs but allow videos are affected.
+- Music as a voice message (a5e267f): context menu on a track in Attach > Music, offered only
+  where voice messages are allowed. Encoding is on the phone (Opus, 48 kHz mono).
+- Original date on forwarded messages (a5e267f): Interface > Chats switch.
+- From AyuGram Desktop: no greeting sticker (switch) and Hide Blocked Messages also hiding
+  messages sent through a blocked inline bot.
+
 ### Skipped
 
-- Fix hashtags (`f0d0b06`): needs a new ForkExtras switch (about a dozen touch points)
-  for a small preference; can be added on request.
-- GIF restriction bypass ([c7bb578](https://github.com/kittenello/Donutgram/commit/c7bb578)):
-  converts GIFs to silent videos in the send pipeline; too invasive without a compiler or
-  device test.
-- Audio file to voice message conversion (`a5e267f`): new Opus encoder path and UI.
 - Disappeared gifts, deleted-message reply quotes, saving messages from pushes and
   user ID search: depend on DonutgramSpyStorage or on an unverified server behaviour
   (`users.getUsers` with a zero access hash); BananaGram uses MessageSavingStore.
