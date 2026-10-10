@@ -43,6 +43,11 @@ final class StoryItemContentComponent: Component {
     let activateReaction: (UIView, MessageReaction.Reaction) -> Void
     let controller: () -> ViewController?
     
+    /// Protected stories hide their content from screen capture, unless the protected-media bypass is on.
+    var isCaptureProtected: Bool {
+        return self.item.isForwardingDisabled && !ForkBypassDownloadRestrictionsSettings.enabled
+    }
+    
     init(context: AccountContext, strings: PresentationStrings, peer: EnginePeer, item: EngineStoryItem, availableReactions: StoryAvailableReactions?, entityFiles: [EngineMedia.Id: TelegramMediaFile], audioMode: StoryContentItem.AudioMode, baseRate: Double, isVideoBuffering: Bool, isCurrent: Bool, isUIHidden: Bool, preferHighQuality: Bool, isEmbeddedInCamera: Bool, canManageLiveChatMessagesFromPeers: Set<EnginePeer.Id>, activateReaction: @escaping (UIView, MessageReaction.Reaction) -> Void, controller: @escaping () -> ViewController?) {
 		self.context = context
         self.strings = strings
@@ -356,7 +361,7 @@ final class StoryItemContentComponent: Component {
                             useLargeThumbnail: false,
                             autoFetchFullSizeThumbnail: false,
                             tempFilePath: nil,
-                            captureProtected: component.item.isForwardingDisabled,
+                            captureProtected: component.isCaptureProtected,
                             hintDimensions: file.dimensions?.cgSize,
                             storeAfterDownload: nil,
                             displayImage: false,
@@ -776,7 +781,7 @@ final class StoryItemContentComponent: Component {
                 availableReactions: component.availableReactions,
                 entityFiles: component.entityFiles,
                 size: size,
-                isCaptureProtected: component.item.isForwardingDisabled,
+                isCaptureProtected: component.isCaptureProtected,
                 attemptSynchronous: synchronousLoad,
                 isActive: self.progressMode.mode == .play,
                 transition: transition
@@ -972,7 +977,7 @@ final class StoryItemContentComponent: Component {
                         storyId: component.item.id,
                         media: messageMedia,
                         size: availableSize,
-                        isCaptureProtected: component.item.isForwardingDisabled,
+                        isCaptureProtected: component.isCaptureProtected,
                         attemptSynchronous: synchronousLoad,
                         transition: transition
                     )
@@ -1151,7 +1156,7 @@ final class StoryItemContentComponent: Component {
                         storyId: component.item.id,
                         media: messageMedia,
                         size: availableSize,
-                        isCaptureProtected: component.item.isForwardingDisabled,
+                        isCaptureProtected: component.isCaptureProtected,
                         attemptSynchronous: synchronousLoad,
                         transition: transition
                     )
