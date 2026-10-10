@@ -129,6 +129,8 @@ public enum ForkExtrasHotFlags {
         public var wideChannelPosts: Bool = false
         public var stickerSizePercent: Int32 = 100
         public var doubleTapToEdit: Bool = false
+        /// Fork: send GIFs as silent looping videos where GIFs are banned (Donutgram c7bb578).
+        public var sendBannedGifsAsVideo: Bool = false
         public var quickTranslateButton: Bool = false
         public var saveToCloudMenu: Bool = true
         public var selectFromAuthor: Bool = true
@@ -151,6 +153,7 @@ public enum ForkExtrasHotFlags {
             wideChannelPosts: Bool = false,
             stickerSizePercent: Int32 = 100,
             doubleTapToEdit: Bool = false,
+            sendBannedGifsAsVideo: Bool = false,
             quickTranslateButton: Bool = false,
             saveToCloudMenu: Bool = true,
             selectFromAuthor: Bool = true,
@@ -172,6 +175,7 @@ public enum ForkExtrasHotFlags {
             self.wideChannelPosts = wideChannelPosts
             self.stickerSizePercent = stickerSizePercent
             self.doubleTapToEdit = doubleTapToEdit
+            self.sendBannedGifsAsVideo = sendBannedGifsAsVideo
             self.quickTranslateButton = quickTranslateButton
             self.saveToCloudMenu = saveToCloudMenu
             self.selectFromAuthor = selectFromAuthor
@@ -277,6 +281,10 @@ public enum ForkExtrasHotFlags {
     public static var doubleTapToEdit: Bool {
         get { return state.with { $0.doubleTapToEdit } }
         set { let _ = state.modify { var s = $0; s.doubleTapToEdit = newValue; return s } }
+    }
+    public static var sendBannedGifsAsVideo: Bool {
+        get { return state.with { $0.sendBannedGifsAsVideo } }
+        set { let _ = state.modify { var s = $0; s.sendBannedGifsAsVideo = newValue; return s } }
     }
     public static var quickTranslateButton: Bool {
         get { return state.with { $0.quickTranslateButton } }

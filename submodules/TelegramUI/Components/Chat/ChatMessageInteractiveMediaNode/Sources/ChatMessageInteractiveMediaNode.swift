@@ -1986,7 +1986,8 @@ public final class ChatMessageInteractiveMediaNode: ASDisplayNode, GalleryItemTr
                                     let mediaManager = context.sharedContext.mediaManager
                                     
                                     let streamVideo = isMediaStreamable(message: EngineMessage(message), media: updatedVideoFile)
-                                    let loopVideo = updatedVideoFile.isAnimated
+                                    // Fork (Donutgram c7bb578): GIFs sent as silent videos into GIF-banned chats loop like GIFs.
+                                    let loopVideo = updatedVideoFile.isAnimated || forkIsBannedGifVideo(updatedVideoFile)
                                     
                                     let videoContent: UniversalVideoContent
                                     if useInlineHLS && NativeVideoContent.isHLSVideo(file: updatedVideoFile) {

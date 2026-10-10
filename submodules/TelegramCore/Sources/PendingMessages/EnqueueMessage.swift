@@ -875,6 +875,15 @@ private func opportunisticallyTransformOutgoingMedia(network: Network, postbox: 
 }
 
 public func enqueueMessages(account: Account, peerId: PeerId, messages: [EnqueueMessage]) -> Signal<[MessageId?], NoError> {
+    // Fork (Donutgram c7bb578): GIFs to a chat that bans them go out as silent videos when the
+    // setting is on; otherwise this passes `messages` through synchronously.
+    return forkPrepareBannedGifVideos(account: account, peerId: peerId, messages: messages)
+    |> mapToSignal { messages -> Signal<[MessageId?], NoError> in
+        return enqueuePreparedMessages(account: account, peerId: peerId, messages: messages)
+    }
+}
+
+private func enqueuePreparedMessages(account: Account, peerId: PeerId, messages: [EnqueueMessage]) -> Signal<[MessageId?], NoError> {
     let signal: Signal<[(Bool, EnqueueMessage)], NoError>
     if let transformOutgoingMessageMedia = account.transformOutgoingMessageMedia {
         signal = opportunisticallyTransformOutgoingMedia(network: account.network, postbox: account.postbox, transformOutgoingMessageMedia: transformOutgoingMessageMedia, messages: messages, userInteractive: true)

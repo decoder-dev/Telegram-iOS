@@ -1876,7 +1876,15 @@ public final class ChatEntityKeyboardInputNode: ChatInputNode {
             }
         }
 
-        if !stickersEnabled || interfaceState.interfaceState.editMessage != nil {
+        if !stickersEnabled {
+            stickerContent = nil
+            // Fork (Donutgram c7bb578): keep the GIF tab where GIFs are banned but videos are not
+            // and "Send banned GIFs as video" is on; the GIF then goes out as a silent video.
+            if !forkCanSendGifAsVideo(peer: interfaceState.renderedPeer?.peer) {
+                gifContent = nil
+            }
+        }
+        if interfaceState.interfaceState.editMessage != nil {
             stickerContent = nil
             gifContent = nil
         }

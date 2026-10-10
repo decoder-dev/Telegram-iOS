@@ -1222,6 +1222,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             wideChannelPosts: settings.wideChannelPosts,
             stickerSizePercent: settings.stickerSizePercent,
             doubleTapToEdit: settings.doubleTapToEdit,
+            sendBannedGifsAsVideo: settings.sendBannedGifsAsVideo,
             quickTranslateButton: settings.quickTranslateButton,
             saveToCloudMenu: settings.saveToCloudMenu,
             selectFromAuthor: settings.selectFromAuthor,

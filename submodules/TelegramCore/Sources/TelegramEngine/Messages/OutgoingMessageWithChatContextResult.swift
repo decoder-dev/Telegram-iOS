@@ -133,7 +133,12 @@ func _internal_outgoingMessageWithChatContextResult(to peerId: PeerId, threadId:
                 arc4random_buf(&randomId, 8)
                 
                 let resource: TelegramMediaResource
-                if peerId.namespace == Namespaces.Peer.SecretChat, let webResource = externalReference.content?.resource as? WebFileReferenceMediaResource {
+                if ForkExtrasHotFlags.sendBannedGifsAsVideo, peerId.namespace != Namespaces.Peer.SecretChat, externalReference.type == "gif", let contentResource = externalReference.content?.resource {
+                    // Fork (Donutgram c7bb578): keep a fetchable resource so a GIF sent to a chat that
+                    // bans GIFs can be converted to a silent video (see ForkBannedGifVideo.swift).
+                    // The send itself still goes through the inline-result path when GIFs are allowed.
+                    resource = contentResource
+                } else if peerId.namespace == Namespaces.Peer.SecretChat, let webResource = externalReference.content?.resource as? WebFileReferenceMediaResource {
                     resource = webResource
                 } else {
                     resource = EmptyMediaResource()
