@@ -477,6 +477,10 @@ public enum MessageSavingBridge {
             var mediaPath: String?
             if kind == .deleted, current.saveMedia, let mediaBox {
                 mediaPath = MessageSavingAttachments.scheduleCopy(message: message, mediaBox: mediaBox)
+                if mediaPath == nil && current.proactiveSaveMedia && !message.media.isEmpty {
+                    // Not cached: without this the attachment of a message deleted before it was ever downloaded is lost for good.
+                    preserveMediaIfNeeded(message: message, accountPeerId: accountPeerId, mediaBox: mediaBox)
+                }
             }
 
             let record = MessageSavingRecord(
@@ -519,6 +523,9 @@ public enum MessageSavingBridge {
         var mediaPath: String?
         if kind == .deleted, current.saveMedia, let mediaBox {
             mediaPath = MessageSavingAttachments.scheduleCopy(message: message, mediaBox: mediaBox)
+            if mediaPath == nil && current.proactiveSaveMedia && !message.media.isEmpty {
+                preserveMediaIfNeeded(message: message, accountPeerId: accountPeerId, mediaBox: mediaBox)
+            }
         }
 
         let record = MessageSavingRecord(
