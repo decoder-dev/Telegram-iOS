@@ -657,6 +657,12 @@ private final class ChatListViewSpaceState {
                     let isIncluded = filterPredicate.includes(peer: mainPeer, groupId: groupId, isRemovedFromTotalUnreadCount: nowRemovedFromTotalUnreadCount, isUnread: isUnread, isContact: postbox.contactsTable.isContact(peerId: peerId), messageTagSummaryResult: messageTagSummaryResult)
                     if isIncluded && self.orderedEntries.indicesForPeerId(mainPeer.id) == nil {
                         for peer in peers {
+                            // A chat pinned in this folder is rejected by the predicate by its own id,
+                            // but an associated peer (a secret chat) never goes through that check, so
+                            // skip it here to avoid a duplicate entry with the pinned space.
+                            if filterPredicate.pinnedPeerIds.contains(peer.id) {
+                                continue
+                            }
                             let tableEntry = postbox.chatListTable.getEntry(groupId: groupId, peerId: peer.id, messageHistoryTable: postbox.messageHistoryTable, peerChatInterfaceStateTable: postbox.peerChatInterfaceStateTable)
                             if let entry = tableEntry {
                                 if pinned.include == (entry.index.pinningIndex != nil) {
@@ -905,6 +911,12 @@ private final class ChatListViewSpaceState {
                     let isIncluded = filterPredicate.includes(peer: mainPeer, groupId: groupId, isRemovedFromTotalUnreadCount: nowRemovedFromTotalUnreadCount, isUnread: isUnread, isContact: postbox.contactsTable.isContact(peerId: peerId), messageTagSummaryResult: messageTagSummaryResult)
                     if isIncluded && self.orderedEntries.indicesForPeerId(mainPeer.id) == nil {
                         for peer in peers {
+                            // A chat pinned in this folder is rejected by the predicate by its own id,
+                            // but an associated peer (a secret chat) never goes through that check, so
+                            // skip it here to avoid a duplicate entry with the pinned space.
+                            if filterPredicate.pinnedPeerIds.contains(peer.id) {
+                                continue
+                            }
                             let tableEntry = postbox.chatListTable.getEntry(groupId: groupId, peerId: peer.id, messageHistoryTable: postbox.messageHistoryTable, peerChatInterfaceStateTable: postbox.peerChatInterfaceStateTable)
                             if let entry = tableEntry {
                                 if pinned.include == (entry.index.pinningIndex != nil) {
