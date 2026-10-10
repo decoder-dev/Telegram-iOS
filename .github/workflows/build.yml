@@ -352,6 +352,7 @@ jobs:
             --disableExtensions \
             $DSYM_FLAG \
             --ciFast \
+            --continueOnError \
             --outputBuildArtifactsPath=build/artifacts \
             2>&1 | tee release-build.log
 
