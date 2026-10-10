@@ -774,15 +774,23 @@ public final class PostboxDecoder {
             
             var valueLength: Int32 = 0
             memcpy(&valueLength, bytes + offset, 4)
+            if valueLength < 0 {
+                offset = 0
+                return false
+            }
             offset += 4 + Int(valueLength)
         case .Object:
-            if offset + 4 > length {
+            if offset + 8 > length {
                 offset = 0
                 return false
             }
             
             var valueLength: Int32 = 0
             memcpy(&valueLength, bytes + (offset + 4), 4)
+            if valueLength < 0 {
+                offset = 0
+                return false
+            }
             offset += 8 + Int(valueLength)
         case .Int32Array:
             if offset + 4 > length {
@@ -792,6 +800,10 @@ public final class PostboxDecoder {
             
             var valueLength: Int32 = 0
             memcpy(&valueLength, bytes + offset, 4)
+            if valueLength < 0 {
+                offset = 0
+                return false
+            }
             offset += 4 + Int(valueLength) * 4
         case .Int64Array:
             if offset + 4 > length {
@@ -801,6 +813,10 @@ public final class PostboxDecoder {
             
             var valueLength: Int32 = 0
             memcpy(&valueLength, bytes + offset, 4)
+            if valueLength < 0 {
+                offset = 0
+                return false
+            }
             offset += 4 + Int(valueLength) * 8
         case .ObjectArray:
             if offset + 4 > length {
@@ -820,8 +836,12 @@ public final class PostboxDecoder {
                 
                 var objectLength: Int32 = 0
                 memcpy(&objectLength, bytes + (offset + 4), 4)
+                if objectLength < 0 {
+                    offset = 0
+                    return false
+                }
                 offset += 8 + Int(objectLength)
-                if offset < 0 || offset > length {
+                if offset > length {
                     offset = 0
                     return false
                 }
@@ -846,6 +866,10 @@ public final class PostboxDecoder {
                 
                 var keyLength: Int32 = 0
                 memcpy(&keyLength, bytes + (offset + 4), 4)
+                if keyLength < 0 {
+                    offset = 0
+                    return false
+                }
                 offset += 8 + Int(keyLength)
                 
                 if offset + 4 + 4 > length {
@@ -855,6 +879,10 @@ public final class PostboxDecoder {
                 
                 var valueLength: Int32 = 0
                 memcpy(&valueLength, bytes + (offset + 4), 4)
+                if valueLength < 0 {
+                    offset = 0
+                    return false
+                }
                 offset += 8 + Int(valueLength)
                 i += 1
             }
@@ -866,6 +894,10 @@ public final class PostboxDecoder {
             
             var valueLength: Int32 = 0
             memcpy(&valueLength, bytes + offset, 4)
+            if valueLength < 0 {
+                offset = 0
+                return false
+            }
             offset += 4 + Int(valueLength)
         case .Nil:
             break
@@ -887,9 +919,19 @@ public final class PostboxDecoder {
                 
                 var stringLength: Int32 = 0
                 memcpy(&stringLength, bytes + offset, 4)
+                if stringLength < 0 {
+                    offset = 0
+                    return false
+                }
                 offset += 4 + Int(stringLength)
                 i += 1
             }
+        }
+        // A value whose declared size runs past the buffer is malformed (negative lengths
+        // were rejected above, so the scan cannot move backwards either).
+        if offset > length {
+            offset = 0
+            return false
         }
         return true
     }

@@ -401,16 +401,21 @@ public final class StorageBox {
                             self.internalAddSize(peerId: peerId, contentType: contentType, delta: updatedSize)
                         }
                     }
-                } else if deltaSize != 0 {
-                    self.internalAddSize(contentType: contentType, delta: deltaSize)
-                    
+                } else {
                     let referencingPeers = self.peerIdsReferencing(hashId: hashId)
                     
-                    for peerId in referencingPeers {
-                        self.internalAddSize(peerId: peerId, contentType: previousContentType, delta: deltaSize)
+                    if deltaSize != 0 {
+                        self.internalAddSize(contentType: contentType, delta: deltaSize)
+                        
+                        for peerId in referencingPeers {
+                            self.internalAddSize(peerId: peerId, contentType: contentType, delta: deltaSize)
+                        }
                     }
-                    if !referencingPeers.contains(reference.peerId) {
-                        self.internalAddSize(peerId: reference.peerId, contentType: previousContentType, delta: updatedSize)
+                    
+                    // A peer referencing this item for the first time is credited with the
+                    // whole current size, whether or not the size changed in this call.
+                    if updatedSize != 0 && !referencingPeers.contains(reference.peerId) {
+                        self.internalAddSize(peerId: reference.peerId, contentType: contentType, delta: updatedSize)
                     }
                 }
             } else if updatedSize != 0 {

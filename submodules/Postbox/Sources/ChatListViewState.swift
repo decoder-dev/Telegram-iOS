@@ -12,6 +12,17 @@ enum ChatListViewSpacePinned {
             return true
         }
     }
+    
+    /// The index a table entry is keyed by inside a space with this mode. A space that
+    /// shows pinned chats as unpinned is keyed by the index with the pinning stripped.
+    func spaceIndex(for index: ChatListIndex) -> ChatListIndex {
+        switch self {
+        case .includePinnedAsUnpinned:
+            return ChatListIndex(pinningIndex: nil, messageIndex: index.messageIndex)
+        case .notPinned, .includePinned:
+            return index
+        }
+    }
 }
 
 enum ChatListViewSpace: Hashable {
@@ -657,13 +668,19 @@ private final class ChatListViewSpaceState {
                     let isIncluded = filterPredicate.includes(peer: mainPeer, groupId: groupId, isRemovedFromTotalUnreadCount: nowRemovedFromTotalUnreadCount, isUnread: isUnread, isContact: postbox.contactsTable.isContact(peerId: peerId), messageTagSummaryResult: messageTagSummaryResult)
                     if isIncluded && self.orderedEntries.indicesForPeerId(mainPeer.id) == nil {
                         for peer in peers {
+                            // A chat pinned in this folder is rejected by the predicate by its own id,
+                            // but an associated peer (a secret chat) never goes through that check, so
+                            // skip it here to avoid a duplicate entry with the pinned space.
+                            if filterPredicate.pinnedPeerIds.contains(peer.id) {
+                                continue
+                            }
                             let tableEntry = postbox.chatListTable.getEntry(groupId: groupId, peerId: peer.id, messageHistoryTable: postbox.messageHistoryTable, peerChatInterfaceStateTable: postbox.peerChatInterfaceStateTable)
                             if let entry = tableEntry {
                                 if pinned.include == (entry.index.pinningIndex != nil) {
                                     if self.orderedEntries.indicesForPeerId(peer.id) == nil {
                                         switch entry {
                                         case let .message(index, messageIndex):
-                                            if self.add(entry: .IntermediateMessageEntry(index: index, messageIndex: messageIndex)) {
+                                            if self.add(entry: .IntermediateMessageEntry(index: pinned.spaceIndex(for: index), messageIndex: messageIndex)) {
                                                 hasUpdates = true
                                             } else {
                                                 hasUpdates = true
@@ -681,7 +698,10 @@ private final class ChatListViewSpaceState {
             }
         }
         
-        if !transaction.currentUpdatedPeerNotificationSettings.isEmpty {
+        // The global settings take part in resolving any peer that keeps the default mute state, so a change to
+        // them invalidates the resolved value of every entry, not just of the peers whose own settings changed.
+        let updatedGlobalNotificationSettings = transaction.updatedGlobalNotificationSettings
+        if !transaction.currentUpdatedPeerNotificationSettings.isEmpty || updatedGlobalNotificationSettings {
             let globalNotificationSettings = postbox.getGlobalNotificationSettings(transaction: currentTransaction)
             
             if self.orderedEntries.mutableScan({ entry in
@@ -689,17 +709,22 @@ private final class ChatListViewSpaceState {
                 case let .MessageEntry(entryData):
                     if let peer = entryData.renderedPeer.peer {
                         let notificationsPeerId = peer.notificationSettingsPeerId ?? peer.id
-                        if let (_, updated) = transaction.currentUpdatedPeerNotificationSettings[notificationsPeerId] {
-                            let isRemovedFromTotalUnreadCount = resolvedIsRemovedFromTotalUnreadCount(globalSettings: globalNotificationSettings, peer: peer, peerSettings: updated)
-                            
-                            var entryData = entryData
-                            entryData.notificationSettings = updated
-                            entryData.isRemovedFromTotalUnreadCount = isRemovedFromTotalUnreadCount
-                            
-                            return .MessageEntry(entryData)
-                        } else {
+                        let updatedPeerSettings = transaction.currentUpdatedPeerNotificationSettings[notificationsPeerId]?.1
+                        if updatedPeerSettings == nil && !updatedGlobalNotificationSettings {
                             return nil
                         }
+                        // On a global-only transaction the stored peer value is still authoritative.
+                        let peerSettings = updatedPeerSettings ?? entryData.notificationSettings
+                        let isRemovedFromTotalUnreadCount = resolvedIsRemovedFromTotalUnreadCount(globalSettings: globalNotificationSettings, peer: peer, peerSettings: peerSettings)
+                        if updatedPeerSettings == nil && isRemovedFromTotalUnreadCount == entryData.isRemovedFromTotalUnreadCount {
+                            return nil
+                        }
+                        
+                        var entryData = entryData
+                        entryData.notificationSettings = peerSettings
+                        entryData.isRemovedFromTotalUnreadCount = isRemovedFromTotalUnreadCount
+                        
+                        return .MessageEntry(entryData)
                     } else {
                         return nil
                     }
@@ -905,13 +930,19 @@ private final class ChatListViewSpaceState {
                     let isIncluded = filterPredicate.includes(peer: mainPeer, groupId: groupId, isRemovedFromTotalUnreadCount: nowRemovedFromTotalUnreadCount, isUnread: isUnread, isContact: postbox.contactsTable.isContact(peerId: peerId), messageTagSummaryResult: messageTagSummaryResult)
                     if isIncluded && self.orderedEntries.indicesForPeerId(mainPeer.id) == nil {
                         for peer in peers {
+                            // A chat pinned in this folder is rejected by the predicate by its own id,
+                            // but an associated peer (a secret chat) never goes through that check, so
+                            // skip it here to avoid a duplicate entry with the pinned space.
+                            if filterPredicate.pinnedPeerIds.contains(peer.id) {
+                                continue
+                            }
                             let tableEntry = postbox.chatListTable.getEntry(groupId: groupId, peerId: peer.id, messageHistoryTable: postbox.messageHistoryTable, peerChatInterfaceStateTable: postbox.peerChatInterfaceStateTable)
                             if let entry = tableEntry {
                                 if pinned.include == (entry.index.pinningIndex != nil) {
                                     if self.orderedEntries.indicesForPeerId(peer.id) == nil {
                                         switch entry {
                                         case let .message(index, messageIndex):
-                                            if self.add(entry: .IntermediateMessageEntry(index: index, messageIndex: messageIndex)) {
+                                            if self.add(entry: .IntermediateMessageEntry(index: pinned.spaceIndex(for: index), messageIndex: messageIndex)) {
                                                 hasUpdates = true
                                             } else {
                                                 hasUpdates = true
