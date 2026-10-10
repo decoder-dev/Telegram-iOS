@@ -5662,69 +5662,72 @@ public final class StoryItemSetContainerComponent: Component {
             }
             
             let context = component.context
-            let storyContent = RepostStoriesContentContextImpl(context: context, originalPeerId: component.slice.effectivePeer.id, originalStory: component.slice.item.storyItem, focusedStoryId: storyId, viewListContext: viewListContext, readGlobally: false)
-            let _ = (storyContent.state
-            |> take(1)
-            |> deliverOnMainQueue).startStandalone(next: { [weak controller, weak viewListView, weak sourceView] _ in
-                guard let controller, let sourceView else {
-                    return
-                }
-                let transitionIn = StoryContainerScreen.TransitionIn(
-                    sourceView: sourceView,
-                    sourceRect: sourceView.bounds,
-                    sourceCornerRadius: sourceView.bounds.width * 0.5,
-                    sourceIsAvatar: false
-                )
-            
-                let storyContainerScreen = StoryContainerScreen(
-                    context: context,
-                    content: storyContent,
-                    transitionIn: transitionIn,
-                    transitionOut: { [weak sourceView, weak viewListView] peerId, storyIdValue in
-                        var destinationView: UIView?
-                        if let view = viewListView?.sourceView(storyId: EngineStoryId(peerId: peerId, id: storyIdValue as? Int32 ?? 0)) {
-                            destinationView = view
-                        } else {
-                            destinationView = sourceView
-                        }
-                        if let destinationView {
-                            return StoryContainerScreen.TransitionOut(
-                                destinationView: destinationView,
-                                transitionView: StoryContainerScreen.TransitionView(
-                                    makeView: { [weak destinationView] in
-                                        let parentView = UIView()
-                                        if let copyView = destinationView?.snapshotContentTree(unhide: true) {
-                                            parentView.addSubview(copyView)
-                                        }
-                                        return parentView
-                                    },
-                                    updateView: { copyView, state, transition in
-                                        guard let view = copyView.subviews.first else {
+            // Fork extras: "Ask before opening any story" also covers reposts opened from the viewers list.
+            StoryContainerScreen.confirmGhostStoryOpenIfNeeded(context: context, controller: controller, proceed: {
+                let storyContent = RepostStoriesContentContextImpl(context: context, originalPeerId: component.slice.effectivePeer.id, originalStory: component.slice.item.storyItem, focusedStoryId: storyId, viewListContext: viewListContext, readGlobally: false)
+                let _ = (storyContent.state
+                |> take(1)
+                |> deliverOnMainQueue).startStandalone(next: { [weak controller, weak viewListView, weak sourceView] _ in
+                    guard let controller, let sourceView else {
+                        return
+                    }
+                    let transitionIn = StoryContainerScreen.TransitionIn(
+                        sourceView: sourceView,
+                        sourceRect: sourceView.bounds,
+                        sourceCornerRadius: sourceView.bounds.width * 0.5,
+                        sourceIsAvatar: false
+                    )
+                
+                    let storyContainerScreen = StoryContainerScreen(
+                        context: context,
+                        content: storyContent,
+                        transitionIn: transitionIn,
+                        transitionOut: { [weak sourceView, weak viewListView] peerId, storyIdValue in
+                            var destinationView: UIView?
+                            if let view = viewListView?.sourceView(storyId: EngineStoryId(peerId: peerId, id: storyIdValue as? Int32 ?? 0)) {
+                                destinationView = view
+                            } else {
+                                destinationView = sourceView
+                            }
+                            if let destinationView {
+                                return StoryContainerScreen.TransitionOut(
+                                    destinationView: destinationView,
+                                    transitionView: StoryContainerScreen.TransitionView(
+                                        makeView: { [weak destinationView] in
+                                            let parentView = UIView()
+                                            if let copyView = destinationView?.snapshotContentTree(unhide: true) {
+                                                parentView.addSubview(copyView)
+                                            }
+                                            return parentView
+                                        },
+                                        updateView: { copyView, state, transition in
+                                            guard let view = copyView.subviews.first else {
+                                                return
+                                            }
+                                            let size = state.sourceSize.interpolate(to: state.destinationSize, amount: state.progress)
+                                            transition.setPosition(view: view, position: CGPoint(x: size.width * 0.5, y: size.height * 0.5))
+                                            transition.setScale(view: view, scale: size.width / state.destinationSize.width)
+                                        },
+                                        insertCloneTransitionView: nil
+                                    ),
+                                    destinationRect: destinationView.bounds,
+                                    destinationCornerRadius: destinationView.bounds.width * 0.5,
+                                    destinationIsAvatar: false,
+                                    completed: { [weak sourceView] in
+                                        guard let sourceView else {
                                             return
                                         }
-                                        let size = state.sourceSize.interpolate(to: state.destinationSize, amount: state.progress)
-                                        transition.setPosition(view: view, position: CGPoint(x: size.width * 0.5, y: size.height * 0.5))
-                                        transition.setScale(view: view, scale: size.width / state.destinationSize.width)
-                                    },
-                                    insertCloneTransitionView: nil
-                                ),
-                                destinationRect: destinationView.bounds,
-                                destinationCornerRadius: destinationView.bounds.width * 0.5,
-                                destinationIsAvatar: false,
-                                completed: { [weak sourceView] in
-                                    guard let sourceView else {
-                                        return
+                                        sourceView.isHidden = false
                                     }
-                                    sourceView.isHidden = false
-                                }
-                            )
-                        } else {
-                            return nil
+                                )
+                            } else {
+                                return nil
+                            }
                         }
-                    }
-                )
-                viewListView?.setPreviewedItem(signal: storyContainerScreen.focusedItem)
-                controller.push(storyContainerScreen)
+                    )
+                    viewListView?.setPreviewedItem(signal: storyContainerScreen.focusedItem)
+                    controller.push(storyContainerScreen)
+                })
             })
         }
         

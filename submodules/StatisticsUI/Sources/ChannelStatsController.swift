@@ -2356,63 +2356,66 @@ public func channelStatsController(
         controller?.push(messageStatsController(context: context, subject: subject))
     }
     openStoryImpl = { [weak controller] story, sourceView in
-        let storyContent = SingleStoryContentContextImpl(context: context, storyId: StoryId(peerId: peerId, id: story.id), storyItem: story, readGlobally: false)
-        let _ = (storyContent.state
-        |> take(1)
-        |> deliverOnMainQueue).startStandalone(next: { [weak controller, weak sourceView] _ in
-            guard let controller, let sourceView else {
-                return
-            }
-            let transitionIn = StoryContainerScreen.TransitionIn(
-                sourceView: sourceView,
-                sourceRect: sourceView.bounds,
-                sourceCornerRadius: sourceView.bounds.width * 0.5,
-                sourceIsAvatar: false
-            )
-        
-            let storyContainerScreen = StoryContainerScreen(
-                context: context,
-                content: storyContent,
-                transitionIn: transitionIn,
-                transitionOut: { [weak sourceView] peerId, storyIdValue in
-                    if let sourceView {
-                        let destinationView = sourceView
-                        return StoryContainerScreen.TransitionOut(
-                            destinationView: destinationView,
-                            transitionView: StoryContainerScreen.TransitionView(
-                                makeView: { [weak destinationView] in
-                                    let parentView = UIView()
-                                    if let copyView = destinationView?.snapshotContentTree(unhide: true) {
-                                        parentView.addSubview(copyView)
-                                    }
-                                    return parentView
-                                },
-                                updateView: { copyView, state, transition in
-                                    guard let view = copyView.subviews.first else {
+        // Fork extras: honour "Ask before opening any story" for stories opened from channel stats.
+        StoryContainerScreen.confirmGhostStoryOpenIfNeeded(context: context, controller: controller, proceed: {
+            let storyContent = SingleStoryContentContextImpl(context: context, storyId: StoryId(peerId: peerId, id: story.id), storyItem: story, readGlobally: false)
+            let _ = (storyContent.state
+            |> take(1)
+            |> deliverOnMainQueue).startStandalone(next: { [weak controller, weak sourceView] _ in
+                guard let controller, let sourceView else {
+                    return
+                }
+                let transitionIn = StoryContainerScreen.TransitionIn(
+                    sourceView: sourceView,
+                    sourceRect: sourceView.bounds,
+                    sourceCornerRadius: sourceView.bounds.width * 0.5,
+                    sourceIsAvatar: false
+                )
+            
+                let storyContainerScreen = StoryContainerScreen(
+                    context: context,
+                    content: storyContent,
+                    transitionIn: transitionIn,
+                    transitionOut: { [weak sourceView] peerId, storyIdValue in
+                        if let sourceView {
+                            let destinationView = sourceView
+                            return StoryContainerScreen.TransitionOut(
+                                destinationView: destinationView,
+                                transitionView: StoryContainerScreen.TransitionView(
+                                    makeView: { [weak destinationView] in
+                                        let parentView = UIView()
+                                        if let copyView = destinationView?.snapshotContentTree(unhide: true) {
+                                            parentView.addSubview(copyView)
+                                        }
+                                        return parentView
+                                    },
+                                    updateView: { copyView, state, transition in
+                                        guard let view = copyView.subviews.first else {
+                                            return
+                                        }
+                                        let size = state.sourceSize.interpolate(to: state.destinationSize, amount: state.progress)
+                                        transition.setPosition(view: view, position: CGPoint(x: size.width * 0.5, y: size.height * 0.5))
+                                        transition.setScale(view: view, scale: size.width / state.destinationSize.width)
+                                    },
+                                    insertCloneTransitionView: nil
+                                ),
+                                destinationRect: destinationView.bounds,
+                                destinationCornerRadius: destinationView.bounds.width * 0.5,
+                                destinationIsAvatar: false,
+                                completed: { [weak sourceView] in
+                                    guard let sourceView else {
                                         return
                                     }
-                                    let size = state.sourceSize.interpolate(to: state.destinationSize, amount: state.progress)
-                                    transition.setPosition(view: view, position: CGPoint(x: size.width * 0.5, y: size.height * 0.5))
-                                    transition.setScale(view: view, scale: size.width / state.destinationSize.width)
-                                },
-                                insertCloneTransitionView: nil
-                            ),
-                            destinationRect: destinationView.bounds,
-                            destinationCornerRadius: destinationView.bounds.width * 0.5,
-                            destinationIsAvatar: false,
-                            completed: { [weak sourceView] in
-                                guard let sourceView else {
-                                    return
+                                    sourceView.isHidden = false
                                 }
-                                sourceView.isHidden = false
-                            }
-                        )
-                    } else {
-                        return nil
+                            )
+                        } else {
+                            return nil
+                        }
                     }
-                }
-            )
-            controller.push(storyContainerScreen)
+                )
+                controller.push(storyContainerScreen)
+            })
         })
     }
     contextActionImpl = { [weak controller] messageId, sourceNode, gesture in

@@ -405,6 +405,35 @@ final class AuthorizedApplicationContext {
                             guard !locked, !shouldRedactForArchive else {
                                 return
                             }
+                            // Fork extras: "suppress notifications for mentions / pinned messages". The
+                            // Notification Service Extension applies the same filter to pushes, but a
+                            // sideloaded build gets no APNs, so this in-app banner (and its sound) is
+                            // what users actually see. Only the notification is skipped; the message,
+                            // its unread-mention badge and the chat's mute state are untouched.
+                            let forkExtrasSettings = strongSelf.context.sharedContext.immediateForkExtrasSettings
+                            if forkExtrasSettings.hideMentionNotifications || forkExtrasSettings.hidePinnedNotifications {
+                                let peerNamespace = firstMessage.id.peerId.namespace
+                                let isGroupLike = peerNamespace != Namespaces.Peer.CloudUser && peerNamespace != Namespaces.Peer.SecretChat
+                                // Same signal the server uses for mention pushes: the `mentioned` flag
+                                // (an @mention or a reply to one of our messages) stored as `.personal`.
+                                let isMention = isGroupLike && firstMessage.attributes.contains(where: { attribute in
+                                    if let attribute = attribute as? NotificationInfoMessageAttribute {
+                                        return attribute.flags.contains(.personal)
+                                    } else {
+                                        return false
+                                    }
+                                })
+                                let isPinnedUpdate = firstMessage.media.contains(where: { media in
+                                    if let action = media as? TelegramMediaAction, case .pinnedMessageUpdated = action.action {
+                                        return true
+                                    } else {
+                                        return false
+                                    }
+                                })
+                                if (isMention && forkExtrasSettings.hideMentionNotifications) || (isPinnedUpdate && forkExtrasSettings.hidePinnedNotifications) {
+                                    return
+                                }
+                            }
                             let isMuted = firstMessage.attributes.contains(where: { attribute in
                                 if let attribute = attribute as? NotificationInfoMessageAttribute {
                                     return attribute.flags.contains(.muted)

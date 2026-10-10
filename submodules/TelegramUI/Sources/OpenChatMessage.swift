@@ -41,92 +41,97 @@ func openChatMessageImpl(_ params: OpenChatMessageParams) -> Bool {
     
     if let story {
         let navigationController = params.navigationController
-        let context = params.context
-        let storyContent = SingleStoryContentContextImpl(context: params.context, storyId: story.storyId, readGlobally: true)
-        let _ = (storyContent.state
-        |> take(1)
-        |> deliverOnMainQueue).startStandalone(next: { [weak navigationController] _ in
-            var transitionIn: StoryContainerScreen.TransitionIn? = nil
-            
-            var selectedTransitionNode: (ASDisplayNode, CGRect, () -> (UIView?, UIView?))?
-            selectedTransitionNode = params.transitionNode(params.message.id, story, true)
-            
-            if let selectedTransitionNode {
-                var cornerRadius: CGFloat = 0.0
-                if let imageNode = selectedTransitionNode.0 as? TransformImageNode, let currentArguments = imageNode.currentArguments {
-                    cornerRadius = currentArguments.corners.topLeft.radius
+        // Fork extras: "Ask before opening any story" — a story shared into a chat opened here too.
+        // The content context and hidden-media source are only created once the user confirms, so
+        // cancelling leaves the chat thumbnail visible and the story untouched.
+        StoryContainerScreen.confirmGhostStoryOpenIfNeeded(context: params.context, controller: navigationController?.topViewController as? ViewController, proceed: {
+            let context = params.context
+            let storyContent = SingleStoryContentContextImpl(context: params.context, storyId: story.storyId, readGlobally: true)
+            let _ = (storyContent.state
+            |> take(1)
+            |> deliverOnMainQueue).startStandalone(next: { [weak navigationController] _ in
+                var transitionIn: StoryContainerScreen.TransitionIn? = nil
+                
+                var selectedTransitionNode: (ASDisplayNode, CGRect, () -> (UIView?, UIView?))?
+                selectedTransitionNode = params.transitionNode(params.message.id, story, true)
+                
+                if let selectedTransitionNode {
+                    var cornerRadius: CGFloat = 0.0
+                    if let imageNode = selectedTransitionNode.0 as? TransformImageNode, let currentArguments = imageNode.currentArguments {
+                        cornerRadius = currentArguments.corners.topLeft.radius
+                    }
+                    transitionIn = StoryContainerScreen.TransitionIn(
+                        sourceView: selectedTransitionNode.0.view,
+                        sourceRect: selectedTransitionNode.1,
+                        sourceCornerRadius: cornerRadius,
+                        sourceIsAvatar: false
+                    )
                 }
-                transitionIn = StoryContainerScreen.TransitionIn(
-                    sourceView: selectedTransitionNode.0.view,
-                    sourceRect: selectedTransitionNode.1,
-                    sourceCornerRadius: cornerRadius,
-                    sourceIsAvatar: false
-                )
-            }
-            
-            let hiddenMediaSource = params.context.sharedContext.mediaManager.galleryHiddenMediaManager.addSource(.single(GalleryHiddenMediaId.chat(params.context.account.id, params.message.id, story)))
-            
-            let storyContainerScreen = StoryContainerScreen(
-                context: context,
-                content: storyContent,
-                transitionIn: transitionIn,
-                transitionOut: { _, _ in
-                    var transitionOut: StoryContainerScreen.TransitionOut? = nil
-                    
-                    var selectedTransitionNode: (ASDisplayNode, CGRect, () -> (UIView?, UIView?))?
-                    selectedTransitionNode = params.transitionNode(params.message.id, story, true)
-                    if let selectedTransitionNode {
-                        var cornerRadius: CGFloat = 0.0
-                        if let imageNode = selectedTransitionNode.0 as? TransformImageNode, let currentArguments = imageNode.currentArguments {
-                            cornerRadius = currentArguments.corners.topLeft.radius
+                
+                let hiddenMediaSource = params.context.sharedContext.mediaManager.galleryHiddenMediaManager.addSource(.single(GalleryHiddenMediaId.chat(params.context.account.id, params.message.id, story)))
+                
+                let storyContainerScreen = StoryContainerScreen(
+                    context: context,
+                    content: storyContent,
+                    transitionIn: transitionIn,
+                    transitionOut: { _, _ in
+                        var transitionOut: StoryContainerScreen.TransitionOut? = nil
+                        
+                        var selectedTransitionNode: (ASDisplayNode, CGRect, () -> (UIView?, UIView?))?
+                        selectedTransitionNode = params.transitionNode(params.message.id, story, true)
+                        if let selectedTransitionNode {
+                            var cornerRadius: CGFloat = 0.0
+                            if let imageNode = selectedTransitionNode.0 as? TransformImageNode, let currentArguments = imageNode.currentArguments {
+                                cornerRadius = currentArguments.corners.topLeft.radius
+                            }
+                            
+                            transitionOut = StoryContainerScreen.TransitionOut(
+                                destinationView: selectedTransitionNode.0.view,
+                                transitionView: StoryContainerScreen.TransitionView(
+                                    makeView: {
+                                        let view = UIView()
+                                        if let transitionView = selectedTransitionNode.2().0 {
+                                            transitionView.layer.anchorPoint = CGPoint()
+                                            view.addSubview(transitionView)
+                                        }
+                                        return view
+                                    },
+                                    updateView: { view, state, transition in
+                                        guard let view = view.subviews.first else {
+                                            return
+                                        }
+                                        if state.progress == 0.0 {
+                                            view.frame = CGRect(origin: CGPoint(), size: state.destinationSize)
+                                        }
+                                        
+                                        let toScaleX = state.sourceSize.width / state.destinationSize.width
+                                        let toScaleY = state.sourceSize.height / state.destinationSize.height
+                                        let fromScaleX: CGFloat = 1.0
+                                        let fromScaleY: CGFloat = 1.0
+                                        let scaleX = toScaleX.interpolate(to: fromScaleX, amount: state.progress)
+                                        let scaleY = toScaleY.interpolate(to: fromScaleY, amount: state.progress)
+                                        transition.setTransform(view: view, transform: CATransform3DMakeScale(scaleX, scaleY, 1.0))
+                                    },
+                                    insertCloneTransitionView: { view in
+                                        params.addToTransitionSurface(view)
+                                    }
+                                ),
+                                destinationRect: selectedTransitionNode.1,
+                                destinationCornerRadius: cornerRadius,
+                                destinationIsAvatar: false,
+                                completed: {
+                                    params.context.sharedContext.mediaManager.galleryHiddenMediaManager.removeSource(hiddenMediaSource)
+                                }
+                            )
+                        } else {
+                            params.context.sharedContext.mediaManager.galleryHiddenMediaManager.removeSource(hiddenMediaSource)
                         }
                         
-                        transitionOut = StoryContainerScreen.TransitionOut(
-                            destinationView: selectedTransitionNode.0.view,
-                            transitionView: StoryContainerScreen.TransitionView(
-                                makeView: {
-                                    let view = UIView()
-                                    if let transitionView = selectedTransitionNode.2().0 {
-                                        transitionView.layer.anchorPoint = CGPoint()
-                                        view.addSubview(transitionView)
-                                    }
-                                    return view
-                                },
-                                updateView: { view, state, transition in
-                                    guard let view = view.subviews.first else {
-                                        return
-                                    }
-                                    if state.progress == 0.0 {
-                                        view.frame = CGRect(origin: CGPoint(), size: state.destinationSize)
-                                    }
-                                    
-                                    let toScaleX = state.sourceSize.width / state.destinationSize.width
-                                    let toScaleY = state.sourceSize.height / state.destinationSize.height
-                                    let fromScaleX: CGFloat = 1.0
-                                    let fromScaleY: CGFloat = 1.0
-                                    let scaleX = toScaleX.interpolate(to: fromScaleX, amount: state.progress)
-                                    let scaleY = toScaleY.interpolate(to: fromScaleY, amount: state.progress)
-                                    transition.setTransform(view: view, transform: CATransform3DMakeScale(scaleX, scaleY, 1.0))
-                                },
-                                insertCloneTransitionView: { view in
-                                    params.addToTransitionSurface(view)
-                                }
-                            ),
-                            destinationRect: selectedTransitionNode.1,
-                            destinationCornerRadius: cornerRadius,
-                            destinationIsAvatar: false,
-                            completed: {
-                                params.context.sharedContext.mediaManager.galleryHiddenMediaManager.removeSource(hiddenMediaSource)
-                            }
-                        )
-                    } else {
-                        params.context.sharedContext.mediaManager.galleryHiddenMediaManager.removeSource(hiddenMediaSource)
+                        return transitionOut
                     }
-                    
-                    return transitionOut
-                }
-            )
-            navigationController?.pushViewController(storyContainerScreen)
+                )
+                navigationController?.pushViewController(storyContainerScreen)
+            })
         })
         return true
     }
