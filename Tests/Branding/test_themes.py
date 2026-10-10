@@ -58,7 +58,11 @@ class ThemeTests(unittest.TestCase):
         groups=ast.literal_eval(block)
         ids=[value for group in groups for value in group]
         self.assertEqual(len(ids),len(set(ids)))
-        self.assertEqual(len(groups),4)
-        self.assertIn(1507,groups[1], 'Tab preview must be with navigation controls')
-        self.assertTrue({1500,1501}.issubset(groups[3]))
+        footers={53,58,60,62,64,66,68}
+        for group in groups:
+            for index,value in enumerate(group):
+                if value in footers:
+                    self.assertEqual(index,len(group)-1,'footer %d must close its section, not sit between switches'%value)
+        self.assertIn([1507],groups,'Tab preview is a section of its own')
+        self.assertTrue(any({1500,1501}.issubset(group) for group in groups))
 if __name__=='__main__': unittest.main()
