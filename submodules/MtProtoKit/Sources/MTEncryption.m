@@ -448,6 +448,10 @@ static inline uint64_t mygcd(uint64_t a, uint64_t b)
 
 bool MTFactorize(uint64_t what, uint64_t *resA, uint64_t *resB)
 {
+    // 0 and 1 divide by zero below (and loop forever on some targets); the sum a + a overflows from 2^63.
+    if (what < 4 || what >= ((uint64_t)1 << 63))
+        return false;
+    
     int it = 0;
     uint64_t g = 0;
     for (int i = 0; i < 3 || it < 1000; i++)

@@ -434,6 +434,15 @@ static NSData *encryptRSAModernPadding(id<EncryptionProvider> encryptionProvider
             else
             {
                 NSData *pqBytes = resPqMessage.pq;
+                if (pqBytes.length == 0 || pqBytes.length > 8)
+                {
+                    if (MTLogEnabled()) {
+                        MTLog(@"[MTDatacenterAuthMessageService#%p invalid pq length %d]", self, (int)pqBytes.length);
+                    }
+                    [self reset:mtProto];
+                    
+                    return;
+                }
                 
                 uint64_t pq = 0;
                 for (int i = 0; i < (int)pqBytes.length; i++)
@@ -444,7 +453,7 @@ static NSData *encryptRSAModernPadding(id<EncryptionProvider> encryptionProvider
                 
                 uint64_t factP = 0;
                 uint64_t factQ = 0;
-                if (!MTFactorize(pq, &factP, &factQ))
+                if (pq < 4 || pq >= ((uint64_t)1 << 63) || !MTFactorize(pq, &factP, &factQ))
                 {
                     [self reset:mtProto];
                     
@@ -576,6 +585,16 @@ static NSData *encryptRSAModernPadding(id<EncryptionProvider> encryptionProvider
                 [tmpAesIv appendData:newNonce0_4];
                 
                 NSData *answerWithHash = MTAesDecrypt(((MTServerDhParamsOkMessage *)serverDhParamsMessage).encryptedResponse, tmpAesKey, tmpAesIv);
+                // 20 bytes of SHA1 plus at least 16 bytes of data: the loop below trims up to 16 bytes.
+                if (answerWithHash.length < 36)
+                {
+                    if (MTLogEnabled()) {
+                        MTLog(@"[MTDatacenterAuthMessageService#%p DH params answer is too short]", self);
+                    }
+                    [self reset:mtProto];
+                    
+                    return;
+                }
                 NSData *answerHash = [[NSData alloc] initWithBytes:((uint8_t *)answerWithHash.bytes) length:20];
                 
                 NSMutableData *answerData = [[NSMutableData alloc] initWithBytes:(((uint8_t *)answerWithHash.bytes) + 20) length:(answerWithHash.length - 20)];
