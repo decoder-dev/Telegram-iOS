@@ -1217,11 +1217,26 @@ public final class Network: NSObject, MTRequestMessageServiceDelegate {
     private func makeWorker(datacenterId: Int, isCdn: Bool, isMedia: Bool, tag: MediaResourceFetchTag?, continueInBackground: Bool = false) -> Download {
         let queue = Queue.mainQueue()
         let shouldKeepWorkerConnection: Signal<Bool, NoError> = combineLatest(queue: queue, self.shouldKeepConnection.get(), self.shouldExplicitelyKeepWorkerConnections.get(), self.shouldKeepBackgroundDownloadConnections.get(), self.isSuperseded.get())
-        |> map { shouldKeepConnection, shouldExplicitelyKeepWorkerConnections, shouldKeepBackgroundDownloadConnections, isSuperseded -> Bool in
+        |> map { shouldKeepConnection, shouldExplicitelyKeepWorkerConnections, shouldKeepBackgroundDownloadConnections, isSuperseded -> (keep: Bool, isSuperseded: Bool) in
             if isSuperseded {
-                return false
+                return (false, true)
             }
-            return shouldKeepConnection || shouldExplicitelyKeepWorkerConnections || (continueInBackground && shouldKeepBackgroundDownloadConnections)
+            return (shouldKeepConnection || shouldExplicitelyKeepWorkerConnections || (continueInBackground && shouldKeepBackgroundDownloadConnections), false)
+        }
+        // Workers are paused whenever the app leaves the foreground and resumed when it comes back, and every pause tears a
+        // transport down. A day's log has 4,355 resumes and 4,173 pauses: the app is left and re-entered some 550 times, each
+        // time dropping and re-handshaking about eight worker connections (6,500 WebSocket handshakes, most of them DC2).
+        // Most of those trips are a glance at another app, so a `false` only takes effect if it lasts; a `true` inside the
+        // window cancels it (mapToSignal disposes the pending inner signal). A superseded instance still stops at once.
+        |> mapToSignal { state -> Signal<Bool, NoError> in
+            if state.keep {
+                return .single(true)
+            } else if state.isSuperseded {
+                return .single(false)
+            } else {
+                return .single(false)
+                |> delay(8.0, queue: Queue.concurrentDefaultQueue())
+            }
         }
         |> distinctUntilChanged
         return Download(queue: self.queue, datacenterId: datacenterId, isMedia: isMedia, isCdn: isCdn, context: self.context, masterDatacenterId: self.datacenterId, usageInfo: usageCalculationInfo(basePath: self.basePath, category: (tag as? TelegramMediaResourceFetchTag)?.statsCategory), shouldKeepConnection: shouldKeepWorkerConnection, useRequestTimeoutTimers: self.useRequestTimeoutTimers)
