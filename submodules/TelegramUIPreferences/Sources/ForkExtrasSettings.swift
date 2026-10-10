@@ -136,6 +136,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var showPinnedWithBot: Bool
     public var stopAfterVoice: Bool
     public var stopAfterRoundVideo: Bool
+    public var hideGreetingSticker: Bool
+    public var hashtagsPreferCurrentChat: Bool
 
     public static var defaultSettings: ForkExtrasSettings {
         return ForkExtrasSettings(
@@ -276,6 +278,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.showPinnedWithBot = false
         self.stopAfterVoice = false
         self.stopAfterRoundVideo = false
+        self.hideGreetingSticker = false
+        self.hashtagsPreferCurrentChat = false
         self.ghostDontReadMessages = ghostDontReadMessages
         self.ghostDontReadStories = ghostDontReadStories
         self.ghostDontSendOnline = ghostDontSendOnline
@@ -350,6 +354,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.showPinnedWithBot = try container.decodeIfPresent(Bool.self, forKey: "showPinnedWithBot") ?? false
         self.stopAfterVoice = try container.decodeIfPresent(Bool.self, forKey: "stopAfterVoice") ?? false
         self.stopAfterRoundVideo = try container.decodeIfPresent(Bool.self, forKey: "stopAfterRoundVideo") ?? false
+        self.hideGreetingSticker = try container.decodeIfPresent(Bool.self, forKey: "hideGreetingSticker") ?? false
+        self.hashtagsPreferCurrentChat = try container.decodeIfPresent(Bool.self, forKey: "hashtagsPreferCurrentChat") ?? false
         self.avatarGlowEnabled = try container.decodeIfPresent(Bool.self, forKey: "avatarGlowEnabled") ?? true
         self.showChannelForwardCount = try container.decodeIfPresent(Bool.self, forKey: "showChannelForwardCount") ?? false
         self.reactionGlowEnabled = try container.decodeIfPresent(Bool.self, forKey: "reactionGlowEnabled") ?? false
@@ -431,6 +437,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.showPinnedWithBot, forKey: "showPinnedWithBot")
         try container.encode(self.stopAfterVoice, forKey: "stopAfterVoice")
         try container.encode(self.stopAfterRoundVideo, forKey: "stopAfterRoundVideo")
+        try container.encode(self.hideGreetingSticker, forKey: "hideGreetingSticker")
+        try container.encode(self.hashtagsPreferCurrentChat, forKey: "hashtagsPreferCurrentChat")
         try container.encode(self.avatarGlowEnabled, forKey: "avatarGlowEnabled")
         try container.encode(self.showChannelForwardCount, forKey: "showChannelForwardCount")
         try container.encode(self.reactionGlowEnabled, forKey: "reactionGlowEnabled")

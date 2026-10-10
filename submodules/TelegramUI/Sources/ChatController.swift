@@ -710,7 +710,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         
         self.stickerSettings = ChatInterfaceStickerSettings()
         
-        self.presentationInterfaceState = ChatPresentationInterfaceState(chatWallpaper: self.presentationData.chatWallpaper, theme: self.presentationData.theme, preferredGlassType: .default, strings: self.presentationData.strings, dateTimeFormat: self.presentationData.dateTimeFormat, nameDisplayOrder: self.presentationData.nameDisplayOrder, limitsConfiguration: context.currentLimitsConfiguration.with { $0 }, fontSize: self.presentationData.chatFontSize, bubbleCorners: self.presentationData.chatBubbleCorners, accountPeerId: context.account.peerId, mode: mode, chatLocation: chatLocation, subject: subject, greetingData: context.prefetchManager?.preloadedGreetingSticker, pendingUnpinnedAllMessages: false, activeGroupCallInfo: nil, hasActiveGroupCall: false, threadData: nil, isGeneralThreadClosed: nil, replyMessage: nil, accountPeerColor: nil, businessIntro: nil)
+        self.presentationInterfaceState = ChatPresentationInterfaceState(chatWallpaper: self.presentationData.chatWallpaper, theme: self.presentationData.theme, preferredGlassType: .default, strings: self.presentationData.strings, dateTimeFormat: self.presentationData.dateTimeFormat, nameDisplayOrder: self.presentationData.nameDisplayOrder, limitsConfiguration: context.currentLimitsConfiguration.with { $0 }, fontSize: self.presentationData.chatFontSize, bubbleCorners: self.presentationData.chatBubbleCorners, accountPeerId: context.account.peerId, mode: mode, chatLocation: chatLocation, subject: subject, greetingData: context.sharedContext.immediateForkExtrasSettings.hideGreetingSticker ? nil : context.prefetchManager?.preloadedGreetingSticker, pendingUnpinnedAllMessages: false, activeGroupCallInfo: nil, hasActiveGroupCall: false, threadData: nil, isGeneralThreadClosed: nil, replyMessage: nil, accountPeerColor: nil, businessIntro: nil)
         
         if case let .customChatContents(customChatContents) = subject {
             switch customChatContents.kind {
@@ -9810,7 +9810,9 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                     } else if case let .customChatContents(contents) = self.subject, case let .hashTagSearch(publicPostsValue) = contents.kind {
                         publicPosts = publicPostsValue
                     }
-                    let searchController = HashtagSearchController(context: self.context, peer: peer.flatMap(EnginePeer.init), query: hashtag, mode: peerName != nil ? .chatOnly : .generic, publicPosts: peerName == nil && publicPosts)
+                    // Open the This Chat tab instead of public posts when a chat is at hand (adapted from Donutgram f0d0b06).
+                    let preferCurrentChat = self.context.sharedContext.immediateForkExtrasSettings.hashtagsPreferCurrentChat && peer != nil
+                    let searchController = HashtagSearchController(context: self.context, peer: peer.flatMap(EnginePeer.init), query: hashtag, mode: peerName != nil ? .chatOnly : .generic, publicPosts: peerName == nil && publicPosts && !preferCurrentChat)
                     self.effectiveNavigationController?.pushViewController(searchController)
                 }
             }))

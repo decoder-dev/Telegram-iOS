@@ -76,11 +76,21 @@ private func forkShouldHideChatListMessage(accountPeerId: EnginePeer.Id, message
         return false
     }
 
-    let blockedResult: (contains: Bool, revision: UInt64)
+    var blockedResult: (contains: Bool, revision: UInt64)
     if hotFlags.hideBlockedMessages, let authorId = message.author?.id {
         blockedResult = ForkBlockedPeersFilter.containsSnapshot(accountPeerId: accountPeerId, peerId: authorId)
     } else {
         blockedResult = (false, 0)
+    }
+    // Sent through an inline bot you blocked.
+    if hotFlags.hideBlockedMessages, !blockedResult.contains {
+        for attribute in message.attributes {
+            if let attribute = attribute as? InlineBotMessageAttribute, let botId = attribute.peerId {
+                let botResult = ForkBlockedPeersFilter.containsSnapshot(accountPeerId: accountPeerId, peerId: botId)
+                blockedResult = (botResult.contains, botResult.revision)
+                break
+            }
+        }
     }
     let key = ForkChatListMessageFilterCacheKey(
         accountPeerId: accountPeerId,

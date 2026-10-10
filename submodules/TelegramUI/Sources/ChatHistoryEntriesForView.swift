@@ -173,6 +173,14 @@ func chatHistoryEntriesForView(
                blockedPeerIds.contains(authorId) {
                 continue loop
             }
+            // Messages someone else sent through an inline bot you blocked.
+            if message.flags.contains(.Incoming), !blockedPeerIds.isEmpty {
+                for attribute in message.attributes {
+                    if let attribute = attribute as? InlineBotMessageAttribute, let botId = attribute.peerId, blockedPeerIds.contains(botId) {
+                        continue loop
+                    }
+                }
+            }
         }
 
         // AyuGram Message Filters: precompiled regex (see ForkRegexMessageFilters.apply).
