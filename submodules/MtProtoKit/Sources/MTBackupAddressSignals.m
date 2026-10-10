@@ -16,6 +16,10 @@
 #import <MtProtoKit/MTLogging.h>
 #import <MtProtoKit/MTKeychain.h>
 
+@interface MTContext (CancelPending)
+- (void)cancelPendingActions;
+@end
+
 @interface MTTemporaryKeychain : NSObject<MTKeychain> {
     NSMutableDictionary<NSString *, id> *_dict;
 }
@@ -163,8 +167,13 @@ static NSData *base64_decode(NSString *str) {
         apvHost = addressOverride;
     }
     NSURL *url = [NSURL URLWithString:[NSString stringWithFormat:@"https://%@%@name=%@&type=16&random_padding=%@", host, dnsPath, isTesting ? @"tapv3.stel.com" : apvHost, makeRandomPadding()]];
+    __weak MTContext *weakCurrentContext = currentContext;
     return [[[MTHttpRequestOperation dataForHttpUrl:url headers:headers] mapToSignal:^MTSignal *(MTHttpResponse *response) {
-        return [self fetchBackupIpsFromDnsResponse:response encryptionProvider:encryptionProvider phoneNumber:phoneNumber currentContext:currentContext source:source];
+        __strong MTContext *strongCurrentContext = weakCurrentContext;
+        if (strongCurrentContext == nil) {
+            return [MTSignal fail:@0];
+        }
+        return [self fetchBackupIpsFromDnsResponse:response encryptionProvider:encryptionProvider phoneNumber:phoneNumber currentContext:strongCurrentContext source:source];
     }] catch:^MTSignal *(__unused id error) {
         return [MTSignal fail:@0];
     }];
@@ -179,8 +188,14 @@ static NSData *base64_decode(NSString *str) {
 }
 
 + (MTSignal *)fetchBackupIpsResolveGoogleThenMozilla:(bool)isTesting phoneNumber:(NSString *)phoneNumber currentContext:(MTContext *)currentContext addressOverride:(NSString *)addressOverride {
+    // The context holds the discovery signal built here, so the blocks must not hold the context back.
+    __weak MTContext *weakCurrentContext = currentContext;
     return [[[self fetchBackupIpsResolveGoogle:isTesting phoneNumber:phoneNumber currentContext:currentContext addressOverride:addressOverride] catch:^MTSignal *(__unused id error) {
-        return [self fetchBackupIpsResolveMozilla:isTesting phoneNumber:phoneNumber currentContext:currentContext addressOverride:addressOverride];
+        __strong MTContext *strongCurrentContext = weakCurrentContext;
+        if (strongCurrentContext == nil) {
+            return [MTSignal complete];
+        }
+        return [self fetchBackupIpsResolveMozilla:isTesting phoneNumber:phoneNumber currentContext:strongCurrentContext addressOverride:addressOverride];
     }] take:1];
 }
 
@@ -297,12 +312,14 @@ MTAtomic *sharedFetchConfigKeychains() {
         id requestId = request.internalId;
         return [[MTBlockDisposable alloc] initWithBlock:^{
             [requestService removeRequestByInternalId:requestId];
-            [mtProto pause];
+            [mtProto stop];
+            [context cancelPendingActions];
         }];
     }];
 }
 
 + (MTSignal * _Nonnull)fetchBackupIps:(bool)isTestingEnvironment currentContext:(MTContext * _Nonnull)currentContext additionalSource:(MTSignal * _Nullable)additionalSource phoneNumber:(NSString * _Nullable)phoneNumber mainDatacenterId:(NSInteger)mainDatacenterId {
+    __weak MTContext *weakCurrentContext = currentContext;
     NSMutableArray *signals = [[NSMutableArray alloc] init];
     [signals addObject:[self fetchBackupIpsResolveGoogleThenMozilla:isTestingEnvironment phoneNumber:phoneNumber currentContext:currentContext addressOverride:currentContext.apiEnvironment.accessHostOverride]];
     if (additionalSource != nil) {
@@ -310,7 +327,8 @@ MTAtomic *sharedFetchConfigKeychains() {
             if (![datacenterData isKindOfClass:[MTBackupDatacenterData class]]) {
                 return [MTSignal complete];
             }
-            if (datacenterData != nil && [self checkIpData:datacenterData timestamp:(int32_t)[currentContext globalTime] source:@"resolveExternal"]) {
+            __strong MTContext *strongCurrentContext = weakCurrentContext;
+            if (strongCurrentContext != nil && datacenterData != nil && [self checkIpData:datacenterData timestamp:(int32_t)[strongCurrentContext globalTime] source:@"resolveExternal"]) {
                 return [MTSignal single:datacenterData];
             } else {
                 return [MTSignal complete];
@@ -319,11 +337,12 @@ MTAtomic *sharedFetchConfigKeychains() {
     }
     
     return [[[MTSignal mergeSignals:signals] take:1] mapToSignal:^MTSignal *(MTBackupDatacenterData *data) {
-        if (data != nil && data.addressList.count != 0) {
+        __strong MTContext *strongCurrentContext = weakCurrentContext;
+        if (strongCurrentContext != nil && data != nil && data.addressList.count != 0) {
             NSMutableArray *signals = [[NSMutableArray alloc] init];
             NSTimeInterval delay = 0.0;
             for (MTBackupDatacenterAddress *address in data.addressList) {
-                MTSignal *signal = [self fetchConfigFromAddress:address currentContext:currentContext mainDatacenterId:mainDatacenterId];
+                MTSignal *signal = [self fetchConfigFromAddress:address currentContext:strongCurrentContext mainDatacenterId:mainDatacenterId];
                 if (delay > DBL_EPSILON) {
                     signal = [signal delay:delay onQueue:[[MTQueue alloc] init]];
                 }
