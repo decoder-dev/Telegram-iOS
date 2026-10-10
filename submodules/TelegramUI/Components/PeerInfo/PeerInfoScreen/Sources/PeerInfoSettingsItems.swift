@@ -6,6 +6,7 @@ import TelegramPresentationData
 import TelegramUIPreferences
 import TelegramCore
 import PhoneNumberFormat
+import AccountUtils
 import ItemListUI
 import SwiftSignalKit
 import PhotoResources
@@ -540,22 +541,14 @@ func settingsEditingItems(data: PeerInfoScreenData?, state: PeerInfoState, conte
         interaction.openSettings(.addAccount)
     }))
     
-    var hasPremiumAccounts = false
-    if data.peer?.isPremium == true && !context.account.testingEnvironment {
-        hasPremiumAccounts = true
+    let addAccountHelpText: String
+    switch String(presentationData.strings.primaryComponent.languageCode.prefix(2)).lowercased() {
+    case "ru", "uk", "be":
+        addAccountHelpText = "Можно добавить до \(maximumNumberOfAccounts) аккаунтов с разными номерами телефонов."
+    default:
+        addAccountHelpText = "You can add up to \(maximumNumberOfAccounts) accounts with different phone numbers."
     }
-    if let settings = data.globalSettings {
-        for (accountContext, peer, _) in settings.accountsAndPeers {
-            if !accountContext.account.testingEnvironment {
-                if peer.isPremium {
-                    hasPremiumAccounts = true
-                    break
-                }
-            }
-        }
-    }
-    
-    items[.account]!.append(PeerInfoScreenCommentItem(id: ItemAddAccountHelp, text: hasPremiumAccounts ? presentationData.strings.Settings_AddAnotherAccount_PremiumHelp : presentationData.strings.Settings_AddAnotherAccount_Help))
+    items[.account]!.append(PeerInfoScreenCommentItem(id: ItemAddAccountHelp, text: addAccountHelpText))
     
     items[.logout]!.append(PeerInfoScreenActionItem(id: ItemLogout, text: presentationData.strings.Settings_Logout, color: .destructive, alignment: .center, action: {
         interaction.openSettings(.logout)
