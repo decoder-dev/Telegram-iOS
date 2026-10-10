@@ -110,6 +110,9 @@ code rather than left to settings. Treat these as invariants — several of them
   Cream and Graphite while they keep their own accent, derived from the accent for any other theme. Every colour is held to
   3:1 against the white text drawn on it (`Tests/Branding/test_themes.py` checks the sets). `CallController` pushes theme
   changes into the open call, and the in-call status bar takes its connected / speaking gradients from the same palette.
+- **The in-call bar is Liquid Glass.** In `CallStatusBarNode` the avatar, title and timer sit in a `GlassBackgroundView`
+  capsule tinted with the palette's connected colour; the gradient, waves and voice glow stay behind it so the glass
+  refracts them. Private calls also show the caller's avatar, ringed and pulsing with their voice.
 - **Composer controls are 40 pt circles.** The mic, send and attachment buttons all
   derive their background from a size the caller passes; handing them the input field's
   height produces ovals. See the comments in `ChatTextInputPanelNode` and

@@ -434,6 +434,19 @@ public class CallStatusBarNodeImpl: CallStatusBarNode {
         CATransaction.commit()
     }
     
+    /// Liquid Glass capsule around the avatar, title and timer. It is a little wider than the cluster (tighter on the
+    /// avatar side, where the ring already adds room) and is hidden while a group-call message replaces the title.
+    private func layoutGlass(size: CGSize, verticalOrigin: CGFloat, contentHeight: CGFloat, clusterWidth: CGFloat, hasAvatar: Bool, isHidden: Bool) {
+        let height: CGFloat = 26.0
+        let horizontalPadding: CGFloat = hasAvatar ? 8.0 : 12.0
+        let width = min(size.width - 16.0, clusterWidth + horizontalPadding * 2.0)
+        let frame = CGRect(x: floor((size.width - width) / 2.0), y: verticalOrigin + floor((contentHeight - height) / 2.0), width: width, height: height)
+        let palette = self.presentationData.flatMap { CallScreenPalette(theme: $0.theme) } ?? .classicDay
+        self.glassView.frame = frame
+        self.glassView.update(size: frame.size, cornerRadius: height / 2.0, isDark: true, tintColor: GlassBackgroundView.TintColor(kind: .custom(style: .default, color: palette.statusBarActive[0].withAlphaComponent(0.32))), transition: .immediate)
+        ContainedViewLayoutTransition.animated(duration: 0.2, curve: .easeInOut).updateAlpha(layer: self.glassView.layer, alpha: isHidden ? 0.0 : 1.0)
+    }
+    
     private func update() {
         guard let size = self.currentSize, let content = self.currentContent else {
             return
@@ -815,15 +828,7 @@ public class CallStatusBarNodeImpl: CallStatusBarNode {
         self.layoutAvatar(originX: horizontalOrigin, verticalOrigin: verticalOrigin, contentHeight: contentHeight)
         let titleOriginX = horizontalOrigin + avatarOffset
         
-        // Liquid Glass capsule around the cluster; hidden while a group-call message replaces the title.
-        let glassPadding: CGFloat = avatarOffset > 0.0 ? 5.0 : 12.0
-        let glassHeight: CGFloat = 26.0
-        let glassWidth = min(size.width - 16.0, totalWidth + glassPadding * 2.0 + (avatarOffset > 0.0 ? 7.0 : 0.0))
-        let glassFrame = CGRect(x: floor((size.width - glassWidth) / 2.0), y: verticalOrigin + floor((contentHeight - glassHeight) / 2.0), width: glassWidth, height: glassHeight)
-        let glassPalette = self.presentationData.flatMap { CallScreenPalette(theme: $0.theme) } ?? .classicDay
-        self.glassView.frame = glassFrame
-        self.glassView.update(size: glassFrame.size, cornerRadius: glassHeight / 2.0, isDark: true, tintColor: GlassBackgroundView.TintColor(kind: .custom(style: .default, color: glassPalette.statusBarActive[0].withAlphaComponent(0.32))), transition: .immediate)
-        ContainedViewLayoutTransition.animated(duration: 0.2, curve: .easeInOut).updateAlpha(layer: self.glassView.layer, alpha: isDisplayingMessage ? 0.0 : 1.0)
+        self.layoutGlass(size: size, verticalOrigin: verticalOrigin, contentHeight: contentHeight, clusterWidth: totalWidth, hasAvatar: avatarOffset > 0.0, isHidden: isDisplayingMessage)
         
         let sizeChanged = self.titleNode.frame.size.width != titleSize.width
         
