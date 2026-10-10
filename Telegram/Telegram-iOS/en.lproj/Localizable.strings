@@ -16622,7 +16622,6 @@ Error: %8$@";
 "TextProcessing.StyleList.Prompt" = "Prompt";
 "TextProcessing.PromptPlaceholder" = "Generate text, formulas, or tables...";
 
-"PUSH_LOCKED_STORY" = "You have a new story%1$@";
 "Settings.LogoutConfirmationTextWithWallets" = "This will cancel all your Secret Chats and **delete wallet backups holding %@**. You will lose access to these funds if you haven't saved their recovery phrases.\n\nYou can use Telegram on all your devices at once and use several accounts in the same app.";
 "Call.SystemStartErrorMessage" = "An error occurred";
 "SocksProxySetup.ProxyStatusNotTested" = "not tested";
