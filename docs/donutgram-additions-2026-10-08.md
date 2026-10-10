@@ -64,3 +64,57 @@ Full iOS compilation is required before release. Bluetooth routes, microphone
 capture, video orientation/rendered thumbnails, VoiceOver and actual device
 appearance still require an iPhone run; CI does not prove these scenarios.
 The report of missing ordinary chats in build 4139 remains unresolved.
+
+## Follow-up review, 10 October 2026
+
+Reviewed Donutgram master commits from 15 September to 6 October (up to `b4fc6ac`),
+`feat/chat-media-visibility` at `f0d0b0682443a7693e6b5e5952bc47f46a9e5736` and
+`feat/deleted-media-search-local-folder-colors` at `ac0f91948e48bf0196acb5be388ba1e2f050a6cc`.
+
+### Adapted
+
+- Long-press on any regular inline bot button offers to copy its title and, for
+  callback buttons, the callback data (non-UTF-8 payloads as hex). Link buttons keep the
+  link menu. Based on [a5e267f](https://github.com/kittenello/Donutgram/commit/a5e267f).
+- Profile status refresh: the manager that re-renders "last seen N minutes ago" was
+  released immediately and its one-shot timer never fired, so the text went stale while
+  the profile was open. It is now kept alive and re-armed after each tick. Based on
+  [0d30b60](https://github.com/kittenello/Donutgram/commit/0d30b60).
+- Account limit raised to 500 independent of Premium
+  ([94239ad](https://github.com/kittenello/Donutgram/commit/94239ad)); the "add account"
+  help text states the real limit.
+- With "Save Stories & Protected Media" on, protected stories also stop blocking screenshots
+  and screen recording ([873da44](https://github.com/kittenello/Donutgram/commit/873da44)).
+  Reuses the existing switch; its footer says so.
+- Round video: locking a recording resets the slide-to-cancel offset, so "Cancel" no
+  longer stays faded out after a quick flick up
+  ([8a8fc4b](https://github.com/kittenello/Donutgram/commit/8a8fc4b)).
+
+### Already present, not imported again
+
+Round video snapshot cover and flip-only animation (134d802), zoom dial labels, glide and
+touch fixes (8a8fc4b remainder, c1e722d, 0272252, 39f4436, bd020b8), built-in microphone
+switch, mention avatars, edited mark hidden in story-forward previews (af392b9), archive
+pull gesture (abe83fa), stop-after-voice/round-video playback, hide paid reactions, via-bot
+labels, birthdays, bot automation panel and pinned messages with bot panel, shadow ban
+for people, bots and channels, Ghost mode read/view guards, save-to-cloud and
+select-from-author menu items, bottom folders, avatar and reaction glow.
+
+### Skipped
+
+- Fix hashtags (`f0d0b06`): needs a new ForkExtras switch (about a dozen touch points)
+  for a small preference; can be added on request.
+- GIF restriction bypass ([c7bb578](https://github.com/kittenello/Donutgram/commit/c7bb578)):
+  converts GIFs to silent videos in the send pipeline; too invasive without a compiler or
+  device test.
+- Audio file to voice message conversion (`a5e267f`): new Opus encoder path and UI.
+- Disappeared gifts, deleted-message reply quotes, saving messages from pushes and
+  user ID search: depend on DonutgramSpyStorage or on an unverified server behaviour
+  (`users.getUsers` with a zero access hash); BananaGram uses MessageSavingStore.
+- Presence "last seen" toggle (51834f5) and own last seen: rely on DGSimpleSettings
+  (relative online time, ghost last-online store) which BananaGram does not have.
+- Online dot lifetime, chat list header centring and status hiding, island styles,
+  poll results before voting: Donutgram-specific features or server-dependent.
+- Ghost story question timing (0312c36, cf1d120): tied to Donutgram's ghost prompt design;
+  BananaGram asks before opening a story instead.
+- Folder colours: unchanged policy, core filter synchronization.
