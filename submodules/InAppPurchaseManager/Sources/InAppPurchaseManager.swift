@@ -535,11 +535,12 @@ extension InAppPurchaseManager: SKPaymentTransactionObserver {
                     }
                 }
                 
+                let engine = self.engine
                 self.disposableSet.set(
                     (purpose
                     |> castError(AssignAppStoreTransactionError.self)
                     |> mapToSignal { purpose -> Signal<Never, AssignAppStoreTransactionError> in
-                        switch self.engine {
+                        switch engine {
                         case let .authorized(engine):
                             return engine.payments.sendAppStoreReceipt(receipt: receiptData, purpose: purpose)
                         case let .unauthorized(engine):
