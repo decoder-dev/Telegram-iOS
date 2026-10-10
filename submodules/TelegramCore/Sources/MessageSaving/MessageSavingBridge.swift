@@ -546,6 +546,21 @@ public enum MessageSavingBridge {
         sink(record)
     }
 
+    /// The other side of a secret chat cleared the history: keep what was in it, up to `limit` messages (oldest first, as the table is walked).
+    public static func snapshotWholeHistory(transaction: Transaction, peerId: PeerId, mediaBox: MediaBox? = nil, limit: Int = 2000) {
+        guard settings.with({ $0.saveDeleted }) else {
+            return
+        }
+        var ids: [MessageId] = []
+        transaction.withAllMessages(peerId: peerId, { message in
+            ids.append(message.id)
+            return ids.count < limit
+        })
+        if !ids.isEmpty {
+            snapshotDeletedMessages(transaction: transaction, messageIds: ids, mediaBox: mediaBox)
+        }
+    }
+
     /// Resolve account peer from the postbox and snapshot before a local delete.
     public static func snapshotDeletedMessages(
         transaction: Transaction,

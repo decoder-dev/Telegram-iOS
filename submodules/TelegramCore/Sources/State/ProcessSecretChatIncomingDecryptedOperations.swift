@@ -298,6 +298,8 @@ func processSecretChatIncomingDecryptedOperations(encryptionProvider: Encryption
                                         _internal_deleteMessages(transaction: transaction, mediaBox: mediaBox, ids: filteredMessageIds)
                                     }
                                 case .clearHistory:
+                                    // The other party flushed the history: the only copy of it is about to go.
+                                    MessageSavingBridge.snapshotWholeHistory(transaction: transaction, peerId: peerId, mediaBox: mediaBox)
                                     _internal_clearHistory(transaction: transaction, mediaBox: mediaBox, peerId: peerId, threadId: nil, namespaces: .all)
                                 case let .markMessagesContentAsConsumed(globallyUniqueIds):
                                     var messageIds: [MessageId] = []
