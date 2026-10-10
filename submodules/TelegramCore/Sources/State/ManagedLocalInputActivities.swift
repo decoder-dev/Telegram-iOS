@@ -94,10 +94,18 @@ public enum ForkKeepBannedChatsSettings {
 
 /// AyuGram Ghost Schedule Messages — delay-send when full Ghost Mode is active.
 public enum ForkGhostScheduleSettings {
-    private static let value = Atomic<Bool>(value: false)
+    /// Mirrored to UserDefaults like the other Ghost flags: the real setting arrives through an asynchronous read, and
+    /// until then messages sent right after a cold launch would go out immediately instead of being delayed.
+    private static let persistedKey = "ForkGhostScheduleSettings.enabled.v1"
+    private static let value = Atomic<Bool>(value: UserDefaults.standard.bool(forKey: persistedKey))
     public static var enabled: Bool {
         get { return value.with { $0 } }
-        set { let _ = value.swap(newValue) }
+        set {
+            let previous = value.swap(newValue)
+            if previous != newValue {
+                UserDefaults.standard.set(newValue, forKey: persistedKey)
+            }
+        }
     }
 }
 

@@ -5,6 +5,12 @@ import SwiftSignalKit
 
 func _internal_installInteractiveReadMessagesAction(postbox: Postbox, stateManager: AccountStateManager, peerId: PeerId, threadId: Int64?) -> Disposable {
     return postbox.installStoreMessageAction(peerId: peerId, { messages, transaction in
+        // The action stays installed for as long as the chat is open at the bottom, so the Ghost Mode check made when it was
+        // installed goes stale (the read-on-interact window closes, or the flags change): mentions, reactions, poll votes
+        // and the read position of newly arriving messages would be consumed on the server despite "don't read".
+        if ForkGhostModeSettings.shouldSuppressMessageReads {
+            return
+        }
         var consumeMessageIds: [MessageId] = []
         var readReactionOrPollVotesIds: [MessageId] = []
         

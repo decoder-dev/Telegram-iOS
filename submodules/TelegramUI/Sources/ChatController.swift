@@ -5689,7 +5689,9 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                         return transitionOut
                     }
                 )
-                self.push(storyContainerScreen)
+                StoryContainerScreen.confirmGhostStoryOpenIfNeeded(context: self.context, controller: self, proceed: { [weak self] in
+                    self?.push(storyContainerScreen)
+                })
             })
         }, attemptedNavigationToPrivateQuote: { [weak self] peer in
             guard let self else {

@@ -1533,7 +1533,9 @@ func openResolvedUrlImpl(
                                 return transitionOut
                             }
                         )
-                        navigationController?.pushViewController(storyContainerScreen)
+                        StoryContainerScreen.confirmGhostStoryOpenIfNeeded(context: context, controller: navigationController?.topViewController as? ViewController, proceed: {
+                            navigationController?.pushViewController(storyContainerScreen)
+                        })
                         completion?()
                     })
                 } else {
