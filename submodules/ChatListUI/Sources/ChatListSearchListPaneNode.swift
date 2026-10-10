@@ -2760,7 +2760,9 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                         |> then(
                             globalPeerSearchContext.searchRemotePeers(engine: context.engine, query: query)
                             |> mapToSignal { result in
-                                return context.engine.peers.searchAdPeers(query: query)
+                                // "Hide ads" also covers the sponsored peers shown in global search.
+                                let adPeersSignal: Signal<[AdPeer], NoError> = ForkExtrasHotFlags.hideAds ? .single([]) : context.engine.peers.searchAdPeers(query: query)
+                                return adPeersSignal
                                 |> map { adPeers in
                                     return (result.0, result.1, adPeers, false)
                                 }
