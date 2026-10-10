@@ -37,7 +37,7 @@ private enum CustomOperationEvent<T, E> {
 }
 
 private final class UpdatedWebpageSubscriberContext {
-    let subscribers = Bag<(TelegramMediaWebpage) -> Void>()
+    let subscribers = Bag<(TelegramMediaWebpage?) -> Void>()
 }
 
 private final class UpdatedStarsBalanceSubscriberContext {
@@ -1630,7 +1630,7 @@ public final class AccountStateManager {
             }
         }
         
-        public func updatedWebpage(_ webpageId: MediaId) -> Signal<TelegramMediaWebpage, NoError> {
+        public func updatedWebpage(_ webpageId: MediaId) -> Signal<TelegramMediaWebpage?, NoError> {
             let queue = self.queue
             return Signal { [weak self] subscriber in
                 let disposable = MetaDisposable()
@@ -1664,8 +1664,9 @@ public final class AccountStateManager {
             }
         }
         
-        private func notifyUpdatedWebpages(_ updatedWebpages: [MediaId: TelegramMediaWebpage]) {
+        private func notifyUpdatedWebpages(_ updatedWebpages: [MediaId: TelegramMediaWebpage?]) {
             for (id, context) in self.updatedWebpageContexts {
+                // Unwraps the lookup only: a key holding nil is a removal and is delivered.
                 if let media = updatedWebpages[id] {
                     for subscriber in context.subscribers.copyItems() {
                         subscriber(media)
@@ -2262,7 +2263,9 @@ public final class AccountStateManager {
         }
     }
     
-    public func updatedWebpage(_ webpageId: MediaId) -> Signal<TelegramMediaWebpage, NoError> {
+    /// The web page's states as they arrive from the update stream; nil when the server resolved
+    /// it to `webPageEmpty`, i.e. no preview exists for its URL.
+    public func updatedWebpage(_ webpageId: MediaId) -> Signal<TelegramMediaWebpage?, NoError> {
         return self.impl.signalWith { impl, subscriber in
             return impl.updatedWebpage(webpageId).start(next: subscriber.putNext, error: subscriber.putError, completed: subscriber.putCompletion)
         }
