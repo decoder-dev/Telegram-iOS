@@ -351,6 +351,10 @@ public protocol ChatRichTextInputNode: AnyObject {
     /// the native editor never calls); the native backend fires it from its content-change path.
     var onTypingActivity: (() -> Void)? { get set }
 
+    /// Called when a software "\n" is about to be inserted. Return false to swallow it (the host sends the message instead).
+    /// The legacy backend never calls it: it handles Return in its own text delegate.
+    var onSoftwareReturn: (() -> Bool)? { get set }
+
     /// Apply a format command through the backend's native engine. No-op on the legacy backend.
     func performFormatAction(_ action: ChatRichTextFormatAction)
 
@@ -546,6 +550,7 @@ final class ChatRichTextInputNodeImpl: ASDisplayNode, ChatRichTextInputNode {
     // `chatInputTextNode(shouldChangeTextIn:)` delegate, so it never fires this. Only the native
     // (`RichTextEditorChatInputNode`) backend fires it (it doesn't call that delegate). See the protocol doc.
     var onTypingActivity: (() -> Void)?
+    var onSoftwareReturn: (() -> Bool)?
 
     // Bridges to ASDisplayNode for callers that hold this only as a ChatRichTextInputNode.
     var asNode: ASDisplayNode {
