@@ -759,10 +759,21 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     case designHeader(Int32, String)
     case brandTheme(Bool)
 
+    /// One entry per section of the Interface screen, in display order. A section is a rounded block: its header (16xx) first,
+    /// its switches, and the footer that explains them last. Footers used to sit between switches inside a block, which made
+    /// the screen read as one run-together list.
     private static let interfaceGroups: [[Int32]] = [
         [1600, 1610, 1611],
-        [1601, 1499, 52, 59, 60, 61, 62, 63, 64, 1502, 1503, 1504, 1505, 1506, 1507],
-        [1602, 50, 51, 53, 54, 55, 56, 58, 65, 66, 67, 68, 69, 1508, 1509, 1510, 1511, 1512, 1513, 1514, 1515, 1516],
+        [1601, 1499, 52],
+        [63, 64],
+        [1502, 1503, 1504, 1505, 1506],
+        [1507],
+        [1602, 50, 51, 53],
+        [54, 55, 56, 58],
+        [65, 66],
+        [67, 68],
+        [69],
+        [1508, 1509, 1510, 1511, 1512, 1513, 1514, 1515, 1516],
         [1603, 1500, 1501, 57]
     ]
 
