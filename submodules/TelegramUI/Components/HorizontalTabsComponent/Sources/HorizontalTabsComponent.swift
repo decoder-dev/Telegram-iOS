@@ -182,6 +182,8 @@ public final class HorizontalTabsComponent: Component {
         public let action: () -> Void
         public let contextAction: ((ContextExtractedContentContainingView, ContextGesture?) -> Void)?
         public let deleteAction: (() -> Void)?
+        /// "Compact folder names" as it was when the tab was made; it narrows the padding around the title.
+        public let isCompact: Bool = ForkExtrasHotFlags.compactFolderNames
         
         public init(id: AnyHashable, content: Content, badge: Badge?, action: @escaping () -> Void, contextAction: ((ContextExtractedContentContainingView, ContextGesture?) -> Void)? = nil, deleteAction: (() -> Void)? = nil) {
             self.id = id
@@ -193,6 +195,9 @@ public final class HorizontalTabsComponent: Component {
         }
         
         public static func ==(lhs: Tab, rhs: Tab) -> Bool {
+            if lhs.isCompact != rhs.isCompact {
+                return false
+            }
             if lhs.id != rhs.id {
                 return false
             }
@@ -1075,7 +1080,7 @@ private final class ItemComponent: Component {
             self.containerView.isGestureEnabled = component.editing == nil
             self.tapRecognizer?.isEnabled = component.editing == nil
             
-            let sideInset: CGFloat = 16.0
+            let sideInset: CGFloat = component.tab.isCompact ? 8.0 : 16.0
             let badgeSpacing: CGFloat = 5.0
             
             var size = CGSize(width: sideInset, height: availableSize.height)

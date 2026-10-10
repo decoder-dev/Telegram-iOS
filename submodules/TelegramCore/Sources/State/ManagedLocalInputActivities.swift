@@ -121,6 +121,7 @@ public enum ForkExtrasHotFlags {
         public var useRecentEmojiInReactions: Bool = true
         public var compactChatList: Bool = false
         public var compactMessagePreview: Bool = false
+        public var compactFolderNames: Bool = false
         public var hideAllChats: Bool = false
         public var rememberLastFolder: Bool = false
         public var hideTabBar: Bool = false
@@ -142,6 +143,7 @@ public enum ForkExtrasHotFlags {
             useRecentEmojiInReactions: Bool = true,
             compactChatList: Bool = false,
             compactMessagePreview: Bool = false,
+            compactFolderNames: Bool = false,
             hideAllChats: Bool = false,
             rememberLastFolder: Bool = false,
             hideTabBar: Bool = false,
@@ -162,6 +164,7 @@ public enum ForkExtrasHotFlags {
             self.useRecentEmojiInReactions = useRecentEmojiInReactions
             self.compactChatList = compactChatList
             self.compactMessagePreview = compactMessagePreview
+            self.compactFolderNames = compactFolderNames
             self.hideAllChats = hideAllChats
             self.rememberLastFolder = rememberLastFolder
             self.hideTabBar = hideTabBar
@@ -192,7 +195,7 @@ public enum ForkExtrasHotFlags {
 
     public static func update(_ next: State) {
         let previous = state.swap(next)
-        if previous.compactChatList != next.compactChatList || previous.compactMessagePreview != next.compactMessagePreview {
+        if previous.compactChatList != next.compactChatList || previous.compactMessagePreview != next.compactMessagePreview || previous.compactFolderNames != next.compactFolderNames {
             NotificationCenter.default.post(name: compactLayoutDidChangeNotification, object: nil)
         }
         if previous.hideAllChats != next.hideAllChats {
@@ -233,6 +236,10 @@ public enum ForkExtrasHotFlags {
     public static var compactChatList: Bool {
         get { return state.with { $0.compactChatList } }
         set { let _ = state.modify { var s = $0; s.compactChatList = newValue; return s } }
+    }
+    public static var compactFolderNames: Bool {
+        get { return state.with { $0.compactFolderNames } }
+        set { let _ = state.modify { var s = $0; s.compactFolderNames = newValue; return s } }
     }
     public static var compactMessagePreview: Bool {
         get { return state.with { $0.compactMessagePreview } }

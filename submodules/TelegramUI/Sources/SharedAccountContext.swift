@@ -1212,6 +1212,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             useRecentEmojiInReactions: settings.useRecentEmojiInReactions,
             compactChatList: settings.compactChatList,
             compactMessagePreview: settings.compactMessagePreview,
+            compactFolderNames: settings.compactFolderNames,
             hideAllChats: settings.hideAllChats,
             rememberLastFolder: settings.rememberLastFolder,
             hideTabBar: settings.hideTabBar,

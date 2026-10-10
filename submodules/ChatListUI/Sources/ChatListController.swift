@@ -783,6 +783,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                 }
             }
             self.reloadFilters()
+            self.observeCompactFolderNames()
         }
         
         self.storiesPostingAvailabilityDisposable = (self.context.engine.data.subscribe(TelegramEngine.EngineData.Item.Configuration.ApplicationSpecificPreference(key: PreferencesKeys.appConfiguration))
@@ -822,6 +823,9 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
     }
     
     deinit {
+        if let compactFolderNamesObserver = self.compactFolderNamesObserver {
+            NotificationCenter.default.removeObserver(compactFolderNamesObserver)
+        }
         self.openMessageFromSearchDisposable.dispose()
         self.badgeDisposable?.dispose()
         self.badgeIconDisposable?.dispose()
@@ -4067,6 +4071,13 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
     }
     
     private var initializedFilters = false
+    private var compactFolderNamesObserver: NSObjectProtocol?
+    private func observeCompactFolderNames() {
+        self.compactFolderNamesObserver = NotificationCenter.default.addObserver(forName: ForkExtrasHotFlags.compactLayoutDidChangeNotification, object: nil, queue: .main, using: { [weak self] _ in
+            self?.reloadFilters()
+        })
+    }
+    
     private func reloadFilters(firstUpdate: (() -> Void)? = nil) {
         let filterItems = chatListFilterItems(context: self.context)
         var notifiedFirstUpdate = false
