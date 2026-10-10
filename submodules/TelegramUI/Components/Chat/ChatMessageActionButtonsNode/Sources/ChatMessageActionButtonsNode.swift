@@ -353,9 +353,13 @@ private final class ChatMessageActionButtonNode: ASDisplayNode {
                     
                     // Every regular bot button can be long-pressed: links open the link menu,
                     // the others offer to copy the button title (and callback data).
-                    if customInfo == nil {
+                    // Link buttons keep the quick 0.3 s press; for the others the press is longer, so a slow
+                    // deliberate tap on a callback button is not taken for a long press.
+                    if case .url = button.action {
+                        node.longTapRecognizer?.minimumPressDuration = 0.3
                         node.longTapRecognizer?.isEnabled = true
-                    } else if case .url = button.action {
+                    } else if customInfo == nil {
+                        node.longTapRecognizer?.minimumPressDuration = 0.55
                         node.longTapRecognizer?.isEnabled = true
                     } else {
                         node.longTapRecognizer?.isEnabled = false

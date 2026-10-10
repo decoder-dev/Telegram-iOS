@@ -1135,6 +1135,14 @@ final class BrowserWebContent: UIView, BrowserContent, WKNavigationDelegate, WKU
     private var instantPage: TelegramMediaWebpage?
     private var instantPageResources: [Any]?
     
+    func webView(_ webView: WKWebView, didReceiveServerRedirectForProvisionalNavigation navigation: WKNavigation!) {
+        // A server redirect changes the origin the page is loaded from; credentials requested by the
+        // redirect target are then asked for by the top-level page, not by a subresource.
+        if let url = webView.url, let scheme = url.scheme?.lowercased(), ["http", "https"].contains(scheme) {
+            self.pendingMainFrameUrl = url
+        }
+    }
+    
     func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
         self.pendingMainFrameUrl = nil
         if let _ = self.currentError {
