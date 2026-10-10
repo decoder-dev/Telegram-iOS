@@ -45,6 +45,11 @@ extension PeerInfoScreenNode {
         }
         
         guard case let .user(peer) = self.data?.peer else {
+            // The screen's data was not there at the moment of the tap (it is rebuilt on every update), but the button is
+            // on screen, so call by the id instead of swallowing the tap and making the user press it again.
+            if peerId.namespace == Namespaces.Peer.CloudUser {
+                self.context.requestCall(peerId: peerId, isVideo: isVideo, completion: {})
+            }
             return
         }
         // The Call button is shown before CachedUserData has arrived, so this must not require it;
