@@ -205,7 +205,7 @@ public enum ForkExtrasHotFlags {
 
     /// The current value of "Hide the All Chats tab", re-emitted when it changes.
     public static var hideAllChatsSignal: Signal<Bool, NoError> {
-        return Signal { subscriber in
+        let signal: Signal<Bool, NoError> = Signal { subscriber in
             subscriber.putNext(ForkExtrasHotFlags.hideAllChats)
             let observer = NotificationCenter.default.addObserver(forName: hideAllChatsDidChangeNotification, object: nil, queue: nil, using: { _ in
                 subscriber.putNext(ForkExtrasHotFlags.hideAllChats)
@@ -214,7 +214,7 @@ public enum ForkExtrasHotFlags {
                 NotificationCenter.default.removeObserver(observer)
             }
         }
-        |> distinctUntilChanged
+        return signal |> distinctUntilChanged
     }
 
     public static var hideAds: Bool {
