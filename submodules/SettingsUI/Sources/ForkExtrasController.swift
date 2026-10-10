@@ -765,6 +765,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     private static let interfaceGroups: [[Int32]] = [
         [1600, 1610, 1611],
         [1601, 1499, 52],
+        [61, 62],
         [63, 64],
         [1502, 1503, 1504, 1505, 1506],
         [1507],
@@ -1530,7 +1531,9 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .showProfileId(settings.showProfileId),
             .accentSaturation(settings.accentColorSaturation),
             .privacyFooter,
-            // "Hide the All Chats tab" and "Remember last folder" are not listed: nothing reads them, so the switches did nothing.
+            // "Hide the All Chats tab" is not listed: nothing reads it, so the switch did nothing.
+            .rememberLastFolder(settings.rememberLastFolder),
+            .rememberLastFolderFooter,
         ]
         if UIDevice.current.userInterfaceIdiom != .pad {
             entries.append(.hideTabBar(settings.hideTabBar))

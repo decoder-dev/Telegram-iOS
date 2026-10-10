@@ -760,6 +760,18 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                 if let tabsView = strongSelf.chatListDisplayNode.folderTabsView {
                     tabsView.updateTabSwitchFraction(fraction: fraction, isDragging: strongSelf.chatListDisplayNode.mainContainerNode.isSwitchingCurrentItemFilterByDragging, transition: ComponentTransition(transition))
                 }
+                
+                // "Remember last folder": keep the folder the list settled on.
+                if ForkExtrasHotFlags.rememberLastFolder, !strongSelf.chatListDisplayNode.mainContainerNode.isSwitchingCurrentItemFilterByDragging {
+                    let storedId: Int32
+                    switch strongSelf.chatListDisplayNode.mainContainerNode.currentItemFilter {
+                    case .all:
+                        storedId = 0
+                    case let .filter(id):
+                        storedId = id
+                    }
+                    ForkLastChatListFilter.setStoredId(storedId, accountPeerId: strongSelf.context.account.peerId)
+                }
             }
             self.reloadFilters()
         }
@@ -4093,7 +4105,12 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                     firstItemEntryId = .filter(id)
             }
             
-            var selectedEntryId = !strongSelf.initializedFilters ? firstItemEntryId : strongSelf.chatListDisplayNode.mainContainerNode.currentItemFilter
+            var rememberedEntryId: ChatListFilterTabEntryId?
+            if ForkExtrasHotFlags.rememberLastFolder {
+                let storedId = ForkLastChatListFilter.storedId(accountPeerId: strongSelf.context.account.peerId)
+                rememberedEntryId = storedId == 0 ? .all : .filter(storedId)
+            }
+            var selectedEntryId = !strongSelf.initializedFilters ? (rememberedEntryId ?? firstItemEntryId) : strongSelf.chatListDisplayNode.mainContainerNode.currentItemFilter
             var resetCurrentEntry = false
             if !resolvedItems.contains(where: { $0.id == selectedEntryId }) {
                 resetCurrentEntry = true
