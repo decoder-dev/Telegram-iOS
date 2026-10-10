@@ -2001,6 +2001,36 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
                 })
             })))
         }
+        if !isCopyProtected, message.text.count >= ForkOnDeviceAI.minimumSummarizedLength, ForkOnDeviceAI.isAvailable {
+            let summaryTitle = extrasMenuIsRussian ? "Кратко (на устройстве)" : "Summarize (on device)"
+            let summaryAlertTitle = extrasMenuIsRussian ? "Краткое содержание" : "Summary"
+            let summaryFailure = extrasMenuIsRussian ? "Не удалось составить краткое содержание на этом устройстве." : "Couldn't summarize this message on this device."
+            let messageText = message.text
+            actions.append(.action(ContextMenuActionItem(text: summaryTitle, icon: { theme in
+                return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Translate"), color: theme.actionSheet.primaryTextColor)
+            }, action: { _, f in
+                f(.default)
+                ForkOnDeviceAI.summarize(messageText, completion: { result in
+                    Queue.mainQueue().async {
+                        let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+                        let text: String
+                        switch result {
+                        case let .success(summary):
+                            text = summary
+                        case .failure:
+                            text = summaryFailure
+                        }
+                        controllerInteraction.presentController(textAlertController(
+                            context: context,
+                            title: summaryAlertTitle,
+                            text: text,
+                            actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})]
+                        ), nil)
+                    }
+                })
+            })))
+        }
+        
         
         if data.messageActions.options.contains(.report) {
             actions.append(.action(ContextMenuActionItem(text: chatPresentationInterfaceState.strings.Conversation_ContextMenuReport, icon: { theme in
