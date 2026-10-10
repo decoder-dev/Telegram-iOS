@@ -4566,10 +4566,15 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                         return nil
                     }
                 )
-                if let componentView = self.chatListHeaderView() {
-                    componentView.storyPeerListView()?.setPreviewedItem(signal: storyContainerScreen.focusedItem)
-                }
-                self.push(storyContainerScreen)
+                StoryContainerScreen.confirmGhostStoryOpenIfNeeded(context: self.context, controller: self, proceed: { [weak self] in
+                    guard let self else {
+                        return
+                    }
+                    if let componentView = self.chatListHeaderView() {
+                        componentView.storyPeerListView()?.setPreviewedItem(signal: storyContainerScreen.focusedItem)
+                    }
+                    self.push(storyContainerScreen)
+                })
             }
             open()
         })

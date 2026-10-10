@@ -643,6 +643,25 @@ public enum ForkRegexMessageFilters {
         revision: 0
     ))
 
+    /// Patterns that will never match anything, so the settings screen can say so instead of a typo looking like a dead
+    /// switch: not valid regular expressions, longer than the size bound, or past the cap on how many are used.
+    public static func unusablePatternCount(_ patterns: [String]) -> Int {
+        var count = 0
+        var used = 0
+        for pattern in patterns {
+            let trimmed = pattern.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else {
+                continue
+            }
+            if used >= maxPatterns || trimmed.utf16.count > 512 || (try? NSRegularExpression(pattern: trimmed, options: [])) == nil {
+                count += 1
+            } else {
+                used += 1
+            }
+        }
+        return count
+    }
+
     public static func apply(enabled: Bool, caseInsensitive: Bool, patterns: [String]) {
         let fingerprint = Fingerprint(enabled: enabled, caseInsensitive: caseInsensitive, patterns: patterns)
         // Skip compile if fingerprint unchanged (read outside any write lock).

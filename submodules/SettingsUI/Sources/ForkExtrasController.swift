@@ -864,7 +864,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     case regexFilters(Bool)
     case regexFiltersCaseInsensitive(Bool)
     case regexFiltersPatterns(String)
-    case regexFiltersFooter
+    case regexFiltersFooter(Int)
     case hideAllChats(Bool)
     case hideAllChatsFooter
     case rememberLastFolder(Bool)
@@ -1378,8 +1378,12 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return ItemListMultilineInputItem(presentationData: presentationData, systemStyle: .glass, text: value, placeholder: ForkExtrasLocalizedString.regexFiltersPatterns, maxLength: ItemListMultilineInputItemTextLimit(value: 4000, display: false), sectionId: self.section, style: .blocks, capitalization: false, autocorrection: false, textUpdated: { value in
                 arguments.updateRegexFilterPatternsText(value)
             })
-        case .regexFiltersFooter:
-            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.regexFiltersFooter), sectionId: self.section)
+        case let .regexFiltersFooter(unusable):
+            var text = ForkExtrasLocalizedString.regexFiltersFooter
+            if unusable > 0 {
+                text += "\n\n" + (ForkPresentationLanguage.prefersRussianStrings ? "Не работают шаблонов: \(unusable) (неверное выражение, длиннее 512 символов или сверх лимита 64)." : "Patterns that will not work: \(unusable) (invalid expression, longer than 512 characters, or past the limit of 64).")
+            }
+            return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section)
         case let .hideAllChats(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.hideAllChats, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateHideAllChats(value)
@@ -1622,7 +1626,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
                 .regexFiltersPatterns(settings.regexMessageFilterPatterns.joined(separator: "\n")),
             ])
         }
-        entries.append(.regexFiltersFooter)
+        entries.append(.regexFiltersFooter(settings.regexMessageFiltersEnabled ? ForkRegexMessageFilters.unusablePatternCount(settings.regexMessageFilterPatterns) : 0))
     case .network:
         entries = [
             .localPremium(settings.localPremium),

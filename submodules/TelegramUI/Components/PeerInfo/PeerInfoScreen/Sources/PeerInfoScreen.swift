@@ -4522,7 +4522,9 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                         }
                     }
                 )
-                self.controller?.push(storyContainerScreen)
+                StoryContainerScreen.confirmGhostStoryOpenIfNeeded(context: self.context, controller: self.controller, proceed: { [weak self] in
+                    self?.controller?.push(storyContainerScreen)
+                })
             })
         }
     }
