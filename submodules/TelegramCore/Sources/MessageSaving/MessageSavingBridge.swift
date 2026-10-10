@@ -561,6 +561,24 @@ public enum MessageSavingBridge {
         }
     }
 
+    /// A channel moved its first available message forward, which deletes everything below it: keep what is there now
+    /// (up to `limit` messages with an id up to `maxId`).
+    public static func snapshotMessagesUpTo(transaction: Transaction, peerId: PeerId, namespace: MessageId.Namespace, maxId: MessageId.Id, mediaBox: MediaBox? = nil, limit: Int = 2000) {
+        guard settings.with({ $0.saveDeleted }) else {
+            return
+        }
+        var ids: [MessageId] = []
+        transaction.withAllMessages(peerId: peerId, namespace: namespace, { message in
+            if message.id.id <= maxId {
+                ids.append(message.id)
+            }
+            return ids.count < limit
+        })
+        if !ids.isEmpty {
+            snapshotDeletedMessages(transaction: transaction, messageIds: ids, mediaBox: mediaBox)
+        }
+    }
+
     /// Resolve account peer from the postbox and snapshot before a local delete.
     public static func snapshotDeletedMessages(
         transaction: Transaction,

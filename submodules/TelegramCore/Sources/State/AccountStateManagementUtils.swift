@@ -4521,6 +4521,7 @@ func replayFinalState(
                 if let message = transaction.getMessage(id) {
                     updatePeerChatInclusionWithMinTimestamp(transaction: transaction, id: id.peerId, minTimestamp: message.timestamp, forceRootGroupIfNotExists: false)
                 }
+                MessageSavingBridge.snapshotMessagesUpTo(transaction: transaction, peerId: id.peerId, namespace: id.namespace, maxId: id.id, mediaBox: mediaBox)
                 var resourceIds: [MediaResourceId] = []
                 transaction.deleteMessagesInRange(peerId: id.peerId, namespace: id.namespace, minId: 1, maxId: id.id, forEachMedia: { media in
                     addMessageMediaResourceIdsToRemove(media: media, resourceIds: &resourceIds)

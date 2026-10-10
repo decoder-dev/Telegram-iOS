@@ -2007,48 +2007,53 @@ public final class PeerInfoStoryPaneNode: ASDisplayNode, PeerInfoPaneNode, ASScr
                         return nil
                     }
                 )
-                storyContainerScreen.performReorderAction = { [weak self] in
+                StoryContainerScreen.confirmGhostStoryOpenIfNeeded(context: self.context, controller: self.parentController, proceed: { [weak self] in
                     guard let self else {
                         return
                     }
-                    self.beginReordering()
-                }
+                    storyContainerScreen.performReorderAction = { [weak self] in
+                        guard let self else {
+                            return
+                        }
+                        self.beginReordering()
+                    }
                 
-                self.hiddenMediaDisposable?.dispose()
-                self.hiddenMediaDisposable = (storyContainerScreen.focusedItem
-                |> deliverOnMainQueue).start(next: { [weak self] itemId in
-                    guard let self else {
-                        return
-                    }
-                    if let itemId {
-                        let anyAmount = self.itemInteraction.hiddenStories.isEmpty
-                        self.itemInteraction.hiddenStories = Set([itemId])
-                        if let items = self.items, let item = items.items.first(where: { $0.id == AnyHashable(itemId.id) }) {
-                            self.itemGrid.ensureItemVisible(index: item.index, anyAmount: anyAmount)
+                    self.hiddenMediaDisposable?.dispose()
+                    self.hiddenMediaDisposable = (storyContainerScreen.focusedItem
+                    |> deliverOnMainQueue).start(next: { [weak self] itemId in
+                        guard let self else {
+                            return
+                        }
+                        if let itemId {
+                            let anyAmount = self.itemInteraction.hiddenStories.isEmpty
+                            self.itemInteraction.hiddenStories = Set([itemId])
+                            if let items = self.items, let item = items.items.first(where: { $0.id == AnyHashable(itemId.id) }) {
+                                self.itemGrid.ensureItemVisible(index: item.index, anyAmount: anyAmount)
                             
-                            if !anyAmount {
-                                var foundItemLayer: SparseItemGridLayer?
-                                self.itemGrid.forEachVisibleItem { item in
-                                    guard let itemLayer = item.layer as? ItemLayer else {
-                                        return
+                                if !anyAmount {
+                                    var foundItemLayer: SparseItemGridLayer?
+                                    self.itemGrid.forEachVisibleItem { item in
+                                        guard let itemLayer = item.layer as? ItemLayer else {
+                                            return
+                                        }
+                                        if let listItem = itemLayer.item, listItem.story.id == itemId.id {
+                                            foundItemLayer = itemLayer
+                                        }
                                     }
-                                    if let listItem = itemLayer.item, listItem.story.id == itemId.id {
-                                        foundItemLayer = itemLayer
+                                    if let foundItemLayer {
+                                        self.ensureRectVisible?(self.view, self.itemGrid.frameForItem(layer: foundItemLayer))
                                     }
-                                }
-                                if let foundItemLayer {
-                                    self.ensureRectVisible?(self.view, self.itemGrid.frameForItem(layer: foundItemLayer))
                                 }
                             }
+                        } else {
+                            self.itemInteraction.hiddenStories = Set()
                         }
-                    } else {
-                        self.itemInteraction.hiddenStories = Set()
-                    }
                     
-                    self.updateHiddenItems()
-                })
+                        self.updateHiddenItems()
+                    })
                 
-                navigationController.pushViewController(storyContainerScreen)
+                    navigationController.pushViewController(storyContainerScreen)
+                })
             })
         }
 
