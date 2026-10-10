@@ -1170,14 +1170,25 @@ private func layoutDetails(
     // V1 (InstantPageDetailsItem.swift:98–101): boundingWidth - detailsInset*2 - titleInset, titleHeight = max(44, titleSize.height + 26).
     let titleStyleStack = InstantPageTextStyleStack()
     setupStyleStack(titleStyleStack, theme: context.theme, category: .paragraph, link: false)
-    let (titleTextItem, _, _) = layoutTextItem(
-        attributedStringForRichText(title, styleStack: titleStyleStack, formatDate: context.formatDate),
+    let titleString = attributedStringForRichText(title, styleStack: titleStyleStack, formatDate: context.formatDate)
+    let (measuredTitleTextItem, _, _) = layoutTextItem(
+        titleString,
         boundingWidth: boundingWidth - horizontalInset * 2.0 - 32.0,   // reserve right edge for chevron
         offset: CGPoint(x: 0.0, y: 0.0),
         fitToWidth: context.fitToWidth,
         computeRevealCharacterRects: context.computeRevealCharacterRects
     )
-    guard let titleTextItem = titleTextItem else { return [] }
+    // A toggle block may legitimately carry NO title (`textEmpty`), and `layoutTextItem` returns nil for
+    // a zero-length string. Bailing out here dropped the whole block, header and children alike.
+    // Substitute an empty text item: it has no lines so it draws nothing, while the minimum title
+    // height keeps the header's tap target and the chevron position.
+    let titleTextItem = measuredTitleTextItem ?? InstantPageTextItem(
+        frame: CGRect(),
+        attributedString: titleString,
+        alignment: .natural,
+        opaqueBackground: false,
+        lines: []
+    )
     
     let titleHeight = max(44.0, titleTextItem.frame.height + 26.0)
     titleTextItem.frame.origin.x = context.rtl
