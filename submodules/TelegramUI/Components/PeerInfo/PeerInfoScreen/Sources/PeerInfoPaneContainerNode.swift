@@ -472,7 +472,7 @@ private final class PeerInfoPendingPane {
                     }
                 }
             }
-            let giftPaneNode = PeerInfoGiftsPaneNode(context: context, peerId: peerId, chatControllerInteraction: chatControllerInteraction, profileGiftsCollections: data.profileGiftsCollectionsContext!, profileGifts: data.profileGiftsContext!, canManage: canManage, canGift: canGift, initialGiftCollectionId: initialGiftCollectionId)
+            let giftPaneNode = PeerInfoGiftsPaneNode(context: context, peerId: data.peer?.id ?? peerId, chatControllerInteraction: chatControllerInteraction, profileGiftsCollections: data.profileGiftsCollectionsContext!, profileGifts: data.profileGiftsContext!, canManage: canManage, canGift: canGift, initialGiftCollectionId: initialGiftCollectionId)
             giftPaneNode.openShareLink = openShareLink
             paneNode = giftPaneNode
         case .stories, .storyArchive, .botPreview:
