@@ -260,7 +260,9 @@ jobs:
       - name: Prepare Metal toolchain
         run: |
           set -euo pipefail
-          if xcrun -f metal >/dev/null 2>&1; then
+          # `xcrun -f` only finds the path; on the Xcode 27 image the tool is there but refuses to run until the
+          # Metal Toolchain component is installed, so ask it to run.
+          if xcrun metal -v >/dev/null 2>&1; then
             echo "metal already available: $(xcrun -f metal)"
           else
             sudo xcodebuild -downloadComponent MetalToolchain
