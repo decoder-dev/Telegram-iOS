@@ -873,6 +873,30 @@ private func copyI420BufferToNV12Buffer(buffer: OngoingGroupCallContext.VideoFra
     return true
 }
 
+/// Frames used to be dropped without a word at a dozen points, which left a black picture and nothing in the logs. Each
+/// distinct reason is now logged once per process, so a source that never produces a frame says why.
+private enum CallVideoFrameLog {
+    private static let lock = NSLock()
+    private static var seen = Set<String>()
+    
+    static func dropped(_ reason: String) {
+        once("frame dropped: \(reason)")
+    }
+    
+    static func note(_ message: String) {
+        once(message)
+    }
+    
+    private static func once(_ message: String) {
+        lock.lock()
+        let isNew = seen.insert(message).inserted
+        lock.unlock()
+        if isNew {
+            Logger.shared.log("CallVideo", message)
+        }
+    }
+}
+
 final class AdaptedCallVideoSource: VideoSource {
     final class I420DataBuffer: Output.DataBuffer {
         private let buffer: OngoingGroupCallContext.VideoFrameData.I420Buffer
@@ -956,7 +980,11 @@ final class AdaptedCallVideoSource: VideoSource {
         
         self.videoFrameDisposable = (videoStreamSignal
         |> deliverOnMainQueue).start(next: { [weak self] videoFrameData in
-            guard let self, let textureCache = self.textureCache else {
+            guard let self else {
+                return
+            }
+            guard let textureCache = self.textureCache else {
+                CallVideoFrameLog.dropped("no Metal texture cache")
                 return
             }
             
@@ -1024,12 +1052,14 @@ final class AdaptedCallVideoSource: VideoSource {
                     
                     var cvMetalTextureY: CVMetalTexture?
                     var status = CVMetalTextureCacheCreateTextureFromImage(nil, textureCache, nativeBuffer.pixelBuffer, nil, .r8Unorm, width, height, 0, &cvMetalTextureY)
-                    guard status == kCVReturnSuccess, let yTexture = CVMetalTextureGetTexture(cvMetalTextureY!) else {
+                    guard status == kCVReturnSuccess, let cvY = cvMetalTextureY, let yTexture = CVMetalTextureGetTexture(cvY) else {
+                        CallVideoFrameLog.dropped("native buffer: Y texture failed (status \(status))")
                         return
                     }
                     var cvMetalTextureUV: CVMetalTexture?
                     status = CVMetalTextureCacheCreateTextureFromImage(nil, textureCache, nativeBuffer.pixelBuffer, nil, .rg8Unorm, width / 2, height / 2, 1, &cvMetalTextureUV)
-                    guard status == kCVReturnSuccess, let uvTexture = CVMetalTextureGetTexture(cvMetalTextureUV!) else {
+                    guard status == kCVReturnSuccess, let cvUV = cvMetalTextureUV, let uvTexture = CVMetalTextureGetTexture(cvUV) else {
+                        CallVideoFrameLog.dropped("native buffer: UV texture failed (status \(status))")
                         return
                     }
                     
@@ -1047,6 +1077,7 @@ final class AdaptedCallVideoSource: VideoSource {
                     )
                 case let .i420(i420Buffer):
                     guard let pixelBufferPoolState = pixelBufferPoolState.unsafeGet() else {
+                        CallVideoFrameLog.dropped("I420: no pool state")
                         return
                     }
                     
@@ -1061,6 +1092,7 @@ final class AdaptedCallVideoSource: VideoSource {
                         pixelBufferPoolState.pool = pool
                     }
                     guard let pool else {
+                        CallVideoFrameLog.dropped("I420: pixel buffer pool was not created for \(width)x\(height)")
                         return
                     }
                     
@@ -1072,21 +1104,25 @@ final class AdaptedCallVideoSource: VideoSource {
                         return
                     }
                     guard let pixelBuffer else {
+                        CallVideoFrameLog.dropped("I420: no pixel buffer (result \(result))")
                         return
                     }
                     
                     if !copyI420BufferToNV12Buffer(buffer: i420Buffer, pixelBuffer: pixelBuffer) {
+                        CallVideoFrameLog.dropped("I420: conversion to NV12 failed for \(width)x\(height)")
                         return
                     }
                     
                     var cvMetalTextureY: CVMetalTexture?
                     var status = CVMetalTextureCacheCreateTextureFromImage(nil, textureCache, pixelBuffer, nil, .r8Unorm, width, height, 0, &cvMetalTextureY)
-                    guard status == kCVReturnSuccess, let yTexture = CVMetalTextureGetTexture(cvMetalTextureY!) else {
+                    guard status == kCVReturnSuccess, let cvY = cvMetalTextureY, let yTexture = CVMetalTextureGetTexture(cvY) else {
+                        CallVideoFrameLog.dropped("I420: Y texture failed (status \(status))")
                         return
                     }
                     var cvMetalTextureUV: CVMetalTexture?
                     status = CVMetalTextureCacheCreateTextureFromImage(nil, textureCache, pixelBuffer, nil, .rg8Unorm, width / 2, height / 2, 1, &cvMetalTextureUV)
-                    guard status == kCVReturnSuccess, let uvTexture = CVMetalTextureGetTexture(cvMetalTextureUV!) else {
+                    guard status == kCVReturnSuccess, let cvUV = cvMetalTextureUV, let uvTexture = CVMetalTextureGetTexture(cvUV) else {
+                        CallVideoFrameLog.dropped("I420: UV texture failed (status \(status))")
                         return
                     }
                     
@@ -1103,12 +1139,16 @@ final class AdaptedCallVideoSource: VideoSource {
                         sourceId: sourceId
                     )
                 default:
+                    CallVideoFrameLog.dropped("unsupported buffer kind")
                     return
                 }
                 
                 DispatchQueue.main.async {
                     guard let self else {
                         return
+                    }
+                    if self.currentOutput == nil {
+                        CallVideoFrameLog.note("first frame ready (\(Int(output.resolution.width))x\(Int(output.resolution.height)))")
                     }
                     self.currentOutput = output
                     for onUpdated in self.onUpdatedListeners.copyItems() {
