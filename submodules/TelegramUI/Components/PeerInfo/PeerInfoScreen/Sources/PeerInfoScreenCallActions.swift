@@ -16,9 +16,11 @@ import AvatarNode
 extension PeerInfoScreenNode {
     func requestCall(isVideo: Bool, gesture: ContextGesture? = nil, contextController: ContextControllerProtocol? = nil, result: ((ContextMenuActionResult) -> Void)? = nil, backAction: ((ContextControllerProtocol) -> Void)? = nil) {
         guard let controller = self.controller, !controller.presentAccountFrozenInfoIfNeeded() else {
+            Logger.shared.log("CallTap", "profile: dropped, controller missing or account frozen")
             return
         }
         let peerId = self.peerId
+        Logger.shared.log("CallTap", "profile: tap video=\(isVideo) peer=\(peerId.toInt64()) hasData=\(self.data != nil) hasCached=\(self.data?.cachedData != nil)")
         let requestCall: (EnginePeer.Id?, EngineGroupCallDescription?) -> Void = { [weak self] defaultJoinAsPeerId, activeCall in
             if let activeCall = activeCall {
                 self?.context.joinGroupCall(peerId: peerId, invite: nil, requestJoinAsPeerId: { completion in

@@ -875,6 +875,7 @@ public final class AccountContextImpl: AccountContext {
     }
     
     public func requestCall(peerId: PeerId, isVideo: Bool, completion: @escaping () -> Void) {
+        Logger.shared.log("CallTap", "requestCall peer=\(peerId.toInt64()) video=\(isVideo) confirm=\(self.sharedContext.immediateForkExtrasSettings.confirmBeforeCall)")
         // callManager.requestCall(...) below already dials — a confirmation needs to happen
         // before this function's existing body runs at all, not partway through it.
         if self.sharedContext.immediateForkExtrasSettings.confirmBeforeCall {
@@ -901,8 +902,10 @@ public final class AccountContextImpl: AccountContext {
 
     private func performRequestCall(peerId: PeerId, isVideo: Bool, completion: @escaping () -> Void) {
         guard let callResult = self.sharedContext.callManager?.requestCall(context: self, peerId: peerId, isVideo: isVideo, endCurrentIfAny: false) else {
+            Logger.shared.log("CallTap", "performRequestCall: no call manager")
             return
         }
+        Logger.shared.log("CallTap", "performRequestCall: manager answered \(callResult)")
         
         if case let .alreadyInProgress(currentCallType) = callResult {
             if case let .peer(currentPeerId) = currentCallType, currentPeerId == peerId {

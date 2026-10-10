@@ -474,8 +474,10 @@ public final class PresentationCallManagerImpl: PresentationCallManager {
         }
         
         if let alreadyInCallType, !endCurrentIfAny {
+            Logger.shared.log("CallTap", "manager: refused, a call is already in progress (\(alreadyInCallType))")
             return .alreadyInProgress(alreadyInCallType)
         }
+        Logger.shared.log("CallTap", "manager: starting, callKit=\(callKitIntegrationIfEnabled(self.callKitIntegration, settings: self.callSettings) != nil) current=\(self.currentCall != nil)")
         if let _ = callKitIntegrationIfEnabled(self.callKitIntegration, settings: self.callSettings) {
             let begin: () -> Void = { [weak self] in
                 guard let strongSelf = self else {
