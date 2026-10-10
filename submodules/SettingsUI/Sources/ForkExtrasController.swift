@@ -784,7 +784,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         [65, 66],
         [67, 68],
         [69],
-        [1508, 1509, 1510, 1511, 1512, 1513, 1514, 1515, 1516, 1517, 1518, 1519, 1520],
+        [1508, 1509, 1510, 1511, 1512, 1513, 1515, 1516, 1517, 1518, 1519, 1520],
         [1603, 1500, 1501, 57]
     ]
 
@@ -1570,7 +1570,6 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(1511, ForkPresentationLanguage.prefersRussianStrings ? "Отправлять без превью ссылок" : "Send without link previews", settings.removeLinkPreviews, \.removeLinkPreviews),
             .appearanceToggle(1512, ForkPresentationLanguage.prefersRussianStrings ? "Скрыть уведомления о днях рождения" : "Hide birthday notifications", settings.hideBirthdayNotifications, \.hideBirthdayNotifications),
             .appearanceToggle(1513, ForkPresentationLanguage.prefersRussianStrings ? "Скрыть панель автоматизации бота" : "Hide bot automation panel", settings.hideBotAutomation, \.hideBotAutomation),
-            .appearanceToggle(1514, ForkPresentationLanguage.prefersRussianStrings ? "Закреп вместе с панелью бота" : "Show pinned message with bot panel", settings.showPinnedWithBot, \.showPinnedWithBot),
             .appearanceToggle(1515, ForkPresentationLanguage.prefersRussianStrings ? "Останавливать после голосового" : "Stop after a voice message", settings.stopAfterVoice, \.stopAfterVoice),
             .appearanceToggle(1516, ForkPresentationLanguage.prefersRussianStrings ? "Останавливать после кружка" : "Stop after a round video", settings.stopAfterRoundVideo, \.stopAfterRoundVideo),
             .appearanceToggle(1517, ForkPresentationLanguage.prefersRussianStrings ? "Без приветственного стикера" : "No greeting sticker", settings.hideGreetingSticker, \.hideGreetingSticker),

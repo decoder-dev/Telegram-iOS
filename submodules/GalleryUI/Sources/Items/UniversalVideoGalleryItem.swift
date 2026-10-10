@@ -248,7 +248,19 @@ private final class UniversalVideoGalleryItemOverlayNode: GalleryOverlayContentN
             return
         }
         self.message = message
-        
+
+        if ForkExtrasHotFlags.hideAds {
+            // "Hide ads": behave as if the video has no ads, without asking the server for any.
+            self.adContext = nil
+            self.adDisposable.set(nil)
+            self.adState = nil
+            self.adSchedule = []
+            if let validLayout = self.validLayout {
+                self.updateLayout(size: validLayout.size, metrics: validLayout.metrics, insets: validLayout.insets, isHidden: validLayout.isHidden, transition: .immediate)
+            }
+            return
+        }
+
         let adContext = context.engine.messages.adMessages(peerId: message.id.peerId, messageId: message.id)
         self.adContext = adContext
         self.adDisposable.set((adContext.state
