@@ -29,15 +29,15 @@ public func makeDefaultPresentationTheme(reference: PresentationBuiltinThemeRefe
 /// accent. Accent foregrounds are chosen for contrast (white on dark gold, near-black on yellow), and the chat screen
 /// (bubbles, input bar, scroll-down button, wallpaper) uses the same palette as the lists so the app reads as one theme.
 private func makeBananaGramTheme(dark: Bool) -> PresentationTheme {
-    let background = UIColor(rgb: dark ? 0x181B20 : 0xF6F3EB)
-    let surface = UIColor(rgb: dark ? 0x23272E : 0xFFFCF5)
-    let raisedSurface = UIColor(rgb: dark ? 0x2B3038 : 0xFFFEFA)
+    let background = UIColor(rgb: dark ? 0x1A1916 : 0xF6F3EB)
+    let surface = UIColor(rgb: dark ? 0x252320 : 0xFFFCF5)
+    let raisedSurface = UIColor(rgb: dark ? 0x2E2C28 : 0xFFFEFA)
     let foreground = UIColor(rgb: dark ? 0xF3F0E7 : 0x292D32)
-    let secondary = UIColor(rgb: dark ? 0xB8BDC5 : 0x65686E)
+    let secondary = UIColor(rgb: dark ? 0xBAB5A9 : 0x65686E)
     let accent = UIColor(rgb: dark ? 0xF4D66F : 0x805600)
     // Text and glyphs drawn on an accent fill: white on dark gold, near-black on banana yellow.
     let onAccent = UIColor(rgb: dark ? 0x1B1A16 : 0xFFFFFF)
-    let separator = UIColor(rgb: dark ? 0x363C45 : 0xDDD8CD)
+    let separator = UIColor(rgb: dark ? 0x3B3833 : 0xDDD8CD)
     let title = dark ? "BananaGram Graphite" : "BananaGram Cream"
     
     // Outgoing bubbles: soft banana cream with dark-gold details by day, deep olive gold with white text by night.
@@ -46,7 +46,7 @@ private func makeBananaGramTheme(dark: Bool) -> PresentationTheme {
     // Branded pattern wallpaper. Negative intensity draws the colours through the pattern on a dark base.
     let wallpaper = defaultBuiltinWallpaper(
         data: .default,
-        colors: dark ? [0x6B5A2A, 0x30343B, 0x8A7232, 0x262A30] : [0xF7EBC9, 0xEFDDB1, 0xFAF2DC, 0xEBD8A7],
+        colors: dark ? [0x6B5A2A, 0x34312B, 0x8A7232, 0x2A2824] : [0xF7EBC9, 0xEFDDB1, 0xFAF2DC, 0xEBD8A7],
         intensity: dark ? -45 : 40
     )
     
@@ -55,9 +55,9 @@ private func makeBananaGramTheme(dark: Bool) -> PresentationTheme {
     
     // Pressed rows, the faint chevrons and disabled text, and the field boxes: the stock Day / Night values are neutral greys
     // that sit coldly on the warm surfaces, so they are replaced rather than inherited.
-    let highlighted = UIColor(rgb: dark ? 0x2F343C : 0xF1ECDD)
-    let disclosure = UIColor(rgb: dark ? 0x6B717B : 0xB9B3A6)
-    let disabled = UIColor(rgb: dark ? 0x6B717B : 0xA39E91)
+    let highlighted = UIColor(rgb: dark ? 0x35322D : 0xF1ECDD)
+    let disclosure = UIColor(rgb: dark ? 0x77726A : 0xB9B3A6)
+    let disabled = UIColor(rgb: dark ? 0x77726A : 0xA39E91)
     let selectedRow = surface.mixedWith(accent, alpha: dark ? 0.16 : 0.12)
     let fieldFill = dark ? raisedSurface : UIColor(rgb: 0xFFFFFF)
     let list = theme.list.withUpdated(blocksBackgroundColor: background, modalBlocksBackgroundColor: background, plainBackgroundColor: surface, modalPlainBackgroundColor: surface, itemPrimaryTextColor: foreground, itemSecondaryTextColor: secondary, itemDisabledTextColor: disabled, itemAccentColor: accent, itemPlaceholderTextColor: secondary.withAlphaComponent(0.8), itemBlocksBackgroundColor: surface, itemModalBlocksBackgroundColor: surface, itemHighlightedBackgroundColor: highlighted, itemBlocksSeparatorColor: separator, itemPlainSeparatorColor: separator, disclosureArrowColor: disclosure, sectionHeaderTextColor: secondary, freeTextColor: secondary, itemCheckColors: theme.list.itemCheckColors.withUpdated(fillColor: accent, foregroundColor: onAccent), controlSecondaryColor: disclosure, freeInputField: theme.list.freeInputField.withUpdated(backgroundColor: fieldFill, strokeColor: separator, placeholderColor: secondary, primaryColor: foreground, controlColor: secondary), freePlainInputField: theme.list.freePlainInputField.withUpdated(backgroundColor: fieldFill, strokeColor: separator, placeholderColor: secondary, primaryColor: foreground, controlColor: secondary), itemInputField: theme.list.itemInputField.withUpdated(backgroundColor: surface, strokeColor: surface, placeholderColor: secondary, primaryColor: foreground, controlColor: secondary))
@@ -66,8 +66,9 @@ private func makeBananaGramTheme(dark: Bool) -> PresentationTheme {
         navigationBar: theme.rootController.navigationBar.withUpdated(buttonColor: accent, primaryTextColor: foreground, secondaryTextColor: secondary, accentTextColor: accent, blurredBackgroundColor: surface.withAlphaComponent(0.95), opaqueBackgroundColor: surface, separatorColor: separator),
         navigationSearchBar: theme.rootController.navigationSearchBar.withUpdated(backgroundColor: surface, accentColor: accent, inputFillColor: background, inputTextColor: foreground, inputPlaceholderTextColor: secondary, inputIconColor: secondary, separatorColor: separator)
     )
-    let searchBar = UIColor(rgb: dark ? 0x2B3038 : 0xEFEADF)
-    let chats = theme.chatList.withUpdated(backgroundColor: surface, itemSeparatorColor: separator, itemBackgroundColor: surface, pinnedItemBackgroundColor: background, itemHighlightedBackgroundColor: highlighted, pinnedItemHighlightedBackgroundColor: highlighted, itemSelectedBackgroundColor: selectedRow, titleColor: foreground, dateTextColor: secondary, authorNameColor: foreground, messageTextColor: secondary, messageHighlightedTextColor: foreground, checkmarkColor: accent, muteIconColor: secondary, unreadBadgeActiveBackgroundColor: accent, unreadBadgeActiveTextColor: onAccent, unreadBadgeInactiveBackgroundColor: UIColor(rgb: dark ? 0x535962 : 0x8B8678), pinnedBadgeColor: disclosure, pinnedSearchBarColor: searchBar, regularSearchBarColor: searchBar, sectionHeaderFillColor: background, sectionHeaderTextColor: secondary, storySeenColors: PresentationThemeGradientColors(topColor: UIColor(rgb: dark ? 0x4A5059 : 0xCFC9BA), bottomColor: UIColor(rgb: dark ? 0x4A5059 : 0xCFC9BA)))
+    let pinnedRow = UIColor(rgb: dark ? 0x2C2A26 : 0xF3EEDF)
+    let searchBar = UIColor(rgb: dark ? 0x2E2C28 : 0xEFEADF)
+    let chats = theme.chatList.withUpdated(backgroundColor: surface, itemSeparatorColor: separator, itemBackgroundColor: surface, pinnedItemBackgroundColor: pinnedRow, itemHighlightedBackgroundColor: highlighted, pinnedItemHighlightedBackgroundColor: highlighted, itemSelectedBackgroundColor: selectedRow, titleColor: foreground, dateTextColor: secondary, authorNameColor: foreground, messageTextColor: secondary, messageHighlightedTextColor: foreground, checkmarkColor: accent, muteIconColor: secondary, unreadBadgeActiveBackgroundColor: accent, unreadBadgeActiveTextColor: onAccent, unreadBadgeInactiveBackgroundColor: UIColor(rgb: dark ? 0x5A564E : 0x8B8678), pinnedBadgeColor: disclosure, pinnedSearchBarColor: searchBar, regularSearchBarColor: searchBar, sectionHeaderFillColor: background, sectionHeaderTextColor: secondary, storySeenColors: PresentationThemeGradientColors(topColor: UIColor(rgb: dark ? 0x4F4B44 : 0xCFC9BA), bottomColor: UIColor(rgb: dark ? 0x4F4B44 : 0xCFC9BA)))
     
     // Chat screen: incoming bubbles on the raised surface, the input bar on the list surface, the send button in the accent.
     let incoming = theme.chat.message.incoming
@@ -135,7 +136,7 @@ private func makeBananaGramTheme(dark: Bool) -> PresentationTheme {
         )
     )
     // The passcode screen is a full-bleed gradient with white keys: gold for Cream, charcoal for Graphite.
-    let passcode = theme.passcode.withUpdated(backgroundColors: PresentationThemeGradientColors(topColor: UIColor(rgb: dark ? 0x4A4F59 : 0xA7761C), bottomColor: UIColor(rgb: dark ? 0x23272E : 0x7A5200)))
+    let passcode = theme.passcode.withUpdated(backgroundColors: PresentationThemeGradientColors(topColor: UIColor(rgb: dark ? 0x57524A : 0xA7761C), bottomColor: UIColor(rgb: dark ? 0x2A2824 : 0x7A5200)))
     
     return PresentationTheme(name: .custom(title), index: PresentationThemeReference.builtin(dark ? .bananaGramGraphite : .bananaGramCream).index, referenceTheme: theme.referenceTheme, overallDarkAppearance: dark, intro: theme.intro, passcode: passcode, rootController: root, list: list, chatList: chats, chat: chat, actionSheet: actionSheet, contextMenu: contextMenu, inAppNotification: inAppNotification, chart: theme.chart)
 }
@@ -252,4 +253,19 @@ public func makePresentationTheme(mediaBox: MediaBox, themeReference: Presentati
             }
     }
     return theme
+}
+
+public extension PresentationTheme {
+    /// Which BananaGram theme this is, if any. `referenceTheme` can't say: both are built on the stock Day / Night themes and
+    /// keep their `referenceTheme`, so code that switches on it sees plain Day or Night and, with the yellow accent, an
+    /// unknown custom theme. The theme's index is the only thing that identifies it.
+    var bananaGramReference: PresentationBuiltinThemeReference? {
+        if self.index == PresentationThemeReference.builtin(.bananaGramCream).index {
+            return .bananaGramCream
+        } else if self.index == PresentationThemeReference.builtin(.bananaGramGraphite).index {
+            return .bananaGramGraphite
+        } else {
+            return nil
+        }
+    }
 }

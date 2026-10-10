@@ -74,7 +74,7 @@ public struct CallScreenPalette: Equatable {
     )
     
     public static let bananaGramGraphite = CallScreenPalette(
-        connecting: [0x4A4F59, 0x353A44, 0x6B5C2A, 0x2F333B],
+        connecting: [0x57524A, 0x3E3A33, 0x6B5C2A, 0x35322C],
         active: [0x6F6A2A, 0x3F5A3A, 0x8A7A2C, 0x2F3F3A],
         weakSignal: [0x7A3A2A, 0x8A5A22, 0x5A2F2F, 0x7A4A24]
     )
@@ -116,7 +116,9 @@ public struct CallScreenPalette: Equatable {
     /// custom accent (or a downloaded theme) derives a set from that accent.
     public init(theme: PresentationTheme) {
         let dark = theme.overallDarkAppearance
-        switch theme.referenceTheme {
+        // Not `theme.referenceTheme`: the BananaGram themes are built on Day / Night and keep that reference, so a switch on it
+        // never saw them and handed their yellow accent to the derived palette (a green call bar on Graphite).
+        switch theme.bananaGramReference ?? theme.referenceTheme {
         case .bananaGramCream:
             self = .bananaGramCream
         case .bananaGramGraphite:

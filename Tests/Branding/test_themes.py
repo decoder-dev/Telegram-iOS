@@ -40,6 +40,18 @@ class ThemeTests(unittest.TestCase):
         for colors in sets:
             for value in re.findall(r'0x[0-9A-Fa-f]{6}',colors):
                 self.assertGreaterEqual(1.05/(luminance(int(value,16))+.05),floor,value)
+    def test_call_palette_recognises_bananagram_by_index(self):
+        # referenceTheme stays .day/.night for the BananaGram themes; switching on it alone sent their yellow accent to the derived palette.
+        source = (ROOT/'submodules/TelegramUI/Components/Calls/CallScreen/Sources/CallScreenPalette.swift').read_text(encoding='utf-8')
+        self.assertIn('theme.bananaGramReference ?? theme.referenceTheme',source)
+        themes = (ROOT/'submodules/TelegramPresentationData/Sources/MakePresentationTheme.swift').read_text(encoding='utf-8')
+        self.assertIn('var bananaGramReference: PresentationBuiltinThemeReference?',themes)
+    def test_graphite_neutrals_are_warm(self):
+        source = (ROOT/'submodules/TelegramPresentationData/Sources/MakePresentationTheme.swift').read_text(encoding='utf-8')
+        for name in ('background','surface','raisedSurface','separator'):
+            dark = int(re.search(r'let '+name+r' = UIColor\(rgb: dark \? (0x[0-9A-F]+)',source).group(1),16)
+            red, blue = dark >> 16 & 255, dark & 255
+            self.assertGreaterEqual(red, blue, name+' must not lean blue: Graphite is a warm charcoal')
     def test_interface_groups_have_unique_ids(self):
         source = (ROOT/'submodules/SettingsUI/Sources/ForkExtrasController.swift').read_text(encoding='utf-8')
         block=source.split('private static let interfaceGroups: [[Int32]] = ',1)[1].split('\n    ]',1)[0]+'\n    ]'
