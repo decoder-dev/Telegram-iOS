@@ -293,8 +293,6 @@ public enum ReplyMarkupButtonAction: PostboxCoding, Equatable {
                 self = .disabled
             case 13:
                 self = .copyText(payload: decoder.decodeStringForKey("p", orElse: ""))
-            case 14:
-                self = .disabled
             default:
                 self = .text
         }
@@ -352,8 +350,6 @@ public enum ReplyMarkupButtonAction: PostboxCoding, Equatable {
         case let .copyText(payload):
             encoder.encodeInt32(13, forKey: "v")
             encoder.encodeString(payload, forKey: "p")
-        case .disabled:
-            encoder.encodeInt32(14, forKey: "v")
         }
     }
 }

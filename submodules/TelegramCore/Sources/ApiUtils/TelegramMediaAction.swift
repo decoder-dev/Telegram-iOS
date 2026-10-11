@@ -396,8 +396,6 @@ func telegramMediaActionFromApiAction(_ action: Api.MessageAction) -> TelegramMe
             PeerId(namespace: Namespaces.Peer.CloudChannel, id: PeerId.Id._internalFromInt64Value($0))
         }
         return TelegramMediaAction(action: .communityChanged(communityId: communityId))
-    case let .messageActionChatJoinedViaCommunity(messageActionChatJoinedViaCommunityData):
-        return TelegramMediaAction(action: .joinedViaCommunity(communityId: PeerId(namespace: Namespaces.Peer.CloudChannel, id: PeerId.Id._internalFromInt64Value(messageActionChatJoinedViaCommunityData.communityId))))
     }
 }
 

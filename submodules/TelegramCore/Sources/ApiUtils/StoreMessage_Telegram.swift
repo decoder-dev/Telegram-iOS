@@ -376,8 +376,6 @@ func apiMessagePeerIds(_ message: Api.Message) -> [PeerId] {
                     if let communityId = messageActionChangeCommunity.communityId {
                         result.append(PeerId(namespace: Namespaces.Peer.CloudChannel, id: PeerId.Id._internalFromInt64Value(communityId)))
                     }
-                case let .messageActionChatJoinedViaCommunity(messageActionChatJoinedViaCommunityData):
-                    result.append(PeerId(namespace: Namespaces.Peer.CloudChannel, id: PeerId.Id._internalFromInt64Value(messageActionChatJoinedViaCommunityData.communityId)))
             }
         
             return result

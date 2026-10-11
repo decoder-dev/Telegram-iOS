@@ -423,7 +423,7 @@ func chatInputBlocks(fromInstantPageBlocks blocks: [InstantPageBlock], media: [M
                                                     displayMode: .slideshow,
                                                     caption: chatInputRuns(fromRichText: caption.text))))
             }
-        case let .document(id, caption), let .audio(id, caption):
+        case let .audio(id, caption):
             // Resolve the concrete `TelegramMediaFile` from the page `media` dict (the forward always stores it).
             // naturalSize/displayWidth/alignment restore the editor's media defaults, matching .image/.video.
             // Music vs voice is intrinsic to the file (`.Audio(isVoice:)`), so a single `.audio` kind suffices.

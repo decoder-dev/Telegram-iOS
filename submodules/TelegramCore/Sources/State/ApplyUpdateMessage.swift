@@ -118,16 +118,6 @@ func applyMediaResourceChanges(from: InstantPageBlock, fromMedia: [MediaId: Medi
         if let lhsMedia = fromMedia[lhsId], let rhsMedia = toMedia[rhsId] {
             applyMediaResourceChanges(from: lhsMedia, to: rhsMedia, postbox: postbox, force: force, skipPreviews: skipPreviews)
         }
-    case let .document(lhsId, _):
-        // Mirrors .audio: on send confirmation this hands the locally-uploaded file's resource data
-        // to the cloud resource. Without it, a document in a just-sent rich message would be
-        // re-downloaded instead of reusing what is already on disk.
-        guard case let .document(rhsId, _) = to else {
-            return
-        }
-        if let lhsMedia = fromMedia[lhsId], let rhsMedia = toMedia[rhsId] {
-            applyMediaResourceChanges(from: lhsMedia, to: rhsMedia, postbox: postbox, force: force, skipPreviews: skipPreviews)
-        }
     case let .collage(lhsItems, _):
         guard case let .collage(rhsItems, _) = to else {
             return

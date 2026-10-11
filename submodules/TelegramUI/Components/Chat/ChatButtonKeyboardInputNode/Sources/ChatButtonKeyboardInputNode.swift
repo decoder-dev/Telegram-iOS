@@ -455,8 +455,6 @@ public final class ChatButtonKeyboardInputNode: ChatInputNode, UIScrollViewDeleg
                     if let message = self.message {
                         self.controllerInteraction.openRequestedPeerSelection(message.id, peerType, buttonId, maxQuantity)
                     }
-                case .disabled:
-                    break
                 case let .copyText(payload):
                     self.controllerInteraction.copyText(payload)
                 case .disabled:

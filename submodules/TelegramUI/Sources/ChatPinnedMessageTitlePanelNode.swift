@@ -1023,8 +1023,6 @@ final class ChatPinnedMessageTitlePanelNode: ChatTitleAccessoryPanelNode {
                         return
                     case .requestPeer:
                         break
-                    case .disabled:
-                        break
                     case let .copyText(payload):
                         controllerInteraction.copyText(payload)
                         return

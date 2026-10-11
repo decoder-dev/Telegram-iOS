@@ -527,8 +527,6 @@ public enum TelegramMediaActionType: PostboxCoding, Equatable {
             self = .joinedViaCommunity(communityId: PeerId(decoder.decodeInt64ForKey("communityId", orElse: 0)))
         case 65:
             self = .communityChanged(communityId: decoder.decodeOptionalInt64ForKey("communityId").flatMap(PeerId.init))
-        case 66:
-            self = .joinedViaCommunity(communityId: PeerId(decoder.decodeInt64ForKey("communityId", orElse: 0)))
         case 68:
             self = .walletTonConnectRequest(flags: decoder.decodeInt32ForKey("flags", orElse: 0), sessionId: decoder.decodeInt64ForKey("sessionId", orElse: 0), expires: decoder.decodeInt32ForKey("expires", orElse: 0), topic: decoder.decodeOptionalStringForKey("topic"), traceId: decoder.decodeOptionalStringForKey("traceId"), dappName: decoder.decodeOptionalStringForKey("dappName"))
         case 67:
@@ -1069,9 +1067,6 @@ public enum TelegramMediaActionType: PostboxCoding, Equatable {
             } else {
                 encoder.encodeNil(forKey: "communityId")
             }
-        case let .joinedViaCommunity(communityId):
-            encoder.encodeInt32(66, forKey: "_rawValue")
-            encoder.encodeInt64(communityId.toInt64(), forKey: "communityId")
         case let .walletTonConnectRequest(flags, sessionId, expires, topic, traceId, dappName):
             if let dappName {
                 encoder.encodeString(dappName, forKey: "dappName")
@@ -1167,8 +1162,6 @@ public enum TelegramMediaActionType: PostboxCoding, Equatable {
             return [communityId]
         case let .communityChanged(communityId):
             return communityId.flatMap { [$0] } ?? []
-        case let .joinedViaCommunity(communityId):
-            return [communityId]
         default:
             return []
         }

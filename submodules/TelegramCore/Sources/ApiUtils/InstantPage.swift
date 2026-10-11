@@ -342,16 +342,6 @@ extension InstantPageBlock {
                 self = .formula(latex: pageBlockMath.source)
             case let .pageBlockThinking(pageBlockThinking):
                 self = .thinking(RichText(apiText: pageBlockThinking.text))
-            case let .pageBlockButtonRow(value):
-                self = .paragraph(.concat(value.buttons.enumerated().flatMap { index, button -> [RichText] in
-                    switch button {
-                    case let .pageButton(data):
-                        let text = RichText(apiText: .textButton(.init(flags: data.flags, text: data.text, type: data.type, style: data.style)))
-                        return index == 0 ? [text] : [.plain("  "), text]
-                    }
-                }))
-            case let .pageBlockDocument(value):
-                self = .document(id: MediaId(namespace: Namespaces.Media.CloudFile, id: value.documentId), caption: InstantPageCaption(apiCaption: value.caption))
             case .inputPageBlockMap:
                 self = .unsupported
         }
@@ -438,9 +428,6 @@ extension InstantPageBlock {
             }
             let videoId = mediaIdRemap[id] ?? id.id
             return .pageBlockVideo(Api.PageBlock.Cons_pageBlockVideo(flags: flags, videoId: videoId, caption: .pageCaption(Api.PageCaption.Cons_pageCaption(text: caption.text.apiRichText(), credit: caption.credit.apiRichText()))))
-        case let .document(id, caption):
-            let documentId = mediaIdRemap[id] ?? id.id
-            return .pageBlockDocument(Api.PageBlock.Cons_pageBlockDocument(documentId: documentId, caption: .pageCaption(Api.PageCaption.Cons_pageCaption(text: caption.text.apiRichText(), credit: caption.credit.apiRichText()))))
         case let .audio(id, caption):
             let audioId = mediaIdRemap[id] ?? id.id
             return .pageBlockAudio(Api.PageBlock.Cons_pageBlockAudio(audioId: audioId, caption: .pageCaption(Api.PageCaption.Cons_pageCaption(text: caption.text.apiRichText(), credit: caption.credit.apiRichText()))))

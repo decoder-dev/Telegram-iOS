@@ -1376,8 +1376,6 @@ private func resolveInternalUrl(context: AccountContext, url: ParsedInternalUrl)
             }
         case let .stickerPack(name, type):
             return .single(.result(.stickerPack(name: name, type: type)))
-        case let .premiumOffer(reference):
-            return .single(.result(.premiumOffer(reference: reference)))
         case let .chatFolder(slug):
             return .single(.result(.chatFolder(slug: slug)))
         case let .invoice(slug):

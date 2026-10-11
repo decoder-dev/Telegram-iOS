@@ -26,6 +26,8 @@ private func collectCustomEmojiFileIds(_ text: RichText, into result: inout [Int
         collectCustomEmojiFileIds(text, into: &result, seen: &seen)
     case let .textButton(button):
         collectCustomEmojiFileIds(button.text, into: &result, seen: &seen)
+    case let .button(text, _, _):
+        collectCustomEmojiFileIds(text, into: &result, seen: &seen)
     case let .concat(texts):
         for text in texts {
             collectCustomEmojiFileIds(text, into: &result, seen: &seen)
