@@ -186,3 +186,8 @@ with tempfile.TemporaryDirectory(prefix='appearance-policy-') as tmp:
         path = pathlib.Path(tmp) / (name + '.swift')
         path.write_text(code, encoding='utf-8')
         subprocess.run(['swift', str(path)], check=True)
+
+# Parse the actual edited UI sources as well as executing the extracted policy fixtures.
+for source_path in ['submodules/TelegramPresentationData/Sources/MakePresentationTheme.swift',
+                    'submodules/SettingsUI/Sources/ForkExtrasController.swift']:
+    subprocess.run(['swiftc', '-frontend', '-parse', str(root / source_path)], check=True, timeout=120)

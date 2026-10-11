@@ -1108,8 +1108,17 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return BananaTabBarPreviewItem(context: arguments.context, theme: presentationData.theme, strings: presentationData.strings, sectionId: self.section, layout: layout)
         case let .callsTab(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: presentationData.strings.Calls_TabTitle, value: value, sectionId: self.section, style: .blocks, updated: arguments.updateCallsTab, tag: BananaSettingsItemTag(id: self.stableId))
-        case let .appearanceToggle(_, title, value, keyPath):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: title, value: value, sectionId: self.section, style: .blocks, updated: { value in
+        case let .appearanceToggle(id, title, value, keyPath):
+            let description: String?
+            switch id {
+            case 1518:
+                description = ForkPresentationLanguage.prefersRussianStrings ? "Открывает поиск в текущем чате вместо поиска публичных постов." : "Searches the current chat instead of public posts."
+            case 1520:
+                description = ForkPresentationLanguage.prefersRussianStrings ? "Отправляет GIF беззвучным видео, если GIF запрещены, а видео разрешены." : "Sends GIFs as silent videos where GIFs are banned but videos are allowed."
+            default:
+                description = nil
+            }
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: title, text: description, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateAppearance(keyPath, value)
             }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hubNinja:
@@ -1613,7 +1622,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .designHeader(1601, russian ? "Навигация" : "Navigation"),
             .designHeader(1602, russian ? "Чаты" : "Chats"),
             .designHeader(1603, russian ? "Эффекты" : "Effects"),
-            .designFooter(1612, russian ? "«Хэштег ищет в этом чате» открывает поиск по чату вместо публичных постов. «Запрещённые GIF как видео» отправляет GIF беззвучным видео там, где GIF запрещены, а видео разрешены. «Музыку как голосовое» можно отправить из меню трека во вложениях." : "Hashtags Search This Chat opens the chat's own results instead of public posts. Send Banned GIFs as Video sends a GIF as a silent looping video where GIFs are banned but videos are allowed. A music track can be sent as a voice message from its menu in Attach > Music.")
+            .designFooter(1612, russian ? "Музыка как голосовое: откройте меню трека в разделе «Вложения → Музыка»." : "To send music as a voice message, open the track's menu in Attach → Music.")
         ])
         entries.sort()
     case .chat:

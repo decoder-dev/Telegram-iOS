@@ -36,6 +36,31 @@ class ThemeTests(unittest.TestCase):
             # Glyphs on accent fills (send button, checkmarks, unread badges).
             a,b=sorted((luminance(palette['onAccent'][mode]),luminance(palette['accent'][mode])))
             self.assertGreaterEqual((b+.05)/(a+.05),4.5,(mode,'onAccent','accent'))
+    def test_archive_glyph_contrast_across_both_gradients(self):
+        source = (ROOT/'submodules/TelegramPresentationData/Sources/MakePresentationTheme.swift').read_text(encoding='utf-8')
+        palette = {name: (int(dark,16), int(light,16)) for name,dark,light in re.findall(r'let (\w+) = UIColor\(rgb: dark \? (0x[0-9A-F]+) : (0x[0-9A-F]+)\)',source)}
+        def resolve(expression, mode):
+            expression = expression.strip()
+            direct = re.fullmatch(r'UIColor\(rgb: dark \? (0x[0-9A-F]+) : (0x[0-9A-F]+)\)', expression)
+            if direct:
+                return int(direct.groups()[mode],16)
+            conditional = re.fullmatch(r'dark \? (\w+) : (\w+)', expression)
+            return palette[conditional.groups()[mode] if conditional else expression][mode]
+        for field, following in [('pinnedArchiveAvatarColor', 'unpinnedArchiveAvatarColor'), ('unpinnedArchiveAvatarColor', 'storyUnseenColors')]:
+            block = source.split(field+': PresentationThemeArchiveAvatarColors(',1)[1].split(', '+following+':',1)[0]
+            colors = re.findall(r'(?:topColor|bottomColor): UIColor\(rgb: dark \? (0x[0-9A-F]+) : (0x[0-9A-F]+)\)',block)
+            self.assertEqual(len(colors),2)
+            glyph = block.split('foregroundColor: ',1)[1][:-1]
+            for mode in (0,1):
+                foreground = resolve(glyph,mode)
+                stops = [int(pair[mode],16) for pair in colors]
+                # Check the entire gradient, not just one conveniently dark endpoint.
+                for step in range(101):
+                    channels = [round((stops[0] >> shift & 255)*(1-step/100)+(stops[1] >> shift & 255)*step/100) for shift in (16,8,0)]
+                    background = channels[0]<<16 | channels[1]<<8 | channels[2]
+                    low,high = sorted((luminance(foreground),luminance(background)))
+                    self.assertGreaterEqual((high+.05)/(low+.05),3.0,(field,mode,step))
+
     def test_secondary_text_on_pressed_and_search_surfaces(self):
         source = (ROOT/'submodules/TelegramPresentationData/Sources/MakePresentationTheme.swift').read_text(encoding='utf-8')
         palette = {name: (int(dark,16), int(light,16)) for name,dark,light in re.findall(r'let (\w+) = UIColor\(rgb: dark \? (0x[0-9A-F]+) : (0x[0-9A-F]+)\)',source)}
