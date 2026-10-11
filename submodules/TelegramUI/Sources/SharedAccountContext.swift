@@ -1202,6 +1202,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         ForkMessageVisibility.update(ForkMessageVisibility.State(hidePaidReactions: settings.hidePaidReactions, hideViaBot: settings.hideViaBot, removeLinkPreviews: settings.removeLinkPreviews, hideBirthdayNotifications: settings.hideBirthdayNotifications, hideBotAutomation: settings.hideBotAutomation, showPinnedWithBot: settings.showPinnedWithBot, stopAfterVoice: settings.stopAfterVoice, stopAfterRoundVideo: settings.stopAfterRoundVideo))
         ForkAyuForwardSettings.enabled = settings.ayuForward
         ForkBypassDownloadRestrictionsSettings.enabled = settings.bypassDownloadRestrictions
+        ForkSensitiveContentSettings.enabled = settings.showSensitiveContent
         ForkLocalPremiumSettings.enabled = settings.localPremium
         ForkSecretScreenshotSettings.allow = settings.allowSecretScreenshots
         ForkExpireTtlSettings.enabled = settings.expireTtlButton

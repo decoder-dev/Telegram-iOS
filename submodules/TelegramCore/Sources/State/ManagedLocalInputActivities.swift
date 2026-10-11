@@ -47,6 +47,25 @@ public enum ForkBypassDownloadRestrictionsSettings {
     }
 }
 
+/// "Show 18+ Content" done on the client. The stock switch needs the server to allow it
+/// (`canAdjustSensitiveContent`) and, in some countries, a face-scan age check; neither is available to this build,
+/// so the switch did nothing. With this on, media and chats marked `sensitive` are shown without the blur or the age
+/// prompt, and chats Telegram hides only from App Store clients for the `porn` reason open as they do on desktop.
+public enum ForkSensitiveContentSettings {
+    private static let value = Atomic<Bool>(value: false)
+    /// Emits on change so content settings already handed out (`currentContentSettings`) update live.
+    public static let enabledPromise = ValuePromise<Bool>(false, ignoreRepeated: true)
+    public static var enabled: Bool {
+        get { return value.with { $0 } }
+        set {
+            let _ = value.swap(newValue)
+            enabledPromise.set(newValue)
+        }
+    }
+    /// Restriction reasons the setting lifts.
+    public static let liftedReasons: Set<String> = ["sensitive", "porn"]
+}
+
 /// AyuGram Local Telegram Premium: unlock client-side Premium-gated UX (stealth mode, HD stories,
 /// sticker/emoji picker cosmetics, etc.) without touching the account's real, server-issued
 /// Premium status. Never use this to alter anything the server itself enforces or verifies.

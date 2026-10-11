@@ -166,6 +166,8 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.AyuForward": "AyuForward",
             "ForkExtras.AyuForwardFooter": "Forward from noforwards channels and deleted messages by re-uploading media without an author (AyuGram Android).",
             "ForkExtras.BypassDownloadRestrictions": "Save Stories & Protected Media",
+            "ForkExtras.ShowSensitiveContent": "Show 18+ Content",
+            "ForkExtras.ShowSensitiveContentFooter": "Shows media and chats marked 18+ without the blur or the age check, and opens channels Telegram hides only from iPhone apps for adult content. Works on this phone without asking the server.",
             "ForkExtras.BypassDownloadRestrictionsFooter": "Save stories and download protected media without Telegram Premium, even when forwarding is disabled (AyuGram Desktop). Protected stories also stop hiding themselves from screenshots and screen recording.",
             "ForkExtras.ProactiveSaveMedia": "Proactively Download Media",
             "ForkExtras.ProactiveSaveMediaFooter": "Actively download attachments that aren't fully cached yet, so TTL/delete can't outrun the save.",
@@ -311,6 +313,8 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.AyuForward": "AyuForward",
             "ForkExtras.AyuForwardFooter": "Пересылать из каналов с запретом пересылки и удалённые сообщения: медиа загружается заново без автора (AyuGram Android).",
             "ForkExtras.BypassDownloadRestrictions": "Сохранять истории и защищённые медиа",
+            "ForkExtras.ShowSensitiveContent": "Показывать материалы 18+",
+            "ForkExtras.ShowSensitiveContentFooter": "Медиа и чаты с пометкой 18+ показываются без размытия и проверки возраста, а каналы, которые Telegram прячет от приложений для iPhone из-за взрослого контента, открываются. Работает на этом телефоне, без запроса к серверу.",
             "ForkExtras.BypassDownloadRestrictionsFooter": "Сохранять истории и скачивать защищённые медиа без Premium, даже при запрете пересылки (AyuGram Desktop). Защищённые истории также перестают скрываться от скриншотов и записи экрана.",
             "ForkExtras.ProactiveSaveMedia": "Активно скачивать медиа",
             "ForkExtras.ProactiveSaveMediaFooter": "Активно скачивать ещё не кэшированные вложения, чтобы TTL/удаление не обгоняло сохранение.",
@@ -457,6 +461,8 @@ private enum ForkExtrasLocalizedString {
     static var ayuForward: String { string(forKey: "ForkExtras.AyuForward") }
     static var ayuForwardFooter: String { string(forKey: "ForkExtras.AyuForwardFooter") }
     static var bypassDownloadRestrictions: String { string(forKey: "ForkExtras.BypassDownloadRestrictions") }
+    static var showSensitiveContent: String { string(forKey: "ForkExtras.ShowSensitiveContent") }
+    static var showSensitiveContentFooter: String { string(forKey: "ForkExtras.ShowSensitiveContentFooter") }
     static var bypassDownloadRestrictionsFooter: String { string(forKey: "ForkExtras.BypassDownloadRestrictionsFooter") }
     static var proactiveSaveMedia: String { string(forKey: "ForkExtras.ProactiveSaveMedia") }
     static var proactiveSaveMediaFooter: String { string(forKey: "ForkExtras.ProactiveSaveMediaFooter") }
@@ -571,6 +577,7 @@ private final class ForkExtrasControllerArguments {
     let updateSaveForBots: (Bool) -> Void
     let updateAyuForward: (Bool) -> Void
     let updateBypassDownloadRestrictions: (Bool) -> Void
+    let updateShowSensitiveContent: (Bool) -> Void
     let updateProactiveSaveMedia: (Bool) -> Void
     let updateDeletedMessageMark: (String) -> Void
     let updateEditedMessageMark: (String) -> Void
@@ -639,6 +646,7 @@ private final class ForkExtrasControllerArguments {
         updateSaveForBots: @escaping (Bool) -> Void,
         updateAyuForward: @escaping (Bool) -> Void,
         updateBypassDownloadRestrictions: @escaping (Bool) -> Void,
+        updateShowSensitiveContent: @escaping (Bool) -> Void,
         updateProactiveSaveMedia: @escaping (Bool) -> Void,
         updateDeletedMessageMark: @escaping (String) -> Void,
         updateEditedMessageMark: @escaping (String) -> Void,
@@ -706,6 +714,7 @@ private final class ForkExtrasControllerArguments {
         self.updateSaveForBots = updateSaveForBots
         self.updateAyuForward = updateAyuForward
         self.updateBypassDownloadRestrictions = updateBypassDownloadRestrictions
+        self.updateShowSensitiveContent = updateShowSensitiveContent
         self.updateProactiveSaveMedia = updateProactiveSaveMedia
         self.updateDeletedMessageMark = updateDeletedMessageMark
         self.updateEditedMessageMark = updateEditedMessageMark
@@ -851,6 +860,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     case ayuForwardFooter
     case bypassDownloadRestrictions(Bool)
     case bypassDownloadRestrictionsFooter
+    case showSensitiveContent(Bool)
+    case showSensitiveContentFooter
     case proactiveSaveMedia(Bool)
     case proactiveSaveMediaFooter
     case deletedMessageMark(String)
@@ -933,7 +944,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return ForkExtrasSection.navigation.rawValue
         case .saveDeletedMessages, .saveDeletedMessagesFooter, .saveMessagesHistory, .saveMessagesHistoryFooter, .saveMedia, .saveMediaFooter, .proactiveSaveMedia, .proactiveSaveMediaFooter, .deletedMessageMark, .deletedMessageMarkFooter, .editedMessageMark, .editedMessageMarkFooter, .exportMessageSavingDatabase, .importMessageSavingDatabase, .messageSavingDbFooter, .saveForBots, .ayuForward, .ayuForwardFooter, .bypassDownloadRestrictions, .bypassDownloadRestrictionsFooter:
             return ForkExtrasSection.messageSaving.rawValue
-        case .hideAds, .hideAdsFooter, .hideBlockedMessages, .hideBlockedMessagesFooter, .regexFilters, .regexFiltersCaseInsensitive, .regexFiltersPatterns, .regexFiltersFooter:
+        case .hideAds, .hideAdsFooter, .hideBlockedMessages, .hideBlockedMessagesFooter, .showSensitiveContent, .showSensitiveContentFooter, .regexFilters, .regexFiltersCaseInsensitive, .regexFiltersPatterns, .regexFiltersFooter:
             return ForkExtrasSection.messageFilters.rawValue
         case .allowSecretScreenshots, .allowSecretScreenshotsFooter, .expireTtlButton, .expireTtlButtonFooter, .keepBannedChats, .keepBannedChatsFooter:
             return ForkExtrasSection.smallThings.rawValue
@@ -1062,6 +1073,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case .hideAdsFooter: return 131
         case .hideBlockedMessages: return 132
         case .hideBlockedMessagesFooter: return 133
+        case .showSensitiveContent: return 147
+        case .showSensitiveContentFooter: return 148
         case .regexFilters: return 134
         case .regexFiltersCaseInsensitive: return 135
         case .regexFiltersPatterns: return 136
@@ -1315,6 +1328,12 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.bypassDownloadRestrictions, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateBypassDownloadRestrictions(value)
             }, tag: BananaSettingsItemTag(id: self.stableId))
+        case let .showSensitiveContent(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.showSensitiveContent, value: value, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateShowSensitiveContent(value)
+            }, tag: BananaSettingsItemTag(id: self.stableId))
+        case .showSensitiveContentFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.showSensitiveContentFooter), sectionId: self.section)
         case .bypassDownloadRestrictionsFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.bypassDownloadRestrictionsFooter), sectionId: self.section)
         case let .proactiveSaveMedia(value):
@@ -1647,6 +1666,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .hideAdsFooter,
             .hideBlockedMessages(settings.hideBlockedMessages),
             .hideBlockedMessagesFooter,
+            .showSensitiveContent(settings.showSensitiveContent),
+            .showSensitiveContentFooter,
             .regexFilters(settings.regexMessageFiltersEnabled),
         ]
         if settings.regexMessageFiltersEnabled {
@@ -2004,6 +2025,13 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
             updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
                 var updated = current
                 updated.bypassDownloadRestrictions = value
+                return updated
+            }.start())
+        },
+        updateShowSensitiveContent: { value in
+            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                var updated = current
+                updated.showSensitiveContent = value
                 return updated
             }.start())
         },

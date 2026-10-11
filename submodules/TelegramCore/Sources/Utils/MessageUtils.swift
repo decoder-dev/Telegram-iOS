@@ -406,6 +406,9 @@ public extension Message {
     }
     
     func isSensitiveContent(platform: String) -> Bool {
+        if ForkSensitiveContentSettings.enabled {
+            return false
+        }
         if let rule = self.restrictedContentAttribute?.rules.first(where: { $0.reason == "sensitive" }) {
             if rule.platform == "all" || rule.platform == platform {
                 return true

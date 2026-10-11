@@ -5447,20 +5447,20 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
             guard let self else {
                 return
             }
-            if requireAgeVerification(context: context) {
-                presentAgeVerification(context: context, parentController: self, completion: {
+            // No face scan: this build cannot complete Telegram's age verification, so the scan only ever failed.
+            // "Always show" turns on the client-side Show 18+ Content setting (Extras), which needs no server.
+            let controller = chatAgeRestrictionAlertController(context: self.context, updatedPresentationData: self.updatedPresentationData, parentController: self, completion: { alwaysShow in
+                if alwaysShow {
+                    let _ = updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager, { current in
+                        var current = current
+                        current.showSensitiveContent = true
+                        return current
+                    }).start()
                     let _ = updateRemoteContentSettingsConfiguration(postbox: context.account.postbox, network: context.account.network, sensitiveContentEnabled: true).start()
-                    reveal()
-                })
-            } else {
-                let controller = chatAgeRestrictionAlertController(context: self.context, updatedPresentationData: self.updatedPresentationData, parentController: self, completion: { alwaysShow in
-                    if alwaysShow {
-                        let _ = updateRemoteContentSettingsConfiguration(postbox: context.account.postbox, network: context.account.network, sensitiveContentEnabled: true).start()
-                    }
-                    reveal()
-                })
-                self.present(controller, in: .window(.root))
-            }
+                }
+                reveal()
+            })
+            self.present(controller, in: .window(.root))
         }, playMessageEffect: { [weak self] message in
             guard let self else {
                 return

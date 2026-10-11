@@ -27,7 +27,11 @@ extension ContentSettings {
                 addContentRestrictionReasons = addContentRestrictionReasonsData
             }
         }
-        self.init(ignoreContentRestrictionReasons: Set(reasons), addContentRestrictionReasons: addContentRestrictionReasons)
+        var ignored = Set(reasons)
+        if ForkSensitiveContentSettings.enabled {
+            ignored.formUnion(ForkSensitiveContentSettings.liftedReasons)
+        }
+        self.init(ignoreContentRestrictionReasons: ignored, addContentRestrictionReasons: addContentRestrictionReasons)
     }
 }
 
@@ -37,8 +41,8 @@ public func getContentSettings(transaction: Transaction) -> ContentSettings {
 }
 
 public func getContentSettings(postbox: Postbox) -> Signal<ContentSettings, NoError> {
-    return postbox.preferencesView(keys: [PreferencesKeys.appConfiguration])
-    |> map { view -> ContentSettings in
+    return combineLatest(postbox.preferencesView(keys: [PreferencesKeys.appConfiguration]), ForkSensitiveContentSettings.enabledPromise.get())
+    |> map { view, _ -> ContentSettings in
         let appConfiguration: AppConfiguration = view.values[PreferencesKeys.appConfiguration]?.get(AppConfiguration.self) ?? AppConfiguration.defaultValue
         return ContentSettings(appConfiguration: appConfiguration)
     }

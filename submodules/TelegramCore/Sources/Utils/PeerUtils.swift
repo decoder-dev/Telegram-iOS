@@ -263,6 +263,9 @@ public extension Peer {
     }
     
     func hasSensitiveContent(platform: String) -> Bool {
+        if ForkSensitiveContentSettings.enabled {
+            return false
+        }
         var restrictionInfo: PeerAccessRestrictionInfo?
         switch self {
         case let user as TelegramUser:

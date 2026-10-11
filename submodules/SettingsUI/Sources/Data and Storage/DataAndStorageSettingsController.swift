@@ -678,10 +678,11 @@ private func dataAndStorageControllerEntries(context: AccountContext, state: Dat
     entries.append(.raiseToListen(presentationData.theme, presentationData.strings.Settings_RaiseToListen, data.mediaInputSettings.enableRaiseToSpeak))
     entries.append(.raiseToListenInfo(presentationData.theme, presentationData.strings.Settings_RaiseToListenInfo))
 
-    if let contentSettingsConfiguration = contentSettingsConfiguration, contentSettingsConfiguration.canAdjustSensitiveContent && (showSensitiveContentSetting || requireAgeVerification(context: context)) {
-        entries.append(.sensitiveContent(presentationData.strings.Settings_SensitiveContent, contentSettingsConfiguration.sensitiveContentEnabled))
-        entries.append(.sensitiveContentInfo(presentationData.strings.Settings_SensitiveContentInfo))
-    }
+    // Always offered: the switch also turns on the client-side setting, which works without the server's permission
+    // (`canAdjustSensitiveContent`) or an age scan. It used to be hidden or to do nothing on this build.
+    let sensitiveContentEnabled = (contentSettingsConfiguration?.sensitiveContentEnabled ?? false) || ForkSensitiveContentSettings.enabled
+    entries.append(.sensitiveContent(presentationData.strings.Settings_SensitiveContent, sensitiveContentEnabled))
+    entries.append(.sensitiveContentInfo(presentationData.strings.Settings_SensitiveContentInfo))
     
     let proxyValue: String
     if let proxySettings = data.proxySettings, proxySettings.enabled {
@@ -716,7 +717,6 @@ public func dataAndStorageController(context: AccountContext, focusOnItemTag: Da
     
     var pushControllerImpl: ((ViewController) -> Void)?
     var presentControllerImpl: ((ViewController, ViewControllerPresentationArguments?) -> Void)?
-    var presentAgeVerificationImpl: ((@escaping () -> Void) -> Void)?
     
     let actionsDisposable = DisposableSet()
     
@@ -936,20 +936,26 @@ public func dataAndStorageController(context: AccountContext, focusOnItemTag: Da
         pushControllerImpl?(controller)
     }, toggleSensitiveContent: { value in
         let update = {
+            let _ = updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager, { current in
+                var current = current
+                current.showSensitiveContent = value
+                return current
+            }).start()
             let _ = (contentSettingsConfiguration.get()
             |> take(1)
             |> deliverOnMainQueue).start(next: { [weak contentSettingsConfiguration] settings in
-                if var settings = settings {
-                    settings.sensitiveContentEnabled = value
-                    contentSettingsConfiguration?.set(.single(settings))
+                var settings = settings ?? ContentSettingsConfiguration.default
+                settings.sensitiveContentEnabled = value
+                contentSettingsConfiguration?.set(.single(settings))
+                // The account-wide server setting only when the server lets this client change it.
+                if settings.canAdjustSensitiveContent {
+                    updateSensitiveContentDisposable.set(updateRemoteContentSettingsConfiguration(postbox: context.account.postbox, network: context.account.network, sensitiveContentEnabled: value).start())
                 }
             })
-            updateSensitiveContentDisposable.set(updateRemoteContentSettingsConfiguration(postbox: context.account.postbox, network: context.account.network, sensitiveContentEnabled: value).start())
         }
         if value {
-            if requireAgeVerification(context: context) {
-                presentAgeVerificationImpl?(update)
-            } else {
+            // The client-side setting needs no face scan; the confirmation below is the age statement.
+            do {
                 let presentationData = context.sharedContext.currentPresentationData.with { $0 }
                 let alertController = textAlertController(context: context, title: presentationData.strings.SensitiveContent_Enable_Title, text: presentationData.strings.SensitiveContent_Enable_Text, actions: [
                     TextAlertAction(type: .genericAction, title: presentationData.strings.Common_Cancel, action: {}),
@@ -1020,14 +1026,6 @@ public func dataAndStorageController(context: AccountContext, focusOnItemTag: Da
     }
     presentControllerImpl = { [weak controller] c, a in
         controller?.present(c, in: .window(.root), with: a)
-    }
-    presentAgeVerificationImpl = { [weak controller] update in
-        guard let controller else {
-            return
-        }
-        presentAgeVerification(context: context, parentController: controller, completion: {
-            update()
-        })
     }
     
     if let focusOnItemTag {

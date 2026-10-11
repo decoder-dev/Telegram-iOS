@@ -140,6 +140,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var hashtagsPreferCurrentChat: Bool
     public var showOriginalForwardDate: Bool
     public var sendBannedGifsAsVideo: Bool
+    public var showSensitiveContent: Bool
 
     public static var defaultSettings: ForkExtrasSettings {
         return ForkExtrasSettings(
@@ -284,6 +285,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.hashtagsPreferCurrentChat = false
         self.showOriginalForwardDate = false
         self.sendBannedGifsAsVideo = false
+        self.showSensitiveContent = false
         self.ghostDontReadMessages = ghostDontReadMessages
         self.ghostDontReadStories = ghostDontReadStories
         self.ghostDontSendOnline = ghostDontSendOnline
@@ -362,6 +364,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.hashtagsPreferCurrentChat = try container.decodeIfPresent(Bool.self, forKey: "hashtagsPreferCurrentChat") ?? false
         self.showOriginalForwardDate = try container.decodeIfPresent(Bool.self, forKey: "showOriginalForwardDate") ?? false
         self.sendBannedGifsAsVideo = try container.decodeIfPresent(Bool.self, forKey: "sendBannedGifsAsVideo") ?? false
+        self.showSensitiveContent = try container.decodeIfPresent(Bool.self, forKey: "showSensitiveContent") ?? false
         self.avatarGlowEnabled = try container.decodeIfPresent(Bool.self, forKey: "avatarGlowEnabled") ?? true
         self.showChannelForwardCount = try container.decodeIfPresent(Bool.self, forKey: "showChannelForwardCount") ?? false
         self.reactionGlowEnabled = try container.decodeIfPresent(Bool.self, forKey: "reactionGlowEnabled") ?? false
@@ -447,6 +450,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.hashtagsPreferCurrentChat, forKey: "hashtagsPreferCurrentChat")
         try container.encode(self.showOriginalForwardDate, forKey: "showOriginalForwardDate")
         try container.encode(self.sendBannedGifsAsVideo, forKey: "sendBannedGifsAsVideo")
+        try container.encode(self.showSensitiveContent, forKey: "showSensitiveContent")
         try container.encode(self.avatarGlowEnabled, forKey: "avatarGlowEnabled")
         try container.encode(self.showChannelForwardCount, forKey: "showChannelForwardCount")
         try container.encode(self.reactionGlowEnabled, forKey: "reactionGlowEnabled")
