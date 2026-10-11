@@ -374,7 +374,7 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
             Impl.inFlightConnectCount += 1
             Logger.shared.log("Network", "NW connect starting to \(self.endpointDescription), \(Impl.inFlightConnectCount) in flight (attempt \(self.attempt))")
             
-            Logger.shared.log("NWTcp", "\(self.logId) starting connection (timeout: \(timeout)s)")
+            Logger.shared.log("NWTcp", "\(self.logId) starting admitted connection")
             
             connection.start(queue: self.queue.queue)
             
