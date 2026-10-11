@@ -480,8 +480,6 @@ private func themeSettingsControllerEntries(
     }
     entries.append(.showNextMediaOnTap(presentationData.theme, strings.Appearance_ShowNextMediaOnTap, mediaSettings.showNextMediaOnTap))
     entries.append(.showNextMediaOnTapInfo(presentationData.theme, strings.Appearance_ShowNextMediaOnTapInfo))
-    entries.append(.useRecentEmojiInReactions(presentationData.theme, forkUseRecentEmojiInReactionsTitle(strings), forkExtras.useRecentEmojiInReactions))
-    entries.append(.useRecentEmojiInReactionsInfo(presentationData.theme, forkUseRecentEmojiInReactionsInfo(strings)))
     
     return entries
 }
@@ -494,6 +492,9 @@ private final class ThemeSettingsControllerImpl: ItemListController, ThemeSettin
 }
 
 public func themeSettingsController(context: AccountContext, focusOnItemTag: ThemeSettingsEntryTag? = nil) -> ViewController {
+    if focusOnItemTag == .useRecentEmojiInReactions {
+        return forkExtrasController(context: context, focus: .interface, focusItemId: 1521)
+    }
     #if DEBUG
     BuiltinWallpaperData.generate(network: context.account.network)
     #endif

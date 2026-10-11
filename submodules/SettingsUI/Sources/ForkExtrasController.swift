@@ -204,7 +204,7 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.ExportMessageSavingFailed": "Could not create the export bundle.",
             "ForkExtras.ImportMessageSavingDone": "Imported {count} new records.",
             "ForkExtras.ImportMessageSavingFailed": "Could not import this file.",
-            "ForkExtras.HubFooter": "Each row opens a grouped Settings list. Navigation, sheets and switches follow iOS conventions.",
+            "ForkExtras.HubFooter": "All BananaGram features live here. Choose a section to configure appearance, chats, privacy or connection.",
             "ForkExtras.HubNinja": "Ninja",
             "ForkExtras.HubNinjaLabel": "Save, filters, bypass",
             "ForkExtras.HubGhost": "Ghost",
@@ -213,10 +213,10 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.HubPrivacyLabel": "Lock, notifications, backup",
             "ForkExtras.HubInterface": "Interface",
             "ForkExtras.HubInterfaceLabel": "List, folders, appearance",
-            "ForkExtras.HubChat": "Chat",
-            "ForkExtras.HubChatLabel": "Composer, translate, menus",
+            "ForkExtras.HubChat": "Chats and audio",
+            "ForkExtras.HubChatLabel": "Composer, translation, music",
             "ForkExtras.HubNetwork": "Network",
-            "ForkExtras.HubNetworkLabel": "Proxy, downloads, Premium",
+            "ForkExtras.HubNetworkLabel": "Proxy, downloads, background connection",
             "ForkExtras.HideAllChats": "Hide All Chats Tab",
             "ForkExtras.HideAllChatsFooter": "When you have folders, hide the All Chats tab and stay in folders only.",
             "ForkExtras.RememberLastFolder": "Remember Last Folder",
@@ -351,7 +351,7 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.ExportMessageSavingFailed": "Не удалось создать пакет экспорта.",
             "ForkExtras.ImportMessageSavingDone": "Добавлено новых записей: {count}.",
             "ForkExtras.ImportMessageSavingFailed": "Не удалось импортировать файл.",
-            "ForkExtras.HubFooter": "Каждая строка открывает grouped-список как в Настройках iOS: навигация, шиты и переключатели системные.",
+            "ForkExtras.HubFooter": "Все функции BananaGram собраны здесь. Выберите раздел для настройки оформления, чатов, приватности или подключения.",
             "ForkExtras.HubNinja": "Ниндзя",
             "ForkExtras.HubNinjaLabel": "Сохранение, фильтры, обход",
             "ForkExtras.HubGhost": "Невидимка",
@@ -360,10 +360,10 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.HubPrivacyLabel": "Блокировка, уведомления, бэкап",
             "ForkExtras.HubInterface": "Интерфейс",
             "ForkExtras.HubInterfaceLabel": "Список, папки, внешний вид",
-            "ForkExtras.HubChat": "Чат",
-            "ForkExtras.HubChatLabel": "Ввод, перевод, меню",
+            "ForkExtras.HubChat": "Чаты и звук",
+            "ForkExtras.HubChatLabel": "Ввод, перевод, музыка",
             "ForkExtras.HubNetwork": "Сеть",
-            "ForkExtras.HubNetworkLabel": "Прокси, загрузки, Premium",
+            "ForkExtras.HubNetworkLabel": "Прокси, загрузки, работа в фоне",
             "ForkExtras.HideAllChats": "Скрыть «Все чаты»",
             "ForkExtras.HideAllChatsFooter": "Если есть папки, вкладка «Все чаты» скрывается — остаются только папки.",
             "ForkExtras.RememberLastFolder": "Запоминать последнюю папку",
@@ -543,6 +543,13 @@ private enum ForkExtrasLocalizedString {
     static var backendApple: String { string(forKey: "ForkExtras.BackendApple") }
 }
 
+private enum ForkExtrasDestination: Equatable {
+    case customization
+    case proxy
+    case developer
+    case archive
+}
+
 private final class ForkExtrasControllerArguments {
     let updateGhostModeMaster: (Bool) -> Void
     let updateGhostDontReadMessages: (Bool) -> Void
@@ -594,6 +601,8 @@ private final class ForkExtrasControllerArguments {
     let updateRegexFilterPatternsText: (String) -> Void
     let exportMessageSavingDatabase: () -> Void
     let importMessageSavingDatabase: () -> Void
+    let openDestination: (ForkExtrasDestination) -> Void
+    let updateMusicPolicy: (Int32, Bool) -> Void
     let openCategory: (ForkExtrasControllerFocus) -> Void
     let updateHideAllChats: (Bool) -> Void
     let updateRememberLastFolder: (Bool) -> Void
@@ -663,6 +672,8 @@ private final class ForkExtrasControllerArguments {
         updateRegexFilterPatternsText: @escaping (String) -> Void,
         exportMessageSavingDatabase: @escaping () -> Void,
         importMessageSavingDatabase: @escaping () -> Void,
+        openDestination: @escaping (ForkExtrasDestination) -> Void,
+        updateMusicPolicy: @escaping (Int32, Bool) -> Void,
         openCategory: @escaping (ForkExtrasControllerFocus) -> Void,
         updateHideAllChats: @escaping (Bool) -> Void,
         updateRememberLastFolder: @escaping (Bool) -> Void,
@@ -731,6 +742,8 @@ private final class ForkExtrasControllerArguments {
         self.updateRegexFilterPatternsText = updateRegexFilterPatternsText
         self.exportMessageSavingDatabase = exportMessageSavingDatabase
         self.importMessageSavingDatabase = importMessageSavingDatabase
+        self.openDestination = openDestination
+        self.updateMusicPolicy = updateMusicPolicy
         self.openCategory = openCategory
         self.updateHideAllChats = updateHideAllChats
         self.updateRememberLastFolder = updateRememberLastFolder
@@ -771,9 +784,17 @@ private enum ForkExtrasSection: Int32 {
     case appearance
     case chatExtras
     case downloads
+    case audio
+    case developer
+    case archive
+    case backgroundConnection
 }
 
 private enum ForkExtrasEntry: ItemListNodeEntry {
+    case destination(Int32, String, ForkExtrasDestination)
+    case audioHeader
+    case musicPolicy(Int32, String, Bool)
+    case audioFooter
     case designHeader(Int32, String)
     case designFooter(Int32, String)
     case brandTheme(Bool)
@@ -794,8 +815,9 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         [65, 66],
         [67, 68],
         [69],
-        [1508, 1509, 1510, 1511, 1512, 1513, 1515, 1516, 1517, 1518, 1519, 1520, 1612],
-        [1603, 1500, 1501, 57]
+        [1521, 1508, 1509, 1510, 1511, 1512, 1513, 1515, 1516, 1517, 1518, 1519, 1520, 1612],
+        [1603, 1500, 1501, 57],
+        [1604, 140, 141]
     ]
 
     case hubNinja
@@ -843,6 +865,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     case sendWithReturnKeyFooter
     case forceBuiltInMic(Bool)
     case keepAliveInBackground(Bool)
+    case keepAliveFooter
     case callsFooter
     case translationBackend(ForkTranslationBackend)
     case transcriptionBackend(ForkTranscriptionBackend)
@@ -921,6 +944,14 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return Int32(100 + group)
         }
         switch self {
+        case let .destination(_, _, destination):
+            switch destination {
+            case .customization: return ForkExtrasSection.hub.rawValue
+            case .proxy: return ForkExtrasSection.proxy.rawValue
+            case .developer: return ForkExtrasSection.developer.rawValue
+            case .archive: return ForkExtrasSection.archive.rawValue
+            }
+        case .audioHeader, .musicPolicy, .audioFooter: return ForkExtrasSection.audio.rawValue
         case .designHeader, .designFooter, .brandTheme: return 100
         case .hubNinja, .hubGhost, .hubPrivacy, .hubInterface, .hubChat, .hubNetwork, .hubFooter:
             return ForkExtrasSection.hub.rawValue
@@ -936,8 +967,9 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return ForkExtrasSection.uiDensity.rawValue
         case .hideReactionsBar, .showDC, .showProfileId, .accentSaturation, .privacyFooter:
             return ForkExtrasSection.privacy.rawValue
-        case .confirmBeforeCall, .sendWithReturnKey, .sendWithReturnKeyFooter, .forceBuiltInMic, .keepAliveInBackground, .callsFooter:
+        case .confirmBeforeCall, .sendWithReturnKey, .sendWithReturnKeyFooter, .forceBuiltInMic, .callsFooter:
             return ForkExtrasSection.calls.rawValue
+        case .keepAliveInBackground, .keepAliveFooter: return ForkExtrasSection.backgroundConnection.rawValue
         case .translationBackend, .transcriptionBackend, .translationFooter:
             return ForkExtrasSection.translation.rawValue
         case .scrollToNextChat, .scrollToNextChatFooter:
@@ -965,6 +997,10 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
 
     var stableId: Int32 {
         switch self {
+        case let .destination(id, _, _): return id
+        case .audioHeader: return 2000
+        case let .musicPolicy(id, _, _): return id
+        case .audioFooter: return 2004
         case let .designHeader(id, _): return id
         case let .designFooter(id, _): return id
         case let .brandTheme(dark): return dark ? 1611 : 1610
@@ -1033,6 +1069,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case .sendWithReturnKeyFooter: return 82
         case .forceBuiltInMic: return 83
         case .keepAliveInBackground: return 146
+        case .keepAliveFooter: return 149
         case .callsFooter: return 84
         case .translationBackend: return 85
         case .transcriptionBackend: return 86
@@ -1090,14 +1127,33 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
 
     static func <(lhs: ForkExtrasEntry, rhs: ForkExtrasEntry) -> Bool {
         let order = Self.interfaceGroups.flatMap { $0 }
-        let left = order.firstIndex(of: lhs.stableId).map { 1000 + $0 } ?? Int(lhs.stableId)
-        let right = order.firstIndex(of: rhs.stableId).map { 1000 + $0 } ?? Int(rhs.stableId)
+        let left = lhs.stableId == 8 ? -1 : (order.firstIndex(of: lhs.stableId).map { 1000 + $0 } ?? Int(lhs.stableId))
+        let right = rhs.stableId == 8 ? -1 : (order.firstIndex(of: rhs.stableId).map { 1000 + $0 } ?? Int(rhs.stableId))
         return left < right
     }
 
     func item(presentationData: ItemListPresentationData, arguments: Any) -> ListViewItem {
         let arguments = arguments as! ForkExtrasControllerArguments
         switch self {
+        case let .destination(_, title, destination):
+            let icon: UIImage?
+            switch destination {
+            case .customization: icon = PresentationResourcesSettings.appearance
+            case .proxy: icon = PresentationResourcesSettings.proxy
+            case .developer: icon = PresentationResourcesSettings.developerMode
+            case .archive: icon = PresentationResourcesSettings.security
+            }
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: icon, title: title, label: "", sectionId: self.section, style: .blocks, action: {
+                arguments.openDestination(destination)
+            }, tag: BananaSettingsItemTag(id: self.stableId))
+        case .audioHeader:
+            return ItemListSectionHeaderItem(presentationData: presentationData, text: ForkPresentationLanguage.prefersRussianStrings ? "Звук и запись" : "Audio and recording", sectionId: self.section)
+        case let .musicPolicy(id, title, value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: title, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateMusicPolicy(id, value)
+            }, tag: BananaSettingsItemTag(id: self.stableId))
+        case .audioFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkPresentationLanguage.prefersRussianStrings ? "Выберите, когда приостанавливать музыку. Звонки сохраняют приоритет независимо от этих переключателей." : "Choose when to pause music. Calls retain audio priority regardless of these switches."), sectionId: self.section)
         case let .designFooter(_, text):
             return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section)
         case let .designHeader(_, title):
@@ -1273,8 +1329,10 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.keepAliveInBackground, value: value, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateKeepAliveInBackground(value)
             }, tag: BananaSettingsItemTag(id: self.stableId))
+        case .keepAliveFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.keepAliveInBackgroundFooter), sectionId: self.section)
         case .callsFooter:
-            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.forceBuiltInMicFooter + "\n\n" + ForkExtrasLocalizedString.keepAliveInBackgroundFooter + "\n\n" + ForkExtrasLocalizedString.callsFooter), sectionId: self.section)
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.forceBuiltInMicFooter + "\n\n" + ForkExtrasLocalizedString.callsFooter), sectionId: self.section)
         case let .translationBackend(backend):
             let label: String
             switch backend {
@@ -1516,10 +1574,11 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     }
 }
 
-private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetchPublicMtProxy: Bool, showCallsTab: Bool, focus: ForkExtrasControllerFocus) -> [ForkExtrasEntry] {
+private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetchPublicMtProxy: Bool, showCallsTab: Bool, mediaInputSettings: MediaInputSettings, focus: ForkExtrasControllerFocus) -> [ForkExtrasEntry] {
     let category = focus.resolvedCategory
     if category == .top {
         return [
+            .destination(8, ForkPresentationLanguage.prefersRussianStrings ? "Оформление и иконки" : "Appearance and icons", .customization),
             .hubNinja,
             .hubGhost,
             .hubPrivacy,
@@ -1527,6 +1586,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .hubChat,
             .hubNetwork,
             .hubFooter,
+            .destination(7, ForkPresentationLanguage.prefersRussianStrings ? "Режим разработчика" : "Developer mode", .developer),
         ]
     }
 
@@ -1567,6 +1627,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .expireTtlButtonFooter,
             .keepBannedChats(settings.keepBannedChats),
             .keepBannedChatsFooter,
+            .destination(44, ForkPresentationLanguage.prefersRussianStrings ? "Защита архива и Избранного" : "Archive and Saved Messages protection", .archive),
         ]
     case .interface:
         entries = [
@@ -1596,6 +1657,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .stickerSize(settings.stickerSizePercent),
             .appearanceToggle(1499, ForkExtrasLocalizedString.string(forKey: "ForkExtras.BottomFolders"), settings.bottomChatFoldersEnabled, \.bottomChatFoldersEnabled),
             .appearanceToggle(1500, ForkExtrasLocalizedString.string(forKey: "ForkExtras.AvatarGlow"), settings.avatarGlowEnabled, \.avatarGlowEnabled),
+            .appearanceToggle(1521, ForkPresentationLanguage.prefersRussianStrings ? "Недавние эмодзи в реакциях" : "Recent emoji in reactions", settings.useRecentEmojiInReactions, \.useRecentEmojiInReactions),
             .appearanceToggle(1508, ForkPresentationLanguage.prefersRussianStrings ? "Счётчик пересылок в каналах" : "Channel forward count", settings.showChannelForwardCount, \.showChannelForwardCount),
             .appearanceToggle(1509, ForkPresentationLanguage.prefersRussianStrings ? "Скрыть платные реакции" : "Hide paid reactions", settings.hidePaidReactions, \.hidePaidReactions),
             .appearanceToggle(1510, ForkPresentationLanguage.prefersRussianStrings ? "Скрыть «через бота»" : "Hide \"via bot\"", settings.hideViaBot, \.hideViaBot),
@@ -1618,10 +1680,11 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
         ])
         let russian = ForkPresentationLanguage.prefersRussianStrings
         entries.append(contentsOf: [
-            .designHeader(1600, russian ? "Темы BananaGram" : "BananaGram themes"), .brandTheme(false), .brandTheme(true),
             .designHeader(1601, russian ? "Навигация" : "Navigation"),
             .designHeader(1602, russian ? "Чаты" : "Chats"),
             .designHeader(1603, russian ? "Эффекты" : "Effects"),
+            .designHeader(1604, russian ? "Локальные функции Premium" : "Local Premium features"),
+            .localPremium(settings.localPremium), .localPremiumFooter,
             .designFooter(1612, russian ? "Музыка как голосовое: откройте меню трека в разделе «Вложения → Музыка»." : "To send music as a voice message, open the track's menu in Attach → Music.")
         ])
         entries.sort()
@@ -1631,7 +1694,6 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .sendWithReturnKey(settings.sendWithReturnKey),
             .sendWithReturnKeyFooter,
             .forceBuiltInMic(settings.forceBuiltInMic),
-            .keepAliveInBackground(settings.keepAliveInBackground),
             .callsFooter,
             .translationBackend(settings.translationBackend),
             .transcriptionBackend(settings.transcriptionBackend),
@@ -1648,6 +1710,11 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .selectFromAuthorFooter,
             .outgoingPhotoQuality(settings.outgoingPhotoQuality),
             .outgoingPhotoQualityFooter,
+            .audioHeader,
+            .musicPolicy(2001, ForkPresentationLanguage.prefersRussianStrings ? "Пауза музыки при записи видео" : "Pause music when recording video", mediaInputSettings.pauseMusicOnRecording),
+            .musicPolicy(2002, ForkPresentationLanguage.prefersRussianStrings ? "Пауза музыки при записи голосового" : "Pause music when recording voice messages", mediaInputSettings.pauseMusicOnVoiceRecording),
+            .musicPolicy(2003, ForkPresentationLanguage.prefersRussianStrings ? "Пауза музыки при прослушивании голосового" : "Pause music when playing voice messages", mediaInputSettings.pauseMusicOnVoicePlayback),
+            .audioFooter,
         ]
     case .ninja, .messageSaving, .messageFilters:
         entries = [
@@ -1688,17 +1755,17 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
         entries.append(.regexFiltersFooter(settings.regexMessageFiltersEnabled ? ForkRegexMessageFilters.unusablePatternCount(settings.regexMessageFilterPatterns) : 0))
     case .network:
         entries = [
-            .localPremium(settings.localPremium),
-            .localPremiumFooter,
-            .autoFetchMtProxy(autoFetchPublicMtProxy),
-            .autoFetchMtProxyFooter,
+            .destination(138, ForkPresentationLanguage.prefersRussianStrings ? "Прокси и подключение" : "Proxies and connection", .proxy),
+
             .downloadSpeedBoost(settings.downloadSpeedBoost),
             .downloadSpeedBoostFooter,
+            .keepAliveInBackground(settings.keepAliveInBackground),
+            .keepAliveFooter,
         ]
     case .top:
         break
     }
-    return entries
+    return entries.sorted()
 }
 
 public enum ForkExtrasControllerFocus {
@@ -1742,6 +1809,16 @@ public enum ForkExtrasControllerFocus {
 }
 
 public func forkExtrasController(context: AccountContext, focus: ForkExtrasControllerFocus = .top, focusItemId: Int32? = nil) -> ViewController {
+    if focus == .chat && focusItemId == 146 {
+        return forkExtrasController(context: context, focus: .network, focusItemId: 146)
+    }
+    if focus == .interface, let id = focusItemId, id == 1610 || id == 1611 {
+        return bananaGramThemePreviewController(context: context, dark: id == 1611) ?? themeSettingsController(context: context)
+    }
+    // Preserve already shared links to the former automatic-proxy switch.
+    if focus == .network && focusItemId == 142 {
+        return context.sharedContext.makeProxySettingsController(context: context)
+    }
     let updateDisposable = MetaDisposable()
     /// Debounce regex pattern edits — each keystroke must not rewrite AccountManager + rebuild history filters.
     let regexPatternsDisposable = MetaDisposable()
@@ -2207,6 +2284,27 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
                 destructiveTitles: [ForkExtrasLocalizedString.importMessageSavingReplace]
             )
         },
+        openDestination: { destination in
+            switch destination {
+            case .customization: pushControllerImpl?(themeSettingsController(context: context))
+            case .proxy: pushControllerImpl?(context.sharedContext.makeProxySettingsController(context: context))
+            case .archive: pushControllerImpl?(archiveSettingsController(context: context))
+            case .developer:
+                if let controller = context.sharedContext.makeDebugSettingsController(context: context) {
+                    pushControllerImpl?(controller)
+                }
+            }
+        },
+        updateMusicPolicy: { id, value in
+            updateDisposable.set(updateMediaInputSettingsInteractively(accountManager: context.sharedContext.accountManager, { current in
+                switch id {
+                case 2001: return current.withUpdatedPauseMusicOnRecording(value)
+                case 2002: return current.withUpdatedVoiceMusicPolicy(recording: value)
+                case 2003: return current.withUpdatedVoiceMusicPolicy(playback: value)
+                default: return current
+                }
+            }).start())
+        },
         openCategory: { category in
             pushControllerImpl?(forkExtrasController(context: context, focus: category))
         },
@@ -2338,12 +2436,12 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
     let signal = combineLatest(
         context.sharedContext.presentationData,
         forkExtrasSettings(accountManager: context.sharedContext.accountManager),
-        context.sharedContext.accountManager.sharedData(keys: [SharedDataKeys.proxySettings, ApplicationSpecificSharedDataKeys.callListSettings])
+        context.sharedContext.accountManager.sharedData(keys: [SharedDataKeys.proxySettings, ApplicationSpecificSharedDataKeys.callListSettings, ApplicationSpecificSharedDataKeys.mediaInputSettings])
     )
     |> deliverOnMainQueue
     |> map { presentationData, settings, sharedData -> (ItemListControllerState, (ItemListNodeState, Any)) in
         let proxySettings = sharedData.entries[SharedDataKeys.proxySettings]?.get(ProxySettings.self) ?? .defaultSettings
-        let entries = forkExtrasControllerEntries(settings: settings, autoFetchPublicMtProxy: proxySettings.autoFetchPublicMtProxy, showCallsTab: (sharedData.entries[ApplicationSpecificSharedDataKeys.callListSettings]?.get(CallListSettings.self) ?? .defaultSettings).showTab, focus: focus)
+        let entries = forkExtrasControllerEntries(settings: settings, autoFetchPublicMtProxy: proxySettings.autoFetchPublicMtProxy, showCallsTab: (sharedData.entries[ApplicationSpecificSharedDataKeys.callListSettings]?.get(CallListSettings.self) ?? .defaultSettings).showTab, mediaInputSettings: sharedData.entries[ApplicationSpecificSharedDataKeys.mediaInputSettings]?.get(MediaInputSettings.self) ?? .defaultSettings, focus: focus)
         let focusedSection: ItemListSectionId?
         switch focus {
         case .messageSaving:

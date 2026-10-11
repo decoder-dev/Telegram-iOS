@@ -245,11 +245,6 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
     items[.advanced]!.append(PeerInfoScreenDisclosureItem(id: 2, text: presentationData.strings.Settings_ChatSettings, icon: PresentationResourcesSettings.dataAndStorage, action: {
         interaction.openSettings(.dataAndStorage)
     }))
-    // Main entry for themes, wallpaper, bubble geometry and application icons.
-    items[.advanced]!.append(PeerInfoScreenDisclosureItem(id: 3, text: forkCustomizationSettingsTitle(presentationData.strings), icon: PresentationResourcesSettings.appearance, action: {
-        interaction.openSettings(.appearance)
-    }))
-
     items[.advanced]!.append(PeerInfoScreenDisclosureItem(id: 6, label: .text(data.isPowerSavingEnabled == true ? presentationData.strings.Settings_PowerSavingOn : presentationData.strings.Settings_PowerSavingOff), text: presentationData.strings.Settings_PowerSaving, icon: PresentationResourcesSettings.powerSaving, action: {
         interaction.openSettings(.powerSaving)
     }))
@@ -259,20 +254,11 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
         interaction.openSettings(.language)
     }))
 
-    // The fork's own settings. This used to be a row inside Privacy and Security, which is not
-    // where anyone looks for it — none of what it holds is a privacy setting. It sits here with
-    // Developer Mode instead, the two fork-specific screens together at the end of the section.
+    // One home for BananaGram features, including customization and developer tools.
     items[.advanced]!.append(PeerInfoScreenDisclosureItem(id: 8, text: forkExtrasSettingsTitle(presentationData.strings), icon: PresentationResourcesSettings.forkExtras, action: {
         interaction.openSettings(.forkExtras)
     }))
 
-    // The debug screen. It has always existed but was reachable only through the
-    // `tg://settings/debug` deep link, which is not something anyone finds without being told it
-    // is there. Last row of the section, after the everyday settings.
-    items[.advanced]!.append(PeerInfoScreenDisclosureItem(id: 7, text: forkDeveloperModeSettingsTitle(presentationData.strings), icon: PresentationResourcesSettings.developerMode, action: {
-        interaction.openSettings(.debug)
-    }))
-    
     let premiumConfiguration = PremiumConfiguration.with(appConfiguration: context.currentAppConfiguration.with { $0 })
     let isPremiumDisabled = premiumConfiguration.isPremiumDisabled
     if !isPremiumDisabled || context.isPremium {

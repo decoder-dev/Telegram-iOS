@@ -21,11 +21,13 @@ def method(path, marker, indent=''):
     return text[start:text.index('\n'+indent+'}', start)+len(indent)+2]
 
 class Contracts(unittest.TestCase):
-    def test_sensitive_content_uses_persisted_choice_in_both_menus(self):
+    def test_sensitive_content_has_one_home_and_old_links_redirect(self):
         source = read('submodules/SettingsUI/Sources/Data and Storage/DataAndStorageSettingsController.swift')
-        self.assertIn('let sensitiveContentEnabled = showSensitiveContentSetting', source)
-        self.assertIn('sharedData(keys: [ApplicationSpecificSharedDataKeys.mediaDisplaySettings, ApplicationSpecificSharedDataKeys.forkExtrasSettings])', source)
-        self.assertIn('?.get(ForkExtrasSettings.self)?.showSensitiveContent ?? false', source)
+        self.assertNotIn('entries.append(.sensitiveContent(', source)
+        self.assertIn('case .sensitiveContent?: return forkExtrasController(context: context, focus: .messageFilters, focusItemId: 147)', source)
+        extras = read('submodules/SettingsUI/Sources/ForkExtrasController.swift')
+        self.assertIn('.showSensitiveContent(settings.showSensitiveContent)', extras)
+        self.assertIn('forkExtrasSettings(accountManager:', extras)
     def test_audio_play_label_exists_in_the_real_catalog(self):
         source = read('submodules/TelegramUI/Components/AttachmentFileController/Sources/AttachmentFileController.swift')
         key = re.search(r'ContextMenuActionItem\(text: presentationData.strings.(\w+), icon:.*Context Menu/Play', source).group(1)

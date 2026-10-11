@@ -3657,22 +3657,22 @@ private func dataSearchableItems(context: AccountContext) -> [SettingsSearchable
             title: strings.Settings_PauseMusicOnRecording,
             alternate: [],
             icon: icon,
-            breadcrumbs: [strings.Settings_ChatSettings],
+            breadcrumbs: [forkExtrasSettingsTitle(strings)],
             present: { context, _, present in
-                presentDataSettings(context, present, .pauseMusicOnRecording)
+                present(.push, forkExtrasController(context: context, focus: .chat, focusItemId: 2001))
             }
         ),
         SettingsSearchableItem(
             id: "data/pause-music-voice-recording",
             title: String(strings.primaryComponent.languageCode.prefix(2)).lowercased() == "ru" ? "Пауза музыки при записи голосового" : "Pause music when recording voice messages",
-            alternate: [], icon: icon, breadcrumbs: [strings.Settings_ChatSettings],
-            present: { context, _, present in presentDataSettings(context, present, .pauseMusicOnVoiceRecording) }
+            alternate: [], icon: icon, breadcrumbs: [forkExtrasSettingsTitle(strings)],
+            present: { context, _, present in present(.push, forkExtrasController(context: context, focus: .chat, focusItemId: 2002)) }
         ),
         SettingsSearchableItem(
             id: "data/pause-music-voice-playback",
             title: String(strings.primaryComponent.languageCode.prefix(2)).lowercased() == "ru" ? "Пауза музыки при прослушивании голосового" : "Pause music when playing voice messages",
-            alternate: [], icon: icon, breadcrumbs: [strings.Settings_ChatSettings],
-            present: { context, _, present in presentDataSettings(context, present, .pauseMusicOnVoicePlayback) }
+            alternate: [], icon: icon, breadcrumbs: [forkExtrasSettingsTitle(strings)],
+            present: { context, _, present in present(.push, forkExtrasController(context: context, focus: .chat, focusItemId: 2003)) }
         ),
         SettingsSearchableItem(
             id: "data/raise-to-listen",
@@ -3689,10 +3689,10 @@ private func dataSearchableItems(context: AccountContext) -> [SettingsSearchable
             title: strings.Settings_SensitiveContent,
             alternate: [],
             icon: icon,
-            breadcrumbs: [strings.Settings_ChatSettings],
-            isVisible: false,
+            breadcrumbs: [forkExtrasSettingsTitle(strings)],
+            isVisible: true,
             present: { context, _, present in
-                presentDataSettings(context, present, .sensitiveContent)
+                present(.push, forkExtrasController(context: context, focus: .messageFilters, focusItemId: 147))
             }
         ),
         SettingsSearchableItem(
@@ -3750,7 +3750,7 @@ private func proxySearchableItems(context: AccountContext, servers: [ProxyServer
             title: strings.Settings_Proxy,
             alternate: synonyms(strings.SettingsSearch_Synonyms_Proxy_Title) + [ForkWebProxyStrings.proxyType],
             icon: icon,
-            breadcrumbs: [],
+            breadcrumbs: [forkExtrasSettingsTitle(strings)],
             present: { context, _, present in
                 presentProxySettings(context, present, nil)
             }
@@ -3919,7 +3919,7 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
             title: customizationTitle,
             alternate: synonyms(strings.SettingsSearch_Synonyms_Appearance_Title),
             icon: icon,
-            breadcrumbs: [],
+            breadcrumbs: [forkExtrasSettingsTitle(strings)],
             present: { context, _, present in
                 presentAppearanceSettings(context, present, nil)
             }
@@ -3929,7 +3929,7 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
             title: strings.Settings_ChatBackground,
             alternate: synonyms(strings.SettingsSearch_Synonyms_Appearance_ChatBackground),
             icon: icon,
-            breadcrumbs: [customizationTitle],
+            breadcrumbs: [forkExtrasSettingsTitle(strings), customizationTitle],
             present: { context, _, present in
                 present(.push, ThemeGridController(context: context))
             }
@@ -3937,7 +3937,7 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
         SettingsSearchableItem(
             id: "appearance/wallpapers/edit",
             icon: icon,
-            breadcrumbs: [customizationTitle, strings.Settings_ChatBackground],
+            breadcrumbs: [forkExtrasSettingsTitle(strings), customizationTitle, strings.Settings_ChatBackground],
             isVisible: false,
             present: { context, _, present in
                 present(.push, ThemeGridController(context: context, forceEdit: true))
@@ -3948,7 +3948,7 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
             title: strings.Wallpaper_SetColor,
             alternate: synonyms(strings.SettingsSearch_Synonyms_Appearance_ChatBackground_SetColor),
             icon: icon,
-            breadcrumbs: [customizationTitle, strings.Settings_ChatBackground],
+            breadcrumbs: [forkExtrasSettingsTitle(strings), customizationTitle, strings.Settings_ChatBackground],
             present: { context, _, present in
                 
                 present(.push, ThemeColorsGridController(context: context))
@@ -3959,7 +3959,7 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
             title: strings.Wallpaper_SetCustomBackground,
             alternate: synonyms(strings.SettingsSearch_Synonyms_Appearance_ChatBackground_Custom),
             icon: icon,
-            breadcrumbs: [customizationTitle, strings.Settings_ChatBackground],
+            breadcrumbs: [forkExtrasSettingsTitle(strings), customizationTitle, strings.Settings_ChatBackground],
             present: { context, _, present in
                 presentCustomWallpaperPicker(context: context, present: { controller in
                     present(.immediate, controller)
@@ -3973,7 +3973,7 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
             title: strings.Themes_Title,
             alternate: synonyms(strings.SettingsSearch_Synonyms_Appearance_ColorTheme),
             icon: icon,
-            breadcrumbs: [customizationTitle],
+            breadcrumbs: [forkExtrasSettingsTitle(strings), customizationTitle],
             present: { context, _, present in
                 let controller = themePickerController(context: context)
                 present(.push, controller)
@@ -3984,7 +3984,7 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
             title: strings.Themes_EditCurrentTheme,
             alternate: [],
             icon: icon,
-            breadcrumbs: [customizationTitle, strings.Themes_Title],
+            breadcrumbs: [forkExtrasSettingsTitle(strings), customizationTitle, strings.Themes_Title],
             present: { context, _, present in
                 let controller = themePickerController(context: context, focusOnItemTag: .edit)
                 present(.push, controller)
@@ -3995,7 +3995,7 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
             title: strings.Themes_CreateNewTheme,
             alternate: [],
             icon: icon,
-            breadcrumbs: [customizationTitle, strings.Themes_Title],
+            breadcrumbs: [forkExtrasSettingsTitle(strings), customizationTitle, strings.Themes_Title],
             present: { context, navigationController, present in
                 let _ = (context.sharedContext.accountManager.transaction { transaction -> PresentationThemeReference in
                     let settings = transaction.getSharedData(ApplicationSpecificSharedDataKeys.presentationThemeSettings)?.get(PresentationThemeSettings.self) ?? PresentationThemeSettings.defaultSettings
@@ -4031,7 +4031,7 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
             title: strings.Appearance_TextSizeSetting,
             alternate: synonyms(strings.SettingsSearch_Synonyms_Appearance_TextSize),
             icon: icon,
-            breadcrumbs: [customizationTitle],
+            breadcrumbs: [forkExtrasSettingsTitle(strings), customizationTitle],
             present: { context, _, present in
                 let _ = (context.sharedContext.accountManager.sharedData(keys: Set([ApplicationSpecificSharedDataKeys.presentationThemeSettings]))
                 |> take(1)
@@ -4044,7 +4044,7 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
         SettingsSearchableItem(
             id: "appearance/text-size/use-system",
             icon: icon,
-            breadcrumbs: [customizationTitle],
+            breadcrumbs: [forkExtrasSettingsTitle(strings), customizationTitle],
             isVisible: false,
             present: { context, _, present in
                 let _ = (context.sharedContext.accountManager.sharedData(keys: Set([ApplicationSpecificSharedDataKeys.presentationThemeSettings]))
@@ -4060,7 +4060,7 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
             title: strings.Appearance_BubbleCornersSetting,
             alternate: [],
             icon: icon,
-            breadcrumbs: [customizationTitle],
+            breadcrumbs: [forkExtrasSettingsTitle(strings), customizationTitle],
             present: { context, _, present in
                 let _ = (context.sharedContext.accountManager.sharedData(keys: Set([ApplicationSpecificSharedDataKeys.presentationThemeSettings]))
                 |> take(1)
@@ -4075,7 +4075,7 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
             title: strings.Appearance_AppIcon.capitalized,
             alternate: [],
             icon: icon,
-            breadcrumbs: [customizationTitle],
+            breadcrumbs: [forkExtrasSettingsTitle(strings), customizationTitle],
             present: { context, _, present in
                 presentAppearanceSettings(context, present, .icon)
             }
@@ -4085,7 +4085,7 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
             title: strings.Appearance_Animations.capitalized,
             alternate: [],
             icon: icon,
-            breadcrumbs: [customizationTitle],
+            breadcrumbs: [forkExtrasSettingsTitle(strings), customizationTitle],
             present: { context, _, present in
                 let controller = energySavingSettingsScreen(context: context)
                 present(.push, controller)
@@ -4095,7 +4095,7 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
             id: "appearance/tap-for-next-media",
             title: strings.Appearance_ShowNextMediaOnTap,
             icon: icon,
-            breadcrumbs: [customizationTitle],
+            breadcrumbs: [forkExtrasSettingsTitle(strings), customizationTitle],
             present: { context, _, present in
                 presentAppearanceSettings(context, present, .tapForNextMedia)
             }
@@ -4104,9 +4104,9 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
             id: "appearance/recent-emoji-in-reactions",
             title: forkUseRecentEmojiInReactionsTitle(strings),
             icon: icon,
-            breadcrumbs: [customizationTitle],
+            breadcrumbs: [forkExtrasSettingsTitle(strings)],
             present: { context, _, present in
-                presentAppearanceSettings(context, present, .useRecentEmojiInReactions)
+                present(.push, forkExtrasController(context: context, focus: .interface, focusItemId: 1521))
             }
         )
     ]
@@ -4117,7 +4117,7 @@ private func appearanceSearchableItems(context: AccountContext) -> [SettingsSear
                 id: "appearance/send-with-cmd-enter",
                 title: strings.Appearance_SendWithCmdEnter,
                 icon: icon,
-                breadcrumbs: [customizationTitle],
+                breadcrumbs: [forkExtrasSettingsTitle(strings), customizationTitle],
                 present: { context, _, present in
                     presentAppearanceSettings(context, present, .sendWithCmdEnter)
                 }
@@ -4467,6 +4467,24 @@ func settingsSearchableItems(
         let privacyItems = privacySearchableItems(context: context, privacySettings: privacySettings, activeSessionsContext: activeSessionsContext, webSessionsContext: activeWebSessionsContext)
         allItems.append(contentsOf: privacyItems)
         
+        let extraCategories: [(String, String, ForkExtrasControllerFocus)] = [
+            ("bananagram", forkExtrasSettingsTitle(strings), .top),
+            ("bananagram/saving", ForkPresentationLanguage.prefersRussianStrings ? "Сохранение сообщений" : "Message saving", .ninja),
+            ("bananagram/ghost", ForkPresentationLanguage.prefersRussianStrings ? "Режим призрака" : "Ghost mode", .ghost),
+            ("bananagram/privacy", strings.Settings_PrivacySettings, .privacy),
+            ("bananagram/appearance", ForkPresentationLanguage.prefersRussianStrings ? "Интерфейс и эффекты" : "Interface and effects", .interface),
+            ("bananagram/chats", ForkPresentationLanguage.prefersRussianStrings ? "Чаты и звук" : "Chats and audio", .chat),
+            ("bananagram/network", ForkPresentationLanguage.prefersRussianStrings ? "Сеть и загрузки" : "Network and downloads", .network)
+        ]
+        for (id, title, focus) in extraCategories {
+            allItems.append(SettingsSearchableItem(id: id, title: title, alternate: [], icon: .appearance, breadcrumbs: focus == .top ? [] : [forkExtrasSettingsTitle(strings)], present: { context, _, present in
+                present(.push, forkExtrasController(context: context, focus: focus))
+            }))
+        }
+        allItems.append(SettingsSearchableItem(id: "bananagram/developer", title: forkDeveloperModeSettingsTitle(strings), alternate: [], icon: .appearance, breadcrumbs: [forkExtrasSettingsTitle(strings)], present: { context, _, present in
+            present(.push, context.sharedContext.makeDebugSettingsController(context: context))
+        }))
+
         let dataItems = dataSearchableItems(context: context)
         allItems.append(contentsOf: dataItems)
         

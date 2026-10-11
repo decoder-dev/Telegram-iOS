@@ -671,47 +671,21 @@ private func dataAndStorageControllerEntries(context: AccountContext, state: Dat
         entries.append(.shareSheet(presentationData.theme, presentationData.strings.ChatSettings_IntentsSettings))
     }
     entries.append(.saveEditedPhotos(presentationData.theme, presentationData.strings.Settings_SaveEditedPhotos, data.generatedMediaStoreSettings.storeEditedPhotos))
-    let russian = String(presentationData.strings.primaryComponent.languageCode.prefix(2)).lowercased() == "ru"
-    entries.append(.pauseMusicOnRecording(presentationData.theme, russian ? "Пауза музыки при записи видео" : "Pause music when recording video", data.mediaInputSettings.pauseMusicOnRecording))
-    entries.append(.pauseMusicOnVoiceRecording(presentationData.theme, russian ? "Пауза музыки при записи голосового" : "Pause music when recording voice messages", data.mediaInputSettings.pauseMusicOnVoiceRecording))
-    entries.append(.pauseMusicOnVoicePlayback(presentationData.theme, russian ? "Пауза музыки при прослушивании голосового" : "Pause music when playing voice messages", data.mediaInputSettings.pauseMusicOnVoicePlayback))
     entries.append(.raiseToListen(presentationData.theme, presentationData.strings.Settings_RaiseToListen, data.mediaInputSettings.enableRaiseToSpeak))
     entries.append(.raiseToListenInfo(presentationData.theme, presentationData.strings.Settings_RaiseToListenInfo))
 
-    // Always offered: the switch also turns on the client-side setting, which works without the server's permission
-    // (`canAdjustSensitiveContent`) or an age scan. It used to be hidden or to do nothing on this build.
-    let sensitiveContentEnabled = showSensitiveContentSetting
-    entries.append(.sensitiveContent(presentationData.strings.Settings_SensitiveContent, sensitiveContentEnabled))
-    entries.append(.sensitiveContentInfo(presentationData.strings.Settings_SensitiveContentInfo))
-    
-    let proxyValue: String
-    if let proxySettings = data.proxySettings, proxySettings.enabled {
-        if proxySettings.autoFetchPublicMtProxy {
-            proxyValue = ForkProxySettingsStrings.autoFetchValue
-        } else if let activeServer = proxySettings.activeServer {
-            switch activeServer.connection {
-                case .socks5:
-                    proxyValue = presentationData.strings.ChatSettings_ConnectionType_UseSocks5
-                case .mtp:
-                    proxyValue = presentationData.strings.SocksProxySetup_ProxyTelegram
-                case .web:
-                    proxyValue = ForkWebProxyStrings.proxyType
-                case .vless:
-                    proxyValue = "VLESS"
-            }
-        } else {
-            proxyValue = presentationData.strings.GroupInfo_SharedMediaNone
-        }
-    } else {
-        proxyValue = presentationData.strings.GroupInfo_SharedMediaNone
-    }
-    entries.append(.connectionHeader(presentationData.theme, presentationData.strings.ChatSettings_ConnectionType_Title.uppercased()))
-    entries.append(.connectionProxy(presentationData.theme, presentationData.strings.SocksProxySetup_Title, proxyValue))
-        
     return entries
 }
 
 public func dataAndStorageController(context: AccountContext, focusOnItemTag: DataAndStorageEntryTag? = nil) -> ViewController {
+    // Existing settings URLs and search history follow the relocated controls.
+    switch focusOnItemTag {
+    case .pauseMusicOnRecording?: return forkExtrasController(context: context, focus: .chat, focusItemId: 2001)
+    case .pauseMusicOnVoiceRecording?: return forkExtrasController(context: context, focus: .chat, focusItemId: 2002)
+    case .pauseMusicOnVoicePlayback?: return forkExtrasController(context: context, focus: .chat, focusItemId: 2003)
+    case .sensitiveContent?: return forkExtrasController(context: context, focus: .messageFilters, focusItemId: 147)
+    default: break
+    }
     let initialState = DataAndStorageControllerState()
     let statePromise = ValuePromise(initialState, ignoreRepeated: true)
     
