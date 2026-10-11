@@ -310,32 +310,6 @@ public func parseInternalUrl(sharedContext: SharedAccountContext, context: Accou
                         if let server = server, !server.isEmpty, let port = port, let portValue = Int32(port) {
                             return .proxy(host: server, port: portValue, username: user, password: pass, secret: secret)
                         }
-                    } else if peerName == "webproxy" {
-                        var server: String?
-                        var secret: Data?
-                        if let queryItems = components.queryItems {
-                            for queryItem in queryItems {
-                                if let value = queryItem.value {
-                                    if queryItem.name == "server" || queryItem.name == "host" {
-                                        server = value
-                                    } else if queryItem.name == "secret" {
-                                        if let parsedSecret = MTProxySecret.parse(value) {
-                                            secret = parsedSecret.serialize()
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        // Same rule the WEB editor and the carrier apply: a real DNS relay name
-                        // and a plain or `dd` secret. A link failing either is not a WEB proxy
-                        // link, so it falls through rather than opening a preview for something
-                        // that could never connect.
-                        if let server = server, !server.isEmpty, isValidWebProxyHostname(server.lowercased()) {
-                            if let secret, !isSupportedWebProxySecret(secret) {
-                                return nil
-                            }
-                            return .webProxy(host: server.lowercased(), secret: secret)
-                        }
                     } else if peerName == "iv" {
                         var url: String?
                         for queryItem in queryItems {
@@ -1564,9 +1538,6 @@ public func parseProxyUrl(sharedContext: SharedAccountContext, url: String) -> (
                 if let internalUrl = parseInternalUrl(sharedContext: sharedContext, context: nil, query: String(url[basePrefix.endIndex...])), case let .proxy(host, port, username, password, secret) = internalUrl {
                     return (host, port, username, password, secret)
                 }
-                if let internalUrl = parseInternalUrl(sharedContext: sharedContext, context: nil, query: String(url[basePrefix.endIndex...])), case let .webProxy(host, secret) = internalUrl, let secret = secret {
-                    return (host, 443, nil, nil, secret)
-                }
             }
         }
     }
@@ -1574,31 +1545,8 @@ public func parseProxyUrl(sharedContext: SharedAccountContext, url: String) -> (
         if let internalUrl = parseInternalUrl(sharedContext: sharedContext, context: nil, query: host + "?" + query), case let .proxy(host, port, username, password, secret) = internalUrl {
             return (host, port, username, password, secret)
         }
-        if let internalUrl = parseInternalUrl(sharedContext: sharedContext, context: nil, query: host + "?" + query), case let .webProxy(host, secret) = internalUrl, let secret = secret {
-            return (host, 443, nil, nil, secret)
-        }
     }
     
-    return nil
-}
-
-public func parseWebProxyUrl(sharedContext: SharedAccountContext, url: String) -> (host: String, secret: Data)? {
-    let schemes = ["http://", "https://", ""]
-    for basePath in baseTelegramMePaths {
-        for scheme in schemes {
-            let basePrefix = scheme + basePath + "/"
-            if url.lowercased().hasPrefix(basePrefix) {
-                if let internalUrl = parseInternalUrl(sharedContext: sharedContext, context: nil, query: String(url[basePrefix.endIndex...])), case let .webProxy(host, secret) = internalUrl, let secret = secret {
-                    return (host, secret)
-                }
-            }
-        }
-    }
-    if let parsedUrl = URL(string: url), parsedUrl.scheme == "tg", let host = parsedUrl.host, let query = parsedUrl.query {
-        if let internalUrl = parseInternalUrl(sharedContext: sharedContext, context: nil, query: host + "?" + query), case let .webProxy(host, secret) = internalUrl, let secret = secret {
-            return (host, secret)
-        }
-    }
     return nil
 }
 
