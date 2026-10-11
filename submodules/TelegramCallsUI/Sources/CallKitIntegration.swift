@@ -297,14 +297,20 @@ class CallKitProviderDelegate: NSObject, CXProviderDelegate {
                     // then answers 5 (callUUIDAlreadyExists), 6 (invalidAction) or 7
                     // (maximumCallGroupsReached). Clear such calls and try once more before giving up
                     // on CallKit for this call.
-                    if !didRetry, !didFallBack, error.domain == CXErrorDomainRequestTransaction, [5, 6, 7].contains(error.code), self.endOrphanedCalls() {
+                    if !didRetry, !didFallBack, error.domain == CXErrorCodeRequestTransactionError.errorDomain, [5, 6, 7].contains(error.code), self.endOrphanedCalls() {
                         didRetry = true
                         Logger.shared.log("CallKitIntegration", "retrying start call \(uuid) after clearing orphaned calls")
                         let retryAction = CXStartCallAction(call: uuid, handle: handle)
                         retryAction.contactIdentifier = displayTitle
                         retryAction.isVideo = isVideo
-                        self.requestTransactionWithError(CXTransaction(action: retryAction), completion: { error in
-                            handleResult(error)
+                        // CallKit applies the ended reports asynchronously; an immediate retry was refused again.
+                        Queue.mainQueue().after(0.3, { [weak self] in
+                            guard let self, !didFallBack else {
+                                return
+                            }
+                            self.requestTransactionWithError(CXTransaction(action: retryAction), completion: { error in
+                                handleResult(error)
+                            })
                         })
                         return
                     }

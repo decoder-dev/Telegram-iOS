@@ -25,6 +25,8 @@ final class ForkBackgroundKeepAlive {
     private var isAppActive = true
     private var restartTimer: SwiftSignalKit.Timer?
     private var observers: [NSObjectProtocol] = []
+    /// Bumped on every push and stop, so a callback from an already disposed holder is ignored.
+    private var sessionGeneration = 0
     
     /// True while the silence keeps the process running. `SharedWakeupManager` keeps the accounts' update
     /// connections up for as long as this holds: a process kept alive with its MTProto connection asleep
@@ -99,6 +101,7 @@ final class ForkBackgroundKeepAlive {
         Logger.shared.log("KeepAlive", "disabled")
         self.restartTimer?.invalidate()
         self.restartTimer = nil
+        self.sessionGeneration += 1
         self.sessionDisposable?.dispose()
         self.sessionDisposable = nil
         self.hasSession = false
@@ -110,10 +113,12 @@ final class ForkBackgroundKeepAlive {
     /// put it on top and pause whatever is already playing.
     private func pushSession() {
         self.sessionDisposable?.dispose()
+        self.sessionGeneration += 1
+        let generation = self.sessionGeneration
         self.hasSession = false
         self.sessionDisposable = MediaManagerImpl.globalAudioSession.push(audioSessionType: .play(mixWithOthers: true), activate: { [weak self] _ in
             Queue.mainQueue().async {
-                guard let self else {
+                guard let self, generation == self.sessionGeneration else {
                     return
                 }
                 self.hasSession = true
@@ -122,7 +127,7 @@ final class ForkBackgroundKeepAlive {
         }, deactivate: { [weak self] _ in
             return Signal { subscriber in
                 Queue.mainQueue().async {
-                    if let self {
+                    if let self, generation == self.sessionGeneration {
                         self.hasSession = false
                         self.updatePlayback()
                     }
@@ -144,9 +149,17 @@ final class ForkBackgroundKeepAlive {
                 return
             }
             self.restartTimer = nil
+            // Only when the session is ours. Re-pushing the holder would put it on top of a voice message or
+            // music that had the session before the interruption and take the session away from it; whoever
+            // holds it hands it back to this holder when it finishes.
+            guard self.hasSession else {
+                return
+            }
             Logger.shared.log("KeepAlive", "restarting after \(reason)")
+            // The player does not resume by itself after an interruption, and is dead after a media services
+            // reset. A new one reactivates the session when it starts playing.
             self.endPlayback()
-            self.pushSession()
+            self.updatePlayback()
         }, queue: Queue.mainQueue())
         self.restartTimer = timer
         timer.start()
