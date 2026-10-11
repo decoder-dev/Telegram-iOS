@@ -1125,11 +1125,25 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         }
     }
 
+    /// Rows added later whose stable id (kept for settings links) does not follow the row they are shown after.
+    /// The list diff merges sorted lists, so `<` has to agree with the display order or rows that appear and
+    /// disappear (the regex filter rows) get inserted next to stale copies and are drawn twice.
+    private static let positionOverrides: [Int32: Double] = [
+        8: -1.0,       // Customization is the first Extras destination.
+        // 146 now belongs to Network; its original stable order is appropriate there.
+        147: 133.3,     // Show 18+ Content, after Hide Blocked Messages
+        148: 133.6,
+    ]
+    
+    private var sortPosition: Double {
+        if let index = Self.interfaceGroups.flatMap({ $0 }).firstIndex(of: self.stableId) {
+            return Double(1000 + index)
+        }
+        return Self.positionOverrides[self.stableId] ?? Double(self.stableId)
+    }
+    
     static func <(lhs: ForkExtrasEntry, rhs: ForkExtrasEntry) -> Bool {
-        let order = Self.interfaceGroups.flatMap { $0 }
-        let left = lhs.stableId == 8 ? -1 : (order.firstIndex(of: lhs.stableId).map { 1000 + $0 } ?? Int(lhs.stableId))
-        let right = rhs.stableId == 8 ? -1 : (order.firstIndex(of: rhs.stableId).map { 1000 + $0 } ?? Int(rhs.stableId))
-        return left < right
+        return lhs.sortPosition < rhs.sortPosition
     }
 
     func item(presentationData: ItemListPresentationData, arguments: Any) -> ListViewItem {
