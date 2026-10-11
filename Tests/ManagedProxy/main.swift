@@ -4,9 +4,10 @@ import SwiftSignalKit
 let vless = ProxyServerSettings(host: "vless.example", port: 443, connection: .vless(secret: Data("vless-a".utf8)))
 let other = ProxyServerSettings(host: "other.example", port: 443, connection: .vless(secret: Data("vless-b".utf8)))
 let web = ProxyServerSettings(host: "web.example", port: 443, connection: .web(secret: Data([1])))
+let pathWeb = ProxyServerSettings(host: "path.example", port: 443, connection: .web(secret: Data([1]), path: "relay"))
 let manager = VlessManager.shared
 manager.configuration = "vless-a"
-let statuses = ProxyServersStatuses(network: Network(), servers: .single([vless, other, web]))
+let statuses = ProxyServersStatuses(network: Network(), servers: .single([vless, other, web, pathWeb]))
 var latest: [ProxyServerSettings: ProxyServerStatus] = [:]
 let subscription = (statuses.statuses() |> deliverOnMainQueue).start(next: {
     latest = $0
@@ -17,7 +18,7 @@ func awaitState(_ name: String, _ predicate: () -> Bool) {
     while !predicate(), Date() < deadline { RunLoop.main.run(until: Date().addingTimeInterval(0.01)) }
     precondition(predicate(), "Proxy status transition timed out: \(name)")
 }
-awaitState("initial") { latest.count == 3 && latest.values.allSatisfy { $0 == .notChecked } }
+awaitState("initial") { latest.count == 4 && latest.values.allSatisfy { $0 == .notChecked } }
 precondition(manager.mutations == 0 && WebProxyManager.shared.mutations == 0, "Observing a saved proxy switched the active tunnel")
 precondition(latest.values.allSatisfy { $0 == .notChecked }, "Inactive tunnels were reported as failed or left checking")
 manager.endpoint = VlessProxySink(port: 21001)

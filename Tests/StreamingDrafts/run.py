@@ -46,6 +46,8 @@ final class Box {
     var currentUpdatedTypingDrafts: [PeerAndThreadId: TypingDraftUpdate] = [:]
     var stoppedTypingDrafts: [PeerAndThreadId: [Int64: Double]] = [:]
     let messageHistoryMetadataTable = Metadata()
+    var timerRearms = 0
+    func restartTypingDraftExpirationTimerIfNeeded() { timerRearms += 1 }
 """ + method("    fileprivate func combineTypingDrafts(") + "\n" + method("    private func processTypingDraftExpirations(").replace("private func", "func") + r"""
 }
 final class Transaction {
@@ -74,8 +76,10 @@ precondition(box.currentTypingDrafts[key] != nil, "keep_on_stop must retain cont
 put(-9, "new generation")
 transaction.stopTypingDraft(location: key, id: 999, keep: false, attributes: [])
 precondition(box.currentTypingDrafts[key]?.id == -9, "An old stop must not remove a new generation")
+let previousRearms = box.timerRearms
 box.processTypingDraftExpirations(expirationTimeout: 20)
 precondition(box.currentTypingDrafts[key] != nil, "Fresh drafts must not expire")
+precondition(box.timerRearms == previousRearms + 1, "Early wakeup must rearm the expiration timer")
 box.processTypingDraftExpirations(expirationTimeout: -1)
 precondition(box.currentTypingDrafts.isEmpty, "Expired drafts must be removed")
 put(10, "remove on stop")

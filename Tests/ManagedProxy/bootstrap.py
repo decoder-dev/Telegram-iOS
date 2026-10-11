@@ -23,13 +23,15 @@ struct Connection {
 struct ProxyServerSettings {
     static let managedBootstrapProxySettings = MTSocksProxySettings("blocked")
     var connection: Connection
-    var webProxyConfiguration: String? = nil
+    var legacyWebProxyConfiguration: String? = nil
     var vlessProxyURL: String? = nil
     var mtProxySettings: MTSocksProxySettings? = nil
 }
 struct ProxySettings {
     var useLocalDNSForProxyHosts = false
     var effectiveActiveServer: ProxyServerSettings?
+    var webSocketTransportEnabled = true
+    var webSocketFallbackToDirect = true
 }
 final class WebProxyManager {
     static let shared = WebProxyManager()
@@ -67,6 +69,8 @@ final class Network {
     }
     func dropConnectionStatus() { drops += 1 }
     func rebuildTransport() {}
+    func updateProxySettings(_ server: ProxyServerSettings?) {}
+    func updateWebSocketTransportSettings(webSocketTransportEnabled: Bool, webSocketFallbackToDirect: Bool, hasActiveProxyServer: Bool) {}
 }
 '''
 tests = r'''

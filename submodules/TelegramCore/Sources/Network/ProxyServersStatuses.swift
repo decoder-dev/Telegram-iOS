@@ -94,6 +94,12 @@ private final class ProxyServerItemContext {
             self.startWebProxyPing(queue: queue, context: context, datacenterId: datacenterId, server: server, configuration: configuration, updated: updated)
             return
         }
+        if case .web = server.connection {
+            // The path-aware carrier has no isolated ping API. Do not report a
+            // saved profile as failed, and never start it just to observe status.
+            queue.async { updated(.notChecked) }
+            return
+        }
         guard let settings = socksSettingsForPing(server: server) else {
             queue.async {
                 updated(.notAvailable)
@@ -166,12 +172,7 @@ final class ProxyServersStatusesImpl {
         self.serversDisposable = (servers
             |> deliverOn(self.queue)).start(next: { [weak self] servers in
                 if let strongSelf = self {
-                    let validKeys = Set<ProxyServerSettings>(servers.filter { server in
-                        if case .web = server.connection {
-                            return false
-                        }
-                        return true
-                    })
+                    let validKeys = Set<ProxyServerSettings>(servers)
                     for key in validKeys {
                         if strongSelf.contexts[key] == nil {
                             let context = ProxyServerItemContext(queue: strongSelf.queue, context: network.context, datacenterId: network.datacenterId, server: key, updated: { value in
