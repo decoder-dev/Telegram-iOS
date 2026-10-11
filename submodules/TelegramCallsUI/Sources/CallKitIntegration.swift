@@ -174,13 +174,38 @@ class CallKitProviderDelegate: NSObject, CXProviderDelegate {
     }
     
     private func requestTransaction(_ transaction: CXTransaction, completion: ((Bool) -> Void)? = nil) {
+        self.requestTransactionWithError(transaction, completion: { error in
+            completion?(error == nil)
+        })
+    }
+    
+    private func requestTransactionWithError(_ transaction: CXTransaction, completion: ((Error?) -> Void)? = nil) {
         Logger.shared.log("CallKitIntegration", "requestTransaction \(transaction)")
         self.callController.request(transaction) { error in
             if let error = error {
                 Logger.shared.log("CallKitIntegration", "error in requestTransaction \(transaction): \(error)")
             }
-            completion?(error == nil)
+            completion?(error)
         }
+    }
+    
+    /// Ends calls the system still lists for this provider but this process does not know about.
+    /// They are left behind when iOS relaunches the app in the middle of placing a call: the new
+    /// process fails the start action, yet CallKit kept the call, and with `maximumCallGroups = 1`
+    /// every later call was refused (CXErrorCodeRequestTransactionError 6) until the next reboot
+    /// of the call service. Returns true if anything was cleared.
+    @discardableResult
+    private func endOrphanedCalls() -> Bool {
+        var cleared = false
+        for call in self.callController.callObserver.calls where !call.hasEnded && !call.hasConnected && !self.activeCalls.contains(call.uuid) {
+            if let current = self.currentStartCallAccount, current.0 == call.uuid {
+                continue
+            }
+            Logger.shared.log("CallKitIntegration", "ending orphaned call \(call.uuid) (outgoing: \(call.isOutgoing))")
+            self.provider.reportCall(with: call.uuid, endedAt: nil, reason: .failed)
+            cleared = true
+        }
+        return cleared
     }
     
     func endCall(uuid: UUID) {
@@ -261,9 +286,28 @@ class CallKitProviderDelegate: NSObject, CXProviderDelegate {
             fallBack("perform action did not arrive in time")
         })
         
-        self.requestTransaction(transaction, completion: { success in
-            Queue.mainQueue().async {
-                if !success {
+        var didRetry = false
+        func handleResult(_ error: Error?) {
+            Queue.mainQueue().async { [weak self] in
+                guard let self else {
+                    return
+                }
+                if let error = error as NSError? {
+                    // A call left over from an earlier process occupies the only call group; the system
+                    // then answers 5 (callUUIDAlreadyExists), 6 (invalidAction) or 7
+                    // (maximumCallGroupsReached). Clear such calls and try once more before giving up
+                    // on CallKit for this call.
+                    if !didRetry, !didFallBack, error.domain == CXErrorDomainRequestTransaction, [5, 6, 7].contains(error.code), self.endOrphanedCalls() {
+                        didRetry = true
+                        Logger.shared.log("CallKitIntegration", "retrying start call \(uuid) after clearing orphaned calls")
+                        let retryAction = CXStartCallAction(call: uuid, handle: handle)
+                        retryAction.contactIdentifier = displayTitle
+                        retryAction.isVideo = isVideo
+                        self.requestTransactionWithError(CXTransaction(action: retryAction), completion: { error in
+                            handleResult(error)
+                        })
+                        return
+                    }
                     // The system rejected the transaction (CXErrorCodeRequestTransactionError, e.g.
                     // `.invalidAction`), so `perform CXStartCallAction` will never arrive.
                     fallBack("transaction rejected")
@@ -285,6 +329,9 @@ class CallKitProviderDelegate: NSObject, CXProviderDelegate {
                 
                 self.activeCalls.insert(uuid)
             }
+        }
+        self.requestTransactionWithError(transaction, completion: { error in
+            handleResult(error)
         })
     }
     
@@ -366,6 +413,12 @@ class CallKitProviderDelegate: NSObject, CXProviderDelegate {
             self.activeCalls.remove(action.callUUID)
             self.uuidToPeerIdMapping.removeValue(forKey: action.callUUID)
             action.fail()
+            // Failing the action alone left the call in the system's list after a relaunch, and it
+            // then blocked every later call. Report it ended as well.
+            let staleUUID = action.callUUID
+            Queue.mainQueue().after(0.5, { [weak self] in
+                self?.provider.reportCall(with: staleUUID, endedAt: nil, reason: .failed)
+            })
             return
         }
         self.currentStartCallAccount = nil
