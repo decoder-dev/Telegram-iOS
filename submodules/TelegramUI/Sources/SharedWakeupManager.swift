@@ -80,6 +80,7 @@ public final class SharedWakeupManager {
     
     private var accountSettingsDisposable: Disposable?
     private var inForegroundDisposable: Disposable?
+    private var keepAliveStateDisposable: Disposable?
     private var hasActiveAudioSessionDisposable: Disposable?
     private var tasksDisposable: Disposable?
     private var pendingMediaUploadsDisposable: Disposable?
@@ -177,6 +178,11 @@ public final class SharedWakeupManager {
             strongSelf.checkTasks()
         })
         
+        self.keepAliveStateDisposable = (ForkBackgroundKeepAlive.shared.keepsNetworkAlivePromise.get()
+        |> deliverOnMainQueue).startStrict(next: { [weak self] _ in
+            self?.checkTasks()
+        })
+
         self.managedPausedInBackgroundPlayer = combineLatest(queue: .mainQueue(), mediaManager.activeGlobalMediaPlayerAccountId, inForeground).startStrict(next: { [weak mediaManager] accountAndActive, inForeground in
             guard let mediaManager = mediaManager else {
                 return
@@ -358,6 +364,7 @@ public final class SharedWakeupManager {
         self.accountSettingsDisposable?.dispose()
         self.inForegroundDisposable?.dispose()
         self.hasActiveAudioSessionDisposable?.dispose()
+        self.keepAliveStateDisposable?.dispose()
         self.tasksDisposable?.dispose()
         self.pendingMediaUploadsDisposable?.dispose()
         self.pendingStoryUploadsDisposable?.dispose()

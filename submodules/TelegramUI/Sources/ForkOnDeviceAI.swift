@@ -1,10 +1,12 @@
 import Foundation
+import SwiftSignalKit
 #if canImport(FoundationModels)
 @_weakLinked import FoundationModels
 #endif
 
-enum ForkOnDeviceAIError: Error {
+enum ForkOnDeviceAIError: Error, Equatable {
     case unavailable
+    case busy
 }
 
 /// Text generation by the system language model that runs on the device (Apple Foundation Models). Nothing leaves the
@@ -25,22 +27,43 @@ enum ForkOnDeviceAI {
         return false
     }
     
-    /// Summarises `text` in the language it is written in. `completion` runs on an arbitrary queue.
-    static func summarize(_ text: String, completion: @escaping @Sendable (Result<String, Error>) -> Void) {
-        #if canImport(FoundationModels)
-        if #available(iOS 26.0, *) {
-            Task {
-                do {
-                    let session = LanguageModelSession(instructions: "You summarise chat messages. Reply with at most three short sentences, in the same language as the message. Output only the summary, with no introduction and no comments.")
-                    let response = try await session.respond(to: text)
-                    completion(.success(response.content))
-                } catch {
-                    completion(.failure(error))
+    private static let inProgress = Atomic<Bool>(value: false)
+
+    /// A single model request at a time. Disposing cancels generation and suppresses its result.
+    static func summarize(_ text: String) -> Signal<String, Error> {
+        return Signal { subscriber in
+            guard !self.inProgress.swap(true) else {
+                subscriber.putError(ForkOnDeviceAIError.busy)
+                return EmptyDisposable
+            }
+            #if canImport(FoundationModels)
+            if #available(iOS 26.0, *), self.isAvailable {
+                let cancelled = Atomic<Bool>(value: false)
+                let task = Task {
+                    defer { let _ = self.inProgress.swap(false) }
+                    do {
+                        try Task.checkCancellation()
+                        let session = LanguageModelSession(instructions: "You summarise chat messages. Reply with at most three short sentences, in the same language as the message. Output only the summary, with no introduction and no comments.")
+                        let response = try await session.respond(to: text)
+                        try Task.checkCancellation()
+                        guard !cancelled.with({ $0 }) else { return }
+                        subscriber.putNext(response.content)
+                        subscriber.putCompletion()
+                    } catch {
+                        if !cancelled.with({ $0 }) {
+                            subscriber.putError(error)
+                        }
+                    }
+                }
+                return ActionDisposable {
+                    let _ = cancelled.swap(true)
+                    task.cancel()
                 }
             }
-            return
+            #endif
+            let _ = self.inProgress.swap(false)
+            subscriber.putError(ForkOnDeviceAIError.unavailable)
+            return EmptyDisposable
         }
-        #endif
-        completion(.failure(ForkOnDeviceAIError.unavailable))
     }
 }

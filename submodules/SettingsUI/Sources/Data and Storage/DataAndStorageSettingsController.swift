@@ -680,7 +680,7 @@ private func dataAndStorageControllerEntries(context: AccountContext, state: Dat
 
     // Always offered: the switch also turns on the client-side setting, which works without the server's permission
     // (`canAdjustSensitiveContent`) or an age scan. It used to be hidden or to do nothing on this build.
-    let sensitiveContentEnabled = (contentSettingsConfiguration?.sensitiveContentEnabled ?? false) || ForkSensitiveContentSettings.enabled
+    let sensitiveContentEnabled = showSensitiveContentSetting
     entries.append(.sensitiveContent(presentationData.strings.Settings_SensitiveContent, sensitiveContentEnabled))
     entries.append(.sensitiveContentInfo(presentationData.strings.Settings_SensitiveContentInfo))
     
@@ -990,7 +990,7 @@ public func dataAndStorageController(context: AccountContext, focusOnItemTag: Da
         context.sharedContext.presentationData,
         statePromise.get(),
         dataAndStorageDataPromise.get(),
-        context.sharedContext.accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.mediaDisplaySettings]),
+        context.sharedContext.accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.mediaDisplaySettings, ApplicationSpecificSharedDataKeys.forkExtrasSettings]),
         contentSettingsConfiguration.get(),
         preferences,
         usageSignal,
@@ -1008,7 +1008,7 @@ public func dataAndStorageController(context: AccountContext, focusOnItemTag: Da
         if canAdjustSensitiveContent.with({ $0 }) == nil {
             let _ = canAdjustSensitiveContent.swap(contentSettingsConfiguration?.sensitiveContentEnabled)
         }
-        let showSensitiveContentSetting = canAdjustSensitiveContent.with { $0 } ?? false
+        let showSensitiveContentSetting = sharedData.entries[ApplicationSpecificSharedDataKeys.forkExtrasSettings]?.get(ForkExtrasSettings.self)?.showSensitiveContent ?? false
         
         let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .text(presentationData.strings.ChatSettings_Title), leftNavigationButton: nil, rightNavigationButton: nil, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back), animateChanges: false)
         let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: dataAndStorageControllerEntries(context: context, state: state, data: dataAndStorageData, presentationData: presentationData, contentSettingsConfiguration: contentSettingsConfiguration, networkUsage: usageSignal.network, storageUsage: usageSignal.storage, mediaAutoSaveSettings: mediaAutoSaveSettings, autosaveExceptionPeers: autosaveExceptionPeers, mediaSettings: mediaSettings, showSensitiveContentSetting: showSensitiveContentSetting), style: .blocks, ensureVisibleItemTag: focusOnItemTag, emptyStateItem: nil, animateChanges: animateChanges)

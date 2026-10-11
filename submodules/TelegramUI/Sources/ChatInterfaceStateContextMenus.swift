@@ -2010,24 +2010,30 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
                 return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Translate"), color: theme.actionSheet.primaryTextColor)
             }, action: { _, f in
                 f(.default)
-                ForkOnDeviceAI.summarize(messageText, completion: { result in
-                    Queue.mainQueue().async {
-                        let presentationData = context.sharedContext.currentPresentationData.with { $0 }
-                        let text: String
-                        switch result {
-                        case let .success(summary):
-                            text = summary
-                        case .failure:
-                            text = summaryFailure
-                        }
-                        controllerInteraction.presentController(textAlertController(
-                            context: context,
-                            title: summaryAlertTitle,
-                            text: text,
-                            actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})]
-                        ), nil)
-                    }
-                })
+                let disposable = MetaDisposable()
+                let progress = OverlayStatusController(theme: context.sharedContext.currentPresentationData.with { $0 }.theme, type: .loading(cancelled: {
+                    disposable.set(nil)
+                }))
+                controllerInteraction.presentController(progress, nil)
+                disposable.set((ForkOnDeviceAI.summarize(messageText)
+                |> deliverOnMainQueue).start(next: { summary in
+                    progress.dismiss()
+                    disposable.set(nil)
+                    let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+                    controllerInteraction.presentController(textAlertController(
+                        context: context,
+                        title: summaryAlertTitle,
+                        text: summary,
+                        actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})]
+                    ), nil)
+                }, error: { error in
+                    progress.dismiss()
+                    disposable.set(nil)
+                    let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+                    let busy = (error as? ForkOnDeviceAIError) == .busy
+                    let text = busy ? (extrasMenuIsRussian ? "Уже создаётся краткое содержание. Дождитесь завершения или отмените его." : "A summary is already being generated. Wait for it to finish or cancel it.") : summaryFailure
+                    controllerInteraction.presentController(textAlertController(context: context, title: summaryAlertTitle, text: text, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})]), nil)
+                }))
             })))
         }
         

@@ -505,6 +505,7 @@ public func themeSettingsController(context: AccountContext, focusOnItemTag: The
     var getNavigationControllerImpl: (() -> NavigationController?)?
     var presentCrossfadeControllerImpl: ((Bool) -> Void)?
     
+    var appIconChangeInProgress = false
     var selectThemeImpl: ((PresentationThemeReference) -> Void)?
     var selectAccentColorImpl: ((PresentationThemeAccentColor?) -> Void)?
     var openAccentColorPickerImpl: ((PresentationThemeReference, Bool) -> Void)?
@@ -609,8 +610,20 @@ public func themeSettingsController(context: AccountContext, focusOnItemTag: The
         // only to decide between applying the icon and pushing the paywall instead; the apply
         // itself is `UIApplication.setAlternateIconName` against an asset already in the bundle,
         // so there is nothing here for an entitlement to gate.
-        currentAppIconName.set(icon.name)
-        context.sharedContext.applicationBindings.requestSetAlternateIconName(icon.isDefault ? nil : icon.name, { _ in
+        guard !appIconChangeInProgress else { return }
+        appIconChangeInProgress = true
+        context.sharedContext.applicationBindings.requestSetAlternateIconName(icon.isDefault ? nil : icon.name, { success in
+            Queue.mainQueue().async {
+                appIconChangeInProgress = false
+                let actualName = context.sharedContext.applicationBindings.getAlternateIconName()
+                    ?? appIcons.first(where: { $0.isDefault })?.name
+                currentAppIconName.set(actualName)
+                if !success {
+                    let data = context.sharedContext.currentPresentationData.with { $0 }
+                    let text = ForkPresentationLanguage.prefersRussianStrings ? "Не удалось изменить иконку приложения. Попробуйте ещё раз." : "Couldn't change the app icon. Please try again."
+                    presentControllerImpl?(textAlertController(context: context, title: nil, text: text, actions: [TextAlertAction(type: .defaultAction, title: data.strings.Common_OK, action: {})]), nil)
+                }
+            }
         })
     }, editTheme: { theme in
         let controller = editThemeController(context: context, mode: .edit(theme), navigateToChat: { peerId in

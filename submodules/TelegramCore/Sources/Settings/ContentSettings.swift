@@ -15,6 +15,15 @@ public struct ContentSettings: Equatable {
     }
 }
 
+// The explicit local choice wins over server defaults. Other restriction reasons stay untouched.
+func forkContentRestrictionReasons(serverReasons: Set<String>, showSensitiveContent: Bool) -> Set<String> {
+    if showSensitiveContent {
+        return serverReasons.union(ForkSensitiveContentSettings.liftedReasons)
+    } else {
+        return serverReasons.subtracting(ForkSensitiveContentSettings.liftedReasons)
+    }
+}
+
 extension ContentSettings {
     init(appConfiguration: AppConfiguration) {
         var reasons: [String] = []
@@ -27,10 +36,7 @@ extension ContentSettings {
                 addContentRestrictionReasons = addContentRestrictionReasonsData
             }
         }
-        var ignored = Set(reasons)
-        if ForkSensitiveContentSettings.enabled {
-            ignored.formUnion(ForkSensitiveContentSettings.liftedReasons)
-        }
+        let ignored = forkContentRestrictionReasons(serverReasons: Set(reasons), showSensitiveContent: ForkSensitiveContentSettings.enabled)
         self.init(ignoreContentRestrictionReasons: ignored, addContentRestrictionReasons: addContentRestrictionReasons)
     }
 }

@@ -720,7 +720,7 @@ public func makeAttachmentFileControllerImpl(
 
             var items: [ContextMenuItem] = []
             if case .audio = mode {
-                items.append(.action(ContextMenuActionItem(text: "Play", icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Play"), color: theme.contextMenu.primaryColor) }, action: { c, _ in
+                items.append(.action(ContextMenuActionItem(text: presentationData.strings.VoiceOver_Media_PlaybackPlay, icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Play"), color: theme.contextMenu.primaryColor) }, action: { c, _ in
                     c?.dismiss(completion: {})
                     
                     let playlistLocation: PeerMessagesPlaylistLocation = .custom(messages: .single(([message._asMessage()], 0, false)), canReorder: false, at: message.id, loadMore: nil, hidePanel: true)

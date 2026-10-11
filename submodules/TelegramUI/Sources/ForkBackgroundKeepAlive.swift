@@ -5,6 +5,18 @@ import SwiftSignalKit
 import TelegramAudio
 import TelegramCore
 
+/// Four total attempts per failure episode, with bounded backoff. A lifecycle change starts a new episode.
+struct ForkKeepAliveRetryPolicy {
+    private(set) var attempts = 0
+    mutating func nextDelay() -> Double? {
+        guard attempts < 3 else { return nil }
+        let delay = Double(1 << attempts)
+        attempts += 1
+        return delay
+    }
+    mutating func reset() { attempts = 0 }
+}
+
 /// Keeps the process running while the screen is locked by looping digital silence through the audio session.
 ///
 /// A sideloaded build receives no push notifications (APNs delivers only to the official bundle id), so a call or a message
@@ -23,6 +35,8 @@ final class ForkBackgroundKeepAlive {
     /// The audio session is ours (the holder is active); false while a call, a voice message or music has it.
     private var hasSession = false
     private var isAppActive = true
+    private var retryPolicy = ForkKeepAliveRetryPolicy()
+    let keepsNetworkAlivePromise = ValuePromise<Bool>(false, ignoreRepeated: true)
     private var restartTimer: SwiftSignalKit.Timer?
     private var observers: [NSObjectProtocol] = []
     /// Bumped on every push and stop, so a callback from an already disposed holder is ignored.
@@ -32,7 +46,7 @@ final class ForkBackgroundKeepAlive {
     /// connections up for as long as this holds: a process kept alive with its MTProto connection asleep
     /// would still miss the call. Main queue only.
     var keepsNetworkAlive: Bool {
-        return self.isEnabled && !self.isAppActive
+        return self.isEnabled && !self.isAppActive && (!self.hasSession || self.player?.isPlaying == true)
     }
     
     private init() {
@@ -143,9 +157,11 @@ final class ForkBackgroundKeepAlive {
             return
         }
         self.restartTimer?.invalidate()
+        self.retryPolicy.reset()
+        let generation = self.sessionGeneration
         // The session cannot be taken back the instant an interruption ends; give the other side a moment.
         let timer = SwiftSignalKit.Timer(timeout: 1.0, repeat: false, completion: { [weak self] in
-            guard let self, self.isEnabled else {
+            guard let self, self.isEnabled, generation == self.sessionGeneration else {
                 return
             }
             self.restartTimer = nil
@@ -167,17 +183,43 @@ final class ForkBackgroundKeepAlive {
     
     private func updatePlayback() {
         if self.isEnabled && self.hasSession && !self.isAppActive {
-            self.beginPlayback()
+            if self.restartTimer == nil {
+                self.beginPlayback()
+            }
         } else {
+            self.restartTimer?.invalidate()
+            self.restartTimer = nil
+            self.retryPolicy.reset()
             self.endPlayback()
         }
+        self.keepsNetworkAlivePromise.set(self.keepsNetworkAlive)
     }
-    
+
+    private func schedulePlaybackRetry() {
+        guard self.isEnabled, self.hasSession, !self.isAppActive, self.restartTimer == nil else { return }
+        guard let delay = self.retryPolicy.nextDelay() else {
+            Logger.shared.log("KeepAlive", "silent loop recovery exhausted")
+            return
+        }
+        let generation = self.sessionGeneration
+        let timer = SwiftSignalKit.Timer(timeout: delay, repeat: false, completion: { [weak self] in
+            guard let self, generation == self.sessionGeneration else { return }
+            self.restartTimer = nil
+            self.updatePlayback()
+        }, queue: Queue.mainQueue())
+        self.restartTimer = timer
+        timer.start()
+    }
+
     private func beginPlayback() {
         if let player = self.player {
-            if !player.isPlaying && !player.play() {
-                Logger.shared.log("KeepAlive", "silent loop refused to resume")
+            if player.isPlaying || player.play() {
+                self.retryPolicy.reset()
+                return
             }
+            Logger.shared.log("KeepAlive", "silent loop refused to resume")
+            self.endPlayback()
+            self.schedulePlaybackRetry()
             return
         }
         do {
@@ -187,15 +229,18 @@ final class ForkBackgroundKeepAlive {
             player.prepareToPlay()
             if player.play() {
                 self.player = player
+                self.retryPolicy.reset()
                 Logger.shared.log("KeepAlive", "silent loop started")
             } else {
                 Logger.shared.log("KeepAlive", "silent loop refused to start")
+                self.schedulePlaybackRetry()
             }
         } catch {
             Logger.shared.log("KeepAlive", "silent loop failed: \(error)")
+            self.schedulePlaybackRetry()
         }
     }
-    
+
     private func endPlayback() {
         if let player = self.player {
             player.stop()

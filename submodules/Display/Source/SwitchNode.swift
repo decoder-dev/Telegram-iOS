@@ -31,9 +31,7 @@ open class SwitchNode: ASDisplayNode {
     }
     public var handleColor = UIColor(rgb: 0xffffff) {
         didSet {
-            if self.isNodeLoaded {
-                //(self.view as! UISwitch).thumbTintColor = self.handleColor
-            }
+            self.updateHandleColor()
         }
     }
     public var contentColor = UIColor(rgb: 0x42d451) {
@@ -54,6 +52,7 @@ open class SwitchNode: ASDisplayNode {
             if (value != self._isOn) {
                 self._isOn = value
                 if self.isNodeLoaded {
+                    self.updateHandleColor()
                     (self.view as! UISwitch).setOn(value, animated: false)
                 }
             }
@@ -77,6 +76,7 @@ open class SwitchNode: ASDisplayNode {
         (self.view as! UISwitch).tintColor = self.frameColor
         (self.view as! UISwitch).onTintColor = self.contentColor
         
+        self.updateHandleColor()
         (self.view as! UISwitch).setOn(self._isOn, animated: false)
         
         (self.view as! UISwitch).addTarget(self, action: #selector(switchValueChanged(_:)), for: .valueChanged)
@@ -85,6 +85,7 @@ open class SwitchNode: ASDisplayNode {
     public func setOn(_ value: Bool, animated: Bool) {
         self._isOn = value
         if self.isNodeLoaded {
+            self.updateHandleColor()
             (self.view as! UISwitch).setOn(value, animated: animated)
         }
     }
@@ -97,8 +98,17 @@ open class SwitchNode: ASDisplayNode {
         }
     }
     
+    private func updateHandleColor() {
+        if self.isNodeLoaded {
+            // The dark on-accent thumb is legible on Graphite's yellow ON track. OFF keeps the
+            // system thumb, so a dark thumb does not disappear against the dark disabled track.
+            (self.view as! UISwitch).thumbTintColor = self._isOn ? self.handleColor : nil
+        }
+    }
+
     @objc func switchValueChanged(_ view: UISwitch) {
         self._isOn = view.isOn
+        self.updateHandleColor()
         self.valueUpdated?(view.isOn)
     }
 }
