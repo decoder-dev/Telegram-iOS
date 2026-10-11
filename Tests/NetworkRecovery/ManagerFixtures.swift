@@ -43,21 +43,21 @@ public final class WebProxySidecar {
 
 extension WebProxyManager {
     static func testInstance() -> WebProxyManager { WebProxyManager() }
-    func installForTest(_ sidecar: WebProxySidecar, _ profile: WebProxyConfiguration) {
+    func installForTest(_ sidecar: WebProxySidecar, _ profile: LegacyWebProxyConfiguration) {
         self.desiredConfiguration = profile
         self.sidecar = sidecar
         self.configuration = profile
         self.endpoint = LoopbackEndpoint(host: "127.0.0.1", port: 1234)
         self.sidecarReadySince = webProxyContinuousTime()
     }
-    func resumeForTest(_ sidecar: WebProxySidecar, _ profile: WebProxyConfiguration) {
+    func resumeForTest(_ sidecar: WebProxySidecar, _ profile: LegacyWebProxyConfiguration) {
         self.performInPlaceCarrierResume(sidecar: sidecar, configuration: profile)
     }
     func failureForTest(_ sidecar: WebProxySidecar) {
         self.handleSidecarFailure(expectedSidecar: sidecar)
     }
     var failuresForTest: Int { self.consecutiveFailureCount }
-    func pendingStartForTest(_ profile: WebProxyConfiguration) {
+    func pendingStartForTest(_ profile: LegacyWebProxyConfiguration) {
         self.desiredConfiguration = profile
         self.startingConfiguration = profile
         self.startingSince = webProxyContinuousTime()
@@ -65,7 +65,7 @@ extension WebProxyManager {
     var startGenerationForTest: UInt64 { self.startGeneration }
 }
 
-let profile = WebProxyConfiguration(hostname: "test.example", secret: Data([1]))
+let profile = LegacyWebProxyConfiguration(hostname: "test.example", secret: Data([1]))
 let manager = WebProxyManager.testInstance()
 let sidecar = WebProxySidecar()
 manager.installForTest(sidecar, profile)

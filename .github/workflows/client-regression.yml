@@ -62,29 +62,56 @@ jobs:
           python3 Tests/Upstream13/passcode.py
           python3 Tests/Upstream13/passcode_codec.py
       - run: swift test --package-path submodules/TelegramVLESS
+        if: ${{ !cancelled() }}
       - run: python3 Tests/ManagedProxy/run.py
+        if: ${{ !cancelled() }}
       - run: python3 Tests/ManagedProxy/bootstrap.py
+        if: ${{ !cancelled() }}
       - run: python3 Tests/ManagedProxy/automatic.py
+        if: ${{ !cancelled() }}
       - run: python3 Tests/Customization/run.py
+        if: ${{ !cancelled() }}
       - run: python3 Tests/ClientAdditions/run.py
+        if: ${{ !cancelled() }}
       - run: python3 Tests/ClientAdditions/quality.py
+        if: ${{ !cancelled() }}
       - run: python3 Tests/ClientAdditions/menu_layout.py
+        if: ${{ !cancelled() }}
       - run: python3 Tests/ChatListSync/run.py
+        if: ${{ !cancelled() }}
       - run: python3 Tests/Customization/theme_selection.py
+        if: ${{ !cancelled() }}
       - run: python3 Tests/Customization/shadow_ban.py
+        if: ${{ !cancelled() }}
       - run: python3 Tests/Customization/appearance.py
+        if: ${{ !cancelled() }}
       - run: python3 -m unittest discover -s Tests/Branding
+        if: ${{ !cancelled() }}
       - run: python3 Tests/GhostMode/run.py
+        if: ${{ !cancelled() }}
       - run: python3 Tests/Camera/native_zoom.py
+        if: ${{ !cancelled() }}
       - run: python3 Tests/MenuPresentation/run.py
+        if: ${{ !cancelled() }}
       - run: python3 Tests/MessageSaving/run.py
+        if: ${{ !cancelled() }}
       - run: python3 Tests/Camera/run.py
+        if: ${{ !cancelled() }}
       - run: python3 Tests/StreamingDrafts/run.py
+        if: ${{ !cancelled() }}
       - run: python3 Tests/ApiLayer/run.py
+        if: ${{ !cancelled() }}
       - run: python3 -m unittest discover -s Tests/UISizing
+        if: ${{ !cancelled() }}
       - run: python3 Tests/ArchiveLock/password_flow.py
+        if: ${{ !cancelled() }}
       - run: python3 Tests/ArchiveLock/theme_lifetime.py
+        if: ${{ !cancelled() }}
       - run: python3 Tests/ArchiveLock/migration.py
+        if: ${{ !cancelled() }}
       - run: python3 Tests/ArchiveLock/wiring.py
+        if: ${{ !cancelled() }}
       - run: python3 Tests/NetworkPolicies/run.py
+        if: ${{ !cancelled() }}
       - run: python3 Tests/NetworkRecovery/run.py
+        if: ${{ !cancelled() }}
