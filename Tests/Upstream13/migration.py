@@ -2,6 +2,12 @@
 import pathlib, re, subprocess, unittest, shutil, tempfile
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 class StorageMigration(unittest.TestCase):
+ def test_flatbuffer_declarations_are_unique(self):
+  for path in (ROOT/'submodules/TelegramCore/FlatSerialization/Models').glob('*.fbs'):
+   source=path.read_text(encoding='utf-8')
+   source=re.sub(r'/\*.*?\*/|//[^\n]*', '', source, flags=re.S)
+   names=re.findall(r'\b(?:table|struct|enum|union)\s+(\w+)',source)
+   self.assertEqual(len(names),len(set(names)),path.name)
  def test_persisted_flatbuffer_union_prefixes(self):
   for path, union in [('submodules/TelegramCore/FlatSerialization/Models/RichText.fbs','RichText_Value'),('submodules/TelegramCore/FlatSerialization/Models/InstantPageBlock.fbs','InstantPageBlock_Value')]:
    old=subprocess.check_output(['git','show','6fd195d294be0a6f5a831b2de5671250faaecbe8:'+path],cwd=ROOT).decode()
