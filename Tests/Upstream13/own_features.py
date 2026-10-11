@@ -9,6 +9,15 @@ def read(path):
     return (ROOT / path).read_text(encoding='utf-8')
 
 class ForkIntegration(unittest.TestCase):
+    def test_siri_helpers_are_unique_and_keep_logged_out_account_guard(self):
+        source = read('Telegram/SiriIntents/IntentHandler.swift')
+        for name in ['firstValueOrNil', 'completing']:
+            self.assertEqual(len(re.findall(r'\bfunc ' + name + r'<', source)), 1, name)
+        guard = source.split('func usableAccountRecordId(', 1)[1].split('func firstValueOrNil', 1)[0]
+        self.assertIn('if case .loggedOut', guard)
+        self.assertIn('return nil', guard)
+        self.assertIn('self.accountPromise.set(firstValueOrNil(account))', source)
+
     def test_legacy_hash_metadata_is_not_cleaned_before_migration(self):
         source = read('submodules/TelegramCore/Sources/AccountManager/AccountManagerImpl.swift')
         body = source.split('private func cleanPasscodeMetadataIfNeeded()', 1)[1].split('private func syncAtomicStateToFile()', 1)[0]

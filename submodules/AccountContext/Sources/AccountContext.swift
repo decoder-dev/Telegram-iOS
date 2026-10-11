@@ -1056,6 +1056,7 @@ public final class CameraScreenTransitionOut {
 
 public protocol CameraScreen: ViewController {
     var recognizedCode: ((String) -> Bool)? { get set }
+    var capturePermission: ((Bool) -> Bool)? { get set }
     func returnFromEditor()
 }
 

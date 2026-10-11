@@ -2,6 +2,7 @@
 import pathlib
 import subprocess
 import tempfile
+import sys
 
 root = pathlib.Path(__file__).resolve().parents[2]
 for component, value_type in [('ChatScheduleTimeController', 'Result'), ('ChatTimerScreen', 'Int32?')]:
@@ -43,3 +44,5 @@ print("Picker confirmation/cancellation gates passed")
         path = pathlib.Path(directory) / 'main.swift'
         path.write_text(fixture, encoding='utf-8')
         subprocess.run(['swift', str(path)], check=True)
+
+subprocess.run([sys.executable, str(root / 'Tests/Camera/permissions.py')], check=True)

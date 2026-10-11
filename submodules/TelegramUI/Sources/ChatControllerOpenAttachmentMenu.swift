@@ -42,6 +42,19 @@ import Postbox
 import WalletContext
 import WalletSendScreen
 
+private enum ForkCameraMediaRestriction: Equatable {
+    case photos
+    case videos
+    case activeCall
+}
+
+private func forkCameraMediaRestriction(hasPhoto: Bool, hasVideo: Bool, photosBanned: Bool, videosBanned: Bool, hasActiveCall: Bool) -> ForkCameraMediaRestriction? {
+    if hasPhoto && photosBanned { return .photos }
+    if hasVideo && videosBanned { return .videos }
+    if hasVideo && hasActiveCall { return .activeCall }
+    return nil
+}
+
 private func legacyCameraCapturedMediaSignals(
     from result: Any,
     context: AccountContext,
@@ -1982,6 +1995,27 @@ extension ChatControllerImpl {
         }) as? TGCaptionPanelView
     }
 
+    private func cameraCaptureRestriction(hasPhoto: Bool, hasVideo: Bool) -> String? {
+        var photosBanned = false
+        var videosBanned = false
+        let bypass = canBypassRestrictions(chatPresentationInterfaceState: self.presentationInterfaceState)
+        if let channel = self.presentationInterfaceState.renderedPeer?.peer as? TelegramChannel {
+            photosBanned = channel.hasBannedPermission(.banSendPhotos, ignoreDefault: bypass) != nil
+            videosBanned = channel.hasBannedPermission(.banSendVideos, ignoreDefault: bypass) != nil
+        } else if let group = self.presentationInterfaceState.renderedPeer?.peer as? TelegramGroup {
+            photosBanned = group.hasBannedPermission(.banSendPhotos)
+            videosBanned = group.hasBannedPermission(.banSendVideos)
+        }
+        let hasActiveCall = (self.context.sharedContext.callManager as? PresentationCallManagerImpl)?.hasActiveCall ?? false
+        let strings = self.presentationData.strings
+        switch forkCameraMediaRestriction(hasPhoto: hasPhoto, hasVideo: hasVideo, photosBanned: photosBanned, videosBanned: videosBanned, hasActiveCall: hasActiveCall) {
+        case .photos: return strings.Chat_SendNotAllowedPhoto
+        case .videos: return strings.Chat_SendNotAllowedVideo
+        case .activeCall: return strings.Call_ExternalCallInProgressMessage
+        case nil: return nil
+        }
+    }
+
     func openCamera(cameraView: Any? = nil, isEditingMessage: Bool = false, presentCameraScreen: ((ViewController) -> Void)? = nil) {
         let _ = (self.context.sharedContext.accountManager.transaction { transaction -> GeneratedMediaStoreSettings in
             let entry = transaction.getSharedData(ApplicationSpecificSharedDataKeys.generatedMediaStoreSettings)?.get(GeneratedMediaStoreSettings.self)
@@ -2005,8 +2039,34 @@ extension ChatControllerImpl {
                 }
                 let send: (Bool, Int32?, Int32?) -> Void = { [weak self] silent, schedule, timer in
                     guard let self else { returnToCameraImpl?(); return }
+                    guard let resultSignal = result as? Signal<CameraScreenImpl.Result, NoError> else { returnToCameraImpl?(); return }
+                    let permittedResult = resultSignal
+                    |> deliverOnMainQueue
+                    |> filter { [weak self] result in
+                        guard let self else { return false }
+                        let hasPhoto: Bool
+                        let hasVideo: Bool
+                        switch result {
+                        case .image:
+                            hasPhoto = true; hasVideo = false
+                        case .video:
+                            hasPhoto = false; hasVideo = true
+                        case let .asset(asset):
+                            hasVideo = asset.mediaType == .video; hasPhoto = !hasVideo
+                        case let .assets(assets):
+                            hasVideo = assets.contains { $0.mediaType == .video }
+                            hasPhoto = assets.contains { $0.mediaType != .video }
+                        default:
+                            return true
+                        }
+                        if let text = self.cameraCaptureRestriction(hasPhoto: hasPhoto, hasVideo: hasVideo) {
+                            self.present(textAlertController(context: self.context, title: nil, text: text, actions: [TextAlertAction(type: .defaultAction, title: self.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
+                            return false
+                        }
+                        return true
+                    }
                     var didSend = false
-                    let _ = (legacyCameraCapturedMediaSignals(from: result, context: self.context, initialCaption: inputText, sendPaidMessageStars: sendPaidMessageStars, timer: timer)
+                    let _ = (legacyCameraCapturedMediaSignals(from: permittedResult, context: self.context, initialCaption: inputText, sendPaidMessageStars: sendPaidMessageStars, timer: timer)
                     |> deliverOnMainQueue).startStandalone(next: { [weak self] signals in
                         guard let self else { return }
                         didSend = true
@@ -2061,6 +2121,14 @@ extension ChatControllerImpl {
 
             let configureCamera: (ViewController) -> Void = { [weak self] controller in
                 guard let camera = controller as? CameraScreen else { return }
+                camera.capturePermission = { [weak self, weak controller] isVideo in
+                    guard let self else { return false }
+                    if let text = self.cameraCaptureRestriction(hasPhoto: !isVideo, hasVideo: isVideo) {
+                        controller?.present(textAlertController(context: self.context, title: nil, text: text, actions: [TextAlertAction(type: .defaultAction, title: self.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
+                        return false
+                    }
+                    return true
+                }
                 camera.recognizedCode = { [weak self, weak controller] code in
                     guard let self else { return false }
                     if let webSettings = parseWebProxySettingsLink(code), case let .web(secret, path) = webSettings.connection {

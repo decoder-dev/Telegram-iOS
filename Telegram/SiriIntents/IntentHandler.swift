@@ -65,28 +65,6 @@ private let accountAuxiliaryMethods = AccountAuxiliaryMethods(fetchResource: { a
     return .single(nil)
 })
 
-/// The first value of `signal`, or nil if it completes without one. The account signal does
-/// exactly that for a logged-out or upgrading record, and every handler waits for its first
-/// value; without this that wait never ended and the intent's completion never ran.
-private func firstValueOrNil<T>(_ signal: Signal<T?, NoError>) -> Signal<T?, NoError> {
-    return (signal |> take(1) |> map { Optional<T?>.some($0) })
-    |> then(.single(nil))
-    |> take(1)
-    |> map { $0 ?? nil }
-}
-
-/// Runs a signal that produces no values and reports `value` once it completes.
-private func completing<T, E>(_ signal: Signal<Never, E>, with value: T) -> Signal<T, E> {
-    return Signal { subscriber in
-        return signal.start(error: { error in
-            subscriber.putError(error)
-        }, completed: {
-            subscriber.putNext(value)
-            subscriber.putCompletion()
-        })
-    }
-}
-
 private struct ApplicationSettings {
     let logging: LoggingSettings
 }

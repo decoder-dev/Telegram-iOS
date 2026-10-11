@@ -776,6 +776,9 @@ private final class CameraScreenComponent: CombinedComponent {
             guard let controller = self.getController(), let camera = controller.camera, let cameraState = self.cameraState else {
                 return
             }
+            guard controller.capturePermission?(false) != false else {
+                return
+            }
             guard !(self.isTakingPhoto && !cameraState.isCollageEnabled) else {
                 return
             }
@@ -897,6 +900,9 @@ private final class CameraScreenComponent: CombinedComponent {
         
         func startVideoRecording(pressing: Bool) {
             guard let controller = self.getController(), let camera = controller.camera else {
+                return
+            }
+            guard controller.capturePermission?(true) != false else {
                 return
             }
             guard case .none = controller.cameraState.recording else {
@@ -2256,6 +2262,7 @@ private class BlurView: UIVisualEffectView {
 
 public class CameraScreenImpl: ViewController, CameraScreen {
     public var recognizedCode: ((String) -> Bool)?
+    public var capturePermission: ((Bool) -> Bool)?
     private var lastHandledCode: String?
     public enum Mode {
         case story
