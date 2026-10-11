@@ -2468,9 +2468,6 @@ static bool isBytesEqualConstTime(uint8_t const *bytes1, uint8_t const *bytes2, 
             [self timeSyncInfoChanged:timeDifference saltList:@[[[MTDatacenterSaltInfo alloc] initWithSalt:validSalt firstValidMessageId:incomingMessage.messageId lastValidMessageId:incomingMessage.messageId + (4294967296 * 30 * 60)]] authInfoSelector:authInfoSelector];
         }
         else
-                [self initiateTimeSync];
-        }
-        else
         {
             switch (badMsgNotification.errorCode)
             {

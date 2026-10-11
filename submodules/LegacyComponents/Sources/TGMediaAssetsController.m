@@ -1263,7 +1263,7 @@ static TGVideoEditAdjustments *TGMediaAssetsPatchedLivePhotoAdjustments(PGPhotoE
                             return cropVideoThumbnail(image, image.size, image.size, false);
                         }];
                         
-                        SSignal *thumbnailSignal = trimStartValue > FLT_EPSILON ? trimmedVideoThumbnailSignal : videoThumbnailSignal;
+                        __unused SSignal *thumbnailSignal = trimStartValue > FLT_EPSILON ? trimmedVideoThumbnailSignal : videoThumbnailSignal;
                         
                         TGMediaVideoConversionPreset preset = [TGMediaVideoConverter presetFromAdjustments:adjustments];
                         CGSize dimensions = [TGMediaVideoConverter dimensionsFor:asset.originalSize adjustments:adjustments preset:preset];

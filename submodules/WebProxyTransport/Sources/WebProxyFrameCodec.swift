@@ -1,6 +1,6 @@
 import Foundation
 
-public enum WebProxyFrameType: UInt8 {
+public enum LegacyWebProxyFrameType: UInt8 {
     case open = 0x01
     case data = 0x02
     case close = 0x03
@@ -12,19 +12,19 @@ public enum WebProxyFrameType: UInt8 {
     case bye = 0x1f
 }
 
-public struct WebProxyFrame: Equatable {
-    public let type: WebProxyFrameType
+public struct LegacyWebProxyFrame: Equatable {
+    public let type: LegacyWebProxyFrameType
     public let streamId: UInt32
     public let payload: Data
     
-    public init(type: WebProxyFrameType, streamId: UInt32, payload: Data) {
+    public init(type: LegacyWebProxyFrameType, streamId: UInt32, payload: Data) {
         self.type = type
         self.streamId = streamId
         self.payload = payload
     }
     
-    public static func hello() -> WebProxyFrame {
-        return WebProxyFrame(type: .hello, streamId: 0, payload: Data([0x01]))
+    public static func hello() -> LegacyWebProxyFrame {
+        return LegacyWebProxyFrame(type: .hello, streamId: 0, payload: Data([0x01]))
     }
 }
 
@@ -40,14 +40,14 @@ public enum WebProxyFrameCodec {
     public static let maxDataChunkSize = 65_536
     public static let maxBatchFrames = 4096
     
-    public static func encode(_ frame: WebProxyFrame) -> Data {
+    public static func encode(_ frame: LegacyWebProxyFrame) -> Data {
         var data = Data(capacity: 8 + frame.payload.count)
         appendEncoded(frame, to: &data)
         return data
     }
     
     /// Appends into an existing buffer so a batch is one allocation rather than one per frame.
-    private static func appendEncoded(_ frame: WebProxyFrame, to data: inout Data) {
+    private static func appendEncoded(_ frame: LegacyWebProxyFrame, to data: inout Data) {
         // Soft-skip instead of precondition: a long-lived soft-reconnect path used to mint
         // stream ids past the 24-bit wire limit and SIGABRT the process. Callers that still
         // overflow after the sidecar's allocateStreamId clamp must not take the app down.
@@ -68,7 +68,7 @@ public enum WebProxyFrameCodec {
         data.append(frame.payload)
     }
     
-    public static func encodeBatch(_ frames: [WebProxyFrame]) -> Data {
+    public static func encodeBatch(_ frames: [LegacyWebProxyFrame]) -> Data {
         var data = Data(capacity: frames.reduce(0) { $0 + 8 + $1.payload.count })
         for frame in frames {
             appendEncoded(frame, to: &data)
@@ -76,8 +76,8 @@ public enum WebProxyFrameCodec {
         return data
     }
     
-    public static func decodeBatch(_ data: Data) throws -> [WebProxyFrame] {
-        var frames: [WebProxyFrame] = []
+    public static func decodeBatch(_ data: Data) throws -> [LegacyWebProxyFrame] {
+        var frames: [LegacyWebProxyFrame] = []
         var offset = 0
         // `Data` subscripts by index, not by offset from the front, so every read is rebased on
         // `startIndex`. Without it this only worked while every caller happened to pass a
@@ -88,7 +88,7 @@ public enum WebProxyFrameCodec {
             if remaining < 8 {
                 throw WebProxyFrameCodecError.bufferTooShort
             }
-            guard let type = WebProxyFrameType(rawValue: data[base + offset]) else {
+            guard let type = LegacyWebProxyFrameType(rawValue: data[base + offset]) else {
                 throw WebProxyFrameCodecError.invalidFrameType
             }
             let streamId = (UInt32(data[base + offset + 1]) << 16) | (UInt32(data[base + offset + 2]) << 8) | UInt32(data[base + offset + 3])
@@ -106,7 +106,7 @@ public enum WebProxyFrameCodec {
                 throw WebProxyFrameCodecError.bufferTooShort
             }
             let payload = data.subdata(in: (base + offset + 8) ..< (base + end))
-            frames.append(WebProxyFrame(type: type, streamId: streamId, payload: payload))
+            frames.append(LegacyWebProxyFrame(type: type, streamId: streamId, payload: payload))
             offset = end
             if frames.count > maxBatchFrames {
                 throw WebProxyFrameCodecError.invalidBatch

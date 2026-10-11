@@ -345,7 +345,7 @@ public final class WebProxySidecar {
     public func sendKeepalivePing() {
         self.queue.async {
             guard let carrier = self.carrier else { return }
-            let frame = WebProxyFrame(type: .ping, streamId: 0, payload: Data([0xCA, 0xFE]))
+            let frame = LegacyWebProxyFrame(type: .ping, streamId: 0, payload: Data([0xCA, 0xFE]))
             carrier.sendFrames(WebProxyFrameCodec.encodeBatch([frame]))
             self.touchActivityLocked()
         }
@@ -608,7 +608,7 @@ public final class WebProxySidecar {
         let streamId = self.allocateStreamId()
         let stream = WebProxyStream(id: streamId, connection: connection)
         self.streams[streamId] = stream
-        carrier.sendFrames(WebProxyFrameCodec.encodeBatch([WebProxyFrame(type: .open, streamId: streamId, payload: Data())]))
+        carrier.sendFrames(WebProxyFrameCodec.encodeBatch([LegacyWebProxyFrame(type: .open, streamId: streamId, payload: Data())]))
         
         connection.stateUpdateHandler = { [weak self, weak stream] state in
             guard let self, let stream else {
@@ -772,7 +772,7 @@ public final class WebProxySidecar {
                     let streamId = self.allocateStreamId()
                     let stream = WebProxyStream(id: streamId, connection: session.connection)
                     self.streams[streamId] = stream
-                    carrier.sendFrames(WebProxyFrameCodec.encodeBatch([WebProxyFrame(type: .open, streamId: streamId, payload: request.target.openPayload(port: request.port))]))
+                    carrier.sendFrames(WebProxyFrameCodec.encodeBatch([LegacyWebProxyFrame(type: .open, streamId: streamId, payload: request.target.openPayload(port: request.port))]))
                     self.sendSocksBytes(session, Socks5Protocol.connectReply(succeeded: true))
                     session.isPromoted = true
                     let promotedConnection = session.connection
@@ -865,14 +865,14 @@ public final class WebProxySidecar {
         guard !self.transportReconnectInFlight, let carrier = self.carrier, carrier.isAcceptingFrames else {
             return
         }
-        var frames: [WebProxyFrame] = []
+        var frames: [LegacyWebProxyFrame] = []
         while stream.pendingUplinkCount > 0, stream.sendCredit > 0 {
             let chunkSize = min(min(WebProxyFrameCodec.maxDataChunkSize, stream.sendCredit), stream.pendingUplinkCount)
             let start = stream.pendingUplink.startIndex + stream.pendingUplinkOffset
             let chunk = Data(stream.pendingUplink[start ..< (start + chunkSize)])
             stream.pendingUplinkOffset += chunkSize
             stream.sendCredit -= chunkSize
-            frames.append(WebProxyFrame(type: .data, streamId: stream.id, payload: chunk))
+            frames.append(LegacyWebProxyFrame(type: .data, streamId: stream.id, payload: chunk))
         }
         stream.compactPendingUplink()
         if !frames.isEmpty {
@@ -880,7 +880,7 @@ public final class WebProxySidecar {
         }
     }
     
-    private func sendFrames(_ frames: [WebProxyFrame]) {
+    private func sendFrames(_ frames: [LegacyWebProxyFrame]) {
         guard let carrier = self.carrier else {
             return
         }
@@ -907,7 +907,7 @@ public final class WebProxySidecar {
                 // `PONG` is the exact response to a `PING`, payload included, whatever its size —
                 // the previous four-byte requirement dropped keepalives the relay would then time
                 // out on.
-                self.sendFrames([WebProxyFrame(type: .pong, streamId: frame.streamId, payload: frame.payload)])
+                self.sendFrames([LegacyWebProxyFrame(type: .pong, streamId: frame.streamId, payload: frame.payload)])
             case .bye:
                 // The relay is closing the carrier: fail every logical stream and tear down, so the
                 // manager reports the failure instead of leaving sockets hanging on a dead session.
@@ -999,7 +999,7 @@ public final class WebProxySidecar {
         payload.append(UInt8((delta >> 16) & 0xff))
         payload.append(UInt8((delta >> 8) & 0xff))
         payload.append(UInt8(delta & 0xff))
-        carrier.sendFrames(WebProxyFrameCodec.encodeBatch([WebProxyFrame(type: .window, streamId: streamId, payload: payload)]))
+        carrier.sendFrames(WebProxyFrameCodec.encodeBatch([LegacyWebProxyFrame(type: .window, streamId: streamId, payload: payload)]))
     }
     
     private func closeStream(_ streamId: UInt32, notifyRemote: Bool) {
@@ -1016,7 +1016,7 @@ public final class WebProxySidecar {
         stream.pendingWrite = Data()
         stream.connection.cancel()
         if notifyRemote {
-            self.sendFrames([WebProxyFrame(type: .close, streamId: streamId, payload: Data())])
+            self.sendFrames([LegacyWebProxyFrame(type: .close, streamId: streamId, payload: Data())])
         }
     }
 }

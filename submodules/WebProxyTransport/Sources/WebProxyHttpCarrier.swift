@@ -463,7 +463,7 @@ final class WebProxyHttpCarrier {
     }
     
     /// The first relay frame of the session must be `WELCOME` on stream zero.
-    private func consumeWelcome(in frames: [WebProxyFrame]) throws {
+    private func consumeWelcome(in frames: [LegacyWebProxyFrame]) throws {
         guard self.awaitingWelcome else {
             return
         }
@@ -1190,7 +1190,7 @@ final class WebProxyHttpCarrier {
         // send (MtProto stays paused until the sidecar is ready) while a relay need not push anything on its own. A PING
         // on stream 0 gives the open something to complete on, so the 20 s timeout is not the only way out.
         if self.multiplexWsUplink.count - self.multiplexWsUplinkOffset <= 0 {
-            self.multiplexWsUplink.append(WebProxyFrameCodec.encode(WebProxyFrame(type: .ping, streamId: 0, payload: Data([0xCA, 0xFE]))))
+            self.multiplexWsUplink.append(WebProxyFrameCodec.encode(LegacyWebProxyFrame(type: .ping, streamId: 0, payload: Data([0xCA, 0xFE]))))
         }
         self.flushMultiplexWsUplink()
         
@@ -1563,7 +1563,7 @@ final class WebProxyHttpCarrier {
         // Avoid cancel(with:) here; the task ends when the session is invalidated or the peer closes.
         if notifyApp {
             // Synthesize CLOSE so the sidecar tears down the local MTProto socket for this stream.
-            let closeFrame = WebProxyFrameCodec.encode(WebProxyFrame(type: .close, streamId: laneId, payload: Data()))
+            let closeFrame = WebProxyFrameCodec.encode(LegacyWebProxyFrame(type: .close, streamId: laneId, payload: Data()))
             self.onDownlinkBatch?(closeFrame)
         }
         self.pumpWsLaneConnectQueue()
