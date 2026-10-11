@@ -10,7 +10,8 @@ camera = (root / 'submodules/TelegramUI/Components/CameraScreen/Sources/CameraSc
 for method, gate in [('func takePhoto()', 'capturePermission?(false)'), ('func startVideoRecording(pressing:', 'capturePermission?(true)')]:
     body = camera[camera.index(method):]
     assert gate in body[:600], 'Capture must check current permission before starting'
-send = source[source.index('let send: (Bool, Int32?, Int32?)'):source.index('var items: [ActionSheetItem]')]
+send_start = source.index('let send: (Bool, Int32?, Int32?)')
+send = source[send_start:source.index('var items: [ActionSheetItem]', send_start)]
 assert send.index('self.cameraCaptureRestriction(') < send.index('legacyCameraCapturedMediaSignals(')
 assert 'ignoreDefault: bypass' in source.split('private func cameraCaptureRestriction', 1)[1].split('func openCamera', 1)[0]
 fixture = '''import Foundation
