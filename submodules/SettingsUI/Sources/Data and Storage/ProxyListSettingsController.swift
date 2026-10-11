@@ -251,111 +251,35 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
         }
     }
     
-    static func <(lhs: ProxySettingsControllerEntry, rhs: ProxySettingsControllerEntry) -> Bool {
-        switch lhs {
-            case .enabled:
-                switch rhs {
-                    case .enabled:
-                        return false
-                    default:
-                        return true
-                }
-            case .serversHeader:
-                switch rhs {
-                    case .enabled, .serversHeader:
-                        return false
-                    default:
-                        return true
-                }
-            case .addProxy:
-                switch rhs {
-                    case .enabled, .serversHeader, .addProxy:
-                        return false
-                    default:
-                        return true
-                }
-            case let .server(lhsIndex, _, _, _, _, _, _, _, _):
-                switch rhs {
-                    case .enabled, .serversHeader, .addProxy:
-                        return false
-                    case let .server(rhsIndex, _, _, _, _, _, _, _, _):
-                        return lhsIndex < rhsIndex
-                    default:
-                        return true
-                }
-            case .shareProxyList:
-                switch rhs {
-                    case .enabled, .serversHeader, .addProxy, .server, .shareProxyList:
-                        return false
-                    default:
-                        return true
-            }
-            case .useLocalDNS:
-                switch rhs {
-                    case .enabled, .serversHeader, .addProxy, .server, .shareProxyList, .useLocalDNS:
-                        return false
-                    default:
-                        return true
-                }
-            case .useLocalDNSInfo:
-                switch rhs {
-                    case .enabled, .serversHeader, .addProxy, .server, .shareProxyList, .useLocalDNS, .useLocalDNSInfo:
-                        return false
-                    default:
-                        return true
-                }
-            case .autoRotate:
-                switch rhs {
-                    case .enabled, .serversHeader, .addProxy, .server, .shareProxyList, .useLocalDNS, .useLocalDNSInfo, .autoRotate:
-                        return false
-                    default:
-                        return true
-                }
-            case .autoRotateTimeout:
-                switch rhs {
-                    case .enabled, .serversHeader, .addProxy, .server, .shareProxyList, .useLocalDNS, .useLocalDNSInfo, .autoRotate, .autoRotateTimeout:
-                        return false
-                    default:
-                        return true
-                }
-            case .autoRotateTimeoutInfo:
-                switch rhs {
-                    case .enabled, .serversHeader, .addProxy, .server, .shareProxyList, .useLocalDNS, .useLocalDNSInfo, .autoRotate, .autoRotateTimeout, .autoRotateTimeoutInfo:
-                        return false
-                    default:
-                        return true
-                }
-            case .autoRotateInfo:
-                switch rhs {
-                    case .enabled, .serversHeader, .addProxy, .server, .shareProxyList, .useLocalDNS, .useLocalDNSInfo, .autoRotate, .autoRotateTimeout, .autoRotateTimeoutInfo, .autoRotateInfo:
-                        return false
-                    default:
-                        return true
-                }
-            case .autoFetch:
-                switch rhs {
-                    case .enabled, .serversHeader, .addProxy, .server, .shareProxyList, .useLocalDNS, .useLocalDNSInfo, .autoRotate, .autoRotateTimeout, .autoRotateTimeoutInfo, .autoRotateInfo, .autoFetch:
-                        return false
-                    default:
-                        return true
-                }
-            case .autoFetchInfo:
-                switch rhs {
-                    case .enabled, .serversHeader, .addProxy, .server, .shareProxyList, .useLocalDNS, .useLocalDNSInfo, .autoRotate, .autoRotateTimeout, .autoRotateTimeoutInfo, .autoRotateInfo, .autoFetch, .autoFetchInfo:
-                        return false
-                    default:
-                        return true
-                }
-            case .useForCalls:
-                switch rhs {
-                    case .enabled, .serversHeader, .addProxy, .server, .shareProxyList, .useLocalDNS, .useLocalDNSInfo, .autoRotate, .autoRotateTimeout, .autoRotateTimeoutInfo, .autoRotateInfo, .autoFetch, .autoFetchInfo, .useForCalls:
-                        return false
-                    default:
-                        return true
-                }
-            case .useForCallsInfo:
-                return false
+    /// Position in the list; must match the order `proxySettingsControllerEntries` appends rows in. The list diff
+    /// relies on `<` agreeing with that order: Auto MTProxy is appended before Auto-rotate, while the old comparison
+    /// put Auto-rotate first, so toggling either one inserted rows without removing the old ones and the screen
+    /// showed them twice.
+    private var sortRank: Int {
+        switch self {
+            case .enabled: return 0
+            case .serversHeader: return 1
+            case .addProxy: return 2
+            case .server: return 3
+            case .shareProxyList: return 4
+            case .useLocalDNS: return 5
+            case .useLocalDNSInfo: return 6
+            case .autoFetch: return 7
+            case .autoFetchInfo: return 8
+            case .autoRotate: return 9
+            case .autoRotateTimeout: return 10
+            case .autoRotateTimeoutInfo: return 11
+            case .autoRotateInfo: return 12
+            case .useForCalls: return 13
+            case .useForCallsInfo: return 14
         }
+    }
+    
+    static func <(lhs: ProxySettingsControllerEntry, rhs: ProxySettingsControllerEntry) -> Bool {
+        if case let .server(lhsIndex, _, _, _, _, _, _, _, _) = lhs, case let .server(rhsIndex, _, _, _, _, _, _, _, _) = rhs {
+            return lhsIndex < rhsIndex
+        }
+        return lhs.sortRank < rhs.sortRank
     }
     
     func item(presentationData: ItemListPresentationData, arguments: Any) -> ListViewItem {
