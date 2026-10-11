@@ -94,9 +94,13 @@ public enum PostboxAccessChallengeData: PostboxCoding, Equatable, Codable {
                 encoder.encodeInt32(4, forKey: "r")
                 encoder.encodeString(value, forKey: "t")
             case let .secured(id, kind):
-                encoder.encodeInt32(5, forKey: "r")
+                // Older BananaGram reads tag 3 as a digest. Keep it locked on
+                // downgrade rather than letting an unknown tag become `.none`.
+                encoder.encodeInt32(3, forKey: "r")
                 encoder.encodeString(id, forKey: "id")
                 encoder.encodeString(kind.rawValue, forKey: "kind")
+                encoder.encodeString("credential:\(id)", forKey: "t")
+                encoder.encodeInt32(kind == .digits4 ? 4 : 6, forKey: "d")
         }
     }
     
@@ -137,6 +141,8 @@ public enum PostboxAccessChallengeData: PostboxCoding, Equatable, Codable {
         case let .plaintextPasswordHash(value):
             try container.encode(value, forKey: .plaintextPasswordHash)
         case let .secured(id, kind):
+            try container.encode("credential:\(id)", forKey: .numericalPasswordHash)
+            try container.encode(kind == .digits4 ? 4 : 6, forKey: .numericalPasswordHashDigits)
             var secured = container.nestedContainer(keyedBy: SecuredCodingKeys.self, forKey: .secured)
             try secured.encode(id, forKey: .id)
             try secured.encode(kind, forKey: .kind)

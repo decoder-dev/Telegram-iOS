@@ -12,7 +12,10 @@ Telegram Desktop `6fed91ffab9861771a75f29df65031b3c80b6941`,
 Fork persistence compatibility retains the existing FlatBuffers union prefixes,
 VLESS proxy discriminator 3, old root Web proxy discriminator 2, and the old
 hashed passcode formats. New Web proxy paths use a separate discriminator 4.
-Managed passcodes use a separate Postbox tag and legacy digest migration requires
+Managed passcodes use the official credential ID form of tag 3 with an invalid
+digest marker that keeps the previous fork locked on downgrade. New clients
+resolve the credential ID first; older clients cannot unlock it with a passcode.
+Legacy digest migration requires
 successful authentication, preserving cooldown and credential authority.
 
 Camera zoom and recording failure handling move to CameraLegacy with the upstream

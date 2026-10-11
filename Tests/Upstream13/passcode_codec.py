@@ -6,6 +6,8 @@ import tempfile
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 source = (ROOT / 'submodules/TelegramCore/Sources/AccountManager/AccountManagerMetadataTable.swift').read_text(encoding='utf-8')
 enum = source[source.index('public enum PostboxAccessChallengeData:'):source.index('public struct AuthAccountRecord<')]
+old = subprocess.check_output(['git', 'show', '6fd195d294be0a6f5a831b2de5671250faaecbe8:submodules/TelegramCore/Sources/AccountManager/AccountManagerMetadataTable.swift'], cwd=ROOT).decode()
+old_enum = old[old.index('public enum PostboxAccessChallengeData:'):old.index('public struct AuthAccountRecord<')].replace('PostboxAccessChallengeData', 'LegacyAccessChallengeData')
 fixture = '''import Foundation
 public protocol PostboxCoding { init(decoder: PostboxDecoder); func encode(_ encoder: PostboxEncoder) }
 public final class PostboxDecoder {
@@ -20,7 +22,7 @@ public final class PostboxEncoder {
     public func encodeInt32(_ value: Int32, forKey: String) { values[forKey] = value }
     public func encodeString(_ value: String, forKey: String) { values[forKey] = value }
 }
-''' + enum + '''
+''' + enum + old_enum + '''
 let numeric = PostboxAccessChallengeData.numericalPasswordHash(value: "digest", digits: 6)
 let alpha = PostboxAccessChallengeData.plaintextPasswordHash(value: "alpha")
 let secured = PostboxAccessChallengeData.secured(id: "credential", kind: .digits6)
@@ -31,14 +33,24 @@ for value in [numeric, alpha, secured, .none, .numericalPassword(value: "123456"
     let encoded = PostboxEncoder()
     value.encode(encoded)
     precondition(PostboxAccessChallengeData(decoder: PostboxDecoder(encoded.values)) == value)
-    if value == secured { precondition(encoded.values["r"] as? Int32 == 5) }
+    if value == secured {
+        precondition(encoded.values["r"] as? Int32 == 3)
+        let previous = LegacyAccessChallengeData(decoder: PostboxDecoder(encoded.values))
+        precondition(previous.isLockable, "Downgrade must not disable the lock")
+        guard case let .numericalPasswordHash(value, _) = previous else { fatalError("Legacy guard missing") }
+        precondition(value == "credential:credential")
+    }
     let json = try JSONEncoder().encode(value)
     let decoded = try JSONDecoder().decode(PostboxAccessChallengeData.self, from: json)
     precondition(decoded == value)
+    if value == secured {
+        let previous = try JSONDecoder().decode(LegacyAccessChallengeData.self, from: json)
+        precondition(previous.isLockable, "Legacy JSON decode must not disable the lock")
+    }
 }
 let unknown = PostboxAccessChallengeData(decoder: PostboxDecoder(["r": Int32(999)]))
 precondition(unknown != .none, "Unknown challenge must fail closed")
-print("PASS legacy Postbox tags, official credential import, fork credential tag, Codable round trips")
+print("PASS legacy tags, credential import, Codable round trips and previous-client lock retention")
 '''
 with tempfile.TemporaryDirectory() as temporary:
     path = pathlib.Path(temporary)
