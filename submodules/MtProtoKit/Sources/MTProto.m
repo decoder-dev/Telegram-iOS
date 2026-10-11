@@ -2296,8 +2296,8 @@ static bool isBytesEqualConstTime(uint8_t const *bytes1, uint8_t const *bytes2, 
         *topMessageSize = declaredSize;
     } else {
         // salt ‖ session_id ‖ message_id ‖ seq_no ‖ message_data_length. The length
-        // and padding were validated when the frame was decrypted; the body handed
-        // on still carries the trailing padding, as it always has.
+        // and padding were validated when the frame was decrypted. Bound the body
+        // again here so the parser never receives transport padding.
         headerLength = 8 + 8 + 8 + 4 + 4;
         if (data.length < headerLength) {
             return false;
@@ -2306,10 +2306,13 @@ static bool isBytesEqualConstTime(uint8_t const *bytes1, uint8_t const *bytes2, 
         memcpy(sessionId, bytes + 8, 8);
         memcpy(messageId, bytes + 16, 8);
         memcpy(seqNo, bytes + 24, 4);
-        *topMessageSize = 0;
+        memcpy(topMessageSize, bytes + 28, 4);
     }
 
-    *body = [data subdataWithRange:NSMakeRange(headerLength, data.length - headerLength)];
+    if (*topMessageSize < 4 || *topMessageSize % 4 != 0 || (NSUInteger)*topMessageSize > data.length - headerLength) {
+        return false;
+    }
+    *body = [data subdataWithRange:NSMakeRange(headerLength, (NSUInteger)*topMessageSize)];
     return true;
 }
 

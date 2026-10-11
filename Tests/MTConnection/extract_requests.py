@@ -5,12 +5,16 @@ import sys
 root = pathlib.Path(__file__).resolve().parents[2]
 source = pathlib.Path(sys.argv[1]).read_text()
 if pathlib.Path(sys.argv[1]).name == "MTProto.m":
-    begin = source.index("- (NSData *)_decryptIncomingTransportData:")
+    decrypt_marker = "+ (NSData *)_decryptedPayloadForIncomingTransportData:" if "+ (NSData *)_decryptedPayloadForIncomingTransportData:" in source else "- (NSData *)_decryptIncomingTransportData:"
+    begin = source.index(decrypt_marker)
     begin = source.index("    int32_t messageDataLength = 0;", begin)
     end = source.index("\n}", begin)
     validation = source[begin:end]
     begin = source.index("- (NSArray *)_parseIncomingMessages:")
     method = source[begin:source.index("- (void)_processIncomingMessage:", begin)]
+    if "+ (bool)_readIncomingPayload:" in source:
+        helper = source.index("+ (bool)_readIncomingPayload:")
+        method = source[helper:source.index("- (id)parseMessage:", helper)] + method
     template = (root / "Tests/MTConnection/envelope.m").read_text()
     pathlib.Path(sys.argv[2]).write_text(template.replace("/* ENVELOPE_VALIDATION */", validation).replace("/* PRODUCTION_METHODS */", method))
     sys.exit(0)
