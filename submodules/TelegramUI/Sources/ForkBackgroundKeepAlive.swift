@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 import AVFoundation
 import SwiftSignalKit
 import TelegramAudio
@@ -19,13 +20,56 @@ final class ForkBackgroundKeepAlive {
     private var sessionDisposable: Disposable?
     private var player: AVAudioPlayer?
     private var isEnabled = false
+    /// The audio session is ours (the holder is active); false while a call, a voice message or music has it.
+    private var hasSession = false
+    private var isAppActive = true
+    private var restartTimer: SwiftSignalKit.Timer?
+    private var observers: [NSObjectProtocol] = []
+    
+    /// True while the silence keeps the process running. `SharedWakeupManager` keeps the accounts' update
+    /// connections up for as long as this holds: a process kept alive with its MTProto connection asleep
+    /// would still miss the call. Main queue only.
+    var keepsNetworkAlive: Bool {
+        return self.isEnabled && !self.isAppActive
+    }
     
     private init() {
+    }
+    
+    /// Main queue only; `shared` may first be touched from a settings queue.
+    private func setUpObserversIfNeeded() {
+        if !self.observers.isEmpty {
+            return
+        }
+        let center = NotificationCenter.default
+        self.isAppActive = UIApplication.shared.applicationState == .active
+        // The silence is only needed while the app is off screen. Playing it in the foreground cost battery for nothing.
+        self.observers.append(center.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: .main, using: { [weak self] _ in
+            self?.updateAppActive(false)
+        }))
+        self.observers.append(center.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main, using: { [weak self] _ in
+            self?.updateAppActive(false)
+        }))
+        self.observers.append(center.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main, using: { [weak self] _ in
+            self?.updateAppActive(true)
+        }))
+        // Siri, an alarm or a cellular call stop the player, and nothing restarted it: the app was suspended
+        // after the first interruption of the night.
+        self.observers.append(center.addObserver(forName: AVAudioSession.interruptionNotification, object: AVAudioSession.sharedInstance(), queue: .main, using: { [weak self] notification in
+            guard let typeValue = notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt, let type = AVAudioSession.InterruptionType(rawValue: typeValue), type == .ended else {
+                return
+            }
+            self?.scheduleRestart(reason: "interruption ended")
+        }))
+        self.observers.append(center.addObserver(forName: AVAudioSession.mediaServicesWereResetNotification, object: AVAudioSession.sharedInstance(), queue: .main, using: { [weak self] _ in
+            self?.scheduleRestart(reason: "media services reset")
+        }))
     }
     
     /// Safe to call from any queue and as often as the setting changes.
     func update(enabled: Bool) {
         Queue.mainQueue().async {
+            self.setUpObserversIfNeeded()
             if enabled == self.isEnabled {
                 return
             }
@@ -38,17 +82,50 @@ final class ForkBackgroundKeepAlive {
         }
     }
     
+    private func updateAppActive(_ isActive: Bool) {
+        if self.isAppActive == isActive {
+            return
+        }
+        self.isAppActive = isActive
+        self.updatePlayback()
+    }
+    
     private func start() {
         Logger.shared.log("KeepAlive", "enabled")
+        self.pushSession()
+    }
+    
+    private func stop() {
+        Logger.shared.log("KeepAlive", "disabled")
+        self.restartTimer?.invalidate()
+        self.restartTimer = nil
         self.sessionDisposable?.dispose()
+        self.sessionDisposable = nil
+        self.hasSession = false
+        self.updatePlayback()
+    }
+    
+    /// The holder stays pushed while the setting is on, beneath everything else, so a voice message or music
+    /// started later takes over and hands the session back. Pushing it only on the way to the background would
+    /// put it on top and pause whatever is already playing.
+    private func pushSession() {
+        self.sessionDisposable?.dispose()
+        self.hasSession = false
         self.sessionDisposable = MediaManagerImpl.globalAudioSession.push(audioSessionType: .play(mixWithOthers: true), activate: { [weak self] _ in
             Queue.mainQueue().async {
-                self?.beginPlayback()
+                guard let self else {
+                    return
+                }
+                self.hasSession = true
+                self.updatePlayback()
             }
         }, deactivate: { [weak self] _ in
             return Signal { subscriber in
                 Queue.mainQueue().async {
-                    self?.endPlayback()
+                    if let self {
+                        self.hasSession = false
+                        self.updatePlayback()
+                    }
                     subscriber.putCompletion()
                 }
                 return EmptyDisposable
@@ -56,15 +133,38 @@ final class ForkBackgroundKeepAlive {
         })
     }
     
-    private func stop() {
-        Logger.shared.log("KeepAlive", "disabled")
-        self.sessionDisposable?.dispose()
-        self.sessionDisposable = nil
-        self.endPlayback()
+    private func scheduleRestart(reason: String) {
+        guard self.isEnabled else {
+            return
+        }
+        self.restartTimer?.invalidate()
+        // The session cannot be taken back the instant an interruption ends; give the other side a moment.
+        let timer = SwiftSignalKit.Timer(timeout: 1.0, repeat: false, completion: { [weak self] in
+            guard let self, self.isEnabled else {
+                return
+            }
+            self.restartTimer = nil
+            Logger.shared.log("KeepAlive", "restarting after \(reason)")
+            self.endPlayback()
+            self.pushSession()
+        }, queue: Queue.mainQueue())
+        self.restartTimer = timer
+        timer.start()
+    }
+    
+    private func updatePlayback() {
+        if self.isEnabled && self.hasSession && !self.isAppActive {
+            self.beginPlayback()
+        } else {
+            self.endPlayback()
+        }
     }
     
     private func beginPlayback() {
-        guard self.isEnabled, self.player == nil else {
+        if let player = self.player {
+            if !player.isPlaying && !player.play() {
+                Logger.shared.log("KeepAlive", "silent loop refused to resume")
+            }
             return
         }
         do {

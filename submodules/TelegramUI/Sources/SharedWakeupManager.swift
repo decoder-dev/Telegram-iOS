@@ -1155,10 +1155,15 @@ public final class SharedWakeupManager {
         if self.inForeground || self.hasActiveAudioSession || self.isInBackgroundExtension || self.backgroundProcessingTaskId != nil || self.backgroundStoryProcessingTaskId != nil || hasBackgroundLocationTask || (hasTasks && self.currentExternalCompletion != nil) || self.activeExplicitExtensionTimer != nil || self.silenceAudioRenderer != nil {
             self.logTransactionsStateIfChanged("true (active)")
             
+            // "Keep App Alive in Background": the silent loop keeps the process running, but without this every
+            // account's update connection went to sleep with the app, so a call never reached the locked phone.
+            // Worker (download) connections and online presence stay off.
+            let keepAliveNetwork = !self.inForeground && self.hasActiveAudioSession && ForkBackgroundKeepAlive.shared.keepsNetworkAlive
+            
             for (account, primary, tasks) in self.accountsAndTasks {
                 account.postbox.setCanBeginTransactions(true)
                 
-                if (self.inForeground && primary) || !tasks.isEmpty || (self.activeExplicitExtensionTimer != nil && primary) {
+                if (self.inForeground && primary) || !tasks.isEmpty || (self.activeExplicitExtensionTimer != nil && primary) || keepAliveNetwork {
                     account.shouldBeServiceTaskMaster.set(.single(.always))
                 } else {
                     account.shouldBeServiceTaskMaster.set(.single(.never))
