@@ -38,7 +38,7 @@ class BazelResourcesTests(unittest.TestCase):
 
     def test_repo_cache_is_outside_checkout(self):
         workflow = (ROOT / '.github/workflows/build.yml').read_text(encoding='utf-8')
-        self.assertIn('BAZEL_REPO_CACHE: ${{ runner.temp }}/telegram-bazel-repo-cache', workflow)
+        self.assertIn('BAZEL_REPO_CACHE: /private/var/tmp/telegram-bazel-repo-cache', workflow)
         self.assertNotIn('BAZEL_REPO_CACHE: ${{ github.workspace }}', workflow)
 
 if __name__ == '__main__':
