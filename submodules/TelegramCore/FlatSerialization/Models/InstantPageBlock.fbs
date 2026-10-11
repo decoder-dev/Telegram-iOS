@@ -276,7 +276,3 @@ table InstantPageRelatedArticle {
     date:int32 (id: 6);
 }
 
-table InstantPageBlock_Document {
-    id:MediaId (id: 0, required);
-    caption:InstantPageCaption (id: 1, required);
-}

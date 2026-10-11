@@ -177,8 +177,6 @@ public indirect enum InstantPageBlock: PostboxCoding, Equatable {
                 self = .document(id: MediaId(namespace: decoder.decodeInt32ForKey("i.n", orElse: 0), id: decoder.decodeInt64ForKey("i.i", orElse: 0)), caption: decodeCaption(decoder))
             case InstantPageBlockType.audio.rawValue:
                 self = .audio(id: MediaId(namespace: decoder.decodeInt32ForKey("i.n", orElse: 0), id: decoder.decodeInt64ForKey("i.i", orElse: 0)), caption: decodeCaption(decoder))
-            case InstantPageBlockType.document.rawValue:
-                self = .document(id: MediaId(namespace: decoder.decodeInt32ForKey("i.n", orElse: 0), id: decoder.decodeInt64ForKey("i.i", orElse: 0)), caption: decodeCaption(decoder))
             case InstantPageBlockType.buttonRow.rawValue:
                 self = .buttonRow(
                     alignment: InstantPageButtonRowAlignment(rawValue: decoder.decodeInt32ForKey("al", orElse: 0)) ?? .justify,
@@ -363,11 +361,6 @@ public indirect enum InstantPageBlock: PostboxCoding, Equatable {
                 encoder.encodeObject(caption, forKey: "mc")
             case let .audio(id, caption):
                 encoder.encodeInt32(InstantPageBlockType.audio.rawValue, forKey: "r")
-                encoder.encodeInt32(id.namespace, forKey: "i.n")
-                encoder.encodeInt64(id.id, forKey: "i.i")
-                encoder.encodeObject(caption, forKey: "mc")
-            case let .document(id, caption):
-                encoder.encodeInt32(InstantPageBlockType.document.rawValue, forKey: "r")
                 encoder.encodeInt32(id.namespace, forKey: "i.n")
                 encoder.encodeInt64(id.id, forKey: "i.i")
                 encoder.encodeObject(caption, forKey: "mc")
@@ -579,12 +572,6 @@ public indirect enum InstantPageBlock: PostboxCoding, Equatable {
                 } else {
                     return false
                 }
-            case let .document(id, caption):
-                if case .document(id, caption) = rhs {
-                    return true
-                } else {
-                    return false
-                }
             case let .buttonRow(alignment, buttons):
                 if case .buttonRow(alignment, buttons) = rhs {
                     return true
@@ -736,11 +723,6 @@ public indirect enum InstantPageBlock: PostboxCoding, Equatable {
                 throw FlatBuffersError.missingRequiredField()
             }
             self = .audio(id: MediaId(value.id), caption: try InstantPageCaption(flatBuffersObject: value.caption))
-        case .instantpageblockDocument:
-            guard let value = flatBuffersObject.value(type: TelegramCore_InstantPageBlock_Document.self) else {
-                throw FlatBuffersError.missingRequiredField()
-            }
-            self = .document(id: MediaId(value.id), caption: try InstantPageCaption(flatBuffersObject: value.caption))
         case .instantpageblockButtonrow:
             guard let value = flatBuffersObject.value(type: TelegramCore_InstantPageBlock_ButtonRow.self) else {
                 throw FlatBuffersError.missingRequiredField()
@@ -967,13 +949,6 @@ public indirect enum InstantPageBlock: PostboxCoding, Equatable {
             TelegramCore_InstantPageBlock_Audio.add(id: id.asFlatBuffersObject(), &builder)
             TelegramCore_InstantPageBlock_Audio.add(caption: captionOffset, &builder)
             offset = TelegramCore_InstantPageBlock_Audio.endInstantPageBlock_Audio(&builder, start: start)
-        case let .document(id, caption):
-            valueType = .instantpageblockDocument
-            let captionOffset = caption.encodeToFlatBuffers(builder: &builder)
-            let start = TelegramCore_InstantPageBlock_Document.startInstantPageBlock_Document(&builder)
-            TelegramCore_InstantPageBlock_Document.add(id: id.asFlatBuffersObject(), &builder)
-            TelegramCore_InstantPageBlock_Document.add(caption: captionOffset, &builder)
-            offset = TelegramCore_InstantPageBlock_Document.endInstantPageBlock_Document(&builder, start: start)
         case let .buttonRow(alignment, buttons):
             valueType = .instantpageblockButtonrow
             let buttonOffsets = buttons.map { $0.encodeToFlatBuffers(builder: &builder) }
