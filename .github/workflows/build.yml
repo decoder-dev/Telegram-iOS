@@ -181,6 +181,7 @@ jobs:
           cd submodules/TgVoipWebrtc/tgcalls
           git apply --check ../patches/vless-media-socks.patch
           git apply ../patches/vless-media-socks.patch
+          python3 ../../../Tests/Upstream13/call_patch.py .
 
       - name: Select Xcode
         env:

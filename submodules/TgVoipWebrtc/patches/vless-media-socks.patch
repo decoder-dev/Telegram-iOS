@@ -1,45 +1,3 @@
-diff --git a/tgcalls/EncryptedConnection.cpp b/tgcalls/EncryptedConnection.cpp
-index d6a464d..18f003f 100644
---- a/tgcalls/EncryptedConnection.cpp
-+++ b/tgcalls/EncryptedConnection.cpp
-@@ -485,6 +485,7 @@ auto EncryptedConnection::processPacket(
-     auto firstMessageRequiringAck = true;
-     auto newRequiringAckReceived = false;
- 
-+    const auto packetCounter = CounterFromSeq(packetSeq);
-     auto currentSeq = packetSeq;
-     auto currentCounter = CounterFromSeq(currentSeq);
-     rtc::ByteBufferReader reader(rtc::ArrayView<const uint8_t>(
-@@ -516,7 +517,9 @@ auto EncryptedConnection::processPacket(
-             const auto messageRequiresAck = ((currentSeq & kMessageRequiresAckSeqBit) != 0);
-             const auto skipMessage = messageRequiresAck
-                 ? !registerSentAck(currentCounter, firstMessageRequiringAck)
--                : (additionalMessage && !registerIncomingCounter(currentCounter));
-+                : (additionalMessage
-+                    && (currentCounter > packetCounter
-+                        || !registerIncomingCounter(currentCounter)));
-             if (messageRequiresAck) {
-                 firstMessageRequiringAck = false;
-                 if (!skipMessage) {
-@@ -571,6 +574,7 @@ auto EncryptedConnection::processRawPacket(
-     auto firstMessageRequiringAck = true;
-     auto newRequiringAckReceived = false;
- 
-+    const auto packetCounter = CounterFromSeq(packetSeq);
-     auto currentSeq = packetSeq;
-     auto currentCounter = CounterFromSeq(currentSeq);
-     rtc::ByteBufferReader reader(rtc::ArrayView<const uint8_t>(
-@@ -605,7 +609,9 @@ auto EncryptedConnection::processRawPacket(
-                 const auto messageRequiresAck = ((currentSeq & kMessageRequiresAckSeqBit) != 0);
-                 const auto skipMessage = messageRequiresAck
-                     ? !registerSentAck(currentCounter, firstMessageRequiringAck)
--                    : (additionalMessage && !registerIncomingCounter(currentCounter));
-+                    : (additionalMessage
-+                        && (currentCounter > packetCounter
-+                            || !registerIncomingCounter(currentCounter)));
-                 if (messageRequiresAck) {
-                     firstMessageRequiringAck = false;
-                     if (!skipMessage) {
 diff --git a/tgcalls/Instance.h b/tgcalls/Instance.h
 index 1ade11d..4eda2d1 100644
 --- a/tgcalls/Instance.h
@@ -94,7 +52,7 @@ index 2363bdc..613c395 100644
  : _logSink(std::make_unique<LogSinkImpl>(descriptor.config.logPath)) {
      rtc::LogMessage::LogToDebug(rtc::LS_INFO);
 diff --git a/tgcalls/group/GroupInstanceCustomImpl.cpp b/tgcalls/group/GroupInstanceCustomImpl.cpp
-index 762d1b9..3a3a91b 100644
+index c234127..b6e0dca 100644
 --- a/tgcalls/group/GroupInstanceCustomImpl.cpp
 +++ b/tgcalls/group/GroupInstanceCustomImpl.cpp
 @@ -1,5 +1,6 @@
@@ -104,7 +62,7 @@ index 762d1b9..3a3a91b 100644
  #include <memory>
  #include <iomanip>
  
-@@ -129,6 +130,32 @@ static uint16_t stringToUInt16(std::string const &string) {
+@@ -124,6 +125,32 @@ static uint16_t stringToUInt16(std::string const &string) {
      return value;
  }
  
@@ -137,7 +95,7 @@ index 762d1b9..3a3a91b 100644
  static std::string formatTimestampMillis(int64_t timestamp) {
      std::ostringstream stringStream;
      stringStream.imbue(std::locale::classic());
-@@ -2127,6 +2154,8 @@ public:
+@@ -1350,6 +1377,8 @@ public:
      _videoContentType(descriptor.videoContentType),
      _videoCodecPreferences(std::move(descriptor.videoCodecPreferences)),
      _e2eEncryptDecrypt(descriptor.e2eEncryptDecrypt),
@@ -146,7 +104,7 @@ index 762d1b9..3a3a91b 100644
      _eventLog(std::make_unique<webrtc::RtcEventLogNull>()),
      _webrtcEnvironment(webrtc::EnvironmentFactory().Create()),
      _netEqFactory(createNetEqFactory()),
-@@ -2202,8 +2231,9 @@ public:
+@@ -1425,8 +1454,9 @@ public:
          );
  
          bool takeAudioLevelFromNetwork = _e2eEncryptDecrypt == nullptr;
@@ -157,7 +115,7 @@ index 762d1b9..3a3a91b 100644
              return std::make_shared<GroupNetworkManager>(
                  fieldTrialsBasedConfig,
                  [=](const GroupNetworkManager::State &state) {
-@@ -2212,7 +2242,9 @@ public:
+@@ -1435,7 +1465,9 @@ public:
                          if (!strong) {
                              return;
                          }
@@ -168,7 +126,7 @@ index 762d1b9..3a3a91b 100644
                      });
                  },
                  [=](uint32_t ssrc, int payloadType) {
-@@ -2253,7 +2285,7 @@ public:
+@@ -1476,7 +1508,7 @@ public:
                              strong->updateSsrcActivity(ssrc);
                          }
                      });
@@ -177,7 +135,7 @@ index 762d1b9..3a3a91b 100644
          }));
  
      #if USE_RNNOISE
-@@ -3224,11 +3256,13 @@ public:
+@@ -2460,11 +2492,13 @@ public:
          });
      }
  
@@ -193,7 +151,7 @@ index 762d1b9..3a3a91b 100644
  
          RTC_LOG(LS_INFO) << formatTimestampMillis(rtc::TimeMillis()) << ": " << "setIsRtcConnected: " << _isRtcConnected;
  
-@@ -3274,8 +3308,11 @@ public:
+@@ -2510,8 +2544,11 @@ public:
          effectiveNetworkState.isConnected = isEffectivelyConnected;
          effectiveNetworkState.isTransitioningFromBroadcastToRtc = isTransitioningFromBroadcastToRtc;
          effectiveNetworkState.connectionMode = _connectionMode;
@@ -206,7 +164,7 @@ index 762d1b9..3a3a91b 100644
              _effectiveNetworkState = effectiveNetworkState;
  
              if (_networkStateUpdated) {
-@@ -3285,7 +3322,7 @@ public:
+@@ -2521,7 +2558,7 @@ public:
  
          NetworkStateLogRecord record;
          record.isConnected = effectiveNetworkState.isConnected;
@@ -215,7 +173,7 @@ index 762d1b9..3a3a91b 100644
  
          if (effectiveNetworkState.isConnected && !_hasBeenConnected) {
              _hasBeenConnected = true;
-@@ -3855,6 +3892,9 @@ public:
+@@ -3091,6 +3128,9 @@ public:
          auto parsedPayload = GroupJoinResponsePayload::parse(payload);
          if (!parsedPayload) {
              RTC_LOG(LS_ERROR) << "Could not parse json response payload";
@@ -225,7 +183,7 @@ index 762d1b9..3a3a91b 100644
              return;
          }
  
-@@ -3866,13 +3906,20 @@ public:
+@@ -3102,13 +3142,20 @@ public:
              setServerBandwidthProbingChannelSsrc(parsedPayload->videoInformation->serverVideoBandwidthProbingSsrc);
          }
  
@@ -247,7 +205,7 @@ index 762d1b9..3a3a91b 100644
                  rtc::SocketAddress address(candidate.ip, stringToInt(candidate.port));
  
                  std::string candidateType = candidate.type;
-@@ -4437,6 +4484,8 @@ private:
+@@ -3675,6 +3722,8 @@ private:
      VideoContentType _videoContentType{VideoContentType::None};
      std::vector<VideoCodecName> _videoCodecPreferences;
      std::function<std::vector<uint8_t>(std::vector<uint8_t> const &, int64_t, bool, int32_t)> _e2eEncryptDecrypt;
@@ -256,8 +214,8 @@ index 762d1b9..3a3a91b 100644
  
      int _nextMediaChannelDescriptionsRequestId = 0;
      std::map<int, RequestedMediaChannelDescriptions> _requestedMediaChannelDescriptions;
-@@ -4505,6 +4554,7 @@ private:
-     std::shared_ptr<ExternalAudioRecorder> _externalAudioRecorder;
+@@ -3747,6 +3796,7 @@ private:
+     bool _usesExternalAudioRecorder = false;
  
      bool _isRtcConnected = false;
 +    bool _isRtcFailed = false;
@@ -783,45 +741,8 @@ index 49bbf19..f33987a 100644
                  return getAnswer(std::move(remoteNegotiationContent));
              } else {
                  return nullptr;
-diff --git a/tgcalls/v2/CustomDcSctpSocket.cpp b/tgcalls/v2/CustomDcSctpSocket.cpp
-index 6a13446..4d0cb80 100644
---- a/tgcalls/v2/CustomDcSctpSocket.cpp
-+++ b/tgcalls/v2/CustomDcSctpSocket.cpp
-@@ -261,6 +261,7 @@ bool CustomDcSctpSocket::IsConsistent() const {
-       return (tcb_ != nullptr && !t1_init_->is_running() &&
-               !t1_cookie_->is_running() && t2_shutdown_->is_running());
-   }
-+  return {};
- }
- 
- constexpr absl::string_view CustomDcSctpSocket::ToString(CustomDcSctpSocket::State state) {
-@@ -282,6 +283,7 @@ constexpr absl::string_view CustomDcSctpSocket::ToString(CustomDcSctpSocket::Sta
-     case CustomDcSctpSocket::State::kShutdownAckSent:
-       return "SHUTDOWN_ACK_SENT";
-   }
-+  return "UNKNOWN";
- }
- 
- void CustomDcSctpSocket::SetState(State state, absl::string_view reason) {
-@@ -598,6 +600,7 @@ SocketState CustomDcSctpSocket::state() const {
-     case State::kShutdownAckSent:
-       return SocketState::kShuttingDown;
-   }
-+  return {};
- }
- 
- void CustomDcSctpSocket::SetMaxMessageSize(size_t max_message_size) {
-@@ -1818,7 +1821,7 @@ CustomDcSctpSocket::GetHandoverStateAndClose() {
-     InternalClose(ErrorKind::kNoError, "handover");
-   }
- 
--  return std::move(state);
-+  return state;
- }
- 
- }  // namespace dcsctp
 diff --git a/tgcalls/v2/NativeNetworkingImpl.cpp b/tgcalls/v2/NativeNetworkingImpl.cpp
-index 0dbd393..2b21068 100644
+index b067cf5..3f3283a 100644
 --- a/tgcalls/v2/NativeNetworkingImpl.cpp
 +++ b/tgcalls/v2/NativeNetworkingImpl.cpp
 @@ -1,5 +1,7 @@
@@ -841,22 +762,15 @@ index 0dbd393..2b21068 100644
  
  #include "TurnCustomizerImpl.h"
  #include "ReflectorRelayPortFactory.h"
-@@ -22,9 +26,10 @@
- #include "platform/PlatformInterface.h"
- #include "p2p/base/turn_port.h"
- 
--#include "ReflectorPort.h"
--#include "FieldTrialsConfig.h"
+@@ -26,11 +30,90 @@
+ #include "FieldTrialsConfig.h"
  #include "EncryptedConnection.h"
-+#include "FieldTrialsConfig.h"
-+#include "ReflectorPort.h"
+ #include "v2/CustomParameters.h"
 +#include "Socks5UdpSocketFactory.h"
  
  namespace tgcalls {
  
-@@ -39,6 +44,83 @@ bool getCustomParameterBool(std::map<std::string, json11::Json> const &parameter
-     }
- }
+ namespace {
  
 +bool isInternetFamily(int family) {
 +    return family == AF_INET || family == AF_INET6;
@@ -935,10 +849,11 @@ index 0dbd393..2b21068 100644
 +    return result;
 +}
 +
++
  class CryptStringImpl : public rtc::CryptStringImpl {
  public:
      CryptStringImpl(std::string const &value) :
-@@ -173,15 +255,28 @@ private:
+@@ -165,15 +248,28 @@ private:
  
  class WrappedBasicPacketSocketFactory : public rtc::PacketSocketFactory {
  public:
@@ -969,7 +884,7 @@ index 0dbd393..2b21068 100644
          in_addr v4addr;
          inet_pton(AF_INET, "0.1.2.3", &v4addr);
          rtc::IPAddress ipAddress(v4addr);
-@@ -197,6 +292,9 @@ public:
+@@ -189,6 +285,9 @@ public:
      }
      
      virtual rtc::AsyncListenSocket *CreateServerTcpSocket(const rtc::SocketAddress &local_address, uint16_t min_port, uint16_t max_port, int opts) override {
@@ -979,7 +894,7 @@ index 0dbd393..2b21068 100644
          in_addr v4addr;
          inet_pton(AF_INET, "0.1.2.3", &v4addr);
          rtc::IPAddress ipAddress(v4addr);
-@@ -208,6 +306,9 @@ public:
+@@ -200,6 +299,9 @@ public:
      }
  
      virtual rtc::AsyncPacketSocket *CreateClientTcpSocket(const rtc::SocketAddress &local_address, const rtc::SocketAddress& remote_address, const rtc::ProxyInfo& proxy_info, const std::string &user_agent, const rtc::PacketSocketTcpOptions& tcp_options) override {
@@ -989,7 +904,7 @@ index 0dbd393..2b21068 100644
          in_addr v4addr;
          inet_pton(AF_INET, "0.1.2.3", &v4addr);
          rtc::IPAddress ipAddress(v4addr);
-@@ -224,6 +325,9 @@ public:
+@@ -216,6 +318,9 @@ public:
  private:
      std::unique_ptr<rtc::BasicPacketSocketFactory> _impl;
      bool _standaloneReflectorMode = false;
@@ -999,7 +914,7 @@ index 0dbd393..2b21068 100644
  };
  
  class WrappedNetworkManager: public rtc::NetworkManager, public sigslot::has_slots<> {
-@@ -519,11 +623,34 @@ _dataChannelMessageReceived(configuration.dataChannelMessageReceived) {
+@@ -511,11 +616,34 @@ _dataChannelMessageReceived(configuration.dataChannelMessageReceived) {
      _underlyingSocketFactory = _threads->getNetworkThread()->socketserver();
      
      _networkMonitorFactory = PlatformInterface::SharedInstance()->createNetworkMonitorFactory();
@@ -1037,11 +952,11 @@ index 0dbd393..2b21068 100644
          _networkManager = std::make_unique<rtc::BasicNetworkManager>(_networkMonitorFactory.get(), _threads->getNetworkThread()->socketserver());
      }
      
-@@ -579,7 +706,22 @@ void NativeNetworkingImpl::resetDtlsSrtpTransport() {
+@@ -571,7 +699,22 @@ void NativeNetworkingImpl::resetDtlsSrtpTransport() {
          }
      }
      
--    _relayPortFactory.reset(new ReflectorRelayPortFactory(_rtcServers, standaloneReflectorMode, standaloneReflectorRoleId, _underlyingSocketFactory));
+-    _relayPortFactory.reset(new ReflectorRelayPortFactory(_rtcServers, standaloneReflectorMode, standaloneReflectorRoleId, _underlyingSocketFactory, getCustomParameterBool(_customParameters, "network_reflector_resolve_remote_candidate_ip")));
 +    auto rtcServers = _rtcServers;
 +    const auto managedRoute = _proxy && _proxy->managed;
 +    auto managedProxyIsValid = false;
@@ -1057,11 +972,11 @@ index 0dbd393..2b21068 100644
 +        _managedRouteIsValid = true;
 +    }
 +
-+    _relayPortFactory.reset(new ReflectorRelayPortFactory(rtcServers, standaloneReflectorMode, standaloneReflectorRoleId, _underlyingSocketFactory));
++    _relayPortFactory.reset(new ReflectorRelayPortFactory(rtcServers, standaloneReflectorMode, standaloneReflectorRoleId, _underlyingSocketFactory, getCustomParameterBool(_customParameters, "network_reflector_resolve_remote_candidate_ip")));
  
      _portAllocator.reset(new cricket::BasicPortAllocator(_networkManager.get(), _socketFactory.get(), _turnCustomizer.get(), _relayPortFactory.get()));
  
-@@ -597,16 +739,35 @@ void NativeNetworkingImpl::resetDtlsSrtpTransport() {
+@@ -589,16 +732,35 @@ void NativeNetworkingImpl::resetDtlsSrtpTransport() {
          cricket::PORTALLOCATOR_ENABLE_IPV6 |
          cricket::PORTALLOCATOR_ENABLE_IPV6_ON_WIFI;
  
@@ -1104,7 +1019,7 @@ index 0dbd393..2b21068 100644
      }
      
      _portAllocator->set_step_delay(cricket::kMinimumStepDelay);
-@@ -617,7 +778,7 @@ void NativeNetworkingImpl::resetDtlsSrtpTransport() {
+@@ -609,7 +771,7 @@ void NativeNetworkingImpl::resetDtlsSrtpTransport() {
      cricket::ServerAddresses stunServers;
      std::vector<cricket::RelayServerConfig> turnServers;
  
@@ -1113,7 +1028,7 @@ index 0dbd393..2b21068 100644
          if (server.isTurn) {
              turnServers.push_back(cricket::RelayServerConfig(
                  rtc::SocketAddress(server.host, server.port),
-@@ -692,6 +853,13 @@ void NativeNetworkingImpl::resetDtlsSrtpTransport() {
+@@ -684,6 +846,13 @@ void NativeNetworkingImpl::resetDtlsSrtpTransport() {
  }
  
  void NativeNetworkingImpl::start() {
@@ -1329,7 +1244,7 @@ index 0000000..5f3c847
 +
 +#endif // TGCALLS_V2_RAW_TCP_SOCKET_FACTORY_H_
 diff --git a/tgcalls/v2/ReflectorPort.cpp b/tgcalls/v2/ReflectorPort.cpp
-index 2004c43..1130c88 100644
+index 90c921a..da8dbc4 100644
 --- a/tgcalls/v2/ReflectorPort.cpp
 +++ b/tgcalls/v2/ReflectorPort.cpp
 @@ -23,7 +23,7 @@
@@ -1415,24 +1330,7 @@ index 2004c43..1130c88 100644
  }
  
  static int GetRelayPreference(cricket::ProtocolType proto) {
-@@ -228,13 +161,12 @@ ReflectorPort::~ReflectorPort() {
-         Release();
-     }
- 
-+    if (server_address_.proto == cricket::PROTO_TCP && socket_) {
-+        socket_->UnsubscribeCloseEvent(this);
-+    }
-     if (!SharedSocket()) {
-         delete socket_;
-     }
--    
--    if (server_address_.proto == cricket::PROTO_TCP) {
--        socket_->UnsubscribeCloseEvent(this);
--    }
- }
- 
- rtc::SocketAddress ReflectorPort::GetLocalAddress() const {
-@@ -374,14 +306,11 @@ bool ReflectorPort::CreateReflectorClientSocket() {
+@@ -382,14 +315,11 @@ bool ReflectorPort::CreateReflectorClientSocket() {
          }
      } else if (server_address_.proto == cricket::PROTO_TCP) {
          RTC_DCHECK(!SharedSocket());
