@@ -9,6 +9,12 @@ def read(path):
     return (ROOT / path).read_text(encoding='utf-8')
 
 class ForkIntegration(unittest.TestCase):
+    def test_camera_bridge_handles_the_new_collage_result(self):
+        source = read('submodules/TelegramUI/Sources/SharedAccountContext.swift')
+        bridge = source.split('public func legacyCameraCapturedMediaSignals(', 1)[1].split('public func makeMediaPickerScreen(', 1)[0]
+        self.assertIn('case .draft, .videoCollage, .collage:', bridge)
+        self.assertIn('return .complete()', bridge)
+
     def test_retired_fork_modules_are_not_resurrected_by_upstream(self):
         for path in ['submodules/LegacyComponents/Sources/FLAnimatedImage.m',
                      'submodules/LegacyComponents/Sources/TGPassportAttachMenu.m',

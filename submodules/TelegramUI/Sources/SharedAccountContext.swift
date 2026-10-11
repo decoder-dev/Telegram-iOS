@@ -4245,7 +4245,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
                 media = [.asset(asset, caption: initialCaption, price: price)]
             case let .assets(assets):
                 media = assets.map { .asset($0, caption: initialCaption, price: price) }
-            case .draft, .videoCollage:
+            case .draft, .videoCollage, .collage:
                 return .complete()
             }
 
