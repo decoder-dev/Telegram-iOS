@@ -131,7 +131,9 @@ jobs:
       BUILD_CONFIGURATION: release_arm64
       BAZEL_USER_ROOT: /private/var/tmp/_bazel_telegram_ios
       BAZEL_CACHE_DIR: ${{ github.workspace }}/.telegram-bazel-cache
-      BAZEL_REPO_CACHE: ${{ github.workspace }}/.telegram-bazel-repo-cache
+      # Bazel 9 also caches extracted repository contents here. It must reside
+      # outside the source workspace; actions/cache still persists this path.
+      BAZEL_REPO_CACHE: ${{ runner.temp }}/telegram-bazel-repo-cache
 
     steps:
       - uses: actions/checkout@v5
