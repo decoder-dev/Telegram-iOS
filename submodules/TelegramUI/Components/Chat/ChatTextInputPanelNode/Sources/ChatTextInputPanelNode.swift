@@ -91,24 +91,6 @@ private func accessibilityTextInputView(in view: UIView) -> UIView {
     return view
 }
 
-/// Height of the empty capsule: iMessage-style 36pt at the default text size, growing with it.
-///
-/// Shared with `calculateTextFieldRealInsets`, which centres one line of text inside exactly this
-/// height. The two were independent constants once, and drifted the moment the capsule grew.
-private func textFieldCapsuleHeight(baseFontSize: CGFloat) -> CGFloat {
-    if baseFontSize.isEqual(to: 26.0) {
-        return 46.0
-    } else if baseFontSize.isEqual(to: 23.0) {
-        return 42.0
-    } else if baseFontSize.isEqual(to: 21.0) {
-        return 39.0
-    } else if baseFontSize.isEqual(to: 19.0) {
-        return 37.0
-    } else {
-        return 36.0
-    }
-}
-
 private func calclulateTextFieldMinHeight(_ presentationInterfaceState: ChatPresentationInterfaceState, metrics: LayoutMetrics) -> CGFloat {
     return chatTextInputFieldMinHeight(for: presentationInterfaceState.fontSize)
 }
