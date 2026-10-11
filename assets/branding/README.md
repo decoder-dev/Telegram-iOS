@@ -1,12 +1,12 @@
 # BananaGram app identity
 
-Original vector banana mark, 21 coordinated palettes. BlueIcon remains the primary
+Glossy vector banana with a Telegram paper plane taking off from its curve, 21 coordinated palettes. BlueIcon remains the primary
 identifier for compatibility with installed alternate-icon selections.
 
 - `*.svg`: editable vector masters, 1024 x 1024; Apple supplies the outer mask.
 - `preview.png`: complete palette contact sheet.
 - `manifest.json`: shipped PNG paths, pixel dimensions and palette mapping.
-- Icon Composer uses the same mark as a separate layer.
+- Icon Composer (`Telegram.icon`): the banana and the paper plane are separate layers; the plane is Liquid Glass.
 
 Regenerate from repository root with Python 3, Pillow and CairoSVG:
 
