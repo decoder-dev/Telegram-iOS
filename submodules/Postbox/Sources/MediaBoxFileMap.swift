@@ -65,8 +65,10 @@ final class MediaBoxFileMap {
                     throw FileMapError.generic
                 }
                 
-                // `count` comes straight from the file; size the payload in 64-bit arithmetic,
-                // since `count * 2 * 8` in Int32 overflows (and traps) for large counts.
+                // `count` comes straight from the file. Size the payload in 64-bit
+                // arithmetic: `count * 2 * 8` in Int32 overflows (and traps) for any
+                // count of 2^27 or more, before the checksum gets a chance to reject
+                // the file. The legacy branch below already widens the same way.
                 let payloadLength: Int64 = 8 + Int64(count) * 2 * 8
                 if length < 4 + 4 + 4 + payloadLength {
                     throw FileMapError.generic

@@ -1,4 +1,5 @@
 import Foundation
+import LottieSettings
 import UIKit
 import Display
 import ComponentFlow
@@ -510,10 +511,11 @@ public final class QrCodeScreen: ViewControllerComponentContainer {
                     }
                 case let .vless(secret):
                     link = String(data: secret, encoding: .utf8) ?? ""
-                case let .web(secret):
-                    let secret = MTProxySecret.parseData(secret)?.serializeToString() ?? ""
-                    link = "\(externalLink ? "https://t.me/webproxy" : "tg://webproxy")?server=\(serverHost)"
-                    link += "&secret=\(secret.addingPercentEncoding(withAllowedCharacters: CharacterSet.urlQueryValueAllowed) ?? "")"
+                case .web:
+                    // Always the t.me form, regardless of `externalLink`: webProxySettingsLink
+                    // only builds that one, and parseWebProxySettingsLink accepts it alongside
+                    // tg://webproxy. The public frontend has no /webproxy route yet.
+                    link = webProxySettingsLink(server) ?? ""
                 }
                 return link
             }
@@ -673,7 +675,8 @@ private final class QrCodeComponent: Component {
                     transition: .immediate,
                     component: AnyComponent(LottieComponent(
                         content: LottieComponent.AppBundleContent(name: "PlaneLogo"),
-                        loop: true
+                        loop: true,
+                        lottieSettings: .noAccountFallback
                     )),
                     environment: {},
                     containerSize: cutoutFrame.size

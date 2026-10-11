@@ -54,8 +54,10 @@ extension PeerInfoScreenNode {
             }
             return
         }
-        // The Call button is shown before CachedUserData has arrived, so this must not require it;
-        // start the call optimistically and let the server enforce the privacy setting.
+        // The Call button is shown before CachedUserData has arrived (peerInfoHeaderButtons treats
+        // missing cached data as "calls available"), so this must not require it: a tap in that
+        // window used to return here silently. Start the call optimistically, as the chat path
+        // does; the server enforces the privacy setting if the cached data turns out to be stale.
         if let cachedUserData = self.data?.cachedData as? CachedUserData, cachedUserData.callsPrivate {
             self.controller?.push(self.context.sharedContext.makeSendInviteLinkScreen(context: self.context, subject: .groupCall(.create), peers: [TelegramForbiddenInvitePeer(
                 peer: EnginePeer(peer),

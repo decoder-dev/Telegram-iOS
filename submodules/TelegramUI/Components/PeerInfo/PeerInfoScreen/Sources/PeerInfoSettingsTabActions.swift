@@ -3,6 +3,7 @@ import UIKit
 import Display
 import AccountContext
 import TelegramPresentationData
+import PresentationDataUtils
 import SwiftSignalKit
 import ContextUI
 import TelegramCore
@@ -12,6 +13,7 @@ import ComponentFlow
 import ComponentDisplayAdapters
 import EmojiStatusComponent
 import TelegramUIPreferences
+import SettingsUI
 
 extension PeerInfoScreenNode {
     func accountContextMenuItems(context: AccountContext, logout: @escaping () -> Void) -> Signal<[ContextMenuItem], NoError> {
@@ -69,36 +71,42 @@ extension PeerInfoScreenNode {
     }
     
     func logoutAccount(id: AccountRecordId) {
-        let controller = ActionSheetController(presentationData: self.presentationData)
-        let dismissAction: () -> Void = { [weak controller] in
-            controller?.dismissAnimated()
-        }
-        
-        var items: [ActionSheetItem] = []
-        items.append(ActionSheetTextItem(title: self.presentationData.strings.Settings_LogoutConfirmationText.trimmingCharacters(in: .whitespacesAndNewlines)))
-        items.append(ActionSheetButtonItem(title: self.presentationData.strings.Settings_Logout, color: .destructive, action: { [weak self] in
-            dismissAction()
-            if let strongSelf = self {
-                // Don't leave an orphaned Archive-lock password hash behind for an account
-                // that no longer exists on this device.
-                let _ = (strongSelf.accountsAndPeers.get()
-                |> take(1)
-                |> deliverOnMainQueue).startStandalone(next: { accountsAndPeers in
-                    for (account, _, _) in accountsAndPeers {
-                        if account.account.id == id {
-                            ArchivePasswordKeychain.clear(peerId: account.account.peerId)
-                            break
-                        }
-                    }
-                })
-                let _ = logoutFromAccount(id: id, accountManager: strongSelf.context.sharedContext.accountManager, alreadyLoggedOutRemotely: false).startStandalone()
+        let presentationData = self.presentationData
+        self.logoutConfirmationDisposable.set(nil)
+        self.logoutConfirmationDisposable.set((self.context.sharedContext.activeAccountContexts
+        |> take(1)
+        |> mapToSignal { primary, accounts, _ -> Signal<(String, PeerId), NoError> in
+            let accountContext: AccountContext?
+            if let primary, primary.account.id == id {
+                accountContext = primary
+            } else {
+                accountContext = accounts.first(where: { $0.0 == id })?.1
             }
+            guard let accountContext else { return .complete() }
+            return logoutConfirmationText(context: accountContext, presentationData: presentationData)
+            |> map { ($0, accountContext.account.peerId) }
+        }
+        |> deliverOnMainQueue).start(next: { [weak self] text, logoutPeerId in
+            guard let self else { return }
+            let controller = textAlertController(
+                context: self.context,
+                updatedPresentationData: self.controller?.updatedPresentationData,
+                title: presentationData.strings.Settings_LogoutConfirmationTitle,
+                text: text,
+                actions: [
+                    TextAlertAction(type: .genericAction, title: presentationData.strings.Common_Cancel, action: {
+                    }),
+                    TextAlertAction(type: .defaultDestructiveAction, title: presentationData.strings.Settings_Logout, action: { [weak self] in
+                        if let strongSelf = self {
+                            ArchivePasswordKeychain.clear(peerId: logoutPeerId)
+                            let _ = logoutFromAccount(id: id, accountManager: strongSelf.context.sharedContext.accountManager, alreadyLoggedOutRemotely: false).startStandalone()
+                        }
+                    })
+                ],
+                parseMarkdown: true
+            )
+            self.controller?.present(controller, in: .window(.root))
         }))
-        controller.setItemGroups([
-            ActionSheetItemGroup(items: items),
-            ActionSheetItemGroup(items: [ActionSheetButtonItem(title: presentationData.strings.Common_Cancel, action: { dismissAction() })])
-        ])
-        self.controller?.present(controller, in: .window(.root), with: ViewControllerPresentationArguments(presentationAnimation: .modalSheet))
     }
 }
 

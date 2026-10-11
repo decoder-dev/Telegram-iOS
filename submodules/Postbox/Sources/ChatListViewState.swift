@@ -14,7 +14,8 @@ enum ChatListViewSpacePinned {
     }
     
     /// The index a table entry is keyed by inside a space with this mode. A space that
-    /// shows pinned chats as unpinned is keyed by the index with the pinning stripped.
+    /// shows pinned chats as unpinned is keyed by the index with the pinning stripped, so
+    /// every path that adds, looks up or removes an entry there must map through this.
     func spaceIndex(for index: ChatListIndex) -> ChatListIndex {
         switch self {
         case .includePinnedAsUnpinned:
@@ -193,11 +194,7 @@ private final class ChatListViewSpaceState {
             func mapEntry(_ entry: ChatListIntermediateEntry) -> MutableChatListEntry {
                 switch entry {
                 case let .message(index, messageIndex):
-                    var updatedIndex = index
-                    if case .includePinnedAsUnpinned = pinned {
-                        updatedIndex = ChatListIndex(pinningIndex: nil, messageIndex: index.messageIndex)
-                    }
-                    return .IntermediateMessageEntry(index: updatedIndex, messageIndex: messageIndex)
+                    return .IntermediateMessageEntry(index: pinned.spaceIndex(for: index), messageIndex: messageIndex)
                 case let .hole(hole):
                     return .HoleEntry(hole)
                 }
@@ -431,10 +428,7 @@ private final class ChatListViewSpaceState {
                             continue inner
                         }
                         
-                        var updatedIndex = index
-                        if case .includePinnedAsUnpinned = pinned {
-                            updatedIndex = ChatListIndex(pinningIndex: nil, messageIndex: index.messageIndex)
-                        }
+                        let updatedIndex = pinned.spaceIndex(for: index)
                         if let filterPredicate = filterPredicate {
                             if let peer = postbox.peerTable.get(updatedIndex.messageIndex.id.peerId) {
                                 let notificationsPeerId = peer.notificationSettingsPeerId ?? peer.id
@@ -514,12 +508,7 @@ private final class ChatListViewSpaceState {
                     case let .group(spaceGroupId, pinned, _):
                         if spaceGroupId == groupId {
                             for index in indices {
-                                var updatedIndex = index
-                                if case .includePinnedAsUnpinned = pinned {
-                                    updatedIndex = ChatListIndex(pinningIndex: nil, messageIndex: index.messageIndex)
-                                }
-                                
-                                if self.orderedEntries.remove(index: MutableChatListEntryIndex(index: updatedIndex, isMessage: true)) {
+                                if self.orderedEntries.remove(index: MutableChatListEntryIndex(index: pinned.spaceIndex(for: index), isMessage: true)) {
                                     hasUpdates = true
                                     hadRemovals = true
                                 }
@@ -668,30 +657,16 @@ private final class ChatListViewSpaceState {
                     let isIncluded = filterPredicate.includes(peer: mainPeer, groupId: groupId, isRemovedFromTotalUnreadCount: nowRemovedFromTotalUnreadCount, isUnread: isUnread, isContact: postbox.contactsTable.isContact(peerId: peerId), messageTagSummaryResult: messageTagSummaryResult)
                     if isIncluded && self.orderedEntries.indicesForPeerId(mainPeer.id) == nil {
                         for peer in peers {
-                            // A chat pinned in this folder is rejected by the predicate by its own id,
-                            // but an associated peer (a secret chat) never goes through that check, so
-                            // skip it here to avoid a duplicate entry with the pinned space.
+                            // isIncluded was decided for mainPeer, but ChatListFilterPredicate.includes
+                            // rejects a chat pinned in this folder by its *own* id, and an associated
+                            // peer (a secret chat) is never put through that check. Without this it is
+                            // inserted here while the .peers(asPinned:) space already holds it, leaving
+                            // two entries for one chat -- which trips the stableId assertion in
+                            // mergeListsStableWithUpdates.
                             if filterPredicate.pinnedPeerIds.contains(peer.id) {
                                 continue
                             }
-                            let tableEntry = postbox.chatListTable.getEntry(groupId: groupId, peerId: peer.id, messageHistoryTable: postbox.messageHistoryTable, peerChatInterfaceStateTable: postbox.peerChatInterfaceStateTable)
-                            if let entry = tableEntry {
-                                if pinned.include == (entry.index.pinningIndex != nil) {
-                                    if self.orderedEntries.indicesForPeerId(peer.id) == nil {
-                                        switch entry {
-                                        case let .message(index, messageIndex):
-                                            if self.add(entry: .IntermediateMessageEntry(index: pinned.spaceIndex(for: index), messageIndex: messageIndex)) {
-                                                hasUpdates = true
-                                            } else {
-                                                hasUpdates = true
-                                                hadRemovals = true
-                                            }
-                                        default:
-                                            break
-                                        }
-                                    }
-                                }
-                            }
+                            self.readdEntryFromTable(postbox: postbox, groupId: groupId, pinned: pinned, peerId: peer.id, hasUpdates: &hasUpdates, hadRemovals: &hadRemovals)
                         }
                     }
                 }
@@ -713,7 +688,9 @@ private final class ChatListViewSpaceState {
                         if updatedPeerSettings == nil && !updatedGlobalNotificationSettings {
                             return nil
                         }
-                        // On a global-only transaction the stored peer value is still authoritative.
+                        // Every write that changes a peer's effective settings also populates
+                        // currentUpdatedPeerNotificationSettings, so on a global-only transaction the stored value
+                        // is still authoritative and does not need to be re-read from the table.
                         let peerSettings = updatedPeerSettings ?? entryData.notificationSettings
                         let isRemovedFromTotalUnreadCount = resolvedIsRemovedFromTotalUnreadCount(globalSettings: globalNotificationSettings, peer: peer, peerSettings: peerSettings)
                         if updatedPeerSettings == nil && isRemovedFromTotalUnreadCount == entryData.isRemovedFromTotalUnreadCount {
@@ -930,30 +907,16 @@ private final class ChatListViewSpaceState {
                     let isIncluded = filterPredicate.includes(peer: mainPeer, groupId: groupId, isRemovedFromTotalUnreadCount: nowRemovedFromTotalUnreadCount, isUnread: isUnread, isContact: postbox.contactsTable.isContact(peerId: peerId), messageTagSummaryResult: messageTagSummaryResult)
                     if isIncluded && self.orderedEntries.indicesForPeerId(mainPeer.id) == nil {
                         for peer in peers {
-                            // A chat pinned in this folder is rejected by the predicate by its own id,
-                            // but an associated peer (a secret chat) never goes through that check, so
-                            // skip it here to avoid a duplicate entry with the pinned space.
+                            // isIncluded was decided for mainPeer, but ChatListFilterPredicate.includes
+                            // rejects a chat pinned in this folder by its *own* id, and an associated
+                            // peer (a secret chat) is never put through that check. Without this it is
+                            // inserted here while the .peers(asPinned:) space already holds it, leaving
+                            // two entries for one chat -- which trips the stableId assertion in
+                            // mergeListsStableWithUpdates.
                             if filterPredicate.pinnedPeerIds.contains(peer.id) {
                                 continue
                             }
-                            let tableEntry = postbox.chatListTable.getEntry(groupId: groupId, peerId: peer.id, messageHistoryTable: postbox.messageHistoryTable, peerChatInterfaceStateTable: postbox.peerChatInterfaceStateTable)
-                            if let entry = tableEntry {
-                                if pinned.include == (entry.index.pinningIndex != nil) {
-                                    if self.orderedEntries.indicesForPeerId(peer.id) == nil {
-                                        switch entry {
-                                        case let .message(index, messageIndex):
-                                            if self.add(entry: .IntermediateMessageEntry(index: pinned.spaceIndex(for: index), messageIndex: messageIndex)) {
-                                                hasUpdates = true
-                                            } else {
-                                                hasUpdates = true
-                                                hadRemovals = true
-                                            }
-                                        default:
-                                            break
-                                        }
-                                    }
-                                }
-                            }
+                            self.readdEntryFromTable(postbox: postbox, groupId: groupId, pinned: pinned, peerId: peer.id, hasUpdates: &hasUpdates, hadRemovals: &hadRemovals)
                         }
                     }
                 }
@@ -1124,6 +1087,30 @@ private final class ChatListViewSpaceState {
         #endif
     }
     
+    /// Re-adds a chat that now passes the filter from its table entry, if it belongs to
+    /// this space and is not already held. The table entry carries the chat's real index,
+    /// which is mapped to the space's key like every other entry path does. Otherwise the
+    /// removal for the next message, which arrives mapped, misses the row and a second row
+    /// for the same chat is inserted beside it.
+    private func readdEntryFromTable(postbox: PostboxImpl, groupId: PeerGroupId, pinned: ChatListViewSpacePinned, peerId: PeerId, hasUpdates: inout Bool, hadRemovals: inout Bool) {
+        guard self.orderedEntries.indicesForPeerId(peerId) == nil else {
+            return
+        }
+        guard let entry = postbox.chatListTable.getEntry(groupId: groupId, peerId: peerId, messageHistoryTable: postbox.messageHistoryTable, peerChatInterfaceStateTable: postbox.peerChatInterfaceStateTable) else {
+            return
+        }
+        guard pinned.include == (entry.index.pinningIndex != nil) else {
+            return
+        }
+        guard case let .message(index, messageIndex) = entry else {
+            return
+        }
+        hasUpdates = true
+        if !self.add(entry: .IntermediateMessageEntry(index: pinned.spaceIndex(for: index), messageIndex: messageIndex)) {
+            hadRemovals = true
+        }
+    }
+
     private func add(entry: MutableChatListEntry) -> Bool {
         if self.anchorIndex >= entry.entryIndex {
             let insertionIndex = binaryInsertionIndex(self.orderedEntries.lowerOrAtAnchor, extract: { $0.entryIndex }, searchItem: entry.entryIndex)

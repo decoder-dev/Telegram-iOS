@@ -627,7 +627,7 @@ public func makeDefaultDayPresentationTheme(extendingThemeReference: Presentatio
                 )
             ),
             primaryTextColor: UIColor(rgb: 0x000000),
-            secondaryTextColor: UIColor(rgb: 0x525252, alpha: 0.85),
+            secondaryTextColor: UIColor(rgb: 0x77828C, alpha: 1.0),
             linkTextColor: UIColor(rgb: 0x004bad),
             linkHighlightColor: defaultDayAccentColor.withAlphaComponent(0.3),
             scamColor: UIColor(rgb: 0xff3b30),

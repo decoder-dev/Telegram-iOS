@@ -1,0 +1,48 @@
+"""Regression contracts for fork behavior across the upstream 13 migration."""
+import pathlib
+import re
+import unittest
+
+ROOT = pathlib.Path(__file__).resolve().parents[2]
+
+def read(path):
+    return (ROOT / path).read_text(encoding='utf-8')
+
+class ForkIntegration(unittest.TestCase):
+    def test_secret_screenshot_policy_survives_new_capture_manager(self):
+        source = read('submodules/TelegramUI/Sources/ChatController.swift')
+        method = source.split('private func setupScreenCaptureDetectionIfNeeded()', 1)[1].split('override public func viewDidAppear', 1)[0]
+        self.assertIn('ForkSecretScreenshotSettings.allow', method)
+        self.assertIn('!ForkSecretScreenshotSettings.allow', method)
+        self.assertIn('self.screenCaptureManager = nil', method)
+
+    def test_bot_header_obeys_visibility_setting(self):
+        source = read('submodules/TelegramUI/Sources/ChatControllerNode.swift')
+        self.assertRegex(source, r'if !hideTopPanels, !ForkMessageVisibility.hideBotAutomation, let managingBotPanelNode')
+
+    def test_legacy_passcode_migration_does_not_reenter_file_lock(self):
+        source = read('submodules/PasscodeCore/Sources/Passcode.swift')
+        verified = source.split('public func migrateVerifiedLegacy(', 1)[1].split('private func wrap(', 1)[0]
+        self.assertIn('try self.serialized', verified)
+        self.assertIn('try self.migrateLegacyLocked(', verified)
+        self.assertNotIn('try self.migrateLegacy(', verified)
+        locked = source.split('private func migrateLegacyLocked(', 1)[1].split('/// Authenticate', 1)[0]
+        self.assertNotIn('self.serialized', locked)
+        self.assertIn('try self.save(record)', locked)
+
+    def test_voice_recording_uses_its_own_preference(self):
+        source = read('submodules/TelegramUI/Sources/Chat/ChatControllerMediaRecording.swift')
+        self.assertIn('pauseMusicOnRecording: self.context.sharedContext.currentMediaInputSettings.with({ $0.pauseMusicOnVoiceRecording })', source)
+
+    def test_schema_230_coverage(self):
+        api = '\n'.join(p.read_text(encoding='utf-8') for p in (ROOT / 'submodules/TelegramApi/Sources').glob('Api*.swift'))
+        ids = {int(v) & 0xffffffff for v in re.findall(r'appendInt32\((-?\d+)\)', api)}
+        schema = read('build-system/SwiftTL/api-230.tl')
+        self.assertIn('// LAYER 230', schema)
+        for line in schema.splitlines():
+            match = re.match(r'([\w.]+)#([0-9a-f]+)\b', line)
+            if match and '{X:Type}' not in line and match[1] not in {'true', 'error', 'null', 'vector'}:
+                self.assertIn(int(match[2], 16), ids, match[1])
+
+if __name__ == '__main__':
+    unittest.main()

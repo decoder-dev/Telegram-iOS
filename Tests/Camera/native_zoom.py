@@ -3,7 +3,7 @@ import pathlib
 import subprocess
 import tempfile
 root = pathlib.Path(__file__).resolve().parents[2]
-source = (root / "submodules/Camera/Sources/CameraDevice.swift").read_text(encoding="utf-8")
+source = (root / "submodules/Camera/CameraLegacy/Sources/CameraDevice.swift").read_text(encoding="utf-8")
 start = source.index("    var zoomFactorRange:")
 end = source.index("    func setZoomFactor(", start)
 fixture = """

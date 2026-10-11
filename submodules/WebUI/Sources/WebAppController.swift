@@ -1,4 +1,5 @@
 import Foundation
+import LottieSettings
 import UIKit
 @preconcurrency import WebKit
 import Display
@@ -81,6 +82,7 @@ public struct WebAppParameters {
     let isFullscreen: Bool
     let sameOrigin: Bool
     let appSettings: BotAppSettings?
+    let isOnramp: Bool
     
     public init(
         source: Source,
@@ -99,7 +101,8 @@ public struct WebAppParameters {
         fullSize: Bool,
         isFullscreen: Bool = false,
         sameOrigin: Bool = false,
-        appSettings: BotAppSettings? = nil
+        appSettings: BotAppSettings? = nil,
+        isOnramp: Bool = false
     ) {
         self.source = source
         self.peerId = peerId
@@ -118,6 +121,7 @@ public struct WebAppParameters {
         self.isFullscreen = isFullscreen
         self.sameOrigin = sameOrigin
         self.appSettings = appSettings
+        self.isOnramp = isOnramp
     }
 }
 
@@ -187,6 +191,12 @@ private let registeredProtocols: Void = {
     URLProtocol.registerClass(AppURLProtocol.self)
 }()
 #endif
+
+// A single shared probe used only to read authorization state. The iOS 14 replacements for
+// `CLLocationManager.authorizationStatus()` are instance properties, and allocating a manager
+// per subscription (on whichever queue happened to subscribe) is both wasteful and at odds
+// with CLLocationManager's threading guidance, so keep exactly one.
+private let sharedLocationAuthorizationManager = CLLocationManager()
 
 public final class WebAppController: ViewController, AttachmentContainable {
     public var requestAttachmentMenuExpansion: () -> Void = { }
@@ -1026,7 +1036,11 @@ public final class WebAppController: ViewController, AttachmentContainable {
                 }
                 
                 if previousLayout != nil && (previousLayout?.inputHeight ?? 0.0).isZero, let inputHeight = layout.inputHeight, inputHeight > 44.0, transition.isAnimated {
-                    Queue.mainQueue().after(0.4, {
+                    Queue.mainQueue().after(0.4, { [weak self] in
+                        guard let self else {
+                            return
+                        }
+
                         if let inputHeight = self.validLayout?.0.inputHeight, inputHeight > 44.0 {
                             webView.scrollToActiveElement(layout: layout, completion: { [weak self] contentOffset in
                                 let _ = self
@@ -2824,7 +2838,7 @@ public final class WebAppController: ViewController, AttachmentContainable {
                 var effectiveIsAbsolute = false
                 let referenceFrame: CMAttitudeReferenceFrame
                 
-                if absolute && [.authorizedWhenInUse, .authorizedAlways].contains(CLLocationManager.authorizationStatus()) && CMMotionManager.availableAttitudeReferenceFrames().contains(.xTrueNorthZVertical) {
+                if absolute && [.authorizedWhenInUse, .authorizedAlways].contains(sharedLocationAuthorizationManager.authorizationStatus) && CMMotionManager.availableAttitudeReferenceFrames().contains(.xTrueNorthZVertical) {
                     referenceFrame = .xTrueNorthZVertical
                     effectiveIsAbsolute = true
                 } else if absolute && CMMotionManager.availableAttitudeReferenceFrames().contains(.xMagneticNorthZVertical) {
@@ -3067,7 +3081,7 @@ public final class WebAppController: ViewController, AttachmentContainable {
                         undoText: self.presentationData.strings.WebApp_Download_Cancel
                     )
                 },
-                completion: { [weak self] resultUrl, _ in
+                completion: { [weak self, controller] resultUrl, _ in
                     if let resultUrl, let self {
                         removeImpl?()
                         
@@ -3554,7 +3568,9 @@ public final class WebAppController: ViewController, AttachmentContainable {
                                             elevatedLayout: true,
                                             action: { action in
                                                 if case .undo = action {
-                                                    
+                                                    let _ = updateWebAppPermissionsStateInteractively(context: context, peerId: botId) { current in
+                                                        return WebAppPermissionsState(location: WebAppPermissionsState.Location(isRequested: true, isAllowed: false), emojiStatus: current?.emojiStatus)
+                                                    }.startStandalone()
                                                 }
                                                 return true
                                             }
@@ -3607,6 +3623,7 @@ public final class WebAppController: ViewController, AttachmentContainable {
     private let payload: String?
     private let buttonText: String?
     private let forceHasSettings: Bool
+    private let isOnramp: Bool
     private let keepAliveSignal: Signal<Never, KeepWebViewError>?
     private let replyToMessageId: EngineMessage.Id?
     private let threadId: Int64?
@@ -3642,6 +3659,7 @@ public final class WebAppController: ViewController, AttachmentContainable {
         self.payload = params.payload
         self.buttonText = params.buttonText
         self.forceHasSettings = params.forceHasSettings
+        self.isOnramp = params.isOnramp
         self.keepAliveSignal = params.keepAliveSignal
         self.replyToMessageId = replyToMessageId
         self.threadId = threadId
@@ -3747,7 +3765,7 @@ public final class WebAppController: ViewController, AttachmentContainable {
     }
     
     private func updateNavigationButtons() {
-        var showGlassButtons = false
+        var showGlassButtons = self.isOnramp
         if case .attachMenu = self.source {
             showGlassButtons = true
         } else if self.isVerifyAgeBot {
@@ -3788,7 +3806,8 @@ public final class WebAppController: ViewController, AttachmentContainable {
                             ),
                             color: self.presentationData.theme.chat.inputPanel.panelControlColor,
                             size: CGSize(width: 34.0, height: 34.0),
-                            playOnce: self.moreButtonPlayOnce
+                            playOnce: self.moreButtonPlayOnce,
+                            lottieSettings: self.context.lottieRenderingSettings
                         )
                     )),
                     action: { [weak self] view in
@@ -3945,8 +3964,9 @@ public final class WebAppController: ViewController, AttachmentContainable {
         )
         |> map { [weak self] attachMenuBots, botPeer, botCommands, privacyPolicyUrl, activeDownloadProgress -> ContextController.Items in
             var items: [ContextMenuItem] = []
+            let displayFullMenu = self?.isOnramp == false
             
-            if let activeDownload, let progress = activeDownloadProgress {
+            if displayFullMenu, let activeDownload, let progress = activeDownloadProgress {
                 let isActive = progress < 1.0 - .ulpOfOne
                 let progressString: String
                 if isActive {
@@ -3973,7 +3993,7 @@ public final class WebAppController: ViewController, AttachmentContainable {
             }
             
             let attachMenuBot = attachMenuBots.first(where: { $0.peer.id == botId && !$0.flags.contains(.notActivated) })
-            if hasSettings {
+            if displayFullMenu && hasSettings {
                 items.append(.action(ContextMenuActionItem(text: presentationData.strings.WebApp_Settings, icon: { theme in
                     return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Settings"), color: theme.contextMenu.primaryColor)
                 }, action: { [weak self] c, _ in
@@ -3985,7 +4005,7 @@ public final class WebAppController: ViewController, AttachmentContainable {
                 })))
             }
             
-            if peerId != botId {
+            if displayFullMenu && peerId != botId {
                 items.append(.action(ContextMenuActionItem(text: presentationData.strings.WebApp_OpenBot, icon: { theme in
                     return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Bots"), color: theme.contextMenu.primaryColor)
                 }, action: { [weak self] c, _ in
@@ -4010,7 +4030,7 @@ public final class WebAppController: ViewController, AttachmentContainable {
                 })))
             }
             
-            if let addressName = botPeer?.addressName {
+            if displayFullMenu, let addressName = botPeer?.addressName {
                 items.append(.action(ContextMenuActionItem(text: presentationData.strings.WebApp_Share, icon: { theme in
                     return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Forward"), color: theme.contextMenu.primaryColor)
                 }, action: { [weak self] c, _ in
@@ -4027,15 +4047,17 @@ public final class WebAppController: ViewController, AttachmentContainable {
                 })))
             }
             
-            items.append(.action(ContextMenuActionItem(text: presentationData.strings.WebApp_ReloadPage, icon: { theme in
-                return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Reload"), color: theme.contextMenu.primaryColor)
-            }, action: { [weak self] c, _ in
-                c?.dismiss(completion: nil)
-                
-                self?.controllerNode.webView?.reload()
-            })))
+            if displayFullMenu {
+                items.append(.action(ContextMenuActionItem(text: presentationData.strings.WebApp_ReloadPage, icon: { theme in
+                    return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Reload"), color: theme.contextMenu.primaryColor)
+                }, action: { [weak self] c, _ in
+                    c?.dismiss(completion: nil)
+                    
+                    self?.controllerNode.webView?.reload()
+                })))
+            }
             
-            if let _ = self?.appName {
+            if displayFullMenu, let _ = self?.appName {
                 items.append(.action(ContextMenuActionItem(text: presentationData.strings.WebApp_AddToHomeScreen, icon: { theme in
                     return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/AddSquare"), color: theme.contextMenu.primaryColor)
                 }, action: { [weak self] c, _ in
@@ -4056,7 +4078,7 @@ public final class WebAppController: ViewController, AttachmentContainable {
                 
                 let context = self.context
                 let _ = (cachedWebAppTermsPage(context: context)
-                |> deliverOnMainQueue).startStandalone(next: { resolvedUrl in
+                |> deliverOnMainQueue).startStandalone(next: { [weak self] resolvedUrl in
                     context.sharedContext.openResolvedUrl(resolvedUrl, context: context, urlContext: .generic, navigationController: navigationController, forceExternal: true, forceUpdate: false, openPeer: { peer, navigation in
                     }, sendFile: nil, sendSticker: nil, sendEmoji: nil, requestMessageActionUrlAuth: nil, joinVoiceChat: nil, present: { [weak self] c, arguments in
                         self?.push(c)
@@ -4076,7 +4098,7 @@ public final class WebAppController: ViewController, AttachmentContainable {
                 (self.parentController() as? AttachmentController)?.minimizeIfNeeded()
                 if let privacyPolicyUrl {
                     self.context.sharedContext.openExternalUrl(context: self.context, urlContext: .generic, url: privacyPolicyUrl, forceExternal: false, presentationData: self.presentationData, navigationController: self.getNavigationController(), dismissInput: {})
-                } else if let botCommands, botCommands.contains(where: { $0.text == "privacy" }) {
+                } else if displayFullMenu, let botCommands, botCommands.contains(where: { $0.text == "privacy" }) {
                     let _ = enqueueMessages(account: self.context.account, peerId: self.botId, messages: [.message(text: "/privacy", attributes: [], inlineStickers: [:], mediaReference: nil, threadId: nil, replyToMessageId: nil, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: [])]).startStandalone()
                     
                     if let botPeer, let navigationController = self.getNavigationController() {
@@ -4087,7 +4109,7 @@ public final class WebAppController: ViewController, AttachmentContainable {
                 }
             })))
                         
-            if let _ = attachMenuBot, [.attachMenu, .settings, .generic].contains(source) {
+            if displayFullMenu, let _ = attachMenuBot, [.attachMenu, .settings, .generic].contains(source) {
                 items.append(.action(ContextMenuActionItem(text: presentationData.strings.WebApp_RemoveBot, textColor: .destructive, icon: { theme in
                     return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Delete"), color: theme.contextMenu.destructiveColor)
                 }, action: { [weak self] c, _ in
@@ -4342,9 +4364,11 @@ public func standaloneWebAppController(
         fromMenu: params.source == .menu,
         hasTextInput: false,
         isFullSize: params.fullSize,
+        roundsTopCornersInRegularLayout: params.isOnramp,
         makeEntityInputView: {
         return nil
     })
+    controller.animateAppearance = params.isOnramp
     controller.requestController = { _, present in
         let webAppController = WebAppController(context: context, updatedPresentationData: updatedPresentationData, params: params, replyToMessageId: nil, threadId: threadId)
         webAppController.openUrl = openUrl

@@ -47,11 +47,19 @@ jobs:
   regression:
     name: Regression tests
     runs-on: macos-26
-    timeout-minutes: 20
+    timeout-minutes: 30
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Telegram 13 migration and fork compatibility
+        run: |
+          python3 Tests/Upstream13/parse.py
+          python3 Tests/Upstream13/migration.py
+          python3 Tests/Upstream13/own_features.py
+          python3 Tests/Upstream13/passcode.py
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -111,7 +119,7 @@ jobs:
 
   build:
     needs: regression
-    # Default stays on macos-26 / Xcode 26.2: the first Xcode 27 preview IPA crashed on device.
+    # Default stays on macos-26 / the Xcode version in versions.json: the first Xcode 27 preview IPA crashed on device.
     # Dispatch with toolchain=xcode27 to build against the Xcode 27 / iOS 27 SDK runner instead.
     name: Build IPA (${{ inputs.toolchain == 'xcode27' && 'xcode-27' || 'macos-26' }})
     runs-on: ${{ inputs.toolchain == 'xcode27' && 'xcode-27' || 'macos-26' }}
@@ -195,7 +203,14 @@ jobs:
               CANDIDATE="$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1 || true)"
               [ -n "$CANDIDATE" ] || { echo "::error::No Xcode 26.x found"; exit 1; }
               DEVELOPER_DIR="${CANDIDATE}/Contents/Developer"
-              echo "::warning::using $(basename "$CANDIDATE") instead of ${XCODE_VERSION}"
+              ACTUAL_VERSION="$(DEVELOPER_DIR="$DEVELOPER_DIR" xcodebuild -version | awk '/^Xcode / { print $2 }')"
+              python3 - "$XCODE_VERSION" "$ACTUAL_VERSION" <<'PY'
+          import sys
+          version = lambda text: tuple(map(int, text.split('.')))
+          if version(sys.argv[2]) < version(sys.argv[1]):
+              raise SystemExit(f"Installed Xcode {sys.argv[2]} is older than required {sys.argv[1]}")
+          PY
+              echo "Using Xcode ${ACTUAL_VERSION}"
             fi
           fi
           sudo xcode-select -s "$DEVELOPER_DIR"
@@ -210,36 +225,7 @@ jobs:
           # The iOS 27 SDK libc++ rejects deployment targets below iOS 15.
           sed -i '' 's/^minimum_os_version = "13.0"/minimum_os_version = "15.0"/' Telegram/BUILD
           grep -n '^minimum_os_version' Telegram/BUILD
-          # The iOS 27 SDK refuses to launch an app without a scene manifest. The app builds its own window, so the
-          # manifest only registers TelegramSceneDelegate (submodules/TelegramUI/Sources/SceneDelegate.swift), which
-          # hands the scene to AppDelegate. Other toolchains keep the plist as it is.
-          python3 - <<'PY'
-          path = 'Telegram/BUILD'
-          text = open(path, encoding='utf-8').read()
-          marker = '    <key>UILaunchStoryboardName</key>\n'
-          assert text.count(marker) == 1, "launch storyboard key not found exactly once"
-          manifest = (
-              '    <key>UIApplicationSceneManifest</key>\n'
-              '    <dict>\n'
-              '        <key>UIApplicationSupportsMultipleScenes</key>\n'
-              '        <false/>\n'
-              '        <key>UISceneConfigurations</key>\n'
-              '        <dict>\n'
-              '            <key>UIWindowSceneSessionRoleApplication</key>\n'
-              '            <array>\n'
-              '                <dict>\n'
-              '                    <key>UISceneConfigurationName</key>\n'
-              '                    <string>Default Configuration</string>\n'
-              '                    <key>UISceneDelegateClassName</key>\n'
-              '                    <string>TelegramSceneDelegate</string>\n'
-              '                </dict>\n'
-              '            </array>\n'
-              '        </dict>\n'
-              '    </dict>\n'
-          )
-          open(path, 'w', encoding='utf-8').write(text.replace(marker, manifest + marker))
-          print("scene manifest added to Telegram/BUILD")
-          PY
+          # Telegram 13 includes its scene manifest for all supported toolchains.
           # Keep Swift diagnostic groups that are new in Xcode 27 as warnings (the BUILD files use -warnings-as-errors).
           python3 - <<'PY'
           import os, re
@@ -434,7 +420,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.create_release == true)
         env:
           GH_TOKEN: ${{ github.token }}
-          TOOLCHAIN_LABEL: ${{ inputs.toolchain == 'xcode27' && 'Xcode 27 / iOS 27 SDK (xcode-27 runner)' || 'Xcode 26.2 (macos-26)' }}
+          TOOLCHAIN_LABEL: ${{ inputs.toolchain == 'xcode27' && 'Xcode 27 / iOS 27 SDK (xcode-27 runner)' || 'Xcode from versions.json (macos-26)' }}
         run: |
           set -euo pipefail
           IPA="$PWD/artifacts/${IPA_NAME}"

@@ -11,8 +11,6 @@
 #import <MtProtoKit/MTQueue.h>
 #import <MtProtoKit/MTSignal.h>
 #import <MtProtoKit/MTBag.h>
-#import <MtProtoKit/MTAtomic.h>
-#import <MtProtoKit/MTHttpRequestOperation.h>
 #import <MtProtoKit/MTEncryption.h>
 #import <MtProtoKit/MTRequestMessageService.h>
 #import <MtProtoKit/MTRequest.h>
@@ -223,53 +221,7 @@
 
 @end
 
-@interface MTDNSCachedHostname : NSObject
-
-@property (nonatomic, strong) NSString *ip;
-@property (nonatomic) NSTimeInterval timestamp;
-
-@end
-
-@implementation MTDNSCachedHostname
-
-- (instancetype)initWithIp:(NSString *)ip timestamp:(NSTimeInterval)timestamp {
-    self = [super init];
-    if (self != nil) {
-        _ip = ip;
-        _timestamp = timestamp;
-    }
-    return self;
-}
-
-@end
-
 @implementation MTDNS
-
-+ (MTAtomic *)hostnameCache {
-    static MTAtomic *result = nil;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        result = [[MTAtomic alloc] initWithValue:[[NSMutableDictionary alloc] init]];
-    });
-    return result;
-}
-
-+ (NSString *)cachedIp:(NSString *)hostname {
-    return [[self hostnameCache] with:^id (NSMutableDictionary *dict) {
-        MTDNSCachedHostname *result = dict[hostname];
-        if (result != nil && result.timestamp > CFAbsoluteTimeGetCurrent() - 10.0 * 60.0) {
-            return result.ip;
-        }
-        return nil;
-    }];
-}
-
-+ (void)cacheIp:(NSString *)hostname ip:(NSString *)ip {
-    [[self hostnameCache] with:^id (NSMutableDictionary *dict) {
-        dict[hostname] = [[MTDNSCachedHostname alloc] initWithIp:ip timestamp:CFAbsoluteTimeGetCurrent()];
-        return nil;
-    }];
-}
 
 + (MTSignal *)resolveHostnameNative:(NSString *)hostname port:(int32_t)port {
     return [[MTDNSContext shared] mapToSignal:^MTSignal *(MTDNSContext *context) {
@@ -283,13 +235,19 @@
 }
 
 + (MTSignal *)resolveHostnameUniversal:(NSString *)hostname port:(int32_t)port {
-    // This used to race the native lookup against an HTTPS query to https://google.com/resolve
-    // (a spoofed Host header). That endpoint answers 404, the status was never checked and only
-    // successes were cached, so every connection through a hostname proxy paid one dead HTTPS
-    // round trip; with an unreachable proxy that meant hundreds per push in the notification
-    // extension. The native lookup coalesces concurrent callers and retries until it succeeds;
-    // the 10 s bound keeps the old fallback of handing the socket the bare hostname. take:1
-    // keeps a late native answer from reaching the connection as a second address.
+    // This used to race the native lookup against an HTTPS query to
+    // https://google.com/resolve, Google's DNS-over-HTTPS reached through a spoofed Host
+    // header. That endpoint answers 404 today (verified 2026-09), the status code was
+    // never checked, and only successes were cached - so every connection through a
+    // hostname proxy paid one dead HTTPS round trip, and an unreachable proxy turned that
+    // into hundreds per push in the notification extension (bugs.telegram.org/c/64534).
+    // The native lookup below coalesces concurrent callers and retries every 2 s until
+    // it succeeds; the 10 s bound keeps the old fallback of eventually handing the socket
+    // the bare hostname, so an unresolvable name still fails within the transport's 20 s
+    // watchdog rather than stalling it. `take:1` closes a narrow window: `single:` emits
+    // its next and its completion as two steps, and a native answer landing in between
+    // would reach MTTcpConnection as a second address and make it call connectToHost:
+    // again on a socket that is already connecting.
     return [[[self resolveHostnameNative:hostname port:port] timeout:10.0 onQueue:[MTQueue concurrentDefaultQueue] orSignal:[MTSignal single:hostname]] take:1];
 }
 

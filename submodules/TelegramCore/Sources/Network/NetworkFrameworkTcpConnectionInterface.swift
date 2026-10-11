@@ -71,6 +71,26 @@ func networkFrameworkConnectTimeout(host: String, requested: Double) -> Double {
 }
 
 @available(iOS 12.0, macOS 14.0, *)
+private func describeState(_ state: NWConnection.State) -> String {
+    switch state {
+    case .setup:
+        return "setup"
+    case let .waiting(error):
+        return "waiting(\(error))"
+    case .preparing:
+        return "preparing"
+    case .ready:
+        return "ready"
+    case let .failed(error):
+        return "failed(\(error))"
+    case .cancelled:
+        return "cancelled"
+    @unknown default:
+        return "unknown"
+    }
+}
+
+@available(iOS 12.0, macOS 14.0, *)
 final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInterface {
     private struct ReadRequest {
         let length: Int
@@ -139,6 +159,14 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
         /// loopback port from a hammered datacenter.
         private var endpointDescription: String = "?"
         
+        private var getLogPrefix: (() -> String)?
+        
+        private var instanceId: String
+        // Identifies this connection in the log. Extended with the account prefix and the remote
+        // address in `connect`, so that a line here can be lined up with the [MTTcpConnection#...]
+        // lines MtProtoKit emits for the same connection.
+        private var logId: String
+        
         init(
             queue: Queue,
             delegate: MTTcpConnectionInterfaceDelegate,
@@ -150,6 +178,11 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
             self.delegateQueue = delegateQueue
             
             self.requestChunkLength = 256 * 1024
+            
+            self.instanceId = ""
+            self.logId = ""
+            self.instanceId = String(UInt(bitPattern: ObjectIdentifier(self)), radix: 16)
+            self.logId = "[NWTcp#\(self.instanceId)]"
         }
         
         deinit {
@@ -180,6 +213,10 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
         
         private var endpointHealthKey = ""
 
+        func setGetLogPrefix(_ getLogPrefix: (() -> String)?) {
+            self.getLogPrefix = getLogPrefix
+        }
+        
         func connect(host: String, port: UInt16, timeout: Double) {
             if self.connection != nil, self.endpointDescription == "\(host):\(port)" {
                 return
@@ -200,6 +237,12 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
             self.attempt = Impl.nextAttempt
             let connectTimeout = networkFrameworkConnectTimeout(host: host, requested: timeout)
             
+            if let logPrefix = self.getLogPrefix?(), !logPrefix.isEmpty {
+                self.logId = "[NWTcp#\(self.instanceId) \(logPrefix) \(host):\(port)]"
+            } else {
+                self.logId = "[NWTcp#\(self.instanceId) \(host):\(port)]"
+            }
+            
             let host = NWEndpoint.Host(host)
             let port = NWEndpoint.Port(rawValue: port)!
             
@@ -212,6 +255,12 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
             tcpOptions.enableFastOpen = true
             
             let parameters = NWParameters(tls: nil, tcp: tcpOptions)
+            // nw_parameters_set_prefer_no_proxy defaults to false, so Network.framework routes
+            // through whatever proxy/PAC the current network advertises. MTProto does its own
+            // proxying, and a system proxy would otherwise silently hold the connection in
+            // preparing/waiting -- a failure mode the GCDAsyncSocket backend cannot have.
+            parameters.preferNoProxies = true
+            
             let connection = NWConnection(host: host, port: port, using: parameters)
             self.connection = connection
             
@@ -236,6 +285,7 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
                     guard let self = self, let connection = connection, self.connection === connection else {
                         return
                     }
+                    Logger.shared.log("NWTcp", "\(self.logId) path update: status: \(path.status), cellular: \(path.usesInterfaceType(.cellular)), wifi: \(path.usesInterfaceType(.wifi))")
                     if path.usesInterfaceType(.cellular) {
                         self.currentInterfaceIsWifi = false
                     } else {
@@ -324,6 +374,8 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
             Impl.inFlightConnectCount += 1
             Logger.shared.log("Network", "NW connect starting to \(self.endpointDescription), \(Impl.inFlightConnectCount) in flight (attempt \(self.attempt))")
             
+            Logger.shared.log("NWTcp", "\(self.logId) starting connection (timeout: \(timeout)s)")
+            
             connection.start(queue: self.queue.queue)
             
         }
@@ -339,6 +391,16 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
         }
         
         private func stateUpdated(state: NWConnection.State) {
+            guard self.connection != nil else {
+                // This connection has already been torn down (timeout, viability, explicit
+                // disconnect). A state update queued before that must not be reported as a fresh
+                // connect, and must not re-report a disconnect.
+                Logger.shared.log("NWTcp", "\(self.logId) state after teardown (ignored): \(describeState(state))")
+                return
+            }
+            
+            Logger.shared.log("NWTcp", "\(self.logId) state: \(describeState(state))")
+            
             switch state {
             case .ready:
                 if self.isReady { return }
@@ -353,7 +415,7 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
                     }
                 }
                 
-                if let connectTimeoutTimer = connectTimeoutTimer {
+                if let connectTimeoutTimer = self.connectTimeoutTimer {
                     self.connectTimeoutTimer = nil
                     connectTimeoutTimer.invalidate()
                 }
@@ -436,8 +498,37 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
             self.processCurrentRead()
         }
         
+        // Hands the current request to the delegate once it has been fully satisfied. Split out of
+        // processCurrentRead so that a terminal receive (a read close or an error) can still deliver
+        // a packet that arrived in the same callback: reporting the disconnection first sets
+        // MTTcpConnection's _closed flag, and it then drops any connectionInterfaceDidReadData.
+        private func deliverCurrentReadIfComplete() -> Bool {
+            guard let currentReadRequest = self.currentReadRequest else {
+                return false
+            }
+            if currentReadRequest.readyLength != currentReadRequest.request.length {
+                return false
+            }
+            
+            self.currentReadRequest = nil
+            
+            let delegate = self.delegate
+            let currentInterfaceIsWifi = self.currentInterfaceIsWifi
+            self.delegateQueue.async { [weak delegate] in
+                if let delegate = delegate {
+                    delegate.connectionInterfaceDidRead(currentReadRequest.data, withTag: currentReadRequest.request.tag, networkType: currentInterfaceIsWifi ? 0 : 1)
+                }
+            }
+            
+            return true
+        }
+        
         private func processCurrentRead() {
             guard let currentReadRequest = self.currentReadRequest else {
+                return
+            }
+            if self.deliverCurrentReadIfComplete() {
+                self.processReadRequests()
                 return
             }
             guard let connection = self.connection else {
@@ -452,65 +543,74 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
             }
             
             let requestChunkLength = min(self.requestChunkLength, currentReadRequest.request.length - currentReadRequest.readyLength)
-            if requestChunkLength == 0 {
-                self.currentReadRequest = nil
+            // `minimumIncompleteLength: 1` is load-bearing, not a micro-optimization:
+            // MTTcpConnection refreshes its response timeout from
+            // connectionInterfaceDidReadPartialData. Asking the framework to withhold
+            // everything until the whole chunk has arrived means no partial callbacks at all
+            // for a body under requestChunkLength, so that watchdog expires on a slow link and
+            // tears down a healthy connection. GCDAsyncSocket delivers per segment; match it.
+            connection.receive(minimumIncompleteLength: 1, maximumLength: requestChunkLength, completion: { [weak self, weak connection] data, context, isComplete, error in
+                guard let self = self, let connection = connection, self.connection === connection else {
+                    return
+                }
+                guard let currentReadRequest = self.currentReadRequest else {
+                    Logger.shared.log("NWTcp", "\(self.logId) receive completed with no pending read request (ignored)")
+                    return
+                }
                 
-                let delegate = self.delegate
-                let currentInterfaceIsWifi = self.currentInterfaceIsWifi
-                self.delegateQueue.async { [weak delegate] in
-                    if let delegate = delegate {
-                        delegate.connectionInterfaceDidRead(currentReadRequest.data, withTag: currentReadRequest.request.tag, networkType: currentInterfaceIsWifi ? 0 : 1)
+                // A stream protocol has a single context for the whole connection and it is marked
+                // final, so a completed final context is a read close -- for TCP, a received FIN.
+                // Nothing more will ever arrive on this connection.
+                let isReadClosed = isComplete && (context?.isFinal ?? true)
+                
+                if error != nil || isReadClosed {
+                    Logger.shared.log("NWTcp", "\(self.logId) receive completed: length: \(data?.count ?? 0), readClosed: \(isReadClosed), isComplete: \(isComplete), error: \(error.map({ "\($0)" }) ?? "none")")
+                }
+                
+                // Content can be delivered *together with* a terminal condition -- the framework
+                // contract is explicit that content may be non-nil alongside an error and that the
+                // caller should process it rather than discard it. So consume the data first and
+                // only then act on the error / read close.
+                if let data = data, !data.isEmpty {
+                    self.networkUsageManager?.addIncomingBytes(UInt(data.count), interface: self.currentInterfaceIsWifi ? MTNetworkUsageManagerInterfaceOther : MTNetworkUsageManagerInterfaceWWAN)
+                    
+                    if data.count > currentReadRequest.request.length - currentReadRequest.readyLength {
+                        // Unreachable while maximumLength is the remaining length, but guard rather
+                        // than overrun the destination buffer.
+                        self.cancelWithError(error: error, reason: "receive overflowed the pending read (\(data.count) bytes)")
+                        return
+                    }
+                    
+                    currentReadRequest.data.withUnsafeMutableBytes { currentBuffer in
+                        guard let currentBytes = currentBuffer.baseAddress?.assumingMemoryBound(to: UInt8.self) else {
+                            return
+                        }
+                        data.copyBytes(to: currentBytes.advanced(by: currentReadRequest.readyLength), count: data.count)
+                    }
+                    currentReadRequest.readyLength += data.count
+                    
+                    let tag = currentReadRequest.request.tag
+                    let readCount = data.count
+                    let delegate = self.delegate
+                    self.delegateQueue.async { [weak delegate] in
+                        if let delegate = delegate {
+                            delegate.connectionInterfaceDidReadPartialData(ofLength: UInt(readCount), tag: tag)
+                        }
                     }
                 }
                 
-                self.processReadRequests()
-            } else {
-                connection.receive(minimumIncompleteLength: requestChunkLength, maximumLength: requestChunkLength, completion: { [weak self, weak connection] data, context, isComplete, error in
-                    // The identity check matters more here than anywhere else: without it, bytes
-                    // that arrived on a connection this interface has already dropped are copied
-                    // into the read request of the one that replaced it, and an end-of-stream on
-                    // the old one cancels the new one. Either way MtProtoKit is reading a stream
-                    // that is not the one it thinks it is.
-                    guard let self = self, let connection = connection, self.connection === connection else {
-                        return
-                    }
-                    guard let currentReadRequest = self.currentReadRequest else {
-                        return
-                    }
-                    if let data = data {
-                        self.networkUsageManager?.addIncomingBytes(UInt(data.count), interface: self.currentInterfaceIsWifi ? MTNetworkUsageManagerInterfaceOther : MTNetworkUsageManagerInterfaceWWAN)
-                        
-                        if data.count != 0 && data.count <= currentReadRequest.request.length - currentReadRequest.readyLength {
-                            currentReadRequest.data.withUnsafeMutableBytes { currentBuffer in
-                                guard let currentBytes = currentBuffer.baseAddress?.assumingMemoryBound(to: UInt8.self) else {
-                                    return
-                                }
-                                data.copyBytes(to: currentBytes.advanced(by: currentReadRequest.readyLength), count: data.count)
-                            }
-                            currentReadRequest.readyLength += data.count
-                            
-                            let tag = currentReadRequest.request.tag
-                            let readCount = data.count
-                            let delegate = self.delegate
-                            self.delegateQueue.async { [weak delegate] in
-                                if let delegate = delegate {
-                                    delegate.connectionInterfaceDidReadPartialData(ofLength: UInt(readCount), tag: tag)
-                                }
-                            }
-                            
-                            self.processCurrentRead()
-                        } else {
-                            self.cancelWithError(error: error)
-                        }
-                        
-                        if isComplete && data.count == 0 {
-                            self.cancelWithError(error: nil)
-                        }
+                if error != nil || isReadClosed {
+                    let _ = self.deliverCurrentReadIfComplete()
+                    if let error = error {
+                        self.cancelWithError(error: error, reason: "receive failed")
                     } else {
-                        self.cancelWithError(error: error)
+                        self.cancelWithError(error: nil, reason: "remote closed the connection (read close)")
                     }
-                })
-            }
+                    return
+                }
+                
+                self.processCurrentRead()
+            })
         }
         
         /// Drop the current connection without telling the delegate it disconnected.
@@ -545,7 +645,7 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
             }
         }
         
-        private func cancelWithError(error: Error?) {
+        private func cancelWithError(error: Error?, reason: String = "transport disconnected") {
             self.admissionTimer?.invalidate()
             self.admissionTimer = nil
             Impl.endpointHealth.cancelled(endpoint: self.endpointHealthKey, attempt: self.attempt)
@@ -569,14 +669,18 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
             }
             self.leaveInFlight()
             
+            let errorSuffix = error.map({ " error: \($0)" }) ?? ""
             if !self.reportedDisconnection {
                 self.reportedDisconnection = true
+                Logger.shared.log("NWTcp", "\(self.logId) reporting disconnection: \(reason)\(errorSuffix)")
                 let delegate = self.delegate
                 self.delegateQueue.async { [weak delegate] in
                     if let delegate = delegate {
                         delegate.connectionInterfaceDidDisconnectWithError(error)
                     }
                 }
+            } else {
+                Logger.shared.log("NWTcp", "\(self.logId) already disconnected, ignoring: \(reason)\(errorSuffix)")
             }
             if let connection = self.connection {
                 self.connection = nil
@@ -585,7 +689,7 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
         }
         
         func disconnect() {
-            self.cancelWithError(error: nil)
+            self.cancelWithError(error: nil, reason: "disconnect requested")
         }
         
         func resetDelegate() {
@@ -607,6 +711,9 @@ final class NetworkFrameworkTcpConnectionInterface: NSObject, MTTcpConnectionInt
     }
     
     func setGetLogPrefix(_ getLogPrefix: (() -> String)?) {
+        self.impl.with { impl in
+            impl.setGetLogPrefix(getLogPrefix)
+        }
     }
     
     func setUsageCalculationInfo(_ usageCalculationInfo: MTNetworkUsageCalculationInfo?) {

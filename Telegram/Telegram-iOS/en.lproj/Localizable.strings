@@ -838,6 +838,7 @@
 
 "Settings.LogoutConfirmationTitle" = "Log out?";
 "Settings.LogoutConfirmationText" = "\nNote that you can seamlessly use Telegram on all your devices at once.\n\nRemember, logging out kills all your Secret Chats.";
+"Settings.LogoutConfirmationTextWithWallets" = "This will cancel all your Secret Chats and **delete wallet backups holding %@**. You will lose access to these funds if you haven't saved their recovery phrases.\n\nYou can use Telegram on all your devices at once and use several accounts in the same app.";
 
 "Login.PadPhoneHelp" = "\nYou can use your main mobile number to log in to Telegram on all devices.\nDon't use your iPad's SIM number here — we'll need to send you an SMS.\n\nIs this number correct?\n{number}";
 "Login.PadPhoneHelpTitle" = "Your Number";
@@ -2577,6 +2578,7 @@ Unused sets are archived when you add more.";
 "Call.CallInProgressVoiceChatMessage" = "Finish call with %1$@ and start a voice chat with %2$@?";
 "Call.CallInProgressLiveStreamMessage" = "Finish call with %1$@ and start a live stream with %2$@?";
 "Call.ExternalCallInProgressMessage" = "Please finish the current call first.";
+"Call.SystemStartErrorMessage" = "An error occurred";
 
 "Call.VoiceChatInProgressTitle" = "Voice Chat in Progress";
 "Call.LiveStreamInProgressTitle" = "Live Stream in Progress";
@@ -3292,10 +3294,12 @@ Unused sets are archived when you add more.";
 "SocksProxySetup.ProxyStatusUnavailable" = "unavailable";
 "SocksProxySetup.ProxyStatusConnecting" = "connecting";
 "SocksProxySetup.ProxyStatusConnected" = "connected";
+"SocksProxySetup.ProxyStatusNotTested" = "not tested";
 
 "SocksProxySetup.ProxyType" = "TYPE";
 "SocksProxySetup.ProxySocks5" = "SOCKS5";
 "SocksProxySetup.ProxyTelegram" = "MTProto";
+"SocksProxySetup.ProxyWeb" = "WEB";
 "SocksProxySetup.HostnamePlaceholder" = "Server";
 "SocksProxySetup.PortPlaceholder" = "Port";
 "SocksProxySetup.UsernamePlaceholder" = "Username";
@@ -3998,6 +4002,9 @@ Unused sets are archived when you add more.";
 
 "Conversation.UnsupportedMediaPlaceholder" = "This message is not supported on your version of Telegram. Please update to the latest version.";
 "Conversation.UpdateTelegram" = "UPDATE TELEGRAM";
+"Conversation.UnsupportedMedia.Title" = "Unsupported message";
+"Conversation.UnsupportedMedia.Text" = "Update Telegram to view this message";
+"Conversation.UnsupportedMedia.Action" = "Update";
 
 "Cache.LowDiskSpaceText" = "Your phone has run out of available storage. Please free some space to download or upload media.";
 
@@ -7846,6 +7853,8 @@ Sorry for the inconvenience.";
 "Premium.Purchase.ErrorNotAllowed" = "The device is not not allowed to make the payment.";
 "Premium.Purchase.ErrorCantMakePayments" = "In-app purchases are not allowed on this device.";
 "Premium.Purchase.ErrorTryLater" = "An error occurred. Please try again.";
+"Premium.Purchase.Pending" = "Purchase Pending";
+"Premium.Purchase.PendingInfo" = "Your purchase is awaiting confirmation. You can leave this screen. Premium will activate when the purchase is confirmed.";
 
 "Premium.Restore.Success" = "Done";
 "Premium.Restore.ErrorUnknown" = "An error occurred. Please try again.";
@@ -8677,6 +8686,7 @@ Sorry for the inconvenience.";
 
 "StorageManagement.AutoremoveSpaceDescription" = "If your cache size exceeds this limit, the oldest media will be deleted.";
 
+"StorageManagement.ClearConfirmationTitle" = "Clear Cache";
 "StorageManagement.ClearConfirmationText" = "Media and documents will stay in the cloud and can be re-downloaded if you need them again.";
 
 "StorageManagement.TabChats" = "Chats";
@@ -13380,6 +13390,8 @@ Sorry for the inconvenience.";
 "Camera.CollageDelete" = "Delete";
 "Camera.CollageManagementTooltip" = "Tap a tile to delete or reorder it.";
 "Camera.CollageReorderingInfo" = "Hold and drag tiles to reorder them.";
+"Camera.CollageReorderHint" = "Hold and drag tiles to reorder them";
+"Camera.CollageRemoveHint" = "Tap to remove grid";
 
 "MediaPicker.InvertCaptionTooltip" = "Tap here to move caption up.";
 "MediaPicker.InvertCaption.Updated.Up.Title" = "Caption moved up";
@@ -16607,34 +16619,12 @@ Error: %8$@";
 "RichText.Menu.List.Bullet" = "Bulleted List";
 "RichText.Menu.List.Numbered" = "Numbered List";
 "RichText.Menu.List.Checklist" = "Checklist";
+"RichText.Menu.List.Detail" = "Toggle Block";
 "RichText.Menu.Table.Copy" = "Copy Table";
 "RichText.Menu.Table.ConvertToText" = "Convert to Text";
 "RichText.Menu.Table.Delete" = "Delete Table";
 "RichText.Menu.Table.HighlightOn" = "Highlight";
 "RichText.Menu.Table.HighlightOff" = "Remove Highlight";
-"RichText.PlaceholderBody" = "Type something...";
-"RichText.PlaceholderQuote" = "Type a quote here";
-"RichText.PlaceholderCode" = "Type code here";
-
-"TextProcessing.TitleAICompose" = "Create with AI";
-"TextProcessing.ActionAddToPage" = "Add to Page";
-"TextProcessing.ActionGenerate" = "Generate";
-"TextProcessing.StyleList.Prompt" = "Prompt";
-"TextProcessing.PromptPlaceholder" = "Generate text, formulas, or tables...";
-
-"Settings.LogoutConfirmationTextWithWallets" = "This will cancel all your Secret Chats and **delete wallet backups holding %@**. You will lose access to these funds if you haven't saved their recovery phrases.\n\nYou can use Telegram on all your devices at once and use several accounts in the same app.";
-"Call.SystemStartErrorMessage" = "An error occurred";
-"SocksProxySetup.ProxyStatusNotTested" = "not tested";
-"SocksProxySetup.ProxyWeb" = "WEB";
-"Conversation.UnsupportedMedia.Title" = "Unsupported message";
-"Conversation.UnsupportedMedia.Text" = "Update Telegram to view this message";
-"Conversation.UnsupportedMedia.Action" = "Update";
-"Premium.Purchase.Pending" = "Purchase Pending";
-"Premium.Purchase.PendingInfo" = "Your purchase is awaiting confirmation. You can leave this screen. Premium will activate when the purchase is confirmed.";
-"StorageManagement.ClearConfirmationTitle" = "Clear Cache";
-"Camera.CollageReorderHint" = "Hold and drag tiles to reorder them";
-"Camera.CollageRemoveHint" = "Tap to remove grid";
-"RichText.Menu.List.Detail" = "Toggle Block";
 "RichText.Menu.Table.CompactOn" = "Compact";
 "RichText.Menu.Table.CompactOff" = "Remove Compact";
 "RichText.Menu.Table.AddColumnLeft" = "Add Column Left";
@@ -16645,10 +16635,20 @@ Error: %8$@";
 "RichText.Menu.Table.DeleteRow" = "Delete Row";
 "RichText.Menu.Table.MergeCells" = "Merge Cells";
 "RichText.Menu.Table.SplitCell" = "Split Cell";
+"RichText.PlaceholderBody" = "Type something...";
+"RichText.PlaceholderQuote" = "Type a quote here";
 "RichText.PlaceholderQuoteAuthor" = "Add author";
 "RichText.PlaceholderCaption" = "Add caption";
+"RichText.PlaceholderCode" = "Type code here";
 "RichText.PlaceholderCodeLanguage" = "Language";
 "RichText.PlaceholderDetailTitle" = "Title";
+
+"TextProcessing.TitleAICompose" = "Create with AI";
+"TextProcessing.ActionAddToPage" = "Add to Page";
+"TextProcessing.ActionGenerate" = "Generate";
+"TextProcessing.StyleList.Prompt" = "Prompt";
+"TextProcessing.PromptPlaceholder" = "Generate text, formulas, or tables...";
+
 "GroupInfo.WelcomeMessages" = "Welcome Message";
 "WelcomeMessages.Title" = "Welcome Message";
 "WelcomeMessages.EmptyTitle" = "Create a Welcome Message";
@@ -16659,14 +16659,17 @@ Error: %8$@";
 "WelcomeMessages.MessageLimitReachedText_1" = "Limit of %@ message reached";
 "WelcomeMessages.MessageLimitReachedText_any" = "Limit of %@ messages reached";
 "Chat.Placeholder.WelcomeMessage" = "Add a message...";
+
 "Chat.EphemeralMessage.BadgeYou" = "Only visible to you";
 "Chat.EphemeralMessage.Badge" = "Only visible to %@";
 "Chat.EphemeralMessage.AnchoredInfo" = "This version of the message is only visible to you.";
 "Chat.EphemeralMessage.Revert" = "Revert";
 "Chat.EphemeralMessage.RevertInfo" = "Restores the message to it's original content";
+
 "Channel.EditAdmin.PermissionManageWelcomeMessages" = "Manage Welcome Messages";
 "Channel.EditAdmin.PermissionSendWelcomeMessagesGroup" = "Send Welcome Messages";
 "Channel.EditAdmin.PermissionSendWelcomeMessagesChannel" = "Send Welcome Messages";
+
 "RichText.ButtonEditorTitle" = "Button";
 "RichText.ButtonLabelPlaceholder" = "Label";
 "RichText.ButtonURLPlaceholder" = "URL";
@@ -16692,6 +16695,7 @@ Error: %8$@";
 "RichText.ButtonRowAdd" = "Add Button";
 "RichText.Menu.Table.BordersOn" = "Show Borders";
 "RichText.Menu.Table.BordersOff" = "Hide Borders";
+
 "Notification.JoinedGroupViaCommunity" = "%@ joined the group via community";
 "Notification.JoinedGroupViaCommunityYou" = "You joined the group via community";
 "Gift.Message.InputPlaceholder" = "Add message…";
@@ -16701,6 +16705,7 @@ Error: %8$@";
 "Gift.Message.ToastText" = "You can add a message for **%@** or send **%@** right away.";
 "Gift.Message.ToastTitle" = "Add Message";
 "Gift.Message.YourMessage" = "Your message...";
+
 "REACT_PHOTO_SECRET" = "%1$@|reacted %2$@ to your self-destructing photo";
 "REACT_VIDEO_SECRET" = "%1$@|reacted %2$@ to your self-destructing video";
 "REACT_TODO_APPEND" = "%1$@|reacted %2$@ to your todo update";
@@ -16728,6 +16733,7 @@ Error: %8$@";
 "REACT_WALLET_TONCONNECT_REQUEST" = "%1$@|reacted %2$@ to your TON Connect request";
 "REACT_PROXIMITY" = "%1$@|reacted %2$@ to your proximity alert";
 "REACT_SCREENSHOT" = "%1$@|reacted %2$@ to your screenshot";
+
 "CHAT_REACT_GAME_SCORE" = "%2$@|%1$@ reacted %3$@ to your game score";
 "CHAT_REACT_STORY" = "%2$@|%1$@ reacted %3$@ to your story";
 "CHAT_REACT_THEME" = "%2$@|%1$@ reacted %3$@ to your theme change";
@@ -16735,13 +16741,19 @@ Error: %8$@";
 "CHAT_REACT_POLL_APPEND" = "%2$@|%1$@ reacted %3$@ to your poll update";
 "CHAT_REACT_TODO_APPEND" = "%2$@|%1$@ reacted %3$@ to your todo update";
 "CHAT_REACT_TODO_DONE" = "%2$@|%1$@ reacted %3$@ to your todo update";
+
 "RichTextPreview.EmbeddedContent" = "Embedded content";
 "RichTextPreview.Channel" = "Channel";
+
 "RichText.AddEmoji" = "Add emoji";
+
 "ChatList.FoldersTip" = "Tap and hold  #**Chats**\nto view all folders.";
+
 "VoiceOver.Chat.Stop" = "Stop";
+
 "Attachment.Money" = "Money";
 "Settings.Money" = "Money";
+
 "PasscodeSettings.UpdateError" = "Couldn't update the passcode. Unlock again and try once more.";
 "PasscodeSettings.VerificationError" = "Couldn't verify the passcode. Please try again.";
 "PasscodeSettings.LockTelegram" = "Lock Telegram";
@@ -16753,6 +16765,7 @@ Error: %8$@";
 "PasscodeSettings.WalletProtectionError" = "Couldn't update wallet protection. Please try again.";
 "PasscodeSettings.WalletEnableBiometricsReason" = "Enable biometrics for your wallets";
 "PasscodeSettings.TurnOffWalletProtectionWarning" = "This will also turn off passcode and biometric protection for every wallet on this device.";
+
 "Notification.GramTransfer" = "%1$@ sent you %2$@";
 "Notification.GramTransfer.Compact" = "sent you %@";
 "Notification.GramTransferYou" = "You sent %1$@ %2$@";
@@ -16760,12 +16773,14 @@ Error: %8$@";
 "Notification.GramTransfer.WithFiatYou" = "You sent %1$@ %2$@ (%3$@)";
 "Chat.GramTransfer.Received" = "received";
 "Chat.GramTransfer.Sent" = "sent";
+
 "Wallet.Unavailable" = "Wallet is currently unavailable.";
 "Wallet.AuthenticationReason" = "Confirm access to your wallet";
 "Wallet.SendMoney" = "Send Money";
 "Wallet.CopyAddress" = "Copy Address";
 "Wallet.ViewProfile" = "View Profile >";
 "Wallet.UnlinkedAddress" = "This address has no linked Telegram account.";
+
 "Wallet.Transaction.Transfer" = "Transfer";
 "Wallet.Transaction.CallContract" = "Call Contract";
 "Wallet.Transaction.Excess" = "Excess";
@@ -16954,6 +16969,7 @@ Error: %8$@";
 "Wallet.Words.TooFastTitle" = "All Done?";
 "Wallet.Words.TooFastText" = "You didn't have enough time to write these words down.";
 "Wallet.Words.TooFastAction" = "OK, sorry";
+
 "Wallet.Sign.Fee" = "Fee: %@.";
 "Wallet.Sign.FeeWithFiat" = "Fee: %1$@ (%2$@).";
 "Wallet.Settings.WalletCreatedTitle" = "Wallet Created";
@@ -16961,6 +16977,7 @@ Error: %8$@";
 "Poll.Timer.MinutesSeconds" = "%1$@:%2$@";
 "Wallet.Transaction.FailedOperation" = "%@ · Failed";
 "Wallet.Import.EnableBackupText" = "Enter your wallet's current 12- or 24-word secret phrase to enable encrypted backup.";
+
 "Wallet.Apps.Permissions" = "This app can see your wallet address, balance and activity. It can't move funds without your approval.";
 "Wallet.Apps.Disconnect" = "Disconnect";
 "Wallet.Apps.DisconnectAllTitle" = "Disconnect All Apps?";
@@ -16983,6 +17000,7 @@ Error: %8$@";
 "Wallet.Sign.MessageExplanation" = "Review the message details and sign if you agree.";
 "Wallet.Sign.Submission" = "The app will submit this transfer.";
 "Wallet.Sign.SubmissionUntil" = "The app can submit this transfer until %@.";
+
 "Wallet.Authorization.PasswordTitle" = "Telegram Password";
 "Wallet.Authorization.PasswordText" = "Enter your Telegram 2-Step Verification password to continue.";
 "Wallet.Backup.VerifyPhraseErrorTitle" = "Couldn't Verify Secret Phrase";
@@ -17080,17 +17098,52 @@ Error: %8$@";
 "Wallet.Sign.FieldComment" = "comment";
 "Wallet.Sign.FieldPayload" = "payload (BOC/Base64)";
 "Wallet.Sign.FieldStateInit" = "stateInit (BOC/Base64)";
+
 "Wallet.Authorization.PasswordRetryAfter" = "Try again in %@.";
 "Wallet.Authorization.SessionRetryAfter" = "For your security, try again in %@.";
+
 "Monetization.Withdraw.AmountTooSmallError" = "You cannot withdraw less than 10 Grams.";
+
 "MESSAGE_GRAM_TRANSFER" = "%1$@ sent you %2$@";
 "MESSAGE_GRAM_TRANSFER_COMMENT" = "%1$@ sent you %2$@: %3$@";
 "MESSAGE_WALLET_TONCONNECT_REQUEST" = "You have a TON Connect request";
 "MESSAGE_WALLET_TONCONNECT_REQUEST_DAPP" = "You have a TON Connect request from %@";
 "MESSAGE_GRAM_TRANSFER_UNKNOWN" = "You received %@";
 "MESSAGE_GRAM_TRANSFER_UNKNOWN_COMMENT" = "You received %@: %@";
+
 "Story.Editor.CollageDraftAllMediaMissing" = "None of the media in this collage are available anymore. This draft will be deleted.";
+
 "Notification.GramTransferUnknown" = "Someone sent you %@";
 "Notification.GramTransferUnknown.WithFiat" = "Someone sent you %1$@ (%2$@)";
 "Notification.GramTransfer.UnknownUser" = "UNKNOWN USER";
+
+
+// BananaGram-specific strings retained during the Telegram 13 import.
+"Settings.LogoutConfirmationTextWithWallets" = "This will cancel all your Secret Chats and **delete wallet backups holding %@**. You will lose access to these funds if you haven't saved their recovery phrases.\n\nYou can use Telegram on all your devices at once and use several accounts in the same app.";
+"Call.SystemStartErrorMessage" = "An error occurred";
+"SocksProxySetup.ProxyStatusNotTested" = "not tested";
+"SocksProxySetup.ProxyWeb" = "WEB";
+"Conversation.UnsupportedMedia.Title" = "Unsupported message";
+"Conversation.UnsupportedMedia.Text" = "Update Telegram to view this message";
+"Conversation.UnsupportedMedia.Action" = "Update";
+"Premium.Purchase.Pending" = "Purchase Pending";
+"Premium.Purchase.PendingInfo" = "Your purchase is awaiting confirmation. You can leave this screen. Premium will activate when the purchase is confirmed.";
+"StorageManagement.ClearConfirmationTitle" = "Clear Cache";
+"Camera.CollageReorderHint" = "Hold and drag tiles to reorder them";
+"Camera.CollageRemoveHint" = "Tap to remove grid";
+"RichText.Menu.List.Detail" = "Toggle Block";
+"RichText.Menu.Table.CompactOn" = "Compact";
+"RichText.Menu.Table.CompactOff" = "Remove Compact";
+"RichText.Menu.Table.AddColumnLeft" = "Add Column Left";
+"RichText.Menu.Table.AddColumnRight" = "Add Column Right";
+"RichText.Menu.Table.DeleteColumn" = "Delete Column";
+"RichText.Menu.Table.AddRowAbove" = "Add Row Above";
+"RichText.Menu.Table.AddRowBelow" = "Add Row Below";
+"RichText.Menu.Table.DeleteRow" = "Delete Row";
+"RichText.Menu.Table.MergeCells" = "Merge Cells";
+"RichText.Menu.Table.SplitCell" = "Split Cell";
+"RichText.PlaceholderQuoteAuthor" = "Add author";
+"RichText.PlaceholderCaption" = "Add caption";
+"RichText.PlaceholderCodeLanguage" = "Language";
+"RichText.PlaceholderDetailTitle" = "Title";
 "Chat.ViewStyle" = "VIEW STYLE";

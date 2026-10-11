@@ -1,4 +1,5 @@
 import Foundation
+import LottieSettings
 import UIKit
 import Display
 import AsyncDisplayKit
@@ -32,10 +33,10 @@ public final class ChatMessageWebpageBubbleContentNode: ChatMessageBubbleContent
         }
     }
     
-    required public init() {
+    required public init(lottieSettings: LottieRenderingSettings) {
         self.contentNode = ChatMessageAttachedContentNode()
         
-        super.init()
+        super.init(lottieSettings: lottieSettings)
         
         self.addSubnode(self.contentNode)
         self.contentNode.openMedia = { [weak self] mode in
@@ -196,7 +197,7 @@ public final class ChatMessageWebpageBubbleContentNode: ChatMessageBubbleContent
         let currentWebpage = self.webPage
         let currentContentNodeLayout = self.contentNode.asyncLayout(displayGiftIcon: true)
         
-        return { item, layoutConstants, preparePosition, _, constrainedSize, _ in
+        return { [weak self] item, layoutConstants, preparePosition, _, constrainedSize, _ in
             var webPage: TelegramMediaWebpage?
             var webPageContent: TelegramMediaWebpageLoadedContent?
             for media in item.message.media {
@@ -522,7 +523,7 @@ public final class ChatMessageWebpageBubbleContentNode: ChatMessageBubbleContent
                         case "telegram_newbot":
                             actionTitle = item.presentationData.strings.Chat_CreateBotLink
                         case "telegram_aicomposetone":
-                            actionTitle = "VIEW STYLE"
+                            actionTitle = item.presentationData.strings.Chat_ViewStyle
                         
                             for attribute in webpage.attributes {
                                 if case let .aiTextStyle(aiTextStyle) = attribute {
@@ -618,9 +619,12 @@ public final class ChatMessageWebpageBubbleContentNode: ChatMessageBubbleContent
                             let updatedPosition = CGPoint(x: size.width * 0.5, y: size.height * 0.5)
                             
                             do {
-                                //animation.animator.updateScale(layer: self.contentNode.layer, scale: 0.9, completion: nil)
-                                animation.animator.updatePosition(layer: self.contentNode.layer, position: updatedPosition, completion: nil)
-                                animation.animator.updateAlpha(layer: self.contentNode.layer, alpha: 0.0, completion: { [weak contentNode] _ in
+                                // Bind the node locally so the completion closure captures it explicitly
+                                // rather than implicitly capturing `self` to reach the property.
+                                let contentNode = self.contentNode
+                                //animation.animator.updateScale(layer: contentNode.layer, scale: 0.9, completion: nil)
+                                animation.animator.updatePosition(layer: contentNode.layer, position: updatedPosition, completion: nil)
+                                animation.animator.updateAlpha(layer: contentNode.layer, alpha: 0.0, completion: { [weak contentNode] _ in
                                     contentNode?.removeFromSupernode()
                                 })
                             }

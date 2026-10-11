@@ -119,6 +119,9 @@ public final class BatchVideoRenderingContext {
                     let reader = FFMpegFileReader(
                         source: .file(self.dataPath),
                         useHardwareAcceleration: false,
+                        // These render into ~93pt tiles, where deblocking is not visible but
+                        // is a large fraction of the decode cost of a grid of animating GIFs.
+                        skipLoopFilter: true,
                         selectedStream: .mediaType(.video),
                         seek: nil,
                         maxReadablePts: nil

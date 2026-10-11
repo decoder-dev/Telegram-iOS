@@ -54,11 +54,11 @@ private func socksSettingsForPing(server: ProxyServerSettings) -> MTSocksProxySe
     }
 }
 
-private func webConfiguration(for server: ProxyServerSettings) -> WebProxyConfiguration? {
-    guard case let .web(secret) = server.connection else {
+private func webConfiguration(for server: ProxyServerSettings) -> LegacyWebProxyConfiguration? {
+    guard case let .web(secret, path) = server.connection, path.isEmpty else {
         return nil
     }
-    return WebProxyConfiguration(hostname: server.host, secret: secret)
+    return LegacyWebProxyConfiguration(hostname: server.host, secret: secret)
 }
 
 private final class ProxyServerItemContext {
@@ -106,8 +106,8 @@ private final class ProxyServerItemContext {
         }))
     }
     
-    private func startWebProxyPing(queue: Queue, context: MTContext, datacenterId: Int, server: ProxyServerSettings, configuration: WebProxyConfiguration, updated: @escaping (ProxyServerStatus) -> Void) {
-        guard case let .web(secret) = server.connection else {
+    private func startWebProxyPing(queue: Queue, context: MTContext, datacenterId: Int, server: ProxyServerSettings, configuration: LegacyWebProxyConfiguration, updated: @escaping (ProxyServerStatus) -> Void) {
+        guard case let .web(secret, path) = server.connection, path.isEmpty else {
             queue.async {
                 updated(.notAvailable)
             }
@@ -166,7 +166,12 @@ final class ProxyServersStatusesImpl {
         self.serversDisposable = (servers
             |> deliverOn(self.queue)).start(next: { [weak self] servers in
                 if let strongSelf = self {
-                    let validKeys = Set<ProxyServerSettings>(servers)
+                    let validKeys = Set<ProxyServerSettings>(servers.filter { server in
+                        if case .web = server.connection {
+                            return false
+                        }
+                        return true
+                    })
                     for key in validKeys {
                         if strongSelf.contexts[key] == nil {
                             let context = ProxyServerItemContext(queue: strongSelf.queue, context: network.context, datacenterId: network.datacenterId, server: key, updated: { value in

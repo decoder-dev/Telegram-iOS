@@ -1,4 +1,5 @@
-﻿import Foundation
+import Foundation
+import LottieSettings
 import UIKit
 import Display
 import AsyncDisplayKit
@@ -11,6 +12,8 @@ import AccountContext
 import TelegramCore
 import PresentationDataUtils
 import Camera
+import CameraLegacy
+import CameraNeo
 import MultilineTextComponent
 import BlurredBackgroundComponent
 import PlainButtonComponent
@@ -985,7 +988,8 @@ private final class VideoMessageCameraScreenComponent: CombinedComponent {
                                 startingPosition: !component.cameraState.flashModeDidChange ? .end : .begin,
                                 size: CGSize(width: 40.0, height: 40.0),
                                 loop: false,
-                                playOnce: flashAction
+                                playOnce: flashAction,
+                                lottieSettings: component.context.lottieRenderingSettings
                             )
                         )
                     )
@@ -1181,7 +1185,9 @@ public class VideoMessageCameraScreen: ViewController {
     fileprivate final class Node: ViewControllerTracingNode, ASGestureRecognizerDelegate {
         private weak var controller: VideoMessageCameraScreen?
         private let context: AccountContext
-        fileprivate var camera: Camera?
+        private let cameraImpl: CameraImpl
+        fileprivate var camera: CameraProtocol?
+        private var pinchStartTimestamp: Double?
         private let updateState: ActionSlot<CameraState>
         
         fileprivate var liveUploadInterface: LegacyLiveUploadInterface?
@@ -1273,6 +1279,13 @@ public class VideoMessageCameraScreen: ViewController {
         init(controller: VideoMessageCameraScreen) {
             self.controller = controller
             self.context = controller.context
+            
+            let useModernVideoMessagePipeline = self.context.sharedContext.immediateExperimentalUISettings.useModernVideoMessagePipeline ?? (self.context.getAppConfigValue("ios_killswitch_disable_neo_round_camera_v2") == nil)
+            if useModernVideoMessagePipeline {
+                self.cameraImpl = NeoCameraImpl.shared
+            } else {
+                self.cameraImpl = LegacyCameraImpl.shared
+            }
             self.updateState = ActionSlot<CameraState>()
             
             self.presentationData = controller.updatedPresentationData?.initial ?? self.context.sharedContext.currentPresentationData.with { $0 }
@@ -1289,10 +1302,11 @@ public class VideoMessageCameraScreen: ViewController {
             self.previewContainerContentView.clipsToBounds = true
             self.previewContainerView.addSubview(self.previewContainerContentView)
                         
-            let isDualCameraEnabled = Camera.isDualCameraSupported(forRoundVideo: true)
+            let isDualCameraEnabled = cameraImpl.isDualCameraSupported(forRoundVideo: true)
+            let isFrontPosition = "".isEmpty
             
-            self.mainPreviewView = CameraSimplePreviewView(frame: .zero, main: true, roundVideo: true)
-            self.additionalPreviewView = CameraSimplePreviewView(frame: .zero, main: false, roundVideo: true)
+            self.mainPreviewView = cameraImpl.makeCameraSimplePreviewView(frame: .zero, main: true, roundVideo: true)
+            self.additionalPreviewView = cameraImpl.makeCameraSimplePreviewView(frame: .zero, main: false, roundVideo: true)
             
             self.progressView = RecordingProgressView(frame: .zero)
             
@@ -1419,7 +1433,7 @@ public class VideoMessageCameraScreen: ViewController {
                 return
             }
             
-            let camera = Camera(
+            let camera = self.cameraImpl.makeCamera(
                 configuration: Camera.Configuration(
                     preset: .hd1920x1080,
                     position: self.cameraState.position,
@@ -1895,7 +1909,8 @@ public class VideoMessageCameraScreen: ViewController {
             let _ = enqueueMessages(account: self.context.engine.account, peerId: self.context.engine.account.peerId, messages: [message]).startStandalone()
         }
         
-        /// Whether `view` is a control the component host put on screen.
+        /// Whether `view` is a control the component host put on screen (the record-more, view-once,
+        /// flip and flash buttons are all `UIButton`s; the mute badge and the front-flash image are not).
         private func isComponentControl(_ view: UIView?) -> Bool {
             guard let view, let componentView = self.componentHost.view, view.isDescendant(of: componentView) else {
                 return false
@@ -1912,8 +1927,13 @@ public class VideoMessageCameraScreen: ViewController {
         override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
             let result = super.hitTest(point, with: event)
             
-            // The preview is claimed by its bounding square while only the inscribed circle is visible,
-            // so controls near its corners must win when the regular hit test landed on one.
+            // The preview is claimed by its *bounding square*, while only the inscribed circle is
+            // visible - `previewContainerContentView` clips to a corner radius. The component host is a
+            // full-screen sibling above `previewContainerView`, and when the keyboard is up the container
+            // is only as tall as the input panel's top edge, so on a small screen the controls pinned to
+            // its bottom edge sit inside that square's bottom corners while remaining outside the circle.
+            // `super.hitTest` has already resolved which of the two the touch really landed on, so only
+            // fall back to the preview when it did not land on a control.
             if let resultPreviewView = self.resultPreviewView, !self.isComponentControl(result) {
                 if resultPreviewView.bounds.contains(self.view.convert(point, to: resultPreviewView)) {
                     return resultPreviewView
@@ -2133,12 +2153,9 @@ public class VideoMessageCameraScreen: ViewController {
             let previewSide = min(369.0, layout.size.width - 24.0)
             let previewFrame: CGRect
             if layout.metrics.isTablet {
-                let statusBarOrientation: UIInterfaceOrientation
-                if #available(iOS 13.0, *) {
-                    statusBarOrientation = UIApplication.shared.windows.first?.windowScene?.interfaceOrientation ?? .portrait
-                } else {
-                    statusBarOrientation = UIApplication.shared.statusBarOrientation
-                }
+                // Use the scene this view actually lives in; `connectedScenes` is unordered and a
+                // tablet can have several window scenes.
+                let statusBarOrientation = self.containerView.window?.windowScene?.interfaceOrientation ?? .portrait
                 
                 if statusBarOrientation == .landscapeLeft {
                     previewFrame = CGRect(origin: CGPoint(x: layout.size.width - 44.0 - previewSide, y: floorToScreenPixels((layout.size.height - previewSide) / 2.0)), size: CGSize(width: previewSide, height: previewSide))
@@ -2296,7 +2313,7 @@ public class VideoMessageCameraScreen: ViewController {
     
     private var validLayout: ContainerViewLayout?
     
-    fileprivate var camera: Camera? {
+    fileprivate var camera: CameraProtocol? {
         return self.node.camera
     }
     

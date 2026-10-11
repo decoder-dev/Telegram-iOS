@@ -81,6 +81,7 @@ public class UnauthorizedAccount {
     public let postbox: Postbox
     public let network: Network
     let stateManager: UnauthorizedAccountStateManager
+    private let proxySettingsDisposable = MetaDisposable()
     
     private let updateLoginTokenPipe = ValuePipe<Void>()
     public var updateLoginTokenEvents: Signal<Void, NoError> {
@@ -95,7 +96,7 @@ public class UnauthorizedAccount {
     private let managedDisposables = DisposableSet()
     
     public var masterDatacenterId: Int32 {
-        return Int32(self.network.mtProto.datacenterId)
+        return Int32(self.network.datacenterId)
     }
     
     public let shouldBeServiceTaskMaster = Promise<AccountServiceTaskMasterMode>()
@@ -110,7 +111,7 @@ public class UnauthorizedAccount {
         self.network = network
         let updateLoginTokenPipe = self.updateLoginTokenPipe
         let serviceNotificationPipe = self.serviceNotificationPipe
-        let masterDatacenterId = Int32(network.mtProto.datacenterId)
+        let masterDatacenterId = Int32(network.datacenterId)
         
         var updateSentCodeImpl: ((Api.auth.SentCode) -> Void)?
         self.stateManager = UnauthorizedAccountStateManager(
@@ -272,21 +273,21 @@ public class UnauthorizedAccount {
     }
     
     public func changedMasterDatacenterId(accountManager: AccountManager<TelegramAccountManagerTypes>, masterDatacenterId: Int32) -> Signal<UnauthorizedAccount, NoError> {
-        if masterDatacenterId == Int32(self.network.mtProto.datacenterId) {
+        if masterDatacenterId == Int32(self.network.datacenterId) {
             return .single(self)
         } else {
             let keychain = makeExclusiveKeychain(id: self.id, postbox: self.postbox)
             
-            return accountManager.transaction { transaction -> (LocalizationSettings?, ProxySettings?) in
-                return (transaction.getSharedData(SharedDataKeys.localizationSettings)?.get(LocalizationSettings.self), transaction.getSharedData(SharedDataKeys.proxySettings)?.get(ProxySettings.self))
+            return accountManager.transaction { transaction -> (LocalizationSettings?, ProxySettings?, NetworkEngineSettings?) in
+                return (transaction.getSharedData(SharedDataKeys.localizationSettings)?.get(LocalizationSettings.self), transaction.getSharedData(SharedDataKeys.proxySettings)?.get(ProxySettings.self), transaction.getSharedData(SharedDataKeys.networkEngineSettings)?.get(NetworkEngineSettings.self))
             }
-            |> mapToSignal { localizationSettings, proxySettings -> Signal<(LocalizationSettings?, ProxySettings?, NetworkSettings?, AppConfiguration), NoError> in
-                return self.postbox.transaction { transaction -> (LocalizationSettings?, ProxySettings?, NetworkSettings?, AppConfiguration) in
-                    return (localizationSettings, proxySettings, networkSettingsWithMigrations(transaction: transaction), transaction.getPreferencesEntry(key: PreferencesKeys.appConfiguration)?.get(AppConfiguration.self) ?? .defaultValue)
+            |> mapToSignal { localizationSettings, proxySettings, networkEngineSettings -> Signal<(LocalizationSettings?, ProxySettings?, NetworkSettings?, AppConfiguration, NetworkEngineSettings?), NoError> in
+                return self.postbox.transaction { transaction -> (LocalizationSettings?, ProxySettings?, NetworkSettings?, AppConfiguration, NetworkEngineSettings?) in
+                    return (localizationSettings, proxySettings, networkSettingsWithMigrations(transaction: transaction), transaction.getPreferencesEntry(key: PreferencesKeys.appConfiguration)?.get(AppConfiguration.self) ?? .defaultValue, networkEngineSettings)
                 }
             }
-            |> mapToSignal { localizationSettings, proxySettings, networkSettings, appConfiguration -> Signal<UnauthorizedAccount, NoError> in
-                return initializedNetwork(accountId: self.id, arguments: self.networkArguments, supplementary: false, datacenterId: Int(masterDatacenterId), keychain: keychain, basePath: self.basePath, testingEnvironment: self.testingEnvironment, languageCode: localizationSettings?.primaryComponent.languageCode, proxySettings: proxySettings, networkSettings: networkSettings, phoneNumber: nil, useRequestTimeoutTimers: false, appConfiguration: appConfiguration)
+            |> mapToSignal { localizationSettings, proxySettings, networkSettings, appConfiguration, networkEngineSettings -> Signal<UnauthorizedAccount, NoError> in
+                return initializedNetwork(accountId: self.id, arguments: self.networkArguments, supplementary: false, datacenterId: Int(masterDatacenterId), keychain: keychain, basePath: self.basePath, testingEnvironment: self.testingEnvironment, languageCode: localizationSettings?.primaryComponent.languageCode, proxySettings: proxySettings, networkSettings: networkSettings, networkEngineSettings: networkEngineSettings, phoneNumber: nil, useRequestTimeoutTimers: false, appConfiguration: appConfiguration)
                 |> map { network in
                     let updated = UnauthorizedAccount(accountManager: accountManager, networkArguments: self.networkArguments, id: self.id, rootPath: self.rootPath, basePath: self.basePath, testingEnvironment: self.testingEnvironment, postbox: self.postbox, network: network)
                     updated.shouldBeServiceTaskMaster.set(self.shouldBeServiceTaskMaster.get())
@@ -335,14 +336,14 @@ public func accountWithId(accountManager: AccountManager<TelegramAccountManagerT
             case .error:
                 return .single(.upgrading(0.0))
             case let .postbox(postbox):
-                return accountManager.transaction { transaction -> (LocalizationSettings?, ProxySettings?) in
+                return accountManager.transaction { transaction -> (LocalizationSettings?, ProxySettings?, NetworkEngineSettings?) in
                     var localizationSettings: LocalizationSettings?
                     if !supplementary {
                         localizationSettings = transaction.getSharedData(SharedDataKeys.localizationSettings)?.get(LocalizationSettings.self)
                     }
-                    return (localizationSettings, transaction.getSharedData(SharedDataKeys.proxySettings)?.get(ProxySettings.self))
+                    return (localizationSettings, transaction.getSharedData(SharedDataKeys.proxySettings)?.get(ProxySettings.self), transaction.getSharedData(SharedDataKeys.networkEngineSettings)?.get(NetworkEngineSettings.self))
                 }
-                |> mapToSignal { localizationSettings, proxySettings -> Signal<AccountResult, NoError> in
+                |> mapToSignal { localizationSettings, proxySettings, networkEngineSettings -> Signal<AccountResult, NoError> in
                     return postbox.transaction { transaction -> (PostboxCoding?, LocalizationSettings?, ProxySettings?, NetworkSettings?, AppConfiguration) in
                         var state = transaction.getState()
                         if state == nil, let backupData = backupData {
@@ -384,7 +385,7 @@ public func accountWithId(accountManager: AccountManager<TelegramAccountManagerT
                         if let accountState = accountState {
                             switch accountState {
                                 case let unauthorizedState as UnauthorizedAccountState:
-                                    return initializedNetwork(accountId: id, arguments: networkArguments, supplementary: supplementary, datacenterId: Int(unauthorizedState.masterDatacenterId), keychain: keychain, basePath: path, testingEnvironment: unauthorizedState.isTestingEnvironment, languageCode: localizationSettings?.primaryComponent.languageCode, proxySettings: proxySettings, networkSettings: networkSettings, phoneNumber: nil, useRequestTimeoutTimers: useRequestTimeoutTimers, appConfiguration: appConfig)
+                                    return initializedNetwork(accountId: id, arguments: networkArguments, supplementary: supplementary, datacenterId: Int(unauthorizedState.masterDatacenterId), keychain: keychain, basePath: path, testingEnvironment: unauthorizedState.isTestingEnvironment, languageCode: localizationSettings?.primaryComponent.languageCode, proxySettings: proxySettings, networkSettings: networkSettings, networkEngineSettings: networkEngineSettings, phoneNumber: nil, useRequestTimeoutTimers: useRequestTimeoutTimers, appConfiguration: appConfig)
                                         |> map { network -> AccountResult in
                                             return .unauthorized(UnauthorizedAccount(accountManager: accountManager, networkArguments: networkArguments, id: id, rootPath: rootPath, basePath: path, testingEnvironment: unauthorizedState.isTestingEnvironment, postbox: postbox, network: network, shouldKeepAutoConnection: shouldKeepAutoConnection))
                                         }
@@ -393,7 +394,7 @@ public func accountWithId(accountManager: AccountManager<TelegramAccountManagerT
                                         return (transaction.getPeer(authorizedState.peerId) as? TelegramUser)?.phone
                                     }
                                     |> mapToSignal { phoneNumber in
-                                        return initializedNetwork(accountId: id, arguments: networkArguments, supplementary: supplementary, datacenterId: Int(authorizedState.masterDatacenterId), keychain: keychain, basePath: path, testingEnvironment: authorizedState.isTestingEnvironment, languageCode: localizationSettings?.primaryComponent.languageCode, proxySettings: proxySettings, networkSettings: networkSettings, phoneNumber: phoneNumber, useRequestTimeoutTimers: useRequestTimeoutTimers, appConfiguration: appConfig)
+                                        return initializedNetwork(accountId: id, arguments: networkArguments, supplementary: supplementary, datacenterId: Int(authorizedState.masterDatacenterId), keychain: keychain, basePath: path, testingEnvironment: authorizedState.isTestingEnvironment, languageCode: localizationSettings?.primaryComponent.languageCode, proxySettings: proxySettings, networkSettings: networkSettings, networkEngineSettings: networkEngineSettings, phoneNumber: phoneNumber, useRequestTimeoutTimers: useRequestTimeoutTimers, appConfiguration: appConfig)
                                         |> map { network -> AccountResult in
                                             return .authorized(Account(accountManager: accountManager, id: id, basePath: path, testingEnvironment: authorizedState.isTestingEnvironment, postbox: postbox, network: network, networkArguments: networkArguments, peerId: authorizedState.peerId, auxiliaryMethods: auxiliaryMethods, supplementary: supplementary, isSupportUser: isSupportUser))
                                         }
@@ -409,7 +410,7 @@ public func accountWithId(accountManager: AccountManager<TelegramAccountManagerT
                         let initialDatacenterId: Int = 2
                         #endif
                         
-                        return initializedNetwork(accountId: id, arguments: networkArguments, supplementary: supplementary, datacenterId: initialDatacenterId, keychain: keychain, basePath: path, testingEnvironment: beginWithTestingEnvironment, languageCode: localizationSettings?.primaryComponent.languageCode, proxySettings: proxySettings, networkSettings: networkSettings, phoneNumber: nil, useRequestTimeoutTimers: useRequestTimeoutTimers, appConfiguration: appConfig)
+                        return initializedNetwork(accountId: id, arguments: networkArguments, supplementary: supplementary, datacenterId: initialDatacenterId, keychain: keychain, basePath: path, testingEnvironment: beginWithTestingEnvironment, languageCode: localizationSettings?.primaryComponent.languageCode, proxySettings: proxySettings, networkSettings: networkSettings, networkEngineSettings: networkEngineSettings, phoneNumber: nil, useRequestTimeoutTimers: useRequestTimeoutTimers, appConfiguration: appConfig)
                         |> map { network -> AccountResult in
                             return .unauthorized(UnauthorizedAccount(accountManager: accountManager, networkArguments: networkArguments, id: id, rootPath: rootPath, basePath: path, testingEnvironment: beginWithTestingEnvironment, postbox: postbox, network: network, shouldKeepAutoConnection: shouldKeepAutoConnection))
                         }
@@ -709,7 +710,23 @@ func sha512Digest(_ data : Data) -> Data {
     }
 }
 
-func passwordUpdateKDF(encryptionProvider: EncryptionProvider, password: String, derivation: TwoStepPasswordDerivation) -> (Data, TwoStepPasswordDerivation)? {
+private func isValidSRPGroup(encryptionProvider: EncryptionProvider, g: Int32, p: Data, keychain: MTKeychain) -> Bool {
+    guard g >= 0, MTCheckIsSafeG(UInt32(g)) else {
+        Logger.shared.log("SRP", "Invalid g")
+        return false
+    }
+    if !MTCheckMod(encryptionProvider, p, UInt32(g), keychain) {
+        Logger.shared.log("SRP", "Invalid p or g")
+        return false
+    }
+    if !MTCheckIsSafePrime(encryptionProvider, p, keychain) {
+        Logger.shared.log("SRP", "Invalid p")
+        return false
+    }
+    return true
+}
+
+func passwordUpdateKDF(encryptionProvider: EncryptionProvider, keychain: MTKeychain, password: String, derivation: TwoStepPasswordDerivation) -> (Data, TwoStepPasswordDerivation)? {
     guard let passwordData = password.data(using: .utf8, allowLossyConversion: true) else {
         return nil
     }
@@ -718,6 +735,10 @@ func passwordUpdateKDF(encryptionProvider: EncryptionProvider, password: String,
         case .unknown:
             return nil
         case let .sha256_sha256_PBKDF2_HMAC_sha512_sha256_srp(salt1, salt2, iterations, gValue, p):
+            guard isValidSRPGroup(encryptionProvider: encryptionProvider, g: gValue, p: p, keychain: keychain) else {
+                return nil
+            }
+            
             var nextSalt1 = salt1
             var randomSalt1 = Data()
             randomSalt1.count = 32
@@ -795,7 +816,7 @@ private func paddedXor(_ a: Data, _ b: Data) -> Data {
     return a
 }
 
-func passwordKDF(encryptionProvider: EncryptionProvider, password: String, derivation: TwoStepPasswordDerivation, srpSessionData: TwoStepSRPSessionData) -> PasswordKDFResult? {
+func passwordKDF(encryptionProvider: EncryptionProvider, keychain: MTKeychain, password: String, derivation: TwoStepPasswordDerivation, srpSessionData: TwoStepSRPSessionData) -> PasswordKDFResult? {
     guard let passwordData = password.data(using: .utf8, allowLossyConversion: true) else {
         return nil
     }
@@ -804,6 +825,10 @@ func passwordKDF(encryptionProvider: EncryptionProvider, password: String, deriv
         case .unknown:
             return nil
         case let .sha256_sha256_PBKDF2_HMAC_sha512_sha256_srp(salt1, salt2, iterations, gValue, p):
+            guard isValidSRPGroup(encryptionProvider: encryptionProvider, g: gValue, p: p, keychain: keychain) else {
+                return nil
+            }
+            
             var a = Data(count: p.count)
             let aLength = a.count
             a.withUnsafeMutableBytes { rawBytes -> Void in
@@ -934,7 +959,7 @@ func verifyPassword(_ account: UnauthorizedAccount, password: String) -> Signal<
             return .fail(MTRpcError(errorCode: 400, errorDescription: "INTERNAL_NO_PASSWORD"))
         }
         
-        let kdfResult = passwordKDF(encryptionProvider: account.network.encryptionProvider, password: password, derivation: currentPasswordDerivation, srpSessionData: srpSessionData)
+        let kdfResult = passwordKDF(encryptionProvider: account.network.encryptionProvider, keychain: account.network.context.keychain, password: password, derivation: currentPasswordDerivation, srpSessionData: srpSessionData)
         
         if let kdfResult = kdfResult {
             return account.network.request(Api.functions.auth.checkPassword(password: .inputCheckPasswordSRP(.init(srpId: kdfResult.id, A: Buffer(data: kdfResult.A), M1: Buffer(data: kdfResult.M1)))), automaticFloodWait: false)
@@ -1352,6 +1377,11 @@ public class Account {
         self.contactSyncManager = ContactSyncManager(postbox: postbox, network: network, accountPeerId: peerId, stateManager: self.stateManager)
         self.localInputActivityManager = PeerInputActivityManager()
         self.accountPresenceManager = AccountPresenceManager(shouldKeepOnlinePresence: self.shouldKeepOnlinePresence.get(), network: network)
+        #if os(iOS)
+        // iOS only for now: the Rust engine is the macOS default, and its online keepalive cadence
+        // (pings every 1-2 s while the account is in front) has not been measured there.
+        network.isUserOnline.set(self.shouldKeepOnlinePresence.get())
+        #endif
         let _ = (postbox.transaction { transaction -> Void in
             transaction.updatePeerPresencesInternal(presences: [peerId: TelegramUserPresence(status: .present(until: Int32.max - 1), lastActivity: 0)], merge: { _, updated in return updated })
             transaction.setNeedsPeerGroupMessageStatsSynchronization(groupId: Namespaces.PeerGroup.archive, namespace: Namespaces.Message.Cloud)
@@ -1543,6 +1573,7 @@ public class Account {
         self.managedOperationsDisposable.add(managedAutoremoveMessageOperations(network: self.network, postbox: self.postbox, isRemove: false).start())
         self.managedOperationsDisposable.add(managedAutoexpireStoryOperations(network: self.network, postbox: self.postbox).start())
         self.managedOperationsDisposable.add(managedPeerTimestampAttributeOperations(network: self.network, postbox: self.postbox).start())
+        self.managedOperationsDisposable.add(managedPendingWalletTransferMessages(postbox: self.postbox).start())
         self.managedOperationsDisposable.add(managedSynchronizeViewStoriesOperations(postbox: self.postbox, network: self.network, stateManager: self.stateManager).start())
         self.managedOperationsDisposable.add(managedSynchronizePeerStoriesOperations(postbox: self.postbox, network: self.network, stateManager: self.stateManager).start())
         self.managedOperationsDisposable.add(managedLocalTypingActivities(activities: self.localInputActivityManager.allActivities(), postbox: self.stateManager.postbox, network: self.stateManager.network, accountPeerId: self.stateManager.accountPeerId).start())
@@ -1623,6 +1654,22 @@ public class Account {
         self.managedOperationsDisposable.add(registerVlessManagerReapply(network: network, currentSettings: {
             latestProxySettings.with { $0 }
         }))
+        #if os(macOS)
+        // The live kill switch is macOS only. On iOS the engine changes only through the Debug Settings
+        // switch; mtproto_engine_rust_disabled is honoured when the network starts (resolveNetworkEngine).
+        self.managedOperationsDisposable.add((postbox.preferencesView(keys: [PreferencesKeys.appConfiguration])
+        |> map { view -> Bool in
+            let appConfiguration = view.values[PreferencesKeys.appConfiguration]?.get(AppConfiguration.self) ?? .defaultValue
+            return networkEngineRustDisabled(appConfiguration: appConfiguration)
+        }
+        |> distinctUntilChanged
+        |> filter { $0 }).start(next: { _ in
+            network.disableRustEngine(reason: "mtproto_engine_rust_disabled")
+        }))
+        #endif
+        if !supplementary {
+            self.managedOperationsDisposable.add(managedNetworkTelemetryReports(postbox: postbox, network: network).start())
+        }
 
         // `initializedNetwork` already applied these values, so the first emission has nothing to
         // change and must not force a transport rebuild on a connection that is still coming up.
@@ -1906,10 +1953,10 @@ public func standaloneStateManager(
         case let .postbox(postbox):
             Logger.shared.log("StandaloneStateManager", "Received postbox: valid")
             
-            return accountManager.transaction { transaction -> (LocalizationSettings?, ProxySettings?) in
-                return (nil, transaction.getSharedData(SharedDataKeys.proxySettings)?.get(ProxySettings.self))
+            return accountManager.transaction { transaction -> (LocalizationSettings?, ProxySettings?, NetworkEngineSettings?) in
+                return (nil, transaction.getSharedData(SharedDataKeys.proxySettings)?.get(ProxySettings.self), transaction.getSharedData(SharedDataKeys.networkEngineSettings)?.get(NetworkEngineSettings.self))
             }
-            |> mapToSignal { localizationSettings, proxySettings -> Signal<AccountStateManager?, NoError> in
+            |> mapToSignal { localizationSettings, proxySettings, networkEngineSettings -> Signal<AccountStateManager?, NoError> in
                 Logger.shared.log("StandaloneStateManager", "Received settings")
                 
                 return postbox.transaction { transaction -> (PostboxCoding?, LocalizationSettings?, ProxySettings?, NetworkSettings?) in
@@ -1953,11 +2000,12 @@ public func standaloneStateManager(
                                     languageCode: localizationSettings?.primaryComponent.languageCode,
                                     proxySettings: proxySettings,
                                     networkSettings: networkSettings,
+                                    networkEngineSettings: networkEngineSettings,
                                     phoneNumber: phoneNumber,
                                     useRequestTimeoutTimers: false,
                                     appConfiguration: .defaultValue
                                 )
-                                |> map { network -> AccountStateManager? in
+                                |> map { [postbox] network -> AccountStateManager? in
                                     Logger.shared.log("StandaloneStateManager", "received network")
                                     
                                     postbox.mediaBox.fetchResource = { [weak postbox] resource, intervals, parameters -> Signal<MediaResourceDataFetchResult, MediaResourceDataFetchError> in

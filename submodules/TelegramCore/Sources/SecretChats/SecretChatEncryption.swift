@@ -145,7 +145,9 @@ func withDecryptedMessageContents(parameters: SecretChatEncryptionParameters, da
         case .v1:
             let (aesKey, aesIv) = messageKey(key: parameters.key, msgKey: msgKey, mode: parameters.mode)
             
-            let decryptedData = MTAesDecrypt(Data(bytes: data.memory.advanced(by: 8 + 16), count: data.length - (8 + 16)), aesKey, aesIv)!
+            guard let decryptedData = MTAesDecrypt(Data(bytes: data.memory.advanced(by: 8 + 16), count: data.length - (8 + 16)), aesKey, aesIv) else {
+                return nil
+            }
             
             if decryptedData.count < 4 * 3 {
                 return nil
@@ -159,10 +161,7 @@ func withDecryptedMessageContents(parameters: SecretChatEncryptionParameters, da
             }
             
             let paddingLength = decryptedData.count - (Int(payloadLength) + 4)
-            // `payloadLength` is read straight from decrypted bytes; a negative value (bit-corrupted
-            // or malformed ciphertext) would otherwise reach `UInt(payloadLength)` below and trap -
-            // guard it the same way the `.v2` branch already does just below.
-            if Int(payloadLength) < 0 || Int(payloadLength) > decryptedData.count - 4 || paddingLength > 16 {
+            if Int(payloadLength) <= 0 || Int(payloadLength) > decryptedData.count - 4 || paddingLength > 16 {
                 return nil
             }
             
@@ -193,7 +192,9 @@ func withDecryptedMessageContents(parameters: SecretChatEncryptionParameters, da
             }
             let (aesKey, aesIv) = messageKey(key: parameters.key, msgKey: msgKey, mode: .v2(role: senderRole))
             
-            let decryptedData = MTAesDecrypt(Data(bytes: data.memory.advanced(by: 8 + 16), count: data.length - (8 + 16)), aesKey, aesIv)!
+            guard let decryptedData = MTAesDecrypt(Data(bytes: data.memory.advanced(by: 8 + 16), count: data.length - (8 + 16)), aesKey, aesIv) else {
+                return nil
+            }
             
             if decryptedData.count < 4 * 3 {
                 return nil

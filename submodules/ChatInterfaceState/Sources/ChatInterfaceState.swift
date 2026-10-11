@@ -668,7 +668,7 @@ public final class ChatInterfaceState: Codable, Equatable {
         if let composeDisableUrlPreviews = try? container.decodeIfPresent([String].self, forKey: "dupl") {
             self.composeDisableUrlPreviews = composeDisableUrlPreviews
         } else if let composeDisableUrlPreviews = try? container.decodeIfPresent([String].self, forKey: "dup;") {
-            // Older versions wrote the list under this mistyped key.
+            // Versions from 2023-10 to 2026-09 wrote the list under this mistyped key.
             self.composeDisableUrlPreviews = composeDisableUrlPreviews
         } else if let composeDisableUrlPreview = try? container.decodeIfPresent(String.self, forKey: "dup") {
             self.composeDisableUrlPreviews = [composeDisableUrlPreview]

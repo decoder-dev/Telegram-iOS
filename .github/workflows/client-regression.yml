@@ -49,9 +49,17 @@ permissions:
 jobs:
   regression:
     runs-on: macos-26
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Telegram 13 migration and fork compatibility
+        run: |
+          python3 Tests/Upstream13/parse.py
+          python3 Tests/Upstream13/migration.py
+          python3 Tests/Upstream13/own_features.py
+          python3 Tests/Upstream13/passcode.py
       - run: swift test --package-path submodules/TelegramVLESS
       - run: python3 Tests/ManagedProxy/run.py
       - run: python3 Tests/ManagedProxy/bootstrap.py

@@ -39,11 +39,10 @@ extension ProxyServerSettings {
         return MTSocksProxySettings(ip: "127.0.0.1", port: 1, username: nil, password: nil, secret: nil)
     }
 
-    var webProxyConfiguration: WebProxyConfiguration? {
-        guard case let .web(secret) = self.connection else {
-            return nil
-        }
-        return WebProxyConfiguration(hostname: self.host, secret: secret)
+    var legacyWebProxyConfiguration: LegacyWebProxyConfiguration? {
+        guard case let .web(secret, path) = self.connection, path.isEmpty,
+              let configuration = self.webProxyConfiguration else { return nil }
+        return LegacyWebProxyConfiguration(hostname: configuration.host, secret: secret)
     }
 
     public var vlessProxyURL: String? {
@@ -53,20 +52,22 @@ extension ProxyServerSettings {
         return String(data: secret, encoding: .utf8)
     }
 
+    var isWebProxy: Bool {
+        if case .web = self.connection {
+            return true
+        } else {
+            return false
+        }
+    }
+
     var mtProxySettings: MTSocksProxySettings? {
         switch self.connection {
             case let .socks5(username, password):
                 return MTSocksProxySettings(ip: self.host, port: UInt16(clamping: self.port), username: username, password: password, secret: nil)
             case let .mtp(secret):
                 return MTSocksProxySettings(ip: self.host, port: UInt16(clamping: self.port), username: nil, password: nil, secret: secret)
-            case .web:
-                guard let configuration = self.webProxyConfiguration else {
-                    return nil
-                }
-                guard let endpoint = WebProxyManager.shared.loopbackEndpoint(for: configuration) else {
-                    return nil
-                }
-                return MTSocksProxySettings(ip: endpoint.host, port: endpoint.port, username: nil, password: nil, secret: configuration.secret)
+            case let .web(secret, _):
+                return MTSocksProxySettings(ip: WebProxyConfiguration.canonicalHost(self.host) ?? self.host, port: WebProxyConfiguration.port, username: nil, password: nil, secret: secret, webProxy: true)
             case .vless:
                 guard let url = self.vlessProxyURL,
                       let endpoint = VlessManager.shared.loopbackEndpoint(for: url) else {
@@ -75,6 +76,131 @@ extension ProxyServerSettings {
                 return MTSocksProxySettings(ip: endpoint.host, port: UInt16(clamping: endpoint.port), username: endpoint.user, password: endpoint.password, secret: nil)
         }
     }
+
+    var webProxyConfiguration: WebProxyConfiguration? {
+        guard case let .web(secret, path) = self.connection else {
+            return nil
+        }
+        return WebProxyConfiguration(host: self.host, path: path, secret: secret)
+    }
+}
+
+extension ProxyServerSettings {
+    public var webProxyAddress: String? {
+        guard case let .web(_, path) = self.connection else {
+            return nil
+        }
+        return path.isEmpty ? self.host : "\(self.host)/\(path)"
+    }
+}
+
+public func canonicalWebProxyHost(_ value: String) -> String? {
+    return WebProxyConfiguration.canonicalHost(value)
+}
+
+public func canonicalWebProxyAddress(_ value: String) -> (host: String, path: String)? {
+    return WebProxyConfiguration.canonicalAddress(value)
+}
+
+public func parseWebProxySecret(_ value: String) -> Data? {
+    return WebProxyConfiguration.parseSecret(value)
+}
+
+public func webProxySecretString(_ secret: Data) -> String {
+    return secret.map { String(format: "%02x", $0) }.joined()
+}
+
+public func makeWebProxySettings(address: String, secret: String) -> ProxyServerSettings? {
+    guard let address = canonicalWebProxyAddress(address), let data = parseWebProxySecret(secret) else {
+        return nil
+    }
+    return ProxyServerSettings(host: address.host, port: Int32(WebProxyConfiguration.port), connection: .web(secret: data, path: address.path))
+}
+
+/// Decodes the `server` and `secret` parameters of a `webproxy` link.
+///
+/// A link that carries a base path **must** mark its secret with the leading `0x70` byte;
+/// an unmarked secret there is rejected (BASE_PATH.md §3). The rule exists so that no link
+/// can be silently accepted by a client without base-path support, which would normalize
+/// `host/path` to an empty host and offer to connect to a pathless proxy. Hand entry in the
+/// editor is not bound by it - the hazard is specific to a shared link - so
+/// `makeWebProxySettings(address:secret:)` stays lenient.
+/// The `webproxy` query rule, so that every entry point accepts exactly the same set of
+/// links. `host` is a legacy input alias for `server` (ANDROID.md); generated links always
+/// use `server`, and exactly one of the two must appear alongside exactly one `secret`.
+/// Items with any other name are ignored, so a trailing `&`, which `URLComponents` keeps
+/// as an empty-name item, or a tracking parameter does not make a shared link dead.
+/// Keeping this in one place matters: when `UrlHandling` had its own laxer loop, a link
+/// with both `server` and `host` was rejected in the proxy editor and accepted from a
+/// chat, resolving to whichever came last.
+public func parseWebProxyLinkQueryItems(_ items: [URLQueryItem]) -> (host: String, path: String, secret: Data)? {
+    let hostItems = items.filter { $0.name == "server" || $0.name == "host" }
+    let secretItems = items.filter { $0.name == "secret" }
+    guard hostItems.count == 1,
+          secretItems.count == 1,
+          let address = hostItems[0].value,
+          let secret = secretItems[0].value else {
+        return nil
+    }
+    return parseWebProxyLinkComponents(address: address, secret: secret)
+}
+
+public func parseWebProxyLinkComponents(address: String, secret: String) -> (host: String, path: String, secret: Data)? {
+    guard let address = canonicalWebProxyAddress(address),
+          let decoded = WebProxyConfiguration.parseMarkedSecret(secret),
+          address.path.isEmpty || decoded.isMarked else {
+        return nil
+    }
+    return (address.host, address.path, decoded.secret)
+}
+
+public func parseWebProxySettingsLink(_ value: String) -> ProxyServerSettings? {
+    guard let components = URLComponents(string: value),
+          components.fragment == nil,
+          components.user == nil,
+          components.password == nil else {
+        return nil
+    }
+
+    let scheme = components.scheme?.lowercased()
+    let isTelegramLink = scheme == "https"
+        && components.host?.lowercased() == "t.me"
+        && components.path == "/webproxy"
+        && (components.port == nil || components.port == Int(WebProxyConfiguration.port))
+    let isTelegramScheme = scheme == "tg"
+        && components.host?.lowercased() == "webproxy"
+        && (components.path.isEmpty || components.path == "/")
+        && components.port == nil
+    guard isTelegramLink || isTelegramScheme else {
+        return nil
+    }
+
+    guard let link = parseWebProxyLinkQueryItems(components.queryItems ?? []) else {
+        return nil
+    }
+    return ProxyServerSettings(host: link.host, port: Int32(WebProxyConfiguration.port), connection: .web(secret: link.secret, path: link.path))
+}
+
+public func webProxySettingsLink(_ settings: ProxyServerSettings) -> String? {
+    guard case let .web(secret, path) = settings.connection,
+          let configuration = WebProxyConfiguration(host: settings.host, path: path, secret: secret) else {
+        return nil
+    }
+    var components = URLComponents()
+    components.scheme = "https"
+    components.host = "t.me"
+    components.path = "/webproxy"
+    components.percentEncodedQueryItems = [
+        URLQueryItem(name: "server", value: webProxyPercentEncodedAddress(configuration.address)),
+        URLQueryItem(name: "secret", value: WebProxyConfiguration.linkSecretString(secret, path: configuration.path))
+    ]
+    return components.string
+}
+
+private func webProxyPercentEncodedAddress(_ value: String) -> String {
+    var allowed = CharacterSet.alphanumerics
+    allowed.insert(charactersIn: "-._~")
+    return value.addingPercentEncoding(withAllowedCharacters: allowed) ?? value
 }
 
 /// Whether a `vless://` share link is fully supported by the embedded runtime (strict
@@ -105,7 +231,7 @@ func applySharedProxySettingsToNetwork(settings: ProxySettings, network: Network
 
     let activeServer = settings.effectiveActiveServer
     let isActiveWebProxy = activeServer?.connection.isWebProxy ?? false
-    if isActiveWebProxy, let configuration = activeServer?.webProxyConfiguration {
+    if isActiveWebProxy, let configuration = activeServer?.legacyWebProxyConfiguration {
         WebProxyManager.shared.configure(activeWebProxy: configuration)
     } else {
         WebProxyManager.shared.configure(activeWebProxy: nil)
@@ -118,6 +244,8 @@ func applySharedProxySettingsToNetwork(settings: ProxySettings, network: Network
         VlessManager.shared.configure(activeProfileURL: nil)
     }
 
+    network.updateProxySettings(activeServer)
+    network.updateWebSocketTransportSettings(webSocketTransportEnabled: settings.webSocketTransportEnabled, webSocketFallbackToDirect: settings.webSocketFallbackToDirect, hasActiveProxyServer: activeServer != nil)
     let resolvedProxySettings = activeServer?.mtProxySettings
 
     if (isActiveWebProxy || isActiveVlessProxy), resolvedProxySettings == nil {
@@ -165,9 +293,7 @@ func applySharedProxySettingsToNetwork(settings: ProxySettings, network: Network
         return nil
     }
 
-    if forceTransportReconnect,
-       let configuration = activeServer?.webProxyConfiguration,
-       WebProxyManager.shared.isReady(for: configuration) {
+    if forceTransportReconnect, resolvedProxySettings != nil, isActiveVlessProxy {
         network.dropConnectionStatus()
         network.rebuildTransport()
     }

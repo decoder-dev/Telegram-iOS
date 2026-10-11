@@ -3803,7 +3803,8 @@ public final class PeerInfoStoryPaneNode: ASDisplayNode, PeerInfoPaneNode, ASScr
                 statusBarHeight: nil,
                 inputHeight: nil,
                 inputHeightIsInteractivellyChanging: false,
-                inVoiceOver: UIAccessibility.isVoiceOverRunning
+                inVoiceOver: UIAccessibility.isVoiceOverRunning,
+                presentedInFormSheet: false
             ),
             navigationBarHeight: 0.0,
             topPadding: mapOverscrollInset + self.additionalNavigationHeight,
@@ -3864,7 +3865,7 @@ public final class PeerInfoStoryPaneNode: ASDisplayNode, PeerInfoPaneNode, ASScr
             
             let mapInfoFrame = CGRect(origin: CGPoint(x: 0.0, y: mapFrame.maxY + mapInfoTopInset), size: mapInfoLayout.contentSize)
             transition.updateFrame(node: mapInfoNode, frame: mapInfoFrame)
-            mapInfoReadyAndApply().1(ListViewItemApply(isOnScreen: true))
+            mapInfoReadyAndApply().1(ListViewItemApply())
             
             self.effectiveMapHeight += mapInfoLayout.contentSize.height + mapInfoTopInset
             
@@ -4671,7 +4672,7 @@ public final class PeerInfoStoryPaneNode: ASDisplayNode, PeerInfoPaneNode, ASScr
                         context: self.context,
                         theme: presentationData.theme,
                         fitToHeight: self.isProfileEmbedded,
-                        animationName: "StoryListEmpty",
+                        animationName: "Photos",
                         title: isArchived ? presentationData.strings.StoryList_ArchivedEmptyState_Title : presentationData.strings.StoryList_SavedEmptyPosts_Title,
                         text: isArchived ? presentationData.strings.StoryList_ArchivedEmptyState_Text : presentationData.strings.StoryList_SavedEmptyPosts_Text,
                         actionTitle: (isArchived || !self.canManageStories) ? nil : presentationData.strings.StoryList_SavedAddAction,

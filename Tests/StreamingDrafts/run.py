@@ -37,6 +37,7 @@ struct TypingDraft: Equatable {
     let timestamp: Int32
     let text: String
     let attributes: [MessageAttribute]
+    let isStopped: Bool
     let addedAtTimestamp: Double
 }
 struct TypingDraftUpdate { let value: TypingDraft? }
@@ -59,7 +60,7 @@ let key = PeerAndThreadId(peerId: 1, threadId: 42)
 let allKey = PeerAndThreadId(peerId: 1, threadId: nil)
 func put(_ id: Int64, _ text: String) {
     box.combineTypingDrafts(locations: [key, allKey]) { _, _ in
-        return (id, 0, 42, 2, 100, text, [1])
+        return (id, 0, 42, 2, 100, text, [1], false)
     }
 }
 put(999, "partial")

@@ -12,10 +12,13 @@ swift_library(
     deps = [
         "//submodules/TelegramUI/Components/Chat/ChatMessageItemView",
         "//submodules/AsyncDisplayKit",
+        "//submodules/LottieSettings:LottieSettings",
         "//submodules/Display",
         "//submodules/TelegramCore",
+        "//submodules/TelegramPresentationData",
         "//submodules/SSignalKit/SwiftSignalKit",
         "//submodules/AccountContext",
+        "//submodules/WalletContext",
         "//submodules/InstantPageUI",
         "//submodules/TextFormat:TextFormat",
         "//submodules/TelegramUI/Components/Chat/ChatMessageBubbleContentNode",

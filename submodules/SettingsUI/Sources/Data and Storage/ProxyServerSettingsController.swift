@@ -79,23 +79,24 @@ private enum ProxySettingsEntry: ItemListNodeEntry {
     var stableId: Int32 {
         switch self {
             case .usePasteboardSettings: return 0
-            case .modeSocks5: return 1
-            case .socks5Info: return 2
-            case .modeMtp: return 3
-            case .mtpInfo: return 4
-            case .modeWeb: return 5
-            case .webInfo: return 6
-            case .modeVless: return 7
-            case .vlessInfo: return 11
-            case .connectionHeader: return 8
-            case .connectionServer: return 9
-            case .connectionVless: return 10
-            case .connectionPort: return 12
-            case .credentialsHeader: return 13
-            case .credentialsUsername: return 14
-            case .credentialsPassword: return 15
-            case .credentialsSecret: return 16
-            case .share: return 17
+            case .usePasteboardInfo: return 1
+            case .modeSocks5: return 2
+            case .socks5Info: return 3
+            case .modeMtp: return 4
+            case .mtpInfo: return 5
+            case .modeWeb: return 6
+            case .webInfo: return 7
+            case .modeVless: return 8
+            case .vlessInfo: return 12
+            case .connectionHeader: return 9
+            case .connectionServer: return 10
+            case .connectionVless: return 11
+            case .connectionPort: return 13
+            case .credentialsHeader: return 14
+            case .credentialsUsername: return 15
+            case .credentialsPassword: return 16
+            case .credentialsSecret: return 17
+            case .share: return 18
         }
     }
 
@@ -113,17 +114,19 @@ private enum ProxySettingsEntry: ItemListNodeEntry {
             case let .modeSocks5(_, text, value):
                 return ItemListCheckboxItem(presentationData: presentationData, systemStyle: .glass, title: text, style: .left, checked: value, zeroSeparatorInsets: false, sectionId: self.section, action: {
                     arguments.updateState { state in
-                        var state = state
-                        state.mode = .socks5
-                        return state
+                        return state.withMode(.socks5)
                     }
                 })
             case let .modeMtp(_, text, value):
                 return ItemListCheckboxItem(presentationData: presentationData, systemStyle: .glass, title: text, style: .left, checked: value, zeroSeparatorInsets: false, sectionId: self.section, action: {
                     arguments.updateState { state in
-                        var state = state
-                        state.mode = .mtp
-                        return state
+                        return state.withMode(.mtp)
+                    }
+                })
+            case let .modeWeb(_, text, value):
+                return ItemListCheckboxItem(presentationData: presentationData, systemStyle: .glass, title: text, style: .left, checked: value, zeroSeparatorInsets: false, sectionId: self.section, action: {
+                    arguments.updateState { state in
+                        return state.withMode(.web)
                     }
                 })
             case let .modeWeb(_, text, value):
@@ -221,7 +224,7 @@ private enum ProxySettingsEntry: ItemListNodeEntry {
     }
 }
 
-private enum ProxyServerSettingsControllerMode {
+enum ProxyServerSettingsControllerMode {
     case socks5
     case mtp
     case web
@@ -248,7 +251,22 @@ private func mapPreferredMode(_ mode: ProxyServerSettingsPreferredMode) -> Proxy
     }
 }
 
-private struct ProxyServerSettingsControllerState: Equatable {
+/// A WEB proxy is host + secret only: its port is always 443, so the editor omits the
+/// port row and `isComplete` must not demand one.
+func proxyServerSettingsControllerMode(for connection: ProxyServerConnection) -> ProxyServerSettingsControllerMode {
+    switch connection {
+        case .socks5:
+            return .socks5
+        case .mtp:
+            return .mtp
+        case .vless:
+            return .vless
+        case .web:
+            return .web
+    }
+}
+
+struct ProxyServerSettingsControllerState: Equatable {
     var mode: ProxyServerSettingsControllerMode {
         didSet {
             if oldValue != mode {
@@ -270,32 +288,46 @@ private struct ProxyServerSettingsControllerState: Equatable {
     var password: String
     var secret: String
     
+    /// Switching away from `.web` must drop the base path from the shared server field.
+    /// Only a WEB address is `host/base-path`; SOCKS5 and MTProxy take a bare host, and
+    /// leaving the path in place saves a server whose host contains a slash and can never
+    /// resolve. Trimmed rather than canonicalized, so the user's own casing survives.
+    func withMode(_ mode: ProxyServerSettingsControllerMode) -> ProxyServerSettingsControllerState {
+        var state = self
+        state.mode = mode
+        if case .web = mode {
+        } else if let separator = state.host.firstIndex(of: "/") {
+            state.host = String(state.host[state.host.startIndex ..< separator])
+        }
+        return state
+    }
+
     var isComplete: Bool {
         if self.host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return false
+        }
+        switch self.mode {
+            case .socks5, .mtp:
+                if self.port.isEmpty || Int(self.port) == nil {
+                    return false
+                }
+            case .web:
+                break
         }
         switch self.mode {
             case .socks5:
                 if Int(self.port).map({ (1...65535).contains($0) }) != true {
                     return false
                 }
-            case .mtp, .web:
-                if MTProxySecret.parse(self.secret) == nil {
-                    return false
-                }
-                if self.mode == .web && (!WebProxyHostname.isValid(self.host.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()) || !isSupportedWebProxySecret(MTProxySecret.parse(self.secret)!.serialize())) {
-                    return false
-                }
+            case .mtp:
+                if MTProxySecret.parse(self.secret) == nil { return false }
+            case .web:
+                if canonicalWebProxyAddress(self.host) == nil || parseWebProxySecret(self.secret) == nil { return false }
             case .vless:
-                // In VLESS mode `host` holds the full `vless://` share link.
-                if !isValidVlessProxyURL(self.host.trimmingCharacters(in: .whitespacesAndNewlines)) {
-                    return false
-                }
+                if !isValidVlessProxyURL(self.host.trimmingCharacters(in: .whitespacesAndNewlines)) { return false }
         }
         if self.mode != .web && self.mode != .vless {
-            if Int(self.port).map({ (1...65535).contains($0) }) != true {
-                return false
-            }
+            if Int(self.port).map({ (1...65535).contains($0) }) != true { return false }
         }
         return true
     }
@@ -354,6 +386,9 @@ private func proxyServerSettingsControllerEntries(presentationData: Presentation
         case .mtp, .web:
             entries.append(.credentialsHeader(presentationData.theme, presentationData.strings.SocksProxySetup_RequiredCredentials))
             entries.append(.credentialsSecret(presentationData.theme, presentationData.strings, presentationData.strings.SocksProxySetup_SecretPlaceholder, state.secret))
+        case .web:
+            entries.append(.credentialsHeader(presentationData.theme, presentationData.strings.SocksProxySetup_RequiredCredentials))
+            entries.append(.credentialsSecret(presentationData.theme, presentationData.strings, presentationData.strings.SocksProxySetup_SecretPlaceholder, state.secret))
     }
     
     entries.append(.share(presentationData.theme, presentationData.strings.Conversation_ContextMenuShare, state.isComplete))
@@ -385,21 +420,7 @@ private func proxyServerSettings(with state: ProxyServerSettingsControllerState)
             // host/port are stored for display; the full URL in the secret is the source of truth.
             return ProxyServerSettings(host: host, port: Int32(port), connection: .vless(secret: data))
         case .web:
-            guard let parsedSecret = MTProxySecret.parse(state.secret) else {
-                return nil
-            }
-            // A WEB proxy is a relay hostname reached over HTTPS on 443 with a plain or `dd`
-            // MTProxy secret. Rejecting an IP literal or an `ee` TLS-emulation secret here keeps
-            // Save disabled instead of storing a proxy that can only fail at connect time.
-            let secret = parsedSecret.serialize()
-            guard isSupportedWebProxySecret(secret) else {
-                return nil
-            }
-            let host = state.host.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-            guard isValidWebProxyHostname(host) else {
-                return nil
-            }
-            return ProxyServerSettings(host: host, port: 443, connection: .web(secret: secret))
+            return makeWebProxySettings(address: state.host, secret: state.secret)
     }
 }
 
@@ -410,6 +431,7 @@ public func proxyServerSettingsController(context: AccountContext, currentSettin
 
 func proxyServerSettingsController(sharedContext: SharedAccountContext, context: AccountContext? = nil, presentationData: PresentationData, updatedPresentationData: Signal<PresentationData, NoError>, accountManager: AccountManager<TelegramAccountManagerTypes>, network: Network, currentSettings: ProxyServerSettings?, preferredInitialMode: ProxyServerSettingsPreferredMode? = nil) -> ViewController {
     var currentMode: ProxyServerSettingsControllerMode = preferredInitialMode.map(mapPreferredMode) ?? .socks5
+    var currentAddress: String?
     var currentUsername: String?
     var currentPassword: String?
     var currentSecret: String?
@@ -424,8 +446,11 @@ func proxyServerSettingsController(sharedContext: SharedAccountContext, context:
             case let .mtp(secret):
                 currentSecret = hexString(secret)
                 currentMode = .mtp
-            case let .web(secret):
-                currentSecret = hexString(secret)
+            case let .web(secret, _):
+                // The editor's server field holds the whole `host/base-path` address, so the
+                // base path survives a round trip through it.
+                currentAddress = currentSettings.webProxyAddress
+                currentSecret = webProxySecretString(secret)
                 currentMode = .web
             case let .vless(secret):
                 currentMode = .vless
@@ -442,8 +467,8 @@ func proxyServerSettingsController(sharedContext: SharedAccountContext, context:
         if trimmedPasteboardUrl.lowercased().hasPrefix("vless://"), isValidVlessProxyURL(trimmedPasteboardUrl),
            let data = trimmedPasteboardUrl.data(using: .utf8), let components = URLComponents(string: trimmedPasteboardUrl), let host = components.host, let port = components.port {
             pasteboardSettings = ProxyServerSettings(host: host, port: Int32(port), connection: .vless(secret: data))
-        } else if let webProxy = parseWebProxyUrl(sharedContext: sharedContext, url: pasteboardUrl) {
-            pasteboardSettings = ProxyServerSettings(host: webProxy.host, port: 443, connection: .web(secret: webProxy.secret))
+        } else if let webSettings = parseWebProxySettingsLink(pasteboardUrl) {
+            pasteboardSettings = webSettings
         } else if let proxy = parseProxyUrl(sharedContext: sharedContext, url: pasteboardUrl) {
             if let secret = proxy.secret, let parsedSecret = MTProxySecret.parseData(secret) {
                 pasteboardSettings = ProxyServerSettings(host: proxy.host, port: proxy.port, connection: .mtp(secret: parsedSecret.serialize()))
@@ -457,7 +482,7 @@ func proxyServerSettingsController(sharedContext: SharedAccountContext, context:
     if currentMode == .vless {
         initialHost = currentVlessURL ?? ""
     } else {
-        initialHost = currentSettings?.host ?? ""
+        initialHost = currentAddress ?? currentSettings?.host ?? ""
     }
     let initialState = ProxyServerSettingsControllerState(mode: currentMode, host: initialHost, port: (currentSettings?.port).flatMap { "\($0)" } ?? "", username: currentUsername ?? "", password: currentPassword ?? "", secret: currentSecret ?? "")
     let stateValue = Atomic(value: initialState)
@@ -490,11 +515,10 @@ func proxyServerSettingsController(sharedContext: SharedAccountContext, context:
                         state.mode = .mtp
                         state.host = pasteboardSettings.host
                         state.secret = hexString(secret)
-                    case let .web(secret):
+                    case let .web(secret, _):
                         state.mode = .web
-                        state.host = pasteboardSettings.host
-                        state.port = "443"
-                        state.secret = hexString(secret)
+                        state.host = pasteboardSettings.webProxyAddress ?? pasteboardSettings.host
+                        state.secret = webProxySecretString(secret)
                     case let .vless(secret):
                         state.mode = .vless
                         state.host = String(data: secret, encoding: .utf8) ?? ""

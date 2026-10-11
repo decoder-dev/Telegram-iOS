@@ -308,6 +308,27 @@ public class ChatMessageShareButton: ASDisplayNode {
         
         self.separatorNode?.frame = CGRect(origin: CGPoint(x: 0.0, y: size.height / 2.0), size: CGSize(width: size.width, height: 1.0 - UIScreenPixel))
         
+        if controllerInteraction.presentationContext.backgroundNode?.hasExtraBubbleBackground() == true {
+            if self.backgroundContent == nil, let backgroundContent = controllerInteraction.presentationContext.backgroundNode?.makeBubbleBackground(for: .free) {
+                backgroundContent.clipsToBounds = true
+                self.backgroundContent = backgroundContent
+                self.insertSubnode(backgroundContent, at: 0)
+            }
+        } else {
+            self.backgroundContent?.removeFromSupernode()
+            self.backgroundContent = nil
+        }
+        
+        if let backgroundContent = self.backgroundContent {
+            //self.backgroundNode.isHidden = true
+            self.backgroundBlurView?.view.isHidden = true
+            backgroundContent.cornerRadius = min(size.width, size.height) / 2.0
+            backgroundContent.frame = CGRect(origin: CGPoint(), size: size)
+        } else {
+            //self.backgroundNode.isHidden = false
+            self.backgroundBlurView?.view.isHidden = false
+        }
+        
         if isSummarize {
             let starsView: StarsView
             if let current = self.starsView {
@@ -328,9 +349,7 @@ public class ChatMessageShareButton: ASDisplayNode {
     }
     
     public func updateAbsoluteRect(_ rect: CGRect, within containerSize: CGSize) {
-        // Nothing to do: the background is a self-contained blurred fill rather than a window onto
-        // the wallpaper, so it does not need to know where on screen it sits. Kept because item
-        // nodes call it as part of their scroll bookkeeping.
+        self.absolutePosition = (rect, containerSize)
     }
 }
 

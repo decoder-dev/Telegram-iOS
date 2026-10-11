@@ -257,6 +257,8 @@ public enum ReplyMarkupButtonAction: PostboxCoding, Equatable {
     case openWebView(url: String, simple: Bool)
     case requestPeer(peerType: ReplyMarkupButtonRequestPeerType, buttonId: Int32, maxQuantity: Int32)
     case copyText(payload: String)
+    /// `inlineButtonTypeDisabled`: a button the recipient cannot use, typically because a forward
+    /// stripped it. Renders dimmed and does nothing when tapped.
     case disabled
     
     public init(decoder: PostboxDecoder) {
@@ -291,6 +293,8 @@ public enum ReplyMarkupButtonAction: PostboxCoding, Equatable {
                 self = .disabled
             case 13:
                 self = .copyText(payload: decoder.decodeStringForKey("p", orElse: ""))
+            case 14:
+                self = .disabled
             default:
                 self = .text
         }
@@ -348,6 +352,8 @@ public enum ReplyMarkupButtonAction: PostboxCoding, Equatable {
         case let .copyText(payload):
             encoder.encodeInt32(13, forKey: "v")
             encoder.encodeString(payload, forKey: "p")
+        case .disabled:
+            encoder.encodeInt32(14, forKey: "v")
         }
     }
 }

@@ -94,7 +94,7 @@ public final class CallKitIntegration {
         let handle = INPersonHandle(value: "tg\(peerId.id._internalGetInt64Value())", type: .unknown)
         let contact = INPerson(personHandle: handle, nameComponents: nil, displayName: displayTitle, image: nil, contactIdentifier: localContactId, customIdentifier: "tg\(peerId.id._internalGetInt64Value())")
     
-        let intent = INStartCallIntent(audioRoute: .unknown, destinationType: .normal, contacts: [contact], recordTypeForRedialing: .unknown, callCapability: .audioCall)
+        let intent = INStartCallIntent(callRecordFilter: nil, callRecordToCallBack: nil, audioRoute: .unknown, destinationType: .normal, contacts: [contact], callCapability: .audioCall)
         
         let interaction = INInteraction(intent: intent, response: nil)
         interaction.direction = .outgoing
@@ -160,7 +160,7 @@ class CallKitProviderDelegate: NSObject, CXProviderDelegate {
     }
     
     private static func providerConfiguration() -> CXProviderConfiguration {
-        let providerConfiguration = CXProviderConfiguration(localizedName: "Telegram")
+        let providerConfiguration = CXProviderConfiguration()
         
         providerConfiguration.supportsVideo = true
         providerConfiguration.maximumCallsPerCallGroup = 1
@@ -183,7 +183,8 @@ class CallKitProviderDelegate: NSObject, CXProviderDelegate {
         Logger.shared.log("CallKitIntegration", "requestTransaction \(transaction)")
         self.callController.request(transaction) { error in
             if let error = error {
-                Logger.shared.log("CallKitIntegration", "error in requestTransaction \(transaction): \(error)")
+                let nsError = error as NSError
+                Logger.shared.log("CallKitIntegration", "error in requestTransaction \(transaction): \(nsError.domain) \(nsError.code) \(error)")
             }
             completion?(error)
         }

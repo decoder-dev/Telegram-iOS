@@ -1490,8 +1490,8 @@ public enum UpgradeStarGiftError {
     case alreadyUpgraded
 }
 
-func _internal_buyStarGift(account: Account, slug: String, peerId: EnginePeer.Id, price: CurrencyAmount?) -> Signal<Never, BuyStarGiftError> {
-    let source: BotPaymentInvoiceSource = .starGiftResale(slug: slug, toPeerId: peerId, ton: price?.currency == .ton)
+func _internal_buyStarGift(account: Account, slug: String, peerId: EnginePeer.Id, price: CurrencyAmount?, hideName: Bool = true, text: String? = nil, entities: [MessageTextEntity]? = nil) -> Signal<Never, BuyStarGiftError> {
+    let source: BotPaymentInvoiceSource = .starGiftResale(slug: slug, toPeerId: peerId, ton: price?.currency == .ton, hideName: hideName, text: text, entities: entities)
     return _internal_fetchBotPaymentForm(accountPeerId: account.peerId, postbox: account.postbox, network: account.network, source: source, themeParams: nil)
     |> map(Optional.init)
     |> `catch` { error -> Signal<BotPaymentForm?, BuyStarGiftError> in
@@ -1550,7 +1550,7 @@ func _internal_dropStarGiftOriginalDetails(account: Account, reference: StarGift
                             storeForwardInfo = StoreMessageForwardInfo(authorId: forwardInfo.author?.id, sourceId: forwardInfo.source?.id, sourceMessageId: forwardInfo.sourceMessageId, date: forwardInfo.date, authorSignature: forwardInfo.authorSignature, psaType: forwardInfo.psaType, flags: forwardInfo.flags)
                         }
                         var media = currentMessage.media
-                        if let action = media.first(where: { $0 is TelegramMediaAction }) as? TelegramMediaAction, case let .starGiftUnique(gift, isUpgrade, isTransferred, savedToProfile, canExportDate, transferStars, isRefunded, isPrepaidUpgrade, peerId, senderId, savedId, resaleAmount, canTransferDate, canResaleDate, _, assigned, fromOffer, canCraftAt, isCrafted, uniqueMessage) = action.action, case let .unique(uniqueGift) = gift {
+                        if let action = media.first(where: { $0 is TelegramMediaAction }) as? TelegramMediaAction, case let .starGiftUnique(gift, isUpgrade, isTransferred, savedToProfile, canExportDate, transferStars, isRefunded, isPrepaidUpgrade, peerId, senderId, savedId, resaleAmount, canTransferDate, canResaleDate, _, assigned, fromOffer, canCraftAt, isCrafted, text, entities, nameHidden) = action.action, case let .unique(uniqueGift) = gift {
                             let updatedAttributes = uniqueGift.attributes.filter { $0.attributeType != .originalInfo }
                             media = [
                                 TelegramMediaAction(
@@ -1574,7 +1574,9 @@ func _internal_dropStarGiftOriginalDetails(account: Account, reference: StarGift
                                         fromOffer: fromOffer,
                                         canCraftAt: canCraftAt,
                                         isCrafted: isCrafted,
-                                        message: uniqueMessage
+                                        text: text,
+                                        entities: entities,
+                                        nameHidden: nameHidden
                                     )
                                 )
                             ]
@@ -1688,7 +1690,7 @@ func _internal_upgradeStarGift(account: Account, formId: Int64?, reference: Star
                         let message = updateNewMessageData.message
                         if let message = StoreMessage(apiMessage: message, accountPeerId: account.peerId, peerIsForum: false) {
                             for media in message.media {
-                                if let action = media as? TelegramMediaAction, case let .starGiftUnique(gift, _, _, savedToProfile, canExportDate, transferStars, _, _, peerId, _, savedId, _, canTransferDate, canResaleDate, dropOriginalDetailsStars, _, _, canCraftAt, _, _) = action.action, case let .Id(messageId) = message.id {
+                                if let action = media as? TelegramMediaAction, case let .starGiftUnique(gift, _, _, savedToProfile, canExportDate, transferStars, _, _, peerId, _, savedId, _, canTransferDate, canResaleDate, dropOriginalDetailsStars, _, _, canCraftAt, _, text, entities, nameHidden) = action.action, case let .Id(messageId) = message.id {
                                     let reference: StarGiftReference
                                     if let peerId, let savedId {
                                         reference = .peer(peerId: peerId, id: savedId)
@@ -1700,9 +1702,9 @@ func _internal_upgradeStarGift(account: Account, formId: Int64?, reference: Star
                                         reference: reference,
                                         fromPeer: nil,
                                         date: message.timestamp,
-                                        text: nil,
-                                        entities: nil,
-                                        nameHidden: false,
+                                        text: text,
+                                        entities: entities,
+                                        nameHidden: nameHidden,
                                         savedToProfile: savedToProfile,
                                         pinnedToTop: false,
                                         convertStars: nil,
@@ -2369,7 +2371,7 @@ private final class ProfileGiftsContextImpl {
         return _internal_transferStarGift(account: self.account, prepaid: prepaid, reference: reference, peerId: peerId)
     }
     
-    func buyStarGift(slug: String, peerId: EnginePeer.Id, price: CurrencyAmount?) -> Signal<Never, BuyStarGiftError> {
+    func buyStarGift(slug: String, peerId: EnginePeer.Id, price: CurrencyAmount?, hideName: Bool, text: String?, entities: [MessageTextEntity]?) -> Signal<Never, BuyStarGiftError> {
         var listingPrice: CurrencyAmount?
         if let gift = self.gifts.first(where: { gift in
             if case let .unique(uniqueGift) = gift.gift, uniqueGift.slug == slug {
@@ -2391,7 +2393,7 @@ private final class ProfileGiftsContextImpl {
             }
         }
                 
-        return _internal_buyStarGift(account: self.account, slug: slug, peerId: peerId, price: price ?? listingPrice)
+        return _internal_buyStarGift(account: self.account, slug: slug, peerId: peerId, price: price ?? listingPrice, hideName: hideName, text: text, entities: entities)
         |> afterCompleted { [weak self] in
             guard let self else {
                 return
@@ -3147,11 +3149,11 @@ public final class ProfileGiftsContext {
         }
     }
     
-    public func buyStarGift(slug: String, peerId: EnginePeer.Id, price: CurrencyAmount? = nil) -> Signal<Never, BuyStarGiftError> {
+    public func buyStarGift(slug: String, peerId: EnginePeer.Id, price: CurrencyAmount? = nil, hideName: Bool = true, text: String? = nil, entities: [MessageTextEntity]? = nil) -> Signal<Never, BuyStarGiftError> {
         return Signal { subscriber in
             let disposable = MetaDisposable()
             self.impl.with { impl in
-                disposable.set(impl.buyStarGift(slug: slug, peerId: peerId, price: price).start(error: { error in
+                disposable.set(impl.buyStarGift(slug: slug, peerId: peerId, price: price, hideName: hideName, text: text, entities: entities).start(error: { error in
                     subscriber.putError(error)
                 }, completed: {
                     subscriber.putCompletion()
@@ -3500,7 +3502,7 @@ func _internal_craftStarGift(account: Account, references: [StarGiftReference]) 
                     let message = updateNewMessageData.message
                     if let message = StoreMessage(apiMessage: message, accountPeerId: account.peerId, peerIsForum: false) {
                         for media in message.media {
-                            if let action = media as? TelegramMediaAction, case let .starGiftUnique(gift, _, _, savedToProfile, canExportDate, transferStars, _, _, peerId, _, savedId, _, canTransferDate, canResaleDate, dropOriginalDetailsStars, _, _, canCraftAt, _, _) = action.action, case let .Id(messageId) = message.id {
+                            if let action = media as? TelegramMediaAction, case let .starGiftUnique(gift, _, _, savedToProfile, canExportDate, transferStars, _, _, peerId, _, savedId, _, canTransferDate, canResaleDate, dropOriginalDetailsStars, _, _, canCraftAt, _, text, entities, nameHidden) = action.action, case let .Id(messageId) = message.id {
                                 let reference: StarGiftReference
                                 if let peerId, let savedId {
                                     reference = .peer(peerId: peerId, id: savedId)
@@ -3512,9 +3514,9 @@ func _internal_craftStarGift(account: Account, references: [StarGiftReference]) 
                                     reference: reference,
                                     fromPeer: nil,
                                     date: message.timestamp,
-                                    text: nil,
-                                    entities: nil,
-                                    nameHidden: false,
+                                    text: text,
+                                    entities: entities,
+                                    nameHidden: nameHidden,
                                     savedToProfile: savedToProfile,
                                     pinnedToTop: false,
                                     convertStars: nil,
@@ -3853,7 +3855,7 @@ func _internal_requestStarGiftWithdrawalUrl(account: Account, reference: StarGif
         }
         |> mapToSignal { authData -> Signal<Api.InputCheckPasswordSRP, RequestStarGiftWithdrawalError> in
             if let currentPasswordDerivation = authData.currentPasswordDerivation, let srpSessionData = authData.srpSessionData {
-                guard let kdfResult = passwordKDF(encryptionProvider: account.network.encryptionProvider, password: password, derivation: currentPasswordDerivation, srpSessionData: srpSessionData) else {
+                guard let kdfResult = passwordKDF(encryptionProvider: account.network.encryptionProvider, keychain: account.network.context.keychain, password: password, derivation: currentPasswordDerivation, srpSessionData: srpSessionData) else {
                     return .fail(.generic)
                 }
                 return .single(.inputCheckPasswordSRP(.init(srpId: kdfResult.id, A: Buffer(data: kdfResult.A), M1: Buffer(data: kdfResult.M1))))
@@ -4187,7 +4189,7 @@ private final class ResaleGiftsContextImpl {
         self.loadMore()
     }
     
-    func buyStarGift(slug: String, peerId: EnginePeer.Id, price: CurrencyAmount?) -> Signal<Never, BuyStarGiftError> {
+    func buyStarGift(slug: String, peerId: EnginePeer.Id, price: CurrencyAmount?, hideName: Bool, text: String?, entities: [MessageTextEntity]?) -> Signal<Never, BuyStarGiftError> {
         var listingPrice: CurrencyAmount?
         if let gift = self.gifts.first(where: { gift in
             if case let .unique(uniqueGift) = gift, uniqueGift.slug == slug {
@@ -4198,7 +4200,7 @@ private final class ResaleGiftsContextImpl {
             listingPrice = uniqueGift.resellAmounts?.first(where: { $0.currency == .stars })
         }
         
-        return _internal_buyStarGift(account: self.account, slug: slug, peerId: peerId, price: price ?? listingPrice)
+        return _internal_buyStarGift(account: self.account, slug: slug, peerId: peerId, price: price ?? listingPrice, hideName: hideName, text: text, entities: entities)
         |> afterCompleted { [weak self] in
             guard let self else {
                 return
@@ -4358,11 +4360,11 @@ public final class ResaleGiftsContext {
         }
     }
     
-    public func buyStarGift(slug: String, peerId: EnginePeer.Id, price: CurrencyAmount? = nil) -> Signal<Never, BuyStarGiftError> {
+    public func buyStarGift(slug: String, peerId: EnginePeer.Id, price: CurrencyAmount? = nil, hideName: Bool = true, text: String? = nil, entities: [MessageTextEntity]? = nil) -> Signal<Never, BuyStarGiftError> {
         return Signal { subscriber in
             let disposable = MetaDisposable()
             self.impl.with { impl in
-                disposable.set(impl.buyStarGift(slug: slug, peerId: peerId, price: price).start(error: { error in
+                disposable.set(impl.buyStarGift(slug: slug, peerId: peerId, price: price, hideName: hideName, text: text, entities: entities).start(error: { error in
                     subscriber.putError(error)
                 }, completed: {
                     subscriber.putCompletion()

@@ -909,7 +909,7 @@ public func dataAndStorageController(context: AccountContext, focusOnItemTag: Da
         let controller = intentsSettingsController(context: context)
         pushControllerImpl?(controller)
     }, toggleSensitiveContent: { value in
-        let update = {
+        let update = { [contentSettingsConfiguration] in
             let _ = updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager, { current in
                 var current = current
                 current.showSensitiveContent = value

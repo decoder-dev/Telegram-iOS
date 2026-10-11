@@ -140,9 +140,11 @@ public final class ChatTextInputActionButtonsNode: ASDisplayNode, ChatSendMessag
     public let stopButton = UIButton(type: .custom)
     public var stopPressed: (() -> Void)?
     public let stopButtonIcon: GlassBackgroundView.ContentImageView
+    public let stopButton: HighlightTrackingButton
     
     public let sendContainerNode: ASDisplayNode
     public let sendButtonBackgroundView: UIImageView
+    private var sendButtonBackgroundImageDiameter: CGFloat?
     private var sendButtonBackgroundEffectLayer: StarsParticleEffectLayer?
     public let sendButton: HighlightTrackingButtonNode
     public var sendButtonRadialStatusNode: ChatSendButtonRadialStatusNode?
@@ -199,14 +201,20 @@ public final class ChatTextInputActionButtonsNode: ASDisplayNode, ChatSendMessag
         self.stopButtonIcon = GlassBackgroundView.ContentImageView()
         self.micButtonBackgroundView.contentView.addSubview(self.stopButtonIcon)
         self.stopButtonIcon.alpha = 0.0
+
+        // Hidden rather than alpha-driven: this is the hit-test gate, and it must be closed
+        // whenever Stop is not on screen, independent of the icon's cross-fade.
+        self.stopButton = HighlightTrackingButton()
+        self.micButtonBackgroundView.contentView.addSubview(self.stopButton)
         self.stopButton.isHidden = true
-        self.stopButton.accessibilityLabel = strings.GroupInfo_SetGroupPhotoStop
+        self.stopButton.accessibilityLabel = strings.VoiceOver_Chat_Stop
         
         self.sendContainerNode = ASDisplayNode()
         self.sendContainerNode.layer.allowsGroupOpacity = true
         
         self.sendButtonBackgroundView = UIImageView()
-        self.sendButtonBackgroundView.image = generateStretchableFilledCircleImage(diameter: 40.0, color: .white)?.withRenderingMode(.alwaysTemplate)
+        // The image is (re)generated in `updateLayout` for the frame's `min(width, height)`, so the capsule's
+        // radius is always half its shorter side rather than a baked-in constant.
         self.sendButton = HighlightTrackingButtonNode(pointerStyle: nil)
         
         self.textNode = ImmediateAnimatedCountLabelNode()
@@ -376,7 +384,11 @@ public final class ChatTextInputActionButtonsNode: ASDisplayNode, ChatSendMessag
         }
     
         transition.updateFrame(view: self.micButtonBackgroundView, frame: CGRect(origin: CGPoint(), size: size))
-        self.micButtonBackgroundView.update(size: size, cornerRadius: size.height * 0.5, isDark:  interfaceState.theme.overallDarkAppearance, tintColor: defaultGlassTintColor, isInteractive: true, transition: ComponentTransition(transition))
+        // While recording, the recording blob stands in for this button. On iOS 26 the circle is system glass, which
+        // does not follow its view's alpha (the panel's fade-out leaves it on screen, under the translucent blob), so
+        // it is dissolved through the glass itself.
+        let isRecording = interfaceState.inputTextPanelState.mediaRecordingState != nil
+        self.micButtonBackgroundView.update(size: size, cornerRadius: size.height * 0.5, isDark:  interfaceState.theme.overallDarkAppearance, tintColor: defaultGlassTintColor, isInteractive: true, isVisible: !isRecording, transition: ComponentTransition(transition))
         
         transition.updatePosition(layer: self.micButton.layer, position: CGRect(origin: CGPoint(), size: size).center)
         transition.updateBounds(layer: self.micButton.layer, bounds: CGRect(origin: CGPoint(), size: size))
@@ -398,13 +410,19 @@ public final class ChatTextInputActionButtonsNode: ASDisplayNode, ChatSendMessag
         }
         if let image = self.stopButtonIcon.image {
             self.stopButtonIcon.tintColor = interfaceState.theme.chat.inputPanel.panelControlColor
-            // The icon carries a scale transform (cross-fade against the mic button). Writing `frame`
-            // under a non-identity transform makes UIKit inflate the bounds by 1/scale, so drive
-            // position and bounds directly, as micButton does above.
+            // This icon carries a scale transform: ChatTextInputPanelNode cross-fades it against the
+            // mic button by scaling between 0.001 and 1.0. `frame` is a DERIVED property — UIKit
+            // computes it from bounds, position, anchorPoint and transform — so writing it back while
+            // the transform is non-identity makes UIKit solve for bounds instead, inflating them by
+            // 1/scale. A 14pt icon written at scale 0.001 yields 14000pt bounds, which render as a
+            // huge square once the scale animates back to 1.0, and each subsequent layout pass feeds
+            // the inflated value back in. Drive the transform-independent properties directly, the
+            // way micButton above does for exactly the same reason.
             let iconFrame = image.size.centered(in: CGRect(origin: CGPoint(), size: size))
             transition.updatePosition(layer: self.stopButtonIcon.layer, position: iconFrame.center)
             transition.updateBounds(layer: self.stopButtonIcon.layer, bounds: CGRect(origin: CGPoint(), size: iconFrame.size))
         }
+        transition.updateFrame(view: self.stopButton, frame: CGRect(origin: CGPoint(), size: size))
         
         var sendSlowmodeTimerTimestamp: (duration: Int32, timestamp: Int32)?
         if let slowmodeState = interfaceState.slowmodeState {
@@ -416,9 +434,15 @@ public final class ChatTextInputActionButtonsNode: ASDisplayNode, ChatSendMessag
             }
         }
         
-        // Fill the returned size as a circle (or titled pill). Same rule as micBackgroundView:
-        // the visible disc is the node size — no extra inset padding.
-        let sendButtonBackgroundFrame = CGRect(origin: CGPoint(x: 0.0, y: max(0.0, (resultSize.height - 40.0) * 0.5)), size: CGSize(width: resultSize.width, height: min(40.0, resultSize.height)))
+        let sendButtonBackgroundFrame = CGRect(origin: CGPoint(), size: innerSize).insetBy(dx: 3.0, dy: 3.0)
+        // Corner radius = min(width, height) / 2: a true capsule whatever the frame. The stretchable image
+        // must be generated at that diameter — a fixed one (it was 34) reads as a rounded rect the moment
+        // the frame's shorter side differs from it.
+        let sendButtonCornerDiameter = min(sendButtonBackgroundFrame.width, sendButtonBackgroundFrame.height)
+        if self.sendButtonBackgroundImageDiameter != sendButtonCornerDiameter {
+            self.sendButtonBackgroundImageDiameter = sendButtonCornerDiameter
+            self.sendButtonBackgroundView.image = generateStretchableFilledCircleImage(diameter: sendButtonCornerDiameter, color: .white)?.withRenderingMode(.alwaysTemplate)
+        }
         
         let slowmodeInset: CGFloat = 4.0
         
@@ -443,7 +467,7 @@ public final class ChatTextInputActionButtonsNode: ASDisplayNode, ChatSendMessag
             
             if slowmodeProgressLayer.bounds.size != sendButtonBackgroundFrame.size {
                 let pathFrame = CGRect(origin: CGPoint(), size: sendButtonBackgroundFrame.size).insetBy(dx: 2.0, dy: 2.0)
-                slowmodeProgressLayer.path = UIBezierPath(roundedRect: pathFrame, cornerRadius: pathFrame.height * 0.5).cgPath
+                slowmodeProgressLayer.path = UIBezierPath(roundedRect: pathFrame, cornerRadius: min(pathFrame.width, pathFrame.height) * 0.5).cgPath
             }
             slowmodeProgressTransition.updateFrame(layer: slowmodeProgressLayer, frame: sendButtonBackgroundFrame)
             
@@ -504,7 +528,7 @@ public final class ChatTextInputActionButtonsNode: ASDisplayNode, ChatSendMessag
                 }
             }
             transition.updateFrame(layer: sendButtonBackgroundEffectLayer, frame: CGRect(origin: CGPoint(), size: sendButtonBackgroundFrame.size))
-            sendButtonBackgroundEffectLayer.update(color: UIColor(white: 1.0, alpha: 0.5), size: sendButtonBackgroundFrame.size, cornerRadius: sendButtonBackgroundFrame.height * 0.5, transition: ComponentTransition(sendButtonBackgroundEffectLayerTransition))
+            sendButtonBackgroundEffectLayer.update(color: UIColor(white: 1.0, alpha: 0.5), size: sendButtonBackgroundFrame.size, cornerRadius: sendButtonCornerDiameter * 0.5, transition: ComponentTransition(sendButtonBackgroundEffectLayerTransition))
         } else if let sendButtonBackgroundEffectLayer = self.sendButtonBackgroundEffectLayer {
             self.sendButtonBackgroundEffectLayer = nil
             transition.updateFrame(layer: sendButtonBackgroundEffectLayer, frame: CGRect(origin: CGPoint(), size: sendButtonBackgroundFrame.size))
@@ -571,7 +595,7 @@ public final class ChatTextInputActionButtonsNode: ASDisplayNode, ChatSendMessag
     public func updateAccessibility() {
         self.accessibilityTraits = .button
         if !self.stopButtonIcon.alpha.isZero {
-            self.accessibilityLabel = self.strings.GroupInfo_SetGroupPhotoStop
+            self.accessibilityLabel = self.strings.VoiceOver_Chat_Stop
             self.accessibilityHint = nil
         } else if !self.micButton.alpha.isZero {
             switch self.micButton.mode {

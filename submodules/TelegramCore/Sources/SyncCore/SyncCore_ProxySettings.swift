@@ -6,10 +6,8 @@ import TelegramVLESS
 public enum ProxyServerConnection: Equatable, Hashable, Codable {
     case socks5(username: String?, password: String?)
     case mtp(secret: Data)
-    /// WEB proxy (tproxy-server): hostname is the masking HTTPS site; traffic is tunneled via WebView/HTTPS carrier.
-    case web(secret: Data)
-    /// VLESS proxy: `secret` holds the full `vless://` share-link URL (UTF-8); traffic is
-    /// tunneled through an embedded Xray runtime exposing an authenticated loopback SOCKS5 bridge.
+    case web(secret: Data, path: String = "")
+    /// The persisted tag 3 belongs to BananaGram VLESS profiles.
     case vless(secret: Data)
     
     public init(from decoder: Decoder) throws {
@@ -21,9 +19,17 @@ public enum ProxyServerConnection: Equatable, Hashable, Codable {
             case 1:
                 self = .mtp(secret: try container.decode(Data.self, forKey: "secret"))
             case 2:
-                self = .web(secret: try container.decode(Data.self, forKey: "secret"))
+                self = .web(secret: try container.decode(Data.self, forKey: "secret"), path: "")
             case 3:
-                self = .vless(secret: try container.decode(Data.self, forKey: "secret"))
+                // Official Telegram also used 3 for a Web proxy with a required path.
+                // The presence of that field disambiguates imported official profiles.
+                if let path = try container.decodeIfPresent(String.self, forKey: "path") {
+                    self = .web(secret: try container.decode(Data.self, forKey: "secret"), path: path)
+                } else {
+                    self = .vless(secret: try container.decode(Data.self, forKey: "secret"))
+                }
+            case 4:
+                self = .web(secret: try container.decode(Data.self, forKey: "secret"), path: try container.decode(String.self, forKey: "path"))
             default:
                 self = .socks5(username: nil, password: nil)
         }
@@ -40,9 +46,12 @@ public enum ProxyServerConnection: Equatable, Hashable, Codable {
             case let .mtp(secret):
                 try container.encode(1 as Int32, forKey: "_t")
                 try container.encode(secret, forKey: "secret")
-            case let .web(secret):
-                try container.encode(2 as Int32, forKey: "_t")
+            case let .web(secret, path):
+                try container.encode((path.isEmpty ? 2 : 4) as Int32, forKey: "_t")
                 try container.encode(secret, forKey: "secret")
+                if !path.isEmpty {
+                    try container.encode(path, forKey: "path")
+                }
             case let .vless(secret):
                 try container.encode(3 as Int32, forKey: "_t")
                 try container.encode(secret, forKey: "secret")
@@ -71,20 +80,26 @@ public struct ProxyServerSettings: Codable, Equatable, Hashable {
     
     public init(host: String, port: Int32, connection: ProxyServerConnection) {
         self.host = host
-        self.port = port
+        if case .web = connection {
+            self.port = 443
+        } else {
+            self.port = port
+        }
         self.connection = connection
     }
     
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: StringCodingKey.self)
 
-        self.host = (try? container.decode(String.self, forKey: "host")) ?? ""
-        self.port = (try? container.decode(Int32.self, forKey: "port")) ?? 0
+        let host = (try? container.decode(String.self, forKey: "host")) ?? ""
+        let port = (try? container.decode(Int32.self, forKey: "port")) ?? 0
+        let connection: ProxyServerConnection
         if let username = try container.decodeIfPresent(String.self, forKey: "username") {
-            self.connection = .socks5(username: username, password: try container.decodeIfPresent(String.self, forKey: "password"))
+            connection = .socks5(username: username, password: try container.decodeIfPresent(String.self, forKey: "password"))
         } else {
-            self.connection = (try? container.decodeIfPresent(ProxyServerConnection.self, forKey: "connection")) ?? ProxyServerConnection.socks5(username: nil, password: nil)
+            connection = (try? container.decodeIfPresent(ProxyServerConnection.self, forKey: "connection")) ?? ProxyServerConnection.socks5(username: nil, password: nil)
         }
+        self.init(host: host, port: port, connection: connection)
     }
     
     public func encode(to encoder: Encoder) throws {

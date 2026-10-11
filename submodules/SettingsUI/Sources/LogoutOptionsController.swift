@@ -16,6 +16,8 @@ import AccountUtils
 import PremiumUI
 import StorageUsageScreen
 import TelegramUIPreferences
+import TelegramStringFormatting
+import WalletContext
 
 private struct LogoutOptionsItemArguments {
     let addAccount: () -> Void
@@ -134,6 +136,7 @@ public func logoutOptionsController(context: AccountContext, navigationControlle
     var dismissImpl: (() -> Void)?
     
     let supportPeerDisposable = MetaDisposable()
+    let logoutConfirmationDisposable = MetaDisposable()
     
     let arguments = LogoutOptionsItemArguments(addAccount: {
         let _ = (activeAccountsAndPeers(context: context)
@@ -172,10 +175,12 @@ public func logoutOptionsController(context: AccountContext, navigationControlle
             }
         })
     }, setPasscode: {
-        let _ = passcodeOptionsAccessController(context: context, pushController: { controller in
+        let _ = passcodeOptionsAccessController(context: context, replaceController: { controller in
             replaceTopControllerImpl?(controller)
-        }, completion: { _ in
-            replaceTopControllerImpl?(passcodeOptionsController(context: context))
+        }, authorizationCompleted: { result in
+            guard case let .success(session) = result else { return }
+            guard let replaceTopControllerImpl else { session.invalidate(); return }
+            replaceTopControllerImpl(passcodeOptionsController(context: context, settingsSession: session))
         }).start(next: { controller in
             if let controller = controller {
                 pushControllerImpl?(controller)
@@ -257,18 +262,20 @@ public func logoutOptionsController(context: AccountContext, navigationControlle
         ]), nil)
     }, logout: {
         let presentationData = context.sharedContext.currentPresentationData.with { $0 }
-        let alertController = textAlertController(context: context, title: presentationData.strings.Settings_LogoutConfirmationTitle, text: presentationData.strings.Settings_LogoutConfirmationText, actions: [
-            TextAlertAction(type: .genericAction, title: presentationData.strings.Common_Cancel, action: {
-            }),
-            TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {
-                // Don't leave an orphaned Archive-lock password hash behind for an account
-                // that no longer exists on this device.
-                ArchivePasswordKeychain.clear(peerId: context.account.peerId)
-                let _ = logoutFromAccount(id: context.account.id, accountManager: context.sharedContext.accountManager, alreadyLoggedOutRemotely: false).start()
-                dismissImpl?()
-            })
-        ])
-        presentControllerImpl?(alertController, nil)
+        logoutConfirmationDisposable.set(nil)
+        logoutConfirmationDisposable.set((logoutConfirmationText(context: context, presentationData: presentationData)
+        |> deliverOnMainQueue).start(next: { text in
+            let alertController = textAlertController(context: context, title: presentationData.strings.Settings_LogoutConfirmationTitle, text: text, actions: [
+                TextAlertAction(type: .genericAction, title: presentationData.strings.Common_Cancel, action: {
+                }),
+                TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {
+                    ArchivePasswordKeychain.clear(peerId: context.account.peerId)
+                    let _ = logoutFromAccount(id: context.account.id, accountManager: context.sharedContext.accountManager, alreadyLoggedOutRemotely: false).start()
+                    dismissImpl?()
+                })
+            ], parseMarkdown: true)
+            presentControllerImpl?(alertController, nil)
+        }))
     })
         
     let signal = combineLatest(queue: .mainQueue(),
@@ -278,7 +285,7 @@ public func logoutOptionsController(context: AccountContext, navigationControlle
     |> map { presentationData, accessChallengeData -> (ItemListControllerState, (ItemListNodeState, Any)) in
         var hasPasscode = false
         switch accessChallengeData.data {
-            case .numericalPassword, .plaintextPassword, .numericalPasswordHash, .plaintextPasswordHash:
+            case .numericalPassword, .plaintextPassword, .numericalPasswordHash, .plaintextPasswordHash, .secured:
                 hasPasscode = true
             default:
                 break
@@ -289,9 +296,15 @@ public func logoutOptionsController(context: AccountContext, navigationControlle
         
         return (controllerState, (listState, arguments))
     }
+    |> afterDisposed {
+        logoutConfirmationDisposable.dispose()
+    }
     
     let controller = ItemListController(context: context, state: signal, tabBarItem: nil)
     controller.navigationPresentation = .modal
+    controller.didDisappear = { _ in
+        logoutConfirmationDisposable.set(nil)
+    }
     pushControllerImpl = { [weak navigationController] value in
         navigationController?.pushViewController(value, animated: false)
     }
@@ -308,3 +321,22 @@ public func logoutOptionsController(context: AccountContext, navigationControlle
     return controller
 }
 
+public func logoutConfirmationText(context: AccountContext, presentationData: PresentationData) -> Signal<String, NoError> {
+    guard WalletConfiguration.with(appConfiguration: context.currentAppConfiguration.with { $0 }).isAvailable,
+          let walletContext = context.walletContext else {
+        return .single(presentationData.strings.Settings_LogoutConfirmationText)
+    }
+    return walletContext.logoutWarningBalance()
+    |> map { balance in
+        guard let balance else {
+            return presentationData.strings.Settings_LogoutConfirmationText
+        }
+        let amount = formatTonAmountText(
+            balance,
+            dateTimeFormat: presentationData.dateTimeFormat,
+            maxDecimalPositions: 1,
+            formatString: presentationData.strings.Currency_Grams
+        )
+        return presentationData.strings.Settings_LogoutConfirmationTextWithWallets(amount).string
+    }
+}

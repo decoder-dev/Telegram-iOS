@@ -24,7 +24,7 @@ public extension PostboxAccessChallengeData {
         switch self {
             case .numericalPassword, .plaintextPassword:
                 return true
-            case .none, .numericalPasswordHash, .plaintextPasswordHash:
+            case .none, .secured, .numericalPasswordHash, .plaintextPasswordHash:
                 return false
         }
     }
@@ -34,6 +34,8 @@ public extension PostboxAccessChallengeData {
         switch self {
             case .numericalPassword, .numericalPasswordHash:
                 return true
+            case let .secured(_, kind):
+                return kind == .digits4 || kind == .digits6
             case .none, .plaintextPassword, .plaintextPasswordHash:
                 return false
         }
@@ -47,6 +49,8 @@ public extension PostboxAccessChallengeData {
                 return value.count
             case let .numericalPasswordHash(_, digits):
                 return Int(digits)
+            case let .secured(_, kind):
+                return kind == .digits4 ? 4 : (kind == .digits6 ? 6 : 0)
             case .none, .plaintextPassword, .plaintextPasswordHash:
                 return 0
         }
@@ -60,6 +64,9 @@ public extension PostboxAccessChallengeData {
     ///   value is normalized to western digits before comparing; plaintext values compare as-is).
     func isValidPasscode(_ passcode: String) -> Bool {
         switch self {
+            case .secured:
+                // Keychain credentials must be verified through PasscodeCore.
+                return false
             case .none:
                 return true
             case let .numericalPassword(code):
@@ -88,7 +95,7 @@ public extension PostboxAccessChallengeData {
                 return PostboxAccessChallengeData.makeHashedPasscode(passcode: passcode, numerical: true)
             case .plaintextPassword:
                 return PostboxAccessChallengeData.makeHashedPasscode(passcode: passcode, numerical: false)
-            case .none, .numericalPasswordHash, .plaintextPasswordHash:
+            case .none, .secured, .numericalPasswordHash, .plaintextPasswordHash:
                 return nil
         }
     }

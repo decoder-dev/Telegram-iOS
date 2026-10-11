@@ -17,10 +17,18 @@ import ICloudResources
 import ChatTextLinkEditUI
 
 public enum PollAttachmentSubject {
+    public struct RichText: Equatable {
+        public var photoVideoSelectionLimit: Int
+        
+        public init(photoVideoSelectionLimit: Int) {
+            self.photoVideoSelectionLimit = photoVideoSelectionLimit
+        }
+    }
+    
     case description
     case quizAnswer
     case option
-    case richText
+    case richText(RichText)
 }
 
 func makePollAttachmentLinkWebpage(link: String) -> TelegramMediaWebpage {
@@ -58,7 +66,7 @@ public func presentPollAttachmentScreen(
     availableButtons: [AttachmentButtonType],
     inputMediaNodeData: Signal<ChatEntityKeyboardInputNode.InputData?, NoError>? = nil,
     present: @escaping (ViewController, Bool) -> Void,
-    completion: @escaping (AnyMediaReference) -> Void
+    completion: @escaping ([AnyMediaReference]) -> Void
 ) {
     let attachmentController = AttachmentController(
         context: context,
@@ -83,7 +91,7 @@ public func presentPollAttachmentScreen(
                 hasStickers: true,
                 hasGifs: false,
                 hideBackground: true,
-                maskEdge: .fade,
+                maskEdge: .clip,
                 sendGif: nil
             )
             |> map(Optional.init)
@@ -97,6 +105,9 @@ public func presentPollAttachmentScreen(
         
         let locationPickerPollSubject: LocationPickerController.Source.PollMode
         let stickerPickerPollSubject: StickerAttachmentScreen.Source.PollMode
+        
+        var multiselectionLimit: Int?
+        
         switch subject {
         case .description:
             mediaPickerAssetsMode = .poll(mode: .description, asFile: false)
@@ -119,13 +130,17 @@ public func presentPollAttachmentScreen(
             
             locationPickerPollSubject = .option
             stickerPickerPollSubject = .option
-        case .richText:
+        case let .richText(richText):
             mediaPickerAssetsMode = .richText(asFile: false)
             filePickerAssetsMode = .richText(asFile: true)
             filePickerSource = .richText
             
             locationPickerPollSubject = .richText
             stickerPickerPollSubject = .richText
+            
+            if richText.photoVideoSelectionLimit > 1 {
+                multiselectionLimit = richText.photoVideoSelectionLimit
+            }
         }
 
         switch type {
@@ -137,7 +152,9 @@ public func presentPollAttachmentScreen(
                 peer: nil,
                 threadTitle: nil,
                 chatLocation: nil,
-                enableMultiselection: false,
+                isActionButtonDone: true,
+                enableMultiselection: multiselectionLimit != nil && multiselectionLimit != 1,
+                selectionLimit: multiselectionLimit,
                 subject: .assets(nil, mediaPickerAssetsMode)
             )
             controller.getCaptionPanelView = {
@@ -146,8 +163,14 @@ public func presentPollAttachmentScreen(
             controller.legacyCompletion = { _, signals, _, _, _, _, sendCompletion in
                 let _ = (legacyAssetPickerEnqueueMessages(context: context, account: context.account, signals: signals)
                 |> deliverOnMainQueue).start(next: { items in
-                    if let item = items.first, case let .message(_, _, _, mediaReference, _, _, _, _, _, _) = item.message, let mediaReference {
-                        completion(mediaReference)
+                    var references: [AnyMediaReference] = []
+                    for item in items {
+                        if case let .message(_, _, _, mediaReference, _, _, _, _, _, _) = item.message, let mediaReference {
+                            references.append(mediaReference)
+                        }
+                    }
+                    if !references.isEmpty {
+                        completion(references)
                         sendCompletion()
                     }
                 })
@@ -181,7 +204,7 @@ public func presentPollAttachmentScreen(
                         let _ = (legacyAssetPickerEnqueueMessages(context: context, account: context.account, signals: signals)
                         |> deliverOnMainQueue).start(next: { items in
                             if let item = items.first, case let .message(_, _, _, mediaReference, _, _, _, _, _, _) = item.message, let mediaReference {
-                                completion(mediaReference)
+                                completion([mediaReference])
                                 sendCompletion()
                             }
                         })
@@ -215,14 +238,14 @@ public func presentPollAttachmentScreen(
                             }
 
                             let file = TelegramMediaFile(fileId: EngineMedia.Id(namespace: Namespaces.Media.LocalFile, id: fileId), partialReference: nil, resource: ICloudFileResource(urlData: item.urlData, thumbnail: false), previewRepresentations: previewRepresentations, videoThumbnails: [], immediateThumbnailData: nil, mimeType: mimeType, size: Int64(item.fileSize), attributes: attributes, alternativeRepresentations: [])
-                            completion(.standalone(media: file))
+                            completion([.standalone(media: file)])
                         })
                     })
                     present(controller, false)
                 },
                 presentDocumentScanner: nil,
                 send: { mediaReferences, _, _, _ in
-                    completion(mediaReferences.first!)
+                    completion([mediaReferences.first!])
                 }
             ) as! AttachmentFileControllerImpl
             controllerCompletion(controller, controller.mediaPickerContext)
@@ -235,7 +258,7 @@ public func presentPollAttachmentScreen(
                 mode: .share(peer: nil, selfPeer: nil, hasLiveLocation: false),
                 source: .poll(locationPickerPollSubject),
                 completion: { location, _, _, _, _ in
-                completion(.standalone(media: location))
+                completion([.standalone(media: location)])
             })
             controllerCompletion(controller, controller.mediaPickerContext)
             return true
@@ -252,7 +275,7 @@ public func presentPollAttachmentScreen(
                     mode: .stickers(content),
                     source: .poll(stickerPickerPollSubject),
                     completion: { sticker in
-                        completion(sticker)
+                        completion([sticker])
                     }
                 )
                 controllerCompletion(controller, controller.mediaPickerContext)
@@ -271,7 +294,7 @@ public func presentPollAttachmentScreen(
                     mode: .emoji(content),
                     source: .poll(stickerPickerPollSubject),
                     completion: { sticker in
-                        completion(sticker)
+                        completion([sticker])
                     }
                 )
                 controllerCompletion(controller, controller.mediaPickerContext)
@@ -292,10 +315,10 @@ public func presentPollAttachmentScreen(
                         return
                     }
                     if let webpage {
-                        completion(.standalone(media: webpage))
+                        completion([.standalone(media: webpage)])
                         return
                     }
-                    completion(.standalone(media: makePollAttachmentLinkWebpage(link: link)))
+                    completion([.standalone(media: makePollAttachmentLinkWebpage(link: link))])
                 }
             )
             present(controller, false)

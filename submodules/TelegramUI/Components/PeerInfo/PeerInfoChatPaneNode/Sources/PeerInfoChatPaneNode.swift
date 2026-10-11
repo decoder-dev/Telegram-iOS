@@ -107,6 +107,24 @@ public final class PeerInfoChatPaneNode: ASDisplayNode, PeerInfoPaneNode, ASScro
             }
         }
     }
+
+    private func attachChatController(to parentController: ViewController) {
+        if self.chatController.parent === parentController {
+            return
+        }
+        self.chatController.willMove(toParent: parentController)
+        parentController.addChild(self.chatController)
+        self.chatController.didMove(toParent: parentController)
+    }
+
+    private func detachChatController() {
+        guard self.chatController.parent != nil else {
+            return
+        }
+        self.chatController.willMove(toParent: nil)
+        self.chatController.removeFromParent()
+        self.chatController.didMove(toParent: nil)
+    }
     
     private func attachChatController(to parentController: ViewController) {
         if self.chatController.parent === parentController {
@@ -318,7 +336,7 @@ public final class PeerInfoChatPaneNode: ASDisplayNode, PeerInfoPaneNode, ASScro
         let combinedBottomInset = bottomInset
         transition.updateFrame(node: self.chatController.displayNode, frame: chatFrame)
         self.chatController.updateIsScrollingLockedAtTop(isScrollingLockedAtTop: isScrollingLockedAtTop)
-        self.chatController.containerLayoutUpdated(ContainerViewLayout(size: chatFrame.size, metrics: LayoutMetrics(widthClass: .compact, heightClass: .compact, orientation: nil), deviceMetrics: deviceMetrics, intrinsicInsets: UIEdgeInsets(top: 0.0, left: sideInset, bottom: combinedBottomInset, right: sideInset), safeInsets: UIEdgeInsets(top: 0.0 + 4.0, left: sideInset, bottom: combinedBottomInset, right: sideInset), additionalInsets: UIEdgeInsets(), statusBarHeight: nil, inputHeight: nil, inputHeightIsInteractivellyChanging: false, inVoiceOver: UIAccessibility.isVoiceOverRunning), transition: transition)
+        self.chatController.containerLayoutUpdated(ContainerViewLayout(size: chatFrame.size, metrics: LayoutMetrics(widthClass: .compact, heightClass: .compact, orientation: nil), deviceMetrics: deviceMetrics, intrinsicInsets: UIEdgeInsets(top: 0.0, left: sideInset, bottom: combinedBottomInset, right: sideInset), safeInsets: UIEdgeInsets(top: 0.0 + 4.0, left: sideInset, bottom: combinedBottomInset, right: sideInset), additionalInsets: UIEdgeInsets(), statusBarHeight: nil, inputHeight: nil, inputHeightIsInteractivellyChanging: false, inVoiceOver: UIAccessibility.isVoiceOverRunning, presentedInFormSheet: false), transition: transition)
     }
     
     override public func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {

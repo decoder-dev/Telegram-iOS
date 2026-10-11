@@ -156,7 +156,7 @@
     disposable = _disposable;
     _disposable = nil;
     os_unfair_lock_unlock(&_lock);
-    
+
     [disposable dispose];
 }
 

@@ -9,7 +9,7 @@ private func webProxyContinuousTime() -> Double {
     return Double(clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW)) / 1_000_000_000.0
 }
 
-public struct WebProxyConfiguration: Equatable {
+public struct LegacyWebProxyConfiguration: Equatable {
     public let hostname: String
     public let secret: Data
     
@@ -64,13 +64,13 @@ public final class WebProxyManager {
     private let lock = NSLock()
     private let startLock = NSLock()
     private var sidecar: WebProxySidecar?
-    private var configuration: WebProxyConfiguration?
+    private var configuration: LegacyWebProxyConfiguration?
     /// Retained only while a sidecar is live — never published to MtProto after stop.
     private var endpoint: LoopbackEndpoint?
-    private var startingConfiguration: WebProxyConfiguration?
+    private var startingConfiguration: LegacyWebProxyConfiguration?
     private var startingSince: Double = 0.0
     private var startGeneration: UInt64 = 0
-    private var lastFailedConfiguration: WebProxyConfiguration?
+    private var lastFailedConfiguration: LegacyWebProxyConfiguration?
     private var lastFailureTime: Double = 0.0
     private var consecutiveFailureCount: Int = 0
     private var sidecarReadySince: Double = 0.0
@@ -85,10 +85,10 @@ public final class WebProxyManager {
     /// The configuration the app currently wants running, as opposed to the one that happens to
     /// be up. A retry armed by the cooldown must not resurrect a proxy the user has since turned
     /// off, and `configuration` is nil from the moment a carrier dies, so it cannot answer that.
-    private var desiredConfiguration: WebProxyConfiguration?
+    private var desiredConfiguration: LegacyWebProxyConfiguration?
     /// The configuration a cooldown retry is currently armed for, so a burst of re-applies arms
     /// only one — but switching servers still re-arms rather than inheriting the old target's slot.
-    private var scheduledRetryConfiguration: WebProxyConfiguration?
+    private var scheduledRetryConfiguration: LegacyWebProxyConfiguration?
     /// Stamped onto each armed retry so a superseded one drops out when it fires.
     private var retryGeneration: UInt64 = 0
     
@@ -144,17 +144,17 @@ public final class WebProxyManager {
         return sidecar.socksBridgeEndpoint()
     }
     
-    public var activeConfiguration: WebProxyConfiguration? {
+    public var activeConfiguration: LegacyWebProxyConfiguration? {
         self.lock.lock()
         defer { self.lock.unlock() }
         return self.configuration
     }
     
-    public func isReady(for configuration: WebProxyConfiguration) -> Bool {
+    public func isReady(for configuration: LegacyWebProxyConfiguration) -> Bool {
         return self.loopbackEndpoint(for: configuration) != nil
     }
 
-    public func loopbackEndpoint(for configuration: WebProxyConfiguration) -> LoopbackEndpoint? {
+    public func loopbackEndpoint(for configuration: LegacyWebProxyConfiguration) -> LoopbackEndpoint? {
         self.lock.lock()
         defer { self.lock.unlock() }
         guard self.configuration == configuration, self.sidecar != nil else { return nil }
@@ -182,7 +182,7 @@ public final class WebProxyManager {
     /// Starts or reuses the sidecar for the given WEB proxy without blocking the caller.
     /// Returns true when the loopback endpoint is already available for this configuration.
     @discardableResult
-    public func configure(activeWebProxy server: WebProxyConfiguration?) -> Bool {
+    public func configure(activeWebProxy server: LegacyWebProxyConfiguration?) -> Bool {
         guard let server else {
             self.startLock.lock()
             self.desiredConfiguration = nil
@@ -369,7 +369,7 @@ public final class WebProxyManager {
         self.performInPlaceCarrierResume(sidecar: sidecar, configuration: target)
     }
     
-    private func performInPlaceCarrierResume(sidecar: WebProxySidecar, configuration: WebProxyConfiguration) {
+    private func performInPlaceCarrierResume(sidecar: WebProxySidecar, configuration: LegacyWebProxyConfiguration) {
         self.startLock.lock()
         guard self.desiredConfiguration == configuration,
               self.carrierRebuildSidecar != ObjectIdentifier(sidecar) else {
@@ -424,7 +424,7 @@ public final class WebProxyManager {
     
     /// Stop the current sidecar, then schedule a fresh one. Used when there is no live endpoint
     /// or in-place transport reconnect failed. Not overlapping — only one listener at a time.
-    private func sequentialRestart(configuration: WebProxyConfiguration) {
+    private func sequentialRestart(configuration: LegacyWebProxyConfiguration) {
         // Invalidate a previous asynchronous start before replacing the sidecar, and mark this
         // replacement as in-flight BEFORE clearing the live endpoint so concurrent `configure`
         // calls coalesce on `startingConfiguration` instead of spawning parallel bootstraps.
@@ -462,7 +462,7 @@ public final class WebProxyManager {
     /// `replacingCurrentStart` is for callers that have already torn the sidecar down and marked
     /// their own replacement in flight. They must not be answered with "a bootstrap is already
     /// running" (it is theirs) or held off by a cooldown (they are the recovery).
-    private func scheduleStart(configuration: WebProxyConfiguration, replacingCurrentStart: Bool = false) {
+    private func scheduleStart(configuration: LegacyWebProxyConfiguration, replacingCurrentStart: Bool = false) {
         self.startLock.lock()
         guard self.desiredConfiguration == configuration else {
             self.startLock.unlock()
@@ -609,7 +609,7 @@ public final class WebProxyManager {
     /// The retry checks two things before it acts, because both can change while it waits: that
     /// this configuration is still the one the app wants — the user may have turned the proxy off
     /// or switched servers — and that a carrier is not already up for it.
-    private func scheduleRetryLocked(configuration: WebProxyConfiguration, after delay: Double) {
+    private func scheduleRetryLocked(configuration: LegacyWebProxyConfiguration, after delay: Double) {
         // A retry already owns this target. Anything else — no retry at all, or one armed for a
         // server the user has since switched away from — has to be replaced: a single boolean
         // flag let the stale target hold the only slot, and the new one was dropped on the floor
@@ -650,7 +650,7 @@ public final class WebProxyManager {
         }
     }
 
-    private func startAsync(configuration: WebProxyConfiguration, generation: UInt64) {
+    private func startAsync(configuration: LegacyWebProxyConfiguration, generation: UInt64) {
         self.startLock.lock()
         let isCurrent = generation == self.startGeneration && self.desiredConfiguration == configuration
         self.startLock.unlock()
@@ -671,7 +671,7 @@ public final class WebProxyManager {
         }
     }
     
-    private func finishStart(generation: UInt64, configuration: WebProxyConfiguration, sidecar: WebProxySidecar?, result: Result<WebProxySidecar.Endpoint, Error>) {
+    private func finishStart(generation: UInt64, configuration: LegacyWebProxyConfiguration, sidecar: WebProxySidecar?, result: Result<WebProxySidecar.Endpoint, Error>) {
         self.startLock.lock()
         let stillCurrent = generation == self.startGeneration && self.startingConfiguration == configuration && self.desiredConfiguration == configuration
         

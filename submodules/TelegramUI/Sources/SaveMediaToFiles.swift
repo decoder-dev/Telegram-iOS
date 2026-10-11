@@ -112,8 +112,6 @@ func saveMediaToFiles(context: AccountContext, fileReference: FileMediaReference
                     }
                 }
                 if !nameComponents.isEmpty {
-                    try? FileManager.default.removeItem(atPath: symlinkPath)
-                    
                     // Titles and performers come from the file's tags and often contain "/" or ":", which are not
                     // valid in a file name; linking to such a path fails and the picker then crashes on a missing file.
                     var safeName = nameComponents.joined(separator: " – ")
@@ -124,19 +122,18 @@ func saveMediaToFiles(context: AccountContext, fileReference: FileMediaReference
                     if safeName.isEmpty || safeName.utf8.count > 200 {
                         safeName = String(safeName.prefix(100)).trimmingCharacters(in: .whitespacesAndNewlines)
                     }
-                    if !safeName.isEmpty {
-                        let fileName = "\(safeName).\(fileExtension)"
-                        symlinkPath = symlinkPath.replacingOccurrences(of: audioUrl.lastPathComponent, with: fileName)
-                        let _ = try? FileManager.default.linkItem(atPath: data.path, toPath: symlinkPath)
+                    let fileName = "\(safeName.isEmpty ? "Audio" : safeName).\(fileExtension)"
+                    let directoryUrl = audioUrl.deletingLastPathComponent().standardizedFileURL
+                    let targetUrl = directoryUrl.appendingPathComponent(fileName, isDirectory: false).standardizedFileURL
+                    let directoryPath = directoryUrl.path.hasSuffix("/") ? directoryUrl.path : directoryUrl.path + "/"
+                    if targetUrl.path.hasPrefix(directoryPath) {
+                        do {
+                            try FileManager.default.linkItem(atPath: data.path, toPath: targetUrl.path)
+                            try? FileManager.default.removeItem(atPath: symlinkPath)
+                            symlinkPath = targetUrl.path
+                        } catch {
+                        }
                     }
-                }
-                
-                // If the renamed link could not be created, fall back to the downloaded file itself.
-                if !FileManager.default.fileExists(atPath: symlinkPath) {
-                    symlinkPath = data.path
-                }
-                guard FileManager.default.fileExists(atPath: symlinkPath) else {
-                    return
                 }
                 
                 let url = URL(fileURLWithPath: symlinkPath)

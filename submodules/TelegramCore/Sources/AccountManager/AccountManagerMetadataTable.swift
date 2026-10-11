@@ -14,12 +14,28 @@ public struct AccessChallengeAttempts: Equatable {
 }
 
 public enum PostboxAccessChallengeData: PostboxCoding, Equatable, Codable {
+    public enum Kind: String, Codable, Sendable {
+        case digits4, digits6, alphanumeric
+    }
+
+    private struct AnyCodingKey: CodingKey {
+        let stringValue: String
+        var intValue: Int? { nil }
+        init?(stringValue: String) { self.stringValue = stringValue }
+        init?(intValue: Int) { return nil }
+    }
     enum CodingKeys: String, CodingKey {
         case numericalPassword
         case plaintextPassword
         case numericalPasswordHash
         case numericalPasswordHashDigits
         case plaintextPasswordHash
+        case secured
+    }
+
+    private enum SecuredCodingKeys: String, CodingKey {
+        case id
+        case kind
     }
     
     case none
@@ -35,9 +51,10 @@ public enum PostboxAccessChallengeData: PostboxCoding, Equatable, Codable {
     case numericalPasswordHash(value: String, digits: Int32)
     /// The passcode is stored only as a PBKDF2-HMAC-SHA256 digest blob.
     case plaintextPasswordHash(value: String)
+    case secured(id: String, kind: Kind)
     
     public init(decoder: PostboxDecoder) {
-        switch decoder.decodeInt32ForKey("r", orElse: 0) {
+        switch decoder.decodeInt32ForKey("r", orElse: -1) {
             case 0:
                 self = .none
             case 1:
@@ -45,12 +62,17 @@ public enum PostboxAccessChallengeData: PostboxCoding, Equatable, Codable {
             case 2:
                 self = .plaintextPassword(value: decoder.decodeStringForKey("t", orElse: ""))
             case 3:
-                self = .numericalPasswordHash(value: decoder.decodeStringForKey("t", orElse: ""), digits: decoder.decodeInt32ForKey("d", orElse: 6))
+                if let id = decoder.decodeOptionalStringForKey("id") {
+                    self = .secured(id: id, kind: Kind(rawValue: decoder.decodeStringForKey("kind", orElse: "")) ?? .alphanumeric)
+                } else {
+                    self = .numericalPasswordHash(value: decoder.decodeStringForKey("t", orElse: ""), digits: decoder.decodeInt32ForKey("d", orElse: 6))
+                }
             case 4:
                 self = .plaintextPasswordHash(value: decoder.decodeStringForKey("t", orElse: ""))
+            case 5:
+                self = .secured(id: decoder.decodeStringForKey("id", orElse: "invalid"), kind: Kind(rawValue: decoder.decodeStringForKey("kind", orElse: "")) ?? .alphanumeric)
             default:
-                assertionFailure()
-                self = .none
+                self = .secured(id: "invalid", kind: .alphanumeric)
         }
     }
     
@@ -71,21 +93,31 @@ public enum PostboxAccessChallengeData: PostboxCoding, Equatable, Codable {
             case let .plaintextPasswordHash(value):
                 encoder.encodeInt32(4, forKey: "r")
                 encoder.encodeString(value, forKey: "t")
+            case let .secured(id, kind):
+                encoder.encodeInt32(5, forKey: "r")
+                encoder.encodeString(id, forKey: "id")
+                encoder.encodeString(kind.rawValue, forKey: "kind")
         }
     }
     
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        if let value = try? container.decode(String.self, forKey: .numericalPassword) {
-            self = .numericalPassword(value: value)
-        } else if let value = try? container.decode(String.self, forKey: .plaintextPassword) {
-            self = .plaintextPassword(value: value)
+        if container.contains(.secured) {
+            let secured = try container.nestedContainer(keyedBy: SecuredCodingKeys.self, forKey: .secured)
+            self = .secured(id: try secured.decode(String.self, forKey: .id), kind: try secured.decode(Kind.self, forKey: .kind))
+        } else if container.contains(.numericalPassword) {
+            self = .numericalPassword(value: try container.decode(String.self, forKey: .numericalPassword))
+        } else if container.contains(.plaintextPassword) {
+            self = .plaintextPassword(value: try container.decode(String.self, forKey: .plaintextPassword))
         } else if let value = try? container.decode(String.self, forKey: .numericalPasswordHash) {
             let digits = (try? container.decode(Int32.self, forKey: .numericalPasswordHashDigits)) ?? 6
             self = .numericalPasswordHash(value: value, digits: digits)
         } else if let value = try? container.decode(String.self, forKey: .plaintextPasswordHash) {
             self = .plaintextPasswordHash(value: value)
         } else {
+            guard try decoder.container(keyedBy: AnyCodingKey.self).allKeys.isEmpty else {
+                throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "Unknown passcode metadata version"))
+            }
             self = .none
         }
     }
@@ -104,6 +136,10 @@ public enum PostboxAccessChallengeData: PostboxCoding, Equatable, Codable {
             try container.encode(digits, forKey: .numericalPasswordHashDigits)
         case let .plaintextPasswordHash(value):
             try container.encode(value, forKey: .plaintextPasswordHash)
+        case let .secured(id, kind):
+            var secured = container.nestedContainer(keyedBy: SecuredCodingKeys.self, forKey: .secured)
+            try secured.encode(id, forKey: .id)
+            try secured.encode(kind, forKey: .kind)
         }
     }
     
@@ -112,6 +148,34 @@ public enum PostboxAccessChallengeData: PostboxCoding, Equatable, Codable {
             return false
         } else {
             return true
+        }
+    }
+    
+    public var lockId: String? {
+        switch self {
+        case .none:
+            return nil
+        case let .numericalPassword(value):
+            return "legacy-numerical:\(value.count)"
+        case let .plaintextPassword(value):
+            return "legacy-alphanumeric:\(value.count)"
+        case let .numericalPasswordHash(value, digits):
+            return "hashed-numerical:\(digits):\(value)"
+        case let .plaintextPasswordHash(value):
+            return "hashed-alphanumeric:\(value)"
+        case let .secured(id, kind):
+            return "credential:\(id):\(kind.rawValue)"
+        }
+    }
+
+    public var passcodeKind: Kind? {
+        switch self {
+        case .none: return nil
+        case let .numericalPassword(value): return value.count == 6 ? .digits6 : .digits4
+        case .plaintextPassword: return .alphanumeric
+        case let .numericalPasswordHash(_, digits): return digits == 4 ? .digits4 : .digits6
+        case .plaintextPasswordHash: return .alphanumeric
+        case let .secured(_, kind): return kind
         }
     }
 }
@@ -238,6 +302,8 @@ final class AccountManagerMetadataTable<Attribute: AccountRecordAttribute>: Tabl
     }
     
     func setAccessChallengeData(_ data: PostboxAccessChallengeData) {
+        // Overwriting alone leaves the previous plaintext code in free pages.
+        self.valueBox.remove(self.table, key: self.key(.accessChallenge), secure: true)
         let encoder = PostboxEncoder()
         data.encode(encoder)
         withExtendedLifetime(encoder, {

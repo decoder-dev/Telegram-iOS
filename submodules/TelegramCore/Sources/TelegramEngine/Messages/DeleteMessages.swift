@@ -22,6 +22,23 @@ func addMessageMediaResourceIdsToRemove(message: Message, resourceIds: inout [Me
     }
 }
 
+func _internal_ephemeralReplacementMessageIds(transaction: Transaction, anchorIds: [MessageId]) -> [MessageId] {
+    var result = Set<MessageId>()
+    for anchorId in anchorIds {
+        if let message = transaction.getMessage(anchorId), let attribute = message.attributes.first(where: { $0 is EphemeralReplacementMessageAttribute }) as? EphemeralReplacementMessageAttribute {
+            result.insert(attribute.replacementMessageId)
+        }
+    }
+    return Array(result)
+}
+
+func _internal_deleteEphemeralReplacements(transaction: Transaction, anchorIds: [MessageId]) {
+    let replacementMessageIds = _internal_ephemeralReplacementMessageIds(transaction: transaction, anchorIds: anchorIds)
+    if !replacementMessageIds.isEmpty {
+        transaction.deleteMessages(replacementMessageIds, forEachMedia: nil)
+    }
+}
+
 /// Convert eligible messages (incoming or outgoing) into in-chat deleted markers (anti-recall).
 /// Returns message ids that were converted (and must not be hard-deleted).
 func convertEligibleMessagesToDeletedMarkers(transaction: Transaction, mediaBox: MediaBox?, ids: [MessageId]) -> Set<MessageId> {
@@ -139,7 +156,8 @@ public func _internal_deleteMessages(transaction: Transaction, mediaBox: MediaBo
             }
         }
     }
-    transaction.deleteMessages(hardDeleteIds, forEachMedia: { _ in
+    let replacementMessageIds = _internal_ephemeralReplacementMessageIds(transaction: transaction, anchorIds: hardDeleteIds)
+    transaction.deleteMessages(hardDeleteIds + replacementMessageIds, forEachMedia: { _ in
     })
 }
 

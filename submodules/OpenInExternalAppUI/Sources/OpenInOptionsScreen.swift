@@ -256,9 +256,9 @@ private final class OpenInOptionsSheetContentComponent: Component {
     private final class OptionsScrollView: UIScrollView {
         // The content of this scroll view is made of OpenInAppView, which is a UIControl.
         // UIScrollView's default -touchesShouldCancelInContentView: returns NO for a UIControl, and
-        // because delaysContentTouches is NO the control starts tracking the touch immediately, so
+        // because delaysContentTouches is NO the control starts tracking the touch immediately — so
         // without this override a horizontal drag that begins on an app icon is never converted
-        // into a scroll.
+        // into a scroll, and only the gaps between icons can be dragged.
         override func touchesShouldCancel(in view: UIView) -> Bool {
             return true
         }

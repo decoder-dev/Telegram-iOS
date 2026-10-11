@@ -6,6 +6,7 @@ import SwiftSignalKit
 import Display
 import DeviceAccess
 import TelegramPresentationData
+import PresentationDataUtils
 import TelegramAudio
 import TelegramVoip
 import TelegramUIPreferences
@@ -389,7 +390,7 @@ public final class PresentationCallManagerImpl: PresentationCallManager {
                         isVideoPossible: firstState.2.isVideoPossible,
                         enableStunMarking: shouldEnableStunMarking(appConfiguration: appConfiguration),
                         enableTCP: experimentalSettings.enableVoipTcp,
-                        preferredVideoCodec: experimentalSettings.preferredVideoCodec
+                        preferredVideoCodec: nil
                     )
                     strongSelf.updateCurrentCall(call)
                 }))
@@ -438,7 +439,7 @@ public final class PresentationCallManagerImpl: PresentationCallManager {
                         isVideoPossible: firstState.2.isVideoPossible,
                         enableStunMarking: shouldEnableStunMarking(appConfiguration: appConfiguration),
                         enableTCP: experimentalSettings.enableVoipTcp,
-                        preferredVideoCodec: experimentalSettings.preferredVideoCodec
+                        preferredVideoCodec: nil
                     )
                     strongSelf.updateCurrentCall(call)
                     
@@ -718,7 +719,7 @@ public final class PresentationCallManagerImpl: PresentationCallManager {
                         isVideoPossible: isVideoPossible,
                         enableStunMarking: shouldEnableStunMarking(appConfiguration: appConfiguration),
                         enableTCP: experimentalSettings.enableVoipTcp,
-                        preferredVideoCodec: experimentalSettings.preferredVideoCodec
+                        preferredVideoCodec: nil
                     )
                     strongSelf.updateCurrentCall(call)
                 }

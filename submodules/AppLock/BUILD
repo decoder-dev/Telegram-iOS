@@ -20,6 +20,7 @@ swift_library(
         "//submodules/TelegramUIPreferences:TelegramUIPreferences",
         "//submodules/AccountContext:AccountContext",
         "//submodules/AppLockState:AppLockState",
+        "//submodules/PasscodeCore",
     ],
     visibility = [
         "//visibility:public",

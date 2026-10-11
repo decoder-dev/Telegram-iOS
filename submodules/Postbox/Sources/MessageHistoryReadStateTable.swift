@@ -245,6 +245,8 @@ final class MessageHistoryReadStateTable: Table {
                     
                     var updatedCount = currentState.count - Int32(clamping: knownCount)
                     if updatedCount < 0 {
+                        // More unread messages were deleted than the count knew about, so the
+                        // count is wrong and gets validated; until then it must read zero.
                         invalidate = true
                         updatedCount = 0
                     }

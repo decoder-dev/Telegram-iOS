@@ -249,13 +249,15 @@ static const CGFloat outerCircleMinScale = innerCircleRadius / outerCircleRadius
     _innerIconView.center = center;
 }
 
-// While the keyboard is up, the overlay container can be parked in the keyboard window, so the button
-// and the overlay end up in two different windows. On recent iOS versions that keyboard window can be
-// hosted on a DIFFERENT UIScreen object than the app's window, even though both cover the same display.
-// UIKit refuses to convert between two screens' coordinate spaces: -convertPoint:toWindow: returns a
-// point derived from CGRectNull, whose infinite origin becomes a NaN layer position and kills the app
-// with CALayerInvalidGeometry. This runs on every display-link tick while recording, so the mismatch is
-// predicted rather than detected after the fact.
+// While the keyboard is up, -[ChatTextInputMediaRecordingButtonPresenter present] parks the overlay
+// container in UIRemoteKeyboardWindow, so the button and the overlay end up in two different windows.
+// On iOS 27 that keyboard window is hosted on a DIFFERENT UIScreen object than the app's window, even
+// though both cover the same display (measured; see docs/ios27-windows-and-touches.md). UIKit refuses to
+// convert between two screens' coordinate spaces: -convertPoint:toWindow: logs "Invalid UIScreen
+// coordinate space conversion" and returns a point derived from CGRectNull, whose infinite origin becomes
+// a NaN layer position at the assignments below and kills the app with CALayerInvalidGeometry. This runs
+// on every display-link tick while recording, so the mismatch has to be predicted rather than detected
+// after the fact - otherwise the invalid conversion is logged at frame rate.
 - (CGPoint)overlayCenterInView:(UIView *)parentView
 {
     UIWindow *selfWindow = self.window;
@@ -270,8 +272,9 @@ static const CGFloat outerCircleMinScale = innerCircleRadius / outerCircleRadius
     if (parentWindow.screen == selfWindow.screen) {
         centerPointInParentWindow = [selfWindow convertPoint:centerPointInSelfWindow toWindow:parentWindow];
     } else {
-        // Both windows describe the same display, so relate them by their frames. For two full-screen
-        // windows this is the identity.
+        // Both windows describe the same display, so relate them by their frames - which is what
+        // -convertPoint:toWindow: would have done had it accepted the pair. For two full-screen windows
+        // this is the identity.
         centerPointInParentWindow = CGPointMake(centerPointInSelfWindow.x + CGRectGetMinX(selfWindow.frame) - CGRectGetMinX(parentWindow.frame),
                                                 centerPointInSelfWindow.y + CGRectGetMinY(selfWindow.frame) - CGRectGetMinY(parentWindow.frame));
     }
@@ -292,8 +295,11 @@ static const CGFloat outerCircleMinScale = innerCircleRadius / outerCircleRadius
     centerPoint.y += _centerOffset.y;
     _innerCircleView.center = centerPoint;
     _outerCircleView.center = centerPoint;
-    _decoration.center = centerPoint;
-    _innerIconWrapperView.center = CGPointMake(CGRectGetMidX(_decoration.bounds), CGRectGetMidY(_decoration.bounds));
+    // A decoration the host is flying into the sent message is positioned by the flight.
+    if (!_decorationAnimatesOutExternally) {
+        _decoration.center = centerPoint;
+        _innerIconWrapperView.center = CGPointMake(CGRectGetMidX(_decoration.bounds), CGRectGetMidY(_decoration.bounds));
+    }
     
     _lockPanelWrapperView.frame = CGRectMake(floor(centerPoint.x - _lockPanelWrapperView.frame.size.width / 2.0f), floor(centerPoint.y - 122.0f - _lockPanelWrapperView.frame.size.height / 2.0f), _lockPanelWrapperView.frame.size.width, _lockPanelWrapperView.frame.size.height);
     
@@ -484,7 +490,10 @@ static const CGFloat outerCircleMinScale = innerCircleRadius / outerCircleRadius
         if (_lock == nil) {
             _stopButton = [[TGModernButton alloc] initWithFrame:CGRectMake(0.0f, 0.0f, 40.0f, 40.0f)];
             _stopButton.accessibilityLabel = TGLocalized(@"VoiceOver.Recording.StopAndPreview");
+            #pragma clang diagnostic push
+            #pragma clang diagnostic ignored "-Wdeprecated-declarations" // legacy non-configuration UIButton: property is still honored
             _stopButton.adjustsImageWhenHighlighted = false;
+            #pragma clang diagnostic pop
             _stopButton.exclusiveTouch = true;
             [_stopButton setImage:[self stopButtonImage] forState:UIControlStateNormal];
             _stopButton.userInteractionEnabled = false;
@@ -573,7 +582,10 @@ static const CGFloat outerCircleMinScale = innerCircleRadius / outerCircleRadius
     [UIView animateWithDuration:0.18 animations:^{
         _innerCircleView.transform = CGAffineTransformMakeScale(0.2f, 0.2f);
         _outerCircleView.transform = CGAffineTransformMakeScale(0.2f, 0.2f);
-        if (toSmallSize) {
+        if (_decorationAnimatesOutExternally) {
+            // The host is flying the decoration into the sent message; only the icon on it fades.
+            _innerIconWrapperView.alpha = 0.0f;
+        } else if (toSmallSize) {
             _decoration.transform = CGAffineTransformConcat(CGAffineTransformMakeScale(0.33f, 0.33f), CGAffineTransformMakeTranslation(0, 2 - TGScreenPixel));
             //_innerIconWrapperView.transform = CGAffineTransformConcat(CGAffineTransformMakeScale(0.492f, 0.492f), CGAffineTransformMakeTranslation(-TGScreenPixel, 1));
         } else {
@@ -597,8 +609,11 @@ static const CGFloat outerCircleMinScale = innerCircleRadius / outerCircleRadius
         _stopButton.alpha = 0.0f;
     } completion:^(BOOL finished) {
         if (finished || [[[LegacyComponentsGlobals provider] applicationInstance] applicationState] == UIApplicationStateBackground) {
-            [_presentation dismiss];
-            _presentation = nil;
+            // A host flying the decoration out dismisses the presentation itself, once the decoration has arrived.
+            if (!_decorationAnimatesOutExternally) {
+                [_presentation dismiss];
+                _presentation = nil;
+            }
             
             id<TGModernConversationInputMicButtonDelegate> delegate = _delegate;
             if ([delegate respondsToSelector:@selector(micButtonInteractionUpdateCancelTranslation:)])
@@ -963,7 +978,9 @@ static const CGFloat outerCircleMinScale = innerCircleRadius / outerCircleRadius
         
         _innerCircleView.transform = transform;
         //_innerIconWrapperView.transform = transform;
-        _decoration.transform = transform;
+        if (!_decorationAnimatesOutExternally) {
+            _decoration.transform = transform;
+        }
     }
 }
 

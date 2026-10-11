@@ -1005,7 +1005,7 @@ public func privacyAndSecurityController(
 
     let arguments = PrivacyAndSecurityControllerArguments(account: context.account, openBlockedUsers: {
         pushControllerImpl?(blockedPeersController(context: context, blockedPeersContext: blockedPeersContext), true)
-    }, openLastSeenPrivacy: {
+    }, openLastSeenPrivacy: { [currentInfoDisposable] in
         let signal = privacySettingsPromise.get()
         |> take(1)
         |> deliverOnMainQueue
@@ -1028,7 +1028,7 @@ public func privacyAndSecurityController(
                 }), true)
             }
         }))
-    }, openGroupsPrivacy: {
+    }, openGroupsPrivacy: { [currentInfoDisposable] in
         let signal = privacySettingsPromise.get()
         |> take(1)
         |> deliverOnMainQueue
@@ -1055,7 +1055,7 @@ public func privacyAndSecurityController(
                 }), true)
             }
         }))
-    }, openVoiceCallPrivacy: {
+    }, openVoiceCallPrivacy: { [currentInfoDisposable] in
         let privacySignal = privacySettingsPromise.get()
         |> take(1)
         
@@ -1096,7 +1096,7 @@ public func privacyAndSecurityController(
                 }), true)
             }
         }))
-    }, openProfilePhotoPrivacy: {
+    }, openProfilePhotoPrivacy: { [currentInfoDisposable] in
         let signal = privacySettingsPromise.get()
         |> take(1)
         |> deliverOnMainQueue
@@ -1123,7 +1123,7 @@ public func privacyAndSecurityController(
                 }), true)
             }
         }))
-    }, openForwardPrivacy: {
+    }, openForwardPrivacy: { [currentInfoDisposable] in
         let signal = privacySettingsPromise.get()
         |> take(1)
         |> deliverOnMainQueue
@@ -1146,7 +1146,7 @@ public func privacyAndSecurityController(
                 }), true)
             }
         }))
-    }, openPhoneNumberPrivacy: {
+    }, openPhoneNumberPrivacy: { [currentInfoDisposable] in
         let signal = privacySettingsPromise.get()
         |> take(1)
         |> deliverOnMainQueue
@@ -1169,7 +1169,7 @@ public func privacyAndSecurityController(
                 }), true)
             }
         }))
-    }, openVoiceMessagePrivacy: {
+    }, openVoiceMessagePrivacy: { [currentInfoDisposable] in
         let signal = combineLatest(
             context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: context.account.peerId)),
             privacySettingsPromise.get()
@@ -1195,7 +1195,7 @@ public func privacyAndSecurityController(
                 }), true)
             }
         }))
-    }, openBioPrivacy: {
+    }, openBioPrivacy: { [currentInfoDisposable] in
         let signal = privacySettingsPromise.get()
         |> take(1)
         |> deliverOnMainQueue
@@ -1218,7 +1218,7 @@ public func privacyAndSecurityController(
                 }), true)
             }
         }))
-    }, openBirthdayPrivacy: {
+    }, openBirthdayPrivacy: { [currentInfoDisposable] in
         let signal = privacySettingsPromise.get()
         |> take(1)
         |> deliverOnMainQueue
@@ -1241,7 +1241,7 @@ public func privacyAndSecurityController(
                 }), true)
             }
         }))
-    }, openSavedMusicPrivacy: {
+    }, openSavedMusicPrivacy: { [currentInfoDisposable] in
         let signal = privacySettingsPromise.get()
         |> take(1)
         |> deliverOnMainQueue
@@ -1265,10 +1265,12 @@ public func privacyAndSecurityController(
             }
         }))
     }, openPasscode: {
-        let _ = passcodeOptionsAccessController(context: context, pushController: { controller in
+        let _ = passcodeOptionsAccessController(context: context, replaceController: { controller in
             replaceTopControllerImpl?(controller)
-        }, completion: { _ in
-            replaceTopControllerImpl?(passcodeOptionsController(context: context))
+        }, authorizationCompleted: { result in
+            guard case let .success(session) = result else { return }
+            guard let replaceTopControllerImpl else { session.invalidate(); return }
+            replaceTopControllerImpl(passcodeOptionsController(context: context, settingsSession: session))
         }).start(next: { controller in
             if let controller = controller {
                 pushControllerImpl?(controller, true)
@@ -1346,7 +1348,7 @@ public func privacyAndSecurityController(
                 return state
             }
         }))
-    }, setupAccountAutoremove: {
+    }, setupAccountAutoremove: { [updateAccountTimeoutDisposable] in
         let signal = privacySettingsPromise.get()
         |> take(1)
         |> deliverOnMainQueue
@@ -1534,7 +1536,7 @@ public func privacyAndSecurityController(
                 }
             }), true)
         })
-    }, openGiftsPrivacy: {
+    }, openGiftsPrivacy: { [currentInfoDisposable] in
         let signal = privacySettingsPromise.get()
         |> take(1)
         |> deliverOnMainQueue

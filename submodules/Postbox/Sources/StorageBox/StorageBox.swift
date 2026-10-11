@@ -413,7 +413,9 @@ public final class StorageBox {
                     }
                     
                     // A peer referencing this item for the first time is credited with the
-                    // whole current size, whether or not the size changed in this call.
+                    // whole current size, whether or not the size changed in this call:
+                    // `internalRemove` debits every referencing peer by the item's size, so
+                    // every referencing peer must have been credited exactly once.
                     if updatedSize != 0 && !referencingPeers.contains(reference.peerId) {
                         self.internalAddSize(peerId: reference.peerId, contentType: contentType, delta: updatedSize)
                     }

@@ -329,12 +329,16 @@ class AccessibilityPreferencesContractTests(unittest.TestCase):
         for contract in (
             "baseFontSize: CGFloat",
             "item.presentationData.fontSize.baseDisplaySize",
-            "let fontScale = baseFontSize / 17.0",
-            "scaledFontSize(17.0)",
+            "contentScale: instantPageChatMessageContentScale(baseFontSize: baseFontSize)",
             "current.baseFontSize == baseFontSize",
         ):
             with self.subTest(contract=contract):
                 self.assertIn(contract, contents)
+        scale = source("submodules/InstantPageUI/Sources/InstantPageChatMessageTheme.swift")
+        self.assertIn("instantPageChatMessageAuthoredFontSize: CGFloat = 17.0", scale)
+        self.assertIn("return baseFontSize / instantPageChatMessageAuthoredFontSize", scale)
+        layout = source("submodules/InstantPageUI/Sources/InstantPageV2Layout.swift")
+        self.assertIn("contentScale", layout)
         for fixed_size in (
             "size: 19.0",
             "size: 18.0",

@@ -87,7 +87,9 @@ public struct TelegramMessageReadMetric {
 
 public extension TelegramEngine {
     final class Messages {
-        private let account: Account
+        // Module-internal rather than private: the MediaPreupload facade lives in its own file and
+        // needs the account's network/postbox/preupload manager.
+        let account: Account
 
         init(account: Account) {
             self.account = account
@@ -139,6 +141,10 @@ public extension TelegramEngine {
         	return _internal_clearCloudDraftsInteractively(postbox: self.account.postbox, network: self.account.network, accountPeerId: self.account.peerId)
         }
 
+        public func stopIncomingTypingDraft(peerId: EnginePeer.Id, threadId: Int64?) -> Signal<Never, NoError> {
+            return _internal_stopIncomingTypingDraft(postbox: self.account.postbox, network: self.account.network, peerId: peerId, threadId: threadId)
+        }
+
         public func applyMaxReadIndexInteractively(index: MessageIndex) -> Signal<Void, NoError> {
             return _internal_applyMaxReadIndexInteractively(postbox: self.account.postbox, stateManager: self.account.stateManager, index: index)
         }
@@ -146,7 +152,8 @@ public extension TelegramEngine {
         /// For callers holding only a message id, such as a notification action or a Siri
         /// intent. Prefer `applyMaxReadIndexInteractively(index:)` wherever a real
         /// `MessageIndex` is at hand: a made-up index is wrong for an index-based read
-        /// state, which is what a secret chat has.
+        /// state, which is what a secret chat has. Reports whether a read was applied; it
+        /// is not for a secret chat, where reading is destructive and irreversible.
         public func applyMaxReadMessageIdInteractively(messageId: MessageId) -> Signal<Bool, NoError> {
             return _internal_applyMaxReadMessageIdInteractively(postbox: self.account.postbox, stateManager: self.account.stateManager, messageId: messageId)
         }
@@ -275,6 +282,18 @@ public extension TelegramEngine {
 
         public func retryEphemeralOutgoingMessage(messageId: MessageId) -> Signal<MessageId?, NoError> {
             return _internal_retryEphemeralOutgoingMessage(account: self.account, messageId: messageId)
+        }
+
+        public func revertAnchoredEphemeralMessage(messageId: MessageId) -> Signal<Never, NoError> {
+            return _internal_revertAnchoredEphemeralMessage(account: self.account, messageId: messageId)
+        }
+
+        public func refreshWelcomeMessages(peerId: PeerId) -> Signal<Void, NoError> {
+            return _internal_refreshWelcomeMessages(account: self.account, peerId: peerId)
+        }
+
+        public func deleteAllWelcomeMessages(peerId: PeerId) -> Signal<Void, NoError> {
+            return _internal_deleteAllWelcomeMessages(account: self.account, peerId: peerId)
         }
 
         public func requestUpdatePinnedMessage(peerId: PeerId, update: PinnedMessageUpdate) -> Signal<Void, UpdatePinnedMessageError> {
@@ -910,6 +929,10 @@ public extension TelegramEngine {
         
         public func attachMenuBots() -> Signal<[AttachMenuBot], NoError> {
             return _internal_attachMenuBots(postbox: self.account.postbox)
+        }
+        
+        public func attachMenuBotsUpdates() -> Signal<[AttachMenuBot], NoError> {
+            return _internal_attachMenuBotsUpdates(postbox: self.account.postbox)
         }
         
         public func getBotApp(botId: PeerId, shortName: String, cached: Bool = false) -> Signal<BotApp, GetBotAppError> {

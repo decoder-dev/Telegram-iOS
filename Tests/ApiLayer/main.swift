@@ -18,7 +18,7 @@ roundTrip(Api.KeyboardButton.keyboardButton(.init(flags: 0, style: nil, text: "P
 roundTrip(Api.KeyboardInlineButton.keyboardInlineButton(.init(flags: 0, style: nil, text: "Disabled", type: .inlineButtonTypeDisabled)))
 roundTrip(Api.RichText.textButton(.init(flags: 0, text: .textPlain(.init(text: "Link")), type: .inlineButtonTypeUrl(.init(url: "https://telegram.org")), style: nil)))
 roundTrip(Api.PageBlock.pageBlockDocument(.init(documentId: 42, caption: .pageCaption(.init(text: .textEmpty, credit: .textEmpty)))))
-print("Layer 229 wire fixtures passed")
+print("Layer 230 wire fixtures passed")
 
 roundTrip(Api.EphemeralMessage.ephemeralMessage(.init(flags: 1 << 5, id: 1, fromId: .peerUser(.init(userId: 7)), peerId: nil, receiverId: 8, topMsgId: nil, date: 1, message: "template", entities: nil, media: nil, replyMarkup: nil, replyTo: nil, richMessage: nil, chatInstance: nil, anchorMsgId: nil)))
 let deletion = Api.functions.ephemeral.deleteMessage(flags: 1, peer: .inputPeerSelf, receiverId: .inputUserSelf, id: 1)
