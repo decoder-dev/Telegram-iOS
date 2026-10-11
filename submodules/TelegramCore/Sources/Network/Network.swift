@@ -487,6 +487,12 @@ extension Network {
             useNetworkFramework: self.usesNetworkFrameworkTcpConnection,
             fallbackCoordinator: &self.webSocketFallbackCoordinator
         )
+        self.baseTcpConnectionInterfaceFactory = self.context.makeTcpConnectionInterface
+        if self.currentWebProxyActive {
+            self.context.makeTcpConnectionInterface = { delegate, delegateQueue, _, _, _ in
+                return WebProxyTransport.shared.makeConnectionInterface(delegate: delegate, delegateQueue: delegateQueue)
+            }
+        }
     }
 }
 
@@ -972,7 +978,8 @@ public final class Network: NSObject {
     /// `network_telemetry_enabled` was set when the network started (always set in Debug builds).
     public let telemetry: NetworkTelemetry?
     private let useRequestTimeoutTimers: Bool
-    private let baseTcpConnectionInterfaceFactory: ((MTTcpConnectionInterfaceDelegate, DispatchQueue, Int, Bool, Bool) -> MTTcpConnectionInterface)?
+    private var baseTcpConnectionInterfaceFactory: ((MTTcpConnectionInterfaceDelegate, DispatchQueue, Int, Bool, Bool) -> MTTcpConnectionInterface)?
+    private var currentWebProxyActive: Bool
     private let isAppExtension: Bool
     private let webProxyLeaseToken = UUID()
     private let webProxyActive: ValuePromise<Bool>
@@ -1141,6 +1148,7 @@ public final class Network: NSObject {
         self.basePath = basePath
         self.useRequestTimeoutTimers = useRequestTimeoutTimers
         self.baseTcpConnectionInterfaceFactory = baseTcpConnectionInterfaceFactory
+        self.currentWebProxyActive = initialWebProxyActive
         self.isAppExtension = isAppExtension
         self.webProxyActive = ValuePromise<Bool>(initialWebProxyActive, ignoreRepeated: true)
         self.useBetaFeatures = useBetaFeatures
@@ -1264,6 +1272,7 @@ public final class Network: NSObject {
     }
 
     func updateProxySettings(_ activeServer: ProxyServerSettings?) {
+        self.currentWebProxyActive = activeServer?.isWebProxy == true
         let webConfiguration = activeServer?.webProxyConfiguration
         WebProxyTransport.shared.apply(configuration: self.isAppExtension ? nil : webConfiguration)
         self.webProxyActive.set(activeServer?.isWebProxy == true)

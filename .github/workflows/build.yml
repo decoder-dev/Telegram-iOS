@@ -61,6 +61,7 @@ jobs:
           python3 Tests/Upstream13/own_features.py
           python3 Tests/Upstream13/passcode.py
           python3 Tests/Upstream13/passcode_codec.py
+          python3 Tests/Upstream13/proxy_switching.py
       - uses: actions/setup-node@v4
         with:
           node-version: '22'

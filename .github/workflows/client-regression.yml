@@ -61,6 +61,7 @@ jobs:
           python3 Tests/Upstream13/own_features.py
           python3 Tests/Upstream13/passcode.py
           python3 Tests/Upstream13/passcode_codec.py
+          python3 Tests/Upstream13/proxy_switching.py
       - run: swift test --package-path submodules/TelegramVLESS
         if: ${{ !cancelled() }}
       - run: python3 Tests/ManagedProxy/run.py

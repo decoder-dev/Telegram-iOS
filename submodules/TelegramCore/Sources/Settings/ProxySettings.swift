@@ -244,8 +244,8 @@ func applySharedProxySettingsToNetwork(settings: ProxySettings, network: Network
         VlessManager.shared.configure(activeProfileURL: nil)
     }
 
-    network.updateProxySettings(activeServer)
     network.updateWebSocketTransportSettings(webSocketTransportEnabled: settings.webSocketTransportEnabled, webSocketFallbackToDirect: settings.webSocketFallbackToDirect, hasActiveProxyServer: activeServer != nil)
+    network.updateProxySettings(activeServer)
     let resolvedProxySettings = activeServer?.mtProxySettings
 
     if (isActiveWebProxy || isActiveVlessProxy), resolvedProxySettings == nil {
