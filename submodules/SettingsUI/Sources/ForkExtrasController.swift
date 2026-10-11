@@ -766,6 +766,7 @@ private enum ForkExtrasSection: Int32 {
 
 private enum ForkExtrasEntry: ItemListNodeEntry {
     case designHeader(Int32, String)
+    case designFooter(Int32, String)
     case brandTheme(Bool)
 
     /// One entry per section of the Interface screen, in display order. A section is a rounded block: its header (16xx) first,
@@ -784,7 +785,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         [65, 66],
         [67, 68],
         [69],
-        [1508, 1509, 1510, 1511, 1512, 1513, 1515, 1516, 1517, 1518, 1519, 1520],
+        [1508, 1509, 1510, 1511, 1512, 1513, 1515, 1516, 1517, 1518, 1519, 1520, 1612],
         [1603, 1500, 1501, 57]
     ]
 
@@ -909,7 +910,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return Int32(100 + group)
         }
         switch self {
-        case .designHeader, .brandTheme: return 100
+        case .designHeader, .designFooter, .brandTheme: return 100
         case .hubNinja, .hubGhost, .hubPrivacy, .hubInterface, .hubChat, .hubNetwork, .hubFooter:
             return ForkExtrasSection.hub.rawValue
         case .ghostModeMaster, .ghostDontReadMessages, .ghostDontReadStories, .ghostDontSendOnline, .ghostDontSendTyping, .ghostGoOfflineAutomatically, .ghostGoOfflineAutomaticallyFooter, .ghostReadOnInteract, .ghostReadOnInteractFooter, .ghostAlertBeforeOpeningStory, .ghostAlertBeforeOpeningStoryFooter, .ghostScheduleMessages, .ghostScheduleMessagesFooter, .ghostModeFooter:
@@ -954,6 +955,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     var stableId: Int32 {
         switch self {
         case let .designHeader(id, _): return id
+        case let .designFooter(id, _): return id
         case let .brandTheme(dark): return dark ? 1611 : 1610
         case .tabPreview: return 1507
         case .callsTab: return 1503
@@ -1083,6 +1085,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     func item(presentationData: ItemListPresentationData, arguments: Any) -> ListViewItem {
         let arguments = arguments as! ForkExtrasControllerArguments
         switch self {
+        case let .designFooter(_, text):
+            return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section)
         case let .designHeader(_, title):
             return ItemListSectionHeaderItem(presentationData: presentationData, text: title, sectionId: self.section)
         case let .brandTheme(dark):
@@ -1589,7 +1593,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .designHeader(1600, russian ? "Темы BananaGram" : "BananaGram themes"), .brandTheme(false), .brandTheme(true),
             .designHeader(1601, russian ? "Навигация" : "Navigation"),
             .designHeader(1602, russian ? "Чаты" : "Chats"),
-            .designHeader(1603, russian ? "Эффекты" : "Effects")
+            .designHeader(1603, russian ? "Эффекты" : "Effects"),
+            .designFooter(1612, russian ? "«Хэштег ищет в этом чате» открывает поиск по чату вместо публичных постов. «Запрещённые GIF как видео» отправляет GIF беззвучным видео там, где GIF запрещены, а видео разрешены. «Музыку как голосовое» можно отправить из меню трека во вложениях." : "Hashtags Search This Chat opens the chat's own results instead of public posts. Send Banned GIFs as Video sends a GIF as a silent looping video where GIFs are banned but videos are allowed. A music track can be sent as a voice message from its menu in Attach > Music.")
         ])
         entries.sort()
     case .chat:
@@ -1914,22 +1919,26 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
             }.start())
         },
         openTranslationBackend: {
-            presentPicker(title: ForkExtrasLocalizedString.translationBackend, options: [
+            var options: [(String, () -> Void)] = [
                 (ForkExtrasLocalizedString.backendDefault, {
                     updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
                         var updated = current
                         updated.translationBackend = .default
                         return updated
                     }.start())
-                }),
-                (ForkExtrasLocalizedString.backendSystem, {
+                })
+            ]
+            // Apple's on-device translation needs iOS 18; offering it earlier selected an engine that never ran.
+            if #available(iOS 18.0, *) {
+                options.append((ForkExtrasLocalizedString.backendSystem, {
                     updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
                         var updated = current
                         updated.translationBackend = .system
                         return updated
                     }.start())
-                })
-            ])
+                }))
+            }
+            presentPicker(title: ForkExtrasLocalizedString.translationBackend, options: options)
         },
         openTranscriptionBackend: {
             presentPicker(title: ForkExtrasLocalizedString.transcriptionBackend, options: [
