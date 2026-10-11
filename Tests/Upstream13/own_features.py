@@ -9,6 +9,17 @@ def read(path):
     return (ROOT / path).read_text(encoding='utf-8')
 
 class ForkIntegration(unittest.TestCase):
+    def test_retired_fork_modules_are_not_resurrected_by_upstream(self):
+        for path in ['submodules/LegacyComponents/Sources/FLAnimatedImage.m',
+                     'submodules/LegacyComponents/Sources/TGPassportAttachMenu.m',
+                     'submodules/LegacyComponents/Sources/TGPhotoToolbarView.m',
+                     'submodules/LegacyComponents/Sources/TGToolbarButton.m',
+                     'submodules/TelegramUI/Components/LegacyCamera/Sources/LegacyCamera.swift',
+                     'submodules/openssl/BUILD']:
+            self.assertFalse((ROOT / path).exists(), path)
+        self.assertTrue((ROOT / 'submodules/LegacyMediaPickerUI/Sources/MediaPickerPhotoToolbarView.swift').is_file())
+        self.assertTrue((ROOT / 'submodules/TelegramUI/Components/CameraScreen/Sources/CameraScreen.swift').is_file())
+
     def test_secret_screenshot_policy_survives_new_capture_manager(self):
         source = read('submodules/TelegramUI/Sources/ChatController.swift')
         method = source.split('private func setupScreenCaptureDetectionIfNeeded()', 1)[1].split('override public func viewDidAppear', 1)[0]
