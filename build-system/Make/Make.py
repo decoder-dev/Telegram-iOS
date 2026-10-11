@@ -162,6 +162,7 @@ class BazelCommandLine:
         # using split_derived_files_generation — SwiftDeriveFiles treats "-j" as an input file.
         ci_jobs = [
             f'--jobs={cpus}',
+            # Bazel 9 removed --local_cpu_resources; --local_resources=cpu=N is its replacement.
             f'--local_resources=cpu={cpus}',
         ] if self.ci_fast else []
 
@@ -315,6 +316,9 @@ class BazelCommandLine:
                 combined_arguments += [
                     f'--repository_cache={repo_cache}',
                     '--experimental_repository_cache_hardlinks',
+                    # Bazel 9 keeps a repo contents cache under the repository cache and refuses to
+                    # start when that lands inside the workspace, which the CI cache directory does.
+                    '--repo_contents_cache=',
                 ]
         return combined_arguments
 

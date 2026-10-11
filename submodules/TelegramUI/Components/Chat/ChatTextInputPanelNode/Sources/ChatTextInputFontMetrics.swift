@@ -20,12 +20,11 @@ public func chatTextInputBaseFontSize(for fontSize: PresentationFontSize) -> CGF
     return max(chatTextInputMinFontSize, fontSize.baseDisplaySize)
 }
 
-/// The empty field's height: one line of the typing font plus the vertical insets, never below the 17pt
-/// value of 31. These are the settled heights the legacy text view measures for the seven steps (14–16pt
-/// measure below 31 and take the floor), so the field does not animate after its text node loads.
-/// Switched on the step, not on a `CGFloat`, so a new step fails to compile here instead of silently
-/// taking 31 and reintroducing the jump.
-public func chatTextInputFieldMinHeight(for fontSize: PresentationFontSize) -> CGFloat {
+/// The height the text view settles at with the stock insets: one line of the typing font plus 4.5/5.5, never
+/// below the 17pt value of 31. These are the heights the legacy text view measures for the seven steps (14–16pt
+/// measure below 31 and take the floor). Switched on the step, not on a `CGFloat`, so a new step fails to compile
+/// here instead of silently taking 31.
+func chatTextInputFieldStockHeight(for fontSize: PresentationFontSize) -> CGFloat {
     switch fontSize {
     case .extraSmall, .small, .medium, .regular:
         return 31.0
@@ -36,6 +35,19 @@ public func chatTextInputFieldMinHeight(for fontSize: PresentationFontSize) -> C
     case .extraLargeX2:
         return 42.0
     }
+}
+
+/// How much taller than stock the fork's capsule is. The composer is an iMessage-style 36pt capsule at the
+/// default size, sitting between 40pt circular buttons; stock's 31pt field left the text and placeholder
+/// visibly off-centre against them. The extra room is split evenly into the vertical insets, so the text
+/// stays centred and multi-line growth measures with the very same insets.
+let chatTextInputFieldCapsuleExtraHeight: CGFloat = 5.0
+
+/// The empty field's height: the stock settled height plus the capsule's extra room, so 36 at the 17pt step
+/// and growing with Text Size. It IS what an empty field measures with `chatTextInputFieldVerticalInsets`, so
+/// the field does not animate after its text node loads.
+public func chatTextInputFieldMinHeight(for fontSize: PresentationFontSize) -> CGFloat {
+    return chatTextInputFieldStockHeight(for: fontSize) + chatTextInputFieldCapsuleExtraHeight
 }
 
 /// The text container's top/bottom insets for a step (left/right are the caller's: they depend on the
@@ -58,5 +70,6 @@ public func chatTextInputFieldVerticalInsets(for fontSize: PresentationFontSize)
         top = 0.0
         bottom = 0.0
     }
-    return UIEdgeInsets(top: 4.5 + top, left: 0.0, bottom: 5.5 + bottom, right: 0.0)
+    let extra = chatTextInputFieldCapsuleExtraHeight / 2.0
+    return UIEdgeInsets(top: 4.5 + top + extra, left: 0.0, bottom: 5.5 + bottom + extra, right: 0.0)
 }

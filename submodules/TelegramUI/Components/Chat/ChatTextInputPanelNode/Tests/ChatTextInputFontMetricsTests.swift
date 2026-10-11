@@ -22,7 +22,7 @@ final class ChatTextInputFontMetricsTests: XCTestCase {
     }
 
     /// The minimum height IS what an empty field settles at: the legacy text view measuring one line of the
-    /// typing font plus the vertical insets, floored at the 17pt minimum of 31. If these two disagree the field
+    /// typing font plus the vertical insets, floored at the 17pt minimum of 36 (the fork's capsule). If these two disagree the field
     /// opens at one height and animates to the other as soon as the text node loads — the reported jump.
     func testMinHeightIsTheSettledHeightOfAnEmptyField() {
         for step in PresentationFontSize.allCases {
@@ -30,16 +30,17 @@ final class ChatTextInputFontMetricsTests: XCTestCase {
             let textView = ChatInputTextView(disableTiling: true)
             textView.textContainerInset = chatTextInputFieldVerticalInsets(for: step)
             refreshChatTextInputTypingAttributes(textView, textColor: .black, baseFontSize: baseFontSize)
-            let settled = max(31.0, textView.textHeightForWidth(300.0, rightInset: 0.0))
+            let settled = max(36.0, textView.textHeightForWidth(300.0, rightInset: 0.0))
 
             XCTAssertEqual(chatTextInputFieldMinHeight(for: step), settled, "\(step): min height must equal the empty field's measured height")
         }
     }
 
-    /// The 17pt step is exactly today's geometry, so the regular case does not move.
-    func testRegularStepIsUnchanged() {
+    /// The 17pt step is the fork's iMessage capsule: 36pt, with stock's 4.5/5.5 insets each grown by half
+    /// of the extra 5pt so the line stays centred against the 40pt buttons.
+    func testRegularStepIsTheCapsule() {
         XCTAssertEqual(chatTextInputBaseFontSize(for: .regular), 17.0)
-        XCTAssertEqual(chatTextInputFieldMinHeight(for: .regular), 31.0)
-        XCTAssertEqual(chatTextInputFieldVerticalInsets(for: .regular), UIEdgeInsets(top: 4.5, left: 0.0, bottom: 5.5, right: 0.0))
+        XCTAssertEqual(chatTextInputFieldMinHeight(for: .regular), 36.0)
+        XCTAssertEqual(chatTextInputFieldVerticalInsets(for: .regular), UIEdgeInsets(top: 7.0, left: 0.0, bottom: 8.0, right: 0.0))
     }
 }
