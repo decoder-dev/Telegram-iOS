@@ -1018,7 +1018,6 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         self.mediaActionButtons.updateAccessibility()
         
         self.mediaActionButtons.expandMediaInputButton.addTarget(self, action: #selector(self.expandButtonPressed), for: .touchUpInside)
-        self.mediaActionButtons.stopButton.addTarget(self, action: #selector(self.stopButtonPressed), for: .touchUpInside)
         self.mediaActionButtons.expandMediaInputButtonBackgroundView.alpha = 0.0
         
         self.searchLayoutClearButton.highligthedChanged = { [weak self] highlighted in
@@ -5950,10 +5949,6 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         self.toggleExpandMediaInput?()
     }
 
-    @objc private func stopButtonPressed() {
-        self.interfaceInteraction?.stopIncomingStreamingMessage()
-    }
-    
     @objc func accessoryItemButtonPressed(_ button: UIView) {
         for (item, currentButton) in self.accessoryItemButtons {
             if currentButton === button {

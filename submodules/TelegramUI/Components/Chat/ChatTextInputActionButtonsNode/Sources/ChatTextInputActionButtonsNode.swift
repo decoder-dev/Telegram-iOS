@@ -137,7 +137,6 @@ public final class ChatTextInputActionButtonsNode: ASDisplayNode, ChatSendMessag
     public let micButtonBackgroundView: GlassBackgroundView
     public let micButtonTintMaskView: UIImageView
     public let micButton: ChatTextInputMediaRecordingButton
-    public let stopButton = UIButton(type: .custom)
     public var stopPressed: (() -> Void)?
     public let stopButtonIcon: GlassBackgroundView.ContentImageView
     public let stopButton: HighlightTrackingButton

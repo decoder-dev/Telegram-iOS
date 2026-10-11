@@ -932,13 +932,6 @@ final class BrowserWebContent: UIView, BrowserContent, WKNavigationDelegate, WKU
         self.pendingMainFrameUrl = url
     }
         
-    private func updatePendingMainFrameUrl(for navigationAction: WKNavigationAction) {
-        guard navigationAction.targetFrame?.isMainFrame == true, let url = navigationAction.request.url, let scheme = url.scheme?.lowercased(), ["http", "https"].contains(scheme) else {
-            return
-        }
-        self.pendingMainFrameUrl = url
-    }
-        
     @available(iOS 13.0, *)
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, preferences: WKWebpagePreferences, decisionHandler: @escaping (WKNavigationActionPolicy, WKWebpagePreferences) -> Void) {
         if #available(iOS 14.5, *), navigationAction.shouldPerformDownload {

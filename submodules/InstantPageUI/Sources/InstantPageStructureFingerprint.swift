@@ -332,5 +332,8 @@ private func hashStructure(richText: RichText, into hasher: inout Hasher) {
     case let .textButton(button):
         hasher.combine(29)
         hashStructure(richText: button.text, into: &hasher)
+    case let .button(text, _, _):
+        hasher.combine(30)
+        hashStructure(richText: text, into: &hasher)
     }
 }

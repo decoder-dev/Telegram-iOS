@@ -40,11 +40,6 @@ final class PeerInfoPaneWrapper {
         self.node.parentController = nil
     }
     
-    func removeFromContainer() {
-        self.node.removeFromSupernode()
-        self.node.parentController = nil
-    }
-    
     func update(size: CGSize, topInset: CGFloat, sideInset: CGFloat, bottomInset: CGFloat, deviceMetrics: DeviceMetrics, visibleHeight: CGFloat, isScrollingLockedAtTop: Bool, expandProgress: CGFloat, navigationHeight: CGFloat, presentationData: PresentationData, synchronous: Bool, transition: ContainedViewLayoutTransition) {
         if let (currentSize, currentTopInset, currentSideInset, currentBottomInset, _, currentVisibleHeight, currentIsScrollingLockedAtTop, currentExpandProgress, currentNavigationHeight, currentPresentationData) = self.appliedParams {
             if currentSize == size && currentTopInset == topInset, currentSideInset == sideInset && currentBottomInset == bottomInset && currentVisibleHeight == visibleHeight && currentIsScrollingLockedAtTop == isScrollingLockedAtTop && currentExpandProgress == expandProgress && currentNavigationHeight == navigationHeight && currentPresentationData === presentationData {

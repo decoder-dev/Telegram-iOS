@@ -891,60 +891,6 @@ class DefaultIntentHandler: INExtension, INSendMessageIntentHandling, INSearchFo
         }))
     }
     
-    // MARK: - INSearchCallHistoryIntentHandling
-    
-    @available(iOSApplicationExtension 11.0, iOS 11.0, *)
-    public func resolveCallTypes(for intent: INSearchCallHistoryIntent, with completion: @escaping (INCallRecordTypeOptionsResolutionResult) -> Void) {
-        completion(.success(with: .missed))
-    }
-    
-    /*public func resolveCallType(for intent: INSearchCallHistoryIntent, with completion: @escaping (INCallRecordTypeResolutionResult) -> Void) {
-        completion(.success(with: .missed))
-    }*/
-    
-    public func handle(intent: INSearchCallHistoryIntent, completion: @escaping (INSearchCallHistoryIntentResponse) -> Void) {
-        if let appGroupUrl = self.appGroupUrl {
-            let rootPath = rootPathForBasePath(appGroupUrl.path)
-            if isAppLockedFailClosed(rootPath: rootPath) {
-                let userActivity = NSUserActivity(activityType: NSStringFromClass(INSearchCallHistoryIntent.self))
-                let response = INSearchCallHistoryIntentResponse(code: .failureRequiringAppLaunch, userActivity: userActivity)
-                completion(response)
-                return
-            }
-        }
-        
-        self.actionDisposable.set((self.accountPromise.get()
-        |> take(1)
-        |> castError(IntentHandlingError.self)
-        |> mapToSignal { account -> Signal<[CallRecord], IntentHandlingError> in
-            guard let account = account else {
-                return .fail(.generic)
-            }
-            
-            account.shouldBeServiceTaskMaster.set(.single(.now))
-            return missedCalls(account: account)
-            |> castError(IntentHandlingError.self)
-            |> afterDisposed {
-                account.shouldBeServiceTaskMaster.set(.single(.never))
-            }
-        }
-        |> deliverOnMainQueue).start(next: { calls in
-            let userActivity = NSUserActivity(activityType: NSStringFromClass(INSearchCallHistoryIntent.self))
-            let response: INSearchCallHistoryIntentResponse
-            if #available(iOSApplicationExtension 11.0, iOS 11.0, *) {
-                response = INSearchCallHistoryIntentResponse(code: .success, userActivity: userActivity)
-                response.callRecords = calls.map { $0.intentCall }
-            } else {
-                response = INSearchCallHistoryIntentResponse(code: .continueInApp, userActivity: userActivity)
-            }
-            completion(response)
-        }, error: { _ in
-            let userActivity = NSUserActivity(activityType: NSStringFromClass(INSearchCallHistoryIntent.self))
-            let response = INSearchCallHistoryIntentResponse(code: .failureRequiringAppLaunch, userActivity: userActivity)
-            completion(response)
-        }))
-    }
-
     @available(iOSApplicationExtension 14.0, iOS 14.0, *)
     func provideFriendsOptionsCollection(for intent: SelectFriendsIntent, searchTerm: String?, with completion: @escaping (INObjectCollection<Friend>?, Error?) -> Void) {
         guard let rootPath = self.rootPath, let _ = self.accountManager, let encryptionParameters = self.encryptionParameters else {
@@ -1588,7 +1534,7 @@ extension DefaultIntentHandler: INSearchCallHistoryIntentHandling {
     public func handle(intent: INSearchCallHistoryIntent, completion: @escaping (INSearchCallHistoryIntentResponse) -> Void) {
         if let appGroupUrl = self.appGroupUrl {
             let rootPath = rootPathForBasePath(appGroupUrl.path)
-            if let data = try? Data(contentsOf: URL(fileURLWithPath: appLockStatePath(rootPath: rootPath))), let state = try? JSONDecoder().decode(LockState.self, from: data), isAppLocked(state: state) {
+            if isAppLockedFailClosed(rootPath: rootPath) {
                 let userActivity = NSUserActivity(activityType: NSStringFromClass(INSearchCallHistoryIntent.self))
                 let response = INSearchCallHistoryIntentResponse(code: .failureRequiringAppLaunch, userActivity: userActivity)
                 completion(response)

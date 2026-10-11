@@ -147,6 +147,7 @@ private final class InstantPagePreviewBuilder {
         case .formula: return self.icon(.formula, value: 0)
         case .image: return self.label(.photo)
         case let .textButton(button): return self.rich(button.text, depth: depth + 1)
+        case let .button(text, _, _): return self.rich(text, depth: depth + 1)
         case let .concat(values):
             let result = NSMutableAttributedString()
             for value in values {

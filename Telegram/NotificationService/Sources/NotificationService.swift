@@ -544,7 +544,7 @@ private struct NotificationContent: CustomStringConvertible {
         self.subtitle = nil
         self.body = genericText
         self.isLockedMessage = genericText
-        self.senderPerson = nil
+        self.sender = nil
         self.senderImage = nil
         self.customEmoji = []
     }
