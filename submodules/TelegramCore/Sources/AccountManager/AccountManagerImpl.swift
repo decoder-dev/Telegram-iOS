@@ -357,7 +357,7 @@ final class AccountManagerImpl<Types: AccountManagerTypes> {
             throw AccountManagerPasscodeMigrationTestError.unsupportedAccountManager
         }
         switch legacy {
-        case .numericalPassword, .plaintextPassword:
+        case .numericalPassword, .plaintextPassword, .numericalPasswordHash, .plaintextPasswordHash:
             break
         case .none, .secured:
             throw AccountManagerPasscodeMigrationTestError.invalidAccessChallenge
@@ -403,7 +403,7 @@ final class AccountManagerImpl<Types: AccountManagerTypes> {
             return
         }
         switch self.currentAtomicState.accessChallengeData {
-        case .numericalPassword, .plaintextPassword:
+        case .numericalPassword, .plaintextPassword, .numericalPasswordHash, .plaintextPasswordHash:
             return
         case .none, .secured:
             break

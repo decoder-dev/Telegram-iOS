@@ -12,7 +12,7 @@ proxy = source[begin:source.index('        let updated =', begin)] + '    }\n'
 settings = (ROOT / 'submodules/TelegramCore/Sources/Settings/ProxySettings.swift').read_text(encoding='utf-8')
 assert settings.index('network.updateWebSocketTransportSettings(') < settings.index('network.updateProxySettings(activeServer)')
 fixture = '''import Foundation
-typealias Factory = (Int, Int, Int, Bool, Bool) -> String
+typealias Factory = (Int, Int, Int, Bool, Bool) -> String?
 final class Context { var makeTcpConnectionInterface: Factory? }
 struct ProxyServerSettings {
     var isWebProxy: Bool
@@ -37,7 +37,7 @@ final class Network {
     var webSocketFallbackCoordinator = false
     let webProxyActive = Promise()
 ''' + websocket + '\n' + proxy + '''
-    func route() -> String { context.makeTcpConnectionInterface!(0, 0, 0, false, false) }
+    func route() -> String? { context.makeTcpConnectionInterface!(0, 0, 0, false, false) }
 }
 let network = Network()
 let web = ProxyServerSettings(isWebProxy: true)
@@ -57,7 +57,10 @@ for enabled in [false, true] {
         }
     }
 }
-print("PASS production factory transitions and repeated independent settings updates")
+network.baseTcpConnectionInterfaceFactory = { _, _, _, _, _ in nil }
+network.updateProxySettings(nil)
+precondition(network.route() == nil, "Unavailable factory must not become a direct connection")
+print("PASS production factory transitions, unavailable factory and repeated settings updates")
 '''
 with tempfile.TemporaryDirectory() as temporary:
     path = pathlib.Path(temporary)

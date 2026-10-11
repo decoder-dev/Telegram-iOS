@@ -9,6 +9,18 @@ def read(path):
     return (ROOT / path).read_text(encoding='utf-8')
 
 class ForkIntegration(unittest.TestCase):
+    def test_legacy_hash_metadata_is_not_cleaned_before_migration(self):
+        source = read('submodules/TelegramCore/Sources/AccountManager/AccountManagerImpl.swift')
+        body = source.split('private func cleanPasscodeMetadataIfNeeded()', 1)[1].split('private func syncAtomicStateToFile()', 1)[0]
+        self.assertRegex(body, r'case \.numericalPassword, \.plaintextPassword, \.numericalPasswordHash, \.plaintextPasswordHash:\s*return')
+
+    def test_inline_keyboard_uses_new_api_type_and_resend_is_unique(self):
+        source = read('submodules/TelegramCore/Sources/ApiUtils/ReplyMarkupMessageAttribute.swift')
+        body = source.split('init(apiRow: Api.KeyboardInlineButtonRow)', 1)[1].split('init(apiRow: Api.KeyboardButtonRow)', 1)[0]
+        self.assertIn('ReplyMarkupButton(apiInlineButton: $0)', body)
+        enqueue = read('submodules/TelegramCore/Sources/PendingMessages/EnqueueMessage.swift')
+        self.assertEqual(enqueue.count('func resentMessageRequestedAttribute('), 1)
+
     def test_camera_bridge_handles_the_new_collage_result(self):
         source = read('submodules/TelegramUI/Sources/SharedAccountContext.swift')
         bridge = source.split('public func legacyCameraCapturedMediaSignals(', 1)[1].split('public func makeMediaPickerScreen(', 1)[0]

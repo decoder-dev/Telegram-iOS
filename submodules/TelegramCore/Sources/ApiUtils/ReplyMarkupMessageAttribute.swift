@@ -163,7 +163,7 @@ extension ReplyMarkupRow {
     init(apiRow: Api.KeyboardInlineButtonRow) {
         switch apiRow {
         case let .keyboardInlineButtonRow(value):
-            self.init(buttons: value.buttons.map { ReplyMarkupButton(apiButton: $0) })
+            self.init(buttons: value.buttons.map { ReplyMarkupButton(apiInlineButton: $0) })
         }
     }
 

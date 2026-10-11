@@ -6411,7 +6411,8 @@ func replayFinalState(
                 }
             }
         }
-        transaction.combineTypingDrafts(locations: Set(liveTypingDraftUpdates.keys), update: { key, current in
+        typealias AppliedTypingDraft = (id: Int64, namespace: MessageId.Namespace, threadId: Int64?, authorId: PeerId, timestamp: Int32, text: String, attributes: [MessageAttribute], isStopped: Bool)
+        transaction.combineTypingDrafts(locations: Set(liveTypingDraftUpdates.keys), update: { (key: PeerAndThreadId, current: AppliedTypingDraft?) -> AppliedTypingDraft? in
             guard let updates = liveTypingDraftUpdates[key], !updates.isEmpty else {
                 return current
             }

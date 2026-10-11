@@ -1054,23 +1054,6 @@ private func enqueuePreparedMessages(account: Account, peerId: PeerId, messages:
     }
 }
 
-/// What a resent message requests in place of `attribute`, which the failed message stores in the
-/// form the enqueue step produced; nil when it is not requested again. A cloud chat stores the
-/// sender's media timer as `AutoclearTimeoutMessageAttribute` but requests it as
-/// `AutoremoveTimeoutMessageAttribute`; the chat's own auto-delete period is derived again.
-func resentMessageRequestedAttribute(_ attribute: MessageAttribute, isSecretChat: Bool) -> MessageAttribute? {
-    if attribute is PaidStarsMessageAttribute {
-        return nil
-    }
-    if let attribute = attribute as? AutoclearTimeoutMessageAttribute {
-        return AutoremoveTimeoutMessageAttribute(timeout: attribute.timeout, countdownBeginTime: nil)
-    }
-    if attribute is AutoremoveTimeoutMessageAttribute && !isSecretChat {
-        return nil
-    }
-    return attribute
-}
-
 public func enqueueWelcomeMessages(account: Account, peerId: PeerId, messages: [EnqueueMessage]) -> Signal<[MessageId?], NoError> {
     let signal: Signal<[(Bool, EnqueueMessage)], NoError>
     if let transformOutgoingMessageMedia = account.transformOutgoingMessageMedia {
