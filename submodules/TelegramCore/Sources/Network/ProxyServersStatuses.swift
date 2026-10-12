@@ -153,8 +153,52 @@ private final class ProxyServerItemContext {
     }
 }
 
+/// Bound initial health probes, keep input priority, and reject callbacks from replaced profiles.
+struct ProxyStatusProbeQueue<Key: Hashable> {
+    private(set) var tokens: [Key: Int] = [:]
+    private(set) var running = Set<Key>()
+    private var pending: [Key] = []
+    private var generation = 0
+    let limit: Int
+
+    init(limit: Int) {
+        precondition(limit > 0)
+        self.limit = limit
+    }
+
+    mutating func update(_ keys: [Key]) {
+        let valid = Set(keys)
+        self.tokens = self.tokens.filter { valid.contains($0.key) }
+        self.running = self.running.intersection(valid)
+        self.pending = self.pending.filter { valid.contains($0) }
+        for key in keys where self.tokens[key] == nil {
+            self.generation += 1
+            self.tokens[key] = self.generation
+            self.pending.append(key)
+        }
+    }
+
+    mutating func takeNext() -> [(Key, Int)] {
+        var result: [(Key, Int)] = []
+        while self.running.count < self.limit, !self.pending.isEmpty {
+            let key = self.pending.removeFirst()
+            guard let token = self.tokens[key] else { continue }
+            self.running.insert(key)
+            result.append((key, token))
+        }
+        return result
+    }
+
+    mutating func complete(_ key: Key, token: Int) -> Bool {
+        guard self.tokens[key] == token else { return false }
+        return self.running.remove(key) != nil
+    }
+}
+
 final class ProxyServersStatusesImpl {
     private let queue: Queue
+    private let network: Network
+    private var probes = ProxyStatusProbeQueue<ProxyServerSettings>(limit: 4)
     
     private var contexts: [ProxyServerSettings: ProxyServerItemContext] = [:]
     private var serversDisposable: Disposable?
@@ -168,26 +212,12 @@ final class ProxyServersStatusesImpl {
     
     init(queue: Queue, network: Network, servers: Signal<[ProxyServerSettings], NoError>) {
         self.queue = queue
+        self.network = network
         
         self.serversDisposable = (servers
             |> deliverOn(self.queue)).start(next: { [weak self] servers in
                 if let strongSelf = self {
                     let validKeys = Set<ProxyServerSettings>(servers)
-                    for key in validKeys {
-                        if strongSelf.contexts[key] == nil {
-                            let context = ProxyServerItemContext(queue: strongSelf.queue, context: network.context, datacenterId: network.datacenterId, server: key, updated: { value in
-                                // Queue.async executes inline on this queue. Defer until the
-                                // new context has been inserted, or its initial status is lost.
-                                queue.justDispatch {
-                                    if let strongSelf = self {
-                                        strongSelf.contexts[key]?.value = value
-                                        strongSelf.updateValues()
-                                    }
-                                }
-                            })
-                            strongSelf.contexts[key] = context
-                        }
-                    }
                     var removeKeys: [ProxyServerSettings] = []
                     for (key, _) in strongSelf.contexts {
                         if !validKeys.contains(key) {
@@ -197,9 +227,9 @@ final class ProxyServersStatusesImpl {
                     for key in removeKeys {
                         let _ = strongSelf.contexts.removeValue(forKey: key)
                     }
-                    if !removeKeys.isEmpty {
-                        strongSelf.updateValues()
-                    }
+                    strongSelf.probes.update(servers)
+                    strongSelf.startNextProbes()
+                    strongSelf.updateValues()
                 }
             })
     }
@@ -207,13 +237,31 @@ final class ProxyServersStatusesImpl {
     deinit {
         self.serversDisposable?.dispose()
     }
+
+    private func startNextProbes() {
+        assert(self.queue.isCurrent())
+        for (key, token) in self.probes.takeNext() {
+            let context = ProxyServerItemContext(queue: self.queue, context: self.network.context, datacenterId: self.network.datacenterId, server: key, updated: { [weak self] value in
+                // Defer until insertion, even when a profile reports a synchronous result.
+                self?.queue.justDispatch { [weak self] in
+                    guard let self, self.probes.tokens[key] == token else { return }
+                    self.contexts[key]?.value = value
+                    if value != .checking, self.probes.complete(key, token: token) {
+                        self.startNextProbes()
+                    }
+                    self.updateValues()
+                }
+            })
+            self.contexts[key] = context
+        }
+    }
     
     private func updateValues() {
         assert(self.queue.isCurrent())
         
         var values: [ProxyServerSettings: ProxyServerStatus] = [:]
-        for (key, context) in self.contexts {
-            values[key] = context.value
+        for key in self.probes.tokens.keys {
+            values[key] = self.contexts[key]?.value ?? .notChecked
         }
         self.currentValues = values
     }

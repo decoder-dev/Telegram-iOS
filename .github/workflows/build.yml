@@ -106,6 +106,7 @@ jobs:
       - name: Managed proxy observation and customization tests
         run: |
           python3 Tests/ManagedProxy/run.py
+          python3 Tests/ManagedProxy/probe_queue.py
           python3 Tests/ManagedProxy/bootstrap.py
           python3 Tests/ManagedProxy/automatic.py
           python3 Tests/Customization/run.py

@@ -72,6 +72,8 @@ jobs:
         if: ${{ !cancelled() }}
       - run: python3 Tests/ManagedProxy/run.py
         if: ${{ !cancelled() }}
+      - run: python3 Tests/ManagedProxy/probe_queue.py
+        if: ${{ !cancelled() }}
       - run: python3 Tests/ManagedProxy/bootstrap.py
         if: ${{ !cancelled() }}
       - run: python3 Tests/ManagedProxy/automatic.py
