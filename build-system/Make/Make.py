@@ -336,6 +336,14 @@ class BazelCommandLine:
             combined_arguments += [self.custom_target]
         else:
             combined_arguments += ['Telegram/Telegram']
+        if getattr(self, 'compile_extensions', False):
+            combined_arguments += [
+                '//Telegram:ShareExtensionLib',
+                '//Telegram:NotificationContentExtensionLib',
+                '//Telegram:WidgetExtensionLib',
+                '//Telegram:IntentsExtensionLib',
+                '//Telegram/NotificationService:NotificationServiceExtensionLib',
+            ]
 
         if self.continue_on_error:
             combined_arguments += ['--keep_going']
@@ -739,6 +747,7 @@ def build(bazel, arguments):
     bazel_command_line.set_build_number(arguments.buildNumber)
     bazel_command_line.set_custom_target(arguments.target)
     bazel_command_line.set_continue_on_error(arguments.continueOnError)
+    bazel_command_line.compile_extensions = getattr(arguments, 'compileExtensions', False)
     bazel_command_line.set_show_actions(arguments.showActions)
     bazel_command_line.set_enable_sandbox(arguments.sandbox)
     bazel_command_line.set_profile_swift(arguments.profileSwift)
@@ -1112,6 +1121,12 @@ if __name__ == '__main__':
         action='store_true',
         default=False,
         help='Skip dSYM generation on release_arm64 builds (much faster CI artifacts).'
+    )
+    buildParser.add_argument(
+        '--compileExtensions',
+        action='store_true',
+        default=False,
+        help='Compile extension libraries as well, without embedding them in a sideload IPA.'
     )
     buildParser.add_argument(
         '--ciFast',

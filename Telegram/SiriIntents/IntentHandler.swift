@@ -118,7 +118,7 @@ class IntentHandler: INExtension {
     }
 }
 
-@objc(IntentHandler)
+@objc(DefaultIntentHandler)
 class DefaultIntentHandler: INExtension, INSendMessageIntentHandling, INSearchForMessagesIntentHandling, INSetMessageAttributeIntentHandling, INStartCallIntentHandling {
     private let accountPromise = Promise<Account?>()
     private let allAccounts = Promise<[(AccountRecordId, PeerId, Bool)]>()

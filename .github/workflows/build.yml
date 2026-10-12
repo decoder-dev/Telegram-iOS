@@ -28,6 +28,10 @@ on:
         description: Also produce debug symbols (slower; needed to name a crash)
         type: boolean
         default: false
+      compile_extensions:
+        description: Also compile Share, Siri, Widget and notification libraries (keeps sideload IPA unchanged)
+        type: boolean
+        default: false
       toolchain:
         description: Build toolchain. xcode27 uses the Xcode 27 / iOS 27 SDK preview runner (separate cache); xcode26 is the proven default.
         type: choice
@@ -63,6 +67,7 @@ jobs:
           python3 Tests/Upstream13/passcode_codec.py
           python3 Tests/Upstream13/proxy_switching.py
           python3 Tests/Upstream13/web_codecs.py
+          python3 Tests/Upstream13/siri_objc_names.py
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -358,6 +363,7 @@ jobs:
           # are off by default because `dsymutil` is slow and most builds never need them; ask for
           # them on the run where a crash has to be named.
           DSYM_FLAG: ${{ inputs.generate_dsym && ' ' || '--skipDsym' }}
+          EXTENSION_FLAG: ${{ inputs.compile_extensions && '--compileExtensions' || '' }}
         run: |
           set -euo pipefail
           mkdir -p "$BAZEL_CACHE_DIR" "$BAZEL_REPO_CACHE" artifacts build/artifacts
@@ -376,6 +382,7 @@ jobs:
             --configuration="$BUILD_CONFIGURATION" \
             --buildNumber="$BUILD_NUMBER" \
             --disableExtensions \
+            $EXTENSION_FLAG \
             $DSYM_FLAG \
             --ciFast \
             --continueOnError \

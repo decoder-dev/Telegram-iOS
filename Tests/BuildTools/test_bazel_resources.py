@@ -3,6 +3,8 @@ import ast
 import os
 import pathlib
 import unittest
+import subprocess
+from types import SimpleNamespace
 from unittest.mock import patch
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -40,6 +42,31 @@ class BazelResourcesTests(unittest.TestCase):
         workflow = (ROOT / '.github/workflows/build.yml').read_text(encoding='utf-8')
         self.assertIn('BAZEL_REPO_CACHE: /private/var/tmp/telegram-bazel-repo-cache', workflow)
         self.assertNotIn('BAZEL_REPO_CACHE: ${{ github.workspace }}', workflow)
+
+    def test_extension_libraries_are_checked_without_changing_embedding(self):
+        for enabled in [False, True]:
+            command = self.command(False)
+            for name, value in dict(bazel_user_root=None, lock=False, custom_target=None,
+                continue_on_error=True, show_actions=False, enable_sandbox=False,
+                disable_provisioning_profiles=False, disable_extensions=True,
+                common_args=[], common_build_args=[], build_number=1,
+                embed_watch_app=False, split_submodules=False, remote_cache=None,
+                cache_dir=None, profile_swift=False, configuration_args=[],
+                compile_extensions=enabled).items():
+                setattr(command, name, value)
+            command.build_environment = SimpleNamespace(bazel_path='test-bazel')
+            calls = []
+            command.invoke_build.__globals__['call_executable'] = calls.append
+            command.invoke_build.__globals__['subprocess'] = subprocess
+            command.invoke_build()
+            self.assertEqual(len(calls), 1)
+            args = calls[0]
+            self.assertIn('Telegram/Telegram', args)
+            self.assertIn('--//Telegram:disableExtensions', args)
+            for target in ['//Telegram:ShareExtensionLib', '//Telegram:NotificationContentExtensionLib',
+                           '//Telegram:WidgetExtensionLib', '//Telegram:IntentsExtensionLib',
+                           '//Telegram/NotificationService:NotificationServiceExtensionLib']:
+                self.assertEqual(target in args, enabled, target)
 
 if __name__ == '__main__':
     unittest.main()
