@@ -75,7 +75,7 @@ extension PeerInfoScreenNode {
         self.logoutConfirmationDisposable.set(nil)
         self.logoutConfirmationDisposable.set((self.context.sharedContext.activeAccountContexts
         |> take(1)
-        |> mapToSignal { primary, accounts, _ -> Signal<(String, PeerId), NoError> in
+        |> mapToSignal { primary, accounts, _ -> Signal<(String, EnginePeer.Id), NoError> in
             let accountContext: AccountContext?
             if let primary, primary.account.id == id {
                 accountContext = primary
