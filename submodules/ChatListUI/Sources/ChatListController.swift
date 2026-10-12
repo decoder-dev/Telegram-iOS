@@ -282,6 +282,10 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
         )
                 
         super.init(context: context, navigationBarPresentationData: nil)
+
+        if case .chatList(groupId: .root) = location {
+            self.updateTabBarSearchState(TabBarSearchState(isActive: false), transition: .immediate)
+        }
         
         if case .chatList(groupId: .archive) = location {
             // Close an open Archive list (and anything pushed over it) the moment the lock is re-applied.
@@ -4846,6 +4850,9 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                     (self.parent as? TabBarController)?.updateIsTabBarHidden(true, transition: transition)
 
                     self.isSearchActive = true
+                    if case .chatList(groupId: .root) = self.location {
+                        self.updateTabBarSearchState(TabBarSearchState(isActive: true), transition: transition)
+                    }
                     if let navigationController = self.navigationController as? NavigationController {
                         for controller in navigationController.globalOverlayControllers {
                             if let controller = controller as? VoiceChatOverlayController {
@@ -4904,6 +4911,9 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
         (self.parent as? TabBarController)?.updateIsTabBarHidden(ForkExtrasHotFlags.hidesTabBar(isPad: UIDevice.current.userInterfaceIdiom == .pad), transition: transition)
         
         self.isSearchActive = false
+        if case .chatList(groupId: .root) = self.location {
+            self.updateTabBarSearchState(TabBarSearchState(isActive: false), transition: transition)
+        }
         if let navigationController = self.navigationController as? NavigationController {
             for controller in navigationController.globalOverlayControllers {
                 if let controller = controller as? VoiceChatOverlayController {
