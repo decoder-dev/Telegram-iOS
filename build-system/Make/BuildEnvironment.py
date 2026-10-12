@@ -107,8 +107,11 @@ def call_executable(arguments, use_clean_environment=True, check_result=True):
 
 
 def check_run_system(command):
-    if os.system(command) != 0:
-        print('Command failed: {}'.format(command))
+    result = os.system(command)
+    if result != 0:
+        # Commands may contain credentials (for example, an App Center API
+        # token). Never echo the command into CI logs on failure.
+        print('Command failed with exit status {}'.format(result))
         sys.exit(1)
 
 
