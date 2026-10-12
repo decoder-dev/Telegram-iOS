@@ -493,7 +493,7 @@ final class CameraNeo: NSObject, CameraProtocol {
                 var factors: [CGFloat] = [1.0]
                 if let device = self?.activeDevice {
                     if #available(iOS 16.0, *) {
-                        factors += device.activeFormat.secondaryNativeResolutionZoomFactors.map { CGFloat(truncating: $0) }
+                        factors += device.activeFormat.secondaryNativeResolutionZoomFactors.map { CGFloat($0) }
                     }
                     factors = Array(Set(factors.filter { $0.isFinite && $0 >= max(1.0, device.minAvailableVideoZoomFactor) && $0 <= min(8.0, device.maxAvailableVideoZoomFactor) })).sorted()
                 }
