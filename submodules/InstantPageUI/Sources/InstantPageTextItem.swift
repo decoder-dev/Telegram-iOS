@@ -844,7 +844,7 @@ private func richTextIsOnlyCustomEmoji(_ text: RichText) -> Bool {
              let .subscript(inner), let .superscript(inner), let .marked(inner):
             return scan(inner)
         case let .url(inner, _, _), let .email(inner, _), let .phone(inner, _), let .anchor(inner, _),
-             let .textMentionName(inner, _):
+             let .textMentionName(inner, _), let .button(inner, _, _):
             return scan(inner)
         case let .textAutoEmail(inner), let .textAutoPhone(inner), let .textAutoUrl(inner),
              let .textBankCard(inner), let .textTonAddress(inner), let .textBotCommand(inner), let .textCashtag(inner),

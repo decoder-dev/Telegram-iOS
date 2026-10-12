@@ -2396,7 +2396,7 @@ private final class WalletTransactionContentComponent: Component {
                         controller.present(translationController, in: .window(.root))
                     }
                 })
-            case .quote:
+            case .quote, .addFilter:
                 break
             }
         }

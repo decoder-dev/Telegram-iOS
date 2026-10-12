@@ -917,7 +917,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                         controller.present(translationController, in: .window(.root))
                     }
                 })
-            case .quote:
+            case .quote, .addFilter:
                 break
             }
         }

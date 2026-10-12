@@ -4036,7 +4036,7 @@ private func instantPageV2FirstCharacterIsBold(_ text: RichText, inheritingBold 
         return instantPageV2FirstCharacterIsBold(inner, inheritingBold: bold)
     case let .`subscript`(inner):
         return instantPageV2FirstCharacterIsBold(inner, inheritingBold: bold)
-    case let .url(inner, _, _), let .textDate(inner, _, _):
+    case let .url(inner, _, _), let .textDate(inner, _, _), let .button(inner, _, _):
         return instantPageV2FirstCharacterIsBold(inner, inheritingBold: bold)
     case let .email(inner, _), let .phone(inner, _), let .anchor(inner, _), let .textMentionName(inner, _):
         return instantPageV2FirstCharacterIsBold(inner, inheritingBold: bold)

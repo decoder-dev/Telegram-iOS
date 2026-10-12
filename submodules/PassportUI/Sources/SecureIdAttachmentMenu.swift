@@ -1,6 +1,7 @@
 import Foundation
 import UIKit
 import ObjectiveC
+import UniformTypeIdentifiers
 import Display
 import LegacyComponents
 import SSignalKit
@@ -214,7 +215,7 @@ private func presentSecureIdICloudPicker(parentController: TGViewController, upl
             uploadAction(SSignal.single(url), {})
         }
     }
-    let controller = UIDocumentPickerViewController(documentTypes: ["public.image"], in: .open)
+    let controller = UIDocumentPickerViewController(forOpeningContentTypes: [.image], asCopy: false)
     controller.view.backgroundColor = .white
     controller.delegate = delegate
     controller.secureIdDelegate = delegate
