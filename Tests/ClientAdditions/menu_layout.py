@@ -61,7 +61,7 @@ def swift_tests():
     entry=entry.replace(': ItemListNodeEntry {',': Equatable, Comparable {',1)
     factory=declaration(source,'private func forkExtrasControllerEntries(')
     focus=declaration(source,'public enum ForkExtrasControllerFocus {')
-    localized=set(re.findall(r'ForkExtrasLocalizedString\.([A-Za-z_]+)',factory+focus))-{'string'}
+    localized=set(re.findall(r'ForkExtrasLocalizedString\.([A-Za-z_]+)',factory+focus+entry))-{'string'}
     stubs="""
 import Foundation
 public struct StringCodingKey: CodingKey, ExpressibleByStringLiteral {
@@ -72,6 +72,7 @@ public struct StringCodingKey: CodingKey, ExpressibleByStringLiteral {
 }
 public enum MessageSavingBridge { public static let defaultDeletedMark="deleted" }
 enum ForkPresentationLanguage { static var prefersRussianStrings=false }
+struct PresentationStrings { var Calls_TabTitle="Calls" }
 typealias ItemListSectionId=Int32
 class UIDevice { enum Idiom { case phone,pad }; static let current=UIDevice(); var userInterfaceIdiom=Idiom.phone }
 struct BananaTabBarLayout: Equatable { let hidden: Bool; let contacts: Bool; let calls: Bool; let wide: Bool; let integratedSearch: Bool; let searchOnLeft: Bool }
@@ -95,6 +96,11 @@ for russian in [false,true] {
      let ids=entries.map { $0.stableId }
      precondition(Set(ids).count == ids.count,"Duplicate IDs")
      for (a,b) in zip(entries,entries.dropFirst()) { precondition(a < b,"Incorrect stable order: \(category): \(a.stableId)/\(b.stableId)") }
+     if category != .top {
+      let titled=entries.compactMap { $0.searchTitle(strings: PresentationStrings()) }
+      precondition(!titled.isEmpty && !titled.contains(""),"No searchable titles: \(category)")
+      if category == .tabBar { precondition(titled.contains("Calls")) }
+     }
      if category == .top { precondition(ids == [0,1,2,3,7,4,8,23,5,6]) }
      if category == .media {
       var values: [Int32:Bool]=[:]

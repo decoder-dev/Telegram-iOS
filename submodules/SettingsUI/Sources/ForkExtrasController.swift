@@ -1201,6 +1201,78 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         return lhs.sortPosition < rhs.sortPosition
     }
 
+    /// The row's title for Settings search, or nil for headers, footers and rows search should not offer.
+    func searchTitle(strings: PresentationStrings) -> String? {
+        switch self {
+        case let .musicPolicy(_, title, _), let .appearanceToggle(_, title, _, _):
+            return title
+        case .callsTab:
+            return strings.Calls_TabTitle
+        case .ghostModeMaster: return ForkExtrasLocalizedString.ghostModeMaster
+        case .ghostDontReadMessages: return ForkExtrasLocalizedString.ghostDontReadMessages
+        case .ghostDontReadStories: return ForkExtrasLocalizedString.ghostDontReadStories
+        case .ghostDontSendOnline: return ForkExtrasLocalizedString.ghostDontSendOnline
+        case .ghostDontSendTyping: return ForkExtrasLocalizedString.ghostDontSendTyping
+        case .ghostGoOfflineAutomatically: return ForkExtrasLocalizedString.ghostGoOfflineAutomatically
+        case .ghostReadOnInteract: return ForkExtrasLocalizedString.ghostReadOnInteract
+        case .ghostAlertBeforeOpeningStory: return ForkExtrasLocalizedString.ghostAlertBeforeOpeningStory
+        case .ghostScheduleMessages: return ForkExtrasLocalizedString.ghostScheduleMessages
+        case .streamerMode: return ForkExtrasLocalizedString.streamerMode
+        case .instantPasscode: return ForkExtrasLocalizedString.instantPasscode
+        case .hideMentions: return ForkExtrasLocalizedString.hideMentions
+        case .hidePinned: return ForkExtrasLocalizedString.hidePinned
+        case .compactChatList: return ForkExtrasLocalizedString.compactChatList
+        case .compactMessagePreview: return ForkExtrasLocalizedString.compactMessagePreview
+        case .compactFolderNames: return ForkExtrasLocalizedString.compactFolderNames
+        case .hideReactionsBar: return ForkExtrasLocalizedString.hideReactionsBar
+        case .showDC: return ForkExtrasLocalizedString.showDC
+        case .showProfileId: return ForkExtrasLocalizedString.showProfileId
+        case .accentSaturation: return ForkExtrasLocalizedString.accentSaturation
+        case .confirmBeforeCall: return ForkExtrasLocalizedString.confirmBeforeCall
+        case .sendWithReturnKey: return ForkExtrasLocalizedString.sendWithReturnKey
+        case .forceBuiltInMic: return ForkExtrasLocalizedString.forceBuiltInMic
+        case .keepAliveInBackground: return ForkExtrasLocalizedString.keepAliveInBackground
+        case .translationBackend: return ForkExtrasLocalizedString.translationBackend
+        case .transcriptionBackend: return ForkExtrasLocalizedString.transcriptionBackend
+        case .scrollToNextChat: return ForkExtrasLocalizedString.scrollToNextChat
+        case .saveDeletedMessages: return ForkExtrasLocalizedString.saveDeletedMessages
+        case .saveMessagesHistory: return ForkExtrasLocalizedString.saveMessagesHistory
+        case .saveMedia: return ForkExtrasLocalizedString.saveMedia
+        case .saveForBots: return ForkExtrasLocalizedString.saveForBots
+        case .ayuForward: return ForkExtrasLocalizedString.ayuForward
+        case .bypassDownloadRestrictions: return ForkExtrasLocalizedString.bypassDownloadRestrictions
+        case .showSensitiveContent: return ForkExtrasLocalizedString.showSensitiveContent
+        case .proactiveSaveMedia: return ForkExtrasLocalizedString.proactiveSaveMedia
+        case .deletedMessageMark: return ForkExtrasLocalizedString.deletedMessageMark
+        case .editedMessageMark: return ForkExtrasLocalizedString.editedMessageMark
+        case .exportMessageSavingDatabase: return ForkExtrasLocalizedString.exportMessageSaving
+        case .importMessageSavingDatabase: return ForkExtrasLocalizedString.importMessageSaving
+        case .localPremium: return ForkExtrasLocalizedString.localPremium
+        case .hideAds: return ForkExtrasLocalizedString.hideAds
+        case .hideBlockedMessages: return ForkExtrasLocalizedString.hideBlockedMessages
+        case .allowSecretScreenshots: return ForkExtrasLocalizedString.allowSecretScreenshots
+        case .expireTtlButton: return ForkExtrasLocalizedString.expireTtlButton
+        case .keepBannedChats: return ForkExtrasLocalizedString.keepBannedChats
+        case .regexFilters: return ForkExtrasLocalizedString.regexFilters
+        case .regexFiltersCaseInsensitive: return ForkExtrasLocalizedString.regexFiltersCaseInsensitive
+        case .hideAllChats: return ForkExtrasLocalizedString.hideAllChats
+        case .rememberLastFolder: return ForkExtrasLocalizedString.rememberLastFolder
+        case .hideTabBar: return ForkExtrasLocalizedString.hideTabBar
+        case .showMessageSeconds: return ForkExtrasLocalizedString.showMessageSeconds
+        case .wideChannelPosts: return ForkExtrasLocalizedString.wideChannelPosts
+        case .stickerSize: return ForkExtrasLocalizedString.stickerSize
+        case .doubleTapToEdit: return ForkExtrasLocalizedString.doubleTapToEdit
+        case .quickTranslate: return ForkExtrasLocalizedString.quickTranslate
+        case .saveToCloud: return ForkExtrasLocalizedString.saveToCloud
+        case .selectFromAuthor: return ForkExtrasLocalizedString.selectFromAuthor
+        case .downloadSpeedBoost: return ForkExtrasLocalizedString.downloadSpeedBoost
+        case .outgoingPhotoQuality: return ForkExtrasLocalizedString.outgoingPhotoQuality
+        default:
+            return nil
+        }
+    }
+
+
     func item(presentationData: ItemListPresentationData, arguments: Any) -> ListViewItem {
         let arguments = arguments as! ForkExtrasControllerArguments
         switch self {
@@ -1902,6 +1974,23 @@ public enum ForkExtrasControllerFocus {
             return ForkExtrasLocalizedString.title
         }
     }
+}
+
+/// Every Extras row that has a title, with the screen that shows it, so Settings search can offer each one.
+func forkExtrasSearchableRows(strings: PresentationStrings) -> [(id: Int32, title: String, focus: ForkExtrasControllerFocus)] {
+    var result: [(id: Int32, title: String, focus: ForkExtrasControllerFocus)] = []
+    var seen = Set<Int32>()
+    let categories: [ForkExtrasControllerFocus] = [.ninja, .ghost, .privacy, .chatList, .tabBar, .messages, .media, .profile, .network]
+    for focus in categories {
+        let entries = forkExtrasControllerEntries(settings: .defaultSettings, autoFetchPublicMtProxy: false, showCallsTab: true, mediaInputSettings: .defaultSettings, focus: focus)
+        for entry in entries {
+            guard let title = entry.searchTitle(strings: strings), !title.isEmpty, seen.insert(entry.stableId).inserted else {
+                continue
+            }
+            result.append((entry.stableId, title, focus))
+        }
+    }
+    return result
 }
 
 public func forkExtrasController(context: AccountContext, focus: ForkExtrasControllerFocus = .top, focusItemId: Int32? = nil) -> ViewController {

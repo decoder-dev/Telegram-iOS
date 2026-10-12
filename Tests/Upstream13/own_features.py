@@ -336,5 +336,13 @@ class ForkIntegration(unittest.TestCase):
         self.assertIn('ForkExtrasEntry.regroupedOwner(of: id)', extras)
 
 
+    def test_every_titled_extras_row_is_searchable(self):
+        extras = read('submodules/SettingsUI/Sources/ForkExtrasController.swift')
+        self.assertIn('func searchTitle(strings: PresentationStrings) -> String?', extras)
+        self.assertIn('func forkExtrasSearchableRows(', extras)
+        search = read('submodules/SettingsUI/Sources/Search/SettingsSearchableItems.swift')
+        self.assertIn('forkExtrasSearchableRows(strings: strings)', search)
+
+
 if __name__ == '__main__':
     unittest.main()

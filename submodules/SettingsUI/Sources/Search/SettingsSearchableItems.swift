@@ -4431,6 +4431,13 @@ func settingsSearchableItems(
             ("bananagram/profile", ForkPresentationLanguage.prefersRussianStrings ? "Профиль и эффекты" : "Profile and effects", .profile),
             ("bananagram/network", ForkPresentationLanguage.prefersRussianStrings ? "Сеть и загрузки" : "Network and downloads", .network)
         ]
+        // Rows that have their own search entry elsewhere (Data and Storage, Appearance) are not offered twice.
+        let rowsWithOwnSearchItem: Set<Int32> = [2001, 2002, 2003, 147, 1521]
+        for row in forkExtrasSearchableRows(strings: strings) where !rowsWithOwnSearchItem.contains(row.id) {
+            allItems.append(SettingsSearchableItem(id: "bananagram/\(bananaSettingsPage(row.focus))/\(row.id)", title: row.title, alternate: [], icon: .appearance, breadcrumbs: [forkExtrasSettingsTitle(strings), row.focus.title], present: { context, _, present in
+                present(.push, forkExtrasController(context: context, focus: row.focus, focusItemId: row.id))
+            }))
+        }
         for (id, title, focus) in extraCategories {
             allItems.append(SettingsSearchableItem(id: id, title: title, alternate: [], icon: .appearance, breadcrumbs: focus == .top ? [] : [forkExtrasSettingsTitle(strings)], present: { context, _, present in
                 present(.push, forkExtrasController(context: context, focus: focus))
