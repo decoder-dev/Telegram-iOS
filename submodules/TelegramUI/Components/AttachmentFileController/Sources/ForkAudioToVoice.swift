@@ -68,11 +68,7 @@ func forkAudioToVoice(context: AccountContext, reference: AnyMediaReference) -> 
                     subscriber.putError(.failed)
                     return
                 }
-                let id = Int64.random(in: Int64.min ... Int64.max)
-                let resource = LocalFileMediaResource(fileId: id)
-                mediaBox.storeResourceData(resource.id, data: result.data)
-                let converted = TelegramMediaFile(fileId: EngineMedia.Id(namespace: Namespaces.Media.LocalFile, id: id), partialReference: nil, resource: resource, previewRepresentations: [], videoThumbnails: [], immediateThumbnailData: nil, mimeType: "audio/ogg", size: Int64(result.data.count), attributes: [.Audio(isVoice: true, duration: result.duration, title: nil, performer: nil, waveform: result.waveform)], alternativeRepresentations: [])
-                subscriber.putNext(converted)
+                subscriber.putNext(forkMakeVoiceFile(mediaBox: mediaBox, result: result))
                 subscriber.putCompletion()
             }
             return ActionDisposable {
@@ -82,6 +78,99 @@ func forkAudioToVoice(context: AccountContext, reference: AnyMediaReference) -> 
     }
     |> `catch` { _ -> Signal<TelegramMediaFile?, NoError> in
         return .single(nil)
+    }
+}
+
+/// A voice message re-sent as an ordinary audio file. The Opus data is not re-encoded: it is copied into a
+/// new local file whose audio attribute is not a voice note, so the server and the other clients list it as
+/// music (with `title`) instead of a voice message.
+public func forkVoiceToAudio(context: AccountContext, fileReference: FileMediaReference, title: String) -> Signal<TelegramMediaFile?, NoError> {
+    let file = fileReference.media
+    var duration = 0
+    for attribute in file.attributes {
+        if case let .Audio(_, value, _, _, _) = attribute {
+            duration = value
+        }
+    }
+    let mediaBox = context.account.postbox.mediaBox
+    let resourceData = Signal<MediaResourceData, NoError> { subscriber in
+        let fetch = fetchedMediaResource(mediaBox: mediaBox, userLocation: .other, userContentType: MediaResourceUserContentType(file: file), reference: fileReference.resourceReference(file.resource)).start()
+        let data = (mediaBox.resourceData(file.resource, option: .complete(waitUntilFetchStatus: true))
+        |> filter { $0.complete }
+        |> take(1)).start(next: { data in
+            subscriber.putNext(data)
+            subscriber.putCompletion()
+        })
+        return ActionDisposable {
+            fetch.dispose()
+            data.dispose()
+        }
+    }
+    return resourceData
+    |> mapToSignal { data -> Signal<TelegramMediaFile?, NoError> in
+        return Signal { subscriber in
+            DispatchQueue.global(qos: .userInitiated).async {
+                guard let bytes = try? Data(contentsOf: URL(fileURLWithPath: data.path)), !bytes.isEmpty else {
+                    subscriber.putNext(nil)
+                    subscriber.putCompletion()
+                    return
+                }
+                let id = Int64.random(in: Int64.min ... Int64.max)
+                let resource = LocalFileMediaResource(fileId: id)
+                mediaBox.storeResourceData(resource.id, data: bytes)
+                let converted = TelegramMediaFile(fileId: EngineMedia.Id(namespace: Namespaces.Media.LocalFile, id: id), partialReference: nil, resource: resource, previewRepresentations: [], videoThumbnails: [], immediateThumbnailData: nil, mimeType: "audio/ogg", size: Int64(bytes.count), attributes: [.FileName(fileName: title + ".ogg"), .Audio(isVoice: false, duration: duration, title: title, performer: nil, waveform: nil)], alternativeRepresentations: [])
+                subscriber.putNext(converted)
+                subscriber.putCompletion()
+            }
+            return EmptyDisposable
+        }
+    }
+}
+
+/// Stores the encoded Ogg/Opus data as a local resource and wraps it in a voice-note file.
+private func forkMakeVoiceFile(mediaBox: MediaBox, result: (data: Data, duration: Int, waveform: Data)) -> TelegramMediaFile {
+    let id = Int64.random(in: Int64.min ... Int64.max)
+    let resource = LocalFileMediaResource(fileId: id)
+    mediaBox.storeResourceData(resource.id, data: result.data)
+    return TelegramMediaFile(fileId: EngineMedia.Id(namespace: Namespaces.Media.LocalFile, id: id), partialReference: nil, resource: resource, previewRepresentations: [], videoThumbnails: [], immediateThumbnailData: nil, mimeType: "audio/ogg", size: Int64(result.data.count), attributes: [.Audio(isVoice: true, duration: result.duration, title: nil, performer: nil, waveform: result.waveform)], alternativeRepresentations: [])
+}
+
+/// The same conversion for an audio file picked in Files: `bookmarkData` is the
+/// `ICloudFileDescription.urlData` of the pick (a base64 security-scoped bookmark), so the file is read
+/// where it lives, under the scope the picker granted, without copying it first.
+public func forkAudioToVoice(context: AccountContext, bookmarkData: String) -> Signal<TelegramMediaFile?, NoError> {
+    let mediaBox = context.account.postbox.mediaBox
+    return Signal { subscriber in
+        let cancelled = Atomic(value: false)
+        DispatchQueue.global(qos: .userInitiated).async {
+            var result: (data: Data, duration: Int, waveform: Data)?
+            if let bookmark = Data(base64Encoded: bookmarkData) {
+                var isStale = false
+                if let url = try? URL(resolvingBookmarkData: bookmark, bookmarkDataIsStale: &isStale) {
+                    let scopedAccess = url.startAccessingSecurityScopedResource()
+                    if scopedAccess || FileManager.default.isReadableFile(atPath: url.path) {
+                        result = autoreleasepool {
+                            forkEncodeVoice(path: url.path, cancelled: cancelled)
+                        }
+                    }
+                    if scopedAccess {
+                        url.stopAccessingSecurityScopedResource()
+                    }
+                }
+            }
+            if cancelled.with({ $0 }) {
+                return
+            }
+            if let result {
+                subscriber.putNext(forkMakeVoiceFile(mediaBox: mediaBox, result: result))
+            } else {
+                subscriber.putNext(nil)
+            }
+            subscriber.putCompletion()
+        }
+        return ActionDisposable {
+            let _ = cancelled.swap(true)
+        }
     }
 }
 

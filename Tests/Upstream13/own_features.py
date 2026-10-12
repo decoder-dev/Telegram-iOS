@@ -252,5 +252,51 @@ class ForkIntegration(unittest.TestCase):
         self.assertIn('if case WebProxyHttpCarrierError.bootstrapTokenMissing = error {', manager)
         self.assertIn('otherProtocolRecheckInterval', manager)
 
+    def test_audio_and_voice_conversions_are_offered(self):
+        menu = read('submodules/TelegramUI/Sources/ChatControllerOpenAttachmentMenu.swift')
+        files = menu.split('func presentICloudFileGallery(', 1)[1].split('\n    func ', 1)[0]
+        # Audio picked in Files: choose Audio or Voice Message, only where voice messages are allowed.
+        self.assertIn('strongSelf.forkCanSendVoiceMessages()', files)
+        self.assertIn('forkAudioToVoice(context: strongSelf.context, bookmarkData: item.urlData)', files)
+        self.assertIn('sendResults(voiceFiles)', files)
+        self.assertIn('func forkCanSendVoiceMessages() -> Bool', menu)
+        conversion = read('submodules/TelegramUI/Components/AttachmentFileController/Sources/ForkAudioToVoice.swift')
+        self.assertIn('public func forkAudioToVoice(context: AccountContext, bookmarkData: String)', conversion)
+        self.assertIn('startAccessingSecurityScopedResource()', conversion)
+        self.assertIn('public func forkVoiceToAudio(', conversion)
+        self.assertIn('.Audio(isVoice: false', conversion)
+        menus = read('submodules/TelegramUI/Sources/ChatInterfaceStateContextMenus.swift')
+        self.assertIn('forkVoiceToAudio(context: context', menus)
+        self.assertIn('canSendMessagesToChat(chatPresentationInterfaceState) {\n                        let prefersRussian', menus)
+
+    def test_rich_messages_reach_saving_filters_and_forwarding(self):
+        page = read('submodules/TelegramCore/Sources/SyncCore/SyncCore_InstantPage.swift')
+        self.assertIn('var fullPlainText: String', page)
+        self.assertIn('case let .heading(t, _):', page)
+        bridge = read('submodules/TelegramCore/Sources/MessageSaving/MessageSavingBridge.swift')
+        self.assertIn('richText.instantPage.fullPlainText', bridge)
+        self.assertIn('!message.effectiveMedia.isEmpty', bridge)
+        attachments = read('submodules/TelegramCore/Sources/MessageSaving/MessageSavingAttachments.swift')
+        self.assertEqual(attachments.count('for media in message.effectiveMedia {'), 2)
+        state = read('submodules/TelegramCore/Sources/State/AccountStateManagementUtils.swift')
+        self.assertIn('previousRichText.instantPage.fullPlainText !=', state)
+        prefs = read('submodules/TelegramUIPreferences/Sources/ForkExtrasSettings.swift')
+        self.assertIn('body = richText.instantPage.fullPlainText', prefs)
+        rich = read('submodules/TelegramUI/Components/Chat/ChatMessageRichDataBubbleContentNode/Sources/ChatMessageRichDataBubbleContentNode.swift')
+        self.assertIn('deleted: item.message.isLocallyDeleted && !item.presentationData.isPreview', rich)
+        self.assertEqual(rich.count('ForkBypassDownloadRestrictionsSettings.enabled || (!item.associatedData.isCopyProtectionEnabled'), 2)
+        enqueue = read('submodules/TelegramCore/Sources/PendingMessages/EnqueueMessage.swift')
+        self.assertIn('text.isEmpty, !sourceMessage.attributes.contains(where: { $0 is RichTextMessageAttribute })', enqueue)
+
+    def test_ghost_read_on_interact_covers_composer_sends_and_reaction_reads_obey_ghost(self):
+        chat = read('submodules/TelegramUI/Sources/ChatController.swift')
+        self.assertIn('func beginGhostReadOnInteractForSend()', chat)
+        self.assertEqual(chat.count('self.beginGhostReadOnInteractForSend()'), 1)
+        load = read('submodules/TelegramUI/Sources/Chat/ChatControllerLoadDisplayNode.swift')
+        self.assertIn('if scheduleTime == nil {\n                strongSelf.beginGhostReadOnInteractForSend()', load)
+        read_actions = read('submodules/TelegramCore/Sources/TelegramEngine/Messages/InstallInteractiveReadMessagesAction.swift')
+        body = read_actions.split('func addOrUpdate(messages: [StoreMessage], transaction: Transaction) {', 1)[1][:400]
+        self.assertIn('if ForkGhostModeSettings.shouldSuppressMessageReads {\n            return', body)
+
 if __name__ == '__main__':
     unittest.main()

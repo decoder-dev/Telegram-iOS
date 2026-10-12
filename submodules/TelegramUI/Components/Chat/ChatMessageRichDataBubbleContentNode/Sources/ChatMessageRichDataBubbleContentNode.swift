@@ -353,7 +353,7 @@ public class ChatMessageRichDataBubbleContentNode: ChatMessageBubbleContentNode 
         // Copy protection is a peer setting that can flip without any of the keys below changing,
         // so refresh it up front — ahead of every reuse branch, including the early returns. The
         // rebuild path picks the same value up through the render context's initializer.
-        self.pageView?.renderContext?.canShareDocuments = !item.associatedData.isCopyProtectionEnabled && !item.message.isCopyProtected()
+        self.pageView?.renderContext?.canShareDocuments = ForkBypassDownloadRestrictionsSettings.enabled || (!item.associatedData.isCopyProtectionEnabled && !item.message.isCopyProtected())
         self.pageView?.renderContext?.updateCaptureProtected(ChatMessageRichDataBubbleContentNode.isCaptureProtected(item: item))
 
         let key = (stableId: item.message.stableId, messageId: item.message.id, stableVersion: item.message.stableVersion, pendingEditKey: (item.attributes.updatingMedia?.richText).map({ ObjectIdentifier($0) }), richPageKey: richPageKey, showMoreExpanded: showMoreExpanded, structure: structure)
@@ -469,7 +469,7 @@ public class ChatMessageRichDataBubbleContentNode: ChatMessageBubbleContentNode 
             },
             captureProtected: ChatMessageRichDataBubbleContentNode.isCaptureProtected(item: item),
             message: messageReference,
-            canShareDocuments: !item.associatedData.isCopyProtectionEnabled && !item.message.isCopyProtected()
+            canShareDocuments: ForkBypassDownloadRestrictionsSettings.enabled || (!item.associatedData.isCopyProtectionEnabled && !item.message.isCopyProtected())
         )
         let view = InstantPageV2View(renderContext: renderContext)
         self.pageView = view
@@ -1105,6 +1105,7 @@ public class ChatMessageRichDataBubbleContentNode: ChatMessageBubbleContentNode 
                         context: item.context,
                         presentationData: item.presentationData,
                         edited: edited && !item.presentationData.isPreview,
+                        deleted: item.message.isLocallyDeleted && !item.presentationData.isPreview,
                         impressionCount: !item.presentationData.isPreview ? viewCount : nil,
                         dateText: dateText,
                         type: statusType,

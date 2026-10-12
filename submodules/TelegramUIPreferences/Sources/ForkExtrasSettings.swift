@@ -801,7 +801,12 @@ public enum ForkRegexMessageFilters {
         // long message push the `<type>N</type>` tag — the whole point of the synthesised input —
         // past the search window and silently disable every `<type>` filter on exactly the
         // messages a user is most likely to filter.
-        var input = boundedPrefix(message.text, utf16Limit: maxMessageTextMatchUTF16Length)
+        // A rich message sends `text: ""` and keeps its text in the instant page.
+        var body = message.text
+        if body.isEmpty, let richText = message.attributes.first(where: { $0 is RichTextMessageAttribute }) as? RichTextMessageAttribute {
+            body = richText.instantPage.fullPlainText
+        }
+        var input = boundedPrefix(body, utf16Limit: maxMessageTextMatchUTF16Length)
         input.append(boundedPrefix(buttons, utf16Limit: maxButtonPayloadMatchUTF16Length))
         input.append("\n<type>")
         input.append(String(ayuMessageTypeConstant(for: message)))

@@ -191,6 +191,11 @@ private final class StoreOrUpdateMessageActionImpl: StoreOrUpdateMessageAction {
     }
     
     func addOrUpdate(messages: [StoreMessage], transaction: Transaction) {
+        // This action stays installed after Don't Read turns on (it is only disposed when reading becomes
+        // impossible), so it has to re-check the ghost setting itself.
+        if ForkGhostModeSettings.shouldSuppressMessageReads {
+            return
+        }
         var readReactionIds: [MessageId: [ReactionsMessageAttribute.RecentPeer]] = [:]
         var readPollVoteIds = Set<MessageId>()
         

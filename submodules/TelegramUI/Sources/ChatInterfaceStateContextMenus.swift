@@ -39,6 +39,7 @@ import ChatMessageBubbleItemNode
 import AdsInfoScreen
 import AdsReportScreen
 import WalletContext
+import AttachmentFileController
  
 private struct MessageContextMenuData {
     let starStatus: Bool?
@@ -1574,6 +1575,23 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
                         }, action: { _, f in
                             controllerInteraction.saveMediaToFiles(message.id)
                             f(.default)
+                        })))
+                    }
+                    if file.isVoice, let peerId = chatPresentationInterfaceState.chatLocation.peerId, canSendMessagesToChat(chatPresentationInterfaceState) {
+                        let prefersRussian = ForkPresentationLanguage.prefersRussianStrings
+                        let threadId = chatPresentationInterfaceState.chatLocation.threadId
+                        actions.append(.action(ContextMenuActionItem(text: prefersRussian ? "Отправить как аудио" : "Send as Audio", icon: { theme in
+                            return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Forward"), color: theme.actionSheet.primaryTextColor)
+                        }, action: { _, f in
+                            f(.default)
+                            let _ = (forkVoiceToAudio(context: context, fileReference: .message(message: MessageReference(message), media: file), title: prefersRussian ? "Голосовое сообщение" : "Voice Message")
+                            |> deliverOnMainQueue).startStandalone(next: { converted in
+                                guard let converted else {
+                                    return
+                                }
+                                let audioMessage: EnqueueMessage = .message(text: "", attributes: [], inlineStickers: [:], mediaReference: .standalone(media: converted), threadId: threadId, replyToMessageId: nil, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: [])
+                                let _ = enqueueMessages(account: context.account, peerId: peerId, messages: [audioMessage]).startStandalone()
+                            })
                         })))
                     }
                     break

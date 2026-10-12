@@ -218,6 +218,11 @@ public enum MessageSavingBridge {
         if !text.isEmpty {
             return text
         }
+        // A rich message (Telegram 13) carries its text in an instant page and sends `text: ""`.
+        if let richText = message.richText {
+            let plain = richText.instantPage.fullPlainText.trimmingCharacters(in: .whitespacesAndNewlines)
+            return plain.isEmpty ? "[Rich text]" : plain
+        }
         for media in message.media {
             if media is TelegramMediaImage {
                 return "[Photo]"
@@ -315,7 +320,7 @@ public enum MessageSavingBridge {
         if message.media.contains(where: { $0 is TelegramMediaAction }) && message.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return false
         }
-        return displayText(for: message) != nil || !message.media.isEmpty
+        return displayText(for: message) != nil || !message.effectiveMedia.isEmpty
     }
 
     /// AyuGram Android: when Save Deleted is on, skip secret/view-once TTL countdown and media wipe.

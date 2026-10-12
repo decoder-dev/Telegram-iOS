@@ -4719,6 +4719,13 @@ func replayFinalState(
                                 kind: .edited
                             )
                         }
+                    } else if let previousRichText = previousMessage.richText, previousRichText.instantPage.fullPlainText != (message.attributes.first(where: { $0 is RichTextMessageAttribute }) as? RichTextMessageAttribute)?.instantPage.fullPlainText {
+                        // A rich message keeps its text in the page; both plain texts are empty.
+                        MessageSavingBridge.snapshotMessage(
+                            message: previousMessage,
+                            accountPeerId: accountPeerId,
+                            kind: .edited
+                        )
                     }
                     var updatedFlags = message.flags
                     var updatedLocalTags = message.localTags

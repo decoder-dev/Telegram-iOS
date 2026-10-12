@@ -35,6 +35,7 @@ import ComposeTodoScreen
 import ComposePollScreen
 import Photos
 import AttachmentFileController
+import OverlayStatusController
 import RichTextAttachmentScreen
 import RichTextEditorMessageConversion
 import ChatRichTextEditorComposer
@@ -1461,6 +1462,7 @@ extension ChatControllerImpl {
                                 }
                             }
 
+                            let sendResults: ([Int: TelegramMediaFile]) -> Void = { voiceFiles in
                             var groupingKey: Int64?
                             var fileTypes: (music: Bool, other: Bool) = (false, false)
                             if results.count > 1 {
@@ -1480,7 +1482,12 @@ extension ChatControllerImpl {
                             }
 
                             var messages: [EnqueueMessage] = []
-                            for item in results {
+                            for (itemIndex, item) in results.enumerated() {
+                                if let voiceFile = voiceFiles[itemIndex] {
+                                    // Voice messages are never grouped.
+                                    messages.append(.message(text: "", attributes: [], inlineStickers: [:], mediaReference: .standalone(media: voiceFile), threadId: strongSelf.chatLocation.threadId, replyToMessageId: replyMessageSubject?.subjectModel, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: []))
+                                    continue
+                                }
                                 if let item = item {
                                     let fileId = Int64.random(in: Int64.min ... Int64.max)
                                     let mimeType = guessMimeTypeByFileExtension((item.fileName as NSString).pathExtension)
@@ -1526,11 +1533,90 @@ extension ChatControllerImpl {
                             } else if !urls.isEmpty {
                                 strongSelf.present(textAlertController(context: strongSelf.context, updatedPresentationData: strongSelf.updatedPresentationData, title: nil, text: strongSelf.presentationData.strings.Login_UnknownError, actions: [TextAlertAction(type: .defaultAction, title: strongSelf.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
                             }
+                            }
+
+                            // Audio picked in Files can go as music (the document's own audio attributes) or be
+                            // re-encoded on the phone and sent as a voice message.
+                            let audioIndices: [Int] = results.enumerated().compactMap { entry -> Int? in
+                                return entry.element?.audioMetadata != nil ? entry.offset : nil
+                            }
+                            if !editingMessage && !audioIndices.isEmpty && strongSelf.forkCanSendVoiceMessages() {
+                                let prefersRussian = ForkPresentationLanguage.prefersRussianStrings
+                                let sheet = ActionSheetController(presentationData: strongSelf.presentationData)
+                                sheet.setItemGroups([ActionSheetItemGroup(items: [
+                                    ActionSheetTextItem(title: prefersRussian ? "Отправить как" : "Send as"),
+                                    ActionSheetButtonItem(title: prefersRussian ? "Аудио" : "Audio", action: { [weak sheet] in
+                                        sheet?.dismissAnimated()
+                                        sendResults([:])
+                                    }),
+                                    ActionSheetButtonItem(title: prefersRussian ? "Голосовое сообщение" : "Voice Message", action: { [weak self, weak sheet] in
+                                        sheet?.dismissAnimated()
+                                        guard let strongSelf = self else {
+                                            return
+                                        }
+                                        let progress = OverlayStatusController(theme: strongSelf.presentationData.theme, type: .loading(cancelled: { [weak self] in
+                                            self?.enqueueMediaMessageDisposable.set(nil)
+                                        }))
+                                        strongSelf.present(progress, in: .window(.root))
+                                        var conversions: [Signal<(Int, TelegramMediaFile?), NoError>] = []
+                                        for itemIndex in audioIndices {
+                                            if let item = results[itemIndex] {
+                                                conversions.append(forkAudioToVoice(context: strongSelf.context, bookmarkData: item.urlData)
+                                                |> map { file -> (Int, TelegramMediaFile?) in
+                                                    return (itemIndex, file)
+                                                })
+                                            }
+                                        }
+                                        strongSelf.enqueueMediaMessageDisposable.set((combineLatest(conversions)
+                                        |> deliverOnMainQueue).startStrict(next: { [weak self, weak progress] converted in
+                                            progress?.dismiss()
+                                            var voiceFiles: [Int: TelegramMediaFile] = [:]
+                                            var failed = false
+                                            for (itemIndex, file) in converted {
+                                                if let file {
+                                                    voiceFiles[itemIndex] = file
+                                                } else {
+                                                    failed = true
+                                                }
+                                            }
+                                            if failed {
+                                                if let strongSelf = self {
+                                                    strongSelf.present(textAlertController(context: strongSelf.context, updatedPresentationData: strongSelf.updatedPresentationData, title: nil, text: prefersRussian ? "Не удалось преобразовать аудио в голосовое сообщение." : "Couldn't convert this audio to a voice message.", actions: [TextAlertAction(type: .defaultAction, title: strongSelf.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
+                                                }
+                                                return
+                                            }
+                                            sendResults(voiceFiles)
+                                        }))
+                                    })
+                                ]), ActionSheetItemGroup(items: [
+                                    ActionSheetButtonItem(title: strongSelf.presentationData.strings.Common_Cancel, color: .accent, font: .bold, action: { [weak sheet] in
+                                        sheet?.dismissAnimated()
+                                    })
+                                ])])
+                                strongSelf.present(sheet, in: .window(.root))
+                            } else {
+                                sendResults([:])
+                            }
                         }
                     }))
                 }
             }), in: .window(.root))
         })
+    }
+
+    /// Whether voice messages can be sent in this chat: the chat's voice ban and the recipient's privacy
+    /// setting both hide the conversion options (the same rule as Attach > Music > Send as Voice Message).
+    func forkCanSendVoiceMessages() -> Bool {
+        guard self.presentationInterfaceState.voiceMessagesAvailable else {
+            return false
+        }
+        let canBypassVoiceRestrictions = canBypassRestrictions(chatPresentationInterfaceState: self.presentationInterfaceState)
+        if let channel = self.presentationInterfaceState.renderedPeer?.peer as? TelegramChannel {
+            return channel.hasBannedPermission(.banSendVoice, ignoreDefault: canBypassVoiceRestrictions) == nil
+        } else if let group = self.presentationInterfaceState.renderedPeer?.peer as? TelegramGroup {
+            return !group.hasBannedPermission(.banSendVoice)
+        }
+        return true
     }
 
     func presentFileMediaPickerOptions(editingMessage: Bool) {

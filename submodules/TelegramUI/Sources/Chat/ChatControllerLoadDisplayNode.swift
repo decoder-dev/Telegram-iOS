@@ -1001,6 +1001,9 @@ extension ChatControllerImpl {
                 }
             }
             strongSelf.commitPurposefulAction()
+            if scheduleTime == nil {
+                strongSelf.beginGhostReadOnInteractForSend()
+            }
             
             if let peerId = strongSelf.chatLocation.peerId {
                 var hasDisabledContent = false

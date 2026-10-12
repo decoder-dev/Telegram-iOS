@@ -1760,6 +1760,58 @@ public extension InstantPage {
         return InstantPage.blocksPlainText(self.blocks)
     }
 
+    /// Every text-bearing block of the page, for places that must read a rich message the way a plain one is
+    /// read (message saving, edit history, regex filters). Unlike `plainText` it includes headings, lists,
+    /// tables and collapsible details.
+    var fullPlainText: String {
+        return InstantPage.blocksFullPlainText(self.blocks)
+    }
+
+    private static func blocksFullPlainText(_ blocks: [InstantPageBlock]) -> String {
+        var pieces: [String] = []
+        func append(_ text: String) {
+            if !text.isEmpty {
+                pieces.append(text)
+            }
+        }
+        for block in blocks {
+            switch block {
+            case let .title(t), let .subtitle(t), let .header(t), let .subheader(t), let .paragraph(t), let .footer(t), let .kicker(t), let .thinking(t):
+                append(t.plainText)
+            case let .heading(t, _):
+                append(t.plainText)
+            case let .preformatted(t, _):
+                append(t.plainText)
+            case let .pullQuote(t, _):
+                append(t.plainText)
+            case let .blockQuote(blocks, _, _):
+                append(blocksFullPlainText(blocks))
+            case let .list(items, _):
+                for item in items {
+                    switch item {
+                    case let .text(t, _, _):
+                        append(t.plainText)
+                    case let .blocks(blocks, _, _):
+                        append(blocksFullPlainText(blocks))
+                    case .unknown:
+                        break
+                    }
+                }
+            case let .details(title, blocks, _):
+                append(title.plainText)
+                append(blocksFullPlainText(blocks))
+            case let .table(title, rows, _, _, _):
+                append(title.plainText)
+                for row in rows {
+                    append(row.cells.compactMap({ $0.text?.plainText }).filter({ !$0.isEmpty }).joined(separator: "\t"))
+                }
+            default:
+                break
+            }
+        }
+        return pieces.joined(separator: "\n")
+    }
+
     private static func blocksPlainText(_ blocks: [InstantPageBlock]) -> String {
         var pieces: [String] = []
         for block in blocks {

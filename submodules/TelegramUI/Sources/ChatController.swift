@@ -9264,6 +9264,27 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
     }
 
     /// AyuGram Ghost Mode: Read on Interact — open the override window and flush pending reads.
+    /// AyuGram Ghost Mode: Read on Interact for an outgoing send — briefly allow read receipts + an online
+    /// blink. Skipped when Ghost Schedule Messages will actually delay this send (Android does not mark
+    /// read on a scheduled outgoing). Every send path calls this: `sendMessages`, and the composer's
+    /// own closure (which enqueues directly and never passes through `sendMessages`).
+    func beginGhostReadOnInteractForSend() {
+        var isScheduledMessagesSubject = false
+        if case .scheduledMessages = self.presentationInterfaceState.subject {
+            isScheduledMessagesSubject = true
+        }
+        let applyGhostSchedule = !isScheduledMessagesSubject
+            && ForkGhostScheduleSettings.enabled
+            && ForkGhostModeSettings.suppressMessageReads
+            && ForkGhostModeSettings.suppressStoryViews
+            && ForkGhostModeSettings.suppressOutgoingActivity
+            && ForkGhostModeSettings.suppressOnline
+            && ForkGhostModeSettings.goOfflineAutomatically
+        if !applyGhostSchedule {
+            self.beginGhostReadOnInteractIfEnabled()
+        }
+    }
+
     func beginGhostReadOnInteractIfEnabled() {
         guard ForkGhostModeSettings.readOnInteract else {
             return
@@ -9313,23 +9334,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
             return
         }
 
-        // AyuGram Ghost Mode: Read on Interact — briefly allow read receipts + online blink on send.
-        // Skip when Ghost Schedule Messages will actually delay this send (Android does not mark
-        // read on a scheduled outgoing).
-        var isScheduledMessagesSubject = false
-        if case .scheduledMessages = self.presentationInterfaceState.subject {
-            isScheduledMessagesSubject = true
-        }
-        let applyGhostSchedule = !isScheduledMessagesSubject
-            && ForkGhostScheduleSettings.enabled
-            && ForkGhostModeSettings.suppressMessageReads
-            && ForkGhostModeSettings.suppressStoryViews
-            && ForkGhostModeSettings.suppressOutgoingActivity
-            && ForkGhostModeSettings.suppressOnline
-            && ForkGhostModeSettings.goOfflineAutomatically
-        if !applyGhostSchedule {
-            self.beginGhostReadOnInteractIfEnabled()
-        }
+        self.beginGhostReadOnInteractForSend()
         
         let _ = (self.shouldDivertMessagesToScheduled(messages: messages)
         |> deliverOnMainQueue).startStandalone(next: { [weak self] shouldDivert in

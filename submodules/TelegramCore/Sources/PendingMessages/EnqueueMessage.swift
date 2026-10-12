@@ -1223,7 +1223,9 @@ func enqueueMessages(transaction: Transaction, account: Account, peerId: PeerId,
                     // Nothing representable (unsupported media / missing bytes + empty caption) —
                     // skip rather than fall through to vanilla `.forward` (server rejects noforwards
                     // with a Failed bubble that looks like "didn't work first time") or MESSAGE_EMPTY.
-                    if messageNeedsAyuForwardReupload(sourceMessage, transaction: transaction), mediaReference == nil, text.isEmpty {
+                    if messageNeedsAyuForwardReupload(sourceMessage, transaction: transaction), mediaReference == nil, text.isEmpty, !sourceMessage.attributes.contains(where: { $0 is RichTextMessageAttribute }) {
+                        // A rich message has no plain text or media: its content is the page in the attribute
+                        // kept below, so it is not "nothing representable".
                         continue outer
                     }
 

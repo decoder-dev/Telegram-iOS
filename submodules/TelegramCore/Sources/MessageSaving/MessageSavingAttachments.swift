@@ -151,7 +151,7 @@ enum MessageSavingAttachments {
     }
 
     private static func sourcePath(message: Message, mediaBox: MediaBox) -> String? {
-        for media in message.media {
+        for media in message.effectiveMedia {
             if let image = media as? TelegramMediaImage {
                 let reps = image.representations.sorted { ($0.dimensions.width * $0.dimensions.height) > ($1.dimensions.width * $1.dimensions.height) }
                 for rep in reps {
@@ -179,7 +179,7 @@ enum MessageSavingAttachments {
     /// The single most-relevant (media, resource) pair for a proactive download — the same one
     /// `sourcePath` looks for locally (largest photo representation, or the file's main resource).
     private static func fetchableResource(message: Message) -> (media: Media, resource: TelegramMediaResource, contentType: MediaResourceUserContentType)? {
-        for media in message.media {
+        for media in message.effectiveMedia {
             if let image = media as? TelegramMediaImage {
                 let reps = image.representations.sorted { ($0.dimensions.width * $0.dimensions.height) > ($1.dimensions.width * $1.dimensions.height) }
                 if let best = reps.first {
