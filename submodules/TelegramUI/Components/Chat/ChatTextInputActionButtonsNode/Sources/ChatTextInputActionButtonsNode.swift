@@ -433,7 +433,9 @@ public final class ChatTextInputActionButtonsNode: ASDisplayNode, ChatSendMessag
             }
         }
         
-        let sendButtonBackgroundFrame = CGRect(origin: CGPoint(), size: innerSize).insetBy(dx: 3.0, dy: 3.0)
+        // Fill the returned size as a circle (or titled pill). Same rule as micBackgroundView:
+        // the visible disc is the node size — no extra inset padding.
+        let sendButtonBackgroundFrame = CGRect(origin: CGPoint(x: 0.0, y: max(0.0, (resultSize.height - 40.0) * 0.5)), size: CGSize(width: resultSize.width, height: min(40.0, resultSize.height)))
         // Corner radius = min(width, height) / 2: a true capsule whatever the frame. The stretchable image
         // must be generated at that diameter — a fixed one (it was 34) reads as a rounded rect the moment
         // the frame's shorter side differs from it.

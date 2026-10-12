@@ -216,7 +216,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
             return DebugControllerSection.experiments.rawValue
         case .logTranslationRecognition, .resetTranslationStates:
             return DebugControllerSection.translation.rawValue
-        case .disableVideoAspectScaling, .enableNetworkFramework, .enableNetworkExperiments, .rustMTProtoEngine, .networkEngineInfo:
+        case .disableVideoAspectScaling, .enableNetworkExperiments, .rustMTProtoEngine, .networkEngineInfo:
             return DebugControllerSection.videoExperiments2.rawValue
         case .hostInfo, .versionInfo:
             return DebugControllerSection.info.rawValue
@@ -361,8 +361,6 @@ private enum DebugControllerEntry: ItemListNodeEntry {
             return 63
         case .disableVideoAspectScaling:
             return 101
-        case .enableNetworkFramework:
-            return 102
         case .enableNetworkExperiments:
             return 103
         case .rustMTProtoEngine:

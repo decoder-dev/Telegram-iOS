@@ -1226,7 +1226,7 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
             // actually left there, and anchor the bar to where the message ends up.
             var limitsContentLift = false
             var restingContentLift: CGFloat = 0.0
-            if case .extracted = self.source, contextExtractableContainer == nil, !keepInPlace, self.actionsStackNode.topPositionLock == nil, self.currentReactionsPositionLock == nil, self.reactionContextNode != nil || self.reactionPreviewView != nil {
+            if case .extracted = self.source, !keepInPlace, self.actionsStackNode.topPositionLock == nil, self.currentReactionsPositionLock == nil, self.reactionContextNode != nil || self.reactionPreviewView != nil {
                 limitsContentLift = true
                 
                 // Mirrors the scroller's content height computed further down, which cannot be reused
