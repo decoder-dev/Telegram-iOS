@@ -79,5 +79,16 @@ class BazelResourcesTests(unittest.TestCase):
                        '//Telegram/NotificationService:NotificationServiceExtensionLib']:
             self.assertIn('"' + target + '"', block)
 
+    def test_share_warning_policy_does_not_require_xcode27_groups(self):
+        source = (ROOT / 'Telegram/BUILD').read_text(encoding='utf-8')
+        start = source.index('name = "ShareExtensionLib"')
+        block = source[start:source.index('\n)', start)]
+        self.assertIn('"-warnings-as-errors"', block)
+        self.assertNotIn('"-Wwarning"', block)
+        workflow = (ROOT / '.github/workflows/build.yml').read_text(encoding='utf-8')
+        adaptation = workflow.split('- name: Adapt sources to the Xcode 27 SDK', 1)[1].split('- name:', 1)[0]
+        self.assertIn("inputs.toolchain == 'xcode27'", adaptation)
+        self.assertIn('ImplicitStrongCapture', adaptation)
+
 if __name__ == '__main__':
     unittest.main()
