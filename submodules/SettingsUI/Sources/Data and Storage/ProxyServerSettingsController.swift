@@ -79,7 +79,6 @@ private enum ProxySettingsEntry: ItemListNodeEntry {
     var stableId: Int32 {
         switch self {
             case .usePasteboardSettings: return 0
-            case .usePasteboardInfo: return 1
             case .modeSocks5: return 2
             case .socks5Info: return 3
             case .modeMtp: return 4
@@ -127,15 +126,6 @@ private enum ProxySettingsEntry: ItemListNodeEntry {
                 return ItemListCheckboxItem(presentationData: presentationData, systemStyle: .glass, title: text, style: .left, checked: value, zeroSeparatorInsets: false, sectionId: self.section, action: {
                     arguments.updateState { state in
                         return state.withMode(.web)
-                    }
-                })
-            case let .modeWeb(_, text, value):
-                return ItemListCheckboxItem(presentationData: presentationData, systemStyle: .glass, title: text, style: .left, checked: value, zeroSeparatorInsets: false, sectionId: self.section, action: {
-                    arguments.updateState { state in
-                        var state = state
-                        state.mode = .web
-                        state.port = "443"
-                        return state
                     }
                 })
             case let .modeVless(_, text, value):
@@ -311,7 +301,7 @@ struct ProxyServerSettingsControllerState: Equatable {
                 if self.port.isEmpty || Int(self.port) == nil {
                     return false
                 }
-            case .web:
+            case .web, .vless:
                 break
         }
         switch self.mode {
@@ -384,9 +374,6 @@ private func proxyServerSettingsControllerEntries(presentationData: Presentation
             entries.append(.credentialsUsername(presentationData.theme, presentationData.strings, presentationData.strings.SocksProxySetup_Username, state.username))
             entries.append(.credentialsPassword(presentationData.theme, presentationData.strings, presentationData.strings.SocksProxySetup_Password, state.password))
         case .mtp, .web:
-            entries.append(.credentialsHeader(presentationData.theme, presentationData.strings.SocksProxySetup_RequiredCredentials))
-            entries.append(.credentialsSecret(presentationData.theme, presentationData.strings, presentationData.strings.SocksProxySetup_SecretPlaceholder, state.secret))
-        case .web:
             entries.append(.credentialsHeader(presentationData.theme, presentationData.strings.SocksProxySetup_RequiredCredentials))
             entries.append(.credentialsSecret(presentationData.theme, presentationData.strings, presentationData.strings.SocksProxySetup_SecretPlaceholder, state.secret))
     }

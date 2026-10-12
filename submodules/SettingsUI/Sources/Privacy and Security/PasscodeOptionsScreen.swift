@@ -773,7 +773,7 @@ private final class PasscodeOptionsScreenComponent: Component {
                 switch challenge {
                 case .none:
                     hasPasscode = false
-                case .numericalPassword, .plaintextPassword, .secured:
+                case .numericalPassword, .plaintextPassword, .numericalPasswordHash, .plaintextPasswordHash, .secured:
                     hasPasscode = true
                 }
                 var passcodeItems: [AnyComponentWithIdentity<Empty>] = []

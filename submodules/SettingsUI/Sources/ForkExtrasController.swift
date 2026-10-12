@@ -1,6 +1,7 @@
 import Foundation
 import Postbox
 import UIKit
+import UniformTypeIdentifiers
 import Display
 import SwiftSignalKit
 import TelegramCore
@@ -46,9 +47,9 @@ private final class ForkExtrasMessageSavingImportPresenter: NSObject, UIDocument
         self.replace = replace
         self.context = context
         self.present = present
-        // iOS 13-compatible picker API. Includes JSON and folders so we can import
-        // either a bare records.json or a full exportBundle() directory.
-        let picker = UIDocumentPickerViewController(documentTypes: ["public.json", "public.folder"], in: .open)
+        // Includes JSON and folders so we can import either a bare records.json or a
+        // full exportBundle() directory.
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.json, .folder], asCopy: false)
         picker.delegate = self
         picker.allowsMultipleSelection = false
         forkExtrasPresentNativeController(picker, context: context)
