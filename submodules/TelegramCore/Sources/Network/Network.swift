@@ -648,9 +648,10 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
             let baseTcpConnectionInterfaceFactory = context.makeTcpConnectionInterface
             let isAppExtension = Bundle.main.bundlePath.hasSuffix(".appex")
             let initialActiveServer = proxySettings?.effectiveActiveServer
-            let initialWebProxyConfiguration = initialActiveServer?.webProxyConfiguration
+            let initialUsesWebProxyCarrier = initialActiveServer?.usesWebProxyCarrier == true
+            let initialWebProxyConfiguration = initialUsesWebProxyCarrier ? initialActiveServer?.webProxyConfiguration : nil
             WebProxyTransport.shared.apply(configuration: isAppExtension ? nil : initialWebProxyConfiguration)
-            if initialActiveServer?.isWebProxy == true {
+            if initialUsesWebProxyCarrier {
                 context.makeTcpConnectionInterface = { delegate, delegateQueue, _, _, _ in
                     return WebProxyTransport.shared.makeConnectionInterface(delegate: delegate, delegateQueue: delegateQueue)
                 }
@@ -792,7 +793,7 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
                 useExperimentalFeatures = false
             }
             
-            let network = Network(queue: queue, datacenterId: datacenterId, context: context, engine: engine, switchingEngine: switchingEngine, engineFactory: arguments.networkEngineFactory, rustEngineDisabled: rustEngineDisabled, rustEngineWaitsForWebProxy: rustEngineWaitsForWebProxy, mainSession: mainSession, mainSessionDelegate: mainSessionDelegate, telemetry: telemetry, _connectionStatus: connectionStatus, basePath: basePath, appDataDisposable: appDataDisposable, encryptionProvider: arguments.encryptionProvider, useRequestTimeoutTimers: useRequestTimeoutTimers, useBetaFeatures: arguments.useBetaFeatures, useExperimentalFeatures: useExperimentalFeatures, baseTcpConnectionInterfaceFactory: baseTcpConnectionInterfaceFactory, isAppExtension: isAppExtension, initialWebProxyActive: initialActiveServer?.isWebProxy == true)
+            let network = Network(queue: queue, datacenterId: datacenterId, context: context, engine: engine, switchingEngine: switchingEngine, engineFactory: arguments.networkEngineFactory, rustEngineDisabled: rustEngineDisabled, rustEngineWaitsForWebProxy: rustEngineWaitsForWebProxy, mainSession: mainSession, mainSessionDelegate: mainSessionDelegate, telemetry: telemetry, _connectionStatus: connectionStatus, basePath: basePath, appDataDisposable: appDataDisposable, encryptionProvider: arguments.encryptionProvider, useRequestTimeoutTimers: useRequestTimeoutTimers, useBetaFeatures: arguments.useBetaFeatures, useExperimentalFeatures: useExperimentalFeatures, baseTcpConnectionInterfaceFactory: baseTcpConnectionInterfaceFactory, isAppExtension: isAppExtension, initialWebProxyActive: initialUsesWebProxyCarrier)
             
             // Keep the main connection paused until the managed endpoint is ready.
             // The shared environment also has a closed local route for download workers.
@@ -1272,11 +1273,14 @@ public final class Network: NSObject {
     }
 
     func updateProxySettings(_ activeServer: ProxyServerSettings?) {
-        self.currentWebProxyActive = activeServer?.isWebProxy == true
-        let webConfiguration = activeServer?.webProxyConfiguration
+        // A WEB proxy reached through the sidecar is plain TCP to its loopback, so the carrier
+        // is configured and demanded only while MTProto actually depends on it.
+        let usesWebProxyCarrier = activeServer?.usesWebProxyCarrier == true
+        self.currentWebProxyActive = usesWebProxyCarrier
+        let webConfiguration = usesWebProxyCarrier ? activeServer?.webProxyConfiguration : nil
         WebProxyTransport.shared.apply(configuration: self.isAppExtension ? nil : webConfiguration)
-        self.webProxyActive.set(activeServer?.isWebProxy == true)
-        if activeServer?.isWebProxy == true {
+        self.webProxyActive.set(usesWebProxyCarrier)
+        if usesWebProxyCarrier {
             self.context.makeTcpConnectionInterface = { delegate, delegateQueue, _, _, _ in
                 return WebProxyTransport.shared.makeConnectionInterface(delegate: delegate, delegateQueue: delegateQueue)
             }

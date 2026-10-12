@@ -24,6 +24,7 @@ struct ProxyServerSettings {
     static let managedBootstrapProxySettings = MTSocksProxySettings("blocked")
     var connection: Connection
     var legacyWebProxyConfiguration: String? = nil
+    var legacyWebProxyLoopbackEndpoint: String? = nil
     var vlessProxyURL: String? = nil
     var mtProxySettings: MTSocksProxySettings? = nil
 }

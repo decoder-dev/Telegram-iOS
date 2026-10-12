@@ -145,5 +145,20 @@ class ForkIntegration(unittest.TestCase):
         self.assertIn('AVCaptureDevice.default(.builtInTripleCamera', legacy)
         self.assertIn('virtualDeviceSwitchOverVideoZoomFactors', legacy)
 
+    def test_web_proxy_serves_both_relay_protocols(self):
+        settings = read('submodules/TelegramCore/Sources/Settings/ProxySettings.swift')
+        web = settings.split('case let .web(secret, _):', 1)[1].split('case .vless:', 1)[0]
+        # The fork's sidecar route wins when its relay answered; otherwise Telegram 13's carrier.
+        self.assertLess(web.index('legacyWebProxyLoopbackEndpoint'), web.index('webProxy: true'))
+        self.assertIn('return self.isWebProxy && self.legacyWebProxyLoopbackEndpoint == nil', settings)
+        network = read('submodules/TelegramCore/Sources/Network/Network.swift')
+        update = network.split('    func updateProxySettings(', 1)[1].split('let updated =', 1)[0]
+        self.assertIn('let usesWebProxyCarrier = activeServer?.usesWebProxyCarrier == true', update)
+        self.assertIn('self.webProxyActive.set(usesWebProxyCarrier)', update)
+        self.assertIn('initialWebProxyActive: initialUsesWebProxyCarrier', network)
+        manager = read('submodules/WebProxyTransport/Sources/WebProxyManager.swift')
+        self.assertIn('if case WebProxyHttpCarrierError.bootstrapTokenMissing = error {', manager)
+        self.assertIn('otherProtocolRecheckInterval', manager)
+
 if __name__ == '__main__':
     unittest.main()

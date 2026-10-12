@@ -9,7 +9,7 @@ private func webProxyContinuousTime() -> Double {
     return Double(clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW)) / 1_000_000_000.0
 }
 
-public struct LegacyWebProxyConfiguration: Equatable {
+public struct LegacyWebProxyConfiguration: Hashable {
     public let hostname: String
     public let secret: Data
     
@@ -60,6 +60,12 @@ public final class WebProxyManager {
     /// If the WEB sidecar exchanged frames this recently, a foreground resume skips rebuilding
     /// the HTTPS carrier — a background keepalive ping keeps the session in this window.
     private static let recentActivitySkipRebuild: Double = 45.0
+    /// How long a relay that answered the bridge request with a page carrying no sidecar
+    /// bootstrap token is left alone. Such a relay speaks Telegram 13's in-page bridge protocol,
+    /// which `WebProxyTransport` (the WKWebView carrier) handles; MTProto uses that carrier while
+    /// this sidecar has no endpoint, so probing it again on the usual 5-60 s backoff only costs a
+    /// request per attempt. It is still re-checked now and then in case the relay is downgraded.
+    private static let otherProtocolRecheckInterval: Double = 30.0 * 60.0
 
     private let lock = NSLock()
     private let startLock = NSLock()
@@ -71,6 +77,8 @@ public final class WebProxyManager {
     private var startingSince: Double = 0.0
     private var startGeneration: UInt64 = 0
     private var lastFailedConfiguration: LegacyWebProxyConfiguration?
+    /// Relays found to speak the in-page bridge protocol, and when that was last seen.
+    private var otherProtocolRelays: [LegacyWebProxyConfiguration: Double] = [:]
     private var lastFailureTime: Double = 0.0
     private var consecutiveFailureCount: Int = 0
     private var sidecarReadySince: Double = 0.0
@@ -476,6 +484,16 @@ public final class WebProxyManager {
             self.startLock.unlock()
             return
         }
+        if let seenAt = self.otherProtocolRelays[configuration] {
+            let remaining = WebProxyManager.otherProtocolRecheckInterval - (webProxyContinuousTime() - seenAt)
+            if remaining > 0.0 {
+                // Covers the path monitor and every account's re-apply too: none of them can
+                // change which protocol the relay speaks.
+                self.scheduleRetryLocked(configuration: configuration, after: remaining)
+                self.startLock.unlock()
+                return
+            }
+        }
         if !replacingCurrentStart, self.lastFailedConfiguration == configuration, self.consecutiveFailureCount > 0 {
             let backoff = self.currentBackoffLocked()
             let elapsed = webProxyContinuousTime() - self.lastFailureTime
@@ -684,6 +702,7 @@ public final class WebProxyManager {
         switch result {
         case let .success(endpoint):
             WebProxyLog.log("carrier ready for \(configuration.hostname) on \(endpoint.host):\(endpoint.port)")
+            self.otherProtocolRelays.removeValue(forKey: configuration)
             self.lock.lock()
             let previous = self.sidecar
             previous?.setFailureHandler { }
@@ -743,9 +762,19 @@ public final class WebProxyManager {
                 self.consecutiveFailureCount = 1
             }
             self.lastFailureTime = webProxyContinuousTime()
-            // Same reason as the death path: without this, a bootstrap that fails while nothing
-            // is listening leaves the proxy down until an unrelated event happens to poke it.
-            self.scheduleRetryLocked(configuration: configuration, after: self.currentBackoffLocked())
+            if case WebProxyHttpCarrierError.bootstrapTokenMissing = error {
+                // The relay answered, but with Telegram 13's bridge page rather than the
+                // sidecar's: not a failure of this relay, just the other protocol.
+                WebProxyLog.log("\(configuration.hostname) speaks the in-page bridge protocol; MTProto stays on the WEB carrier, re-checking in \(Int(WebProxyManager.otherProtocolRecheckInterval))s")
+                self.otherProtocolRelays[configuration] = webProxyContinuousTime()
+                self.consecutiveFailureCount = 0
+                self.lastFailedConfiguration = nil
+                self.scheduleRetryLocked(configuration: configuration, after: WebProxyManager.otherProtocolRecheckInterval)
+            } else {
+                // Same reason as the death path: without this, a bootstrap that fails while nothing
+                // is listening leaves the proxy down until an unrelated event happens to poke it.
+                self.scheduleRetryLocked(configuration: configuration, after: self.currentBackoffLocked())
+            }
             
             self.lock.lock()
             if self.configuration == configuration {

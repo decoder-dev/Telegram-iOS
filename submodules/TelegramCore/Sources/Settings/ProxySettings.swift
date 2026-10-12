@@ -52,6 +52,24 @@ extension ProxyServerSettings {
         return String(data: secret, encoding: .utf8)
     }
 
+    /// The sidecar's loopback endpoint for a root-path WEB proxy whose relay speaks the fork's
+    /// session protocol (`/api/v1/session`). Nil while the sidecar is starting, when it failed,
+    /// for relays that only speak Telegram 13's in-page bridge protocol, and for base-path
+    /// proxies (which only that protocol supports).
+    var legacyWebProxyLoopbackEndpoint: WebProxyManager.LoopbackEndpoint? {
+        guard let configuration = self.legacyWebProxyConfiguration else {
+            return nil
+        }
+        return WebProxyManager.shared.loopbackEndpoint(for: configuration)
+    }
+
+    /// Whether MTProto has to go through `WebProxyTransport` (the WKWebView carrier). A WEB
+    /// proxy whose relay the sidecar reached is dialled through the sidecar's loopback instead,
+    /// over the ordinary TCP factory, so relays of either protocol keep working.
+    var usesWebProxyCarrier: Bool {
+        return self.isWebProxy && self.legacyWebProxyLoopbackEndpoint == nil
+    }
+
     var isWebProxy: Bool {
         if case .web = self.connection {
             return true
@@ -67,6 +85,9 @@ extension ProxyServerSettings {
             case let .mtp(secret):
                 return MTSocksProxySettings(ip: self.host, port: UInt16(clamping: self.port), username: nil, password: nil, secret: secret)
             case let .web(secret, _):
+                if let endpoint = self.legacyWebProxyLoopbackEndpoint {
+                    return MTSocksProxySettings(ip: endpoint.host, port: endpoint.port, username: nil, password: nil, secret: secret)
+                }
                 return MTSocksProxySettings(ip: WebProxyConfiguration.canonicalHost(self.host) ?? self.host, port: WebProxyConfiguration.port, username: nil, password: nil, secret: secret, webProxy: true)
             case .vless:
                 guard let url = self.vlessProxyURL,
@@ -299,7 +320,9 @@ func applySharedProxySettingsToNetwork(settings: ProxySettings, network: Network
         return nil
     }
 
-    if forceTransportReconnect, resolvedProxySettings != nil, isActiveVlessProxy {
+    // A sidecar carrier resumed in place keeps its loopback port, so the settings above compare
+    // equal and nothing reconnects; MTProto's sockets still point at the dead carrier.
+    if forceTransportReconnect, resolvedProxySettings != nil, isActiveVlessProxy || activeServer?.legacyWebProxyLoopbackEndpoint != nil {
         network.dropConnectionStatus()
         network.rebuildTransport()
     }

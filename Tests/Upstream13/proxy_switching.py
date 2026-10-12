@@ -16,6 +16,9 @@ typealias Factory = (Int, Int, Int, Bool, Bool) -> String?
 final class Context { var makeTcpConnectionInterface: Factory? }
 struct ProxyServerSettings {
     var isWebProxy: Bool
+    // A root-path WEB relay the fork's sidecar reached: MTProto dials its loopback over TCP.
+    var sidecarReady = false
+    var usesWebProxyCarrier: Bool { isWebProxy && !sidecarReady }
     var webProxyConfiguration: String? { isWebProxy ? "configured" : nil }
 }
 final class WebProxyTransport {
@@ -42,11 +45,12 @@ final class Network {
 let network = Network()
 let web = ProxyServerSettings(isWebProxy: true)
 let vless = ProxyServerSettings(isWebProxy: false)
+let sidecarWeb = ProxyServerSettings(isWebProxy: true, sidecarReady: true)
 for enabled in [false, true] {
-    for server in [nil, web, vless, web, nil, vless, nil] as [ProxyServerSettings?] {
+    for server in [nil, web, vless, web, sidecarWeb, web, sidecarWeb, nil, vless, nil] as [ProxyServerSettings?] {
         network.updateWebSocketTransportSettings(webSocketTransportEnabled: enabled, webSocketFallbackToDirect: true, hasActiveProxyServer: server != nil)
         network.updateProxySettings(server)
-        let expected = server?.isWebProxy == true ? "web" : (enabled && server == nil ? "ws" : "tcp")
+        let expected = server?.usesWebProxyCarrier == true ? "web" : (enabled && server == nil ? "ws" : "tcp")
         precondition(network.route() == expected, "Initial route mismatch")
         // Independent Account settings observer must not overwrite an active Web carrier.
         for _ in 0..<100 {

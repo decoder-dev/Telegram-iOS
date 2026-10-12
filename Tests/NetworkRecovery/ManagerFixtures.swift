@@ -1,7 +1,7 @@
 import Foundation
 
 enum WebProxyLog { static func log(_ text: String) {} }
-enum WebProxyHttpCarrierError: Error { case sessionCreationFailed, carrierClosed }
+enum WebProxyHttpCarrierError: Error { case sessionCreationFailed, carrierClosed, bootstrapTokenMissing }
 struct WebProxyBridgeCapability {
     static func derive(hostname: String, secret: Data) -> Self? { Self() }
 }
@@ -63,6 +63,10 @@ extension WebProxyManager {
         self.startingSince = webProxyContinuousTime()
     }
     var startGenerationForTest: UInt64 { self.startGeneration }
+    func failPendingStartForTest(_ profile: LegacyWebProxyConfiguration, _ error: Error) {
+        self.finishStart(generation: self.startGeneration, configuration: profile, sidecar: nil, result: .failure(error))
+    }
+    func isOtherProtocolForTest(_ profile: LegacyWebProxyConfiguration) -> Bool { self.otherProtocolRelays[profile] != nil }
 }
 
 let profile = LegacyWebProxyConfiguration(hostname: "test.example", secret: Data([1]))
@@ -112,4 +116,16 @@ let generation = pendingManager.startGenerationForTest
 for _ in 0..<100 { pendingManager.applicationDidBecomeActive() }
 precondition(pendingManager.startGenerationForTest == generation, "foreground must join pending bootstrap")
 pendingManager.configure(activeWebProxy: nil)
+
+// A relay answering with Telegram 13's in-page bridge is the other protocol, not a dead relay:
+// no failure is charged, and re-applies from every account must not probe it again.
+let other = WebProxyManager.testInstance()
+other.pendingStartForTest(profile)
+other.failPendingStartForTest(profile, WebProxyHttpCarrierError.bootstrapTokenMissing)
+precondition(other.failuresForTest == 0 && other.isOtherProtocolForTest(profile))
+let otherGeneration = other.startGenerationForTest
+for _ in 0..<20 { other.configure(activeWebProxy: profile) }
+precondition(other.startGenerationForTest == otherGeneration, "other-protocol relay re-probed on re-apply")
+precondition(other.activeLoopbackEndpoint == nil, "MTProto must stay on the WEB carrier")
+other.configure(activeWebProxy: nil)
 print("WEB reconnect coalescing, duplicate failure, disabled profile and stale carrier: passed")
