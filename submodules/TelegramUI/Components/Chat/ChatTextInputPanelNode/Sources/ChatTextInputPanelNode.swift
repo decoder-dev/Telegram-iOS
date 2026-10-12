@@ -4737,9 +4737,6 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
     
     private func updateActionButtons(hasText: Bool, sendButtonIsLaidOut: Bool, transition: ContainedViewLayoutTransition) {
         let alphaTransition: ContainedViewLayoutTransition = transition.isAnimated ? .animated(duration: 0.2, curve: .easeInOut) : .immediate
-        let blurTransitionIn: ComponentTransition = transition.isAnimated ? .easeInOut(duration: 0.18) : .immediate
-        let blurTransitionOut: ComponentTransition = transition.isAnimated ? .easeInOut(duration: 0.18) : .immediate
-        let sendButtonBlurOut: CGFloat = 4.0
         
         var hideMicButton = false
         var hideMicButtonBackground = false
