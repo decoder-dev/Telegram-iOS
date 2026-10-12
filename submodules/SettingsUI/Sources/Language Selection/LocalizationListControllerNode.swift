@@ -461,6 +461,11 @@ final class LocalizationListControllerNode: ViewControllerTracingNode {
             break
         }
         
+        if #available(iOS 18.0, *), context.sharedContext.immediateForkExtrasSettings.translationBackend == .system {
+            translateButtonAvailable = true
+            chatTranslationAvailable = true
+        }
+        
         let previousState = Atomic<LocalizationListState?>(value: nil)
         let previousEntriesHolder = Atomic<([LanguageListEntry], PresentationTheme, PresentationStrings)?>(value: nil)
         self.listDisposable = combineLatest(

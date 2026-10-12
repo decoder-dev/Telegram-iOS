@@ -1634,8 +1634,6 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .hideMentionsFooter,
             .hidePinned(settings.hidePinnedNotifications),
             .hidePinnedFooter,
-            .sessionBackup(settings.sessionKeychainBackup),
-            .sessionBackupFooter,
             .allowSecretScreenshots(settings.allowSecretScreenshots),
             .allowSecretScreenshotsFooter,
             .expireTtlButton(settings.expireTtlButton),

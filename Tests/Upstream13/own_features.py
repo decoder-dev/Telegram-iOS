@@ -312,5 +312,17 @@ class ForkIntegration(unittest.TestCase):
         self.assertEqual(chatlist.count('makeProxySettingsController(context: self.context)'), 1)
 
 
+    def test_system_translation_backend_reaches_chat_and_language_list(self):
+        for path in ('submodules/TranslateUI/Sources/Translate.swift', 'submodules/TranslateUI/Sources/ChatTranslation.swift', 'submodules/SettingsUI/Sources/Language Selection/LocalizationListControllerNode.swift'):
+            self.assertIn('translationBackend == .system', read(path), path)
+
+    def test_session_keychain_switch_is_not_offered_and_copies_are_dropped(self):
+        extras = read('submodules/SettingsUI/Sources/ForkExtrasController.swift')
+        self.assertNotIn('.sessionBackup(settings.sessionKeychainBackup)', extras)
+        shared = read('submodules/TelegramUI/Sources/SharedAccountContext.swift')
+        self.assertNotIn('SessionKeychainBackup.save(', shared)
+        self.assertIn('SessionKeychainBackup.deleteAll()', shared)
+
+
 if __name__ == '__main__':
     unittest.main()

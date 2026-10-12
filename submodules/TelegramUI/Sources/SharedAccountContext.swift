@@ -1336,8 +1336,10 @@ public final class SharedAccountContextImpl: SharedAccountContext {
                     return AccountRecord(id: record.id, attributes: attributes, temporarySessionId: record.temporarySessionId)
                 })
                 let forkExtras = transaction.getSharedData(ApplicationSpecificSharedDataKeys.forkExtrasSettings)?.get(ForkExtrasSettings.self) ?? .defaultSettings
+                // The Keychain copy was never read back on launch, so the "restore after reinstall" switch promised
+                // something that did not exist. The switch is gone; copies made while it was on held auth keys, so drop them.
                 if forkExtras.sessionKeychainBackup {
-                    try? SessionKeychainBackup.save(accountId: String(account.id.int64), data: backupData)
+                    SessionKeychainBackup.deleteAll()
                 }
             }
             |> ignoreValues

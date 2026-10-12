@@ -3,6 +3,7 @@ import UIKit
 import Display
 import SwiftSignalKit
 import AccountContext
+import TelegramUIPreferences
 import NaturalLanguage
 import TelegramCore
 import SwiftUI
@@ -174,6 +175,10 @@ public func normalizeTranslationLanguage(_ code: String) -> String {
 
 public func canTranslateChats(context: AccountContext) -> Bool {
     let translationConfiguration = TranslationConfiguration.with(appConfiguration: context.currentAppConfiguration.with { $0 })
+    if #available(iOS 18.0, *), context.sharedContext.immediateForkExtrasSettings.translationBackend == .system {
+        // The user forced Apple's on-device translation, which does not depend on the server's translation config.
+        return true
+    }
     var chatTranslationAvailable = true
     switch translationConfiguration.auto {
     case .system:
@@ -205,6 +210,9 @@ public func canTranslateText(context: AccountContext, text: String, showTranslat
         }
     default:
         break
+    }
+    if #available(iOS 18.0, *), context.sharedContext.immediateForkExtrasSettings.translationBackend == .system {
+        translateButtonAvailable = true
     }
     
     if forceShow {

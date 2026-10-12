@@ -201,6 +201,9 @@ public func translateMessageIds(context: AccountContext, messageIds: [EngineMess
         default:
             break
         }
+        if #available(iOS 18.0, *), context.sharedContext.immediateForkExtrasSettings.translationBackend == .system {
+            enableLocalIfPossible = true
+        }
         return context.engine.messages.translateMessages(messageIds: messageIdsToTranslate, fromLang: fromLang, toLang: toLang, enableLocalIfPossible: enableLocalIfPossible)
         |> `catch` { _ -> Signal<Never, NoError> in
             return .complete()
