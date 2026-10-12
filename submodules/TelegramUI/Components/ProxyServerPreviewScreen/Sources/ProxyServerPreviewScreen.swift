@@ -590,10 +590,13 @@ private final class ProxyServerPreviewSheetComponent: CombinedComponent {
 }
 
 public class ProxyServerPreviewScreen: ViewControllerComponentContainer {
+    public let previewServer: ProxyServerSettings
+    
     public init(
         context: AccountContext,
         server: ProxyServerSettings
     ) {
+        self.previewServer = server
         super.init(
             context: context,
             component: ProxyServerPreviewSheetComponent(
@@ -615,6 +618,7 @@ public class ProxyServerPreviewScreen: ViewControllerComponentContainer {
         updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>),
         server: ProxyServerSettings
     ) {
+        self.previewServer = server
         super.init(
             component: ProxyServerPreviewSheetComponent(
                 sharedContext: sharedContext,
@@ -633,6 +637,19 @@ public class ProxyServerPreviewScreen: ViewControllerComponentContainer {
     
     required public init(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+    
+    /// Pushes the preview unless the same server is already being previewed on this stack. The same proxy link
+    /// reaches the app more than once while it connects (the URL, the pasteboard, a re-delivered intent), and each
+    /// delivery used to stack another sheet.
+    public static func pushIfNotPresented(context: AccountContext, server: ProxyServerSettings, navigationController: NavigationController?) {
+        guard let navigationController else {
+            return
+        }
+        if navigationController.viewControllers.contains(where: { ($0 as? ProxyServerPreviewScreen)?.previewServer == server }) {
+            return
+        }
+        navigationController.pushViewController(ProxyServerPreviewScreen(context: context, server: server))
     }
     
     public override func viewDidLoad() {

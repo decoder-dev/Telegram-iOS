@@ -6896,6 +6896,7 @@ private final class ChatListLocationContext {
     weak var parentController: ChatListControllerImpl?
     
     private var proxyUnavailableTooltipController: TooltipController?
+    private weak var presentedProxySettingsController: ViewController?
     private var didShowProxyUnavailableTooltipController = false
     
     private var titleDisposable: Disposable?
@@ -7458,10 +7459,17 @@ private final class ChatListLocationContext {
                 self.proxyButton = AnyComponentWithIdentity(id: "proxy", component: AnyComponent(NavigationButtonComponent(
                     content: .proxy(status: proxyStatus),
                     pressed: { [weak self] _ in
-                        guard let self, let parentController = self.parentController else {
+                        guard let self, let parentController = self.parentController, let navigationController = parentController.navigationController as? NavigationController else {
                             return
                         }
-                        (parentController.navigationController as? NavigationController)?.pushViewController(self.context.sharedContext.makeProxySettingsController(context: self.context))
+                        // While the app is connecting the title re-renders and taps queue up, so a second press used
+                        // to stack another proxy list on top of the first.
+                        if let presented = self.presentedProxySettingsController, navigationController.viewControllers.contains(where: { $0 === presented }) {
+                            return
+                        }
+                        let controller = self.context.sharedContext.makeProxySettingsController(context: self.context)
+                        self.presentedProxySettingsController = controller
+                        navigationController.pushViewController(controller)
                     }
                 )))
                 

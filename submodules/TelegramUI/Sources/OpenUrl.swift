@@ -495,8 +495,7 @@ private func openCheckedExternalUrl(context: AccountContext, urlContext: OpenURL
     if parsedUrl.scheme?.lowercased() == "vless" {
         if let proxy = parseProxyUrl(sharedContext: context.sharedContext, url: parsedUrl) {
             dismissInput()
-            let controller = ProxyServerPreviewScreen(context: context, server: proxy)
-            navigationController?.pushViewController(controller)
+            ProxyServerPreviewScreen.pushIfNotPresented(context: context, server: proxy, navigationController: navigationController)
             return
         }
     }

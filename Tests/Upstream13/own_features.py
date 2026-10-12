@@ -298,5 +298,19 @@ class ForkIntegration(unittest.TestCase):
         body = read_actions.split('func addOrUpdate(messages: [StoreMessage], transaction: Transaction) {', 1)[1][:400]
         self.assertIn('if ForkGhostModeSettings.shouldSuppressMessageReads {\n            return', body)
 
+    def test_proxy_screens_are_not_stacked_twice(self):
+        preview = read('submodules/TelegramUI/Components/ProxyServerPreviewScreen/Sources/ProxyServerPreviewScreen.swift')
+        self.assertIn('public let previewServer: ProxyServerSettings', preview)
+        self.assertIn('static func pushIfNotPresented(', preview)
+        resolved = read('submodules/TelegramUI/Sources/OpenResolvedUrl.swift')
+        self.assertEqual(resolved.count('ProxyServerPreviewScreen.pushIfNotPresented('), 2)
+        self.assertNotIn('ProxyServerPreviewScreen(context: context, server: server)', resolved)
+        openurl = read('submodules/TelegramUI/Sources/OpenUrl.swift')
+        self.assertIn('ProxyServerPreviewScreen.pushIfNotPresented(', openurl)
+        chatlist = read('submodules/ChatListUI/Sources/ChatListController.swift')
+        self.assertIn('presentedProxySettingsController', chatlist)
+        self.assertEqual(chatlist.count('makeProxySettingsController(context: self.context)'), 1)
+
+
 if __name__ == '__main__':
     unittest.main()
