@@ -133,5 +133,17 @@ class ForkIntegration(unittest.TestCase):
         self.assertIn('symlinkPath = data.path', export.rsplit('linkItem', 1)[1])
         self.assertIn('guard FileManager.default.fileExists(atPath: symlinkPath) else', export)
 
+    def test_round_videos_keep_lens_zoom_presets_by_default(self):
+        settings = read('submodules/TelegramUIPreferences/Sources/ExperimentalUISettings.swift')
+        self.assertIn('return self.useModernVideoMessagePipeline ?? false', settings)
+        screen = read('submodules/TelegramUI/Components/VideoMessageCameraScreen/Sources/VideoMessageCameraScreen.swift')
+        self.assertIn('immediateExperimentalUISettings.resolvedUseModernVideoMessagePipeline', screen)
+        self.assertNotIn('ios_killswitch_disable_neo_round_camera_v2', screen)
+        debug = read('submodules/DebugSettingsUI/Sources/DebugController.swift')
+        self.assertIn('.useModernVideoMessagePipeline(experimentalSettings.resolvedUseModernVideoMessagePipeline)', debug)
+        legacy = read('submodules/Camera/CameraLegacy/Sources/CameraDevice.swift')
+        self.assertIn('AVCaptureDevice.default(.builtInTripleCamera', legacy)
+        self.assertIn('virtualDeviceSwitchOverVideoZoomFactors', legacy)
+
 if __name__ == '__main__':
     unittest.main()

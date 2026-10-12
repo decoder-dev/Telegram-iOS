@@ -81,6 +81,14 @@ public struct ExperimentalUISettings: Codable, Equatable {
     public var respectSystemMicrophone: Bool
     public var useModernVideoMessagePipeline: Bool?
 
+    /// Round video messages default to the legacy camera: it records from the back
+    /// multi-lens device, which is where the fork's 0.5x/3x/5x zoom presets come from
+    /// (CameraLegacy/CameraDevice.nativeZoomFactors). Telegram 13's Neo pipeline only
+    /// opens the single wide-angle lens, so it is opt-in through Debug settings.
+    public var resolvedUseModernVideoMessagePipeline: Bool {
+        return self.useModernVideoMessagePipeline ?? false
+    }
+
     public static var defaultSettings: ExperimentalUISettings {
         return ExperimentalUISettings(
             keepChatNavigationStack: false,

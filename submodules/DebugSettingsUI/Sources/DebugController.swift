@@ -1598,7 +1598,7 @@ private func debugControllerEntries(context: AccountContext?, sharedContext: Sha
     entries.append(.coreListChatBackend(experimentalSettings.coreListChatBackend))
     entries.append(.forceRLottieBackend(experimentalSettings.forceRLottieBackend))
     entries.append(.respectSystemMicrophone(experimentalSettings.respectSystemMicrophone))
-    entries.append(.useModernVideoMessagePipeline(experimentalSettings.useModernVideoMessagePipeline ?? (context?.getAppConfigValue("ios_killswitch_disable_neo_round_camera_v2") == nil)))
+    entries.append(.useModernVideoMessagePipeline(experimentalSettings.resolvedUseModernVideoMessagePipeline))
     entries.append(.crashOnSlowQueries(presentationData.theme, experimentalSettings.crashOnLongQueries))
     entries.append(.crashOnMemoryPressure(presentationData.theme, experimentalSettings.crashOnMemoryPressure))
     if isMainApp {
