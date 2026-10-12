@@ -153,10 +153,6 @@ private func textProcessingInstantPageTheme(theme: PresentationTheme) -> Instant
     let secondary = theme.list.itemSecondaryTextColor
     let accent = theme.list.itemAccentColor
 
-    if isDark {
-    } else {
-    }
-
     let textCategories = InstantPageTextCategories.chatMessage(
         primaryText: primary,
         secondaryText: secondary
@@ -171,7 +167,7 @@ private func textProcessingInstantPageTheme(theme: PresentationTheme) -> Instant
         linkColor: accent,
         textHighlightColor: accent.withMultipliedAlpha(0.1),
         linkHighlightColor: accent.withMultipliedAlpha(0.1),
-        markerColor: UIColor(rgb: 0xfef3bc),
+        markerColor: accent.withMultipliedAlpha(0.2),
         panelBackgroundColor: accent.withMultipliedAlpha(0.1),
         panelHighlightedBackgroundColor: accent.withMultipliedAlpha(0.25),
         panelPrimaryColor: primary,
@@ -184,6 +180,14 @@ private func textProcessingInstantPageTheme(theme: PresentationTheme) -> Instant
         overlayPanelColor: accent.withMultipliedAlpha(0.25),
         separatorColor: accent.withMultipliedAlpha(0.25),
         secondaryControlColor: secondary,
-        quoteAccentColor: accent
+        quoteAccentColor: accent,
+        buttonDangerBackgroundColor: theme.contextMenu.destructiveColor.withMultipliedAlpha(0.15),
+        buttonDangerForegroundColor: primary,
+        buttonSuccessBackgroundColor: theme.list.freeTextSuccessColor.withMultipliedAlpha(0.15),
+        buttonSuccessForegroundColor: primary,
+        checkboxFill: theme.list.itemCheckColors.fillColor,
+        checkboxForeground: theme.list.itemCheckColors.foregroundColor,
+        neutralButtonBackgroundColor: accent.withMultipliedAlpha(0.1),
+        neutralButtonForegroundColor: primary
     )
 }

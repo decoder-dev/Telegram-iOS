@@ -5,6 +5,19 @@ import TelegramPresentationData
 import TelegramUIPreferences
 import UnsupportedContentPill
 
+/// Choose a legible label for an opaque semantic button fill using linear sRGB luminance.
+public func instantPageSolidButtonForegroundColor(_ backgroundColor: UIColor) -> UIColor {
+    let components = backgroundColor.components
+    func linear(_ channel: CGFloat) -> Double {
+        let value = Double(channel)
+        return value <= 0.04045 ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4)
+    }
+    let luminance = 0.2126 * linear(components.r) + 0.7152 * linear(components.g) + 0.0722 * linear(components.b)
+    let blackContrast = (luminance + 0.05) / 0.05
+    let whiteContrast = 1.05 / (luminance + 0.05)
+    return blackContrast >= whiteContrast ? .black : .white
+}
+
 public enum InstantPageFontStyle {
     case sans
     case serif

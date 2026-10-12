@@ -727,16 +727,13 @@ public class ChatMessageRichDataBubbleContentNode: ChatMessageBubbleContentNode 
                     checkboxForeground = messageTheme.mediaControlInnerBackgroundColor
                 }
                 
-                // Incoming bubbles are neutral, so a 15% tint with a full-strength label reads fine.
-                // Outgoing bubbles can be saturated (Day Blue), where the tint mixes into the bubble
-                // colour and the label loses contrast, so there the fill is solid with a white label,
-                // as the message's inline keyboard buttons (ChatButtonKeyboardInputNode) draw them.
+                // Keep semantic fills, but use readable text on both tinted and solid buttons.
                 let buttonDangerColor = item.presentationData.theme.theme.contextMenu.destructiveColor
                 let buttonSuccessColor = item.presentationData.theme.theme.list.freeTextSuccessColor
                 let buttonDangerBackgroundColor = isIncoming ? buttonDangerColor.withMultipliedAlpha(0.15) : buttonDangerColor
-                let buttonDangerForegroundColor = isIncoming ? buttonDangerColor : UIColor.white
+                let buttonDangerForegroundColor = isIncoming ? messageTheme.primaryTextColor : instantPageSolidButtonForegroundColor(buttonDangerColor)
                 let buttonSuccessBackgroundColor = isIncoming ? buttonSuccessColor.withMultipliedAlpha(0.15) : buttonSuccessColor
-                let buttonSuccessForegroundColor = isIncoming ? buttonSuccessColor : UIColor.white
+                let buttonSuccessForegroundColor = isIncoming ? messageTheme.primaryTextColor : instantPageSolidButtonForegroundColor(buttonSuccessColor)
                 
                 let pageTheme = InstantPageTheme(
                     type: isDark ? .dark : .light,
@@ -750,7 +747,7 @@ public class ChatMessageRichDataBubbleContentNode: ChatMessageBubbleContentNode 
                     linkColor: messageTheme.linkTextColor,
                     textHighlightColor: messageTheme.accentTextColor.withMultipliedAlpha(0.1),
                     linkHighlightColor: messageTheme.linkTextColor.withMultipliedAlpha(0.1),
-                    markerColor: UIColor(rgb: 0xfef3bc),
+                    markerColor: messageTheme.accentControlColor.withMultipliedAlpha(0.2),
                     panelBackgroundColor: messageTheme.accentControlColor.withMultipliedAlpha(0.1),
                     panelHighlightedBackgroundColor: messageTheme.accentControlColor.withMultipliedAlpha(0.8),
                     panelPrimaryColor: messageTheme.primaryTextColor,

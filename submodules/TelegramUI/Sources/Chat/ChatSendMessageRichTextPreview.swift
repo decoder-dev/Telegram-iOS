@@ -82,9 +82,12 @@ final class ChatSendMessageRichTextPreview: ChatSendMessageContextScreenRichText
         let isDark = presentationData.theme.overallDarkAppearance
         let messageTheme = presentationData.theme.chat.message.outgoing
         let mainColor = messageTheme.accentTextColor
-
-        if isDark {
-        } else {
+        let dangerColor = presentationData.theme.contextMenu.destructiveColor
+        let successColor = presentationData.theme.list.freeTextSuccessColor
+        let checkboxFill = messageTheme.accentControlColor
+        var checkboxForeground = presentationData.theme.list.itemCheckColors.foregroundColor
+        if isDark && checkboxForeground == checkboxFill {
+            checkboxForeground = messageTheme.mediaControlInnerBackgroundColor
         }
 
         let textCategories = InstantPageTextCategories.chatMessage(
@@ -101,7 +104,7 @@ final class ChatSendMessageRichTextPreview: ChatSendMessageContextScreenRichText
             linkColor: messageTheme.linkTextColor,
             textHighlightColor: messageTheme.accentTextColor.withMultipliedAlpha(0.1),
             linkHighlightColor: messageTheme.linkTextColor.withMultipliedAlpha(0.1),
-            markerColor: UIColor(rgb: 0xfef3bc),
+            markerColor: messageTheme.accentControlColor.withMultipliedAlpha(0.2),
             panelBackgroundColor: messageTheme.accentControlColor.withMultipliedAlpha(0.1),
             panelHighlightedBackgroundColor: messageTheme.accentControlColor.withMultipliedAlpha(0.25),
             panelPrimaryColor: messageTheme.primaryTextColor,
@@ -116,7 +119,15 @@ final class ChatSendMessageRichTextPreview: ChatSendMessageContextScreenRichText
             overlayPanelColor: messageTheme.accentControlColor.withMultipliedAlpha(0.25),
             separatorColor: messageTheme.accentControlColor.withMultipliedAlpha(0.25),
             secondaryControlColor: messageTheme.secondaryTextColor,
-            quoteAccentColor: mainColor
+            quoteAccentColor: mainColor,
+            buttonDangerBackgroundColor: dangerColor,
+            buttonDangerForegroundColor: instantPageSolidButtonForegroundColor(dangerColor),
+            buttonSuccessBackgroundColor: successColor,
+            buttonSuccessForegroundColor: instantPageSolidButtonForegroundColor(successColor),
+            checkboxFill: checkboxFill,
+            checkboxForeground: checkboxForeground,
+            neutralButtonBackgroundColor: messageTheme.accentControlColor.withMultipliedAlpha(0.1),
+            neutralButtonForegroundColor: messageTheme.accentControlColor
         )
 
         let layout = layoutInstantPageV2(

@@ -69,9 +69,11 @@ class ThemeTests(unittest.TestCase):
                 for background in ('highlighted','searchBar'):
                     a,b=sorted((luminance(palette[text][mode]),luminance(palette[background][mode])))
                     self.assertGreaterEqual((b+.05)/(a+.05),4.5,(mode,text,background))
-        # White badge text on the inactive (muted) unread badge.
-        for mode,value in enumerate(re.search(r'unreadBadgeInactiveBackgroundColor: UIColor\(rgb: dark \? (0x[0-9A-F]+) : (0x[0-9A-F]+)\)',source).groups()):
-            self.assertGreaterEqual(1.05/(luminance(int(value,16))+.05),3.0,('inactive badge',mode))
+        # The inactive badge now uses the explicit per-theme foreground pair.
+        self.assertIn('unreadBadgeInactiveBackgroundColor: inactiveBadgeBackground', source)
+        for mode, text in enumerate(('foreground', 'onAccent')):
+            a,b=sorted((luminance(palette[text][mode]),luminance(palette['inactiveBadgeBackground'][mode])))
+            self.assertGreaterEqual((b+.05)/(a+.05),4.5,('inactive badge',mode))
     def test_call_screen_palettes_keep_white_text_legible(self):
         source = (ROOT/'submodules/TelegramUI/Components/Calls/CallScreen/Sources/CallScreenPalette.swift').read_text(encoding='utf-8')
         sets = re.findall(r'(?:connecting|active|weakSignal): \[((?:0x[0-9A-Fa-f]{6},? ?){4})\]',source)
