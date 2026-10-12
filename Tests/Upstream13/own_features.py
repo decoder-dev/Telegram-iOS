@@ -103,5 +103,35 @@ class ForkIntegration(unittest.TestCase):
             if match and '{X:Type}' not in line and match[1] not in {'true', 'error', 'null', 'vector'}:
                 self.assertIn(int(match[2], 16), ids, match[1])
 
+    def test_reactions_footer_hides_paid_reactions(self):
+        source = read('submodules/TelegramUI/Components/Chat/ChatMessageReactionsFooterContentNode/Sources/ChatMessageReactionsFooterContentNode.swift')
+        self.assertIn('let reactionsAttribute = forkVisibleMessageReactions(attributes: item.message.attributes', source)
+        self.assertNotIn('let reactionsAttribute = mergedMessageReactions(', source)
+
+    def test_ephemeral_no_forwards_follows_copy_protection_setting(self):
+        store = read('submodules/TelegramCore/Sources/ApiUtils/StoreMessage_Telegram.swift')
+        ephemeral = store.split('init?(apiEphemeralMessage:', 1)[1].split('\n    convenience init', 1)[0]
+        self.assertIn('if isForwardingDisabled {\n                storeFlags.insert(.CopyProtected)', ephemeral)
+        menus = read('submodules/TelegramUI/Sources/ChatInterfaceStateContextMenus.swift')
+        self.assertEqual(menus.count('let isForwardingDisabled = !TelegramSimpleSettings.shared.allowCopyProtectedMedia && '), 2)
+
+    def test_proxy_preview_has_one_port_row(self):
+        source = read('submodules/TelegramUI/Components/ProxyServerPreviewScreen/Sources/ProxyServerPreviewScreen.swift')
+        self.assertEqual(source.count('id: "port"'), 1)
+        self.assertLess(source.index('id: "vless-protocol"'), source.index('id: "port"'))
+
+    def test_web_proxy_links_accept_fork_link_forms(self):
+        source = read('submodules/TelegramCore/Sources/Settings/ProxySettings.swift')
+        parser = source.split('public func parseWebProxySettingsLink(', 1)[1].split('\npublic func ', 1)[0]
+        self.assertIn('["t.me", "telegram.me", "telegram.dog"].contains(components.host?.lowercased() ?? "")', parser)
+        self.assertIn('scheme == "https" || scheme == "http"', parser)
+        self.assertIn('value = "https://" + value', parser)
+
+    def test_save_to_files_never_exports_a_missing_path(self):
+        source = read('submodules/TelegramUI/Sources/SaveMediaToFiles.swift')
+        export = source.split('let url = URL(fileURLWithPath: symlinkPath)', 1)[0]
+        self.assertIn('symlinkPath = data.path', export.rsplit('linkItem', 1)[1])
+        self.assertIn('guard FileManager.default.fileExists(atPath: symlinkPath) else', export)
+
 if __name__ == '__main__':
     unittest.main()

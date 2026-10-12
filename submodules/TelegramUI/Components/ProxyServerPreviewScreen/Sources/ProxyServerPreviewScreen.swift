@@ -310,16 +310,6 @@ private final class ProxyServerPreviewSheetContent: CombinedComponent {
                     MultilineTextComponent(text: .plain(NSAttributedString(string: typeDescription, font: Font.regular(13.0), textColor: theme.list.itemSecondaryTextColor)))
                 )
             ))
-            if !isWebProxy {
-                tableItems.append(.init(
-                    id: "port",
-                    title: strings.SocksProxySetup_Port,
-                    component: AnyComponent(
-                        MultilineTextComponent(text: .plain(NSAttributedString(string: "\(component.server.port)", font: tableFont, textColor: tableTextColor)))
-                    )
-                ))
-            }
-            
             // For VLESS, surface the protocol details parsed from the share link
             // (security, transport, flow) so the card shows what kind of tunnel it is.
             if case let .vless(secret) = component.server.connection, let url = String(data: secret, encoding: .utf8), let components = URLComponents(string: url) {
@@ -359,7 +349,7 @@ private final class ProxyServerPreviewSheetContent: CombinedComponent {
                 ))
             }
             
-            if !component.server.connection.isWebProxy {
+            if !isWebProxy {
                 tableItems.append(.init(
                     id: "port",
                     title: strings.SocksProxySetup_Port,

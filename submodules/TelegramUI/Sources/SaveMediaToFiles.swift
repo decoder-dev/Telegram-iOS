@@ -136,6 +136,14 @@ func saveMediaToFiles(context: AccountContext, fileReference: FileMediaReference
                     }
                 }
                 
+                // The .mp3 link can fail (e.g. a filesystem error); export the original file
+                // rather than a path that does not exist.
+                if !FileManager.default.fileExists(atPath: symlinkPath) {
+                    symlinkPath = data.path
+                }
+                guard FileManager.default.fileExists(atPath: symlinkPath) else {
+                    return
+                }
                 let url = URL(fileURLWithPath: symlinkPath)
                 let controller = legacyICloudFilePicker(theme: presentationData.theme, mode: .export, url: url, documentTypes: [], forceDarkTheme: false, dismissed: {}, completion: { _ in
                     

@@ -155,6 +155,12 @@ public func parseWebProxyLinkComponents(address: String, secret: String) -> (hos
 }
 
 public func parseWebProxySettingsLink(_ value: String) -> ProxyServerSettings? {
+    // Pasted and scanned links may omit the scheme ("t.me/webproxy?...") as the fork's
+    // parser accepted; the explicit form is used for everything else.
+    var value = value.trimmingCharacters(in: .whitespacesAndNewlines)
+    if !value.contains("://"), let host = value.split(separator: "/", maxSplits: 1).first, ["t.me", "telegram.me", "telegram.dog"].contains(host.lowercased()) {
+        value = "https://" + value
+    }
     guard let components = URLComponents(string: value),
           components.fragment == nil,
           components.user == nil,
@@ -163,8 +169,8 @@ public func parseWebProxySettingsLink(_ value: String) -> ProxyServerSettings? {
     }
 
     let scheme = components.scheme?.lowercased()
-    let isTelegramLink = scheme == "https"
-        && components.host?.lowercased() == "t.me"
+    let isTelegramLink = (scheme == "https" || scheme == "http")
+        && ["t.me", "telegram.me", "telegram.dog"].contains(components.host?.lowercased() ?? "")
         && components.path == "/webproxy"
         && (components.port == nil || components.port == Int(WebProxyConfiguration.port))
     let isTelegramScheme = scheme == "tg"

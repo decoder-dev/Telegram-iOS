@@ -588,6 +588,11 @@ extension StoreMessage {
                 storeFlags.insert(.Incoming)
                 date += 1
             }
+            // Routed through Message.isCopyProtected(), which honours the fork's
+            // allowCopyProtectedMedia setting.
+            if isForwardingDisabled {
+                storeFlags.insert(.CopyProtected)
+            }
 
             let messageNamespace: MessageId.Namespace
             if let namespace {
