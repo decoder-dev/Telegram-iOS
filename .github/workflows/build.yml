@@ -490,6 +490,7 @@ jobs:
               echo "_No CHANGELOG.md section for ${TAG} and no previous tag._" > "$CHANGELOG_BODY"
             fi
           fi
+          python3 build-system/Make/LimitReleaseNotes.py "$CHANGELOG_BODY" "$GITHUB_REPOSITORY" "$GITHUB_SHA"
           cat > "$NOTES" <<EOF
           Telegram iOS ${APP_VERSION} (${BUILD_NUMBER}) — sideload IPA
           ${PRE_BANNER}
