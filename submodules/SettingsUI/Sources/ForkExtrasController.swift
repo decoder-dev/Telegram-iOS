@@ -1189,6 +1189,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         7: 3.3,        // Tab bar follows Chat list and folders.
         8: 4.3,        // Calls and audio follows Messages and composer.
         23: 4.6,       // Profile and effects follows Calls and audio.
+        1540: 4.7,     // Appearance follows Profile and effects on the Extras hub.
         // 146 now belongs to Network; its original stable order is appropriate there.
         147: 133.3,     // Show 18+ Content, after Hide Blocked Messages
         148: 133.6,

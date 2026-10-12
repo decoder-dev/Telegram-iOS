@@ -91,7 +91,7 @@ for russian in [false,true] {
    settings.regexMessageFiltersEnabled=filters; settings.hideTabBar=true
    for mask in 0..<8 {
     let media=MediaInputSettings(enableRaiseToSpeak: false,pauseMusicOnRecording: mask & 1 != 0,pauseMusicOnVoiceRecording: mask & 2 != 0,pauseMusicOnVoicePlayback: mask & 4 != 0)
-    for category in [ForkExtrasControllerFocus.top,.ninja,.ghost,.privacy,.chatList,.tabBar,.messages,.media,.profile,.network,.messageSaving,.messageFilters] {
+    for category in [ForkExtrasControllerFocus.top,.appearance,.ninja,.ghost,.privacy,.chatList,.tabBar,.messages,.media,.profile,.network,.messageSaving,.messageFilters] {
      let entries=forkExtrasControllerEntries(settings: settings,autoFetchPublicMtProxy: false,showCallsTab: true,mediaInputSettings: media,focus: category)
      let ids=entries.map { $0.stableId }
      precondition(Set(ids).count == ids.count,"Duplicate IDs")
@@ -101,7 +101,7 @@ for russian in [false,true] {
       precondition(!titled.isEmpty && !titled.contains(""),"No searchable titles: \(category)")
       if category == .tabBar { precondition(titled.contains("Calls")) }
      }
-     if category == .top { precondition(ids == [0,1,2,3,7,4,8,23,5,6]) }
+     if category == .top { precondition(ids == [0,1,2,3,7,4,8,23,1540,5,6]) }
      if category == .media {
       var values: [Int32:Bool]=[:]
       for entry in entries { if case let .musicPolicy(id,_,value)=entry { values[id]=value } }
