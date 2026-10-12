@@ -39,7 +39,9 @@ def run_executable_with_output(path, arguments, use_clean_env=True, decode=True,
         stderr_assignment = subprocess.STDOUT
 
     if print_command:
-        print('Running {} {}'.format(executable_path, arguments))
+        # Argument lists can contain credentials. Keep diagnostics to the
+        # executable name rather than echoing potentially sensitive values.
+        print('Running {}'.format(executable_path))
 
     process = subprocess.Popen(
         [executable_path] + arguments,
@@ -57,7 +59,8 @@ def run_executable_with_output(path, arguments, use_clean_env=True, decode=True,
 
     if check_result:
         if process.returncode != 0:
-            print('Command {} {} finished with non-zero return code and output:\n{}'.format(executable_path, arguments, output_string))
+            # A failing command may include secrets in its arguments or output.
+            print('Command {} failed with exit status {}'.format(executable_path, process.returncode))
             sys.exit(1)
 
     if decode:
