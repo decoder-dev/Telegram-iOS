@@ -1774,6 +1774,10 @@ public extension InstantPage {
                 pieces.append(text)
             }
         }
+        func appendCaption(_ caption: InstantPageCaption) {
+            append(caption.text.plainText)
+            append(caption.credit.plainText)
+        }
         for block in blocks {
             switch block {
             case let .title(t), let .subtitle(t), let .header(t), let .subheader(t), let .paragraph(t), let .footer(t), let .kicker(t), let .thinking(t):
@@ -1782,10 +1786,37 @@ public extension InstantPage {
                 append(t.plainText)
             case let .preformatted(t, _):
                 append(t.plainText)
-            case let .pullQuote(t, _):
+            case let .authorDate(t, _):
                 append(t.plainText)
-            case let .blockQuote(blocks, _, _):
+            case let .formula(latex):
+                append(latex)
+            case let .pullQuote(t, caption):
+                append(t.plainText)
+                append(caption.plainText)
+            case let .blockQuote(blocks, caption, _):
                 append(blocksFullPlainText(blocks))
+                append(caption.plainText)
+            case let .image(_, caption, _, _, _), let .video(_, caption, _, _, _), let .audio(_, caption), let .document(_, caption):
+                appendCaption(caption)
+            case let .cover(block):
+                append(blocksFullPlainText([block]))
+            case let .webEmbed(_, _, _, caption, _, _, _):
+                appendCaption(caption)
+            case let .postEmbed(_, _, _, author, _, blocks, caption):
+                append(author)
+                append(blocksFullPlainText(blocks))
+                appendCaption(caption)
+            case let .collage(blocks, caption), let .slideshow(blocks, caption):
+                append(blocksFullPlainText(blocks))
+                appendCaption(caption)
+            case let .buttonRow(_, buttons):
+                for button in buttons {
+                    append(button.text.plainText)
+                }
+            case let .map(_, _, _, _, caption):
+                appendCaption(caption)
+            case let .channelBanner(channel):
+                append(channel?.title ?? "")
             case let .list(items, _):
                 for item in items {
                     switch item {
@@ -1805,7 +1836,14 @@ public extension InstantPage {
                 for row in rows {
                     append(row.cells.compactMap({ $0.text?.plainText }).filter({ !$0.isEmpty }).joined(separator: "\t"))
                 }
-            default:
+            case let .relatedArticles(title, articles):
+                append(title.plainText)
+                for article in articles {
+                    append(article.title ?? "")
+                    append(article.description ?? "")
+                    append(article.author ?? "")
+                }
+            case .unsupported, .divider, .anchor:
                 break
             }
         }

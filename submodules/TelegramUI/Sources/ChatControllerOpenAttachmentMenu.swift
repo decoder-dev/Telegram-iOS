@@ -1463,6 +1463,10 @@ extension ChatControllerImpl {
                             }
 
                             let sendResults: ([Int: TelegramMediaFile]) -> Void = { voiceFiles in
+                            guard voiceFiles.isEmpty || strongSelf.forkCanSendVoiceMessages() else {
+                                strongSelf.present(textAlertController(context: strongSelf.context, updatedPresentationData: strongSelf.updatedPresentationData, title: nil, text: ForkPresentationLanguage.prefersRussianStrings ? "В этом чате нельзя отправлять голосовые сообщения." : "Voice messages aren't allowed in this chat.", actions: [TextAlertAction(type: .defaultAction, title: strongSelf.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
+                                return
+                            }
                             var groupingKey: Int64?
                             var fileTypes: (music: Bool, other: Bool) = (false, false)
                             if results.count > 1 {
@@ -1525,6 +1529,9 @@ extension ChatControllerImpl {
                                     }, nil)
                                     strongSelf.presentPaidMessageAlertIfNeeded(completion: { [weak self] postpone in
                                         guard let strongSelf = self else {
+                                            return
+                                        }
+                                        guard voiceFiles.isEmpty || strongSelf.forkCanSendVoiceMessages() else {
                                             return
                                         }
                                         strongSelf.sendMessages(messages, postpone: postpone)
@@ -1610,13 +1617,10 @@ extension ChatControllerImpl {
         guard self.presentationInterfaceState.voiceMessagesAvailable else {
             return false
         }
-        let canBypassVoiceRestrictions = canBypassRestrictions(chatPresentationInterfaceState: self.presentationInterfaceState)
-        if let channel = self.presentationInterfaceState.renderedPeer?.peer as? TelegramChannel {
-            return channel.hasBannedPermission(.banSendVoice, ignoreDefault: canBypassVoiceRestrictions) == nil
-        } else if let group = self.presentationInterfaceState.renderedPeer?.peer as? TelegramGroup {
-            return !group.hasBannedPermission(.banSendVoice)
+        guard let peer = self.presentationInterfaceState.renderedPeer?.peer else {
+            return false
         }
-        return true
+        return canSendAudioMessagesToPeer(EnginePeer(peer), isVoice: true, ignoreDefault: canBypassRestrictions(chatPresentationInterfaceState: self.presentationInterfaceState))
     }
 
     func presentFileMediaPickerOptions(editingMessage: Bool) {

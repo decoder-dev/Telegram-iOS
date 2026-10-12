@@ -94,8 +94,11 @@ class ThemeTests(unittest.TestCase):
             self.assertGreaterEqual(red, blue, name+' must not lean blue: Graphite is a warm charcoal')
     def test_interface_groups_have_unique_ids(self):
         source = (ROOT/'submodules/SettingsUI/Sources/ForkExtrasController.swift').read_text(encoding='utf-8')
-        block=source.split('private static let interfaceGroups: [[Int32]] = ',1)[1].split('\n    ]',1)[0]+'\n    ]'
-        groups=ast.literal_eval(block)
+        categories=source.split('private static let regroupedCategories:',1)[1].split('private static let interfaceGroups:',1)[0]
+        blocks=re.findall(r'\(\.\w+,\s*(\[.*?\])\s*\)',categories,re.S)
+        self.assertEqual(len(blocks),5,'Every regrouped category must be checked')
+        groups=[group for block in blocks for group in ast.literal_eval(block)]
+        self.assertIn('regroupedCategories.flatMap { $0.groups }',source)
         ids=[value for group in groups for value in group]
         self.assertEqual(len(ids),len(set(ids)))
         footers={53,58,60,62,64,66,68}

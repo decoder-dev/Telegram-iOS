@@ -267,7 +267,8 @@ class ForkIntegration(unittest.TestCase):
         self.assertIn('.Audio(isVoice: false', conversion)
         menus = read('submodules/TelegramUI/Sources/ChatInterfaceStateContextMenus.swift')
         self.assertIn('forkVoiceToAudio(context: context', menus)
-        self.assertIn('canSendMessagesToChat(chatPresentationInterfaceState) {\n                        let prefersRussian', menus)
+        self.assertIn('canSendAudioMessagesToPeer(EnginePeer(audioPeer), isVoice: false', menus)
+        self.assertIn('canSendAudioMessagesToPeer(peer, isVoice: false', menus)
 
     def test_rich_messages_reach_saving_filters_and_forwarding(self):
         page = read('submodules/TelegramCore/Sources/SyncCore/SyncCore_InstantPage.swift')

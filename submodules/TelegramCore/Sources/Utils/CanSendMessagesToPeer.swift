@@ -22,6 +22,21 @@ public func canSendMessagesToPeer(_ peer: EnginePeer, ignoreDefault: Bool = fals
     }
 }
 
+public func canSendAudioMessagesToPeer(_ peer: EnginePeer, isVoice: Bool, ignoreDefault: Bool = false) -> Bool {
+    guard canSendMessagesToPeer(peer, ignoreDefault: ignoreDefault) else {
+        return false
+    }
+    let permission: TelegramChatBannedRightsFlags = isVoice ? .banSendVoice : .banSendMusic
+    switch peer {
+    case let .channel(channel):
+        return channel.hasBannedPermission(permission, ignoreDefault: ignoreDefault) == nil
+    case let .legacyGroup(group):
+        return !group.hasBannedPermission(permission)
+    default:
+        return true
+    }
+}
+
 public func canSendReactionsToPeer(_ peer: EnginePeer, ignoreDefault: Bool = false) -> Bool {
     switch peer {
     case .user:
