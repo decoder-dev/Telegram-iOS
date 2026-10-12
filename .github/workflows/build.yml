@@ -24,6 +24,10 @@ on:
         description: Publish / update a GitHub Release with the IPA
         type: boolean
         default: true
+      stable_release:
+        description: Publish a normal release instead of an automatically numbered prerelease
+        type: boolean
+        default: false
       generate_dsym:
         description: Also produce debug symbols (slower; needed to name a crash)
         type: boolean
@@ -439,6 +443,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.create_release == true)
         env:
           GH_TOKEN: ${{ github.token }}
+          STABLE_RELEASE: ${{ inputs.stable_release == true }}
           TOOLCHAIN_LABEL: ${{ inputs.toolchain == 'xcode27' && 'Xcode 27 / iOS 27 SDK (xcode-27 runner)' || 'Xcode from versions.json (macos-26)' }}
         run: |
           set -euo pipefail
@@ -446,9 +451,10 @@ jobs:
           test -f "$IPA"
           if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
             TAG="${GITHUB_REF_NAME}"
+          elif [[ "${STABLE_RELEASE}" == "true" ]]; then
+            TAG="v${APP_VERSION}-${BUILD_NUMBER}"
           else
-            # Manually published builds are prereleases. Stable releases are only
-            # produced from an explicit non-`-pre` tag.
+            # Manual releases default to prerelease; stable releases require an explicit input or tag.
             TAG="v${APP_VERSION}-${BUILD_NUMBER}-pre"
           fi
           PRE_BANNER=""

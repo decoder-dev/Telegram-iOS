@@ -29,6 +29,16 @@ class ReleaseNotes(unittest.TestCase):
         self.assertIn('--notes-file "$NOTES"', step)
         self.assertIn('--prerelease --latest=false', step)
 
+    def test_manual_stable_release_uses_unmarked_version_build_tag(self):
+        workflow = (ROOT / '.github/workflows/build.yml').read_text(encoding='utf-8')
+        self.assertIn('stable_release:', workflow)
+        self.assertIn('STABLE_RELEASE: ${{ inputs.stable_release == true }}', workflow)
+        step = workflow.split('- name: Publish GitHub release', 1)[1]
+        self.assertIn('TAG="v${APP_VERSION}-${BUILD_NUMBER}"', step)
+        self.assertIn('TAG="v${APP_VERSION}-${BUILD_NUMBER}-pre"', step)
+        self.assertIn('gh release create "$TAG" "$IPA"', step)
+        self.assertIn('--latest', step)
+
 
 if __name__ == '__main__':
     unittest.main()
