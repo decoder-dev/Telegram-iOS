@@ -112,6 +112,7 @@ func managedSynchronizeAppLogEventsOperations(postbox: Postbox, network: Network
 }
 
 private func synchronizeAppLogEvents(transaction: Transaction, postbox: Postbox, network: Network, operations: [SynchronizeAppLogEventsOperation]) -> Signal<Void, NoError> {
+    guard ForkTelegramStatisticsSettings.enabled else { return .complete() }
     var events: [Api.InputAppEvent] = []
     for operation in operations {
         switch operation.content {

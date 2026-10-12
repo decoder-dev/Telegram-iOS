@@ -150,6 +150,7 @@ public enum MessageSavingBridge {
 
     public static let settings = Atomic(value: MessageSavingBridgeSettings.defaults)
     public static let append = Atomic<((MessageSavingRecord) -> Void)?>(value: nil)
+    public static let retainedMessageIds = Atomic<((Int64, Int64) -> [MessageId])?>(value: nil)
     /// (accountPeerId, peerId, messageId, namespace, mediaPath) — links a durable copy that
     /// finished after the record was already stored. Installed by MessageSavingStore.
     public static let updateMediaPath = Atomic<((Int64, Int64, Int32, Int32, String) -> Void)?>(value: nil)

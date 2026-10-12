@@ -2289,6 +2289,37 @@ private final class NotificationServiceHandler {
                                     return (content, nil)
                                 }
                                 
+                                // Mention pushes must respect the group's/topic's mute and
+                                // sound settings too, including while the main app is closed.
+                                let ordinaryMentionContent = pollWithUpdatedContent
+                                |> mapToSignal { content, media -> Signal<(NotificationContent, Media?), NoError> in
+                                    guard ForkExtrasNotificationBridge.removePings, let messageId else { return .single((content, media)) }
+                                    return stateManager.postbox.transaction { transaction -> (NotificationContent, Media?) in
+                                        guard let message = transaction.getMessage(messageId), message.personal,
+                                              message.id.peerId.namespace == Namespaces.Peer.CloudGroup || message.id.peerId.namespace == Namespaces.Peer.CloudChannel else { return (content, media) }
+                                        let notification = messagesForNotification(transaction: transaction, id: messageId, alwaysReturnMessage: true)
+                                        guard notification.notify else { return (NotificationContent(isLockedMessage: nil), nil) }
+                                        var content = content
+                                        switch notification.sound {
+                                        case .none:
+                                            content.sound = nil
+                                        case let .cloud(fileId):
+                                            let fileName = "\(fileId).mp3"
+                                            let soundPath = appGroupUrl.path + "/Library/Sounds/" + fileName
+                                            if !FileManager.default.fileExists(atPath: soundPath),
+                                               let sound = notificationSoundList?.sounds.first(where: { $0.file.fileId.id == fileId }),
+                                               let filePath = stateManager.postbox.mediaBox.completedResourcePath(id: sound.file.resource.id, pathExtension: nil) {
+                                                let _ = try? FileManager.default.createDirectory(atPath: appGroupUrl.path + "/Library/Sounds", withIntermediateDirectories: true, attributes: nil)
+                                                let _ = try? FileManager.default.copyItem(atPath: filePath, toPath: soundPath)
+                                            }
+                                            content.sound = FileManager.default.fileExists(atPath: soundPath) ? fileName : "0.m4a"
+                                        default:
+                                            content.sound = "0.m4a"
+                                        }
+                                        return (content, media)
+                                    }
+                                }
+
                                 let reportDeliverySignal: Signal<Bool, NoError>
                                 if reportDelivery, let messageId {
                                     // Combined with the poll below, so it needs the same deadline: a
@@ -2308,7 +2339,7 @@ private final class NotificationServiceHandler {
                                 // it committed; `then` keeps the fetch behind it.
                                 let linkedPollWithUpdatedContent = (recordNotificationLink
                                 |> map { _ -> (NotificationContent, Media?) in })
-                                |> then(pollWithUpdatedContent)
+                                |> then(ordinaryMentionContent)
 
                                 strongSelf.pollDisposable.set(combineLatest(linkedPollWithUpdatedContent, reportDeliverySignal).start(next: { contentAndMedia, _ in
                                     updatedContent = contentAndMedia.0

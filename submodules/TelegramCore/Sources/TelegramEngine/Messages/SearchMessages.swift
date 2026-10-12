@@ -644,7 +644,30 @@ func _internal_searchMessages(account: Account, location: SearchMessagesLocation
             }
             
             let updatedState = SearchMessagesState(main: mergedState(transaction: transaction, seedConfiguration: account.postbox.seedConfiguration, accountPeerId: account.peerId, state: state?.main, result: result) ?? SearchMessagesPeerState(messages: [], readStates: [:], threadInfo: [:], totalCount: 0, completed: true, nextRate: nil), additional: additional)
-            return (mergedResult(updatedState), updatedState)
+            let remoteResult = mergedResult(updatedState)
+            if case let .peer(peerId, fromId, tags, reactions, threadId, minDate, maxDate) = location {
+                // Keep pagination state strictly server-based: local ids must never
+                // become the offset of the next messages.search request.
+                bananaIndexRetainedMessages(transaction: transaction, accountPeerId: account.peerId, peerId: peerId)
+                var localMessages = bananaDeletedMessages(transaction: transaction, peerId: peerId, query: query, fromId: fromId, tags: tags, reactions: reactions, threadId: threadId, minDate: minDate, maxDate: maxDate)
+                if let cachedData = transaction.getPeerCachedData(peerId: peerId) as? CachedChannelData, let migration = cachedData.migrationReference, threadId == nil {
+                    bananaIndexRetainedMessages(transaction: transaction, accountPeerId: account.peerId, peerId: migration.maxMessageId.peerId)
+                    localMessages += bananaDeletedMessages(transaction: transaction, peerId: migration.maxMessageId.peerId, query: query, fromId: fromId, tags: tags, reactions: reactions, minDate: minDate, maxDate: maxDate)
+                }
+                var readStates = remoteResult.readStates
+                var threadInfo = remoteResult.threadInfo
+                for message in localMessages {
+                    if let readState = transaction.getCombinedPeerReadState(message.id.peerId) {
+                        readStates[message.id.peerId] = readState
+                    }
+                    if let threadId = message.threadId, let data = transaction.getMessageHistoryThreadInfo(peerId: message.id.peerId, threadId: threadId)?.data.get(MessageHistoryThreadData.self) {
+                        threadInfo[message.id] = data
+                    }
+                }
+                let result = SearchMessagesResult(messages: remoteResult.messages, readStates: readStates, threadInfo: threadInfo, totalCount: remoteResult.totalCount, completed: remoteResult.completed)
+                return (bananaSearchResultIncludingDeletedMessages(result, deletedMessages: localMessages), updatedState)
+            }
+            return (remoteResult, updatedState)
         }
     }
 }

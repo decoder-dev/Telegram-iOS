@@ -1947,9 +1947,11 @@ public final class ChatListNode: ListViewImpl {
             shouldLoadCanMessagePeer = false
         }
         
-        let chatListViewUpdate = self.chatListLocation.get()
-        |> distinctUntilChanged
-        |> mapToSignal { listLocation -> Signal<(ChatListNodeViewUpdate, ChatListFilter?), NoError> in
+        let chatListViewUpdate = combineLatest(
+            self.chatListLocation.get() |> distinctUntilChanged,
+            bananaRemovePingsEnabled()
+        )
+        |> mapToSignal { listLocation, _ -> Signal<(ChatListNodeViewUpdate, ChatListFilter?), NoError> in
             return chatListViewForLocation(chatListLocation: location, location: listLocation, account: context.account, shouldLoadCanMessagePeer: shouldLoadCanMessagePeer)
             |> map { update in
                 return (update, listLocation.filter)

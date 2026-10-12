@@ -20,6 +20,7 @@ public enum SaveCallDebugLogResult {
 }
 
 func _internal_saveCallDebugLog(network: Network, callId: CallId, log: String) -> Signal<SaveCallDebugLogResult, NoError> {
+    guard ForkTelegramStatisticsSettings.enabled else { return .complete() }
     if log.count > 1024 * 16 {
         return .complete()
     }
@@ -38,6 +39,7 @@ func _internal_saveCallDebugLog(network: Network, callId: CallId, log: String) -
 }
 
 func _internal_saveCompleteCallDebugLog(account: Account, callId: CallId, logPath: String) -> Signal<Never, NoError> {
+    guard ForkTelegramStatisticsSettings.enabled else { return .complete() }
     let tempFile = TempBox.shared.tempFile(fileName: "log.txt.gz")
     
     do {

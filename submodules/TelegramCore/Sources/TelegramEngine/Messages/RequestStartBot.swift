@@ -13,6 +13,7 @@ func _internal_requestStartBot(account: Account, botPeerId: PeerId, payload: Str
                 return account.network.request(Api.functions.messages.startBot(bot: inputUser, peer: .inputPeerEmpty, randomId: Int64.random(in: Int64.min ... Int64.max), startParam: payload))
                 |> mapToSignal { result -> Signal<Void, MTRpcError> in
                     account.stateManager.addUpdates(result)
+                    bananaRequestGhostOfflineAfterAction(network: account.network)
                     return .complete()
                 }
                 |> `catch` { _ -> Signal<Void, MTRpcError> in
@@ -52,6 +53,7 @@ func _internal_requestStartBotInGroup(account: Account, botPeerId: PeerId, group
             }
             |> mapToSignal { result -> Signal<StartBotInGroupResult, RequestStartBotInGroupError> in
                 account.stateManager.addUpdates(result)
+                bananaRequestGhostOfflineAfterAction(network: account.network)
                 if groupPeerId.namespace == Namespaces.Peer.CloudChannel {
                     return _internal_fetchChannelParticipant(account: account, peerId: groupPeerId, participantId: botPeerId)
                     |> mapError { _ -> RequestStartBotInGroupError in }

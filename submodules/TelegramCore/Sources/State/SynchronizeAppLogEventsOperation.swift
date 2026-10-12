@@ -5,6 +5,7 @@ import MtProtoKit
 
 
 func _internal_addAppLogEvent(postbox: Postbox, time: Double = Date().timeIntervalSince1970, type: String, peerId: PeerId? = nil, data: JSON = .dictionary([:])) {
+    guard ForkTelegramStatisticsSettings.enabled else { return }
     let tag: PeerOperationLogTag = OperationLogTags.SynchronizeAppLogEvents
     let peerId = PeerId(0)
     let _ = (postbox.transaction { transaction in
@@ -13,6 +14,7 @@ func _internal_addAppLogEvent(postbox: Postbox, time: Double = Date().timeInterv
 }
 
 func _internal_addAppLogEvent(transaction: Transaction, time: Double, type: String, data: JSON) {
+    guard ForkTelegramStatisticsSettings.enabled else { return }
     let tag: PeerOperationLogTag = OperationLogTags.SynchronizeAppLogEvents
     let peerId = PeerId(0)
     transaction.operationLogAddEntry(peerId: peerId, tag: tag, tagLocalIndex: .automatic, tagMergedIndex: .automatic, contents: SynchronizeAppLogEventsOperation(content: .add(time: time, type: type, peerId: peerId, data: data)))

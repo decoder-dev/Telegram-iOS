@@ -832,6 +832,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [1502, 1503, 1504, 1505, 1506],
             [1507]
         ]),
+        (.appearance, [[1618, 1531, 1532, 1619]]),
         (.messages, [
             [1605, 65, 66],
             [67, 68],
@@ -840,6 +841,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [1606, 81, 82],
             [98, 99],
             [1511, 1520],
+            [1533],
             [90, 91],
             [92, 93],
             [94, 95],
@@ -870,6 +872,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         return regroupedCategories.first(where: { category in category.groups.contains(where: { $0.contains(id) }) })?.focus
     }
 
+    case hubAppearance
     case hubNinja
     case hubGhost
     case hubPrivacy
@@ -1003,7 +1006,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             }
         case .audioHeader, .musicPolicy, .audioFooter: return ForkExtrasSection.audio.rawValue
         case .designHeader, .designFooter, .brandTheme: return 100
-        case .hubNinja, .hubGhost, .hubPrivacy, .hubChatList, .hubTabBar, .hubMessages, .hubMedia, .hubProfile, .hubNetwork, .hubFooter:
+        case .hubAppearance, .hubNinja, .hubGhost, .hubPrivacy, .hubChatList, .hubTabBar, .hubMessages, .hubMedia, .hubProfile, .hubNetwork, .hubFooter:
             return ForkExtrasSection.hub.rawValue
         case .ghostModeMaster, .ghostDontReadMessages, .ghostDontReadStories, .ghostDontSendOnline, .ghostDontSendTyping, .ghostGoOfflineAutomatically, .ghostGoOfflineAutomaticallyFooter, .ghostReadOnInteract, .ghostReadOnInteractFooter, .ghostAlertBeforeOpeningStory, .ghostAlertBeforeOpeningStoryFooter, .ghostScheduleMessages, .ghostScheduleMessagesFooter, .ghostModeFooter:
             return ForkExtrasSection.ghost.rawValue
@@ -1057,6 +1060,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case .tabPreview: return 1507
         case .callsTab: return 1503
         case let .appearanceToggle(id, _, _, _): return id
+        case .hubAppearance: return 1540
         case .hubNinja: return 0
         case .hubGhost: return 1
         case .hubPrivacy: return 2
@@ -1309,11 +1313,19 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
                 description = ForkPresentationLanguage.prefersRussianStrings ? "Открывает поиск в текущем чате вместо поиска публичных постов." : "Searches the current chat instead of public posts."
             case 1520:
                 description = ForkPresentationLanguage.prefersRussianStrings ? "Отправляет GIF беззвучным видео, если GIF запрещены, а видео разрешены." : "Sends GIFs as silent videos where GIFs are banned but videos are allowed."
+            case 1530:
+                description = ForkPresentationLanguage.prefersRussianStrings ? "Аналитика, время чтения и прослушивания, служебные логи и качество звонков. По умолчанию выключено." : "Analytics, reading/listening metrics, service logs and call quality. Off by default."
+            case 1533:
+                description = ForkPresentationLanguage.prefersRussianStrings ? "Скрывает значки упоминаний. Их уведомления следуют настройкам чата и темы." : "Hides mention badges. Mention notifications follow chat and topic settings."
             default:
                 description = nil
             }
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: title, text: description, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateAppearance(keyPath, value)
+            }, tag: BananaSettingsItemTag(id: self.stableId))
+        case .hubAppearance:
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.appearance, title: ForkPresentationLanguage.prefersRussianStrings ? "Оформление" : "Appearance", label: ForkPresentationLanguage.prefersRussianStrings ? "Бананчик наверху" : "Banana island", sectionId: self.section, style: .blocks, action: {
+                arguments.openCategory(.appearance)
             }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hubNinja:
             return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.savedMessages, title: ForkExtrasLocalizedString.hubNinja, label: ForkExtrasLocalizedString.hubNinjaLabel, sectionId: self.section, style: .blocks, action: {
@@ -1736,6 +1748,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .hubMessages,
             .hubMedia,
             .hubProfile,
+            .hubAppearance,
             .hubNetwork,
             .hubFooter,
         ]
@@ -1763,6 +1776,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
         ]
     case .privacy:
         entries = [
+            .appearanceToggle(1530, russian ? "Отправлять статистику в Telegram" : "Send statistics to Telegram", settings.sendTelegramStatistics, \.sendTelegramStatistics),
             .streamerMode(settings.streamerMode),
             .streamerModeFooter,
             .instantPasscode(settings.instantPasscodeLock),
@@ -1807,6 +1821,13 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(1506, ForkExtrasLocalizedString.string(forKey: "ForkExtras.tabSearchOnLeft"), settings.tabSearchOnLeft, \.tabSearchOnLeft),
             .tabPreview(BananaTabBarLayout(hidden: ForkExtrasHotFlags.hidesTabBar(settings.hideTabBar, isPad: UIDevice.current.userInterfaceIdiom == .pad), contacts: settings.showContactsTab, calls: showCallsTab, wide: settings.wideTabBar, integratedSearch: settings.integratedTabSearch, searchOnLeft: settings.tabSearchOnLeft)),
         ])
+    case .appearance:
+        entries = [
+            .designHeader(1618, russian ? "Бананчик наверху" : "Banana island"),
+            .appearanceToggle(1531, russian ? "Показывать бананчик" : "Show banana island", settings.bananaIslandEnabled, \.bananaIslandEnabled),
+            .appearanceToggle(1532, russian ? "Подпись BananaGram" : "BananaGram label", settings.bananaIslandShowsName, \.bananaIslandShowsName),
+            .designFooter(1619, russian ? "Значок над экраном приложения на устройствах с Dynamic Island. Цвета соответствуют теме." : "An app badge on devices with Dynamic Island. Colors follow your theme."),
+        ]
     case .messages:
         entries = [
             .designHeader(1605, russian ? "Отображение" : "Display"),
@@ -1816,6 +1837,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .wideChannelPostsFooter,
             .stickerSize(settings.stickerSizePercent),
             .appearanceToggle(1508, russian ? "Счётчик пересылок в каналах" : "Channel forward count", settings.showChannelForwardCount, \.showChannelForwardCount),
+            .appearanceToggle(1533, russian ? "Убрать пинги" : "Remove mention pings", settings.removePings, \.removePings),
             .appearanceToggle(1509, russian ? "Скрыть платные реакции" : "Hide paid reactions", settings.hidePaidReactions, \.hidePaidReactions),
             .hideReactionsBar(settings.hideReactionsBar),
             .appearanceToggle(1521, russian ? "Недавние эмодзи в реакциях" : "Recent emoji in reactions", settings.useRecentEmojiInReactions, \.useRecentEmojiInReactions),
@@ -1929,6 +1951,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
 
 public enum ForkExtrasControllerFocus {
     case top
+    case appearance
     case ninja
     case ghost
     case privacy
@@ -1952,6 +1975,8 @@ public enum ForkExtrasControllerFocus {
 
     var title: String {
         switch self.resolvedCategory {
+        case .appearance:
+            return ForkPresentationLanguage.prefersRussianStrings ? "Оформление" : "Appearance"
         case .ninja:
             return ForkExtrasLocalizedString.hubNinja
         case .ghost:
@@ -1980,7 +2005,7 @@ public enum ForkExtrasControllerFocus {
 func forkExtrasSearchableRows(strings: PresentationStrings) -> [(id: Int32, title: String, focus: ForkExtrasControllerFocus)] {
     var result: [(id: Int32, title: String, focus: ForkExtrasControllerFocus)] = []
     var seen = Set<Int32>()
-    let categories: [ForkExtrasControllerFocus] = [.ninja, .ghost, .privacy, .chatList, .tabBar, .messages, .media, .profile, .network]
+    let categories: [ForkExtrasControllerFocus] = [.ninja, .ghost, .privacy, .appearance, .chatList, .tabBar, .messages, .media, .profile, .network]
     for focus in categories {
         let entries = forkExtrasControllerEntries(settings: .defaultSettings, autoFetchPublicMtProxy: false, showCallsTab: true, mediaInputSettings: .defaultSettings, focus: focus)
         for entry in entries {

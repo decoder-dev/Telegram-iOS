@@ -461,6 +461,9 @@ public enum MessageSavingStore {
                 }
             })
         }
+        let _ = MessageSavingBridge.retainedMessageIds.swap({ accountPeerId, peerId in
+            return deleted(accountPeerId: accountPeerId, peerId: peerId).map { MessageId(peerId: PeerId($0.peerId), namespace: $0.namespace, id: $0.messageId) }
+        })
         let _ = MessageSavingBridge.append.swap({ record in
             queue.async {
                 append(record)

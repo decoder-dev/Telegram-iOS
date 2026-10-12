@@ -177,6 +177,9 @@ final class StoryItemContentComponent: Component {
         private let overlaysView: StoryItemOverlaysView
         private var videoNode: UniversalVideoNode?
         private(set) var mediaStreamCall: PresentationGroupCallImpl?
+        // Donutgram: in ghost mode a live story is joined only once the viewer agrees.
+        private var bananaLiveStreamJoinConfirmed: Bool = false
+        private var isAskingBananaLiveStreamJoin: Bool = false
         private var mediaStreamCallState: MediaStreamCallState?
         private var mediaStreamCallVideoState: MediaStreamCallVideoState?
         private var liveCallStateDisposable: Disposable?
@@ -441,6 +444,28 @@ final class StoryItemContentComponent: Component {
             }
             
             if case let .liveStream(liveStream) = currentMessageMedia {
+                // Donutgram: watching a live story joins its call as the account, which ghost mode
+                // cannot hide, so the viewer asks first. «Отмена» moves on to the next story.
+                if self.mediaStreamCall == nil && !self.bananaLiveStreamJoinConfirmed && !component.isEmbeddedInCamera && component.peer.id != component.context.account.peerId && StoryContainerScreen.bananaLiveStreamNeedsGhostConfirmation() {
+                    if !self.isAskingBananaLiveStreamJoin, let environment = self.environment {
+                        self.isAskingBananaLiveStreamJoin = true
+                        let requestedPeerId = component.peer.id
+                        let requestedStoryId = component.item.id
+                        environment.confirmLiveStreamJoin({ [weak self] confirmed in
+                            guard let self, self.component?.peer.id == requestedPeerId, self.component?.item.id == requestedStoryId else {
+                                return
+                            }
+                            self.isAskingBananaLiveStreamJoin = false
+                            if confirmed {
+                                self.bananaLiveStreamJoinConfirmed = true
+                                self.initializeVideoIfReady(update: true)
+                            } else {
+                                self.environment?.presentationProgressUpdated(1.0, false, true)
+                            }
+                        })
+                    }
+                    return
+                }
                 let mediaStreamCall: PresentationGroupCallImpl
                 if let current = self.mediaStreamCall {
                     mediaStreamCall = current
@@ -834,6 +859,10 @@ final class StoryItemContentComponent: Component {
             }
             
             let previousItem = self.component?.item
+            if self.component?.peer.id != component.peer.id || previousItem?.id != component.item.id {
+                self.bananaLiveStreamJoinConfirmed = false
+                self.isAskingBananaLiveStreamJoin = false
+            }
             
             self.component = component
             self.state = state

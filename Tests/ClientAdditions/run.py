@@ -91,7 +91,7 @@ def swift_tests():
 import Foundation
 import CoreGraphics
 enum ForkExtrasControllerFocus: Equatable {
-    case top, ninja, ghost, privacy, chatList, tabBar, messages, media, profile, network, messageSaving, messageFilters
+    case top, ninja, ghost, privacy, appearance, chatList, tabBar, messages, media, profile, network, messageSaving, messageFilters
     var resolvedCategory: Self { switch self { case .messageSaving, .messageFilters: return .ninja; default: return self } }
 }
 '''

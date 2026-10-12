@@ -9141,7 +9141,8 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         }
         // Hoist once per send — albums must share one schedule base timestamp.
         // Match the five-flag full Ghost preset shown in settings.
-        let applyGhostSchedule = scheduleTime == nil
+        let applyGhostSchedule = peerId.namespace != Namespaces.Peer.SecretChat
+            && scheduleTime == nil
             && !isScheduledMessagesSubject
             && ForkGhostScheduleSettings.enabled
             && ForkGhostModeSettings.suppressMessageReads
@@ -9251,7 +9252,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                 }
                 // AyuGram Ghost Schedule Messages: delay-send when full Ghost Mode + toggle are on.
                 if applyGhostSchedule,
-                   attributes.first(where: { $0 is OutgoingScheduleInfoMessageAttribute }) == nil {
+                   attributes.first(where: { $0 is OutgoingScheduleInfoMessageAttribute || $0 is OutgoingQuickReplyMessageAttribute }) == nil {
                     let delay = Self.forkGhostScheduleDelaySeconds(for: message)
                     attributes.append(OutgoingScheduleInfoMessageAttribute(
                         scheduleTime: ghostScheduleBaseTimestamp + delay,

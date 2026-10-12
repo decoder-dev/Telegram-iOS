@@ -231,6 +231,7 @@ private func requestEditMessageInternal(accountPeerId: PeerId, postbox: Postbox,
 
                 return request
                 |> map { result -> Api.Updates? in
+                    bananaRequestGhostOfflineAfterAction(network: network)
                     return result
                 }
                 |> `catch` { error -> Signal<Api.Updates?, MTRpcError> in

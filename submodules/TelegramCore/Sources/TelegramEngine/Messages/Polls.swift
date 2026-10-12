@@ -51,6 +51,7 @@ func _internal_requestMessageSelectPollOption(account: Account, messageId: Messa
                 return .generic
             }
             |> mapToSignal { result -> Signal<TelegramMediaPoll?, RequestMessageSelectPollOptionError> in
+                bananaRequestGhostOfflineAfterAction(network: account.network)
                 return account.postbox.transaction { transaction -> TelegramMediaPoll? in
                     var resultPoll: TelegramMediaPoll?
                     switch result {

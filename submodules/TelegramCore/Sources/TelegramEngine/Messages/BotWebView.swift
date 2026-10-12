@@ -352,6 +352,7 @@ func _internal_sendWebViewData(postbox: Postbox, network: Network, stateManager:
         }
         |> map { updates -> Api.Updates in
             stateManager.addUpdates(updates)
+            bananaRequestGhostOfflineAfterAction(network: network)
             return updates
         }
         |> ignoreValues

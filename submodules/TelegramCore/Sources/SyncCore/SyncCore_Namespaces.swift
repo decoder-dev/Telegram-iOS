@@ -212,6 +212,7 @@ public extension GlobalMessageTags {
 public extension LocalMessageTags {
     static let OutgoingLiveLocation = LocalMessageTags(rawValue: 1 << 0)
     static let OutgoingDeliveredToServer = LocalMessageTags(rawValue: 1 << 1)
+    static let bananaDeleted = LocalMessageTags(rawValue: 1 << 2)
 }
 
 public extension PendingMessageActionType {

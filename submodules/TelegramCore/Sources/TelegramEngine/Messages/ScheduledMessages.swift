@@ -155,6 +155,7 @@ private func sendScheduledMessageNow(postbox: Postbox, network: Network, stateMa
         }
         |> mapToSignal { updates -> Signal<Never, SendScheduledMessageNowError> in
             stateManager.addUpdates(updates)
+            bananaRequestGhostOfflineAfterAction(network: network)
             return .complete()
         }
     }

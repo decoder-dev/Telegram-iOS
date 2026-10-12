@@ -4424,6 +4424,7 @@ func settingsSearchableItems(
             ("bananagram/saving", ForkPresentationLanguage.prefersRussianStrings ? "Сохранение сообщений" : "Message saving", .ninja),
             ("bananagram/ghost", ForkPresentationLanguage.prefersRussianStrings ? "Режим призрака" : "Ghost mode", .ghost),
             ("bananagram/privacy", strings.Settings_PrivacySettings, .privacy),
+            ("bananagram/island", ForkPresentationLanguage.prefersRussianStrings ? "Оформление и бананчик" : "Appearance and banana island", .appearance),
             ("bananagram/chatlist", ForkPresentationLanguage.prefersRussianStrings ? "Список чатов и папки" : "Chat list and folders", .chatList),
             ("bananagram/tabbar", ForkPresentationLanguage.prefersRussianStrings ? "Панель вкладок" : "Tab bar", .tabBar),
             ("bananagram/messages", ForkPresentationLanguage.prefersRussianStrings ? "Сообщения и ввод" : "Messages and composer", .messages),

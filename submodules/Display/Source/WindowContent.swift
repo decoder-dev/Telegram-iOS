@@ -347,6 +347,7 @@ public final class WindowKeyboardGestureRecognizerDelegate: NSObject, UIGestureR
 
 public class Window1 {
     public let hostView: WindowHostView
+    private var appBadgeEnabled = true
     public let badgeView: UIImageView
     
     private var deviceMetrics: DeviceMetrics
@@ -890,11 +891,20 @@ public class Window1 {
         }
     }
     
+    public func configureAppBadge(image: UIImage?, enabled: Bool) {
+        self.appBadgeEnabled = enabled
+        self.badgeView.image = image
+        if let image {
+            self.badgeView.frame = CGRect(origin: CGPoint(x: floorToScreenPixels((self.windowLayout.size.width - image.size.width) / 2.0), y: 5.0), size: image.size)
+        }
+        self.updateBadgeVisibility()
+    }
+
     private func updateBadgeVisibility() {
-        let badgeIsHidden = !self.deviceMetrics.showAppBadge || self.forceBadgeHidden || self.windowLayout.size.width > self.windowLayout.size.height
+        let badgeIsHidden = !self.appBadgeEnabled || !self.deviceMetrics.showAppBadge || self.forceBadgeHidden || self.windowLayout.size.width > self.windowLayout.size.height
         if badgeIsHidden != self.badgeView.isHidden && !badgeIsHidden {
             Queue.mainQueue().after(0.4) {
-                let badgeShouldBeHidden = !self.deviceMetrics.showAppBadge || self.forceBadgeHidden || self.windowLayout.size.width > self.windowLayout.size.height
+                let badgeShouldBeHidden = !self.appBadgeEnabled || !self.deviceMetrics.showAppBadge || self.forceBadgeHidden || self.windowLayout.size.width > self.windowLayout.size.height
                 if badgeShouldBeHidden == badgeIsHidden {
                     self.badgeView.isHidden = badgeIsHidden
                 }

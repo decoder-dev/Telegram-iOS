@@ -399,7 +399,7 @@ func chatContextMenuItems(context: AccountContext, peerId: EnginePeer.Id, promoI
                         if !isCommunity {
                             if isUnread {
                                 items.append(.action(ContextMenuActionItem(text: strings.ChatList_Context_MarkAsRead, icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/MarkAsRead"), color: theme.contextMenu.primaryColor) }, action: { _, f in
-                                    let _ = context.engine.messages.togglePeersUnreadMarkInteractively(peerIds: [peerId], setToValue: nil).startStandalone()
+                                    let _ = context.engine.messages.togglePeersUnreadMarkInteractively(peerIds: [peerId], setToValue: true).startStandalone()
                                     f(.default)
                                 })))
                             } else if !isForum {

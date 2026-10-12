@@ -18,6 +18,10 @@ public struct ForkExtrasSettings: Codable, Equatable {
     /// Legacy single Ghost Mode toggle. Still encoded for older builds; granular flags are source of truth.
     /// When true in old prefs (no granular keys), it seeds dont-read / dont-online / dont-typing.
     /// AyuGram: Don't Read Messages — suppress read receipts / seen reactions while browsing.
+    public var removePings: Bool
+    public var sendTelegramStatistics: Bool
+    public var bananaIslandEnabled: Bool
+    public var bananaIslandShowsName: Bool
     public var wideTabBar: Bool
     public var integratedTabSearch: Bool
     public var tabSearchOnLeft: Bool
@@ -282,6 +286,10 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.stopAfterVoice = false
         self.stopAfterRoundVideo = false
         self.hideGreetingSticker = false
+        self.removePings = false
+        self.sendTelegramStatistics = false
+        self.bananaIslandEnabled = true
+        self.bananaIslandShowsName = true
         self.hashtagsPreferCurrentChat = false
         self.showOriginalForwardDate = false
         self.sendBannedGifsAsVideo = false
@@ -361,6 +369,10 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.stopAfterVoice = try container.decodeIfPresent(Bool.self, forKey: "stopAfterVoice") ?? false
         self.stopAfterRoundVideo = try container.decodeIfPresent(Bool.self, forKey: "stopAfterRoundVideo") ?? false
         self.hideGreetingSticker = try container.decodeIfPresent(Bool.self, forKey: "hideGreetingSticker") ?? false
+        self.removePings = try container.decodeIfPresent(Bool.self, forKey: "removePings") ?? false
+        self.sendTelegramStatistics = try container.decodeIfPresent(Bool.self, forKey: "sendTelegramStatistics") ?? false
+        self.bananaIslandEnabled = try container.decodeIfPresent(Bool.self, forKey: "bananaIslandEnabled") ?? true
+        self.bananaIslandShowsName = try container.decodeIfPresent(Bool.self, forKey: "bananaIslandShowsName") ?? true
         self.hashtagsPreferCurrentChat = try container.decodeIfPresent(Bool.self, forKey: "hashtagsPreferCurrentChat") ?? false
         self.showOriginalForwardDate = try container.decodeIfPresent(Bool.self, forKey: "showOriginalForwardDate") ?? false
         self.sendBannedGifsAsVideo = try container.decodeIfPresent(Bool.self, forKey: "sendBannedGifsAsVideo") ?? false
@@ -447,6 +459,10 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.stopAfterVoice, forKey: "stopAfterVoice")
         try container.encode(self.stopAfterRoundVideo, forKey: "stopAfterRoundVideo")
         try container.encode(self.hideGreetingSticker, forKey: "hideGreetingSticker")
+        try container.encode(self.removePings, forKey: "removePings")
+        try container.encode(self.sendTelegramStatistics, forKey: "sendTelegramStatistics")
+        try container.encode(self.bananaIslandEnabled, forKey: "bananaIslandEnabled")
+        try container.encode(self.bananaIslandShowsName, forKey: "bananaIslandShowsName")
         try container.encode(self.hashtagsPreferCurrentChat, forKey: "hashtagsPreferCurrentChat")
         try container.encode(self.showOriginalForwardDate, forKey: "showOriginalForwardDate")
         try container.encode(self.sendBannedGifsAsVideo, forKey: "sendBannedGifsAsVideo")
@@ -881,6 +897,7 @@ public enum ForkRegexMessageFilters {
 /// NSE-readable flags (App Group / standard UserDefaults). AccountManager is not available in NSE.
 public enum ForkExtrasNotificationBridge {
     private static let suiteHintKey = "ForkExtras.AppGroupSuite"
+    private static let removePingsKey = "ForkExtras.removePings"
     private static let hideMentionsKey = "ForkExtras.hideMentionNotifications"
     private static let hidePinnedKey = "ForkExtras.hidePinnedNotifications"
     
@@ -910,15 +927,15 @@ public enum ForkExtrasNotificationBridge {
         return suites.filter { seen.insert($0).inserted }
     }
     
-    private static let lastSynced = Atomic<(hideMentions: Bool, hidePinned: Bool)?>(value: nil)
+    private static let lastSynced = Atomic<(hideMentions: Bool, hidePinned: Bool, removePings: Bool)?>(value: nil)
 
     /// Project notification-hide flags into App Group / standard defaults for NSE.
     /// Change-gated and without `synchronize()` — `set` is enough and avoids main-thread disk stalls.
     public static func sync(_ settings: ForkExtrasSettings) {
-        let next = (hideMentions: settings.hideMentionNotifications, hidePinned: settings.hidePinnedNotifications)
+        let next = (hideMentions: settings.hideMentionNotifications, hidePinned: settings.hidePinnedNotifications, removePings: settings.removePings)
         var shouldWrite = false
         let _ = lastSynced.modify { previous in
-            if previous?.hideMentions == next.hideMentions, previous?.hidePinned == next.hidePinned {
+            if previous?.hideMentions == next.hideMentions, previous?.hidePinned == next.hidePinned, previous?.removePings == next.removePings {
                 return previous
             }
             shouldWrite = true
@@ -928,11 +945,13 @@ public enum ForkExtrasNotificationBridge {
             return
         }
         let defaults = UserDefaults.standard
+        defaults.set(next.removePings, forKey: removePingsKey)
         defaults.set(next.hideMentions, forKey: hideMentionsKey)
         defaults.set(next.hidePinned, forKey: hidePinnedKey)
         for suite in candidateSuites() {
             defaults.set(suite, forKey: suiteHintKey)
             if let shared = UserDefaults(suiteName: suite) {
+                shared.set(next.removePings, forKey: removePingsKey)
                 shared.set(next.hideMentions, forKey: hideMentionsKey)
                 shared.set(next.hidePinned, forKey: hidePinnedKey)
             }
@@ -953,6 +972,8 @@ public enum ForkExtrasNotificationBridge {
         return false
     }
     
+    public static var removePings: Bool { return bool(forKey: removePingsKey) }
+
     public static var hideMentionNotifications: Bool {
         return bool(forKey: hideMentionsKey)
     }

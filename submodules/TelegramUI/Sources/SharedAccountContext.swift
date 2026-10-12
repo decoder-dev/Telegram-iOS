@@ -477,6 +477,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
                 // value seeded from initialPresentationDataAndSettings, so the very first emission
                 // can match and skip, leaving the override nil for the rest of the session.
                 ForkPresentationLanguage.languageCode = next.strings.primaryComponent.languageCode
+                strongSelf.updateBananaIslandBadge(strongSelf.immediateForkExtrasSettingsValue.with { $0 })
                 if stringsUpdated {
                     updateLegacyLocalization(strings: next.strings)
                 }
@@ -1228,6 +1229,8 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         ForkSecretScreenshotSettings.allow = settings.allowSecretScreenshots
         ForkExpireTtlSettings.enabled = settings.expireTtlButton
         ForkKeepBannedChatsSettings.enabled = settings.keepBannedChats
+        ForkRemovePingsSettings.enabled = settings.removePings
+        ForkTelegramStatisticsSettings.enabled = settings.sendTelegramStatistics
         ForkGhostScheduleSettings.enabled = settings.ghostScheduleMessages
         ForkExtrasHotFlags.update(ForkExtrasHotFlags.State(
             hideAds: settings.hideAds,
@@ -1259,8 +1262,27 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         )
     }
 
+    private func updateBananaIslandBadge(_ settings: ForkExtrasSettings) {
+        let theme = self.currentPresentationData.with { $0 }.theme
+        let size = CGSize(width: settings.bananaIslandShowsName ? 116.0 : 26.0, height: 20.0)
+        let image = generateImage(size, contextGenerator: { _, context in
+            context.clear(CGRect(origin: .zero, size: size))
+            context.setFillColor(theme.list.itemBlocksBackgroundColor.cgColor)
+            context.addPath(UIBezierPath(roundedRect: CGRect(origin: .zero, size: size), cornerRadius: 10.0).cgPath)
+            context.fillPath()
+            UIGraphicsPushContext(context)
+            ("🍌" as NSString).draw(at: CGPoint(x: 4.0, y: 1.0), withAttributes: [.font: UIFont.systemFont(ofSize: 14.0)])
+            if settings.bananaIslandShowsName {
+                ("BANANAGRAM" as NSString).draw(at: CGPoint(x: 24.0, y: 4.0), withAttributes: [.font: UIFont.systemFont(ofSize: 10.0, weight: .bold), .foregroundColor: theme.list.itemPrimaryTextColor])
+            }
+            UIGraphicsPopContext()
+        })
+        self.mainWindow?.configureAppBadge(image: image, enabled: settings.bananaIslandEnabled)
+    }
+
     private func pushForkExtrasRuntime(_ settings: ForkExtrasSettings) {
         SharedAccountContextImpl.pushForkExtrasToEngineStatics(settings)
+        self.updateBananaIslandBadge(settings)
     }
 
     deinit {

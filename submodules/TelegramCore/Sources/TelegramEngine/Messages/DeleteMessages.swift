@@ -91,7 +91,7 @@ func convertEligibleMessagesToDeletedMarkers(transaction: Transaction, mediaBox:
                 flags: StoreMessageFlags(currentMessage.flags),
                 tags: currentMessage.tags,
                 globalTags: currentMessage.globalTags,
-                localTags: currentMessage.localTags,
+                localTags: currentMessage.localTags.union(.bananaDeleted),
                 forwardInfo: storeForwardInfo,
                 authorId: currentMessage.author?.id,
                 text: currentMessage.text,
@@ -102,6 +102,44 @@ func convertEligibleMessagesToDeletedMarkers(transaction: Transaction, mediaBox:
         converted.insert(id)
     }
     return converted
+}
+
+func bananaIndexRetainedMessages(transaction: Transaction, accountPeerId: PeerId, peerId: PeerId) {
+    let ids = MessageSavingBridge.retainedMessageIds.with { $0 }?(accountPeerId.toInt64(), peerId.toInt64()) ?? []
+    for id in Set(ids) {
+        guard let message = transaction.getMessage(id), message.isLocallyDeleted, !message.localTags.contains(.bananaDeleted) else { continue }
+        transaction.updateMessage(id, update: { currentMessage in
+        var storeForwardInfo: StoreMessageForwardInfo?
+        if let forwardInfo = currentMessage.forwardInfo {
+            storeForwardInfo = StoreMessageForwardInfo(
+                authorId: forwardInfo.author?.id,
+                sourceId: forwardInfo.source?.id,
+                sourceMessageId: forwardInfo.sourceMessageId,
+                date: forwardInfo.date,
+                authorSignature: forwardInfo.authorSignature,
+                psaType: forwardInfo.psaType,
+                flags: forwardInfo.flags
+            )
+        }
+        return .update(StoreMessage(
+            id: currentMessage.id,
+            customStableId: nil,
+            globallyUniqueId: currentMessage.globallyUniqueId,
+            groupingKey: currentMessage.groupingKey,
+            threadId: currentMessage.threadId,
+            timestamp: currentMessage.timestamp,
+            flags: StoreMessageFlags(currentMessage.flags),
+            tags: currentMessage.tags,
+            globalTags: currentMessage.globalTags,
+            localTags: currentMessage.localTags.union(.bananaDeleted),
+            forwardInfo: storeForwardInfo,
+            authorId: currentMessage.author?.id,
+            text: currentMessage.text,
+            attributes: currentMessage.attributes,
+            media: currentMessage.media
+        ))
+        })
+    }
 }
 
 /// - Parameter allowDeletedMarkers: when true (remote / TTL / validation), eligible

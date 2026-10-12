@@ -1144,11 +1144,32 @@ public func resendMessages(account: Account, messageIds: [MessageId]) -> Signal<
 }
 
 func enqueueMessages(transaction: Transaction, account: Account, peerId: PeerId, messages: [(Bool, EnqueueMessage)], disableAutoremove: Bool = false, transformGroupingKeysWithPeerId: Bool = false) -> [MessageId?] {
+    if bananaGhostDropsScreenshotNotifications(messages) { return messages.map { _ in nil } }
+    let allowedIndices = messages.indices.filter { !bananaGhostDropsScreenshotNotifications([messages[$0]]) }
+    if allowedIndices.count != messages.count {
+        let ids = enqueueMessages(transaction: transaction, account: account, peerId: peerId,
+            messages: allowedIndices.map { messages[$0] }, disableAutoremove: disableAutoremove,
+            transformGroupingKeysWithPeerId: transformGroupingKeysWithPeerId)
+        var result = Array<MessageId?>(repeating: nil, count: messages.count)
+        for (index, id) in zip(allowedIndices, ids) { result[index] = id }
+        return result
+    }
+    // Covers multi-peer forwards and sends outside ChatController too. Existing
+    // dates and quick replies remain untouched; secret chats cannot schedule.
+    let scheduleTime = Int32(account.network.context.globalTime()) + 12
+    let messages = messages.map { entry -> (Bool, EnqueueMessage) in
+        return (entry.0, entry.1.withUpdatedAttributes { attributes in
+            guard bananaGhostScheduleAllowed(peerNamespace: peerId.namespace,
+                hasUserSchedule: attributes.contains(where: { $0 is OutgoingScheduleInfoMessageAttribute }),
+                isQuickReply: attributes.contains(where: { $0 is OutgoingQuickReplyMessageAttribute })) else { return attributes }
+            return attributes + [OutgoingScheduleInfoMessageAttribute(scheduleTime: scheduleTime, repeatPeriod: nil)]
+        })
+    }
     /**
      * If it is a support account, mark messages as read here as they are
      * not marked as read when chat is opened.
      **/
-    if account.isSupportUser {
+    if account.isSupportUser && !ForkGhostModeSettings.shouldSuppressMessageReads {
         let namespace: MessageId.Namespace
         if peerId.namespace == Namespaces.Peer.SecretChat {
             namespace = Namespaces.Message.SecretIncoming

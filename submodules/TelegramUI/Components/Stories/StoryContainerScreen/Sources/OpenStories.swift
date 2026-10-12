@@ -9,6 +9,38 @@ import TelegramUIPreferences
 import PresentationDataUtils
 
 public extension StoryContainerScreen {
+    // Ghost mode hides story views, but a live story is a group call: watching it joins
+    // the call as the account, so its host can see the viewer. The viewer asks first
+    // (StoryItemContentComponent). Only the first tap counts.
+    internal static func makeBananaLiveStreamGhostAlert(context: AccountContext, completion: @escaping (Bool) -> Void) -> AlertController {
+        let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+        let russian = presentationData.strings.primaryComponent.languageCode.lowercased().hasPrefix("ru")
+        var didAnswer = false
+        return standardTextAlertController(theme: AlertControllerTheme(presentationData: presentationData), title: (russian ? "Режим призрака" : "Ghost mode"), text: (russian ? "Это прямой эфир. Автор может увидеть вас среди зрителей." : "This is a live stream. Its host may see you among the viewers."), actions: [
+            TextAlertAction(type: .genericAction, title: presentationData.strings.Common_Cancel, action: {
+                if didAnswer {
+                    return
+                }
+                didAnswer = true
+                completion(false)
+            }),
+            TextAlertAction(type: .defaultAction, title: (russian ? "Смотреть" : "Watch"), action: {
+                if didAnswer {
+                    return
+                }
+                didAnswer = true
+                completion(true)
+            })
+        ], dismissOnOutsideTap: false)
+    }
+
+    // Whether watching a live story has to be confirmed: ghost mode with story view
+    // receipts off (the check `_internal_markStoryAsSeen` makes).
+    internal static func bananaLiveStreamNeedsGhostConfirmation() -> Bool {
+        return ForkGhostModeSettings.suppressStoryViews
+    }
+
+
     /// AyuGram Ghost Mode: Alert Before Opening Story.
     /// Outside tap dismisses without opening (`dismissOnOutsideTap`).
     static func confirmGhostStoryOpenIfNeeded(context: AccountContext, controller: ViewController?, proceed: @escaping () -> Void) {

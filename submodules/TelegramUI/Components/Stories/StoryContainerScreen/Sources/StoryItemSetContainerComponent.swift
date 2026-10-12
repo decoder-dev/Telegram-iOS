@@ -1638,6 +1638,13 @@ public final class StoryItemSetContainerComponent: Component {
                                 return
                             }
                             component.markAsSeen(id)
+                        },
+                        confirmLiveStreamJoin: { [weak self] completion in
+                            guard let self, let component = self.component, let controller = component.controller() else {
+                                completion(false)
+                                return
+                            }
+                            controller.present(StoryContainerScreen.makeBananaLiveStreamGhostAlert(context: component.context, completion: completion), in: .window(.root))
                         }
                     )
                     

@@ -22,6 +22,7 @@ func bananaSettingsLinkTarget(_ path: String) -> (ForkExtrasControllerFocus, Int
     case "saving": focus = .ninja
     case "ghost": focus = .ghost
     case "privacy": focus = .privacy
+    case "island": focus = .appearance
     // Pages from before the Extras regrouping; the controller routes an item id to the page that owns it now.
     case "appearance", "chatlist": focus = .chatList
     case "tabbar": focus = .tabBar
@@ -44,6 +45,7 @@ func bananaSettingsPage(_ focus: ForkExtrasControllerFocus) -> String {
     case .ninja: return "saving"
     case .ghost: return "ghost"
     case .privacy: return "privacy"
+    case .appearance: return "island"
     case .chatList: return "chatlist"
     case .tabBar: return "tabbar"
     case .messages: return "messages"

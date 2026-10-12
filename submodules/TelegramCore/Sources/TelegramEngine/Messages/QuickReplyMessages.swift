@@ -398,6 +398,7 @@ func _internal_sendMessageShortcut(account: Account, peerId: PeerId, id: Int32) 
         |> mapToSignal { result -> Signal<Never, NoError> in
             if let result {
                 account.stateManager.addUpdates(result)
+                bananaRequestGhostOfflineAfterAction(network: account.network)
             }
             return .complete()
         }

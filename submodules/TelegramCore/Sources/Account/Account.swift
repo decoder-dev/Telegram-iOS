@@ -1759,6 +1759,7 @@ public class Account {
     }
     
     private func postSmallLogIfNeeded() {
+        guard ForkTelegramStatisticsSettings.enabled else { return }
         let timestamp = CFAbsoluteTimeGetCurrent()
         if self.lastSmallLogPostTimestamp == nil || self.lastSmallLogPostTimestamp! < timestamp - 30.0 {
             self.lastSmallLogPostTimestamp = timestamp

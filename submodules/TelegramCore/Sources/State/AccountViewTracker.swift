@@ -2642,8 +2642,11 @@ public final class AccountViewTracker {
             let pendingPollVotesKey: PostboxViewKey = .pendingMessageActionsSummary(type: .readReactionOrPollVote, peerId: peerId, namespace: Namespaces.Message.Cloud)
             let summaryPollVotesKey: PostboxViewKey = .historyTagSummaryView(tag: .unseenPollVote, peerId: peerId, threadId: threadId, namespace: Namespaces.Message.Cloud, customTag: nil)
             
-            return account.postbox.combinedView(keys: [pendingMentionsKey, summaryMentionsKey, pendingReactionsKey, summaryReactionsKey, pendingPollVotesKey, summaryPollVotesKey])
-            |> map { views -> (mentionCount: Int32, reactionCount: Int32, pollVoteCount: Int32) in
+            return combineLatest(
+                account.postbox.combinedView(keys: [pendingMentionsKey, summaryMentionsKey, pendingReactionsKey, summaryReactionsKey, pendingPollVotesKey, summaryPollVotesKey]),
+                bananaRemovePingsEnabled()
+            )
+            |> map { views, removePings -> (mentionCount: Int32, reactionCount: Int32, pollVoteCount: Int32) in
                 var mentionCount: Int32 = 0
                 if let view = views.views[pendingMentionsKey] as? PendingMessageActionsSummaryView {
                     mentionCount -= view.count
@@ -2668,7 +2671,7 @@ public final class AccountViewTracker {
                         pollVoteCount += unseenCount
                     }
                 }
-                return (max(0, mentionCount), max(0, reactionCount), max(0, pollVoteCount))
+                return (removePings ? 0 : max(0, mentionCount), max(0, reactionCount), max(0, pollVoteCount))
             }
             |> distinctUntilChanged(isEqual: { lhs, rhs in
                 if lhs.mentionCount != rhs.mentionCount {

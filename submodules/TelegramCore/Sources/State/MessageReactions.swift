@@ -375,6 +375,7 @@ private func requestUpdateMessageReaction(postbox: Postbox, network: Network, st
             return .generic
         }
         |> mapToSignal { result -> Signal<Never, RequestUpdateMessageReactionError> in
+            bananaRequestGhostOfflineAfterAction(network: network)
             return postbox.transaction { transaction -> Void in
                 transaction.setPendingMessageAction(type: .updateReaction, id: messageId, action: UpdateMessageReactionsAction())
                 transaction.updateMessage(messageId, update: { currentMessage in
@@ -465,6 +466,7 @@ private func requestSendStarsReaction(postbox: Postbox, network: Network, stateM
             }
             |> mapToSignal { result -> Signal<Never, RequestUpdateMessageReactionError> in
                 stateManager.starsContext?.add(balance: StarsAmount(value: Int64(-count), nanos: 0), addTransaction: false)
+                bananaRequestGhostOfflineAfterAction(network: network)
                 
                 return postbox.transaction { transaction -> Void in
                     transaction.setPendingMessageAction(type: .sendStarsReaction, id: messageId, action: UpdateMessageReactionsAction())

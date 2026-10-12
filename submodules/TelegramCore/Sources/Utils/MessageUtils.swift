@@ -2,6 +2,13 @@ import Foundation
 import Postbox
 import TelegramApi
 
+public func bananaUsesPersonalNotificationSettings(peerId: PeerId, personal: Bool, removePings: Bool) -> Bool {
+    if removePings, peerId.namespace == Namespaces.Peer.CloudGroup || peerId.namespace == Namespaces.Peer.CloudChannel {
+        return false
+    }
+    return personal
+}
+
 public extension MessageFlags {
     var isSending: Bool {
         return (self.contains(.Unsent) || self.contains(.Sending)) && !self.contains(.Failed)
@@ -213,6 +220,10 @@ public extension Message {
         return false
     }
     
+    var bananaPersonalForNotifications: Bool {
+        return bananaUsesPersonalNotificationSettings(peerId: self.id.peerId, personal: self.personal, removePings: ForkRemovePingsSettings.enabled)
+    }
+
     var requestsSetupReply: Bool {
         for attribute in self.attributes {
             if let attribute = attribute as? ReplyMarkupMessageAttribute {

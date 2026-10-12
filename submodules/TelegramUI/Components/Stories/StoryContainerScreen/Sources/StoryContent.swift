@@ -71,6 +71,8 @@ public final class StoryContentItem: Equatable {
         public let presentationProgressUpdated: (Double, Bool, Bool) -> Void
         public let customItemSubtitleUpdated: () -> Void
         public let markAsSeen: (EngineStoryId) -> Void
+        /// Donutgram: asks whether to join a live story's call, and calls back with the answer.
+        public let confirmLiveStreamJoin: (@escaping (Bool) -> Void) -> Void
         
         public init(
             externalState: ExternalState,
@@ -79,7 +81,8 @@ public final class StoryContentItem: Equatable {
             containerInsets: UIEdgeInsets,
             presentationProgressUpdated: @escaping (Double, Bool, Bool) -> Void,
             customItemSubtitleUpdated: @escaping () -> Void,
-            markAsSeen: @escaping (EngineStoryId) -> Void
+            markAsSeen: @escaping (EngineStoryId) -> Void,
+            confirmLiveStreamJoin: @escaping (@escaping (Bool) -> Void) -> Void = { completion in completion(true) }
         ) {
             self.externalState = externalState
             self.sharedState = sharedState
@@ -88,6 +91,7 @@ public final class StoryContentItem: Equatable {
             self.presentationProgressUpdated = presentationProgressUpdated
             self.customItemSubtitleUpdated = customItemSubtitleUpdated
             self.markAsSeen = markAsSeen
+            self.confirmLiveStreamJoin = confirmLiveStreamJoin
         }
         
         public static func ==(lhs: Environment, rhs: Environment) -> Bool {

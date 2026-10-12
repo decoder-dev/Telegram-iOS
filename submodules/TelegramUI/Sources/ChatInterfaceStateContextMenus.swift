@@ -1,4 +1,5 @@
 import Foundation
+import Postbox
 import UIKit
 import TelegramCore
 import AsyncDisplayKit

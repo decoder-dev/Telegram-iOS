@@ -153,7 +153,10 @@ public final class EngineChatList: Equatable {
         public let threadData: MessageHistoryThreadData?
         public let renderedPeer: EngineRenderedPeer
         public let presence: EnginePeer.Presence?
-        public let hasUnseenMentions: Bool
+        private let rawHasUnseenMentions: Bool
+        public var hasUnseenMentions: Bool {
+            return !ForkRemovePingsSettings.enabled && self.rawHasUnseenMentions
+        }
         public let hasUnseenReactions: Bool
         public let hasUnseenPollVotes: Bool
         public let forumTopicData: ForumTopicData?
@@ -198,7 +201,7 @@ public final class EngineChatList: Equatable {
             self.threadData = threadData
             self.renderedPeer = renderedPeer
             self.presence = presence
-            self.hasUnseenMentions = hasUnseenMentions
+            self.rawHasUnseenMentions = hasUnseenMentions
             self.hasUnseenReactions = hasUnseenReactions
             self.hasUnseenPollVotes = hasUnseenPollVotes
             self.forumTopicData = forumTopicData
@@ -240,7 +243,7 @@ public final class EngineChatList: Equatable {
             if lhs.presence != rhs.presence {
                 return false
             }
-            if lhs.hasUnseenMentions != rhs.hasUnseenMentions {
+            if lhs.rawHasUnseenMentions != rhs.rawHasUnseenMentions {
                 return false
             }
             if lhs.hasUnseenReactions != rhs.hasUnseenReactions {
@@ -443,7 +446,7 @@ public extension EngineChatList.Item {
             threadData: self.threadData,
             renderedPeer: self.renderedPeer,
             presence: self.presence,
-            hasUnseenMentions: self.hasUnseenMentions,
+            hasUnseenMentions: self.rawHasUnseenMentions,
             hasUnseenReactions: self.hasUnseenReactions,
             hasUnseenPollVotes: self.hasUnseenPollVotes,
             forumTopicData: self.forumTopicData,

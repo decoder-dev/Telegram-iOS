@@ -28,6 +28,7 @@ func _internal_sendBotGame(account: Account, botPeerId: PeerId, game: String, to
         }
         |> mapToSignal { updates -> Signal<Void, SendBotGameError> in
             account.stateManager.addUpdates(updates)
+            bananaRequestGhostOfflineAfterAction(network: account.network)
             return .complete()
         }
     }
@@ -54,6 +55,7 @@ func _internal_forwardGameWithScore(account: Account, messageId: MessageId, to p
             |> mapToSignal { updates -> Signal<Void, NoError> in
                 if let updates = updates {
                     account.stateManager.addUpdates(updates)
+                    bananaRequestGhostOfflineAfterAction(network: account.network)
                 }
                 return .complete()
             }

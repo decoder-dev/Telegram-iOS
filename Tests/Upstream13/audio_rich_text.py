@@ -28,6 +28,7 @@ class AudioRichText(unittest.TestCase):
         paid = body.split('presentPaidMessageAlertIfNeeded', 1)[1]
         self.assertLess(paid.index(guard), paid.index('strongSelf.sendMessages('))
         menu = read('submodules/TelegramUI/Sources/ChatInterfaceStateContextMenus.swift')
+        self.assertIn('import Postbox', menu)
         conversion = menu.split('forkVoiceToAudio(context:', 1)[1].split('})))', 1)[0]
         self.assertIn('context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: peerId))', conversion)
         self.assertLess(conversion.index('canSendAudioMessagesToPeer(peer, isVoice: false'), conversion.index('return enqueueMessages('))

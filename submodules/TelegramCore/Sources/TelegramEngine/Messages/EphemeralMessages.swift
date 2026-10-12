@@ -512,6 +512,8 @@ private func performPreparedEphemeralMessageSend(account: Account, prepared: Pre
         }
         |> mapToSignal { result -> Signal<MessageId?, NoError> in
             if let result {
+                // Donutgram: an ephemeral message is sent at once even in ghost mode's scheduled sending.
+                bananaRequestGhostOfflineAfterAction(network: account.network)
                 if let message = outgoingEphemeralMessage(from: result, prepared: prepared, accountPeerId: account.peerId) {
                     if prepared.isWelcomeTemplate {
                         let remainingUpdates = message.id.flatMap { updatesWithoutWelcomeMessage(result, messageId: $0) }
