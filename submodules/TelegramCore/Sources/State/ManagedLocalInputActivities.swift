@@ -564,6 +564,20 @@ public enum ForkGhostModeSettings {
         return current.suppressMessageReads
     }
 
+    /// Pending automatic media reads must react to toggles and interaction-window expiry.
+    public static var automaticContentReadsAllowed: Signal<Bool, NoError> {
+        return Signal { subscriber in
+            let observer = NotificationCenter.default.addObserver(forName: didChangeNotification, object: nil, queue: nil) { _ in
+                subscriber.putNext(!shouldSuppressMessageReads)
+            }
+            subscriber.putNext(!shouldSuppressMessageReads)
+            return ActionDisposable {
+                NotificationCenter.default.removeObserver(observer)
+            }
+        }
+        |> distinctUntilChanged
+    }
+
     public static var shouldSuppressOnline: Bool {
         let current = state.with { $0 }
         if current.interactOverrideActive {

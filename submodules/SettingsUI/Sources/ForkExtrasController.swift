@@ -1677,7 +1677,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(1509, ForkPresentationLanguage.prefersRussianStrings ? "Скрыть платные реакции" : "Hide paid reactions", settings.hidePaidReactions, \.hidePaidReactions),
             .appearanceToggle(1510, ForkPresentationLanguage.prefersRussianStrings ? "Скрыть «через бота»" : "Hide \"via bot\"", settings.hideViaBot, \.hideViaBot),
             .appearanceToggle(1511, ForkPresentationLanguage.prefersRussianStrings ? "Отправлять без превью ссылок" : "Send without link previews", settings.removeLinkPreviews, \.removeLinkPreviews),
-            .appearanceToggle(1512, ForkPresentationLanguage.prefersRussianStrings ? "Скрыть уведомления о днях рождения" : "Hide birthday notifications", settings.hideBirthdayNotifications, \.hideBirthdayNotifications),
+            .appearanceToggle(1512, ForkPresentationLanguage.prefersRussianStrings ? "Скрыть подсказки о днях рождения" : "Hide birthday banners", settings.hideBirthdayNotifications, \.hideBirthdayNotifications),
             .appearanceToggle(1513, ForkPresentationLanguage.prefersRussianStrings ? "Скрыть панель автоматизации бота" : "Hide bot automation panel", settings.hideBotAutomation, \.hideBotAutomation),
             .appearanceToggle(1515, ForkPresentationLanguage.prefersRussianStrings ? "Останавливать после голосового" : "Stop after a voice message", settings.stopAfterVoice, \.stopAfterVoice),
             .appearanceToggle(1516, ForkPresentationLanguage.prefersRussianStrings ? "Останавливать после кружка" : "Stop after a round video", settings.stopAfterRoundVideo, \.stopAfterRoundVideo),

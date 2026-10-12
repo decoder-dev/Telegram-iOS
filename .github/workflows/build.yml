@@ -63,6 +63,9 @@ jobs:
           python3 Tests/Upstream13/parse.py
           python3 Tests/Upstream13/migration.py
           python3 Tests/Upstream13/own_features.py
+          python3 Tests/Upstream13/sticker_settings.py
+          python3 Tests/Upstream13/queued_reads.py
+          python3 Tests/Customization/greeting_live.py
           python3 Tests/Upstream13/passcode.py
           python3 Tests/Upstream13/passcode_codec.py
           python3 Tests/Upstream13/proxy_switching.py

@@ -68,10 +68,14 @@ private func withTakenOperation(postbox: Postbox, peerId: PeerId, tagLocalIndex:
 func managedSynchronizeConsumeMessageContentOperations(postbox: Postbox, network: Network, stateManager: AccountStateManager) -> Signal<Void, NoError> {
     return Signal { _ in
         let helper = Atomic<ManagedSynchronizeConsumeMessageContentsOperationHelper>(value: ManagedSynchronizeConsumeMessageContentsOperationHelper())
+        let queue = Queue()
         
-        let disposable = postbox.mergedOperationLogView(tag: OperationLogTags.SynchronizeConsumeMessageContents, limit: 10).start(next: { view in
+        let disposable = (combineLatest(postbox.mergedOperationLogView(tag: OperationLogTags.SynchronizeConsumeMessageContents, limit: 10), ForkGhostModeSettings.automaticContentReadsAllowed)
+        |> deliverOn(queue)).start(next: { view, readsAllowed in
             let (disposeOperations, beginOperations) = helper.with { helper -> (disposeOperations: [Disposable], beginOperations: [(PeerMergedOperationLogEntry, MetaDisposable)]) in
-                return helper.update(view.entries)
+                // Keep durable operations queued while hidden; cancelling a request does not
+                // run the completion transaction that removes its operation log entry.
+                return helper.update(readsAllowed ? view.entries : [])
             }
             
             for disposable in disposeOperations {
@@ -110,6 +114,11 @@ func managedSynchronizeConsumeMessageContentOperations(postbox: Postbox, network
 }
 
 private func synchronizeConsumeMessageContents(transaction: Transaction, network: Network, stateManager: AccountStateManager, peerId: PeerId, operation: SynchronizeConsumeMessageContentsOperation) -> Signal<Void, NoError> {
+    guard !ForkGhostModeSettings.shouldSuppressMessageReads else {
+        // A toggle can race the postbox transaction. Keep the operation pending until
+        // the permission observer cancels it and resumes it after reads are allowed.
+        return .never()
+    }
     if peerId.namespace == Namespaces.Peer.CloudUser || peerId.namespace == Namespaces.Peer.CloudGroup {
         return network.request(Api.functions.messages.readMessageContents(id: operation.messageIds.map { $0.id }))
         |> map(Optional.init)

@@ -6,6 +6,7 @@ import Display
 import SwiftSignalKit
 import TelegramCore
 import TelegramPresentationData
+import TelegramUIPreferences
 import AppBundle
 import LocalizedPeerData
 import TelegramStringFormatting
@@ -104,6 +105,7 @@ public final class ChatEmptyNodeGreetingChatContent: ASDisplayNode, ChatEmptyNod
     private var didSetupSticker = false
     private let disposable = MetaDisposable()
     private var currentCustomStickerFile: TelegramMediaFile?
+    fileprivate var hideGreetingSticker: Bool?
         
     public init(context: AccountContext, interaction: ChatPanelInterfaceInteraction?) {
         self.context = context
@@ -196,7 +198,7 @@ public final class ChatEmptyNodeGreetingChatContent: ASDisplayNode, ChatEmptyNod
             stickerSize = dimensions.aspectFitted(stickerSize)
         }
         
-        let hideDefaultSticker = customStickerFile == nil && self.context.sharedContext.immediateForkExtrasSettings.hideGreetingSticker
+        let hideDefaultSticker = customStickerFile == nil && (self.hideGreetingSticker ?? self.context.sharedContext.immediateForkExtrasSettings.hideGreetingSticker)
         self.stickerNode.isHidden = hideDefaultSticker
         if hideDefaultSticker {
             stickerSize = .zero
@@ -1597,10 +1599,36 @@ public final class ChatEmptyNode: ASDisplayNode {
     
     private var content: (ChatEmptyNodeContentType, ASDisplayNode & ChatEmptyNodeContent)?
     private var attachedDescriptionNode: EmptyAttachedDescriptionNode?
+
+    private final class LayoutParameters {
+        let interfaceState: ChatPresentationInterfaceState
+        let subject: Subject
+        weak var loadingNode: ChatLoadingNode?
+        weak var backgroundNode: WallpaperBackgroundNode?
+        let size: CGSize
+        let insets: UIEdgeInsets
+        let leftInset: CGFloat
+        let rightInset: CGFloat
+
+        init(interfaceState: ChatPresentationInterfaceState, subject: Subject, loadingNode: ChatLoadingNode?, backgroundNode: WallpaperBackgroundNode?, size: CGSize, insets: UIEdgeInsets, leftInset: CGFloat, rightInset: CGFloat) {
+            self.interfaceState = interfaceState
+            self.subject = subject
+            self.loadingNode = loadingNode
+            self.backgroundNode = backgroundNode
+            self.size = size
+            self.insets = insets
+            self.leftInset = leftInset
+            self.rightInset = rightInset
+        }
+    }
+    private var layoutParameters: LayoutParameters?
+    private var hideGreetingSticker: Bool
+    private let greetingSettingsDisposable = MetaDisposable()
     
     public init(context: AccountContext, interaction: ChatPanelInterfaceInteraction?) {
         self.context = context
         self.interaction = interaction
+        self.hideGreetingSticker = context.sharedContext.immediateForkExtrasSettings.hideGreetingSticker
         
         self.backgroundNode = NavigationBackgroundNode(color: .clear)
         
@@ -1609,6 +1637,29 @@ public final class ChatEmptyNode: ASDisplayNode {
         self.isUserInteractionEnabled = false
         
         self.addSubnode(self.backgroundNode)
+
+        self.greetingSettingsDisposable.set((forkExtrasSettings(accountManager: context.sharedContext.accountManager)
+        |> map { $0.hideGreetingSticker }
+        |> distinctUntilChanged
+        |> deliverOnMainQueue).start(next: { [weak self] hideGreetingSticker in
+            self?.updateGreetingStickerVisibility(hideGreetingSticker)
+        }))
+    }
+
+    deinit {
+        self.greetingSettingsDisposable.dispose()
+    }
+
+    private func updateGreetingStickerVisibility(_ hideGreetingSticker: Bool) {
+        guard self.hideGreetingSticker != hideGreetingSticker else {
+            return
+        }
+        self.hideGreetingSticker = hideGreetingSticker
+        guard let parameters = self.layoutParameters else {
+            return
+        }
+        // Reuse the current safe area and wallpaper, without replaying an earlier loading animation.
+        self.updateLayout(interfaceState: parameters.interfaceState, subject: parameters.subject, loadingNode: parameters.loadingNode, backgroundNode: parameters.backgroundNode, size: parameters.size, insets: parameters.insets, leftInset: parameters.leftInset, rightInset: parameters.rightInset, transition: .immediate)
     }
     
     override public func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
@@ -1650,6 +1701,7 @@ public final class ChatEmptyNode: ASDisplayNode {
     }
     
     public func updateLayout(interfaceState: ChatPresentationInterfaceState, subject: Subject, loadingNode: ChatLoadingNode?, backgroundNode: WallpaperBackgroundNode?, size: CGSize, insets: UIEdgeInsets, leftInset: CGFloat, rightInset: CGFloat, transition: ContainedViewLayoutTransition) {
+        self.layoutParameters = LayoutParameters(interfaceState: interfaceState, subject: subject, loadingNode: loadingNode, backgroundNode: backgroundNode, size: size, insets: insets, leftInset: leftInset, rightInset: rightInset)
         self.wallpaperBackgroundNode = backgroundNode
         
         if self.currentTheme !== interfaceState.theme || self.currentStrings !== interfaceState.strings {
@@ -1783,9 +1835,12 @@ public final class ChatEmptyNode: ASDisplayNode {
         
         var contentSize = CGSize()
         if let contentNode = self.content?.1 {
+            if let greetingNode = contentNode as? ChatEmptyNodeGreetingChatContent {
+                greetingNode.hideGreetingSticker = self.hideGreetingSticker
+            }
             contentSize = contentNode.updateLayout(interfaceState: interfaceState, subject: subject, size: displayRect.size, leftInset: leftInset, rightInset: rightInset, transition: contentTransition)
             
-            if updateGreetingSticker {
+            if updateGreetingSticker && !self.hideGreetingSticker {
                 self.context.prefetchManager?.prepareNextGreetingSticker()
             }
         }
