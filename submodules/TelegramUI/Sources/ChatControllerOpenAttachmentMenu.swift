@@ -1388,8 +1388,8 @@ extension ChatControllerImpl {
         let initialCaption = self.presentationInterfaceState.interfaceState.effectiveInputState.inputText
         legacyMediaEditor(context: self.context, peer: EnginePeer(peer), threadTitle: self.contentData?.state.threadInfo?.title, media: mediaReference, mode: mode, initialCaption: initialCaption, snapshots: [], transitionCompletion: nil, getCaptionPanelView: { [weak self] in
             return self?.getCaptionPanelView(isFile: false, hasTimer: false)
-        }, photoToolbarView: { [context = self.context] backButton, doneButton, solidBackground, hasSendStarsButton in
-            return makeMediaPickerPhotoToolbarView(context: context, backButton: backButton, doneButton: doneButton, solidBackground: solidBackground, hasSendStarsButton: hasSendStarsButton)
+        }, photoToolbarView: { backButton, doneButton, solidBackground, hasSendStarsButton in
+            return makeMediaPickerPhotoToolbarView(backButton: backButton, doneButton: doneButton, solidBackground: solidBackground, hasSendStarsButton: hasSendStarsButton)
         }, sendMessagesWithSignals: { [weak self] signals, _, _, _ in
             guard let self, let signals else {
                 return

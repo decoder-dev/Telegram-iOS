@@ -632,15 +632,6 @@ private func openCheckedExternalUrl(context: AccountContext, urlContext: OpenURL
                         }
                         convertedUrl = makeTelegramUrl("/proxy", queryItems: queryItems)
                     }
-                case "webproxy":
-                    let server = params["server"] ?? params["host"]
-                    let secret = params["secret"]
-                    if let server, !server.isEmpty, let secret {
-                        convertedUrl = makeTelegramUrl("/webproxy", queryItems: [
-                            URLQueryItem(name: "server", value: server),
-                            URLQueryItem(name: "secret", value: secret)
-                        ])
-                    }
                 case "passport", "oauth", "resolve":
                     if isOAuthUrl(parsedUrl) {
                         switch urlContext {

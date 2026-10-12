@@ -9,6 +9,27 @@ def read(path):
     return (ROOT / path).read_text(encoding='utf-8')
 
 class ForkIntegration(unittest.TestCase):
+    def test_scene_handlers_bind_application_for_fork_background_tasks(self):
+        source = read('submodules/TelegramUI/Sources/AppDelegate.swift')
+        for method, end in [('func handleDidEnterBackground()', 'func applicationDidReceiveMemoryWarning'),
+                            ('func handleWillEnterForeground()', 'self.runForegroundTasks()')]:
+            body = source.split(method, 1)[1].split(end, 1)[0]
+            self.assertIn('let application = UIApplication.shared', body)
+            self.assertIn('BackgroundKeepAlive(application: application)', body)
+
+    def test_context_menu_uses_shared_edit_policy_and_web_conversion_is_unique(self):
+        source = read('submodules/TelegramUI/Sources/ChatInterfaceStateContextMenus.swift')
+        self.assertIn('import ChatMessageItemCommon', source)
+        self.assertNotIn('private func canEditMessage(accountPeerId:', source)
+        self.assertNotIn('canPerformEditingActions(', source)
+        shared = read('submodules/TelegramUI/Components/Chat/ChatMessageItemCommon/Sources/ChatMessageEditing.swift')
+        self.assertIn('public func canEditMessage(accountPeerId:', shared)
+        self.assertIn('limits.maxMessageEditingInterval', shared)
+        self.assertIn('peer.hasPermission(.pinMessages)', shared)
+        urls = read('submodules/TelegramUI/Sources/OpenUrl.swift')
+        self.assertEqual(urls.count('case "webproxy":'), 1)
+        self.assertIn('params["server"] ?? params["host"]', urls)
+
     def test_siri_helpers_are_unique_and_keep_logged_out_account_guard(self):
         source = read('Telegram/SiriIntents/IntentHandler.swift')
         for name in ['firstValueOrNil', 'completing']:
