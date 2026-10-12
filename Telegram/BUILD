@@ -8,6 +8,7 @@ load("@bazel_skylib//lib:selects.bzl", "selects")
 
 load("@build_bazel_rules_apple//apple:ios.bzl",
     "ios_application",
+    "ios_build_test",
     "ios_extension",
     "ios_framework",
     "ios_ui_test",
@@ -166,6 +167,20 @@ genrule(
 )
 
 minimum_os_version = "15.0"
+
+# Raw swift_library targets inherit the host platform when built directly.
+# Apply the iOS transition without signing or embedding extension bundles.
+ios_build_test(
+    name = "ExtensionLibrariesBuildCheck",
+    minimum_os_version = minimum_os_version,
+    targets = [
+        ":ShareExtensionLib",
+        ":NotificationContentExtensionLib",
+        ":WidgetExtensionLib",
+        ":IntentsExtensionLib",
+        "//Telegram/NotificationService:NotificationServiceExtensionLib",
+    ],
+)
 
 notificationServiceExtensionVersion = "v1"
 

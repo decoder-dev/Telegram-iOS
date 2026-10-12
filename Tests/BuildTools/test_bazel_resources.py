@@ -63,10 +63,21 @@ class BazelResourcesTests(unittest.TestCase):
             args = calls[0]
             self.assertIn('Telegram/Telegram', args)
             self.assertIn('--//Telegram:disableExtensions', args)
+            self.assertEqual('//Telegram:ExtensionLibrariesBuildCheck' in args, enabled)
             for target in ['//Telegram:ShareExtensionLib', '//Telegram:NotificationContentExtensionLib',
                            '//Telegram:WidgetExtensionLib', '//Telegram:IntentsExtensionLib',
                            '//Telegram/NotificationService:NotificationServiceExtensionLib']:
-                self.assertEqual(target in args, enabled, target)
+                self.assertNotIn(target, args, target)
+
+    def test_extension_check_applies_ios_transition_to_all_libraries(self):
+        source = (ROOT / 'Telegram/BUILD').read_text(encoding='utf-8')
+        start = source.index('ios_build_test(\n    name = "ExtensionLibrariesBuildCheck"')
+        block = source[start:source.index('\n)', start)]
+        self.assertIn('minimum_os_version = minimum_os_version', block)
+        for target in [':ShareExtensionLib', ':NotificationContentExtensionLib',
+                       ':WidgetExtensionLib', ':IntentsExtensionLib',
+                       '//Telegram/NotificationService:NotificationServiceExtensionLib']:
+            self.assertIn('"' + target + '"', block)
 
 if __name__ == '__main__':
     unittest.main()

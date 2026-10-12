@@ -337,13 +337,7 @@ class BazelCommandLine:
         else:
             combined_arguments += ['Telegram/Telegram']
         if getattr(self, 'compile_extensions', False):
-            combined_arguments += [
-                '//Telegram:ShareExtensionLib',
-                '//Telegram:NotificationContentExtensionLib',
-                '//Telegram:WidgetExtensionLib',
-                '//Telegram:IntentsExtensionLib',
-                '//Telegram/NotificationService:NotificationServiceExtensionLib',
-            ]
+            combined_arguments += ['//Telegram:ExtensionLibrariesBuildCheck']
 
         if self.continue_on_error:
             combined_arguments += ['--keep_going']
