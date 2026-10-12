@@ -9140,11 +9140,12 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
             isScheduledMessagesSubject = true
         }
         // Hoist once per send — albums must share one schedule base timestamp.
-        // Android full Ghost = dont-read + dont-online + dont-typing + go-offline.
+        // Match the five-flag full Ghost preset shown in settings.
         let applyGhostSchedule = scheduleTime == nil
             && !isScheduledMessagesSubject
             && ForkGhostScheduleSettings.enabled
             && ForkGhostModeSettings.suppressMessageReads
+            && ForkGhostModeSettings.suppressStoryViews
             && ForkGhostModeSettings.suppressOutgoingActivity
             && ForkGhostModeSettings.suppressOnline
             && ForkGhostModeSettings.goOfflineAutomatically
@@ -9322,6 +9323,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         let applyGhostSchedule = !isScheduledMessagesSubject
             && ForkGhostScheduleSettings.enabled
             && ForkGhostModeSettings.suppressMessageReads
+            && ForkGhostModeSettings.suppressStoryViews
             && ForkGhostModeSettings.suppressOutgoingActivity
             && ForkGhostModeSettings.suppressOnline
             && ForkGhostModeSettings.goOfflineAutomatically

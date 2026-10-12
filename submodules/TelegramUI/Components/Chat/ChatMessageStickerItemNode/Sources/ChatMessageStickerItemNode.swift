@@ -549,6 +549,10 @@ public class ChatMessageStickerItemNode: ChatMessageItemView {
             let displayLeftInset = params.leftInset + layoutConstants.bubble.edgeInset + avatarInset
             
             let innerImageInset: CGFloat = 10.0
+            let stickerLeftMargin = params.leftInset + layoutConstants.bubble.edgeInset + layoutConstants.bubble.contentInsets.left + (incoming ? avatarInset : 0.0)
+            let stickerRightMargin = params.rightInset + layoutConstants.bubble.edgeInset + layoutConstants.bubble.contentInsets.left + (incoming ? 0.0 : deliveryFailedInset)
+            let stickerAvailableWidth = max(1.0, params.width - stickerLeftMargin - stickerRightMargin - innerImageInset * 2.0 - (needsShareButton ? 36.0 : 0.0))
+            imageSize = imageSize.aspectFitted(CGSize(width: stickerAvailableWidth, height: imageSize.height))
             let innerImageSize = CGSize(width: imageSize.width + innerImageInset * 2.0, height: imageSize.height + innerImageInset * 2.0)
             var imageFrame = CGRect(origin: CGPoint(x: 0.0 + (incoming ? (params.leftInset + layoutConstants.bubble.edgeInset + avatarInset + layoutConstants.bubble.contentInsets.left) : (params.width - params.rightInset - innerImageSize.width - layoutConstants.bubble.edgeInset - layoutConstants.bubble.contentInsets.left - deliveryFailedInset)), y: -innerImageInset), size: innerImageSize)
             

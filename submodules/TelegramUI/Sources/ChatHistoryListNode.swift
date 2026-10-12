@@ -2130,6 +2130,9 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
             var wideChannelPosts: Bool
             var stickerSizePercent: Int32
             var hideReactionsBar: Bool
+            var hidePaidReactions: Bool
+            var hideViaBot: Bool
+            var accentColorSaturation: Int32
             var deletedMessageMark: String
             var editedMessageMark: String
             var showOriginalForwardDate: Bool
@@ -2149,6 +2152,9 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
                 wideChannelPosts: settings.wideChannelPosts,
                 stickerSizePercent: settings.stickerSizePercent,
                 hideReactionsBar: settings.hideReactionsBar,
+                hidePaidReactions: settings.hidePaidReactions,
+                hideViaBot: settings.hideViaBot,
+                accentColorSaturation: settings.accentColorSaturation,
                 deletedMessageMark: settings.deletedMessageMark,
                 editedMessageMark: settings.editedMessageMark,
                 showOriginalForwardDate: settings.showOriginalForwardDate,

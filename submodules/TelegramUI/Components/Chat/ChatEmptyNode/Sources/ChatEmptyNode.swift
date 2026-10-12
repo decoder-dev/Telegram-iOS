@@ -196,7 +196,16 @@ public final class ChatEmptyNodeGreetingChatContent: ASDisplayNode, ChatEmptyNod
             stickerSize = dimensions.aspectFitted(stickerSize)
         }
         
-        if let item = self.stickerItem, previousCustomStickerFile == customStickerFile {
+        let hideDefaultSticker = customStickerFile == nil && self.context.sharedContext.immediateForkExtrasSettings.hideGreetingSticker
+        self.stickerNode.isHidden = hideDefaultSticker
+        if hideDefaultSticker {
+            stickerSize = .zero
+            self.disposable.set(nil)
+            self.stickerItem = nil
+            self.didSetupSticker = false
+            self.stickerNode.isVisibleInGrid = false
+            self.stickerNode.updateIsPanelVisible(false)
+        } else if let item = self.stickerItem, previousCustomStickerFile == customStickerFile {
             self.stickerNode.updateLayout(item: item, size: stickerSize, isVisible: true, synchronousLoads: true)
         } else if !self.didSetupSticker || previousCustomStickerFile != customStickerFile {
             let sticker: Signal<TelegramMediaFile?, NoError>
@@ -270,7 +279,7 @@ public final class ChatEmptyNodeGreetingChatContent: ASDisplayNode, ChatEmptyNod
         
         let insets = UIEdgeInsets(top: inset, left: inset, bottom: inset, right: inset)
         let titleSpacing: CGFloat = 5.0
-        let stickerSpacing: CGFloat = 5.0
+        let stickerSpacing: CGFloat = hideDefaultSticker ? 0.0 : 5.0
         
         var contentWidth: CGFloat = 220.0
         var contentHeight: CGFloat = 0.0

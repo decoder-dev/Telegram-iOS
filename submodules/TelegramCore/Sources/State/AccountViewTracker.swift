@@ -971,6 +971,9 @@ public final class AccountViewTracker {
     
     public func updateSeenLiveLocationForMessageIds(messageIds: Set<MessageId>) {
         self.queue.async { [self] in
+            guard !ForkGhostModeSettings.shouldSuppressMessageReads else {
+                return
+            }
             var addedMessageIds: [MessageId] = []
             let timestamp = Int32(CFAbsoluteTimeGetCurrent())
             for messageId in messageIds {
@@ -987,6 +990,9 @@ public final class AccountViewTracker {
                     
                     if let account = self.account {
                         let signal = (account.postbox.transaction { transaction -> Signal<Void, NoError> in
+                            guard !ForkGhostModeSettings.shouldSuppressMessageReads else {
+                                return .complete()
+                            }
                             if let peer = transaction.getPeer(peerId), let inputPeer = apiInputPeer(peer) {
                                 let request: Signal<Bool, MTRpcError>
                                 switch inputPeer {

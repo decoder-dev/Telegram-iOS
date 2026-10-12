@@ -189,7 +189,7 @@ public func canTranslateChats(context: AccountContext) -> Bool {
     return chatTranslationAvailable
 }
 
-public func canTranslateText(context: AccountContext, text: String, showTranslate: Bool, showTranslateIfTopical: Bool = false, ignoredLanguages: [String]?) -> (canTranslate: Bool, language: String?) {
+public func canTranslateText(context: AccountContext, text: String, showTranslate: Bool, showTranslateIfTopical: Bool = false, ignoredLanguages: [String]?, forceShow: Bool = false) -> (canTranslate: Bool, language: String?) {
     guard showTranslate || showTranslateIfTopical, text.count > 0 else {
         return (false, nil)
     }
@@ -207,6 +207,9 @@ public func canTranslateText(context: AccountContext, text: String, showTranslat
         break
     }
     
+    if forceShow {
+        return (translateButtonAvailable && !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, nil)
+    }
     let showTranslate = showTranslate && translateButtonAvailable
         
     if #available(iOS 12.0, *) {

@@ -373,7 +373,7 @@ public extension PeerCollectibleColor {
             main: self.mainColor(dark: dark),
             secondary: self.secondaryColor(dark: dark),
             tertiary: self.tertiaryColor(dark: dark)
-        )
+        ).sgSaturationAdjusted
     }
     
     func mainColor(dark: Bool) -> UIColor {

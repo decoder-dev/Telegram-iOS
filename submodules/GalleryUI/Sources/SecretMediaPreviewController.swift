@@ -435,12 +435,11 @@ public final class SecretMediaPreviewController: ViewController {
     override public func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         
-        // AyuGram: when secret screenshots are allowed, skip the capture observer entirely
-        // (no KVO / notify work while viewing secret media).
-        if self.screenCaptureEventsDisposable == nil, !ForkSecretScreenshotSettings.allow {
+        // Check the current policy at capture time, including changes in another scene.
+        if self.screenCaptureEventsDisposable == nil {
             self.screenCaptureEventsDisposable = (screenCaptureEvents()
             |> deliverOnMainQueue).start(next: { [weak self] _ in
-                if let strongSelf = self, strongSelf.traceVisibility() {
+                if let strongSelf = self, !ForkSecretScreenshotSettings.allow, strongSelf.traceVisibility() {
                     if strongSelf.messageId.peerId.namespace == Namespaces.Peer.CloudUser {
                         let _ = enqueueMessages(account: strongSelf.context.account, peerId: strongSelf.messageId.peerId, messages: [.message(text: "", attributes: [], inlineStickers: [:], mediaReference: .standalone(media: TelegramMediaAction(action: TelegramMediaActionType.historyScreenshot)), threadId: nil, replyToMessageId: nil, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: [])]).start()
                     } else if strongSelf.messageId.peerId.namespace == Namespaces.Peer.SecretChat {

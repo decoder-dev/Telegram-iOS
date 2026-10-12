@@ -1478,7 +1478,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
                     showTranslateIfTopical = true
                 }
                 
-                var (canTranslate, _) = canTranslateText(context: context, text: messageText, showTranslate: translationSettings.showTranslate || ForkExtrasHotFlags.quickTranslateButton, showTranslateIfTopical: showTranslateIfTopical, ignoredLanguages: translationSettings.ignoredLanguages)
+                var (canTranslate, _) = canTranslateText(context: context, text: messageText, showTranslate: translationSettings.showTranslate || ForkExtrasHotFlags.quickTranslateButton, showTranslateIfTopical: showTranslateIfTopical, ignoredLanguages: translationSettings.ignoredLanguages, forceShow: ForkExtrasHotFlags.quickTranslateButton)
                 if let peerId = chatPresentationInterfaceState.chatLocation.peerId, peerId.namespace == Namespaces.Peer.SecretChat {
                     canTranslate = false
                 }

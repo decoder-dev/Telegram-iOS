@@ -2,6 +2,9 @@
 import pathlib
 import re
 import unittest
+import shutil
+import subprocess
+import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 
@@ -9,6 +12,95 @@ def read(path):
     return (ROOT / path).read_text(encoding='utf-8')
 
 class ForkIntegration(unittest.TestCase):
+    def test_live_location_reads_obey_ghost_before_cache_and_rpc(self):
+        body = read('submodules/TelegramCore/Sources/State/AccountViewTracker.swift').split('public func updateSeenLiveLocationForMessageIds(', 1)[1].split('public func updatedExtendedMediaForMessageIds', 1)[0]
+        guard = 'guard !ForkGhostModeSettings.shouldSuppressMessageReads else'
+        self.assertEqual(body.count(guard), 2)
+        self.assertLess(body.index(guard), body.index('updatedSeenLiveLocationMessageIdsAndTimestamps'))
+        transaction = body.split('account.postbox.transaction', 1)[1]
+        self.assertLess(transaction.index(guard), transaction.index('account.network.request'))
+
+    def test_secret_media_checks_screenshot_permission_at_event_time(self):
+        body = read('submodules/GalleryUI/Sources/SecretMediaPreviewController.swift').split('override public func viewDidAppear(', 1)[1].split('var nodeAnimatesItself', 1)[0]
+        self.assertIn('if self.screenCaptureEventsDisposable == nil {', body)
+        callback = body.split('.start(next:', 1)[1]
+        self.assertLess(callback.index('!ForkSecretScreenshotSettings.allow'), callback.index('enqueueMessages('))
+
+    def test_full_ghost_schedule_includes_story_policy(self):
+        source = read('submodules/TelegramUI/Sources/ChatController.swift')
+        predicates = re.findall(r'let applyGhostSchedule = .*?&& ForkGhostModeSettings.goOfflineAutomatically', source, re.S)
+        self.assertEqual(len(predicates), 2)
+        for predicate in predicates:
+            self.assertIn('ForkGhostModeSettings.suppressStoryViews', predicate)
+
+    def test_renderer_flags_and_collectible_colors_refresh(self):
+        source = read('submodules/TelegramUI/Sources/ChatHistoryListNode.swift')
+        fingerprint = source.split('struct MessageFilterSettingsFingerprint', 1)[1].split('|> distinctUntilChanged', 1)[0]
+        for field in ['hidePaidReactions', 'hideViaBot', 'accentColorSaturation']:
+            self.assertIn('var ' + field + ':', fingerprint)
+            self.assertIn(field + ': settings.' + field, fingerprint)
+        collectible = read('submodules/AccountContext/Sources/PeerNameColors.swift').split('func peerNameColors(dark:', 1)[1].split('func mainColor', 1)[0]
+        self.assertIn(').sgSaturationAdjusted', collectible)
+
+    def test_default_greeting_is_hidden_without_fetch_or_space(self):
+        source = read('submodules/TelegramUI/Components/Chat/ChatEmptyNode/Sources/ChatEmptyNode.swift')
+        block = source.split('let hideDefaultSticker = ', 1)[1].split('let insets = ', 1)[0]
+        self.assertIn('customStickerFile == nil &&', block)
+        hidden = block.split('if hideDefaultSticker {', 1)[1].split('} else if', 1)[0]
+        for statement in ['stickerSize = .zero', 'self.disposable.set(nil)', 'self.didSetupSticker = false']:
+            self.assertIn(statement, hidden)
+        self.assertNotIn('randomGreetingSticker', hidden)
+        self.assertIn('hideDefaultSticker ? 0.0 : 5.0', source)
+
+    def test_quick_translate_retains_capability_and_secret_chat_gates(self):
+        body = read('submodules/TranslateUI/Sources/Translate.swift').split('public func canTranslateText(', 1)[1]
+        forced = body.split('if forceShow {', 1)[1].split('}', 1)[0]
+        self.assertIn('translateButtonAvailable && !text.trimmingCharacters', forced)
+        menus = read('submodules/TelegramUI/Sources/ChatInterfaceStateContextMenus.swift')
+        gate = menus.split('forceShow: ForkExtrasHotFlags.quickTranslateButton)', 1)[1].split('if canTranslate {', 1)[0]
+        self.assertIn('Namespaces.Peer.SecretChat', gate)
+        self.assertIn('canTranslate = false', gate)
+
+    def test_real_sticker_fit_blocks_keep_frames_inside_viewport(self):
+        blocks = []
+        for node, padding in [('ChatMessageStickerItemNode', 'innerImageInset'), ('ChatMessageAnimatedStickerItemNode', 'imageInset')]:
+            source = read(f'submodules/TelegramUI/Components/Chat/{node}/Sources/{node}.swift')
+            fit = source.split('let stickerLeftMargin = ', 1)[1].split('imageSize = imageSize.aspectFitted', 1)
+            block = 'let stickerLeftMargin = ' + fit[0] + 'imageSize = imageSize.aspectFitted' + fit[1].split('\n', 1)[0]
+            blocks.append(block.replace('innerImageInset', 'imageInset'))
+        if not shutil.which('swift'):
+            self.skipTest('Swift unavailable locally; extracted geometry executes in macOS CI')
+        utilities = read('submodules/Display/Source/UIKitUtils.swift')
+        method = utilities.split('func aspectFitted(_ size: CGSize)', 1)[1].split('func aspectFittedOrSmaller', 1)[0].strip()
+        prefix = 'import Foundation\nextension CGSize { func aspectFitted(_ size: CGSize)' + method + '\n}\n'
+        fixture = '''
+        struct Params { var width: CGFloat; var leftInset: CGFloat; var rightInset: CGFloat }
+        struct Insets { var left: CGFloat = 8 }
+        struct Bubble { var edgeInset: CGFloat = 4; var contentInsets = Insets() }
+        struct Constants { var bubble = Bubble() }
+        let layoutConstants = Constants()
+        for width: CGFloat in [280, 320, 390, 768] {
+          for incoming in [false, true] { for needsShareButton in [false, true] {
+            for requested: CGFloat in [92, 184, 276, 360] {
+              let params = Params(width: width, leftInset: 8, rightInset: 8)
+              let avatarInset: CGFloat = incoming ? 42 : 0
+              let deliveryFailedInset: CGFloat = 24
+              let imageHorizontalOffset: CGFloat = 12
+              let imageInset: CGFloat = 10
+              var imageSize = CGSize(width: requested, height: requested * 0.75)
+              FIT_BLOCK
+              precondition(imageSize.width + imageInset * 2 + stickerLeftMargin + stickerRightMargin + (needsShareButton ? 36 : 0) <= width)
+              precondition(imageSize.width <= requested && imageSize.height > 0)
+            }
+          }}
+        }
+        '''
+        with tempfile.TemporaryDirectory() as tmp:
+            for index, block in enumerate(blocks):
+                path = pathlib.Path(tmp) / f'fit{index}.swift'
+                path.write_text(prefix + fixture.replace('FIT_BLOCK', block), encoding='utf-8')
+                subprocess.run(['swift', str(path)], check=True, timeout=120)
+
     def test_scene_handlers_bind_application_for_fork_background_tasks(self):
         source = read('submodules/TelegramUI/Sources/AppDelegate.swift')
         for method, end in [('func handleDidEnterBackground()', 'func applicationDidReceiveMemoryWarning'),

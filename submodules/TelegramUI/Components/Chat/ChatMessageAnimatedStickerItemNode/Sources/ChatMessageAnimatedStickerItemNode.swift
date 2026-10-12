@@ -1069,6 +1069,12 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
             let displayLeftInset = params.leftInset + layoutConstants.bubble.edgeInset + avatarInset
             
             
+            if !isEmoji {
+                let stickerLeftMargin = params.leftInset + layoutConstants.bubble.edgeInset + layoutConstants.bubble.contentInsets.left + (incoming ? avatarInset : 0.0)
+                let stickerRightMargin = params.rightInset + layoutConstants.bubble.edgeInset + layoutConstants.bubble.contentInsets.left + (incoming ? 0.0 : deliveryFailedInset + imageHorizontalOffset)
+                let stickerAvailableWidth = max(1.0, params.width - stickerLeftMargin - stickerRightMargin - imageInset * 2.0 - (needsShareButton ? 36.0 : 0.0))
+                imageSize = imageSize.aspectFitted(CGSize(width: stickerAvailableWidth, height: imageSize.height))
+            }
             var innerImageSize = imageSize
             imageSize = CGSize(width: imageSize.width + imageInset * 2.0, height: imageSize.height + imageInset * 2.0)
             var imageFrame = CGRect(origin: CGPoint(x: 0.0 + (incoming ? (params.leftInset + layoutConstants.bubble.edgeInset + avatarInset + layoutConstants.bubble.contentInsets.left) : (params.width - params.rightInset - imageSize.width - layoutConstants.bubble.edgeInset - layoutConstants.bubble.contentInsets.left - deliveryFailedInset - imageHorizontalOffset)), y: imageVerticalInset + imageTopPadding), size: CGSize(width: imageSize.width, height: imageSize.height))
