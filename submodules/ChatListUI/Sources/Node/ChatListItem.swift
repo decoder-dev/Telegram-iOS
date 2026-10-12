@@ -5608,20 +5608,20 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                     let fullWidthRightSeparatorInset: CGFloat = params.rightInset.isZero ? 0.0 : contentRightSeparatorInset
                     if case let .groupReference(groupReferenceData) = item.content, groupReferenceData.hiddenByDefault {
                         leftSeparatorInset = higCardInset
-                        rightSeparatorInset = higCardInset
+                        rightSeparatorInset = max(higCardInset, fullWidthRightSeparatorInset)
                     } else if item.useCommunityViewLayout {
                         leftSeparatorInset = editingOffset + leftInset + rawContentRect.origin.x
                         rightSeparatorInset = contentRightSeparatorInset
                     } else if (!nextIsPinned && isPinned) || last {
                         leftSeparatorInset = higCardInset
-                        rightSeparatorInset = higCardInset
+                        rightSeparatorInset = max(higCardInset, fullWidthRightSeparatorInset)
                     } else {
                         leftSeparatorInset = editingOffset + leftInset + rawContentRect.origin.x
                         // Trailing edge, not inset. Telegram insets row separators 16 pt on the right;
                     // iOS tables — and Messages, which this fork follows — inset only on the leading
                     // side and run the hairline to the trailing edge. A gap on both sides reads as an
                     // unfinished line rather than a divider.
-                        rightSeparatorInset = higCardInset
+                        rightSeparatorInset = max(higCardInset, fullWidthRightSeparatorInset)
                     }
                     
                     transition.updateFrame(node: strongSelf.separatorNode, frame: CGRect(origin: CGPoint(x: leftSeparatorInset, y: layoutOffset + itemHeight - separatorHeight), size: CGSize(width: params.width - leftSeparatorInset - rightSeparatorInset, height: separatorHeight)))
