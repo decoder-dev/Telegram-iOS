@@ -493,7 +493,7 @@ private final class ThemeSettingsControllerImpl: ItemListController, ThemeSettin
 
 public func themeSettingsController(context: AccountContext, focusOnItemTag: ThemeSettingsEntryTag? = nil) -> ViewController {
     if focusOnItemTag == .useRecentEmojiInReactions {
-        return forkExtrasController(context: context, focus: .interface, focusItemId: 1521)
+        return forkExtrasController(context: context, focus: .messages, focusItemId: 1521)
     }
     #if DEBUG
     BuiltinWallpaperData.generate(network: context.account.network)

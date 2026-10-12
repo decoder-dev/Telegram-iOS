@@ -212,10 +212,16 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.HubGhostLabel": "Master switch, read receipts",
             "ForkExtras.HubPrivacy": "Privacy",
             "ForkExtras.HubPrivacyLabel": "Lock, notifications, backup",
-            "ForkExtras.HubInterface": "Interface",
-            "ForkExtras.HubInterfaceLabel": "List, folders, appearance",
-            "ForkExtras.HubChat": "Chats and audio",
-            "ForkExtras.HubChatLabel": "Composer, translation, music",
+            "ForkExtras.HubChatList": "Chat list and folders",
+            "ForkExtras.HubChatListLabel": "List, folders",
+            "ForkExtras.HubTabBar": "Tab bar",
+            "ForkExtras.HubTabBarLabel": "Tabs, search",
+            "ForkExtras.HubMessages": "Messages and composer",
+            "ForkExtras.HubMessagesLabel": "Bubbles, sending, translation",
+            "ForkExtras.HubMedia": "Calls and audio",
+            "ForkExtras.HubMediaLabel": "Calls, voice, music",
+            "ForkExtras.HubProfile": "Profile and effects",
+            "ForkExtras.HubProfileLabel": "Diagnostics, glow, Premium",
             "ForkExtras.HubNetwork": "Network",
             "ForkExtras.HubNetworkLabel": "Proxy, downloads, background connection",
             "ForkExtras.HideAllChats": "Hide All Chats Tab",
@@ -359,10 +365,16 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.HubGhostLabel": "Мастер-переключатель, прочтения",
             "ForkExtras.HubPrivacy": "Приватность",
             "ForkExtras.HubPrivacyLabel": "Блокировка, уведомления, бэкап",
-            "ForkExtras.HubInterface": "Интерфейс",
-            "ForkExtras.HubInterfaceLabel": "Список, папки, внешний вид",
-            "ForkExtras.HubChat": "Чаты и звук",
-            "ForkExtras.HubChatLabel": "Ввод, перевод, музыка",
+            "ForkExtras.HubChatList": "Список чатов и папки",
+            "ForkExtras.HubChatListLabel": "Список, папки",
+            "ForkExtras.HubTabBar": "Панель вкладок",
+            "ForkExtras.HubTabBarLabel": "Вкладки, поиск",
+            "ForkExtras.HubMessages": "Сообщения и ввод",
+            "ForkExtras.HubMessagesLabel": "Пузыри, отправка, перевод",
+            "ForkExtras.HubMedia": "Звонки и звук",
+            "ForkExtras.HubMediaLabel": "Звонки, голосовые, музыка",
+            "ForkExtras.HubProfile": "Профиль и эффекты",
+            "ForkExtras.HubProfileLabel": "Диагностика, свечение, Premium",
             "ForkExtras.HubNetwork": "Сеть",
             "ForkExtras.HubNetworkLabel": "Прокси, загрузки, работа в фоне",
             "ForkExtras.HideAllChats": "Скрыть «Все чаты»",
@@ -507,10 +519,16 @@ private enum ForkExtrasLocalizedString {
     static var hubGhostLabel: String { string(forKey: "ForkExtras.HubGhostLabel") }
     static var hubPrivacy: String { string(forKey: "ForkExtras.HubPrivacy") }
     static var hubPrivacyLabel: String { string(forKey: "ForkExtras.HubPrivacyLabel") }
-    static var hubInterface: String { string(forKey: "ForkExtras.HubInterface") }
-    static var hubInterfaceLabel: String { string(forKey: "ForkExtras.HubInterfaceLabel") }
-    static var hubChat: String { string(forKey: "ForkExtras.HubChat") }
-    static var hubChatLabel: String { string(forKey: "ForkExtras.HubChatLabel") }
+    static var hubChatList: String { string(forKey: "ForkExtras.HubChatList") }
+    static var hubChatListLabel: String { string(forKey: "ForkExtras.HubChatListLabel") }
+    static var hubTabBar: String { string(forKey: "ForkExtras.HubTabBar") }
+    static var hubTabBarLabel: String { string(forKey: "ForkExtras.HubTabBarLabel") }
+    static var hubMessages: String { string(forKey: "ForkExtras.HubMessages") }
+    static var hubMessagesLabel: String { string(forKey: "ForkExtras.HubMessagesLabel") }
+    static var hubMedia: String { string(forKey: "ForkExtras.HubMedia") }
+    static var hubMediaLabel: String { string(forKey: "ForkExtras.HubMediaLabel") }
+    static var hubProfile: String { string(forKey: "ForkExtras.HubProfile") }
+    static var hubProfileLabel: String { string(forKey: "ForkExtras.HubProfileLabel") }
     static var hubNetwork: String { string(forKey: "ForkExtras.HubNetwork") }
     static var hubNetworkLabel: String { string(forKey: "ForkExtras.HubNetworkLabel") }
     static var hideAllChats: String { string(forKey: "ForkExtras.HideAllChats") }
@@ -545,10 +563,7 @@ private enum ForkExtrasLocalizedString {
 }
 
 private enum ForkExtrasDestination: Equatable {
-    case customization
     case proxy
-    case developer
-    case archive
 }
 
 private final class ForkExtrasControllerArguments {
@@ -800,32 +815,69 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     case designFooter(Int32, String)
     case brandTheme(Bool)
 
-    /// One entry per section of the Interface screen, in display order. A section is a rounded block: its header (16xx) first,
-    /// its switches, and the footer that explains them last. Footers used to sit between switches inside a block, which made
-    /// the screen read as one run-together list.
-    private static let interfaceGroups: [[Int32]] = [
-        [1600, 1610, 1611],
-        [1601, 1499, 52],
-        [59, 60],
-        [61, 62],
-        [63, 64],
-        [1502, 1503, 1504, 1505, 1506],
-        [1507],
-        [1602, 50, 51, 53],
-        [54, 55, 56, 58],
-        [65, 66],
-        [67, 68],
-        [69],
-        [1521, 1508, 1509, 1510, 1511, 1512, 1513, 1515, 1516, 1517, 1518, 1519, 1520, 1612],
-        [1603, 1500, 1501, 57],
-        [1604, 140, 141]
+    /// The Extras screens that are made of explicit blocks, each block listing its rows in display order. A block is a
+    /// rounded section: its header (16xx) first, its switches, and the footer that explains them last. Footers used to
+    /// sit between switches inside a block, which made the screen read as one run-together list. Rows are grouped by the
+    /// window they change, so a setting is where the thing it affects is.
+    private static let regroupedCategories: [(focus: ForkExtrasControllerFocus, groups: [[Int32]])] = [
+        (.chatList, [
+            [1602, 50, 51, 53],
+            [1601, 52, 1499],
+            [59, 60],
+            [61, 62],
+            [1512]
+        ]),
+        (.tabBar, [
+            [63, 64],
+            [1502, 1503, 1504, 1505, 1506],
+            [1507]
+        ]),
+        (.messages, [
+            [1605, 65, 66],
+            [67, 68],
+            [69],
+            [1508, 1509, 54, 1521, 1519],
+            [1606, 81, 82],
+            [98, 99],
+            [1511, 1520],
+            [90, 91],
+            [92, 93],
+            [94, 95],
+            [96, 97],
+            [88, 89],
+            [1518],
+            [1607, 1510, 1513, 1517],
+            [85, 86, 87]
+        ]),
+        (.media, [
+            [1608, 80, 84],
+            [83],
+            [1609, 1515, 1516, 1612],
+            [2000, 2001, 2002, 2003, 2004]
+        ]),
+        (.profile, [
+            [55, 56, 58],
+            [1603, 1500, 1501, 57],
+            [1604, 140, 141]
+        ])
     ]
+
+    private static let interfaceGroups: [[Int32]] = regroupedCategories.flatMap { $0.groups }
+
+    /// The screen that owns a row after the regrouping, so links and search results made when the rows were spread over
+    /// the old Interface and Chats screens still open on the right page.
+    static func regroupedOwner(of id: Int32) -> ForkExtrasControllerFocus? {
+        return regroupedCategories.first(where: { category in category.groups.contains(where: { $0.contains(id) }) })?.focus
+    }
 
     case hubNinja
     case hubGhost
     case hubPrivacy
-    case hubInterface
-    case hubChat
+    case hubChatList
+    case hubTabBar
+    case hubMessages
+    case hubMedia
+    case hubProfile
     case hubNetwork
     case hubFooter
     case ghostModeMaster(Bool)
@@ -947,14 +999,11 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         switch self {
         case let .destination(_, _, destination):
             switch destination {
-            case .customization: return ForkExtrasSection.hub.rawValue
             case .proxy: return ForkExtrasSection.proxy.rawValue
-            case .developer: return ForkExtrasSection.developer.rawValue
-            case .archive: return ForkExtrasSection.archive.rawValue
             }
         case .audioHeader, .musicPolicy, .audioFooter: return ForkExtrasSection.audio.rawValue
         case .designHeader, .designFooter, .brandTheme: return 100
-        case .hubNinja, .hubGhost, .hubPrivacy, .hubInterface, .hubChat, .hubNetwork, .hubFooter:
+        case .hubNinja, .hubGhost, .hubPrivacy, .hubChatList, .hubTabBar, .hubMessages, .hubMedia, .hubProfile, .hubNetwork, .hubFooter:
             return ForkExtrasSection.hub.rawValue
         case .ghostModeMaster, .ghostDontReadMessages, .ghostDontReadStories, .ghostDontSendOnline, .ghostDontSendTyping, .ghostGoOfflineAutomatically, .ghostGoOfflineAutomaticallyFooter, .ghostReadOnInteract, .ghostReadOnInteractFooter, .ghostAlertBeforeOpeningStory, .ghostAlertBeforeOpeningStoryFooter, .ghostScheduleMessages, .ghostScheduleMessagesFooter, .ghostModeFooter:
             return ForkExtrasSection.ghost.rawValue
@@ -1011,8 +1060,11 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case .hubNinja: return 0
         case .hubGhost: return 1
         case .hubPrivacy: return 2
-        case .hubInterface: return 3
-        case .hubChat: return 4
+        case .hubChatList: return 3
+        case .hubMessages: return 4
+        case .hubTabBar: return 7
+        case .hubMedia: return 8
+        case .hubProfile: return 23
         case .hubNetwork: return 5
         case .hubFooter: return 6
         case .ghostModeMaster: return 9
@@ -1130,7 +1182,9 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     /// The list diff merges sorted lists, so `<` has to agree with the display order or rows that appear and
     /// disappear (the regex filter rows) get inserted next to stale copies and are drawn twice.
     private static let positionOverrides: [Int32: Double] = [
-        8: -1.0,       // Customization is the first Extras destination.
+        7: 3.3,        // Tab bar follows Chat list and folders.
+        8: 4.3,        // Calls and audio follows Messages and composer.
+        23: 4.6,       // Profile and effects follows Calls and audio.
         // 146 now belongs to Network; its original stable order is appropriate there.
         147: 133.3,     // Show 18+ Content, after Hide Blocked Messages
         148: 133.6,
@@ -1153,10 +1207,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case let .destination(_, title, destination):
             let icon: UIImage?
             switch destination {
-            case .customization: icon = PresentationResourcesSettings.appearance
             case .proxy: icon = PresentationResourcesSettings.proxy
-            case .developer: icon = PresentationResourcesSettings.developerMode
-            case .archive: icon = PresentationResourcesSettings.security
             }
             return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: icon, title: title, label: "", sectionId: self.section, style: .blocks, action: {
                 arguments.openDestination(destination)
@@ -1204,13 +1255,25 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.security, title: ForkExtrasLocalizedString.hubPrivacy, label: ForkExtrasLocalizedString.hubPrivacyLabel, sectionId: self.section, style: .blocks, action: {
                 arguments.openCategory(.privacy)
             }, tag: BananaSettingsItemTag(id: self.stableId))
-        case .hubInterface:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.appearance, title: ForkExtrasLocalizedString.hubInterface, label: ForkExtrasLocalizedString.hubInterfaceLabel, sectionId: self.section, style: .blocks, action: {
-                arguments.openCategory(.interface)
+        case .hubChatList:
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.appearance, title: ForkExtrasLocalizedString.hubChatList, label: ForkExtrasLocalizedString.hubChatListLabel, sectionId: self.section, style: .blocks, action: {
+                arguments.openCategory(.chatList)
             }, tag: BananaSettingsItemTag(id: self.stableId))
-        case .hubChat:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.privateChats, title: ForkExtrasLocalizedString.hubChat, label: ForkExtrasLocalizedString.hubChatLabel, sectionId: self.section, style: .blocks, action: {
-                arguments.openCategory(.chat)
+        case .hubTabBar:
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.appearance, title: ForkExtrasLocalizedString.hubTabBar, label: ForkExtrasLocalizedString.hubTabBarLabel, sectionId: self.section, style: .blocks, action: {
+                arguments.openCategory(.tabBar)
+            }, tag: BananaSettingsItemTag(id: self.stableId))
+        case .hubMessages:
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.privateChats, title: ForkExtrasLocalizedString.hubMessages, label: ForkExtrasLocalizedString.hubMessagesLabel, sectionId: self.section, style: .blocks, action: {
+                arguments.openCategory(.messages)
+            }, tag: BananaSettingsItemTag(id: self.stableId))
+        case .hubMedia:
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.dataAndStorage, title: ForkExtrasLocalizedString.hubMedia, label: ForkExtrasLocalizedString.hubMediaLabel, sectionId: self.section, style: .blocks, action: {
+                arguments.openCategory(.media)
+            }, tag: BananaSettingsItemTag(id: self.stableId))
+        case .hubProfile:
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.premium, title: ForkExtrasLocalizedString.hubProfile, label: ForkExtrasLocalizedString.hubProfileLabel, sectionId: self.section, style: .blocks, action: {
+                arguments.openCategory(.profile)
             }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hubNetwork:
             return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.proxy, title: ForkExtrasLocalizedString.hubNetwork, label: ForkExtrasLocalizedString.hubNetworkLabel, sectionId: self.section, style: .blocks, action: {
@@ -1593,18 +1656,20 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
     let category = focus.resolvedCategory
     if category == .top {
         return [
-            .destination(8, ForkPresentationLanguage.prefersRussianStrings ? "Оформление и иконки" : "Appearance and icons", .customization),
             .hubNinja,
             .hubGhost,
             .hubPrivacy,
-            .hubInterface,
-            .hubChat,
+            .hubChatList,
+            .hubTabBar,
+            .hubMessages,
+            .hubMedia,
+            .hubProfile,
             .hubNetwork,
             .hubFooter,
-            .destination(7, ForkPresentationLanguage.prefersRussianStrings ? "Режим разработчика" : "Developer mode", .developer),
         ]
     }
 
+    let russian = ForkPresentationLanguage.prefersRussianStrings
     var entries: [ForkExtrasEntry] = []
     switch category {
     case .ghost:
@@ -1640,50 +1705,29 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .expireTtlButtonFooter,
             .keepBannedChats(settings.keepBannedChats),
             .keepBannedChatsFooter,
-            .destination(44, ForkPresentationLanguage.prefersRussianStrings ? "Защита архива и Избранного" : "Archive and Saved Messages protection", .archive),
         ]
-    case .interface:
+    case .chatList:
         entries = [
+            .designHeader(1602, russian ? "Список чатов" : "Chat list"),
             .compactChatList(settings.compactChatList),
             .compactMessagePreview(settings.compactMessagePreview),
-            .compactFolderNames(settings.compactFolderNames),
             .uiDensityFooter,
-            .hideReactionsBar(settings.hideReactionsBar),
-            .showDC(settings.showDC),
-            .showProfileId(settings.showProfileId),
-            .accentSaturation(settings.accentColorSaturation),
-            .privacyFooter,
+            .designHeader(1601, russian ? "Папки" : "Folders"),
+            .compactFolderNames(settings.compactFolderNames),
+            .appearanceToggle(1499, ForkExtrasLocalizedString.string(forKey: "ForkExtras.BottomFolders"), settings.bottomChatFoldersEnabled, \.bottomChatFoldersEnabled),
             .hideAllChats(settings.hideAllChats),
             .hideAllChatsFooter,
             .rememberLastFolder(settings.rememberLastFolder),
             .rememberLastFolderFooter,
+            .appearanceToggle(1512, russian ? "Скрыть подсказки о днях рождения" : "Hide birthday banners", settings.hideBirthdayNotifications, \.hideBirthdayNotifications),
         ]
+    case .tabBar:
+        entries = []
         if UIDevice.current.userInterfaceIdiom != .pad {
             entries.append(.hideTabBar(settings.hideTabBar))
             entries.append(.hideTabBarFooter)
         }
         entries.append(contentsOf: [
-            .showMessageSeconds(settings.showMessageSeconds),
-            .showMessageSecondsFooter,
-            .wideChannelPosts(settings.wideChannelPosts),
-            .wideChannelPostsFooter,
-            .stickerSize(settings.stickerSizePercent),
-            .appearanceToggle(1499, ForkExtrasLocalizedString.string(forKey: "ForkExtras.BottomFolders"), settings.bottomChatFoldersEnabled, \.bottomChatFoldersEnabled),
-            .appearanceToggle(1500, ForkExtrasLocalizedString.string(forKey: "ForkExtras.AvatarGlow"), settings.avatarGlowEnabled, \.avatarGlowEnabled),
-            .appearanceToggle(1521, ForkPresentationLanguage.prefersRussianStrings ? "Недавние эмодзи в реакциях" : "Recent emoji in reactions", settings.useRecentEmojiInReactions, \.useRecentEmojiInReactions),
-            .appearanceToggle(1508, ForkPresentationLanguage.prefersRussianStrings ? "Счётчик пересылок в каналах" : "Channel forward count", settings.showChannelForwardCount, \.showChannelForwardCount),
-            .appearanceToggle(1509, ForkPresentationLanguage.prefersRussianStrings ? "Скрыть платные реакции" : "Hide paid reactions", settings.hidePaidReactions, \.hidePaidReactions),
-            .appearanceToggle(1510, ForkPresentationLanguage.prefersRussianStrings ? "Скрыть «через бота»" : "Hide \"via bot\"", settings.hideViaBot, \.hideViaBot),
-            .appearanceToggle(1511, ForkPresentationLanguage.prefersRussianStrings ? "Отправлять без превью ссылок" : "Send without link previews", settings.removeLinkPreviews, \.removeLinkPreviews),
-            .appearanceToggle(1512, ForkPresentationLanguage.prefersRussianStrings ? "Скрыть подсказки о днях рождения" : "Hide birthday banners", settings.hideBirthdayNotifications, \.hideBirthdayNotifications),
-            .appearanceToggle(1513, ForkPresentationLanguage.prefersRussianStrings ? "Скрыть панель автоматизации бота" : "Hide bot automation panel", settings.hideBotAutomation, \.hideBotAutomation),
-            .appearanceToggle(1515, ForkPresentationLanguage.prefersRussianStrings ? "Останавливать после голосового" : "Stop after a voice message", settings.stopAfterVoice, \.stopAfterVoice),
-            .appearanceToggle(1516, ForkPresentationLanguage.prefersRussianStrings ? "Останавливать после кружка" : "Stop after a round video", settings.stopAfterRoundVideo, \.stopAfterRoundVideo),
-            .appearanceToggle(1517, ForkPresentationLanguage.prefersRussianStrings ? "Без приветственного стикера" : "No greeting sticker", settings.hideGreetingSticker, \.hideGreetingSticker),
-            .appearanceToggle(1518, ForkPresentationLanguage.prefersRussianStrings ? "Хэштег ищет в этом чате" : "Hashtags search this chat", settings.hashtagsPreferCurrentChat, \.hashtagsPreferCurrentChat),
-            .appearanceToggle(1519, ForkPresentationLanguage.prefersRussianStrings ? "Дата оригинала у пересланных" : "Original date on forwards", settings.showOriginalForwardDate, \.showOriginalForwardDate),
-            .appearanceToggle(1520, ForkPresentationLanguage.prefersRussianStrings ? "Запрещённые GIF как видео" : "Send banned GIFs as video", settings.sendBannedGifsAsVideo, \.sendBannedGifsAsVideo),
-            .appearanceToggle(1501, ForkExtrasLocalizedString.string(forKey: "ForkExtras.ReactionGlow"), settings.reactionGlowEnabled, \.reactionGlowEnabled),
             .appearanceToggle(1502, ForkExtrasLocalizedString.string(forKey: "ForkExtras.ContactsTab"), settings.showContactsTab, \.showContactsTab),
             .callsTab(showCallsTab),
             .appearanceToggle(1504, ForkExtrasLocalizedString.string(forKey: "ForkExtras.wideTabBar"), settings.wideTabBar, \.wideTabBar),
@@ -1691,28 +1735,26 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(1506, ForkExtrasLocalizedString.string(forKey: "ForkExtras.tabSearchOnLeft"), settings.tabSearchOnLeft, \.tabSearchOnLeft),
             .tabPreview(BananaTabBarLayout(hidden: ForkExtrasHotFlags.hidesTabBar(settings.hideTabBar, isPad: UIDevice.current.userInterfaceIdiom == .pad), contacts: settings.showContactsTab, calls: showCallsTab, wide: settings.wideTabBar, integratedSearch: settings.integratedTabSearch, searchOnLeft: settings.tabSearchOnLeft)),
         ])
-        let russian = ForkPresentationLanguage.prefersRussianStrings
-        entries.append(contentsOf: [
-            .designHeader(1601, russian ? "Навигация" : "Navigation"),
-            .designHeader(1602, russian ? "Чаты" : "Chats"),
-            .designHeader(1603, russian ? "Эффекты" : "Effects"),
-            .designHeader(1604, russian ? "Локальные функции Premium" : "Local Premium features"),
-            .localPremium(settings.localPremium), .localPremiumFooter,
-            .designFooter(1612, russian ? "Музыка как голосовое: откройте меню трека в разделе «Вложения → Музыка»." : "To send music as a voice message, open the track's menu in Attach → Music.")
-        ])
-        entries.sort()
-    case .chat:
+    case .messages:
         entries = [
-            .confirmBeforeCall(settings.confirmBeforeCall),
+            .designHeader(1605, russian ? "Отображение" : "Display"),
+            .showMessageSeconds(settings.showMessageSeconds),
+            .showMessageSecondsFooter,
+            .wideChannelPosts(settings.wideChannelPosts),
+            .wideChannelPostsFooter,
+            .stickerSize(settings.stickerSizePercent),
+            .appearanceToggle(1508, russian ? "Счётчик пересылок в каналах" : "Channel forward count", settings.showChannelForwardCount, \.showChannelForwardCount),
+            .appearanceToggle(1509, russian ? "Скрыть платные реакции" : "Hide paid reactions", settings.hidePaidReactions, \.hidePaidReactions),
+            .hideReactionsBar(settings.hideReactionsBar),
+            .appearanceToggle(1521, russian ? "Недавние эмодзи в реакциях" : "Recent emoji in reactions", settings.useRecentEmojiInReactions, \.useRecentEmojiInReactions),
+            .appearanceToggle(1519, russian ? "Дата оригинала у пересланных" : "Original date on forwards", settings.showOriginalForwardDate, \.showOriginalForwardDate),
+            .designHeader(1606, russian ? "Отправка и правка" : "Sending and editing"),
             .sendWithReturnKey(settings.sendWithReturnKey),
             .sendWithReturnKeyFooter,
-            .forceBuiltInMic(settings.forceBuiltInMic),
-            .callsFooter,
-            .translationBackend(settings.translationBackend),
-            .transcriptionBackend(settings.transcriptionBackend),
-            .translationFooter,
-            .scrollToNextChat(settings.scrollToNextChatDisabled),
-            .scrollToNextChatFooter,
+            .outgoingPhotoQuality(settings.outgoingPhotoQuality),
+            .outgoingPhotoQualityFooter,
+            .appearanceToggle(1511, russian ? "Отправлять без превью ссылок" : "Send without link previews", settings.removeLinkPreviews, \.removeLinkPreviews),
+            .appearanceToggle(1520, russian ? "Запрещённые GIF как видео" : "Send banned GIFs as video", settings.sendBannedGifsAsVideo, \.sendBannedGifsAsVideo),
             .doubleTapToEdit(settings.doubleTapToEdit),
             .doubleTapToEditFooter,
             .quickTranslate(settings.quickTranslateButton),
@@ -1721,13 +1763,45 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .saveToCloudFooter,
             .selectFromAuthor(settings.selectFromAuthor),
             .selectFromAuthorFooter,
-            .outgoingPhotoQuality(settings.outgoingPhotoQuality),
-            .outgoingPhotoQualityFooter,
+            .scrollToNextChat(settings.scrollToNextChatDisabled),
+            .scrollToNextChatFooter,
+            .appearanceToggle(1518, russian ? "Хэштег ищет в этом чате" : "Hashtags search this chat", settings.hashtagsPreferCurrentChat, \.hashtagsPreferCurrentChat),
+            .designHeader(1607, russian ? "Боты и служебные сообщения" : "Bots and service messages"),
+            .appearanceToggle(1510, russian ? "Скрыть «через бота»" : "Hide \"via bot\"", settings.hideViaBot, \.hideViaBot),
+            .appearanceToggle(1513, russian ? "Скрыть панель автоматизации бота" : "Hide bot automation panel", settings.hideBotAutomation, \.hideBotAutomation),
+            .appearanceToggle(1517, russian ? "Без приветственного стикера" : "No greeting sticker", settings.hideGreetingSticker, \.hideGreetingSticker),
+            .translationBackend(settings.translationBackend),
+            .transcriptionBackend(settings.transcriptionBackend),
+            .translationFooter,
+        ]
+    case .media:
+        entries = [
+            .designHeader(1608, russian ? "Звонки" : "Calls"),
+            .confirmBeforeCall(settings.confirmBeforeCall),
+            .callsFooter,
+            .forceBuiltInMic(settings.forceBuiltInMic),
+            .designHeader(1609, russian ? "Голосовые и кружки" : "Voice and round videos"),
+            .appearanceToggle(1515, russian ? "Останавливать после голосового" : "Stop after a voice message", settings.stopAfterVoice, \.stopAfterVoice),
+            .appearanceToggle(1516, russian ? "Останавливать после кружка" : "Stop after a round video", settings.stopAfterRoundVideo, \.stopAfterRoundVideo),
+            .designFooter(1612, russian ? "Музыка как голосовое: откройте меню трека в разделе «Вложения → Музыка»." : "To send music as a voice message, open the track's menu in Attach → Music."),
             .audioHeader,
-            .musicPolicy(2001, ForkPresentationLanguage.prefersRussianStrings ? "Пауза музыки при записи видео" : "Pause music when recording video", mediaInputSettings.pauseMusicOnRecording),
-            .musicPolicy(2002, ForkPresentationLanguage.prefersRussianStrings ? "Пауза музыки при записи голосового" : "Pause music when recording voice messages", mediaInputSettings.pauseMusicOnVoiceRecording),
-            .musicPolicy(2003, ForkPresentationLanguage.prefersRussianStrings ? "Пауза музыки при прослушивании голосового" : "Pause music when playing voice messages", mediaInputSettings.pauseMusicOnVoicePlayback),
+            .musicPolicy(2001, russian ? "Пауза музыки при записи видео" : "Pause music when recording video", mediaInputSettings.pauseMusicOnRecording),
+            .musicPolicy(2002, russian ? "Пауза музыки при записи голосового" : "Pause music when recording voice messages", mediaInputSettings.pauseMusicOnVoiceRecording),
+            .musicPolicy(2003, russian ? "Пауза музыки при прослушивании голосового" : "Pause music when playing voice messages", mediaInputSettings.pauseMusicOnVoicePlayback),
             .audioFooter,
+        ]
+    case .profile:
+        entries = [
+            .showDC(settings.showDC),
+            .showProfileId(settings.showProfileId),
+            .privacyFooter,
+            .designHeader(1603, russian ? "Эффекты" : "Effects"),
+            .appearanceToggle(1500, ForkExtrasLocalizedString.string(forKey: "ForkExtras.AvatarGlow"), settings.avatarGlowEnabled, \.avatarGlowEnabled),
+            .appearanceToggle(1501, ForkExtrasLocalizedString.string(forKey: "ForkExtras.ReactionGlow"), settings.reactionGlowEnabled, \.reactionGlowEnabled),
+            .accentSaturation(settings.accentColorSaturation),
+            .designHeader(1604, russian ? "Локальные функции Premium" : "Local Premium features"),
+            .localPremium(settings.localPremium),
+            .localPremiumFooter,
         ]
     case .ninja, .messageSaving, .messageFilters:
         entries = [
@@ -1786,8 +1860,11 @@ public enum ForkExtrasControllerFocus {
     case ninja
     case ghost
     case privacy
-    case interface
-    case chat
+    case chatList
+    case tabBar
+    case messages
+    case media
+    case profile
     case network
     case messageSaving
     case messageFilters
@@ -1809,10 +1886,16 @@ public enum ForkExtrasControllerFocus {
             return ForkExtrasLocalizedString.hubGhost
         case .privacy:
             return ForkExtrasLocalizedString.hubPrivacy
-        case .interface:
-            return ForkExtrasLocalizedString.hubInterface
-        case .chat:
-            return ForkExtrasLocalizedString.hubChat
+        case .chatList:
+            return ForkExtrasLocalizedString.hubChatList
+        case .tabBar:
+            return ForkExtrasLocalizedString.hubTabBar
+        case .messages:
+            return ForkExtrasLocalizedString.hubMessages
+        case .media:
+            return ForkExtrasLocalizedString.hubMedia
+        case .profile:
+            return ForkExtrasLocalizedString.hubProfile
         case .network:
             return ForkExtrasLocalizedString.hubNetwork
         default:
@@ -1822,10 +1905,14 @@ public enum ForkExtrasControllerFocus {
 }
 
 public func forkExtrasController(context: AccountContext, focus: ForkExtrasControllerFocus = .top, focusItemId: Int32? = nil) -> ViewController {
-    if focus == .chat && focusItemId == 146 {
+    if focus != .network && focusItemId == 146 {
         return forkExtrasController(context: context, focus: .network, focusItemId: 146)
     }
-    if focus == .interface, let id = focusItemId, id == 1610 || id == 1611 {
+    // Rows moved between screens when Extras was regrouped by window; links and search results keep their old page.
+    if let id = focusItemId, let owner = ForkExtrasEntry.regroupedOwner(of: id), owner != focus.resolvedCategory {
+        return forkExtrasController(context: context, focus: owner, focusItemId: id)
+    }
+    if let id = focusItemId, id == 1610 || id == 1611 {
         return bananaGramThemePreviewController(context: context, dark: id == 1611) ?? themeSettingsController(context: context)
     }
     // Preserve already shared links to the former automatic-proxy switch.
@@ -2299,13 +2386,7 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
         },
         openDestination: { destination in
             switch destination {
-            case .customization: pushControllerImpl?(themeSettingsController(context: context))
             case .proxy: pushControllerImpl?(context.sharedContext.makeProxySettingsController(context: context))
-            case .archive: pushControllerImpl?(archiveSettingsController(context: context))
-            case .developer:
-                if let controller = context.sharedContext.makeDebugSettingsController(context: context) {
-                    pushControllerImpl?(controller)
-                }
             }
         },
         updateMusicPolicy: { id, value in

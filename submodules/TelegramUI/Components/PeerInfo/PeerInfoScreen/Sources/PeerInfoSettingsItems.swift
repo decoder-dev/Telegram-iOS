@@ -278,9 +278,15 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
         interaction.openSettings(.language)
     }))
 
-    // One home for BananaGram features, including customization and developer tools.
+    // Appearance and icons and Developer Mode live here, not inside Extras: they are not feature switches.
+    items[.advanced]!.append(PeerInfoScreenDisclosureItem(id: 9, text: forkCustomizationSettingsTitle(presentationData.strings), icon: PresentationResourcesSettings.appearance, action: {
+        interaction.openSettings(.appearance)
+    }))
     items[.advanced]!.append(PeerInfoScreenDisclosureItem(id: 8, text: forkExtrasSettingsTitle(presentationData.strings), icon: PresentationResourcesSettings.forkExtras, action: {
         interaction.openSettings(.forkExtras)
+    }))
+    items[.advanced]!.append(PeerInfoScreenDisclosureItem(id: 10, text: forkDeveloperModeSettingsTitle(presentationData.strings), icon: PresentationResourcesSettings.developerMode, action: {
+        interaction.openSettings(.debug)
     }))
 
     let premiumConfiguration = PremiumConfiguration.with(appConfiguration: context.currentAppConfiguration.with { $0 })

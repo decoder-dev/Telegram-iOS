@@ -50,7 +50,7 @@ class WiringTests(unittest.TestCase):
         ids = [int(re.search(r"case \." + row + r":\s+return (\d+)", source).group(1)) for row in rows]
         self.assertEqual(ids, sorted(set(ids)), "Stable merge requires ordered, distinct row IDs")
         extras = read("submodules/SettingsUI/Sources/ForkExtrasController.swift")
-        groups = extras[extras.index("private static let interfaceGroups"):extras.index("    case hubNinja")]
+        groups = extras[extras.index("private static let regroupedCategories"):extras.index("    case hubNinja")]
         self.assertIn("1508", groups, "Forward count belongs in an explicit appearance group")
 
     def test_settings_link_localization_symbols_exist(self):
@@ -91,7 +91,7 @@ def swift_tests():
 import Foundation
 import CoreGraphics
 enum ForkExtrasControllerFocus: Equatable {
-    case top, ninja, ghost, privacy, interface, chat, network, messageSaving, messageFilters
+    case top, ninja, ghost, privacy, chatList, tabBar, messages, media, profile, network, messageSaving, messageFilters
     var resolvedCategory: Self { switch self { case .messageSaving, .messageFilters: return .ninja; default: return self } }
 }
 '''
@@ -111,7 +111,7 @@ for mask in 0..<8 {
 }
 let old = try JSONDecoder().decode(MediaInputSettings.self, from: Data(#"{"enableRaiseToSpeak":1,"pauseMusicOnRecording_v2":0}"#.utf8))
 precondition(!old.pauseMusicOnRecording && old.pauseMusicOnVoiceRecording && old.pauseMusicOnVoicePlayback)
-for focus in [ForkExtrasControllerFocus.top, .ninja, .ghost, .privacy, .interface, .chat, .network] {
+for focus in [ForkExtrasControllerFocus.top, .ninja, .ghost, .privacy, .chatList, .tabBar, .messages, .media, .profile, .network] {
     let page = bananaSettingsPage(focus)
     let parsed = bananaSettingsLinkTarget("bananagram/" + page + "/1508")!
     precondition(parsed.0 == focus && parsed.1 == 1508)

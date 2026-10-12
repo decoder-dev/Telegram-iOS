@@ -680,9 +680,9 @@ private func dataAndStorageControllerEntries(context: AccountContext, state: Dat
 public func dataAndStorageController(context: AccountContext, focusOnItemTag: DataAndStorageEntryTag? = nil) -> ViewController {
     // Existing settings URLs and search history follow the relocated controls.
     switch focusOnItemTag {
-    case .pauseMusicOnRecording?: return forkExtrasController(context: context, focus: .chat, focusItemId: 2001)
-    case .pauseMusicOnVoiceRecording?: return forkExtrasController(context: context, focus: .chat, focusItemId: 2002)
-    case .pauseMusicOnVoicePlayback?: return forkExtrasController(context: context, focus: .chat, focusItemId: 2003)
+    case .pauseMusicOnRecording?: return forkExtrasController(context: context, focus: .media, focusItemId: 2001)
+    case .pauseMusicOnVoiceRecording?: return forkExtrasController(context: context, focus: .media, focusItemId: 2002)
+    case .pauseMusicOnVoicePlayback?: return forkExtrasController(context: context, focus: .media, focusItemId: 2003)
     case .sensitiveContent?: return forkExtrasController(context: context, focus: .messageFilters, focusItemId: 147)
     default: break
     }

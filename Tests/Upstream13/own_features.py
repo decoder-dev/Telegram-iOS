@@ -324,5 +324,17 @@ class ForkIntegration(unittest.TestCase):
         self.assertIn('SessionKeychainBackup.deleteAll()', shared)
 
 
+    def test_extras_are_grouped_by_window_and_menu_entries_moved(self):
+        menu = read('submodules/TelegramUI/Components/PeerInfo/PeerInfoScreen/Sources/PeerInfoSettingsItems.swift')
+        self.assertIn('forkCustomizationSettingsTitle(presentationData.strings)', menu)
+        self.assertIn('forkDeveloperModeSettingsTitle(presentationData.strings)', menu)
+        extras = read('submodules/SettingsUI/Sources/ForkExtrasController.swift')
+        for gone in ('.customization', '.developer', '.archive', 'case hubInterface', 'case hubChat\n'):
+            self.assertNotIn(gone, extras)
+        for hub in ('hubChatList', 'hubTabBar', 'hubMessages', 'hubMedia', 'hubProfile'):
+            self.assertIn('case ' + hub, extras)
+        self.assertIn('ForkExtrasEntry.regroupedOwner(of: id)', extras)
+
+
 if __name__ == '__main__':
     unittest.main()
