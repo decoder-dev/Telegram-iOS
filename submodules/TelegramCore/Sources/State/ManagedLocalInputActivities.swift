@@ -158,6 +158,9 @@ public enum ForkExtrasHotFlags {
         public var streamerMode: Bool = false
         public var hideStickerStatus: Bool = false
         public var pollResultsBeforeVoting: Bool = false
+        public var downloadTikTok: Bool = false
+        public var downloadYouTubeShorts: Bool = false
+        public var signDownloadedMedia: Bool = false
 
         public init(
             hideAds: Bool = true,
@@ -182,7 +185,10 @@ public enum ForkExtrasHotFlags {
             outgoingPhotoQuality: Int32 = 0,
             streamerMode: Bool = false,
             hideStickerStatus: Bool = false,
-            pollResultsBeforeVoting: Bool = false
+            pollResultsBeforeVoting: Bool = false,
+            downloadTikTok: Bool = false,
+            downloadYouTubeShorts: Bool = false,
+            signDownloadedMedia: Bool = false
         ) {
             self.hideAds = hideAds
             self.hideBlockedMessages = hideBlockedMessages
@@ -207,6 +213,9 @@ public enum ForkExtrasHotFlags {
             self.streamerMode = streamerMode
             self.hideStickerStatus = hideStickerStatus
             self.pollResultsBeforeVoting = pollResultsBeforeVoting
+            self.downloadTikTok = downloadTikTok
+            self.downloadYouTubeShorts = downloadYouTubeShorts
+            self.signDownloadedMedia = signDownloadedMedia
         }
     }
 
@@ -342,6 +351,18 @@ public enum ForkExtrasHotFlags {
     public static var pollResultsBeforeVoting: Bool {
         get { return state.with { $0.pollResultsBeforeVoting } }
         set { let _ = state.modify { var s = $0; s.pollResultsBeforeVoting = newValue; return s } }
+    }
+    public static var downloadTikTok: Bool {
+        get { return state.with { $0.downloadTikTok } }
+        set { let _ = state.modify { var s = $0; s.downloadTikTok = newValue; return s } }
+    }
+    public static var downloadYouTubeShorts: Bool {
+        get { return state.with { $0.downloadYouTubeShorts } }
+        set { let _ = state.modify { var s = $0; s.downloadYouTubeShorts = newValue; return s } }
+    }
+    public static var signDownloadedMedia: Bool {
+        get { return state.with { $0.signDownloadedMedia } }
+        set { let _ = state.modify { var s = $0; s.signDownloadedMedia = newValue; return s } }
     }
 }
 

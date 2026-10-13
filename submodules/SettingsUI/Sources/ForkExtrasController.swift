@@ -855,6 +855,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [1608, 80, 84],
             [83],
             [1609, 1515, 1516, 1544, 1545, 1612],
+            [1613, 1554, 1555, 1556, 1614],
             [2000, 2001, 2002, 2003, 2004]
         ]),
         (.profile, [
@@ -1885,6 +1886,11 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .designHeader(1609, russian ? "Голосовые и кружки" : "Voice and round videos"),
             .appearanceToggle(1515, russian ? "Останавливать после голосового" : "Stop after a voice message", settings.stopAfterVoice, \.stopAfterVoice),
             .appearanceToggle(1516, russian ? "Останавливать после кружка" : "Stop after a round video", settings.stopAfterRoundVideo, \.stopAfterRoundVideo),
+            .designHeader(1613, russian ? "Ссылки TikTok и Shorts" : "TikTok and Shorts links"),
+            .appearanceToggle(1554, russian ? "Скачивать TikTok" : "Download TikTok", settings.downloadTikTok, \.downloadTikTok),
+            .appearanceToggle(1555, russian ? "Скачивать YouTube Shorts" : "Download YouTube Shorts", settings.downloadYouTubeShorts, \.downloadYouTubeShorts),
+            .appearanceToggle(1556, russian ? "Подпись «Скачано с…»" : "“Downloaded from…” caption", settings.signDownloadedMedia, \.signDownloadedMedia),
+            .designFooter(1614, russian ? "Сообщение, в котором только ссылка, уходит видео или фото вместо ссылки. Если скачать не удалось, отправляется сама ссылка." : "A message that is only a link goes out as the video or photos instead. If the download fails, the link itself is sent."),
             .appearanceToggle(1544, russian ? "Кружок: задняя камера" : "Round video: rear camera", settings.roundVideoStartsWithRear, \.roundVideoStartsWithRear),
             .appearanceToggle(1545, russian ? "Кружок: помнить камеру" : "Round video: remember camera", settings.roundVideoRemembersCamera, \.roundVideoRemembersCamera),
             .designFooter(1612, russian ? "Музыка как голосовое: откройте меню трека в разделе «Вложения → Музыка»." : "To send music as a voice message, open the track's menu in Attach → Music."),

@@ -489,5 +489,26 @@ class ForkIntegration(unittest.TestCase):
         self.assertIn('[1618, 1531, 1532, 1553, 1619]', read('submodules/SettingsUI/Sources/ForkExtrasController.swift'))
 
 
+    def test_tiktok_and_shorts_link_download(self):
+        sources = os.path.join(ROOT, 'submodules/BananaLinkDownloader/Sources')
+        names = sorted(os.listdir(sources))
+        self.assertEqual(len(names), 8)
+        for name in names:
+            text = (pathlib.Path(sources) / name).read_text(encoding='utf-8')
+            self.assertNotIn('donutgram', text.lower())
+            self.assertNotRegex(text, r'\bDG[A-Z]')
+        chat = read('submodules/TelegramUI/Sources/ChatController+BananaLinkDownload.swift')
+        # Off by default and never in a secret chat or a chat where media is banned or paid.
+        self.assertIn('ForkExtrasHotFlags.downloadTikTok', chat)
+        self.assertIn('Namespaces.Peer.SecretChat', chat)
+        self.assertIn('sendPaidMessageStars != nil', chat)
+        # A failed or cancelled download sends the original message.
+        self.assertIn('outgoing = [template]', chat)
+        send = read('submodules/TelegramUI/Sources/Chat/ChatControllerLoadDisplayNode.swift')
+        self.assertIn('strongSelf.bananaInterceptLinkSend(transformedMessages, peerId: peerId)', send)
+        self.assertIn('//submodules/BananaLinkDownloader:BananaLinkDownloader', read('submodules/TelegramUI/BUILD'))
+        self.assertIn('self.downloadTikTok = try container.decodeIfPresent(Bool.self, forKey: "downloadTikTok") ?? false', read('submodules/TelegramUIPreferences/Sources/ForkExtrasSettings.swift'))
+
+
 if __name__ == '__main__':
     unittest.main()

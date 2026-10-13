@@ -148,6 +148,10 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var pollResultsBeforeVoting: Bool
     /// Fork (Donutgram): last seen shows the time of day instead of "N minutes ago", and offline contacts get a grey dot.
     public var exactLastSeen: Bool
+    /// Fork (Donutgram): a message that is only a TikTok or YouTube Shorts link is sent as the downloaded media.
+    public var downloadTikTok: Bool
+    public var downloadYouTubeShorts: Bool
+    public var signDownloadedMedia: Bool
     public var showsOfflineDot: Bool
     /// Hide paid (star) reactions from messages and the reaction picker.
     public var hidePaidReactions: Bool
@@ -236,7 +240,10 @@ public struct ForkExtrasSettings: Codable, Equatable {
             chatListHidesSearch: false,
             pollResultsBeforeVoting: false,
             exactLastSeen: false,
-            showsOfflineDot: false
+            showsOfflineDot: false,
+            downloadTikTok: false,
+            downloadYouTubeShorts: false,
+            signDownloadedMedia: false
         )
     }
 
@@ -309,7 +316,10 @@ public struct ForkExtrasSettings: Codable, Equatable {
         chatListHidesSearch: Bool = false,
         pollResultsBeforeVoting: Bool = false,
         exactLastSeen: Bool = false,
-        showsOfflineDot: Bool = false
+        showsOfflineDot: Bool = false,
+        downloadTikTok: Bool = false,
+        downloadYouTubeShorts: Bool = false,
+        signDownloadedMedia: Bool = false
     ) {
         self.wideTabBar = false
         self.integratedTabSearch = false
@@ -407,6 +417,9 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.pollResultsBeforeVoting = pollResultsBeforeVoting
         self.exactLastSeen = exactLastSeen
         self.showsOfflineDot = showsOfflineDot
+        self.downloadTikTok = downloadTikTok
+        self.downloadYouTubeShorts = downloadYouTubeShorts
+        self.signDownloadedMedia = signDownloadedMedia
     }
 
     public init(from decoder: Decoder) throws {
@@ -509,6 +522,9 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.pollResultsBeforeVoting = try container.decodeIfPresent(Bool.self, forKey: "pollResultsBeforeVoting") ?? false
         self.exactLastSeen = try container.decodeIfPresent(Bool.self, forKey: "exactLastSeen") ?? false
         self.showsOfflineDot = try container.decodeIfPresent(Bool.self, forKey: "showsOfflineDot") ?? false
+        self.downloadTikTok = try container.decodeIfPresent(Bool.self, forKey: "downloadTikTok") ?? false
+        self.downloadYouTubeShorts = try container.decodeIfPresent(Bool.self, forKey: "downloadYouTubeShorts") ?? false
+        self.signDownloadedMedia = try container.decodeIfPresent(Bool.self, forKey: "signDownloadedMedia") ?? false
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -611,6 +627,9 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.pollResultsBeforeVoting, forKey: "pollResultsBeforeVoting")
         try container.encode(self.exactLastSeen, forKey: "exactLastSeen")
         try container.encode(self.showsOfflineDot, forKey: "showsOfflineDot")
+        try container.encode(self.downloadTikTok, forKey: "downloadTikTok")
+        try container.encode(self.downloadYouTubeShorts, forKey: "downloadYouTubeShorts")
+        try container.encode(self.signDownloadedMedia, forKey: "signDownloadedMedia")
     }
 
     /// Whether message/reaction read receipts should be suppressed right now.
