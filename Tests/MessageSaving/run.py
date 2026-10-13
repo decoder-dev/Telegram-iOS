@@ -5,7 +5,7 @@ import tempfile
 
 root = pathlib.Path(__file__).resolve().parents[2]
 store = (root / 'submodules/TelegramUIPreferences/Sources/MessageSavingStore.swift').read_text(encoding='utf-8')
-for module in ['UIKit', 'TelegramCore', 'SwiftSignalKit']:
+for module in ['UIKit', 'TelegramCore', 'Postbox', 'SwiftSignalKit']:
     store = store.replace('import ' + module + '\n', '')
 # Exclude only platform lifecycle and settings wiring, not storage behavior.
 start = store.index('    public static func installBridge()')
