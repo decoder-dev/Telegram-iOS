@@ -451,7 +451,7 @@ class ForkIntegration(unittest.TestCase):
         controller = read('submodules/ChatListUI/Sources/ChatListController.swift')
         self.assertIn('BananaChatListHeader.current.hidesConnectionStatus', controller)
         self.assertIn('BananaChatListHeader.didChangeNotification', controller)
-        self.assertIn('[1601, 52, 1499, 1546, 1547]', read('submodules/SettingsUI/Sources/ForkExtrasController.swift'))
+        self.assertIn('[1601, 52, 1499, 1546, 1547, 1548, 1549]', read('submodules/SettingsUI/Sources/ForkExtrasController.swift'))
         self.assertIn('BananaChatListHeader.current = BananaChatListHeader(', read('submodules/TelegramUI/Sources/SharedAccountContext.swift'))
 
 

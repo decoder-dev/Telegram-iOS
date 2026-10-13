@@ -140,6 +140,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
     /// Fork (Donutgram): the chat list title is never replaced by "Connecting…", and carries no emoji status.
     public var chatListHidesConnectionStatus: Bool
     public var chatListHidesEmojiStatus: Bool
+    public var chatListCentersTitle: Bool
+    public var chatListHidesSearch: Bool
     /// Hide paid (star) reactions from messages and the reaction picker.
     public var hidePaidReactions: Bool
     /// Hide the "via @bot" label on messages sent through inline bots.
@@ -222,7 +224,9 @@ public struct ForkExtrasSettings: Codable, Equatable {
             roundVideoStartsWithRear: false,
             roundVideoRemembersCamera: false,
             chatListHidesConnectionStatus: false,
-            chatListHidesEmojiStatus: false
+            chatListHidesEmojiStatus: false,
+            chatListCentersTitle: false,
+            chatListHidesSearch: false
         )
     }
 
@@ -290,7 +294,9 @@ public struct ForkExtrasSettings: Codable, Equatable {
         roundVideoStartsWithRear: Bool = false,
         roundVideoRemembersCamera: Bool = false,
         chatListHidesConnectionStatus: Bool = false,
-        chatListHidesEmojiStatus: Bool = false
+        chatListHidesEmojiStatus: Bool = false,
+        chatListCentersTitle: Bool = false,
+        chatListHidesSearch: Bool = false
     ) {
         self.wideTabBar = false
         self.integratedTabSearch = false
@@ -382,6 +388,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.roundVideoRemembersCamera = roundVideoRemembersCamera
         self.chatListHidesConnectionStatus = chatListHidesConnectionStatus
         self.chatListHidesEmojiStatus = chatListHidesEmojiStatus
+        self.chatListCentersTitle = chatListCentersTitle
+        self.chatListHidesSearch = chatListHidesSearch
     }
 
     public init(from decoder: Decoder) throws {
@@ -478,6 +486,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.roundVideoRemembersCamera = try container.decodeIfPresent(Bool.self, forKey: "roundVideoRemembersCamera") ?? false
         self.chatListHidesConnectionStatus = try container.decodeIfPresent(Bool.self, forKey: "chatListHidesConnectionStatus") ?? false
         self.chatListHidesEmojiStatus = try container.decodeIfPresent(Bool.self, forKey: "chatListHidesEmojiStatus") ?? false
+        self.chatListCentersTitle = try container.decodeIfPresent(Bool.self, forKey: "chatListCentersTitle") ?? false
+        self.chatListHidesSearch = try container.decodeIfPresent(Bool.self, forKey: "chatListHidesSearch") ?? false
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -574,6 +584,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.roundVideoRemembersCamera, forKey: "roundVideoRemembersCamera")
         try container.encode(self.chatListHidesConnectionStatus, forKey: "chatListHidesConnectionStatus")
         try container.encode(self.chatListHidesEmojiStatus, forKey: "chatListHidesEmojiStatus")
+        try container.encode(self.chatListCentersTitle, forKey: "chatListCentersTitle")
+        try container.encode(self.chatListHidesSearch, forKey: "chatListHidesSearch")
     }
 
     /// Whether message/reaction read receipts should be suppressed right now.

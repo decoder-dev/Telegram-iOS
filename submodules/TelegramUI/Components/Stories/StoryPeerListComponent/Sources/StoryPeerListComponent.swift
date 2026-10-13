@@ -49,6 +49,7 @@ public final class StoryPeerListComponent: Component {
     public let titleHasLock: Bool
     public let titleHasActivity: Bool
     public let titlePeerStatus: PeerStatus?
+    public let centeredTitle: Bool
     public let minTitleX: CGFloat
     public let maxTitleX: CGFloat
     public let useHiddenList: Bool
@@ -73,6 +74,7 @@ public final class StoryPeerListComponent: Component {
         titleHasLock: Bool,
         titleHasActivity: Bool,
         titlePeerStatus: PeerStatus?,
+        centeredTitle: Bool = false,
         minTitleX: CGFloat,
         maxTitleX: CGFloat,
         useHiddenList: Bool,
@@ -96,6 +98,7 @@ public final class StoryPeerListComponent: Component {
         self.titleHasLock = titleHasLock
         self.titleHasActivity = titleHasActivity
         self.titlePeerStatus = titlePeerStatus
+        self.centeredTitle = centeredTitle
         self.minTitleX = minTitleX
         self.maxTitleX = maxTitleX
         self.useHiddenList = useHiddenList
@@ -136,6 +139,9 @@ public final class StoryPeerListComponent: Component {
             return false
         }
         if lhs.titlePeerStatus != rhs.titlePeerStatus {
+            return false
+        }
+        if lhs.centeredTitle != rhs.centeredTitle {
             return false
         }
         if lhs.minTitleX != rhs.minTitleX {
@@ -899,6 +905,13 @@ public final class StoryPeerListComponent: Component {
             
             collapsedContentOrigin = min(collapsedContentOrigin, component.maxTitleX - centralContentWidth - 4.0)
             
+            // Centered: the title is at the screen center when there is room for it, otherwise it moves aside just enough to keep
+            // clear of the right buttons and, together with the collapsed avatars on its left, of the left button.
+            let centeredTitleOffset = min(max((itemLayout.containerSize.width - collapsedState.titleWidth) * 0.5, component.minTitleX + collapsedContentWidth + titleContentSpacing), component.maxTitleX - collapsedState.titleWidth - 4.0)
+            if component.centeredTitle {
+                collapsedContentOrigin = centeredTitleOffset - collapsedContentWidth - titleContentSpacing
+            }
+            
             let collapsedContentOriginOffset: CGFloat = 0.0
             collapsedContentOrigin -= collapsedContentOriginOffset
             
@@ -1393,6 +1406,10 @@ public final class StoryPeerListComponent: Component {
                 titleContentOffset = titleMinContentOffset.interpolate(to: ((itemLayout.containerSize.width - collapsedState.titleWidth) * 0.5) as CGFloat, amount: min(1.0, collapsedState.maxFraction) * (1.0 - collapsedState.activityFraction))
                 titleContentOffset += -expandBoundsFraction * 4.0
             }
+            if component.centeredTitle {
+                // Keep the title and its status at the screen center even with unequal side controls.
+                titleContentOffset = centeredTitleOffset
+            }
             
             var titleIndicatorSize: CGSize?
             if collapsedState.activityFraction != 0.0 {
@@ -1684,11 +1701,12 @@ public final class StoryPeerListComponent: Component {
                 animator.invalidate()
             }
             
+            let previousComponent = self.component
             self.component = component
             self.state = state
             
             let updatedTitleState = TitleState(text: component.title, color: component.theme.rootController.navigationBar.primaryTextColor)
-            if self.titleState != updatedTitleState {
+            if self.titleState != updatedTitleState || previousComponent?.centeredTitle != component.centeredTitle || previousComponent?.minTitleX != component.minTitleX || previousComponent?.maxTitleX != component.maxTitleX || previousComponent?.titlePeerStatus != component.titlePeerStatus {
                 self.titleState = updatedTitleState
                 
                 let attributedText = NSAttributedString(string: updatedTitleState.text, attributes: [

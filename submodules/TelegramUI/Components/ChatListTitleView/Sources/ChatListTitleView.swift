@@ -339,7 +339,7 @@ public final class ChatListTitleView: UIView, NavigationBarTitleView, Navigation
         return availableSize
     }
     
-    public func updateLayoutInternal(size: CGSize, transition: ContainedViewLayoutTransition) -> CGRect {
+    public func updateLayoutInternal(size: CGSize, transition: ContainedViewLayoutTransition, centerTitle: Bool = false) -> CGRect {
         self.validLayout = size
         
         var indicatorPadding: CGFloat = 0.0
@@ -348,13 +348,16 @@ public final class ChatListTitleView: UIView, NavigationBarTitleView, Navigation
         if !self.activityIndicator.isHidden {
             indicatorPadding = indicatorSize.width + 6.0
         }
-        var maxTitleWidth = size.width - indicatorPadding
+        let statusPadding: CGFloat = centerTitle && self.title.peerStatus != nil && !self.title.activity ? 24.0 : 0.0
+        // The passcode lock is drawn 18 pt left of the title, so a centered title is centered together with it, as in the stories header.
+        let lockPadding: CGFloat = centerTitle && !self.lockView.isHidden ? 18.0 : 0.0
+        var maxTitleWidth = size.width - indicatorPadding - lockPadding - statusPadding
         var proxyPadding: CGFloat = 0.0
         if !self.proxyNode.isHidden {
             maxTitleWidth -= 25.0
             proxyPadding += 39.0
         }
-        if !self.lockView.isHidden {
+        if !self.lockView.isHidden && !centerTitle {
             maxTitleWidth -= 10.0
         }
         
@@ -362,9 +365,9 @@ public final class ChatListTitleView: UIView, NavigationBarTitleView, Navigation
         
         let combinedHeight = titleSize.height
         
-        let combinedWidth = titleSize.width
+        let combinedWidth = lockPadding + titleSize.width + statusPadding
         
-        var titleContentRect = CGRect(origin: CGPoint(x: indicatorPadding + floor((size.width - combinedWidth - indicatorPadding) / 2.0), y: floor((size.height - combinedHeight) / 2.0)), size: titleSize)
+        var titleContentRect = CGRect(origin: CGPoint(x: indicatorPadding + lockPadding + floor((size.width - combinedWidth - indicatorPadding) / 2.0), y: floor((size.height - combinedHeight) / 2.0)), size: titleSize)
         
         titleContentRect.origin.x = min(titleContentRect.origin.x, size.width - proxyPadding - titleContentRect.width)
         

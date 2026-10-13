@@ -1175,6 +1175,8 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
     private(set) var inlineStackContainerTransitionFraction: CGFloat = 0.0
     private(set) var inlineStackContainerNode: ChatListContainerNode?
     private var inlineContentPanRecognizer: InteractiveTransitionGestureRecognizer?
+    private var headerOptionsObserver: NSObjectProtocol?
+    private var lastHideSearch = BananaChatListHeader.current.hidesSearch
     var temporaryContentOffsetChangeTransition: ContainedViewLayoutTransition?
     
     private var tapRecognizer: UITapGestureRecognizer?
@@ -1383,6 +1385,18 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
         self.inlineContentPanRecognizer = inlineContentPanRecognizer
         self.view.addGestureRecognizer(inlineContentPanRecognizer)
 
+        self.headerOptionsObserver = NotificationCenter.default.addObserver(forName: BananaChatListHeader.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
+            guard let self else {
+                return
+            }
+            let hidesSearch = BananaChatListHeader.current.hidesSearch
+            if self.location == .chatList(groupId: .root), self.lastHideSearch != hidesSearch {
+                self.lastHideSearch = hidesSearch
+                self.mainContainerNode.currentItemNode.scrollHeightTopInset = (hidesSearch ? 0.0 : ChatListNavigationBar.searchScrollHeight) + ChatListNavigationBar.storiesScrollHeight
+                let _ = self.mainContainerNode.currentItemNode.scrollToOffsetFromTop(hidesSearch ? 0.0 : ChatListNavigationBar.searchScrollHeight, animated: false)
+            }
+            self.controller?.requestLayout(transition: .immediate)
+        }
     }
     
     override func didLoad() {
@@ -1465,6 +1479,9 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
     
     deinit {
         self.folderSettingsDisposable?.dispose()
+        if let headerOptionsObserver = self.headerOptionsObserver {
+            NotificationCenter.default.removeObserver(headerOptionsObserver)
+        }
     }
 
     func updatePresentationData(_ presentationData: PresentationData) {
@@ -1764,7 +1781,7 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
                 statusBarHeight: layout.statusBarHeight ?? 0.0,
                 leftInset: layout.safeInsets.left,
                 rightInset: layout.safeInsets.right,
-                search: ChatListNavigationBar.Search(isEnabled: true),
+                search: BananaChatListHeader.current.hidesSearch && self.location == .chatList(groupId: .root) ? nil : ChatListNavigationBar.Search(isEnabled: true),
                 activeSearch: self.isSearchDisplayControllerActive,
                 primaryContent: headerContent?.primaryContent,
                 secondaryContent: headerContent?.secondaryContent,
@@ -1975,7 +1992,7 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
         var storiesInset = storiesInset
         
         let navigationBarLayout = self.updateNavigationBar(layout: layout, deferScrollApplication: true, transition: ComponentTransition(transition))
-        self.mainContainerNode.initialScrollingOffset = ChatListNavigationBar.searchScrollHeight + navigationBarLayout.storiesInset
+        self.mainContainerNode.initialScrollingOffset = (BananaChatListHeader.current.hidesSearch && self.location == .chatList(groupId: .root) ? 0.0 : ChatListNavigationBar.searchScrollHeight) + navigationBarLayout.storiesInset
         
         navigationBarHeight = navigationBarLayout.navigationHeight
         visualNavigationHeight = navigationBarLayout.navigationHeight

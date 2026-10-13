@@ -822,7 +822,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     private static let regroupedCategories: [(focus: ForkExtrasControllerFocus, groups: [[Int32]])] = [
         (.chatList, [
             [1602, 50, 51, 53],
-            [1601, 52, 1499, 1546, 1547],
+            [1601, 52, 1499, 1546, 1547, 1548, 1549],
             [59, 60],
             [61, 62],
             [1512]
@@ -1804,6 +1804,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(1499, ForkExtrasLocalizedString.string(forKey: "ForkExtras.BottomFolders"), settings.bottomChatFoldersEnabled, \.bottomChatFoldersEnabled),
             .appearanceToggle(1546, russian ? "Скрыть «Соединение…» в заголовке" : "Hide Connecting… in the title", settings.chatListHidesConnectionStatus, \.chatListHidesConnectionStatus),
             .appearanceToggle(1547, russian ? "Скрыть эмодзи-статус в заголовке" : "Hide emoji status in the title", settings.chatListHidesEmojiStatus, \.chatListHidesEmojiStatus),
+            .appearanceToggle(1548, russian ? "Заголовок по центру" : "Centered title", settings.chatListCentersTitle, \.chatListCentersTitle),
+            .appearanceToggle(1549, russian ? "Скрыть поиск в списке чатов" : "Hide search in the chat list", settings.chatListHidesSearch, \.chatListHidesSearch),
             .hideAllChats(settings.hideAllChats),
             .hideAllChatsFooter,
             .rememberLastFolder(settings.rememberLastFolder),

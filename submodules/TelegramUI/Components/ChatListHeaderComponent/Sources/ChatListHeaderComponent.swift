@@ -128,6 +128,8 @@ public final class ChatListHeaderComponent: Component {
     
     public let leftInset: CGFloat
     public let rightInset: CGFloat
+    /// Captured at init, so that toggling the setting makes the component unequal and the header is laid out again.
+    public let centeredTitle: Bool
     public let primaryContent: Content?
     public let secondaryContent: Content?
     public let secondaryTransition: CGFloat
@@ -164,6 +166,7 @@ public final class ChatListHeaderComponent: Component {
     ) {
         self.leftInset = leftInset
         self.rightInset = rightInset
+        self.centeredTitle = BananaChatListHeader.current.centersTitle
         self.primaryContent = primaryContent
         self.secondaryContent = secondaryContent
         self.secondaryTransition = secondaryTransition
@@ -185,6 +188,9 @@ public final class ChatListHeaderComponent: Component {
             return false
         }
         if lhs.rightInset != rhs.rightInset {
+            return false
+        }
+        if lhs.centeredTitle != rhs.centeredTitle {
             return false
         }
         if lhs.primaryContent != rhs.primaryContent {
@@ -460,7 +466,7 @@ public final class ChatListHeaderComponent: Component {
             self.chatListTitleView?.openEmojiStatusSetup()
         }
         
-        func update(context: AccountContext, theme: PresentationTheme, strings: PresentationStrings, content: Content, displayBackButton: Bool, leftInset: CGFloat, rightInset: CGFloat, sideContentWidth: CGFloat, sideContentFraction: CGFloat, size: CGSize, transition: ComponentTransition) {
+        func update(context: AccountContext, theme: PresentationTheme, strings: PresentationStrings, content: Content, displayBackButton: Bool, centeredTitle: Bool, leftInset: CGFloat, rightInset: CGFloat, sideContentWidth: CGFloat, sideContentFraction: CGFloat, size: CGSize, transition: ComponentTransition) {
             let alphaTransition: ComponentTransition = transition.animation.isImmediate ? .immediate : .easeInOut(duration: 0.3)
 
             transition.setPosition(view: self.titleOffsetContainer, position: CGPoint(x: size.width * 0.5, y: size.height * 0.5))
@@ -683,12 +689,15 @@ public final class ChatListHeaderComponent: Component {
                     self.titleScaleContainer.addSubview(chatListTitleView)
                 }
                 
-                let chatListTitleContentSize = size
+                // Centered: the title gets the free space between the buttons rather than a box mirrored from the wider side,
+                // and is moved to the screen center below as far as the room around it allows.
+                let titleAreaMinX = leftInset + nextLeftButtonX + 8.0
+                let chatListTitleContentSize = centeredTitle ? CGSize(width: max(1.0, size.width - rightInset - nextRightButtonX - 8.0 - titleAreaMinX), height: size.height) : size
                 chatListTitleView.theme = theme
                 chatListTitleView.strings = strings
                 chatListTitleView.setTitle(chatListTitle, animated: false)
-                let titleContentRect = chatListTitleView.updateLayoutInternal(size: chatListTitleContentSize, transition: transition.containedViewLayoutTransition)
-                centerContentWidth = floor((chatListTitleContentSize.width * 0.5 - titleContentRect.minX) * 2.0)
+                let titleContentRect = chatListTitleView.updateLayoutInternal(size: chatListTitleContentSize, transition: transition.containedViewLayoutTransition, centerTitle: centeredTitle)
+                centerContentWidth = centeredTitle ? titleContentRect.width : floor((chatListTitleContentSize.width * 0.5 - titleContentRect.minX) * 2.0)
                 
                 let centerOffset = sideContentWidth * 0.5
                 centerContentOffsetX = -max(0.0, centerOffset + titleContentRect.maxX - 2.0 - (size.width - rightInset - nextRightButtonX))
@@ -707,7 +716,14 @@ public final class ChatListHeaderComponent: Component {
                 }
                 
                 let chatListTitleOffset: CGFloat
-                if chatListTitle.activity {
+                if centeredTitle {
+                    // 0 puts the title at the screen center; keep the offset where the title stays inside the free space. The activity
+                    // indicator is outside the rect but centered with the title, so the room on its left is at most the room on its right.
+                    let titleRightSpace = max(0.0, chatListTitleContentSize.width - titleContentRect.maxX)
+                    let titleLeftSpace = max(0.0, min(titleContentRect.minX, titleRightSpace))
+                    let titleAreaOffset = titleAreaMinX - floor((size.width - chatListTitleContentSize.width) / 2.0)
+                    chatListTitleOffset = max(titleAreaOffset - titleLeftSpace, min(titleAreaOffset + titleRightSpace, 0.0))
+                } else if chatListTitle.activity {
                     chatListTitleOffset = 0.0
                 } else {
                     chatListTitleOffset = (centerOffset + centerContentOffsetX) * sideContentFraction
@@ -906,7 +922,7 @@ public final class ChatListHeaderComponent: Component {
                     )
                 }
                 
-                primaryContentView.update(context: component.context, theme: component.theme, strings: component.strings, content: primaryContent, displayBackButton: primaryContent.backPressed != nil, leftInset: symmetricInset, rightInset: symmetricInset, sideContentWidth: sideContentWidth, sideContentFraction: (1.0 - component.storiesFraction), size: centeredContentFrame.size, transition: primaryContentTransition)
+                primaryContentView.update(context: component.context, theme: component.theme, strings: component.strings, content: primaryContent, displayBackButton: primaryContent.backPressed != nil, centeredTitle: component.centeredTitle, leftInset: symmetricInset, rightInset: symmetricInset, sideContentWidth: sideContentWidth, sideContentFraction: (1.0 - component.storiesFraction), size: centeredContentFrame.size, transition: primaryContentTransition)
                 primaryContentTransition.setFrame(view: primaryContentView, frame: centeredContentFrame)
                 
                 primaryContentView.updateContentOffsetFraction(contentOffsetFraction: 1.0 - self.storyOffsetFraction, transition: primaryContentTransition)
@@ -963,6 +979,7 @@ public final class ChatListHeaderComponent: Component {
                         titleHasLock: primaryTitleHasLock,
                         titleHasActivity: primaryTitleHasActivity,
                         titlePeerStatus: primaryTitlePeerStatus,
+                        centeredTitle: component.centeredTitle,
                         minTitleX: self.primaryContentView?.centerContentLeftInset ?? 0.0,
                         maxTitleX: centeredContentFrame.width - (self.primaryContentView?.centerContentRightInset ?? 0.0),
                         useHiddenList: component.storiesIncludeHidden,
@@ -1045,7 +1062,7 @@ public final class ChatListHeaderComponent: Component {
                     self.leftButtonsContainer.addSubview(secondaryContentView.leftButtonsContainer)
                     self.rightButtonsContainer.addSubview(secondaryContentView.rightButtonsContainer)
                 }
-                secondaryContentView.update(context: component.context, theme: component.theme, strings: component.strings, content: secondaryContent, displayBackButton: true, leftInset: symmetricInset, rightInset: symmetricInset, sideContentWidth: 0.0, sideContentFraction: 0.0, size: centeredContentFrame.size, transition: secondaryContentTransition)
+                secondaryContentView.update(context: component.context, theme: component.theme, strings: component.strings, content: secondaryContent, displayBackButton: true, centeredTitle: component.centeredTitle, leftInset: symmetricInset, rightInset: symmetricInset, sideContentWidth: 0.0, sideContentFraction: 0.0, size: centeredContentFrame.size, transition: secondaryContentTransition)
                 secondaryContentTransition.setFrame(view: secondaryContentView, frame: centeredContentFrame)
                 
                 secondaryContentView.updateContentOffsetFraction(contentOffsetFraction: 1.0 - self.storyOffsetFraction, transition: secondaryContentTransition)
