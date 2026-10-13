@@ -59,13 +59,16 @@ final class BananaMediaFetcher: NSObject, URLSessionDownloadDelegate {
         self.startDownload(request, to: destination, maxBytes: Self.maxPageBytes, progress: { _, _ in }, completion: { result in
             switch result {
             case let .failure(error):
-                completion(.failure(error))
+                completion(.failure(error == .tooLarge ? .pageTooLarge : error))
             case let .success(download):
                 defer { try? FileManager.default.removeItem(at: download.fileURL) }
                 guard let responseURL = download.responseURL,
-                      let data = try? Data(contentsOf: download.fileURL),
-                      Int64(data.count) <= Self.maxPageBytes else {
+                      let data = try? Data(contentsOf: download.fileURL) else {
                     completion(.failure(.processingFailed))
+                    return
+                }
+                guard Int64(data.count) <= Self.maxPageBytes else {
+                    completion(.failure(.pageTooLarge))
                     return
                 }
                 completion(.success(BananaHTTPResponse(data: data, url: responseURL)))

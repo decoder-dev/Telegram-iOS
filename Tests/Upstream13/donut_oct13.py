@@ -82,6 +82,7 @@ class DonutAdaptation(unittest.TestCase):
         self.assertIn('public static let maxBatchSize: Int64 = 500 * 1024 * 1024', job)
         self.assertIn('bananaWouldExceedByteLimit(total: aggregate, adding: received, limit: BananaLinkDownloadJob.maxBatchSize)', job)
         self.assertIn('case batchTooLarge', error)
+        self.assertIn('case pageTooLarge', error)
         self.assertIn('error.localizedReason(russian: ForkPresentationLanguage.prefersRussianStrings)', read('submodules/TelegramUI/Sources/ChatController+BananaLinkDownload.swift'))
 
     @unittest.skipUnless(shutil.which('swiftc'), 'Swift unavailable locally; executes in macOS CI')

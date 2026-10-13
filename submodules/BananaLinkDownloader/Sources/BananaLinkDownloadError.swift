@@ -13,6 +13,7 @@ public enum BananaLinkDownloadError: Error, Equatable {
     case youtubeUnavailable
     case youtubeTooLong
     case noCompatibleFormat
+    case pageTooLarge
     case tooLarge
     case batchTooLarge
     case httpStatus(Int)
@@ -51,6 +52,8 @@ public enum BananaLinkDownloadError: Error, Equatable {
             return russian ? "Это не Shorts, а длинное видео" : "This video is too long to be a Short"
         case .noCompatibleFormat:
             return russian ? "Нет подходящего формата" : "No compatible media format was found"
+        case .pageTooLarge:
+            return russian ? "Страница источника больше 16 МБ" : "The source page exceeds 16 MB"
         case .tooLarge:
             return russian ? "Файл больше 200 МБ" : "A media file exceeds 200 MB"
         case .batchTooLarge:
