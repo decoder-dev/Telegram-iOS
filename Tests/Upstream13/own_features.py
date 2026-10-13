@@ -398,7 +398,9 @@ class ForkIntegration(unittest.TestCase):
         self.assertIn('?? false', settings[settings.index('decodeIfPresent(Bool.self, forKey: "snowEnabled")'):][:120])
         controller = read('submodules/SettingsUI/Sources/ForkExtrasController.swift')
         self.assertIn('.appearanceToggle(1541,', controller)
-        self.assertIn('1541: 1501.5', controller)
+        self.assertIn('[1603, 1500, 1501, 1541, 57]', controller)
+        self.assertIn('[1508, 1509, 54, 1521, 1542, 1519]', controller)
+        self.assertIn('hideStickerStatus', read('submodules/TelegramUI/Components/Chat/ChatMessageStickerItemNode/Sources/ChatMessageStickerItemNode.swift') .replace('ForkExtrasHotFlags.hideStickerStatus','hideStickerStatus'))
         # The stable id must stay unique: 1540 is the Appearance hub.
         self.assertEqual(controller.count('.appearanceToggle(1541,'), 1)
         shared = read('submodules/TelegramUI/Sources/SharedAccountContext.swift')

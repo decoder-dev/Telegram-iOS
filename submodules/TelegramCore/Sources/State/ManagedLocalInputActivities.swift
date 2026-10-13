@@ -156,6 +156,7 @@ public enum ForkExtrasHotFlags {
         public var downloadSpeedBoost: Bool = false
         public var outgoingPhotoQuality: Int32 = 0
         public var streamerMode: Bool = false
+        public var hideStickerStatus: Bool = false
 
         public init(
             hideAds: Bool = true,
@@ -178,7 +179,8 @@ public enum ForkExtrasHotFlags {
             selectFromAuthor: Bool = true,
             downloadSpeedBoost: Bool = false,
             outgoingPhotoQuality: Int32 = 0,
-            streamerMode: Bool = false
+            streamerMode: Bool = false,
+            hideStickerStatus: Bool = false
         ) {
             self.hideAds = hideAds
             self.hideBlockedMessages = hideBlockedMessages
@@ -201,6 +203,7 @@ public enum ForkExtrasHotFlags {
             self.downloadSpeedBoost = downloadSpeedBoost
             self.outgoingPhotoQuality = outgoingPhotoQuality
             self.streamerMode = streamerMode
+            self.hideStickerStatus = hideStickerStatus
         }
     }
 
@@ -328,6 +331,10 @@ public enum ForkExtrasHotFlags {
     public static var streamerMode: Bool {
         get { return state.with { $0.streamerMode } }
         set { let _ = state.modify { var s = $0; s.streamerMode = newValue; return s } }
+    }
+    public static var hideStickerStatus: Bool {
+        get { return state.with { $0.hideStickerStatus } }
+        set { let _ = state.modify { var s = $0; s.hideStickerStatus = newValue; return s } }
     }
 }
 

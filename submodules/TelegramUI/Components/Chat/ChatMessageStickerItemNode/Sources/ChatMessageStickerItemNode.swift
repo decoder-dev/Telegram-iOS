@@ -1051,6 +1051,9 @@ public class ChatMessageStickerItemNode: ChatMessageItemView {
                     
                     animation.animator.updateFrame(layer: strongSelf.dateAndStatusNode.layer, frame: dateAndStatusFrame, completion: nil)
                     dateAndStatusApply(animation)
+                    // "Hide time on stickers": a sticker that carries reactions or is failing keeps its status line.
+                    let hidesStickerStatus = ForkExtrasHotFlags.hideStickerStatus && dateReactionsAndPeers.reactions.isEmpty && !isFailed
+                    strongSelf.dateAndStatusNode.isHidden = hidesStickerStatus
                     if case .customChatContents = item.associatedData.subject {
                         strongSelf.dateAndStatusNode.isHidden = true
                     }

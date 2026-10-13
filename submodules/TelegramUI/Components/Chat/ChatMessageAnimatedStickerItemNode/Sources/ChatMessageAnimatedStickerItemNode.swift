@@ -1686,6 +1686,9 @@ public class ChatMessageAnimatedStickerItemNode: ChatMessageItemView {
                     let dateAndStatusFrame = CGRect(origin: CGPoint(x: max(displayLeftInset, updatedImageFrame.maxX - dateAndStatusSize.width - 4.0), y: updatedImageFrame.maxY - dateAndStatusSize.height - 4.0 + imageBottomPadding), size: dateAndStatusSize)
                     animation.animator.updateFrame(layer: strongSelf.dateAndStatusNode.layer, frame: dateAndStatusFrame, completion: nil)
                     dateAndStatusApply(animation)
+                    // "Hide time on stickers": a sticker that carries reactions or is failing keeps its status line.
+                    let hidesStickerStatus = ForkExtrasHotFlags.hideStickerStatus && !isEmoji && dateReactionsAndPeers.reactions.isEmpty && !isFailed
+                    strongSelf.dateAndStatusNode.isHidden = hidesStickerStatus
                     if case .customChatContents = item.associatedData.subject {
                         strongSelf.dateAndStatusNode.isHidden = true
                     }

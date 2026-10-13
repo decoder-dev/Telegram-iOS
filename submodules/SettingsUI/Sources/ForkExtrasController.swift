@@ -837,7 +837,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [1605, 65, 66],
             [67, 68],
             [69],
-            [1508, 1509, 54, 1521, 1519],
+            [1508, 1509, 54, 1521, 1542, 1519],
             [1606, 81, 82],
             [98, 99],
             [1511, 1520],
@@ -859,7 +859,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         ]),
         (.profile, [
             [55, 56, 58],
-            [1603, 1500, 1501, 57],
+            [1603, 1500, 1501, 1541, 57],
             [1604, 140, 141]
         ])
     ]
@@ -1189,7 +1189,6 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         7: 3.3,        // Tab bar follows Chat list and folders.
         8: 4.3,        // Calls and audio follows Messages and composer.
         23: 4.6,       // Profile and effects follows Calls and audio.
-        1541: 1501.5,  // Snow follows Reaction glow.
         1540: 4.7,     // Appearance follows Profile and effects on the Extras hub.
         // 146 now belongs to Network; its original stable order is appropriate there.
         147: 133.3,     // Show 18+ Content, after Hide Blocked Messages
@@ -1843,6 +1842,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(1509, russian ? "Скрыть платные реакции" : "Hide paid reactions", settings.hidePaidReactions, \.hidePaidReactions),
             .hideReactionsBar(settings.hideReactionsBar),
             .appearanceToggle(1521, russian ? "Недавние эмодзи в реакциях" : "Recent emoji in reactions", settings.useRecentEmojiInReactions, \.useRecentEmojiInReactions),
+            .appearanceToggle(1542, russian ? "Скрыть время у стикеров" : "Hide time on stickers", settings.hideStickerStatus, \.hideStickerStatus),
             .appearanceToggle(1519, russian ? "Дата оригинала у пересланных" : "Original date on forwards", settings.showOriginalForwardDate, \.showOriginalForwardDate),
             .designHeader(1606, russian ? "Отправка и правка" : "Sending and editing"),
             .sendWithReturnKey(settings.sendWithReturnKey),

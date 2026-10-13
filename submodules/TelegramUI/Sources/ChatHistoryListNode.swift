@@ -2129,6 +2129,7 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
             var showMessageSeconds: Bool
             var wideChannelPosts: Bool
             var stickerSizePercent: Int32
+            var hideStickerStatus: Bool
             var hideReactionsBar: Bool
             var hidePaidReactions: Bool
             var hideViaBot: Bool
@@ -2151,6 +2152,7 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
                 showMessageSeconds: settings.showMessageSeconds,
                 wideChannelPosts: settings.wideChannelPosts,
                 stickerSizePercent: settings.stickerSizePercent,
+                hideStickerStatus: settings.hideStickerStatus,
                 hideReactionsBar: settings.hideReactionsBar,
                 hidePaidReactions: settings.hidePaidReactions,
                 hideViaBot: settings.hideViaBot,
