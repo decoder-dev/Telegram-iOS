@@ -38,6 +38,9 @@ class DonutAdaptation(unittest.TestCase):
             self.assertIn('guard ForkTelegramStatisticsSettings.enabled', read(core+file), file)
         self.assertIn('guard !ForkGhostModeSettings.suppressStoryViews', read(core+'State/ManagedSynchronizeViewStoriesOperations.swift'))
         enqueue = read(core+'PendingMessages/EnqueueMessage.swift')
+        ghost_policy = read(core+'Arena/BananaGhostPrivacy.swift')
+        self.assertIn('peerNamespace: PeerId.Namespace', ghost_policy)
+        self.assertIn('peerNamespace: peerId.namespace', enqueue)
         self.assertIn('allowedIndices = messages.indices.filter', enqueue)
         self.assertIn('for (index, id) in zip(allowedIndices, ids)', enqueue)
         self.assertIn('attributes.contains(where: { $0 is OutgoingQuickReplyMessageAttribute })', enqueue)
@@ -113,7 +116,8 @@ precondition(remote.messages.map { $0.id } == [c.id, b.id])
     def test_actual_schedule_policy(self):
         production = read('submodules/TelegramCore/Sources/Arena/BananaGhostPrivacy.swift')
         execute('''import Foundation
-enum Namespaces { enum Peer { static let SecretChat: Int32 = 2 } }
+struct PeerId { struct Namespace: Equatable { let rawValue: Int32 } }
+enum Namespaces { enum Peer { static let SecretChat = PeerId.Namespace(rawValue: 3) } }
 enum ForkGhostScheduleSettings { static var enabled = false }
 enum ForkGhostModeSettings { static var suppressMessageReads = false; static var suppressStoryViews = false; static var suppressOutgoingActivity = false; static var suppressOnline = false; static var goOfflineAutomatically = false }
 ''' + function(production, 'bananaGhostScheduleAllowed') + '''
@@ -125,7 +129,7 @@ for flags in 0..<512 {
  ForkGhostModeSettings.suppressOutgoingActivity = bit(3)
  ForkGhostModeSettings.suppressOnline = bit(4)
  ForkGhostModeSettings.goOfflineAutomatically = bit(5)
- let result = bananaGhostScheduleAllowed(peerNamespace: bit(6) ? 2 : 0, hasUserSchedule: bit(7), isQuickReply: bit(8))
+ let result = bananaGhostScheduleAllowed(peerNamespace: PeerId.Namespace(rawValue: bit(6) ? 3 : 0), hasUserSchedule: bit(7), isQuickReply: bit(8))
  precondition(result == (flags == 63))
 }
 ''')

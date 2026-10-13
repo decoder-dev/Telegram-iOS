@@ -35,7 +35,7 @@ func bananaGhostDropsScreenshotNotifications(_ messages: [(Bool, EnqueueMessage)
     }
 }
 
-func bananaGhostScheduleAllowed(peerNamespace: Int32, hasUserSchedule: Bool, isQuickReply: Bool) -> Bool {
+func bananaGhostScheduleAllowed(peerNamespace: PeerId.Namespace, hasUserSchedule: Bool, isQuickReply: Bool) -> Bool {
     return peerNamespace != Namespaces.Peer.SecretChat && !hasUserSchedule && !isQuickReply
         && ForkGhostScheduleSettings.enabled && ForkGhostModeSettings.suppressMessageReads
         && ForkGhostModeSettings.suppressStoryViews && ForkGhostModeSettings.suppressOutgoingActivity
