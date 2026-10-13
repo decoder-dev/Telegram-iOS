@@ -412,5 +412,26 @@ class ForkIntegration(unittest.TestCase):
         self.assertIn('self.updateBananaSnow(size: layout.size)', read('submodules/TelegramUI/Sources/ChatControllerNode.swift'))
 
 
+    def test_disappeared_gifts_use_banana_spy_storage(self):
+        storage = read('submodules/TelegramCore/Sources/Arena/BananaSpyStorage.swift')
+        self.assertIn('public static var trackDisappearedGifts: Bool', storage)
+        self.assertIn('bananaDisappearedGifts', read('submodules/TelegramCore/Sources/SyncCore/SyncCore_Namespaces.swift'))
+        gifts = read('submodules/TelegramCore/Sources/TelegramEngine/Payments/StarGifts.swift')
+        # A failed request must not read as an empty profile: that would mark every remembered gift missing.
+        self.assertIn('guard succeeded else {', gifts)
+        self.assertEqual(gifts.count('BananaSpyStorage.trackDisappearedGifts'), 3)
+        self.assertIn('disappearedGifts: self.giftHistory.filter { $0.isMissing }', gifts)
+        pane = read('submodules/TelegramUI/Components/PeerInfo/PeerInfoVisualMediaPaneNode/Sources/GiftsListView.swift')
+        self.assertIn('self.openDisappearedGift(product)', pane)
+        self.assertIn('BananaSpyStorage.trackDisappearedGiftsDidChangeNotification', pane)
+        sheet = read('submodules/TelegramUI/Components/Gifts/GiftViewScreen/Sources/GiftViewScreen.swift')
+        self.assertIn('deleteDisappearedGift: (() -> Void)? = nil', sheet)
+        controller = read('submodules/SettingsUI/Sources/ForkExtrasController.swift')
+        self.assertIn('.appearanceToggle(1543,', controller)
+        self.assertIn('[55, 56, 1543, 58]', controller)
+        shared = read('submodules/TelegramUI/Sources/SharedAccountContext.swift')
+        self.assertIn('BananaSpyStorage.trackDisappearedGifts = settings.showDisappearedGifts', shared)
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -109,6 +109,11 @@ final class GiftsListView: UIView {
         self.statusPromise.get()
     }
             
+    private var disappearedItemDates: [String: Int32] = [:]
+    private weak var disappearedGiftController: GiftViewScreen?
+    private var disappearedGiftsObserver: NSObjectProtocol?
+    private var showingDisappearedGifts = BananaSpyStorage.trackDisappearedGifts
+    
     private var starsProducts: [ProfileGiftsContext.State.StarGift]?
     private var starsItems: [AnyHashable: (StarGiftReference?, ComponentView<Empty>)] = [:]
 
@@ -196,6 +201,7 @@ final class GiftsListView: UIView {
             let isFirstTime = self.starsProducts == nil
             let presentationData = self.context.sharedContext.currentPresentationData.with { $0 }
             self.statusPromise.set(.single(PeerInfoStatusData(text: presentationData.strings.SharedMedia_GiftCount(state.count ?? 0), isActivity: true, key: .gifts)))
+            self.disappearedItemDates = [:]
             
             if self.isReordering {
                 var stateItems: [ProfileGiftsContext.State.StarGift] = state.gifts
@@ -230,9 +236,12 @@ final class GiftsListView: UIView {
             } else {
                 self.starsProducts = state.filteredGifts
                 self.pinnedReferences = Array(state.gifts.filter { $0.pinnedToTop }.compactMap { $0.reference })
+                if self.showingDisappearedGifts && !self.canSelect && self.profileGifts.collectionId == nil && self.peerId != self.context.account.peerId && state.filter == .All && state.sorting == .date {
+                    self.starsProducts = self.giftsWithDisappeared(current: state.filteredGifts, history: state.disappearedGifts)
+                }
             }
             
-            self.resultsAreEmpty = state.filter == .All && state.gifts.isEmpty && state.dataState != .loading
+            self.resultsAreEmpty = state.filter == .All && (self.starsProducts?.isEmpty ?? true) && state.dataState != .loading
             self.filteredResultsAreEmpty = state.filter != .All && state.filteredGifts.isEmpty
         
             if !self.didSetReady {
@@ -284,6 +293,17 @@ final class GiftsListView: UIView {
         self.reorderRecognizer = reorderRecognizer
         self.addGestureRecognizer(reorderRecognizer)
         reorderRecognizer.isEnabled = false
+        
+        self.disappearedGiftsObserver = NotificationCenter.default.addObserver(forName: BananaSpyStorage.trackDisappearedGiftsDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
+            guard let self else {
+                return
+            }
+            let enabled = BananaSpyStorage.trackDisappearedGifts
+            if enabled != self.showingDisappearedGifts {
+                self.showingDisappearedGifts = enabled
+                self.profileGifts.reload()
+            }
+        }
     }
     
     required init?(coder: NSCoder) {
@@ -292,6 +312,66 @@ final class GiftsListView: UIView {
     
     deinit {
         self.dataDisposable?.dispose()
+        if let disappearedGiftsObserver = self.disappearedGiftsObserver {
+            NotificationCenter.default.removeObserver(disappearedGiftsObserver)
+        }
+    }
+    
+    private func giftItemStableId(_ gift: ProfileGiftsContext.State.StarGift, index: Int32) -> String {
+        let info: String
+        switch gift.gift {
+        case let .generic(value):
+            info = "g_\(value.id)"
+        case let .unique(value):
+            info = "u_\(value.id)"
+        }
+        let stableId = gift.reference?.stringValue ?? "\(index)"
+        return "\(stableId)_\(info)"
+    }
+    
+    /// The live gifts with the remembered missing ones put back where they used to be; the missing ones are remembered by
+    /// their item id, which draws them dimmed and opens the "no longer on the profile" sheet.
+    private func giftsWithDisappeared(current: [ProfileGiftsContext.State.StarGift], history: [ProfileGiftsContext.State.DisappearedGift]) -> [ProfileGiftsContext.State.StarGift] {
+        let result = ProfileGiftsContext.State.giftsWithDisappeared(current: current, history: history)
+        
+        self.disappearedItemDates = [:]
+        for (index, value) in result.enumerated() {
+            if value.isMissing {
+                self.disappearedItemDates[self.giftItemStableId(value.gift, index: Int32(index))] = value.lastSeen
+            }
+        }
+        return result.map { $0.gift }
+    }
+    
+    private func openDisappearedGift(_ gift: ProfileGiftsContext.State.StarGift) {
+        if let previousController = self.disappearedGiftController {
+            previousController.dismiss(animated: false, completion: nil)
+            self.disappearedGiftController = nil
+        }
+        
+        let russian = ForkPresentationLanguage.prefersRussianStrings
+        let subject = GiftViewScreen.Subject.profileGift(self.peerId, gift)
+        let controller = GiftViewScreen(
+            context: self.context,
+            subject: subject,
+            allSubjects: [subject],
+            index: 0,
+            headerText: russian ? "Подарок скрыт или продан." : "This gift was hidden or sold.",
+            deleteDisappearedGift: { [weak self] in
+                self?.profileGifts.removeDisappearedGift(gift)
+            },
+            profileGiftsContext: self.profileGifts
+        )
+        self.disappearedGiftController = controller
+        controller.disposed = { [weak self, weak controller] in
+            guard let self else {
+                return
+            }
+            if self.disappearedGiftController === controller {
+                self.disappearedGiftController = nil
+            }
+        }
+        self.parentController?.push(controller)
     }
         
     func item(at point: CGPoint) -> (AnyHashable, ComponentView<Empty>)? {
@@ -536,15 +616,8 @@ final class GiftsListView: UIView {
             }
             
             if isVisible {
-                let info: String
-                switch product.gift {
-                case let .generic(gift):
-                    info = "g_\(gift.id)"
-                case let .unique(gift):
-                    info = "u_\(gift.id)"
-                }
-                let stableId = product.reference?.stringValue ?? "\(index)"
-                let id = "\(stableId)_\(info)"
+                let id = self.giftItemStableId(product, index: index)
+                let disappearedDate = self.disappearedItemDates[id]
                 let itemId = AnyHashable(id)
                 validIds.append(itemId)
                 
@@ -614,6 +687,9 @@ final class GiftsListView: UIView {
                 if isAdded {
                     itemAlpha = 0.3
                 }
+                if disappearedDate != nil {
+                    itemAlpha = 0.42
+                }
                 
                 let _ = visibleItem.update(
                     transition: itemTransition,
@@ -634,6 +710,10 @@ final class GiftsListView: UIView {
                             mode: self.canSelect && !isAdded ? .select : .profile,
                             action: { [weak self] in
                                 guard let self, !isAdded, let presentationData = self.currentParams?.presentationData else {
+                                    return
+                                }
+                                if disappearedDate != nil {
+                                    self.openDisappearedGift(product)
                                     return
                                 }
                                 if self.canSelect {
@@ -771,7 +851,7 @@ final class GiftsListView: UIView {
                                     self.parentController?.push(controller)
                                 }
                             },
-                            contextAction: self.isReordering || self.canSelect ? nil : { [weak self] view, gesture in
+                            contextAction: self.isReordering || self.canSelect || disappearedDate != nil ? nil : { [weak self] view, gesture in
                                 guard let self else {
                                     return
                                 }

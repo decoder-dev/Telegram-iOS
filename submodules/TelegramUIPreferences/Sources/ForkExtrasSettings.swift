@@ -132,6 +132,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var streamerMode: Bool
     /// Fork (Donutgram): no time or delivery ticks over a sticker; a sticker that carries reactions keeps them.
     public var hideStickerStatus: Bool
+    /// Fork (Donutgram): remember another profile's gifts and show the ones that later disappeared (BananaSpyStorage).
+    public var showDisappearedGifts: Bool
     /// Hide paid (star) reactions from messages and the reaction picker.
     public var hidePaidReactions: Bool
     /// Hide the "via @bot" label on messages sent through inline bots.
@@ -209,7 +211,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
             downloadSpeedBoost: false,
             outgoingPhotoQuality: 0,
             streamerMode: false,
-            hideStickerStatus: false
+            hideStickerStatus: false,
+            showDisappearedGifts: false
         )
     }
 
@@ -272,7 +275,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         downloadSpeedBoost: Bool = false,
         outgoingPhotoQuality: Int32 = 0,
         streamerMode: Bool = false,
-        hideStickerStatus: Bool = false
+        hideStickerStatus: Bool = false,
+        showDisappearedGifts: Bool = false
     ) {
         self.wideTabBar = false
         self.integratedTabSearch = false
@@ -359,6 +363,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.outgoingPhotoQuality = min(2, max(0, outgoingPhotoQuality))
         self.streamerMode = streamerMode
         self.hideStickerStatus = hideStickerStatus
+        self.showDisappearedGifts = showDisappearedGifts
     }
 
     public init(from decoder: Decoder) throws {
@@ -450,6 +455,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.outgoingPhotoQuality = min(2, max(0, try container.decodeIfPresent(Int32.self, forKey: "outgoingPhotoQuality") ?? 0))
         self.streamerMode = try container.decodeIfPresent(Bool.self, forKey: "streamerMode") ?? false
         self.hideStickerStatus = try container.decodeIfPresent(Bool.self, forKey: "hideStickerStatus") ?? false
+        self.showDisappearedGifts = try container.decodeIfPresent(Bool.self, forKey: "showDisappearedGifts") ?? false
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -541,6 +547,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.outgoingPhotoQuality, forKey: "outgoingPhotoQuality")
         try container.encode(self.streamerMode, forKey: "streamerMode")
         try container.encode(self.hideStickerStatus, forKey: "hideStickerStatus")
+        try container.encode(self.showDisappearedGifts, forKey: "showDisappearedGifts")
     }
 
     /// Whether message/reaction read receipts should be suppressed right now.
