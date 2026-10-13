@@ -124,4 +124,5 @@ jobs:
       - run: python3 Tests/NetworkPolicies/run.py
         if: ${{ !cancelled() }}
       - run: python3 Tests/NetworkRecovery/run.py
+      - run: python3 Tests/GiftHistory/run.py
         if: ${{ !cancelled() }}
