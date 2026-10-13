@@ -12,6 +12,11 @@ def read(path):
     return (ROOT / path).read_text(encoding='utf-8')
 
 class ForkIntegration(unittest.TestCase):
+    def test_message_saving_store_imports_postbox_types_directly(self):
+        store = read('submodules/TelegramUIPreferences/Sources/MessageSavingStore.swift')
+        self.assertIn('\nimport Postbox\n', store)
+        self.assertIn('MessageId(peerId: PeerId(', store)
+
     def test_live_location_reads_obey_ghost_before_cache_and_rpc(self):
         body = read('submodules/TelegramCore/Sources/State/AccountViewTracker.swift').split('public func updateSeenLiveLocationForMessageIds(', 1)[1].split('public func updatedExtendedMediaForMessageIds', 1)[0]
         guard = 'guard !ForkGhostModeSettings.shouldSuppressMessageReads else'

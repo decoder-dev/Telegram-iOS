@@ -1,6 +1,7 @@
 import Foundation
 import UIKit
 import TelegramCore
+import Postbox
 import SwiftSignalKit
 
 /// File-backed store for AyuGram-style deleted / edited message text snapshots.
