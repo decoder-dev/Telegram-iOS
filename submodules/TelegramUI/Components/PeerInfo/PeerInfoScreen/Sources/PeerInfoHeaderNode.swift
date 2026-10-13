@@ -680,7 +680,11 @@ final class PeerInfoHeaderNode: ASDisplayNode {
             regularNavigationContentsSecondaryColor = UIColor(white: 1.0, alpha: 0.6).blitOver(mainColor.withMultiplied(hue: 1.0, saturation: 2.2, brightness: 1.5), alpha: 1.0)
             
             let baseButtonBackgroundColor: UIColor
-            if presentationData.theme.overallDarkAppearance {
+            if presentationData.theme.bananaGramReference != nil {
+                // BananaGram themes: a light veil over the profile colour instead of a dark plate, so the action
+                // capsules read as frosted glass tinted by the profile and keep their white glyphs legible.
+                baseButtonBackgroundColor = UIColor(white: 1.0, alpha: presentationData.theme.overallDarkAppearance ? 0.16 : 0.22)
+            } else if presentationData.theme.overallDarkAppearance {
                 baseButtonBackgroundColor = UIColor(white: 0.0, alpha: 0.25)
             } else {
                 baseButtonBackgroundColor = UIColor(white: 1.0, alpha: 0.25)
@@ -694,7 +698,11 @@ final class PeerInfoHeaderNode: ASDisplayNode {
             regularNavigationContentsSecondaryColor = UIColor(white: 1.0, alpha: 0.6).blitOver(backgroundColors.main.withMultiplied(hue: 1.0, saturation: 2.2, brightness: 1.5), alpha: 1.0)
             
             let baseButtonBackgroundColor: UIColor
-            if presentationData.theme.overallDarkAppearance {
+            if presentationData.theme.bananaGramReference != nil {
+                // BananaGram themes: a light veil over the profile colour instead of a dark plate, so the action
+                // capsules read as frosted glass tinted by the profile and keep their white glyphs legible.
+                baseButtonBackgroundColor = UIColor(white: 1.0, alpha: presentationData.theme.overallDarkAppearance ? 0.16 : 0.22)
+            } else if presentationData.theme.overallDarkAppearance {
                 baseButtonBackgroundColor = UIColor(white: 0.0, alpha: 0.25)
             } else {
                 baseButtonBackgroundColor = UIColor(white: 1.0, alpha: 0.25)

@@ -58,6 +58,8 @@ final class PeerInfoHeaderButtonNode: HighlightableButtonNode {
     
     let backgroundContainerView: UIView
     let backgroundView: UIView
+    /// The thin light rim that makes the capsule read as glass. It is outside the blur mask, so it is drawn on its own.
+    private var glassEdgeView: UIView?
     
     init(key: PeerInfoHeaderButtonKey, action: @escaping (PeerInfoHeaderButtonNode, ContextGesture?) -> Void) {
         self.key = key
@@ -315,11 +317,28 @@ final class PeerInfoHeaderButtonNode: HighlightableButtonNode {
         
         transition.updateSublayerTransformScale(node: self.contentNode, scale: 1.0 * fraction + 0.001 * (1.0 - fraction))
         
-        transition.updateCornerRadius(layer: self.backgroundView.layer, cornerRadius: min(16.0, backgroundFrame.height * 0.5))
+        // Capsules, not tiles: the radius is half the height, which follows the header as it collapses.
+        let capsuleRadius = backgroundFrame.height * 0.5
+        transition.updateCornerRadius(layer: self.backgroundView.layer, cornerRadius: capsuleRadius)
+        let glassEdgeView: UIView
+        if let current = self.glassEdgeView {
+            glassEdgeView = current
+        } else {
+            glassEdgeView = UIView()
+            glassEdgeView.isUserInteractionEnabled = false
+            glassEdgeView.backgroundColor = .clear
+            glassEdgeView.layer.borderWidth = UIScreenPixel
+            self.referenceNode.view.insertSubview(glassEdgeView, at: 0)
+            self.glassEdgeView = glassEdgeView
+        }
+        glassEdgeView.layer.borderColor = UIColor(white: 1.0, alpha: presentationData.theme.overallDarkAppearance ? 0.20 : 0.34).cgColor
+        transition.updateFrame(view: glassEdgeView, frame: backgroundFrame)
+        transition.updateCornerRadius(layer: glassEdgeView.layer, cornerRadius: capsuleRadius)
+        transition.updateAlpha(layer: glassEdgeView.layer, alpha: fraction)
         // The context source contains only the foreground; its backdrop is a
         // separate shared-blur mask. Match both its rounded shape and its visible
         // bounds, including a partially collapsed header.
-        self.referenceNode.contextMenuSourcePath = UIBezierPath(roundedRect: backgroundFrame, cornerRadius: min(16.0, backgroundFrame.height * 0.5))
+        self.referenceNode.contextMenuSourcePath = UIBezierPath(roundedRect: backgroundFrame, cornerRadius: capsuleRadius)
         //self.backgroundNode.update(size: backgroundFrame.size, cornerRadius: min(11.0, backgroundFrame.height * 0.5), transition: transition)
         //self.backgroundNode.updateColor(color: backgroundColor, transition: transition)
         transition.updateFrame(node: self.iconNode, frame: CGRect(origin: CGPoint(x: floor((size.width - iconSize.width) / 2.0), y: 1.0), size: iconSize))
