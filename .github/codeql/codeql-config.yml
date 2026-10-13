@@ -69,6 +69,13 @@ paths-ignore:
   - third-party/boringssl/**/crypto/cipher/e_rc2.c
   - third-party/boringssl/**/crypto/cipher/e_rc4.c
   - third-party/boringssl/**/crypto/cipher/e_tls.c
+  - third-party/boringssl/**/crypto/cipher_extra/e_des.c
+  - third-party/boringssl/**/crypto/cipher_extra/e_rc2.c
+  - third-party/boringssl/**/crypto/cipher_extra/e_rc4.c
+  - third-party/boringssl/**/crypto/cipher_extra/e_tls.c
+  # fastlane match's V1 files derive their AES key with OpenSSL's MD5 EVP_BytesToKey; the script has to read them, and
+  # the digest is picked from the stored format version, never from input (see DecryptMatch._evp_bytes_to_key).
+  - build-system/Make/DecryptMatch.py
   - third-party/boringssl/**/crypto/des
 
 # cpp/integer-multiplication-cast-to-long ("Multiplication result converted to larger type") reports every `int * int`

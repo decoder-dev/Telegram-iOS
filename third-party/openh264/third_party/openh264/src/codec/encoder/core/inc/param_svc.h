@@ -495,7 +495,7 @@ typedef struct TagWelsSvcCodingParam: SEncParamExt {
     const uint8_t* pTemporalIdList = &g_kuiTemporalIdListTable[iDecStages][0];
     SSpatialLayerInternal* pDlp    = &sDependencyLayers[0];
     SSpatialLayerConfig* pSpatialLayer = &sSpatialLayers[0];
-    int8_t i = 0;
+    int32_t i = 0;
 
     while (i < iSpatialLayerNum) {
       const uint32_t kuiLogFactorInOutRate = GetLogFactor (pDlp->fOutputFrameRate, pDlp->fInputFrameRate);
