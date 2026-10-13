@@ -191,6 +191,9 @@ final class PeerInfoHeaderButtonNode: HighlightableButtonNode {
             self.containerNode.isGestureEnabled = isGestureEnabled
             
             let iconColor = UIColor.white
+            // The branded themes draw the static glyphs as fine system symbols (medium weight, outline) so the whole row
+            // shares one stroke weight with the tab bar and the Settings icons; other themes keep the bundled artwork.
+            let usesSystemSymbols = presentationData.theme.bananaGramReference != nil
             self.iconNode.image = generateImage(iconSize, contextGenerator: { size, context in
                 context.clear(CGRect(origin: CGPoint(), size: size))
                 context.setBlendMode(.normal)
@@ -220,7 +223,29 @@ final class PeerInfoHeaderButtonNode: HighlightableButtonNode {
                 case .stop:
                     imageName = "Peer Info/ButtonStop"
                 }
-                if let imageName = imageName, let image = generateTintedImage(image: UIImage(bundleImageName: imageName), color: .white) {
+                let symbolName: String?
+                switch icon {
+                case .message:
+                    symbolName = "bubble.left"
+                case .call:
+                    symbolName = "phone"
+                case .videoCall:
+                    symbolName = "video"
+                case .addMember:
+                    symbolName = "person.crop.circle.badge.plus"
+                case .search:
+                    symbolName = "magnifyingglass"
+                case .stop:
+                    symbolName = "stop.circle"
+                default:
+                    symbolName = nil
+                }
+                let symbolImage: UIImage? = usesSystemSymbols ? symbolName.flatMap { UIImage(systemName: $0, withConfiguration: UIImage.SymbolConfiguration(pointSize: 21.0, weight: .medium)) } : nil
+                if let symbolImage, let image = generateTintedImage(image: symbolImage, color: .white) {
+                    let imageRect = CGRect(origin: CGPoint(x: floor((size.width - image.size.width) / 2.0), y: floor((size.height - image.size.height) / 2.0)), size: image.size)
+                    context.clip(to: imageRect, mask: image.cgImage!)
+                    context.fill(imageRect)
+                } else if let imageName = imageName, let image = generateTintedImage(image: UIImage(bundleImageName: imageName), color: .white) {
                     let imageRect = CGRect(origin: CGPoint(x: floor((size.width - image.size.width) / 2.0), y: floor((size.height - image.size.height) / 2.0)), size: image.size)
                     context.clip(to: imageRect, mask: image.cgImage!)
                     context.fill(imageRect)
@@ -302,7 +327,7 @@ final class PeerInfoHeaderButtonNode: HighlightableButtonNode {
             alphaTransition.updateAlpha(node: self.textNode, alpha: isActive ? 1.0 : 0.3)
         }
         
-        self.textNode.attributedText = NSAttributedString(string: text.lowercased(), font: Font.regular(11.0), textColor: .white)
+        self.textNode.attributedText = NSAttributedString(string: text.lowercased(), font: presentationData.theme.bananaGramReference != nil ? Font.medium(11.0) : Font.regular(11.0), textColor: .white)
         self.accessibilityLabel = text
         let titleSize = self.textNode.updateLayout(CGSize(width: 120.0, height: .greatestFiniteMagnitude))
         

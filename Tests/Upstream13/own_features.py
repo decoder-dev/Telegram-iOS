@@ -615,6 +615,14 @@ class ForkIntegration(unittest.TestCase):
         # Both profile-colour paths (star gift and ordinary profile colour) use the light veil in BananaGram themes.
         self.assertEqual(header.count('presentationData.theme.bananaGramReference != nil'), 2)
 
+    def test_branded_themes_draw_profile_action_glyphs_as_system_symbols(self):
+        button = read('submodules/TelegramUI/Components/PeerInfo/PeerInfoScreen/Sources/PeerInfoHeaderButtonNode.swift')
+        self.assertIn('let usesSystemSymbols = presentationData.theme.bananaGramReference != nil', button)
+        for symbol in ('bubble.left', 'phone', 'video', 'person.crop.circle.badge.plus', 'magnifyingglass', 'stop.circle'):
+            self.assertIn('symbolName = "%s"' % symbol, button)
+        # The bundled artwork stays as the fallback for other themes and for a symbol the system lacks.
+        self.assertIn('} else if let imageName = imageName, let image = generateTintedImage(image: UIImage(bundleImageName: imageName)', button)
+
 
 if __name__ == '__main__':
     unittest.main()
