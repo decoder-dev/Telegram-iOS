@@ -1193,6 +1193,10 @@ func enqueueMessages(transaction: Transaction, account: Account, peerId: PeerId,
     var updatedMessages: [(Bool, EnqueueMessage)] = []
     outer: for (transformedMedia, message) in messages {
         var updatedMessage = message
+        // A reply to a message that exists only locally goes out as a message that quotes it.
+        if let quotedMessage = BananaDeletedReplyQuote.quotedMessage(transaction: transaction, peerId: peerId, message: updatedMessage) {
+            updatedMessage = quotedMessage
+        }
         if transformGroupingKeysWithPeerId {
             updatedMessage = updatedMessage.withUpdatedGroupingKey { groupingKey -> Int64? in
                 if let groupingKey = groupingKey {

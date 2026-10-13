@@ -835,6 +835,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         (.appearance, [[1618, 1531, 1532, 1553, 1619]]),
         (.messages, [
             [1605, 65, 66],
+            [1557],
             [67, 68],
             [69],
             [1508, 1509, 54, 1521, 1542, 1550, 1519],
@@ -1844,6 +1845,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .wideChannelPostsFooter,
             .stickerSize(settings.stickerSizePercent),
             .appearanceToggle(1508, russian ? "Счётчик пересылок в каналах" : "Channel forward count", settings.showChannelForwardCount, \.showChannelForwardCount),
+            .appearanceToggle(1557, russian ? "Цитата удалённого сообщения в ответе" : "Quote a deleted message in a reply", settings.quoteRepliesToDeleted, \.quoteRepliesToDeleted),
             .appearanceToggle(1533, russian ? "Убрать пинги" : "Remove mention pings", settings.removePings, \.removePings),
             .appearanceToggle(1509, russian ? "Скрыть платные реакции" : "Hide paid reactions", settings.hidePaidReactions, \.hidePaidReactions),
             .hideReactionsBar(settings.hideReactionsBar),

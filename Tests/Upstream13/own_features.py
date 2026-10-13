@@ -510,5 +510,16 @@ class ForkIntegration(unittest.TestCase):
         self.assertIn('self.downloadTikTok = try container.decodeIfPresent(Bool.self, forKey: "downloadTikTok") ?? false', read('submodules/TelegramUIPreferences/Sources/ForkExtrasSettings.swift'))
 
 
+    def test_reply_to_a_deleted_message_is_sent_as_a_quote(self):
+        quote = read('submodules/TelegramCore/Sources/Arena/BananaDeletedReplyQuote.swift')
+        # The server no longer has the message, so the reply attribute must be dropped and the quote put in the text.
+        self.assertIn('source.attributes.contains(where: { $0 is DeletedMessageAttribute })', quote)
+        self.assertIn('replyToMessageId: nil', quote)
+        self.assertIn('Namespaces.Peer.SecretChat', quote)
+        enqueue = read('submodules/TelegramCore/Sources/PendingMessages/EnqueueMessage.swift')
+        self.assertIn('BananaDeletedReplyQuote.quotedMessage(transaction: transaction, peerId: peerId, message: updatedMessage)', enqueue)
+        self.assertIn('[1605, 65, 66],\n            [1557],', read('submodules/SettingsUI/Sources/ForkExtrasController.swift'))
+
+
 if __name__ == '__main__':
     unittest.main()

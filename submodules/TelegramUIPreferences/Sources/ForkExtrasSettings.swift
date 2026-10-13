@@ -152,6 +152,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var downloadTikTok: Bool
     public var downloadYouTubeShorts: Bool
     public var signDownloadedMedia: Bool
+    /// Fork (Donutgram): a reply to a deleted message that only this client keeps goes out with a quote of it.
+    public var quoteRepliesToDeleted: Bool
     public var showsOfflineDot: Bool
     /// Hide paid (star) reactions from messages and the reaction picker.
     public var hidePaidReactions: Bool
@@ -243,7 +245,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
             showsOfflineDot: false,
             downloadTikTok: false,
             downloadYouTubeShorts: false,
-            signDownloadedMedia: false
+            signDownloadedMedia: false,
+            quoteRepliesToDeleted: false
         )
     }
 
@@ -319,7 +322,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         showsOfflineDot: Bool = false,
         downloadTikTok: Bool = false,
         downloadYouTubeShorts: Bool = false,
-        signDownloadedMedia: Bool = false
+        signDownloadedMedia: Bool = false,
+        quoteRepliesToDeleted: Bool = false
     ) {
         self.wideTabBar = false
         self.integratedTabSearch = false
@@ -420,6 +424,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.downloadTikTok = downloadTikTok
         self.downloadYouTubeShorts = downloadYouTubeShorts
         self.signDownloadedMedia = signDownloadedMedia
+        self.quoteRepliesToDeleted = quoteRepliesToDeleted
     }
 
     public init(from decoder: Decoder) throws {
@@ -525,6 +530,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.downloadTikTok = try container.decodeIfPresent(Bool.self, forKey: "downloadTikTok") ?? false
         self.downloadYouTubeShorts = try container.decodeIfPresent(Bool.self, forKey: "downloadYouTubeShorts") ?? false
         self.signDownloadedMedia = try container.decodeIfPresent(Bool.self, forKey: "signDownloadedMedia") ?? false
+        self.quoteRepliesToDeleted = try container.decodeIfPresent(Bool.self, forKey: "quoteRepliesToDeleted") ?? false
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -630,6 +636,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.downloadTikTok, forKey: "downloadTikTok")
         try container.encode(self.downloadYouTubeShorts, forKey: "downloadYouTubeShorts")
         try container.encode(self.signDownloadedMedia, forKey: "signDownloadedMedia")
+        try container.encode(self.quoteRepliesToDeleted, forKey: "quoteRepliesToDeleted")
     }
 
     /// Whether message/reaction read receipts should be suppressed right now.
