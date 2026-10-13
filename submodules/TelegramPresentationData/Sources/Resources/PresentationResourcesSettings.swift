@@ -5,7 +5,70 @@ import AppBundle
 
 private let gradientImage = UIImage(bundleImageName: "Item List/Icons/Gradient")
 private let backdropImage = UIImage(bundleImageName: "Item List/Icons/Backdrop")
+/// The BananaGram themes paint every Settings icon in their own accent instead of the stock multicolour set:
+/// one fill colour behind a glyph drawn in the colour the theme uses on top of its accent. Classic themes leave it nil.
+public struct ForkSettingsIconTint: Equatable {
+    public let fill: UIColor
+    public let glyph: UIColor
+    
+    public init(fill: UIColor, glyph: UIColor) {
+        self.fill = fill
+        self.glyph = glyph
+    }
+}
+
+private let settingsIconLock = NSLock()
+var forkSettingsIconTintIsActive: Bool {
+    settingsIconLock.lock()
+    defer { settingsIconLock.unlock() }
+    return settingsIconTint != nil
+}
+private var settingsIconTint: ForkSettingsIconTint?
+private var settingsIconCache: [String: UIImage] = [:]
+
+public func forkUpdateSettingsIconTint(_ tint: ForkSettingsIconTint?) {
+    settingsIconLock.lock()
+    if settingsIconTint != tint {
+        settingsIconTint = tint
+        settingsIconCache.removeAll()
+    }
+    settingsIconLock.unlock()
+}
+
+private func settingsIconColorKey(_ color: UIColor) -> String {
+    var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+    color.getRed(&r, green: &g, blue: &b, alpha: &a)
+    return "\(Int(r * 255)).\(Int(g * 255)).\(Int(b * 255)).\(Int(a * 255))"
+}
+
 public func renderSettingsIcon(name: String, scaleFactor: CGFloat = 1.0, backgroundColors: [UIColor]? = nil) -> UIImage? {
+    settingsIconLock.lock()
+    let tint = settingsIconTint
+    settingsIconLock.unlock()
+    
+    let effectiveColors: [UIColor]?
+    if let backgroundColors {
+        effectiveColors = tint.flatMap { [$0.fill] } ?? backgroundColors
+    } else {
+        effectiveColors = nil
+    }
+    let key = "\(name)|\(scaleFactor)|" + (effectiveColors ?? []).map(settingsIconColorKey).joined(separator: ",") + "|" + (effectiveColors != nil ? tint.map { settingsIconColorKey($0.glyph) } ?? "" : "")
+    settingsIconLock.lock()
+    let cached = settingsIconCache[key]
+    settingsIconLock.unlock()
+    if let cached {
+        return cached
+    }
+    let image = renderSettingsIconUncached(name: name, scaleFactor: scaleFactor, backgroundColors: effectiveColors, glyphColor: effectiveColors != nil ? tint?.glyph : nil)
+    if let image {
+        settingsIconLock.lock()
+        settingsIconCache[key] = image
+        settingsIconLock.unlock()
+    }
+    return image
+}
+
+private func renderSettingsIconUncached(name: String, scaleFactor: CGFloat, backgroundColors: [UIColor]?, glyphColor: UIColor?) -> UIImage? {
     return generateImage(CGSize(width: 30.0, height: 30.0), contextGenerator: { size, context in
         let bounds = CGRect(origin: CGPoint(), size: size)
         context.clear(bounds)
@@ -37,7 +100,7 @@ public func renderSettingsIcon(name: String, scaleFactor: CGFloat = 1.0, backgro
                 
                 context.saveGState()
                 context.clip(to: imageRect, mask: maskImage)
-                context.setFillColor(UIColor.white.cgColor)
+                context.setFillColor((glyphColor ?? UIColor.white).cgColor)
                 context.fill(imageRect)
                 context.restoreGState()
             }
@@ -117,65 +180,72 @@ let colorGray = UIColor(rgb: 0x8E8E93)
 let colorViolet = UIColor(rgb: 0x5E5CE6)
 
 public struct PresentationResourcesSettings {
-    public static let proxy = renderSettingsIcon(name: "Item List/Icons/Proxy", backgroundColors: [colorGreen])
-    public static let savedMessages = renderSettingsIcon(name: "Item List/Icons/SavedMessages", backgroundColors: [colorBlue])
-    public static let recentCalls = renderSettingsIcon(name: "Item List/Icons/Phone", backgroundColors: [colorGreen])
-    public static let devices = renderSettingsIcon(name: "Item List/Icons/Devices", backgroundColors: [colorOrange])
-    public static let chatFolders = renderSettingsIcon(name: "Item List/Icons/Folder", backgroundColors: [colorLightBlue])
-    public static let stickers = renderSettingsIcon(name: "Item List/Icons/Sticker", backgroundColors: [colorOrange])
-    public static let notifications = renderSettingsIcon(name: "Item List/Icons/Notifications", backgroundColors: [colorRed])
-    public static let security = renderSettingsIcon(name: "Item List/Icons/Privacy", backgroundColors: [colorGray])
-    public static let dataAndStorage = renderSettingsIcon(name: "Item List/Icons/Data", backgroundColors: [colorGreen])
-    public static let appearance = renderSettingsIcon(name: "Item List/Icons/Appearance", backgroundColors: [colorLightBlue])
-    public static let language = renderSettingsIcon(name: "Item List/Icons/Language", backgroundColors: [colorPurple])
-    public static let powerSaving = renderSettingsIcon(name: "Item List/Icons/PowerSaving", backgroundColors: [colorOrange])
-    public static let developerMode = renderSettingsIcon(name: "Item List/Icons/Settings", backgroundColors: [colorGray])
-    public static let business = renderSettingsIcon(name: "Item List/Icons/Business", backgroundColors: [UIColor(rgb: 0xA95CE3), UIColor(rgb: 0xF16B80)])
-    public static let myProfile = renderSettingsIcon(name: "Item List/Icons/Profile", backgroundColors: [colorRed])
+    public static var proxy: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Proxy", backgroundColors: [colorGreen]) }
+    public static var savedMessages: UIImage? { return renderSettingsIcon(name: "Item List/Icons/SavedMessages", backgroundColors: [colorBlue]) }
+    public static var recentCalls: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Phone", backgroundColors: [colorGreen]) }
+    public static var devices: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Devices", backgroundColors: [colorOrange]) }
+    public static var chatFolders: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Folder", backgroundColors: [colorLightBlue]) }
+    public static var stickers: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Sticker", backgroundColors: [colorOrange]) }
+    public static var notifications: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Notifications", backgroundColors: [colorRed]) }
+    public static var security: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Privacy", backgroundColors: [colorGray]) }
+    public static var dataAndStorage: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Data", backgroundColors: [colorGreen]) }
+    public static var appearance: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Appearance", backgroundColors: [colorLightBlue]) }
+    public static var language: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Language", backgroundColors: [colorPurple]) }
+    public static var powerSaving: UIImage? { return renderSettingsIcon(name: "Item List/Icons/PowerSaving", backgroundColors: [colorOrange]) }
+    public static var developerMode: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Settings", backgroundColors: [colorGray]) }
+    public static var business: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Business", backgroundColors: [UIColor(rgb: 0xA95CE3), UIColor(rgb: 0xF16B80)]) }
+    public static var myProfile: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Profile", backgroundColors: [colorRed]) }
     
-    public static let birthday = renderSettingsIcon(name: "Item List/Icons/Cake", backgroundColors: [colorBlue])
-    public static let aiTools = renderSettingsIcon(name: "Item List/Icons/AITools", backgroundColors: [colorPurple])
-    public static let yourColor = renderSettingsIcon(name: "Item List/Icons/Brush", backgroundColors: [colorLightBlue])
+    public static var birthday: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Cake", backgroundColors: [colorBlue]) }
+    public static var aiTools: UIImage? { return renderSettingsIcon(name: "Item List/Icons/AITools", backgroundColors: [colorPurple]) }
+    public static var yourColor: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Brush", backgroundColors: [colorLightBlue]) }
     
-    public static let storageUsage = renderSettingsIcon(name: "Item List/Icons/Pie", backgroundColors: [colorOrange])
-    public static let dataUsage = renderSettingsIcon(name: "Item List/Icons/Stats", backgroundColors: [colorPurple])
+    public static var storageUsage: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Pie", backgroundColors: [colorOrange]) }
+    public static var dataUsage: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Stats", backgroundColors: [colorPurple]) }
     
-    public static let cellular = renderSettingsIcon(name: "Item List/Icons/Cellular", backgroundColors: [colorGreen])
-    public static let wifi = renderSettingsIcon(name: "Item List/Icons/Wifi", backgroundColors: [colorBlue])
+    public static var cellular: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Cellular", backgroundColors: [colorGreen]) }
+    public static var wifi: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Wifi", backgroundColors: [colorBlue]) }
     
-    public static let privateChats = renderSettingsIcon(name: "Item List/Icons/Member", backgroundColors: [colorBlue])
-    public static let groups = renderSettingsIcon(name: "Item List/Icons/Group", backgroundColors: [colorGreen])
-    public static let channels = renderSettingsIcon(name: "Item List/Icons/Channel", backgroundColors: [colorOrange])
-    public static let stories = renderSettingsIcon(name: "Item List/Icons/Stories", backgroundColors: [colorViolet])
-    public static let reactions = renderSettingsIcon(name: "Item List/Icons/Reactions", backgroundColors: [UIColor(rgb: 0xFF2D55)])
+    public static var privateChats: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Member", backgroundColors: [colorBlue]) }
+    public static var groups: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Group", backgroundColors: [colorGreen]) }
+    public static var channels: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Channel", backgroundColors: [colorOrange]) }
+    public static var stories: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Stories", backgroundColors: [colorViolet]) }
+    public static var reactions: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Reactions", backgroundColors: [UIColor(rgb: 0xFF2D55)]) }
     
-    public static let photos = renderSettingsIcon(name: "Item List/Icons/Photo", backgroundColors: [colorOrange])
-    public static let videos = renderSettingsIcon(name: "Item List/Icons/Video", backgroundColors: [colorRed])
-    public static let files = renderSettingsIcon(name: "Item List/Icons/File", backgroundColors: [colorBlue])
-    public static let gifs = renderSettingsIcon(name: "Item List/Icons/Gif", backgroundColors: [colorOrange])
-    public static let stickersGreen = renderSettingsIcon(name: "Item List/Icons/Sticker", backgroundColors: [colorGreen])
-    public static let emoji = renderSettingsIcon(name: "Item List/Icons/Emoji", backgroundColors: [colorLightBlue])
-    public static let emojiTeal = renderSettingsIcon(name: "Item List/Icons/Emoji", backgroundColors: [colorTeal])
-    public static let archivedSticker = renderSettingsIcon(name: "Item List/Icons/ArchivedSticker", backgroundColors: [colorGreen])
-    public static let trendingSticker = renderSettingsIcon(name: "Item List/Icons/TrendingSticker", backgroundColors: [colorOrange])
-    public static let effects = renderSettingsIcon(name: "Item List/Icons/Effect", backgroundColors: [colorLightBlue])
-    public static let photosBlue = renderSettingsIcon(name: "Item List/Icons/Photo", backgroundColors: [colorBlue])
-    public static let clock = renderSettingsIcon(name: "Item List/Icons/Clock", backgroundColors: [colorPurple])
-    public static let photosLightBlue = renderSettingsIcon(name: "Item List/Icons/Photo", backgroundColors: [colorLightBlue])
-    public static let videosBlue = renderSettingsIcon(name: "Item List/Icons/Video", backgroundColors: [colorBlue])
+    public static var photos: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Photo", backgroundColors: [colorOrange]) }
+    public static var videos: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Video", backgroundColors: [colorRed]) }
+    public static var files: UIImage? { return renderSettingsIcon(name: "Item List/Icons/File", backgroundColors: [colorBlue]) }
+    public static var gifs: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Gif", backgroundColors: [colorOrange]) }
+    public static var stickersGreen: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Sticker", backgroundColors: [colorGreen]) }
+    public static var emoji: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Emoji", backgroundColors: [colorLightBlue]) }
+    public static var emojiTeal: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Emoji", backgroundColors: [colorTeal]) }
+    public static var archivedSticker: UIImage? { return renderSettingsIcon(name: "Item List/Icons/ArchivedSticker", backgroundColors: [colorGreen]) }
+    public static var trendingSticker: UIImage? { return renderSettingsIcon(name: "Item List/Icons/TrendingSticker", backgroundColors: [colorOrange]) }
+    public static var effects: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Effect", backgroundColors: [colorLightBlue]) }
+    public static var photosBlue: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Photo", backgroundColors: [colorBlue]) }
+    public static var clock: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Clock", backgroundColors: [colorPurple]) }
+    public static var photosLightBlue: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Photo", backgroundColors: [colorLightBlue]) }
+    public static var videosBlue: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Video", backgroundColors: [colorBlue]) }
     
-    public static let block = renderSettingsIcon(name: "Item List/Icons/Block", backgroundColors: [colorRed])
-    public static let activeSessions = renderSettingsIcon(name: "Item List/Icons/Language", backgroundColors: [colorBlue])
-    public static let faceId = renderSettingsIcon(name: "Item List/Icons/FaceId", backgroundColors: [colorGreen])
-    public static let lockOrange = renderSettingsIcon(name: "Item List/Icons/Privacy", backgroundColors: [colorOrange])
-    public static let passkeys = renderSettingsIcon(name: "Item List/Icons/Key", backgroundColors: [colorViolet])
-    public static let timer = renderSettingsIcon(name: "Item List/Icons/Timer", backgroundColors: [colorPurple])
-    public static let email = renderSettingsIcon(name: "Item List/Icons/Email", backgroundColors: [colorViolet])
+    public static var block: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Block", backgroundColors: [colorRed]) }
+    public static var activeSessions: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Language", backgroundColors: [colorBlue]) }
+    public static var faceId: UIImage? { return renderSettingsIcon(name: "Item List/Icons/FaceId", backgroundColors: [colorGreen]) }
+    public static var lockOrange: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Privacy", backgroundColors: [colorOrange]) }
+    public static var passkeys: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Key", backgroundColors: [colorViolet]) }
+    public static var timer: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Timer", backgroundColors: [colorPurple]) }
+    public static var email: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Email", backgroundColors: [colorViolet]) }
     // Not the gear: `developerMode` already uses that glyph, and the two rows are now neighbours in
     // the main Settings list, where they would have read as one item drawn twice.
-    public static let forkExtras = renderSettingsIcon(name: "Item List/Icons/Effect", backgroundColors: [colorTeal])
+    public static var forkExtras: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Effect", backgroundColors: [colorTeal]) }
         
-    public static let premium = generateImage(CGSize(width: 30.0, height: 30.0), contextGenerator: { size, context in
+    public static var premium: UIImage? {
+        if forkSettingsIconTintIsActive {
+            return renderSettingsIcon(name: "Item List/Icons/Premium", backgroundColors: [colorBlue])
+        }
+        return premiumClassic
+    }
+    
+    private static let premiumClassic = generateImage(CGSize(width: 30.0, height: 30.0), contextGenerator: { size, context in
         let bounds = CGRect(origin: CGPoint(), size: size)
         context.clear(bounds)
                 
@@ -220,12 +290,19 @@ public struct PresentationResourcesSettings {
         context.restoreGState()
     })
     
-    public static let ton = renderSettingsIcon(name: "Item List/Icons/Gram", backgroundColors: [colorBlue])
-    public static let gramEarnings = renderSettingsIcon(name: "Item List/Icons/Earnings", backgroundColors: [colorBlue])
+    public static var ton: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Gram", backgroundColors: [colorBlue]) }
+    public static var gramEarnings: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Earnings", backgroundColors: [colorBlue]) }
     
     public static let money = UIImage(bundleImageName: "Settings/Gram")
  
-    public static let stars = generateImage(CGSize(width: 30.0, height: 30.0), contextGenerator: { size, context in
+    public static var stars: UIImage? {
+        if forkSettingsIconTintIsActive {
+            return renderSettingsIcon(name: "Item List/Icons/Stars", backgroundColors: [colorBlue])
+        }
+        return starsClassic
+    }
+    
+    private static let starsClassic = generateImage(CGSize(width: 30.0, height: 30.0), contextGenerator: { size, context in
         let bounds = CGRect(origin: CGPoint(), size: size)
         context.clear(bounds)
         
@@ -268,7 +345,14 @@ public struct PresentationResourcesSettings {
         context.restoreGState()
     })
     
-    public static let premiumGift = generateImage(CGSize(width: 30.0, height: 30.0), contextGenerator: { size, context in
+    public static var premiumGift: UIImage? {
+        if forkSettingsIconTintIsActive {
+            return renderSettingsIcon(name: "Item List/Icons/Gift", backgroundColors: [colorBlue])
+        }
+        return premiumGiftClassic
+    }
+    
+    private static let premiumGiftClassic = generateImage(CGSize(width: 30.0, height: 30.0), contextGenerator: { size, context in
         let bounds = CGRect(origin: CGPoint(), size: size)
         context.clear(bounds)
         
@@ -313,51 +397,51 @@ public struct PresentationResourcesSettings {
         context.restoreGState()
     })
     
-    public static let bot = renderSettingsIcon(name: "Item List/Icons/Bot", backgroundColors: [colorBlue])
+    public static var bot: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Bot", backgroundColors: [colorBlue]) }
 
     public static let passport = renderAttachAppIcon(iconImage: UIImage(bundleImageName: "Settings/Menu/Passport"))
     public static let watch = renderAttachAppIcon(iconImage: UIImage(bundleImageName: "Settings/Menu/Watch"))
     
-    public static let support = renderSettingsIcon(name: "Item List/Icons/Support", backgroundColors: [colorOrange])
-    public static let faq = renderSettingsIcon(name: "Item List/Icons/Faq", backgroundColors: [colorLightBlue])
-    public static let tips = renderSettingsIcon(name: "Item List/Icons/Tips", backgroundColors: [UIColor(rgb: 0xffcc02)])
+    public static var support: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Support", backgroundColors: [colorOrange]) }
+    public static var faq: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Faq", backgroundColors: [colorLightBlue]) }
+    public static var tips: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Tips", backgroundColors: [UIColor(rgb: 0xffcc02)]) }
         
-    public static let changePhoneNumber = renderSettingsIcon(name: "Item List/Icons/ChangePhone", backgroundColors: [colorPurple])
-    public static let deleteAddAccount = renderSettingsIcon(name: "Item List/Icons/Member", backgroundColors: [colorBlue])
-    public static let deleteSetTwoStepAuth = renderSettingsIcon(name: "Item List/Icons/Key", backgroundColors: [colorViolet])
-    public static let deleteChats = renderSettingsIcon(name: "Item List/Icons/Delete", backgroundColors: [colorRed])
-    public static let clearSynced = renderSettingsIcon(name: "Item List/Icons/Group", backgroundColors: [colorOrange])
+    public static var changePhoneNumber: UIImage? { return renderSettingsIcon(name: "Item List/Icons/ChangePhone", backgroundColors: [colorPurple]) }
+    public static var deleteAddAccount: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Member", backgroundColors: [colorBlue]) }
+    public static var deleteSetTwoStepAuth: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Key", backgroundColors: [colorViolet]) }
+    public static var deleteChats: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Delete", backgroundColors: [colorRed]) }
+    public static var clearSynced: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Group", backgroundColors: [colorOrange]) }
     
-    public static let groupType = renderSettingsIcon(name: "Item List/Icons/Members", backgroundColors: [colorBlue])
-    public static let channelType = renderSettingsIcon(name: "Item List/Icons/Channel", backgroundColors: [colorBlue])
-    public static let chatHistory = renderSettingsIcon(name: "Item List/Icons/Chat", backgroundColors: [colorGreen])
-    public static let topics = renderSettingsIcon(name: "Item List/Icons/Topics", backgroundColors: [colorLightBlue])
-    public static let links = renderSettingsIcon(name: "Item List/Icons/Link", backgroundColors: [colorOrange])
-    public static let chatAppearance = renderSettingsIcon(name: "Item List/Icons/Brush", backgroundColors: [colorOrange])
-    public static let admins = renderSettingsIcon(name: "Item List/Icons/Admin", backgroundColors: [colorGreen])
-    public static let subscribers = renderSettingsIcon(name: "Item List/Icons/Group", backgroundColors: [colorBlue])
-    public static let stats = renderSettingsIcon(name: "Item List/Icons/Stats", backgroundColors: [colorViolet])
-    public static let balance = renderSettingsIcon(name: "Item List/Icons/Balance", backgroundColors: [colorGreen])
-    public static let affiliateProgram = renderSettingsIcon(name: "Item List/Icons/Affiliate", backgroundColors: [colorViolet])
-    public static let earnStars = renderSettingsIcon(name: "Item List/Icons/Earn", backgroundColors: [colorGreen])
-    public static let channelMessages = renderSettingsIcon(name: "Item List/Icons/Messages", backgroundColors: [colorViolet])
-    public static let settings = renderSettingsIcon(name: "Item List/Icons/Settings", backgroundColors: [colorOrange])
-    public static let antiSpam = renderSettingsIcon(name: "Item List/Icons/AntiSpam", backgroundColors: [colorGreen])
-    public static let recentActions = renderSettingsIcon(name: "Item List/Icons/View", backgroundColors: [colorOrange])
-    public static let permissions = renderSettingsIcon(name: "Item List/Icons/Key", backgroundColors: [colorGray])
-    public static let autoTranslate = renderSettingsIcon(name: "Item List/Icons/Translation", backgroundColors: [colorPurple])
-    public static let emojiStatus = renderSettingsIcon(name: "Item List/Icons/Status", backgroundColors: [colorBlue])
-    public static let location = renderSettingsIcon(name: "Item List/Icons/Location", backgroundColors: [colorLightBlue])
+    public static var groupType: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Members", backgroundColors: [colorBlue]) }
+    public static var channelType: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Channel", backgroundColors: [colorBlue]) }
+    public static var chatHistory: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Chat", backgroundColors: [colorGreen]) }
+    public static var topics: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Topics", backgroundColors: [colorLightBlue]) }
+    public static var links: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Link", backgroundColors: [colorOrange]) }
+    public static var chatAppearance: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Brush", backgroundColors: [colorOrange]) }
+    public static var admins: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Admin", backgroundColors: [colorGreen]) }
+    public static var subscribers: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Group", backgroundColors: [colorBlue]) }
+    public static var stats: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Stats", backgroundColors: [colorViolet]) }
+    public static var balance: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Balance", backgroundColors: [colorGreen]) }
+    public static var affiliateProgram: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Affiliate", backgroundColors: [colorViolet]) }
+    public static var earnStars: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Earn", backgroundColors: [colorGreen]) }
+    public static var channelMessages: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Messages", backgroundColors: [colorViolet]) }
+    public static var settings: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Settings", backgroundColors: [colorOrange]) }
+    public static var antiSpam: UIImage? { return renderSettingsIcon(name: "Item List/Icons/AntiSpam", backgroundColors: [colorGreen]) }
+    public static var recentActions: UIImage? { return renderSettingsIcon(name: "Item List/Icons/View", backgroundColors: [colorOrange]) }
+    public static var permissions: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Key", backgroundColors: [colorGray]) }
+    public static var autoTranslate: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Translation", backgroundColors: [colorPurple]) }
+    public static var emojiStatus: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Status", backgroundColors: [colorBlue]) }
+    public static var location: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Location", backgroundColors: [colorLightBlue]) }
     public static let groupRequests = renderAttachAppIcon(iconImage: UIImage(bundleImageName: "Chat/Info/GroupRequestsIcon"))
     
-    public static let calls = renderSettingsIcon(name: "Item List/Icons/Phone", backgroundColors: [colorOrange])
-    public static let messages = renderSettingsIcon(name: "Item List/Icons/Chat", backgroundColors: [colorViolet])
-    public static let filesGreen = renderSettingsIcon(name: "Item List/Icons/File", backgroundColors: [colorGreen])
-    public static let stickersYellow = renderSettingsIcon(name: "Item List/Icons/Sticker", backgroundColors: [colorOrange])
-    public static let music = renderSettingsIcon(name: "Item List/Icons/Play", backgroundColors: [colorRed])
-    public static let voices = renderSettingsIcon(name: "Item List/Icons/Microphone", backgroundColors: [colorPurple])
-    public static let upload = renderSettingsIcon(name: "Item List/Icons/Upload", backgroundColors: [colorBlue])
-    public static let download = renderSettingsIcon(name: "Item List/Icons/Download", backgroundColors: [colorGreen])
+    public static var calls: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Phone", backgroundColors: [colorOrange]) }
+    public static var messages: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Chat", backgroundColors: [colorViolet]) }
+    public static var filesGreen: UIImage? { return renderSettingsIcon(name: "Item List/Icons/File", backgroundColors: [colorGreen]) }
+    public static var stickersYellow: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Sticker", backgroundColors: [colorOrange]) }
+    public static var music: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Play", backgroundColors: [colorRed]) }
+    public static var voices: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Microphone", backgroundColors: [colorPurple]) }
+    public static var upload: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Upload", backgroundColors: [colorBlue]) }
+    public static var download: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Download", backgroundColors: [colorGreen]) }
     
-    public static let welcome = renderSettingsIcon(name: "Item List/Icons/Hand", backgroundColors: [colorViolet])
+    public static var welcome: UIImage? { return renderSettingsIcon(name: "Item List/Icons/Hand", backgroundColors: [colorViolet]) }
 }

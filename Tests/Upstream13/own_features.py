@@ -351,5 +351,17 @@ class ForkIntegration(unittest.TestCase):
         self.assertIn('forkExtrasSearchableRows(strings: strings)', search)
 
 
+    def test_settings_icons_follow_bananagram_theme_accent(self):
+        icons = read('submodules/TelegramPresentationData/Sources/Resources/PresentationResourcesSettings.swift')
+        self.assertIn('public func forkUpdateSettingsIconTint(', icons)
+        self.assertIn('(glyphColor ?? UIColor.white).cgColor', icons)
+        self.assertNotIn('public static let proxy = renderSettingsIcon', icons)
+        for name in ('premium', 'stars', 'premiumGift'):
+            self.assertIn('public static var ' + name + ': UIImage?', icons)
+        data = read('submodules/TelegramPresentationData/Sources/PresentationData.swift')
+        self.assertIn('theme.name.string.hasPrefix("BananaGram")', data)
+        self.assertIn('if !theme.preview {', data)
+
+
 if __name__ == '__main__':
     unittest.main()

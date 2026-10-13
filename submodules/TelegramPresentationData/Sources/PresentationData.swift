@@ -195,6 +195,15 @@ public final class PresentationData: Equatable {
         self.nameSortOrder = nameSortOrder
         self.reduceMotion = reduceMotion
         self.largeEmoji = largeEmoji
+        
+        if !theme.preview {
+            // Settings icons follow the theme: BananaGram themes paint them in their accent, the others keep the stock colours.
+            if theme.name.string.hasPrefix("BananaGram") {
+                forkUpdateSettingsIconTint(ForkSettingsIconTint(fill: theme.list.itemCheckColors.fillColor, glyph: theme.list.itemCheckColors.foregroundColor))
+            } else {
+                forkUpdateSettingsIconTint(nil)
+            }
+        }
     }
     
     public func withUpdated(theme: PresentationTheme) -> PresentationData {
