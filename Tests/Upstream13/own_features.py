@@ -485,7 +485,8 @@ class ForkIntegration(unittest.TestCase):
         self.assertIn('colors[iconName ?? "BlueIcon"]', palette)
         shared = read('submodules/TelegramUI/Sources/SharedAccountContext.swift')
         self.assertIn('BananaIslandPalette.colors(iconName: self.applicationBindings.getAlternateIconName())', shared)
-        self.assertIn('BananaIslandPalette.iconDidChangeNotification', read('submodules/SettingsUI/Sources/Themes/ThemeSettingsController.swift'))
+        self.assertIn('Notification.Name("BananaIslandPalette.iconDidChange")', read('submodules/SettingsUI/Sources/Themes/ThemeSettingsController.swift'))
+        self.assertIn('Notification.Name("BananaIslandPalette.iconDidChange")', palette)
         self.assertIn('[1618, 1531, 1532, 1553, 1619]', read('submodules/SettingsUI/Sources/ForkExtrasController.swift'))
 
 
