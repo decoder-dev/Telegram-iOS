@@ -571,6 +571,22 @@ class ForkIntegration(unittest.TestCase):
         menu = read('submodules/ChatListUI/Sources/ChatContextMenus.swift')
         self.assertIn('ForkGhostModeSettings.setException(peerId, !isException)', menu)
 
+    def test_hide_activity_by_type_and_delete_own_messages(self):
+        core = read('submodules/TelegramCore/Sources/State/ManagedLocalInputActivities.swift')
+        self.assertIn('if let activity, BananaActivityHiding.hides(activity), !ForkGhostModeSettings.isException(peerId) {', core)
+        hiding = read('submodules/TelegramCore/Sources/Arena/BananaActivityHiding.swift')
+        self.assertIn('case .recordingVoice, .recordingInstantVideo:', hiding)
+        self.assertIn('case .uploadingFile, .uploadingPhoto, .uploadingVideo, .uploadingInstantVideo:', hiding)
+        # The group-call speaking indicator is never one of the hidden kinds.
+        self.assertNotIn('speakingInGroupCall', hiding)
+        ctl = read('submodules/SettingsUI/Sources/ForkExtrasController.swift')
+        self.assertIn('(.ghost, [[1560, 1561, 1562]])', ctl)
+        self.assertIn('BananaActivityHiding.update(text: settings.hideTypingText', read('submodules/TelegramUI/Sources/SharedAccountContext.swift'))
+        own = read('submodules/ChatListUI/Sources/BananaDeleteOwnMessages.swift')
+        self.assertIn('fromId: accountPeerId', own)
+        self.assertIn('type: .forEveryone', own)
+        self.assertIn('BananaDeleteOwnMessages.isGroup(peer)', read('submodules/ChatListUI/Sources/ChatContextMenus.swift'))
+
 
 if __name__ == '__main__':
     unittest.main()

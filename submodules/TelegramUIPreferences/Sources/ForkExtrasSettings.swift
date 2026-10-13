@@ -156,6 +156,9 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var quoteRepliesToDeleted: Bool
     public var exactCounts: Bool
     public var confirmVoiceSend: Bool
+    public var hideTypingText: Bool
+    public var hideTypingVoice: Bool
+    public var hideTypingFiles: Bool
     public var showsOfflineDot: Bool
     /// Hide paid (star) reactions from messages and the reaction picker.
     public var hidePaidReactions: Bool
@@ -250,7 +253,10 @@ public struct ForkExtrasSettings: Codable, Equatable {
             signDownloadedMedia: false,
             quoteRepliesToDeleted: false,
             exactCounts: false,
-            confirmVoiceSend: false
+            confirmVoiceSend: false,
+            hideTypingText: false,
+            hideTypingVoice: false,
+            hideTypingFiles: false
         )
     }
 
@@ -329,7 +335,10 @@ public struct ForkExtrasSettings: Codable, Equatable {
         signDownloadedMedia: Bool = false,
         quoteRepliesToDeleted: Bool = false,
         exactCounts: Bool = false,
-        confirmVoiceSend: Bool = false
+        confirmVoiceSend: Bool = false,
+        hideTypingText: Bool = false,
+        hideTypingVoice: Bool = false,
+        hideTypingFiles: Bool = false
     ) {
         self.wideTabBar = false
         self.integratedTabSearch = false
@@ -433,6 +442,9 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.quoteRepliesToDeleted = quoteRepliesToDeleted
         self.exactCounts = exactCounts
         self.confirmVoiceSend = confirmVoiceSend
+        self.hideTypingText = hideTypingText
+        self.hideTypingVoice = hideTypingVoice
+        self.hideTypingFiles = hideTypingFiles
     }
 
     public init(from decoder: Decoder) throws {
@@ -541,6 +553,9 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.quoteRepliesToDeleted = try container.decodeIfPresent(Bool.self, forKey: "quoteRepliesToDeleted") ?? false
         self.exactCounts = try container.decodeIfPresent(Bool.self, forKey: "exactCounts") ?? false
         self.confirmVoiceSend = try container.decodeIfPresent(Bool.self, forKey: "confirmVoiceSend") ?? false
+        self.hideTypingText = try container.decodeIfPresent(Bool.self, forKey: "hideTypingText") ?? false
+        self.hideTypingVoice = try container.decodeIfPresent(Bool.self, forKey: "hideTypingVoice") ?? false
+        self.hideTypingFiles = try container.decodeIfPresent(Bool.self, forKey: "hideTypingFiles") ?? false
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -649,6 +664,9 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.quoteRepliesToDeleted, forKey: "quoteRepliesToDeleted")
         try container.encode(self.exactCounts, forKey: "exactCounts")
         try container.encode(self.confirmVoiceSend, forKey: "confirmVoiceSend")
+        try container.encode(self.hideTypingText, forKey: "hideTypingText")
+        try container.encode(self.hideTypingVoice, forKey: "hideTypingVoice")
+        try container.encode(self.hideTypingFiles, forKey: "hideTypingFiles")
     }
 
     /// Whether message/reaction read receipts should be suppressed right now.

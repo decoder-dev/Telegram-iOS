@@ -1234,6 +1234,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         BananaDeletedReplyQuote.enabled = settings.quoteRepliesToDeleted
         BananaExactCounts.enabled = settings.exactCounts
         BananaVoiceSendConfirmation.enabled = settings.confirmVoiceSend
+        BananaActivityHiding.update(text: settings.hideTypingText, voice: settings.hideTypingVoice, files: settings.hideTypingFiles)
         BananaRoundVideoCamera.startsWithRear = settings.roundVideoStartsWithRear
         BananaRoundVideoCamera.remembersLast = settings.roundVideoRemembersCamera
         BananaPresenceDisplay.current = BananaPresenceDisplay(exactLastSeen: settings.exactLastSeen, showsOfflineDot: settings.showsOfflineDot)

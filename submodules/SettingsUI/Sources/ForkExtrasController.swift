@@ -865,7 +865,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [55, 56, 1551, 1552, 1543, 58],
             [1603, 1500, 1501, 1541, 57],
             [1604, 140, 141]
-        ])
+        ]),
+        (.ghost, [[1560, 1561, 1562]])
     ]
 
     private static let interfaceGroups: [[Int32]] = regroupedCategories.flatMap { $0.groups }
@@ -1769,6 +1770,9 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .ghostDontReadStories(settings.ghostDontReadStories),
             .ghostDontSendOnline(settings.ghostDontSendOnline),
             .ghostDontSendTyping(settings.ghostDontSendTyping),
+            .appearanceToggle(1560, russian ? "Скрывать «печатает…»" : "Hide “typing…”", settings.hideTypingText, \.hideTypingText),
+            .appearanceToggle(1561, russian ? "Скрывать «записывает голосовое/кружок»" : "Hide “recording voice/round video”", settings.hideTypingVoice, \.hideTypingVoice),
+            .appearanceToggle(1562, russian ? "Скрывать «отправляет файл/фото/видео»" : "Hide “sending file/photo/video”", settings.hideTypingFiles, \.hideTypingFiles),
             .ghostGoOfflineAutomatically(settings.ghostGoOfflineAutomatically),
             .ghostGoOfflineAutomaticallyFooter,
             .ghostReadOnInteract(settings.ghostReadOnInteract),

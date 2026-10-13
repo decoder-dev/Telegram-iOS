@@ -433,6 +433,22 @@ func chatContextMenuItems(context: AccountContext, peerId: EnginePeer.Id, promoI
                             })))
                         }
                         
+                        if BananaDeleteOwnMessages.isGroup(peer) {
+                            let russian = ForkPresentationLanguage.prefersRussianStrings
+                            let title = russian ? "Удалить все мои сообщения" : "Delete all my messages"
+                            items.append(.action(ContextMenuActionItem(text: title, textColor: .destructive, icon: { _ in nil }, action: { _, f in
+                                f(.default)
+                                let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+                                let text = russian ? "Все ваши сообщения в этом чате будут удалены у всех. Это нельзя отменить." : "Every message you sent in this chat will be deleted for everyone. This cannot be undone."
+                                chatListController?.present(textAlertController(context: context, title: title, text: text, actions: [
+                                    TextAlertAction(type: .genericAction, title: presentationData.strings.Common_Cancel, action: {}),
+                                    TextAlertAction(type: .destructiveAction, title: presentationData.strings.Common_Delete, action: {
+                                        let _ = BananaDeleteOwnMessages.deleteAll(context: context, peerId: peerId).startStandalone()
+                                    })
+                                ]), in: .window(.root))
+                            })))
+                        }
+                        
                         let archiveEnabled = !isSavedMessages && peerId != EnginePeer.Id(namespace: Namespaces.Peer.CloudUser, id: EnginePeer.Id.Id._internalFromInt64Value(777000)) && peerId != context.account.peerId
                         if let group = peerGroup {
                             if archiveEnabled {

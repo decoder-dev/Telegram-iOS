@@ -771,6 +771,9 @@ private func actionFromActivity(_ activity: PeerInputActivity?) -> Api.SendMessa
 }
 
 private func requestActivity(postbox: Postbox, network: Network, accountPeerId: PeerId, peerId: PeerId, threadId: Int64?, activity: PeerInputActivity?) -> Signal<Void, NoError> {
+    if let activity, BananaActivityHiding.hides(activity), !ForkGhostModeSettings.isException(peerId) {
+        return .complete()
+    }
     if ForkGhostModeSettings.suppressesOutgoingActivity(peerId: peerId) {
         // Everything except the group-call speaking indicator. This function is the single
         // chokepoint for outgoing activity, which is why the gate belongs here — but
