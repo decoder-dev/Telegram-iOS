@@ -401,7 +401,7 @@ int32_t ParamValidation (SLogContext* pLogCtx, SWelsSvcCodingParam* pCfg) {
 
 
 int32_t ParamValidationExt (SLogContext* pLogCtx, SWelsSvcCodingParam* pCodingParam) {
-  int8_t i = 0;
+  int i = 0;
   int32_t iIdx = 0;
 
   assert (pCodingParam != NULL);
@@ -2120,7 +2120,7 @@ void OutputCpuFeaturesLog (SLogContext* pLogCtx, uint32_t uiCpuFeatureFlags, uin
  */
 #if defined(STAT_OUTPUT)
 void StatOverallEncodingExt (sWelsEncCtx* pCtx) {
-  int8_t i = 0;
+  int i = 0;
   int8_t j = 0;
   for (i = 0; i < pCtx->pSvcParam->iSpatialLayerNum; i++) {
     fprintf (stdout, "\nDependency layer : %d\n", i);
@@ -4165,7 +4165,7 @@ int32_t WelsEncoderEncodeExt (sWelsEncCtx* pCtx, SFrameBSInfo* pFbi, const SSour
 int32_t WelsEncoderParamAdjust (sWelsEncCtx** ppCtx, SWelsSvcCodingParam* pNewParam) {
   SWelsSvcCodingParam* pOldParam = NULL;
   int32_t iReturn = ENC_RETURN_SUCCESS;
-  int8_t iIndexD = 0;
+  int iIndexD = 0;
   bool bNeedReset = false;
   int16_t iSliceNum = 1; // number of slices used
   int32_t iCacheLineSize = 16; // on chip cache line size in byte

@@ -245,7 +245,7 @@ typedef struct TagWelsSvcCodingParam: SEncParamExt {
 
     iRCMode = pCodingParam.iRCMode;    // rc mode
 
-    int8_t iIdxSpatial = 0;
+    int iIdxSpatial = 0;
     EProfileIdc uiProfileIdc = PRO_UNKNOWN;
     if (iEntropyCodingModeFlag)
       uiProfileIdc = PRO_MAIN;
@@ -396,7 +396,7 @@ typedef struct TagWelsSvcCodingParam: SEncParamExt {
     SSpatialLayerInternal* pDlp        = &sDependencyLayers[0];
     SSpatialLayerConfig* pSpatialLayer = &sSpatialLayers[0];
     EProfileIdc uiProfileIdc           = iEntropyCodingModeFlag ? PRO_HIGH : PRO_BASELINE;
-    int8_t iIdxSpatial  = 0;
+    int iIdxSpatial  = 0;
     while (iIdxSpatial < iSpatialLayerNum) {
       pSpatialLayer->uiProfileIdc      = (pCodingParam.sSpatialLayers[iIdxSpatial].uiProfileIdc == PRO_UNKNOWN) ? uiProfileIdc :
                                       pCodingParam.sSpatialLayers[iIdxSpatial].uiProfileIdc;

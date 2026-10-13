@@ -163,11 +163,15 @@ def _evp_bytes_to_key(password, salt, hash_name, key_len=32, iv_len=16):
     # Cipher#pkcs5_keyivgen(password, salt, 1, hash).
     if isinstance(password, str):
         password = password.encode('utf-8')
+    # The digest is chosen by the stored format version, never by input: V1 files written by
+    # fastlane match used MD5 here and must stay readable; newer ones use SHA-256.
+    if hash_name not in ('md5', 'sha256'):
+        raise ValueError("unsupported key derivation digest")
     required = key_len + iv_len
     material = b""
     prev = b""
     while len(material) < required:
-        h = hashlib.new(hash_name)
+        h = hashlib.new(hash_name)  # lgtm[py/weak-sensitive-data-hashing]
         h.update(prev + password + salt)
         prev = h.digest()
         material += prev

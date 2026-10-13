@@ -58,6 +58,18 @@ paths-ignore:
   - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libswresample/dither_template.c
   - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/**/tests
   - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/**/tools
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavcodec/jpeg2000htdec.c
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavcodec/ilbcdec.c
+  - third-party/libjxl/libjxl/third_party/lcms/utils
+  - third-party/yasm/**/tests
+  - third-party/webrtc/absl/absl/strings/internal/charconv_parse.cc
+  - third-party/webrtc/absl/absl/strings/internal/str_format/float_conversion.cc
+  - third-party/boringssl/**/decrepit
+  - third-party/boringssl/**/crypto/cipher/e_des.c
+  - third-party/boringssl/**/crypto/cipher/e_rc2.c
+  - third-party/boringssl/**/crypto/cipher/e_rc4.c
+  - third-party/boringssl/**/crypto/cipher/e_tls.c
+  - third-party/boringssl/**/crypto/des
 
 # cpp/integer-multiplication-cast-to-long ("Multiplication result converted to larger type") reports every `int * int`
 # whose result later lands in a 64-bit variable: about a thousand sites across FFmpeg's codecs, demuxers and ports, in

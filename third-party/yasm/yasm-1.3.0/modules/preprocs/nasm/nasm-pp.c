@@ -1753,7 +1753,7 @@ get_ctx(char *name, int all_contexts)
     if (!ctx)
     {
         error(ERR_NONFATAL, "`%s': context stack is only"
-                " %d level%s deep", name, i - 1, (i == 2 ? "" : "s"));
+                " %d level%s deep", name, (int)(i - 1), (i == 2 ? "" : "s"));
         return NULL;
     }
     if (!all_contexts)

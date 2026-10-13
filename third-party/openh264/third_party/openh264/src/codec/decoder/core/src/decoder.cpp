@@ -515,7 +515,7 @@ int32_t WelsRequestMem (PWelsDecoderContext pCtx, const int32_t kiMbWidth, const
                kiPicWidth, kiPicHeight, iPicQueueSize);
     // for Recycled_Pic_Queue
     PPicBuff* ppPic = &pCtx->pPicBuff;
-    if (NULL != ppPic && NULL != *ppPic) {
+    if (NULL != *ppPic) {
       DestroyPicBuff (pCtx, ppPic, pMa);
     }
 
