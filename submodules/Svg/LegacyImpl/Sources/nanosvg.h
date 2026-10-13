@@ -310,11 +310,9 @@ static void nsvg__parseElement(char* s,
 		while (*s && *s != quote) s++;
 		if (*s) { *s++ = '\0'; }
 
-		// Store only well formed attributes
-		if (name && value) {
-			attr[nattr++] = name;
-			attr[nattr++] = value;
-		}
+		// Reaching this point means a value was found; name/value are pointers into the input buffer.
+		attr[nattr++] = name;
+		attr[nattr++] = value;
 	}
 
 	// List terminator

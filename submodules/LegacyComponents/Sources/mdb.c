@@ -5688,7 +5688,7 @@ mdb_cursor_get(MDB_cursor *mc, MDB_val *key, MDB_val *data,
 				MDB_cursor *mx;
 fetchm:
 				mx = &mc->mc_xcursor->mx_cursor;
-				data->mv_size = NUMKEYS(mx->mc_pg[mx->mc_top]) *
+				data->mv_size = (size_t)NUMKEYS(mx->mc_pg[mx->mc_top]) *
 					mx->mc_db->md_pad;
 				data->mv_data = METADATA(mx->mc_pg[mx->mc_top]);
 				mx->mc_ki[mx->mc_top] = NUMKEYS(mx->mc_pg[mx->mc_top])-1;
@@ -7178,7 +7178,8 @@ static int
 mdb_page_merge(MDB_cursor *csrc, MDB_cursor *cdst)
 {
 	int			 rc;
-	indx_t			 i, j;
+	indx_t			 j;
+	unsigned int		 i;
 	MDB_node		*srcnode;
 	MDB_val		 key, data;
 	unsigned	nkeys;
