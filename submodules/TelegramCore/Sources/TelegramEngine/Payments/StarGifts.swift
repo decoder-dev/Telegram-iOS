@@ -2280,6 +2280,8 @@ private final class ProfileGiftsContextImpl {
     
     func reload() {
         self.gifts = []
+        // The list is not complete until the reload has brought it back.
+        self.completeGiftsCount = nil
         self.dataState = .ready(canLoadMore: true, nextOffset: nil)
         self.loadMore(reload: true)
     }
