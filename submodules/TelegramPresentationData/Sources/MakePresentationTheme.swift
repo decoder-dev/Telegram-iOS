@@ -29,25 +29,25 @@ public func makeDefaultPresentationTheme(reference: PresentationBuiltinThemeRefe
 /// accent. Accent foregrounds are chosen for contrast (white on dark gold, near-black on yellow), and the chat screen
 /// (bubbles, input bar, scroll-down button, wallpaper) uses the same palette as the lists so the app reads as one theme.
 private func makeBananaGramTheme(dark: Bool) -> PresentationTheme {
-    let background = UIColor(rgb: dark ? 0x1A1916 : 0xF6F3EB)
-    let surface = UIColor(rgb: dark ? 0x252320 : 0xFFFCF5)
-    let raisedSurface = UIColor(rgb: dark ? 0x2E2C28 : 0xFFFEFA)
-    let foreground = UIColor(rgb: dark ? 0xF3F0E7 : 0x292D32)
-    let secondary = UIColor(rgb: dark ? 0xBAB5A9 : 0x65686E)
-    let accent = UIColor(rgb: dark ? 0xF4D66F : 0x805600)
+    let background = UIColor(rgb: dark ? 0x1D1C1A : 0xF8F3EA)
+    let surface = UIColor(rgb: dark ? 0x272522 : 0xFFFAF2)
+    let raisedSurface = UIColor(rgb: dark ? 0x312F2B : 0xFFFDF8)
+    let foreground = UIColor(rgb: dark ? 0xEFEBE0 : 0x3A3430)
+    let secondary = UIColor(rgb: dark ? 0xB5B0A4 : 0x6F6A62)
+    let accent = UIColor(rgb: dark ? 0xEBD58F : 0x8F6420)
     // Text and glyphs drawn on an accent fill: white on dark gold, near-black on banana yellow.
     let onAccent = UIColor(rgb: dark ? 0x1B1A16 : 0xFFFFFF)
-    let separator = UIColor(rgb: dark ? 0x3B3833 : 0xDDD8CD)
+    let separator = UIColor(rgb: dark ? 0x3A3733 : 0xE9E1D3)
     let title = dark ? "BananaGram Graphite" : "BananaGram Cream"
     
     // Outgoing bubbles: soft banana cream with dark-gold details by day, deep olive gold with white text by night.
-    let outgoingBubbleColors: [UInt32] = dark ? [0x65532A, 0x4D3F1E] : [0xFAEFCB, 0xF4E0A4]
-    let outgoingAccent: UIColor? = dark ? nil : UIColor(rgb: 0x7A5200)
+    let outgoingBubbleColors: [UInt32] = dark ? [0x5E5236, 0x4A4029] : [0xFCF2DC, 0xF7E8C4]
+    let outgoingAccent: UIColor? = dark ? nil : UIColor(rgb: 0x8A5E1C)
     // Branded pattern wallpaper. Negative intensity draws the colours through the pattern on a dark base.
     let wallpaper = defaultBuiltinWallpaper(
         data: .default,
-        colors: dark ? [0x6B5A2A, 0x34312B, 0x8A7232, 0x2A2824] : [0xF7EBC9, 0xEFDDB1, 0xFAF2DC, 0xEBD8A7],
-        intensity: dark ? -45 : 40
+        colors: dark ? [0x5E5232, 0x34312B, 0x75653A, 0x2A2824] : [0xFAF1DC, 0xF4E7C9, 0xFCF6E8, 0xF0E2C2],
+        intensity: dark ? -42 : 32
     )
     
     let base = makeDefaultPresentationTheme(reference: dark ? .night : .day, serviceBackgroundColor: nil)
@@ -55,9 +55,9 @@ private func makeBananaGramTheme(dark: Bool) -> PresentationTheme {
     
     // Pressed rows, the faint chevrons and disabled text, and the field boxes: the stock Day / Night values are neutral greys
     // that sit coldly on the warm surfaces, so they are replaced rather than inherited.
-    let highlighted = UIColor(rgb: dark ? 0x35322D : 0xF1ECDD)
-    let disclosure = UIColor(rgb: dark ? 0x77726A : 0xB9B3A6)
-    let disabled = UIColor(rgb: dark ? 0x77726A : 0xA39E91)
+    let highlighted = UIColor(rgb: dark ? 0x36332E : 0xF3EBDC)
+    let disclosure = UIColor(rgb: dark ? 0x77726A : 0xC7BFB0)
+    let disabled = UIColor(rgb: dark ? 0x77726A : 0xB0A99B)
     let selectedRow = surface.mixedWith(accent, alpha: dark ? 0.16 : 0.12)
     let fieldFill = dark ? raisedSurface : UIColor(rgb: 0xFFFFFF)
     // Keep ordinary controls in the brand palette; destructive/success colours remain semantic.
@@ -69,14 +69,14 @@ private func makeBananaGramTheme(dark: Bool) -> PresentationTheme {
     // Both archive gradients are light in Cream, so a dark glyph stays legible across the whole fill.
     let archiveForeground = UIColor(rgb: dark ? 0x1B1A16 : 0x292D32)
     let list = theme.list.withUpdated(blocksBackgroundColor: background, modalBlocksBackgroundColor: background, plainBackgroundColor: surface, modalPlainBackgroundColor: surface, itemPrimaryTextColor: foreground, itemSecondaryTextColor: secondary, itemDisabledTextColor: disabled, itemAccentColor: accent, itemPlaceholderTextColor: secondary.withAlphaComponent(0.8), itemBlocksBackgroundColor: surface, itemModalBlocksBackgroundColor: surface, itemHighlightedBackgroundColor: highlighted, itemBlocksSeparatorColor: separator, itemPlainSeparatorColor: separator, disclosureArrowColor: disclosure, sectionHeaderTextColor: secondary, freeTextColor: secondary, itemSwitchColors: switchColors, itemDisclosureActions: disclosureActions, itemCheckColors: theme.list.itemCheckColors.withUpdated(fillColor: accent, foregroundColor: onAccent), controlSecondaryColor: disclosure, freeInputField: theme.list.freeInputField.withUpdated(backgroundColor: fieldFill, strokeColor: separator, placeholderColor: secondary, primaryColor: foreground, controlColor: secondary), freePlainInputField: theme.list.freePlainInputField.withUpdated(backgroundColor: fieldFill, strokeColor: separator, placeholderColor: secondary, primaryColor: foreground, controlColor: secondary), itemInputField: theme.list.itemInputField.withUpdated(backgroundColor: surface, strokeColor: surface, placeholderColor: secondary, primaryColor: foreground, controlColor: secondary))
-    let searchBar = UIColor(rgb: dark ? 0x2E2C28 : 0xEFEADF)
+    let searchBar = UIColor(rgb: dark ? 0x302E2A : 0xF2ECE0)
     let root = theme.rootController.withUpdated(
         tabBar: theme.rootController.tabBar.withUpdated(backgroundColor: surface, separatorColor: separator, iconColor: secondary, selectedIconColor: accent, textColor: secondary, selectedTextColor: accent, badgeBackgroundColor: accent, badgeStrokeColor: accent, badgeTextColor: onAccent),
         navigationBar: theme.rootController.navigationBar.withUpdated(buttonColor: accent, disabledButtonColor: disabled, primaryTextColor: foreground, secondaryTextColor: secondary, controlColor: secondary, accentTextColor: accent, blurredBackgroundColor: surface.withAlphaComponent(0.95), opaqueBackgroundColor: surface, separatorColor: separator, badgeBackgroundColor: accent, badgeStrokeColor: accent, badgeTextColor: onAccent, segmentedBackgroundColor: searchBar, segmentedForegroundColor: raisedSurface, segmentedTextColor: foreground, segmentedDividerColor: separator),
         navigationSearchBar: theme.rootController.navigationSearchBar.withUpdated(backgroundColor: surface, accentColor: accent, inputFillColor: background, inputTextColor: foreground, inputPlaceholderTextColor: secondary, inputIconColor: secondary, separatorColor: separator)
     )
     // Pinned rows are only a breath apart from ordinary ones: a visible two-tone list reads as a mistake, not a hierarchy.
-    let pinnedRow = UIColor(rgb: dark ? 0x292723 : 0xF9F4E6)
+    let pinnedRow = UIColor(rgb: dark ? 0x2B2926 : 0xFBF6EA)
     let inactiveBadgeBackground = UIColor(rgb: dark ? 0x5A564E : 0x756F62)
     let chats = theme.chatList.withUpdated(backgroundColor: surface, itemSeparatorColor: separator, itemBackgroundColor: surface, pinnedItemBackgroundColor: pinnedRow, itemHighlightedBackgroundColor: highlighted, pinnedItemHighlightedBackgroundColor: highlighted, itemSelectedBackgroundColor: selectedRow, titleColor: foreground, dateTextColor: secondary, authorNameColor: foreground, messageTextColor: secondary, messageHighlightedTextColor: foreground, checkmarkColor: accent, muteIconColor: secondary, unreadBadgeActiveBackgroundColor: accent, unreadBadgeActiveTextColor: onAccent, unreadBadgeInactiveBackgroundColor: inactiveBadgeBackground, unreadBadgeInactiveTextColor: dark ? foreground : onAccent, reactionBadgeActiveBackgroundColor: accent, pinnedBadgeColor: disclosure, pinnedSearchBarColor: searchBar, regularSearchBarColor: searchBar, sectionHeaderFillColor: background, sectionHeaderTextColor: secondary, pinnedArchiveAvatarColor: PresentationThemeArchiveAvatarColors(backgroundColors: PresentationThemeGradientColors(topColor: UIColor(rgb: dark ? 0xF4D66F : 0xE9B949), bottomColor: UIColor(rgb: dark ? 0xD9B34A : 0xC08A1E)), foregroundColor: archiveForeground), unpinnedArchiveAvatarColor: PresentationThemeArchiveAvatarColors(backgroundColors: PresentationThemeGradientColors(topColor: UIColor(rgb: dark ? 0x5A564E : 0xC9C3B5), bottomColor: UIColor(rgb: dark ? 0x4A4740 : 0xB3AC9C)), foregroundColor: dark ? foreground : archiveForeground), storyUnseenColors: PresentationThemeGradientColors(topColor: UIColor(rgb: dark ? 0xF9E08A : 0xEDBE50), bottomColor: UIColor(rgb: dark ? 0xE0B84A : 0xC48A18)), storySeenColors: PresentationThemeGradientColors(topColor: UIColor(rgb: dark ? 0x4F4B44 : 0xCFC9BA), bottomColor: UIColor(rgb: dark ? 0x4F4B44 : 0xCFC9BA)))
     
