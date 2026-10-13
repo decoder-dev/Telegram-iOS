@@ -866,10 +866,14 @@ void DFA_emit(DFA *d, FILE *o){
 		    to = to->go.span[0].to;
 		    nSpans = merge(span, s, to);
 		    if(nSpans < s->go.nSpans){
-			free(s->go.span);
-			s->go.nSpans = nSpans;
-			s->go.span = malloc(sizeof(Span)*nSpans);
-			memcpy(s->go.span, span, nSpans*sizeof(Span));
+			Span *merged = nSpans ? malloc(sizeof(Span)*nSpans) : NULL;
+			if(nSpans == 0 || merged){
+			    if(nSpans)
+				memcpy(merged, span, nSpans*sizeof(Span));
+			    free(s->go.span);
+			    s->go.nSpans = nSpans;
+			    s->go.span = merged;
+			}
 		    }
 		    break;
 		}
