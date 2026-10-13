@@ -417,6 +417,13 @@ class ForkIntegration(unittest.TestCase):
         storage = read('submodules/TelegramCore/Sources/Arena/BananaSpyStorage.swift')
         self.assertIn('public static var trackDisappearedGifts: Bool', storage)
         self.assertIn('bananaDisappearedGifts', read('submodules/TelegramCore/Sources/SyncCore/SyncCore_Namespaces.swift'))
+        # Namespaces are Int8: a larger literal is a compile error, and an id used twice would share one cache collection.
+        namespaces = read('submodules/TelegramCore/Sources/SyncCore/SyncCore_Namespaces.swift')
+        for name, value in re.findall(r'static let (\w+): Int8 = (\d+)', namespaces):
+            self.assertLessEqual(int(value), 127, name)
+        cached = namespaces[namespaces.index('struct CachedItemCollection'):]
+        ids = re.findall(r'static let (\w+): Int8 = (\d+)', cached[:cached.index('\n    }\n')])
+        self.assertEqual(len(ids), len({value for _, value in ids}))
         gifts = read('submodules/TelegramCore/Sources/TelegramEngine/Payments/StarGifts.swift')
         # A failed request must not read as an empty profile: that would mark every remembered gift missing.
         self.assertIn('guard succeeded else {', gifts)

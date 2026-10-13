@@ -167,8 +167,8 @@ public struct Namespaces {
         public static let notificationRequestMessageIds: Int8 = 58
         public static let cachedWalletUserAddresses: Int8 = 59
         // BananaSpyStorage collections (local records that are never sent anywhere).
-        public static let bananaDisappearedGifts: Int8 = 130
-        public static let bananaPresence: Int8 = 131
+        public static let bananaDisappearedGifts: Int8 = 100
+        public static let bananaPresence: Int8 = 101
     }
     
     public struct UnorderedItemList {
