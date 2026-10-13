@@ -247,7 +247,7 @@ extension ChatControllerImpl {
     }
 
     private func bananaShowLinkDownloadError(_ error: BananaLinkDownloadError) {
-        var reason = error.reason
+        var reason = error.localizedReason(russian: ForkPresentationLanguage.prefersRussianStrings)
         if reason.hasSuffix(".") {
             reason.removeLast()
         }

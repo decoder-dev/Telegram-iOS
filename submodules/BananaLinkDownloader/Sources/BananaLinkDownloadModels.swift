@@ -30,6 +30,14 @@ func bananaIntValue(_ value: Any?) -> Int64? {
     return nil
 }
 
+/// Overflow-safe byte-budget check shared by streamed response and batch accounting.
+func bananaWouldExceedByteLimit(total: Int64, adding: Int64, limit: Int64) -> Bool {
+    guard total >= 0, adding >= 0, limit >= 0, total <= limit else {
+        return true
+    }
+    return adding > limit - total
+}
+
 /// Non-empty path segments ("/@/video/1" -> ["@", "video", "1"]).
 func bananaPathSegments(_ path: String) -> [String] {
     return path.split(separator: "/").map(String.init)

@@ -43,6 +43,8 @@ public final class BananaLinkDownloadJob {
     }
 
     public static let maxFileSize: Int64 = 200 * 1024 * 1024
+    /// Caps the combined temporary footprint of a multi-file post while allowing adaptive video + audio.
+    public static let maxBatchSize: Int64 = 500 * 1024 * 1024
 
     /// Progress of a group of parallel downloads (the video and audio of a Short, the photos of a carousel).
     private final class Batch {
@@ -223,6 +225,14 @@ public final class BananaLinkDownloadJob {
             self.fetcher.download(request, to: destination, maxBytes: BananaLinkDownloadJob.maxFileSize, progress: { written, total in
                 self.queue.async {
                     batch.received[index] = written
+                    var aggregate: Int64 = 0
+                    for received in batch.received {
+                        if bananaWouldExceedByteLimit(total: aggregate, adding: received, limit: BananaLinkDownloadJob.maxBatchSize) {
+                            self.finish(.failure(.batchTooLarge))
+                            return
+                        }
+                        aggregate += received
+                    }
                     if let total {
                         batch.expected[index] = total
                     }

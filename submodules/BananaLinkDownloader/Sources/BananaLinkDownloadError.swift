@@ -14,6 +14,7 @@ public enum BananaLinkDownloadError: Error, Equatable {
     case youtubeTooLong
     case noCompatibleFormat
     case tooLarge
+    case batchTooLarge
     case httpStatus(Int)
     case network(URLError.Code)
     case processingFailed
@@ -26,40 +27,42 @@ public enum BananaLinkDownloadError: Error, Equatable {
         }
     }
 
-    public var reason: String {
+    public func localizedReason(russian: Bool) -> String {
         switch self {
         case .cancelled:
-            return "Скачивание отменено"
+            return russian ? "Скачивание отменено" : "Download cancelled"
         case .tiktokLinkExpired:
-            return "Ссылка TikTok устарела или неверная"
+            return russian ? "Ссылка TikTok устарела или неверная" : "The TikTok link expired or is invalid"
         case .tiktokNotFound:
-            return "Видео удалено или недоступно"
+            return russian ? "Видео удалено или недоступно" : "The video was deleted or is unavailable"
         case .tiktokPrivate:
-            return "Закрытый аккаунт"
+            return russian ? "Закрытый аккаунт" : "The account is private"
         case let .tiktokStatus(code):
-            return "TikTok не отдал видео (код \(code))"
+            return russian ? "TikTok не отдал видео (код \(code))" : "TikTok could not provide the video (code \(code))"
         case .tiktokNoData:
-            return "TikTok не отдал страницу (проверка на бота)"
+            return russian ? "TikTok не отдал страницу (проверка на бота)" : "TikTok did not provide the page (possibly a bot check)"
         case .youtubeLoginRequired:
-            return "YouTube просит войти в аккаунт"
+            return russian ? "YouTube просит войти в аккаунт" : "YouTube requires you to sign in"
         case .youtubeAgeRestricted:
-            return "Видео 18+, без входа не скачать"
+            return russian ? "Видео 18+, без входа не скачать" : "Age-restricted videos require a signed-in account"
         case .youtubeUnavailable:
-            return "Видео недоступно"
+            return russian ? "Видео недоступно" : "The video is unavailable"
         case .youtubeTooLong:
-            return "Это не Shorts, а длинное видео"
+            return russian ? "Это не Shorts, а длинное видео" : "This video is too long to be a Short"
         case .noCompatibleFormat:
-            return "Нет подходящего формата"
+            return russian ? "Нет подходящего формата" : "No compatible media format was found"
         case .tooLarge:
-            return "Файл больше 200 МБ"
+            return russian ? "Файл больше 200 МБ" : "A media file exceeds 200 MB"
+        case .batchTooLarge:
+            return russian ? "Общий объём медиа больше 500 МБ" : "The total media download exceeds 500 MB"
         case let .httpStatus(code):
-            return "Сервер не отдал файл (HTTP \(code))"
+            return russian ? "Сервер не отдал файл (HTTP \(code))" : "The server could not provide the file (HTTP \(code))"
         case let .network(code):
             switch code {
             case .notConnectedToInternet, .networkConnectionLost, .dataNotAllowed, .internationalRoamingOff:
-                return "Нет интернета"
+                return russian ? "Нет интернета" : "No internet connection"
             case .timedOut:
-                return "Сервер долго не отвечает"
+                return russian ? "Сервер долго не отвечает" : "The server took too long to respond"
             default:
                 return URLError(code).localizedDescription
             }

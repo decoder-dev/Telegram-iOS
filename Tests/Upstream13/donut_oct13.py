@@ -72,6 +72,39 @@ class DonutAdaptation(unittest.TestCase):
         self.assertIn('case "island": focus = .appearance', links)
         self.assertIn('case "appearance", "chatlist": focus = .chatList', links)
 
+    def test_link_downloader_bounds_untrusted_responses_and_batches(self):
+        fetcher = read('submodules/BananaLinkDownloader/Sources/BananaMediaFetcher.swift')
+        job = read('submodules/BananaLinkDownloader/Sources/BananaLinkDownloadJob.swift')
+        error = read('submodules/BananaLinkDownloader/Sources/BananaLinkDownloadError.swift')
+        self.assertIn('private static let maxPageBytes: Int64 = 16 * 1024 * 1024', fetcher)
+        self.assertIn('maxBytes: Self.maxPageBytes', fetcher)
+        self.assertNotIn('session.dataTask(with:', fetcher)
+        self.assertIn('public static let maxBatchSize: Int64 = 500 * 1024 * 1024', job)
+        self.assertIn('bananaWouldExceedByteLimit(total: aggregate, adding: received, limit: BananaLinkDownloadJob.maxBatchSize)', job)
+        self.assertIn('case batchTooLarge', error)
+        self.assertIn('error.localizedReason(russian: ForkPresentationLanguage.prefersRussianStrings)', read('submodules/TelegramUI/Sources/ChatController+BananaLinkDownload.swift'))
+
+    @unittest.skipUnless(shutil.which('swiftc'), 'Swift unavailable locally; executes in macOS CI')
+    def test_link_downloader_error_localization(self):
+        errors = read('submodules/BananaLinkDownloader/Sources/BananaLinkDownloadError.swift')
+        execute(errors + '''
+precondition(BananaLinkDownloadError.tooLarge.localizedReason(russian: true) == "Файл больше 200 МБ")
+precondition(BananaLinkDownloadError.tooLarge.localizedReason(russian: false) == "A media file exceeds 200 MB")
+precondition(BananaLinkDownloadError.batchTooLarge.localizedReason(russian: false).contains("500 MB"))
+precondition(BananaLinkDownloadError.youtubeLoginRequired.localizedReason(russian: true).contains("YouTube"))
+''')
+
+    @unittest.skipUnless(shutil.which('swiftc'), 'Swift unavailable locally; executes in macOS CI')
+    def test_link_downloader_byte_budget_helper(self):
+        source = read('submodules/BananaLinkDownloader/Sources/BananaLinkDownloadModels.swift')
+        execute('import Foundation\n' + function(source, 'bananaWouldExceedByteLimit') + '''
+let limit: Int64 = 500 * 1024 * 1024
+precondition(!bananaWouldExceedByteLimit(total: 0, adding: limit, limit: limit))
+precondition(bananaWouldExceedByteLimit(total: limit, adding: 1, limit: limit))
+precondition(bananaWouldExceedByteLimit(total: Int64.max, adding: 1, limit: Int64.max))
+precondition(bananaWouldExceedByteLimit(total: -1, adding: 0, limit: limit))
+''')
+
     @unittest.skipUnless(shutil.which('swiftc'), 'Swift unavailable locally; executes in macOS CI')
     def test_actual_search_filters_and_remote_window(self):
         production = read('submodules/TelegramCore/Sources/MessageSaving/MessageSavingSearch.swift')

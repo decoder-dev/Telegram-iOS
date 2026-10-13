@@ -9,15 +9,21 @@ struct BananaHTTPResponse {
 /// One URLSession per job: keeps TikTok cookies between the page and the CDN, reports download progress,
 /// enforces the size limit and cancels everything at once. Same pattern as WebUI's FileDownload.
 final class BananaMediaFetcher: NSObject, URLSessionDownloadDelegate {
+    private struct DownloadResult {
+        let fileURL: URL
+        let responseURL: URL?
+    }
+
     private final class Download {
         let destination: URL
         let maxBytes: Int64
         let progress: (Int64, Int64?) -> Void
-        let completion: (Result<URL, BananaLinkDownloadError>) -> Void
+        let completion: (Result<DownloadResult, BananaLinkDownloadError>) -> Void
         var failure: BananaLinkDownloadError?
         var isMoved = false
+        var responseURL: URL?
 
-        init(destination: URL, maxBytes: Int64, progress: @escaping (Int64, Int64?) -> Void, completion: @escaping (Result<URL, BananaLinkDownloadError>) -> Void) {
+        init(destination: URL, maxBytes: Int64, progress: @escaping (Int64, Int64?) -> Void, completion: @escaping (Result<DownloadResult, BananaLinkDownloadError>) -> Void) {
             self.destination = destination
             self.maxBytes = maxBytes
             self.progress = progress
@@ -30,6 +36,10 @@ final class BananaMediaFetcher: NSObject, URLSessionDownloadDelegate {
     private var tasks: [URLSessionTask] = []
     private var downloads: [Int: Download] = [:]
     private var isCancelled = false
+
+    /// TikTok embeds JSON in HTML and YouTube returns player JSON. Keep those untrusted responses off an
+    /// unbounded in-memory data task; the download delegate enforces this cap while streaming to disk.
+    private static let maxPageBytes: Int64 = 16 * 1024 * 1024
 
     override init() {
         super.init()
@@ -45,35 +55,38 @@ final class BananaMediaFetcher: NSObject, URLSessionDownloadDelegate {
     }
 
     func fetchData(_ request: URLRequest, completion: @escaping (Result<BananaHTTPResponse, BananaLinkDownloadError>) -> Void) {
+        let destination = FileManager.default.temporaryDirectory.appendingPathComponent("bananagram-page-\(UUID().uuidString)")
+        self.startDownload(request, to: destination, maxBytes: Self.maxPageBytes, progress: { _, _ in }, completion: { result in
+            switch result {
+            case let .failure(error):
+                completion(.failure(error))
+            case let .success(download):
+                defer { try? FileManager.default.removeItem(at: download.fileURL) }
+                guard let responseURL = download.responseURL,
+                      let data = try? Data(contentsOf: download.fileURL),
+                      Int64(data.count) <= Self.maxPageBytes else {
+                    completion(.failure(.processingFailed))
+                    return
+                }
+                completion(.success(BananaHTTPResponse(data: data, url: responseURL)))
+            }
+        })
+    }
+
+    func download(_ request: URLRequest, to destination: URL, maxBytes: Int64, progress: @escaping (Int64, Int64?) -> Void, completion: @escaping (Result<URL, BananaLinkDownloadError>) -> Void) {
+        self.startDownload(request, to: destination, maxBytes: maxBytes, progress: progress, completion: { result in
+            completion(result.map { $0.fileURL })
+        })
+    }
+
+    private func startDownload(_ request: URLRequest, to destination: URL, maxBytes: Int64, progress: @escaping (Int64, Int64?) -> Void, completion: @escaping (Result<DownloadResult, BananaLinkDownloadError>) -> Void) {
         self.queue.async {
             guard !self.isCancelled, let session = self.session else {
                 completion(.failure(.cancelled))
                 return
             }
-            let task = session.dataTask(with: request, completionHandler: { data, response, error in
-                if let error {
-                    completion(.failure(BananaLinkDownloadError(error)))
-                    return
-                }
-                guard let httpResponse = response as? HTTPURLResponse else {
-                    completion(.failure(.httpStatus(0)))
-                    return
-                }
-                guard (200 ..< 300).contains(httpResponse.statusCode) else {
-                    completion(.failure(.httpStatus(httpResponse.statusCode)))
-                    return
-                }
-                completion(.success(BananaHTTPResponse(data: data ?? Data(), url: httpResponse.url)))
-            })
-            self.tasks.append(task)
-            task.resume()
-        }
-    }
-
-    func download(_ request: URLRequest, to destination: URL, maxBytes: Int64, progress: @escaping (Int64, Int64?) -> Void, completion: @escaping (Result<URL, BananaLinkDownloadError>) -> Void) {
-        self.queue.async {
-            guard !self.isCancelled, let session = self.session else {
-                completion(.failure(.cancelled))
+            guard maxBytes > 0 else {
+                completion(.failure(.tooLarge))
                 return
             }
             let task = session.downloadTask(with: request)
@@ -117,6 +130,7 @@ final class BananaMediaFetcher: NSObject, URLSessionDownloadDelegate {
         guard let download = self.downloads[downloadTask.taskIdentifier], download.failure == nil else {
             return
         }
+        download.responseURL = downloadTask.response?.url
         if let httpResponse = downloadTask.response as? HTTPURLResponse, !(200 ..< 300).contains(httpResponse.statusCode) {
             download.failure = .httpStatus(httpResponse.statusCode)
             return
@@ -141,7 +155,7 @@ final class BananaMediaFetcher: NSObject, URLSessionDownloadDelegate {
         } else if let error {
             download.completion(.failure(BananaLinkDownloadError(error)))
         } else if download.isMoved {
-            download.completion(.success(download.destination))
+            download.completion(.success(DownloadResult(fileURL: download.destination, responseURL: download.responseURL)))
         } else {
             download.completion(.failure(.processingFailed))
         }
