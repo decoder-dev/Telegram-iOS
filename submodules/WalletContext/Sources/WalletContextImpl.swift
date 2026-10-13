@@ -120,6 +120,9 @@ actor WalletContextImpl {
     var runtimeObservationId = UUID()
     var observationTask: Task<Void, Never>?
     var serverStateRetryTask: Task<Void, Never>?
+    /// Consecutive failed server state requests; the retry delay doubles with it so a server that keeps refusing is
+    /// not asked every five seconds for as long as the app is open.
+    var serverStateRetryFailureCount = 0
             
     var pollingTask: Task<Void, Never>?
     var pollingTaskId: UUID?
@@ -552,6 +555,7 @@ actor WalletContextImpl {
             }
             self.serverStateRetryTask?.cancel()
             self.serverStateRetryTask = nil
+            self.serverStateRetryFailureCount = 0
             self.applyServerWalletState(value, forceActivation: promotedReplacement, balanceOverlayRevision: balanceOverlayRevision)
         } catch is CancellationError {
         } catch {
@@ -570,6 +574,7 @@ actor WalletContextImpl {
                     activeOperation: self.currentState.activeOperation
                 )
             }
+            self.serverStateRetryFailureCount = min(self.serverStateRetryFailureCount + 1, 6)
             self.scheduleServerStateRetry()
         }
     }
@@ -1483,7 +1488,9 @@ actor WalletContextImpl {
     }
 
     private func performServerStateRetryDelay() async {
-        try? await Task.sleep(nanoseconds: 5_000_000_000)
+        // 5 s, 10 s, 20 s ... capped at 5 minutes.
+        let delaySeconds = min(5 * (1 << max(0, self.serverStateRetryFailureCount - 1)), 300)
+        try? await Task.sleep(nanoseconds: UInt64(delaySeconds) * 1_000_000_000)
         guard !Task.isCancelled,
               !self.isShutdown else {
             return

@@ -373,5 +373,13 @@ class ForkIntegration(unittest.TestCase):
         self.assertIn('theme.list.itemCheckColors.fillColor.cgColor', shared)
 
 
+    def test_wallet_state_retry_backs_off(self):
+        wallet = read('submodules/WalletContext/Sources/WalletContextImpl.swift')
+        self.assertIn('var serverStateRetryFailureCount = 0', wallet)
+        self.assertIn('self.serverStateRetryFailureCount = 0', wallet)
+        self.assertIn('min(5 * (1 << max(0, self.serverStateRetryFailureCount - 1)), 300)', wallet)
+        self.assertNotIn('Task.sleep(nanoseconds: 5_000_000_000)\n        guard !Task.isCancelled,\n              !self.isShutdown', wallet)
+
+
 if __name__ == '__main__':
     unittest.main()
