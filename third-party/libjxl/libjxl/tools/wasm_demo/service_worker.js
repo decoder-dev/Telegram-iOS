@@ -49,10 +49,11 @@
   // Inflight object: {clientId, uid, timestamp, controller}
   const inflight = [];
 
-  // Generate (very likely) unique string.
+  // Generate a collision-resistant, unpredictable response identifier.
   const makeUid = () => {
-    return Math.random().toString(36).substring(2) +
-        Math.random().toString(36).substring(2);
+    const words = new Uint32Array(4);
+    self.crypto.getRandomValues(words);
+    return Array.from(words, (word) => word.toString(16).padStart(8, '0')).join('');
   };
 
   // Make list (non-recursively) of transferable entities.
