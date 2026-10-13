@@ -41,7 +41,7 @@ private func makeBananaGramTheme(dark: Bool) -> PresentationTheme {
     let title = dark ? "BananaGram Graphite" : "BananaGram Cream"
     
     // Outgoing bubbles: soft banana cream with dark-gold details by day, deep olive gold with white text by night.
-    let outgoingBubbleColors: [UInt32] = dark ? [0x5B4B22, 0x4A3D1D] : [0xF8EAC0, 0xF3DD9E]
+    let outgoingBubbleColors: [UInt32] = dark ? [0x65532A, 0x4D3F1E] : [0xFAEFCB, 0xF4E0A4]
     let outgoingAccent: UIColor? = dark ? nil : UIColor(rgb: 0x7A5200)
     // Branded pattern wallpaper. Negative intensity draws the colours through the pattern on a dark base.
     let wallpaper = defaultBuiltinWallpaper(
@@ -75,14 +75,15 @@ private func makeBananaGramTheme(dark: Bool) -> PresentationTheme {
         navigationBar: theme.rootController.navigationBar.withUpdated(buttonColor: accent, disabledButtonColor: disabled, primaryTextColor: foreground, secondaryTextColor: secondary, controlColor: secondary, accentTextColor: accent, blurredBackgroundColor: surface.withAlphaComponent(0.95), opaqueBackgroundColor: surface, separatorColor: separator, badgeBackgroundColor: accent, badgeStrokeColor: accent, badgeTextColor: onAccent, segmentedBackgroundColor: searchBar, segmentedForegroundColor: raisedSurface, segmentedTextColor: foreground, segmentedDividerColor: separator),
         navigationSearchBar: theme.rootController.navigationSearchBar.withUpdated(backgroundColor: surface, accentColor: accent, inputFillColor: background, inputTextColor: foreground, inputPlaceholderTextColor: secondary, inputIconColor: secondary, separatorColor: separator)
     )
-    let pinnedRow = UIColor(rgb: dark ? 0x2C2A26 : 0xF3EEDF)
+    // Pinned rows are only a breath apart from ordinary ones: a visible two-tone list reads as a mistake, not a hierarchy.
+    let pinnedRow = UIColor(rgb: dark ? 0x292723 : 0xF9F4E6)
     let inactiveBadgeBackground = UIColor(rgb: dark ? 0x5A564E : 0x756F62)
     let chats = theme.chatList.withUpdated(backgroundColor: surface, itemSeparatorColor: separator, itemBackgroundColor: surface, pinnedItemBackgroundColor: pinnedRow, itemHighlightedBackgroundColor: highlighted, pinnedItemHighlightedBackgroundColor: highlighted, itemSelectedBackgroundColor: selectedRow, titleColor: foreground, dateTextColor: secondary, authorNameColor: foreground, messageTextColor: secondary, messageHighlightedTextColor: foreground, checkmarkColor: accent, muteIconColor: secondary, unreadBadgeActiveBackgroundColor: accent, unreadBadgeActiveTextColor: onAccent, unreadBadgeInactiveBackgroundColor: inactiveBadgeBackground, unreadBadgeInactiveTextColor: dark ? foreground : onAccent, reactionBadgeActiveBackgroundColor: accent, pinnedBadgeColor: disclosure, pinnedSearchBarColor: searchBar, regularSearchBarColor: searchBar, sectionHeaderFillColor: background, sectionHeaderTextColor: secondary, pinnedArchiveAvatarColor: PresentationThemeArchiveAvatarColors(backgroundColors: PresentationThemeGradientColors(topColor: UIColor(rgb: dark ? 0xF4D66F : 0xE9B949), bottomColor: UIColor(rgb: dark ? 0xD9B34A : 0xC08A1E)), foregroundColor: archiveForeground), unpinnedArchiveAvatarColor: PresentationThemeArchiveAvatarColors(backgroundColors: PresentationThemeGradientColors(topColor: UIColor(rgb: dark ? 0x5A564E : 0xC9C3B5), bottomColor: UIColor(rgb: dark ? 0x4A4740 : 0xB3AC9C)), foregroundColor: dark ? foreground : archiveForeground), storyUnseenColors: PresentationThemeGradientColors(topColor: UIColor(rgb: dark ? 0xF9E08A : 0xEDBE50), bottomColor: UIColor(rgb: dark ? 0xE0B84A : 0xC48A18)), storySeenColors: PresentationThemeGradientColors(topColor: UIColor(rgb: dark ? 0x4F4B44 : 0xCFC9BA), bottomColor: UIColor(rgb: dark ? 0x4F4B44 : 0xCFC9BA)))
     
     // Chat screen: incoming bubbles on the raised surface, the input bar on the list surface, the send button in the accent.
     let incoming = theme.chat.message.incoming
     let incomingBubble = incoming.bubble.withUpdated(
-        withWallpaper: incoming.bubble.withWallpaper.withUpdated(fill: [raisedSurface], highlightedFill: raisedSurface.withMultipliedBrightnessBy(dark ? 1.15 : 0.95)),
+        withWallpaper: incoming.bubble.withWallpaper.withUpdated(fill: [raisedSurface], highlightedFill: raisedSurface.withMultipliedBrightnessBy(dark ? 1.15 : 0.95), stroke: dark ? UIColor(white: 1.0, alpha: 0.06) : separator.withAlphaComponent(0.6)),
         withoutWallpaper: incoming.bubble.withoutWallpaper.withUpdated(fill: [raisedSurface], highlightedFill: raisedSurface.withMultipliedBrightnessBy(dark ? 1.15 : 0.95))
     )
     let inputPanel = theme.chat.inputPanel.withUpdated(
