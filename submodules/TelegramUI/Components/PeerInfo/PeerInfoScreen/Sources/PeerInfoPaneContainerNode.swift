@@ -1439,6 +1439,11 @@ final class PeerInfoPaneContainerNode: ASDisplayNode, ASGestureRecognizerDelegat
         if updateCurrentPaneStatus {
             self.currentPaneStatusPromise.set(self.currentPane?.node.status ?? .single(nil))
         }
+        for (key, pane) in self.currentPanes {
+            if let paneNode = pane.node as? PeerInfoGiftsPaneNode {
+                paneNode.isCurrentPane = key == self.currentPaneKey
+            }
+        }
     }
 }
 

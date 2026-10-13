@@ -1906,23 +1906,216 @@ final class CachedProfileGifts: Codable {
     }
 }
 
-/// The gifts a profile showed on earlier visits, kept locally (BananaSpyStorage) so a gift that later disappears from
-/// the profile can still be shown, in its old place, marked as missing.
+// The saved history is the only copy of a profile's disappeared gifts, so
+// unlike the gifts cache above it is never rebuilt from scratch: entries are
+// decoded one by one and an entry that no longer decodes is dropped alone.
 private final class BananaGiftHistory: Codable {
+    enum CodingKeys: String, CodingKey {
+        case entries
+    }
+
     var entries: [ProfileGiftsContext.State.DisappearedGift]
 
     init(entries: [ProfileGiftsContext.State.DisappearedGift]) {
         self.entries = entries
     }
 
-    func render(transaction: Transaction) {
-        for index in self.entries.indices {
-            let gift = self.entries[index].gift
-            if gift.fromPeer == nil, let fromPeerId = gift._fromPeerId, let peer = transaction.getPeer(fromPeerId) {
-                self.entries[index].gift = gift.withFromPeer(EnginePeer(peer))
-            }
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        let rawEntries = try container.decode([AdaptedPostboxDecoder.RawObjectData].self, forKey: .entries)
+        self.entries = rawEntries.compactMap { rawEntry in
+            return try? AdaptedPostboxDecoder().decode(ProfileGiftsContext.State.DisappearedGift.self, from: rawEntry.data)
         }
     }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+
+        try container.encode(self.entries, forKey: .entries)
+    }
+
+    func render(transaction: Transaction) {
+        for index in self.entries.indices {
+            var gift = self.entries[index].gift
+            if self.entries[index].isMissing {
+                gift = gift.withoutActions()
+            }
+            if gift.fromPeer == nil, let fromPeerId = gift._fromPeerId, let peer = transaction.getPeer(fromPeerId) {
+                gift = gift.withFromPeer(EnginePeer(peer))
+            }
+            self.entries[index].gift = gift
+        }
+    }
+}
+
+// Which profiles have a saved history, when each was last reconciled and how
+// many bytes its history takes. Kept next to the histories so they stay
+// bounded: the least recently checked profiles are dropped first.
+private final class BananaGiftHistoryIndex: Codable {
+    struct Profile: Codable {
+        var peerId: Int64
+        var checkedAt: Int32
+        var size: Int32
+    }
+
+    var profiles: [Profile]
+
+    init(profiles: [Profile]) {
+        self.profiles = profiles
+    }
+}
+
+private let bananaGiftHistoryMaxDisappearedCount = 200
+private let bananaGiftHistoryMaxTotalSize = 16 * 1024 * 1024
+private let bananaGiftHistoryMaxProfileCount = 500
+// A bigger profile is not loaded in full and not reconciled: reading all of
+// it takes dozens of requests every time it is opened.
+private let bananaGiftHistoryMaxGiftCount: Int32 = 1000
+
+private func bananaGiftHistoryEntryId(peerId: EnginePeer.Id) -> ItemCacheEntryId {
+    return bananaGiftHistoryEntryId(peerIdValue: peerId.toInt64())
+}
+
+private func bananaGiftHistoryEntryId(peerIdValue: Int64) -> ItemCacheEntryId {
+    let key = ValueBoxKey(length: 8)
+    key.setInt64(0, value: peerIdValue)
+    return ItemCacheEntryId(collectionId: Namespaces.CachedItemCollection.bananaDisappearedGifts, key: key)
+}
+
+private func bananaGiftHistoryIndexEntryId() -> ItemCacheEntryId {
+    let key = ValueBoxKey(length: 1)
+    key.setUInt8(0, value: 0)
+    return ItemCacheEntryId(collectionId: Namespaces.CachedItemCollection.bananaDisappearedGifts, key: key)
+}
+
+private func bananaGiftHistoryIndex(transaction: Transaction) -> BananaGiftHistoryIndex {
+    if let index = transaction.retrieveItemCacheEntry(id: bananaGiftHistoryIndexEntryId())?.get(BananaGiftHistoryIndex.self) {
+        return index
+    }
+    // A history saved before the index existed is indexed the next time its profile is reconciled.
+    let profiles: [BananaGiftHistoryIndex.Profile] = []
+    return BananaGiftHistoryIndex(profiles: profiles)
+}
+
+// Records the profile's history size (and, after a reconciliation, its check
+// time) and drops the least recently checked other histories while the
+// collection is over its limits. A profile without a history is not kept.
+private func bananaUpdateGiftHistoryIndex(transaction: Transaction, index: BananaGiftHistoryIndex, peerId: EnginePeer.Id, checkedAt: Int32?, size: Int) {
+    let peerIdValue = peerId.toInt64()
+    let previousCheckedAt = index.profiles.first(where: { $0.peerId == peerIdValue })?.checkedAt ?? 0
+    var profiles = index.profiles.filter { $0.peerId != peerIdValue }
+    if size > 0 {
+        profiles.append(BananaGiftHistoryIndex.Profile(peerId: peerIdValue, checkedAt: checkedAt ?? previousCheckedAt, size: Int32(clamping: size)))
+    }
+
+    var totalSize = profiles.reduce(0, { $0 + Int($1.size) })
+    if totalSize > bananaGiftHistoryMaxTotalSize || profiles.count > bananaGiftHistoryMaxProfileCount {
+        let candidates = profiles.filter { $0.peerId != peerIdValue }.sorted(by: { lhs, rhs in
+            if lhs.checkedAt != rhs.checkedAt {
+                return lhs.checkedAt < rhs.checkedAt
+            }
+            return lhs.peerId < rhs.peerId
+        })
+        var removedPeerIds = Set<Int64>()
+        for candidate in candidates {
+            if totalSize <= bananaGiftHistoryMaxTotalSize && profiles.count - removedPeerIds.count <= bananaGiftHistoryMaxProfileCount {
+                break
+            }
+            transaction.removeItemCacheEntry(id: bananaGiftHistoryEntryId(peerIdValue: candidate.peerId))
+            removedPeerIds.insert(candidate.peerId)
+            totalSize -= Int(candidate.size)
+        }
+        profiles.removeAll(where: { removedPeerIds.contains($0.peerId) })
+    }
+
+    if let entry = CodableEntry(BananaGiftHistoryIndex(profiles: profiles)) {
+        transaction.putItemCacheEntry(id: bananaGiftHistoryIndexEntryId(), entry: entry)
+    }
+}
+
+// What a write would change: the order of gifts, which of them are missing and
+// when those were last seen. Snapshots of live gifts are not compared, so
+// reopening an unchanged profile does not rewrite its history.
+private func bananaGiftHistoryLayout(_ history: [ProfileGiftsContext.State.DisappearedGift]) -> [AnyHashable] {
+    return history.map { entry -> AnyHashable in
+        let giftId: AnyHashable
+        switch entry.gift.gift {
+        case let .generic(gift):
+            giftId = AnyHashable(["generic", AnyHashable(gift.id)] as [AnyHashable])
+        case let .unique(gift):
+            giftId = AnyHashable(["unique", AnyHashable(gift.id)] as [AnyHashable])
+        }
+        return AnyHashable([AnyHashable(entry.gift.reference), giftId, AnyHashable(entry.isMissing), AnyHashable(entry.isMissing ? entry.lastSeen : 0)] as [AnyHashable])
+    }
+}
+
+private func bananaReadGiftHistory(transaction: Transaction, peerId: EnginePeer.Id) -> [ProfileGiftsContext.State.DisappearedGift] {
+    guard let history = transaction.retrieveItemCacheEntry(id: bananaGiftHistoryEntryId(peerId: peerId))?.get(BananaGiftHistory.self) else {
+        return []
+    }
+    history.render(transaction: transaction)
+    return history.entries
+}
+
+// Reconciles the saved history with the profile's complete gift list in one
+// transaction, so a removal made by another context of the same profile is
+// not overwritten by a stale copy. Returns nil, writing nothing, when a saved
+// history exists but cannot be read.
+private func bananaReconcileGiftHistory(transaction: Transaction, peerId: EnginePeer.Id, current: [ProfileGiftsContext.State.StarGift], observedAt: Int32) -> [ProfileGiftsContext.State.DisappearedGift]? {
+    let entryId = bananaGiftHistoryEntryId(peerId: peerId)
+    let storedEntry = transaction.retrieveItemCacheEntry(id: entryId)
+    var stored: [ProfileGiftsContext.State.DisappearedGift] = []
+    if let storedEntry {
+        guard let history = storedEntry.get(BananaGiftHistory.self) else {
+            return nil
+        }
+        stored = ProfileGiftsContext.State.sortedGiftHistory(history.entries)
+    }
+
+    let index = bananaGiftHistoryIndex(transaction: transaction)
+    let previousCheck = index.profiles.first(where: { $0.peerId == peerId.toInt64() })?.checkedAt ?? 0
+    var updated = ProfileGiftsContext.State.updatedGiftHistory(current: current, history: stored, previousCheck: previousCheck, observedAt: observedAt, maxDisappearedCount: bananaGiftHistoryMaxDisappearedCount)
+    for entryIndex in updated.indices where updated[entryIndex].isMissing {
+        updated[entryIndex].gift = updated[entryIndex].gift.withoutActions()
+    }
+
+    var size = storedEntry?.data.count ?? 0
+    if storedEntry == nil || bananaGiftHistoryLayout(stored) != bananaGiftHistoryLayout(updated) {
+        if updated.isEmpty {
+            transaction.removeItemCacheEntry(id: entryId)
+            size = 0
+        } else if let entry = CodableEntry(BananaGiftHistory(entries: updated)) {
+            transaction.putItemCacheEntry(id: entryId, entry: entry)
+            size = entry.data.count
+        }
+    }
+    bananaUpdateGiftHistoryIndex(transaction: transaction, index: index, peerId: peerId, checkedAt: observedAt, size: size)
+
+    let result = BananaGiftHistory(entries: updated)
+    result.render(transaction: transaction)
+    return result.entries
+}
+
+// Removes one disappeared gift from the saved history itself rather than from
+// a copy rebuilt from a list that may be only partly loaded.
+private func bananaRemoveDisappearedGift(transaction: Transaction, peerId: EnginePeer.Id, gift: ProfileGiftsContext.State.StarGift, current: [ProfileGiftsContext.State.StarGift]) -> [ProfileGiftsContext.State.DisappearedGift]? {
+    let entryId = bananaGiftHistoryEntryId(peerId: peerId)
+    guard let history = transaction.retrieveItemCacheEntry(id: entryId)?.get(BananaGiftHistory.self), let updated = ProfileGiftsContext.State.removingDisappearedGift(gift, current: current, history: history.entries) else {
+        return nil
+    }
+    var size = 0
+    if updated.isEmpty {
+        transaction.removeItemCacheEntry(id: entryId)
+    } else if let entry = CodableEntry(BananaGiftHistory(entries: updated)) {
+        transaction.putItemCacheEntry(id: entryId, entry: entry)
+        size = entry.data.count
+    }
+    bananaUpdateGiftHistoryIndex(transaction: transaction, index: bananaGiftHistoryIndex(transaction: transaction), peerId: peerId, checkedAt: nil, size: size)
+
+    let result = BananaGiftHistory(entries: updated)
+    result.render(transaction: transaction)
+    return result.entries
 }
 
 func giftsEntryId(peerId: EnginePeer.Id, collectionId: Int32?) -> ItemCacheEntryId {
@@ -1945,10 +2138,12 @@ private final class ProfileGiftsContextImpl {
     private let collectionId: Int32?
     
     private let disposable = MetaDisposable()
+    private let filteredDisposable = MetaDisposable()
     private let cacheDisposable = MetaDisposable()
     private let actionDisposable = MetaDisposable()
-    private let giftHistoryDisposable = MetaDisposable()
-    private let giftHistorySaveDisposable = MetaDisposable()
+    // History reads and writes are never replaced by a later one: cancelling a
+    // pending transaction would lose a write.
+    private let giftHistoryDisposables = DisposableSet()
     
     private var sorting: ProfileGiftsContext.Sorting
     private var filter: ProfileGiftsContext.Filters
@@ -1957,18 +2152,35 @@ private final class ProfileGiftsContextImpl {
     private var gifts: [ProfileGiftsContext.State.StarGift] = []
     private var count: Int32?
     private var dataState: ProfileGiftsContext.State.DataState = .ready(canLoadMore: true, nextOffset: nil)
+    // Set when the last load of the main list reached its end: the server count
+    // it reported then, to check the loaded list against.
+    private var completeGiftsCount: Int32?
     
     private var filteredGifts: [ProfileGiftsContext.State.StarGift] = []
     private var filteredCount: Int32?
     private var filteredDataState: ProfileGiftsContext.State.DataState = .ready(canLoadMore: true, nextOffset: nil)
     
     private var notificationsEnabled: Bool?
+
+    // Disappeared gifts are tracked only when the caller asks for it, and only
+    // for someone else's whole gift list.
+    private let canTrackDisappearedGifts: Bool
+    private var tracksDisappearedGifts: Bool
+    private var giftHistoryGeneration = 0
     private var giftHistory: [ProfileGiftsContext.State.DisappearedGift] = []
     
     var _state: ProfileGiftsContext.State?
     private let stateValue = Promise<ProfileGiftsContext.State>()
     var state: Signal<ProfileGiftsContext.State, NoError> {
         return self.stateValue.get()
+    }
+
+    private var isTrackingDisappearedGifts: Bool {
+        return self.canTrackDisappearedGifts && self.tracksDisappearedGifts
+    }
+
+    private var isOwnProfileList: Bool {
+        return self.peerId == self.account.peerId && self.collectionId == nil
     }
     
     init(
@@ -1978,7 +2190,8 @@ private final class ProfileGiftsContextImpl {
         collectionId: Int32?,
         sorting: ProfileGiftsContext.Sorting,
         filter: ProfileGiftsContext.Filters,
-        limit: Int32
+        limit: Int32,
+        tracksDisappearedGifts: Bool
     ) {
         self.queue = queue
         self.account = account
@@ -1987,30 +2200,82 @@ private final class ProfileGiftsContextImpl {
         self.sorting = sorting
         self.filter = filter
         self.limit = limit
+        self.canTrackDisappearedGifts = peerId != account.peerId && collectionId == nil
+        self.tracksDisappearedGifts = tracksDisappearedGifts
         
-        if peerId != account.peerId && collectionId == nil && BananaSpyStorage.trackDisappearedGifts {
-            self.giftHistoryDisposable.set((account.postbox.transaction { transaction -> BananaGiftHistory? in
-                let history = BananaSpyStorage.read(BananaGiftHistory.self, transaction: transaction, collection: .disappearedGifts, peerId: peerId)
-                history?.render(transaction: transaction)
-                return history
-            } |> deliverOn(queue)).start(next: { [weak self] history in
-                guard let self else {
-                    return
-                }
-                self.giftHistory = history?.entries ?? []
-                self.loadMore()
-            }))
-        } else {
-            self.loadMore()
+        if self.isTrackingDisappearedGifts {
+            self.loadGiftHistory()
         }
+        self.loadMore()
     }
     
     deinit {
         self.disposable.dispose()
+        self.filteredDisposable.dispose()
         self.cacheDisposable.dispose()
         self.actionDisposable.dispose()
-        self.giftHistoryDisposable.dispose()
-        self.giftHistorySaveDisposable.dispose()
+        self.giftHistoryDisposables.dispose()
+    }
+
+    func updateTracksDisappearedGifts(_ tracksDisappearedGifts: Bool) {
+        guard self.tracksDisappearedGifts != tracksDisappearedGifts else {
+            return
+        }
+        self.tracksDisappearedGifts = tracksDisappearedGifts
+        guard self.canTrackDisappearedGifts else {
+            return
+        }
+        // Results of reads and writes issued before the switch are ignored.
+        self.giftHistoryGeneration += 1
+        if tracksDisappearedGifts {
+            self.loadGiftHistory()
+            self.reconcileGiftHistory()
+        } else {
+            self.giftHistory = []
+        }
+        self.pushState()
+    }
+
+    private func loadGiftHistory() {
+        let peerId = self.peerId
+        let generation = self.giftHistoryGeneration
+        self.giftHistoryDisposables.add((self.account.postbox.transaction { transaction -> [ProfileGiftsContext.State.DisappearedGift] in
+            return bananaReadGiftHistory(transaction: transaction, peerId: peerId)
+        }
+        |> deliverOn(self.queue)).start(next: { [weak self] history in
+            guard let self, self.giftHistoryGeneration == generation else {
+                return
+            }
+            self.giftHistory = history
+            self.pushState()
+        }))
+    }
+
+    // Runs only on a complete list: a gift that is merely not loaded yet must
+    // not be recorded as gone.
+    private func reconcileGiftHistory() {
+        guard self.isTrackingDisappearedGifts, let completeGiftsCount = self.completeGiftsCount, completeGiftsCount <= bananaGiftHistoryMaxGiftCount else {
+            return
+        }
+        // A gift that moved across a page boundary while the list was loading
+        // can arrive twice; one that was skipped leaves the list short.
+        let current = ProfileGiftsContext.State.distinctGiftsForHistory(self.gifts)
+        guard Int32(current.count) >= completeGiftsCount else {
+            return
+        }
+        let peerId = self.peerId
+        let generation = self.giftHistoryGeneration
+        let observedAt = Int32(Date().timeIntervalSince1970)
+        self.giftHistoryDisposables.add((self.account.postbox.transaction { transaction -> [ProfileGiftsContext.State.DisappearedGift]? in
+            return bananaReconcileGiftHistory(transaction: transaction, peerId: peerId, current: current, observedAt: observedAt)
+        }
+        |> deliverOn(self.queue)).start(next: { [weak self] history in
+            guard let self, self.giftHistoryGeneration == generation, let history else {
+                return
+            }
+            self.giftHistory = history
+            self.pushState()
+        }))
     }
     
     func reload() {
@@ -2161,7 +2426,9 @@ private final class ProfileGiftsContextImpl {
             }
         }
         
-        self.disposable.set((signal
+        // A filtered request must not cancel a page of the main list, or the
+        // main list would stay in the loading state.
+        (isFiltered ? self.filteredDisposable : self.disposable).set((signal
         |> deliverOn(self.queue)).start(next: { [weak self] (gifts, count, nextOffset, notificationsEnabled, succeeded) in
             guard let self else {
                 return
@@ -2201,63 +2468,41 @@ private final class ProfileGiftsContextImpl {
                 let updatedCount = max(Int32(self.gifts.count), count)
                 self.count = updatedCount
                 self.dataState = .ready(canLoadMore: count != 0 && updatedCount > self.gifts.count && nextOffset != nil && nextOffset != initialNextOffset, nextOffset: nextOffset)
-                if peerId != accountPeerId && collectionId == nil && BananaSpyStorage.trackDisappearedGifts, case .ready(false, _) = self.dataState, Int32(self.gifts.count) >= count {
-                    self.updateGiftHistory()
+                if case .ready(false, _) = self.dataState, Int32(self.gifts.count) >= count {
+                    self.completeGiftsCount = count
+                    self.reconcileGiftHistory()
+                } else {
+                    self.completeGiftsCount = nil
                 }
             }
             
             self.notificationsEnabled = notificationsEnabled
             self.pushState()
-            // Somebody else's profile is read to the end in the background: a gift can only be called missing once the
-            // whole list has been seen.
-            if peerId != accountPeerId && collectionId == nil && !isFiltered && BananaSpyStorage.trackDisappearedGifts, case .ready(true, _) = self.dataState {
-                self.queue.after(0.15) { [weak self] in
-                    self?.loadMore()
-                }
-            }
         }))
     }
 
-    private func updateGiftHistory() {
-        let observedAt = Int32(Date().timeIntervalSince1970)
-        let previousHistory = self.giftHistory
-        var matchedHistoryIndices = Set<Int>()
-        var updatedHistory = previousHistory
-
-        for gift in self.gifts {
-            if let previousIndex = previousHistory.indices.first(where: { historyIndex in
-                !matchedHistoryIndices.contains(historyIndex) && ProfileGiftsContext.State.giftsMatchForHistory(previousHistory[historyIndex].gift, gift)
-            }) {
-                matchedHistoryIndices.insert(previousIndex)
-            }
-        }
-
-        for historyIndex in updatedHistory.indices {
-            updatedHistory[historyIndex].isMissing = !matchedHistoryIndices.contains(historyIndex)
-        }
-
-        self.giftHistory = ProfileGiftsContext.State.giftsWithDisappeared(current: self.gifts, history: updatedHistory)
-        for index in self.giftHistory.indices where !self.giftHistory[index].isMissing {
-            self.giftHistory[index].lastSeen = observedAt
-        }
-        self.saveGiftHistory()
-    }
-    
     func removeDisappearedGift(_ gift: ProfileGiftsContext.State.StarGift) {
-        guard let history = ProfileGiftsContext.State.removingDisappearedGift(gift, current: self.gifts, history: self.giftHistory) else {
+        guard self.isTrackingDisappearedGifts else {
             return
         }
-        self.giftHistory = history
-        self.saveGiftHistory()
-        self.pushState()
-    }
-    
-    private func saveGiftHistory() {
-        let entries = self.giftHistory
+        if let history = ProfileGiftsContext.State.removingDisappearedGift(gift, current: self.gifts, history: self.giftHistory) {
+            self.giftHistory = history
+            self.pushState()
+        }
+
         let peerId = self.peerId
-        self.giftHistorySaveDisposable.set(self.account.postbox.transaction { transaction in
-            BananaSpyStorage.write(BananaGiftHistory(entries: entries), transaction: transaction, collection: .disappearedGifts, peerId: peerId)
-        }.start())
+        let current = self.gifts
+        let generation = self.giftHistoryGeneration
+        self.giftHistoryDisposables.add((self.account.postbox.transaction { transaction -> [ProfileGiftsContext.State.DisappearedGift]? in
+            return bananaRemoveDisappearedGift(transaction: transaction, peerId: peerId, gift: gift, current: current)
+        }
+        |> deliverOn(self.queue)).start(next: { [weak self] history in
+            guard let self, self.giftHistoryGeneration == generation, let history else {
+                return
+            }
+            self.giftHistory = history
+            self.pushState()
+        }))
     }
     
     func updateStarGiftAddedToProfile(reference: StarGiftReference, added: Bool) {
@@ -2794,15 +3039,18 @@ private final class ProfileGiftsContextImpl {
         let effectiveCount = useMainData ? self.count : self.filteredCount
         let effectiveDataState = useMainData ? self.dataState : self.filteredDataState
         
+        let hasAllGifts = self.completeGiftsCount != nil
         let state = ProfileGiftsContext.State(
             filter: self.filter,
             sorting: self.sorting,
             gifts: self.gifts,
             filteredGifts: effectiveGifts,
-            disappearedGifts: self.giftHistory.filter { $0.isMissing },
+            disappearedGifts: self.isTrackingDisappearedGifts ? self.giftHistory.filter { $0.isMissing } : [],
             count: effectiveCount,
             dataState: effectiveDataState,
-            notificationsEnabled: self.notificationsEnabled
+            notificationsEnabled: self.notificationsEnabled,
+            hasAllGifts: hasAllGifts,
+            wantsAllGifts: self.isTrackingDisappearedGifts && !hasAllGifts && (self.count ?? 0) <= bananaGiftHistoryMaxGiftCount
         )
         self._state = state
         self.stateValue.set(.single(state))
@@ -2889,7 +3137,7 @@ public final class ProfileGiftsContext {
             public let isRefunded: Bool
             public let canCraftAt: Int32?
             
-            fileprivate let _fromPeerId: EnginePeer.Id?
+            fileprivate var _fromPeerId: EnginePeer.Id?
             
             public enum DecodingError: Error {
                 case generic
@@ -2986,7 +3234,7 @@ public final class ProfileGiftsContext {
                 
                 try container.encode(self.gift, forKey: .gift)
                 try container.encodeIfPresent(self.reference, forKey: .reference)
-                try container.encodeIfPresent(self.fromPeer?.id, forKey: .fromPeerId)
+                try container.encodeIfPresent(self.fromPeer?.id ?? self._fromPeerId, forKey: .fromPeerId)
                 try container.encode(self.date, forKey: .date)
                 try container.encodeIfPresent(self.text, forKey: .text)
                 try container.encodeIfPresent(self.entities, forKey: .entities)
@@ -3147,6 +3395,43 @@ public final class ProfileGiftsContext {
                     canCraftAt: self.canCraftAt
                 )
             }
+            
+            // The snapshot of a gift that is no longer in the profile. Its sale
+            // price, upgrade and transfer options describe a gift the profile
+            // no longer has, so they are dropped rather than offered.
+            public func withoutActions() -> StarGift {
+                var gift = self.gift
+                if case let .unique(uniqueGift) = gift {
+                    gift = .unique(uniqueGift.withResellAmounts(nil))
+                }
+                var result = StarGift(
+                    gift: gift,
+                    reference: self.reference,
+                    fromPeer: self.fromPeer,
+                    date: self.date,
+                    text: self.text,
+                    entities: self.entities,
+                    nameHidden: self.nameHidden,
+                    savedToProfile: self.savedToProfile,
+                    pinnedToTop: false,
+                    convertStars: nil,
+                    canUpgrade: false,
+                    canExportDate: nil,
+                    upgradeStars: nil,
+                    transferStars: nil,
+                    canTransferDate: nil,
+                    canResaleDate: nil,
+                    collectionIds: nil,
+                    prepaidUpgradeHash: nil,
+                    upgradeSeparate: false,
+                    dropOriginalDetailsStars: nil,
+                    number: self.number,
+                    isRefunded: self.isRefunded,
+                    canCraftAt: nil
+                )
+                result._fromPeerId = self.fromPeer?.id ?? self._fromPeerId
+                return result
+            }
         }
         
         public struct DisappearedGift: Equatable, Codable {
@@ -3167,64 +3452,236 @@ public final class ProfileGiftsContext {
             }
         }
 
+        // Whether two snapshots are the same gift of the profile. A collectible
+        // is one object wherever it goes: it keeps its id and slug when it is
+        // sold and bought back under a new reference.
         public static func giftsMatchForHistory(_ lhs: StarGift, _ rhs: StarGift) -> Bool {
-            if let lhsReference = lhs.reference, let rhsReference = rhs.reference {
-                return lhsReference == rhsReference
-            }
-            guard lhs.date == rhs.date, lhs._fromPeerId == rhs._fromPeerId, lhs.text == rhs.text, lhs.number == rhs.number else {
-                return false
-            }
             switch (lhs.gift, rhs.gift) {
-            case let (.generic(lhsGift), .generic(rhsGift)):
-                return lhsGift.id == rhsGift.id
             case let (.unique(lhsGift), .unique(rhsGift)):
                 return lhsGift.id == rhsGift.id || lhsGift.slug == rhsGift.slug
+            case let (.generic(lhsGift), .generic(rhsGift)):
+                if let lhsReference = lhs.reference, let rhsReference = rhs.reference {
+                    return lhsReference == rhsReference
+                }
+                return lhsGift.id == rhsGift.id && lhs.date == rhs.date && lhs._fromPeerId == rhs._fromPeerId && lhs.text == rhs.text && lhs.number == rhs.number
             default:
+                if let lhsReference = lhs.reference, let rhsReference = rhs.reference {
+                    return lhsReference == rhsReference
+                }
                 return false
             }
         }
 
-        // Keep the server order of live gifts and insert each missing group into a
-        // gap between live gifts. Anchoring to another inserted gift reverses groups.
-        public static func giftsWithDisappeared(current: [StarGift], history: [DisappearedGift]) -> [DisappearedGift] {
-            let orderedHistory = history.enumerated().sorted { lhs, rhs in
+        // The keys a snapshot is looked up by. Snapshots that match always share
+        // a key, so a lookup finds what a scan of the whole history would,
+        // without comparing every pair.
+        static func giftHistoryKeys(_ gift: StarGift) -> [[AnyHashable]] {
+            var keys: [[AnyHashable]] = []
+            if let reference = gift.reference {
+                keys.append(["reference", AnyHashable(reference)])
+            }
+            switch gift.gift {
+            case let .generic(value):
+                keys.append(["generic", AnyHashable(value.id), AnyHashable(gift.date), AnyHashable(gift._fromPeerId), AnyHashable(gift.text), AnyHashable(gift.number)])
+            case let .unique(value):
+                keys.append(["unique", AnyHashable(value.id)])
+                keys.append(["slug", AnyHashable(value.slug)])
+            }
+            return keys
+        }
+
+        // Whether `unique` is the collectible `generic` was upgraded to: the same
+        // catalog gift, sent at the same time by the same sender as far as the
+        // collectible still tells.
+        static func giftWasUpgraded(_ generic: StarGift, to unique: StarGift) -> Bool {
+            guard case let .generic(genericGift) = generic.gift, case let .unique(uniqueGift) = unique.gift, uniqueGift.giftId == genericGift.id else {
+                return false
+            }
+            for attribute in uniqueGift.attributes {
+                if case let .originalInfo(senderPeerId, _, date, _, _) = attribute {
+                    return date == generic.date && (senderPeerId == nil || generic._fromPeerId == nil || senderPeerId == generic._fromPeerId)
+                }
+            }
+            return unique._fromPeerId == generic._fromPeerId
+        }
+
+        // For each current gift, the index of the history entry it continues, if
+        // any; an entry continues at most one gift. A collectible continues the
+        // entry of the gift it was upgraded from, which matches it by nothing else.
+        static func matchGiftHistory(current: [StarGift], history: [DisappearedGift]) -> [Int?] {
+            var candidates: [[AnyHashable]: [Int]] = [:]
+            for historyIndex in history.indices {
+                for key in giftHistoryKeys(history[historyIndex].gift) {
+                    candidates[key, default: []].append(historyIndex)
+                }
+            }
+
+            var isUsed = Array(repeating: false, count: history.count)
+            var result: [Int?] = Array(repeating: nil, count: current.count)
+            for currentIndex in current.indices {
+                let gift = current[currentIndex]
+                var match: Int?
+                for key in giftHistoryKeys(gift) {
+                    for historyIndex in candidates[key] ?? [] {
+                        if let match, match < historyIndex {
+                            break
+                        }
+                        if !isUsed[historyIndex] && giftsMatchForHistory(history[historyIndex].gift, gift) {
+                            match = historyIndex
+                            break
+                        }
+                    }
+                }
+                if let match {
+                    isUsed[match] = true
+                    result[currentIndex] = match
+                }
+            }
+
+            var upgradedEntries: [AnyHashable: [Int]] = [:]
+            for historyIndex in history.indices where !isUsed[historyIndex] {
+                if case let .generic(value) = history[historyIndex].gift.gift {
+                    upgradedEntries[AnyHashable(value.id), default: []].append(historyIndex)
+                }
+            }
+            if !upgradedEntries.isEmpty {
+                for currentIndex in current.indices where result[currentIndex] == nil {
+                    guard case let .unique(value) = current[currentIndex].gift, let entries = upgradedEntries[AnyHashable(value.giftId)] else {
+                        continue
+                    }
+                    if let historyIndex = entries.first(where: { !isUsed[$0] && giftWasUpgraded(history[$0].gift, to: current[currentIndex]) }) {
+                        isUsed[historyIndex] = true
+                        result[currentIndex] = historyIndex
+                    }
+                }
+            }
+            return result
+        }
+
+        static func sortedGiftHistory(_ history: [DisappearedGift]) -> [DisappearedGift] {
+            return history.enumerated().sorted { lhs, rhs in
                 if lhs.element.position != rhs.element.position {
                     return lhs.element.position < rhs.element.position
                 }
                 return lhs.offset < rhs.offset
             }.map { $0.element }
-            var matchedHistoryIndices = Set<Int>()
-            var liveHistory: [DisappearedGift] = []
-            for gift in current {
-                let historyIndex = orderedHistory.indices.first(where: {
-                    !matchedHistoryIndices.contains($0) && giftsMatchForHistory(orderedHistory[$0].gift, gift)
+        }
+
+        // The list without repeated snapshots of one gift, keeping the first.
+        static func distinctGiftsForHistory(_ gifts: [StarGift]) -> [StarGift] {
+            var seen: [[AnyHashable]: [Int]] = [:]
+            var result: [StarGift] = []
+            for gift in gifts {
+                let keys = giftHistoryKeys(gift)
+                let isRepeated = keys.contains(where: { key in
+                    return (seen[key] ?? []).contains(where: { giftsMatchForHistory(result[$0], gift) })
                 })
+                if !isRepeated {
+                    for key in keys {
+                        seen[key, default: []].append(result.count)
+                    }
+                    result.append(gift)
+                }
+            }
+            return result
+        }
+
+        // Keep the server order of live gifts and insert each missing group into a
+        // gap between live gifts. Anchoring to another inserted gift reverses groups.
+        // Until the list is loaded to its end (`isComplete`), a missing gift whose
+        // neighbours are not loaded yet is left out rather than parked after the
+        // loaded part, from where it would jump once the rest arrives.
+        public static func giftsWithDisappeared(current: [StarGift], history: [DisappearedGift], isComplete: Bool = true) -> [DisappearedGift] {
+            let orderedHistory = sortedGiftHistory(history)
+            let matches = matchGiftHistory(current: current, history: orderedHistory)
+            var continuation: [Int?] = Array(repeating: nil, count: orderedHistory.count)
+            var liveKeys: [[AnyHashable]: [Int]] = [:]
+            var liveHistory: [DisappearedGift] = []
+            var currentIndexByReference: [StarGiftReference: Int] = [:]
+            for currentIndex in current.indices {
+                let gift = current[currentIndex]
+                let historyIndex = matches[currentIndex]
                 if let historyIndex {
-                    matchedHistoryIndices.insert(historyIndex)
+                    continuation[historyIndex] = currentIndex
+                }
+                for key in giftHistoryKeys(gift) {
+                    liveKeys[key, default: []].append(currentIndex)
+                }
+                if let reference = gift.reference, currentIndexByReference[reference] == nil {
+                    currentIndexByReference[reference] = currentIndex
                 }
                 liveHistory.append(DisappearedGift(gift: gift, position: 0, previousReference: nil, nextReference: nil, lastSeen: historyIndex.map { orderedHistory[$0].lastSeen } ?? 0, isMissing: false))
+            }
+
+            var historyIndexByReference: [StarGiftReference: Int] = [:]
+            for historyIndex in orderedHistory.indices {
+                if let reference = orderedHistory[historyIndex].gift.reference, historyIndexByReference[reference] == nil {
+                    historyIndexByReference[reference] = historyIndex
+                }
+            }
+
+            // A live gift of the history that is not loaded yet: where it is now is unknown.
+            func isUnloaded(_ historyIndex: Int) -> Bool {
+                return !isComplete && !orderedHistory[historyIndex].isMissing && continuation[historyIndex] == nil
+            }
+
+            // An older copy of a gift that is in the profile now.
+            func isLive(_ gift: StarGift) -> Bool {
+                return giftHistoryKeys(gift).contains(where: { key in
+                    return (liveKeys[key] ?? []).contains(where: { giftsMatchForHistory(current[$0], gift) })
+                })
             }
 
             func anchorIndex(_ reference: StarGiftReference?, next: Bool) -> Int? {
                 var reference = reference
                 var visited = Set<StarGiftReference>()
                 while let value = reference, visited.insert(value).inserted {
-                    if let index = current.firstIndex(where: { $0.reference == value }) {
+                    if let index = currentIndexByReference[value] {
                         return index
                     }
-                    guard let entry = orderedHistory.first(where: { $0.gift.reference == value }) else {
+                    guard let historyIndex = historyIndexByReference[value] else {
                         break
                     }
+                    if let index = continuation[historyIndex] {
+                        return index
+                    }
+                    if isUnloaded(historyIndex) {
+                        break
+                    }
+                    let entry = orderedHistory[historyIndex]
                     reference = next ? entry.nextReference : entry.previousReference
                 }
                 return nil
+            }
+
+            // The nearest entry before (after) each position that continues as a
+            // live gift, not looking past a gift that is not loaded yet.
+            var previousLive: [Int?] = Array(repeating: nil, count: orderedHistory.count + 1)
+            for historyIndex in orderedHistory.indices {
+                if let index = continuation[historyIndex] {
+                    previousLive[historyIndex + 1] = index
+                } else if !isUnloaded(historyIndex) {
+                    previousLive[historyIndex + 1] = previousLive[historyIndex]
+                }
+            }
+            var nextLive: [Int?] = Array(repeating: nil, count: orderedHistory.count + 1)
+            for historyIndex in orderedHistory.indices.reversed() {
+                if let index = continuation[historyIndex] {
+                    nextLive[historyIndex] = index
+                } else if !isUnloaded(historyIndex) {
+                    nextLive[historyIndex] = nextLive[historyIndex + 1]
+                }
             }
 
             var gaps = Array(repeating: [DisappearedGift](), count: current.count + 1)
             var missingCount = 0
             for historyIndex in orderedHistory.indices {
                 let entry = orderedHistory[historyIndex]
-                guard entry.isMissing && !matchedHistoryIndices.contains(historyIndex) else {
+                guard entry.isMissing && continuation[historyIndex] == nil else {
+                    continue
+                }
+                if isLive(entry.gift) {
+                    missingCount += 1
                     continue
                 }
                 let insertionIndex: Int
@@ -3232,12 +3689,14 @@ public final class ProfileGiftsContext {
                     insertionIndex = index
                 } else if let index = anchorIndex(entry.previousReference, next: false) {
                     insertionIndex = index + 1
-                } else if let nextIndex = orderedHistory.indices.first(where: { $0 > historyIndex && matchedHistoryIndices.contains($0) }), let index = current.firstIndex(where: { giftsMatchForHistory($0, orderedHistory[nextIndex].gift) }) {
+                } else if let index = nextLive[historyIndex + 1] {
                     insertionIndex = index
-                } else if let previousIndex = orderedHistory.indices.last(where: { $0 < historyIndex && matchedHistoryIndices.contains($0) }), let index = current.firstIndex(where: { giftsMatchForHistory($0, orderedHistory[previousIndex].gift) }) {
+                } else if let index = previousLive[historyIndex] {
                     insertionIndex = index + 1
-                } else {
+                } else if isComplete {
                     insertionIndex = min(max(0, Int(entry.position) - missingCount), current.count)
+                } else {
+                    continue
                 }
                 gaps[insertionIndex].append(entry)
                 missingCount += 1
@@ -3263,8 +3722,49 @@ public final class ProfileGiftsContext {
             return result
         }
 
+        // The history after seeing the profile's complete list `current` at
+        // `observedAt`. An entry that is no longer in the list becomes missing,
+        // last seen at the check before this one, which still saw it. Only the
+        // `maxDisappearedCount` most recently seen missing gifts are kept.
+        static func updatedGiftHistory(current: [StarGift], history: [DisappearedGift], previousCheck: Int32, observedAt: Int32, maxDisappearedCount: Int) -> [DisappearedGift] {
+            var orderedHistory = sortedGiftHistory(history)
+            let matches = matchGiftHistory(current: current, history: orderedHistory)
+            var isContinued = Array(repeating: false, count: orderedHistory.count)
+            for case let historyIndex? in matches {
+                isContinued[historyIndex] = true
+            }
+            for historyIndex in orderedHistory.indices where !isContinued[historyIndex] && !orderedHistory[historyIndex].isMissing {
+                orderedHistory[historyIndex].isMissing = true
+                orderedHistory[historyIndex].lastSeen = max(orderedHistory[historyIndex].lastSeen, previousCheck)
+            }
+
+            var result = giftsWithDisappeared(current: current, history: orderedHistory)
+            for index in result.indices where !result[index].isMissing {
+                result[index].lastSeen = observedAt
+            }
+
+            let missingIndices = result.indices.filter { result[$0].isMissing }
+            if missingIndices.count > maxDisappearedCount {
+                let removedIndices = Set(missingIndices.sorted(by: { lhs, rhs in
+                    if result[lhs].lastSeen != result[rhs].lastSeen {
+                        return result[lhs].lastSeen < result[rhs].lastSeen
+                    }
+                    return lhs < rhs
+                }).prefix(missingIndices.count - maxDisappearedCount))
+                result = reindexGiftHistory(result.indices.filter { !removedIndices.contains($0) }.map { result[$0] })
+            }
+            return result
+        }
+
+        // The history without one missing gift, the other entries keeping their
+        // places. `current` only rules out a gift that is in the profile again:
+        // it may be a partly loaded list, so the history is not rebuilt from it.
+        // Nil when there is nothing to remove.
         public static func removingDisappearedGift(_ gift: StarGift, current: [StarGift], history: [DisappearedGift]) -> [DisappearedGift]? {
-            var result = giftsWithDisappeared(current: current, history: history)
+            if current.contains(where: { giftsMatchForHistory($0, gift) }) {
+                return nil
+            }
+            var result = sortedGiftHistory(history)
             guard let index = result.firstIndex(where: { $0.isMissing && giftsMatchForHistory($0.gift, gift) }) else {
                 return nil
             }
@@ -3285,6 +3785,11 @@ public final class ProfileGiftsContext {
         public var count: Int32?
         public var dataState: ProfileGiftsContext.State.DataState
         public var notificationsEnabled: Bool?
+        // The main list is loaded to its end.
+        public var hasAllGifts: Bool
+        // Disappeared gifts are tracked, which takes the whole list: until it
+        // is loaded, gone gifts are neither found nor placed.
+        public var wantsAllGifts: Bool
     }
     
     private let queue: Queue = .mainQueue()
@@ -3313,15 +3818,25 @@ public final class ProfileGiftsContext {
         collectionId: Int32? = nil,
         sorting: ProfileGiftsContext.Sorting = .date,
         filter: ProfileGiftsContext.Filters = .All,
-        limit: Int32 = 36
+        limit: Int32 = 36,
+        tracksDisappearedGifts: Bool = false
     ) {
         self.peerId = peerId
         self.collectionId = collectionId
         
         let queue = self.queue
         self.impl = QueueLocalObject(queue: queue, generate: {
-            return ProfileGiftsContextImpl(queue: queue, account: account, peerId: peerId, collectionId: collectionId, sorting: sorting, filter: filter, limit: limit)
+            return ProfileGiftsContextImpl(queue: queue, account: account, peerId: peerId, collectionId: collectionId, sorting: sorting, filter: filter, limit: limit, tracksDisappearedGifts: tracksDisappearedGifts)
         })
+    }
+    
+    // Whether gifts that leave someone else's profile are remembered and
+    // reported in `State.disappearedGifts`. Off, the context neither reads nor
+    // writes that history.
+    public func updateTracksDisappearedGifts(_ tracksDisappearedGifts: Bool) {
+        self.impl.with { impl in
+            impl.updateTracksDisappearedGifts(tracksDisappearedGifts)
+        }
     }
     
     public func loadMore() {

@@ -1208,7 +1208,13 @@ func peerInfoScreenData(
             let profileGiftsCollectionsContext: ProfileGiftsCollectionsContext?
             if case .user = kind {
                 if isMyProfile || userPeerId != context.account.peerId {
-                    profileGiftsContext = existingProfileGiftsContext ?? ProfileGiftsContext(account: context.account, peerId: userPeerId)
+                    let tracksDisappearedGifts = BananaSpyStorage.trackDisappearedGifts
+                    if let existingProfileGiftsContext {
+                        existingProfileGiftsContext.updateTracksDisappearedGifts(tracksDisappearedGifts)
+                        profileGiftsContext = existingProfileGiftsContext
+                    } else {
+                        profileGiftsContext = ProfileGiftsContext(account: context.account, peerId: userPeerId, tracksDisappearedGifts: tracksDisappearedGifts)
+                    }
                     profileGiftsCollectionsContext = existingProfileGiftsCollectionsContext ?? ProfileGiftsCollectionsContext(account: context.account, peerId: userPeerId, allGiftsContext: profileGiftsContext)
                     
                     if switchToUpgradableGifts {
@@ -1562,6 +1568,22 @@ func peerInfoScreenData(
                 sharedMediaPeer = .single(nil)
             }
             
+            // A profile whose gifts have all disappeared still has the gifts
+            // tab, once the remembered ones are loaded.
+            let hasDisappearedGifts: Signal<Bool, NoError>
+            if let profileGiftsContext, userPeerId != context.account.peerId {
+                hasDisappearedGifts = .single(false)
+                |> then(
+                    profileGiftsContext.state
+                    |> map { state -> Bool in
+                        return !state.disappearedGifts.isEmpty
+                    }
+                )
+                |> distinctUntilChanged
+            } else {
+                hasDisappearedGifts = .single(false)
+            }
+            
             let forcedLinkedCommunityId = Atomic<PeerId?>(value: nil)
             
             return combineLatest(
@@ -1586,9 +1608,10 @@ func peerInfoScreenData(
                 premiumGiftOptions,
                 webAppPermissions,
                 savedMusicContext.state,
-                businessConnectedBot
+                businessConnectedBot,
+                hasDisappearedGifts
             )
-            |> mapToSignal { peerView, availablePanes, globalNotificationSettings, encryptionKeyFingerprint, status, hasStories, hasStoryArchive, recommendedBots, accountIsPremium, savedMessagesPeer, hasSavedMessagesChats, hasSavedMessages, hasSavedMessageTags, hasBotPreviewItems, personalChannel, privacySettings, starsRevenueContextAndState, revenueContextAndState, premiumGiftOptions, webAppPermissions, savedMusicState, businessConnectedBot -> Signal<PeerInfoScreenData, NoError> in
+            |> mapToSignal { peerView, availablePanes, globalNotificationSettings, encryptionKeyFingerprint, status, hasStories, hasStoryArchive, recommendedBots, accountIsPremium, savedMessagesPeer, hasSavedMessagesChats, hasSavedMessages, hasSavedMessageTags, hasBotPreviewItems, personalChannel, privacySettings, starsRevenueContextAndState, revenueContextAndState, premiumGiftOptions, webAppPermissions, savedMusicState, businessConnectedBot, hasDisappearedGifts -> Signal<PeerInfoScreenData, NoError> in
                 var availablePanes = availablePanes
                 if isMyProfile {
                     availablePanes?.insert(.stories, at: 0)
@@ -1606,7 +1629,7 @@ func peerInfoScreenData(
                     }
                     
                     if availablePanes != nil, profileGiftsContext != nil, let cachedData = peerView.cachedData as? CachedUserData, peerView.peerId != context.account.peerId {
-                        if let starGiftsCount = cachedData.starGiftsCount, starGiftsCount > 0 {
+                        if (cachedData.starGiftsCount ?? 0) > 0 || hasDisappearedGifts {
                             availablePanes?.insert(.gifts, at: hasStories ? 1 : 0)
                         }
                     }
@@ -1879,7 +1902,7 @@ func peerInfoScreenData(
                 }
             }
             
-            let profileGiftsContext = ProfileGiftsContext(account: context.account, peerId: peerId)
+            let profileGiftsContext = ProfileGiftsContext(account: context.account, peerId: peerId, tracksDisappearedGifts: BananaSpyStorage.trackDisappearedGifts)
             let profileGiftsCollectionsContext = ProfileGiftsCollectionsContext(account: context.account, peerId: peerId, allGiftsContext: profileGiftsContext)
             
             let personalChannel = peerInfoPersonalOrLinkedChannel(context: context, peerId: peerId, isSettings: false)
@@ -1945,7 +1968,7 @@ func peerInfoScreenData(
                     }
                     
                     if availablePanes != nil, let cachedData = peerView.cachedData as? CachedChannelData {
-                        if (cachedData.starGiftsCount ?? 0) > 0 || (profileGiftsState.count ?? 0) > 0 || forceHasGifts {
+                        if (cachedData.starGiftsCount ?? 0) > 0 || (profileGiftsState.count ?? 0) > 0 || !profileGiftsState.disappearedGifts.isEmpty || forceHasGifts {
                             availablePanes?.insert(.gifts, at: hasStories ? 1 : 0)
                         }
                     }

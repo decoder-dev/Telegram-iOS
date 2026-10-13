@@ -127,6 +127,12 @@ public final class PeerInfoGiftsPaneNode: ASDisplayNode, PeerInfoPaneNode, UIScr
         return self.giftsListView.profileGifts
     }
     
+    public var isCurrentPane = false {
+        didSet {
+            self.giftsListView.isCurrentPane = self.isCurrentPane
+        }
+    }
+    
     public var openShareLink: ((String) -> Void)?
     
     private let collectionsMaxCount: Int
