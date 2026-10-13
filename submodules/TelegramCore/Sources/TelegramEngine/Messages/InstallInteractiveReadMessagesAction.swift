@@ -8,7 +8,7 @@ func _internal_installInteractiveReadMessagesAction(postbox: Postbox, stateManag
         // The action stays installed for as long as the chat is open at the bottom, so the Ghost Mode check made when it was
         // installed goes stale (the read-on-interact window closes, or the flags change): mentions, reactions, poll votes
         // and the read position of newly arriving messages would be consumed on the server despite "don't read".
-        if ForkGhostModeSettings.shouldSuppressMessageReads {
+        if ForkGhostModeSettings.shouldSuppressMessageReads(peerId: peerId) {
             return
         }
         var consumeMessageIds: [MessageId] = []
@@ -185,7 +185,10 @@ private final class StoreOrUpdateMessageActionImpl: StoreOrUpdateMessageAction {
     private let getVisibleRange: () -> VisibleMessageRange?
     private let didReadReactionsInMessages: ([MessageId: [ReactionsMessageAttribute.RecentPeer]]) -> Void
     
-    init(getVisibleRange: @escaping () -> VisibleMessageRange?, didReadReactionsInMessages: @escaping ([MessageId: [ReactionsMessageAttribute.RecentPeer]]) -> Void) {
+    private let peerId: PeerId
+    
+    init(peerId: PeerId, getVisibleRange: @escaping () -> VisibleMessageRange?, didReadReactionsInMessages: @escaping ([MessageId: [ReactionsMessageAttribute.RecentPeer]]) -> Void) {
+        self.peerId = peerId
         self.getVisibleRange = getVisibleRange
         self.didReadReactionsInMessages = didReadReactionsInMessages
     }
@@ -193,7 +196,7 @@ private final class StoreOrUpdateMessageActionImpl: StoreOrUpdateMessageAction {
     func addOrUpdate(messages: [StoreMessage], transaction: Transaction) {
         // This action stays installed after Don't Read turns on (it is only disposed when reading becomes
         // impossible), so it has to re-check the ghost setting itself.
-        if ForkGhostModeSettings.shouldSuppressMessageReads {
+        if ForkGhostModeSettings.shouldSuppressMessageReads(peerId: self.peerId) {
             return
         }
         var readReactionIds: [MessageId: [ReactionsMessageAttribute.RecentPeer]] = [:]
@@ -256,5 +259,5 @@ private final class StoreOrUpdateMessageActionImpl: StoreOrUpdateMessageAction {
 }
 
 func _internal_installInteractiveReadReactionsAction(postbox: Postbox, stateManager: AccountStateManager, peerId: PeerId, getVisibleRange: @escaping () -> VisibleMessageRange?, didReadReactionsInMessages: @escaping ([MessageId: [ReactionsMessageAttribute.RecentPeer]]) -> Void) -> Disposable {
-    return postbox.installStoreOrUpdateMessageAction(peerId: peerId, action: StoreOrUpdateMessageActionImpl(getVisibleRange: getVisibleRange, didReadReactionsInMessages: didReadReactionsInMessages))
+    return postbox.installStoreOrUpdateMessageAction(peerId: peerId, action: StoreOrUpdateMessageActionImpl(peerId: peerId, getVisibleRange: getVisibleRange, didReadReactionsInMessages: didReadReactionsInMessages))
 }

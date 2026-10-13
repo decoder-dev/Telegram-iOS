@@ -41,7 +41,7 @@ func _internal_applyMaxReadMessageIdInteractively(postbox: Postbox, stateManager
 }
 
 func _internal_applyMaxReadIndexInteractively(transaction: Transaction, stateManager: AccountStateManager, index: MessageIndex) {
-    if ForkGhostModeSettings.shouldSuppressMessageReads {
+    if ForkGhostModeSettings.shouldSuppressMessageReads(peerId: index.id.peerId) {
         if bananaApplyGhostLocalRead(transaction: transaction, accountPeerId: stateManager.accountPeerId, index: index) {
             stateManager.notifyAppliedIncomingReadMessages([index.id])
         }

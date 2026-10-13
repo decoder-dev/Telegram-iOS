@@ -257,6 +257,12 @@ extension ChatControllerImpl {
             updatedAction = .preview
         }
         
+        // Extras ▸ Confirm before sending voice and round video: releasing the button opens the recording
+        // preview (play it back, trim it) and the user sends it from there, instead of sending at once.
+        if BananaVoiceSendConfirmation.enabled, case .send = action {
+            updatedAction = .preview
+        }
+        
         var sendImmediately = false
         if let _ = self.presentationInterfaceState.sendPaidMessageStars, case .send = action {
             updatedAction = .preview

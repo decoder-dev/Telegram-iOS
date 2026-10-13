@@ -416,6 +416,23 @@ func chatContextMenuItems(context: AccountContext, peerId: EnginePeer.Id, promoI
                             }
                         }
                         
+                        // Ghost exceptions: reads and typing are not hidden in this chat.
+                        let ghostState = ForkGhostModeSettings.current
+                        if !isCommunity && !isSavedMessages && peerId != context.account.peerId && (ghostState.suppressMessageReads || ghostState.suppressOutgoingActivity || ForkGhostModeSettings.isException(peerId)) {
+                            let isException = ForkGhostModeSettings.isException(peerId)
+                            let russian = ForkPresentationLanguage.prefersRussianStrings
+                            let title: String
+                            if isException {
+                                title = russian ? "Снова скрывать чтение" : "Hide reads again"
+                            } else {
+                                title = russian ? "Исключение призрака" : "Ghost exception"
+                            }
+                            items.append(.action(ContextMenuActionItem(text: title, icon: { _ in nil }, action: { _, f in
+                                ForkGhostModeSettings.setException(peerId, !isException)
+                                f(.default)
+                            })))
+                        }
+                        
                         let archiveEnabled = !isSavedMessages && peerId != EnginePeer.Id(namespace: Namespaces.Peer.CloudUser, id: EnginePeer.Id.Id._internalFromInt64Value(777000)) && peerId != context.account.peerId
                         if let group = peerGroup {
                             if archiveEnabled {

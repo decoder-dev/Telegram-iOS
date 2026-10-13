@@ -304,7 +304,7 @@ class ForkIntegration(unittest.TestCase):
         self.assertIn('if scheduleTime == nil {\n                strongSelf.beginGhostReadOnInteractForSend()', load)
         read_actions = read('submodules/TelegramCore/Sources/TelegramEngine/Messages/InstallInteractiveReadMessagesAction.swift')
         body = read_actions.split('func addOrUpdate(messages: [StoreMessage], transaction: Transaction) {', 1)[1][:400]
-        self.assertIn('if ForkGhostModeSettings.shouldSuppressMessageReads {\n            return', body)
+        self.assertIn('if ForkGhostModeSettings.shouldSuppressMessageReads(peerId: self.peerId) {\n            return', body)
 
     def test_proxy_screens_are_not_stacked_twice(self):
         preview = read('submodules/TelegramUI/Components/ProxyServerPreviewScreen/Sources/ProxyServerPreviewScreen.swift')
@@ -537,6 +537,39 @@ class ForkIntegration(unittest.TestCase):
         enqueue = read('submodules/TelegramCore/Sources/PendingMessages/EnqueueMessage.swift')
         self.assertIn('BananaDeletedReplyQuote.quotedMessage(transaction: transaction, peerId: peerId, message: updatedMessage)', enqueue)
         self.assertIn('[1605, 65, 66],\n            [1557],', read('submodules/SettingsUI/Sources/ForkExtrasController.swift'))
+
+    def test_exact_counts_and_voice_send_confirmation(self):
+        fmt = read('submodules/TelegramPresentationData/Sources/NumericFormat.swift')
+        # Exact counts bypass the "1.2K" shortening, and the flag is a plain atomic.
+        self.assertIn('if BananaExactCounts.enabled {\n        return presentationStringsFormattedNumber(Int64(count), "\\u{2009}")', fmt)
+        ctl = read('submodules/SettingsUI/Sources/ForkExtrasController.swift')
+        self.assertIn('[1557],\n            [1558],', ctl)
+        self.assertIn('[1613, 1554, 1555, 1556, 1614],\n            [1559],', ctl)
+        shared = read('submodules/TelegramUI/Sources/SharedAccountContext.swift')
+        self.assertIn('BananaExactCounts.enabled = settings.exactCounts', shared)
+        self.assertIn('BananaVoiceSendConfirmation.enabled = settings.confirmVoiceSend', shared)
+        # Releasing the record button opens the preview instead of sending, so the user sends from there.
+        rec = read('submodules/TelegramUI/Sources/Chat/ChatControllerMediaRecording.swift')
+        self.assertIn('if BananaVoiceSendConfirmation.enabled, case .send = action {\n            updatedAction = .preview', rec)
+        prefs = read('submodules/TelegramUIPreferences/Sources/ForkExtrasSettings.swift')
+        for name in ('exactCounts', 'confirmVoiceSend'):
+            self.assertIn('self.%s = try container.decodeIfPresent(Bool.self, forKey: "%s") ?? false' % (name, name), prefs)
+            self.assertIn('try container.encode(self.%s, forKey: "%s")' % (name, name), prefs)
+
+    def test_ghost_exceptions_are_per_chat(self):
+        core = read('submodules/TelegramCore/Sources/State/ManagedLocalInputActivities.swift')
+        self.assertIn('public static func shouldSuppressMessageReads(peerId: PeerId) -> Bool {\n        return shouldSuppressMessageReads && !isException(peerId)', core)
+        self.assertIn('return suppressOutgoingActivity && !isException(peerId)', core)
+        # Typing goes through one chokepoint that knows the peer.
+        self.assertIn('if ForkGhostModeSettings.suppressesOutgoingActivity(peerId: peerId) {', core)
+        self.assertIn('ForkGhostModeSettings.shouldSuppressMessageReads(peerId: index.id.peerId)', read('submodules/TelegramCore/Sources/TelegramEngine/Messages/ApplyMaxReadIndexInteractively.swift'))
+        self.assertIn('ForkGhostModeSettings.shouldSuppressMessageReads(peerId: message.id.peerId)', read('submodules/TelegramCore/Sources/TelegramEngine/Messages/MarkMessageContentAsConsumedInteractively.swift'))
+        install = read('submodules/TelegramCore/Sources/TelegramEngine/Messages/InstallInteractiveReadMessagesAction.swift')
+        self.assertEqual(install.count('ForkGhostModeSettings.shouldSuppressMessageReads {'), 0)
+        history = read('submodules/TelegramUI/Sources/ChatHistoryListNode.swift')
+        self.assertIn('ForkGhostModeSettings.shouldSuppressMessageReads(peerId: peerId)', history)
+        menu = read('submodules/ChatListUI/Sources/ChatContextMenus.swift')
+        self.assertIn('ForkGhostModeSettings.setException(peerId, !isException)', menu)
 
 
 if __name__ == '__main__':

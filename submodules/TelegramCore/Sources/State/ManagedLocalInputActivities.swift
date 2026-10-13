@@ -590,6 +590,39 @@ public enum ForkGhostModeSettings {
         }
     }
 
+    /// Chats that are exempt from Don't Read and Don't Send Typing: reads and typing go out normally there
+    /// (Extras ▸ Ghost mode ▸ chat list context menu "Ghost exception"). Keyed by peer id, shared by all accounts.
+    private static let exceptionsKey = "ForkGhostModeSettings.exceptionPeers.v1"
+    private static let exceptionPeers = Atomic<Set<Int64>>(value: Set(((UserDefaults.standard.array(forKey: "ForkGhostModeSettings.exceptionPeers.v1") as? [NSNumber]) ?? []).map { $0.int64Value }))
+
+    public static func isException(_ peerId: PeerId) -> Bool {
+        return exceptionPeers.with { $0.contains(peerId.toInt64()) }
+    }
+
+    public static func setException(_ peerId: PeerId, _ value: Bool) {
+        let updated = exceptionPeers.modify { current in
+            var next = current
+            if value {
+                next.insert(peerId.toInt64())
+            } else {
+                next.remove(peerId.toInt64())
+            }
+            return next
+        }
+        UserDefaults.standard.set(updated.sorted().map { NSNumber(value: $0) }, forKey: exceptionsKey)
+        NotificationCenter.default.post(name: didChangeNotification, object: nil)
+    }
+
+    /// Per-chat form of `shouldSuppressMessageReads`: false for an excepted chat.
+    public static func shouldSuppressMessageReads(peerId: PeerId) -> Bool {
+        return shouldSuppressMessageReads && !isException(peerId)
+    }
+
+    /// Per-chat form of `suppressOutgoingActivity`: false for an excepted chat.
+    public static func suppressesOutgoingActivity(peerId: PeerId) -> Bool {
+        return suppressOutgoingActivity && !isException(peerId)
+    }
+
     /// True when dont-read is on and the read-on-interact override window is closed.
     public static var shouldSuppressMessageReads: Bool {
         let current = state.with { $0 }
@@ -738,7 +771,7 @@ private func actionFromActivity(_ activity: PeerInputActivity?) -> Api.SendMessa
 }
 
 private func requestActivity(postbox: Postbox, network: Network, accountPeerId: PeerId, peerId: PeerId, threadId: Int64?, activity: PeerInputActivity?) -> Signal<Void, NoError> {
-    if ForkGhostModeSettings.suppressOutgoingActivity {
+    if ForkGhostModeSettings.suppressesOutgoingActivity(peerId: peerId) {
         // Everything except the group-call speaking indicator. This function is the single
         // chokepoint for outgoing activity, which is why the gate belongs here — but
         // `.speakingInGroupCall` also passes through it, driving the live "is talking" highlight

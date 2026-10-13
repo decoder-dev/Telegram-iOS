@@ -836,6 +836,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         (.messages, [
             [1605, 65, 66],
             [1557],
+            [1558],
             [67, 68],
             [69],
             [1508, 1509, 54, 1521, 1542, 1550, 1519],
@@ -857,6 +858,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [83],
             [1609, 1515, 1516, 1544, 1545, 1612],
             [1613, 1554, 1555, 1556, 1614],
+            [1559],
             [2000, 2001, 2002, 2003, 2004]
         ]),
         (.profile, [
@@ -1846,6 +1848,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .stickerSize(settings.stickerSizePercent),
             .appearanceToggle(1508, russian ? "Счётчик пересылок в каналах" : "Channel forward count", settings.showChannelForwardCount, \.showChannelForwardCount),
             .appearanceToggle(1557, russian ? "Цитата удалённого сообщения в ответе" : "Quote a deleted message in a reply", settings.quoteRepliesToDeleted, \.quoteRepliesToDeleted),
+            .appearanceToggle(1558, russian ? "Точные счётчики (без «1,2K»)" : "Exact counts (no “1.2K”)", settings.exactCounts, \.exactCounts),
+            .appearanceToggle(1559, russian ? "Подтверждать отправку голосовых и кружков" : "Confirm before sending voice and round video", settings.confirmVoiceSend, \.confirmVoiceSend),
             .appearanceToggle(1533, russian ? "Убрать пинги" : "Remove mention pings", settings.removePings, \.removePings),
             .appearanceToggle(1509, russian ? "Скрыть платные реакции" : "Hide paid reactions", settings.hidePaidReactions, \.hidePaidReactions),
             .hideReactionsBar(settings.hideReactionsBar),

@@ -1,8 +1,31 @@
 import Foundation
 import PresentationStrings
 import TelegramCore
+import SwiftSignalKit
+
+/// Extras ▸ Messages ▸ Exact counts: counters are drawn in full (with a thin space between thousands)
+/// instead of "1.2K". Read on layout paths, so it is a plain atomic.
+public enum BananaExactCounts {
+    private static let state = Atomic<Bool>(value: false)
+    public static var enabled: Bool {
+        get { state.with { $0 } }
+        set { _ = state.swap(newValue) }
+    }
+}
+
+/// Extras ▸ Media ▸ Confirm before sending voice and round video.
+public enum BananaVoiceSendConfirmation {
+    private static let state = Atomic<Bool>(value: false)
+    public static var enabled: Bool {
+        get { state.with { $0 } }
+        set { _ = state.swap(newValue) }
+    }
+}
 
 public func compactNumericCountString(_ count: Int, decimalSeparator: String = ".", showDecimalPart: Bool = true) -> String {
+    if BananaExactCounts.enabled {
+        return presentationStringsFormattedNumber(Int64(count), "\u{2009}")
+    }
     if count >= 1000 * 1000 {
         let remainder = (count % (1000 * 1000)) / (1000 * 100)
         if remainder != 0 && showDecimalPart {
