@@ -160,9 +160,12 @@ static int set_stats(AVCodecContext *avctx)
     librav1eContext *ctx = avctx->priv_data;
     int ret = 1;
 
-    while (ret > 0 && ctx->pass_size - ctx->pass_pos > 0) {
-        ret = rav1e_twopass_in(ctx->ctx, ctx->pass_data + ctx->pass_pos, ctx->pass_size);
+    while (ret > 0 && ctx->pass_size > 0 && ctx->pass_pos < (size_t)ctx->pass_size) {
+        size_t remaining = (size_t)ctx->pass_size - ctx->pass_pos;
+        ret = rav1e_twopass_in(ctx->ctx, ctx->pass_data + ctx->pass_pos, remaining);
         if (ret < 0)
+            return AVERROR_EXTERNAL;
+        if ((size_t)ret > remaining)
             return AVERROR_EXTERNAL;
         ctx->pass_pos += ret;
     }

@@ -122,8 +122,8 @@ static int find_frame_end(JPEG2000ParserContext *m, const uint8_t *buf, int buf_
         }
         if (m->read_tp) { // Find out how many bytes inside Tile part codestream to skip.
             if (m->read_tp == 1) {
-                m->skip_bytes = (state64 & 0xFFFFFFFF) - 9 > 0?
-                                (state64 & 0xFFFFFFFF) - 9 : 0;
+                uint32_t tile_part_size = state64 & 0xFFFFFFFF;
+                m->skip_bytes = tile_part_size > 9 ? tile_part_size - 9 : 0;
             }
             m->read_tp--;
             continue;

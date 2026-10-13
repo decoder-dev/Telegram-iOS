@@ -182,14 +182,14 @@ static int bmp_decode_frame(AVCodecContext *avctx, AVFrame *p,
         }
         break;
     case 8:
-        if (hsize - ihsize - 14 > 0)
+        if (hsize > ihsize + 14U)
             avctx->pix_fmt = AV_PIX_FMT_PAL8;
         else
             avctx->pix_fmt = AV_PIX_FMT_GRAY8;
         break;
     case 1:
     case 4:
-        if (hsize - ihsize - 14 > 0) {
+        if (hsize > ihsize + 14U) {
             avctx->pix_fmt = AV_PIX_FMT_PAL8;
         } else {
             av_log(avctx, AV_LOG_ERROR, "Unknown palette for %u-colour BMP\n",
