@@ -37,6 +37,7 @@ class ForkIntegration(unittest.TestCase):
         self.assertEqual(len(predicates), 2)
         for predicate in predicates:
             self.assertIn('ForkGhostModeSettings.suppressStoryViews', predicate)
+        self.assertIn('self.chatLocation.peerId?.namespace != Namespaces.Peer.SecretChat', predicates[0])
 
     def test_renderer_flags_and_collectible_colors_refresh(self):
         source = read('submodules/TelegramUI/Sources/ChatHistoryListNode.swift')

@@ -9141,7 +9141,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         }
         // Hoist once per send — albums must share one schedule base timestamp.
         // Match the five-flag full Ghost preset shown in settings.
-        let applyGhostSchedule = peerId.namespace != Namespaces.Peer.SecretChat
+        let applyGhostSchedule = self.chatLocation.peerId?.namespace != Namespaces.Peer.SecretChat
             && scheduleTime == nil
             && !isScheduledMessagesSubject
             && ForkGhostScheduleSettings.enabled
