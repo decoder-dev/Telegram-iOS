@@ -1267,13 +1267,14 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         let size = CGSize(width: settings.bananaIslandShowsName ? 116.0 : 26.0, height: 20.0)
         let image = generateImage(size, contextGenerator: { _, context in
             context.clear(CGRect(origin: .zero, size: size))
-            context.setFillColor(theme.list.itemBlocksBackgroundColor.cgColor)
+            // Accent fill and the colour the theme draws on its accent, so the pill stands out from the dark surfaces.
+            context.setFillColor(theme.list.itemCheckColors.fillColor.cgColor)
             context.addPath(UIBezierPath(roundedRect: CGRect(origin: .zero, size: size), cornerRadius: 10.0).cgPath)
             context.fillPath()
             UIGraphicsPushContext(context)
             ("🍌" as NSString).draw(at: CGPoint(x: 4.0, y: 1.0), withAttributes: [.font: UIFont.systemFont(ofSize: 14.0)])
             if settings.bananaIslandShowsName {
-                ("BANANAGRAM" as NSString).draw(at: CGPoint(x: 24.0, y: 4.0), withAttributes: [.font: UIFont.systemFont(ofSize: 10.0, weight: .bold), .foregroundColor: theme.list.itemPrimaryTextColor])
+                ("BANANAGRAM" as NSString).draw(at: CGPoint(x: 24.0, y: 4.0), withAttributes: [.font: UIFont.systemFont(ofSize: 10.0, weight: .bold), .foregroundColor: theme.list.itemCheckColors.foregroundColor])
             }
             UIGraphicsPopContext()
         })

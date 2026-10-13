@@ -1341,23 +1341,23 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
                 arguments.openCategory(.privacy)
             }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hubChatList:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.appearance, title: ForkExtrasLocalizedString.hubChatList, label: ForkExtrasLocalizedString.hubChatListLabel, sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.chatFolders, title: ForkExtrasLocalizedString.hubChatList, label: ForkExtrasLocalizedString.hubChatListLabel, sectionId: self.section, style: .blocks, action: {
                 arguments.openCategory(.chatList)
             }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hubTabBar:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.appearance, title: ForkExtrasLocalizedString.hubTabBar, label: ForkExtrasLocalizedString.hubTabBarLabel, sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.topics, title: ForkExtrasLocalizedString.hubTabBar, label: ForkExtrasLocalizedString.hubTabBarLabel, sectionId: self.section, style: .blocks, action: {
                 arguments.openCategory(.tabBar)
             }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hubMessages:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.privateChats, title: ForkExtrasLocalizedString.hubMessages, label: ForkExtrasLocalizedString.hubMessagesLabel, sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.messages, title: ForkExtrasLocalizedString.hubMessages, label: ForkExtrasLocalizedString.hubMessagesLabel, sectionId: self.section, style: .blocks, action: {
                 arguments.openCategory(.messages)
             }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hubMedia:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.dataAndStorage, title: ForkExtrasLocalizedString.hubMedia, label: ForkExtrasLocalizedString.hubMediaLabel, sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.voices, title: ForkExtrasLocalizedString.hubMedia, label: ForkExtrasLocalizedString.hubMediaLabel, sectionId: self.section, style: .blocks, action: {
                 arguments.openCategory(.media)
             }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hubProfile:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.premium, title: ForkExtrasLocalizedString.hubProfile, label: ForkExtrasLocalizedString.hubProfileLabel, sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.myProfile, title: ForkExtrasLocalizedString.hubProfile, label: ForkExtrasLocalizedString.hubProfileLabel, sectionId: self.section, style: .blocks, action: {
                 arguments.openCategory(.profile)
             }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hubNetwork:

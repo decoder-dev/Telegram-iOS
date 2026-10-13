@@ -555,6 +555,8 @@ public enum DeviceMetrics: CaseIterable, Equatable {
         if case .iPhoneX = self {
             return false
         }
-        return self.hasTopNotch
+        // The badge used to be notch-only, so on a Dynamic Island phone (where the Banana Island setting is meant to
+        // work) it was never shown.
+        return self.hasTopNotch || self.hasDynamicIsland
     }
 }

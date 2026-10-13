@@ -895,9 +895,16 @@ public class Window1 {
         self.appBadgeEnabled = enabled
         self.badgeView.image = image
         if let image {
-            self.badgeView.frame = CGRect(origin: CGPoint(x: floorToScreenPixels((self.windowLayout.size.width - image.size.width) / 2.0), y: 5.0), size: image.size)
+            self.badgeView.frame = self.badgeFrame(for: image)
         }
         self.updateBadgeVisibility()
+    }
+
+    /// The notch is drawn over the top 5 pt strip, but a Dynamic Island hides everything from 11 pt to 48 pt, so on
+    /// those phones the badge sits just under the island, in the gap between the status bar and the navigation buttons.
+    private func badgeFrame(for image: UIImage) -> CGRect {
+        let y: CGFloat = self.deviceMetrics.hasDynamicIsland ? 52.0 : 5.0
+        return CGRect(origin: CGPoint(x: floorToScreenPixels((self.windowLayout.size.width - image.size.width) / 2.0), y: y), size: image.size)
     }
 
     private func updateBadgeVisibility() {
@@ -1438,7 +1445,7 @@ public class Window1 {
                 
                 if let image = self.badgeView.image {
                     self.updateBadgeVisibility()
-                    self.badgeView.frame = CGRect(origin: CGPoint(x: floorToScreenPixels((self.windowLayout.size.width - image.size.width) / 2.0), y: 5.0), size: image.size)
+                    self.badgeView.frame = self.badgeFrame(for: image)
                 }
             }
         }

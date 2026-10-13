@@ -363,5 +363,15 @@ class ForkIntegration(unittest.TestCase):
         self.assertIn('if !theme.preview {', data)
 
 
+    def test_banana_island_badge_is_shown_below_the_dynamic_island(self):
+        metrics = read('submodules/Display/Source/DeviceMetrics.swift')
+        self.assertIn('return self.hasTopNotch || self.hasDynamicIsland', metrics)
+        window = read('submodules/Display/Source/WindowContent.swift')
+        self.assertEqual(window.count('self.badgeFrame(for: image)'), 2)
+        self.assertIn('self.deviceMetrics.hasDynamicIsland ? 52.0 : 5.0', window)
+        shared = read('submodules/TelegramUI/Sources/SharedAccountContext.swift')
+        self.assertIn('theme.list.itemCheckColors.fillColor.cgColor', shared)
+
+
 if __name__ == '__main__':
     unittest.main()
