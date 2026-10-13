@@ -10,6 +10,11 @@ def function(source, name):
     start = source.index('func ' + name)
     if source[max(0, start-7):start] == 'public ': start -= 7
     return source[start:source.index('\n}', start)+2]
+def static_method(source, name):
+    signature = source.index('static func ' + name)
+    start = source.rfind('\n', 0, signature) + 1
+    end = source.index('\n    }', signature) + len('\n    }')
+    return source[start:end]
 def execute(source):
     with tempfile.TemporaryDirectory() as directory:
         path = pathlib.Path(directory) / 'main.swift'
@@ -85,6 +90,14 @@ class DonutAdaptation(unittest.TestCase):
         self.assertIn('case pageTooLarge', error)
         self.assertIn('error.localizedReason(russian: ForkPresentationLanguage.prefersRussianStrings)', read('submodules/TelegramUI/Sources/ChatController+BananaLinkDownload.swift'))
 
+    def test_static_method_fixture_extraction_stops_at_method_boundary(self):
+        tiktok = static_method(read('submodules/BananaLinkDownloader/Sources/BananaTikTokExtractor.swift'), 'parsePage')
+        youtube = static_method(read('submodules/BananaLinkDownloader/Sources/BananaYouTubeShortsExtractor.swift'), 'pickVideo')
+        self.assertIn('static func parsePage', tiktok)
+        self.assertIn('static func pickVideo', youtube)
+        self.assertNotIn('func resolve', tiktok)
+        self.assertNotIn('func pickAudio', youtube)
+
     @unittest.skipUnless(shutil.which('swiftc'), 'Swift unavailable locally; executes in macOS CI')
     def test_link_downloader_error_localization(self):
         errors = read('submodules/BananaLinkDownloader/Sources/BananaLinkDownloadError.swift')
@@ -121,7 +134,7 @@ enum BananaTikTokItem: Equatable {
 }
 enum BananaTikTokExtractor {
     static let rehydrationMarker = "<script id=\\\"__UNIVERSAL_DATA_FOR_REHYDRATION__\\\""
-''' + 'static ' + function(parser, 'parsePage') + '''
+''' + static_method(parser, 'parsePage') + '''
 }
 func page(status: Int, item: [String: Any]?) -> String {
     var detail: [String: Any] = ["statusCode": status]
@@ -160,7 +173,7 @@ if case .failure(.tiktokNoData) = BananaTikTokExtractor.parsePage("<html>challen
         remote_file = models[models.index('struct BananaRemoteFile'):models.index('\n}', models.index('struct BananaRemoteFile')) + 2]
         parser = read('submodules/BananaLinkDownloader/Sources/BananaYouTubeShortsExtractor.swift')
         errors = read('submodules/BananaLinkDownloader/Sources/BananaLinkDownloadError.swift')
-        methods = '\n'.join('static ' + function(parser, name) for name in ['parsePlayerResponse', 'pickVideo', 'pickAudio'])
+        methods = '\n'.join(static_method(parser, name) for name in ['parsePlayerResponse', 'pickVideo', 'pickAudio'])
         execute('''import Foundation
 import CoreFoundation
 ''' + remote_file + '\n' + function(models, 'bananaIntValue') + '\n' + errors + '''
