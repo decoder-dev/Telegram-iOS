@@ -856,9 +856,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         (.media, [
             [1608, 80, 84],
             [83],
-            [1609, 1515, 1516, 1544, 1545, 1612],
+            [1609, 1515, 1516, 1544, 1545, 1559, 1612],
             [1613, 1554, 1555, 1556, 1614],
-            [1559],
             [2000, 2001, 2002, 2003, 2004]
         ]),
         (.profile, [
@@ -1853,7 +1852,6 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(1508, russian ? "Счётчик пересылок в каналах" : "Channel forward count", settings.showChannelForwardCount, \.showChannelForwardCount),
             .appearanceToggle(1557, russian ? "Цитата удалённого сообщения в ответе" : "Quote a deleted message in a reply", settings.quoteRepliesToDeleted, \.quoteRepliesToDeleted),
             .appearanceToggle(1558, russian ? "Точные счётчики (без «1,2K»)" : "Exact counts (no “1.2K”)", settings.exactCounts, \.exactCounts),
-            .appearanceToggle(1559, russian ? "Подтверждать отправку голосовых и кружков" : "Confirm before sending voice and round video", settings.confirmVoiceSend, \.confirmVoiceSend),
             .appearanceToggle(1533, russian ? "Убрать пинги" : "Remove mention pings", settings.removePings, \.removePings),
             .appearanceToggle(1509, russian ? "Скрыть платные реакции" : "Hide paid reactions", settings.hidePaidReactions, \.hidePaidReactions),
             .hideReactionsBar(settings.hideReactionsBar),
@@ -1900,6 +1898,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(1554, russian ? "Скачивать TikTok" : "Download TikTok", settings.downloadTikTok, \.downloadTikTok),
             .appearanceToggle(1555, russian ? "Скачивать YouTube Shorts" : "Download YouTube Shorts", settings.downloadYouTubeShorts, \.downloadYouTubeShorts),
             .appearanceToggle(1556, russian ? "Подпись «Скачано с…»" : "“Downloaded from…” caption", settings.signDownloadedMedia, \.signDownloadedMedia),
+            .appearanceToggle(1559, russian ? "Подтверждать отправку голосовых и кружков" : "Confirm before sending voice and round video", settings.confirmVoiceSend, \.confirmVoiceSend),
             .designFooter(1614, russian ? "Сообщение, в котором только ссылка, уходит видео или фото вместо ссылки. Если скачать не удалось, отправляется сама ссылка." : "A message that is only a link goes out as the video or photos instead. If the download fails, the link itself is sent."),
             .appearanceToggle(1544, russian ? "Кружок: задняя камера" : "Round video: rear camera", settings.roundVideoStartsWithRear, \.roundVideoStartsWithRear),
             .appearanceToggle(1545, russian ? "Кружок: помнить камеру" : "Round video: remember camera", settings.roundVideoRemembersCamera, \.roundVideoRemembersCamera),

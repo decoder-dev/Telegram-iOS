@@ -458,7 +458,7 @@ class ForkIntegration(unittest.TestCase):
         self.assertIn('position: opensWithRear ? .back : .front,', screen)
         self.assertIn('BananaRoundVideoCamera.noteCameraInUse(isRear: position == .back)', screen)
         controller = read('submodules/SettingsUI/Sources/ForkExtrasController.swift')
-        self.assertIn('[1609, 1515, 1516, 1544, 1545, 1612]', controller)
+        self.assertIn('[1609, 1515, 1516, 1544, 1545, 1559, 1612]', controller)
         shared = read('submodules/TelegramUI/Sources/SharedAccountContext.swift')
         self.assertIn('BananaRoundVideoCamera.remembersLast = settings.roundVideoRemembersCamera', shared)
 
@@ -544,7 +544,7 @@ class ForkIntegration(unittest.TestCase):
         self.assertIn('if BananaExactCounts.enabled {\n        return presentationStringsFormattedNumber(Int64(count), "\\u{2009}")', fmt)
         ctl = read('submodules/SettingsUI/Sources/ForkExtrasController.swift')
         self.assertIn('[1557],\n            [1558],', ctl)
-        self.assertIn('[1613, 1554, 1555, 1556, 1614],\n            [1559],', ctl)
+        self.assertIn('[1609, 1515, 1516, 1544, 1545, 1559, 1612],', ctl)
         shared = read('submodules/TelegramUI/Sources/SharedAccountContext.swift')
         self.assertIn('BananaExactCounts.enabled = settings.exactCounts', shared)
         self.assertIn('BananaVoiceSendConfirmation.enabled = settings.confirmVoiceSend', shared)
