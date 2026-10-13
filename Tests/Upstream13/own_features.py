@@ -399,7 +399,7 @@ class ForkIntegration(unittest.TestCase):
         controller = read('submodules/SettingsUI/Sources/ForkExtrasController.swift')
         self.assertIn('.appearanceToggle(1541,', controller)
         self.assertIn('[1603, 1500, 1501, 1541, 57]', controller)
-        self.assertIn('[1508, 1509, 54, 1521, 1542, 1519]', controller)
+        self.assertIn('[1508, 1509, 54, 1521, 1542, 1550, 1519]', controller)
         self.assertIn('hideStickerStatus', read('submodules/TelegramUI/Components/Chat/ChatMessageStickerItemNode/Sources/ChatMessageStickerItemNode.swift') .replace('ForkExtrasHotFlags.hideStickerStatus','hideStickerStatus'))
         # The stable id must stay unique: 1540 is the Appearance hub.
         self.assertEqual(controller.count('.appearanceToggle(1541,'), 1)
@@ -453,6 +453,15 @@ class ForkIntegration(unittest.TestCase):
         self.assertIn('BananaChatListHeader.didChangeNotification', controller)
         self.assertIn('[1601, 52, 1499, 1546, 1547, 1548, 1549]', read('submodules/SettingsUI/Sources/ForkExtrasController.swift'))
         self.assertIn('BananaChatListHeader.current = BananaChatListHeader(', read('submodules/TelegramUI/Sources/SharedAccountContext.swift'))
+
+
+    def test_poll_results_before_voting(self):
+        poll = read('submodules/TelegramUI/Components/Chat/ChatMessagePollBubbleContentNode/Sources/ChatMessagePollBubbleContentNode.swift')
+        self.assertIn('ForkExtrasHotFlags.pollResultsBeforeVoting && !poll.hideResultsUntilClose', poll)
+        self.assertIn('self.currentResult != nil && !self.allowsVotingWithResult', poll)
+        self.assertEqual(poll.count('_ allowVotingWithResults: Bool, _ constrainedWidth: CGFloat'), 3)
+        self.assertIn('[1508, 1509, 54, 1521, 1542, 1550, 1519]', read('submodules/SettingsUI/Sources/ForkExtrasController.swift'))
+        self.assertIn('pollResultsBeforeVoting: settings.pollResultsBeforeVoting', read('submodules/TelegramUI/Sources/ChatHistoryListNode.swift'))
 
 
 if __name__ == '__main__':

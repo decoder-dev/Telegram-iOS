@@ -1259,7 +1259,8 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             downloadSpeedBoost: settings.downloadSpeedBoost,
             outgoingPhotoQuality: settings.outgoingPhotoQuality,
             streamerMode: settings.streamerMode,
-            hideStickerStatus: settings.hideStickerStatus
+            hideStickerStatus: settings.hideStickerStatus,
+            pollResultsBeforeVoting: settings.pollResultsBeforeVoting
         ))
         ForkRegexMessageFilters.apply(
             enabled: settings.regexMessageFiltersEnabled,

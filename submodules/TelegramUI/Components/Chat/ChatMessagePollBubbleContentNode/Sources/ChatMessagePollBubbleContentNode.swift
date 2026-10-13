@@ -497,6 +497,7 @@ private final class ChatMessagePollOptionNode: ASDisplayNode {
     
     var option: TelegramMediaPollOption?
     var forceSelected: Bool?
+    var allowsVotingWithResult: Bool = false
     private(set) var currentResult: ChatMessagePollOptionResult?
     private(set) var currentSelection: ChatMessagePollOptionSelection?
     var pressed: (() -> Void)?
@@ -749,7 +750,7 @@ private final class ChatMessagePollOptionNode: ASDisplayNode {
             return
         }
         
-        if let _ = self.currentResult {
+        if self.currentResult != nil && !self.allowsVotingWithResult {
             self.resultPressed?()
             return
         }
@@ -849,13 +850,13 @@ private final class ChatMessagePollOptionNode: ASDisplayNode {
         })
     }
 
-    static func asyncLayout(_ maybeNode: ChatMessagePollOptionNode?) -> (_ context: AccountContext, _ presentationData: ChatPresentationData, _ presentationContext: ChatPresentationContext, _ message: Message, _ poll: TelegramMediaPoll, _ option: TelegramMediaPollOption, _ translation: TranslationMessageAttribute.Additional?, _ optionResult: ChatMessagePollOptionResult?, _ forceSelected: Bool?, _ hasAnyMedia: Bool, _ constrainedWidth: CGFloat) -> (minimumWidth: CGFloat, layout: ((CGFloat) -> (CGSize, (Bool, Bool, Bool) -> ChatMessagePollOptionNode))) {
+    static func asyncLayout(_ maybeNode: ChatMessagePollOptionNode?) -> (_ context: AccountContext, _ presentationData: ChatPresentationData, _ presentationContext: ChatPresentationContext, _ message: Message, _ poll: TelegramMediaPoll, _ option: TelegramMediaPollOption, _ translation: TranslationMessageAttribute.Additional?, _ optionResult: ChatMessagePollOptionResult?, _ forceSelected: Bool?, _ hasAnyMedia: Bool, _ allowVotingWithResults: Bool, _ constrainedWidth: CGFloat) -> (minimumWidth: CGFloat, layout: ((CGFloat) -> (CGSize, (Bool, Bool, Bool) -> ChatMessagePollOptionNode))) {
         let makeTitleLayout = TextNodeWithEntities.asyncLayout(maybeNode?.titleNode)
         let currentResult = maybeNode?.currentResult
         let currentSelection = maybeNode?.currentSelection
         let currentTheme = maybeNode?.theme
 
-        return { context, presentationData, presentationContext, message, poll, option, translation, optionResult, forceSelected, hasAnyMedia, constrainedWidth in
+        return { context, presentationData, presentationContext, message, poll, option, translation, optionResult, forceSelected, hasAnyMedia, allowVotingWithResults, constrainedWidth in
             let leftInset: CGFloat = 50.0
             let media = option.media
             let mediaInset: CGFloat
@@ -890,7 +891,7 @@ private final class ChatMessagePollOptionNode: ASDisplayNode {
                 message: message
             )
 
-            let shouldHaveRadioNode = optionResult == nil
+            let shouldHaveRadioNode = optionResult == nil || allowVotingWithResults
             let isSelectable: Bool
             if shouldHaveRadioNode, poll.kind.multipleAnswers, forceSelected == nil, !Namespaces.Message.allNonRegular.contains(message.id.namespace) {
                 isSelectable = true
@@ -906,7 +907,7 @@ private final class ChatMessagePollOptionNode: ASDisplayNode {
                 updatedPercentageImage = generatePercentageImage(presentationData: presentationData, incoming: incoming, value: value, targetValue: value)
             }
 
-            let displayCount = optionResult != nil
+            let displayCount = optionResult != nil && !allowVotingWithResults
             var updatedCountImage: UIImage?
             if displayCount && (currentResult != optionResult || themeUpdated) {
                 let value = optionResult?.count ?? 0
@@ -922,13 +923,16 @@ private final class ChatMessagePollOptionNode: ASDisplayNode {
             let rightInset: CGFloat = 10.0 + mediaInset
 
             let recentVoterPeers: [EnginePeer]
-            if let optionResult {
+            if let optionResult, !allowVotingWithResults {
                 recentVoterPeers = optionResult.recentVoterPeerIds.compactMap { message.peers[$0] }.map(EnginePeer.init)
             } else {
                 recentVoterPeers = []
             }
 
             var titleTrailingInset = rightInset
+            if allowVotingWithResults, let image = updatedPercentageImage ?? maybeNode?.percentageImage {
+                titleTrailingInset += image.size.width + 8.0
+            }
             if let countImage = updatedCountImage ?? maybeNode?.countImage, displayCount {
                 titleTrailingInset += countImage.size.width + ChatMessagePollOptionNode.countSpacing
             }
@@ -949,7 +953,7 @@ private final class ChatMessagePollOptionNode: ASDisplayNode {
             var updatedResultIcon = false
 
             var selection: ChatMessagePollOptionSelection?
-            if optionResult != nil {
+            if optionResult != nil && !allowVotingWithResults {
                 if let voters = poll.results.voters {
                     for voter in voters {
                         if voter.opaqueIdentifier == option.opaqueIdentifier {
@@ -1031,11 +1035,12 @@ private final class ChatMessagePollOptionNode: ASDisplayNode {
 
                     node.option = option
                     node.forceSelected = forceSelected
+                    node.allowsVotingWithResult = allowVotingWithResults
                     node.context = context
                     node.message = message
                     let previousMedia = node.currentMedia
                     node.currentMedia = media
-                    node.currentRecentVoterPeerIds = optionResult?.recentVoterPeerIds ?? []
+                    node.currentRecentVoterPeerIds = allowVotingWithResults ? [] : (optionResult?.recentVoterPeerIds ?? [])
                     let previousResult = node.currentResult
                     node.currentResult = optionResult
                     node.currentSelection = selection
@@ -1136,7 +1141,11 @@ private final class ChatMessagePollOptionNode: ASDisplayNode {
                         node.percentageImage = updatedPercentageImage
                     }
                     if let image = node.percentageImage {
-                        node.percentageNode.frame = CGRect(origin: CGPoint(x: leftInset - 7.0 - image.size.width, y: 15.0), size: image.size)
+                        if allowVotingWithResults {
+                            node.percentageNode.frame = CGRect(origin: CGPoint(x: width - rightInset - image.size.width, y: 15.0), size: image.size)
+                        } else {
+                            node.percentageNode.frame = CGRect(origin: CGPoint(x: leftInset - 7.0 - image.size.width, y: 15.0), size: image.size)
+                        }
                         if animated && previousResult?.percent != optionResult?.percent {
                             let percentageDuration = 0.27
                             let images = generatePercentageAnimationImages(presentationData: presentationData, incoming: incoming, from: previousResult?.percent ?? 0, to: optionResult?.percent ?? 0, duration: percentageDuration)
@@ -1455,9 +1464,9 @@ private final class ChatMessagePollOptionNode: ASDisplayNode {
                     node.resultBarBackgroundNode.alpha = optionResult != nil ? 1.0 : 0.0
                     node.resultBarNode.alpha = optionResult != nil ? 1.0 : 0.0
                     node.percentageNode.alpha = optionResult != nil ? 1.0 : 0.0
-                    node.countNode.alpha = optionResult != nil ? 1.0 : 0.0
+                    node.countNode.alpha = displayCount ? 1.0 : 0.0
                     node.separatorNode.alpha = optionResult == nil ? 1.0 : 0.0
-                    node.resultBarIconNode.alpha = optionResult != nil ? 1.0 : 0.0
+                    node.resultBarIconNode.alpha = optionResult != nil && !allowVotingWithResults ? 1.0 : 0.0
                     if animated, currentResult != optionResult {
                         if (currentResult != nil) != (optionResult != nil) {
                             if optionResult != nil {
@@ -2662,7 +2671,7 @@ public class ChatMessagePollBubbleContentNode: ChatMessageBubbleContentNode {
             }
         }
 
-        var previousOptionNodeLayouts: [Data: (_ contet: AccountContext, _ presentationData: ChatPresentationData, _ presentationContext: ChatPresentationContext, _ message: Message, _ poll: TelegramMediaPoll, _ option: TelegramMediaPollOption, _ translation: TranslationMessageAttribute.Additional?, _ optionResult: ChatMessagePollOptionResult?, _ forceSelected: Bool?, _ hasAnyMedia: Bool, _ constrainedWidth: CGFloat) -> (minimumWidth: CGFloat, layout: ((CGFloat) -> (CGSize, (Bool, Bool, Bool) -> ChatMessagePollOptionNode)))] = [:]
+        var previousOptionNodeLayouts: [Data: (_ contet: AccountContext, _ presentationData: ChatPresentationData, _ presentationContext: ChatPresentationContext, _ message: Message, _ poll: TelegramMediaPoll, _ option: TelegramMediaPollOption, _ translation: TranslationMessageAttribute.Additional?, _ optionResult: ChatMessagePollOptionResult?, _ forceSelected: Bool?, _ hasAnyMedia: Bool, _ allowVotingWithResults: Bool, _ constrainedWidth: CGFloat) -> (minimumWidth: CGFloat, layout: ((CGFloat) -> (CGSize, (Bool, Bool, Bool) -> ChatMessagePollOptionNode)))] = [:]
         for optionNode in self.optionNodes {
             if let option = optionNode.option {
                 previousOptionNodeLayouts[option.opaqueIdentifier] = ChatMessagePollOptionNode.asyncLayout(optionNode)
@@ -2957,6 +2966,7 @@ public class ChatMessagePollBubbleContentNode: ChatMessageBubbleContentNode {
                     var optionVoterCount: [Int: Int32] = [:]
                     var maxOptionVoterCount: Int32 = 0
                     var totalVoterCount: Int32 = 0
+                    var didVote = false
                     let voters: [TelegramMediaPollOptionVoters]?
                     if isClosed {
                         voters = poll.results.voters ?? []
@@ -2965,7 +2975,6 @@ public class ChatMessagePollBubbleContentNode: ChatMessageBubbleContentNode {
                     }
                     var votedFor = Set<Data>()
                     if let voters = voters, let totalVoters = poll.results.totalVoters {
-                        var didVote = false
                         for voter in voters {
                             if voter.selected {
                                 didVote = true
@@ -2973,7 +2982,7 @@ public class ChatMessagePollBubbleContentNode: ChatMessageBubbleContentNode {
                             }
                         }
                         totalVoterCount = totalVoters
-                        if didVote || isClosed || isPreviewingResults || isRestricted {
+                        if didVote || isClosed || isPreviewingResults || isRestricted || (ForkExtrasHotFlags.pollResultsBeforeVoting && !poll.hideResultsUntilClose) {
                             for i in 0 ..< poll.options.count {
                                 inner: for optionVoters in voters {
                                     if optionVoters.opaqueIdentifier == poll.options[i].opaqueIdentifier {
@@ -2993,10 +3002,12 @@ public class ChatMessagePollBubbleContentNode: ChatMessageBubbleContentNode {
                         optionVoterCounts = Array(repeating: 0, count: poll.options.count)
                     }
                     
+                    let allowVotingWithResults = ForkExtrasHotFlags.pollResultsBeforeVoting && !poll.hideResultsUntilClose && !didVote && !isClosed && !isRestricted && !isPreviewingResults
+                    
                     let hasAnyOptionMedia = orderedPollOptions.contains(where: { $0.1.media != nil })
                     
                     for (i, option) in orderedPollOptions {
-                        let makeLayout: (_ context: AccountContext, _ presentationData: ChatPresentationData, _ presentationContext: ChatPresentationContext, _ message: Message, _ poll: TelegramMediaPoll, _ option: TelegramMediaPollOption, _ translation: TranslationMessageAttribute.Additional?, _ optionResult: ChatMessagePollOptionResult?, _ forceSelected: Bool?, _ hasAnyMedia: Bool, _ constrainedWidth: CGFloat) -> (minimumWidth: CGFloat, layout: ((CGFloat) -> (CGSize, (Bool, Bool, Bool) -> ChatMessagePollOptionNode)))
+                        let makeLayout: (_ context: AccountContext, _ presentationData: ChatPresentationData, _ presentationContext: ChatPresentationContext, _ message: Message, _ poll: TelegramMediaPoll, _ option: TelegramMediaPollOption, _ translation: TranslationMessageAttribute.Additional?, _ optionResult: ChatMessagePollOptionResult?, _ forceSelected: Bool?, _ hasAnyMedia: Bool, _ allowVotingWithResults: Bool, _ constrainedWidth: CGFloat) -> (minimumWidth: CGFloat, layout: ((CGFloat) -> (CGSize, (Bool, Bool, Bool) -> ChatMessagePollOptionNode)))
                         if let previous = previousOptionNodeLayouts[option.opaqueIdentifier] {
                             makeLayout = previous
                         } else {
@@ -3030,7 +3041,7 @@ public class ChatMessagePollBubbleContentNode: ChatMessageBubbleContentNode {
                             forceSelected = votedFor.contains(option.opaqueIdentifier)
                         }
                         
-                        let result = makeLayout(item.context, item.presentationData, item.controllerInteraction.presentationContext, item.message, poll, option, translation, optionResult, forceSelected, hasAnyOptionMedia, constrainedSize.width - layoutConstants.bubble.borderInset * 2.0)
+                        let result = makeLayout(item.context, item.presentationData, item.controllerInteraction.presentationContext, item.message, poll, option, translation, optionResult, forceSelected, hasAnyOptionMedia, allowVotingWithResults && optionResult != nil, constrainedSize.width - layoutConstants.bubble.borderInset * 2.0)
                         boundingSize.width = max(boundingSize.width, result.minimumWidth + layoutConstants.bubble.borderInset * 2.0)
                         pollOptionsFinalizeLayouts.append((optionResult != nil, result.1))
                     }

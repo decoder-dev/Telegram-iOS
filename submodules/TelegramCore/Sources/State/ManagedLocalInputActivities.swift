@@ -157,6 +157,7 @@ public enum ForkExtrasHotFlags {
         public var outgoingPhotoQuality: Int32 = 0
         public var streamerMode: Bool = false
         public var hideStickerStatus: Bool = false
+        public var pollResultsBeforeVoting: Bool = false
 
         public init(
             hideAds: Bool = true,
@@ -180,7 +181,8 @@ public enum ForkExtrasHotFlags {
             downloadSpeedBoost: Bool = false,
             outgoingPhotoQuality: Int32 = 0,
             streamerMode: Bool = false,
-            hideStickerStatus: Bool = false
+            hideStickerStatus: Bool = false,
+            pollResultsBeforeVoting: Bool = false
         ) {
             self.hideAds = hideAds
             self.hideBlockedMessages = hideBlockedMessages
@@ -204,6 +206,7 @@ public enum ForkExtrasHotFlags {
             self.outgoingPhotoQuality = outgoingPhotoQuality
             self.streamerMode = streamerMode
             self.hideStickerStatus = hideStickerStatus
+            self.pollResultsBeforeVoting = pollResultsBeforeVoting
         }
     }
 
@@ -335,6 +338,10 @@ public enum ForkExtrasHotFlags {
     public static var hideStickerStatus: Bool {
         get { return state.with { $0.hideStickerStatus } }
         set { let _ = state.modify { var s = $0; s.hideStickerStatus = newValue; return s } }
+    }
+    public static var pollResultsBeforeVoting: Bool {
+        get { return state.with { $0.pollResultsBeforeVoting } }
+        set { let _ = state.modify { var s = $0; s.pollResultsBeforeVoting = newValue; return s } }
     }
 }
 
