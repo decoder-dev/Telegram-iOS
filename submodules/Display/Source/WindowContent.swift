@@ -900,11 +900,10 @@ public class Window1 {
         self.updateBadgeVisibility()
     }
 
-    /// The notch is drawn over the top 5 pt strip, but a Dynamic Island hides everything from 11 pt to 48 pt, so on
-    /// those phones the badge sits just under the island, in the gap between the status bar and the navigation buttons.
+    /// The badge goes where the hardware cutout is (see `DeviceMetrics.appBadgeBaseOffset`): screenshots and screen
+    /// recordings do not draw the notch or the island, so it reads as the cutout's own label.
     private func badgeFrame(for image: UIImage) -> CGRect {
-        let y: CGFloat = self.deviceMetrics.hasDynamicIsland ? 52.0 : 5.0
-        return CGRect(origin: CGPoint(x: floorToScreenPixels((self.windowLayout.size.width - image.size.width) / 2.0), y: y), size: image.size)
+        return CGRect(origin: CGPoint(x: floorToScreenPixels((self.windowLayout.size.width - image.size.width) / 2.0), y: self.deviceMetrics.appBadgeOffset), size: image.size)
     }
 
     private func updateBadgeVisibility() {

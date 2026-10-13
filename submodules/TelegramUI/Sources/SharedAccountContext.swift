@@ -1265,7 +1265,9 @@ public final class SharedAccountContextImpl: SharedAccountContext {
     private func updateBananaIslandBadge(_ settings: ForkExtrasSettings) {
         let theme = self.currentPresentationData.with { $0 }.theme
         let size = CGSize(width: settings.bananaIslandShowsName ? 116.0 : 26.0, height: 20.0)
-        let image = generateImage(size, contextGenerator: { _, context in
+        // `rotatedContext` is the variant whose context is y-down, which UIKit's string drawing needs; the plain
+        // `contextGenerator` one draws the emoji and the name upside down.
+        let image = generateImage(size, rotatedContext: { _, context in
             context.clear(CGRect(origin: .zero, size: size))
             // Accent fill and the colour the theme draws on its accent, so the pill stands out from the dark surfaces.
             context.setFillColor(theme.list.itemCheckColors.fillColor.cgColor)

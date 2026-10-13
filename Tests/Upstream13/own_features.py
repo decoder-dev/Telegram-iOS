@@ -368,9 +368,20 @@ class ForkIntegration(unittest.TestCase):
         self.assertIn('return self.hasTopNotch || self.hasDynamicIsland', metrics)
         window = read('submodules/Display/Source/WindowContent.swift')
         self.assertEqual(window.count('self.badgeFrame(for: image)'), 2)
-        self.assertIn('self.deviceMetrics.hasDynamicIsland ? 52.0 : 5.0', window)
+        # The badge sits in the cutout, at a per-model offset, as the screenshot-only label of the notch or island.
+        self.assertIn('y: self.deviceMetrics.appBadgeOffset', window)
+        self.assertIn('public var appBadgeBaseOffset: CGFloat', metrics)
+        self.assertIn('case .iPhone16ProMax, .iPhoneAir, .iPhone18ProMax:\n                return 22.0', metrics)
         shared = read('submodules/TelegramUI/Sources/SharedAccountContext.swift')
         self.assertIn('theme.list.itemCheckColors.fillColor.cgColor', shared)
+        # UIKit string drawing needs the y-down context; the plain contextGenerator one drew the badge upside down.
+        self.assertIn('generateImage(size, rotatedContext: { _, context in', shared)
+
+
+    def test_profile_title_leaves_room_for_the_right_buttons(self):
+        header = read('submodules/TelegramUI/Components/PeerInfo/PeerInfoScreen/Sources/PeerInfoHeaderNode.swift')
+        self.assertIn('trailingIconsWidth', header)
+        self.assertIn('width - rightButtonsReserve * 2.0 - trailingIconsWidth', header)
 
 
     def test_wallet_state_retry_backs_off(self):

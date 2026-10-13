@@ -559,4 +559,36 @@ public enum DeviceMetrics: CaseIterable, Equatable {
         // work) it was never shown.
         return self.hasTopNotch || self.hasDynamicIsland
     }
+    
+    /// Top edge of the badge in unzoomed points. The badge is only ever seen on screenshots and recordings, which do
+    /// not draw the hardware cutout, so it goes where the cutout is: centred in the Dynamic Island (the island sits
+    /// lower on each generation, and the larger phones lower still), or just under the notch, whose depth is the same
+    /// across a screen size.
+    public var appBadgeBaseOffset: CGFloat {
+        switch self {
+            case .iPhone12Mini, .iPhone13Mini:
+                return 2.0
+            case .iPhone12, .iPhone13, .iPhone13Pro:
+                return 4.0
+            case .iPhoneXSMax, .iPhoneXr, .iPhone12ProMax, .iPhone13ProMax:
+                return 6.0
+            case .iPhone14Pro, .iPhone14ProZoomed:
+                return 18.0
+            case .iPhone14ProMax, .iPhone14ProMaxZoomed:
+                return 19.0
+            case .iPhone16Pro, .iPhone18Pro:
+                return 21.0
+            case .iPhone16ProMax, .iPhoneAir, .iPhone18ProMax:
+                return 22.0
+            default:
+                return 5.0
+        }
+    }
+    
+    /// `appBadgeBaseOffset` for the screen as it is set up now: Display Zoom maps fewer, larger points onto the same
+    /// panel, and this keeps the badge at the same physical height.
+    public var appBadgeOffset: CGFloat {
+        let scaleFactor = UIScreen.main.scale / UIScreen.main.nativeScale
+        return floorToScreenPixels(self.appBadgeBaseOffset * scaleFactor)
+    }
 }

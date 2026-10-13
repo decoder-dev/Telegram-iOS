@@ -1368,6 +1368,17 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         var titleConstrainedSize = CGSize(width: width - textSideInset * 2.0 - (isPremium || isVerified || isFake ? 20.0 : 0.0), height: .greatestFiniteMagnitude)
         if self.navigationButtonContainer.rightButtonNodes.count > 1 {
             titleConstrainedSize.width -= 60.0
+            // The title is centred, so what hangs over the right-hand pill is half of (text + trailing icons) minus half
+            // the page; keep both inside the space left of the pill. The status, credibility and verified icons sit
+            // after the text and were not counted, so a long name with an emoji status ran under the search button.
+            let rightButtonsReserve: CGFloat = 16.0 + CGFloat(self.navigationButtonContainer.rightButtonNodes.count) * 52.0 + 8.0
+            var trailingIconsWidth: CGFloat = 0.0
+            for iconSize in [self.statusIconSize, self.credibilityIconSize, self.verifiedIconSize] {
+                if let iconSize, iconSize.width > 0.0 {
+                    trailingIconsWidth += 4.0 + iconSize.width
+                }
+            }
+            titleConstrainedSize.width = max(60.0, min(titleConstrainedSize.width, width - rightButtonsReserve * 2.0 - trailingIconsWidth))
         }
         
         let titleNodeLayout = self.titleNode.updateLayout(text: titleStringText, states: [
