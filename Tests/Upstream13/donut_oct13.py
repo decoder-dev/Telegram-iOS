@@ -107,6 +107,114 @@ precondition(bananaWouldExceedByteLimit(total: -1, adding: 0, limit: limit))
 ''')
 
     @unittest.skipUnless(shutil.which('swiftc'), 'Swift unavailable locally; executes in macOS CI')
+    def test_actual_tiktok_page_parser(self):
+        models = read('submodules/BananaLinkDownloader/Sources/BananaLinkDownloadModels.swift')
+        remote_file = models[models.index('struct BananaRemoteFile'):models.index('\n}', models.index('struct BananaRemoteFile')) + 2]
+        parser = read('submodules/BananaLinkDownloader/Sources/BananaTikTokExtractor.swift')
+        errors = read('submodules/BananaLinkDownloader/Sources/BananaLinkDownloadError.swift')
+        execute('''import Foundation
+import CoreFoundation
+''' + remote_file + '\n' + function(models, 'bananaIntValue') + '\n' + errors + '''
+enum BananaTikTokItem: Equatable {
+    case video(BananaRemoteFile, Double)
+    case photos([BananaRemoteFile])
+}
+enum BananaTikTokExtractor {
+    static let rehydrationMarker = "<script id=\\\"__UNIVERSAL_DATA_FOR_REHYDRATION__\\\""
+''' + 'static ' + function(parser, 'parsePage') + '''
+}
+func page(status: Int, item: [String: Any]?) -> String {
+    var detail: [String: Any] = ["statusCode": status]
+    if let item { detail["itemInfo"] = ["itemStruct": item] }
+    let root: [String: Any] = ["__DEFAULT_SCOPE__": ["webapp.video-detail": detail]]
+    let data = try! JSONSerialization.data(withJSONObject: root)
+    return "<script id=\\\"__UNIVERSAL_DATA_FOR_REHYDRATION__\\\">" + String(decoding: data, as: UTF8.self) + "</script>"
+}
+let item: [String: Any] = [
+    "video": ["duration": "24", "bitrateInfo": [
+        ["CodecType": "h265", "Bitrate": 9000, "PlayAddr": ["UrlList": ["https://cdn.example/hevc.mp4"]]],
+        ["CodecType": "h264", "Bitrate": 900, "PlayAddr": ["UrlList": ["https://cdn.example/low.mp4"], "DataSize": "100", "Width": 720, "Height": 1280]],
+        ["CodecType": "H264", "Bitrate": 1800, "PlayAddr": ["UrlList": ["https://cdn.example/high.mp4"], "DataSize": "200", "Width": 1080, "Height": 1920]]
+    ]]
+]
+switch BananaTikTokExtractor.parsePage(page(status: 0, item: item)) {
+case let .success(.video(file, duration)):
+    precondition(file.url.absoluteString == "https://cdn.example/high.mp4")
+    precondition(file.expectedSize == 200 && file.width == 1080 && file.height == 1920 && duration == 24)
+default: preconditionFailure("expected highest-bitrate H.264 video")
+}
+let photos: [String: Any] = ["imagePost": ["images": [["imageURL": ["urlList": ["https://cdn.example/photo.jpg"]], "imageWidth": "1200", "imageHeight": 800]]]]
+switch BananaTikTokExtractor.parsePage(page(status: 0, item: photos)) {
+case let .success(.photos(files)):
+    precondition(files.count == 1 && files[0].width == 1200 && files[0].height == 800)
+default: preconditionFailure("expected photo carousel")
+}
+if case .failure(.tiktokPrivate) = BananaTikTokExtractor.parsePage(page(status: 10222, item: nil)) {} else { preconditionFailure("private status") }
+if case .failure(.tiktokNotFound) = BananaTikTokExtractor.parsePage(page(status: 10204, item: nil)) {} else { preconditionFailure("not-found status") }
+if case .failure(.tiktokNoData) = BananaTikTokExtractor.parsePage("<html>challenge</html>") {} else { preconditionFailure("challenge page") }
+''')
+
+    @unittest.skipUnless(shutil.which('swiftc'), 'Swift unavailable locally; executes in macOS CI')
+    def test_actual_youtube_player_selection(self):
+        models = read('submodules/BananaLinkDownloader/Sources/BananaLinkDownloadModels.swift')
+        remote_file = models[models.index('struct BananaRemoteFile'):models.index('\n}', models.index('struct BananaRemoteFile')) + 2]
+        parser = read('submodules/BananaLinkDownloader/Sources/BananaYouTubeShortsExtractor.swift')
+        errors = read('submodules/BananaLinkDownloader/Sources/BananaLinkDownloadError.swift')
+        methods = '\n'.join('static ' + function(parser, name) for name in ['parsePlayerResponse', 'pickVideo', 'pickAudio'])
+        execute('''import Foundation
+import CoreFoundation
+''' + remote_file + '\n' + function(models, 'bananaIntValue') + '\n' + errors + '''
+struct BananaYouTubeClient: Equatable { let name: String }
+enum BananaYouTubeStreams: Equatable {
+    case adaptive(BananaRemoteFile, BananaRemoteFile)
+    case progressive(BananaRemoteFile)
+}
+struct BananaYouTubeShort {
+    let streams: BananaYouTubeStreams
+    let duration: Double
+    let client: BananaYouTubeClient
+}
+enum BananaYouTubeShortsExtractor {
+    static let maxDuration: Double = 180.0
+''' + methods + '''
+}
+let client = BananaYouTubeClient(name: "fixture")
+func response(_ videoId: String = "abcdefghijk", _ duration: String = "30", _ formats: [[String: Any]]) -> Data {
+    try! JSONSerialization.data(withJSONObject: [
+        "playabilityStatus": ["status": "OK"],
+        "videoDetails": ["videoId": videoId, "lengthSeconds": duration],
+        "streamingData": ["adaptiveFormats": formats]
+    ])
+}
+let formats: [[String: Any]] = [
+    ["mimeType": "video/mp4; codecs=\\\"avc1.640028\\\"", "url": "https://cdn.example/720.mp4", "width": 1280, "height": 720, "bitrate": 900],
+    ["mimeType": "video/mp4; codecs=\\\"avc1.640028\\\"", "url": "https://cdn.example/1080.mp4", "width": 1920, "height": 1080, "bitrate": 1800],
+    ["mimeType": "video/mp4; codecs=\\\"hev1\\\"", "url": "https://cdn.example/hevc.mp4", "width": 3840, "height": 2160, "bitrate": 9900],
+    ["mimeType": "audio/mp4; codecs=\\\"mp4a.40.2\\\"", "url": "https://cdn.example/dub.mp4", "bitrate": 9999, "audioTrack": ["isAutoDubbed": true, "audioIsDefault": true]],
+    ["mimeType": "audio/mp4; codecs=\\\"mp4a.40.2\\\"", "url": "https://cdn.example/drc.mp4", "bitrate": 9998, "isDrc": true, "audioTrack": ["audioIsDefault": true]],
+    ["mimeType": "audio/mp4; codecs=\\\"mp4a.40.2\\\"", "url": "https://cdn.example/original-low.mp4", "bitrate": 128, "audioTrack": ["audioIsDefault": true]],
+    ["mimeType": "audio/mp4; codecs=\\\"mp4a.40.2\\\"", "url": "https://cdn.example/original-high.mp4", "bitrate": 256, "audioTrack": ["audioIsDefault": true]],
+    ["mimeType": "audio/mp4; codecs=\\\"mp4a.40.2\\\"", "url": "https://cdn.example/non-default.mp4", "bitrate": 512]
+]
+switch BananaYouTubeShortsExtractor.parsePlayerResponse(response("abcdefghijk", "30", formats), videoId: "abcdefghijk", client: client) {
+case let .success(short):
+    guard case let .adaptive(video, audio) = short.streams else { preconditionFailure("expected adaptive streams") }
+    precondition(video.url.absoluteString == "https://cdn.example/1080.mp4" && video.expectedSize == nil)
+    precondition(audio.url.absoluteString == "https://cdn.example/original-high.mp4")
+    precondition(short.duration == 30 && short.client == client)
+default: preconditionFailure("expected selected video and original-language audio")
+}
+if case .failure(.youtubeUnavailable) = BananaYouTubeShortsExtractor.parsePlayerResponse(response("differentid", "30", formats), videoId: "abcdefghijk", client: client) {} else { preconditionFailure("video ID mismatch") }
+if case .failure(.youtubeTooLong) = BananaYouTubeShortsExtractor.parsePlayerResponse(response("abcdefghijk", "181", formats), videoId: "abcdefghijk", client: client) {} else { preconditionFailure("long video") }
+let progressive: [[String: Any]] = [["mimeType": "video/mp4; codecs=\\\"avc1.640028\\\"", "url": "https://cdn.example/progressive.mp4", "width": 720, "height": 1280, "bitrate": 500]]
+let progressiveData = try! JSONSerialization.data(withJSONObject: ["playabilityStatus": ["status": "OK"], "videoDetails": ["videoId": "abcdefghijk", "lengthSeconds": "30"], "streamingData": ["formats": progressive]])
+if case let .success(short) = BananaYouTubeShortsExtractor.parsePlayerResponse(progressiveData, videoId: "abcdefghijk", client: client) {
+    guard case let .progressive(file) = short.streams else { preconditionFailure("expected progressive fallback") }
+    precondition(file.url.absoluteString == "https://cdn.example/progressive.mp4")
+} else { preconditionFailure("expected progressive fallback") }
+''')
+
+    @unittest.skipUnless(shutil.which('swiftc'), 'Swift unavailable locally; executes in macOS CI')
     def test_actual_search_filters_and_remote_window(self):
         production = read('submodules/TelegramCore/Sources/MessageSaving/MessageSavingSearch.swift')
         code = 'import Foundation\n' + '''
