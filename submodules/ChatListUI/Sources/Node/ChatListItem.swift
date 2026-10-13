@@ -112,6 +112,30 @@ private func forkShouldHideChatListMessage(accountPeerId: EnginePeer.Id, message
     return result
 }
 
+/// The avatar dot of a contact who is not online: the green dot's shape, in grey. Only drawn when the option is on.
+private func bananaPresenceIcon(_ theme: PresentationTheme, state: RecentStatusOnlineIconState, voiceChat: Bool, offline: Bool) -> UIImage? {
+    if !offline {
+        return PresentationResourcesChatList.recentStatusOnlineIcon(theme, state: state, voiceChat: voiceChat)
+    }
+    let background: UIColor
+    switch state {
+    case .regular:
+        background = theme.chatList.itemBackgroundColor
+    case .highlighted:
+        background = theme.chatList.itemHighlightedBackgroundColor
+    case .pinned:
+        background = theme.chatList.pinnedItemBackgroundColor
+    case .panel:
+        background = theme.actionSheet.itemBackgroundColor.withAlphaComponent(1.0)
+    }
+    return UIGraphicsImageRenderer(size: CGSize(width: 14.0, height: 14.0)).image { context in
+        background.setFill()
+        context.cgContext.fillEllipse(in: CGRect(x: 0.0, y: 0.0, width: 14.0, height: 14.0))
+        UIColor.systemGray.setFill()
+        context.cgContext.fillEllipse(in: CGRect(x: 2.0, y: 2.0, width: 10.0, height: 10.0))
+    }
+}
+
 public enum ChatListItemContent {
     public final class ThreadInfo: Equatable {
         public let id: Int64
@@ -1571,6 +1595,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
     private var customAnimationInProgress: Bool = false
     
     private var onlineIsVoiceChat: Bool = false
+    private var onlineIsOffline: Bool = false
     private var currentOnline: Bool?
     
     override public var canBeSelected: Bool {
@@ -2323,7 +2348,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
             }
             
             if let item = self.item, case .chatList = item.index {
-                self.onlineNode.setImage(PresentationResourcesChatList.recentStatusOnlineIcon(item.presentationData.theme, state: .highlighted, voiceChat: self.onlineIsVoiceChat), color: nil, transition: transition)
+                self.onlineNode.setImage(bananaPresenceIcon(item.presentationData.theme, state: .highlighted, voiceChat: self.onlineIsVoiceChat, offline: self.onlineIsOffline), color: nil, transition: transition)
                 self.starView?.setOutlineColor(item.presentationData.theme.chatList.itemHighlightedBackgroundColor, transition: transition)
             }
         } else {
@@ -2345,10 +2370,10 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                 let onlineIcon: UIImage?
                 let effectiveBackgroundColor: UIColor
                 if item.isPinned {
-                    onlineIcon = PresentationResourcesChatList.recentStatusOnlineIcon(item.presentationData.theme, state: .pinned, voiceChat: self.onlineIsVoiceChat)
+                    onlineIcon = bananaPresenceIcon(item.presentationData.theme, state: .pinned, voiceChat: self.onlineIsVoiceChat, offline: self.onlineIsOffline)
                     effectiveBackgroundColor = item.presentationData.theme.chatList.pinnedItemBackgroundColor
                 } else {
-                    onlineIcon = PresentationResourcesChatList.recentStatusOnlineIcon(item.presentationData.theme, state: .regular, voiceChat: self.onlineIsVoiceChat)
+                    onlineIcon = bananaPresenceIcon(item.presentationData.theme, state: .regular, voiceChat: self.onlineIsVoiceChat, offline: self.onlineIsOffline)
                     effectiveBackgroundColor = item.presentationData.theme.chatList.itemBackgroundColor
                 }
                 self.onlineNode.setImage(onlineIcon, color: nil, transition: transition)
@@ -4095,6 +4120,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
             var online = false
             var animateOnline = false
             var onlineIsVoiceChat = false
+            var onlineIsOffline = false
             
             var isPinned = false
             if case let .chatList(index) = item.index {
@@ -4123,6 +4149,8 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                             let relativeStatus = relativeUserPresenceStatus(updatedPresence, relativeTo: timestamp)
                             if case .online = relativeStatus {
                                 online = true
+                            } else if BananaPresenceDisplay.current.showsOfflineDot {
+                                onlineIsOffline = true
                             }
                             animateOnline = true
                         } else if case let .channel(channel) = renderedPeer.peer, case .chatList = item.index {
@@ -4242,7 +4270,8 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                 peerLeftRevealOptions = []
             }
             
-            let (onlineLayout, onlineApply) = onlineLayout(online, onlineIsVoiceChat)
+            // The dot node is shown for an offline contact as well; the icon decides which colour it is.
+            let (onlineLayout, onlineApply) = onlineLayout(online || onlineIsOffline, onlineIsVoiceChat)
             var animateContent = false
             if let currentItem = currentItem, currentItem.content.chatLocation == item.content.chatLocation {
                 animateContent = true
@@ -4304,6 +4333,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                     strongSelf.cachedChatListQuoteSearchResult = chatListQuoteSearchResult
                     strongSelf.cachedCustomTextEntities = customTextEntities
                     strongSelf.onlineIsVoiceChat = onlineIsVoiceChat
+                    strongSelf.onlineIsOffline = onlineIsOffline
                     
                     var animateOnline = animateOnline
                     if let currentOnline = strongSelf.currentOnline, currentOnline == online {
@@ -4680,13 +4710,13 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                     let onlineIcon: UIImage?
                     let effectiveBackgroundColor: UIColor
                     if strongSelf.reallyHighlighted {
-                        onlineIcon = PresentationResourcesChatList.recentStatusOnlineIcon(item.presentationData.theme, state: .highlighted, voiceChat: onlineIsVoiceChat)
+                        onlineIcon = bananaPresenceIcon(item.presentationData.theme, state: .highlighted, voiceChat: onlineIsVoiceChat, offline: onlineIsOffline)
                         effectiveBackgroundColor = item.presentationData.theme.chatList.itemHighlightedBackgroundColor
                     } else if case let .chatList(index) = item.index, index.pinningIndex != nil {
-                        onlineIcon = PresentationResourcesChatList.recentStatusOnlineIcon(item.presentationData.theme, state: .pinned, voiceChat: onlineIsVoiceChat)
+                        onlineIcon = bananaPresenceIcon(item.presentationData.theme, state: .pinned, voiceChat: onlineIsVoiceChat, offline: onlineIsOffline)
                         effectiveBackgroundColor = item.presentationData.theme.chatList.pinnedItemBackgroundColor
                     } else {
-                        onlineIcon = PresentationResourcesChatList.recentStatusOnlineIcon(item.presentationData.theme, state: .regular, voiceChat: onlineIsVoiceChat)
+                        onlineIcon = bananaPresenceIcon(item.presentationData.theme, state: .regular, voiceChat: onlineIsVoiceChat, offline: onlineIsOffline)
                         effectiveBackgroundColor = item.presentationData.theme.chatList.itemBackgroundColor
                     }
                     strongSelf.onlineNode.setImage(onlineIcon, color: item.presentationData.theme.list.itemCheckColors.foregroundColor, transition: .immediate)

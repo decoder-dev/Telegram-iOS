@@ -858,7 +858,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [2000, 2001, 2002, 2003, 2004]
         ]),
         (.profile, [
-            [55, 56, 1543, 58],
+            [55, 56, 1551, 1552, 1543, 58],
             [1603, 1500, 1501, 1541, 57],
             [1604, 140, 141]
         ])
@@ -1897,6 +1897,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
         entries = [
             .showDC(settings.showDC),
             .showProfileId(settings.showProfileId),
+            .appearanceToggle(1551, russian ? "Точное время «был(а) в сети»" : "Exact last seen time", settings.exactLastSeen, \.exactLastSeen),
+            .appearanceToggle(1552, russian ? "Серая точка у тех, кто не в сети" : "Grey dot for offline contacts", settings.showsOfflineDot, \.showsOfflineDot),
             .appearanceToggle(1543, russian ? "Исчезнувшие подарки" : "Disappeared gifts", settings.showDisappearedGifts, \.showDisappearedGifts),
             .privacyFooter,
             .designHeader(1603, russian ? "Эффекты" : "Effects"),

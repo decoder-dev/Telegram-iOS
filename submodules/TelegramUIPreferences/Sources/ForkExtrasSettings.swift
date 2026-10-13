@@ -144,6 +144,9 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var chatListHidesSearch: Bool
     /// Fork (Donutgram): a poll shows its results before the viewer has voted and can still be voted in.
     public var pollResultsBeforeVoting: Bool
+    /// Fork (Donutgram): last seen shows the time of day instead of "N minutes ago", and offline contacts get a grey dot.
+    public var exactLastSeen: Bool
+    public var showsOfflineDot: Bool
     /// Hide paid (star) reactions from messages and the reaction picker.
     public var hidePaidReactions: Bool
     /// Hide the "via @bot" label on messages sent through inline bots.
@@ -229,7 +232,9 @@ public struct ForkExtrasSettings: Codable, Equatable {
             chatListHidesEmojiStatus: false,
             chatListCentersTitle: false,
             chatListHidesSearch: false,
-            pollResultsBeforeVoting: false
+            pollResultsBeforeVoting: false,
+            exactLastSeen: false,
+            showsOfflineDot: false
         )
     }
 
@@ -300,7 +305,9 @@ public struct ForkExtrasSettings: Codable, Equatable {
         chatListHidesEmojiStatus: Bool = false,
         chatListCentersTitle: Bool = false,
         chatListHidesSearch: Bool = false,
-        pollResultsBeforeVoting: Bool = false
+        pollResultsBeforeVoting: Bool = false,
+        exactLastSeen: Bool = false,
+        showsOfflineDot: Bool = false
     ) {
         self.wideTabBar = false
         self.integratedTabSearch = false
@@ -395,6 +402,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.chatListCentersTitle = chatListCentersTitle
         self.chatListHidesSearch = chatListHidesSearch
         self.pollResultsBeforeVoting = pollResultsBeforeVoting
+        self.exactLastSeen = exactLastSeen
+        self.showsOfflineDot = showsOfflineDot
     }
 
     public init(from decoder: Decoder) throws {
@@ -494,6 +503,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.chatListCentersTitle = try container.decodeIfPresent(Bool.self, forKey: "chatListCentersTitle") ?? false
         self.chatListHidesSearch = try container.decodeIfPresent(Bool.self, forKey: "chatListHidesSearch") ?? false
         self.pollResultsBeforeVoting = try container.decodeIfPresent(Bool.self, forKey: "pollResultsBeforeVoting") ?? false
+        self.exactLastSeen = try container.decodeIfPresent(Bool.self, forKey: "exactLastSeen") ?? false
+        self.showsOfflineDot = try container.decodeIfPresent(Bool.self, forKey: "showsOfflineDot") ?? false
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -593,6 +604,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.chatListCentersTitle, forKey: "chatListCentersTitle")
         try container.encode(self.chatListHidesSearch, forKey: "chatListHidesSearch")
         try container.encode(self.pollResultsBeforeVoting, forKey: "pollResultsBeforeVoting")
+        try container.encode(self.exactLastSeen, forKey: "exactLastSeen")
+        try container.encode(self.showsOfflineDot, forKey: "showsOfflineDot")
     }
 
     /// Whether message/reaction read receipts should be suppressed right now.

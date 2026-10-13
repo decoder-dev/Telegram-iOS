@@ -428,7 +428,7 @@ class ForkIntegration(unittest.TestCase):
         self.assertIn('deleteDisappearedGift: (() -> Void)? = nil', sheet)
         controller = read('submodules/SettingsUI/Sources/ForkExtrasController.swift')
         self.assertIn('.appearanceToggle(1543,', controller)
-        self.assertIn('[55, 56, 1543, 58]', controller)
+        self.assertIn('[55, 56, 1551, 1552, 1543, 58]', controller)
         shared = read('submodules/TelegramUI/Sources/SharedAccountContext.swift')
         self.assertIn('BananaSpyStorage.trackDisappearedGifts = settings.showDisappearedGifts', shared)
 
@@ -462,6 +462,17 @@ class ForkIntegration(unittest.TestCase):
         self.assertEqual(poll.count('_ allowVotingWithResults: Bool, _ constrainedWidth: CGFloat'), 3)
         self.assertIn('[1508, 1509, 54, 1521, 1542, 1550, 1519]', read('submodules/SettingsUI/Sources/ForkExtrasController.swift'))
         self.assertIn('pollResultsBeforeVoting: settings.pollResultsBeforeVoting', read('submodules/TelegramUI/Sources/ChatHistoryListNode.swift'))
+
+
+    def test_presence_display_options(self):
+        display = read('submodules/TelegramPresentationData/Sources/BananaPresenceDisplay.swift')
+        self.assertIn('exactLastSeen', display)
+        formatting = read('submodules/TelegramStringFormatting/Sources/PresenceStrings.swift')
+        self.assertIn('let expanded = expanded || BananaPresenceDisplay.current.exactLastSeen', formatting)
+        item = read('submodules/ChatListUI/Sources/Node/ChatListItem.swift')
+        self.assertIn('BananaPresenceDisplay.current.showsOfflineDot', item)
+        self.assertEqual(item.count('bananaPresenceIcon('), 7)
+        self.assertIn('[55, 56, 1551, 1552, 1543, 58]', read('submodules/SettingsUI/Sources/ForkExtrasController.swift'))
 
 
 if __name__ == '__main__':

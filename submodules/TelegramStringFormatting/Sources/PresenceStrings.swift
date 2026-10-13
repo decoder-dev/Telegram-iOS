@@ -572,6 +572,7 @@ public func stringForStoryActivityTimestamp(strings: PresentationStrings, dateTi
 }
 
 public func stringAndActivityForUserPresence(strings: PresentationStrings, dateTimeFormat: PresentationDateTimeFormat, presence: EnginePeer.Presence, relativeTo timestamp: Int32, expanded: Bool = false) -> (String, Bool) {
+    let expanded = expanded || BananaPresenceDisplay.current.exactLastSeen
     switch presence.status {
     case let .present(statusTimestamp):
         if statusTimestamp >= timestamp {
