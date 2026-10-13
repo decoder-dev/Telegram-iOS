@@ -110,4 +110,39 @@ class ThemeTests(unittest.TestCase):
                     self.assertEqual(index,len(group)-1,'footer %d must close its section, not sit between switches'%value)
         self.assertIn([1507],groups,'Tab preview is a section of its own')
         self.assertTrue(any({1500,1501}.issubset(group) for group in groups))
+    def test_every_text_and_accent_pair_in_both_themes_clears_aa(self):
+        source = (ROOT/'submodules/TelegramPresentationData/Sources/MakePresentationTheme.swift').read_text(encoding='utf-8')
+        palette = {name: (int(dark,16), int(light,16)) for name,dark,light in re.findall(r'let (\w+) = UIColor\(rgb: dark \? (0x[0-9A-F]+) : (0x[0-9A-F]+)\)',source)}
+        match = re.search(r'let outgoingBubbleColors: \[UInt32\] = dark \? \[(0x[0-9A-F]+), (0x[0-9A-F]+)\] : \[(0x[0-9A-F]+), (0x[0-9A-F]+)\]', source)
+        outgoing = [int(v,16) for v in match.groups()]
+        accent_on_outgoing = int(re.search(r'let outgoingAccent: UIColor\? = dark \? nil : UIColor\(rgb: (0x[0-9A-F]+)\)', source).group(1),16)
+        def ratio(a, b):
+            low, high = sorted((luminance(a), luminance(b)))
+            return (high + .05) / (low + .05)
+        for mode in (0, 1):
+            for text in ('foreground', 'secondary', 'accent'):
+                for fill in ('background', 'surface', 'raisedSurface', 'searchBar', 'highlighted', 'pinnedRow'):
+                    self.assertGreaterEqual(ratio(palette[text][mode], palette[fill][mode]), 4.5, (mode, text, fill))
+        # Time stamps and links inside Cream's outgoing bubble.
+        for fill in outgoing[2:4]:
+            self.assertGreaterEqual(ratio(palette['secondary'][1], fill), 4.5, hex(fill))
+            self.assertGreaterEqual(ratio(accent_on_outgoing, fill), 4.5, hex(fill))
+            self.assertGreaterEqual(ratio(palette['foreground'][1], fill), 7.0, hex(fill))
+        # Graphite's outgoing bubble carries the foreground text.
+        for fill in outgoing[0:2]:
+            self.assertGreaterEqual(ratio(palette['foreground'][0], fill), 4.5, hex(fill))
+        for mode in (0, 1):
+            # Hairlines stay visible but quiet; chevrons and disabled text stay discoverable without competing.
+            self.assertGreaterEqual(ratio(palette['separator'][mode], palette['surface'][mode]), 1.15)
+            self.assertLessEqual(ratio(palette['separator'][mode], palette['surface'][mode]), 1.6)
+            self.assertGreaterEqual(ratio(palette['disabled'][mode], palette['surface'][mode]), 2.5 if mode else 3.0)
+            self.assertGreaterEqual(ratio(palette['disclosure'][mode], palette['surface'][mode]), 1.9)
+    def test_pinned_rows_stay_subtle(self):
+        source = (ROOT/'submodules/TelegramPresentationData/Sources/MakePresentationTheme.swift').read_text(encoding='utf-8')
+        palette = {name: (int(dark,16), int(light,16)) for name,dark,light in re.findall(r'let (\w+) = UIColor\(rgb: dark \? (0x[0-9A-F]+) : (0x[0-9A-F]+)\)',source)}
+        for mode in (0, 1):
+            low, high = sorted((luminance(palette['pinnedRow'][mode]), luminance(palette['surface'][mode])))
+            # Barely different from the ordinary row, yet not identical.
+            self.assertLess((high + .05) / (low + .05), 1.1)
+            self.assertGreater(high - low, 0)
 if __name__=='__main__': unittest.main()
