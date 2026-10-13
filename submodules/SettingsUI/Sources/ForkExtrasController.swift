@@ -822,7 +822,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     private static let regroupedCategories: [(focus: ForkExtrasControllerFocus, groups: [[Int32]])] = [
         (.chatList, [
             [1602, 50, 51, 53],
-            [1601, 52, 1499],
+            [1601, 52, 1499, 1546, 1547],
             [59, 60],
             [61, 62],
             [1512]
@@ -854,7 +854,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         (.media, [
             [1608, 80, 84],
             [83],
-            [1609, 1515, 1516, 1612],
+            [1609, 1515, 1516, 1544, 1545, 1612],
             [2000, 2001, 2002, 2003, 2004]
         ]),
         (.profile, [
@@ -1802,6 +1802,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .designHeader(1601, russian ? "Папки" : "Folders"),
             .compactFolderNames(settings.compactFolderNames),
             .appearanceToggle(1499, ForkExtrasLocalizedString.string(forKey: "ForkExtras.BottomFolders"), settings.bottomChatFoldersEnabled, \.bottomChatFoldersEnabled),
+            .appearanceToggle(1546, russian ? "Скрыть «Соединение…» в заголовке" : "Hide Connecting… in the title", settings.chatListHidesConnectionStatus, \.chatListHidesConnectionStatus),
+            .appearanceToggle(1547, russian ? "Скрыть эмодзи-статус в заголовке" : "Hide emoji status in the title", settings.chatListHidesEmojiStatus, \.chatListHidesEmojiStatus),
             .hideAllChats(settings.hideAllChats),
             .hideAllChatsFooter,
             .rememberLastFolder(settings.rememberLastFolder),
@@ -1879,6 +1881,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .designHeader(1609, russian ? "Голосовые и кружки" : "Voice and round videos"),
             .appearanceToggle(1515, russian ? "Останавливать после голосового" : "Stop after a voice message", settings.stopAfterVoice, \.stopAfterVoice),
             .appearanceToggle(1516, russian ? "Останавливать после кружка" : "Stop after a round video", settings.stopAfterRoundVideo, \.stopAfterRoundVideo),
+            .appearanceToggle(1544, russian ? "Кружок: задняя камера" : "Round video: rear camera", settings.roundVideoStartsWithRear, \.roundVideoStartsWithRear),
+            .appearanceToggle(1545, russian ? "Кружок: помнить камеру" : "Round video: remember camera", settings.roundVideoRemembersCamera, \.roundVideoRemembersCamera),
             .designFooter(1612, russian ? "Музыка как голосовое: откройте меню трека в разделе «Вложения → Музыка»." : "To send music as a voice message, open the track's menu in Attach → Music."),
             .audioHeader,
             .musicPolicy(2001, russian ? "Пауза музыки при записи видео" : "Pause music when recording video", mediaInputSettings.pauseMusicOnRecording),

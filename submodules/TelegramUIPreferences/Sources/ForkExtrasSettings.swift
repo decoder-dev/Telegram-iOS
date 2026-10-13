@@ -134,6 +134,12 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var hideStickerStatus: Bool
     /// Fork (Donutgram): remember another profile's gifts and show the ones that later disappeared (BananaSpyStorage).
     public var showDisappearedGifts: Bool
+    /// Fork (Donutgram): round video messages open with the rear camera, or with the one the last one used.
+    public var roundVideoStartsWithRear: Bool
+    public var roundVideoRemembersCamera: Bool
+    /// Fork (Donutgram): the chat list title is never replaced by "Connecting…", and carries no emoji status.
+    public var chatListHidesConnectionStatus: Bool
+    public var chatListHidesEmojiStatus: Bool
     /// Hide paid (star) reactions from messages and the reaction picker.
     public var hidePaidReactions: Bool
     /// Hide the "via @bot" label on messages sent through inline bots.
@@ -212,7 +218,11 @@ public struct ForkExtrasSettings: Codable, Equatable {
             outgoingPhotoQuality: 0,
             streamerMode: false,
             hideStickerStatus: false,
-            showDisappearedGifts: false
+            showDisappearedGifts: false,
+            roundVideoStartsWithRear: false,
+            roundVideoRemembersCamera: false,
+            chatListHidesConnectionStatus: false,
+            chatListHidesEmojiStatus: false
         )
     }
 
@@ -276,7 +286,11 @@ public struct ForkExtrasSettings: Codable, Equatable {
         outgoingPhotoQuality: Int32 = 0,
         streamerMode: Bool = false,
         hideStickerStatus: Bool = false,
-        showDisappearedGifts: Bool = false
+        showDisappearedGifts: Bool = false,
+        roundVideoStartsWithRear: Bool = false,
+        roundVideoRemembersCamera: Bool = false,
+        chatListHidesConnectionStatus: Bool = false,
+        chatListHidesEmojiStatus: Bool = false
     ) {
         self.wideTabBar = false
         self.integratedTabSearch = false
@@ -364,6 +378,10 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.streamerMode = streamerMode
         self.hideStickerStatus = hideStickerStatus
         self.showDisappearedGifts = showDisappearedGifts
+        self.roundVideoStartsWithRear = roundVideoStartsWithRear
+        self.roundVideoRemembersCamera = roundVideoRemembersCamera
+        self.chatListHidesConnectionStatus = chatListHidesConnectionStatus
+        self.chatListHidesEmojiStatus = chatListHidesEmojiStatus
     }
 
     public init(from decoder: Decoder) throws {
@@ -456,6 +474,10 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.streamerMode = try container.decodeIfPresent(Bool.self, forKey: "streamerMode") ?? false
         self.hideStickerStatus = try container.decodeIfPresent(Bool.self, forKey: "hideStickerStatus") ?? false
         self.showDisappearedGifts = try container.decodeIfPresent(Bool.self, forKey: "showDisappearedGifts") ?? false
+        self.roundVideoStartsWithRear = try container.decodeIfPresent(Bool.self, forKey: "roundVideoStartsWithRear") ?? false
+        self.roundVideoRemembersCamera = try container.decodeIfPresent(Bool.self, forKey: "roundVideoRemembersCamera") ?? false
+        self.chatListHidesConnectionStatus = try container.decodeIfPresent(Bool.self, forKey: "chatListHidesConnectionStatus") ?? false
+        self.chatListHidesEmojiStatus = try container.decodeIfPresent(Bool.self, forKey: "chatListHidesEmojiStatus") ?? false
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -548,6 +570,10 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.streamerMode, forKey: "streamerMode")
         try container.encode(self.hideStickerStatus, forKey: "hideStickerStatus")
         try container.encode(self.showDisappearedGifts, forKey: "showDisappearedGifts")
+        try container.encode(self.roundVideoStartsWithRear, forKey: "roundVideoStartsWithRear")
+        try container.encode(self.roundVideoRemembersCamera, forKey: "roundVideoRemembersCamera")
+        try container.encode(self.chatListHidesConnectionStatus, forKey: "chatListHidesConnectionStatus")
+        try container.encode(self.chatListHidesEmojiStatus, forKey: "chatListHidesEmojiStatus")
     }
 
     /// Whether message/reaction read receipts should be suppressed right now.

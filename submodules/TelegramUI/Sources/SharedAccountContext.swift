@@ -1223,6 +1223,9 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         }
         BananaForwardCountSettings.enabled = settings.showChannelForwardCount
         BananaSpyStorage.trackDisappearedGifts = settings.showDisappearedGifts
+        BananaRoundVideoCamera.startsWithRear = settings.roundVideoStartsWithRear
+        BananaRoundVideoCamera.remembersLast = settings.roundVideoRemembersCamera
+        BananaChatListHeader.current = BananaChatListHeader(hidesConnectionStatus: settings.chatListHidesConnectionStatus, hidesEmojiStatus: settings.chatListHidesEmojiStatus)
         ForkMessageVisibility.update(ForkMessageVisibility.State(hidePaidReactions: settings.hidePaidReactions, hideViaBot: settings.hideViaBot, removeLinkPreviews: settings.removeLinkPreviews, hideBirthdayNotifications: settings.hideBirthdayNotifications, hideBotAutomation: settings.hideBotAutomation, showPinnedWithBot: settings.showPinnedWithBot, stopAfterVoice: settings.stopAfterVoice, stopAfterRoundVideo: settings.stopAfterRoundVideo))
         ForkAyuForwardSettings.enabled = settings.ayuForward
         ForkBypassDownloadRestrictionsSettings.enabled = settings.bypassDownloadRestrictions

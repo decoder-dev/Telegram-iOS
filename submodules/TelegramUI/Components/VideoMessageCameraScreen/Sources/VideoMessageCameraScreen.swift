@@ -1314,15 +1314,16 @@ public class VideoMessageCameraScreen: ViewController {
             self.previewBlurView = BlurView()
             self.previewBlurView.isUserInteractionEnabled = false
             
+            let opensWithRear = BananaRoundVideoCamera.opensWithRear
             if isDualCameraEnabled {
                 self.mainPreviewView.resetPlaceholder(front: false)
                 self.additionalPreviewView.resetPlaceholder(front: true)
             } else {
-                self.mainPreviewView.resetPlaceholder(front: true)
+                self.mainPreviewView.resetPlaceholder(front: !opensWithRear)
             }
             
             self.cameraState = CameraState(
-                position: .front,
+                position: opensWithRear ? .back : .front,
                 flashMode: .off,
                 flashModeDidChange: false,
                 flashTint: .white,
@@ -1458,6 +1459,7 @@ public class VideoMessageCameraScreen: ViewController {
                 }
                 let previousPosition = self.cameraState.position
                 self.cameraState = self.cameraState.updatedPosition(position).updatedFlashMode(flashMode)
+                BananaRoundVideoCamera.noteCameraInUse(isRear: position == .back)
                 if self.zoomPosition != position {
                     self.zoomPosition = position
                     self.resetZoomForVisibleCamera()

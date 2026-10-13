@@ -433,5 +433,27 @@ class ForkIntegration(unittest.TestCase):
         self.assertIn('BananaSpyStorage.trackDisappearedGifts = settings.showDisappearedGifts', shared)
 
 
+    def test_round_video_camera_choice(self):
+        camera = read('submodules/TelegramCore/Sources/Arena/BananaRoundVideoCamera.swift')
+        self.assertIn('public static var opensWithRear: Bool', camera)
+        screen = read('submodules/TelegramUI/Components/VideoMessageCameraScreen/Sources/VideoMessageCameraScreen.swift')
+        self.assertIn('position: opensWithRear ? .back : .front,', screen)
+        self.assertIn('BananaRoundVideoCamera.noteCameraInUse(isRear: position == .back)', screen)
+        controller = read('submodules/SettingsUI/Sources/ForkExtrasController.swift')
+        self.assertIn('[1609, 1515, 1516, 1544, 1545, 1612]', controller)
+        shared = read('submodules/TelegramUI/Sources/SharedAccountContext.swift')
+        self.assertIn('BananaRoundVideoCamera.remembersLast = settings.roundVideoRemembersCamera', shared)
+
+
+    def test_chat_list_header_options(self):
+        header = read('submodules/TelegramPresentationData/Sources/BananaChatListHeader.swift')
+        self.assertIn('hidesConnectionStatus', header)
+        controller = read('submodules/ChatListUI/Sources/ChatListController.swift')
+        self.assertIn('BananaChatListHeader.current.hidesConnectionStatus', controller)
+        self.assertIn('BananaChatListHeader.didChangeNotification', controller)
+        self.assertIn('[1601, 52, 1499, 1546, 1547]', read('submodules/SettingsUI/Sources/ForkExtrasController.swift'))
+        self.assertIn('BananaChatListHeader.current = BananaChatListHeader(', read('submodules/TelegramUI/Sources/SharedAccountContext.swift'))
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -7020,7 +7020,16 @@ private final class ChatListLocationContext {
             accountPeer = .single(nil)
         }
 
-        let appearanceChanges: Signal<Int, NoError> = .single(0)
+        // The header options change the title without any status changing, so they re-run the title.
+        let appearanceChanges: Signal<Int, NoError> = Signal { subscriber in
+            subscriber.putNext(0)
+            let observer = NotificationCenter.default.addObserver(forName: BananaChatListHeader.didChangeNotification, object: nil, queue: .main, using: { _ in
+                subscriber.putNext(0)
+            })
+            return ActionDisposable {
+                NotificationCenter.default.removeObserver(observer)
+            }
+        }
         let appearanceState = combineLatest(peerStatus, accountPeer, appearanceChanges)
         
         let networkState: Signal<AccountNetworkState, NoError>
@@ -7510,6 +7519,13 @@ private final class ChatListLocationContext {
                 self.proxyButton = nil
             }
             
+            if isRoot && BananaChatListHeader.current.hidesConnectionStatus {
+                titleContent.text = defaultTitle
+                titleContent.activity = false
+            }
+            if isRoot && BananaChatListHeader.current.hidesEmojiStatus {
+                titleContent.peerStatus = nil
+            }
             self.chatListTitle = titleContent
             
             if case .chatList(.root) = self.location, checkProxy {
