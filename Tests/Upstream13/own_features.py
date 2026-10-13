@@ -392,5 +392,23 @@ class ForkIntegration(unittest.TestCase):
         self.assertNotIn('Task.sleep(nanoseconds: 5_000_000_000)\n        guard !Task.isCancelled,\n              !self.isShutdown', wallet)
 
 
+    def test_snow_is_a_wired_extras_toggle(self):
+        settings = read('submodules/TelegramUIPreferences/Sources/ForkExtrasSettings.swift')
+        self.assertEqual(settings.count('snowEnabled'), 6)
+        self.assertIn('?? false', settings[settings.index('decodeIfPresent(Bool.self, forKey: "snowEnabled")'):][:120])
+        controller = read('submodules/SettingsUI/Sources/ForkExtrasController.swift')
+        self.assertIn('.appearanceToggle(1541,', controller)
+        self.assertIn('1541: 1501.5', controller)
+        # The stable id must stay unique: 1540 is the Appearance hub.
+        self.assertEqual(controller.count('.appearanceToggle(1541,'), 1)
+        shared = read('submodules/TelegramUI/Sources/SharedAccountContext.swift')
+        self.assertIn('BananaSnowSettings.enabled = settings.snowEnabled', shared)
+        view = read('submodules/TelegramPresentationData/Sources/BananaSnowView.swift')
+        self.assertIn('BananaSnowSettings.enabled', view)
+        self.assertIn('self.isUserInteractionEnabled = false', view)
+        self.assertIn('self.updateBananaSnow(size: layout.size)', read('submodules/ChatListUI/Sources/ChatListController.swift'))
+        self.assertIn('self.updateBananaSnow(size: layout.size)', read('submodules/TelegramUI/Sources/ChatControllerNode.swift'))
+
+
 if __name__ == '__main__':
     unittest.main()

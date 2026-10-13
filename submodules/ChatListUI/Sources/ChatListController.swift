@@ -93,6 +93,26 @@ private final class ContextControllerContentSourceImpl: ContextControllerContent
 }
 
 public class ChatListControllerImpl: TelegramBaseController, ChatListController {
+    private var bananaSnowView: BananaSnowView?
+    
+    /// Snow over the whole list, header included. Installed on the first layout, on top of what exists by then;
+    /// `BananaSnowView` follows the Extras toggle itself and stops while the list is off screen.
+    private func updateBananaSnow(size: CGSize) {
+        if self.previewing {
+            return
+        }
+        let snowView: BananaSnowView
+        if let current = self.bananaSnowView {
+            snowView = current
+        } else {
+            snowView = BananaSnowView()
+            self.view.addSubview(snowView)
+            self.bananaSnowView = snowView
+        }
+        snowView.frame = CGRect(origin: CGPoint(), size: size)
+        snowView.update(isDark: self.presentationData.theme.overallDarkAppearance)
+    }
+    
     private var validLayout: ContainerViewLayout?
     
     public let context: AccountContext
@@ -3261,6 +3281,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
         self.validLayout = layout
         
         self.updateLayout(layout: layout, transition: transition)
+        self.updateBananaSnow(size: layout.size)
         if layout.inVoiceOver != wasInVoiceOver {
             self.chatListDisplayNode.scrollToTop()
         }

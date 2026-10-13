@@ -1189,6 +1189,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         7: 3.3,        // Tab bar follows Chat list and folders.
         8: 4.3,        // Calls and audio follows Messages and composer.
         23: 4.6,       // Profile and effects follows Calls and audio.
+        1541: 1501.5,  // Snow follows Reaction glow.
         1540: 4.7,     // Appearance follows Profile and effects on the Extras hub.
         // 146 now belongs to Network; its original stable order is appropriate there.
         147: 133.3,     // Show 18+ Content, after Hide Blocked Messages
@@ -1893,6 +1894,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .designHeader(1603, russian ? "Эффекты" : "Effects"),
             .appearanceToggle(1500, ForkExtrasLocalizedString.string(forKey: "ForkExtras.AvatarGlow"), settings.avatarGlowEnabled, \.avatarGlowEnabled),
             .appearanceToggle(1501, ForkExtrasLocalizedString.string(forKey: "ForkExtras.ReactionGlow"), settings.reactionGlowEnabled, \.reactionGlowEnabled),
+            .appearanceToggle(1541, russian ? "Снег" : "Snow", settings.snowEnabled, \.snowEnabled),
             .accentSaturation(settings.accentColorSaturation),
             .designHeader(1604, russian ? "Локальные функции Premium" : "Local Premium features"),
             .localPremium(settings.localPremium),

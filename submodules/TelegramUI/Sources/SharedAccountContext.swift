@@ -1218,6 +1218,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         if applyAppearance {
             BananaTabBarLayout.current = BananaTabBarLayout(hidden: settings.hideTabBar, contacts: settings.showContactsTab, calls: true, wide: settings.wideTabBar, integratedSearch: settings.integratedTabSearch, searchOnLeft: settings.tabSearchOnLeft)
             ArenaSettings.shared.avatarGlow = settings.avatarGlowEnabled
+            BananaSnowSettings.enabled = settings.snowEnabled
             ArenaSettings.shared.reactionGlow = settings.reactionGlowEnabled
         }
         BananaForwardCountSettings.enabled = settings.showChannelForwardCount

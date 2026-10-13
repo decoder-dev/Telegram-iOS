@@ -207,6 +207,7 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
     let contentContainerNode: ChatNodeContainer
     let contentDimNode: ASDisplayNode
     let backgroundNode: WallpaperBackgroundNode
+    private var bananaSnowView: BananaSnowView?
     var historyNode: ChatHistoryListNodeImpl
     var blurredHistoryNode: ASImageNode?
     let historyNodeContainer: HistoryNodeContainer
@@ -1228,6 +1229,24 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
         self.wrappingNode.update(size: layout.size, cornerRadius: layout.deviceMetrics.screenCornerRadius, transition: .immediate)
     }
     
+    /// Snow over the wallpaper, behind the messages and their transitions: white over a dark wallpaper, blue over a
+    /// light one (the theme decides until the wallpaper is measured).
+    private func updateBananaSnow(size: CGSize) {
+        guard case .standard(.default) = self.chatPresentationInterfaceState.mode else {
+            return
+        }
+        let snowView: BananaSnowView
+        if let current = self.bananaSnowView {
+            snowView = current
+        } else {
+            snowView = BananaSnowView()
+            self.contentContainerNode.contentNode.view.insertSubview(snowView, aboveSubview: self.backgroundNode.view)
+            self.bananaSnowView = snowView
+        }
+        snowView.frame = CGRect(origin: CGPoint(), size: size)
+        snowView.update(isDark: self.backgroundNode.contentStats?.isDark ?? self.chatPresentationInterfaceState.theme.overallDarkAppearance)
+    }
+    
     func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, transition protoTransition: ContainedViewLayoutTransition, listViewTransaction: (ListViewUpdateSizeAndInsets, CGFloat, Bool, @escaping () -> Void) -> Void, updateExtraNavigationBarBackgroundHeight: (CGFloat, CGFloat, CGSize?, ContainedViewLayoutTransition) -> Void) {
         let transition: ContainedViewLayoutTransition
         if let _ = self.scheduledAnimateInAsOverlayFromNode {
@@ -1237,6 +1256,7 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
         }
         
         transition.updateFrame(node: self.wrappingNode, frame: CGRect(origin: CGPoint(), size: layout.size))
+        self.updateBananaSnow(size: layout.size)
         self.wrappingNode.update(size: layout.size, cornerRadius: layout.deviceMetrics.screenCornerRadius, transition: ComponentTransition(transition))
         
         if let statusBar = self.statusBar {

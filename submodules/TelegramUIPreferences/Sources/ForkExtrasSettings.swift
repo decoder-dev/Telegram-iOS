@@ -27,6 +27,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var tabSearchOnLeft: Bool
     public var bottomChatFoldersEnabled: Bool
     public var avatarGlowEnabled: Bool
+    public var snowEnabled: Bool
     public var showChannelForwardCount: Bool
     public var reactionGlowEnabled: Bool
     public var showContactsTab: Bool
@@ -274,6 +275,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.tabSearchOnLeft = false
         self.bottomChatFoldersEnabled = false
         self.avatarGlowEnabled = true
+        self.snowEnabled = false
         self.showChannelForwardCount = false
         self.reactionGlowEnabled = false
         self.showContactsTab = true
@@ -378,6 +380,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.sendBannedGifsAsVideo = try container.decodeIfPresent(Bool.self, forKey: "sendBannedGifsAsVideo") ?? false
         self.showSensitiveContent = try container.decodeIfPresent(Bool.self, forKey: "showSensitiveContent") ?? false
         self.avatarGlowEnabled = try container.decodeIfPresent(Bool.self, forKey: "avatarGlowEnabled") ?? true
+        self.snowEnabled = try container.decodeIfPresent(Bool.self, forKey: "snowEnabled") ?? false
         self.showChannelForwardCount = try container.decodeIfPresent(Bool.self, forKey: "showChannelForwardCount") ?? false
         self.reactionGlowEnabled = try container.decodeIfPresent(Bool.self, forKey: "reactionGlowEnabled") ?? false
         self.showContactsTab = try container.decodeIfPresent(Bool.self, forKey: "showContactsTab") ?? true
@@ -468,6 +471,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.sendBannedGifsAsVideo, forKey: "sendBannedGifsAsVideo")
         try container.encode(self.showSensitiveContent, forKey: "showSensitiveContent")
         try container.encode(self.avatarGlowEnabled, forKey: "avatarGlowEnabled")
+        try container.encode(self.snowEnabled, forKey: "snowEnabled")
         try container.encode(self.showChannelForwardCount, forKey: "showChannelForwardCount")
         try container.encode(self.reactionGlowEnabled, forKey: "reactionGlowEnabled")
         try container.encode(self.showContactsTab, forKey: "showContactsTab")
