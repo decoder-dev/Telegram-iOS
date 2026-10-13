@@ -592,7 +592,7 @@ class ForkIntegration(unittest.TestCase):
         # The row sits directly under id, before dc, and never shows for the account itself or a bot.
         self.assertLess(items.index('fork_profile_id'), items.index('fork_mutual_contact'))
         self.assertLess(items.index('fork_mutual_contact'), items.index('fork_dc'))
-        self.assertIn('user.id != context.account.peerId, user.botInfo == nil', items)
+        self.assertIn('case let .user(user)? = data.peer, user.id != context.account.peerId, user.botInfo == nil', items)
         self.assertIn('user.flags.contains(.mutualContact)', items)
         menu = read('submodules/TelegramUI/Sources/Chat/ChatControllerOpenMessageContextMenu.swift')
         self.assertIn('if let selectionState = self.presentationInterfaceState.interfaceState.selectionState {', menu)
