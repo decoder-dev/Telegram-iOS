@@ -852,7 +852,7 @@ static av_cold int TX_NAME(ff_tx_fft_init_naive_small)(AVTXContext *s,
 {
     const double phase = s->inv ? 2.0*M_PI/len : -2.0*M_PI/len;
 
-    if (!(s->exp = av_malloc(len*len*sizeof(*s->exp))))
+    if (!(s->exp = av_malloc((size_t)len*len*sizeof(*s->exp))))
         return AVERROR(ENOMEM);
 
     for (int i = 0; i < len; i++) {

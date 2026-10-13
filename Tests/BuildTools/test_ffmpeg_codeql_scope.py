@@ -16,7 +16,7 @@ class FFmpegCodeQLScope(unittest.TestCase):
         build = (ROOT / "submodules/ffmpeg/Sources/FFMpeg/build-ffmpeg-bazel.sh").read_text(encoding="utf-8")
         self.assertIn("--disable-everything", build)
         ignored_paths = "\n".join(line for line in config.splitlines() if line.startswith("  - "))
-        for ignored in ("libavfilter", "libavcodec/mips", "libavcodec/loongarch", "asfcrypt.c", "rtmpcrypt.c", "omadec.c"):
+        for ignored in ("libavfilter", "libswscale", "libavdevice", "libavformat/yop.c", "libavcodec/exr.c", "libavcodec/mips", "libavcodec/loongarch", "asfcrypt.c", "rtmpcrypt.c", "omadec.c"):
             self.assertIn(ignored, ignored_paths)
         # Only the decoders the app enables stay in scope.
         for kept in ("h264pred_template.c", "exif.c"):
@@ -26,6 +26,10 @@ class FFmpegCodeQLScope(unittest.TestCase):
     def test_loop_counters_cover_their_bounds(self):
         exif = (FFMPEG / "libavcodec/exif.c").read_text(encoding="utf-8")
         self.assertIn("for (uint32_t i = 0; i < ifd->count; i++) {", exif)
+        imgutils = (FFMPEG / "libavutil/imgutils.c").read_text(encoding="utf-8")
+        self.assertIn("(ptrdiff_t)linesizes[0] * h", imgutils)
+        self.assertIn("av_malloc((size_t)len*len*sizeof(*s->exp))", (FFMPEG / "libavutil/tx_template.c").read_text(encoding="utf-8"))
+        self.assertIn("pos + (int64_t)i * ts->raw_packet_size", (FFMPEG / "libavformat/mpegts.c").read_text(encoding="utf-8"))
         ps = (FFMPEG / "libavcodec/vvc/ps.c").read_text(encoding="utf-8")
         self.assertIn("for (int sample = 0; sample < max; sample++) {", ps)
         dca = (FFMPEG / "libavcodec/dcaenc.c").read_text(encoding="utf-8")

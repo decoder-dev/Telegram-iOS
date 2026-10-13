@@ -124,12 +124,12 @@ static int speex_packet(AVFormatContext *s, int idx)
            duration here because it is the only place we know the next-to-last
            granule position. */
         spxp->final_packet_duration = os->granule - os->lastpts -
-                                      packet_size * (ogg_page_packets(os) - 1);
+                                      (int64_t)packet_size * (ogg_page_packets(os) - 1);
     }
 
     if (!os->lastpts && os->granule > 0)
         /* first packet */
-        os->lastpts = os->lastdts = os->granule - packet_size *
+        os->lastpts = os->lastdts = os->granule - (int64_t)packet_size *
                                     ogg_page_packets(os);
     if (os->flags & OGG_FLAG_EOS && os->segp == os->nsegs &&
         spxp->final_packet_duration)

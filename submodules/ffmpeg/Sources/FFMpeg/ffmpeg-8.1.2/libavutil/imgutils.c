@@ -262,10 +262,10 @@ int av_image_alloc(uint8_t *pointers[4], int linesizes[4],
     }
 
     if (desc->flags & AV_PIX_FMT_FLAG_PAL && pointers[1] &&
-        pointers[1] - pointers[0] > linesizes[0] * h) {
+        pointers[1] - pointers[0] > (ptrdiff_t)linesizes[0] * h) {
         /* zero-initialize the padding before the palette */
-        memset(pointers[0] + linesizes[0] * h, 0,
-               pointers[1] - pointers[0] - linesizes[0] * h);
+        memset(pointers[0] + (ptrdiff_t)linesizes[0] * h, 0,
+               pointers[1] - pointers[0] - (ptrdiff_t)linesizes[0] * h);
     }
 
     return ret;

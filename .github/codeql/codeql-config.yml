@@ -8,6 +8,9 @@ name: "BananaGram CodeQL"
 #    reach the app.
 #  * The DES/RC4-style routines in avutil/avformat implement formats and protocols that mandate them (RTMPE, ASF, OMA);
 #    nothing here uses them to protect user data.
+#  * Demuxers and decoders outside --enable-demuxer / --enable-decoder (yop, wc3movie, argo_*, exr, ...) are listed by
+#    file; libswscale and libavdevice are not built at all. libswresample/dither_template.c only multiplies floats
+#    that are then accumulated in a double; widening them first would change the rounding of the dither output.
 #  * cpp/suspicious-add-sizeof flags `block + i * 16 * sizeof(pixel)` in h264pred_template.c and the SIMD ports. That is
 #    intentional: `block` is declared int16_t *, but holds 32-bit coefficients when pixel is 16-bit, so the offset
 #    is scaled by sizeof(pixel) to count int16_t units. The first-party C++ in this repository does not rely on the
@@ -15,6 +18,8 @@ name: "BananaGram CodeQL"
 paths-ignore:
   - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-7.1.1
   - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavfilter
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavdevice
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libswscale
   - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavcodec/mips
   - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavcodec/loongarch
   - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavcodec/ppc
@@ -25,6 +30,32 @@ paths-ignore:
   - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavformat/rtmpcrypt.c
   - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavformat/omadec.c
   - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavformat/asfcrypt.c
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavformat/ffmetadec.c
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavformat/yop.c
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavformat/westwood_aud.c
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavformat/wc3movie.c
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavformat/tmv.c
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavformat/tiertexseq.c
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavformat/sierravmd.c
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavformat/segafilm.c
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavformat/rtpdec_qt.c
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavformat/rtpdec_g726.c
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavformat/rpl.c
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavformat/rl2.c
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavformat/mmf.c
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavformat/iss.c
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavformat/ipmovie.c
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavformat/imfdec.c
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavformat/idroqdec.c
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavformat/idcin.c
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavformat/gxf.c
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavformat/dsicin.c
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavformat/codec2.c
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavformat/asfdec_o.c
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavformat/argo_brp.c
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavformat/argo_asf.c
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavcodec/exr.c
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libswresample/dither_template.c
   - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/**/tests
   - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/**/tools
 

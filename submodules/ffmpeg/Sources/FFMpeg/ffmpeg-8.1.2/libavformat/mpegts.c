@@ -3467,7 +3467,7 @@ static int mpegts_raw_read_packet(AVFormatContext *s, AVPacket *pkt)
             /* we read the next PCR (XXX: optimize it by using a bigger buffer */
             pos = avio_tell(s->pb);
             for (i = 0; i < MAX_PACKET_READAHEAD; i++) {
-                avio_seek(s->pb, pos + i * ts->raw_packet_size, SEEK_SET);
+                avio_seek(s->pb, pos + (int64_t)i * ts->raw_packet_size, SEEK_SET);
                 avio_read(s->pb, pcr_buf, 12);
                 if (parse_pcr(&next_pcr_h, &next_pcr_l, pcr_buf) == 0) {
                     /* XXX: not precise enough */
