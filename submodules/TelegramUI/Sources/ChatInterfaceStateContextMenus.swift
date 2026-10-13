@@ -1601,6 +1601,29 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
                             })
                         })))
                     }
+                    if file.isVideo, !file.isAnimated, let peerId = chatPresentationInterfaceState.chatLocation.peerId, let audioPeer = chatPresentationInterfaceState.renderedPeer?.peer, canSendAudioMessagesToPeer(EnginePeer(audioPeer), isVoice: true, ignoreDefault: canBypassRestrictions(chatPresentationInterfaceState: chatPresentationInterfaceState)) {
+                        let prefersRussian = ForkPresentationLanguage.prefersRussianStrings
+                        let threadId = chatPresentationInterfaceState.chatLocation.threadId
+                        actions.append(.action(ContextMenuActionItem(text: prefersRussian ? "Звук как голосовое" : "Sound as Voice Message", icon: { theme in
+                            return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Forward"), color: theme.actionSheet.primaryTextColor)
+                        }, action: { _, f in
+                            f(.default)
+                            let _ = (forkVideoToVoice(context: context, fileReference: .message(message: MessageReference(message), media: file))
+                            |> deliverOnMainQueue).startStandalone(next: { converted in
+                                guard let converted else {
+                                    return
+                                }
+                                let voiceMessage: EnqueueMessage = .message(text: "", attributes: [], inlineStickers: [:], mediaReference: .standalone(media: converted), threadId: threadId, replyToMessageId: nil, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: [])
+                                let _ = (context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: peerId))
+                                |> mapToSignal { peer -> Signal<[MessageId?], NoError> in
+                                    guard let peer, canSendAudioMessagesToPeer(peer, isVoice: true, ignoreDefault: canBypassRestrictions(chatPresentationInterfaceState: chatPresentationInterfaceState)) else {
+                                        return .single([])
+                                    }
+                                    return enqueueMessages(account: context.account, peerId: peerId, messages: [voiceMessage])
+                                }).startStandalone()
+                            })
+                        })))
+                    }
                     break
                 }
             }

@@ -914,6 +914,13 @@ func infoItems(
             interaction.openPeerInfoContextMenu(.genericCopy(idText), sourceNode, nil)
         }))
     }
+    // Directly under the id: whether this person is a mutual contact (they have the account's number saved too).
+    // The server flag is only meaningful for another user; bots and the account itself never show it.
+    if forkExtras.showProfileId && !hideDiagnostics, let user = data.peer as? TelegramUser, user.id != context.account.peerId, user.botInfo == nil {
+        let russian = ForkPresentationLanguage.prefersRussianStrings
+        let mutualText = user.flags.contains(.mutualContact) ? (russian ? "да" : "yes") : (russian ? "нет" : "no")
+        items[.peerInfoTrailing]!.append(PeerInfoScreenLabeledValueItem(id: AnyHashable("fork_mutual_contact"), label: russian ? "взаимный контакт" : "mutual contact", text: mutualText, textColor: .primary, action: nil, longTapAction: nil))
+    }
     if forkExtras.showDC && !hideDiagnostics, let smallProfileImage = data.peer?.smallProfileImage, let cloudResource = smallProfileImage.resource as? CloudPeerPhotoSizeMediaResource {
         let dcText = "\(cloudResource.datacenterId)"
         items[.peerInfoTrailing]!.append(PeerInfoScreenLabeledValueItem(id: AnyHashable("fork_dc"), label: "dc", text: dcText, textColor: .primary, action: { sourceNode, _ in

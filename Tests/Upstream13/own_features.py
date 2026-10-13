@@ -587,6 +587,23 @@ class ForkIntegration(unittest.TestCase):
         self.assertIn('type: .forEveryone', own)
         self.assertIn('BananaDeleteOwnMessages.isGroup(peer)', read('submodules/ChatListUI/Sources/ChatContextMenus.swift'))
 
+    def test_mutual_contact_row_range_selection_and_video_to_voice(self):
+        items = read('submodules/TelegramUI/Components/PeerInfo/PeerInfoScreen/Sources/PeerInfoProfileItems.swift')
+        # The row sits directly under id, before dc, and never shows for the account itself or a bot.
+        self.assertLess(items.index('fork_profile_id'), items.index('fork_mutual_contact'))
+        self.assertLess(items.index('fork_mutual_contact'), items.index('fork_dc'))
+        self.assertIn('user.id != context.account.peerId, user.botInfo == nil', items)
+        self.assertIn('user.flags.contains(.mutualContact)', items)
+        menu = read('submodules/TelegramUI/Sources/Chat/ChatControllerOpenMessageContextMenu.swift')
+        self.assertIn('if let selectionState = self.presentationInterfaceState.interfaceState.selectionState {', menu)
+        self.assertIn('withToggledSelectedMessages(rangeIds, value: true)', menu)
+        ctx = read('submodules/TelegramUI/Sources/ChatInterfaceStateContextMenus.swift')
+        self.assertIn('forkVideoToVoice(context: context, fileReference:', ctx)
+        self.assertIn('file.isVideo, !file.isAnimated', ctx)
+        conv = read('submodules/TelegramUI/Components/AttachmentFileController/Sources/ForkAudioToVoice.swift')
+        self.assertIn('"video/mp4": "mp4"', conv)
+        self.assertIn('public func forkVideoToVoice', conv)
+
 
 if __name__ == '__main__':
     unittest.main()

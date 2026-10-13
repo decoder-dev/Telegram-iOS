@@ -21,7 +21,31 @@ import ChatPresentationInterfaceState
 
 extension ChatControllerImpl {
     func openMessageContextMenu(message: EngineMessage, selectAll: Bool, node: ASDisplayNode, frame: CGRect, anyRecognizer: UIGestureRecognizer?, location: CGPoint?) -> Void {
-        if self.presentationInterfaceState.interfaceState.selectionState != nil {
+        if let selectionState = self.presentationInterfaceState.interfaceState.selectionState {
+            // A long press while selecting used to do nothing. It now selects every message between this one and the
+            // nearest message that is already selected, so a run of messages is two touches instead of one tap each.
+            if !selectionState.selectedIds.contains(message.id) {
+                var orderedIds: [EngineMessage.Id] = []
+                self.chatDisplayNode.historyNode.forEachMessageInCurrentHistoryView { historyMessage in
+                    orderedIds.append(historyMessage.id)
+                    return true
+                }
+                if let targetIndex = orderedIds.firstIndex(of: message.id) {
+                    var anchorIndex: Int?
+                    var anchorDistance = Int.max
+                    for (index, id) in orderedIds.enumerated() where selectionState.selectedIds.contains(id) {
+                        let distance = abs(index - targetIndex)
+                        if distance < anchorDistance {
+                            anchorDistance = distance
+                            anchorIndex = index
+                        }
+                    }
+                    if let anchorIndex {
+                        let rangeIds = Array(orderedIds[min(anchorIndex, targetIndex) ... max(anchorIndex, targetIndex)])
+                        self.updateChatPresentationInterfaceState(animated: true, interactive: true, { $0.updatedInterfaceState { $0.withToggledSelectedMessages(rangeIds, value: true) } })
+                    }
+                }
+            }
             return
         }
         let presentationData = self.presentationData

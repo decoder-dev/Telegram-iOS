@@ -34,7 +34,10 @@ func forkAudioToVoice(context: AccountContext, reference: AnyMediaReference) -> 
         "audio/wav": "wav",
         "audio/x-wav": "wav",
         "audio/aac": "aac",
-        "audio/ogg": "ogg"
+        "audio/ogg": "ogg",
+        "video/mp4": "mp4",
+        "video/quicktime": "mov",
+        "video/x-m4v": "m4v"
     ]
     let pathExtension = originalExtension.isEmpty ? fallbackExtensions[file.mimeType.lowercased()] : originalExtension
     let mediaBox = context.account.postbox.mediaBox
@@ -79,6 +82,12 @@ func forkAudioToVoice(context: AccountContext, reference: AnyMediaReference) -> 
     |> `catch` { _ -> Signal<TelegramMediaFile?, NoError> in
         return .single(nil)
     }
+}
+
+/// The sound of a video (or a round video) re-encoded as a voice message. The decoder reads whichever audio track the
+/// container has, so this is the same conversion as for music; a video with no audio track yields nil.
+public func forkVideoToVoice(context: AccountContext, fileReference: FileMediaReference) -> Signal<TelegramMediaFile?, NoError> {
+    return forkAudioToVoice(context: context, reference: fileReference.abstract)
 }
 
 /// A voice message re-sent as an ordinary audio file. The Opus data is not re-encoded: it is copied into a
