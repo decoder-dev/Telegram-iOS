@@ -889,7 +889,7 @@ static int lmcs_derive_lut(VVCLMCS *lmcs, const H266RawAPS *rlmcs, const H266Raw
     }
 
     //derive lmcs_fwd_lut
-    for (uint16_t sample = 0; sample < max; sample++) {
+    for (int sample = 0; sample < max; sample++) {
         const int idx_y = sample >> shift;
         const uint16_t fwd_sample = lmcs_derive_lut_sample(sample, lmcs->pivot,
             input_pivot, scale_coeff, idx_y, max);

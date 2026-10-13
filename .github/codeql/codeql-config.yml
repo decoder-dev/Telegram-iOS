@@ -1,0 +1,33 @@
+name: "BananaGram CodeQL"
+
+# Scope of the analysis. The vendored FFmpeg tree is a large part of the C code in this repository, so what the
+# build actually ships decides what is worth an alert:
+#
+#  * submodules/ffmpeg builds with --disable-everything and enables only a handful of decoders, demuxers and parsers
+#    (see submodules/ffmpeg/Sources/FFMpeg/build-ffmpeg-bazel.sh). Other CPU ports, filters, tests and tools never
+#    reach the app.
+#  * The DES/RC4-style routines in avutil/avformat implement formats and protocols that mandate them (RTMPE, ASF, OMA);
+#    nothing here uses them to protect user data.
+#  * cpp/suspicious-add-sizeof flags `block + i * 16 * sizeof(pixel)` in h264pred_template.c and the SIMD ports. That is
+#    intentional: `block` is declared int16_t *, but holds 32-bit coefficients when pixel is 16-bit, so the offset
+#    is scaled by sizeof(pixel) to count int16_t units. The first-party C++ in this repository does not rely on the
+#    same idiom.
+paths-ignore:
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-7.1.1
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavfilter
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavcodec/mips
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavcodec/loongarch
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavcodec/ppc
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavcodec/riscv
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavutil/mips
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavutil/loongarch
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavutil/des.c
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavformat/rtmpcrypt.c
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavformat/omadec.c
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/libavformat/asfcrypt.c
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/**/tests
+  - submodules/ffmpeg/Sources/FFMpeg/ffmpeg-*/**/tools
+
+query-filters:
+  - exclude:
+      id: cpp/suspicious-add-sizeof

@@ -971,7 +971,7 @@ static int exif_ifd_to_dict(void *logctx, const char *prefix, const AVExifMetada
     if (!prefix)
         prefix = "";
 
-    for (uint16_t i = 0; i < ifd->count; i++) {
+    for (uint32_t i = 0; i < ifd->count; i++) {
         const AVExifEntry *entry = &ifd->entries[i];
         const char *name = av_exif_get_tag_name(entry->id);
         av_bprint_init(&bp, entry->count * 10, AV_BPRINT_SIZE_UNLIMITED);

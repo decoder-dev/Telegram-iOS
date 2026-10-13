@@ -817,7 +817,7 @@ static uint32_t set_best_code(uint32_t vlc_bits[DCA_CODE_BOOKS][7],
 static uint32_t set_best_abits_code(int abits[DCAENC_SUBBANDS], int bands,
                                     int32_t *res)
 {
-    uint8_t i;
+    int i;
     uint32_t t;
     int32_t best_sel = 6;
     int32_t best_bits = bands * 5;
