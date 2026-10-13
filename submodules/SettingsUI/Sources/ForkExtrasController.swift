@@ -832,7 +832,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [1502, 1503, 1504, 1505, 1506],
             [1507]
         ]),
-        (.appearance, [[1618, 1531, 1532, 1619]]),
+        (.appearance, [[1618, 1531, 1532, 1553, 1619]]),
         (.messages, [
             [1605, 65, 66],
             [67, 68],
@@ -1831,6 +1831,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .designHeader(1618, russian ? "Бананчик наверху" : "Banana island"),
             .appearanceToggle(1531, russian ? "Показывать бананчик" : "Show banana island", settings.bananaIslandEnabled, \.bananaIslandEnabled),
             .appearanceToggle(1532, russian ? "Подпись BananaGram" : "BananaGram label", settings.bananaIslandShowsName, \.bananaIslandShowsName),
+            .appearanceToggle(1553, russian ? "Остров как у иконки" : "Island matches the app icon", settings.bananaIslandFollowsIcon, \.bananaIslandFollowsIcon),
             .designFooter(1619, russian ? "Значок над экраном приложения на устройствах с Dynamic Island. Цвета соответствуют теме." : "An app badge on devices with Dynamic Island. Colors follow your theme."),
         ]
     case .messages:

@@ -1162,6 +1162,14 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         
         self.updateNotificationTokensRegistration()
         
+        // A new app icon repaints the island that follows it.
+        NotificationCenter.default.addObserver(forName: BananaIslandPalette.iconDidChangeNotification, object: nil, queue: .main, using: { [weak self] _ in
+            guard let self else {
+                return
+            }
+            self.updateBananaIslandBadge(self.immediateForkExtrasSettingsValue.with { $0 })
+        })
+        
         if applicationBindings.isMainApp {
             self.widgetDataContext = WidgetDataContext(basePath: self.basePath, inForeground: self.applicationBindings.applicationInForeground, activeAccounts: self.activeAccountContexts
             |> map { _, accounts, _ in
@@ -1272,19 +1280,27 @@ public final class SharedAccountContextImpl: SharedAccountContext {
 
     private func updateBananaIslandBadge(_ settings: ForkExtrasSettings) {
         let theme = self.currentPresentationData.with { $0 }.theme
+        // The island follows the app icon when it can: the capsule is the icon's background and the label its
+        // foreground. An icon without a palette entry, or the option off, uses the theme's accent.
+        var fillColor = theme.list.itemCheckColors.fillColor
+        var textColor = theme.list.itemCheckColors.foregroundColor
+        if settings.bananaIslandFollowsIcon, let colors = BananaIslandPalette.colors(iconName: self.applicationBindings.getAlternateIconName()) {
+            fillColor = UIColor(rgb: colors.fill)
+            textColor = UIColor(rgb: colors.text)
+        }
         let size = CGSize(width: settings.bananaIslandShowsName ? 116.0 : 26.0, height: 20.0)
         // `rotatedContext` is the variant whose context is y-down, which UIKit's string drawing needs; the plain
         // `contextGenerator` one draws the emoji and the name upside down.
         let image = generateImage(size, rotatedContext: { _, context in
             context.clear(CGRect(origin: .zero, size: size))
             // Accent fill and the colour the theme draws on its accent, so the pill stands out from the dark surfaces.
-            context.setFillColor(theme.list.itemCheckColors.fillColor.cgColor)
+            context.setFillColor(fillColor.cgColor)
             context.addPath(UIBezierPath(roundedRect: CGRect(origin: .zero, size: size), cornerRadius: 10.0).cgPath)
             context.fillPath()
             UIGraphicsPushContext(context)
             ("🍌" as NSString).draw(at: CGPoint(x: 4.0, y: 1.0), withAttributes: [.font: UIFont.systemFont(ofSize: 14.0)])
             if settings.bananaIslandShowsName {
-                ("BANANAGRAM" as NSString).draw(at: CGPoint(x: 24.0, y: 4.0), withAttributes: [.font: UIFont.systemFont(ofSize: 10.0, weight: .bold), .foregroundColor: theme.list.itemCheckColors.foregroundColor])
+                ("BANANAGRAM" as NSString).draw(at: CGPoint(x: 24.0, y: 4.0), withAttributes: [.font: UIFont.systemFont(ofSize: 10.0, weight: .bold), .foregroundColor: textColor])
             }
             UIGraphicsPopContext()
         })

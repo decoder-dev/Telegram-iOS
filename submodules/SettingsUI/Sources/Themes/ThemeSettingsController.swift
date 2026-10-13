@@ -619,6 +619,7 @@ public func themeSettingsController(context: AccountContext, focusOnItemTag: The
                 let actualName = context.sharedContext.applicationBindings.getAlternateIconName()
                     ?? appIcons.first(where: { $0.isDefault })?.name
                 currentAppIconName.set(actualName)
+                NotificationCenter.default.post(name: BananaIslandPalette.iconDidChangeNotification, object: nil)
                 if !success {
                     let data = context.sharedContext.currentPresentationData.with { $0 }
                     let text = ForkPresentationLanguage.prefersRussianStrings ? "Не удалось изменить иконку приложения. Попробуйте ещё раз." : "Couldn't change the app icon. Please try again."

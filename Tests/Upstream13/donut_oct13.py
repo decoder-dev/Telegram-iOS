@@ -67,7 +67,7 @@ class DonutAdaptation(unittest.TestCase):
         self.assertIn('previousItem?.id != component.item.id', story)
         menu = read('submodules/SettingsUI/Sources/ForkExtrasController.swift')
         self.assertIn('arguments.openCategory(.appearance)', menu)
-        self.assertIn('(.appearance, [[1618, 1531, 1532, 1619]])', menu)
+        self.assertIn('(.appearance, [[1618, 1531, 1532, 1553, 1619]])', menu)
         links = read('submodules/SettingsUI/Sources/BananaSettingsLinks.swift')
         self.assertIn('case "island": focus = .appearance', links)
         self.assertIn('case "appearance", "chatlist": focus = .chatList', links)

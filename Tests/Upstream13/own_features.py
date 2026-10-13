@@ -1,4 +1,5 @@
 """Regression contracts for fork behavior across the upstream 13 migration."""
+import os
 import pathlib
 import re
 import unittest
@@ -373,7 +374,7 @@ class ForkIntegration(unittest.TestCase):
         self.assertIn('public var appBadgeBaseOffset: CGFloat', metrics)
         self.assertIn('case .iPhone16ProMax, .iPhoneAir, .iPhone18ProMax:\n                return 22.0', metrics)
         shared = read('submodules/TelegramUI/Sources/SharedAccountContext.swift')
-        self.assertIn('theme.list.itemCheckColors.fillColor.cgColor', shared)
+        self.assertIn('var fillColor = theme.list.itemCheckColors.fillColor', shared)
         # UIKit string drawing needs the y-down context; the plain contextGenerator one drew the badge upside down.
         self.assertIn('generateImage(size, rotatedContext: { _, context in', shared)
 
@@ -473,6 +474,19 @@ class ForkIntegration(unittest.TestCase):
         self.assertIn('BananaPresenceDisplay.current.showsOfflineDot', item)
         self.assertEqual(item.count('bananaPresenceIcon('), 7)
         self.assertIn('[55, 56, 1551, 1552, 1543, 58]', read('submodules/SettingsUI/Sources/ForkExtrasController.swift'))
+
+
+    def test_island_follows_the_app_icon(self):
+        palette = read('submodules/TelegramPresentationData/Sources/BananaIslandPalette.swift')
+        # One entry per alternate icon in the bundle, and the default icon is BlueIcon.
+        icons = sorted(name[:-len('.alticon')] for name in os.listdir(os.path.join(ROOT, 'Telegram/Telegram-iOS')) if name.endswith('.alticon'))
+        for icon in icons:
+            self.assertIn('"%s":' % icon, palette)
+        self.assertIn('colors[iconName ?? "BlueIcon"]', palette)
+        shared = read('submodules/TelegramUI/Sources/SharedAccountContext.swift')
+        self.assertIn('BananaIslandPalette.colors(iconName: self.applicationBindings.getAlternateIconName())', shared)
+        self.assertIn('BananaIslandPalette.iconDidChangeNotification', read('submodules/SettingsUI/Sources/Themes/ThemeSettingsController.swift'))
+        self.assertIn('[1618, 1531, 1532, 1553, 1619]', read('submodules/SettingsUI/Sources/ForkExtrasController.swift'))
 
 
 if __name__ == '__main__':

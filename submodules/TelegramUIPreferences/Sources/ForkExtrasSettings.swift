@@ -22,6 +22,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var sendTelegramStatistics: Bool
     public var bananaIslandEnabled: Bool
     public var bananaIslandShowsName: Bool
+    /// Fork (Donutgram): the island takes the colours of the current app icon instead of the theme's accent.
+    public var bananaIslandFollowsIcon: Bool
     public var wideTabBar: Bool
     public var integratedTabSearch: Bool
     public var tabSearchOnLeft: Bool
@@ -331,6 +333,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.sendTelegramStatistics = false
         self.bananaIslandEnabled = true
         self.bananaIslandShowsName = true
+        self.bananaIslandFollowsIcon = true
         self.hashtagsPreferCurrentChat = false
         self.showOriginalForwardDate = false
         self.sendBannedGifsAsVideo = false
@@ -425,6 +428,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.sendTelegramStatistics = try container.decodeIfPresent(Bool.self, forKey: "sendTelegramStatistics") ?? false
         self.bananaIslandEnabled = try container.decodeIfPresent(Bool.self, forKey: "bananaIslandEnabled") ?? true
         self.bananaIslandShowsName = try container.decodeIfPresent(Bool.self, forKey: "bananaIslandShowsName") ?? true
+        self.bananaIslandFollowsIcon = try container.decodeIfPresent(Bool.self, forKey: "bananaIslandFollowsIcon") ?? true
         self.hashtagsPreferCurrentChat = try container.decodeIfPresent(Bool.self, forKey: "hashtagsPreferCurrentChat") ?? false
         self.showOriginalForwardDate = try container.decodeIfPresent(Bool.self, forKey: "showOriginalForwardDate") ?? false
         self.sendBannedGifsAsVideo = try container.decodeIfPresent(Bool.self, forKey: "sendBannedGifsAsVideo") ?? false
@@ -527,6 +531,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.sendTelegramStatistics, forKey: "sendTelegramStatistics")
         try container.encode(self.bananaIslandEnabled, forKey: "bananaIslandEnabled")
         try container.encode(self.bananaIslandShowsName, forKey: "bananaIslandShowsName")
+        try container.encode(self.bananaIslandFollowsIcon, forKey: "bananaIslandFollowsIcon")
         try container.encode(self.hashtagsPreferCurrentChat, forKey: "hashtagsPreferCurrentChat")
         try container.encode(self.showOriginalForwardDate, forKey: "showOriginalForwardDate")
         try container.encode(self.sendBannedGifsAsVideo, forKey: "sendBannedGifsAsVideo")
