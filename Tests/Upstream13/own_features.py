@@ -952,5 +952,12 @@ print("Account-scoped ghost exceptions: isolation/persistence/revocation passed"
         self.assertIn('} else if let imageName = imageName, let image = generateTintedImage(image: UIImage(bundleImageName: imageName)', button)
 
 
+    def test_chat_files_are_imported_as_sandbox_copies(self):
+        # The Telegram 13 merge dropped `mode: .import` here, so the picker handed back security-scoped
+        # URLs and a bookmark that could not be resolved when the upload ran: files never left the chat.
+        menu = read('submodules/TelegramUI/Sources/ChatControllerOpenAttachmentMenu.swift')
+        self.assertIn('legacyICloudFilePicker(theme: strongSelf.presentationData.theme, mode: .import, hasMultiselection: !editingMessage, documentTypes: documentTypes,', menu)
+
+
 if __name__ == '__main__':
     unittest.main()
