@@ -45,6 +45,7 @@ public final class BananaLinkDownloadJob {
     public static let maxFileSize: Int64 = 200 * 1024 * 1024
     /// Caps the combined temporary footprint of a multi-file post while allowing adaptive video + audio.
     public static let maxBatchSize: Int64 = 500 * 1024 * 1024
+    static let maxCarouselPhotos = 40
 
     /// Progress of a group of parallel downloads (the video and audio of a Short, the photos of a carousel).
     private final class Batch {
@@ -148,8 +149,11 @@ public final class BananaLinkDownloadJob {
                 case let .success(.photos(files)):
                     self.kind = .photos
                     var selected = files
-                    if let maxPhotos = self.maxPhotos, selected.count > maxPhotos {
-                        selected = Array(selected.prefix(maxPhotos))
+                    // TikTok carousels hold at most a few dozen photos; a response with more is not trusted to
+                    // start hundreds of downloads.
+                    let photoLimit = min(self.maxPhotos ?? BananaLinkDownloadJob.maxCarouselPhotos, BananaLinkDownloadJob.maxCarouselPhotos)
+                    if selected.count > photoLimit {
+                        selected = Array(selected.prefix(photoLimit))
                     }
                     let items = selected.enumerated().map { index, file in
                         return (BananaTikTokExtractor.mediaRequest(file.url), self.workDirectory.appendingPathComponent("source-\(index)"), file.expectedSize)

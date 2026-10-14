@@ -113,7 +113,7 @@ enum BananaYouTubeShortsExtractor {
         var best: (area: Int64, bitrate: Int64, file: BananaRemoteFile)?
         for format in formats {
             guard let mimeType = format["mimeType"] as? String, mimeType.hasPrefix("video/mp4"), mimeType.contains("avc1"),
-                  let urlString = format["url"] as? String, let url = URL(string: urlString) else {
+                  let url = BananaMediaURLPolicy.allowedURL(format["url"] as? String) else {
                 continue
             }
             let width = bananaIntValue(format["width"]) ?? 0
@@ -155,7 +155,7 @@ enum BananaYouTubeShortsExtractor {
         }
         var best: (bitrate: Int64, file: BananaRemoteFile)?
         for format in candidates {
-            guard let urlString = format["url"] as? String, let url = URL(string: urlString) else {
+            guard let url = BananaMediaURLPolicy.allowedURL(format["url"] as? String) else {
                 continue
             }
             let bitrate = bananaIntValue(format["bitrate"]) ?? 0

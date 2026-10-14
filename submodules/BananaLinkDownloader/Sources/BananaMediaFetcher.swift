@@ -92,6 +92,10 @@ final class BananaMediaFetcher: NSObject, URLSessionDownloadDelegate {
                 completion(.failure(.tooLarge))
                 return
             }
+            guard let requestURL = request.url, BananaMediaURLPolicy.isAllowed(requestURL) else {
+                completion(.failure(.noCompatibleFormat))
+                return
+            }
             let task = session.downloadTask(with: request)
             self.downloads[task.taskIdentifier] = Download(destination: destination, maxBytes: maxBytes, progress: progress, completion: completion)
             self.tasks.append(task)
@@ -114,6 +118,17 @@ final class BananaMediaFetcher: NSObject, URLSessionDownloadDelegate {
             self.session?.invalidateAndCancel()
             self.session = nil
         }
+    }
+
+    /// A redirect is followed only to an address the policy accepts; anything else ends the request with the
+    /// redirect response itself, which then fails as a non-2xx status. Cookies and the referer set for TikTok
+    /// never reach a plain-http or local destination this way.
+    func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) {
+        guard let url = request.url, BananaMediaURLPolicy.isAllowed(url) else {
+            completionHandler(nil)
+            return
+        }
+        completionHandler(request)
     }
 
     func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {

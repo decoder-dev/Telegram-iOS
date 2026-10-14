@@ -127,7 +127,7 @@ precondition(bananaWouldExceedByteLimit(total: -1, adding: 0, limit: limit))
         errors = read('submodules/BananaLinkDownloader/Sources/BananaLinkDownloadError.swift')
         execute('''import Foundation
 import CoreFoundation
-''' + remote_file + '\n' + function(models, 'bananaIntValue') + '\n' + errors + '''
+''' + remote_file + '\n' + function(models, 'bananaIntValue') + '\n' + errors + '\n' + read('submodules/BananaLinkDownloader/Sources/BananaMediaURLPolicy.swift') + '''
 enum BananaTikTokItem: Equatable {
     case video(BananaRemoteFile, Double)
     case photos([BananaRemoteFile])
@@ -145,18 +145,18 @@ func page(status: Int, item: [String: Any]?) -> String {
 }
 let item: [String: Any] = [
     "video": ["duration": "24", "bitrateInfo": [
-        ["CodecType": "h265", "Bitrate": 9000, "PlayAddr": ["UrlList": ["https://cdn.example/hevc.mp4"]]],
-        ["CodecType": "h264", "Bitrate": 900, "PlayAddr": ["UrlList": ["https://cdn.example/low.mp4"], "DataSize": "100", "Width": 720, "Height": 1280]],
-        ["CodecType": "H264", "Bitrate": 1800, "PlayAddr": ["UrlList": ["https://cdn.example/high.mp4"], "DataSize": "200", "Width": 1080, "Height": 1920]]
+        ["CodecType": "h265", "Bitrate": 9000, "PlayAddr": ["UrlList": ["https://cdn.mediahost.com/hevc.mp4"]]],
+        ["CodecType": "h264", "Bitrate": 900, "PlayAddr": ["UrlList": ["https://cdn.mediahost.com/low.mp4"], "DataSize": "100", "Width": 720, "Height": 1280]],
+        ["CodecType": "H264", "Bitrate": 1800, "PlayAddr": ["UrlList": ["https://cdn.mediahost.com/high.mp4"], "DataSize": "200", "Width": 1080, "Height": 1920]]
     ]]
 ]
 switch BananaTikTokExtractor.parsePage(page(status: 0, item: item)) {
 case let .success(.video(file, duration)):
-    precondition(file.url.absoluteString == "https://cdn.example/high.mp4")
+    precondition(file.url.absoluteString == "https://cdn.mediahost.com/high.mp4")
     precondition(file.expectedSize == 200 && file.width == 1080 && file.height == 1920 && duration == 24)
 default: preconditionFailure("expected highest-bitrate H.264 video")
 }
-let photos: [String: Any] = ["imagePost": ["images": [["imageURL": ["urlList": ["https://cdn.example/photo.jpg"]], "imageWidth": "1200", "imageHeight": 800]]]]
+let photos: [String: Any] = ["imagePost": ["images": [["imageURL": ["urlList": ["https://cdn.mediahost.com/photo.jpg"]], "imageWidth": "1200", "imageHeight": 800]]]]
 switch BananaTikTokExtractor.parsePage(page(status: 0, item: photos)) {
 case let .success(.photos(files)):
     precondition(files.count == 1 && files[0].width == 1200 && files[0].height == 800)
@@ -176,7 +176,7 @@ if case .failure(.tiktokNoData) = BananaTikTokExtractor.parsePage("<html>challen
         methods = '\n'.join(static_method(parser, name) for name in ['parsePlayerResponse', 'pickVideo', 'pickAudio'])
         execute('''import Foundation
 import CoreFoundation
-''' + remote_file + '\n' + function(models, 'bananaIntValue') + '\n' + errors + '''
+''' + remote_file + '\n' + function(models, 'bananaIntValue') + '\n' + errors + '\n' + read('submodules/BananaLinkDownloader/Sources/BananaMediaURLPolicy.swift') + '''
 struct BananaYouTubeClient: Equatable { let name: String }
 enum BananaYouTubeStreams: Equatable {
     case adaptive(BananaRemoteFile, BananaRemoteFile)
@@ -200,30 +200,30 @@ func response(_ videoId: String = "abcdefghijk", _ duration: String = "30", _ fo
     ])
 }
 let formats: [[String: Any]] = [
-    ["mimeType": "video/mp4; codecs=\\\"avc1.640028\\\"", "url": "https://cdn.example/720.mp4", "width": 1280, "height": 720, "bitrate": 900],
-    ["mimeType": "video/mp4; codecs=\\\"avc1.640028\\\"", "url": "https://cdn.example/1080.mp4", "width": 1920, "height": 1080, "bitrate": 1800],
-    ["mimeType": "video/mp4; codecs=\\\"hev1\\\"", "url": "https://cdn.example/hevc.mp4", "width": 3840, "height": 2160, "bitrate": 9900],
-    ["mimeType": "audio/mp4; codecs=\\\"mp4a.40.2\\\"", "url": "https://cdn.example/dub.mp4", "bitrate": 9999, "audioTrack": ["isAutoDubbed": true, "audioIsDefault": true]],
-    ["mimeType": "audio/mp4; codecs=\\\"mp4a.40.2\\\"", "url": "https://cdn.example/drc.mp4", "bitrate": 9998, "isDrc": true, "audioTrack": ["audioIsDefault": true]],
-    ["mimeType": "audio/mp4; codecs=\\\"mp4a.40.2\\\"", "url": "https://cdn.example/original-low.mp4", "bitrate": 128, "audioTrack": ["audioIsDefault": true]],
-    ["mimeType": "audio/mp4; codecs=\\\"mp4a.40.2\\\"", "url": "https://cdn.example/original-high.mp4", "bitrate": 256, "audioTrack": ["audioIsDefault": true]],
-    ["mimeType": "audio/mp4; codecs=\\\"mp4a.40.2\\\"", "url": "https://cdn.example/non-default.mp4", "bitrate": 512]
+    ["mimeType": "video/mp4; codecs=\\\"avc1.640028\\\"", "url": "https://cdn.mediahost.com/720.mp4", "width": 1280, "height": 720, "bitrate": 900],
+    ["mimeType": "video/mp4; codecs=\\\"avc1.640028\\\"", "url": "https://cdn.mediahost.com/1080.mp4", "width": 1920, "height": 1080, "bitrate": 1800],
+    ["mimeType": "video/mp4; codecs=\\\"hev1\\\"", "url": "https://cdn.mediahost.com/hevc.mp4", "width": 3840, "height": 2160, "bitrate": 9900],
+    ["mimeType": "audio/mp4; codecs=\\\"mp4a.40.2\\\"", "url": "https://cdn.mediahost.com/dub.mp4", "bitrate": 9999, "audioTrack": ["isAutoDubbed": true, "audioIsDefault": true]],
+    ["mimeType": "audio/mp4; codecs=\\\"mp4a.40.2\\\"", "url": "https://cdn.mediahost.com/drc.mp4", "bitrate": 9998, "isDrc": true, "audioTrack": ["audioIsDefault": true]],
+    ["mimeType": "audio/mp4; codecs=\\\"mp4a.40.2\\\"", "url": "https://cdn.mediahost.com/original-low.mp4", "bitrate": 128, "audioTrack": ["audioIsDefault": true]],
+    ["mimeType": "audio/mp4; codecs=\\\"mp4a.40.2\\\"", "url": "https://cdn.mediahost.com/original-high.mp4", "bitrate": 256, "audioTrack": ["audioIsDefault": true]],
+    ["mimeType": "audio/mp4; codecs=\\\"mp4a.40.2\\\"", "url": "https://cdn.mediahost.com/non-default.mp4", "bitrate": 512]
 ]
 switch BananaYouTubeShortsExtractor.parsePlayerResponse(response("abcdefghijk", "30", formats), videoId: "abcdefghijk", client: client) {
 case let .success(short):
     guard case let .adaptive(video, audio) = short.streams else { preconditionFailure("expected adaptive streams") }
-    precondition(video.url.absoluteString == "https://cdn.example/1080.mp4" && video.expectedSize == nil)
-    precondition(audio.url.absoluteString == "https://cdn.example/original-high.mp4")
+    precondition(video.url.absoluteString == "https://cdn.mediahost.com/1080.mp4" && video.expectedSize == nil)
+    precondition(audio.url.absoluteString == "https://cdn.mediahost.com/original-high.mp4")
     precondition(short.duration == 30 && short.client == client)
 default: preconditionFailure("expected selected video and original-language audio")
 }
 if case .failure(.youtubeUnavailable) = BananaYouTubeShortsExtractor.parsePlayerResponse(response("differentid", "30", formats), videoId: "abcdefghijk", client: client) {} else { preconditionFailure("video ID mismatch") }
 if case .failure(.youtubeTooLong) = BananaYouTubeShortsExtractor.parsePlayerResponse(response("abcdefghijk", "181", formats), videoId: "abcdefghijk", client: client) {} else { preconditionFailure("long video") }
-let progressive: [[String: Any]] = [["mimeType": "video/mp4; codecs=\\\"avc1.640028\\\"", "url": "https://cdn.example/progressive.mp4", "width": 720, "height": 1280, "bitrate": 500]]
+let progressive: [[String: Any]] = [["mimeType": "video/mp4; codecs=\\\"avc1.640028\\\"", "url": "https://cdn.mediahost.com/progressive.mp4", "width": 720, "height": 1280, "bitrate": 500]]
 let progressiveData = try! JSONSerialization.data(withJSONObject: ["playabilityStatus": ["status": "OK"], "videoDetails": ["videoId": "abcdefghijk", "lengthSeconds": "30"], "streamingData": ["formats": progressive]])
 if case let .success(short) = BananaYouTubeShortsExtractor.parsePlayerResponse(progressiveData, videoId: "abcdefghijk", client: client) {
     guard case let .progressive(file) = short.streams else { preconditionFailure("expected progressive fallback") }
-    precondition(file.url.absoluteString == "https://cdn.example/progressive.mp4")
+    precondition(file.url.absoluteString == "https://cdn.mediahost.com/progressive.mp4")
 } else { preconditionFailure("expected progressive fallback") }
 ''')
 
@@ -302,5 +302,38 @@ for flags in 0..<512 {
         ]
         for path in paths:
             subprocess.run(['swiftc', '-frontend', '-parse', str(ROOT/path)], check=True, timeout=120)
+
+    @unittest.skipUnless(shutil.which('swiftc'), 'Swift unavailable locally; executes in macOS CI')
+    def test_link_downloader_url_policy_rejects_local_and_insecure_targets(self):
+        execute('import Foundation\n' + read('submodules/BananaLinkDownloader/Sources/BananaMediaURLPolicy.swift') + '''
+func ok(_ s: String) -> Bool { BananaMediaURLPolicy.isAllowed(URL(string: s)!) }
+precondition(ok("https://v16-webapp.tiktokcdn.com/path/video.mp4?x=1"))
+precondition(ok("https://rr3---sn-abc.googlevideo.com/videoplayback?id=1"))
+precondition(ok("https://www.tiktok.com:443/@/video/1"))
+for bad in ["http://v16.tiktokcdn.com/a", "file:///private/var/mobile/a", "ftp://cdn.mediahost.com/a",
+            "https://127.0.0.1/a", "https://localhost/a", "https://printer.local/a", "https://192.168.1.1/a",
+            "https://2130706433/a", "https://0x7f.1/a", "https://127.1/a", "https://[::1]/a", "https://[fe80::1%25en0]/a",
+            "https://intranet/a", "https://nas.lan/a", "https://cdn.mediahost.com:8443/a", "https://user:pw@cdn.mediahost.com/a",
+            "https://cdn.mediahost.com@evil.test/a", "https://-bad.mediahost.com/a", "https://a..b.com/a", "https://exa mple.com/a"] {
+    if let url = URL(string: bad) { precondition(!BananaMediaURLPolicy.isAllowed(url), bad) }
+}
+precondition(BananaMediaURLPolicy.firstAllowedURL(in: ["http://x.test/a", 5, "https://cdn.mediahost.com/ok"])?.absoluteString == "https://cdn.mediahost.com/ok")
+precondition(BananaMediaURLPolicy.firstAllowedURL(in: ["file:///etc/passwd"]) == nil)
+precondition(BananaMediaURLPolicy.allowedURL(nil) == nil && BananaMediaURLPolicy.allowedURL("") == nil)
+''')
+
+    def test_link_downloader_applies_the_url_policy_everywhere(self):
+        fetcher = read('submodules/BananaLinkDownloader/Sources/BananaMediaFetcher.swift')
+        self.assertIn('guard let requestURL = request.url, BananaMediaURLPolicy.isAllowed(requestURL) else {', fetcher)
+        self.assertIn('willPerformHTTPRedirection', fetcher)
+        self.assertIn('completionHandler(nil)', fetcher)
+        for name in ['BananaTikTokExtractor', 'BananaYouTubeShortsExtractor']:
+            text = read('submodules/BananaLinkDownloader/Sources/%s.swift' % name)
+            self.assertNotIn('URL(string: first)', text)
+            self.assertNotIn('URL(string: urlString)', text)
+            self.assertIn('BananaMediaURLPolicy.', text)
+        job = read('submodules/BananaLinkDownloader/Sources/BananaLinkDownloadJob.swift')
+        self.assertIn('static let maxCarouselPhotos = 40', job)
+
 
 if __name__ == '__main__': unittest.main()

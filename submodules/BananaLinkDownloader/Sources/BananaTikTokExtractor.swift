@@ -86,8 +86,7 @@ enum BananaTikTokExtractor {
             for entry in (imagePost["images"] as? [Any]) ?? [] {
                 guard let image = entry as? [String: Any],
                       let imageURL = image["imageURL"] as? [String: Any],
-                      let first = (imageURL["urlList"] as? [Any])?.first as? String,
-                      let url = URL(string: first) else {
+                      let url = BananaMediaURLPolicy.firstAllowedURL(in: imageURL["urlList"] as? [Any]) else {
                     return .failure(.tiktokNoData)
                 }
                 files.append(BananaRemoteFile(url: url, expectedSize: nil, width: Int(bananaIntValue(image["imageWidth"]) ?? 0), height: Int(bananaIntValue(image["imageHeight"]) ?? 0)))
@@ -104,8 +103,7 @@ enum BananaTikTokExtractor {
             guard let variant = entry as? [String: Any],
                   let codec = variant["CodecType"] as? String, codec.lowercased().hasPrefix("h264"),
                   let play = variant["PlayAddr"] as? [String: Any],
-                  let first = (play["UrlList"] as? [Any])?.first as? String,
-                  let url = URL(string: first) else {
+                  let url = BananaMediaURLPolicy.firstAllowedURL(in: play["UrlList"] as? [Any]) else {
                 continue
             }
             let bitrate = bananaIntValue(variant["Bitrate"]) ?? 0
@@ -117,7 +115,7 @@ enum BananaTikTokExtractor {
         if let best {
             return .success(.video(best.file, duration))
         }
-        if let playAddr = video["playAddr"] as? String, !playAddr.isEmpty, let url = URL(string: playAddr) {
+        if let url = BananaMediaURLPolicy.allowedURL(video["playAddr"] as? String) {
             return .success(.video(BananaRemoteFile(url: url, expectedSize: nil, width: Int(bananaIntValue(video["width"]) ?? 0), height: Int(bananaIntValue(video["height"]) ?? 0)), duration))
         }
         return .failure(.tiktokNoData)
