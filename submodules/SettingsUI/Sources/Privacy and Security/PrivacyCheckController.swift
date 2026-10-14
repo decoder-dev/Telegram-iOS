@@ -9,6 +9,7 @@ import AccountContext
 
 enum PrivacyCheckSubject: Int, CaseIterable {
     case phoneNumber, phoneDiscovery, forwards, voiceCalls, callP2P, presence, profilePhoto, bio, birthday
+    case twoStepVerification, activeSessions
 }
 
 struct PrivacyCheckRow: Equatable {
@@ -67,6 +68,7 @@ func privacyCheckRows(settings: AccountPrivacySettings, russian: Bool) -> [Priva
 // look up other people, contact external services, log results or change rules.
 func privacyCheckController(
     context: AccountContext,
+    activeSessionsContext: ActiveSessionsContext,
     settingsLoaded: @escaping (AccountPrivacySettings) -> Void,
     openSetting: @escaping (PrivacyCheckSubject) -> Void
 ) -> ActionSheetController {
@@ -89,6 +91,22 @@ func privacyCheckController(
         disposable.dispose()
     }
 
+    activeSessionsContext.loadMore()
+    let sessionCount = activeSessionsContext.state
+    |> filter { !$0.isLoadingMore && $0.sessions.contains(where: { $0.isCurrent }) }
+    |> map { Optional($0.sessions.count) }
+    |> take(1)
+    |> timeout(12.0, queue: .mainQueue(), alternate: .single(nil))
+
+    let twoStep = context.engine.auth.twoStepVerificationConfiguration()
+    |> map { configuration -> Bool? in
+        if case .set = configuration { return true }
+        return false
+    }
+    |> then(.single(nil))
+    |> take(1)
+    |> timeout(12.0, queue: .mainQueue(), alternate: .single(nil))
+
     // The engine can complete without a value on a request error. Convert that
     // case, and a stalled request, to an explicit unavailable result.
     let request = context.engine.privacy.requestAccountPrivacySettings()
@@ -97,21 +115,42 @@ func privacyCheckController(
     |> take(1)
     |> timeout(12.0, queue: .mainQueue(), alternate: .single(nil))
     |> deliverOnMainQueue
-    disposable.set(request.start(next: { [weak controller] settings in
+    disposable.set((combineLatest(request, twoStep, sessionCount)
+    |> deliverOnMainQueue).start(next: { [weak controller] settings, twoStepEnabled, sessionCount in
         guard isActive, let controller else { return }
-        guard let settings else {
-            controller.setItemGroups([
-                ActionSheetItemGroup(items: [ActionSheetTextItem(title: russian ? "Не удалось получить настройки. Закройте проверку и попробуйте снова при подключении к сети." : "Privacy settings could not be loaded. Close this check and try again when connected.", parseMarkdown: false)]),
-                cancelGroup
-            ])
-            return
-        }
-        settingsLoaded(settings)
+        if let settings { settingsLoaded(settings) }
         let note = russian
             ? "Настройки этого аккаунта. Нажмите на пункт, чтобы изменить его. Прямой звонок может раскрыть IP собеседнику. Публичное фото и уже опубликованные данные здесь не проверяются. Настройки не меняются автоматически."
             : "This account's settings. Tap a row to edit it. A direct call may reveal your IP to the other caller. Public profile photos and previously published data are not checked here. Nothing is changed automatically."
         var items: [ActionSheetItem] = [ActionSheetTextItem(title: privacyCheckTitle(russian: russian) + "\n\n" + note, parseMarkdown: false)]
-        for row in privacyCheckRows(settings: settings, russian: russian) {
+        let fields = privacyCheckSnapshotFields(settings: settings, twoStepEnabled: twoStepEnabled)
+        let comparison = privacyCheckCompareAndStore(accountId: context.account.id.int64, fields: fields)
+        let comparisonText: String
+        switch comparison {
+        case .firstCheck:
+            comparisonText = russian ? "Первая успешная проверка: сохранена точка сравнения на этом устройстве." : "First successful check: a baseline was saved on this device."
+        case .unchanged:
+            comparisonText = russian ? "В проверенных пунктах изменений с прошлой проверки нет." : "No changes in the checked settings since the previous check."
+        case let .changed(subjects):
+            let titles = (settings.map { privacyCheckRows(settings: $0, russian: russian) } ?? [])
+            let names = subjects.map { subject in
+                if subject == .twoStepVerification { return russian ? "Двухэтапная защита" : "Two-step verification" }
+                return titles.first(where: { $0.subject == subject })?.title ?? ""
+            }
+            comparisonText = (russian ? "Изменилось с прошлой проверки: " : "Changed since the previous check: ") + names.joined(separator: ", ")
+        case .unavailable:
+            comparisonText = russian ? "Сравнение недоступно: настройки не получены." : "Comparison unavailable: settings could not be loaded."
+        }
+        items.append(ActionSheetTextItem(title: comparisonText, parseMarkdown: false))
+        var rows = settings.map { privacyCheckRows(settings: $0, russian: russian) } ?? []
+        if settings == nil {
+            items.append(ActionSheetTextItem(title: russian ? "Настройки приватности недоступны. Закройте проверку и повторите при подключении к сети." : "Privacy settings are unavailable. Close this check and retry when connected.", parseMarkdown: false))
+        }
+        let unavailable = russian ? "Не удалось проверить" : "Could not check"
+        let twoStepStatus = twoStepEnabled.map { $0 ? (russian ? "Включена" : "Enabled") : (russian ? "Не включена" : "Not enabled") } ?? unavailable
+        rows.append(PrivacyCheckRow(subject: .twoStepVerification, title: russian ? "Двухэтапная защита" : "Two-step verification", audience: twoStepStatus))
+        rows.append(PrivacyCheckRow(subject: .activeSessions, title: russian ? "Устройства и сессии" : "Devices and sessions", audience: sessionCount.map { (russian ? "Активных сессий: " : "Active sessions: ") + String($0) } ?? unavailable))
+        for row in rows {
             items.append(ActionSheetButtonItem(title: row.title + "\n" + row.audience, color: .accent, action: { [weak controller] in
                 isActive = false
                 disposable.dispose()

@@ -1577,7 +1577,7 @@ public func privacyAndSecurityController(
     
     arguments.openPrivacyCheck = { [weak arguments] in
         guard let arguments else { return }
-        let controller = privacyCheckController(context: context, settingsLoaded: { settings in
+        let controller = privacyCheckController(context: context, activeSessionsContext: activeSessionsContext, settingsLoaded: { settings in
             privacySettingsPromise.set(.single(settings))
         }, openSetting: { subject in
             switch subject {
@@ -1595,6 +1595,10 @@ public func privacyAndSecurityController(
                 arguments.openBioPrivacy()
             case .birthday:
                 arguments.openBirthdayPrivacy()
+            case .twoStepVerification:
+                arguments.openTwoStepVerification(nil)
+            case .activeSessions:
+                pushControllerImpl?(recentSessionsController(context: context, activeSessionsContext: activeSessionsContext, webSessionsContext: webSessionsContext, websitesOnly: false), true)
             }
         })
         presentControllerImpl?(controller)
