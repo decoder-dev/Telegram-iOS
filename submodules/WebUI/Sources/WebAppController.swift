@@ -3091,52 +3091,56 @@ public final class WebAppController: ViewController, AttachmentContainable {
                         self?.fileDownloadTooltip?.dismissWithCommitAction()
                     }
                     if let resultUrl, let self {
-                        
+                        // URLSession removes its temporary file after this callback returns.
+                        // Preserve it synchronously before Photos or the export picker reads it.
+                        let tempFile = EngineTempBox.shared.tempFile(fileName: fileName)
+                        let url = URL(fileURLWithPath: tempFile.path)
+                        do {
+                            try FileManager.default.moveItem(at: resultUrl, to: url)
+                        } catch {
+                            EngineTempBox.shared.dispose(tempFile)
+                            self.fileDownloadTooltip?.dismissWithCommitAction()
+                            return
+                        }
                         let tooltipContent: UndoOverlayContent = .actionSucceeded(title: fileName, text: isMedia ? self.presentationData.strings.WebApp_Download_SavedToPhotos : self.presentationData.strings.WebApp_Download_SavedToFiles, cancel: nil, destructive: false)
                         if isMedia {
-                            let saveToPhotos: (URL, Bool) -> Void = { url, isVideo in
-                                var fileExtension = (resultUrl.absoluteString as NSString).pathExtension
-                                if fileExtension.isEmpty {
-                                    fileExtension = "mp4"
-                                }
-                                PHPhotoLibrary.shared().performChanges({
-                                    if isVideo {
-                                        PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: url)
-                                    } else {
-                                        if let fileData = try? Data(contentsOf: url) {
-                                            PHAssetCreationRequest.forAsset().addResource(with: .photo, data: fileData, options: nil)
-                                        }
-                                    }
-                                }, completionHandler: { _, error in
-                                })
-                            }
                             let isVideo = fileName.lowercased().hasSuffix(".mp4") || fileName.lowercased().hasSuffix(".mov")
-                            saveToPhotos(resultUrl, isVideo)
-                                               
-                            if let tooltip = self.fileDownloadTooltip {
-                                tooltip.content = tooltipContent
-                            } else {
-                                let tooltipController = UndoOverlayController(
-                                    presentationData: self.presentationData,
-                                    content: tooltipContent,
-                                    elevatedLayout: false,
-                                    position: .top,
-                                    action: { _ in
-                                        return true
+                            PHPhotoLibrary.shared().performChanges({
+                                let request = PHAssetCreationRequest.forAsset()
+                                request.addResource(with: isVideo ? .video : .photo, fileURL: url, options: nil)
+                            }, completionHandler: { [weak self, weak controller] success, _ in
+                                EngineTempBox.shared.dispose(tempFile)
+                                DispatchQueue.main.async {
+                                    guard let self, let controller else {
+                                        return
                                     }
-                                )
-                                controller.present(tooltipController, in: .current)
-                            }
+                                    guard success else {
+                                        self.fileDownloadTooltip?.dismissWithCommitAction()
+                                        return
+                                    }
+                                    if let tooltip = self.fileDownloadTooltip {
+                                        tooltip.content = tooltipContent
+                                    } else {
+                                        let tooltipController = UndoOverlayController(
+                                            presentationData: self.presentationData,
+                                            content: tooltipContent,
+                                            elevatedLayout: false,
+                                            position: .top,
+                                            action: { _ in
+                                                return true
+                                            }
+                                        )
+                                        controller.present(tooltipController, in: .current)
+                                    }
+                                }
+                            })
                         } else {
                             if let tooltip = self.fileDownloadTooltip {
                                 tooltip.dismissWithCommitAction()
                             }
-                            
-                            let tempFile = EngineTempBox.shared.file(path: resultUrl.absoluteString, fileName: fileName)
-                            let url = URL(fileURLWithPath: tempFile.path)
-                            try? FileManager.default.copyItem(at: resultUrl, to: url)
-                            
+
                             let pickerController = legacyICloudFilePicker(theme: self.presentationData.theme, mode: .export, url: url, documentTypes: [], forceDarkTheme: false, dismissed: {}, completion: { [weak self, weak controller] urls in
+                                EngineTempBox.shared.dispose(tempFile)
                                 guard let self, let controller, !urls.isEmpty else {
                                     return
                                 }

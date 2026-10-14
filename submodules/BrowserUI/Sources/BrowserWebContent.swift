@@ -294,8 +294,9 @@ final class BrowserWebContent: UIView, BrowserContent, WKNavigationDelegate, WKU
                     let pwaPath = rootPath + "/pwa"
                     let uuidPath = pwaPath + "/uuid_\(host)"
                     let uuid: UUID
-                    if let value = try? String(contentsOf: URL(fileURLWithPath: uuidPath), encoding: .utf8) {
-                        uuid = UUID(uuidString: value)!
+                    if let value = try? String(contentsOf: URL(fileURLWithPath: uuidPath), encoding: .utf8),
+                       let storedIdentifier = UUID(uuidString: value) {
+                        uuid = storedIdentifier
                     } else {
                         uuid = UUID()
                         let _ = try? FileManager.default.createDirectory(at: URL(fileURLWithPath: pwaPath), withIntermediateDirectories: true)

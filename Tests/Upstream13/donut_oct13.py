@@ -30,6 +30,111 @@ def execute(source):
 
 class DonutAdaptation(unittest.TestCase):
     @unittest.skipUnless(shutil.which('swiftc'), 'Swift unavailable locally; executes in macOS CI')
+    def test_download_file_is_preserved_before_async_consumers_and_failed_moves_clean_up(self):
+        source = read('submodules/WebUI/Sources/WebAppController.swift')
+        start = source.index('                        let tempFile = EngineTempBox.shared.tempFile(fileName: fileName)', source.index('fileprivate func startDownload('))
+        end = source.index('                        let tooltipContent:', start)
+        staging = source[start:end]
+        execute('''import Foundation
+struct TempFile { let path: String }
+final class EngineTempBox {
+    static let shared = EngineTempBox()
+    var disposals = 0
+    var root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    func tempFile(fileName: String) -> TempFile {
+        try! FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        return TempFile(path: root.appendingPathComponent(UUID().uuidString + fileName).path)
+    }
+    func dispose(_ file: TempFile) { disposals += 1; try? FileManager.default.removeItem(atPath: file.path) }
+}
+final class Tooltip { var dismissed = false; func dismissWithCommitAction() { dismissed = true } }
+final class Staging {
+    var fileDownloadTooltip: Tooltip? = Tooltip()
+    var preservedURL: URL?
+    func complete(_ resultUrl: URL, fileName: String) {
+''' + staging + '''
+        self.preservedURL = url
+    }
+}
+let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+defer {
+    try? FileManager.default.removeItem(at: directory)
+    try? FileManager.default.removeItem(at: EngineTempBox.shared.root)
+}
+let source = directory.appendingPathComponent("download with spaces.tmp")
+let bytes = Data([1, 2, 3, 4])
+try bytes.write(to: source)
+let staging = Staging()
+staging.complete(source, fileName: "photo.jpg")
+precondition(!FileManager.default.fileExists(atPath: source.path))
+let preserved = staging.preservedURL!
+let preservedBytes = try Data(contentsOf: preserved)
+precondition(preservedBytes == bytes)
+// A later asynchronous reader still has a valid path after the download callback returned.
+let reader = try FileHandle(forReadingFrom: preserved)
+precondition(reader.readDataToEndOfFile() == bytes)
+reader.closeFile()
+let failure = Staging()
+failure.complete(directory.appendingPathComponent("missing"), fileName: "photo.jpg")
+precondition(failure.preservedURL == nil && failure.fileDownloadTooltip?.dismissed == true)
+precondition(EngineTempBox.shared.disposals == 1)
+''')
+
+    @unittest.skipUnless(shutil.which('swiftc'), 'Swift unavailable locally; executes in macOS CI')
+    def test_web_store_recovers_corrupt_identifiers_without_merging_accounts(self):
+        source = read('submodules/WebUI/Sources/WebAppWebView.swift')
+        start = source.index('            var uuid: UUID?')
+        end = source.index('            if let uuid {', start)
+        selection = source[start:end].replace('UserDefaults.standard', 'defaults')
+        browser = read('submodules/BrowserUI/Sources/BrowserWebContent.swift')
+        start = browser.index('                    let uuid: UUID')
+        end = browser.index('                    configuration.websiteDataStore', start)
+        pwa_selection = browser[start:end]
+        execute('''import Foundation
+struct AccountId { let int64: Int64 }
+struct Account { let id: AccountId }
+func identifier(accountId: Int64, defaults: UserDefaults) -> UUID? {
+    let account = Account(id: AccountId(int64: accountId))
+''' + selection + '''
+    return uuid
+}
+func pwaIdentifier(path: String) -> UUID {
+    let pwaPath = path
+    let uuidPath = path + "/uuid_example.com"
+''' + pwa_selection + '''
+    return uuid
+}
+let suite = "WebStoreFixture." + UUID().uuidString
+let defaults = UserDefaults(suiteName: suite)!
+defer { defaults.removePersistentDomain(forName: suite) }
+precondition(identifier(accountId: 1, defaults: defaults) == nil)
+let second = identifier(accountId: 2, defaults: defaults)
+precondition(second != nil && identifier(accountId: 2, defaults: defaults) == second)
+defaults.set("broken-uuid", forKey: "TelegramWebStoreUUID_2")
+let repaired = identifier(accountId: 2, defaults: defaults)
+precondition(repaired != nil && repaired != second)
+precondition(identifier(accountId: 2, defaults: defaults) == repaired)
+precondition(identifier(accountId: 1, defaults: defaults) == nil)
+let third = identifier(accountId: 3, defaults: defaults)
+precondition(third != nil && third != repaired)
+defaults.set(42, forKey: "TelegramWebStoreUUID_2")
+precondition(identifier(accountId: 2, defaults: defaults) != nil)
+let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+defer { try? FileManager.default.removeItem(at: directory) }
+let firstPwa = pwaIdentifier(path: directory.path)
+precondition(pwaIdentifier(path: directory.path) == firstPwa)
+let uuidFile = directory.appendingPathComponent("uuid_example.com")
+try "bad".write(to: uuidFile, atomically: true, encoding: .utf8)
+let repairedPwa = pwaIdentifier(path: directory.path)
+precondition(repairedPwa != firstPwa)
+precondition(pwaIdentifier(path: directory.path) == repairedPwa)
+try Data([0xff, 0xfe]).write(to: uuidFile)
+let recoveredUtf8 = pwaIdentifier(path: directory.path)
+precondition(pwaIdentifier(path: directory.path) == recoveredUtf8)
+''')
+
+    @unittest.skipUnless(shutil.which('swiftc'), 'Swift unavailable locally; executes in macOS CI')
     def test_bot_download_progress_and_integer_boundaries(self):
         source = read('submodules/WebUI/Sources/FileDownload.swift')
         execute('import Foundation\n' + function(source, 'botDownloadProgress') + '\n' + function(source, 'botDownloadReceivedBytes') + '''
@@ -408,6 +513,9 @@ for flags in 0..<512 {
     @unittest.skipUnless(shutil.which('swiftc'), 'Swift unavailable locally; executes in macOS CI')
     def test_parse_modified_ui_and_core(self):
         paths = [
+            'submodules/WebUI/Sources/WebAppController.swift',
+            'submodules/WebUI/Sources/WebAppWebView.swift',
+            'submodules/BrowserUI/Sources/BrowserWebContent.swift',
             'submodules/TelegramCore/Sources/TelegramEngine/Messages/SparseMessageList.swift',
             'submodules/TelegramCore/Sources/TelegramEngine/Messages/DeleteMessages.swift',
             'submodules/TelegramUI/Sources/SharedAccountContext.swift',

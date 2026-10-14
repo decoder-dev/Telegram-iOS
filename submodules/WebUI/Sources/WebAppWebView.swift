@@ -138,8 +138,9 @@ final class WebAppWebView: WKWebView {
                 
         if #available(iOS 17.0, *) {
             var uuid: UUID?
-            if let current = UserDefaults.standard.object(forKey: "TelegramWebStoreUUID_\(account.id.int64)") as? String {
-                uuid = UUID(uuidString: current)!
+            if let current = UserDefaults.standard.object(forKey: "TelegramWebStoreUUID_\(account.id.int64)") as? String,
+               let storedIdentifier = UUID(uuidString: current) {
+                uuid = storedIdentifier
             } else {
                 let mainAccountId: Int64
                 if let current = UserDefaults.standard.object(forKey: "TelegramWebStoreMainAccountId") as? Int64 {
@@ -150,8 +151,9 @@ final class WebAppWebView: WKWebView {
                 }
                 
                 if account.id.int64 != mainAccountId {
-                    uuid = UUID()
-                    UserDefaults.standard.set(uuid!.uuidString, forKey: "TelegramWebStoreUUID_\(account.id.int64)")
+                    let identifier = UUID()
+                    uuid = identifier
+                    UserDefaults.standard.set(identifier.uuidString, forKey: "TelegramWebStoreUUID_\(account.id.int64)")
                 }
             }
             
