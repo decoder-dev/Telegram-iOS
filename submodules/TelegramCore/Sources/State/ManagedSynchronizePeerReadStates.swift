@@ -26,7 +26,6 @@ private final class SynchronizePeerReadStatesContextImpl {
     private let stateManager: AccountStateManager
     
     private var ghostSettingsObserver: NSObjectProtocol?
-    private var ghostHidesReadReceipts = ForkGhostModeSettings.suppressMessageReads
     private var disposable: Disposable?
     
     private var currentState: [PeerId : PeerReadStateSynchronizationOperation] = [:]
@@ -52,9 +51,9 @@ private final class SynchronizePeerReadStatesContextImpl {
         self.postbox = postbox
         self.stateManager = stateManager
         self.ghostSettingsObserver = NotificationCenter.default.addObserver(forName: ForkGhostModeSettings.didChangeNotification, object: nil, queue: nil, using: { [weak self] _ in
-            self?.queue.async { [weak self] in self?.updateGhostLocalReads(initial: false) }
+            self?.queue.async { [weak self] in self?.updateGhostLocalReads() }
         })
-        self.updateGhostLocalReads(initial: true)
+        self.updateGhostLocalReads()
         
         self.disposable = (postbox.synchronizePeerReadStatesView()
         |> deliverOn(self.queue)).start(next: { [weak self] view in
@@ -77,18 +76,12 @@ private final class SynchronizePeerReadStatesContextImpl {
     func dispose() {
     }
     
-    private func updateGhostLocalReads(initial: Bool) {
-        let hidesReadReceipts = ForkGhostModeSettings.suppressMessageReads
-        if !initial && hidesReadReceipts == self.ghostHidesReadReceipts {
-            return
-        }
-        self.ghostHidesReadReceipts = hidesReadReceipts
+    private func updateGhostLocalReads() {
         let accountPeerId = self.stateManager.accountPeerId
-        if hidesReadReceipts || !TelegramSimpleSettings.shared.hasGhostLocalReads(accountPeerId: accountPeerId.toInt64()) {
-            return
-        }
+        guard TelegramSimpleSettings.shared.hasGhostLocalReads(accountPeerId: accountPeerId.toInt64()) else { return }
         let _ = self.postbox.transaction({ transaction -> Void in
-            guard !ForkGhostModeSettings.suppressMessageReads else { return }
+            // This also handles an exception being enabled while global Don't Read stays on.
+            // The helper leaves all still-hidden chats untouched.
             bananaRestoreGhostLocalReads(transaction: transaction, accountPeerId: accountPeerId)
         }).start()
     }

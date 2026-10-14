@@ -586,8 +586,13 @@ extension ChatControllerImpl {
                             attachmentController?.dismiss(animated: true)
                             self?.presentFileGallery(editingMessage: isEditingMessage)
                         }, presentFiles: { [weak self, weak attachmentController] in
-                            attachmentController?.dismiss(animated: true)
-                            self?.presentICloudFileGallery(editingMessage: isEditingMessage)
+                            if let attachmentController {
+                                attachmentController.dismiss(animated: true, completion: { [weak self] in
+                                    self?.presentICloudFileGallery(editingMessage: isEditingMessage)
+                                })
+                            } else {
+                                self?.presentICloudFileGallery(editingMessage: isEditingMessage)
+                            }
                         }, presentDocumentScanner: presentDocumentScanner, send: { [weak self, weak attachmentController] mediaReferences, silentPosting, scheduleTime, caption in
                             guard let self else {
                                 return
@@ -1433,9 +1438,23 @@ extension ChatControllerImpl {
                     for url in urls {
                         signals.append(iCloudFileDescription(url))
                     }
+                    let progress = OverlayStatusController(theme: strongSelf.presentationData.theme, type: .loading(cancelled: { [weak self] in
+                        self?.enqueueMediaMessageDisposable.set(nil)
+                    }))
+                    strongSelf.present(progress, in: .window(.root))
                     strongSelf.enqueueMediaMessageDisposable.set((combineLatest(signals)
-                    |> deliverOnMainQueue).startStrict(next: { results in
+                    |> afterDisposed { [weak progress] in
+                        Queue.mainQueue().async { progress?.dismiss() }
+                    }
+                    |> deliverOnMainQueue).startStrict(next: { [weak progress] results in
+                        progress?.dismiss()
                         if let strongSelf = self {
+                            // Reject partial imports instead of silently sending only readable selections.
+                            guard results.compactMap({ $0 }).count == results.count else {
+                                let russian = ForkPresentationLanguage.prefersRussianStrings
+                                strongSelf.present(textAlertController(context: strongSelf.context, title: nil, text: russian ? "Не удалось прочитать выбранный файл. Скачайте его на устройство и повторите отправку." : "Couldn't read a selected file. Download it to your device and try sending again.", actions: [TextAlertAction(type: .defaultAction, title: strongSelf.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
+                                return
+                            }
                             let replyMessageSubject = strongSelf.presentationInterfaceState.interfaceState.replyMessageSubject
 
                             for item in results {

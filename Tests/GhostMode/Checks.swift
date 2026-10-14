@@ -25,7 +25,32 @@ bananaGhostLocalReadWillReadOnServer(transaction: transaction, accountPeerId: ac
 precondition(transaction.states[peer] == server)
 precondition(bananaGhostLocalReadState(accountPeerId: account, peerId: peer) == nil)
 precondition(bananaApplyGhostLocalRead(transaction: transaction, accountPeerId: account, index: index))
+ForkGhostModeSettings.suppressMessageReads = false
 bananaRestoreGhostLocalReads(transaction: transaction, accountPeerId: account)
 precondition(transaction.states[peer] == server)
+precondition(transaction.operations[peer] == .Validate, "Restore must verify counts after deletions/holes")
 precondition(!TelegramSimpleSettings.shared.hasGhostLocalReads(accountPeerId: account.value))
 print("Ghost local read: account isolation, pending push, forums, sync and restore passed")
+
+// Disabling only a chat exception must restore that chat while global Ghost stays enabled.
+ForkGhostModeSettings.suppressMessageReads = true
+transaction.operations[peer] = nil
+precondition(bananaApplyGhostLocalRead(transaction: transaction, accountPeerId: account, index: index))
+bananaRestoreGhostLocalReads(transaction: transaction, accountPeerId: account)
+precondition(bananaGhostLocalReadState(accountPeerId: account, peerId: peer) != nil)
+ForkGhostModeSettings.exceptions = [peer]
+bananaRestoreGhostLocalReads(transaction: transaction, accountPeerId: account)
+precondition(transaction.states[peer] == server)
+precondition(transaction.operations[peer] == .Validate)
+precondition(bananaGhostLocalReadState(accountPeerId: account, peerId: peer) == nil)
+ForkGhostModeSettings.exceptions = []
+// A delta recorded before an incoming-message deletion is not trusted as the final count.
+transaction.operations[peer] = nil
+precondition(bananaApplyGhostLocalRead(transaction: transaction, accountPeerId: account, index: index))
+ForkGhostModeSettings.suppressMessageReads = false
+bananaRestoreGhostLocalReads(transaction: transaction, accountPeerId: account)
+precondition(transaction.operations[peer] == .Validate)
+let authoritative = PeerReadState.idBased(maxIncomingReadId: 10, maxOutgoingReadId: 0, maxKnownId: 20, count: 9, markedUnread: false)
+bananaResetIncomingReadStates(transaction: transaction, accountPeerId: account, [peer: [0: authoritative]])
+precondition(transaction.states[peer] == authoritative, "Authoritative count must replace local estimate")
+print("Ghost local read: exception restore and authoritative count reconciliation passed")

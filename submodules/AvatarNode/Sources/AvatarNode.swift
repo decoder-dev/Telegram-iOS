@@ -28,6 +28,16 @@ private let myNotesIcon = generateTintedImage(image: UIImage(bundleImageName: "A
 private let cameraIcon = generateTintedImage(image: UIImage(bundleImageName: "Avatar/CameraIcon"), color: .white)
 private let storyIcon = generateTintedImage(image: UIImage(bundleImageName: "Share/Story"), color: .white)
 
+/// Fade a row's glow to zero before the clipping edge, so adjacent pinned rows cannot
+/// expose a horizontal cut through a blurred shadow. Coordinates are in the glow layer.
+func avatarGlowMaskStops(height: CGFloat, lowerBound: CGFloat, upperBound: CGFloat) -> [CGFloat] {
+    guard height.isFinite, height > 0, lowerBound.isFinite, upperBound.isFinite else { return [0, 0, 1, 1] }
+    let lower = max(0, min(height, lowerBound))
+    let upper = max(lower, min(height, upperBound))
+    let fade = min(6.0, (upper - lower) * 0.5)
+    return [lower / height, (lower + fade) / height, (upper - fade) / height, upper / height]
+}
+
 private func avatarGlowColor(from image: UIImage) -> UIColor? {
     guard let cgImage = image.cgImage, let context = DrawingContext(size: CGSize(width: 16.0, height: 16.0), scale: 1.0, clear: true) else {
         return nil
@@ -1261,18 +1271,67 @@ public final class AvatarNode: ASDisplayNode {
     
     public let contentNode: ContentNode
     private var glowObserver: NSObjectProtocol?
+    private var glowLayer: CAShapeLayer?
+    private var glowMask: CAGradientLayer?
+    /// Optional row edges expressed in avatar coordinates. The mask affects only the glow,
+    /// leaving the avatar, story ring and online badges intact.
+    public var glowVerticalBounds: ClosedRange<CGFloat>? {
+        didSet {
+            if self.glowVerticalBounds != oldValue { self.updateGlow() }
+        }
+    }
+
     private func updateGlow() {
         if !Thread.isMainThread {
             Queue.mainQueue().async { [weak self] in self?.updateGlow() }
             return
         }
         guard self.isNodeLoaded else { return }
+        self.layer.shadowOpacity = 0.0
+        self.layer.shadowPath = nil
         let enabled = ArenaSettings.shared.avatarGlow && !self.bounds.isEmpty
-        if enabled { self.layer.shadowColor = self.contentNode.glowColor.cgColor }
-        self.layer.shadowOffset = .zero
-        self.layer.shadowRadius = min(12.0, self.bounds.width * 0.18)
-        self.layer.shadowOpacity = enabled ? 0.8 : 0.0
-        self.layer.shadowPath = enabled ? UIBezierPath(ovalIn: self.bounds).cgPath : nil
+        guard enabled else {
+            self.glowLayer?.isHidden = true
+            return
+        }
+        let glow: CAShapeLayer
+        if let current = self.glowLayer {
+            glow = current
+        } else {
+            glow = CAShapeLayer()
+            self.glowLayer = glow
+            self.layer.insertSublayer(glow, at: 0)
+        }
+        let radius = min(12.0, self.bounds.width * 0.18)
+        let spread = radius * 3.0
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        glow.isHidden = false
+        glow.frame = self.bounds.insetBy(dx: -spread, dy: -spread)
+        let path = UIBezierPath(ovalIn: CGRect(origin: CGPoint(x: spread, y: spread), size: self.bounds.size)).cgPath
+        glow.path = path
+        glow.fillColor = UIColor.clear.cgColor
+        glow.shadowColor = self.contentNode.glowColor.cgColor
+        glow.shadowOffset = .zero
+        glow.shadowRadius = radius
+        glow.shadowOpacity = 0.8
+        glow.shadowPath = path
+        if let row = self.glowVerticalBounds {
+            let mask: CAGradientLayer
+            if let current = self.glowMask {
+                mask = current
+            } else {
+                mask = CAGradientLayer()
+                self.glowMask = mask
+            }
+            mask.frame = glow.bounds
+            mask.colors = [UIColor.clear.cgColor, UIColor.black.cgColor, UIColor.black.cgColor, UIColor.clear.cgColor]
+            mask.locations = avatarGlowMaskStops(height: glow.bounds.height, lowerBound: row.lowerBound + spread, upperBound: row.upperBound + spread).map { NSNumber(value: Double($0)) }
+            glow.mask = mask
+        } else {
+            glow.mask = nil
+        }
+        CATransaction.commit()
     }
     private var storyIndicator: ComponentView<Empty>?
     public private(set) var storyPresentationParams: StoryPresentationParams?

@@ -6940,9 +6940,13 @@ private final class ChatListLocationContext {
     var rightButton: AnyComponentWithIdentity<NavigationButtonComponentEnvironment>?
     var proxyButton: AnyComponentWithIdentity<NavigationButtonComponentEnvironment>?
     var storyButton: AnyComponentWithIdentity<NavigationButtonComponentEnvironment>?
+    var settingsButton: AnyComponentWithIdentity<NavigationButtonComponentEnvironment>?
     
     var rightButtons: [AnyComponentWithIdentity<NavigationButtonComponentEnvironment>] {
         var result: [AnyComponentWithIdentity<NavigationButtonComponentEnvironment>] = []
+        if let settingsButton = self.settingsButton {
+            result.append(settingsButton)
+        }
         if let rightButton = self.rightButton {
             result.append(rightButton)
         }
@@ -7030,7 +7034,10 @@ private final class ChatListLocationContext {
                 NotificationCenter.default.removeObserver(observer)
             }
         }
-        let appearanceState = combineLatest(peerStatus, accountPeer, appearanceChanges)
+        let hiddenTabBar = forkExtrasSettings(accountManager: context.sharedContext.accountManager)
+        |> map { ForkExtrasHotFlags.hidesTabBar($0.hideTabBar, isPad: UIDevice.current.userInterfaceIdiom == .pad) }
+        |> distinctUntilChanged
+        let appearanceState = combineLatest(peerStatus, accountPeer, appearanceChanges, hiddenTabBar)
         
         let networkState: Signal<AccountNetworkState, NoError>
         #if DEBUG && false
@@ -7095,7 +7102,8 @@ private final class ChatListLocationContext {
                         peerStatus: appearanceState.0,
                         accountPeer: appearanceState.1,
                         presentationData: presentationData,
-                        storyPostingAvailable: storyPostingAvailable
+                        storyPostingAvailable: storyPostingAvailable,
+                        tabBarHidden: appearanceState.3
                     )
                 })
             } else {
@@ -7323,8 +7331,19 @@ private final class ChatListLocationContext {
         peerStatus: NetworkStatusTitle.Status?,
         accountPeer: EnginePeer?,
         presentationData: PresentationData,
-        storyPostingAvailable: Bool
+        storyPostingAvailable: Bool,
+        tabBarHidden: Bool
     ) {
+        self.settingsButton = nil
+        if case .chatList(.root) = self.location, tabBarHidden, !stateAndFilterId.state.editing, !isReorderingTabs {
+            self.settingsButton = AnyComponentWithIdentity(id: "settings", component: AnyComponent(NavigationButtonComponent(
+                content: .settings(title: presentationData.strings.Settings_Title),
+                pressed: { [weak self] _ in
+                    guard let self, let root = self.context.sharedContext.mainWindow?.viewController as? TelegramRootControllerInterface else { return }
+                    root.openSettings(edit: false)
+                }
+            )))
+        }
         let defaultTitle: String
         switch location {
         case let .chatList(groupId):

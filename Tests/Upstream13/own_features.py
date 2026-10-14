@@ -13,6 +13,159 @@ def read(path):
     return (ROOT / path).read_text(encoding='utf-8')
 
 class ForkIntegration(unittest.TestCase):
+    def test_hidden_tabs_keep_settings_and_a_back_route(self):
+        chats = read('submodules/ChatListUI/Sources/ChatListController.swift')
+        self.assertIn('combineLatest(peerStatus, accountPeer, appearanceChanges, hiddenTabBar)', chats)
+        self.assertIn('tabBarHidden, !stateAndFilterId.state.editing, !isReorderingTabs', chats)
+        self.assertIn('root.openSettings(edit: false)', chats)
+        root = read('submodules/TelegramUI/Sources/TelegramRootController.swift')
+        body = root.split('public func openSettings(edit:', 1)[1].split('public func openBirthdaySetup', 1)[0]
+        self.assertIn('immediateForkExtrasSettings.hideTabBar', body)
+        self.assertIn('self.pushViewController(settings, animated: true)', body)
+        self.assertLess(body.index('self.pushViewController(settings'), body.index('rootTabController.selectedIndex'))
+        header = read('submodules/TelegramUI/Components/PeerInfo/PeerInfoScreen/Sources/PeerInfoScreen.swift')
+        self.assertIn('if self.controller?.previousItem != nil {', header)
+        component = read('submodules/TelegramUI/Components/ChatListHeaderComponent/Sources/NavigationButtonComponent.swift')
+        self.assertIn('self.accessibilityLabel = title', component)
+
+    def test_file_preparation_coordinates_reads_with_timeout_and_partial_error(self):
+        resource = read('submodules/ICloudResources/Sources/ICloudResources.swift')
+        body = resource.split('public func iCloudFileDescription(', 1)[1].split('private final class SecurityScopedAccess', 1)[0]
+        self.assertNotIn('NSMetadataQuery', body)
+        self.assertIn('NSFileAccessIntent.readingIntent(with: url', body)
+        self.assertIn('descriptionWithUrl(intent.url)', body)
+        self.assertIn('coordinator.cancel()', body)
+        self.assertIn('timeout.schedule(deadline: .now() + 120.0)', body)
+        self.assertIn('guard !finished.swap(true) else { return }', body)
+        menu = read('submodules/TelegramUI/Sources/ChatControllerOpenAttachmentMenu.swift')
+        body = menu.split('func presentICloudFileGallery(', 1)[1]
+        self.assertIn('results.compactMap({ $0 }).count == results.count', body)
+        self.assertIn('enqueueMediaMessageDisposable.set(nil)', body)
+        self.assertIn('afterDisposed { [weak progress]', body)
+        self.assertIn('attachmentController.dismiss(animated: true, completion:', menu)
+
+    def test_ghost_restore_reconciles_deleted_counts_and_account_exceptions(self):
+        source = read('submodules/TelegramCore/Sources/Arena/BananaGhostLocalRead.swift')
+        body = source.split('private func bananaRestoreServerReadState(', 1)[1].split('/// Call before an explicit read', 1)[0]
+        self.assertIn('return false', body)
+        self.assertNotIn('return read.readCount != nil', body)
+        self.assertIn('Int32(clamping:', body)
+        self.assertIn('ForkGhostModeSettings.isException(accountPeerId: accountPeerId, peerId: peerId)', source)
+        sync = read('submodules/TelegramCore/Sources/State/ManagedSynchronizePeerReadStates.swift')
+        self.assertNotIn('hidesReadReceipts == self.ghostHidesReadReceipts', sync)
+
+    @unittest.skipUnless(shutil.which('swiftc'), 'Swift unavailable locally; glow geometry executes in macOS CI')
+    def test_actual_glow_fades_inside_row_boundaries(self):
+        source = read('submodules/AvatarNode/Sources/AvatarNode.swift')
+        start = source.index('func avatarGlowMaskStops(')
+        function = source[start:source.index('\n}', start) + 2]
+        fixture = 'import Foundation\n' + function + r'''
+for height in [1.0, 32.0, 52.0, 80.0, 120.0] {
+    for lower in [-50.0, 0.0, 1.0, 12.0, 52.0, 150.0] {
+        for upper in [-20.0, 0.0, 32.0, 52.0, 80.0, 200.0] {
+            let stops = avatarGlowMaskStops(height: height, lowerBound: lower, upperBound: upper)
+            precondition(stops.count == 4 && stops == stops.sorted())
+            precondition(stops.allSatisfy { $0.isFinite && $0 >= 0 && $0 <= 1 })
+            let lo = max(0, min(height, lower)), hi = max(lo, min(height, upper))
+            precondition(abs(stops[0] * height - lo) < 0.00001)
+            precondition(abs(stops[3] * height - hi) < 0.00001)
+        }
+    }
+}
+print("Avatar glow: actual mask geometry passed")
+'''
+        self.run_swift_fixture(fixture)
+        item = read('submodules/ChatListUI/Sources/Node/ChatListItem.swift')
+        self.assertIn('strongSelf.avatarNode.glowVerticalBounds =', item)
+        self.assertIn('glow.mask = mask', source)
+        self.assertNotIn('self.layer.mask = mask', source)
+
+    @unittest.skipUnless(shutil.which('swiftc'), 'Swift unavailable locally; preparation lifecycle executes in macOS CI')
+    def test_actual_file_preparation_success_error_timeout_and_cancel(self):
+        source = read('submodules/ICloudResources/Sources/ICloudResources.swift')
+        body = source[source.index('public func iCloudFileDescription('):source.index('private final class SecurityScopedAccess')]
+        body = body.replace('public func', 'func').replace('NSFileCoordinator', 'FakeFileCoordinator').replace('NSFileAccessIntent', 'FakeFileAccessIntent')
+        # Exercise the production timeout branch without delaying macOS CI for two minutes.
+        body = body.replace('.now() + 120.0', '.now() + 0.05')
+        fixture = r'''import Foundation
+protocol Disposable { func dispose() }
+final class ActionDisposable: Disposable {
+    let action: () -> Void
+    init(_ action: @escaping () -> Void) { self.action = action }
+    func dispose() { action() }
+}
+final class Atomic<T> {
+    private var value: T; private let lock = NSLock()
+    init(value: T) { self.value = value }
+    func with<R>(_ f: (T) -> R) -> R { lock.lock(); defer { lock.unlock() }; return f(value) }
+    func swap(_ next: T) -> T { lock.lock(); defer { lock.unlock() }; let old = value; value = next; return old }
+}
+enum NoError: Error {}
+struct ICloudFileDescription { let fileName: String }
+final class Subscriber<T> {
+    let next: (T) -> Void; let completed: () -> Void
+    init(next: @escaping (T) -> Void, completed: @escaping () -> Void) { self.next = next; self.completed = completed }
+    func putNext(_ value: T) { next(value) }
+    func putCompletion() { completed() }
+}
+final class Signal<T, E: Error> {
+    let generator: (Subscriber<T>) -> Disposable
+    init(_ generator: @escaping (Subscriber<T>) -> Disposable) { self.generator = generator }
+    func start(next: @escaping (T) -> Void, completed: @escaping () -> Void) -> Disposable {
+        return generator(Subscriber(next: next, completed: completed))
+    }
+}
+final class SecurityScopedAccess {
+    init(url: URL, active: Bool) {}
+    func stop() {}
+}
+func descriptionWithUrl(_ url: URL) -> ICloudFileDescription? { return .init(fileName: url.lastPathComponent) }
+final class FakeFileAccessIntent {
+    struct Options: OptionSet { let rawValue: Int; static let withoutChanges = Options(rawValue: 1) }
+    let url: URL
+    init(_ url: URL) { self.url = url }
+    static func readingIntent(with url: URL, options: Options) -> FakeFileAccessIntent { .init(url) }
+}
+final class FakeFileCoordinator {
+    static var mode = 0
+    static var cancellations = Atomic<Int>(value: 0)
+    init(filePresenter: Any?) {}
+    func cancel() { let old = Self.cancellations.with { $0 }; let _ = Self.cancellations.swap(old + 1) }
+    func coordinate(with intents: [FakeFileAccessIntent], queue: OperationQueue, byAccessor: @escaping (Error?) -> Void) {
+        let mode = Self.mode
+        if mode == 2 { return } // stalled File Provider
+        queue.addOperation { byAccessor(mode == 1 ? NSError(domain: "fixture", code: 1) : nil) }
+    }
+}
+''' + body + r'''
+for mode in [0, 1, 2] {
+    FakeFileCoordinator.mode = mode
+    let done = DispatchSemaphore(value: 0)
+    var values: [ICloudFileDescription?] = []
+    let subscription = iCloudFileDescription(URL(fileURLWithPath: "/tmp/file-fixture.zip")).start(next: { values.append($0) }, completed: { done.signal() })
+    precondition(done.wait(timeout: .now() + 3) == .success)
+    precondition(values.count == 1)
+    if mode == 0 { precondition(values[0]?.fileName == "file-fixture.zip") } else { precondition(values[0] == nil) }
+    subscription.dispose()
+}
+FakeFileCoordinator.mode = 2
+let values = Atomic<Int>(value: 0)
+let subscription = iCloudFileDescription(URL(fileURLWithPath: "/tmp/file-fixture.zip")).start(next: { _ in let _ = values.swap(1) }, completed: { let _ = values.swap(1) })
+subscription.dispose()
+Thread.sleep(forTimeInterval: 0.15)
+precondition(values.with { $0 } == 0)
+print("File preparation: actual success/error/timeout/cancellation lifecycle passed")
+'''
+        self.run_swift_fixture(fixture)
+
+    def run_swift_fixture(self, fixture):
+        with tempfile.TemporaryDirectory() as directory:
+            source = pathlib.Path(directory) / 'main.swift'
+            binary = pathlib.Path(directory) / 'fixture'
+            source.write_text(fixture, encoding='utf-8')
+            subprocess.run(['swiftc', str(source), '-o', str(binary)], check=True, timeout=120)
+            subprocess.run([str(binary)], check=True, timeout=30)
+
     def test_message_saving_store_imports_postbox_types_directly(self):
         store = read('submodules/TelegramUIPreferences/Sources/MessageSavingStore.swift')
         self.assertIn('\nimport Postbox\n', store)

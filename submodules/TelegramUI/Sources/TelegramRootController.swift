@@ -93,6 +93,7 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
     private var currentShowContactsTab = true
     private var currentShowCallsTab = false
     private var hideTabBarDisposable: Disposable?
+    private weak var hiddenTabSettingsController: PeerInfoScreenImpl?
     
     override public var minimizedContainer: MinimizedContainer? {
         didSet {
@@ -164,14 +165,17 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
     }
     
     public func getSettingsController() -> ViewController? {
+        if let settings = self.hiddenTabSettingsController { return settings }
         return self.accountSettingsController
     }
     
     public func getPrivacySettings() -> Promise<AccountPrivacySettings?>? {
+        if let settings = self.hiddenTabSettingsController { return settings.privacySettings }
         return self.accountSettingsController?.privacySettings
     }
     
     public func getNotificationExceptions() -> Promise<NotificationExceptionsList?>? {
+        if let settings = self.hiddenTabSettingsController { return settings.notificationExceptions }
         return self.accountSettingsController?.notificationExceptions
     }
     
@@ -984,6 +988,15 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
         }
         
         self.popToRoot(animated: false)
+        if ForkExtrasHotFlags.hidesTabBar(self.context.sharedContext.immediateForkExtrasSettings.hideTabBar, isPad: UIDevice.current.userInterfaceIdiom == .pad) {
+            // Push a fresh settings screen so Back returns to Chats even while tabs are hidden.
+            let settings = PeerInfoScreenImpl(context: self.context, updatedPresentationData: nil, peerId: self.context.account.peerId, avatarInitiallyExpanded: false, isOpenedFromChat: false, reactionSourceMessageId: nil, callMessages: [], isSettings: true)
+            settings.parentController = self
+            self.hiddenTabSettingsController = settings
+            self.pushViewController(settings, animated: true)
+            if edit { settings.activateEdit() }
+            return
+        }
     
         if let index = rootTabController.controllers.firstIndex(where: { $0 is PeerInfoScreenImpl }) {
             rootTabController.selectedIndex = index

@@ -233,67 +233,47 @@ private func descriptionWithUrl(_ url: URL) -> ICloudFileDescription? {
     }
 }
 
+/// Coordinate the actual read, which materializes placeholders from iCloud and third-party
+/// File Providers. Metadata gathering neither downloads the file nor guarantees its readability.
 public func iCloudFileDescription(_ url: URL) -> Signal<ICloudFileDescription?, NoError> {
     return Signal { subscriber in
-        var isRemote = false
-        var isCurrent = true
-        
-        let scopedAccess = url.startAccessingSecurityScopedResource()
-        defer {
-            if scopedAccess {
-                url.stopAccessingSecurityScopedResource()
-            }
-        }
-        
-        if let values = try? url.resourceValues(forKeys: Set([URLResourceKey.ubiquitousItemDownloadingStatusKey])), let status = values.ubiquitousItemDownloadingStatus {
-            isRemote = true
-            if status != URLUbiquitousItemDownloadingStatus.current {
-                isCurrent = false
-            }
-        }
-        
-        if !isRemote || isCurrent {
-            subscriber.putNext(descriptionWithUrl(url))
+        let access = SecurityScopedAccess(url: url, active: url.startAccessingSecurityScopedResource())
+        let finished = Atomic<Bool>(value: false)
+        let coordinator = NSFileCoordinator(filePresenter: nil)
+        let intent = NSFileAccessIntent.readingIntent(with: url, options: [.withoutChanges])
+        let worker = OperationQueue()
+        worker.maxConcurrentOperationCount = 1
+        worker.qualityOfService = .userInitiated
+        let timeout = DispatchSource.makeTimerSource(queue: DispatchQueue.global(qos: .utility))
+        func finish(_ result: ICloudFileDescription?) {
+            guard !finished.swap(true) else { return }
+            timeout.setEventHandler {}
+            timeout.cancel()
+            access.stop()
+            subscriber.putNext(result)
             subscriber.putCompletion()
-            return EmptyDisposable
-        } else {
-            final class WrappedQuery {
-                let query = NSMetadataQuery()
+        }
+        timeout.setEventHandler {
+            coordinator.cancel()
+            finish(nil)
+        }
+        timeout.schedule(deadline: .now() + 120.0)
+        timeout.resume()
+        coordinator.coordinate(with: [intent], queue: worker, byAccessor: { error in
+            guard !finished.with({ $0 }) else { return }
+            defer { access.stop() }
+            if error != nil {
+                finish(nil)
+                return
             }
-            
-            let query = WrappedQuery()
-            query.query.searchScopes = [NSMetadataQueryUbiquitousDocumentsScope, NSMetadataQueryAccessibleUbiquitousExternalDocumentsScope]
-            query.query.predicate = NSPredicate(format: "%K.lastPathComponent == %@", NSMetadataItemFSNameKey, url.lastPathComponent)
-            query.query.valueListAttributes = [NSMetadataItemFSSizeKey]
-            
-            let observer = NotificationCenter.default.addObserver(forName: NSNotification.Name.NSMetadataQueryDidFinishGathering, object: query, queue: OperationQueue.main, using: { notification in
-                query.query.disableUpdates()
-                
-                guard let metadataItem = query.query.results.first as? NSMetadataItem else {
-                    query.query.enableUpdates()
-                    return
-                }
-                
-                query.query.stop()
-                
-                guard let fileSize = metadataItem.value(forAttribute: NSMetadataItemFSSizeKey) as? NSNumber, fileSize != 0 else {
-                    subscriber.putNext(nil)
-                    subscriber.putCompletion()
-                    return
-                }
-                
-                subscriber.putNext(descriptionWithUrl(url))
-                subscriber.putCompletion()
-            })
-            
-            query.query.start()
-            
-            return ActionDisposable {
-                Queue.mainQueue().async {
-                    query.query.stop()
-                    NotificationCenter.default.removeObserver(observer)
-                }
-            }
+            finish(descriptionWithUrl(intent.url))
+        })
+        return ActionDisposable {
+            let _ = finished.swap(true)
+            timeout.setEventHandler {}
+            timeout.cancel()
+            coordinator.cancel()
+            access.stop()
         }
     }
 }

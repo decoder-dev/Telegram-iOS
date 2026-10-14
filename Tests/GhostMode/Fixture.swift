@@ -15,7 +15,11 @@ enum Namespaces {
     enum Peer { static let CloudUser: Int32 = 0; static let CloudGroup: Int32 = 1; static let CloudChannel: Int32 = 2 }
     enum Message { static let Cloud: Int32 = 0 }
 }
-enum ForkGhostModeSettings { static var suppressMessageReads = true }
+enum ForkGhostModeSettings {
+    static var suppressMessageReads = true
+    static var exceptions: Set<PeerId> = []
+    static func isException(accountPeerId: PeerId, peerId: PeerId) -> Bool { exceptions.contains(peerId) }
+}
 struct Peer { var isForumOrMonoForum = false }
 enum Operation { case Push, Validate }
 enum PeerReadState: Equatable {

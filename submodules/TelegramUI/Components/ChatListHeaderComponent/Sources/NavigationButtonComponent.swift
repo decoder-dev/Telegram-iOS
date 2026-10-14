@@ -27,6 +27,7 @@ public final class NavigationButtonComponent: Component {
     public enum Content: Equatable {
         case text(title: String, isBold: Bool)
         case more
+        case settings(title: String)
         case icon(imageName: String)
         case proxy(status: ChatTitleProxyStatus)
     }
@@ -114,6 +115,7 @@ public final class NavigationButtonComponent: Component {
             var proxyStatus: ChatTitleProxyStatus?
             var isMore: Bool = false
             
+            self.accessibilityLabel = nil
             switch component.content {
             case let .text(title, isBold):
                 if title == "___done" {
@@ -123,6 +125,9 @@ public final class NavigationButtonComponent: Component {
                 }
             case .more:
                 isMore = true
+            case let .settings(title):
+                imageName = "___settings"
+                self.accessibilityLabel = title
             case let .icon(imageNameValue):
                 imageName = imageNameValue
             case let .proxy(status):
@@ -165,7 +170,13 @@ public final class NavigationButtonComponent: Component {
                 }
                 if self.iconImageName != imageName || themeUpdated {
                     self.iconImageName = imageName
-                    iconView.image = generateTintedImage(image: UIImage(bundleImageName: imageName), color: theme.chat.inputPanel.panelControlColor)
+                    let image: UIImage?
+                    if imageName == "___settings" {
+                        image = UIImage(systemName: "gearshape", withConfiguration: UIImage.SymbolConfiguration(pointSize: 20.0, weight: .regular))
+                    } else {
+                        image = UIImage(bundleImageName: imageName)
+                    }
+                    iconView.image = generateTintedImage(image: image, color: theme.chat.inputPanel.panelControlColor)
                 }
                 
                 if let iconSize = iconView.image?.size {

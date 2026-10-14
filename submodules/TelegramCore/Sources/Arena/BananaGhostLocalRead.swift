@@ -70,7 +70,10 @@ func bananaApplyGhostLocalRead(transaction: Transaction, accountPeerId: PeerId, 
         read = current
     }
     read.maxIncomingReadId = maxIncomingReadId
-    read.readCount = read.readCount.map { $0 + max(0, previousCount - count) }
+    if let readCount = read.readCount {
+        let updatedCount = Int64(readCount) + max(0, Int64(previousCount) - Int64(count))
+        read.readCount = updatedCount <= Int64(Int32.max) ? Int32(updatedCount) : nil
+    }
     if previousMarkedUnread {
         // The mark shown here is the server's one.
         read.serverMarkedUnread = true
@@ -90,8 +93,10 @@ private func bananaRestoreServerReadState(transaction: Transaction, accountPeerI
     guard case let .idBased(maxIncomingReadId, maxOutgoingReadId, maxKnownId, count, _)? = bananaCloudReadState(transaction: transaction, peerId: peerId), maxIncomingReadId == read.maxIncomingReadId else {
         return true
     }
-    transaction.resetIncomingReadStates([peerId: [Namespaces.Message.Cloud: .idBased(maxIncomingReadId: read.serverMaxIncomingReadId, maxOutgoingReadId: maxOutgoingReadId, maxKnownId: maxKnownId, count: count + (read.readCount ?? 0), markedUnread: read.serverMarkedUnread)]])
-    return read.readCount != nil
+    transaction.resetIncomingReadStates([peerId: [Namespaces.Message.Cloud: .idBased(maxIncomingReadId: read.serverMaxIncomingReadId, maxOutgoingReadId: maxOutgoingReadId, maxKnownId: maxKnownId, count: Int32(clamping: max(0, Int64(count) + Int64(read.readCount ?? 0))), markedUnread: read.serverMarkedUnread)]])
+    // The local delta is only an estimate after messages were deleted or history had holes.
+    // Validate against the dialog's authoritative count instead of keeping that estimate forever.
+    return false
 }
 
 /// Call before an explicit read of the chat, one the user asked to send. The chat gets the
@@ -127,6 +132,9 @@ func bananaGhostLocalReadMarkUnread(transaction: Transaction, accountPeerId: Pee
 func bananaRestoreGhostLocalReads(transaction: Transaction, accountPeerId: PeerId) {
     for (peerId, read) in TelegramSimpleSettings.shared.ghostLocalReads(accountPeerId: accountPeerId.toInt64()) {
         let peerId = PeerId(peerId)
+        if ForkGhostModeSettings.suppressMessageReads && !ForkGhostModeSettings.isException(accountPeerId: accountPeerId, peerId: peerId) {
+            continue
+        }
         // A chat that left the chat list may have no dialog on the server, and its
         // validation would keep retrying.
         if !bananaRestoreServerReadState(transaction: transaction, accountPeerId: accountPeerId, peerId: peerId, read: read) && transaction.getPeerChatListIndex(peerId) != nil {
@@ -188,7 +196,7 @@ func bananaGhostLocalReadDidApplyServerState(transaction: Transaction, accountPe
     // A mark the server got after the local read is shown.
     let readsServerMark = serverMarkedUnread && read.serverMarkedUnread && read.readsServerMark
     let isCovered = !readsServerMark && (serverCount == 0 || serverMaxIncomingReadId >= read.maxIncomingReadId)
-    if isCovered || !ForkGhostModeSettings.suppressMessageReads {
+    if isCovered || !ForkGhostModeSettings.suppressMessageReads || ForkGhostModeSettings.isException(accountPeerId: accountPeerId, peerId: peerId) {
         // The server has read what was read here, or read receipts are no longer hidden:
         // the server's state stays. Some server updates keep the higher of the local and the
         // server id together with the server's count; the server's id goes with that count.

@@ -4531,6 +4531,9 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                     transition.updatePosition(node: strongSelf.avatarNode, position: avatarFrame.offsetBy(dx: -avatarFrame.minX, dy: -avatarFrame.minY).center.offsetBy(dx: avatarScaleOffset, dy: 0.0))
                     transition.updateBounds(node: strongSelf.avatarNode, bounds: CGRect(origin: CGPoint(), size: avatarFrame.size))
                     transition.updateTransformScale(node: strongSelf.avatarNode, scale: avatarScale)
+                    let glowScale = max(0.00001, avatarScale)
+                    let glowCenterY = avatarFrame.midY
+                    strongSelf.avatarNode.glowVerticalBounds = ((-glowCenterY) / glowScale + avatarFrame.height * 0.5) ... ((itemHeight - glowCenterY) / glowScale + avatarFrame.height * 0.5)
                     strongSelf.avatarNode.updateSize(size: avatarFrame.size)
                     strongSelf.updateVideoVisibility()
                     
