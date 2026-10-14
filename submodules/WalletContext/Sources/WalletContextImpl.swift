@@ -123,6 +123,7 @@ actor WalletContextImpl {
     /// Consecutive failed server state requests; the retry delay doubles with it so a server that keeps refusing is
     /// not asked every five seconds for as long as the app is open.
     var serverStateRetryFailureCount = 0
+    var serverStateLastFailureTimestamp: CFAbsoluteTime = 0.0
             
     var pollingTask: Task<Void, Never>?
     var pollingTaskId: UUID?
@@ -479,8 +480,24 @@ actor WalletContextImpl {
             && self.currentState.activeOperation?.defersServerWalletState != true
     }
 
+    /// How long to leave a refused server state request alone: 5 s doubling to 160 s while a wallet screen is
+    /// open, four times that (15 minutes at most) when nobody is looking. A device log shows the wallet
+    /// asking the server about its state 764 times in 38 hours for an account the server refuses, up to
+    /// 148 times an hour, because every foreground, network or account event restarted the request
+    /// ahead of the retry delay.
+    func serverStateCooldown() -> TimeInterval {
+        let base = Double(min(5 * (1 << max(0, self.serverStateRetryFailureCount - 1)), 300))
+        return self.walletScreenCount > 0 ? base : min(base * 4.0, 900.0)
+    }
+
     func requestServerWalletState(forceRefreshAfterCurrent: Bool = false) {
         guard self.canUseNetworkRuntime else { return }
+        if !forceRefreshAfterCurrent,
+           self.serverStateRetryFailureCount > 0,
+           CFAbsoluteTimeGetCurrent() - self.serverStateLastFailureTimestamp < self.serverStateCooldown() - 0.5 {
+            self.scheduleServerStateRetry()
+            return
+        }
         if self.serverStateTask != nil {
             if forceRefreshAfterCurrent {
                 self.serverStateRefreshRequested = true
@@ -575,6 +592,7 @@ actor WalletContextImpl {
                 )
             }
             self.serverStateRetryFailureCount = min(self.serverStateRetryFailureCount + 1, 6)
+            self.serverStateLastFailureTimestamp = CFAbsoluteTimeGetCurrent()
             self.scheduleServerStateRetry()
         }
     }
@@ -1489,8 +1507,8 @@ actor WalletContextImpl {
 
     private func performServerStateRetryDelay() async {
         // 5 s, 10 s, 20 s ... capped at 5 minutes.
-        let delaySeconds = min(5 * (1 << max(0, self.serverStateRetryFailureCount - 1)), 300)
-        try? await Task.sleep(nanoseconds: UInt64(delaySeconds) * 1_000_000_000)
+        let delaySeconds = self.serverStateCooldown()
+        try? await Task.sleep(nanoseconds: UInt64(delaySeconds * 1_000_000_000.0))
         guard !Task.isCancelled,
               !self.isShutdown else {
             return

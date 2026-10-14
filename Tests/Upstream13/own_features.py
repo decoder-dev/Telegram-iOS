@@ -989,5 +989,19 @@ print("Account-scoped ghost exceptions: isolation/persistence/revocation passed"
         self.assertEqual(src.count('self.currentStartCallPeerId = nil'), 2)
 
 
+    def test_wallet_server_state_requests_respect_the_failure_cooldown(self):
+        # Device log: 764 refused wallet.getState calls in 38 h (148 in one hour) because every foreground,
+        # network or account event called requestServerWalletState ahead of the retry delay.
+        src = read('submodules/WalletContext/Sources/WalletContextImpl.swift')
+        request = src.split('func requestServerWalletState(forceRefreshAfterCurrent: Bool = false) {', 1)[1].split('private func performServerWalletStateRequest', 1)[0]
+        self.assertIn('!forceRefreshAfterCurrent', request)
+        self.assertIn('CFAbsoluteTimeGetCurrent() - self.serverStateLastFailureTimestamp < self.serverStateCooldown() - 0.5', request)
+        self.assertIn('self.scheduleServerStateRetry()', request)
+        cooldown = src.split('func serverStateCooldown() -> TimeInterval {', 1)[1].split('func requestServerWalletState', 1)[0]
+        self.assertIn('self.walletScreenCount > 0 ? base : min(base * 4.0, 900.0)', cooldown)
+        self.assertIn('self.serverStateLastFailureTimestamp = CFAbsoluteTimeGetCurrent()', src)
+        self.assertIn('let delaySeconds = self.serverStateCooldown()', src)
+
+
 if __name__ == '__main__':
     unittest.main()
