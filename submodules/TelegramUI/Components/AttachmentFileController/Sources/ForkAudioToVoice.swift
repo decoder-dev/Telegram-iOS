@@ -39,7 +39,10 @@ func forkAudioToVoice(context: AccountContext, reference: AnyMediaReference) -> 
         "video/quicktime": "mov",
         "video/x-m4v": "m4v"
     ]
-    let pathExtension = originalExtension.isEmpty ? fallbackExtensions[file.mimeType.lowercased()] : originalExtension
+    // The name is the sender's. It only needs to hint the container, so anything but a short plain
+    // alphanumeric extension is ignored in favour of the MIME type.
+    let isPlainExtension = !originalExtension.isEmpty && originalExtension.count <= 8 && originalExtension.unicodeScalars.allSatisfy { ($0.value >= 97 && $0.value <= 122) || ($0.value >= 48 && $0.value <= 57) }
+    let pathExtension = isPlainExtension ? originalExtension : fallbackExtensions[file.mimeType.lowercased()]
     let mediaBox = context.account.postbox.mediaBox
     let resourceData = Signal<MediaResourceData, ForkAudioToVoiceError> { subscriber in
         let fetch = fetchedMediaResource(mediaBox: mediaBox, userLocation: .other, userContentType: MediaResourceUserContentType(file: file), reference: reference.resourceReference(file.resource)).start(error: { _ in
@@ -119,7 +122,9 @@ public func forkVoiceToAudio(context: AccountContext, fileReference: FileMediaRe
     |> mapToSignal { data -> Signal<TelegramMediaFile?, NoError> in
         return Signal { subscriber in
             DispatchQueue.global(qos: .userInitiated).async {
-                guard let bytes = try? Data(contentsOf: URL(fileURLWithPath: data.path)), !bytes.isEmpty else {
+                // A voice note is small; refuse to load an oversized file whole just to copy it.
+                let size = ((try? FileManager.default.attributesOfItem(atPath: data.path))?[.size] as? NSNumber)?.int64Value ?? 0
+                guard size > 0, size <= 64 * 1024 * 1024, let bytes = try? Data(contentsOf: URL(fileURLWithPath: data.path)), !bytes.isEmpty else {
                     subscriber.putNext(nil)
                     subscriber.putCompletion()
                     return
@@ -182,6 +187,9 @@ public func forkAudioToVoice(context: AccountContext, bookmarkData: String) -> S
         }
     }
 }
+
+/// Longest input converted to a voice message, in seconds of 48 kHz mono 16-bit audio.
+private let forkMaximumVoiceSeconds = 3600
 
 private func forkEncodeVoice(path: String, cancelled: Atomic<Bool>) -> (data: Data, duration: Int, waveform: Data)? {
     let asset = AVURLAsset(url: URL(fileURLWithPath: path))
@@ -263,6 +271,11 @@ private func forkEncodeVoice(path: String, cancelled: Atomic<Bool>) -> (data: Da
             break
         }
         totalBytes += chunk.count
+        // A voice message is not a podcast: refuse to spend minutes of CPU and tens of megabytes of
+        // Opus on an hours-long track or a hostile container that claims to be endless.
+        if totalBytes > forkMaximumVoiceSeconds * 96000 {
+            return nil
+        }
         pending.append(chunk)
         var consumed = 0
         while pending.count - consumed >= packetSize {

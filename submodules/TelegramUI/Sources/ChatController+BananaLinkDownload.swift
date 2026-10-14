@@ -342,9 +342,9 @@ private func bananaLinkDownloadVideoFile(_ video: BananaLinkDownloadJob.Video, c
     if let thumbnail = video.thumbnail {
         let thumbnailResource = LocalFileMediaResource(fileId: Int64.random(in: Int64.min ... Int64.max), size: Int64(thumbnail.data.count))
         context.engine.resources.storeResourceData(id: EngineMediaResource.Id(thumbnailResource.id), data: thumbnail.data)
-        previewRepresentations.append(TelegramMediaImageRepresentation(dimensions: PixelDimensions(width: Int32(thumbnail.width), height: Int32(thumbnail.height)), resource: thumbnailResource, progressiveSizes: [], immediateThumbnailData: nil))
+        previewRepresentations.append(TelegramMediaImageRepresentation(dimensions: PixelDimensions(width: Int32(clamping: thumbnail.width), height: Int32(clamping: thumbnail.height)), resource: thumbnailResource, progressiveSizes: [], immediateThumbnailData: nil))
     }
-    let dimensions = PixelDimensions(width: Int32(video.width), height: Int32(video.height))
+    let dimensions = PixelDimensions(width: Int32(clamping: video.width), height: Int32(clamping: video.height))
     return TelegramMediaFile(
         fileId: EngineMedia.Id(namespace: Namespaces.Media.LocalFile, id: Int64.random(in: Int64.min ... Int64.max)),
         partialReference: nil,
@@ -362,6 +362,6 @@ private func bananaLinkDownloadVideoFile(_ video: BananaLinkDownloadJob.Video, c
 /// Same as the stock media picker (LegacyMediaPickers): the JPEG is referenced from disk.
 private func bananaLinkDownloadImage(_ photo: BananaLinkDownloadJob.Photo) -> TelegramMediaImage {
     let resource = LocalFileReferenceMediaResource(localFilePath: photo.fileURL.path, randomId: Int64.random(in: Int64.min ... Int64.max), isUniquelyReferencedTemporaryFile: true, size: photo.fileSize)
-    let representation = TelegramMediaImageRepresentation(dimensions: PixelDimensions(width: Int32(photo.width), height: Int32(photo.height)), resource: resource, progressiveSizes: [], immediateThumbnailData: nil)
+    let representation = TelegramMediaImageRepresentation(dimensions: PixelDimensions(width: Int32(clamping: photo.width), height: Int32(clamping: photo.height)), resource: resource, progressiveSizes: [], immediateThumbnailData: nil)
     return TelegramMediaImage(imageId: EngineMedia.Id(namespace: Namespaces.Media.LocalImage, id: Int64.random(in: Int64.min ... Int64.max)), representations: [representation], immediateThumbnailData: nil, reference: nil, partialReference: nil, flags: [])
 }

@@ -63,7 +63,13 @@ enum BananaMediaProcessor {
         }
         let size = track.naturalSize.applying(track.preferredTransform)
         let seconds = asset.duration.seconds
-        return VideoInfo(duration: seconds.isFinite ? max(0.0, seconds) : 0.0, width: Int(abs(size.width).rounded()), height: Int(abs(size.height).rounded()))
+        // The track header is file data: a non-finite or absurd size must not reach `Int(_:)`, which traps.
+        let width = abs(size.width).rounded()
+        let height = abs(size.height).rounded()
+        guard width.isFinite, height.isFinite, width >= 1.0, height >= 1.0, width <= 65535.0, height <= 65535.0 else {
+            return nil
+        }
+        return VideoInfo(duration: seconds.isFinite ? max(0.0, seconds) : 0.0, width: Int(width), height: Int(height))
     }
 
     /// First frame as a small JPEG for the message preview.

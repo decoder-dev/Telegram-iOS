@@ -742,11 +742,11 @@ public enum ForkLastChatListFilter {
     public static func storedId(accountPeerId: EnginePeer.Id) -> Int32 {
         let accountKey = key(accountPeerId: accountPeerId)
         if UserDefaults.standard.object(forKey: accountKey) != nil {
-            return Int32(UserDefaults.standard.integer(forKey: accountKey))
+            return Int32(clamping: UserDefaults.standard.integer(forKey: accountKey))
         }
         // One-shot migrate the pre-account-scoped value so a single-account install keeps its folder.
         if UserDefaults.standard.object(forKey: legacyKey) != nil {
-            let migrated = Int32(UserDefaults.standard.integer(forKey: legacyKey))
+            let migrated = Int32(clamping: UserDefaults.standard.integer(forKey: legacyKey))
             UserDefaults.standard.set(Int(migrated), forKey: accountKey)
             UserDefaults.standard.removeObject(forKey: legacyKey)
             return migrated

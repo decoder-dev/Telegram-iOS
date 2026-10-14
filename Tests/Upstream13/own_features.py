@@ -759,7 +759,7 @@ print("File preparation: actual success/error/timeout/cancellation lifecycle pas
     def test_tiktok_and_shorts_link_download(self):
         sources = os.path.join(ROOT, 'submodules/BananaLinkDownloader/Sources')
         names = sorted(os.listdir(sources))
-        self.assertEqual(len(names), 8)
+        self.assertEqual(len(names), 9)  # incl. BananaMediaURLPolicy.swift
         for name in names:
             text = (pathlib.Path(sources) / name).read_text(encoding='utf-8')
             self.assertNotIn('donutgram', text.lower())
@@ -1001,6 +1001,23 @@ print("Account-scoped ghost exceptions: isolation/persistence/revocation passed"
         self.assertIn('self.walletScreenCount > 0 ? base : min(base * 4.0, 900.0)', cooldown)
         self.assertIn('self.serverStateLastFailureTimestamp = CFAbsoluteTimeGetCurrent()', src)
         self.assertIn('let delaySeconds = self.serverStateCooldown()', src)
+
+
+    def test_untrusted_numbers_and_names_cannot_trap_or_bloat(self):
+        settings = read('submodules/TelegramUIPreferences/Sources/ForkExtrasSettings.swift')
+        self.assertNotIn('Int32(UserDefaults.standard.integer', settings)
+        self.assertEqual(settings.count('Int32(clamping: UserDefaults.standard.integer'), 2)
+        processor = read('submodules/BananaLinkDownloader/Sources/BananaMediaProcessor.swift')
+        self.assertIn('guard width.isFinite, height.isFinite, width >= 1.0, height >= 1.0, width <= 65535.0, height <= 65535.0 else {', processor)
+        chat = read('submodules/TelegramUI/Sources/ChatController+BananaLinkDownload.swift')
+        self.assertNotIn('Int32(video.', chat)
+        self.assertNotIn('Int32(photo.', chat)
+        self.assertNotIn('Int32(thumbnail.', chat)
+        audio = read('submodules/TelegramUI/Components/AttachmentFileController/Sources/ForkAudioToVoice.swift')
+        self.assertIn('let isPlainExtension = ', audio)
+        self.assertIn('private let forkMaximumVoiceSeconds = 3600', audio)
+        self.assertIn('totalBytes > forkMaximumVoiceSeconds * 96000', audio)
+        self.assertIn('size <= 64 * 1024 * 1024', audio)
 
 
 if __name__ == '__main__':
