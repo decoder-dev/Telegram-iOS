@@ -137,8 +137,8 @@ print("Document picker: actual completion-once delegate passed")
         picker = read('submodules/LegacyMediaPickerUI/Sources/LegacyICloudFilePicker.swift')
         self.assertIn('controller.retainedPickerDelegate = legacyController', picker)
         self.assertIn('guard !self.didComplete else { return }', picker)
-        self.assertIn('self.complete(urls)', picker)
-        self.assertIn('self.complete([url])', picker)
+        self.assertIn('self.complete(urls, source: "didPickDocumentsAt")', picker)
+        self.assertIn('self.complete([url], source: "didPickDocumentAt")', picker)
 
     def test_ghost_restore_reconciles_deleted_counts_and_account_exceptions(self):
         source = read('submodules/TelegramCore/Sources/Arena/BananaGhostLocalRead.swift')
@@ -962,6 +962,19 @@ print("Account-scoped ghost exceptions: isolation/persistence/revocation passed"
         self.assertIn('legacyICloudFilePicker(theme: strongSelf.presentationData.theme, mode: .import, hasMultiselection: !editingMessage, documentTypes: documentTypes,', menu)
         poll = read('submodules/TelegramUI/Components/ComposePollScreen/Sources/PollAttachmentScreen.swift')
         self.assertIn('legacyICloudFilePicker(theme: presentationData.theme, mode: .import, documentTypes: ["public.item"]', poll)
+
+
+    def test_log_findings_background_work_is_bounded(self):
+        # Device logs: three overlapping cleanup tasks each reindexed every media item (~4 GB written a day),
+        # and a build without StoreKit products asked the store every 10 seconds for two days.
+        app = read('submodules/TelegramUI/Sources/AppDelegate.swift')
+        self.assertIn('if self.cleanupTaskRunning.swap(true) {', app)
+        self.assertEqual(app.count('self.cleanupTaskRunning.swap(false)'), 2)
+        iap = read('submodules/InAppPurchaseManager/Sources/InAppPurchaseManager.swift')
+        self.assertIn('min(10.0 * pow(2.0, Double(min(self.productRequestRetryCount, 7))), 900.0)', iap)
+        self.assertIn('self.productRequestRetryCount = 0', iap)
+        picker = read('submodules/LegacyMediaPickerUI/Sources/LegacyICloudFilePicker.swift')
+        self.assertIn('source: "cancel"', picker)
 
 
 if __name__ == '__main__':

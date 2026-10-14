@@ -32,10 +32,10 @@ private final class LegacyICloudFileController: LegacyController, UIDocumentPick
     let completion: ([URL]) -> Void
     private var didComplete = false
 
-    private func complete(_ urls: [URL]) {
+    private func complete(_ urls: [URL], source: String) {
         guard !self.didComplete else { return }
         self.didComplete = true
-        Logger.shared.log("FilesPicker", "Selection completed (count: \(urls.count))")
+        Logger.shared.log("FilesPicker", "Selection completed via \(source) (count: \(urls.count))")
         self.completion(urls)
     }
     
@@ -50,15 +50,15 @@ private final class LegacyICloudFileController: LegacyController, UIDocumentPick
     }
     
     func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
-        self.complete([])
+        self.complete([], source: "cancel")
     }
     
     func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
-        self.complete(urls)
+        self.complete(urls, source: "didPickDocumentsAt")
     }
     
     func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentAt url: URL) {
-        self.complete([url])
+        self.complete([url], source: "didPickDocumentAt")
     }
 }
 

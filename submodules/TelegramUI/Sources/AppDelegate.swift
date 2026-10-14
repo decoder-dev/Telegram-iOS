@@ -1676,16 +1676,26 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             let cleanupTaskId = "\(baseAppBundleId).cleanup"
             
             BGTaskScheduler.shared.register(forTaskWithIdentifier: cleanupTaskId, using: DispatchQueue.main) { task in
+                // The system can hand over several of these in quick succession (a device log shows three
+                // within 48 seconds), and each one used to start its own full pass over every media
+                // item: three concurrent reindexes wrote ~4 GB in a day and tripped the disk-write
+                // exception. A second request while one is running is simply reported done.
+                if self.cleanupTaskRunning.swap(true) {
+                    Logger.shared.log("App \(self.episodeId)", "Cleanup task already running, skipping a duplicate")
+                    task.setTaskCompleted(success: true)
+                    return
+                }
                 Logger.shared.log("App \(self.episodeId)", "Executing cleanup task")
                 
                 let disposable = self.runCacheReindexTasks(lowImpact: true, completion: {
                     Logger.shared.log("App \(self.episodeId)", "Completed cleanup task")
-                    
+                    let _ = self.cleanupTaskRunning.swap(false)
                     task.setTaskCompleted(success: true)
                 })
                 
                 task.expirationHandler = {
                     disposable.dispose()
+                    let _ = self.cleanupTaskRunning.swap(false)
                     task.setTaskCompleted(success: false)
                 }
             }
@@ -2061,6 +2071,8 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             }
         }
     }
+    
+    private let cleanupTaskRunning = Atomic<Bool>(value: false)
     
     private func runCacheReindexTasks(lowImpact: Bool, completion: @escaping () -> Void) -> Disposable {
         let disposable = MetaDisposable()

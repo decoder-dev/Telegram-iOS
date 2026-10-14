@@ -252,6 +252,7 @@ public final class InAppPurchaseManager: NSObject {
     private var productRequest: SKProductsRequest?
     private var productRequestTimeoutTimer: SwiftSignalKit.Timer?
     private var productRequestRetryTimer: SwiftSignalKit.Timer?
+    private var productRequestRetryCount: Int = 0
     
     private let stateQueue = Queue()
     private var paymentContexts: [String: PaymentTransactionContext] = [:]
@@ -312,8 +313,12 @@ public final class InAppPurchaseManager: NSObject {
         guard self.products.isEmpty, self.productRequest == nil, self.productRequestRetryTimer == nil else {
             return
         }
-        Logger.shared.log("InAppPurchaseManager", "Retrying product request in 10 seconds")
-        let retryTimer = SwiftSignalKit.Timer(timeout: 10.0, repeat: false, completion: { [weak self] in
+        // A build that cannot load its products (a re-signed sideload has none) would otherwise ask the
+        // store every 10 seconds for as long as it runs; back off to a 15 minute ceiling instead.
+        let delay = min(10.0 * pow(2.0, Double(min(self.productRequestRetryCount, 7))), 900.0)
+        self.productRequestRetryCount += 1
+        Logger.shared.log("InAppPurchaseManager", "Retrying product request in \(Int(delay)) seconds")
+        let retryTimer = SwiftSignalKit.Timer(timeout: delay, repeat: false, completion: { [weak self] in
             guard let self else {
                 return
             }
@@ -602,6 +607,7 @@ extension InAppPurchaseManager: SKProductsRequestDelegate {
             self.productRequestRetryTimer?.invalidate()
             self.productRequestRetryTimer = nil
             self.products = products
+            self.productRequestRetryCount = 0
             self.productsPromise.set(.single(products))
         }
     }
