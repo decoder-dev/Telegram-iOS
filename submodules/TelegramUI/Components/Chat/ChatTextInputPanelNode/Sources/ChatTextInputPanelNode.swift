@@ -5634,21 +5634,21 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
     /// Paste of a rich structural fragment (e.g. a table/list copied from the WYSIWYG editor): the legacy
     /// backend can't hold it, so preserve any current content, latch to the native backend, and let the editor
     /// splice the pasteboard fragment at the caret (its own tested paste path).
-    private func pasteRichFragmentFromPasteboard() {
+    private func pasteRichFragmentFromPasteboard() -> Bool {
+        guard self.enableRichTextInput else { return false }
         let currentState = self.inputTextState
         if self.richTextInputNode?.usesNativeRichTextEngine != true {
             self.replaceLegacyWithNative()
         }
-        // `replaceLegacyWithNative` above always yields a native node unless `richTextInputNode` is nil — which
-        // cannot happen inside a paste callback (the legacy node is first responder to receive it). This guard is
-        // a defensive invariant, not a live legacy fallback.
+        // Do not suppress the legacy paste if the native backend could not be installed.
         guard let node = self.richTextInputNode, node.usesNativeRichTextEngine else {
-            return
+            return false
         }
         let selection = ChatInputSelection(nsRange: NSMakeRange(currentState.selectionRange.lowerBound, currentState.selectionRange.count), in: currentState.content)
         node.setInputContent(currentState.content, selection: selection)
         node.performRichPaste()
         self.chatInputTextNodeDidUpdateText()
+        return true
     }
 
     public func chatInputTextNodeShouldPaste() -> Bool {
@@ -5660,8 +5660,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         // splices it at the caret — latching the field to native so the structure survives. Gated on
         // `enableRichTextInput` so the legacy-only mode keeps the (lossy) default paste.
         if self.enableRichTextInput, pasteboard.data(forPasteboardType: RichTextEditorClipboard.fragmentUTI) != nil {
-            self.pasteRichFragmentFromPasteboard()
-            return false
+            if self.pasteRichFragmentFromPasteboard() { return false }
         }
 
         // External RTF carrying a TABLE or MEDIA (structure with no linear text form) latches the field to the
@@ -5672,8 +5671,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         if self.enableRichTextInput,
            let rtfData = pasteboard.data(forPasteboardType: "public.rtf") ?? pasteboard.data(forPasteboardType: "com.apple.flat-rtfd"),
            rtfRequiresNativeRichInput(rtfData) {
-            self.pasteRichFragmentFromPasteboard()
-            return false
+            if self.pasteRichFragmentFromPasteboard() { return false }
         }
 
         var attributedString: NSAttributedString?
@@ -5715,8 +5713,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         // trip the one-way native latch just for arriving via the clipboard. Anything that IS
         // entity-expressible still reaches the markdown branch further down, unchanged.
         if let pastedMarkdownContent, !pastedMarkdownContent.isEntityExpressible() {
-            self.pasteRichFragmentFromPasteboard()
-            return false
+            if self.pasteRichFragmentFromPasteboard() { return false }
         }
 
         // Rich-message markdown copied to the clipboard is plain text containing
@@ -5733,12 +5730,11 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         }
 
         if attributedString == nil, pastedMarkdownContent != nil {
-            self.pasteRichFragmentFromPasteboard()
-            return false
+            if self.pasteRichFragmentFromPasteboard() { return false }
         }
 
-        if let attributedString = attributedString {
-            self.interfaceInteraction?.updateTextInputStateAndMode { current, inputMode in
+        if let attributedString = attributedString, attributedString.length > 0, let interfaceInteraction = self.interfaceInteraction {
+            interfaceInteraction.updateTextInputStateAndMode { current, inputMode in
                 // An empty selection is an insertion at the caret, which is what a paste with no
                 // selection means — so this needs no separate branch (the old `else` was unreachable
                 // anyway: `mutableCopy()` of an `NSAttributedString` never fails).
@@ -5748,6 +5744,12 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             return false
         }
         
+        // A clipboard can contain both text and an image (e.g. copied browser content).
+        // Keep the same text-first priority as the native editor instead of swallowing text as media.
+        if let text = pasteboard.string, !text.isEmpty {
+            Logger.shared.log("Composer", "paste -> plain text (utf16=\(text.utf16.count))")
+            return true
+        }
         if self.handlePastedMedia(perform: true) {
             return false   // media consumed → suppress the default text paste
         }

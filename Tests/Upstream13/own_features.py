@@ -13,6 +13,62 @@ def read(path):
     return (ROOT / path).read_text(encoding='utf-8')
 
 class ForkIntegration(unittest.TestCase):
+    def test_menu_paste_keeps_text_before_media_and_does_not_swallow_failed_routes(self):
+        panel = read('submodules/TelegramUI/Components/Chat/ChatTextInputPanelNode/Sources/ChatTextInputPanelNode.swift')
+        body = panel.split('public func chatInputTextNodeShouldPaste()', 1)[1].split('public func handlePastedMedia', 1)[0]
+        self.assertLess(body.index('if let text = pasteboard.string, !text.isEmpty'), body.index('self.handlePastedMedia(perform: true)'))
+        self.assertIn('attributedString.length > 0, let interfaceInteraction = self.interfaceInteraction', body)
+        self.assertNotIn('self.pasteRichFragmentFromPasteboard()\n            return false', body)
+        rich = panel.split('private func pasteRichFragmentFromPasteboard()', 1)[1].split('public func chatInputTextNodeShouldPaste()', 1)[0]
+        self.assertIn('guard self.enableRichTextInput else { return false }', rich)
+        view = read('submodules/TelegramUI/Components/Chat/ChatInputTextNode/ChatInputTextViewImpl/Sources/ChatInputTextViewImpl.m')
+        paste = view.split('- (void)paste:(id)sender', 1)[1].split('- (NSArray *)keyCommands', 1)[0]
+        self.assertIn('_shouldPaste == nil || _shouldPaste()', paste)
+        self.assertIn('[self insertText:text]', paste)
+        self.assertIn('[super paste:sender]', paste)
+
+    @unittest.skipUnless(shutil.which('swiftc'), 'Swift unavailable locally; actual clipboard representation fallback executes in macOS CI')
+    def test_actual_clipboard_falls_back_from_empty_rich_data(self):
+        source = read('submodules/TelegramUI/Components/RichTextEditor/Sources/RichTextEditorUIKit/Canvas/DocumentCanvasView+Clipboard.swift')
+        body = source[source.index('    func fragment(fromPasteboard'):source.index('    /// A multi-paragraph fragment')]
+        fixture = r'''import Foundation
+struct Document { var blocks: [String] }
+protocol TextPasteboard { var string: String? { get }; func data(forPasteboardType: String) -> Data? }
+struct Pasteboard: TextPasteboard {
+    var string: String?
+    var values: [String: Data] = [:]
+    func data(forPasteboardType type: String) -> Data? { values[type] }
+}
+enum DocumentCodec {
+    static func decode(_ data: Data) throws -> Document {
+        Document(blocks: data == Data("rich".utf8) ? ["rich"] : [])
+    }
+}
+enum RTFConversion {
+    static func fragment(fromRTF data: Data) -> Document? {
+        if data == Data("valid".utf8) { return Document(blocks: ["formatted"]) }
+        return data.isEmpty ? Document(blocks: []) : nil
+    }
+}
+class DocumentCanvasView {
+    static let richTextFragmentUTI = "rich"
+    func plainTextFragment(_ text: String) -> Document { Document(blocks: [text]) }
+''' + body + r'''}
+let view = DocumentCanvasView()
+let text = "Привет 🍌\nsecond line"
+for type in ["rich", "public.rtf", "com.apple.flat-rtfd"] {
+    for data in [Data(), Data("invalid".utf8)] {
+        precondition(view.fragment(fromPasteboard: Pasteboard(string: text, values: [type: data]))?.blocks == [text])
+    }
+}
+precondition(view.fragment(fromPasteboard: Pasteboard(string: text, values: ["rich": Data("rich".utf8)]))?.blocks == ["rich"])
+precondition(view.fragment(fromPasteboard: Pasteboard(string: text, values: ["rich": Data(), "public.rtf": Data("valid".utf8)]))?.blocks == ["formatted"])
+precondition(view.fragment(fromPasteboard: Pasteboard(string: nil)) == nil)
+precondition(view.fragment(fromPasteboard: Pasteboard(string: "")) == nil)
+print("Actual clipboard reader: empty/invalid rich fallback and representation priority passed")
+'''
+        self.run_swift_fixture(fixture)
+
     def test_hidden_tabs_keep_settings_and_a_back_route(self):
         chats = read('submodules/ChatListUI/Sources/ChatListController.swift')
         self.assertIn('combineLatest(peerStatus, accountPeer, appearanceChanges, hiddenTabBar)', chats)

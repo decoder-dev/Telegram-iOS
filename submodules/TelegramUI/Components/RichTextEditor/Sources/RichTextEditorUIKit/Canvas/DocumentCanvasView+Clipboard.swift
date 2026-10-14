@@ -12,7 +12,7 @@ extension DocumentCanvasView {
         case #selector(copy(_:)), #selector(cut(_:)):
             return selFrom < selTo
         case #selector(paste(_:)):
-            return pasteboard.contains(pasteboardTypes: [Self.richTextFragmentUTI, "public.rtf"]) || pasteboard.hasStrings || (canPasteMedia?() ?? false)
+            return pasteboard.contains(pasteboardTypes: [Self.richTextFragmentUTI, "public.rtf", "com.apple.flat-rtfd"]) || pasteboard.hasStrings || (canPasteMedia?() ?? false)
         default:
             return false
         }
@@ -101,15 +101,15 @@ extension DocumentCanvasView {
     /// The richest fragment available on the pasteboard: private UTI → RTF → plain text.
     func fragment(fromPasteboard pb: TextPasteboard) -> Document? {
         if let data = pb.data(forPasteboardType: Self.richTextFragmentUTI),
-           let frag = try? DocumentCodec.decode(data) {
+           let frag = try? DocumentCodec.decode(data), !frag.blocks.isEmpty {
             return frag
         }
         if let data = pb.data(forPasteboardType: "public.rtf"),
-           let frag = RTFConversion.fragment(fromRTF: data) {
+           let frag = RTFConversion.fragment(fromRTF: data), !frag.blocks.isEmpty {
             return frag
         }
         if let data = pb.data(forPasteboardType: "com.apple.flat-rtfd"),
-           let frag = RTFConversion.fragment(fromRTF: data) {
+           let frag = RTFConversion.fragment(fromRTF: data), !frag.blocks.isEmpty {
             return frag
         }
         if let s = pb.string, !s.isEmpty {
