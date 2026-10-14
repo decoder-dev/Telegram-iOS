@@ -13,18 +13,21 @@ def read(path):
     return (ROOT / path).read_text(encoding='utf-8')
 
 class ForkIntegration(unittest.TestCase):
-    def test_menu_paste_keeps_text_before_media_and_does_not_swallow_failed_routes(self):
+    def test_composer_paste_is_the_pre_telegram13_clipboard_path(self):
+        # The clipboard behaves as before the Telegram 13 merge: system paste, no markdown-on-paste,
+        # no RTF latch to the native editor, and pasted media wins over the default text paste.
         panel = read('submodules/TelegramUI/Components/Chat/ChatTextInputPanelNode/Sources/ChatTextInputPanelNode.swift')
         body = panel.split('public func chatInputTextNodeShouldPaste()', 1)[1].split('public func handlePastedMedia', 1)[0]
-        self.assertLess(body.index('if let text = pasteboard.string, !text.isEmpty'), body.index('self.handlePastedMedia(perform: true)'))
-        self.assertIn('attributedString.length > 0, let interfaceInteraction = self.interfaceInteraction', body)
-        self.assertNotIn('self.pasteRichFragmentFromPasteboard()\n            return false', body)
-        rich = panel.split('private func pasteRichFragmentFromPasteboard()', 1)[1].split('public func chatInputTextNodeShouldPaste()', 1)[0]
-        self.assertIn('guard self.enableRichTextInput else { return false }', rich)
+        self.assertNotIn('pastedMarkdownParser', body)
+        self.assertNotIn('rtfRequiresNativeRichInput', body)
+        self.assertNotIn('pasteboard.string, !text.isEmpty', body)
+        self.assertIn('RichTextEditorClipboard.fragmentUTI', body)
+        self.assertIn('if self.pasteRichFragmentFromPasteboard() { return false }', body)
+        self.assertIn('if self.handlePastedMedia(perform: true) {', body)
         view = read('submodules/TelegramUI/Components/Chat/ChatInputTextNode/ChatInputTextViewImpl/Sources/ChatInputTextViewImpl.m')
         paste = view.split('- (void)paste:(id)sender', 1)[1].split('- (NSArray *)keyCommands', 1)[0]
         self.assertIn('_shouldPaste == nil || _shouldPaste()', paste)
-        self.assertIn('[self insertText:text]', paste)
+        self.assertNotIn('insertText', paste)
         self.assertIn('[super paste:sender]', paste)
 
     @unittest.skipUnless(shutil.which('swiftc'), 'Swift unavailable locally; actual clipboard representation fallback executes in macOS CI')

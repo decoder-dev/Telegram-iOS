@@ -131,15 +131,7 @@
 
 - (void)paste:(id)sender {
     if (_shouldPaste == nil || _shouldPaste()) {
-        // Keep plain paste on the same UIKeyInput path as typing in our custom text storage.
-        // Rich representations have already been handled by shouldPaste; insert the remaining
-        // plain text through UIKeyInput, preserving selection replacement, undo and delegate updates.
-        NSString *text = [UIPasteboard generalPasteboard].string;
-        if (text.length != 0) {
-            [self insertText:text];
-        } else {
-            [super paste:sender];
-        }
+        [super paste:sender];
     }
 }
 

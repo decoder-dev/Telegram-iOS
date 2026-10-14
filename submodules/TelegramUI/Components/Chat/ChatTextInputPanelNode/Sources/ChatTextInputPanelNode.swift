@@ -5663,57 +5663,17 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             if self.pasteRichFragmentFromPasteboard() { return false }
         }
 
-        // External RTF carrying a TABLE or MEDIA (structure with no linear text form) latches the field to the
-        // native editor, which re-reads the pasteboard through its own structure-preserving importer. A LIST is
-        // deliberately NOT a latch trigger: it stays in the legacy field and renders bullet/number markers as
-        // literal text via `legacyChatInputAttributedString` in the RTF branch below. Headings/code/quotes
-        // likewise stay legacy (they flatten to text). Gated on `enableRichTextInput` (else no native backend).
-        if self.enableRichTextInput,
-           let rtfData = pasteboard.data(forPasteboardType: "public.rtf") ?? pasteboard.data(forPasteboardType: "com.apple.flat-rtfd"),
-           rtfRequiresNativeRichInput(rtfData) {
-            if self.pasteRichFragmentFromPasteboard() { return false }
-        }
-
         var attributedString: NSAttributedString?
         if let data = pasteboard.data(forPasteboardType: "private.telegramtext"), let value = chatInputStateStringFromAppSpecificString(data: data) {
             attributedString = value
         } else if let data = pasteboard.data(forPasteboardType: "public.rtf") {
-            // A list-bearing RTF: iOS's NSAttributedString RTF import flattens lists (no NSTextList), so render
-            // the markers as literal text via the structure-preserving RTFImport path; otherwise keep the
-            // inline-preserving legacy conversion. (When rich input is enabled, the native-routing branch above
-            // has already claimed a list paste — this serves the legacy-only configuration.)
-            attributedString = legacyChatInputAttributedString(fromRTF: data) ?? chatInputStateStringFromRTF(data, type: NSAttributedString.DocumentType.rtf)
+            attributedString = chatInputStateStringFromRTF(data, type: NSAttributedString.DocumentType.rtf)
         } else if let data = pasteboard.data(forPasteboardType: "com.apple.flat-rtfd") {
             if let _ = pasteboard.data(forPasteboardType: "com.apple.notes.richtext"), DeviceModel.current.isIpad, let htmlData = pasteboard.data(forPasteboardType: "public.html") {
                 attributedString = chatInputStateStringFromRTF(htmlData, type: NSAttributedString.DocumentType.html)
             } else {
-                attributedString = legacyChatInputAttributedString(fromRTF: data) ?? chatInputStateStringFromRTF(data, type: NSAttributedString.DocumentType.rtfd)
+                attributedString = chatInputStateStringFromRTF(data, type: NSAttributedString.DocumentType.rtfd)
             }
-        }
-
-        // Markdown-on-paste: plain clipboard text that parses as markdown with formatting/structure is
-        // inserted as rich content. ANY markdown (inline or structural) latches the field to the native
-        // editor, which re-reads the same pasteboard text through its own plainTextFragmentTransformer and
-        // performs a two-step paste (insert plain → replace with rich) so undo reverts rich→plain. Only
-        // taken when the parser actually classifies the text as rich; plain text falls through.
-        var pastedMarkdownContent: ChatInputContent?
-        if attributedString == nil, let plainText = pasteboard.string, let context = self.context {
-            pastedMarkdownContent = self.pastedMarkdownParser?(context, plainText)
-        }
-
-        // STRUCTURAL markdown must be claimed BEFORE the emoji-marker reattach below. A text selection
-        // copied out of a rich-message bubble is markdown that can carry BOTH structure (`# `, `> `, `- `)
-        // AND `[<alt>](tg://emoji?id=…)` emoji markers; with the reattach first it claimed every such
-        // paste, producing live emoji beside LITERAL `#`/`>` characters — the headings and quotes silently
-        // lost. The markdown parser decodes the emoji markers itself (`BrowserMarkdown` maps them to
-        // `RichText.textCustomEmoji`), so it is strictly the more faithful reader for that text.
-        //
-        // Gated on `!isEntityExpressible()` — i.e. only content the LEGACY field genuinely cannot hold — so
-        // an inline-only paste (bold, a link, a lone custom emoji) keeps its existing route and does not
-        // trip the one-way native latch just for arriving via the clipboard. Anything that IS
-        // entity-expressible still reaches the markdown branch further down, unchanged.
-        if let pastedMarkdownContent, !pastedMarkdownContent.isEntityExpressible() {
-            if self.pasteRichFragmentFromPasteboard() { return false }
         }
 
         // Rich-message markdown copied to the clipboard is plain text containing
@@ -5729,27 +5689,19 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             }
         }
 
-        if attributedString == nil, pastedMarkdownContent != nil {
-            if self.pasteRichFragmentFromPasteboard() { return false }
-        }
-
-        if let attributedString = attributedString, attributedString.length > 0, let interfaceInteraction = self.interfaceInteraction {
-            interfaceInteraction.updateTextInputStateAndMode { current, inputMode in
-                // An empty selection is an insertion at the caret, which is what a paste with no
-                // selection means — so this needs no separate branch (the old `else` was unreachable
-                // anyway: `mutableCopy()` of an `NSAttributedString` never fails).
-                let range = NSRange(location: current.selectionRange.lowerBound, length: current.selectionRange.count)
-                return (current.replacingFlatRange(range, with: attributedString), inputMode)
+        if let attributedString = attributedString {
+            self.interfaceInteraction?.updateTextInputStateAndMode { current, inputMode in
+                if let inputText = current.inputText.mutableCopy() as? NSMutableAttributedString {
+                    inputText.replaceCharacters(in: NSMakeRange(current.selectionRange.lowerBound, current.selectionRange.count), with: attributedString)
+                    let updatedRange = current.selectionRange.lowerBound + attributedString.length
+                    return (ChatTextInputState(inputText: inputText, selectionRange: updatedRange ..< updatedRange), inputMode)
+                } else {
+                    return (ChatTextInputState(inputText: attributedString), inputMode)
+                }
             }
             return false
         }
         
-        // A clipboard can contain both text and an image (e.g. copied browser content).
-        // Keep the same text-first priority as the native editor instead of swallowing text as media.
-        if let text = pasteboard.string, !text.isEmpty {
-            Logger.shared.log("Composer", "paste -> plain text (utf16=\(text.utf16.count))")
-            return true
-        }
         if self.handlePastedMedia(perform: true) {
             return false   // media consumed → suppress the default text paste
         }
