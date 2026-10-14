@@ -117,6 +117,8 @@ class CallKitProviderDelegate: NSObject, CXProviderDelegate {
     private let callController = CXCallController()
     
     private var currentStartCallAccount: (UUID, AccountContext)?
+    private var currentStartCallPeerId: EnginePeer.Id?
+    private var currentStartCallTimestamp: Double = 0.0
 
     private var alreadyReportedIncomingCalls = Set<UUID>()
     private var uuidToPeerIdMapping: [UUID: EnginePeer.Id] = [:]
@@ -241,8 +243,19 @@ class CallKitProviderDelegate: NSObject, CXProviderDelegate {
     }
     
     func startCall(context: AccountContext, peerId: EnginePeer.Id, phoneNumber: String?, isVideo: Bool, displayTitle: String, failed: (() -> Void)?) {
+        // A start is in flight for this very peer and its watchdog has not fired yet. The 19:19 device log
+        // shows CallKit answering a start 10 s late: the user tapped Call again after 1.4 s, the second
+        // tap replaced the first start's bookkeeping, the first start's watchdog then found nobody to
+        // hand the call to, and the call waited for the second tap's own timeout. One start at a time:
+        // the pending one either performs or falls back on its own.
+        if self.currentStartCallAccount != nil, self.currentStartCallPeerId == peerId, CACurrentMediaTime() - self.currentStartCallTimestamp < 6.0 {
+            Logger.shared.log("CallKitIntegration", "ignoring a repeated start call for \(peerId), one is already pending")
+            return
+        }
         let uuid = UUID()
         self.currentStartCallAccount = (uuid, context)
+        self.currentStartCallPeerId = peerId
+        self.currentStartCallTimestamp = CACurrentMediaTime()
         let handle: CXHandle
         if let phoneNumber = phoneNumber {
             handle = CXHandle(type: .phoneNumber, value: phoneNumber)
@@ -274,6 +287,7 @@ class CallKitProviderDelegate: NSObject, CXProviderDelegate {
             didFallBack = true
             Logger.shared.log("CallKitIntegration", "start call \(uuid) falls back without CallKit: \(reason)")
             self.currentStartCallAccount = nil
+            self.currentStartCallPeerId = nil
             self.uuidToPeerIdMapping.removeValue(forKey: uuid)
             self.activeCalls.remove(uuid)
             failed?()
@@ -283,7 +297,7 @@ class CallKitProviderDelegate: NSObject, CXProviderDelegate {
         // sometimes not arriving at all while the app is in the foreground: the call screen never
         // appears, the user closes the app, and CallKit relaunches it only to deliver the action
         // to a process that knows nothing about the call. Don't leave the tap hanging that long.
-        Queue.mainQueue().after(1.5, {
+        Queue.mainQueue().after(1.0, {
             fallBack("perform action did not arrive in time")
         })
         
@@ -429,6 +443,7 @@ class CallKitProviderDelegate: NSObject, CXProviderDelegate {
             return
         }
         self.currentStartCallAccount = nil
+        self.currentStartCallPeerId = nil
         let disposable = MetaDisposable()
         self.disposableSet.add(disposable)
         

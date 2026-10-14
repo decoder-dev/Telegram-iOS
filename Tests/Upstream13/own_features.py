@@ -977,5 +977,17 @@ print("Account-scoped ghost exceptions: isolation/persistence/revocation passed"
         self.assertIn('source: "cancel"', picker)
 
 
+    def test_call_start_ignores_a_repeat_tap_while_callkit_answers_slowly(self):
+        # Device log 19:19: CallKit answered a start 10 s late, the user tapped Call again after 1.4 s and the
+        # second tap orphaned the first start. One pending start per peer, and a 1 s watchdog (CallKit
+        # performs the action within 10-200 ms when it is healthy).
+        src = read('submodules/TelegramCallsUI/Sources/CallKitIntegration.swift')
+        start = src.split('func startCall(context: AccountContext, peerId: EnginePeer.Id, phoneNumber: String?, isVideo: Bool', 1)[1]
+        self.assertIn('self.currentStartCallAccount != nil, self.currentStartCallPeerId == peerId, CACurrentMediaTime() - self.currentStartCallTimestamp < 6.0', start)
+        self.assertLess(start.index('ignoring a repeated start call'), start.index('let uuid = UUID()'))
+        self.assertIn('Queue.mainQueue().after(1.0, {\n            fallBack("perform action did not arrive in time")', start)
+        self.assertEqual(src.count('self.currentStartCallPeerId = nil'), 2)
+
+
 if __name__ == '__main__':
     unittest.main()
