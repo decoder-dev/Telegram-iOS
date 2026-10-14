@@ -73,18 +73,7 @@ paths-ignore:
   - third-party/boringssl/**/crypto/cipher_extra/e_rc2.c
   - third-party/boringssl/**/crypto/cipher_extra/e_rc4.c
   - third-party/boringssl/**/crypto/cipher_extra/e_tls.c
-  # fastlane match's V1 files derive their AES key with OpenSSL's MD5 EVP_BytesToKey; the script has to read them, and
-  # the digest is picked from the stored format version, never from input (see DecryptMatch._evp_bytes_to_key).
-  - build-system/Make/DecryptMatch.py
   - third-party/boringssl/**/crypto/des
 
-# cpp/integer-multiplication-cast-to-long ("Multiplication result converted to larger type") reports every `int * int`
-# whose result later lands in a 64-bit variable: about a thousand sites across FFmpeg's codecs, demuxers and ports, in
-# code that decades of fuzzing has covered and most of which this build never compiles. The sites in code the app does
-# link were widened by hand (see Tests/BuildTools/test_ffmpeg_codeql_scope.py); filtering the query out keeps the
-# rest of the alert list readable. First-party code that relied on it (LegacyComponents/mdb.c) is pinned by its own test.
-query-filters:
-  - exclude:
-      id: cpp/suspicious-add-sizeof
-  - exclude:
-      id: cpp/integer-multiplication-cast-to-long
+# All queries remain enabled, including sizeof and integer-widening checks.
+# Legacy format compatibility findings are tracked rather than hidden by file/query exclusions.

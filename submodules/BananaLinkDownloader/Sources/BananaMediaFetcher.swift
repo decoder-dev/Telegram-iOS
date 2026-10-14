@@ -139,6 +139,11 @@ final class BananaMediaFetcher: NSObject, URLSessionDownloadDelegate {
             return
         }
         do {
+            let attributes = try FileManager.default.attributesOfItem(atPath: location.path)
+            guard let size = attributes[.size] as? NSNumber, size.int64Value <= download.maxBytes else {
+                download.failure = .tooLarge
+                return
+            }
             if FileManager.default.fileExists(atPath: download.destination.path) {
                 try FileManager.default.removeItem(at: download.destination)
             }
@@ -154,8 +159,10 @@ final class BananaMediaFetcher: NSObject, URLSessionDownloadDelegate {
             return
         }
         if let failure = download.failure {
+            if download.isMoved { try? FileManager.default.removeItem(at: download.destination) }
             download.completion(.failure(failure))
         } else if let error {
+            if download.isMoved { try? FileManager.default.removeItem(at: download.destination) }
             download.completion(.failure(BananaLinkDownloadError(error)))
         } else if download.isMoved {
             download.completion(.success(DownloadResult(fileURL: download.destination, responseURL: download.responseURL)))

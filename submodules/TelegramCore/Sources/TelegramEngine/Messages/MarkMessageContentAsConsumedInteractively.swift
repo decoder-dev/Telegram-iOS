@@ -10,7 +10,7 @@ func _internal_markMessageContentAsConsumedInteractively(postbox: Postbox, accou
             // TTL countdown, and MessageSaving preserve — skip the network read packets
             // (`messages.readMessageContents` / secret-chat `readMessagesContent`) and
             // mention consume (`ConsumePersonalMessageAction` / pending mention).
-            let suppressContentReadPacket = ForkGhostModeSettings.shouldSuppressMessageReads(peerId: message.id.peerId)
+            let suppressContentReadPacket = ForkGhostModeSettings.shouldSuppressMessageReads(accountPeerId: accountPeerId, peerId: message.id.peerId)
             // AyuGram Android: with saveDeletedMessages, skip scheduling secret/TTL delete tasks
             // after open; still sync "consumed" and copy media into Saved Attachments.
             let protectSecretMedia = MessageSavingBridge.shouldProtectSecretMedia

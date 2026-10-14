@@ -741,7 +741,7 @@ public final class AccountViewTracker {
                             guard let peer = transaction.getPeer(peerId), let inputPeer = apiInputPeer(peer) else {
                                 return .complete()
                             }
-                            let incrementViews = increment && !ForkGhostModeSettings.shouldSuppressMessageReads
+                            let incrementViews = increment && !ForkGhostModeSettings.shouldSuppressMessageReads(accountPeerId: accountPeerId, peerId: peerId)
                             return account.network.request(Api.functions.messages.getMessagesViews(peer: inputPeer, id: messageIds.map { $0.id }, increment: incrementViews ? .boolTrue : .boolFalse))
                             |> map(Optional.init)
                             |> `catch` { _ -> Signal<Api.messages.MessageViews?, NoError> in
@@ -971,12 +971,13 @@ public final class AccountViewTracker {
     
     public func updateSeenLiveLocationForMessageIds(messageIds: Set<MessageId>) {
         self.queue.async { [self] in
-            guard !ForkGhostModeSettings.shouldSuppressMessageReads else {
+            guard let account = self.account else {
                 return
             }
             var addedMessageIds: [MessageId] = []
             let timestamp = Int32(CFAbsoluteTimeGetCurrent())
             for messageId in messageIds {
+                guard !ForkGhostModeSettings.shouldSuppressMessageReads(accountPeerId: account.peerId, peerId: messageId.peerId) else { continue }
                 let messageTimestamp = self.updatedSeenLiveLocationMessageIdsAndTimestamps[messageId]
                 if messageTimestamp == nil || messageTimestamp! < timestamp - 1 * 60 {
                     self.updatedSeenLiveLocationMessageIdsAndTimestamps[messageId] = timestamp
@@ -990,7 +991,7 @@ public final class AccountViewTracker {
                     
                     if let account = self.account {
                         let signal = (account.postbox.transaction { transaction -> Signal<Void, NoError> in
-                            guard !ForkGhostModeSettings.shouldSuppressMessageReads else {
+                            guard !ForkGhostModeSettings.shouldSuppressMessageReads(accountPeerId: account.peerId, peerId: peerId) else {
                                 return .complete()
                             }
                             if let peer = transaction.getPeer(peerId), let inputPeer = apiInputPeer(peer) {

@@ -70,12 +70,28 @@ func managedSynchronizeConsumeMessageContentOperations(postbox: Postbox, network
         let helper = Atomic<ManagedSynchronizeConsumeMessageContentsOperationHelper>(value: ManagedSynchronizeConsumeMessageContentsOperationHelper())
         let queue = Queue()
         
-        let disposable = (combineLatest(postbox.mergedOperationLogView(tag: OperationLogTags.SynchronizeConsumeMessageContents, limit: 10), ForkGhostModeSettings.automaticContentReadsAllowed)
-        |> deliverOn(queue)).start(next: { view, readsAllowed in
+        // Observe exception peers separately while hidden: a global ten-entry view could otherwise
+        // be filled by hidden chats and starve an excepted chat behind them.
+        let entries: Signal<[PeerMergedOperationLogEntry], NoError> = ForkGhostModeSettings.automaticContentReadPermissionsChanged
+        |> mapToSignal { _ -> Signal<[PeerMergedOperationLogEntry], NoError> in
+            if !ForkGhostModeSettings.shouldSuppressMessageReads {
+                return postbox.mergedOperationLogView(tag: OperationLogTags.SynchronizeConsumeMessageContents, limit: 10)
+                |> map { $0.entries }
+            }
+            let peers = ForkGhostModeSettings.exceptionPeerIds(accountPeerId: stateManager.accountPeerId)
+            if peers.isEmpty {
+                return .single([])
+            }
+            return combineLatest(peers.map { peerId in
+                postbox.mergedOperationLogView(tag: OperationLogTags.SynchronizeConsumeMessageContents, filterByPeerId: peerId, limit: 10)
+            }) |> map { views in views.flatMap { $0.entries } }
+        }
+        let disposable = (entries
+        |> deliverOn(queue)).start(next: { entries in
             let (disposeOperations, beginOperations) = helper.with { helper -> (disposeOperations: [Disposable], beginOperations: [(PeerMergedOperationLogEntry, MetaDisposable)]) in
                 // Keep durable operations queued while hidden; cancelling a request does not
                 // run the completion transaction that removes its operation log entry.
-                return helper.update(readsAllowed ? view.entries : [])
+                return helper.update(entries.filter { !ForkGhostModeSettings.shouldSuppressMessageReads(accountPeerId: stateManager.accountPeerId, peerId: $0.peerId) })
             }
             
             for disposable in disposeOperations {
@@ -114,7 +130,7 @@ func managedSynchronizeConsumeMessageContentOperations(postbox: Postbox, network
 }
 
 private func synchronizeConsumeMessageContents(transaction: Transaction, network: Network, stateManager: AccountStateManager, peerId: PeerId, operation: SynchronizeConsumeMessageContentsOperation) -> Signal<Void, NoError> {
-    guard !ForkGhostModeSettings.shouldSuppressMessageReads else {
+    guard !ForkGhostModeSettings.shouldSuppressMessageReads(accountPeerId: stateManager.accountPeerId, peerId: peerId) else {
         // A toggle can race the postbox transaction. Keep the operation pending until
         // the permission observer cancels it and resumes it after reads are allowed.
         return .never()

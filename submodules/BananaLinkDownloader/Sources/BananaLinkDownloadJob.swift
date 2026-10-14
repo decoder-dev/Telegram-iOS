@@ -248,6 +248,15 @@ public final class BananaLinkDownloadJob {
                     case let .failure(error):
                         self.finish(.failure(error))
                     case let .success(url):
+                        batch.received[index] = BananaLinkDownloadJob.fileSize(url)
+                        var aggregate: Int64 = 0
+                        for received in batch.received {
+                            if bananaWouldExceedByteLimit(total: aggregate, adding: received, limit: BananaLinkDownloadJob.maxBatchSize) {
+                                self.finish(.failure(.batchTooLarge))
+                                return
+                            }
+                            aggregate += received
+                        }
                         batch.results[index] = url
                         batch.remaining -= 1
                         if batch.remaining == 0 {
@@ -272,6 +281,10 @@ public final class BananaLinkDownloadJob {
         // No video track means the server sent something else (e.g. an HTML page): send the link instead.
         guard let info = BananaMediaProcessor.videoInfo(fileURL) else {
             self.finish(.failure(.processingFailed))
+            return
+        }
+        guard BananaLinkDownloadJob.fileSize(fileURL) <= BananaLinkDownloadJob.maxFileSize else {
+            self.finish(.failure(.tooLarge))
             return
         }
         let video = Video(

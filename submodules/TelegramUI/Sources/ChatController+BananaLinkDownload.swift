@@ -162,6 +162,8 @@ extension ChatControllerImpl {
         let template = messages[0]
         let context = self.context
         let signCaption = ForkExtrasHotFlags.signDownloadedMedia
+        let originalInputState = self.presentationInterfaceState.interfaceState.effectiveInputState
+        var userCancelled = false
         let isSlowmode = (self.presentationInterfaceState.renderedPeer?.peer as? TelegramChannel)?.isRestrictedBySlowmode ?? false
 
         self.bananaFlushPendingSendAction()
@@ -171,6 +173,7 @@ extension ChatControllerImpl {
         let toast = BananaLinkDownloadToast(link: link, presentationData: self.presentationData)
         let controller = UndoOverlayController(presentationData: self.presentationData, content: toast.content, elevatedLayout: false, position: .bottom, action: { [weak job] action in
             if case .undo = action {
+                userCancelled = true
                 job?.cancel()
             }
             return false
@@ -187,6 +190,15 @@ extension ChatControllerImpl {
             toast.update(status)
         }, completion: { [weak self] result in
             toast.finish()
+            if userCancelled {
+                backgroundTask.end()
+                if let self, self.presentationInterfaceState.interfaceState.effectiveInputState.inputText.length == 0 {
+                    self.updateChatPresentationInterfaceState(interactive: true, {
+                        $0.updatedInterfaceState { $0.withUpdatedEffectiveInputState(originalInputState) }
+                    })
+                }
+                return
+            }
             let outgoing: [EnqueueMessage]
             switch result {
             case let .success(output):

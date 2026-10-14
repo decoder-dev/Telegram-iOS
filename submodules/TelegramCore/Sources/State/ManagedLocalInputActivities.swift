@@ -590,37 +590,56 @@ public enum ForkGhostModeSettings {
         }
     }
 
-    /// Chats that are exempt from Don't Read and Don't Send Typing: reads and typing go out normally there
-    /// (Extras ▸ Ghost mode ▸ chat list context menu "Ghost exception"). Keyed by peer id, shared by all accounts.
-    private static let exceptionsKey = "ForkGhostModeSettings.exceptionPeers.v1"
-    private static let exceptionPeers = Atomic<Set<Int64>>(value: Set(((UserDefaults.standard.array(forKey: "ForkGhostModeSettings.exceptionPeers.v1") as? [NSNumber]) ?? []).map { $0.int64Value }))
+    /// Exceptions are scoped to the signed-in account and chat. Legacy shared exceptions are
+    /// deliberately not granted to every account: users must opt in again for each account.
+    private static let exceptionsKey = "ForkGhostModeSettings.exceptionPeers.v2"
+    private static let exceptionWriteLock = NSLock()
+    private static let exceptionPeers = Atomic<[String: Set<Int64>]>(value: loadExceptionPeers())
 
-    public static func isException(_ peerId: PeerId) -> Bool {
-        return exceptionPeers.with { $0.contains(peerId.toInt64()) }
+    private static func loadExceptionPeers() -> [String: Set<Int64>] {
+        let stored = UserDefaults.standard.dictionary(forKey: exceptionsKey) ?? [:]
+        var result: [String: Set<Int64>] = [:]
+        for (account, peers) in stored {
+            if let peers = peers as? [NSNumber] {
+                result[account] = Set(peers.map { $0.int64Value })
+            }
+        }
+        return result
     }
 
-    public static func setException(_ peerId: PeerId, _ value: Bool) {
+    public static func isException(accountPeerId: PeerId, peerId: PeerId) -> Bool {
+        return exceptionPeers.with { $0[String(accountPeerId.toInt64())]?.contains(peerId.toInt64()) ?? false }
+    }
+
+    public static func exceptionPeerIds(accountPeerId: PeerId) -> [PeerId] {
+        return exceptionPeers.with { ($0[String(accountPeerId.toInt64())] ?? []).sorted().map { PeerId($0) } }
+    }
+
+    public static func setException(accountPeerId: PeerId, peerId: PeerId, _ value: Bool) {
+        exceptionWriteLock.lock()
         let updated = exceptionPeers.modify { current in
             var next = current
+            let account = String(accountPeerId.toInt64())
+            var peers = next[account] ?? []
             if value {
-                next.insert(peerId.toInt64())
+                peers.insert(peerId.toInt64())
             } else {
-                next.remove(peerId.toInt64())
+                peers.remove(peerId.toInt64())
             }
+            next[account] = peers
             return next
         }
-        UserDefaults.standard.set(updated.sorted().map { NSNumber(value: $0) }, forKey: exceptionsKey)
+        UserDefaults.standard.set(updated.mapValues { $0.sorted().map { NSNumber(value: $0) } }, forKey: exceptionsKey)
+        exceptionWriteLock.unlock()
         NotificationCenter.default.post(name: didChangeNotification, object: nil)
     }
 
-    /// Per-chat form of `shouldSuppressMessageReads`: false for an excepted chat.
-    public static func shouldSuppressMessageReads(peerId: PeerId) -> Bool {
-        return shouldSuppressMessageReads && !isException(peerId)
+    public static func shouldSuppressMessageReads(accountPeerId: PeerId, peerId: PeerId) -> Bool {
+        return shouldSuppressMessageReads && !isException(accountPeerId: accountPeerId, peerId: peerId)
     }
 
-    /// Per-chat form of `suppressOutgoingActivity`: false for an excepted chat.
-    public static func suppressesOutgoingActivity(peerId: PeerId) -> Bool {
-        return suppressOutgoingActivity && !isException(peerId)
+    public static func suppressesOutgoingActivity(accountPeerId: PeerId, peerId: PeerId) -> Bool {
+        return suppressOutgoingActivity && !isException(accountPeerId: accountPeerId, peerId: peerId)
     }
 
     /// True when dont-read is on and the read-on-interact override window is closed.
@@ -632,18 +651,17 @@ public enum ForkGhostModeSettings {
         return current.suppressMessageReads
     }
 
-    /// Pending automatic media reads must react to toggles and interaction-window expiry.
-    public static var automaticContentReadsAllowed: Signal<Bool, NoError> {
+    /// Emit for every policy change, including changes to exceptions while the global flag stays on.
+    public static var automaticContentReadPermissionsChanged: Signal<Void, NoError> {
         return Signal { subscriber in
             let observer = NotificationCenter.default.addObserver(forName: didChangeNotification, object: nil, queue: nil) { _ in
-                subscriber.putNext(!shouldSuppressMessageReads)
+                subscriber.putNext(())
             }
-            subscriber.putNext(!shouldSuppressMessageReads)
+            subscriber.putNext(())
             return ActionDisposable {
                 NotificationCenter.default.removeObserver(observer)
             }
         }
-        |> distinctUntilChanged
     }
 
     public static var shouldSuppressOnline: Bool {
@@ -771,10 +789,10 @@ private func actionFromActivity(_ activity: PeerInputActivity?) -> Api.SendMessa
 }
 
 private func requestActivity(postbox: Postbox, network: Network, accountPeerId: PeerId, peerId: PeerId, threadId: Int64?, activity: PeerInputActivity?) -> Signal<Void, NoError> {
-    if let activity, BananaActivityHiding.hides(activity), !ForkGhostModeSettings.isException(peerId) {
+    if let activity, BananaActivityHiding.hides(activity), !ForkGhostModeSettings.isException(accountPeerId: accountPeerId, peerId: peerId) {
         return .complete()
     }
-    if ForkGhostModeSettings.suppressesOutgoingActivity(peerId: peerId) {
+    if ForkGhostModeSettings.suppressesOutgoingActivity(accountPeerId: accountPeerId, peerId: peerId) {
         // Everything except the group-call speaking indicator. This function is the single
         // chokepoint for outgoing activity, which is why the gate belongs here — but
         // `.speakingInGroupCall` also passes through it, driving the live "is talking" highlight

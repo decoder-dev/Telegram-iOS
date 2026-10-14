@@ -418,8 +418,8 @@ func chatContextMenuItems(context: AccountContext, peerId: EnginePeer.Id, promoI
                         
                         // Ghost exceptions: reads and typing are not hidden in this chat.
                         let ghostState = ForkGhostModeSettings.current
-                        if !isCommunity && !isSavedMessages && peerId != context.account.peerId && (ghostState.suppressMessageReads || ghostState.suppressOutgoingActivity || ForkGhostModeSettings.isException(peerId)) {
-                            let isException = ForkGhostModeSettings.isException(peerId)
+                        if !isCommunity && !isSavedMessages && peerId != context.account.peerId && (ghostState.suppressMessageReads || ghostState.suppressOutgoingActivity || ForkGhostModeSettings.isException(accountPeerId: context.account.peerId, peerId: peerId)) {
+                            let isException = ForkGhostModeSettings.isException(accountPeerId: context.account.peerId, peerId: peerId)
                             let russian = ForkPresentationLanguage.prefersRussianStrings
                             let title: String
                             if isException {
@@ -428,7 +428,7 @@ func chatContextMenuItems(context: AccountContext, peerId: EnginePeer.Id, promoI
                                 title = russian ? "Исключение призрака" : "Ghost exception"
                             }
                             items.append(.action(ContextMenuActionItem(text: title, icon: { _ in nil }, action: { _, f in
-                                ForkGhostModeSettings.setException(peerId, !isException)
+                                ForkGhostModeSettings.setException(accountPeerId: context.account.peerId, peerId: peerId, !isException)
                                 f(.default)
                             })))
                         }
@@ -439,11 +439,46 @@ func chatContextMenuItems(context: AccountContext, peerId: EnginePeer.Id, promoI
                             items.append(.action(ContextMenuActionItem(text: title, textColor: .destructive, icon: { _ in nil }, action: { _, f in
                                 f(.default)
                                 let presentationData = context.sharedContext.currentPresentationData.with { $0 }
-                                let text = russian ? "Все ваши сообщения в этом чате будут удалены у всех. Это нельзя отменить." : "Every message you sent in this chat will be deleted for everyone. This cannot be undone."
+                                let text = russian ? "Найдём ваши сообщения и поставим их на удаление у всех. Можно остановить поиск и оставшиеся пакеты; уже поставленное на удаление нельзя отменить." : "Find your messages and queue deletion for everyone. You can stop the search and remaining batches; already queued requests cannot be undone."
                                 chatListController?.present(textAlertController(context: context, title: title, text: text, actions: [
                                     TextAlertAction(type: .genericAction, title: presentationData.strings.Common_Cancel, action: {}),
                                     TextAlertAction(type: .destructiveAction, title: presentationData.strings.Common_Delete, action: {
-                                        let _ = BananaDeleteOwnMessages.deleteAll(context: context, peerId: peerId).startStandalone()
+                                        let disposable = MetaDisposable()
+                                        var timer: SwiftSignalKit.Timer?
+                                        var content: UndoOverlayContent = .progress(progress: 0, title: title, text: russian ? "Ищу сообщения…" : "Finding messages…", undoText: strings.Common_Cancel)
+                                        let progressController = UndoOverlayController(presentationData: presentationData, content: content, elevatedLayout: false, position: .bottom, action: { action in
+                                            if case .undo = action {
+                                                disposable.dispose()
+                                                timer?.invalidate()
+                                                timer = nil
+                                            }
+                                            return false
+                                        })
+                                        chatListController?.present(progressController, in: .current)
+                                        let progressTimer = SwiftSignalKit.Timer(timeout: 0.25, repeat: true, completion: { [weak progressController] in
+                                            progressController?.content = content
+                                        }, queue: Queue.mainQueue())
+                                        timer = progressTimer
+                                        progressTimer.start()
+                                        disposable.set((BananaDeleteOwnMessages.deleteAll(context: context, peerId: peerId)
+                                        |> deliverOnMainQueue).start(next: { [weak progressController, weak chatListController] progress in
+                                            switch progress {
+                                            case let .searching(found):
+                                                content = .progress(progress: 0, title: title, text: russian ? "Найдено: \(found)" : "Found: \(found)", undoText: strings.Common_Cancel)
+                                            case let .deleting(queued, total):
+                                                content = .progress(progress: CGFloat(queued) / CGFloat(max(1, total)), title: title, text: russian ? "Поставлено на удаление: \(queued) из \(total)" : "Queued: \(queued) of \(total)", undoText: strings.Common_Cancel)
+                                            case let .finished(queued, searchComplete):
+                                                timer?.invalidate()
+                                                timer = nil
+                                                progressController?.dismiss()
+                                                let text = (russian ? "Поставлено на удаление: \(queued)." : "Deletion requests queued: \(queued).") + (searchComplete ? "" : (russian ? " Поиск завершён частично. Попробуйте ещё раз." : " Search stopped before completion. Try again."))
+                                                chatListController?.present(textAlertController(context: context, title: title, text: text, actions: [TextAlertAction(type: .defaultAction, title: strings.Common_OK, action: {})]), in: .window(.root))
+                                            }
+                                        }, completed: {
+                                            disposable.dispose()
+                                            timer?.invalidate()
+                                            timer = nil
+                                        }))
                                     })
                                 ]), in: .window(.root))
                             })))

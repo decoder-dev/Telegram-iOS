@@ -619,7 +619,7 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
     /// Don't Read, except in a chat the user exempted from Ghost mode.
     private var ghostSuppressesReads: Bool {
         if let peerId = self.chatLocation.peerId {
-            return ForkGhostModeSettings.shouldSuppressMessageReads(peerId: peerId)
+            return ForkGhostModeSettings.shouldSuppressMessageReads(accountPeerId: self.context.account.peerId, peerId: peerId)
         }
         return ForkGhostModeSettings.shouldSuppressMessageReads
     }
@@ -1128,16 +1128,17 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
         //self.debugInfo = true
         
         self.messageProcessingManager.process = { [weak context] messageIds in
-            let increment = !ForkGhostModeSettings.shouldSuppressMessageReads
-            context?.account.viewTracker.updateViewCountForMessageIds(messageIds: Set(messageIds.map(\.messageId)), clientId: clientId.with { $0 }, increment: increment)
+            guard let context else { return }
+            let ids = Set(messageIds.map(\.messageId))
+            for (peerId, ids) in Dictionary(grouping: ids, by: { $0.peerId }) {
+                let increment = !ForkGhostModeSettings.shouldSuppressMessageReads(accountPeerId: context.account.peerId, peerId: peerId)
+                context.account.viewTracker.updateViewCountForMessageIds(messageIds: Set(ids), clientId: clientId.with { $0 }, increment: increment)
+            }
         }
         self.messageWithReactionsProcessingManager.process = { [weak context] messageIds in
             context?.account.viewTracker.updateReactionsForMessageIds(messageIds: Set(messageIds.map(\.messageId)))
         }
         self.seenLiveLocationProcessingManager.process = { [weak context] messageIds in
-            if ForkGhostModeSettings.shouldSuppressMessageReads {
-                return
-            }
             context?.account.viewTracker.updateSeenLiveLocationForMessageIds(messageIds: Set(messageIds.map(\.messageId)))
         }
         self.unsupportedMessageProcessingManager.process = { [weak context] messageIds in

@@ -324,7 +324,7 @@ private class ReplyThreadHistoryContextImpl {
         }
 
         // Threads send readDiscussion/readSavedHistory independently of normal chats.
-        if ForkGhostModeSettings.shouldSuppressMessageReads {
+        if ForkGhostModeSettings.shouldSuppressMessageReads(accountPeerId: self.account.peerId, peerId: peerId) {
             return
         }
 
@@ -482,7 +482,7 @@ private class ReplyThreadHistoryContextImpl {
                 }
             }
 
-            guard !ForkGhostModeSettings.shouldSuppressMessageReads else { return }
+            guard !ForkGhostModeSettings.shouldSuppressMessageReads(accountPeerId: strongSelf.account.peerId, peerId: peerId) else { return }
             if let subPeerId {
                 let signal = strongSelf.account.network.request(Api.functions.messages.readSavedHistory(parentPeer: inputPeer, peer: subPeerId, maxId: messageIndex.id.id))
                 |> `catch` { _ -> Signal<Api.Bool, NoError> in

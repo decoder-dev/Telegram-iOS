@@ -20,9 +20,9 @@ class ForkIntegration(unittest.TestCase):
 
     def test_live_location_reads_obey_ghost_before_cache_and_rpc(self):
         body = read('submodules/TelegramCore/Sources/State/AccountViewTracker.swift').split('public func updateSeenLiveLocationForMessageIds(', 1)[1].split('public func updatedExtendedMediaForMessageIds', 1)[0]
-        guard = 'guard !ForkGhostModeSettings.shouldSuppressMessageReads else'
+        guard = 'guard !ForkGhostModeSettings.shouldSuppressMessageReads(accountPeerId: account.peerId, peerId:'
         self.assertEqual(body.count(guard), 2)
-        self.assertLess(body.index(guard), body.index('updatedSeenLiveLocationMessageIdsAndTimestamps'))
+        self.assertLess(body.index(guard), body.index('self.updatedSeenLiveLocationMessageIdsAndTimestamps'))
         transaction = body.split('account.postbox.transaction', 1)[1]
         self.assertLess(transaction.index(guard), transaction.index('account.network.request'))
 
@@ -304,7 +304,7 @@ class ForkIntegration(unittest.TestCase):
         self.assertIn('if scheduleTime == nil {\n                strongSelf.beginGhostReadOnInteractForSend()', load)
         read_actions = read('submodules/TelegramCore/Sources/TelegramEngine/Messages/InstallInteractiveReadMessagesAction.swift')
         body = read_actions.split('func addOrUpdate(messages: [StoreMessage], transaction: Transaction) {', 1)[1][:400]
-        self.assertIn('if ForkGhostModeSettings.shouldSuppressMessageReads(peerId: self.peerId) {\n            return', body)
+        self.assertIn('if ForkGhostModeSettings.shouldSuppressMessageReads(accountPeerId: self.accountPeerId, peerId: self.peerId) {\n            return', body)
 
     def test_proxy_screens_are_not_stacked_twice(self):
         preview = read('submodules/TelegramUI/Components/ProxyServerPreviewScreen/Sources/ProxyServerPreviewScreen.swift')
@@ -558,22 +558,104 @@ class ForkIntegration(unittest.TestCase):
 
     def test_ghost_exceptions_are_per_chat(self):
         core = read('submodules/TelegramCore/Sources/State/ManagedLocalInputActivities.swift')
-        self.assertIn('public static func shouldSuppressMessageReads(peerId: PeerId) -> Bool {\n        return shouldSuppressMessageReads && !isException(peerId)', core)
-        self.assertIn('return suppressOutgoingActivity && !isException(peerId)', core)
+        self.assertIn('public static func shouldSuppressMessageReads(accountPeerId: PeerId, peerId: PeerId) -> Bool {\n        return shouldSuppressMessageReads && !isException(accountPeerId: accountPeerId, peerId: peerId)', core)
+        self.assertIn('return suppressOutgoingActivity && !isException(accountPeerId: accountPeerId, peerId: peerId)', core)
         # Typing goes through one chokepoint that knows the peer.
-        self.assertIn('if ForkGhostModeSettings.suppressesOutgoingActivity(peerId: peerId) {', core)
-        self.assertIn('ForkGhostModeSettings.shouldSuppressMessageReads(peerId: index.id.peerId)', read('submodules/TelegramCore/Sources/TelegramEngine/Messages/ApplyMaxReadIndexInteractively.swift'))
-        self.assertIn('ForkGhostModeSettings.shouldSuppressMessageReads(peerId: message.id.peerId)', read('submodules/TelegramCore/Sources/TelegramEngine/Messages/MarkMessageContentAsConsumedInteractively.swift'))
+        self.assertIn('if ForkGhostModeSettings.suppressesOutgoingActivity(accountPeerId: accountPeerId, peerId: peerId) {', core)
+        self.assertIn('ForkGhostModeSettings.shouldSuppressMessageReads(accountPeerId: stateManager.accountPeerId, peerId: index.id.peerId)', read('submodules/TelegramCore/Sources/TelegramEngine/Messages/ApplyMaxReadIndexInteractively.swift'))
+        self.assertIn('ForkGhostModeSettings.shouldSuppressMessageReads(accountPeerId: accountPeerId, peerId: message.id.peerId)', read('submodules/TelegramCore/Sources/TelegramEngine/Messages/MarkMessageContentAsConsumedInteractively.swift'))
         install = read('submodules/TelegramCore/Sources/TelegramEngine/Messages/InstallInteractiveReadMessagesAction.swift')
         self.assertEqual(install.count('ForkGhostModeSettings.shouldSuppressMessageReads {'), 0)
         history = read('submodules/TelegramUI/Sources/ChatHistoryListNode.swift')
-        self.assertIn('ForkGhostModeSettings.shouldSuppressMessageReads(peerId: peerId)', history)
+        self.assertIn('ForkGhostModeSettings.shouldSuppressMessageReads(accountPeerId: self.context.account.peerId, peerId: peerId)', history)
         menu = read('submodules/ChatListUI/Sources/ChatContextMenus.swift')
-        self.assertIn('ForkGhostModeSettings.setException(peerId, !isException)', menu)
+        self.assertIn('ForkGhostModeSettings.setException(accountPeerId: context.account.peerId, peerId: peerId, !isException)', menu)
+
+    def test_queue_threads_and_locations_use_account_scoped_permissions(self):
+        queue = read('submodules/TelegramCore/Sources/State/ManagedSynchronizeConsumeMessageContentsOperations.swift')
+        self.assertIn('filterByPeerId: peerId, limit: 10', queue)
+        self.assertIn('exceptionPeerIds(accountPeerId: stateManager.accountPeerId)', queue)
+        self.assertIn('shouldSuppressMessageReads(accountPeerId: stateManager.accountPeerId, peerId: $0.peerId)', queue)
+        threads = read('submodules/TelegramCore/Sources/TelegramEngine/Messages/ReplyThreadHistory.swift')
+        self.assertIn('shouldSuppressMessageReads(accountPeerId: self.account.peerId, peerId: peerId)', threads)
+        self.assertIn('shouldSuppressMessageReads(accountPeerId: strongSelf.account.peerId, peerId: peerId)', threads)
+
+    def test_mass_delete_reports_queued_requests_and_does_not_silently_truncate(self):
+        source = read('submodules/ChatListUI/Sources/BananaDeleteOwnMessages.swift')
+        self.assertNotIn('maximumMessageCount', source)
+        self.assertNotIn('added == 0', source)
+        self.assertIn('seen.insert(message.id).inserted', source)
+        self.assertIn('if result.completed || nextState == state {', source)
+        self.assertIn('complete: result.completed', source)
+        self.assertIn('start(completed:', source)  # Engine deletion completes without emitting a Void value.
+        self.assertIn('cancelled.swap(true)', source)
+        menu = read('submodules/ChatListUI/Sources/ChatContextMenus.swift')
+        self.assertIn('case let .deleting(queued, total):', menu)
+        self.assertIn('case let .finished(queued, searchComplete):', menu)
+        self.assertIn('Search stopped before completion', menu)
+
+    def test_user_cancel_stops_send_without_overwriting_new_input(self):
+        source = read('submodules/TelegramUI/Sources/ChatController+BananaLinkDownload.swift')
+        self.assertIn('userCancelled = true', source)
+        body = source.split('if userCancelled {', 1)[1].split('let outgoing:', 1)[0]
+        self.assertIn('backgroundTask.end()', body)
+        self.assertIn('effectiveInputState.inputText.length == 0', body)
+        self.assertIn('withUpdatedEffectiveInputState(originalInputState)', body)
+        self.assertIn('return', body)
+        self.assertNotIn('enqueueMessages', body)
+        fetcher = read('submodules/BananaLinkDownloader/Sources/BananaMediaFetcher.swift')
+        finish = fetcher.split('didFinishDownloadingTo location:', 1)[1].split('didCompleteWithError', 1)[0]
+        self.assertLess(finish.index('size.int64Value <= download.maxBytes'), finish.index('moveItem'))
+
+    @unittest.skipUnless(shutil.which('swiftc'), 'Swift unavailable locally; account isolation executes in macOS CI')
+    def test_actual_exception_store_isolates_accounts_and_persists_revocations(self):
+        policy = read('submodules/TelegramCore/Sources/State/ManagedLocalInputActivities.swift')
+        production = policy.split('    private static let exceptionsKey =', 1)[1].split('    /// True when dont-read', 1)[0]
+        production = '    private static let exceptionsKey =' + production
+        # Use an isolated UserDefaults key while executing the real store, locking and predicates.
+        production = production.replace('ForkGhostModeSettings.exceptionPeers.v2', 'BananaGram.fixture.' + os.urandom(8).hex())
+        fixture = r'''import Foundation
+struct PeerId: Hashable { let value: Int64; init(_ value: Int64) { self.value = value }; func toInt64() -> Int64 { value } }
+final class Atomic<T> {
+    private var value: T
+    init(value: T) { self.value = value }
+    func with<R>(_ f: (T) -> R) -> R { f(value) }
+    func modify(_ f: (T) -> T) -> T { value = f(value); return value }
+}
+enum Policy {
+    static var shouldSuppressMessageReads = true
+    static var suppressOutgoingActivity = true
+    static let didChangeNotification = Notification.Name("fixture")
+''' + production.replace('public static', 'static') + r'''
+    static func verifyPersistence() {
+        precondition(loadExceptionPeers() == exceptionPeers.with { $0 })
+        UserDefaults.standard.removeObject(forKey: exceptionsKey)
+    }
+}
+let a = PeerId(100), b = PeerId(200), chat = PeerId(300)
+Policy.setException(accountPeerId: a, peerId: chat, true)
+precondition(!Policy.shouldSuppressMessageReads(accountPeerId: a, peerId: chat))
+precondition(Policy.shouldSuppressMessageReads(accountPeerId: b, peerId: chat))
+precondition(!Policy.suppressesOutgoingActivity(accountPeerId: a, peerId: chat))
+precondition(Policy.suppressesOutgoingActivity(accountPeerId: b, peerId: chat))
+precondition(Policy.exceptionPeerIds(accountPeerId: a) == [chat])
+Policy.setException(accountPeerId: b, peerId: chat, true)
+Policy.setException(accountPeerId: a, peerId: chat, false)
+precondition(Policy.shouldSuppressMessageReads(accountPeerId: a, peerId: chat))
+precondition(!Policy.shouldSuppressMessageReads(accountPeerId: b, peerId: chat))
+Policy.verifyPersistence()
+print("Account-scoped ghost exceptions: isolation/persistence/revocation passed")
+'''
+        with tempfile.TemporaryDirectory() as directory:
+            source = pathlib.Path(directory) / 'main.swift'
+            binary = pathlib.Path(directory) / 'fixture'
+            source.write_text(fixture, encoding='utf-8')
+            subprocess.run(['swiftc', str(source), '-o', str(binary)], check=True, timeout=120)
+            subprocess.run([str(binary)], check=True, timeout=30)
 
     def test_hide_activity_by_type_and_delete_own_messages(self):
         core = read('submodules/TelegramCore/Sources/State/ManagedLocalInputActivities.swift')
-        self.assertIn('if let activity, BananaActivityHiding.hides(activity), !ForkGhostModeSettings.isException(peerId) {', core)
+        self.assertIn('if let activity, BananaActivityHiding.hides(activity), !ForkGhostModeSettings.isException(accountPeerId: accountPeerId, peerId: peerId) {', core)
         hiding = read('submodules/TelegramCore/Sources/Arena/BananaActivityHiding.swift')
         self.assertIn('case .recordingVoice, .recordingInstantVideo:', hiding)
         self.assertIn('case .uploadingFile, .uploadingPhoto, .uploadingVideo, .uploadingInstantVideo:', hiding)

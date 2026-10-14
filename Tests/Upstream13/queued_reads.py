@@ -12,16 +12,17 @@ SOURCE = PATH.read_text(encoding='utf-8')
 
 class QueuedReads(unittest.TestCase):
     def test_permission_changes_suspend_without_removing_durable_entries(self):
-        self.assertIn('ForkGhostModeSettings.automaticContentReadsAllowed', SOURCE)
+        self.assertIn('ForkGhostModeSettings.automaticContentReadPermissionsChanged', SOURCE)
         self.assertIn('deliverOn(queue)', SOURCE)
-        self.assertIn('helper.update(readsAllowed ? view.entries : [])', SOURCE)
+        self.assertIn('helper.update(entries.filter { !ForkGhostModeSettings.shouldSuppressMessageReads(accountPeerId: stateManager.accountPeerId, peerId: $0.peerId) })', SOURCE)
+        self.assertIn('filterByPeerId: peerId, limit: 10', SOURCE)
         body = SOURCE.split('private func synchronizeConsumeMessageContents(', 1)[1]
         self.assertLess(body.index('guard !ForkGhostModeSettings.shouldSuppressMessageReads'), body.index('network.request'))
         self.assertIn('return .never()', body.split('network.request', 1)[0])
         policy = (ROOT / 'submodules/TelegramCore/Sources/State/ManagedLocalInputActivities.swift').read_text(encoding='utf-8')
-        observer = policy.split('public static var automaticContentReadsAllowed:', 1)[1].split('public static var shouldSuppressOnline', 1)[0]
+        observer = policy.split('public static var automaticContentReadPermissionsChanged:', 1)[1].split('public static var shouldSuppressOnline', 1)[0]
         self.assertIn('forName: didChangeNotification', observer)
-        self.assertIn('subscriber.putNext(!shouldSuppressMessageReads)', observer)
+        self.assertIn('subscriber.putNext(())', observer)
         self.assertIn('NotificationCenter.default.removeObserver(observer)', observer)
         # Manual Mark Read remains an explicit action, outside this automatic queue.
         manual = (ROOT / 'submodules/TelegramCore/Sources/TelegramEngine/Messages/ApplyMaxReadIndexInteractively.swift').read_text(encoding='utf-8')
@@ -31,7 +32,7 @@ class QueuedReads(unittest.TestCase):
     @unittest.skipUnless(shutil.which('swiftc'), 'Swift unavailable locally; real helper executes in macOS CI')
     def test_actual_helper_cancels_and_resumes_once_per_peer(self):
         helper = SOURCE.split('private final class ManagedSynchronizeConsumeMessageContentsOperationHelper', 1)[1].split('private func withTakenOperation', 1)[0]
-        predicate = 'readsAllowed ? view.entries : []'
+        predicate = 'entries.filter { !ForkGhostModeSettings.shouldSuppressMessageReads(accountPeerId: stateManager.accountPeerId, peerId: $0.peerId) }'
         self.assertIn(predicate, SOURCE)
         fixture = '''import Foundation
 protocol Disposable { func dispose() }
@@ -43,6 +44,15 @@ struct View { let entries: [PeerMergedOperationLogEntry] }
 let view = View(entries: [.init(peerId: 1, mergedIndex: 10), .init(peerId: 1, mergedIndex: 11), .init(peerId: 2, mergedIndex: 12)])
 private let helper = ManagedSynchronizeConsumeMessageContentsOperationHelper()
 var readsAllowed = true
+var exceptionPeers: Set<Int> = []
+enum ForkGhostModeSettings {
+    static func shouldSuppressMessageReads(accountPeerId: Int, peerId: Int) -> Bool {
+        return !readsAllowed && !exceptionPeers.contains(peerId)
+    }
+}
+struct StateManager { let accountPeerId: Int }
+let stateManager = StateManager(accountPeerId: 100)
+let entries = view.entries
 let initial = helper.update(PREDICATE)
 precondition(initial.beginOperations.count == 2 && initial.disposeOperations.isEmpty)
 precondition(helper.update(PREDICATE).beginOperations.isEmpty)
@@ -56,7 +66,15 @@ readsAllowed = true
 let resumed = helper.update(PREDICATE)
 precondition(resumed.beginOperations.count == 2 && resumed.disposeOperations.isEmpty)
 precondition(helper.update(PREDICATE).beginOperations.isEmpty)
-precondition(helper.reset().count == 2)
+readsAllowed = false
+exceptionPeers = [2]
+let excepted = helper.update(PREDICATE)
+precondition(excepted.disposeOperations.count == 1 && excepted.beginOperations.isEmpty)
+exceptionPeers = [1, 2]
+precondition(helper.update(PREDICATE).beginOperations.count == 1)
+exceptionPeers = []
+precondition(helper.update(PREDICATE).disposeOperations.count == 2)
+precondition(helper.reset().isEmpty)
 print("Queued content reads: actual cancellation/resumption helper passed")
 '''
         with tempfile.TemporaryDirectory() as directory:

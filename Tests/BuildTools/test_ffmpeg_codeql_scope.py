@@ -27,8 +27,8 @@ class FFmpegCodeQLScope(unittest.TestCase):
         # Only the decoders the app enables stay in scope.
         for kept in ("h264pred_template.c", "exif.c"):
             self.assertNotIn(kept, ignored_paths)
-        self.assertIn("id: cpp/suspicious-add-sizeof", config)
-        self.assertIn("id: cpp/integer-multiplication-cast-to-long", config)
+        self.assertNotIn("query-filters:", config)
+        self.assertNotIn("  - build-system/Make/DecryptMatch.py", config)
 
     def test_loop_counters_cover_their_bounds(self):
         exif = (FFMPEG / "libavcodec/exif.c").read_text(encoding="utf-8")
