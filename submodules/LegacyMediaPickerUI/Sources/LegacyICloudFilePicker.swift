@@ -1,4 +1,5 @@
 import Foundation
+import TelegramCore
 import UIKit
 import UniformTypeIdentifiers
 import Display
@@ -8,6 +9,9 @@ import LegacyUI
 private class DocumentPickerViewController: UIDocumentPickerViewController {
     var forceDarkTheme = false
     var didDisappear: (() -> Void)?
+    // UIKit's delegate is weak. Keep it alive through dismissal, which can precede
+    // delivery of the selected URLs and otherwise remove the legacy wrapper first.
+    var retainedPickerDelegate: UIDocumentPickerDelegate?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -26,6 +30,14 @@ private class DocumentPickerViewController: UIDocumentPickerViewController {
 
 private final class LegacyICloudFileController: LegacyController, UIDocumentPickerDelegate {
     let completion: ([URL]) -> Void
+    private var didComplete = false
+
+    private func complete(_ urls: [URL]) {
+        guard !self.didComplete else { return }
+        self.didComplete = true
+        Logger.shared.log("FilesPicker", "Selection completed (count: \(urls.count))")
+        self.completion(urls)
+    }
     
     init(presentation: LegacyControllerPresentation, theme: PresentationTheme?, completion: @escaping ([URL]) -> Void) {
         self.completion = completion
@@ -38,15 +50,15 @@ private final class LegacyICloudFileController: LegacyController, UIDocumentPick
     }
     
     func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
-        self.completion([])
+        self.complete([])
     }
     
     func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
-        self.completion(urls)
+        self.complete(urls)
     }
     
     func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentAt url: URL) {
-        self.completion([url])
+        self.complete([url])
     }
 }
 
@@ -93,6 +105,7 @@ public func legacyICloudFilePicker(theme: PresentationTheme, mode: LegacyICloudF
         dismissImpl?()
     }
     controller.delegate = legacyController
+    controller.retainedPickerDelegate = legacyController
     if #available(iOSApplicationExtension 11.0, iOS 11.0, *), hasMultiselection {
         controller.allowsMultipleSelection = true
     }

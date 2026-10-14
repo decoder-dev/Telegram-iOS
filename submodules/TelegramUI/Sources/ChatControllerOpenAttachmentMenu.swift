@@ -1434,6 +1434,7 @@ extension ChatControllerImpl {
 
             strongSelf.present(legacyICloudFilePicker(theme: strongSelf.presentationData.theme, hasMultiselection: !editingMessage, documentTypes: documentTypes, completion: { [weak self] urls in
                 if let strongSelf = self, !urls.isEmpty {
+                    Logger.shared.log("AttachmentFiles", "Preparing selected documents (count: \(urls.count))")
                     var signals: [Signal<ICloudFileDescription?, NoError>] = []
                     for url in urls {
                         signals.append(iCloudFileDescription(url))
@@ -1449,6 +1450,7 @@ extension ChatControllerImpl {
                     |> deliverOnMainQueue).startStrict(next: { [weak progress] results in
                         progress?.dismiss()
                         if let strongSelf = self {
+                            Logger.shared.log("AttachmentFiles", "Preparation completed (readable: \(results.compactMap { $0 }.count), selected: \(results.count))")
                             // Reject partial imports instead of silently sending only readable selections.
                             guard results.compactMap({ $0 }).count == results.count else {
                                 let russian = ForkPresentationLanguage.prefersRussianStrings
@@ -1553,6 +1555,7 @@ extension ChatControllerImpl {
                                         guard voiceFiles.isEmpty || strongSelf.forkCanSendVoiceMessages() else {
                                             return
                                         }
+                                        Logger.shared.log("AttachmentFiles", "Enqueuing prepared documents (count: \(messages.count))")
                                         strongSelf.sendMessages(messages, postpone: postpone)
                                     })
                                 }

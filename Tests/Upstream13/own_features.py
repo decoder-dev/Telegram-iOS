@@ -28,6 +28,38 @@ class ForkIntegration(unittest.TestCase):
         component = read('submodules/TelegramUI/Components/ChatListHeaderComponent/Sources/NavigationButtonComponent.swift')
         self.assertIn('self.accessibilityLabel = title', component)
 
+    @unittest.skipUnless(shutil.which('swiftc'), 'Swift unavailable locally; document-picker delegate executes in macOS CI')
+    def test_actual_picker_completes_selection_once(self):
+        source = read('submodules/LegacyMediaPickerUI/Sources/LegacyICloudFilePicker.swift')
+        body = source[source.index('private final class LegacyICloudFileController'):source.index('public enum LegacyICloudFilePickerMode')]
+        fixture = r'''import Foundation
+class Logger { static let shared = Logger(); func log(_ tag: String, _ text: String) {} }
+enum LegacyControllerPresentation { case modal }
+class PresentationTheme {}
+class LegacyController {
+    init(presentation: LegacyControllerPresentation, theme: PresentationTheme?) {}
+    required init(coder: NSCoder) {}
+}
+class UIDocumentPickerViewController {}
+protocol UIDocumentPickerDelegate: AnyObject {}
+''' + body + r'''
+let picker = UIDocumentPickerViewController()
+let first = URL(fileURLWithPath: "/tmp/first.zip"), second = URL(fileURLWithPath: "/tmp/second.zip")
+var results: [[URL]] = []
+private let delegate = LegacyICloudFileController(presentation: .modal, theme: nil, completion: { results.append($0) })
+delegate.documentPicker(picker, didPickDocumentsAt: [first, second])
+delegate.documentPicker(picker, didPickDocumentAt: first)
+delegate.documentPickerWasCancelled(picker)
+precondition(results == [[first, second]])
+var cancelled: [[URL]] = []
+private let cancelDelegate = LegacyICloudFileController(presentation: .modal, theme: nil, completion: { cancelled.append($0) })
+cancelDelegate.documentPickerWasCancelled(picker)
+cancelDelegate.documentPicker(picker, didPickDocumentsAt: [first])
+precondition(cancelled == [[]])
+print("Document picker: actual completion-once delegate passed")
+'''
+        self.run_swift_fixture(fixture)
+
     def test_file_preparation_coordinates_reads_with_timeout_and_partial_error(self):
         resource = read('submodules/ICloudResources/Sources/ICloudResources.swift')
         body = resource.split('public func iCloudFileDescription(', 1)[1].split('private final class SecurityScopedAccess', 1)[0]
@@ -43,6 +75,11 @@ class ForkIntegration(unittest.TestCase):
         self.assertIn('enqueueMediaMessageDisposable.set(nil)', body)
         self.assertIn('afterDisposed { [weak progress]', body)
         self.assertIn('attachmentController.dismiss(animated: true, completion:', menu)
+        picker = read('submodules/LegacyMediaPickerUI/Sources/LegacyICloudFilePicker.swift')
+        self.assertIn('controller.retainedPickerDelegate = legacyController', picker)
+        self.assertIn('guard !self.didComplete else { return }', picker)
+        self.assertIn('self.complete(urls)', picker)
+        self.assertIn('self.complete([url])', picker)
 
     def test_ghost_restore_reconciles_deleted_counts_and_account_exceptions(self):
         source = read('submodules/TelegramCore/Sources/Arena/BananaGhostLocalRead.swift')
