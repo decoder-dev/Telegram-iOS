@@ -960,6 +960,8 @@ print("Account-scoped ghost exceptions: isolation/persistence/revocation passed"
         # URLs and a bookmark that could not be resolved when the upload ran: files never left the chat.
         menu = read('submodules/TelegramUI/Sources/ChatControllerOpenAttachmentMenu.swift')
         self.assertIn('legacyICloudFilePicker(theme: strongSelf.presentationData.theme, mode: .import, hasMultiselection: !editingMessage, documentTypes: documentTypes,', menu)
+        poll = read('submodules/TelegramUI/Components/ComposePollScreen/Sources/PollAttachmentScreen.swift')
+        self.assertIn('legacyICloudFilePicker(theme: presentationData.theme, mode: .import, documentTypes: ["public.item"]', poll)
 
 
 if __name__ == '__main__':
