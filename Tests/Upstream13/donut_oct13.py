@@ -15,6 +15,11 @@ def static_method(source, name):
     start = source.rfind('\n', 0, signature) + 1
     end = source.index('\n    }', signature) + len('\n    }')
     return source[start:end]
+
+def instance_method(source, signature):
+    start = source.index(signature)
+    start = source.rfind('\n', 0, start) + 1
+    return source[start:source.index('\n    }', start) + len('\n    }')]
 def execute(source):
     with tempfile.TemporaryDirectory() as directory:
         path = pathlib.Path(directory) / 'main.swift'
@@ -24,6 +29,117 @@ def execute(source):
         subprocess.run([str(binary)], check=True, timeout=30)
 
 class DonutAdaptation(unittest.TestCase):
+    @unittest.skipUnless(shutil.which('swiftc'), 'Swift unavailable locally; executes in macOS CI')
+    def test_bot_download_progress_and_integer_boundaries(self):
+        source = read('submodules/WebUI/Sources/FileDownload.swift')
+        execute('import Foundation\n' + function(source, 'botDownloadProgress') + '\n' + function(source, 'botDownloadReceivedBytes') + '''
+precondition(botDownloadProgress(received: 0, expected: 0) == 0)
+precondition(botDownloadProgress(received: 20, expected: -1) == 0)
+precondition(botDownloadProgress(received: -1, expected: 100) == 0)
+precondition(botDownloadProgress(received: 50, expected: 100) == 0.5)
+precondition(botDownloadProgress(received: Int64.max, expected: 1) == 1)
+for size in [Int64(0), 1, 100, Int64.max - 1, Int64.max] {
+    for progress in [Double.nan, .infinity, -.infinity, -1, 0, 0.5, 1.0.nextDown, 1, 2] {
+        let received = botDownloadReceivedBytes(fileSize: size, progress: progress)
+        precondition(received >= 0 && received <= size)
+    }
+    precondition(botDownloadReceivedBytes(fileSize: size, progress: 1) == size)
+}
+precondition(botDownloadReceivedBytes(fileSize: -1, progress: 0.5) == 0)
+''')
+
+    @unittest.skipUnless(shutil.which('swiftc'), 'Swift unavailable locally; executes in macOS CI')
+    def test_bot_download_status_lifecycle_and_redirects(self):
+        source = read('submodules/WebUI/Sources/FileDownload.swift')
+        download_class = source.split('final class FileDownload:', 1)[1]
+        methods = '\n'.join(instance_method(download_class, signature) for signature in [
+            'private func finish(',
+            'func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo',
+            'func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError',
+            'func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection',
+        ])
+        redirect_delegate = source[source.index('private final class BotDownloadRedirectDelegate'):source.index('\nfunc botDownloadProgress')]
+        execute('''import Foundation
+import Darwin
+class URLSession { var invalidations = 0; func finishTasksAndInvalidate() { invalidations += 1 } }
+class URLSessionTask {}
+class URLSessionDownloadTask: URLSessionTask { var response: URLResponse? }
+protocol URLSessionTaskDelegate {}
+''' + read('submodules/WebUI/Sources/WebAppUtils.swift') + '\n' + redirect_delegate + '''
+final class Harness {
+    var urlSession: URLSession?
+    var task: URLSessionDownloadTask?
+    var completion: ((URL?, Error?) -> Void)?
+    var progressHandler: ((Double) -> Void)?
+''' + methods + '''
+}
+func checkStatus(_ status: Int, success: Bool) {
+    let session = URLSession(), task = URLSessionDownloadTask(), download = Harness()
+    download.urlSession = session
+    download.task = task
+    task.response = HTTPURLResponse(url: URL(string: "https://example.com/file")!, statusCode: status, httpVersion: nil, headerFields: nil)
+    var calls = 0
+    download.completion = { url, error in
+        calls += 1
+        precondition((url != nil) == success && (error == nil) == success)
+    }
+    download.urlSession(session, downloadTask: task, didFinishDownloadingTo: URL(fileURLWithPath: "/tmp/download-fixture"))
+    download.urlSession(session, task: task, didCompleteWithError: URLError(.cancelled))
+    precondition(calls == 1 && session.invalidations == 1)
+    precondition(download.urlSession == nil && download.task == nil && download.completion == nil)
+}
+checkStatus(200, success: true)
+checkStatus(206, success: true)
+for status in [302, 403, 404, 500] { checkStatus(status, success: false) }
+let failed = Harness(), failedSession = URLSession()
+failed.urlSession = failedSession
+var errors = 0
+failed.completion = { url, error in precondition(url == nil && error != nil); errors += 1 }
+failed.urlSession(failedSession, task: URLSessionTask(), didCompleteWithError: URLError(.timedOut))
+failed.urlSession(failedSession, task: URLSessionTask(), didCompleteWithError: URLError(.cancelled))
+precondition(errors == 1 && failedSession.invalidations == 1)
+func checkRedirects() {
+    let delegate = BotDownloadRedirectDelegate(), harness = Harness()
+    let response = HTTPURLResponse(url: URL(string: "https://example.com/file")!, statusCode: 302, httpVersion: nil, headerFields: nil)!
+    for (url, allowed) in [
+        ("https://cdn.example.com/file", true), ("http://cdn.example.com/file", false),
+        ("file:///tmp/private", false), ("https://127.0.0.1/file", false),
+        ("https://10.0.0.1/file", false), ("https://[::1]/file", false),
+        ("https://user:password@example.com/file", false)
+    ] {
+        let request = URLRequest(url: URL(string: url)!)
+        var callbacks = 0
+        let completion: (URLRequest?) -> Void = { next in precondition((next != nil) == allowed); callbacks += 1 }
+        delegate.urlSession(URLSession(), task: URLSessionTask(), willPerformHTTPRedirection: response, newRequest: request, completionHandler: completion)
+        harness.urlSession(URLSession(), task: URLSessionTask(), willPerformHTTPRedirection: response, newRequest: request, completionHandler: completion)
+        precondition(callbacks == 2)
+    }
+}
+checkRedirects()
+''')
+
+    @unittest.skipUnless(shutil.which('swiftc'), 'Swift unavailable locally; executes in macOS CI')
+    def test_untrusted_video_metadata_cannot_trap_integer_conversion(self):
+        source = read('submodules/BananaLinkDownloader/Sources/BananaMediaProcessor.swift')
+        method = static_method(source, 'validatedVideoInfo')
+        execute('''import Foundation
+enum BananaMediaProcessor {
+    struct VideoInfo { let duration: Double; let width: Int; let height: Int }
+''' + method + '''
+}
+let valid = BananaMediaProcessor.validatedVideoInfo(width: -1920, height: 1080, duration: 30)
+precondition(valid?.width == 1920 && valid?.height == 1080 && valid?.duration == 30)
+for invalid in [CGFloat.nan, .infinity, -.infinity, .greatestFiniteMagnitude, 0, 0.1, 65536, CGFloat(Int32.max) + 1] {
+    precondition(BananaMediaProcessor.validatedVideoInfo(width: invalid, height: 1080, duration: 30) == nil)
+    precondition(BananaMediaProcessor.validatedVideoInfo(width: 1920, height: invalid, duration: 30) == nil)
+}
+for duration in [Double.nan, .infinity, -.infinity, -1, 0] {
+    precondition(BananaMediaProcessor.validatedVideoInfo(width: 1920, height: 1080, duration: duration) == nil)
+}
+let boundary = BananaMediaProcessor.validatedVideoInfo(width: 65535, height: 1, duration: 1)
+precondition(boundary?.width == 65535)
+''')
+
     def test_retention_and_server_pagination_wiring(self):
         search = read('submodules/TelegramCore/Sources/TelegramEngine/Messages/SearchMessages.swift')
         self.assertIn('bananaSearchResultIncludingDeletedMessages(result, deletedMessages: localMessages), updatedState', search)

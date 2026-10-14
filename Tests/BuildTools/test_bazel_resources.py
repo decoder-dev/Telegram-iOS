@@ -1,5 +1,7 @@
 """Execute production command construction without macOS-only imports."""
 import ast
+import contextlib
+import io
 import os
 import pathlib
 import unittest
@@ -38,6 +40,21 @@ class BazelResourcesTests(unittest.TestCase):
         self.assertIn('--release-sentinel', command.configuration_args)
         self.assertNotIn('--local_resources=cpu=3', command.configuration_args)
 
+    def test_verbose_cli_does_not_dump_credentials(self):
+        tree = ast.parse((ROOT / 'build-system/Make/Make.py').read_text(encoding='utf-8'))
+        verbose = next(node for node in ast.walk(tree)
+                       if isinstance(node, ast.If) and isinstance(node.test, ast.Attribute)
+                       and isinstance(node.test.value, ast.Name) and node.test.value.id == 'args'
+                       and node.test.attr == 'verbose')
+        arguments = SimpleNamespace(verbose=True, commandName='build', watchApiHash='private-api-sentinel',
+                                    cacheHost='https://user:private-cache-sentinel@cache.example')
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            exec(compile(ast.Module(body=[verbose], type_ignores=[]), 'Make.py', 'exec'), dict(args=arguments))
+        self.assertIn('build', output.getvalue())
+        self.assertNotIn('private-api-sentinel', output.getvalue())
+        self.assertNotIn('private-cache-sentinel', output.getvalue())
+
     def test_repo_cache_is_outside_checkout(self):
         workflow = (ROOT / '.github/workflows/build.yml').read_text(encoding='utf-8')
         self.assertIn('BAZEL_REPO_CACHE: /private/var/tmp/telegram-bazel-repo-cache', workflow)
@@ -49,8 +66,8 @@ class BazelResourcesTests(unittest.TestCase):
             for name, value in dict(bazel_user_root=None, lock=False, custom_target=None,
                 continue_on_error=True, show_actions=False, enable_sandbox=False,
                 disable_provisioning_profiles=False, disable_extensions=True,
-                common_args=[], common_build_args=[], build_number=1,
-                embed_watch_app=False, split_submodules=False, remote_cache=None,
+                common_args=[], common_build_args=['--define=watchApiHash=api-hash-sentinel'], build_number=1,
+                embed_watch_app=False, split_submodules=False, remote_cache='https://user:cache-token-sentinel@cache.example',
                 cache_dir=None, profile_swift=False, configuration_args=[],
                 compile_extensions=enabled).items():
                 setattr(command, name, value)
@@ -58,9 +75,15 @@ class BazelResourcesTests(unittest.TestCase):
             calls = []
             command.invoke_build.__globals__['call_executable'] = calls.append
             command.invoke_build.__globals__['subprocess'] = subprocess
-            command.invoke_build()
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                command.invoke_build()
+            self.assertNotIn('api-hash-sentinel', output.getvalue())
+            self.assertNotIn('cache-token-sentinel', output.getvalue())
             self.assertEqual(len(calls), 1)
             args = calls[0]
+            self.assertIn('--define=watchApiHash=api-hash-sentinel', args)
+            self.assertIn('--remote_cache=https://user:cache-token-sentinel@cache.example', args)
             self.assertIn('Telegram/Telegram', args)
             self.assertIn('--//Telegram:disableExtensions', args)
             self.assertEqual('//Telegram:ExtensionLibrariesBuildCheck' in args, enabled)

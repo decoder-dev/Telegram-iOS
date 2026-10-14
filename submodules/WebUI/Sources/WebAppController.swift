@@ -2960,7 +2960,11 @@ public final class WebAppController: ViewController, AttachmentContainable {
                 return
             }
             
-            guard !fileName.contains("/") && fileName.lengthOfBytes(using: .utf8) < 256 && url.lengthOfBytes(using: .utf8) < 32768 else {
+            guard !fileName.isEmpty, fileName != ".", fileName != "..",
+                  !fileName.contains("/"), !fileName.contains("\\"),
+                  !fileName.unicodeScalars.contains(where: { $0.value < 0x20 || $0.value == 0x7f }),
+                  fileName.lengthOfBytes(using: .utf8) < 256, url.lengthOfBytes(using: .utf8) < 32768,
+                  isAllowedBotMediaUrl(url), URL(string: url) != nil else {
                 let data: JSON = [
                     "status": "cancelled"
                 ]
@@ -3048,7 +3052,7 @@ public final class WebAppController: ViewController, AttachmentContainable {
         
         fileprivate weak var fileDownloadTooltip: UndoOverlayController?
         fileprivate func startDownload(url: String, fileName: String, fileSize: Int64?, isMedia: Bool) {
-            guard let controller = self.controller else {
+            guard let controller = self.controller, isAllowedBotMediaUrl(url), let downloadUrl = URL(string: url) else {
                 return
             }
             let data: JSON = [
@@ -3058,7 +3062,7 @@ public final class WebAppController: ViewController, AttachmentContainable {
             
             var removeImpl: (() -> Void)?
             let fileDownload = FileDownload(
-                from: URL(string: url)!,
+                from: downloadUrl,
                 fileName: fileName,
                 fileSize: fileSize,
                 isMedia: isMedia,
@@ -3068,10 +3072,10 @@ public final class WebAppController: ViewController, AttachmentContainable {
                     }
                     let text: String
                     if let fileSize {
-                        let downloadedSize = Int64(Double(fileSize) * progress)
+                        let downloadedSize = botDownloadReceivedBytes(fileSize: fileSize, progress: progress)
                         text = "\(dataSizeString(downloadedSize, formatting: DataSizeStringFormatting(presentationData: self.presentationData))) / \(dataSizeString(fileSize, formatting: DataSizeStringFormatting(presentationData: self.presentationData)))"
                     } else {
-                        text = "\(Int32(progress))%"
+                        text = "\(Int32(progress * 100.0))%"
                     }
                     
                     self.fileDownloadTooltip?.content = .progress(
@@ -3082,8 +3086,11 @@ public final class WebAppController: ViewController, AttachmentContainable {
                     )
                 },
                 completion: { [weak self, controller] resultUrl, _ in
+                    removeImpl?()
+                    if resultUrl == nil {
+                        self?.fileDownloadTooltip?.dismissWithCommitAction()
+                    }
                     if let resultUrl, let self {
-                        removeImpl?()
                         
                         let tooltipContent: UndoOverlayContent = .actionSucceeded(title: fileName, text: isMedia ? self.presentationData.strings.WebApp_Download_SavedToPhotos : self.presentationData.strings.WebApp_Download_SavedToFiles, cancel: nil, destructive: false)
                         if isMedia {
@@ -3971,10 +3978,10 @@ public final class WebAppController: ViewController, AttachmentContainable {
                 let progressString: String
                 if isActive {
                     if let fileSize = activeDownload.fileSize {
-                        let downloadedSize = Int64(Double(fileSize) * progress)
+                        let downloadedSize = botDownloadReceivedBytes(fileSize: fileSize, progress: progress)
                         progressString = "\(dataSizeString(downloadedSize, formatting: DataSizeStringFormatting(presentationData: presentationData))) / \(dataSizeString(fileSize, formatting: DataSizeStringFormatting(presentationData: presentationData)))"
                     } else {
-                        progressString = "\(Int32(progress))%"
+                        progressString = "\(Int32(progress * 100.0))%"
                     }
                 } else {
                     progressString = activeDownload.isMedia ? presentationData.strings.WebApp_Download_SavedToPhotos : presentationData.strings.WebApp_Download_SavedToFiles

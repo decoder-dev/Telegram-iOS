@@ -5,6 +5,7 @@ from urllib.parse import urlparse, urlunparse
 import tempfile
 import hashlib
 import shutil
+import re
 
 from BuildEnvironment import is_apple_silicon, resolve_executable, call_executable, run_executable_with_status, BuildEnvironmentVersions
 
@@ -61,7 +62,11 @@ def locate_bazel(base_path, cache_host_or_path, cache_dir):
     if not os.path.isdir(build_input_dir):
         os.mkdir(build_input_dir)
 
-    versions = BuildEnvironmentVersions(base_path=os.getcwd())
+    versions = BuildEnvironmentVersions(base_path=base_path)
+    digest = versions.bazel_version_sha256
+    if not isinstance(digest, str) or re.fullmatch(r'[0-9a-fA-F]{64}', digest) is None:
+        raise ValueError('A valid Bazel SHA256 is required before installing an executable')
+    digest = digest.lower()
     if is_apple_silicon():
         arch = 'darwin-arm64'
     else:
@@ -72,57 +77,50 @@ def locate_bazel(base_path, cache_host_or_path, cache_dir):
     resolved_cache_host = resolve_cache_host(cache_host_or_path)
     resolved_cache_path = resolve_cache_path(cache_host_or_path, cache_dir)
 
-    if not os.path.isfile(bazel_path):
-        if resolved_cache_host is not None and versions.bazel_version_sha256 is not None:
-            http_cache_host = transform_cache_host_into_http(resolved_cache_host)
-
-            with tempfile.NamedTemporaryFile(delete=True) as temp_output_file:
-                call_executable([
-                    'curl',
-                    '-L',
-                    '{cache_host}/cache/cas/{hash}'.format(
-                        cache_host=http_cache_host,
-                        hash=versions.bazel_version_sha256
-                    ),
-                    '--output',
-                    temp_output_file.name
-                ], check_result=False)
-                test_sha256 = calculate_sha256(temp_output_file.name)
-                if test_sha256 == versions.bazel_version_sha256:
-                    shutil.copyfile(temp_output_file.name, bazel_path)
-        elif resolved_cache_path is not None:
-            (cache_cas_id, cache_cas_name_value) = cache_cas_name(versions.bazel_version_sha256)
-            cached_path = '{}/cas/{}/{}'.format(resolved_cache_path, cache_cas_id, cache_cas_name_value)
-            if os.path.isfile(cached_path):
-                shutil.copyfile(cached_path, bazel_path)
-
-
-    if os.path.isfile(bazel_path) and versions.bazel_version_sha256 is not None:
-        test_sha256 = calculate_sha256(bazel_path)
-        if test_sha256 != versions.bazel_version_sha256:
+    if os.path.isfile(bazel_path):
+        if calculate_sha256(bazel_path) != digest:
             print(f"Bazel at {bazel_path} does not match SHA256 {versions.bazel_version_sha256}, removing")
             os.remove(bazel_path)
 
-
     if not os.path.isfile(bazel_path):
-        call_executable([
-            'curl',
-            '-L',
-            'https://github.com/bazelbuild/bazel/releases/download/{version}/{name}'.format(
-                version=versions.bazel_version,
-                name=bazel_name
-            ),
-            '--output',
-            bazel_path
-        ])
+        # Stage on the destination filesystem: neither interrupted transfers nor
+        # unverified cache entries may appear at the executable's final path.
+        descriptor, staging_path = tempfile.mkstemp(prefix='.bazel-download-', dir=build_input_dir)
+        os.close(descriptor)
+        downloaded = False
+        try:
+            if resolved_cache_host is not None:
+                http_cache_host = transform_cache_host_into_http(resolved_cache_host)
+                call_executable([
+                    'curl', '--fail', '-L',
+                    '{}/cache/cas/{}'.format(http_cache_host, digest),
+                    '--output', staging_path
+                ], check_result=False)
+            elif resolved_cache_path is not None:
+                cache_cas_id, cache_cas_name_value = cache_cas_name(digest)
+                cached_path = '{}/cas/{}/{}'.format(resolved_cache_path, cache_cas_id, cache_cas_name_value)
+                if os.path.isfile(cached_path):
+                    shutil.copyfile(cached_path, staging_path)
 
-        if os.path.isfile(bazel_path) and versions.bazel_version_sha256 is not None:
-            test_sha256 = calculate_sha256(bazel_path)
-            if test_sha256 != versions.bazel_version_sha256:
-                print(f"Bazel at {bazel_path} does not match SHA256 {versions.bazel_version_sha256}, removing")
-                os.remove(bazel_path)
+            if calculate_sha256(staging_path) != digest:
+                call_executable([
+                    'curl', '--fail', '-L', '--proto', '=https', '--proto-redir', '=https',
+                    'https://github.com/bazelbuild/bazel/releases/download/{version}/{name}'.format(
+                        version=versions.bazel_version, name=bazel_name),
+                    '--output', staging_path
+                ])
+                downloaded = True
+                if calculate_sha256(staging_path) != digest:
+                    raise RuntimeError('Downloaded Bazel does not match the required SHA256')
 
-        if resolved_cache_host is not None and versions.bazel_version_sha256 is not None:
+            os.chmod(staging_path, os.stat(staging_path).st_mode | stat.S_IEXEC)
+            os.replace(staging_path, bazel_path)
+        finally:
+            if os.path.exists(staging_path):
+                os.remove(staging_path)
+
+        # Only verified, successfully installed downloads may populate the cache.
+        if downloaded and resolved_cache_host is not None:
             http_cache_host = transform_cache_host_into_http(resolved_cache_host)
             print(f"Uploading bazel@{versions.bazel_version_sha256} to bazel-remote")
             call_executable([
@@ -136,8 +134,8 @@ def locate_bazel(base_path, cache_host_or_path, cache_dir):
                     hash=versions.bazel_version_sha256
                 )
             ], check_result=False)
-        elif resolved_cache_path is not None:
-            (cache_cas_id, cache_cas_name_value) = cache_cas_name(versions.bazel_version_sha256)
+        elif downloaded and resolved_cache_path is not None:
+            (cache_cas_id, cache_cas_name_value) = cache_cas_name(digest)
             cached_path = '{}/cas/{}/{}'.format(resolved_cache_path, cache_cas_id, cache_cas_name_value)
             os.makedirs(os.path.dirname(cached_path), exist_ok=True)
             shutil.copyfile(bazel_path, cached_path)

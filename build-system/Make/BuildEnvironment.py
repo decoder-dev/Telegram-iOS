@@ -55,8 +55,6 @@ def run_executable_with_output(path, arguments, use_clean_env=True, decode=True,
     else:
         output_data, _ = process.communicate()
 
-    output_string = output_data.decode('utf-8')
-
     if check_result:
         if process.returncode != 0:
             # A failing command may include secrets in its arguments or output.
@@ -64,7 +62,7 @@ def run_executable_with_output(path, arguments, use_clean_env=True, decode=True,
             sys.exit(1)
 
     if decode:
-        return output_string
+        return output_data.decode('utf-8')
     else:
         return output_data
 
@@ -104,7 +102,13 @@ def call_executable(arguments, use_clean_environment=True, check_result=True):
     resolved_arguments = [executable_path] + arguments[1:]
 
     if check_result:
-        subprocess.check_call(resolved_arguments, env=resolved_env)
+        try:
+            subprocess.check_call(resolved_arguments, env=resolved_env)
+        except subprocess.CalledProcessError as error:
+            # The default exception includes every argument, including credentials.
+            # Suppress the original exception's traceback as well as its message.
+            raise RuntimeError('Command {} failed with exit status {}'.format(
+                executable_path, error.returncode)) from None
     else:
         subprocess.call(resolved_arguments, env=resolved_env)
 

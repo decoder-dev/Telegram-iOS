@@ -62,14 +62,21 @@ enum BananaMediaProcessor {
             return nil
         }
         let size = track.naturalSize.applying(track.preferredTransform)
-        let seconds = asset.duration.seconds
-        // The track header is file data: a non-finite or absurd size must not reach `Int(_:)`, which traps.
-        let width = abs(size.width).rounded()
-        let height = abs(size.height).rounded()
+        return BananaMediaProcessor.validatedVideoInfo(width: size.width, height: size.height, duration: asset.duration.seconds)
+    }
+
+    /// Media metadata is untrusted. Both conversion to Int here and conversion to
+    /// Int32 when creating the outgoing message must be representable.
+    static func validatedVideoInfo(width: CGFloat, height: CGFloat, duration: Double) -> VideoInfo? {
+        let width = abs(width).rounded()
+        let height = abs(height).rounded()
         guard width.isFinite, height.isFinite, width >= 1.0, height >= 1.0, width <= 65535.0, height <= 65535.0 else {
             return nil
         }
-        return VideoInfo(duration: seconds.isFinite ? max(0.0, seconds) : 0.0, width: Int(width), height: Int(height))
+        guard duration.isFinite, duration > 0.0 else {
+            return nil
+        }
+        return VideoInfo(duration: duration, width: Int(width), height: Int(height))
     }
 
     /// First frame as a small JPEG for the message preview.

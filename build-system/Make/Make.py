@@ -258,7 +258,7 @@ class BazelCommandLine:
             '--expunge'
         ]
 
-        print('TelegramBuild: running {}'.format(combined_arguments))
+        print('TelegramBuild: running clean')
         call_executable(combined_arguments)
 
     def get_define_arguments(self):
@@ -373,7 +373,6 @@ class BazelCommandLine:
             combined_arguments += ['--config=swift_profile']
 
         print('TelegramBuild: running')
-        print(subprocess.list2cmdline(combined_arguments))
         call_executable(combined_arguments)
 
     def invoke_test(self, test_target='Tests/AllTests'):
@@ -406,7 +405,6 @@ class BazelCommandLine:
         combined_arguments += self.configuration_args
 
         print('TelegramBuild: running')
-        print(subprocess.list2cmdline(combined_arguments))
         call_executable(combined_arguments)
 
     def invoke_query(self, query_args):
@@ -437,7 +435,6 @@ class BazelCommandLine:
         combined_arguments += query_args
 
         print('TelegramBuild: running')
-        print(subprocess.list2cmdline(combined_arguments))
         call_executable(combined_arguments)
 
     def invoke_spm_build(self):
@@ -478,7 +475,7 @@ class BazelCommandLine:
 
         combined_arguments += self.configuration_args
 
-        print(subprocess.list2cmdline(combined_arguments))
+        print('TelegramBuild: running SPM build')
         call_executable(combined_arguments)
 
 
@@ -1476,7 +1473,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.verbose:
-        print(args)
+        # Options may contain signing credentials, API hashes and cache tokens.
+        print('TelegramBuild: command {}'.format(args.commandName))
 
     if args.commandName is None:
         sys.exit(0)
