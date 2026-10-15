@@ -168,6 +168,15 @@ func iconForSession(_ session: RecentAccountSession) -> (UIImage?, UIColor?, Str
     return (UIImage(bundleImageName: "Settings/Devices/Generic"), UIColor(rgb: 0x8e8e93), nil, nil)
 }
 
+private func sessionDisplayAppVersion(_ version: String) -> String {
+    var value = version.replacingOccurrences(of: "APPSTORE", with: "").replacingOccurrences(of: "BETA", with: "Beta").trimmingCharacters(in: .whitespacesAndNewlines)
+    if let opening = value.range(of: " ("),
+       let closing = value.range(of: ")", range: opening.upperBound ..< value.endIndex) {
+        value.removeSubrange(opening.lowerBound ..< closing.upperBound)
+    }
+    return value
+}
+
 private func trimmedLocationName(_ session: RecentAccountSession) -> String {
     var country = session.country
     country = country.replacingOccurrences(of: "United Arab Emirates", with: "UAE")
@@ -294,11 +303,7 @@ class ItemListRecentSessionItemNode: ItemListRevealOptionsItemNode {
             
             let rightInset: CGFloat = params.rightInset
             
-            var appVersion = item.session.appVersion
-            appVersion = appVersion.replacingOccurrences(of: "APPSTORE", with: "").replacingOccurrences(of: "BETA", with: "Beta").trimmingTrailingSpaces()
-            if let openingRoundBraceRange = appVersion.range(of: " ("), let closingRoundBraceRange = appVersion.range(of: ")") {
-                appVersion = appVersion.replacingCharacters(in: openingRoundBraceRange.lowerBound ..< closingRoundBraceRange.upperBound, with: "")
-            }
+            let appVersion = sessionDisplayAppVersion(item.session.appVersion)
             
             var deviceString = ""
             if !item.session.deviceModel.isEmpty {

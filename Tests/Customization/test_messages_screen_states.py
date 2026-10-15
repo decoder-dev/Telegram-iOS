@@ -33,6 +33,21 @@ def run_swift(source):
 
 class ScreenStateTests(unittest.TestCase):
     @unittest.skipUnless(shutil.which('swift'), 'Swift unavailable locally; executes in macOS CI')
+    def test_production_session_version_handles_reversed_and_missing_parentheses(self):
+        source = read('submodules/SettingsUI/Sources/Privacy and Security/Recent Sessions/ItemListRecentSessionItem.swift')
+        fixture = 'import Foundation\n' + member(source, 'private func sessionDisplayAppVersion(')
+        fixture += """
+precondition(sessionDisplayAppVersion("1.2 (123) APPSTORE") == "1.2")
+precondition(sessionDisplayAppVersion("1.2 BETA") == "1.2 Beta")
+precondition(sessionDisplayAppVersion(") unexpected (123") == ") unexpected (123")
+precondition(sessionDisplayAppVersion(") earlier (123) suffix") == ") earlier suffix")
+precondition(sessionDisplayAppVersion("unclosed (") == "unclosed (")
+precondition(sessionDisplayAppVersion("🎃 (build)") == "🎃")
+precondition(sessionDisplayAppVersion("").isEmpty)
+"""
+        run_swift(fixture)
+
+    @unittest.skipUnless(shutil.which('swift'), 'Swift unavailable locally; executes in macOS CI')
     def test_production_settings_row_actions_use_current_item_and_disabled_state(self):
         fixture = """import Foundation
 class Model { var enabled = true; var action: (() -> Void)?; var deleted: (() -> Void)? }
