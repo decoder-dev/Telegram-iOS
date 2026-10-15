@@ -1444,6 +1444,10 @@ public final class ChatListNode: ListViewImpl {
             //self.useMainQueueTransactions = true
         }
         
+        // Pinned rows host their backgrounds here when avatar glow is on, so a glow is never covered
+        // by the neighbouring row's background (see `ChatListItemNode.updateBackgroundPlacement`).
+        self.enableExtractedBackgrounds = true
+        
         self.verticalScrollIndicatorColor = theme.list.scrollIndicatorColor
         self.verticalScrollIndicatorFollowsOverscroll = true
         self.verticalScrollIndicatorRespectsSideInsets = true

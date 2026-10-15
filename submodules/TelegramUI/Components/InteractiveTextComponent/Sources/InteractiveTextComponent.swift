@@ -91,12 +91,16 @@ private final class InteractiveTextNodeEmbeddedItem {
     let frame: CGRect
     let item: AnyHashable
     let isHiddenBySpoiler: Bool
+    let baseline: CGFloat
+    let textOriginX: CGFloat
     
-    init(range: NSRange, frame: CGRect, item: AnyHashable, isHiddenBySpoiler: Bool) {
+    init(range: NSRange, frame: CGRect, item: AnyHashable, isHiddenBySpoiler: Bool, baseline: CGFloat, textOriginX: CGFloat) {
         self.range = range
         self.frame = frame
         self.item = item
         self.isHiddenBySpoiler = isHiddenBySpoiler
+        self.baseline = baseline
+        self.textOriginX = textOriginX
     }
 }
 
@@ -269,7 +273,7 @@ public final class InteractiveTextNodeSegment {
                         }
                     }
                 }
-                embeddedItems.append(InteractiveTextNodeLayout.EmbeddedItem(range: embeddedItem.range, rect: embeddedItem.frame.offsetBy(dx: lineFrame.minX, dy: lineFrame.minY), value: embeddedItem.item, textColor: textColor ?? .black, isHiddenBySpoiler: embeddedItem.isHiddenBySpoiler))
+                embeddedItems.append(InteractiveTextNodeLayout.EmbeddedItem(range: embeddedItem.range, rect: embeddedItem.frame.offsetBy(dx: lineFrame.minX, dy: lineFrame.minY), value: embeddedItem.item, textColor: textColor ?? .black, isHiddenBySpoiler: embeddedItem.isHiddenBySpoiler, baseline: embeddedItem.baseline, textOriginX: embeddedItem.textOriginX))
             }
         }
         
@@ -379,13 +383,19 @@ public final class InteractiveTextNodeLayout: NSObject {
         public let value: AnyHashable
         public let textColor: UIColor
         public let isHiddenBySpoiler: Bool
+        /// The line's baseline, measured from `rect.minY`.
+        public let baseline: CGFloat
+        /// Where the item's text starts, measured from `rect.minX`: `rect` is widened to whole points.
+        public let textOriginX: CGFloat
         
-        public init(range: NSRange, rect: CGRect, value: AnyHashable, textColor: UIColor, isHiddenBySpoiler: Bool) {
+        public init(range: NSRange, rect: CGRect, value: AnyHashable, textColor: UIColor, isHiddenBySpoiler: Bool, baseline: CGFloat = 0.0, textOriginX: CGFloat = 0.0) {
             self.range = range
             self.rect = rect
             self.value = value
             self.textColor = textColor
             self.isHiddenBySpoiler = isHiddenBySpoiler
+            self.baseline = baseline
+            self.textOriginX = textOriginX
         }
         
         public static func ==(lhs: EmbeddedItem, rhs: EmbeddedItem) -> Bool {
@@ -402,6 +412,9 @@ public final class InteractiveTextNodeLayout: NSObject {
                 return false
             }
             if lhs.isHiddenBySpoiler != rhs.isHiddenBySpoiler {
+                return false
+            }
+            if lhs.baseline != rhs.baseline || lhs.textOriginX != rhs.textOriginX {
                 return false
             }
             return true
@@ -1224,19 +1237,24 @@ private func addSpoilerWord(line: InteractiveTextNodeLine, ascent: CGFloat, desc
 private func addEmbeddedItem(item: AnyHashable, isHiddenBySpoiler: Bool, line: InteractiveTextNodeLine, ascent: CGFloat, descent: CGFloat, startIndex: Int, endIndex: Int, rightInset: CGFloat = 0.0) {
     var secondaryLeftOffset: CGFloat = 0.0
     let rawLeftOffset = CTLineGetOffsetForStringIndex(line.line, startIndex, &secondaryLeftOffset)
-    var leftOffset = floor(rawLeftOffset)
+    var exactLeftOffset = rawLeftOffset
     if !rawLeftOffset.isEqual(to: secondaryLeftOffset) {
-        leftOffset = floor(secondaryLeftOffset)
+        exactLeftOffset = secondaryLeftOffset
     }
+    let leftOffset = floor(exactLeftOffset)
     
     var secondaryRightOffset: CGFloat = 0.0
     let rawRightOffset = CTLineGetOffsetForStringIndex(line.line, endIndex, &secondaryRightOffset)
-    var rightOffset = ceil(rawRightOffset)
+    var exactRightOffset = rawRightOffset
     if !rawRightOffset.isEqual(to: secondaryRightOffset) {
-        rightOffset = ceil(secondaryRightOffset)
+        exactRightOffset = secondaryRightOffset
     }
+    let rightOffset = ceil(exactRightOffset)
     
-    line.embeddedItems.append(InteractiveTextNodeEmbeddedItem(range: NSMakeRange(startIndex, endIndex - startIndex + 1), frame: CGRect(x: min(leftOffset, rightOffset), y: 0.0, width: abs(rightOffset - leftOffset) + rightInset, height: ascent + descent), item: item, isHiddenBySpoiler: isHiddenBySpoiler))
+    let frame = CGRect(x: min(leftOffset, rightOffset), y: 0.0, width: abs(rightOffset - leftOffset) + rightInset, height: ascent + descent)
+    // The line is drawn with its baseline `ascent` below the top of its frame, and `frame` starts
+    // at the line's top. Items that draw text of their own need both to sit on the line exactly.
+    line.embeddedItems.append(InteractiveTextNodeEmbeddedItem(range: NSMakeRange(startIndex, endIndex - startIndex + 1), frame: frame, item: item, isHiddenBySpoiler: isHiddenBySpoiler, baseline: ascent, textOriginX: min(exactLeftOffset, exactRightOffset) - frame.minX))
 }
 
 private func addAttachment(attachment: UIImage, line: InteractiveTextNodeLine, ascent: CGFloat, descent: CGFloat, startIndex: Int, endIndex: Int, rightInset: CGFloat = 0.0) {

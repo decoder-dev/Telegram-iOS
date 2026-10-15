@@ -1506,6 +1506,13 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
     public private(set) var item: ChatListItem?
     
     private let backgroundNode: ASDisplayNode
+    // With avatar glow on, a pinned row's opaque background would cover the glow its neighbours spill
+    // into it (rows are flattened siblings, so whichever row is drawn later wins at every boundary).
+    // The background is then hosted in the list's extracted-backgrounds container, below every row,
+    // inside a node that mirrors this item's geometry.
+    private let extractedBackgroundContainerNode: ASDisplayNode
+    private let extractedBackgroundMirrorNode: ASDisplayNode
+    private var avatarGlowObserver: NSObjectProtocol?
     private let highlightedBackgroundNode: ASDisplayNode
     private var cardMaskedCorners: CACornerMask = []
     
@@ -1817,6 +1824,12 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
         self.backgroundNode.isLayerBacked = true
         self.backgroundNode.displaysAsynchronously = false
         
+        self.extractedBackgroundContainerNode = ASDisplayNode()
+        self.extractedBackgroundContainerNode.isLayerBacked = true
+        self.extractedBackgroundMirrorNode = ASDisplayNode()
+        self.extractedBackgroundMirrorNode.isLayerBacked = true
+        self.extractedBackgroundContainerNode.addSubnode(self.extractedBackgroundMirrorNode)
+        
         self.avatarContainerNode = ASDisplayNode()
         self.communityAvatarShadowNode = ASImageNode()
         self.communityAvatarShadowNode.displaysAsynchronously = false
@@ -1954,6 +1967,10 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
             item.interaction.activateChatPreview?(item, threadId, strongSelf.contextContainer, gesture, nil)
         }
         
+        self.avatarGlowObserver = NotificationCenter.default.addObserver(forName: ArenaSettings.didChangeNotification, object: nil, queue: .main, using: { [weak self] _ in
+            self?.updateBackgroundPlacement()
+        })
+        
         self.onDidLoad { [weak self] _  in
             guard let self else {
                 return
@@ -1966,7 +1983,75 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
 
     deinit {
         self.cachedDataDisposable.dispose()
+        if let avatarGlowObserver = self.avatarGlowObserver {
+            NotificationCenter.default.removeObserver(avatarGlowObserver)
+        }
     }
+    
+    override public var extractedBackgroundNode: ASDisplayNode? {
+        return self.extractedBackgroundContainerNode
+    }
+    
+    override public var frame: CGRect {
+        get {
+            return super.frame
+        } set(value) {
+            super.frame = value
+            self.updateExtractedBackgroundGeometry()
+        }
+    }
+    
+    override public var bounds: CGRect {
+        get {
+            return super.bounds
+        } set(value) {
+            super.bounds = value
+            self.updateExtractedBackgroundGeometry()
+        }
+    }
+    
+    override public var isHidden: Bool {
+        didSet {
+            self.extractedBackgroundContainerNode.isHidden = self.isHidden
+        }
+    }
+    
+    override public func didEnterHierarchy() {
+        super.didEnterHierarchy()
+        
+        self.updateBackgroundPlacement()
+    }
+    
+    private var isBackgroundExtracted: Bool {
+        return self.backgroundNode.supernode === self.extractedBackgroundMirrorNode
+    }
+    
+    private func updateBackgroundPlacement() {
+        var extract = false
+        if ArenaSettings.shared.avatarGlow, let listView = self.supernode as? ListViewImpl, listView.enableExtractedBackgrounds {
+            extract = true
+        }
+        if extract {
+            if !self.isBackgroundExtracted {
+                self.extractedBackgroundMirrorNode.addSubnode(self.backgroundNode)
+            }
+            self.updateExtractedBackgroundGeometry()
+        } else if self.backgroundNode.supernode !== self {
+            self.insertSubnode(self.backgroundNode, at: 0)
+        }
+    }
+    
+    // The list places the container at this item's frame shifted up by `insets.top`; the mirror maps
+    // item-local coordinates to the same on-screen points the item itself does, including the bounds
+    // origin the list animates moves with and the archive row's sublayer translation.
+    private func updateExtractedBackgroundGeometry() {
+        guard self.isBackgroundExtracted else {
+            return
+        }
+        let bounds = self.bounds
+        self.extractedBackgroundMirrorNode.bounds = bounds
+        self.extractedBackgroundMirrorNode.position = CGPoint(x: bounds.width * 0.5, y: self.insets.top + bounds.height * 0.5)
+        self.extractedBackgroundMirrorNode.layer.sublayerTransform = self.layer.sublayerTransform
     
     override public func secondaryAction(at point: CGPoint) {
         guard let item = self.item else {
@@ -4347,6 +4432,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                                        
                     if case .groupReference = item.content {
                         strongSelf.layer.sublayerTransform = CATransform3DMakeTranslation(0.0, layout.contentSize.height - itemHeight, 0.0)
+                        strongSelf.updateExtractedBackgroundGeometry()
                     }
                     
                     if let _ = updatedTheme {
@@ -5712,6 +5798,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                         highlightedBackgroundColor = theme.itemHighlightedBackgroundColor
                     }
                     
+                    strongSelf.updateBackgroundPlacement()
                     if animated {
                         transition.updateBackgroundColor(node: strongSelf.backgroundNode, color: backgroundColor)
                     } else {
@@ -5841,14 +5928,21 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
     
     override public func animateInsertion(_ currentTimestamp: Double, duration: Double, options: ListViewItemAnimationOptions) {
         self.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.25)
+        if self.isBackgroundExtracted {
+            self.extractedBackgroundContainerNode.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.25)
+        }
     }
     
     override public func animateRemoved(_ currentTimestamp: Double, duration: Double) {
         self.clipsToBounds = true
+        self.extractedBackgroundMirrorNode.clipsToBounds = true
         if self.skipFadeout {
             self.skipFadeout = false
         } else {
             self.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.2, removeOnCompletion: false)
+            if self.isBackgroundExtracted {
+                self.extractedBackgroundContainerNode.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.2, removeOnCompletion: false)
+            }
         }
     }
     
@@ -6086,6 +6180,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
         if let item = self.item {
             if case .groupReference = item.content {
                 self.layer.sublayerTransform = CATransform3DMakeTranslation(0.0, currentValue - (self.currentItemHeight ?? 0.0), 0.0)
+                self.updateExtractedBackgroundGeometry()
             } else {
                 var separatorFrame = self.separatorNode.frame
                 separatorFrame.origin.y = currentValue - UIScreenPixel
@@ -6101,9 +6196,17 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
     }
     
     override public func snapshotForReordering() -> UIView? {
+        // The dragged row must carry its background even while it lives below the list's rows.
+        let wasExtracted = self.isBackgroundExtracted
+        if wasExtracted {
+            self.insertSubnode(self.backgroundNode, at: 0)
+        }
         self.backgroundNode.alpha = 0.9
         let result = self.view.snapshotContentTree()
         self.backgroundNode.alpha = 1.0
+        if wasExtracted {
+            self.extractedBackgroundMirrorNode.addSubnode(self.backgroundNode)
+        }
         return result
     }
     

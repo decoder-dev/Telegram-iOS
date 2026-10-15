@@ -389,7 +389,12 @@ public class ChatMessageReplyInfoNode: ASDisplayNode {
                 }
                 
                 let (textStringValue, isMediaValue, isTextValue) = descriptionStringForMessage(contentSettings: arguments.context.currentContentSettings.with { $0 }, message: EngineMessage(message), strings: arguments.strings, nameDisplayOrder: arguments.presentationData.nameDisplayOrder, dateTimeFormat: arguments.presentationData.dateTimeFormat, accountPeerId: arguments.context.account.peerId)
-                textString = textStringValue
+                // Fork (Donutgram): a reply to a sticker reads "Sticker" instead of the sticker's emoji.
+                if isMediaValue && message.media.contains(where: { ($0 as? TelegramMediaFile)?.isSticker == true }) {
+                    textString = NSAttributedString(string: arguments.strings.Message_Sticker)
+                } else {
+                    textString = textStringValue
+                }
                 isMedia = isMediaValue
                 isText = isTextValue
             } else if let replyForward = arguments.replyForward {
@@ -406,7 +411,9 @@ public class ChatMessageReplyInfoNode: ASDisplayNode {
                     if let text = replyForward.quote?.text, !text.isEmpty {
                         isMedia = false
                     } else {
-                        if let contentKind = mediaContentKind(EngineMedia(media), message: nil, strings: arguments.strings, nameDisplayOrder: arguments.presentationData.nameDisplayOrder, dateTimeFormat: arguments.presentationData.dateTimeFormat, accountPeerId: arguments.context.account.peerId) {
+                        if (media as? TelegramMediaFile)?.isSticker == true {
+                            textString = NSAttributedString(string: arguments.strings.Message_Sticker)
+                        } else if let contentKind = mediaContentKind(EngineMedia(media), message: nil, strings: arguments.strings, nameDisplayOrder: arguments.presentationData.nameDisplayOrder, dateTimeFormat: arguments.presentationData.dateTimeFormat, accountPeerId: arguments.context.account.peerId) {
                             let (string, _) = stringForMediaKind(contentKind, strings: arguments.strings)
                             textString = string
                         } else {

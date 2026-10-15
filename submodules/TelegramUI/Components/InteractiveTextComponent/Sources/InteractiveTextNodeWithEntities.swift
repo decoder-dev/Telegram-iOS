@@ -57,11 +57,21 @@ private final class RunDelegateData {
 }
 
 private final class MentionAvatarItem: Hashable {
+    static let spacing: CGFloat = 3.0
+
     let peer: EnginePeer?
     let username: String?
     let glyph: NSAttributedString
     let font: UIFont
     let avatarSize: CGFloat
+    /// The mention's first character, drawn by the avatar view: the text node does not draw a
+    /// character that carries an embedded item.
+    let glyphLine: CTLine
+    let glyphWidth: CGFloat
+    /// The text node would underline (or strike through) the whole run, avatar included, so the
+    /// run carries neither and the avatar view draws them under the character alone.
+    let underlineColor: UIColor?
+    let strikethroughColor: UIColor?
     let width: CGFloat
 
     init(peer: EnginePeer?, username: String?, glyph: NSAttributedString, font: UIFont) {
@@ -70,7 +80,31 @@ private final class MentionAvatarItem: Hashable {
         self.glyph = glyph
         self.font = font
         self.avatarSize = ceil(font.pointSize)
-        self.width = self.avatarSize + 3.0 + ceil(glyph.size().width)
+        let textColor = glyph.length == 0 ? nil : glyph.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? UIColor
+        if glyph.length != 0, let style = glyph.attribute(.underlineStyle, at: 0, effectiveRange: nil) as? Int, style != 0 {
+            self.underlineColor = (glyph.attribute(.underlineColor, at: 0, effectiveRange: nil) as? UIColor) ?? textColor ?? .black
+        } else {
+            self.underlineColor = nil
+        }
+        if glyph.length != 0, let style = glyph.attribute(.strikethroughStyle, at: 0, effectiveRange: nil) as? Int, style != 0 {
+            self.strikethroughColor = (glyph.attribute(.strikethroughColor, at: 0, effectiveRange: nil) as? UIColor) ?? textColor ?? .black
+        } else {
+            self.strikethroughColor = nil
+        }
+        let drawnGlyph = NSMutableAttributedString(attributedString: glyph)
+        let glyphRange = NSRange(location: 0, length: drawnGlyph.length)
+        drawnGlyph.removeAttribute(.underlineStyle, range: glyphRange)
+        drawnGlyph.removeAttribute(.strikethroughStyle, range: glyphRange)
+        self.glyphLine = CTLineCreateWithAttributedString(drawnGlyph)
+        // The exact advance, so the next character starts where it would without the avatar.
+        self.glyphWidth = CGFloat(CTLineGetTypographicBounds(self.glyphLine, nil, nil, nil))
+        self.width = self.avatarSize + MentionAvatarItem.spacing + self.glyphWidth
+    }
+
+    /// The avatar's centre sits on the middle of the capitals, as an inline symbol does, measured
+    /// up from the baseline.
+    var avatarCenterAboveBaseline: CGFloat {
+        return self.font.capHeight * 0.5
     }
 
     static func == (lhs: MentionAvatarItem, rhs: MentionAvatarItem) -> Bool {
@@ -131,7 +165,7 @@ public func textWithMentionAvatars(_ text: NSAttributedString, entities: [Messag
             continue
         }
         let item = MentionAvatarItem(peer: peer, username: username, glyph: result.attributedSubstring(from: range), font: font)
-        let metrics = RunDelegateData(ascent: max(font.ascender, item.avatarSize + font.descender), descent: -font.descender, width: item.width)
+        let metrics = RunDelegateData(ascent: max(font.ascender, item.avatarCenterAboveBaseline + item.avatarSize * 0.5), descent: max(-font.descender, item.avatarSize * 0.5 - item.avatarCenterAboveBaseline), width: item.width)
         var callbacks = CTRunDelegateCallbacks(version: kCTRunDelegateCurrentVersion, dealloc: { pointer in
             Unmanaged<RunDelegateData>.fromOpaque(pointer).release()
         }, getAscent: { pointer in
@@ -145,6 +179,8 @@ public func textWithMentionAvatars(_ text: NSAttributedString, entities: [Messag
         if let delegate = CTRunDelegateCreate(&callbacks, retainedMetrics.toOpaque()) {
             result.addAttribute(NSAttributedString.Key(kCTRunDelegateAttributeName as String), value: delegate, range: range)
             result.addAttribute(NSAttributedString.Key("Attribute__EmbeddedItem"), value: AnyHashable(item), range: range)
+            result.removeAttribute(.underlineStyle, range: range)
+            result.removeAttribute(.strikethroughStyle, range: range)
             count += 1
         } else {
             retainedMetrics.release()
@@ -153,21 +189,77 @@ public func textWithMentionAvatars(_ text: NSAttributedString, entities: [Messag
     return result
 }
 
+private final class MentionGlyphView: UIView {
+    /// Room on both sides for a glyph that draws past its advance (italics).
+    static let padding: CGFloat = 2.0
+
+    private let line: CTLine
+    private let width: CGFloat
+    private let underlineColor: UIColor?
+    private let strikethroughColor: UIColor?
+    var baseline: CGFloat = 0.0 {
+        didSet {
+            if self.baseline != oldValue {
+                self.setNeedsDisplay()
+            }
+        }
+    }
+
+    init(line: CTLine, width: CGFloat, underlineColor: UIColor?, strikethroughColor: UIColor?) {
+        self.line = line
+        self.width = width
+        self.underlineColor = underlineColor
+        self.strikethroughColor = strikethroughColor
+        super.init(frame: .zero)
+        self.isOpaque = false
+        self.backgroundColor = nil
+        self.contentMode = .redraw
+        self.isUserInteractionEnabled = false
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func draw(_ rect: CGRect) {
+        guard let context = UIGraphicsGetCurrentContext() else {
+            return
+        }
+        // Drawn as the text node draws its lines, so the character keeps the line's baseline.
+        context.saveGState()
+        context.textMatrix = CGAffineTransform(scaleX: 1.0, y: -1.0)
+        context.textPosition = CGPoint(x: MentionGlyphView.padding, y: self.baseline)
+        CTLineDraw(self.line, context)
+        context.restoreGState()
+        // At the offsets the text node uses for the rest of the mention: the view is as tall as the line.
+        if let underlineColor = self.underlineColor {
+            context.setFillColor(underlineColor.cgColor)
+            context.fill(CGRect(x: MentionGlyphView.padding, y: self.bounds.height - 2.0, width: self.width + 0.5, height: 1.0))
+        }
+        if let strikethroughColor = self.strikethroughColor {
+            context.setFillColor(strikethroughColor.cgColor)
+            context.fill(CGRect(x: MentionGlyphView.padding, y: self.bounds.midY, width: self.width + 0.5, height: 1.0))
+        }
+    }
+}
+
 private final class MentionAvatarView: UIView {
     private static var resolvedPeers: [String: EnginePeer] = [:]
     private let avatarNode: AvatarNode
-    private let label = UILabel()
+    private let glyphView: MentionGlyphView
     private let disposable = MetaDisposable()
     private let item: MentionAvatarItem
+    private var baseline: CGFloat = 0.0
+    private var textOriginX: CGFloat = 0.0
 
     init(context: AccountContext, item: MentionAvatarItem, synchronousLoad: Bool) {
         self.item = item
         self.avatarNode = AvatarNode(font: Font.regular(max(8.0, item.avatarSize * 0.5)))
+        self.glyphView = MentionGlyphView(line: item.glyphLine, width: item.glyphWidth, underlineColor: item.underlineColor, strikethroughColor: item.strikethroughColor)
         super.init(frame: .zero)
         self.isUserInteractionEnabled = false
-        self.label.attributedText = item.glyph
         self.addSubview(self.avatarNode.view)
-        self.addSubview(self.label)
+        self.addSubview(self.glyphView)
         let setPeer: (EnginePeer) -> Void = { [weak self] peer in
             guard let self else { return }
             self.avatarNode.setPeer(context: context, theme: context.sharedContext.currentPresentationData.with { $0 }.theme, peer: peer, synchronousLoad: synchronousLoad, displayDimensions: CGSize(width: item.avatarSize, height: item.avatarSize))
@@ -201,10 +293,25 @@ private final class MentionAvatarView: UIView {
         self.disposable.dispose()
     }
 
+    /// `baseline` and `textOriginX` place the item on its line, as `InteractiveTextNodeLayout.EmbeddedItem`
+    /// reports them: the view's frame is the whole line's height, so it cannot centre anything on itself
+    /// once the line is taller than the mention's font (an emoji, a larger font).
+    func update(baseline: CGFloat, textOriginX: CGFloat) {
+        if self.baseline != baseline || self.textOriginX != textOriginX {
+            self.baseline = baseline
+            self.textOriginX = textOriginX
+            self.setNeedsLayout()
+        }
+    }
+
     override func layoutSubviews() {
         super.layoutSubviews()
-        self.avatarNode.frame = CGRect(x: 0.0, y: floor((self.bounds.height - self.item.avatarSize) * 0.5), width: self.item.avatarSize, height: self.item.avatarSize)
-        self.label.frame = CGRect(x: self.item.avatarSize + 3.0, y: (self.bounds.height - self.item.font.lineHeight) * 0.5, width: self.bounds.width - self.item.avatarSize - 3.0, height: self.item.font.lineHeight)
+        let avatarSize = self.item.avatarSize
+        let avatarY = floorToScreenPixels(self.baseline - self.item.avatarCenterAboveBaseline - avatarSize * 0.5)
+        self.avatarNode.frame = CGRect(x: floorToScreenPixels(self.textOriginX), y: avatarY, width: avatarSize, height: avatarSize)
+        let glyphX = self.textOriginX + avatarSize + MentionAvatarItem.spacing
+        self.glyphView.frame = CGRect(x: glyphX - MentionGlyphView.padding, y: 0.0, width: ceil(self.item.glyphWidth) + MentionGlyphView.padding * 2.0, height: self.bounds.height)
+        self.glyphView.baseline = self.baseline
     }
 }
 
@@ -479,6 +586,7 @@ public final class InteractiveTextNodeWithEntities {
                             segmentLayer.renderNode.view.addSubview(view)
                         }
                         view.frame = item.rect.offsetBy(dx: segmentParams.item.contentOffset.x, dy: segmentParams.item.contentOffset.y)
+                        view.update(baseline: item.baseline, textOriginX: item.textOriginX)
                         view.alpha = item.isHiddenBySpoiler ? 0.0 : 1.0
                     } else if let stickerItem = item.value as? InlineStickerItem {
                         let index: Int
