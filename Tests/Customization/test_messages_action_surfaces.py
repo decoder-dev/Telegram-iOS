@@ -31,6 +31,15 @@ class MessagesActionSurfaces(unittest.TestCase):
         fixture += 'struct PlaceholderTheme { var isMessagesTheme: Bool }\nstruct PlaceholderComponent { var theme: PlaceholderTheme }\n'
         fixture += 'enum Font { static func regular(_ size: CGFloat) -> UIFont { UIFont.systemFont(ofSize: size) } }\n'
         fixture += 'func placeholderFont(component: PlaceholderComponent) -> UIFont {\n' + font + '\nreturn font\n}\n'
+        fixture += 'enum StateTransition { case immediate }\nclass EmptyComponentState { func updated(transition: StateTransition) {} }\n'
+        fixture += 'class StorageTheme { var isMessagesTheme = true }\nclass StorageModel { let theme = StorageTheme() }\n'
+        for index, name in enumerate(('DataButtonComponent.swift', 'StorageCategoryItemCompoment.swift')):
+            storage = read('submodules/TelegramUI/Components/StorageUsageScreen/Sources/' + name)
+            stored_state = re.search(r'private weak var \w+: EmptyComponentState\?', storage).group(0)
+            binding = re.search(r'self\.\w+ = state', storage).group(0)
+            fixture += 'class StorageControl' + str(index) + ': UIButton {\nvar component: StorageModel?\n' + stored_state + '\n'
+            fixture += member(storage, '@objc private func contentSizeCategoryChanged()') + '\n'
+            fixture += 'func bind(state: EmptyComponentState) { ' + binding + ' }\n}\n'
         sdk = subprocess.check_output(['xcrun', '--sdk', 'iphonesimulator', '--show-sdk-path'], text=True).strip()
         with tempfile.TemporaryDirectory() as directory:
             path = pathlib.Path(directory) / 'Labels.swift'
@@ -679,6 +688,21 @@ for width: CGFloat in [64, 120, 200, 300] {
 }
 '''
         run_swift(fixture)
+
+    def test_changed_control_subclasses_do_not_shadow_uikit_state(self):
+        paths = subprocess.check_output(['git', 'diff', '--name-only',
+            '132bf32cfbbede24848be90899589d62740d9e25', 'HEAD', '--', 'submodules/**/*.swift'],
+            cwd=ROOT, text=True).splitlines()
+        checked = 0
+        for path in paths:
+            if not (ROOT / path).is_file():
+                continue
+            source = read(path)
+            for control in re.finditer(r'\bclass\s+\w+\s*:\s*(?:UIButton|UIControl|HighlightTrackingButton|HighlightableButton|SimpleButton)\b', source):
+                body = member(source[control.start():], control.group(0))
+                self.assertNotRegex(body, r'\bvar\s+state\s*:', path)
+                checked += 1
+        self.assertGreaterEqual(checked, 13)
 
     def test_custom_placeholder_owns_its_font_and_effect_padding_uses_supported_api(self):
         field = read('submodules/TelegramUI/Components/ListMultilineTextFieldItemComponent/Sources/ListMultilineTextFieldItemComponent.swift')

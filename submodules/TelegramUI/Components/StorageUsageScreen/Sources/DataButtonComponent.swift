@@ -59,7 +59,7 @@ final class DataButtonComponent: Component {
         private let title = ComponentView<Empty>()
         
         private var component: DataButtonComponent?
-        private weak var state: EmptyComponentState?
+        private weak var componentState: EmptyComponentState?
         
         private var highlightBackgroundFrame: CGRect?
         private var highlightBackgroundLayer: SimpleLayer?
@@ -135,14 +135,14 @@ final class DataButtonComponent: Component {
         }
 
         @objc private func contentSizeCategoryChanged() {
-            if self.component?.theme.isMessagesTheme == true { self.state?.updated(transition: .immediate) }
+            if self.component?.theme.isMessagesTheme == true { self.componentState?.updated(transition: .immediate) }
         }
         
         func update(component: DataButtonComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
             let themeUpdated = self.component?.theme !== component.theme
             
             self.component = component
-            self.state = state
+            self.componentState = state
             self.layer.cornerRadius = component.theme.isMessagesTheme ? MessagesAppearanceMetrics.sectionCornerRadius : 26.0
             self.isAccessibilityElement = true
             self.accessibilityTraits = .button

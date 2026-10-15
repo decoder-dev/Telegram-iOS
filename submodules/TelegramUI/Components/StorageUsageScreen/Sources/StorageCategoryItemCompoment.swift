@@ -101,7 +101,7 @@ final class StorageCategoryItemComponent: Component {
         private var itemViews: [StorageUsageScreenComponent.Category: ComponentView<Empty>] = [:]
         
         private var component: StorageCategoryItemComponent?
-        private weak var state: EmptyComponentState?
+        private weak var componentState: EmptyComponentState?
         private lazy var headerAccessibilityElement = StorageCategoryAccessibilityElement(accessibilityContainer: self)
         private lazy var selectionAccessibilityElement = StorageCategoryAccessibilityElement(accessibilityContainer: self)
         
@@ -194,7 +194,7 @@ final class StorageCategoryItemComponent: Component {
         }
 
         @objc private func contentSizeCategoryChanged() {
-            if self.component?.theme.isMessagesTheme == true { self.state?.updated(transition: .immediate) }
+            if self.component?.theme.isMessagesTheme == true { self.componentState?.updated(transition: .immediate) }
         }
         
         override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
@@ -211,7 +211,7 @@ final class StorageCategoryItemComponent: Component {
             let themeUpdated = self.component?.theme !== component.theme || self.component?.category.color != component.category.color
             
             self.component = component
-            self.state = state
+            self.componentState = state
             let usesMessages = component.theme.isMessagesTheme
             let titleFont = usesMessages ? UIFont.preferredFont(forTextStyle: .body) : Font.regular(17.0)
             let detailFont = usesMessages ? UIFont.preferredFont(forTextStyle: .subheadline) : Font.regular(17.0)

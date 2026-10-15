@@ -299,15 +299,17 @@ jobs:
           df -h /
 
       - name: Cache Bazel (warm incremental compiles)
+        id: bazel_cache_26
         if: ${{ inputs.toolchain != 'xcode27' }}
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: |
             ${{ env.BAZEL_CACHE_DIR }}
             ${{ env.BAZEL_REPO_CACHE }}
           # release_arm64 cache; versions.json bump isolates from Xcode 27 caches.
-          key: bazel-warm-release_arm64-${{ hashFiles('versions.json', 'MODULE.bazel', 'MODULE.bazel.lock') }}
+          key: bazel-warm-release_arm64-${{ hashFiles('versions.json', 'MODULE.bazel', 'MODULE.bazel.lock') }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
+            bazel-warm-release_arm64-${{ hashFiles('versions.json', 'MODULE.bazel', 'MODULE.bazel.lock') }}-
             bazel-warm-release_arm64-
             bazel-warm-ci_arm64-
             bazel-pm-macOS-ci_arm64-
@@ -317,14 +319,16 @@ jobs:
             bazel-
 
       - name: Cache Bazel (Xcode 27, isolated from Xcode 26 caches)
+        id: bazel_cache_27
         if: ${{ inputs.toolchain == 'xcode27' }}
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: |
             ${{ env.BAZEL_CACHE_DIR }}
             ${{ env.BAZEL_REPO_CACHE }}
-          key: bazel-warm-xcode27-release_arm64-${{ hashFiles('versions.json', 'MODULE.bazel', 'MODULE.bazel.lock') }}
+          key: bazel-warm-xcode27-release_arm64-${{ hashFiles('versions.json', 'MODULE.bazel', 'MODULE.bazel.lock') }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
+            bazel-warm-xcode27-release_arm64-${{ hashFiles('versions.json', 'MODULE.bazel', 'MODULE.bazel.lock') }}-
             bazel-warm-xcode27-release_arm64-
 
       - name: Write sideload configuration
@@ -568,3 +572,24 @@ jobs:
           path: artifacts/${{ env.IPA_NAME }}
           if-no-files-found: ignore
           retention-days: 14
+
+      # Keep valid content-addressed Bazel outputs even when another target fails.
+      # Unique keys let each run refresh the incremental cache instead of restoring
+      # an immutable cache that can never receive newer compiled modules.
+      - name: Save Bazel incremental cache (Xcode 26)
+        if: ${{ !cancelled() && steps.bazel_cache_26.outcome == 'success' }}
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ${{ env.BAZEL_CACHE_DIR }}
+            ${{ env.BAZEL_REPO_CACHE }}
+          key: ${{ steps.bazel_cache_26.outputs.cache-primary-key }}
+
+      - name: Save Bazel incremental cache (Xcode 27)
+        if: ${{ !cancelled() && steps.bazel_cache_27.outcome == 'success' }}
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ${{ env.BAZEL_CACHE_DIR }}
+            ${{ env.BAZEL_REPO_CACHE }}
+          key: ${{ steps.bazel_cache_27.outputs.cache-primary-key }}
