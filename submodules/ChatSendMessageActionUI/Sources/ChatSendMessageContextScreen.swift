@@ -76,6 +76,12 @@ extension ChatInputTextView: ChatSendMessageContextScreenTextInputSource {
     }
 }
 
+private final class EffectPreviewButton: UIButton {
+    override func contentRect(forBounds bounds: CGRect) -> CGRect {
+        return bounds.insetBy(dx: 12.0, dy: 6.0)
+    }
+}
+
 final class ChatSendMessageContextScreenComponent: Component {
     typealias EnvironmentType = ViewControllerComponentContainer.Environment
     
@@ -172,7 +178,7 @@ final class ChatSendMessageContextScreenComponent: Component {
     }
     
     final class View: UIView {
-        private let effectPreviewButton = UIButton(type: .system)
+        private let effectPreviewButton = EffectPreviewButton(type: .system)
         private var lastPreviewEffectId: Int64?
         private let backgroundView: BlurredBackgroundView
         
@@ -231,7 +237,6 @@ final class ChatSendMessageContextScreenComponent: Component {
             self.effectPreviewButton.titleLabel?.font = UIFont.preferredFont(forTextStyle: .footnote)
             self.effectPreviewButton.titleLabel?.adjustsFontForContentSizeCategory = true
             self.effectPreviewButton.titleLabel?.numberOfLines = 0
-            self.effectPreviewButton.contentEdgeInsets = UIEdgeInsets(top: 6.0, left: 12.0, bottom: 6.0, right: 12.0)
             self.effectPreviewButton.titleLabel?.textAlignment = .center
             self.effectPreviewButton.layer.cornerRadius = 16.0
             self.effectPreviewButton.layer.cornerCurve = .continuous

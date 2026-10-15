@@ -683,6 +683,7 @@ public final class ListMultilineTextFieldItemComponent: Component {
                 return
             }
             
+            let font = component.theme.isMessagesTheme ? UIFont.preferredFont(forTextStyle: .body) : Font.regular(17.0)
             let verticalInset: CGFloat = 12.0
             let sideInset: CGFloat = 16.0
             

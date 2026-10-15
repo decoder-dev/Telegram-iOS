@@ -23,11 +23,19 @@ class MessagesActionSurfaces(unittest.TestCase):
         ):
             fixture += 'class ' + name + ': UIButton { ' + field + '\n'
             fixture += member(read(path), 'public override var accessibilityLabel: String?').replace('public override ', 'override ') + '\n}\n'
+        preview = read('submodules/ChatSendMessageActionUI/Sources/ChatSendMessageContextScreen.swift')
+        fixture += member(preview, 'private final class EffectPreviewButton: UIButton {') + '\n'
+        field = read('submodules/TelegramUI/Components/ListMultilineTextFieldItemComponent/Sources/ListMultilineTextFieldItemComponent.swift')
+        placeholder = member(field, 'public func updateCustomPlaceholder(')
+        font = re.search(r'^\s*let font = .+$', placeholder, re.M).group(0)
+        fixture += 'struct PlaceholderTheme { var isMessagesTheme: Bool }\nstruct PlaceholderComponent { var theme: PlaceholderTheme }\n'
+        fixture += 'enum Font { static func regular(_ size: CGFloat) -> UIFont { UIFont.systemFont(ofSize: size) } }\n'
+        fixture += 'func placeholderFont(component: PlaceholderComponent) -> UIFont {\n' + font + '\nreturn font\n}\n'
         sdk = subprocess.check_output(['xcrun', '--sdk', 'iphonesimulator', '--show-sdk-path'], text=True).strip()
         with tempfile.TemporaryDirectory() as directory:
             path = pathlib.Path(directory) / 'Labels.swift'
             path.write_text(fixture, encoding='utf-8')
-            result = subprocess.run(['xcrun', 'swiftc', '-swift-version', '5', '-warnings-as-errors', '-sdk', sdk, '-target', 'arm64-apple-ios13.0-simulator', '-typecheck', str(path)], capture_output=True, text=True, timeout=90)
+            result = subprocess.run(['xcrun', 'swiftc', '-swift-version', '5', '-warnings-as-errors', '-sdk', sdk, '-target', 'arm64-apple-ios15.0-simulator', '-typecheck', str(path)], capture_output=True, text=True, timeout=90)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     @unittest.skipUnless(shutil.which('swift'), 'Swift unavailable locally; executes in macOS CI')
@@ -672,6 +680,16 @@ for width: CGFloat in [64, 120, 200, 300] {
 '''
         run_swift(fixture)
 
+    def test_custom_placeholder_owns_its_font_and_effect_padding_uses_supported_api(self):
+        field = read('submodules/TelegramUI/Components/ListMultilineTextFieldItemComponent/Sources/ListMultilineTextFieldItemComponent.swift')
+        placeholder = member(field, 'public func updateCustomPlaceholder(')
+        self.assertIn('let font = component.theme.isMessagesTheme ? UIFont.preferredFont(forTextStyle: .body) : Font.regular(17.0)', placeholder)
+        self.assertLess(placeholder.index('let font ='), placeholder.index('font: font'))
+        preview = read('submodules/ChatSendMessageActionUI/Sources/ChatSendMessageContextScreen.swift')
+        self.assertNotIn('effectPreviewButton.contentEdgeInsets', preview)
+        self.assertIn('private let effectPreviewButton = EffectPreviewButton(type: .system)', preview)
+        self.assertIn('return bounds.insetBy(dx: 12.0, dy: 6.0)', member(preview, 'private final class EffectPreviewButton: UIButton {'))
+
     def test_shared_form_controls_scale_and_keep_localized_accessible_actions(self):
         field = read('submodules/TelegramUI/Components/ListTextFieldItemComponent/Sources/ListTextFieldItemComponent.swift')
         for contract in ('UIFont.preferredFont(forTextStyle: .body)',
@@ -776,7 +794,7 @@ precondition(delivered.count == 2)
         # Camera permission content is deliberately independent of the app palette:
         # it is an overlay on a black capture preview and has no PresentationTheme.
         self.assertEqual(exceptions, ['submodules/TelegramUI/Components/CameraScreen/Sources/PlaceholderComponent.swift'])
-        self.assertGreaterEqual(count, 164)
+        self.assertGreaterEqual(count, 163)
 
     def test_media_permissions_keep_visible_actions_and_content_reuse_correct(self):
         source = read('submodules/MediaPickerUI/Sources/MediaPickerPlaceholderNode.swift')

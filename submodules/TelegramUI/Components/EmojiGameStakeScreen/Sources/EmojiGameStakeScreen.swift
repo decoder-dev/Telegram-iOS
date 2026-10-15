@@ -482,26 +482,6 @@ private final class EmojiGameStakeSheetComponent: CombinedComponent {
                             }
                         )
                     ),
-//                    bottomItem: AnyComponent(
-//                        ButtonComponent(
-//                            background: ButtonComponent.Background(
-theme: theme,
-//                                style: .glass,
-//                                color: theme.list.itemCheckColors.fillColor,
-//                                foreground: theme.list.itemCheckColors.foregroundColor,
-//                                pressedColor: theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.9)
-//                            ),
-//                            content: AnyComponentWithIdentity(
-//                                id: AnyHashable(0),
-//                                component: AnyComponent(HStack(buttonItems, spacing: 7.0))
-//                            ),
-//                            isEnabled: true,
-//                            displaysProgress: false,
-//                            action: {
-//                                dismiss(true)
-//                            }
-//                        )
-//                    ),
                     backgroundColor: .color(theme.list.blocksBackgroundColor),
                     animateOut: animateOut
                 ),
