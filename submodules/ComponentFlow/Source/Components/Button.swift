@@ -174,6 +174,11 @@ public final class Button: Component {
     public final class View: UIButton, ComponentTaggedView {
         private let contentView: ComponentHostView<Empty>
         
+        public override var accessibilityLabel: String? {
+            get { return super.accessibilityLabel ?? self.contentView.componentView?.accessibilityLabel }
+            set { super.accessibilityLabel = newValue }
+        }
+
         public var content: UIView? {
             return self.contentView.componentView
         }

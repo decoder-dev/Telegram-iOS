@@ -120,7 +120,7 @@ public final class AlertCheckComponent: Component {
             }
             if self.component?.externalState !== component.externalState {
                 component.externalState.value = component.initialValue
-                self.valuePromise.set(component.initialValue)
+                self.valuePromise = ValuePromise<Bool>(component.initialValue)
                 component.externalState.valuePromise.set(self.valuePromise.get())
             }
             self.component = component

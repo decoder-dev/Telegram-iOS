@@ -148,6 +148,7 @@ public final class MultilineTextComponent: Component {
             
             let previousText = self.attributedText?.string
                                         
+            self.accessibilityLabel = attributedString.string
             self.attributedText = attributedString
             self.maximumNumberOfLines = component.maximumNumberOfLines
             self.truncationType = component.truncationType

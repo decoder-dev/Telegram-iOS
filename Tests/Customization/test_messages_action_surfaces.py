@@ -11,6 +11,91 @@ from test_messages_screen_states import member, run_swift
 
 class MessagesActionSurfaces(unittest.TestCase):
     @unittest.skipUnless(shutil.which('swift'), 'Swift unavailable locally; executes in macOS CI')
+    def test_production_button_labels_follow_content_and_preserve_explicit_names(self):
+        fixture = """import Foundation
+class UIView { var accessibilityLabel: String? }
+class Content { var view: UIView?; var componentView: UIView? }
+"""
+        paths = [
+            ('Plain', 'submodules/TelegramUI/Components/PlainButtonComponent/Sources/PlainButtonComponent.swift', 'let content = Content()'),
+            ('Flow', 'submodules/ComponentFlow/Source/Components/Button.swift', 'let contentView = Content()'),
+            ('Glass', 'submodules/TelegramUI/Components/GlassBarButtonComponent/Sources/GlassBarButtonComponent.swift', 'var componentView: Content?'),
+        ]
+        for name, path, field in paths:
+            prop = member(read(path), 'public override var accessibilityLabel: String?').replace('public override ', 'override ')
+            fixture += 'class ' + name + ': UIView { ' + field + '\n' + prop + '\n}\n'
+        fixture += """
+let content = UIView(); content.accessibilityLabel = "Отправить"
+let plain = Plain(); plain.content.view = content
+let flow = Flow(); flow.contentView.componentView = content
+let glass = Glass(); glass.componentView = Content(); glass.componentView?.view = content
+for button in [plain as UIView, flow, glass] {
+    precondition(button.accessibilityLabel == "Отправить")
+    button.accessibilityLabel = "Специальная подпись"
+    precondition(button.accessibilityLabel == "Специальная подпись")
+}
+content.accessibilityLabel = "Send"
+for button in [plain as UIView, flow, glass] {
+    precondition(button.accessibilityLabel == "Специальная подпись")
+    button.accessibilityLabel = nil
+    precondition(button.accessibilityLabel == "Send")
+}
+"""
+        run_swift(fixture)
+
+    @unittest.skipUnless(shutil.which('swift'), 'Swift unavailable locally; executes in macOS CI')
+    def test_production_check_initialization_publishes_once_and_isolates_replaced_owners(self):
+        source = read('submodules/TelegramUI/Components/AlertComponent/AlertCheckComponent/Sources/AlertCheckComponent.swift')
+        fixture = """import Foundation
+class ValuePromise<T> {
+    var value: T
+    init(_ value: T) { self.value = value }
+    func set(_ value: T) { self.value = value }
+    func get() -> ValuePromise<T> { self }
+}
+class Promise<T> {
+    var source: ValuePromise<T>?
+    func set(_ source: ValuePromise<T>) { self.source = source }
+}
+class External { var value = false; let valuePromise = Promise<Bool>() }
+class Model {
+    let externalState: External; let initialValue: Bool
+    init(_ external: External, _ initial: Bool) { externalState = external; initialValue = initial }
+}
+class View {
+    var component: Model?
+    var valuePromise = ValuePromise<Bool>(false)
+    func update(component: Model) {
+"""
+        fixture += member(source, 'if self.component?.externalState !== component.externalState {')
+        fixture += """
+        self.component = component
+    }
+}
+let view = View(); let first = External()
+view.update(component: Model(first, true))
+precondition(first.value && first.valuePromise.source?.value == true)
+first.value = false; view.valuePromise.set(false)
+view.update(component: Model(first, true))
+precondition(!first.value && first.valuePromise.source?.value == false)
+let second = External()
+view.update(component: Model(second, false))
+view.valuePromise.set(true)
+precondition(second.valuePromise.source?.value == true)
+precondition(first.valuePromise.source?.value == false)
+"""
+        run_swift(fixture)
+
+    def test_shared_drawn_text_exposes_current_full_text_to_button_wrappers(self):
+        text = read('submodules/ComponentFlow/Source/Components/Text.swift')
+        body = member(text, 'public func update(component: Text,')
+        self.assertLess(body.index('self.accessibilityLabel = component.text'), body.index('if let measureState = self.measureState'))
+        multiline = read('submodules/Components/MultilineTextComponent/Sources/MultilineTextComponent.swift')
+        self.assertIn('self.accessibilityLabel = attributedString.string', multiline)
+        # Labels alone do not group rich-text links or hide their existing interactions.
+        self.assertNotIn('self.accessibilityElementsHidden = true', multiline)
+
+    @unittest.skipUnless(shutil.which('swift'), 'Swift unavailable locally; executes in macOS CI')
     def test_production_alert_input_validates_utf16_ranges_and_character_limits(self):
         source = read('submodules/TelegramUI/Components/AlertComponent/AlertInputFieldComponent/Sources/AlertInputFieldComponent.swift')
         fixture = 'import Foundation\n' + member(source, 'private func alertInputFieldReplacement(')
@@ -47,7 +132,7 @@ precondition(alertInputFieldReplacement(text: "", range: NSRange(location: 0, le
         self.assertIn('lhs.title != rhs.title', check)
         self.assertIn('lhs.externalState !== rhs.externalState', check)
         initial = member(check, 'if self.component?.externalState !== component.externalState {')
-        self.assertLess(initial.index('self.valuePromise.set(component.initialValue)'), initial.index('component.externalState.valuePromise.set(self.valuePromise.get())'))
+        self.assertLess(initial.index('self.valuePromise = ValuePromise<Bool>(component.initialValue)'), initial.index('component.externalState.valuePromise.set(self.valuePromise.get())'))
         self.assertIn('buttonView.accessibilityTraits = component.externalState.value ? [.button, .selected] : [.button]', check)
 
     @unittest.skipUnless(shutil.which('swift'), 'Swift unavailable locally; executes in macOS CI')

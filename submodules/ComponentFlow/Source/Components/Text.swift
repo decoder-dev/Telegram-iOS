@@ -31,6 +31,7 @@ public final class Text: Component {
         private var measureState: MeasureState?
 
         public func update(component: Text, availableSize: CGSize, transition: ComponentTransition) -> CGSize {
+            self.accessibilityLabel = component.text
             let attributedText = NSAttributedString(string: component.text, attributes: [
                 NSAttributedString.Key.font: component.font,
                 NSAttributedString.Key.foregroundColor: component.color

@@ -99,6 +99,11 @@ public final class GlassBarButtonComponent: Component {
         private var glassBackgroundView: GlassBackgroundView?
         private var componentView: ComponentView<Empty>?
         
+        public override var accessibilityLabel: String? {
+            get { return super.accessibilityLabel ?? self.componentView?.view?.accessibilityLabel }
+            set { super.accessibilityLabel = newValue }
+        }
+
         private var component: GlassBarButtonComponent?
         
         public override init(frame: CGRect) {
@@ -217,6 +222,7 @@ public final class GlassBarButtonComponent: Component {
             
             let componentFrame = CGRect(origin: CGPoint(x: floorToScreenPixels((containerSize.width - componentSize.width) / 2.0), y: floorToScreenPixels((containerSize.height - componentSize.height) / 2.0)), size: componentSize)
             if let view = componentView.view {
+                self.containerView.accessibilityLabel = view.accessibilityLabel
                 if view.superview == nil {
                     view.isUserInteractionEnabled = false
                     self.containerView.addSubview(view)
