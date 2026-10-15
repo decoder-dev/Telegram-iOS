@@ -11,6 +11,81 @@ from test_messages_screen_states import member, run_swift
 
 class MessagesActionSurfaces(unittest.TestCase):
     @unittest.skipUnless(shutil.which('swift'), 'Swift unavailable locally; executes in macOS CI')
+    def test_production_alerts_and_sheets_cannot_execute_disabled_actions(self):
+        action = read('submodules/TelegramUI/Components/AlertComponent/Sources/AlertActionComponent.swift')
+        alert = read('submodules/TelegramUI/Components/AlertComponent/Sources/AlertComponent.swift')
+        sheet = read('submodules/Display/Source/ActionSheetButtonItem.swift')
+        fixture = 'import Foundation\nenum AlertActionComponent { class View {\nvar isEnabled = false; var hasProgress = false; var action: (() -> Void)?\n'
+        fixture += member(action, 'var canPerformAction: Bool') + '\n'
+        fixture += member(action, 'override func accessibilityActivate() -> Bool').replace('override ', '') + '\n}}\n'
+        fixture += """
+struct Action { let id: AnyHashable; let autoDismiss: Bool; let action: () -> Void }
+struct Item { let view: Any? }
+class Alert {
+    var actions: [Action]?
+    var highlightedAction: AnyHashable?
+    var actionItems: [AnyHashable: Item] = [:]
+    var dismissals = 0
+    func requestDismiss() { dismissals += 1 }
+"""
+        fixture += member(alert, 'func performHighlightedAction()') + '\n}\n'
+        fixture += 'struct SheetItem { let enabled: Bool; let action: () -> Void }\nclass Sheet { var item: SheetItem?\n'
+        fixture += member(sheet, '@objc func buttonPressed()').replace('@objc ', '') + '\n}\n'
+        fixture += """
+var count = 0
+let view = AlertActionComponent.View()
+let alert = Alert()
+alert.actions = [Action(id: "confirm", autoDismiss: true, action: { count += 1 })]
+alert.highlightedAction = "confirm"
+alert.performHighlightedAction()
+precondition(count == 0 && alert.dismissals == 0)
+alert.actionItems["confirm"] = Item(view: view)
+view.action = { alert.performHighlightedAction() }
+for enabled in [false, true] {
+    for progress in [false, true] {
+        view.isEnabled = enabled; view.hasProgress = progress
+        let before = count; let dismissals = alert.dismissals
+        alert.performHighlightedAction()
+        let expected = enabled && !progress
+        precondition(count == before + (expected ? 1 : 0))
+        precondition(alert.dismissals == dismissals + (expected ? 1 : 0))
+        let prior = count
+        precondition(view.accessibilityActivate() == expected)
+        precondition(count == prior + (expected ? 1 : 0))
+    }
+}
+let sheet = Sheet()
+sheet.buttonPressed()
+for enabled in [false, true] {
+    sheet.item = SheetItem(enabled: enabled, action: { count += 1 })
+    let before = count
+    sheet.buttonPressed()
+    precondition(count == before + (enabled ? 1 : 0))
+}
+"""
+        run_swift(fixture)
+
+    def test_alert_reuse_refreshes_signals_and_preserves_accessible_dynamic_layout(self):
+        action = read('submodules/TelegramUI/Components/AlertComponent/Sources/AlertActionComponent.swift')
+        for contract in ('previousComponent?.isEnabled !== component.isEnabled',
+                         'previousComponent?.progress !== component.progress',
+                         'self.isEnabledDisposable?.dispose()', 'self.progressDisposable?.dispose()',
+                         'self.accessibilityLabel = component.title', 'self.updateAccessibilityState()',
+                         'maximumNumberOfLines: usesMessages ? 2 : 1',
+                         'MessagesAppearanceMetrics.actionRadius(height:',
+                         'UIFontMetrics(forTextStyle: .body).scaledFont(for: baseFont)'):
+            self.assertIn(contract, action)
+        alert = read('submodules/TelegramUI/Components/AlertComponent/Sources/AlertComponent.swift')
+        self.assertIn('actionView.canPerformAction', member(alert, 'func performHighlightedAction()'))
+        self.assertIn('self.accessibilityViewIsModal = true', alert)
+        self.assertIn('override func accessibilityPerformEscape() -> Bool', alert)
+        self.assertIn('fullWidthActionSize.height = max(fullWidthActionSize.height, itemSize.height)', alert)
+        sheet = read('submodules/Display/Source/ActionSheetButtonItem.swift')
+        self.assertIn('guard let self, self.item?.enabled == true', sheet)
+        checkbox = read('submodules/Display/Source/ActionSheetCheckboxItem.swift')
+        self.assertIn('x: size.width - rightInset - labelSize.width', checkbox)
+
+    @unittest.skipUnless(shutil.which('swift'), 'Swift unavailable locally; executes in macOS CI')
     def test_production_button_title_and_badge_stay_inside_measured_bounds(self):
         source = read('submodules/TelegramUI/Components/ButtonComponent/Sources/ButtonComponent.swift')
         fixture = 'import Foundation\nimport CoreGraphics\n' + member(source, 'private func buttonTextContentGeometry(')

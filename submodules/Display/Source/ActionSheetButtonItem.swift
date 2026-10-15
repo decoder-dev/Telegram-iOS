@@ -87,7 +87,10 @@ public class ActionSheetButtonNode: ActionSheetItemNode {
         
         self.button.addTarget(self, action: #selector(self.buttonPressed), for: .touchUpInside)
         self.accessibilityArea.activate = { [weak self] in
-            self?.buttonPressed()
+            guard let self, self.item?.enabled == true else {
+                return false
+            }
+            self.buttonPressed()
             return true
         }
     }
@@ -172,7 +175,7 @@ public class ActionSheetButtonNode: ActionSheetItemNode {
     }
     
     @objc func buttonPressed() {
-        if let item = self.item {
+        if let item = self.item, item.enabled {
             item.action()
         }
     }

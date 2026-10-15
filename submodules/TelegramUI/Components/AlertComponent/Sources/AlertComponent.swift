@@ -108,6 +108,8 @@ private final class AlertScreenComponent: Component {
         override init(frame: CGRect) {
             super.init(frame: frame)
             
+            self.accessibilityViewIsModal = true
+            self.dimView.accessibilityElementsHidden = true
             self.dimView.alpha = 0.0
             self.dimView.backgroundColor = UIColor(rgb: 0x000000, alpha: 0.2)
             
@@ -185,12 +187,20 @@ private final class AlertScreenComponent: Component {
             self.requestDismiss()
         }
         
+        override func accessibilityPerformEscape() -> Bool {
+            guard self.environment?.controller() is AlertScreen else { return false }
+            self.requestDismiss()
+            return true
+        }
+
         func animateIn() {
             let alphaTransition = ComponentTransition(animation: .curve(duration: 0.2, curve: .linear))
             let scaleTransition = ComponentTransition(animation: .curve(duration: 0.4, curve: .spring))
             alphaTransition.setAlpha(view: self.dimView, alpha: 1.0)
             
-            scaleTransition.animateScale(view: self.backgroundView, from: 1.15, to: 1.0)
+            if !UIAccessibility.isReduceMotionEnabled {
+                scaleTransition.animateScale(view: self.backgroundView, from: 1.15, to: 1.0)
+            }
             alphaTransition.animateAlpha(view: self.containerView, from: 0.0, to: 1.0)
         }
         
@@ -295,7 +305,9 @@ private final class AlertScreenComponent: Component {
             guard let highlightedAction = self.highlightedAction else {
                 return
             }
-            guard let action = actions.first(where: { AnyHashable($0.id) == highlightedAction }) else {
+            guard let actionView = self.actionItems[highlightedAction]?.view as? AlertActionComponent.View,
+                  actionView.canPerformAction,
+                  let action = actions.first(where: { AnyHashable($0.id) == highlightedAction }) else {
                 return
             }
             action.action()
@@ -305,6 +317,7 @@ private final class AlertScreenComponent: Component {
         }
                         
         func update(component: AlertScreenComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<ViewControllerComponentContainer.Environment>, transition: ComponentTransition) -> CGSize {
+            let transition = UIAccessibility.isReduceMotionEnabled ? transition.withAnimation(.none) : transition
             self.isUpdating = true
             defer {
                 self.isUpdating = false
@@ -342,8 +355,9 @@ private final class AlertScreenComponent: Component {
             let contentSpacing: CGFloat = 8.0
             let actionSideInset: CGFloat = 16.0
             let actionSpacing: CGFloat = 8.0
-            let fullWidthActionSize = CGSize(width: alertWidth - actionSideInset * 2.0, height: AlertActionComponent.actionHeight)
-            let halfWidthActionSize = CGSize(width: (alertWidth - actionSideInset * 2.0 - actionSpacing) / 2.0, height: AlertActionComponent.actionHeight)
+            let actionHeight = environment.theme.isMessagesTheme ? max(MessagesAppearanceMetrics.minimumRowHeight, UIFontMetrics(forTextStyle: .body).scaledValue(for: 17.0) + 28.0) : AlertActionComponent.actionHeight
+            var fullWidthActionSize = CGSize(width: alertWidth - actionSideInset * 2.0, height: actionHeight)
+            var halfWidthActionSize = CGSize(width: (alertWidth - actionSideInset * 2.0 - actionSpacing) / 2.0, height: actionHeight)
     
             let alertEnvironment = AlertComponentEnvironment(theme: environment.theme, strings: environment.strings)
             
@@ -483,12 +497,19 @@ private final class AlertScreenComponent: Component {
                         environment: { alertEnvironment },
                         containerSize: fullWidthActionSize
                     )
-                    if let itemView = item.view {
+                    if let itemView = item.view as? AlertActionComponent.View {
+                        itemView.action = { [weak self] in
+                            guard let self else { return }
+                            self.highlightedAction = action.id
+                            self.performHighlightedAction()
+                        }
                         if itemView.superview == nil {
                             self.backgroundView.contentView.addSubview(itemView)
                         }
                     }
-                    
+
+                    fullWidthActionSize.height = max(fullWidthActionSize.height, itemSize.height)
+                    halfWidthActionSize.height = fullWidthActionSize.height
                     if case .horizontal = effectiveActionLayout, itemSize.width > halfWidthActionSize.width {
                         effectiveActionLayout = .verticalReversed
                     }
@@ -645,6 +666,9 @@ open class AlertScreen: ViewControllerComponentContainer, KeyShortcutResponder {
         }
         
         public static func ==(lhs: Action, rhs: Action) -> Bool {
+            if lhs.id != rhs.id || lhs.isEnabled !== rhs.isEnabled || lhs.progress !== rhs.progress {
+                return false
+            }
             if lhs.title != rhs.title {
                 return false
             }

@@ -12,6 +12,7 @@ on:
       - 'submodules/TelegramCore/Sources/State/**'
       - 'submodules/TelegramCore/Sources/Settings/ProxySettings.swift'
       - 'submodules/TelegramCore/Sources/Account/AccountManager.swift'
+      - 'submodules/Display/Source/ActionSheet*.swift'
       - 'submodules/ComponentFlow/**'
       - 'submodules/TelegramPresentationData/**'
       - 'submodules/WebUI/**'
