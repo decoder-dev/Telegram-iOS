@@ -149,6 +149,7 @@ for r in stride(from: 0, through: 255, by: 17) {
     def test_production_focus_highlight_does_not_clear_a_newer_or_pressed_highlight(self):
         source = read(STORAGE + 'DataButtonComponent.swift')
         fixture = '''import Foundation
+import CoreGraphics
 class Queue {
     static let main = Queue()
     static func mainQueue() -> Queue { main }
