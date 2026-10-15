@@ -69,7 +69,6 @@ jobs:
           python3 Tests/Upstream13/own_features.py
           python3 Tests/Upstream13/audio_rich_text.py
           python3 Tests/Upstream13/donut_oct13.py
-          python3 Tests/Upstream13/privacy_check.py
           python3 Tests/Upstream13/sticker_settings.py
           python3 Tests/Upstream13/queued_reads.py
           python3 Tests/Customization/greeting_live.py

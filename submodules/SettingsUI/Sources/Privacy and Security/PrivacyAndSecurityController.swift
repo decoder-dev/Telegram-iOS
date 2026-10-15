@@ -25,7 +25,6 @@ import ContextUI
 
 private final class PrivacyAndSecurityControllerArguments {
     let account: Account
-    var openPrivacyCheck: () -> Void = {}
     let openBlockedUsers: () -> Void
     let openLastSeenPrivacy: () -> Void
     let openGroupsPrivacy: () -> Void
@@ -104,7 +103,6 @@ public enum PrivacyAndSecurityEntryTag: ItemListItemTag {
 }
 
 private enum PrivacyAndSecurityEntry: ItemListNodeEntry {
-    case privacyCheck(PresentationTheme, String)
     case privacyHeader(PresentationTheme, String)
     case blockedPeers(PresentationTheme, String, String)
     case phoneNumberPrivacy(PresentationTheme, String, String)
@@ -141,7 +139,7 @@ private enum PrivacyAndSecurityEntry: ItemListNodeEntry {
     
     var section: ItemListSectionId {
         switch self {
-        case .privacyCheck, .blockedPeers, .activeSessions, .passcode, .twoStepVerification, .passkeys, .messageAutoremoveTimeout, .messageAutoremoveInfo:
+        case .blockedPeers, .activeSessions, .passcode, .twoStepVerification, .passkeys, .messageAutoremoveTimeout, .messageAutoremoveInfo:
             return PrivacyAndSecuritySection.general.rawValue
         case .loginEmail, .loginEmailInfo:
             return PrivacyAndSecuritySection.loginEmail.rawValue
@@ -160,8 +158,6 @@ private enum PrivacyAndSecurityEntry: ItemListNodeEntry {
     
     var stableId: Int32 {
         switch self {
-            case .privacyCheck:
-                return 0
             case .blockedPeers:
                 return 1
             case .activeSessions:
@@ -233,11 +229,6 @@ private enum PrivacyAndSecurityEntry: ItemListNodeEntry {
     
     static func ==(lhs: PrivacyAndSecurityEntry, rhs: PrivacyAndSecurityEntry) -> Bool {
         switch lhs {
-            case let .privacyCheck(lhsTheme, lhsText):
-                if case let .privacyCheck(rhsTheme, rhsText) = rhs {
-                    return lhsTheme === rhsTheme && lhsText == rhsText
-                }
-                return false
             case let .privacyHeader(lhsTheme, lhsText):
                 if case let .privacyHeader(rhsTheme, rhsText) = rhs, lhsTheme === rhsTheme, lhsText == rhsText {
                     return true
@@ -446,10 +437,6 @@ private enum PrivacyAndSecurityEntry: ItemListNodeEntry {
     func item(presentationData: ItemListPresentationData, arguments: Any) -> ListViewItem {
         let arguments = arguments as! PrivacyAndSecurityControllerArguments
         switch self {
-            case let .privacyCheck(_, text):
-                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.lockOrange, title: text, label: "", sectionId: self.section, style: .blocks, action: {
-                    arguments.openPrivacyCheck()
-                })
             case let .privacyHeader(_, text):
                 return ItemListSectionHeaderItem(presentationData: presentationData, text: text, sectionId: self.section)
             case let .blockedPeers(_, text, value):
@@ -677,7 +664,6 @@ private func privacyAndSecurityControllerEntries(
     appConfiguration: AppConfiguration
 ) -> [PrivacyAndSecurityEntry] {
     var entries: [PrivacyAndSecurityEntry] = []
-    entries.append(.privacyCheck(presentationData.theme, privacyCheckTitle(russian: ForkPresentationLanguage.prefersRussianStrings)))
     
     entries.append(.blockedPeers(presentationData.theme, presentationData.strings.Settings_BlockedUsers, blockedPeerCount == nil ? "" : (blockedPeerCount == 0 ? presentationData.strings.PrivacySettings_BlockedPeersEmpty : "\(blockedPeerCount!)")))
     if activeWebsitesCount != 0 {
@@ -1575,35 +1561,6 @@ public func privacyAndSecurityController(
         }))
     })
     
-    arguments.openPrivacyCheck = { [weak arguments] in
-        guard let arguments else { return }
-        let controller = privacyCheckController(context: context, activeSessionsContext: activeSessionsContext, settingsLoaded: { settings in
-            privacySettingsPromise.set(.single(settings))
-        }, openSetting: { subject in
-            switch subject {
-            case .phoneNumber, .phoneDiscovery:
-                arguments.openPhoneNumberPrivacy()
-            case .forwards:
-                arguments.openForwardPrivacy()
-            case .voiceCalls, .callP2P:
-                arguments.openVoiceCallPrivacy()
-            case .presence:
-                arguments.openLastSeenPrivacy()
-            case .profilePhoto:
-                arguments.openProfilePhotoPrivacy()
-            case .bio:
-                arguments.openBioPrivacy()
-            case .birthday:
-                arguments.openBirthdayPrivacy()
-            case .twoStepVerification:
-                arguments.openTwoStepVerification(nil)
-            case .activeSessions:
-                pushControllerImpl?(recentSessionsController(context: context, activeSessionsContext: activeSessionsContext, webSessionsContext: webSessionsContext, websitesOnly: false), true)
-            }
-        })
-        presentControllerImpl?(controller)
-    }
-
     actionsDisposable.add(context.engine.peers.managedUpdatedRecentPeers().start())
 
     actionsDisposable.add((privacySettingsPromise.get()
