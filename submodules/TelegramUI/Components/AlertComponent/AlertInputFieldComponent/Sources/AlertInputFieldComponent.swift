@@ -13,6 +13,15 @@ import TextFormat
 import PlainButtonComponent
 import BundleIconComponent
 
+private func alertInputFieldReplacement(text: String, range: NSRange, replacement: String, characterLimit: Int?) -> String? {
+    guard let range = Range(range, in: text) else { return nil }
+    let updatedText = text.replacingCharacters(in: range, with: replacement)
+    if let characterLimit, updatedText.count > max(0, characterLimit), updatedText.count > text.count {
+        return nil
+    }
+    return updatedText
+}
+
 public final class AlertInputFieldComponent: Component {
     public typealias EnvironmentType = AlertComponentEnvironment
     
@@ -133,6 +142,23 @@ public final class AlertInputFieldComponent: Component {
         
         private var component: AlertInputFieldComponent?
         private weak var state: EmptyComponentState?
+
+        public override init(frame: CGRect) {
+            super.init(frame: frame)
+            NotificationCenter.default.addObserver(self, selector: #selector(self.contentSizeCategoryChanged), name: UIContentSizeCategory.didChangeNotification, object: nil)
+        }
+
+        public required init?(coder: NSCoder) {
+            preconditionFailure()
+        }
+
+        deinit {
+            NotificationCenter.default.removeObserver(self)
+        }
+
+        @objc private func contentSizeCategoryChanged() {
+            self.state?.updated(transition: .immediate)
+        }
         
         private var isUpdating = false
         
@@ -161,6 +187,10 @@ public final class AlertInputFieldComponent: Component {
         }
         
         @objc private func textDidChange() {
+            if self.textField.markedTextRange == nil, let characterLimit = self.component?.characterLimit,
+               self.currentText.count > max(0, characterLimit) {
+                self.textField.text = String(self.currentText.prefix(max(0, characterLimit)))
+            }
             if !self.isUpdating {
                 self.state?.updated(transition: .immediate)
             }
@@ -181,13 +211,15 @@ public final class AlertInputFieldComponent: Component {
             
             if self.clearOnce {
                 self.clearOnce = false
-                if range.length > string.count {
-                    textField.text = ""
+                if range.length > string.utf16.count {
+                    self.setText(text: "")
                     return false
                 }
             }
             
-            let updatedText = ((textField.text ?? "") as NSString).replacingCharacters(in: range, with: string)
+            guard let updatedText = alertInputFieldReplacement(text: textField.text ?? "", range: range, replacement: string, characterLimit: textField.markedTextRange == nil ? component.characterLimit : nil) else {
+                return false
+            }
             if let shouldChangeText = component.shouldChangeText {
                 return shouldChangeText(updatedText)
             }
@@ -244,23 +276,32 @@ public final class AlertInputFieldComponent: Component {
             if self.textField.returnKeyType != component.returnKeyType {
                 self.textField.returnKeyType = component.returnKeyType
             }
-            self.textField.keyboardAppearance = environment.theme.overallDarkAppearance ? .dark : .light
+            let keyboardAppearance: UIKeyboardAppearance = environment.theme.overallDarkAppearance ? .dark : .light
+            let reloadKeyboard = self.textField.keyboardAppearance != keyboardAppearance || self.textField.keyboardType != component.keyboardType
+            self.textField.keyboardAppearance = keyboardAppearance
+            self.textField.keyboardType = component.keyboardType
+            if reloadKeyboard && self.textField.isFirstResponder {
+                self.textField.reloadInputViews()
+            }
+            self.textField.accessibilityLabel = component.placeholder
             if let resetText {
                 self.textField.text = resetText
             }
             
-            self.textField.font = Font.regular(17.0)
+            let usesMessages = environment.theme.isMessagesTheme
+            let font = usesMessages ? UIFont.preferredFont(forTextStyle: .body) : Font.regular(17.0)
+            self.textField.font = font
             self.textField.textColor = environment.theme.actionSheet.primaryTextColor
             self.textField.tintColor = environment.theme.actionSheet.controlAccentColor
             self.textField.sideInset = 16.0
             
             let backgroundPadding: CGFloat = 14.0
-            let size = CGSize(width: availableSize.width, height: 50.0)
+            let size = CGSize(width: availableSize.width, height: usesMessages ? max(50.0, font.lineHeight + 28.0) : 50.0)
             
             let backgroundSize = self.background.update(
                 transition: transition,
                 component: AnyComponent(
-                    FilledRoundedRectangleComponent(color: environment.theme.actionSheet.primaryTextColor.withMultipliedAlpha(0.1), cornerRadius: .value(25.0), smoothCorners: false)
+                    FilledRoundedRectangleComponent(color: environment.theme.actionSheet.primaryTextColor.withMultipliedAlpha(0.1), cornerRadius: .value(usesMessages ? MessagesAppearanceMetrics.actionRadius(height: size.height) : 25.0), smoothCorners: false)
                 ),
                 environment: {},
                 containerSize: CGSize(width: size.width + backgroundPadding * 2.0, height: size.height)
@@ -273,7 +314,7 @@ public final class AlertInputFieldComponent: Component {
                 transition.setFrame(view: backgroundView, frame: backgroundFrame)
             }
             
-            let textFieldSize = CGSize(width: availableSize.width + (component.hasClearButton ? -24.0 : 24.0), height: 50.0)
+            let textFieldSize = CGSize(width: max(0.0, availableSize.width + (component.hasClearButton ? -24.0 : 24.0)), height: size.height)
             let textFieldFrame = CGRect(origin: CGPoint(x: -12.0, y: topInset), size: textFieldSize)
             transition.setFrame(view: self.textField, frame: textFieldFrame)
             
@@ -282,12 +323,12 @@ public final class AlertInputFieldComponent: Component {
                 component: AnyComponent(
                     MultilineTextComponent(text: .plain(NSAttributedString(
                         string: component.placeholder,
-                        font: Font.regular(17.0),
+                        font: font,
                         textColor: environment.theme.actionSheet.primaryTextColor.withMultipliedAlpha(0.4)
                     )))
                 ),
                 environment: {},
-                containerSize: CGSize(width: size.width, height: 50.0)
+                containerSize: CGSize(width: max(0.0, textFieldSize.width - self.textField.sideInset * 2.0), height: size.height)
             )
             let placeholderFrame = CGRect(origin: CGPoint(x: 4.0, y: floorToScreenPixels(textFieldFrame.midY - placeholderSize.height / 2.0)), size: placeholderSize)
             if let placeholderView = self.placeholder.view {
@@ -295,6 +336,7 @@ public final class AlertInputFieldComponent: Component {
                     placeholderView.isUserInteractionEnabled = false
                     self.addSubview(placeholderView)
                 }
+                placeholderView.accessibilityElementsHidden = true
                 placeholderView.frame = placeholderFrame
                 placeholderView.isHidden = !self.currentText.isEmpty
             }
@@ -326,6 +368,8 @@ public final class AlertInputFieldComponent: Component {
                         self.addSubview(clearButtonView)
                     }
                     transition.setFrame(view: clearButtonView, frame: CGRect(origin: CGPoint(x: availableSize.width - clearButtonSize.width + 11.0, y: topInset + floor((size.height - clearButtonSize.height) * 0.5)), size: clearButtonSize))
+                    clearButtonView.accessibilityLabel = environment.strings.VoiceOver_Editing_ClearText
+                    clearButtonView.accessibilityTraits = .button
                     clearButtonView.isHidden = self.currentText.isEmpty || !self.textField.isFirstResponder
                 }
             } else if let clearButtonView = self.clearButton.view, clearButtonView.superview != nil {

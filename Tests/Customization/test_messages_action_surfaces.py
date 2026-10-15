@@ -11,6 +11,46 @@ from test_messages_screen_states import member, run_swift
 
 class MessagesActionSurfaces(unittest.TestCase):
     @unittest.skipUnless(shutil.which('swift'), 'Swift unavailable locally; executes in macOS CI')
+    def test_production_alert_input_validates_utf16_ranges_and_character_limits(self):
+        source = read('submodules/TelegramUI/Components/AlertComponent/AlertInputFieldComponent/Sources/AlertInputFieldComponent.swift')
+        fixture = 'import Foundation\n' + member(source, 'private func alertInputFieldReplacement(')
+        fixture += """
+precondition(alertInputFieldReplacement(text: "Привет", range: NSRange(location: 6, length: 0), replacement: "!", characterLimit: 6) == nil)
+precondition(alertInputFieldReplacement(text: "Привет", range: NSRange(location: 0, length: 6), replacement: "Hello", characterLimit: 6) == "Hello")
+precondition(alertInputFieldReplacement(text: "🎃", range: NSRange(location: 0, length: 2), replacement: "👨‍👩‍👧‍👦", characterLimit: 1) == "👨‍👩‍👧‍👦")
+precondition(alertInputFieldReplacement(text: "🎃", range: NSRange(location: 1, length: 0), replacement: "x", characterLimit: nil) == nil)
+precondition(alertInputFieldReplacement(text: "x", range: NSRange(location: 5, length: 20), replacement: "y", characterLimit: nil) == nil)
+precondition(alertInputFieldReplacement(text: "", range: NSRange(location: 0, length: 0), replacement: "x", characterLimit: -1) == nil)
+precondition(alertInputFieldReplacement(text: "long", range: NSRange(location: 3, length: 1), replacement: "", characterLimit: 1) == "lon")
+precondition(alertInputFieldReplacement(text: "", range: NSRange(location: 0, length: 0), replacement: "unlimited", characterLimit: nil) == "unlimited")
+"""
+        run_swift(fixture)
+
+    def test_alert_form_inputs_keep_keyboard_validation_and_initial_check_state(self):
+        base = 'submodules/TelegramUI/Components/AlertComponent/'
+        single = read(base + 'AlertInputFieldComponent/Sources/AlertInputFieldComponent.swift')
+        for contract in ('self.textField.keyboardType = component.keyboardType',
+                         'self.textField.reloadInputViews()',
+                         'self.textField.accessibilityLabel = component.placeholder',
+                         'clearButtonView.accessibilityLabel = environment.strings.VoiceOver_Editing_ClearText',
+                         'textField.markedTextRange == nil ? component.characterLimit : nil',
+                         'self.currentText.prefix(max(0, characterLimit))',
+                         'return shouldChangeText(updatedText)',
+                         'self.setText(text: "")'):
+            self.assertIn(contract, single)
+        for name in ('AlertInputFieldComponent', 'AlertMultilineInputFieldComponent', 'AlertCheckComponent'):
+            body = read(base + name + '/Sources/' + name + '.swift')
+            self.assertIn('UIContentSizeCategory.didChangeNotification', body)
+            self.assertIn('UIFont.preferredFont(forTextStyle:', body)
+            self.assertIn('NotificationCenter.default.removeObserver(self)', body)
+        check = read(base + 'AlertCheckComponent/Sources/AlertCheckComponent.swift')
+        self.assertIn('lhs.title != rhs.title', check)
+        self.assertIn('lhs.externalState !== rhs.externalState', check)
+        initial = member(check, 'if self.component?.externalState !== component.externalState {')
+        self.assertLess(initial.index('self.valuePromise.set(component.initialValue)'), initial.index('component.externalState.valuePromise.set(self.valuePromise.get())'))
+        self.assertIn('buttonView.accessibilityTraits = component.externalState.value ? [.button, .selected] : [.button]', check)
+
+    @unittest.skipUnless(shutil.which('swift'), 'Swift unavailable locally; executes in macOS CI')
     def test_production_alerts_and_sheets_cannot_execute_disabled_actions(self):
         action = read('submodules/TelegramUI/Components/AlertComponent/Sources/AlertActionComponent.swift')
         alert = read('submodules/TelegramUI/Components/AlertComponent/Sources/AlertComponent.swift')

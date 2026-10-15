@@ -223,6 +223,23 @@ public final class AlertMultilineInputFieldComponent: Component {
         
         private var component: AlertMultilineInputFieldComponent?
         private weak var state: EmptyComponentState?
+
+        public override init(frame: CGRect) {
+            super.init(frame: frame)
+            NotificationCenter.default.addObserver(self, selector: #selector(self.contentSizeCategoryChanged), name: UIContentSizeCategory.didChangeNotification, object: nil)
+        }
+
+        public required init?(coder: NSCoder) {
+            preconditionFailure()
+        }
+
+        deinit {
+            NotificationCenter.default.removeObserver(self)
+        }
+
+        @objc private func contentSizeCategoryChanged() {
+            self.state?.updated(transition: .immediate)
+        }
         
         func activateInput() {
             if let textFieldView = self.textField.view as? TextFieldComponent.View {
@@ -261,6 +278,8 @@ public final class AlertMultilineInputFieldComponent: Component {
             
             let environment = environment[AlertComponentEnvironment.self]
             
+            let usesMessages = environment.theme.isMessagesTheme
+            let font = usesMessages ? UIFont.preferredFont(forTextStyle: .body) : Font.regular(17.0)
             let maxHeight = component.maxHeight.map { max(0.0, $0) }
             let topInset: CGFloat = min(15.0, maxHeight ?? 15.0)
             let horizontalInset: CGFloat = 4.0
@@ -290,7 +309,7 @@ public final class AlertMultilineInputFieldComponent: Component {
                     theme: environment.theme,
                     strings: environment.strings,
                     externalState: self.textFieldExternalState,
-                    fontSize: 17.0,
+                    fontSize: font.pointSize,
                     textColor: environment.theme.actionSheet.primaryTextColor,
                     accentColor: environment.theme.actionSheet.controlAccentColor,
                     insets: UIEdgeInsets(top: 4.0, left: 0.0, bottom: 4.0, right: 0.0),
@@ -335,7 +354,7 @@ public final class AlertMultilineInputFieldComponent: Component {
             let backgroundSize = self.background.update(
                 transition: transition,
                 component: AnyComponent(
-                    FilledRoundedRectangleComponent(color: environment.theme.actionSheet.primaryTextColor.withMultipliedAlpha(0.1), cornerRadius: .value(25.0), smoothCorners: false)
+                    FilledRoundedRectangleComponent(color: environment.theme.actionSheet.primaryTextColor.withMultipliedAlpha(0.1), cornerRadius: .value(usesMessages ? MessagesAppearanceMetrics.actionRadius(height: size.height) : 25.0), smoothCorners: false)
                 ),
                 environment: {},
                 containerSize: CGSize(width: size.width + backgroundPadding * 2.0, height: size.height)
@@ -362,12 +381,12 @@ public final class AlertMultilineInputFieldComponent: Component {
                 component: AnyComponent(
                     MultilineTextComponent(text: .plain(NSAttributedString(
                         string: component.placeholder,
-                        font: Font.regular(17.0),
+                        font: font,
                         textColor: environment.theme.actionSheet.primaryTextColor.withMultipliedAlpha(0.4)
                     )))
                 ),
                 environment: {},
-                containerSize: CGSize(width: size.width, height: 50.0)
+                containerSize: CGSize(width: size.width, height: max(0.0, size.height))
             )
             let placeholderFrame = CGRect(origin: CGPoint(x: 4.0, y: floorToScreenPixels(textFieldFrame.midY - placeholderSize.height / 2.0)), size: placeholderSize)
             if let placeholderView = self.placeholder.view {
@@ -375,6 +394,7 @@ public final class AlertMultilineInputFieldComponent: Component {
                     placeholderView.isUserInteractionEnabled = false
                     self.addSubview(placeholderView)
                 }
+                placeholderView.accessibilityElementsHidden = true
                 placeholderView.frame = placeholderFrame
                 placeholderView.isHidden = self.textFieldExternalState.hasText
             }

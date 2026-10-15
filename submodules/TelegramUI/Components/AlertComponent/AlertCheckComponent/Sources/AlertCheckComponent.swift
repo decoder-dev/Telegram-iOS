@@ -52,6 +52,9 @@ public final class AlertCheckComponent: Component {
     }
     
     public static func ==(lhs: AlertCheckComponent, rhs: AlertCheckComponent) -> Bool {
+        if lhs.title != rhs.title || lhs.initialValue != rhs.initialValue || lhs.externalState !== rhs.externalState || (lhs.linkAction == nil) != (rhs.linkAction == nil) {
+            return false
+        }
         if lhs.alignment != rhs.alignment {
             return false
         }
@@ -63,6 +66,23 @@ public final class AlertCheckComponent: Component {
         
         private var component: AlertCheckComponent?
         private weak var state: EmptyComponentState?
+
+        public override init(frame: CGRect) {
+            super.init(frame: frame)
+            NotificationCenter.default.addObserver(self, selector: #selector(self.contentSizeCategoryChanged), name: UIContentSizeCategory.didChangeNotification, object: nil)
+        }
+
+        public required init?(coder: NSCoder) {
+            preconditionFailure()
+        }
+
+        deinit {
+            NotificationCenter.default.removeObserver(self)
+        }
+
+        @objc private func contentSizeCategoryChanged() {
+            self.state?.updated(transition: .immediate)
+        }
         
         private var isUpdating = false
         
@@ -98,8 +118,9 @@ public final class AlertCheckComponent: Component {
             defer {
                 self.isUpdating = false
             }
-            if self.component == nil {
+            if self.component?.externalState !== component.externalState {
                 component.externalState.value = component.initialValue
+                self.valuePromise.set(component.initialValue)
                 component.externalState.valuePromise.set(self.valuePromise.get())
             }
             self.component = component
@@ -116,8 +137,9 @@ public final class AlertCheckComponent: Component {
                 hasShadow: false
             )
             
-            let textFont = Font.regular(15.0)
-            let boldTextFont = Font.semibold(15.0)
+            let fontSize = environment.theme.isMessagesTheme ? UIFont.preferredFont(forTextStyle: .subheadline).pointSize : 15.0
+            let textFont = Font.regular(fontSize)
+            let boldTextFont = Font.semibold(fontSize)
             let textColor = environment.theme.actionSheet.primaryTextColor
             let linkColor = environment.theme.actionSheet.controlAccentColor
             let markdownAttributes = MarkdownAttributes(
@@ -191,6 +213,8 @@ public final class AlertCheckComponent: Component {
                 if buttonView.superview == nil {
                     self.addSubview(buttonView)
                 }
+                buttonView.accessibilityLabel = parseMarkdownIntoAttributedString(component.title, attributes: markdownAttributes).string
+                buttonView.accessibilityTraits = component.externalState.value ? [.button, .selected] : [.button]
                 transition.setFrame(view: buttonView, frame: buttonFrame)
             }
             
