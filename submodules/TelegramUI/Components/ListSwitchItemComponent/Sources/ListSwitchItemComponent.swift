@@ -47,17 +47,19 @@ public final class ListSwitchItemComponent: Component {
         
         override init(frame: CGRect) {
             super.init(frame: frame)
+            NotificationCenter.default.addObserver(self, selector: #selector(self.contentSizeCategoryChanged), name: UIContentSizeCategory.didChangeNotification, object: nil)
         }
         
         required init(coder: NSCoder) {
             preconditionFailure()
         }
         
-        override public func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
-            super.traitCollectionDidChange(previousTraitCollection)
-            if self.component?.theme.isMessagesTheme == true, previousTraitCollection?.preferredContentSizeCategory != self.traitCollection.preferredContentSizeCategory {
-                self.state?.updated(transition: .immediate)
-            }
+        deinit {
+            NotificationCenter.default.removeObserver(self)
+        }
+
+        @objc private func contentSizeCategoryChanged() {
+            if self.component?.theme.isMessagesTheme == true { self.state?.updated(transition: .immediate) }
         }
 
         func update(component: ListSwitchItemComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {

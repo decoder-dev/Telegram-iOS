@@ -154,6 +154,7 @@ public final class ListTextFieldItemComponent: Component {
             self.textField = TextField()
 
             super.init(frame: CGRect())
+            NotificationCenter.default.addObserver(self, selector: #selector(self.contentSizeCategoryChanged), name: UIContentSizeCategory.didChangeNotification, object: nil)
         }
         
         required public init?(coder: NSCoder) {
@@ -222,11 +223,12 @@ public final class ListTextFieldItemComponent: Component {
             self.state?.updated(transition: .immediate)
         }
         
-        override public func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
-            super.traitCollectionDidChange(previousTraitCollection)
-            if self.component?.theme.isMessagesTheme == true, previousTraitCollection?.preferredContentSizeCategory != self.traitCollection.preferredContentSizeCategory {
-                self.state?.updated(transition: .immediate)
-            }
+        deinit {
+            NotificationCenter.default.removeObserver(self)
+        }
+
+        @objc private func contentSizeCategoryChanged() {
+            if self.component?.theme.isMessagesTheme == true { self.state?.updated(transition: .immediate) }
         }
 
         func update(component: ListTextFieldItemComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
@@ -264,9 +266,13 @@ public final class ListTextFieldItemComponent: Component {
             let themeUpdated = component.theme !== previousComponent?.theme
             
             let font = component.theme.isMessagesTheme ? UIFont.preferredFont(forTextStyle: .body) : Font.regular(17.0)
-            self.textField.font = font
+            if self.textField.font != font { self.textField.font = font }
             self.textField.tintColor = component.theme.list.itemAccentColor
-            self.textField.keyboardAppearance = component.theme.overallDarkAppearance ? .dark : .light
+            let keyboardAppearance: UIKeyboardAppearance = component.theme.overallDarkAppearance ? .dark : .light
+            if self.textField.keyboardAppearance != keyboardAppearance {
+                self.textField.keyboardAppearance = keyboardAppearance
+                if self.textField.isFirstResponder { self.textField.reloadInputViews() }
+            }
             self.textField.accessibilityLabel = component.placeholder
             if themeUpdated {
                 self.textField.textColor = component.theme.list.itemPrimaryTextColor

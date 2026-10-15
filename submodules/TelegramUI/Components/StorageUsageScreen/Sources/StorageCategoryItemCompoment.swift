@@ -118,6 +118,7 @@ final class StorageCategoryItemComponent: Component {
             self.subcategoryClippingContainer.clipsToBounds = true
             
             super.init(frame: frame)
+            NotificationCenter.default.addObserver(self, selector: #selector(self.contentSizeCategoryChanged), name: UIContentSizeCategory.didChangeNotification, object: nil)
             self.isAccessibilityElement = false
             self.checkButtonArea.isAccessibilityElement = false
             self.selectionAccessibilityElement.isAccessibilityElement = true
@@ -188,11 +189,12 @@ final class StorageCategoryItemComponent: Component {
             component.action(component.category.key, .toggle)
         }
 
-        override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
-            super.traitCollectionDidChange(previousTraitCollection)
-            if self.component?.theme.isMessagesTheme == true, previousTraitCollection?.preferredContentSizeCategory != self.traitCollection.preferredContentSizeCategory {
-                self.state?.updated(transition: .immediate)
-            }
+        deinit {
+            NotificationCenter.default.removeObserver(self)
+        }
+
+        @objc private func contentSizeCategoryChanged() {
+            if self.component?.theme.isMessagesTheme == true { self.state?.updated(transition: .immediate) }
         }
         
         override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {

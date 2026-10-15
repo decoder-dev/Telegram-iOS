@@ -10,13 +10,99 @@ from test_messages_screen_states import member, run_swift
 
 
 class MessagesActionSurfaces(unittest.TestCase):
+    @unittest.skipUnless(shutil.which('swift'), 'Swift unavailable locally; executes in macOS CI')
+    def test_production_gradient_stops_for_invalid_data_hidden_views_and_reduced_motion(self):
+        source = read('submodules/TelegramUI/Components/ButtonComponent/Sources/ButtonComponent.swift')
+        fixture = 'import Foundation\nimport CoreGraphics\n'
+        fixture += member(source, 'private func buttonGradientLocations(') + '\n'
+        fixture += member(source, 'private func buttonGradientCanAnimate(') + '\n'
+        fixture += '''
+for count in [-1, 0, 1, 2, 3, 8, 30] {
+    let locations = buttonGradientLocations(colorCount: count)
+    precondition(locations.count == max(0, count))
+    precondition(locations.allSatisfy { $0.isFinite && $0 >= 0 && $0 <= 1 })
+    if count > 1 {
+        precondition(locations.first == 0 && abs(locations.last! - 1) < 0.001)
+        precondition(locations == locations.sorted())
+    }
+    for duration in [-Double.infinity, Double.nan, -2, 0, 0.1, 4.5, Double.infinity] {
+        for hasWindow in [false, true] {
+            for reduced in [false, true] {
+                let animate = buttonGradientCanAnimate(colorCount: count, duration: duration, hasWindow: hasWindow, reduceMotion: reduced)
+                precondition(animate == (count > 1 && duration.isFinite && duration > 0 && hasWindow && !reduced))
+            }
+        }
+    }
+}
+'''
+        run_swift(fixture)
+        self.assertIn('guard self.currentGradient == gradient, self.currentSize == size else { return }', source)
+        self.assertIn('if gradient.colors.count < 2', source)
+        self.assertIn('override func didMoveToWindow()', source)
+        self.assertIn('if foregroundChanged { activityIndicator.type = .custom(component.background.foreground', source)
+        self.assertIn('UIAccessibility.reduceMotionStatusDidChangeNotification', source)
+
+    def test_recipient_field_refreshes_presentation_without_replacing_the_editor(self):
+        source = read('submodules/TelegramUI/Components/TokenListTextField/Sources/EditableTokenListNode.swift')
+        refresh = member(source, 'func updatePresentation(')
+        self.assertNotIn('.textField.text =', refresh)
+        self.assertNotIn('resignFirstResponder', refresh)
+        self.assertNotIn('selectedTokenId =', refresh)
+        self.assertIn('self.presentationTheme !== presentationTheme', refresh)
+        self.assertIn('self.textFieldNode.textField.reloadInputViews()', refresh)
+        self.assertIn('node.token.title == token.title', source)
+        self.assertIn('currentOffset.y += currentRowHeight', source)
+        self.assertIn('width - currentOffset.x - rightSideInset - 8.0', source)
+        self.assertIn('tokenNode.activate = { [weak self, weak tokenNode]', source)
+        self.assertIn('self.deleteToken?(tokenNode.token.id)', source)
+        wrapper = read('submodules/TelegramUI/Components/TokenListTextField/Sources/TokenListTextField.swift')
+        self.assertIn('tokenListNode.updatePresentation(presentationTheme: component.theme, theme: tokenTheme, placeholder: component.placeholder)', wrapper)
+
+    @unittest.skipUnless(shutil.which('swift'), 'Swift unavailable locally; executes in macOS CI')
+    def test_production_recipient_chip_bounds_with_long_names_and_large_text(self):
+        source = read('submodules/TelegramUI/Components/TokenListTextField/Sources/EditableTokenListNode.swift')
+        fixture = '''import Foundation
+import CoreGraphics
+class Label {
+    var width: CGFloat = 0
+    var height: CGFloat = 18
+    func measure(_ size: CGSize) -> CGSize { CGSize(width: min(width, size.width), height: height) }
+}
+class Emoji {
+    var supernode: Int?
+    func updateLayout(_ size: CGSize) -> CGSize { .zero }
+}
+class Harness {
+    let titleNode = Label()
+    let emojiTextNode = Emoji()
+'''
+        fixture += member(source, 'override func calculateSizeThatFits(').replace('override func', 'func') + '\n}\n'
+        fixture += '''
+let view = Harness()
+for width: CGFloat in [64, 120, 200, 300] {
+    for textWidth: CGFloat in [0, 40, 10000] {
+        for textHeight: CGFloat in [18, 40, 90] {
+            for emoji in [false, true] {
+                view.titleNode.width = textWidth
+                view.titleNode.height = textHeight
+                view.emojiTextNode.supernode = emoji ? 1 : nil
+                let size = view.calculateSizeThatFits(CGSize(width: width, height: 1000))
+                precondition(size.width <= width && size.width >= 0)
+                precondition(size.height >= textHeight + 10 && size.height >= 28)
+            }
+        }
+    }
+}
+'''
+        run_swift(fixture)
+
     def test_shared_form_controls_scale_and_keep_localized_accessible_actions(self):
         field = read('submodules/TelegramUI/Components/ListTextFieldItemComponent/Sources/ListTextFieldItemComponent.swift')
         for contract in ('UIFont.preferredFont(forTextStyle: .body)',
                          'component.hasClearButton ? 44.0 : 0.0',
                          'counterIsVisible ? counterWidth + 8.0 : 0.0',
                          'self.textField.accessibilityLabel = component.placeholder',
-                         'self.textField.keyboardAppearance = component.theme.overallDarkAppearance ? .dark : .light',
+                         'let keyboardAppearance: UIKeyboardAppearance = component.theme.overallDarkAppearance ? .dark : .light',
                          '(component.strings ?? defaultPresentationStrings).VoiceOver_Editing_ClearText'):
             self.assertIn(contract, field)
         toggle = read('submodules/TelegramUI/Components/SwitchComponent/Sources/SwitchComponent.swift')

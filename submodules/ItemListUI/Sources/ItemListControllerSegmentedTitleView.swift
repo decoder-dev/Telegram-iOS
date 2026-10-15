@@ -56,6 +56,7 @@ public final class ItemListControllerSegmentedTitleView: UIView {
         self.backgroundView = GlassBackgroundView()
         
         super.init(frame: CGRect())
+        NotificationCenter.default.addObserver(self, selector: #selector(self.contentSizeCategoryChanged), name: UIContentSizeCategory.didChangeNotification, object: nil)
         
         self.addSubview(self.backgroundContainer)
         self.backgroundContainer.contentView.addSubview(self.backgroundView)
@@ -75,11 +76,12 @@ public final class ItemListControllerSegmentedTitleView: UIView {
         self.indexUpdated?(index)
     }
 
-    override public func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
-        super.traitCollectionDidChange(previousTraitCollection)
-        if previousTraitCollection?.preferredContentSizeCategory != self.traitCollection.preferredContentSizeCategory {
-            self.setNeedsLayout()
-        }
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    @objc private func contentSizeCategoryChanged() {
+        self.setNeedsLayout()
     }
     
     override public func layoutSubviews() {

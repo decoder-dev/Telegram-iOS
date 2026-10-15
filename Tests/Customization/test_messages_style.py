@@ -61,7 +61,7 @@ for requested: CGFloat in [-20, 0, 8, 14, 26, 50] {
 
     def test_shared_section_switch_preserves_callbacks_and_theme_changes(self):
         source = read('submodules/ItemListUI/Sources/ItemListControllerSegmentedTitleView.swift')
-        for contract in ('self.messagesControl.isHidden = !usesMessages', 'self.backgroundContainer.isHidden = usesMessages', 'self.messagesControl.removeAllSegments()', 'UISegmentedControl.noSegment', 'self.indexUpdated?(index)', 'self.segments.indices.contains(index)', '(44.0 - self.bounds.height) * 0.5', 'preferredContentSizeCategory'):
+        for contract in ('self.messagesControl.isHidden = !usesMessages', 'self.backgroundContainer.isHidden = usesMessages', 'self.messagesControl.removeAllSegments()', 'UISegmentedControl.noSegment', 'self.indexUpdated?(index)', 'self.segments.indices.contains(index)', '(44.0 - self.bounds.height) * 0.5', 'UIContentSizeCategory.didChangeNotification'):
             self.assertIn(contract, source)
         self.assertIn('HorizontalTabsComponent(', source)
 

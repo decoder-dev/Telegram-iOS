@@ -292,7 +292,7 @@ public final class ButtonTextContentComponent: Component {
                         self.addSubview(badgeView)
                     }
                     
-                    if animateIn {
+                    if animateIn && !UIAccessibility.isReduceMotionEnabled {
                         badgeView.frame = badgeFrame
                     } else {
                         transition.setFrame(view: badgeView, frame: badgeFrame)
@@ -515,6 +515,7 @@ public final class ButtonComponent: Component {
             
             super.init(frame: frame)
             
+            NotificationCenter.default.addObserver(self, selector: #selector(self.motionPreferenceChanged), name: UIAccessibility.reduceMotionStatusDidChangeNotification, object: nil)
             self.button.isExclusiveTouch = true
             self.layer.rasterizationScale = UIScreenScale
             
@@ -546,6 +547,14 @@ public final class ButtonComponent: Component {
                     }
                 }
             }
+        }
+
+        deinit {
+            NotificationCenter.default.removeObserver(self)
+        }
+
+        @objc private func motionPreferenceChanged() {
+            self.componentState?.updated(transition: .immediate)
         }
 
         required init(coder: NSCoder) {
@@ -677,6 +686,8 @@ public final class ButtonComponent: Component {
         }
 
         func update(component: ButtonComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
+            let foregroundChanged = self.component?.background.foreground != component.background.foreground
+            let transition = UIAccessibility.isReduceMotionEnabled ? transition.withAnimation(.none) : transition
             self.component = component
             self.componentState = state
 
@@ -823,6 +834,7 @@ public final class ButtonComponent: Component {
                     self.activityIndicator = activityIndicator
                     contentContainerView.addSubview(activityIndicator.view)
                 }
+                if foregroundChanged { activityIndicator.type = .custom(component.background.foreground, 22.0, 2.0, true) }
                 let indicatorSize = CGSize(width: 22.0, height: 22.0)
                 transition.setAlpha(view: activityIndicator.view, alpha: 1.0)
                 activityIndicatorTransition.setFrame(view: activityIndicator.view, frame: CGRect(origin: CGPoint(x: floorToScreenPixels((size.width - indicatorSize.width) / 2.0), y: floorToScreenPixels((size.height - indicatorSize.height) / 2.0)), size: indicatorSize))
@@ -835,7 +847,7 @@ public final class ButtonComponent: Component {
                 }
             }
             
-            if component.background.isShimmering {
+            if component.background.isShimmering && !UIAccessibility.isReduceMotionEnabled {
                 let shimmeringView: ButtonShimmeringView
                 var shimmeringTransition = transition
                 if let current = self.shimmeringView {
@@ -906,12 +918,23 @@ public final class ButtonComponent: Component {
     }
 }
 
+private func buttonGradientLocations(colorCount: Int) -> [CGFloat] {
+    guard colorCount > 1 else { return colorCount == 1 ? [0.0] : [] }
+    let denominator = CGFloat(colorCount - 1)
+    return (0 ..< colorCount).map { CGFloat($0) / denominator }
+}
+
+private func buttonGradientCanAnimate(colorCount: Int, duration: Double, hasWindow: Bool, reduceMotion: Bool) -> Bool {
+    return colorCount > 1 && duration.isFinite && duration > 0.0 && hasWindow && !reduceMotion
+}
+
 private final class AnimatedGradientBackgroundView: UIView {
     private let backgroundView: UIImageView
     private var animationView: UIImageView?
 
     private var currentGradient: ButtonComponent.Background.Gradient?
     private var currentImageHeight: CGFloat?
+    private var currentSize: CGSize?
 
     override init(frame: CGRect) {
         self.backgroundView = UIImageView()
@@ -934,7 +957,15 @@ private final class AnimatedGradientBackgroundView: UIView {
         preconditionFailure()
     }
 
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        if let gradient = self.currentGradient, let size = self.currentSize {
+            self.setupGradientAnimations(size: size, gradient: gradient)
+        }
+    }
+
     func update(size: CGSize, gradient: ButtonComponent.Background.Gradient, cornerRadius: CGFloat, transition: ComponentTransition) {
+        self.currentSize = size
         let bounds = CGRect(origin: .zero, size: size)
 
         transition.setCornerRadius(layer: self.layer, cornerRadius: cornerRadius)
@@ -943,13 +974,12 @@ private final class AnimatedGradientBackgroundView: UIView {
 
         let imageHeight = max(1.0, size.height)
         if self.currentGradient != gradient || self.currentImageHeight != imageHeight || self.backgroundView.image == nil {
-            var locations: [CGFloat] = []
-            let delta = 1.0 / CGFloat(gradient.colors.count - 1)
-            for i in 0 ..< gradient.colors.count {
-                locations.append(delta * CGFloat(i))
+            let image: UIImage?
+            if gradient.colors.count < 2 {
+                image = generateSingleColorImage(size: CGSize(width: 200.0, height: imageHeight), color: gradient.colors.first ?? .clear)
+            } else {
+                image = generateGradientImage(size: CGSize(width: 200.0, height: imageHeight), colors: gradient.colors, locations: buttonGradientLocations(colorCount: gradient.colors.count), direction: .horizontal)
             }
-
-            let image = generateGradientImage(size: CGSize(width: 200.0, height: imageHeight), colors: gradient.colors, locations: locations, direction: .horizontal)
             self.backgroundView.image = image
             self.animationView?.image = image
             self.animationView?.layer.removeAnimation(forKey: "movement")
@@ -986,6 +1016,13 @@ private final class AnimatedGradientBackgroundView: UIView {
             duration = value
         }
 
+        guard self.currentGradient == gradient, self.currentSize == size else { return }
+        guard buttonGradientCanAnimate(colorCount: gradient.colors.count, duration: duration, hasWindow: self.window != nil, reduceMotion: UIAccessibility.isReduceMotionEnabled) else {
+            animationView.layer.removeAnimation(forKey: "movement")
+            animationView.isHidden = true
+            return
+        }
+        animationView.isHidden = false
         if animationView.layer.animation(forKey: "movement") == nil {
             let offset = (animationView.bounds.width - size.width) / 2.0
             let previousValue = animationView.center.x
