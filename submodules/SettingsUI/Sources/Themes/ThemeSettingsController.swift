@@ -157,10 +157,11 @@ private enum ThemeSettingsControllerEntry: ItemListNodeEntry {
         switch self {
         case let .themeButton(_, reference, _, _):
             switch reference {
-            case .builtin(.day), .builtin(.dayClassic): return -4
-            case .builtin(.night): return -3
-            case .builtin(.bananaGramCream): return -2
-            case .builtin(.bananaGramGraphite): return -1
+            case .builtin(.day), .builtin(.dayClassic): return -5
+            case .builtin(.night): return -4
+            case .builtin(.bananaGramCream): return -3
+            case .builtin(.bananaGramGraphite): return -2
+            case .builtin(.bananaGramHalloween): return -1
             default: return 0
             }
         case .themeListHeader:
@@ -427,7 +428,8 @@ private func themeSettingsControllerEntries(
         (.day, "Classic White"),
         (.night, "Classic Black"),
         (.bananaGramCream, "BananaGram Cream"),
-        (.bananaGramGraphite, "BananaGram Graphite")
+        (.bananaGramGraphite, "BananaGram Graphite"),
+        (.bananaGramHalloween, "BananaGram Halloween")
     ]
     for (builtin, title) in themeButtons {
         let isSelected = themeReference == .builtin(builtin) || (builtin == .day && themeReference == .builtin(.dayClassic))
@@ -1273,7 +1275,7 @@ public func themeSettingsController(context: AccountContext, focusOnItemTag: The
                 if case let .cloud(info) = updatedTheme, info.theme.settings?.contains(where: { $0.baseTheme == .night || $0.baseTheme == .tinted }) ?? false {
                     updatedAutomaticThemeSwitchSetting.theme = updatedTheme
                 } else if case let .builtin(theme) = updatedTheme {
-                    if [.day, .dayClassic].contains(theme) {
+                    if theme.baseTheme == .day || theme.baseTheme == .classic {
                         if updatedAutomaticThemeSwitchSetting.theme.emoticon != nil || [.builtin(.dayClassic), .builtin(.day)].contains(updatedAutomaticThemeSwitchSetting.theme.generalThemeReference) {
                             updatedAutomaticThemeSwitchSetting.theme = .builtin(.night)
                         }

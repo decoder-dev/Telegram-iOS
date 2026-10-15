@@ -4,6 +4,7 @@ import SwiftSignalKit
 import TelegramApi
 import TelegramCore
 import TelegramUIPreferences
+import TelegramPresentationData
 import PersistentStringHash
 
 public final class CachedWallpaper: Codable {
@@ -27,6 +28,10 @@ public final class CachedWallpaper: Codable {
 }
 
 public func cachedWallpaper(engine: TelegramEngine, network: Network, slug: String, settings: WallpaperSettings?, update: Bool = false) -> Signal<CachedWallpaper?, NoError> {
+    if slug == "bananagram-halloween-v1" {
+        let wallpaper = makeDefaultPresentationTheme(reference: .bananaGramHalloween, serviceBackgroundColor: nil).chat.defaultWallpaper
+        return .single(CachedWallpaper(wallpaper: settings.map { wallpaper.withUpdatedSettings($0) } ?? wallpaper))
+    }
     let slugKey = EngineDataBuffer(length: 8)
     slugKey.setInt64(0, value: Int64(bitPattern: slug.persistentHashValue))
     return engine.data.get(TelegramEngine.EngineData.Item.ItemCache.Item(collectionId: ApplicationSpecificItemCacheCollectionId.cachedWallpapers, id: slugKey))

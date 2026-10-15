@@ -1004,6 +1004,8 @@ public func themeDisplayName(strings: PresentationStrings, reference: Presentati
             name = "BananaGram Cream"
         case .bananaGramGraphite:
             name = "BananaGram Graphite"
+        case .bananaGramHalloween:
+            name = "BananaGram Halloween"
         }
     case let .local(theme):
         name = theme.title

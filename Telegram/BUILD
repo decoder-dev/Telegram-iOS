@@ -337,6 +337,7 @@ filegroup(
 )
 
 alternate_icon_folders = [
+    "HalloweenIcon",
     "BlackIcon",
     "BlackClassicIcon",
     "BlackFilledIcon",

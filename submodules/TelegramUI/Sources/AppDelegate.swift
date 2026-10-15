@@ -1043,6 +1043,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                     PresentationAppIcon(name: "PremiumTurbo", imageName: "PremiumTurbo", isPremium: false),
                     PresentationAppIcon(name: "PremiumBlack", imageName: "PremiumBlack", isPremium: false),
                     PresentationAppIcon(name: "PremiumNight", imageName: "PremiumNight", isPremium: false),
+                    PresentationAppIcon(name: "HalloweenIcon", imageName: "HalloweenIcon", isPremium: false),
                     PresentationAppIcon(name: "PremiumRose", imageName: "PremiumRose", isPremium: false),
                     PresentationAppIcon(name: "PremiumEmerald", imageName: "PremiumEmerald", isPremium: false),
                     PresentationAppIcon(name: "PremiumSunset", imageName: "PremiumSunset", isPremium: false),

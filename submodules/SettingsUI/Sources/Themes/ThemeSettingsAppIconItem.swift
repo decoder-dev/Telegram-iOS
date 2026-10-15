@@ -401,6 +401,7 @@ class ThemeSettingsAppIconItemNode: ListViewItemNode, ItemListItemNode {
                             case "PremiumBlack": name = "Noir"
                             case "PremiumTurbo": name = "Volt"
                             case "PremiumNight": name = "Midnight"
+                            case "HalloweenIcon": name = "Halloween"
                             case "PremiumRose": name = "Rose"
                             case "PremiumEmerald": name = "Emerald"
                             case "PremiumSunset": name = "Sunset"

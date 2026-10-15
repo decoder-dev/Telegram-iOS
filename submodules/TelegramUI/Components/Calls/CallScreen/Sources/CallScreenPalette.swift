@@ -79,6 +79,12 @@ public struct CallScreenPalette: Equatable {
         weakSignal: [0x7A3A2A, 0x8A5A22, 0x5A2F2F, 0x7A4A24]
     )
     
+    public static let bananaGramHalloween = CallScreenPalette(
+        connecting: [0x392448, 0x251A35, 0x543326, 0x1A1425],
+        active: [0x543326, 0x3A2946, 0x354234, 0x251A35],
+        weakSignal: [0x763C2B, 0x633246, 0x4E2945, 0x563528]
+    )
+
     /// A palette for any other accent colour: the connecting set is the accent and its neighbours on the colour wheel, the
     /// connected set is a green or teal pulled towards the accent, and the weak-signal set is the usual warm red-orange.
     public static func derived(accent: UIColor, dark: Bool) -> CallScreenPalette {
@@ -123,6 +129,8 @@ public struct CallScreenPalette: Equatable {
             self = .bananaGramCream
         case .bananaGramGraphite:
             self = .bananaGramGraphite
+        case .bananaGramHalloween:
+            self = .bananaGramHalloween
         case .day, .dayClassic, .night, .nightAccent:
             let accent = theme.list.itemAccentColor
             let (hue, saturation, _) = accent.hsb
