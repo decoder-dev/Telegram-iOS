@@ -667,15 +667,22 @@ public final class ButtonComponent: Component {
             transition.setAlpha(view: gradientBackgroundView, alpha: 1.0)
         }
 
-        @objc private func pressed() {
-            guard let component = self.component else {
-                return
+        public override func accessibilityActivate() -> Bool {
+            guard let component = self.component,
+                  (component.isEnabled || component.allowActionWhenDisabled), !component.displaysProgress else {
+                return false
             }
             component.action()
+            return true
+        }
+
+        @objc private func pressed() {
+            _ = self.accessibilityActivate()
         }
 
         @objc private func longPressed(_ gesture: UILongPressGestureRecognizer) {
-            guard gesture.state == .began, let component = self.component else {
+            guard gesture.state == .began, let component = self.component,
+                  (component.isEnabled || component.allowActionWhenDisabled), !component.displaysProgress else {
                 return
             }
             component.longPressAction?()

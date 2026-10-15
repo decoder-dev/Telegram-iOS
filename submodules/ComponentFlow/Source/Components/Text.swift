@@ -85,7 +85,7 @@ public final class Text: Component {
     }
     
     public convenience init(attributedString: NSAttributedString, tintColor: UIColor? = nil) {
-        let attributes = attributedString.attributes(at: 0, effectiveRange: nil)
+        let attributes: [NSAttributedString.Key: Any] = attributedString.length == 0 ? [:] : attributedString.attributes(at: 0, effectiveRange: nil)
         let font = attributes[.font] as? UIFont ?? UIFont.systemFont(ofSize: UIFont.systemFontSize)
         let color = attributes[.foregroundColor] as? UIColor ?? .black
         self.init(

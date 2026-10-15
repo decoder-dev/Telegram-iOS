@@ -11,6 +11,82 @@ from test_messages_screen_states import member, run_swift
 
 class MessagesActionSurfaces(unittest.TestCase):
     @unittest.skipUnless(shutil.which('swift'), 'Swift unavailable locally; executes in macOS CI')
+    def test_production_empty_attributed_text_and_accessible_activation(self):
+        text = read('submodules/ComponentFlow/Source/Components/Text.swift')
+        fixture = """import Foundation
+class UIFont: NSObject {
+    static let systemFontSize: Double = 17
+    static func systemFont(ofSize: Double) -> UIFont { UIFont() }
+}
+class UIColor: NSObject { static let black = UIColor() }
+extension NSAttributedString.Key {
+    static let font = NSAttributedString.Key("font")
+    static let foregroundColor = NSAttributedString.Key("foregroundColor")
+}
+final class Text {
+    let text: String
+    let font: UIFont
+    let color: UIColor
+    init(text: String, font: UIFont, color: UIColor, tintColor: UIColor?) {
+        self.text = text; self.font = font; self.color = color
+    }
+"""
+        fixture += member(text, 'public convenience init(attributedString:').replace('public ', '') + '\n}\n'
+        fixture += """
+precondition(Text(attributedString: NSAttributedString(string: "")).text.isEmpty)
+let font = UIFont(); let color = UIColor()
+let content = Text(attributedString: NSAttributedString(string: "Привет 🎃", attributes: [.font: font, .foregroundColor: color]))
+precondition(content.text == "Привет 🎃" && content.font === font && content.color === color)
+"""
+        for path, glass in [
+            ('submodules/TelegramUI/Components/ButtonComponent/Sources/ButtonComponent.swift', False),
+            ('submodules/TelegramUI/Components/GlassBarButtonComponent/Sources/GlassBarButtonComponent.swift', True),
+        ]:
+            source = read(path)
+            activation = member(source, 'public override func accessibilityActivate() -> Bool').replace('public override ', '')
+            name = 'Glass' if glass else 'Action'
+            fields = 'var isEnabled = true; var isVisible = true; var action: ((AnyObject) -> Void)?' if glass else 'var isEnabled = true; var allowActionWhenDisabled = false; var displaysProgress = false; var action: () -> Void = {}'
+            fixture += '\nclass ' + name + 'Model { ' + fields + ' }\n'
+            fixture += 'class ' + name + 'View { var component: ' + name + 'Model?; ' + activation + '\n}\n'
+        fixture += """
+let button = ActionView(); var count = 0
+precondition(!button.accessibilityActivate())
+let model = ActionModel(); model.action = { count += 1 }; button.component = model
+for enabled in [false, true] {
+    for allowed in [false, true] {
+        for loading in [false, true] {
+            model.isEnabled = enabled; model.allowActionWhenDisabled = allowed; model.displaysProgress = loading
+            let before = count; let expected = (enabled || allowed) && !loading
+            precondition(button.accessibilityActivate() == expected)
+            precondition(count == before + (expected ? 1 : 0))
+        }
+    }
+}
+let glass = GlassView(); let glassModel = GlassModel(); glass.component = glassModel
+precondition(!glass.accessibilityActivate())
+glassModel.action = { _ in count += 1 }
+for enabled in [false, true] {
+    for visible in [false, true] {
+        glassModel.isEnabled = enabled; glassModel.isVisible = visible
+        let before = count; let expected = enabled && visible
+        precondition(glass.accessibilityActivate() == expected)
+        precondition(count == before + (expected ? 1 : 0))
+    }
+}
+"""
+        run_swift(fixture)
+
+    def test_shared_actions_use_one_guarded_activation_path(self):
+        button = read('submodules/TelegramUI/Components/ButtonComponent/Sources/ButtonComponent.swift')
+        self.assertIn('_ = self.accessibilityActivate()', member(button, '@objc private func pressed()'))
+        self.assertIn('!component.displaysProgress', member(button, '@objc private func longPressed('))
+        glass = read('submodules/TelegramUI/Components/GlassBarButtonComponent/Sources/GlassBarButtonComponent.swift')
+        self.assertIn('_ = self.accessibilityActivate()', member(glass, '@objc private func pressed()'))
+        self.assertIn('_ = self.accessibilityActivate()', member(glass, '@objc private func onTapGesture('))
+        self.assertIn('component.isEnabled && component.isVisible && component.action != nil', glass)
+        self.assertIn('(lhs.action == nil) != (rhs.action == nil)', glass)
+
+    @unittest.skipUnless(shutil.which('swift'), 'Swift unavailable locally; executes in macOS CI')
     def test_production_search_reset_identity_and_safe_area_geometry(self):
         source = read('submodules/TelegramUI/Components/SearchInputPanelComponent/Sources/SearchInputPanelComponent.swift')
         fixture = 'import Foundation\nimport CoreGraphics\nenum SearchInputPanelComponent {\n'
