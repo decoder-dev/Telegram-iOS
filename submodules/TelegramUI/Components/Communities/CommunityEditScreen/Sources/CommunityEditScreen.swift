@@ -2044,6 +2044,7 @@ private final class CommunityEditScreenComponent: Component {
                         AnyComponentWithIdentity(id: "title", component: AnyComponent(ListTextFieldItemComponent(
                             style: .glass,
                             theme: theme,
+                            strings: presentationData.strings,
                             initialText: self.currentTitle,
                             resetText: resetTitleText.flatMap { ListTextFieldItemComponent.ResetText(value: $0) },
                             placeholder: self.isCreateMode ? presentationData.strings.Community_Edit_CommunityNamePlaceholder : "",

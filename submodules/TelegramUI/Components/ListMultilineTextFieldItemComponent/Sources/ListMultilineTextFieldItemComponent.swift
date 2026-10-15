@@ -274,6 +274,7 @@ public final class ListMultilineTextFieldItemComponent: Component {
                 }
                 component.externalState?.text = self.textFieldExternalState.text
                 component.externalState?.updated?()
+                if !self.isUpdating { component.updated?(self.currentText) }
             }
         }
         
@@ -282,16 +283,13 @@ public final class ListMultilineTextFieldItemComponent: Component {
         }
         
         public func setText(text: String, updateState: Bool) {
-            if let textFieldView = self.textField.view as? TextFieldComponent.View {
-                //TODO
-                let _ = textFieldView
-            }
-            
-            if updateState {
-                self.component?.updated?(self.currentText)
-            } else {
-                self.state?.updated(transition: .immediate, isLocal: true)
-            }
+            guard let textFieldView = self.textField.view as? TextFieldComponent.View else { return }
+            let wasUpdating = self.isUpdating
+            self.isUpdating = true
+            textFieldView.setAttributedText(NSAttributedString(string: text), updateState: false)
+            self.isUpdating = wasUpdating
+            self.state?.updated(transition: .immediate, isLocal: true)
+            if updateState { self.component?.updated?(self.currentText) }
         }
         
         public func matches(tag: Any) -> Bool {
@@ -340,6 +338,13 @@ public final class ListMultilineTextFieldItemComponent: Component {
             return self.textField.view as? TextFieldComponent.View
         }
         
+        override public func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+            super.traitCollectionDidChange(previousTraitCollection)
+            if self.component?.theme.isMessagesTheme == true, previousTraitCollection?.preferredContentSizeCategory != self.traitCollection.preferredContentSizeCategory {
+                self.state?.updated(transition: .immediate)
+            }
+        }
+
         func update(component: ListMultilineTextFieldItemComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
             self.isUpdating = true
             defer {
@@ -350,6 +355,7 @@ public final class ListMultilineTextFieldItemComponent: Component {
             self.component = component
             self.state = state
             
+            let font = component.theme.isMessagesTheme ? UIFont.preferredFont(forTextStyle: .body) : Font.regular(17.0)
             let verticalInset: CGFloat
             switch component.style {
             case .glass:
@@ -434,16 +440,16 @@ public final class ListMultilineTextFieldItemComponent: Component {
                     theme: component.theme,
                     strings: component.strings,
                     externalState: self.textFieldExternalState,
-                    fontSize: 17.0,
+                    fontSize: font.pointSize,
                     textColor: component.theme.list.itemPrimaryTextColor,
-                    accentColor: component.theme.list.itemPrimaryTextColor,
+                    accentColor: component.theme.isMessagesTheme ? component.theme.list.itemAccentColor : component.theme.list.itemPrimaryTextColor,
                     insets: UIEdgeInsets(top: verticalInset, left: leftInset - 8.0, bottom: verticalInset, right: rightInset - 8.0 + measureTextLimitInset),
                     hideKeyboard: component.inputMode == .emoji,
                     customInputView: nil,
                     prefix: component.prefix,
                     suffix: component.suffix,
                     resetText: component.resetText.flatMap { resetText in
-                        return NSAttributedString(string: resetText.value, font: Font.regular(17.0), textColor: component.theme.list.itemPrimaryTextColor)
+                        return NSAttributedString(string: resetText.value, font: font, textColor: component.theme.list.itemPrimaryTextColor)
                     },
                     isOneLineWhenUnfocused: false,
                     characterLimit: component.characterLimit,
@@ -479,7 +485,7 @@ public final class ListMultilineTextFieldItemComponent: Component {
             let placeholderSize = self.placeholder.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.placeholder.isEmpty ? " " : component.placeholder, font: Font.regular(17.0), textColor: component.theme.list.itemPlaceholderTextColor)),
+                    text: .plain(NSAttributedString(string: component.placeholder.isEmpty ? " " : component.placeholder, font: font, textColor: component.theme.list.itemPlaceholderTextColor)),
                     maximumNumberOfLines: component.placeholderDefinesMinHeight ? 0 : 1
                 )),
                 environment: {},
@@ -692,7 +698,7 @@ public final class ListMultilineTextFieldItemComponent: Component {
                 let placeholderSize = customPlaceholder.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: value.isEmpty ? " " : value, font: Font.regular(17.0), textColor: component.theme.list.itemPlaceholderTextColor))
+                        text: .plain(NSAttributedString(string: value.isEmpty ? " " : value, font: font, textColor: component.theme.list.itemPlaceholderTextColor))
                     )),
                     environment: {},
                     containerSize: CGSize(width: size.width - sideInset * 2.0, height: 100.0)

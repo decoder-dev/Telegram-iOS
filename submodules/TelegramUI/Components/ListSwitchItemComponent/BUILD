@@ -12,6 +12,7 @@ swift_library(
     deps = [
         "//submodules/Display",
         "//submodules/ComponentFlow",
+        "//submodules/Components/MultilineTextComponent",
         "//submodules/TelegramPresentationData",
         "//submodules/Components/ComponentDisplayAdapters",
         "//submodules/TelegramUI/Components/SwitchComponent",

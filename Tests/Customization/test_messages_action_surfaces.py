@@ -10,6 +10,89 @@ from test_messages_screen_states import member, run_swift
 
 
 class MessagesActionSurfaces(unittest.TestCase):
+    def test_shared_form_controls_scale_and_keep_localized_accessible_actions(self):
+        field = read('submodules/TelegramUI/Components/ListTextFieldItemComponent/Sources/ListTextFieldItemComponent.swift')
+        for contract in ('UIFont.preferredFont(forTextStyle: .body)',
+                         'component.hasClearButton ? 44.0 : 0.0',
+                         'counterIsVisible ? counterWidth + 8.0 : 0.0',
+                         'self.textField.accessibilityLabel = component.placeholder',
+                         'self.textField.keyboardAppearance = component.theme.overallDarkAppearance ? .dark : .light',
+                         '(component.strings ?? defaultPresentationStrings).VoiceOver_Editing_ClearText'):
+            self.assertIn(contract, field)
+        toggle = read('submodules/TelegramUI/Components/SwitchComponent/Sources/SwitchComponent.swift')
+        self.assertIn('self.switchView.onTintColor = component.tintColor', toggle)
+        self.assertIn('self.switchView.accessibilityLabel = component.accessibilityLabel', toggle)
+        row = read('submodules/TelegramUI/Components/ListSwitchItemComponent/Sources/ListSwitchItemComponent.swift')
+        self.assertIn('accessibilityLabel: component.title', row)
+        self.assertIn('maximumNumberOfLines: component.theme.isMessagesTheme ? 0 : 1', row)
+        self.assertIn('titleView.accessibilityElementsHidden = true', row)
+
+    @unittest.skipUnless(shutil.which('swift'), 'Swift unavailable locally; executes in macOS CI')
+    def test_production_multiline_text_replacement_and_change_notifications(self):
+        source = read('submodules/TelegramUI/Components/ListMultilineTextFieldItemComponent/Sources/ListMultilineTextFieldItemComponent.swift')
+        fixture = '''import Foundation
+class NativeTextField {
+    var text = NSAttributedString(string: "")
+    var changed: ((NSAttributedString) -> Void)?
+    func setAttributedText(_ value: NSAttributedString, updateState: Bool) {
+        text = value
+        changed?(value)
+    }
+}
+enum TextFieldComponent { typealias View = NativeTextField }
+class Box { var view: AnyObject? = NativeTextField() }
+class ExternalState {
+    var text = NSAttributedString(string: "")
+    var updated: (() -> Void)?
+}
+class Component {
+    var externalState: ExternalState? = ExternalState()
+    var updated: ((String) -> Void)?
+}
+enum Transition { case immediate }
+class State {
+    var updates = 0
+    func updated(transition: Transition, isLocal: Bool) { updates += 1 }
+}
+class Harness {
+    let textField = Box()
+    let textFieldExternalState = ExternalState()
+    var component: Component? = Component()
+    var state: State? = State()
+    var isUpdating = false
+    var currentText: String { (textField.view as? NativeTextField)?.text.string ?? "" }
+    init() {
+'''
+        fixture += member(source, 'self.textFieldExternalState.updated =')
+        fixture += '''
+        (self.textField.view as! NativeTextField).changed = { [weak self] value in
+            self?.textFieldExternalState.text = value
+            self?.textFieldExternalState.updated?()
+        }
+    }
+'''
+        fixture += member(source, 'public func setText(text: String, updateState: Bool)') + '\n}\n'
+        fixture += '''
+let view = Harness()
+var delivered: [String] = []
+view.component!.updated = { delivered.append($0) }
+view.setText(text: "Draft 👩‍💻", updateState: false)
+precondition(view.currentText == "Draft 👩‍💻" && delivered.isEmpty)
+precondition(view.component!.externalState!.text.string == "Draft 👩‍💻")
+view.setText(text: "Исправлено", updateState: true)
+precondition(view.currentText == "Исправлено" && delivered == ["Исправлено"])
+let native = view.textField.view as! NativeTextField
+native.setAttributedText(NSAttributedString(string: "Typed"), updateState: true)
+precondition(delivered == ["Исправлено", "Typed"])
+view.isUpdating = true
+view.setText(text: "Reset", updateState: false)
+precondition(view.isUpdating && delivered.count == 2)
+view.textField.view = nil
+view.setText(text: "Unavailable", updateState: true)
+precondition(delivered.count == 2)
+'''
+        run_swift(fixture)
+
     def test_every_theme_aware_action_passes_its_theme(self):
         paths = subprocess.check_output(
             ['git', 'grep', '-l', '-F', 'ButtonComponent.Background(', '--', 'submodules/**/*.swift'],

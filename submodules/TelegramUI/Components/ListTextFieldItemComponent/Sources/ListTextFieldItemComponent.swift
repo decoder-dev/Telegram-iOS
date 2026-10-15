@@ -28,6 +28,7 @@ public final class ListTextFieldItemComponent: Component {
     
     public let style: Style
     public let theme: PresentationTheme
+    public let strings: PresentationStrings?
     public let initialText: String
     public let resetText: ResetText?
     public let placeholder: String
@@ -45,6 +46,7 @@ public final class ListTextFieldItemComponent: Component {
     public init(
         style: Style = .legacy,
         theme: PresentationTheme,
+        strings: PresentationStrings? = nil,
         initialText: String,
         resetText: ResetText? = nil,
         placeholder: String,
@@ -61,6 +63,7 @@ public final class ListTextFieldItemComponent: Component {
     ) {
         self.style = style
         self.theme = theme
+        self.strings = strings
         self.initialText = initialText
         self.resetText = resetText
         self.placeholder = placeholder
@@ -83,6 +86,7 @@ public final class ListTextFieldItemComponent: Component {
         if lhs.theme !== rhs.theme {
             return false
         }
+        if lhs.strings !== rhs.strings { return false }
         if lhs.initialText != rhs.initialText {
             return false
         }
@@ -218,6 +222,13 @@ public final class ListTextFieldItemComponent: Component {
             self.state?.updated(transition: .immediate)
         }
         
+        override public func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+            super.traitCollectionDidChange(previousTraitCollection)
+            if self.component?.theme.isMessagesTheme == true, previousTraitCollection?.preferredContentSizeCategory != self.traitCollection.preferredContentSizeCategory {
+                self.state?.updated(transition: .immediate)
+            }
+        }
+
         func update(component: ListTextFieldItemComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
             self.isUpdating = true
             defer {
@@ -252,8 +263,12 @@ public final class ListTextFieldItemComponent: Component {
             
             let themeUpdated = component.theme !== previousComponent?.theme
             
+            let font = component.theme.isMessagesTheme ? UIFont.preferredFont(forTextStyle: .body) : Font.regular(17.0)
+            self.textField.font = font
+            self.textField.tintColor = component.theme.list.itemAccentColor
+            self.textField.keyboardAppearance = component.theme.overallDarkAppearance ? .dark : .light
+            self.textField.accessibilityLabel = component.placeholder
             if themeUpdated {
-                self.textField.font = Font.regular(17.0)
                 self.textField.textColor = component.theme.list.itemPrimaryTextColor
             }
             
@@ -265,23 +280,22 @@ public final class ListTextFieldItemComponent: Component {
             
             self.textField.sideInset = sideInset
             
-            var textFieldRightInset: CGFloat = 0.0
-            if component.hasClearButton {
-                textFieldRightInset += 24.0
-            }
-            if let _ = component.characterLimit {
-                textFieldRightInset += 16.0
-            }
+            let counterFont = Font.with(size: 15.0, traits: .monospacedNumbers)
+            let remainingCount = component.characterLimit.map { $0 - self.currentText.count }
+            let counterIsVisible = !self.currentText.isEmpty && remainingCount.map { $0 <= 20 && (self.textField.isFirstResponder || $0 < 0) } == true
+            let counterWidth = counterIsVisible ? ceil(NSAttributedString(string: "\(remainingCount ?? 0)", font: counterFont).size().width) : 0.0
+            let textFieldRightInset: CGFloat = (component.hasClearButton ? 44.0 : 0.0) + (counterIsVisible ? counterWidth + 8.0 : 0.0)
             
             let placeholderSize = self.placeholder.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.placeholder.isEmpty ? " " : component.placeholder, font: Font.regular(17.0), textColor: component.theme.list.itemPlaceholderTextColor))
+                    text: .plain(NSAttributedString(string: component.placeholder.isEmpty ? " " : component.placeholder, font: font, textColor: component.theme.list.itemPlaceholderTextColor))
                 )),
                 environment: {},
-                containerSize: CGSize(width: availableSize.width - sideInset * 2.0 - textFieldRightInset - component.contentInsets.left - component.contentInsets.right, height: 100.0)
+                containerSize: CGSize(width: max(1.0, availableSize.width - sideInset * 2.0 - textFieldRightInset - component.contentInsets.left - component.contentInsets.right), height: 100.0)
             )
-            let contentHeight: CGFloat = placeholderSize.height + verticalInset * 2.0
+            let measuredHeight = max(font.lineHeight, placeholderSize.height) + verticalInset * 2.0
+            let contentHeight: CGFloat = component.theme.isMessagesTheme ? max(MessagesAppearanceMetrics.minimumRowHeight, measuredHeight) : measuredHeight
             let placeholderFrame = CGRect(origin: CGPoint(x: sideInset + component.contentInsets.left, y: floor((contentHeight - placeholderSize.height) * 0.5)), size: placeholderSize)
             if let placeholderView = self.placeholder.view {
                 if placeholderView.superview == nil {
@@ -295,7 +309,7 @@ public final class ListTextFieldItemComponent: Component {
                 placeholderView.isHidden = !self.currentText.isEmpty
             }
             
-            transition.setFrame(view: self.textField, frame: CGRect(origin: CGPoint(x: component.contentInsets.left, y: 0.0), size: CGSize(width: availableSize.width - component.contentInsets.left - component.contentInsets.right - textFieldRightInset, height: contentHeight)))
+            transition.setFrame(view: self.textField, frame: CGRect(origin: CGPoint(x: component.contentInsets.left, y: 0.0), size: CGSize(width: max(1.0, availableSize.width - component.contentInsets.left - component.contentInsets.right - textFieldRightInset), height: contentHeight)))
             
             var clearButtonSize: CGSize = .zero
             if component.hasClearButton {
@@ -326,6 +340,9 @@ public final class ListTextFieldItemComponent: Component {
                     }
                     transition.setFrame(view: clearButtonView, frame: CGRect(origin: CGPoint(x: availableSize.width - clearButtonSize.width, y: floor((contentHeight - clearButtonSize.height) * 0.5)), size: clearButtonSize))
                     clearButtonView.isHidden = self.currentText.isEmpty || !self.textField.isFirstResponder
+                    clearButtonView.isAccessibilityElement = true
+                    clearButtonView.accessibilityLabel = (component.strings ?? defaultPresentationStrings).VoiceOver_Editing_ClearText
+                    clearButtonView.accessibilityTraits = .button
                 }
             } else if let clearButtonView = self.clearButton.view, clearButtonView.superview != nil {
                 clearButtonView.removeFromSuperview()
@@ -340,7 +357,7 @@ public final class ListTextFieldItemComponent: Component {
                     let counterSize = self.counter.update(
                         transition: .immediate,
                         component: AnyComponent(MultilineTextComponent(
-                            text: .plain(NSAttributedString(string: "\(remainingCount)", font: Font.with(size: 15.0, traits: .monospacedNumbers), textColor: remainingCount < 0 ? component.theme.list.itemDestructiveColor : component.theme.list.itemSecondaryTextColor)),
+                            text: .plain(NSAttributedString(string: "\(remainingCount)", font: counterFont, textColor: remainingCount < 0 ? component.theme.list.itemDestructiveColor : component.theme.list.itemSecondaryTextColor)),
                             horizontalAlignment: .right
                         )),
                         environment: {},

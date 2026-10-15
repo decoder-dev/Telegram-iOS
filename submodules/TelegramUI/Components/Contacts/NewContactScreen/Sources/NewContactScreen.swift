@@ -329,6 +329,7 @@ final class NewContactScreenComponent: Component {
                 AnyComponentWithIdentity(id: "firstName", component: AnyComponent(ListTextFieldItemComponent(
                     style: .glass,
                     theme: theme,
+                    strings: strings,
                     initialText: component.initialData.firstName ?? "",
                     resetText: nil,
                     placeholder: strings.UserInfo_FirstNamePlaceholder,
@@ -350,6 +351,7 @@ final class NewContactScreenComponent: Component {
                 AnyComponentWithIdentity(id: "lastName", component: AnyComponent(ListTextFieldItemComponent(
                     style: .glass,
                     theme: theme,
+                    strings: strings,
                     initialText: component.initialData.lastName ?? "",
                     resetText: nil,
                     placeholder: strings.UserInfo_LastNamePlaceholder,

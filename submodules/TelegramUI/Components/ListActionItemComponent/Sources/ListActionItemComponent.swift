@@ -534,7 +534,7 @@ public final class ListActionItemComponent: Component {
                 transition: transition,
                 component: component.title,
                 environment: {},
-                containerSize: CGSize(width: availableSize.width - contentLeftInset - contentRightInset, height: availableSize.height)
+                containerSize: CGSize(width: max(1.0, availableSize.width - contentLeftInset - contentRightInset), height: availableSize.height)
             )
             
             let originalContentLeftInset = contentLeftInset
@@ -549,6 +549,7 @@ public final class ListActionItemComponent: Component {
                 contentHeight = 52.0
             }
             
+            if component.theme.isMessagesTheme { contentHeight = max(MessagesAppearanceMetrics.minimumRowHeight, contentHeight) }
             let titleY = floorToScreenPixels((contentHeight - titleSize.height) / 2.0)
             
             if let iconValue = component.icon {

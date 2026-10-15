@@ -787,6 +787,7 @@ final class ChatbotSetupScreenComponent: Component {
             nameSectionItems.append(AnyComponentWithIdentity(id: 0, component: AnyComponent(ListTextFieldItemComponent(
                 style: .glass,
                 theme: environment.theme,
+                strings: environment.strings,
                 initialText: "",
                 resetText: resetQueryText.flatMap { ListTextFieldItemComponent.ResetText(value: $0) },
                 placeholder: environment.strings.ChatbotSetup_BotSearchPlaceholder,

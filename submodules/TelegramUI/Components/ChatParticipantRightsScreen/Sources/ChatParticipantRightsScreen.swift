@@ -244,6 +244,7 @@ private final class ChatParticipantRightsContent: CombinedComponent {
                 AnyComponentWithIdentity(id: 1, component: AnyComponent(ListTextFieldItemComponent(
                     style: .glass,
                     theme: theme,
+                    strings: strings,
                     initialText: state.initialRank ?? "",
                     resetText: nil,
                     placeholder: strings.EditRank_Placeholder,

@@ -5,6 +5,7 @@ import TelegramPresentationData
 import ComponentFlow
 import ComponentDisplayAdapters
 import SwitchComponent
+import MultilineTextComponent
 
 public final class ListSwitchItemComponent: Component {
     let theme: PresentationTheme
@@ -52,6 +53,13 @@ public final class ListSwitchItemComponent: Component {
             preconditionFailure()
         }
         
+        override public func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+            super.traitCollectionDidChange(previousTraitCollection)
+            if self.component?.theme.isMessagesTheme == true, previousTraitCollection?.preferredContentSizeCategory != self.traitCollection.preferredContentSizeCategory {
+                self.state?.updated(transition: .immediate)
+            }
+        }
+
         func update(component: ListSwitchItemComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
             self.component = component
             self.state = state
@@ -59,7 +67,7 @@ public final class ListSwitchItemComponent: Component {
             self.backgroundColor = component.theme.list.itemBlocksBackgroundColor
             self.layer.cornerRadius = component.theme.isMessagesTheme ? MessagesAppearanceMetrics.sectionCornerRadius : 26.0
             
-            let size = CGSize(width: availableSize.width, height: 52.0)
+            var size = CGSize(width: availableSize.width, height: 52.0)
             let rightInset: CGFloat = 16.0
             let leftInset: CGFloat = 16.0
             let spacing: CGFloat = 8.0
@@ -67,6 +75,8 @@ public final class ListSwitchItemComponent: Component {
             let switchSize = self.switchView.update(
                 transition: transition,
                 component: AnyComponent(SwitchComponent(
+                    tintColor: component.theme.isMessagesTheme ? component.theme.list.itemSwitchColors.contentColor : nil,
+                    accessibilityLabel: component.title,
                     value: component.value,
                     valueUpdated: { [weak self] value in
                         guard let self else {
@@ -78,7 +88,7 @@ public final class ListSwitchItemComponent: Component {
                 environment: {},
                 containerSize: size
             )
-            let switchFrame = CGRect(origin: CGPoint(x: size.width - rightInset - switchSize.width, y: floor((size.height - switchSize.height) * 0.5)), size: switchSize)
+            var switchFrame = CGRect(origin: CGPoint(x: size.width - rightInset - switchSize.width, y: floor((size.height - switchSize.height) * 0.5)), size: switchSize)
             if let switchComponentView = self.switchView.view {
                 if switchComponentView.superview == nil {
                     self.addSubview(switchComponentView)
@@ -88,10 +98,15 @@ public final class ListSwitchItemComponent: Component {
             
             let titleSize = self.title.update(
                 transition: .immediate,
-                component: AnyComponent(Text(text: component.title, font: Font.regular(17.0), color: component.theme.list.itemPrimaryTextColor)),
+                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: component.title, font: component.theme.isMessagesTheme ? UIFont.preferredFont(forTextStyle: .body) : Font.regular(17.0), textColor: component.theme.list.itemPrimaryTextColor)), maximumNumberOfLines: component.theme.isMessagesTheme ? 0 : 1)),
                 environment: {},
                 containerSize: CGSize(width: max(1.0, switchFrame.minX - spacing - leftInset), height: .greatestFiniteMagnitude)
             )
+            if component.theme.isMessagesTheme {
+                size.height = MessagesAppearanceMetrics.rowHeight(contentHeight: max(titleSize.height, switchSize.height), verticalInset: 12.0)
+                switchFrame.origin.y = floor((size.height - switchSize.height) * 0.5)
+                if let switchComponentView = self.switchView.view { transition.setFrame(view: switchComponentView, frame: switchFrame) }
+            }
             let titleFrame = CGRect(origin: CGPoint(x: leftInset, y: floor((size.height - titleSize.height) * 0.5)), size: titleSize)
             if let titleView = self.title.view {
                 if titleView.superview == nil {
@@ -100,6 +115,8 @@ public final class ListSwitchItemComponent: Component {
                 }
                 transition.setPosition(view: titleView, position: titleFrame.origin)
                 titleView.bounds = CGRect(origin: CGPoint(), size: titleFrame.size)
+                titleView.isAccessibilityElement = false
+                titleView.accessibilityElementsHidden = true
             }
             
             return size
