@@ -117,6 +117,7 @@ jobs:
           python3 Tests/ManagedProxy/automatic.py
           python3 Tests/Customization/run.py
           python3 Tests/Customization/test_messages_style.py
+          python3 Tests/Customization/test_messages_screen_states.py
           python3 Tests/ClientAdditions/run.py
           python3 Tests/ClientAdditions/quality.py
           python3 Tests/ClientAdditions/menu_layout.py

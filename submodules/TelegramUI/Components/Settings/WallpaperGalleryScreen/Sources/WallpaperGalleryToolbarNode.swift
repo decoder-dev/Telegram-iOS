@@ -8,6 +8,7 @@ import ManagedAnimationNode
 import ComponentFlow
 import PremiumLockButtonSubtitleComponent
 import ButtonComponent
+import MultilineTextComponent
 
 public enum WallpaperGalleryToolbarCancelButtonType {
     case cancel
@@ -37,7 +38,10 @@ public protocol WallpaperGalleryToolbar: ASDisplayNode {
 
 public final class WallpaperGalleryToolbarNode: ASDisplayNode, WallpaperGalleryToolbar {
     class ButtonNode: ASDisplayNode {
-        private let strings: PresentationStrings
+        private var strings: PresentationStrings
+        private var theme: PresentationTheme?
+        private var title: String = ""
+        private var enabled: Bool = true
 
         private let doneButton = HighlightTrackingButtonNode()
         private var doneButtonBackgroundNode: WallpaperOptionBackgroundNode
@@ -54,10 +58,19 @@ public final class WallpaperGalleryToolbarNode: ASDisplayNode, WallpaperGalleryT
         var isLocked: Bool = false {
             didSet {
                 self.animationNode.isHidden = !self.isLocked
+                if self.isLocked != oldValue, !self.bounds.isEmpty {
+                    self.updateSize(self.bounds.size)
+                }
             }
         }
 
-        var requiredLevel: Int?
+        var requiredLevel: Int? {
+            didSet {
+                if self.requiredLevel != oldValue, !self.bounds.isEmpty {
+                    self.updateSize(self.bounds.size)
+                }
+            }
+        }
 
         init(strings: PresentationStrings) {
             self.strings = strings
@@ -93,19 +106,22 @@ public final class WallpaperGalleryToolbarNode: ASDisplayNode, WallpaperGalleryT
             self.addSubnode(self.doneButtonBackgroundNode)
             self.doneButtonBackgroundNode.contentView.addSubnode(self.doneButtonTitleNode)
 
-            self.doneButtonBackgroundNode.contentView.addSubnode(self.doneButtonSolidBackgroundNode)
-            self.doneButtonBackgroundNode.contentView.addSubnode(self.doneButtonSolidTitleNode)
+            self.addSubnode(self.doneButtonSolidBackgroundNode)
+            self.addSubnode(self.doneButtonSolidTitleNode)
 
             self.addSubnode(self.animationNode)
 
-            self.doneButtonBackgroundNode.contentView.addSubview(self.doneButton.view)
+            self.view.addSubview(self.doneButton.view)
 
             self.doneButton.addTarget(self, action: #selector(self.pressed), forControlEvents: .touchUpInside)
         }
 
         func setEnabled(_ enabled: Bool) {
-            self.doneButton.alpha = enabled ? 1.0 : 0.4
+            self.enabled = enabled
+            self.doneButton.isEnabled = enabled
             self.doneButton.isUserInteractionEnabled = enabled
+            self.doneButton.accessibilityTraits = enabled ? .button : [.button, .notEnabled]
+            self.updateContentAlpha(transition: .immediate)
         }
 
         private var isSolid = false
@@ -114,18 +130,38 @@ public final class WallpaperGalleryToolbarNode: ASDisplayNode, WallpaperGalleryT
                 return
             }
             self.isSolid = isSolid
-
-            transition.updateAlpha(node: self.doneButtonBackgroundNode, alpha: isSolid ? 0.0 : 1.0)
-            transition.updateAlpha(node: self.doneButtonSolidBackgroundNode, alpha: isSolid ? 1.0 : 0.0)
-            transition.updateAlpha(node: self.doneButtonTitleNode, alpha: isSolid ? 0.0 : 1.0)
-            transition.updateAlpha(node: self.doneButtonSolidTitleNode, alpha: isSolid ? 1.0 : 0.0)
+            self.updateContentAlpha(transition: transition)
+            self.updateColors()
         }
 
-        func updateTitle(_ title: String, theme: PresentationTheme) {
-            self.doneButtonTitleNode.attributedText = NSAttributedString(string: title, font: Font.semibold(17.0), textColor: self.dark ? .white : .black)
+        private func updateContentAlpha(transition: ContainedViewLayoutTransition) {
+            let alpha: CGFloat = self.enabled ? 1.0 : 0.4
+            transition.updateAlpha(node: self.doneButtonBackgroundNode, alpha: self.isSolid ? 0.0 : alpha)
+            transition.updateAlpha(node: self.doneButtonSolidBackgroundNode, alpha: self.isSolid ? alpha : 0.0)
+            transition.updateAlpha(node: self.doneButtonTitleNode, alpha: self.isSolid ? 0.0 : 1.0)
+            transition.updateAlpha(node: self.doneButtonSolidTitleNode, alpha: self.isSolid ? alpha : 0.0)
+            transition.updateAlpha(node: self.animationNode, alpha: alpha)
+            self.doneButtonSubtitle?.view?.alpha = alpha
+        }
 
+        func updateTitle(_ title: String, theme: PresentationTheme, strings: PresentationStrings) {
+            self.title = title
+            self.theme = theme
+            self.strings = strings
+            self.doneButton.isAccessibilityElement = true
+            self.doneButton.accessibilityLabel = title
+            self.updateColors()
+        }
+
+        private func updateColors() {
+            guard let theme = self.theme else { return }
+            self.doneButtonTitleNode.attributedText = NSAttributedString(string: self.title, font: Font.semibold(17.0), textColor: self.dark ? .white : .black)
             self.doneButtonSolidBackgroundNode.backgroundColor = theme.list.itemCheckColors.fillColor
-            self.doneButtonSolidTitleNode.attributedText = NSAttributedString(string: title, font: Font.semibold(17.0), textColor: theme.list.itemCheckColors.foregroundColor)
+            self.doneButtonSolidTitleNode.attributedText = NSAttributedString(string: self.title, font: Font.semibold(17.0), textColor: theme.list.itemCheckColors.foregroundColor)
+            self.animationNode.customColor = self.isSolid ? theme.list.itemCheckColors.foregroundColor : self.dark ? .white : .black
+            if !self.bounds.isEmpty {
+                self.updateSize(self.bounds.size)
+            }
         }
 
         func updateSize(_ size: CGSize) {
@@ -133,9 +169,9 @@ public final class WallpaperGalleryToolbarNode: ASDisplayNode, WallpaperGalleryT
             self.doneButtonBackgroundNode.frame = bounds
             self.doneButtonBackgroundNode.updateLayout(size: size)
             self.doneButtonSolidBackgroundNode.frame = bounds
-            self.doneButtonSolidBackgroundNode.layer.cornerRadius = size.height * 0.5
+            self.doneButtonSolidBackgroundNode.layer.cornerRadius = self.theme?.isMessagesTheme == true ? MessagesAppearanceMetrics.actionRadius(height: size.height) : size.height * 0.5
 
-            let constrainedSize = CGSize(width: size.width - 44.0, height: size.height)
+            let constrainedSize = CGSize(width: max(1.0, size.width - 44.0), height: size.height)
             let iconSize = CGSize(width: 30.0, height: 30.0)
             let doneTitleSize = self.doneButtonTitleNode.updateLayout(constrainedSize)
 
@@ -163,7 +199,7 @@ public final class WallpaperGalleryToolbarNode: ASDisplayNode, WallpaperGalleryT
                     component: AnyComponent(
                         PremiumLockButtonSubtitleComponent(
                             count: requiredLevel,
-                            color: UIColor(rgb: 0xffffff, alpha: 0.7),
+                            color: (self.isSolid ? self.theme?.list.itemCheckColors.foregroundColor ?? .white : self.dark ? UIColor.white : UIColor.black).withAlphaComponent(self.theme?.isMessagesTheme == true ? 0.92 : 0.7),
                             strings: self.strings
                         )
                     ),
@@ -182,6 +218,9 @@ public final class WallpaperGalleryToolbarNode: ASDisplayNode, WallpaperGalleryT
                     let subtitleFrame = CGRect(origin: CGPoint(x: floorToScreenPixels((bounds.width - subtitleSize.width) / 2.0), y: titleFrame.maxY + 3.0), size: subtitleSize)
                     view.frame = subtitleFrame
                 }
+            } else if let subtitle = self.doneButtonSubtitle {
+                subtitle.view?.removeFromSuperview()
+                self.doneButtonSubtitle = nil
             }
 
             self.doneButtonTitleNode.frame = titleFrame
@@ -190,12 +229,14 @@ public final class WallpaperGalleryToolbarNode: ASDisplayNode, WallpaperGalleryT
             self.doneButtonSolidTitleNode.frame = self.doneButtonTitleNode.frame
 
             self.doneButton.frame = bounds
+            self.doneButtonSubtitle?.view?.alpha = self.enabled ? 1.0 : 0.4
         }
 
         var dark: Bool = false {
             didSet {
                 if self.dark != oldValue {
                     self.doneButtonBackgroundNode.isDark = self.dark
+                    self.updateColors()
                 }
             }
         }
@@ -212,7 +253,7 @@ public final class WallpaperGalleryToolbarNode: ASDisplayNode, WallpaperGalleryT
     }
 
     private var theme: PresentationTheme
-    private let strings: PresentationStrings
+    private var strings: PresentationStrings
 
     public var cancelButtonType: WallpaperGalleryToolbarCancelButtonType {
         didSet {
@@ -290,6 +331,7 @@ public final class WallpaperGalleryToolbarNode: ASDisplayNode, WallpaperGalleryT
 
     public func updateThemeAndStrings(theme: PresentationTheme, strings: PresentationStrings) {
         self.theme = theme
+        self.strings = strings
         self.applyButton.isUserInteractionEnabled = true
 
         let applyTitle: String
@@ -313,21 +355,25 @@ public final class WallpaperGalleryToolbarNode: ASDisplayNode, WallpaperGalleryT
             self.applyButton.isUserInteractionEnabled = false
         }
 
-        self.applyButton.updateTitle(applyTitle, theme: theme)
+        self.applyButton.updateTitle(applyTitle, theme: theme, strings: strings)
+        self.applyButton.isHidden = applyTitle.isEmpty
+        self.applyButton.accessibilityElementsHidden = applyTitle.isEmpty
         if let applyForBothTitle {
-            self.applyForBothButton.updateTitle(applyForBothTitle, theme: theme)
+            self.applyForBothButton.updateTitle(applyForBothTitle, theme: theme, strings: strings)
         }
         self.applyForBothButton.isLocked = applyForBothLocked
     }
 
     public func updateLayout(size: CGSize, layout: ContainerViewLayout, transition: ContainedViewLayoutTransition) {
-        let inset: CGFloat = 30.0
+        let inset: CGFloat = self.theme.isMessagesTheme ? 16.0 : 30.0
+        let leftInset = inset + layout.safeInsets.left
+        let rightInset = inset + layout.safeInsets.right
         let buttonHeight: CGFloat = 52.0
 
         let spacing: CGFloat = 8.0
 
-        let applyFrame = CGRect(origin: CGPoint(x: inset, y: 2.0), size: CGSize(width: size.width - inset * 2.0, height: buttonHeight))
-        let applyForBothFrame = CGRect(origin: CGPoint(x: inset, y: applyFrame.maxY + spacing), size: CGSize(width: size.width - inset * 2.0, height: buttonHeight))
+        let applyFrame = CGRect(origin: CGPoint(x: leftInset, y: 2.0), size: CGSize(width: max(1.0, size.width - leftInset - rightInset), height: buttonHeight))
+        let applyForBothFrame = CGRect(origin: CGPoint(x: leftInset, y: applyFrame.maxY + spacing), size: applyFrame.size)
 
         var showApplyForBothButton = false
         if case .setPeer = self.doneButtonType {
@@ -335,6 +381,7 @@ public final class WallpaperGalleryToolbarNode: ASDisplayNode, WallpaperGalleryT
         }
         transition.updateAlpha(node: self.applyForBothButton, alpha: showApplyForBothButton ? 1.0 : 0.0)
         self.applyForBothButton.isUserInteractionEnabled = showApplyForBothButton
+        self.applyForBothButton.accessibilityElementsHidden = !showApplyForBothButton
 
         self.applyButton.frame = applyFrame
         self.applyButton.updateSize(applyFrame.size)
@@ -349,7 +396,7 @@ public final class WallpaperGalleryToolbarNode: ASDisplayNode, WallpaperGalleryT
 
 public final class WallpaperGalleryOldToolbarNode: ASDisplayNode, WallpaperGalleryToolbar {
     private var theme: PresentationTheme
-    private let strings: PresentationStrings
+    private var strings: PresentationStrings
 
     public var cancelButtonType: WallpaperGalleryToolbarCancelButtonType {
         didSet {
@@ -393,6 +440,7 @@ public final class WallpaperGalleryOldToolbarNode: ASDisplayNode, WallpaperGalle
 
     public func updateThemeAndStrings(theme: PresentationTheme, strings: PresentationStrings) {
         self.theme = theme
+        self.strings = strings
 
         switch self.cancelButtonType {
             case .cancel:
@@ -419,31 +467,37 @@ public final class WallpaperGalleryOldToolbarNode: ASDisplayNode, WallpaperGalle
     public func updateLayout(size: CGSize, layout: ContainerViewLayout, transition: ContainedViewLayoutTransition) {
         self.validLayout = (size, layout)
 
-        let sideInset: CGFloat = 30.0
-        let spacing: CGFloat = 24.0
+        let usesMessages = self.theme.isMessagesTheme
+        let sideInset: CGFloat = usesMessages ? 16.0 : 30.0
+        let leftInset = sideInset + layout.safeInsets.left
+        let rightInset = sideInset + layout.safeInsets.right
+        let spacing: CGFloat = usesMessages ? 12.0 : 24.0
         let buttonHeight: CGFloat = 52.0
-        let buttonWidth = floor(max(1.0, size.width - sideInset * 2.0 - spacing) / 2.0)
+        let buttonWidth = floor(max(1.0, size.width - leftInset - rightInset - spacing) / 2.0)
         let buttonY = floor((size.height - buttonHeight) / 2.0)
-        let cancelFrame = CGRect(x: sideInset, y: buttonY, width: buttonWidth, height: buttonHeight)
-        let doneFrame = CGRect(x: cancelFrame.maxX + spacing, y: buttonY, width: max(1.0, size.width - sideInset - cancelFrame.maxX - spacing), height: buttonHeight)
+        let cancelFrame = CGRect(x: leftInset, y: buttonY, width: buttonWidth, height: buttonHeight)
+        let doneFrame = CGRect(x: cancelFrame.maxX + spacing, y: buttonY, width: max(1.0, size.width - rightInset - cancelFrame.maxX - spacing), height: buttonHeight)
 
         let glassColor = UIColor(white: 1.0, alpha: 0.0)
         let foregroundColor = self.theme.list.itemPrimaryTextColor
+        let cancelColor = usesMessages ? self.theme.list.itemAccentColor : foregroundColor
+        let doneColor = usesMessages ? self.theme.list.itemCheckColors.foregroundColor : foregroundColor
+        let cornerRadius = usesMessages ? MessagesAppearanceMetrics.actionRadius(height: buttonHeight) : buttonHeight * 0.5
         let componentTransition = ComponentTransition(transition)
 
         let cancelSize = self.cancelButton.update(
             transition: componentTransition,
             component: AnyComponent(ButtonComponent(
                 background: ButtonComponent.Background(
-                    style: .actualGlass,
-                    color: glassColor,
-                    foreground: foregroundColor,
-                    pressedColor: glassColor,
-                    cornerRadius: buttonHeight * 0.5
+                    style: usesMessages ? .legacy : .actualGlass,
+                    color: usesMessages ? self.theme.list.itemBlocksBackgroundColor : glassColor,
+                    foreground: cancelColor,
+                    pressedColor: usesMessages ? self.theme.list.itemHighlightedBackgroundColor : glassColor,
+                    cornerRadius: cornerRadius
                 ),
                 content: AnyComponentWithIdentity(
                     id: AnyHashable(self.cancelTitle),
-                    component: AnyComponent(Text(text: self.cancelTitle, font: Font.semibold(17.0), color: foregroundColor))
+                    component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: self.cancelTitle, font: Font.semibold(17.0), textColor: cancelColor)), horizontalAlignment: .center, maximumNumberOfLines: usesMessages ? 2 : 1))
                 ),
                 action: { [weak self] in
                     self?.cancel?()
@@ -457,6 +511,9 @@ public final class WallpaperGalleryOldToolbarNode: ASDisplayNode, WallpaperGalle
                 self.view.addSubview(cancelView)
             }
             transition.updateFrame(view: cancelView, frame: CGRect(origin: cancelFrame.origin, size: cancelSize))
+            cancelView.isAccessibilityElement = true
+            cancelView.accessibilityLabel = self.cancelTitle
+            cancelView.accessibilityTraits = .button
         }
 
         let doneIsVisible = !self.doneTitle.isEmpty
@@ -464,15 +521,15 @@ public final class WallpaperGalleryOldToolbarNode: ASDisplayNode, WallpaperGalle
             transition: componentTransition,
             component: AnyComponent(ButtonComponent(
                 background: ButtonComponent.Background(
-                    style: .actualGlass,
-                    color: glassColor,
-                    foreground: foregroundColor,
-                    pressedColor: glassColor,
-                    cornerRadius: buttonHeight * 0.5
+                    style: usesMessages ? .legacy : .actualGlass,
+                    color: usesMessages ? self.theme.list.itemCheckColors.fillColor : glassColor,
+                    foreground: doneColor,
+                    pressedColor: usesMessages ? self.theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.9) : glassColor,
+                    cornerRadius: cornerRadius
                 ),
                 content: AnyComponentWithIdentity(
                     id: AnyHashable(self.doneTitle),
-                    component: AnyComponent(Text(text: self.doneTitle, font: Font.semibold(17.0), color: foregroundColor))
+                    component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: self.doneTitle, font: Font.semibold(17.0), textColor: doneColor)), horizontalAlignment: .center, maximumNumberOfLines: usesMessages ? 2 : 1))
                 ),
                 isEnabled: self.doneEnabled && doneIsVisible,
                 tintWhenDisabled: false,
@@ -490,6 +547,10 @@ public final class WallpaperGalleryOldToolbarNode: ASDisplayNode, WallpaperGalle
             transition.updateFrame(view: doneView, frame: CGRect(origin: doneFrame.origin, size: doneSize))
             componentTransition.setAlpha(view: doneView, alpha: doneIsVisible ? (self.doneEnabled ? 1.0 : 0.4) : 0.0)
             doneView.isUserInteractionEnabled = self.doneEnabled && doneIsVisible
+            doneView.isAccessibilityElement = doneIsVisible
+            doneView.accessibilityLabel = self.doneTitle
+            doneView.accessibilityTraits = self.doneEnabled ? .button : [.button, .notEnabled]
+            doneView.accessibilityElementsHidden = !doneIsVisible
         }
     }
 }

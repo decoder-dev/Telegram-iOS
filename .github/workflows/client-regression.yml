@@ -96,6 +96,7 @@ jobs:
       - run: python3 Tests/Customization/run.py
         if: ${{ !cancelled() }}
       - run: python3 Tests/Customization/test_messages_style.py
+      - run: python3 Tests/Customization/test_messages_screen_states.py
         if: ${{ !cancelled() }}
       - run: python3 Tests/ClientAdditions/run.py
         if: ${{ !cancelled() }}

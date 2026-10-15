@@ -59,6 +59,7 @@ final class DataButtonComponent: Component {
         private let title = ComponentView<Empty>()
         
         private var component: DataButtonComponent?
+        private weak var state: EmptyComponentState?
         
         private var highlightBackgroundFrame: CGRect?
         private var highlightBackgroundLayer: SimpleLayer?
@@ -112,26 +113,52 @@ final class DataButtonComponent: Component {
         }
         
         func displayHighlight() {
-            
+            guard let component = self.component, let frame = self.highlightBackgroundFrame else { return }
+            self.highlightBackgroundLayer?.removeFromSuperlayer()
+            let layer = SimpleLayer()
+            self.highlightBackgroundLayer = layer
+            layer.backgroundColor = component.theme.list.itemHighlightedBackgroundColor.cgColor
+            layer.frame = frame
+            self.layer.insertSublayer(layer, at: 0)
+            Queue.mainQueue().after(0.8, { [weak self, weak layer] in
+                guard let self, let layer, self.highlightBackgroundLayer === layer, !self.isHighlighted else { return }
+                self.highlightBackgroundLayer = nil
+                layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.25, removeOnCompletion: false, completion: { [weak layer] _ in
+                    layer?.removeFromSuperlayer()
+                })
+            })
+        }
+
+        override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+            super.traitCollectionDidChange(previousTraitCollection)
+            if self.component?.theme.isMessagesTheme == true, previousTraitCollection?.preferredContentSizeCategory != self.traitCollection.preferredContentSizeCategory {
+                self.state?.updated(transition: .immediate)
+            }
         }
         
         func update(component: DataButtonComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
             let themeUpdated = self.component?.theme !== component.theme
             
             self.component = component
+            self.state = state
+            self.layer.cornerRadius = component.theme.isMessagesTheme ? MessagesAppearanceMetrics.sectionCornerRadius : 26.0
+            self.isAccessibilityElement = true
+            self.accessibilityTraits = .button
+            self.accessibilityLabel = component.title
 
             if themeUpdated {
                 self.backgroundColor = component.theme.list.itemBlocksBackgroundColor
+                self.highlightBackgroundLayer?.backgroundColor = component.theme.list.itemHighlightedBackgroundColor.cgColor
             }
             
             let titleSize = self.title.update(
                 transition: transition,
-                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: component.title, font: Font.regular(17.0), textColor: component.theme.list.itemDestructiveColor)))),
+                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: component.title, font: component.theme.isMessagesTheme ? UIFont.preferredFont(forTextStyle: .body) : Font.regular(17.0), textColor: component.theme.list.itemDestructiveColor)), horizontalAlignment: .center, maximumNumberOfLines: component.theme.isMessagesTheme ? 0 : 1)),
                 environment: {},
-                containerSize: CGSize(width: availableSize.width, height: 100.0)
+                containerSize: CGSize(width: max(1.0, availableSize.width - (component.theme.isMessagesTheme ? 32.0 : 0.0)), height: .greatestFiniteMagnitude)
             )
             
-            let height: CGFloat = 52.0
+            let height: CGFloat = component.theme.isMessagesTheme ? MessagesAppearanceMetrics.rowHeight(contentHeight: titleSize.height, verticalInset: 12.0) : 52.0
             
             let titleFrame = CGRect(origin: CGPoint(x: floor((availableSize.width - titleSize.width) / 2.0), y: floor((height - titleSize.height) / 2.0)), size: titleSize)
             
@@ -144,6 +171,7 @@ final class DataButtonComponent: Component {
             }
             
             self.highlightBackgroundFrame = CGRect(origin: CGPoint(), size: CGSize(width: availableSize.width, height: height))
+            self.highlightBackgroundLayer?.frame = CGRect(origin: CGPoint(), size: CGSize(width: availableSize.width, height: height))
             
             return CGSize(width: availableSize.width, height: height)
         }

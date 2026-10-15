@@ -100,6 +100,7 @@ final class StorageKeepSizeComponent: Component {
             
             self.component = component
             self.state = state
+            self.layer.cornerRadius = component.theme.isMessagesTheme ? MessagesAppearanceMetrics.sectionCornerRadius : 26.0
             
             if themeUpdated {
                 self.backgroundColor = component.theme.list.itemBlocksBackgroundColor
@@ -145,6 +146,7 @@ final class StorageKeepSizeComponent: Component {
                             value: maximumCacheSizeValues.firstIndex(where: { $0 == component.value }) ?? 0,
                             markPositions: true,
                             valueUpdated: { value in
+                                guard maximumCacheSizeValues.indices.contains(value) else { return }
                                 let sizeValue = maximumCacheSizeValues[value]
                                 component.updateValue(sizeValue)
                             }

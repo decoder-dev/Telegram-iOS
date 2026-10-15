@@ -474,7 +474,7 @@ final class DataUsageScreenComponent: Component {
                         Queue.mainQueue().after(0.1, {
                             if let view = self.clearButtonView.view as? DataButtonComponent.View {
                                 view.displayHighlight()
-                                self.scrollView.setContentOffset(CGPoint(x: 0.0, y: self.scrollView.contentSize.height - self.scrollView.bounds.height), animated: true)
+                                self.scrollView.setContentOffset(CGPoint(x: 0.0, y: max(0.0, self.scrollView.contentSize.height - self.scrollView.bounds.height)), animated: true)
                             }
                         })
                     }
@@ -1067,6 +1067,7 @@ final class DataUsageScreenComponent: Component {
             }
             autoDownloadSettingsContentHeight += autoDownloadSettingsSize.height
             self.autoDownloadSettingsContainerView.backgroundColor = environment.theme.list.itemBlocksBackgroundColor
+            self.autoDownloadSettingsContainerView.layer.cornerRadius = environment.theme.isMessagesTheme ? MessagesAppearanceMetrics.sectionCornerRadius : 26.0
             transition.setFrame(view: self.autoDownloadSettingsContainerView, frame: CGRect(origin: CGPoint(x: sideInset, y: contentHeight), size: CGSize(width: availableSize.width - sideInset * 2.0, height: autoDownloadSettingsContentHeight)))
             
             let autoDownloadSettingsDescriptionSize: CGSize

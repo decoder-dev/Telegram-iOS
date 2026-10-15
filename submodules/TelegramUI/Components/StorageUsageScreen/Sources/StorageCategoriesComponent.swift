@@ -104,6 +104,7 @@ final class StorageCategoriesComponent: Component {
         func update(component: StorageCategoriesComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
             self.component = component
             self.state = state
+            self.layer.cornerRadius = component.theme.isMessagesTheme ? MessagesAppearanceMetrics.sectionCornerRadius : 26.0
             
             let expandedCategory: StorageUsageScreenComponent.Category? = component.isOtherExpanded ? .other : nil
             
