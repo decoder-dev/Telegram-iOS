@@ -97,26 +97,20 @@ public func higChatBubbleCorners(from settings: PresentationChatBubbleSettings) 
 
 /// The root label changes with the dedicated Messages appearance; folder titles remain their own names.
 public func messagesChatListTitle(_ strings: PresentationStrings, theme: PresentationTheme) -> String {
-    guard theme.isMessagesTheme else { return strings.DialogList_Title }
-    switch String(strings.primaryComponent.languageCode.prefix(2)).lowercased() {
-    case "ru": return "Сообщения"
-    case "uk": return "Повідомлення"
-    case "be": return "Паведамленні"
-    case "de": return "Nachrichten"
-    case "es": return "Mensajes"
-    case "it": return "Messaggi"
-    case "pt": return "Mensagens"
-    case "tr": return "Mesajlar"
-    case "ar": return "الرسائل"
-    case "ja": return "メッセージ"
-    case "ko": return "메시지"
-    case "zh": return "信息"
-    default: return "Messages"
-    }
+    return strings.DialogList_Title
 }
 
 public func forkNormalizedThemeSettings(_ settings: PresentationThemeSettings) -> PresentationThemeSettings {
     var updated = settings
+    if case let .builtin(reference) = updated.theme {
+        updated.theme = .builtin(reference.restoredAppearance)
+    }
+    if case let .builtin(reference) = updated.automaticThemeSwitchSetting.theme {
+        updated.automaticThemeSwitchSetting.theme = .builtin(reference.restoredAppearance)
+    }
+    if updated.chatBubbleSettings.style == .messages {
+        updated.chatBubbleSettings = .default
+    }
     updated.automaticThemeSwitchSetting.force = false
     updated.automaticThemeSwitchSetting.trigger = .explicitNone
     return updated

@@ -431,9 +431,7 @@ private func themeSettingsControllerEntries(
         (.night, "Classic Black"),
         (.bananaGramCream, "BananaGram Cream"),
         (.bananaGramGraphite, "BananaGram Graphite"),
-        (.bananaGramHalloween, "BananaGram Halloween"),
-        (.messagesDay, "Messages Light"),
-        (.messagesNight, "Messages Dark")
+        (.bananaGramHalloween, "BananaGram Halloween")
     ]
     for (builtin, title) in themeButtons {
         let isSelected = themeReference == .builtin(builtin) || (builtin == .day && themeReference == .builtin(.dayClassic))
@@ -1287,14 +1285,7 @@ public func themeSettingsController(context: AccountContext, focusOnItemTag: The
                         updatedAutomaticThemeSwitchSetting.theme = updatedTheme
                     }
                 }
-                var result = current.withUpdatedTheme(updatedTheme).withUpdatedAutomaticThemeSwitchSetting(updatedAutomaticThemeSwitchSetting)
-                if updatedTheme == .builtin(.messagesDay) || updatedTheme == .builtin(.messagesNight) {
-                    if result.chatBubbleSettings.style != .messages {
-                        result.chatBubbleSettings.mainRadius = 20
-                        result.chatBubbleSettings.mergeBubbleCorners = true
-                    }
-                    result.chatBubbleSettings.style = .messages
-                }
+                let result = current.withUpdatedTheme(updatedTheme).withUpdatedAutomaticThemeSwitchSetting(updatedAutomaticThemeSwitchSetting)
                 return result
 
             }).start()

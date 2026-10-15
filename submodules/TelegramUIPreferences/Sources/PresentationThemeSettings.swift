@@ -33,6 +33,15 @@ public enum PresentationBuiltinThemeReference: Int32 {
         }
     }
     
+    /// Legacy Messages ids remain decodable, but now resolve to the original appearances.
+    public var restoredAppearance: PresentationBuiltinThemeReference {
+        switch self {
+        case .messagesDay: return .day
+        case .messagesNight: return .night
+        default: return self
+        }
+    }
+
     public var baseTheme: TelegramBaseTheme {
         switch self {
             case .dayClassic:
@@ -149,7 +158,7 @@ public enum PresentationThemeReference: EnginePostboxCoding, Equatable {
     public init(decoder: EnginePostboxDecoder) {
         switch decoder.decodeInt32ForKey("v", orElse: 0) {
             case 0:
-                self = .builtin(PresentationBuiltinThemeReference(rawValue: decoder.decodeInt32ForKey("t", orElse: 0))!)
+                self = .builtin((PresentationBuiltinThemeReference(rawValue: decoder.decodeInt32ForKey("t", orElse: 0)) ?? .dayClassic).restoredAppearance)
             case 1:
                 if let localTheme = decoder.decodeObjectForKey("localTheme", decoder: { PresentationLocalTheme(decoder: $0) }) as? PresentationLocalTheme {
                     self = .local(localTheme)
@@ -571,14 +580,14 @@ public struct PresentationChatBubbleSettings: Codable, Equatable {
     
     public static var `default`: PresentationChatBubbleSettings = PresentationChatBubbleSettings(mainRadius: 14, auxiliaryRadius: 7, mergeBubbleCorners: true)
     public static var messages: PresentationChatBubbleSettings {
-        return PresentationChatBubbleSettings(mainRadius: 20, auxiliaryRadius: 4, mergeBubbleCorners: true, style: .messages)
+        return .default
     }
     
     public init(mainRadius: Int32, auxiliaryRadius: Int32, mergeBubbleCorners: Bool, style: PresentationChatBubbleStyle = .standard) {
-        self.style = style
-        self.mainRadius = mainRadius
-        self.auxiliaryRadius = auxiliaryRadius
-        self.mergeBubbleCorners = mergeBubbleCorners
+        self.style = .standard
+        self.mainRadius = style == .messages ? 14 : mainRadius
+        self.auxiliaryRadius = style == .messages ? 7 : auxiliaryRadius
+        self.mergeBubbleCorners = style == .messages ? true : mergeBubbleCorners
     }
     
     public init(from decoder: Decoder) throws {
@@ -588,6 +597,9 @@ public struct PresentationChatBubbleSettings: Codable, Equatable {
         self.mainRadius = try container.decodeIfPresent(Int32.self, forKey: "mainRadius") ?? 14
         self.auxiliaryRadius = try container.decodeIfPresent(Int32.self, forKey: "auxiliaryRadius") ?? 7
         self.mergeBubbleCorners = (try container.decodeIfPresent(Int32.self, forKey: "mergeBubbleCorners") ?? 1) != 0
+        if self.style == .messages {
+            self = .default
+        }
     }
     
     public func encode(to encoder: Encoder) throws {
@@ -669,7 +681,7 @@ public struct PresentationThemeSettings: Codable {
     }
     
     public static var defaultSettings: PresentationThemeSettings {
-        return PresentationThemeSettings(theme: .builtin(.messagesNight), themePreferredBaseTheme: [:], themeSpecificAccentColors: [:], themeSpecificChatWallpapers: [:], useSystemFont: true, fontSize: .regular, listsFontSize: .regular, chatBubbleSettings: .messages, automaticThemeSwitchSetting: AutomaticThemeSwitchSetting(force: false, trigger: .explicitNone, theme: .builtin(.messagesNight)), largeEmoji: true, reduceMotion: false)
+        return PresentationThemeSettings(theme: .builtin(.dayClassic), themePreferredBaseTheme: [:], themeSpecificAccentColors: [:], themeSpecificChatWallpapers: [:], useSystemFont: true, fontSize: .regular, listsFontSize: .regular, chatBubbleSettings: .default, automaticThemeSwitchSetting: AutomaticThemeSwitchSetting(force: false, trigger: .system, theme: .builtin(.night)), largeEmoji: true, reduceMotion: false)
     }
     
     public init(theme: PresentationThemeReference, themePreferredBaseTheme: [Int64: TelegramBaseTheme], themeSpecificAccentColors: [Int64: PresentationThemeAccentColor], themeSpecificChatWallpapers: [Int64: TelegramWallpaper], useSystemFont: Bool, fontSize: PresentationFontSize, listsFontSize: PresentationFontSize, chatBubbleSettings: PresentationChatBubbleSettings, automaticThemeSwitchSetting: AutomaticThemeSwitchSetting, largeEmoji: Bool, reduceMotion: Bool) {

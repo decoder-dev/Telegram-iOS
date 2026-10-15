@@ -169,12 +169,8 @@ for height: CGFloat in [-20, 0, 1, 12, 24, 44, 88] {
         source = read('submodules/SettingsUI/Sources/BubbleSettings/BubbleSettingsController.swift')
         self.assertGreaterEqual(source.count('higChatBubbleCorners(from:'), 3)
         self.assertIn('current.chatBubbleSettings = chatBubbleSettings', source)
-        self.assertIn('self.toolbarNode.updateStyle =', source)
-        self.assertIn('self.presentationThemeSettings.chatBubbleSettings.style = style', source)
-        self.assertIn('self.presentationThemeSettings.chatBubbleSettings.mainRadius = 20', source)
-        # The segmented control edits the preview only; persistence still happens through Apply.
-        style_action = source.split('self.toolbarNode.updateStyle =', 1)[1].split('self.toolbarNode.updateCornerRadius =', 1)[0]
-        self.assertNotIn('updatePresentationThemeSettingsInteractively', style_action)
+        self.assertNotIn('UISegmentedControl', source)
+        self.assertNotIn('self.toolbarNode.updateStyle =', source)
 
     def test_composer_decoration_does_not_replace_the_editor(self):
         source = read('submodules/TelegramUI/Components/Chat/ChatTextInputPanelNode/Sources/ChatTextInputPanelNode.swift')
@@ -213,7 +209,8 @@ for height: CGFloat in [-20, 0, 1, 12, 24, 44, 88] {
         self.assertIn('titleLabel?.numberOfLines = 0', source)
         self.assertIn('minimumPreviewWidth - 24.0', source)
         self.assertIn('ceil(previewTextHeight) + 12.0', source)
-        self.assertIn('actionsStackSize.height + effectPreviewHeight + 144.0', source)
+        self.assertIn('let canChooseEffects = false', source)
+        self.assertIn('self.effectPreviewButton.isHidden = true', source)
         stale = source.split('guard self.selectedMessageEffect?.id == effectId else {', 1)[1].split('guard !self.shouldReduceEffectMotion', 1)[0]
         self.assertNotIn('stopEffectPreviewAnimation', stale)
 
@@ -283,8 +280,15 @@ public struct StringCodingKey: CodingKey, ExpressibleByStringLiteral {
             declaration(presentation, 'public struct PresentationChatBubbleCorners:'),
             declaration(presentation, 'public func higChatBubbleCorners('),
         ])
+        fixture += 'enum TelegramBaseTheme { case classic, day, night, tinted }\n' + declaration(preferences, 'public enum PresentationBuiltinThemeReference:') + '\n'
         fixture += '''
+precondition(PresentationBuiltinThemeReference(rawValue: 7)?.restoredAppearance == .day)
+precondition(PresentationBuiltinThemeReference(rawValue: 8)?.restoredAppearance == .night)
+for id: Int32 in 0...6 { precondition(PresentationBuiltinThemeReference(rawValue: id)?.restoredAppearance.rawValue == id) }
 let decoder = JSONDecoder()
+let retired = try decoder.decode(PresentationChatBubbleSettings.self, from: Data(#"{"style":1,"mainRadius":20,"auxiliaryRadius":4,"mergeBubbleCorners":0}"#.utf8))
+precondition(retired == .default)
+
 let legacy = try decoder.decode(PresentationChatBubbleSettings.self, from: Data("{\\"mainRadius\\":24}".utf8))
 precondition(legacy.style == .standard && legacy.mainRadius == 24 && legacy.mergeBubbleCorners)
 let unknown = try decoder.decode(PresentationChatBubbleSettings.self, from: Data("{\\"style\\":999}".utf8))
@@ -297,9 +301,9 @@ for style in [PresentationChatBubbleStyle.standard, .messages] {
             precondition(restored == original)
             let corners = higChatBubbleCorners(from: restored)
             precondition((4...30).contains(corners.mainRadius))
-            precondition(corners.style == style && corners.mergeBubbleCorners == merge)
-            precondition(corners.hasTails == (style == .messages))
-            precondition(corners.auxiliaryRadius == (style == .messages ? 4.0 : floor(4.0 + (corners.mainRadius - 4.0) * 0.4)))
+            precondition(corners.style == .standard && corners.mergeBubbleCorners == original.mergeBubbleCorners)
+            precondition(!corners.hasTails)
+            precondition(corners.auxiliaryRadius == floor(4.0 + (corners.mainRadius - 4.0) * 0.4))
         }
     }
 }

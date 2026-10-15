@@ -23,9 +23,9 @@ public func makeDefaultPresentationTheme(reference: PresentationBuiltinThemeRefe
         case .bananaGramHalloween:
             theme = makeBananaGramTheme(dark: true, halloween: true)
         case .messagesDay:
-            theme = makeBananaGramTheme(dark: false, messages: true)
+            theme = makeDefaultDayPresentationTheme(extendingThemeReference: extendingThemeReference, serviceBackgroundColor: serviceBackgroundColor, day: true, preview: preview)
         case .messagesNight:
-            theme = makeBananaGramTheme(dark: true, messages: true)
+            theme = makeDefaultDarkPresentationTheme(extendingThemeReference: extendingThemeReference, preview: preview)
     }
     return theme
 }
@@ -330,7 +330,8 @@ public enum MessagesAppearanceMetrics {
 
 public extension PresentationTheme {
     var isMessagesTheme: Bool {
-        return self.index == PresentationThemeReference.builtin(.messagesDay).index || self.index == PresentationThemeReference.builtin(.messagesNight).index
+        // Retired appearance: keep the compatibility API without enabling its styling.
+        return false
     }
 
     /// Fork appearance identity. These palettes keep their stock Day / Night base for rendering;

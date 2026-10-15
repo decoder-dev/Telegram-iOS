@@ -1044,7 +1044,6 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                     PresentationAppIcon(name: "PremiumBlack", imageName: "PremiumBlack", isPremium: false),
                     PresentationAppIcon(name: "PremiumNight", imageName: "PremiumNight", isPremium: false),
                     PresentationAppIcon(name: "HalloweenIcon", imageName: "HalloweenIcon", isPremium: false),
-                    PresentationAppIcon(name: "MessagesIcon", imageName: "MessagesIcon", isPremium: false),
                     PresentationAppIcon(name: "PremiumRose", imageName: "PremiumRose", isPremium: false),
                     PresentationAppIcon(name: "PremiumEmerald", imageName: "PremiumEmerald", isPremium: false),
                     PresentationAppIcon(name: "PremiumSunset", imageName: "PremiumSunset", isPremium: false),
@@ -2331,6 +2330,9 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         
         //cancelWindowPanGestures(view: self.mainWindow.hostView.containerView)
 
+        if UIApplication.shared.alternateIconName == "MessagesIcon" {
+            UIApplication.shared.setAlternateIconName(nil, completionHandler: nil)
+        }
         WebProxyManager.shared.applicationDidBecomeActive()
     }
     

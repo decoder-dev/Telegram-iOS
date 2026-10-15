@@ -242,7 +242,7 @@ final class ChatSendMessageContextScreenComponent: Component {
             self.effectPreviewButton.layer.cornerCurve = .continuous
             self.effectPreviewButton.addTarget(self, action: #selector(self.clearEffectPreview), for: .touchUpInside)
             self.effectPreviewButton.accessibilityIdentifier = "chat.effectPreview.clear"
-            self.addSubview(self.effectPreviewButton)
+            self.effectPreviewButton.isHidden = true
             NotificationCenter.default.addObserver(self, selector: #selector(self.reduceMotionChanged), name: UIAccessibility.reduceMotionStatusDidChangeNotification, object: nil)
             
             self.backgroundView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(self.onBackgroundTap(_:))))
@@ -1260,7 +1260,7 @@ final class ChatSendMessageContextScreenComponent: Component {
             }
             var readySendButtonFrame = CGRect(origin: CGPoint(x: sourceSendButtonFrame.maxX - sendButtonSize.width, y: sourceSendButtonFrame.minY), size: sendButtonSize)
             
-            let canChooseEffects = !(component.reactionItems?.isEmpty ?? true) && availableSize.height >= 480.0 && availableSize.height - environment.safeInsets.top - environment.safeInsets.bottom >= actionsStackSize.height + effectPreviewHeight + 144.0
+            let canChooseEffects = false
             let messageActionsSpacing: CGFloat = canChooseEffects ? effectPreviewHeight + 14.0 : 7.0
             var sourceActionsStackFrame = CGRect(origin: CGPoint(x: readySendButtonFrame.minX + 1.0 - 8.0 - actionsStackSize.width, y: sourceMessageItemFrame.maxY + messageActionsSpacing), size: actionsStackSize)
             if !isMessageVisible {
