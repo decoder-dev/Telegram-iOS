@@ -32,6 +32,45 @@ def run_swift(source):
 
 
 class ScreenStateTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which('swift'), 'Swift unavailable locally; executes in macOS CI')
+    def test_production_session_actions_keep_current_identifier_and_permission_state(self):
+        fixture = """import Foundation
+struct Identifier { let hash: Int64 }
+class Model {
+    var enabled = true; var editable = true; var action: (() -> Void)?
+    var session = Identifier(hash: 11); var website = Identifier(hash: 22)
+    var removeSession: (Int64) -> Void = { _ in }
+}
+"""
+        base = 'submodules/SettingsUI/Sources/Privacy and Security/Recent Sessions/'
+        for name, filename in [('Session', 'ItemListRecentSessionItem.swift'), ('Website', 'ItemListWebsiteItem.swift')]:
+            source = read(base + filename)
+            fixture += 'class ' + name + ' { var layoutParams: (Model, Int, Int)?\n'
+            fixture += member(source, 'private func activateItem()').replace('private ', '') + '\n'
+            fixture += member(source, '@objc private func accessibilityTerminate()').replace('@objc ', '').replace('private ', '') + '\n}\n'
+        fixture += """
+var count = 0; var removed: [Int64] = []
+let session = Session(); let website = Website()
+precondition(!session.activateItem() && !session.accessibilityTerminate())
+precondition(!website.activateItem() && !website.accessibilityTerminate())
+let first = Model(); first.action = { count += 1 }; first.removeSession = { removed.append($0) }
+session.layoutParams = (first, 0, 0); website.layoutParams = (first, 0, 0)
+first.enabled = false
+precondition(!session.activateItem() && !session.accessibilityTerminate())
+precondition(!website.activateItem() && !website.accessibilityTerminate())
+precondition(count == 0 && removed.isEmpty)
+first.enabled = true; first.editable = false
+precondition(session.activateItem() && website.activateItem())
+precondition(!session.accessibilityTerminate())
+precondition(website.accessibilityTerminate() && removed == [22])
+let next = Model(); next.session = Identifier(hash: 33); next.website = Identifier(hash: 44)
+next.removeSession = { removed.append($0) }
+session.layoutParams = (next, 0, 0); website.layoutParams = (next, 0, 0)
+precondition(session.accessibilityTerminate() && website.accessibilityTerminate())
+precondition(removed == [22, 33, 44] && count == 2)
+"""
+        run_swift(fixture)
+
     def test_special_button_colors_keep_messages_shape_and_schedule_subtitle(self):
         footer = read('submodules/SettingsUI/Sources/DeleteAccountFooterItem.swift')
         self.assertIn('maximumCornerRadius: self.item.theme.isMessagesTheme ? MessagesAppearanceMetrics.actionCornerRadius : nil', footer)
