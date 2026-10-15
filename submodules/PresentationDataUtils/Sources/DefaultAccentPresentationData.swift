@@ -2,6 +2,9 @@ import SwiftSignalKit
 import TelegramPresentationData
 
 private func themeWithDefaultAccent(_ theme: PresentationTheme) -> PresentationTheme {
+    if theme.bananaGramReference != nil {
+        return theme
+    }
     let defaultTheme: PresentationTheme
     switch theme.referenceTheme {
     case .day, .dayClassic:
@@ -10,7 +13,7 @@ private func themeWithDefaultAccent(_ theme: PresentationTheme) -> PresentationT
         defaultTheme = defaultDarkColorPresentationTheme
     case .nightAccent:
         return defaultDarkTintedPresentationTheme
-    case .bananaGramCream, .bananaGramGraphite:
+    case .bananaGramCream, .bananaGramGraphite, .bananaGramHalloween, .messagesDay, .messagesNight:
         // The BananaGram themes' accent is the brand colour itself; there is no other default to reset to.
         return theme
     }

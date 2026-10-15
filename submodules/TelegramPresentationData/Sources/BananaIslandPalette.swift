@@ -7,6 +7,8 @@ public enum BananaIslandPalette {
     public static let iconDidChangeNotification = Notification.Name("BananaIslandPalette.iconDidChange")
 
     private static let colors: [String: (fill: UInt32, text: UInt32)] = [
+        "HalloweenIcon": (0x292035, 0xffb45e),
+        "MessagesIcon": (0x0d7030, 0xfbfffc),
         "BlackClassicIcon": (0x2d385b, 0xfffef7),
         "BlackFilledIcon": (0x5d676f, 0xfffef7),
         "BlackIcon": (0x37352e, 0xfffef7),

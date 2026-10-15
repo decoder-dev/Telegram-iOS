@@ -786,7 +786,7 @@ public final class SearchBarNodeTheme: Equatable {
         self.separator = hasSeparator ? theme.rootController.navigationBar.separatorColor : theme.rootController.navigationBar.blurredBackgroundColor
         
         var fillColor = theme.rootController.navigationSearchBar.inputFillColor
-        if inline, fillColor.distance(to: theme.list.blocksBackgroundColor) < 100 {
+        if inline, !theme.isMessagesTheme, fillColor.distance(to: theme.list.blocksBackgroundColor) < 100 {
             fillColor = fillColor.withMultipliedBrightnessBy(0.8)
         }
         self.inputFill = fillColor
@@ -1116,6 +1116,9 @@ public class SearchBarNode: ASDisplayNode, UITextFieldDelegate {
     }
         
     public func updateThemeAndStrings(theme: SearchBarNodeTheme, presentationTheme: PresentationTheme, preferClearGlass: Bool = false, strings: PresentationStrings) {
+        self.textBackgroundNode.cornerRadius = presentationTheme.isMessagesTheme ? MessagesAppearanceMetrics.searchRadius(height: self.fieldStyle.height) : self.fieldStyle.cornerDiameter / 2.0
+        self.textBackgroundNode.layer.cornerCurve = .continuous
+        self.inlineSearchPlaceholder.maximumCornerRadius = presentationTheme.isMessagesTheme ? MessagesAppearanceMetrics.searchCornerRadius : nil
         if self.theme != theme || self.strings !== strings {
             self.clearButton.accessibilityLabel = strings.WebSearch_RecentSectionClear
             self.cancelButton.accessibilityLabel = self.cancelText ?? strings.Common_Cancel

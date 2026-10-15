@@ -1,0 +1,216 @@
+"""Persistent Messages geometry and production integration contracts; no application build."""
+import pathlib
+import shutil
+import subprocess
+import tempfile
+import unittest
+
+ROOT = pathlib.Path(__file__).resolve().parents[2]
+
+
+def read(path):
+    return (ROOT / path).read_text(encoding='utf-8')
+
+
+def declaration(source, marker):
+    start = source.index(marker)
+    return source[start:source.index('\n}', start) + 2]
+
+
+class MessagesStyleTests(unittest.TestCase):
+    def test_search_shape_survives_activation_and_resets_when_theme_changes(self):
+        source = read('submodules/SearchBarNode/Sources/SearchBarNode.swift')
+        self.assertIn('self.inlineSearchPlaceholder.maximumCornerRadius = presentationTheme.isMessagesTheme ? MessagesAppearanceMetrics.searchCornerRadius : nil', source)
+        self.assertIn('if inline, !theme.isMessagesTheme,', source)
+        placeholder = read('submodules/SearchBarNode/Sources/SearchBarPlaceholderNode.swift')
+        self.assertIn('self.contentView.maximumCornerRadius = newValue', placeholder)
+        self.assertIn('self.maximumCornerRadius ?? backgroundFrame.height * 0.5', placeholder)
+        self.assertIn('self.maximumCornerRadius ?? height * 0.5', placeholder)
+        navigation = read('submodules/SearchUI/Sources/NavigationBarSearchContentNode.swift')
+        self.assertEqual(navigation.count('maximumCornerRadius = theme.isMessagesTheme ? MessagesAppearanceMetrics.searchCornerRadius : nil'), 2)
+
+    def test_profile_content_and_primary_action_remain_accessible(self):
+        root = 'submodules/TelegramUI/Components/PeerInfo/PeerInfoScreen/Sources/'
+        header = read(root + 'ListItems/PeerInfoScreenHeaderItem.swift')
+        self.assertIn('presentationData.listsFontSize.itemListBaseHeaderFontSize', header)
+        self.assertIn('max(textSize.height, labelSize.height)', header)
+        self.assertIn('[item.text, item.label ?? ""]', header)
+        action = read(root + 'PeerInfoHeaderActionButtonNode.swift')
+        self.assertIn('theme.isMessagesTheme ? presentationData.theme.list.itemCheckColors.fillColor', action)
+        self.assertIn('textColor: presentationData.theme.list.itemCheckColors.foregroundColor', action)
+        self.assertIn('max(1.0, size.width - 24.0)', action)
+        self.assertIn('self.action(self, nil)', action)
+        profile = read(root + 'ListItems/PeerInfoScreenDisclosureItem.swift')
+        self.assertIn('contentWidth * 0.45', profile)
+        self.assertIn('max(0.0, labelConstrainWidth)', profile)
+
+    @unittest.skipUnless(shutil.which('swift'), 'Swift unavailable locally; runs in macOS CI')
+    def test_production_geometry_preserves_content_at_narrow_and_large_sizes(self):
+        source = read('submodules/TelegramPresentationData/Sources/MakePresentationTheme.swift')
+        fixture = 'import Foundation\n' + declaration(source, 'public enum MessagesAppearanceMetrics {')
+        fixture += '''
+for content: CGFloat in [0, 14, 20, 44, 88, 160, 512] {
+    for inset: CGFloat in [0, 6, 11, 15, 24] {
+        let height = MessagesAppearanceMetrics.rowHeight(contentHeight: content, verticalInset: inset)
+        precondition(height >= 50 && height >= content + inset * 2)
+        precondition(MessagesAppearanceMetrics.searchRadius(height: height) <= height / 2)
+        precondition(MessagesAppearanceMetrics.actionRadius(height: height) <= height / 2)
+    }
+}
+for height: CGFloat in [-20, 0, 1, 12, 24, 44, 88] {
+    precondition((0...12).contains(MessagesAppearanceMetrics.searchRadius(height: height)))
+    precondition((0...14).contains(MessagesAppearanceMetrics.actionRadius(height: height)))
+}
+'''
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / 'main.swift'
+            path.write_text(fixture, encoding='utf-8')
+            subprocess.run(['swift', '-swift-version', '5', str(path)], check=True, capture_output=True, text=True, timeout=60)
+
+    def test_preview_and_saved_chat_share_the_same_geometry(self):
+        source = read('submodules/SettingsUI/Sources/BubbleSettings/BubbleSettingsController.swift')
+        self.assertGreaterEqual(source.count('higChatBubbleCorners(from:'), 3)
+        self.assertIn('current.chatBubbleSettings = chatBubbleSettings', source)
+        self.assertIn('self.toolbarNode.updateStyle =', source)
+        self.assertIn('self.presentationThemeSettings.chatBubbleSettings.style = style', source)
+        self.assertIn('self.presentationThemeSettings.chatBubbleSettings.mainRadius = 20', source)
+        # The segmented control edits the preview only; persistence still happens through Apply.
+        style_action = source.split('self.toolbarNode.updateStyle =', 1)[1].split('self.toolbarNode.updateCornerRadius =', 1)[0]
+        self.assertNotIn('updatePresentationThemeSettingsInteractively', style_action)
+
+    def test_composer_decoration_does_not_replace_the_editor(self):
+        source = read('submodules/TelegramUI/Components/Chat/ChatTextInputPanelNode/Sources/ChatTextInputPanelNode.swift')
+        block = source.split('let messagesStyle = interfaceState.bubbleCorners.style == .messages', 1)[1].split('transition.updateFrame(layer: self.textInputBackgroundNode.layer', 1)[0]
+        self.assertIn('layer.borderWidth = messagesStyle ? UIScreenPixel : 0.0', block)
+        self.assertIn('inputStrokeColor.cgColor', block)
+        self.assertNotIn('addSubview', block)
+        self.assertNotIn('isUserInteractionEnabled', block)
+
+    def test_effect_removal_cancels_pending_work_and_updates_send_parameters(self):
+        source = read('submodules/ChatSendMessageActionUI/Sources/ChatSendMessageContextScreen.swift')
+        action = source.split('@objc private func clearEffectPreview()', 1)[1].split('private func requestUpdateOverlay', 1)[0]
+        for required in ('self.messageEffectDisposable.set(nil)', 'self.selectedMessageEffect = nil', 'selectedItems = Set([])', 'self.stopEffectPreviewAnimation()', 'sendMessage.messageEffect?.1(nil)'):
+            self.assertIn(required, action)
+        self.assertIn('guard self.selectedMessageEffect?.id == effectId else', source)
+        self.assertIn('guard !self.shouldReduceEffectMotion, self.presentationAnimationState.key == .animatedIn else', source)
+        self.assertIn('UIAccessibility.reduceMotionStatusDidChangeNotification', source)
+        self.assertIn('$0.reduceMotion', source)
+        self.assertIn('playbackMode: .once', source)
+        self.assertIn('accessibilityElementsHidden = !showEffectPreview', source)
+
+    def test_new_incoming_motion_keeps_outgoing_morph_and_reduced_motion(self):
+        source = read('submodules/TelegramUI/Components/Chat/ChatMessageBubbleItemNode/Sources/ChatMessageBubbleItemNode.swift')
+        action = source.split('override public func animateAdded(', 1)[1].split('public func animateFromLoadingPlaceholder', 1)[0]
+        for required in ('style == .messages', 'effectivelyIncoming', '!item.presentationData.disableAnimations', '!item.presentationData.isPreview', '!UIAccessibility.isReduceMotionEnabled'):
+            self.assertIn(required, action)
+        self.assertNotIn('repeatForever', action)
+
+    def test_effect_fetch_is_bounded_without_dropping_the_selected_effect(self):
+        source = read('submodules/ChatSendMessageActionUI/Sources/ChatSendMessageContextScreen.swift')
+        self.assertIn('timeout(15.0, queue: .mainQueue(), alternate: .single(false))', source)
+        failure = source.split('guard resourceAvailable else {', 1)[1].split('guard let targetView', 1)[0]
+        self.assertIn('self.effectPreviewUnavailable = true', failure)
+        self.assertNotIn('selectedMessageEffect = nil', failure)
+        self.assertIn('self.selectedMessageEffect?.id == effectId, self.presentationAnimationState.key == .animatedIn', source)
+        self.assertIn('titleLabel?.numberOfLines = 0', source)
+        self.assertIn('minimumPreviewWidth - 24.0', source)
+        self.assertIn('ceil(previewTextHeight) + 12.0', source)
+        self.assertIn('actionsStackSize.height + effectPreviewHeight + 144.0', source)
+        stale = source.split('guard self.selectedMessageEffect?.id == effectId else {', 1)[1].split('guard !self.shouldReduceEffectMotion', 1)[0]
+        self.assertNotIn('stopEffectPreviewAnimation', stale)
+
+    def test_avatar_setup_and_layout_share_messages_mode_and_size(self):
+        source = read('submodules/ChatListUI/Sources/Node/ChatListItem.swift')
+        setup = source.split('func setupItem(', 1)[1].split('func updateIsHighlighted', 1)[0]
+        self.assertIn('usesMessagesChatListLayout(item) ? 50.0 : 52.0', setup)
+        self.assertNotIn('usesMessagesList', setup)
+        self.assertIn('let usesMessagesList = usesMessagesChatListLayout(item)', source)
+        self.assertEqual(source.count('min(baseAvatarDiameter, floor(item.presentationData.fontSize.baseDisplaySize * baseAvatarDiameter / 17.0))'), 2)
+
+    @unittest.skipUnless(shutil.which('swift'), 'Swift unavailable locally; runs in macOS CI')
+    def test_production_list_mode_for_search_folders_and_inline(self):
+        source = read('submodules/ChatListUI/Sources/Node/ChatListItem.swift')
+        fixture = '''
+struct Theme { var isMessagesTheme: Bool }
+struct Presentation { var theme: Theme }
+struct Interaction { var isInlineMode: Bool }
+struct PeerData { var displayAsMessage: Bool }
+enum Location: Equatable { case chatList, savedMessagesChats, search }
+enum Content { case loading, peer(PeerData), groupReference }
+struct ChatListItem {
+    var presentationData: Presentation
+    var useCommunityViewLayout: Bool
+    var interaction: Interaction
+    var chatListLocation: Location
+    var content: Content
+}
+'''
+        fixture += declaration(source, 'private func usesMessagesChatListLayout(')
+        fixture += '''
+for messages in [false, true] {
+    for community in [false, true] {
+        for inline in [false, true] {
+            for location in [Location.chatList, .savedMessagesChats, .search] {
+                for (content, searchLayout) in [(Content.loading, true), (.peer(PeerData(displayAsMessage: true)), true), (.peer(PeerData(displayAsMessage: false)), false), (.groupReference, false)] {
+                    let item = ChatListItem(presentationData: Presentation(theme: Theme(isMessagesTheme: messages)), useCommunityViewLayout: community, interaction: Interaction(isInlineMode: inline), chatListLocation: location, content: content)
+                    let expected = messages && !community && !inline && (location != .search || searchLayout)
+                    precondition(usesMessagesChatListLayout(item) == expected)
+                }
+            }
+        }
+    }
+}
+'''
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / 'main.swift'
+            path.write_text(fixture, encoding='utf-8')
+            subprocess.run(['swift', str(path)], check=True, capture_output=True, text=True)
+
+    @unittest.skipUnless(shutil.which('swift'), 'Swift unavailable locally; runs in macOS CI')
+    def test_production_codable_migration_and_geometry(self):
+        preferences = read('submodules/TelegramUIPreferences/Sources/PresentationThemeSettings.swift')
+        presentation = read('submodules/TelegramPresentationData/Sources/PresentationData.swift')
+        fixture = '''import Foundation
+public struct StringCodingKey: CodingKey, ExpressibleByStringLiteral {
+    public var stringValue: String
+    public var intValue: Int? { return Int(self.stringValue) }
+    public init(stringValue: String) { self.stringValue = stringValue }
+    public init(intValue: Int) { self.stringValue = String(intValue) }
+    public init(stringLiteral value: String) { self.stringValue = value }
+}
+'''
+        fixture += '\n'.join([
+            declaration(preferences, 'public enum PresentationChatBubbleStyle:'),
+            declaration(preferences, 'public struct PresentationChatBubbleSettings:'),
+            declaration(presentation, 'public struct PresentationChatBubbleCorners:'),
+            declaration(presentation, 'public func higChatBubbleCorners('),
+        ])
+        fixture += '''
+let decoder = JSONDecoder()
+let legacy = try decoder.decode(PresentationChatBubbleSettings.self, from: Data("{\\"mainRadius\\":24}".utf8))
+precondition(legacy.style == .standard && legacy.mainRadius == 24 && legacy.mergeBubbleCorners)
+let unknown = try decoder.decode(PresentationChatBubbleSettings.self, from: Data("{\\"style\\":999}".utf8))
+precondition(unknown.style == .standard)
+for style in [PresentationChatBubbleStyle.standard, .messages] {
+    for radius: Int32 in [Int32.min, 4, 14, 20, 30, Int32.max] {
+        for merge in [true, false] {
+            let original = PresentationChatBubbleSettings(mainRadius: radius, auxiliaryRadius: 7, mergeBubbleCorners: merge, style: style)
+            let restored = try decoder.decode(PresentationChatBubbleSettings.self, from: JSONEncoder().encode(original))
+            precondition(restored == original)
+            let corners = higChatBubbleCorners(from: restored)
+            precondition((4...30).contains(corners.mainRadius))
+            precondition(corners.style == style && corners.mergeBubbleCorners == merge)
+            precondition(corners.hasTails == (style == .messages))
+            precondition(corners.auxiliaryRadius == (style == .messages ? 4.0 : floor(4.0 + (corners.mainRadius - 4.0) * 0.4)))
+        }
+    }
+}
+'''
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / 'main.swift'
+            path.write_text(fixture, encoding='utf-8')
+            subprocess.run(['swift', '-swift-version', '5', str(path)], check=True, timeout=60)
+
+
+if __name__ == '__main__':
+    unittest.main()

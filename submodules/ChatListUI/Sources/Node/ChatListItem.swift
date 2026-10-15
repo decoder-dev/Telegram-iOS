@@ -31,6 +31,25 @@ import MultilineTextWithEntitiesComponent
 import ShimmerEffect
 import GlassBackgroundComponent
 
+private func usesMessagesChatListLayout(_ item: ChatListItem) -> Bool {
+    guard item.presentationData.theme.isMessagesTheme, !item.useCommunityViewLayout, !item.interaction.isInlineMode else {
+        return false
+    }
+    switch item.chatListLocation {
+    case .chatList, .savedMessagesChats:
+        return true
+    default:
+        switch item.content {
+        case .loading:
+            return true
+        case let .peer(data):
+            return data.displayAsMessage
+        case .groupReference:
+            return false
+        }
+    }
+}
+
 private struct ForkChatListMessageFilterCacheKey: Hashable {
     var accountPeerId: EnginePeer.Id
     var messageId: EngineMessage.Id
@@ -1539,6 +1558,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
     var trailingTextBadgeBackground: UIImageView?
     var dustNode: InvisibleInkDustNode?
     let inputActivitiesNode: ChatListInputActivitiesNode
+    private let messagesUnreadDot = ASDisplayNode()
     public let dateNode: TextNode
     var dateStatusIconNode: ASImageNode?
     var dateDisclosureIconView: UIImageView?
@@ -1906,6 +1926,10 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
         self.mainContentContainerNode.addSubnode(self.dateNode)
         self.mainContentContainerNode.addSubnode(self.statusNode)
         self.mainContentContainerNode.addSubnode(self.pinnedIconNode)
+        self.messagesUnreadDot.isLayerBacked = true
+        self.messagesUnreadDot.cornerRadius = 4.5
+        self.messagesUnreadDot.alpha = 0.0
+        self.mainContentContainerNode.addSubnode(self.messagesUnreadDot)
         self.mainContentContainerNode.addSubnode(self.badgeNode)
         self.mainContentContainerNode.addSubnode(self.mentionBadgeNode)
         self.mainContentContainerNode.addSubnode(self.hiddenPeerIconNode)
@@ -2161,7 +2185,8 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                 }
             }
             
-            var avatarDiameter = min(52.0, floor(item.presentationData.fontSize.baseDisplaySize * 52.0 / 17.0))
+            let baseAvatarDiameter: CGFloat = usesMessagesChatListLayout(item) ? 50.0 : 52.0
+            var avatarDiameter = min(baseAvatarDiameter, floor(item.presentationData.fontSize.baseDisplaySize * baseAvatarDiameter / 17.0))
             if ForkExtrasHotFlags.compactChatList {
                 avatarDiameter = floor(avatarDiameter / ChatListItemNode.compactAvatarDivisor)
             }
@@ -2449,11 +2474,12 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
             let hotFlags = ForkExtrasHotFlags.current
             let compactChatList = hotFlags.compactChatList
             let compactMessagePreview = hotFlags.compactMessagePreview
+            let usesMessagesList = usesMessagesChatListLayout(item)
 
-            let titleFont = Font.semibold(floor(item.presentationData.fontSize.itemListBaseFontSize * 16.0 / 17.0))
+            let titleFont = Font.semibold(floor(item.presentationData.fontSize.itemListBaseFontSize * (usesMessagesList ? 17.0 : 16.0) / 17.0))
             let textFont = Font.regular(floor(item.presentationData.fontSize.itemListBaseFontSize * 15.0 / 17.0))
             let italicTextFont = Font.italic(floor(item.presentationData.fontSize.itemListBaseFontSize * 15.0 / 17.0))
-            let dateFont = Font.regular(floor(item.presentationData.fontSize.itemListBaseFontSize * 14.0 / 17.0))
+            let dateFont = Font.regular(floor(item.presentationData.fontSize.itemListBaseFontSize * (usesMessagesList ? 13.0 : 14.0) / 17.0))
             let badgeFont = Font.with(size: floor(item.presentationData.fontSize.itemListBaseFontSize * 12.0 / 17.0), design: .regular, weight: .semibold, traits: [.monospacedNumbers])
             let avatarBadgeFont = Font.with(size: floor(item.presentationData.fontSize.itemListBaseFontSize * 16.0 / 17.0), design: .regular, weight: .regular, traits: [.monospacedNumbers])
             
@@ -2730,7 +2756,8 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
             let enableChatListPhotos = true
             
             // if changed, adjust setupItem accordingly
-            var avatarDiameter = min(52.0, floor(item.presentationData.fontSize.baseDisplaySize * 52.0 / 17.0))
+            let baseAvatarDiameter: CGFloat = usesMessagesList ? 50.0 : 52.0
+            var avatarDiameter = min(baseAvatarDiameter, floor(item.presentationData.fontSize.baseDisplaySize * baseAvatarDiameter / 17.0))
             if compactChatList {
                 avatarDiameter = floor(avatarDiameter / ChatListItemNode.compactAvatarDivisor)
             }
@@ -2743,7 +2770,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                 }
                 return 0.0
             }()
-            let avatarLeftEdgeInset: CGFloat = item.useCommunityViewLayout ? 10.0 : (16.0 + higChatListCardInset)
+            let avatarLeftEdgeInset: CGFloat = item.useCommunityViewLayout ? 10.0 : ((usesMessagesList ? 26.0 : 16.0) + higChatListCardInset)
             let avatarLeftInset: CGFloat
             
             if case let .peer(peerData) = item.content, let customMessageListData = peerData.customMessageListData, customMessageListData.commandPrefix != nil {
@@ -2759,7 +2786,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                 } else {
                     // 16pt to the avatar + 52pt avatar + 6pt gap puts text and separator at
                     // 74pt, the Messages alignment. rawContentRect adds the remaining 2pt.
-                    avatarLeftInset = 20.0 + avatarDiameter + higChatListCardInset
+                    avatarLeftInset = (usesMessagesList ? 36.0 : 20.0) + avatarDiameter + higChatListCardInset
                 }
             }
             
@@ -3889,6 +3916,9 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
             
             let (dateLayout, dateApply) = dateLayout(TextNodeLayoutArguments(attributedString: dateAttributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: rawContentWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
+            if usesMessagesList && !isPeerGroup {
+                badgeContent = .none
+            }
             let (badgeLayout, badgeApply) = badgeLayout(CGSize(width: rawContentWidth, height: CGFloat.greatestFiniteMagnitude), badgeDiameter, badgeFont, currentBadgeBackgroundImage, badgeContent)
             
             let (mentionBadgeLayout, mentionBadgeApply) = mentionBadgeLayout(CGSize(width: rawContentWidth, height: CGFloat.greatestFiniteMagnitude), badgeDiameter, badgeFont, currentMentionBadgeImage, mentionBadgeContent)
@@ -4075,7 +4105,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                 titleAttributedString = NSAttributedString(string: " ", font: titleFont, textColor: theme.titleColor)
             }
                         
-            var titleRectWidth = rawContentWidth - dateLayout.size.width - 10.0 - statusWidth - titleIconsWidth
+            var titleRectWidth = max(1.0, rawContentWidth - dateLayout.size.width - 10.0 - statusWidth - titleIconsWidth - (usesMessagesList ? 14.0 : 0.0))
             var titleCutout: TextNodeCutout?
             if !titleLeftCutout.isZero {
                 titleCutout = TextNodeCutout(topLeft: CGSize(width: titleLeftCutout, height: 10.0), topRight: nil, bottomRight: nil)
@@ -4462,6 +4492,9 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                     let contentRect = rawContentRect.offsetBy(dx: editingOffset + leftInset + revealOffset, dy: 0.0)
                     
                     let avatarFrame = CGRect(origin: CGPoint(x: leftInset - avatarLeftInset + editingOffset + avatarLeftEdgeInset + revealOffset, y: floor((itemHeight - avatarDiameter) / 2.0)), size: CGSize(width: avatarDiameter, height: avatarDiameter))
+                    strongSelf.messagesUnreadDot.backgroundColor = item.presentationData.theme.chatList.unreadBadgeActiveBackgroundColor
+                    transition.updateFrame(node: strongSelf.messagesUnreadDot, frame: CGRect(x: avatarFrame.minX - 15.0, y: floor(avatarFrame.midY - 4.5), width: 9.0, height: 9.0))
+                    transition.updateAlpha(node: strongSelf.messagesUnreadDot, alpha: usesMessagesList && !isPeerGroup && unreadCount.unread && !item.editing ? 1.0 : 0.0)
                     var avatarScaleOffset: CGFloat = 0.0
                     var avatarScale: CGFloat = 1.0
                     if let inlineNavigationLocation = item.interaction.inlineNavigationLocation {
@@ -4814,8 +4847,14 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                     
                     var dateFrame = CGRect(origin: CGPoint(x: contentRect.maxX - dateLayout.size.width, y: contentRect.origin.y + 2.0), size: dateLayout.size)
                     
-                    if case let .peer(peerData) = item.content, let customMessageListData = peerData.customMessageListData, customMessageListData.messageCount != nil, customMessageListData.commandPrefix == nil {
-                        dateFrame.origin.x -= 10.0
+                    let hasCustomDateDisclosure: Bool = {
+                        if case let .peer(peerData) = item.content, let data = peerData.customMessageListData {
+                            return data.messageCount != nil && data.commandPrefix == nil
+                        }
+                        return false
+                    }()
+                    if usesMessagesList || hasCustomDateDisclosure {
+                        dateFrame.origin.x -= usesMessagesList ? 14.0 : 10.0
                         
                         let dateDisclosureIconView: UIImageView
                         if let current = strongSelf.dateDisclosureIconView {
@@ -4855,7 +4894,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                         
                         var dateStatusX: CGFloat = contentRect.origin.x
                         dateStatusX += contentRect.size.width
-                        dateStatusX += -dateLayout.size.width - 4.0 - dateIconImage.size.width
+                        dateStatusX += -dateLayout.size.width - 4.0 - dateIconImage.size.width - (usesMessagesList ? 14.0 : 0.0)
                         
                         var dateStatusY: CGFloat = contentRect.origin.y + 2.0 + UIScreenPixel
                         dateStatusY += -UIScreenPixel + floor((dateLayout.size.height - dateIconImage.size.height) / 2.0)
@@ -4870,7 +4909,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                     
                     var statusX: CGFloat = contentRect.origin.x
                     statusX += contentRect.size.width
-                    statusX += -dateLayout.size.width - statusSize.width - statusOffset
+                    statusX += -dateLayout.size.width - statusSize.width - statusOffset - (usesMessagesList ? 14.0 : 0.0)
                     
                     strongSelf.statusNode.frame = CGRect(origin: CGPoint(x: statusX, y: contentRect.origin.y + 2.0 - UIScreenPixel + floor((dateLayout.size.height - statusSize.height) / 2.0)), size: statusSize)
                     strongSelf.statusNode.fontSize = item.presentationData.fontSize.itemListBaseFontSize

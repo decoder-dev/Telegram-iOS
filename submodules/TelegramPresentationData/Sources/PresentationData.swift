@@ -65,12 +65,14 @@ public enum PresentationDateFormat {
 }
 
 public struct PresentationChatBubbleCorners: Equatable, Hashable {
+    public var style: PresentationChatBubbleStyle
     public var mainRadius: CGFloat
     public var auxiliaryRadius: CGFloat
     public var mergeBubbleCorners: Bool
     public var hasTails: Bool
     
-    public init(mainRadius: CGFloat, auxiliaryRadius: CGFloat, mergeBubbleCorners: Bool, hasTails: Bool = true) {
+    public init(mainRadius: CGFloat, auxiliaryRadius: CGFloat, mergeBubbleCorners: Bool, hasTails: Bool = true, style: PresentationChatBubbleStyle = .standard) {
+        self.style = style
         self.mainRadius = mainRadius
         self.auxiliaryRadius = auxiliaryRadius
         self.mergeBubbleCorners = mergeBubbleCorners
@@ -78,18 +80,39 @@ public struct PresentationChatBubbleCorners: Equatable, Hashable {
     }
 }
 
-/// Tail-free bubbles with the user's selected corner geometry.
+/// Standard bubbles stay tail-free; Messages uses the existing renderer's group-aware tails.
 public func higChatBubbleCorners(from settings: PresentationChatBubbleSettings) -> PresentationChatBubbleCorners {
     let mainRadius = CGFloat(max(4, min(30, settings.mainRadius)))
     // Smooth auxiliary curve: starts equal to mainRadius at 4pt, grows at 40% rate.
     // Result: r=4→4, r=8→5, r=12→7, r=20→10, r=24→12, r=30→14
-    let auxiliaryRadius = floor(4.0 + (mainRadius - 4.0) * 0.4)
+    let auxiliaryRadius = settings.style == .messages ? 4.0 : floor(4.0 + (mainRadius - 4.0) * 0.4)
     return PresentationChatBubbleCorners(
         mainRadius: mainRadius,
         auxiliaryRadius: min(mainRadius, max(0, auxiliaryRadius)),
         mergeBubbleCorners: settings.mergeBubbleCorners,
-        hasTails: false
+        hasTails: settings.style == .messages,
+        style: settings.style
     )
+}
+
+/// The root label changes with the dedicated Messages appearance; folder titles remain their own names.
+public func messagesChatListTitle(_ strings: PresentationStrings, theme: PresentationTheme) -> String {
+    guard theme.isMessagesTheme else { return strings.DialogList_Title }
+    switch String(strings.primaryComponent.languageCode.prefix(2)).lowercased() {
+    case "ru": return "Сообщения"
+    case "uk": return "Повідомлення"
+    case "be": return "Паведамленні"
+    case "de": return "Nachrichten"
+    case "es": return "Mensajes"
+    case "it": return "Messaggi"
+    case "pt": return "Mensagens"
+    case "tr": return "Mesajlar"
+    case "ar": return "الرسائل"
+    case "ja": return "メッセージ"
+    case "ko": return "메시지"
+    case "zh": return "信息"
+    default: return "Messages"
+    }
 }
 
 public func forkNormalizedThemeSettings(_ settings: PresentationThemeSettings) -> PresentationThemeSettings {
@@ -1004,6 +1027,12 @@ public func themeDisplayName(strings: PresentationStrings, reference: Presentati
             name = "BananaGram Cream"
         case .bananaGramGraphite:
             name = "BananaGram Graphite"
+        case .bananaGramHalloween:
+            name = "BananaGram Halloween"
+        case .messagesDay:
+            name = "Messages Light"
+        case .messagesNight:
+            name = "Messages Dark"
         }
     case let .local(theme):
         name = theme.title

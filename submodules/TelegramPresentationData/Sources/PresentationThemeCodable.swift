@@ -2049,6 +2049,12 @@ extension PresentationBuiltinThemeReference: @retroactive Codable {
                     self = .bananaGramCream
                 case "bananagramgraphite":
                     self = .bananaGramGraphite
+                case "bananagramhalloween":
+                    self = .bananaGramHalloween
+                case "messagesday":
+                    self = .messagesDay
+                case "messagesnight":
+                    self = .messagesNight
                 default:
                     self = .dayClassic
             }
@@ -2072,6 +2078,12 @@ extension PresentationBuiltinThemeReference: @retroactive Codable {
                 try container.encode("bananagramcream")
             case .bananaGramGraphite:
                 try container.encode("bananagramgraphite")
+            case .bananaGramHalloween:
+                try container.encode("bananagramhalloween")
+            case .messagesDay:
+                try container.encode("messagesday")
+            case .messagesNight:
+                try container.encode("messagesnight")
         }
     }
 }

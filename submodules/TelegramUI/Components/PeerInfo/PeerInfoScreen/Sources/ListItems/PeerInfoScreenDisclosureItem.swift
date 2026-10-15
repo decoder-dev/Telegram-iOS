@@ -214,19 +214,25 @@ private final class PeerInfoScreenDisclosureItemNode: PeerInfoScreenItemNode {
         } else {
             self.labelNode.attributedText = NSAttributedString(string: item.label.text, font: labelFont, textColor: labelColorValue)
         }
-        self.textNode.maximumNumberOfLines = 1
+        self.textNode.maximumNumberOfLines = presentationData.theme.isMessagesTheme ? 2 : 1
         self.textNode.attributedText = NSAttributedString(string: item.text, font: titleFont, textColor: textColorValue)
         
-        let textSize = self.textNode.updateLayout(CGSize(width: width - (leftInset + rightInset), height: .greatestFiniteMagnitude))
+        let contentWidth = max(1.0, width - leftInset - rightInset)
+        var titleWidth = contentWidth
+        if presentationData.theme.isMessagesTheme, !item.label.text.isEmpty {
+            let preferredLabelSize = self.labelNode.updateLayout(CGSize(width: contentWidth * 0.45, height: .greatestFiniteMagnitude))
+            titleWidth = max(1.0, contentWidth - preferredLabelSize.width - 16.0)
+        }
+        let textSize = self.textNode.updateLayout(CGSize(width: titleWidth, height: .greatestFiniteMagnitude))
         var labelConstrainWidth = width - textSize.width - (leftInset + rightInset)
         if case .semitransparentBadge = item.label {
             labelConstrainWidth -= 16.0
         } else {
             labelConstrainWidth -= 8.0
         }
-        let labelSize = self.labelNode.updateLayout(CGSize(width: labelConstrainWidth, height: .greatestFiniteMagnitude))
+        let labelSize = self.labelNode.updateLayout(CGSize(width: max(0.0, labelConstrainWidth), height: .greatestFiniteMagnitude))
         
-        let height = textSize.height + 32.0
+        let height = presentationData.theme.isMessagesTheme ? MessagesAppearanceMetrics.rowHeight(contentHeight: max(textSize.height, labelSize.height), verticalInset: 15.0) : textSize.height + 32.0
         let textFrame = CGRect(origin: CGPoint(x: leftInset, y: floorToScreenPixels((height - textSize.height) / 2.0)), size: textSize)        
         
         if item.icon != nil || item.iconSignal != nil {

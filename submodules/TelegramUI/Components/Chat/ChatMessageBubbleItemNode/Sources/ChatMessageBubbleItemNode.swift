@@ -1111,6 +1111,14 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
     
     override public func animateAdded(_ currentTimestamp: Double, duration: Double) {
         super.animateAdded(currentTimestamp, duration: duration)
+
+        // Incoming Messages bubbles settle gently; outgoing messages keep the existing composer morph.
+        if let item = self.item, item.presentationData.chatBubbleCorners.style == .messages,
+           item.message.effectivelyIncoming(item.context.account.peerId),
+           !item.presentationData.disableAnimations, !item.presentationData.isPreview,
+           !UIAccessibility.isReduceMotionEnabled, duration > 0.0 {
+            self.mainContextSourceNode.layer.animateScale(from: 0.97, to: 1.0, duration: min(0.22, duration))
+        }
         
         if let subnodes = self.subnodes {
             for subnode in subnodes {
@@ -2036,6 +2044,11 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
             }
         }
         
+        // Text keeps the opposite side open in Messages; albums, media and service banners retain their own widths.
+        if item.presentationData.chatBubbleCorners.style == .messages, !allowFullWidth, item.message.media.isEmpty {
+            tmpWidth = min(tmpWidth, max(1.0, floor(baseWidth * 0.82)))
+        }
+
         var deliveryFailedInset: CGFloat = 0.0
         if isFailed {
             deliveryFailedInset += 24.0
@@ -3782,7 +3795,8 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
             layoutSize.height += 1.0 + actionButtonsSizeAndApply.0.height
         }
         
-        var layoutInsets = UIEdgeInsets(top: mergedTop.merged ? layoutConstants.bubble.mergedSpacing : layoutConstants.bubble.defaultSpacing, left: 0.0, bottom: mergedBottom.merged ? layoutConstants.bubble.mergedSpacing : layoutConstants.bubble.defaultSpacing, right: 0.0)
+        let mergedSpacing = item.presentationData.chatBubbleCorners.style == .messages ? min(2.0, layoutConstants.bubble.mergedSpacing) : layoutConstants.bubble.mergedSpacing
+        var layoutInsets = UIEdgeInsets(top: mergedTop.merged ? mergedSpacing : layoutConstants.bubble.defaultSpacing, left: 0.0, bottom: mergedBottom.merged ? mergedSpacing : layoutConstants.bubble.defaultSpacing, right: 0.0)
         if dateHeaderAtBottom.hasDate && dateHeaderAtBottom.hasTopic {
             layoutInsets.top += layoutConstants.timestampDateAndTopicHeaderHeight
         } else {

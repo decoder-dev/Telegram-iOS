@@ -4,6 +4,12 @@ import re
 import unittest
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 
+def legacy_palette_source():
+    source = (ROOT/'submodules/TelegramPresentationData/Sources/MakePresentationTheme.swift').read_text(encoding='utf-8')
+    # The old two-mode assertions still validate the actual Cream / Graphite branches.
+    return re.sub(r'(?:messages(?: && dark)?|halloween) \? (?:0x[0-9A-F]+|\[[^\]]+\]|UIColor.white) : ', '', source)
+
+
 def luminance(rgb):
     channels = [(rgb >> shift & 255) / 255 for shift in (16, 8, 0)]
     linear = [v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4 for v in channels]
@@ -13,20 +19,20 @@ class ThemeTests(unittest.TestCase):
     def test_primary_controls_and_chat_title_use_the_foreground(self):
         # The glass bars draw the chat title and their buttons with panelControlColor; the stock themes use full-strength
         # white / black there, so a dimmed value turns the nickname grey.
-        source = (ROOT/'submodules/TelegramPresentationData/Sources/MakePresentationTheme.swift').read_text(encoding='utf-8')
+        source = legacy_palette_source()
         body = source.split('private func makeBananaGramTheme', 1)[1].split('return PresentationTheme(', 1)[0]
         self.assertIn('panelControlColor: foreground', body)
         self.assertNotIn('panelControlColor: secondary', body)
     
     def test_unread_badges_in_the_bars_follow_the_accent(self):
         # The stock tab bar / navigation bar badge is red; the BananaGram themes carry their own.
-        source = (ROOT/'submodules/TelegramPresentationData/Sources/MakePresentationTheme.swift').read_text(encoding='utf-8')
+        source = legacy_palette_source()
         body = source.split('private func makeBananaGramTheme', 1)[1].split('return PresentationTheme(', 1)[0]
         self.assertRegex(body, r'tabBar: theme\.rootController\.tabBar\.withUpdated\([^\n]*badgeBackgroundColor: accent[^\n]*badgeTextColor: onAccent')
         self.assertRegex(body, r'navigationBar: theme\.rootController\.navigationBar\.withUpdated\([^\n]*badgeBackgroundColor: accent[^\n]*badgeTextColor: onAccent')
     
     def test_text_contrast(self):
-        source = (ROOT/'submodules/TelegramPresentationData/Sources/MakePresentationTheme.swift').read_text(encoding='utf-8')
+        source = legacy_palette_source()
         palette = {name: (int(dark,16), int(light,16)) for name,dark,light in re.findall(r'let (\w+) = UIColor\(rgb: dark \? (0x[0-9A-F]+) : (0x[0-9A-F]+)\)',source)}
         for mode in (0,1):
             for text in ('foreground','secondary','accent'):
@@ -37,7 +43,7 @@ class ThemeTests(unittest.TestCase):
             a,b=sorted((luminance(palette['onAccent'][mode]),luminance(palette['accent'][mode])))
             self.assertGreaterEqual((b+.05)/(a+.05),4.5,(mode,'onAccent','accent'))
     def test_archive_glyph_contrast_across_both_gradients(self):
-        source = (ROOT/'submodules/TelegramPresentationData/Sources/MakePresentationTheme.swift').read_text(encoding='utf-8')
+        source = legacy_palette_source()
         palette = {name: (int(dark,16), int(light,16)) for name,dark,light in re.findall(r'let (\w+) = UIColor\(rgb: dark \? (0x[0-9A-F]+) : (0x[0-9A-F]+)\)',source)}
         def resolve(expression, mode):
             expression = expression.strip()
@@ -62,7 +68,7 @@ class ThemeTests(unittest.TestCase):
                     self.assertGreaterEqual((high+.05)/(low+.05),3.0,(field,mode,step))
 
     def test_secondary_text_on_pressed_and_search_surfaces(self):
-        source = (ROOT/'submodules/TelegramPresentationData/Sources/MakePresentationTheme.swift').read_text(encoding='utf-8')
+        source = legacy_palette_source()
         palette = {name: (int(dark,16), int(light,16)) for name,dark,light in re.findall(r'let (\w+) = UIColor\(rgb: dark \? (0x[0-9A-F]+) : (0x[0-9A-F]+)\)',source)}
         for mode in (0,1):
             for text in ('foreground','secondary'):
@@ -77,7 +83,7 @@ class ThemeTests(unittest.TestCase):
     def test_call_screen_palettes_keep_white_text_legible(self):
         source = (ROOT/'submodules/TelegramUI/Components/Calls/CallScreen/Sources/CallScreenPalette.swift').read_text(encoding='utf-8')
         sets = re.findall(r'(?:connecting|active|weakSignal): \[((?:0x[0-9A-Fa-f]{6},? ?){4})\]',source)
-        self.assertEqual(len(sets),12,'four themes x three call states')
+        self.assertEqual(len(sets),15,'five themes x three call states')
         floor = float(re.search(r'minimumContrast: Double = ([0-9.]+)',source).group(1))
         for colors in sets:
             for value in re.findall(r'0x[0-9A-Fa-f]{6}',colors):
@@ -89,7 +95,7 @@ class ThemeTests(unittest.TestCase):
         themes = (ROOT/'submodules/TelegramPresentationData/Sources/MakePresentationTheme.swift').read_text(encoding='utf-8')
         self.assertIn('var bananaGramReference: PresentationBuiltinThemeReference?',themes)
     def test_graphite_neutrals_are_warm(self):
-        source = (ROOT/'submodules/TelegramPresentationData/Sources/MakePresentationTheme.swift').read_text(encoding='utf-8')
+        source = legacy_palette_source()
         for name in ('background','surface','raisedSurface','separator'):
             dark = int(re.search(r'let '+name+r' = UIColor\(rgb: dark \? (0x[0-9A-F]+)',source).group(1),16)
             red, blue = dark >> 16 & 255, dark & 255
@@ -111,7 +117,7 @@ class ThemeTests(unittest.TestCase):
         self.assertIn([1507],groups,'Tab preview is a section of its own')
         self.assertTrue(any({1500,1501}.issubset(group) for group in groups))
     def test_every_text_and_accent_pair_in_both_themes_clears_aa(self):
-        source = (ROOT/'submodules/TelegramPresentationData/Sources/MakePresentationTheme.swift').read_text(encoding='utf-8')
+        source = legacy_palette_source()
         palette = {name: (int(dark,16), int(light,16)) for name,dark,light in re.findall(r'let (\w+) = UIColor\(rgb: dark \? (0x[0-9A-F]+) : (0x[0-9A-F]+)\)',source)}
         match = re.search(r'let outgoingBubbleColors: \[UInt32\] = dark \? \[(0x[0-9A-F]+), (0x[0-9A-F]+)\] : \[(0x[0-9A-F]+), (0x[0-9A-F]+)\]', source)
         outgoing = [int(v,16) for v in match.groups()]
@@ -138,7 +144,7 @@ class ThemeTests(unittest.TestCase):
             self.assertGreaterEqual(ratio(palette['disabled'][mode], palette['surface'][mode]), 2.5 if mode else 3.0)
             self.assertGreaterEqual(ratio(palette['disclosure'][mode], palette['surface'][mode]), 1.9)
     def test_pinned_rows_stay_subtle(self):
-        source = (ROOT/'submodules/TelegramPresentationData/Sources/MakePresentationTheme.swift').read_text(encoding='utf-8')
+        source = legacy_palette_source()
         palette = {name: (int(dark,16), int(light,16)) for name,dark,light in re.findall(r'let (\w+) = UIColor\(rgb: dark \? (0x[0-9A-F]+) : (0x[0-9A-F]+)\)',source)}
         for mode in (0, 1):
             low, high = sorted((luminance(palette['pinnedRow'][mode]), luminance(palette['surface'][mode])))

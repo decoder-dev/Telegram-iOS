@@ -202,7 +202,7 @@ public class ItemListActionItemNode: ListViewItemNode, ItemListItemNode {
             case .blocks:
                 itemBackgroundColor = item.presentationData.theme.list.itemBlocksBackgroundColor
                 itemSeparatorColor = item.presentationData.theme.list.itemBlocksSeparatorColor
-                contentSize = CGSize(width: params.width, height: titleLayout.size.height + verticalInset * 2.0)
+                contentSize = CGSize(width: params.width, height: item.presentationData.theme.isMessagesTheme ? MessagesAppearanceMetrics.rowHeight(contentHeight: titleLayout.size.height, verticalInset: verticalInset) : titleLayout.size.height + verticalInset * 2.0)
                 insets = itemListNeighborsGroupedInsets(neighbors, params)
             }
             

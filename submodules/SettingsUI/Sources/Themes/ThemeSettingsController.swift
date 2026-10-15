@@ -157,10 +157,13 @@ private enum ThemeSettingsControllerEntry: ItemListNodeEntry {
         switch self {
         case let .themeButton(_, reference, _, _):
             switch reference {
-            case .builtin(.day), .builtin(.dayClassic): return -4
-            case .builtin(.night): return -3
-            case .builtin(.bananaGramCream): return -2
-            case .builtin(.bananaGramGraphite): return -1
+            case .builtin(.day), .builtin(.dayClassic): return -7
+            case .builtin(.night): return -6
+            case .builtin(.bananaGramCream): return -5
+            case .builtin(.bananaGramGraphite): return -4
+            case .builtin(.bananaGramHalloween): return -3
+            case .builtin(.messagesDay): return -2
+            case .builtin(.messagesNight): return -1
             default: return 0
             }
         case .themeListHeader:
@@ -427,7 +430,10 @@ private func themeSettingsControllerEntries(
         (.day, "Classic White"),
         (.night, "Classic Black"),
         (.bananaGramCream, "BananaGram Cream"),
-        (.bananaGramGraphite, "BananaGram Graphite")
+        (.bananaGramGraphite, "BananaGram Graphite"),
+        (.bananaGramHalloween, "BananaGram Halloween"),
+        (.messagesDay, "Messages Light"),
+        (.messagesNight, "Messages Dark")
     ]
     for (builtin, title) in themeButtons {
         let isSelected = themeReference == .builtin(builtin) || (builtin == .day && themeReference == .builtin(.dayClassic))
@@ -460,7 +466,7 @@ private func themeSettingsControllerEntries(
         }
     }
     entries.append(.textSize(presentationData.theme, strings.Appearance_TextSizeSetting, textSizeValue))
-    entries.append(.bubbleSettings(presentationData.theme, strings.Appearance_BubbleCornersSetting, ""))
+    entries.append(.bubbleSettings(presentationData.theme, strings.Appearance_BubbleCornersSetting, presentationData.chatBubbleCorners.style == .messages ? "Messages" : ""))
     entries.append(.powerSaving)
     entries.append(.stickersAndEmoji)
     
@@ -1273,7 +1279,7 @@ public func themeSettingsController(context: AccountContext, focusOnItemTag: The
                 if case let .cloud(info) = updatedTheme, info.theme.settings?.contains(where: { $0.baseTheme == .night || $0.baseTheme == .tinted }) ?? false {
                     updatedAutomaticThemeSwitchSetting.theme = updatedTheme
                 } else if case let .builtin(theme) = updatedTheme {
-                    if [.day, .dayClassic].contains(theme) {
+                    if theme.baseTheme == .day || theme.baseTheme == .classic {
                         if updatedAutomaticThemeSwitchSetting.theme.emoticon != nil || [.builtin(.dayClassic), .builtin(.day)].contains(updatedAutomaticThemeSwitchSetting.theme.generalThemeReference) {
                             updatedAutomaticThemeSwitchSetting.theme = .builtin(.night)
                         }
@@ -1281,7 +1287,15 @@ public func themeSettingsController(context: AccountContext, focusOnItemTag: The
                         updatedAutomaticThemeSwitchSetting.theme = updatedTheme
                     }
                 }
-                return current.withUpdatedTheme(updatedTheme).withUpdatedAutomaticThemeSwitchSetting(updatedAutomaticThemeSwitchSetting)
+                var result = current.withUpdatedTheme(updatedTheme).withUpdatedAutomaticThemeSwitchSetting(updatedAutomaticThemeSwitchSetting)
+                if updatedTheme == .builtin(.messagesDay) || updatedTheme == .builtin(.messagesNight) {
+                    if result.chatBubbleSettings.style != .messages {
+                        result.chatBubbleSettings.mainRadius = 20
+                        result.chatBubbleSettings.mergeBubbleCorners = true
+                    }
+                    result.chatBubbleSettings.style = .messages
+                }
+                return result
 
             }).start()
             

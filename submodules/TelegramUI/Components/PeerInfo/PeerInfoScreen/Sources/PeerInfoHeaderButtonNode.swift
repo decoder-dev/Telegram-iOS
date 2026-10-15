@@ -329,7 +329,7 @@ final class PeerInfoHeaderButtonNode: HighlightableButtonNode {
         
         self.textNode.attributedText = NSAttributedString(string: text.lowercased(), font: presentationData.theme.bananaGramReference != nil ? Font.medium(11.0) : Font.regular(11.0), textColor: .white)
         self.accessibilityLabel = text
-        let titleSize = self.textNode.updateLayout(CGSize(width: 120.0, height: .greatestFiniteMagnitude))
+        let titleSize = self.textNode.updateLayout(CGSize(width: max(1.0, size.width - 12.0), height: .greatestFiniteMagnitude))
         
         transition.updateFrame(node: self.containerNode, frame: CGRect(origin: CGPoint(), size: size))
         transition.updateFrame(node: self.contentNode, frame: CGRect(origin: CGPoint(x: 0.0, y: size.height * 0.5 * (1.0 - fraction)), size: size))
@@ -342,8 +342,8 @@ final class PeerInfoHeaderButtonNode: HighlightableButtonNode {
         
         transition.updateSublayerTransformScale(node: self.contentNode, scale: 1.0 * fraction + 0.001 * (1.0 - fraction))
         
-        // Capsules, not tiles: the radius is half the height, which follows the header as it collapses.
-        let capsuleRadius = backgroundFrame.height * 0.5
+        // The action shape follows the header as it collapses; its context-menu path uses the same radius.
+        let capsuleRadius = presentationData.theme.isMessagesTheme ? MessagesAppearanceMetrics.actionRadius(height: backgroundFrame.height) : backgroundFrame.height * 0.5
         transition.updateCornerRadius(layer: self.backgroundView.layer, cornerRadius: capsuleRadius)
         let glassEdgeView: UIView
         if let current = self.glassEdgeView {
@@ -359,7 +359,7 @@ final class PeerInfoHeaderButtonNode: HighlightableButtonNode {
         glassEdgeView.layer.borderColor = UIColor(white: 1.0, alpha: presentationData.theme.overallDarkAppearance ? 0.20 : 0.34).cgColor
         transition.updateFrame(view: glassEdgeView, frame: backgroundFrame)
         transition.updateCornerRadius(layer: glassEdgeView.layer, cornerRadius: capsuleRadius)
-        transition.updateAlpha(layer: glassEdgeView.layer, alpha: fraction)
+        transition.updateAlpha(layer: glassEdgeView.layer, alpha: presentationData.theme.isMessagesTheme ? 0.0 : fraction)
         // The context source contains only the foreground; its backdrop is a
         // separate shared-blur mask. Match both its rounded shape and its visible
         // bounds, including a partially collapsed header.

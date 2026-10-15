@@ -3242,6 +3242,12 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         let textInputContainerBackgroundTransition = ComponentTransition(transition)
         self.textInputContainerBackgroundView.update(size: textInputContainerBackgroundFrame.size, cornerRadius: floor(minimalInputHeight * 0.5), isDark: interfaceState.theme.overallDarkAppearance, tintColor: defaultGlassTintColor, isInteractive: true, transition: textInputContainerBackgroundTransition)
         
+        let messagesStyle = interfaceState.bubbleCorners.style == .messages
+        self.textInputContainerBackgroundView.layer.borderWidth = messagesStyle ? UIScreenPixel : 0.0
+        self.textInputContainerBackgroundView.layer.borderColor = messagesStyle ? interfaceState.theme.chat.inputPanel.inputStrokeColor.cgColor : nil
+        self.textInputContainerBackgroundView.layer.cornerRadius = floor(minimalInputHeight * 0.5)
+        self.textInputContainerBackgroundView.layer.cornerCurve = .continuous
+
         transition.updateFrame(layer: self.textInputBackgroundNode.layer, frame: textInputContainerBackgroundFrame)
         transition.updateAlpha(node: self.textInputBackgroundNode, alpha: audioRecordingItemsAlpha)
         

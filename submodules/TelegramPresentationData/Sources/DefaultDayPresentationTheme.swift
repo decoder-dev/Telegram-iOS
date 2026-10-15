@@ -1147,6 +1147,7 @@ public struct BuiltinWallpaperData {
 }
 
 public extension BuiltinWallpaperData {
+    static let halloween = BuiltinWallpaperData(wallpaperId: -20261031, wallpaperAccessHash: 0, slug: "bananagram-halloween-v1", fileId: -20261031, fileAccessHash: 0, datacenterId: 0, fileSize: 1004)
     static let `default` = BuiltinWallpaperData(
         wallpaperId: 5951821522514477057,
         wallpaperAccessHash: 542913527008942388,
@@ -1365,12 +1366,12 @@ public func defaultBuiltinWallpaper(data: BuiltinWallpaperData, colors: [UInt32]
         isCreator: false,
         isDefault: false,
         isPattern: true,
-        isDark: false,
+        isDark: data.wallpaperId == -20261031,
         slug: data.slug,
         file: TelegramMediaFile(
             fileId: EngineMedia.Id(namespace: Namespaces.Media.CloudFile, id: data.fileId),
             partialReference: nil,
-            resource: CloudDocumentMediaResource(
+            resource: data.wallpaperId == -20261031 ? WallpaperDataResource(slug: data.slug) : CloudDocumentMediaResource(
                 datacenterId: data.datacenterId,
                 fileId: data.fileId,
                 accessHash: data.fileAccessHash,
@@ -1378,7 +1379,7 @@ public func defaultBuiltinWallpaper(data: BuiltinWallpaperData, colors: [UInt32]
                 fileReference: Data(),
                 fileName: "pattern.tgv"
             ),
-            previewRepresentations: [
+            previewRepresentations: data.wallpaperId == -20261031 ? [] : [
                 TelegramMediaImageRepresentation(
                     dimensions: PixelDimensions(width: 155, height: 320),
                     resource: CloudDocumentSizeMediaResource(

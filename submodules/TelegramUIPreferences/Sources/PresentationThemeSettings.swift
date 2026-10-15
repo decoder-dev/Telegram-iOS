@@ -16,6 +16,9 @@ public enum PresentationBuiltinThemeReference: Int32 {
     case nightAccent = 3
     case bananaGramCream = 4
     case bananaGramGraphite = 5
+    case bananaGramHalloween = 6
+    case messagesDay = 7
+    case messagesNight = 8
     
     public init(baseTheme: TelegramBaseTheme) {
         switch baseTheme {
@@ -34,9 +37,9 @@ public enum PresentationBuiltinThemeReference: Int32 {
         switch self {
             case .dayClassic:
                 return .classic
-            case .day, .bananaGramCream:
+            case .day, .bananaGramCream, .messagesDay:
                 return .day
-            case .night, .bananaGramGraphite:
+            case .night, .bananaGramGraphite, .bananaGramHalloween, .messagesNight:
                 return .night
             case .nightAccent:
                 return .tinted
@@ -555,14 +558,24 @@ public struct PresentationThemeAccentColor: EnginePostboxCoding, Equatable {
     }
 }
 
+public enum PresentationChatBubbleStyle: Int32, Hashable {
+    case standard = 0
+    case messages = 1
+}
+
 public struct PresentationChatBubbleSettings: Codable, Equatable {
+    public var style: PresentationChatBubbleStyle
     public var mainRadius: Int32
     public var auxiliaryRadius: Int32
     public var mergeBubbleCorners: Bool
     
     public static var `default`: PresentationChatBubbleSettings = PresentationChatBubbleSettings(mainRadius: 14, auxiliaryRadius: 7, mergeBubbleCorners: true)
+    public static var messages: PresentationChatBubbleSettings {
+        return PresentationChatBubbleSettings(mainRadius: 20, auxiliaryRadius: 4, mergeBubbleCorners: true, style: .messages)
+    }
     
-    public init(mainRadius: Int32, auxiliaryRadius: Int32, mergeBubbleCorners: Bool) {
+    public init(mainRadius: Int32, auxiliaryRadius: Int32, mergeBubbleCorners: Bool, style: PresentationChatBubbleStyle = .standard) {
+        self.style = style
         self.mainRadius = mainRadius
         self.auxiliaryRadius = auxiliaryRadius
         self.mergeBubbleCorners = mergeBubbleCorners
@@ -571,6 +584,7 @@ public struct PresentationChatBubbleSettings: Codable, Equatable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: StringCodingKey.self)
 
+        self.style = PresentationChatBubbleStyle(rawValue: try container.decodeIfPresent(Int32.self, forKey: "style") ?? 0) ?? .standard
         self.mainRadius = try container.decodeIfPresent(Int32.self, forKey: "mainRadius") ?? 14
         self.auxiliaryRadius = try container.decodeIfPresent(Int32.self, forKey: "auxiliaryRadius") ?? 7
         self.mergeBubbleCorners = (try container.decodeIfPresent(Int32.self, forKey: "mergeBubbleCorners") ?? 1) != 0
@@ -579,6 +593,7 @@ public struct PresentationChatBubbleSettings: Codable, Equatable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: StringCodingKey.self)
 
+        try container.encode(self.style.rawValue, forKey: "style")
         try container.encode(self.mainRadius, forKey: "mainRadius")
         try container.encode(self.auxiliaryRadius, forKey: "auxiliaryRadius")
         try container.encode((self.mergeBubbleCorners ? 1 : 0) as Int32, forKey: "mergeBubbleCorners")
@@ -654,7 +669,7 @@ public struct PresentationThemeSettings: Codable {
     }
     
     public static var defaultSettings: PresentationThemeSettings {
-        return PresentationThemeSettings(theme: .builtin(.dayClassic), themePreferredBaseTheme: [:], themeSpecificAccentColors: [:], themeSpecificChatWallpapers: [:], useSystemFont: true, fontSize: .regular, listsFontSize: .regular, chatBubbleSettings: .default, automaticThemeSwitchSetting: AutomaticThemeSwitchSetting(force: false, trigger: .system, theme: .builtin(.night)), largeEmoji: true, reduceMotion: false)
+        return PresentationThemeSettings(theme: .builtin(.messagesNight), themePreferredBaseTheme: [:], themeSpecificAccentColors: [:], themeSpecificChatWallpapers: [:], useSystemFont: true, fontSize: .regular, listsFontSize: .regular, chatBubbleSettings: .messages, automaticThemeSwitchSetting: AutomaticThemeSwitchSetting(force: false, trigger: .explicitNone, theme: .builtin(.messagesNight)), largeEmoji: true, reduceMotion: false)
     }
     
     public init(theme: PresentationThemeReference, themePreferredBaseTheme: [Int64: TelegramBaseTheme], themeSpecificAccentColors: [Int64: PresentationThemeAccentColor], themeSpecificChatWallpapers: [Int64: TelegramWallpaper], useSystemFont: Bool, fontSize: PresentationFontSize, listsFontSize: PresentationFontSize, chatBubbleSettings: PresentationChatBubbleSettings, automaticThemeSwitchSetting: AutomaticThemeSwitchSetting, largeEmoji: Bool, reduceMotion: Bool) {
