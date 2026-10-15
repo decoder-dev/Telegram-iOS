@@ -108,6 +108,17 @@ public final class ButtonBadgeComponent: Component {
     }
 }
 
+private func buttonTextContentGeometry(titleWidth: CGFloat, badgeWidth: CGFloat?, spacing: CGFloat, availableWidth: CGFloat, combinedAlignment: Bool) -> (width: CGFloat, titleX: CGFloat) {
+    guard let badgeWidth else {
+        return (titleWidth, 0.0)
+    }
+    let extraWidth = spacing + badgeWidth
+    if combinedAlignment || titleWidth + 2.0 * extraWidth > availableWidth {
+        return (titleWidth + extraWidth, 0.0)
+    }
+    return (titleWidth + 2.0 * extraWidth, extraWidth)
+}
+
 public final class ButtonTextContentComponent: Component {
     public enum BadgeStyle {
         case round
@@ -197,6 +208,9 @@ public final class ButtonTextContentComponent: Component {
         }
 
         func update(component: ButtonTextContentComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
+            let transition = UIAccessibility.isReduceMotionEnabled ? transition.withAnimation(.none) : transition
+            self.accessibilityLabel = component.text
+            self.accessibilityValue = component.badge > 0 ? String(component.badge) : nil
             let previousBadge = self.component?.badge
             
             self.component = component
@@ -206,17 +220,6 @@ public final class ButtonTextContentComponent: Component {
             if component.badgeIconName != nil {
                 badgeSpacing += 4.0
             }
-            
-            let contentSize = self.content.update(
-                transition: .immediate,
-                component: AnyComponent(Text(
-                    text: component.text,
-                    font: Font.semibold(component.fontSize),
-                    color: component.textColor
-                )),
-                environment: {},
-                containerSize: availableSize
-            )
             
             var badgeSize: CGSize?
             if component.badge > 0 {
@@ -263,18 +266,24 @@ public final class ButtonTextContentComponent: Component {
                 )
             }
             
-            var size = contentSize
-            var measurementSize = size
-            if let badgeSize {
-                if component.combinedAlignment {
-                    measurementSize.width += badgeSpacing
-                    measurementSize.width += badgeSize.width
-                }
-                size.height = max(size.height, badgeSize.height)
-            }
+            let contentSize = self.content.update(
+                transition: .immediate,
+                component: AnyComponent(Text(
+                    text: component.text,
+                    font: Font.semibold(component.fontSize),
+                    color: component.textColor
+                )),
+                environment: {},
+                containerSize: CGSize(width: max(0.0, availableSize.width - (badgeSize.map { $0.width + badgeSpacing } ?? 0.0)), height: availableSize.height)
+            )
             
-            let contentFrame = CGRect(origin: CGPoint(x: floorToScreenPixels((size.width - measurementSize.width) * 0.5), y: floorToScreenPixels((size.height - measurementSize.height) * 0.5)), size: measurementSize)
-            
+            let geometry = buttonTextContentGeometry(titleWidth: contentSize.width, badgeWidth: badgeSize?.width, spacing: badgeSpacing, availableWidth: availableSize.width, combinedAlignment: component.combinedAlignment)
+            let size = CGSize(
+                width: geometry.width,
+                height: max(contentSize.height, badgeSize?.height ?? 0.0)
+            )
+            let contentFrame = CGRect(origin: CGPoint(x: geometry.titleX, y: floorToScreenPixels((size.height - contentSize.height) * 0.5)), size: contentSize)
+
             if let contentView = self.content.view {
                 if contentView.superview == nil {
                     self.addSubview(contentView)
@@ -292,7 +301,7 @@ public final class ButtonTextContentComponent: Component {
                         self.addSubview(badgeView)
                     }
                     
-                    if animateIn && !UIAccessibility.isReduceMotionEnabled {
+                    if animateIn {
                         badgeView.frame = badgeFrame
                     } else {
                         transition.setFrame(view: badgeView, frame: badgeFrame)
@@ -726,7 +735,7 @@ public final class ButtonComponent: Component {
                 cornerRadius = availableSize.height * 0.5
             }
             
-            var maxContentWidth = availableSize.width - cornerRadius
+            var maxContentWidth = max(0.0, availableSize.width - cornerRadius)
             if let contentInsets = component.contentInsets {
                 if contentInsets.left == 0.0 && contentInsets.right == 0.0 {
                     maxContentWidth = availableSize.width
@@ -790,6 +799,8 @@ public final class ButtonComponent: Component {
             }
             
             if let contentView = contentItem.view.view {
+                self.button.accessibilityLabel = contentView.accessibilityLabel
+                self.button.accessibilityValue = contentView.accessibilityValue
                 var animateIn = false
                 var contentTransition = transition
                 if contentView.superview == nil {

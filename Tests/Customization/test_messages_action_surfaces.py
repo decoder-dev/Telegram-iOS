@@ -11,6 +11,42 @@ from test_messages_screen_states import member, run_swift
 
 class MessagesActionSurfaces(unittest.TestCase):
     @unittest.skipUnless(shutil.which('swift'), 'Swift unavailable locally; executes in macOS CI')
+    def test_production_button_title_and_badge_stay_inside_measured_bounds(self):
+        source = read('submodules/TelegramUI/Components/ButtonComponent/Sources/ButtonComponent.swift')
+        fixture = 'import Foundation\nimport CoreGraphics\n' + member(source, 'private func buttonTextContentGeometry(')
+        fixture += """
+for available: CGFloat in [100, 160, 280, 375, 700] {
+    for badge: CGFloat in [0, 20, 48, 90] {
+        for combined in [false, true] {
+            let spacing: CGFloat = 6
+            let maxTitle = max(0, available - badge - spacing)
+            for title in [CGFloat(0), min(50, maxTitle), maxTitle] {
+                let result = buttonTextContentGeometry(titleWidth: title, badgeWidth: badge, spacing: spacing, availableWidth: available, combinedAlignment: combined)
+                precondition(result.titleX >= 0 && result.width <= available)
+                precondition(result.titleX + title + spacing + badge <= result.width)
+                if !combined && title + 2 * (spacing + badge) <= available {
+                    precondition(result.titleX + title / 2 == result.width / 2)
+                }
+            }
+        }
+    }
+    let plain = buttonTextContentGeometry(titleWidth: available, badgeWidth: nil, spacing: 6, availableWidth: available, combinedAlignment: false)
+    precondition(plain.width == available && plain.titleX == 0)
+}
+"""
+        run_swift(fixture)
+
+    def test_button_badges_reserve_width_keep_spoken_counts_and_respect_reduced_motion(self):
+        source = read('submodules/TelegramUI/Components/ButtonComponent/Sources/ButtonComponent.swift')
+        body = member(source, 'func update(component: ButtonTextContentComponent,')
+        self.assertLess(body.index('badgeSize = badge.update('), body.index('let contentSize = self.content.update('))
+        self.assertIn('availableSize.width - (badgeSize.map { $0.width + badgeSpacing } ?? 0.0)', body)
+        self.assertIn('UIAccessibility.isReduceMotionEnabled ? transition.withAnimation(.none) : transition', body)
+        self.assertIn('self.accessibilityValue = component.badge > 0 ? String(component.badge) : nil', body)
+        self.assertIn('self.button.accessibilityLabel = contentView.accessibilityLabel', source)
+        self.assertIn('self.button.accessibilityValue = contentView.accessibilityValue', source)
+
+    @unittest.skipUnless(shutil.which('swift'), 'Swift unavailable locally; executes in macOS CI')
     def test_production_empty_attributed_text_and_accessible_activation(self):
         text = read('submodules/ComponentFlow/Source/Components/Text.swift')
         fixture = """import Foundation
