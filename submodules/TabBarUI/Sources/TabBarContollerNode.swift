@@ -71,6 +71,8 @@ final class TabBarControllerNode: ASDisplayNode {
 
     private weak var currentController: ViewController?
     
+    var contentBottomInset: CGFloat? { self.layoutResult?.bottomInset }
+
     private var layoutResult: LayoutResult?
     private var tabSettingsObserver: NSObjectProtocol?
     private var isUpdateRequested: Bool = false

@@ -32,6 +32,58 @@ def run_swift(source):
 
 
 class ScreenStateTests(unittest.TestCase):
+    def test_messages_headers_reserve_status_and_controls_without_removing_actions(self):
+        header = read('submodules/TelegramUI/Components/ChatListHeaderComponent/Sources/ChatListHeaderComponent.swift')
+        self.assertIn('theme.isMessagesTheme || BananaChatListHeader.current.centersTitle', header)
+        self.assertIn('nextLeftButtonX + (theme.isMessagesTheme ? 8.0 : -12.0)', header)
+        self.assertIn('nextRightButtonX + (theme.isMessagesTheme ? 8.0 : 4.0)', header)
+        self.assertIn('max(1.0, size.width - commonInset * 2.0)', header)
+        title = read('submodules/TelegramUI/Components/ChatListTitleView/Sources/ChatListTitleView.swift')
+        self.assertIn('let statusPadding: CGFloat = self.title.peerStatus != nil && !self.title.activity ? 24.0 : 0.0', title)
+        stories = read('submodules/TelegramUI/Components/Stories/StoryPeerListComponent/Sources/StoryPeerListComponent.swift')
+        self.assertEqual(stories.count('itemAlpha *= collapsedState.sideAlphaFraction'), 2)
+        self.assertIn('previousComponent?.titleHasLock != component.titleHasLock', stories)
+        self.assertIn('action: component.peerAction', stories)
+        self.assertIn('component.openStatusSetup(titleIconView)', stories)
+
+    def test_tab_switch_and_explicit_layout_use_actual_floating_bar_height(self):
+        node = read('submodules/TabBarUI/Sources/TabBarContollerNode.swift')
+        controller = read('submodules/TabBarUI/Sources/TabBarController.swift')
+        self.assertIn('var contentBottomInset: CGFloat? { self.layoutResult?.bottomInset }', node)
+        self.assertIn('strongSelf.tabBarControllerNode.contentBottomInset ?? tabBarHeight', controller)
+        self.assertIn('self.tabBarControllerNode.contentBottomInset ?? tabBarHeight', controller)
+        self.assertIn('if !strongSelf.tabBarControllerNode.tabBarHidden {', controller)
+
+    @unittest.skipUnless(shutil.which('swift'), 'Swift unavailable locally; executes in macOS CI')
+    def test_production_story_header_geometry_keeps_title_inside_button_gap(self):
+        source = read('submodules/TelegramUI/Components/Stories/StoryPeerListComponent/Sources/StoryPeerListComponent.swift')
+        fixture = 'import Foundation\n' + member(source, 'private func storyHeaderCompactGeometry(')
+        fixture += """
+for width: CGFloat in [320, 375, 393, 402, 430, 768] {
+    for left: CGFloat in [60, 82, 100] {
+        for right: CGFloat in [44, 88, 132] {
+            let minX = left + 24
+            let maxX = width - right - 24
+            let available = max(0, maxX - minX)
+            for title: CGFloat in [0, 40, min(110, max(0, available - 8)), max(0, available - 8)] {
+                let value = storyHeaderCompactGeometry(containerWidth: width, minX: minX, maxX: maxX, titleWidth: title, peerWidth: 52, isMessages: true)
+                precondition(value.origin >= minX)
+                let used = title + (value.showsPeers ? 60 : 8)
+                if used <= available { precondition(value.origin + used <= maxX + 0.001) }
+                if value.showsPeers { precondition(title + 64 <= available) }
+                let stock = storyHeaderCompactGeometry(containerWidth: width, minX: minX, maxX: maxX, titleWidth: title, peerWidth: 52, isMessages: false)
+                precondition(stock.showsPeers)
+            }
+        }
+    }
+}
+let crowded = storyHeaderCompactGeometry(containerWidth: 393, minX: 90, maxX: 245, titleWidth: 128, peerWidth: 52, isMessages: true)
+precondition(!crowded.showsPeers && crowded.origin >= 90 && crowded.origin + 136 <= 245)
+let roomy = storyHeaderCompactGeometry(containerWidth: 430, minX: 82, maxX: 310, titleWidth: 110, peerWidth: 52, isMessages: true)
+precondition(roomy.showsPeers)
+"""
+        run_swift(fixture)
+
     @unittest.skipUnless(shutil.which('swift'), 'Swift unavailable locally; executes in macOS CI')
     def test_production_session_actions_keep_current_identifier_and_permission_state(self):
         fixture = """import Foundation

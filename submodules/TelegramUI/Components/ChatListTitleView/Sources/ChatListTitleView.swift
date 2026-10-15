@@ -348,7 +348,7 @@ public final class ChatListTitleView: UIView, NavigationBarTitleView, Navigation
         if !self.activityIndicator.isHidden {
             indicatorPadding = indicatorSize.width + 6.0
         }
-        let statusPadding: CGFloat = centerTitle && self.title.peerStatus != nil && !self.title.activity ? 24.0 : 0.0
+        let statusPadding: CGFloat = self.title.peerStatus != nil && !self.title.activity ? 24.0 : 0.0
         // The passcode lock is drawn 18 pt left of the title, so a centered title is centered together with it, as in the stories header.
         let lockPadding: CGFloat = centerTitle && !self.lockView.isHidden ? 18.0 : 0.0
         var maxTitleWidth = size.width - indicatorPadding - lockPadding - statusPadding

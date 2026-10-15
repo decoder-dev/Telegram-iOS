@@ -166,7 +166,7 @@ public final class ChatListHeaderComponent: Component {
     ) {
         self.leftInset = leftInset
         self.rightInset = rightInset
-        self.centeredTitle = BananaChatListHeader.current.centersTitle
+        self.centeredTitle = theme.isMessagesTheme || BananaChatListHeader.current.centersTitle
         self.primaryContent = primaryContent
         self.secondaryContent = secondaryContent
         self.secondaryTransition = secondaryTransition
@@ -626,7 +626,7 @@ public final class ChatListHeaderComponent: Component {
             self.rightButtonsWidth = nextRightButtonX
 
             let commonInset: CGFloat = max(leftInset + nextLeftButtonX, rightInset + nextRightButtonX) + 8.0
-            let remainingWidth = size.width - commonInset * 2.0
+            let remainingWidth = max(1.0, size.width - commonInset * 2.0)
             
             let titleTextSize = self.titleTextView.updateLayout(CGSize(width: remainingWidth, height: size.height))
             
@@ -670,8 +670,8 @@ public final class ChatListHeaderComponent: Component {
             // Measured from the bar's edges, so each side includes its own inset (they differ where the
             // system reserves one side, e.g. iPhone Duo's vertical status bar). With the standard 16pt
             // inset these equal the former `nextLeftButtonX + 4.0` / `nextRightButtonX + 20.0`.
-            let centerContentLeftInset: CGFloat = leftInset + nextLeftButtonX - 12.0
-            let centerContentRightInset: CGFloat = rightInset + nextRightButtonX + 4.0
+            let centerContentLeftInset: CGFloat = leftInset + nextLeftButtonX + (theme.isMessagesTheme ? 8.0 : -12.0)
+            let centerContentRightInset: CGFloat = rightInset + nextRightButtonX + (theme.isMessagesTheme ? 8.0 : 4.0)
             
             var centerContentWidth: CGFloat = 0.0
             var centerContentOffsetX: CGFloat = 0.0
