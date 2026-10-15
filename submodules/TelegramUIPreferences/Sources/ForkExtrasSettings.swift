@@ -33,6 +33,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var showChannelForwardCount: Bool
     public var reactionGlowEnabled: Bool
     public var showContactsTab: Bool
+    /// Fork: opt-in "Node" redesign (node tab, node screen). Off by default.
+    public var nodeUIEnabled: Bool
     public var ghostDontReadMessages: Bool
     /// AyuGram: Don't Read Stories — suppress story view increments.
     public var ghostDontReadStories: Bool
@@ -349,6 +351,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.showChannelForwardCount = false
         self.reactionGlowEnabled = false
         self.showContactsTab = true
+        self.nodeUIEnabled = false
         self.hidePaidReactions = false
         self.hideViaBot = false
         self.removeLinkPreviews = false
@@ -476,6 +479,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.showChannelForwardCount = try container.decodeIfPresent(Bool.self, forKey: "showChannelForwardCount") ?? false
         self.reactionGlowEnabled = try container.decodeIfPresent(Bool.self, forKey: "reactionGlowEnabled") ?? false
         self.showContactsTab = try container.decodeIfPresent(Bool.self, forKey: "showContactsTab") ?? true
+        self.nodeUIEnabled = try container.decodeIfPresent(Bool.self, forKey: "nodeUIEnabled") ?? false
         let legacyGhost = try container.decodeIfPresent(Bool.self, forKey: "ghostMode") ?? false
         self.ghostDontReadMessages = try container.decodeIfPresent(Bool.self, forKey: "ghostDontReadMessages") ?? legacyGhost
         self.ghostDontReadStories = try container.decodeIfPresent(Bool.self, forKey: "ghostDontReadStories") ?? false
@@ -588,6 +592,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.showChannelForwardCount, forKey: "showChannelForwardCount")
         try container.encode(self.reactionGlowEnabled, forKey: "reactionGlowEnabled")
         try container.encode(self.showContactsTab, forKey: "showContactsTab")
+        try container.encode(self.nodeUIEnabled, forKey: "nodeUIEnabled")
         try container.encode(self.ghostMode, forKey: "ghostMode")
         try container.encode(self.ghostDontReadMessages, forKey: "ghostDontReadMessages")
         try container.encode(self.ghostDontReadStories, forKey: "ghostDontReadStories")

@@ -151,4 +151,33 @@ class ThemeTests(unittest.TestCase):
             # Barely different from the ordinary row, yet not identical.
             self.assertLess((high + .05) / (low + .05), 1.1)
             self.assertGreater(high - low, 0)
+
+    def test_node_theme_contrast_and_wiring(self):
+        source = (ROOT/'submodules/TelegramPresentationData/Sources/NodeTheme.swift').read_text(encoding='utf-8')
+        palette = {name: (int(dark,16), int(light,16)) for name,dark,light in re.findall(r'let (\w+) = UIColor\(rgb: dark \? (0x[0-9A-F]+) : (0x[0-9A-F]+)\)',source)}
+        for mode in (0,1):
+            for text in ('foreground','secondary','accent'):
+                for background in ('background','surface','raisedSurface','searchBar','highlighted','pinnedRow'):
+                    a,b=sorted((luminance(palette[text][mode]),luminance(palette[background][mode])))
+                    self.assertGreaterEqual((b+.05)/(a+.05),4.5,(mode,text,background))
+            a,b=sorted((luminance(palette['onAccent'][mode]),luminance(palette['accent'][mode])))
+            self.assertGreaterEqual((b+.05)/(a+.05),4.5,(mode,'onAccent','accent'))
+        # Bubble text and the outgoing accent on both stops of the outgoing bubble.
+        for text, stops in ((0x171717, (0xCCE7FF, 0xBFE0FF)), (0xFFFFFF, (0x1D5A9E, 0x174C86)), (0x0A5CB0, (0xCCE7FF, 0xBFE0FF))):
+            for stop in stops:
+                a,b=sorted((luminance(text),luminance(stop)))
+                self.assertGreaterEqual((b+.05)/(a+.05),4.5,(hex(text),hex(stop)))
+        # The theme is offered, stored, encoded and mapped to a call palette like the other built-ins.
+        self.assertIn('case nodeLight = 9', (ROOT/'submodules/TelegramUIPreferences/Sources/PresentationThemeSettings.swift').read_text(encoding='utf-8'))
+        make = (ROOT/'submodules/TelegramPresentationData/Sources/MakePresentationTheme.swift').read_text(encoding='utf-8')
+        self.assertIn('theme = makeNodeTheme(dark: true)', make)
+        self.assertIn('return .nodeDark', make)
+        codable = (ROOT/'submodules/TelegramPresentationData/Sources/PresentationThemeCodable.swift').read_text(encoding='utf-8')
+        self.assertIn('try container.encode("nodelight")', codable)
+        self.assertIn('self = .nodeDark', codable)
+        controller = (ROOT/'submodules/SettingsUI/Sources/Themes/ThemeSettingsController.swift').read_text(encoding='utf-8')
+        self.assertIn('(.nodeLight, "Node Light")', controller)
+        ids = [int(i) for i in re.findall(r'return (-\d+)\n', controller.split('var stableId: Int32 {',1)[1].split('case .themeListHeader',1)[0])]
+        self.assertEqual(len(ids), len(set(ids)))
+
 if __name__=='__main__': unittest.main()

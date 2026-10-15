@@ -26,6 +26,10 @@ public func makeDefaultPresentationTheme(reference: PresentationBuiltinThemeRefe
             theme = makeDefaultDayPresentationTheme(extendingThemeReference: extendingThemeReference, serviceBackgroundColor: serviceBackgroundColor, day: true, preview: preview)
         case .messagesNight:
             theme = makeDefaultDarkPresentationTheme(extendingThemeReference: extendingThemeReference, preview: preview)
+        case .nodeLight:
+            theme = makeNodeTheme(dark: false)
+        case .nodeDark:
+            theme = makeNodeTheme(dark: true)
     }
     return theme
 }
@@ -199,9 +203,9 @@ public func customizePresentationTheme(_ theme: PresentationTheme, editing: Bool
         return theme
     }
     switch theme.referenceTheme {
-        case .day, .dayClassic, .bananaGramCream, .messagesDay:
+        case .day, .dayClassic, .bananaGramCream, .messagesDay, .nodeLight:
             return customizeDefaultDayTheme(theme: theme, editing: editing, title: title, accentColor: accentColor, outgoingAccentColor: outgoingAccentColor, backgroundColors: backgroundColors, bubbleColors: bubbleColors, animateBubbleColors: animateBubbleColors ?? false, wallpaper: wallpaper, serviceBackgroundColor: nil)
-        case .night, .bananaGramGraphite, .bananaGramHalloween, .messagesNight:
+        case .night, .bananaGramGraphite, .bananaGramHalloween, .messagesNight, .nodeDark:
             return customizeDefaultDarkPresentationTheme(theme: theme, editing: editing, title: title, accentColor: accentColor, backgroundColors: backgroundColors, bubbleColors: bubbleColors, animateBubbleColors: animateBubbleColors ?? false, wallpaper: wallpaper, baseColor: baseColor)
         case .nightAccent:
             return customizeDefaultDarkTintedPresentationTheme(theme: theme, editing: editing, title: title, accentColor: accentColor, backgroundColors: backgroundColors, bubbleColors: bubbleColors, animateBubbleColors: animateBubbleColors ?? false, wallpaper: wallpaper, baseColor: baseColor)
@@ -347,6 +351,10 @@ public extension PresentationTheme {
             return .messagesDay
         } else if self.index == PresentationThemeReference.builtin(.messagesNight).index {
             return .messagesNight
+        } else if self.index == PresentationThemeReference.builtin(.nodeLight).index {
+            return .nodeLight
+        } else if self.index == PresentationThemeReference.builtin(.nodeDark).index {
+            return .nodeDark
         } else {
             return nil
         }

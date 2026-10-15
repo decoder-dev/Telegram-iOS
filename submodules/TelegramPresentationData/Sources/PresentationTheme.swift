@@ -1574,6 +1574,10 @@ public extension PresentationThemeReference {
                         return .custom("Messages Light")
                     case .messagesNight:
                         return .custom("Messages Dark")
+                    case .nodeLight:
+                        return .custom("Node Light")
+                    case .nodeDark:
+                        return .custom("Node Dark")
                 }
             case let .cloud(info):
                 return .custom(info.theme.title)

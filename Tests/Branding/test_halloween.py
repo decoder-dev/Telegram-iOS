@@ -51,7 +51,7 @@ class HalloweenTests(unittest.TestCase):
     def test_builtin_identity_and_theme_serialization(self):
         settings = (ROOT/'submodules/TelegramUIPreferences/Sources/PresentationThemeSettings.swift').read_text(encoding='utf-8')
         self.assertIn('case bananaGramHalloween = 6', settings)
-        self.assertIn('case .night, .bananaGramGraphite, .bananaGramHalloween, .messagesNight:', settings)
+        self.assertIn('case .night, .bananaGramGraphite, .bananaGramHalloween, .messagesNight, .nodeDark:', settings)
         codec = (ROOT/'submodules/TelegramPresentationData/Sources/PresentationThemeCodable.swift').read_text(encoding='utf-8')
         self.assertIn('case "bananagramhalloween":\n                    self = .bananaGramHalloween', codec)
         self.assertIn('case .bananaGramHalloween:\n                try container.encode("bananagramhalloween")', codec)

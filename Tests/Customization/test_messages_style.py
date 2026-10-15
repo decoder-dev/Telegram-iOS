@@ -284,7 +284,7 @@ public struct StringCodingKey: CodingKey, ExpressibleByStringLiteral {
         fixture += '''
 precondition(PresentationBuiltinThemeReference(rawValue: 7)?.restoredAppearance == .day)
 precondition(PresentationBuiltinThemeReference(rawValue: 8)?.restoredAppearance == .night)
-for id: Int32 in 0...6 { precondition(PresentationBuiltinThemeReference(rawValue: id)?.restoredAppearance.rawValue == id) }
+for id: Int32 in [0, 1, 2, 3, 4, 5, 6, 9, 10] { precondition(PresentationBuiltinThemeReference(rawValue: id)?.restoredAppearance.rawValue == id) }
 let decoder = JSONDecoder()
 let retired = try decoder.decode(PresentationChatBubbleSettings.self, from: Data(#"{"style":1,"mainRadius":20,"auxiliaryRadius":4,"mergeBubbleCorners":0}"#.utf8))
 precondition(retired == .default)

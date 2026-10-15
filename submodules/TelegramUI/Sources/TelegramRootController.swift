@@ -91,6 +91,9 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
     private var storyUploadEventsDisposable: Disposable?
     private var contactsTabDisposable: Disposable?
     private var currentShowContactsTab = true
+    private var currentNodeUIEnabled = false
+    private var nodeUIDisposable: Disposable?
+    private var nodeScreenController: NodeScreen?
     private var currentShowCallsTab = false
     private var hideTabBarDisposable: Disposable?
     private weak var hiddenTabSettingsController: PeerInfoScreenImpl?
@@ -153,6 +156,7 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
         self.applicationInFocusDisposable?.dispose()
         self.storyUploadEventsDisposable?.dispose()
         self.contactsTabDisposable?.dispose()
+        self.nodeUIDisposable?.dispose()
         self.hideTabBarDisposable?.dispose()
     }
     
@@ -208,6 +212,7 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
     public func addRootControllers(showCallsTab: Bool) {
         self.currentShowCallsTab = showCallsTab
         self.currentShowContactsTab = self.context.sharedContext.immediateForkExtrasSettings.showContactsTab
+        self.currentNodeUIEnabled = self.context.sharedContext.immediateForkExtrasSettings.nodeUIEnabled
         let tabBarController = TabBarControllerImpl(theme: self.presentationData.theme, strings: self.presentationData.strings)
         tabBarController.navigationPresentation = .master
         let chatListController = self.context.sharedContext.makeChatListController(context: self.context, location: .chatList(groupId: .root), controlsHistoryPreload: true, hideNetworkActivityStatus: false, previewing: false, enableDebugActions: !GlobalExperimentalSettings.isAppStoreBuild)
@@ -230,6 +235,9 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
             controllers.append(callListController)
         }
         controllers.append(chatListController)
+        if self.currentNodeUIEnabled {
+            controllers.append(self.nodeScreen())
+        }
         
         var restoreSettignsController: (ViewController & SettingsController)?
         if let sharedContext = self.context.sharedContext as? SharedAccountContextImpl {
@@ -255,7 +263,7 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
         accountSettingsController.parentController = self
         controllers.append(accountSettingsController)
                 
-        tabBarController.setControllers(controllers, selectedIndex: restoreSettignsController != nil ? (controllers.count - 1) : (controllers.count - 2))
+        tabBarController.setControllers(controllers, selectedIndex: restoreSettignsController != nil ? (controllers.count - 1) : (controllers.firstIndex(where: { $0 === chatListController }) ?? (controllers.count - 2)))
         
         self.contactsController = contactsController
         self.callListController = callListController
@@ -270,6 +278,15 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
         |> deliverOnMainQueue).start(next: { [weak self] showContacts in
             guard let self else { return }
             self.currentShowContactsTab = showContacts
+            self.updateRootControllers(showCallsTab: self.currentShowCallsTab)
+        })
+        self.nodeUIDisposable?.dispose()
+        self.nodeUIDisposable = (forkExtrasSettings(accountManager: self.context.sharedContext.accountManager)
+        |> map { $0.nodeUIEnabled }
+        |> distinctUntilChanged
+        |> deliverOnMainQueue).start(next: { [weak self] enabled in
+            guard let self, self.currentNodeUIEnabled != enabled else { return }
+            self.currentNodeUIEnabled = enabled
             self.updateRootControllers(showCallsTab: self.currentShowCallsTab)
         })
         self.hideTabBarDisposable?.dispose()
@@ -288,6 +305,15 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
         })
     }
         
+    private func nodeScreen() -> NodeScreen {
+        if let nodeScreen = self.nodeScreenController {
+            return nodeScreen
+        }
+        let nodeScreen = NodeScreen(context: self.context)
+        self.nodeScreenController = nodeScreen
+        return nodeScreen
+    }
+    
     public func updateRootControllers(showCallsTab: Bool) {
         self.currentShowCallsTab = showCallsTab
         guard let rootTabController = self.rootTabController as? TabBarControllerImpl else {
@@ -301,6 +327,9 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
             controllers.append(self.callListController!)
         }
         controllers.append(self.chatListController!)
+        if self.currentNodeUIEnabled {
+            controllers.append(self.nodeScreen())
+        }
         controllers.append(self.accountSettingsController!)
         
         let selected = rootTabController.currentController

@@ -131,9 +131,9 @@ public struct CallScreenPalette: Equatable {
             self = .bananaGramGraphite
         case .bananaGramHalloween:
             self = .bananaGramHalloween
-        case .messagesDay:
+        case .messagesDay, .nodeLight:
             self = .classicDay
-        case .messagesNight:
+        case .messagesNight, .nodeDark:
             self = .classicNight
         case .day, .dayClassic, .night, .nightAccent:
             let accent = theme.list.itemAccentColor

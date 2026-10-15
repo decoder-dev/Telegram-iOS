@@ -1027,6 +1027,10 @@ public func themeDisplayName(strings: PresentationStrings, reference: Presentati
             name = "Messages Light"
         case .messagesNight:
             name = "Messages Dark"
+        case .nodeLight:
+            name = "Node Light"
+        case .nodeDark:
+            name = "Node Dark"
         }
     case let .local(theme):
         name = theme.title

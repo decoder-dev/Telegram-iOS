@@ -2055,6 +2055,10 @@ extension PresentationBuiltinThemeReference: @retroactive Codable {
                     self = .messagesDay
                 case "messagesnight":
                     self = .messagesNight
+                case "nodelight":
+                    self = .nodeLight
+                case "nodedark":
+                    self = .nodeDark
                 default:
                     self = .dayClassic
             }
@@ -2084,6 +2088,10 @@ extension PresentationBuiltinThemeReference: @retroactive Codable {
                 try container.encode("messagesday")
             case .messagesNight:
                 try container.encode("messagesnight")
+            case .nodeLight:
+                try container.encode("nodelight")
+            case .nodeDark:
+                try container.encode("nodedark")
         }
     }
 }
