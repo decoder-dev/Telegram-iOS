@@ -17,6 +17,17 @@ title_functions = ['forkEditHistoryMenuTitle', 'forkUseRecentEmojiInReactionsTit
 functions += '\n' + '\n'.join(function(source, 'public func ' + name + '(') for name in title_functions)
 fixture = r"""
 import Foundation
+public enum TelegramBaseTheme { case classic, day, night, tinted }
+__BUILTIN_THEME__
+public enum PresentationThemeReference: Equatable {
+    case builtin(PresentationBuiltinThemeReference)
+    case custom(String)
+}
+public enum BubbleStyle { case standard, messages }
+public struct BubbleSettings: Equatable {
+    var style: BubbleStyle = .standard
+    static var `default`: Self { Self() }
+}
 public enum AutomaticThemeSwitchTrigger: Equatable {
     case system
     case explicitNone
@@ -25,30 +36,41 @@ public enum AutomaticThemeSwitchTrigger: Equatable {
 public struct AutomaticThemeSwitchSetting: Equatable {
     var force: Bool
     var trigger: AutomaticThemeSwitchTrigger
-    var theme: String
+    var theme: PresentationThemeReference
 }
 public struct PresentationThemeSettings: Equatable {
-    var theme: String
+    var theme: PresentationThemeReference
     var automaticThemeSwitchSetting: AutomaticThemeSwitchSetting
     var wallpaper: String
+    var chatBubbleSettings: BubbleSettings = .default
 }
 public struct PresentationStrings {
     struct Component { var languageCode: String }
     var primaryComponent: Component
 }
 """
+fixture = fixture.replace("__BUILTIN_THEME__", function("submodules/TelegramUIPreferences/Sources/PresentationThemeSettings.swift", "public enum PresentationBuiltinThemeReference:"))
 tests = r"""
 let triggers: [AutomaticThemeSwitchTrigger] = [.system, .explicitNone, .brightness(threshold: 0.3)]
-for theme in ["day", "night", "classic", "tinted", "bananaGramCream", "bananaGramGraphite", "local:BananaGram", "cloud:custom"] {
+for theme: PresentationThemeReference in [.builtin(.day), .builtin(.night), .builtin(.dayClassic), .builtin(.nightAccent), .builtin(.bananaGramCream), .builtin(.bananaGramGraphite), .builtin(.bananaGramHalloween), .builtin(.nodeLight), .builtin(.nodeDark), .custom("local:BananaGram"), .custom("cloud:custom")] {
     for trigger in triggers {
         for force in [false, true] {
-            let saved = PresentationThemeSettings(theme: theme, automaticThemeSwitchSetting: .init(force: force, trigger: trigger, theme: "custom-dark"), wallpaper: "custom-wallpaper")
+            let saved = PresentationThemeSettings(theme: theme, automaticThemeSwitchSetting: .init(force: force, trigger: trigger, theme: .custom("custom-dark")), wallpaper: "custom-wallpaper")
             let normalized = forkNormalizedThemeSettings(saved)
             precondition(normalized.theme == theme && normalized.wallpaper == saved.wallpaper, "Selected theme or wallpaper overwritten")
-            precondition(normalized.automaticThemeSwitchSetting.theme == "custom-dark", "Dark theme choice overwritten")
+            precondition(normalized.automaticThemeSwitchSetting.theme == .custom("custom-dark"), "Dark theme choice overwritten")
             precondition(!normalized.automaticThemeSwitchSetting.force && normalized.automaticThemeSwitchSetting.trigger == .explicitNone, "Automatic switching not disabled")
         }
     }
+}
+for (old, restored) in [(PresentationBuiltinThemeReference.messagesDay, PresentationBuiltinThemeReference.day), (.messagesNight, .night)] {
+    let saved = PresentationThemeSettings(theme: .builtin(old), automaticThemeSwitchSetting: .init(force: true, trigger: .system, theme: .builtin(old)), wallpaper: "custom-wallpaper", chatBubbleSettings: .init(style: .messages))
+    let normalized = forkNormalizedThemeSettings(saved)
+    precondition(normalized.theme == .builtin(restored))
+    precondition(normalized.automaticThemeSwitchSetting.theme == .builtin(restored))
+    precondition(normalized.chatBubbleSettings == .default)
+    precondition(normalized.wallpaper == saved.wallpaper)
+    precondition(forkNormalizedThemeSettings(normalized) == normalized)
 }
 for radius in 4...30 {
     precondition(bubbleRadiusFromSliderValue(bubbleRadiusSliderValue(radius)) == radius, "Odd radius lost")
@@ -75,7 +97,7 @@ for title in [forkEditHistoryMenuTitle, forkUseRecentEmojiInReactionsTitle, fork
     }
     precondition(title(PresentationStrings(primaryComponent: .init(languageCode: "en-US"))) == english)
 }
-print("Theme persistence and disabled auto-switching: 48 combinations; bubble slider: all radii and invalid values; localized Saved Messages: passed")
+print("Theme persistence and disabled auto-switching: 66 combinations plus retired Messages migration; bubble slider: all radii and invalid values; localized Saved Messages: passed")
 """
 navigation_source = (root / 'submodules/TelegramUI/Sources/TelegramRootController.swift').read_text(encoding='utf-8')
 start = navigation_source.index('    public func openContacts()')

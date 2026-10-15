@@ -280,7 +280,7 @@ public struct StringCodingKey: CodingKey, ExpressibleByStringLiteral {
             declaration(presentation, 'public struct PresentationChatBubbleCorners:'),
             declaration(presentation, 'public func higChatBubbleCorners('),
         ])
-        fixture += 'public enum TelegramBaseTheme { case classic, day, night, tinted }\n' + declaration(preferences, 'public enum PresentationBuiltinThemeReference:') + '\n'
+        fixture += '\npublic enum TelegramBaseTheme { case classic, day, night, tinted }\n' + declaration(preferences, 'public enum PresentationBuiltinThemeReference:') + '\n'
         fixture += '''
 precondition(PresentationBuiltinThemeReference(rawValue: 7)?.restoredAppearance == .day)
 precondition(PresentationBuiltinThemeReference(rawValue: 8)?.restoredAppearance == .night)
