@@ -475,6 +475,7 @@ private final class WalletConnectSheetContent: CombinedComponent {
             let cancelButton = cancelButton.update(
                 component: ButtonComponent(
                     background: ButtonComponent.Background(
+                        theme: theme,
                         style: .glass,
                         color: theme.list.itemPrimaryTextColor.withMultipliedAlpha(0.1),
                         foreground: theme.list.itemPrimaryTextColor,
@@ -505,6 +506,7 @@ private final class WalletConnectSheetContent: CombinedComponent {
             let connectButton = connectButton.update(
                 component: ButtonComponent(
                     background: ButtonComponent.Background(
+                        theme: theme,
                         style: .glass,
                         color: theme.list.itemCheckColors.fillColor,
                         foreground: theme.list.itemCheckColors.foregroundColor,

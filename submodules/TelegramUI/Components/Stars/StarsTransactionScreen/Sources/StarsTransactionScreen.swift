@@ -1645,6 +1645,7 @@ private final class StarsTransactionSheetContent: CombinedComponent {
                 let cancelButton = cancelButton.update(
                     component: ButtonComponent(
                         background: ButtonComponent.Background(
+                            theme: theme,
                             style: .glass,
                             color: theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.1),
                             foreground: theme.list.itemCheckColors.fillColor,
@@ -1678,6 +1679,7 @@ private final class StarsTransactionSheetContent: CombinedComponent {
                 let button = button.update(
                     component: ButtonComponent(
                         background: ButtonComponent.Background(
+                            theme: theme,
                             style: .glass,
                             color: theme.list.itemCheckColors.fillColor,
                             foreground: theme.list.itemCheckColors.foregroundColor,

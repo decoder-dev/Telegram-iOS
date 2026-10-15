@@ -5461,6 +5461,7 @@ private final class GiftViewSheetContent: CombinedComponent {
             }
             
             let buttonBackground = ButtonComponent.Background(
+                theme: theme,
                 style: .glass,
                 color: theme.list.itemCheckColors.fillColor,
                 foreground: theme.list.itemCheckColors.foregroundColor,

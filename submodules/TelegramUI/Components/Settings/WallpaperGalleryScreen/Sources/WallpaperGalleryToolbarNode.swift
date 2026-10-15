@@ -489,6 +489,7 @@ public final class WallpaperGalleryOldToolbarNode: ASDisplayNode, WallpaperGalle
             transition: componentTransition,
             component: AnyComponent(ButtonComponent(
                 background: ButtonComponent.Background(
+                    theme: self.theme,
                     style: usesMessages ? .legacy : .actualGlass,
                     color: usesMessages ? self.theme.list.itemBlocksBackgroundColor : glassColor,
                     foreground: cancelColor,
@@ -521,6 +522,7 @@ public final class WallpaperGalleryOldToolbarNode: ASDisplayNode, WallpaperGalle
             transition: componentTransition,
             component: AnyComponent(ButtonComponent(
                 background: ButtonComponent.Background(
+                    theme: self.theme,
                     style: usesMessages ? .legacy : .actualGlass,
                     color: usesMessages ? self.theme.list.itemCheckColors.fillColor : glassColor,
                     foreground: doneColor,

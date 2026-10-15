@@ -172,6 +172,7 @@ class RecentSessionsHeaderItemNode: ListViewItemNode {
                         transition: .immediate,
                         component: AnyComponent(ButtonComponent(
                             background: ButtonComponent.Background(
+                                theme: item.theme,
                                 style: .glass,
                                 color: item.theme.list.itemCheckColors.fillColor,
                                 foreground: item.theme.list.itemCheckColors.foregroundColor,

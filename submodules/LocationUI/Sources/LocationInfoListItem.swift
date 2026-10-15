@@ -249,6 +249,7 @@ public final class LocationInfoListItemNode: ListViewItemNode {
                         
                         if item.hasEta {
                             let buttonBackground = ButtonComponent.Background(
+                                theme: item.presentationData.theme,
                                 style: .glass,
                                 color: item.presentationData.theme.list.itemCheckColors.fillColor,
                                 foreground: item.presentationData.theme.list.itemCheckColors.foregroundColor,

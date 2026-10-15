@@ -1184,6 +1184,7 @@ public final class StoryItemSetViewListComponent: Component {
                         transition: emptyButtonTransition,
                         component: AnyComponent(ButtonComponent(
                             background: ButtonComponent.Background(
+                                theme: component.theme,
                                 color: component.theme.list.itemCheckColors.fillColor,
                                 foreground: component.theme.list.itemCheckColors.foregroundColor,
                                 pressedColor: component.theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.9)

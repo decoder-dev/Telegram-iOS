@@ -2,6 +2,7 @@ import Foundation
 import UIKit
 import Display
 import ComponentFlow
+import TelegramPresentationData
 import AnimatedTextComponent
 import ActivityIndicator
 import BundleIconComponent
@@ -371,6 +372,7 @@ public final class ButtonComponent: Component {
         public var gradient: Gradient?
 
         public init(
+            theme: PresentationTheme? = nil,
             style: Style = .legacy,
             color: UIColor,
             foreground: UIColor,
@@ -379,11 +381,12 @@ public final class ButtonComponent: Component {
             isShimmering: Bool = false,
             gradient: Gradient? = nil
         ) {
-            self.style = style
+            let usesMessages = theme?.isMessagesTheme == true
+            self.style = usesMessages ? .legacy : style
             self.color = color
             self.foreground = foreground
             self.pressedColor = pressedColor
-            self.cornerRadius = cornerRadius
+            self.cornerRadius = usesMessages ? (cornerRadius >= 10.0 ? MessagesAppearanceMetrics.actionCornerRadius : max(0.0, cornerRadius)) : cornerRadius
             self.isShimmering = isShimmering
             self.gradient = gradient
         }

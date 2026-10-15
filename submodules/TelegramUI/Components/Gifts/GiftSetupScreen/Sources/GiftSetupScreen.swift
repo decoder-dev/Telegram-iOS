@@ -2006,6 +2006,7 @@ private final class GiftSetupScreenComponent: Component {
                 transition: .spring(duration: 0.2),
                 component: AnyComponent(ButtonComponent(
                     background: ButtonComponent.Background(
+                        theme: theme,
                         style: .glass,
                         color: theme.list.itemCheckColors.fillColor,
                         foreground: theme.list.itemCheckColors.foregroundColor,

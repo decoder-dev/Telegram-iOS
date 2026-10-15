@@ -13,6 +13,15 @@ on:
       - 'submodules/TelegramCore/Sources/Settings/ProxySettings.swift'
       - 'submodules/TelegramCore/Sources/Account/AccountManager.swift'
       - 'submodules/TelegramPresentationData/**'
+      - 'submodules/WebUI/**'
+      - 'submodules/TelegramCallsUI/**'
+      - 'submodules/StickerPackPreviewUI/**'
+      - 'submodules/PremiumUI/**'
+      - 'submodules/PasswordSetupUI/**'
+      - 'submodules/LocationUI/**'
+      - 'submodules/InviteLinksUI/**'
+      - 'submodules/BrowserUI/**'
+      - 'submodules/AuthorizationUI/**'
       - 'submodules/TelegramUIPreferences/**'
       - 'submodules/TelegramUI/**'
       - 'submodules/ItemListUI/**'
@@ -99,6 +108,7 @@ jobs:
         if: ${{ !cancelled() }}
       - run: python3 Tests/Customization/test_messages_style.py
       - run: python3 Tests/Customization/test_messages_screen_states.py
+      - run: python3 Tests/Customization/test_messages_action_surfaces.py
         if: ${{ !cancelled() }}
       - run: python3 Tests/ClientAdditions/run.py
         if: ${{ !cancelled() }}

@@ -928,6 +928,7 @@ private final class ActionButtonsComponent: Component {
                 transition: transition,
                 component: AnyComponent(ButtonComponent(
                     background: ButtonComponent.Background(
+                        theme: component.theme,
                         style: .glass,
                         color: component.theme.actionSheet.primaryTextColor.withMultipliedAlpha(0.1).blitOver(component.theme.list.blocksBackgroundColor, alpha: 1.0),
                         foreground: component.theme.actionSheet.primaryTextColor,
@@ -959,6 +960,7 @@ private final class ActionButtonsComponent: Component {
                 transition: transition,
                 component: AnyComponent(ButtonComponent(
                     background: ButtonComponent.Background(
+                        theme: component.theme,
                         style: .glass,
                         color: component.theme.list.itemCheckColors.fillColor,
                         foreground: component.theme.list.itemCheckColors.foregroundColor,

@@ -124,6 +124,7 @@ private final class NewSessionInfoSheetContentComponent: Component {
                 transition: buttonTransition,
                 component: AnyComponent(ButtonComponent(
                     background: ButtonComponent.Background(
+                        theme: environment.theme,
                         style: .glass,
                         color: environment.theme.list.itemCheckColors.fillColor,
                         foreground: environment.theme.list.itemCheckColors.foregroundColor,

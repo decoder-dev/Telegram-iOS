@@ -624,6 +624,7 @@ public final class ChatTimerPickerContentComponent: Component {
                 transition: transition,
                 component: AnyComponent(ButtonComponent(
                     background: ButtonComponent.Background(
+                        theme: component.theme,
                         style: .glass,
                         color: component.theme.list.itemCheckColors.fillColor,
                         foreground: component.theme.list.itemCheckColors.foregroundColor,
@@ -664,6 +665,7 @@ public final class ChatTimerPickerContentComponent: Component {
                     transition: transition,
                     component: AnyComponent(ButtonComponent(
                         background: ButtonComponent.Background(
+                            theme: component.theme,
                             style: .glass,
                             color: foregroundColor.withMultipliedAlpha(0.1),
                             foreground: foregroundColor,

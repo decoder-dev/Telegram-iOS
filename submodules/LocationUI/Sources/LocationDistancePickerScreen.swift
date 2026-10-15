@@ -636,6 +636,7 @@ private final class LocationDistancePickerContentComponent: Component {
                 transition: buttonTransition,
                 component: AnyComponent(ButtonComponent(
                     background: ButtonComponent.Background(
+                        theme: environment.theme,
                         style: .glass,
                         color: buttonFillColor,
                         foreground: buttonForegroundColor,

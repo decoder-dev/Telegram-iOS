@@ -73,6 +73,7 @@ final class InviteContactsCountPanelNode: ASDisplayNode {
             component: AnyComponent(
                 ButtonComponent(
                     background: ButtonComponent.Background(
+                        theme: self.theme,
                         style: self.theme.isMessagesTheme ? .legacy : .glass,
                         color: self.theme.list.itemCheckColors.fillColor,
                         foreground: self.theme.list.itemCheckColors.foregroundColor,

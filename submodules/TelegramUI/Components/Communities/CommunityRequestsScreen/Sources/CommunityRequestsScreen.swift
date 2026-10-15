@@ -868,6 +868,7 @@ private final class CommunityRequestsScreenComponent: Component {
                     transition: buttonsTransition,
                     component: AnyComponent(ButtonComponent(
                         background: ButtonComponent.Background(
+                            theme: theme,
                             style: .glass,
                             color: theme.list.itemPrimaryTextColor.withMultipliedAlpha(0.1),
                             foreground: theme.list.itemPrimaryTextColor,
@@ -897,6 +898,7 @@ private final class CommunityRequestsScreenComponent: Component {
                     transition: buttonsTransition,
                     component: AnyComponent(ButtonComponent(
                         background: ButtonComponent.Background(
+                            theme: theme,
                             style: .glass,
                             color: theme.list.itemCheckColors.fillColor,
                             foreground: theme.list.itemCheckColors.foregroundColor,

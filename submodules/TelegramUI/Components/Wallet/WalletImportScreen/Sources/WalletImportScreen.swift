@@ -254,7 +254,7 @@ private final class WalletImportScreenComponent: Component {
                 transition.setFrame(layer: self.backgroundLayer, frame: backgroundFrame)
                 transition.setShapeLayerPath(
                     layer: self.backgroundLayer,
-                    path: UIBezierPath(roundedRect: backgroundFrame, cornerRadius: 26.0).cgPath
+                    path: UIBezierPath(roundedRect: backgroundFrame, cornerRadius: theme.isMessagesTheme ? MessagesAppearanceMetrics.sectionCornerRadius : 26.0).cgPath
                 )
                 transition.setShapeLayerFillColor(
                     layer: self.backgroundLayer,
@@ -307,6 +307,7 @@ private final class WalletImportScreenComponent: Component {
                         transition: transition,
                         component: AnyComponent(ButtonComponent(
                             background: ButtonComponent.Background(
+                                theme: theme,
                                 style: .legacy,
                                 color: theme.overallDarkAppearance
                                     ? theme.actionSheet.opaqueItemBackgroundColor
@@ -1902,6 +1903,7 @@ private final class WalletImportScreenComponent: Component {
                 transition: transition,
                 component: AnyComponent(ButtonComponent(
                     background: ButtonComponent.Background(
+                        theme: theme,
                         style: .glass,
                         color: theme.list.itemCheckColors.fillColor,
                         foreground: theme.list.itemCheckColors.foregroundColor,

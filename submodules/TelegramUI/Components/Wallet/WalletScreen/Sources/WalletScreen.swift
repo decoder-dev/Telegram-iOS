@@ -3320,6 +3320,7 @@ private final class WalletScreenComponent: Component {
             let sendButtonWidth = cardWidth - buttonsSpacing - addFundsButtonWidth
             let buttonsOriginY = cardOriginY + cardSize.height + self.cardSpacing
             let buttonBackground = ButtonComponent.Background(
+                theme: environment.theme,
                 style: .glass,
                 color: environment.theme.list.itemCheckColors.fillColor,
                 foreground: environment.theme.list.itemCheckColors.foregroundColor,

@@ -3936,6 +3936,7 @@ private final class PremiumIntroScreenComponent: CombinedComponent {
                 let button = button.update(
                     component: ButtonComponent(
                         background: ButtonComponent.Background(
+                            theme: environment.theme,
                             style: .glass,
                             color: UIColor(rgb: 0x8878ff),
                             foreground: .white,

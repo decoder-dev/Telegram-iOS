@@ -1353,6 +1353,7 @@ private final class WalletReceiveSheetContent: Component {
                 transition: .immediate,
                 component: AnyComponent(ButtonComponent(
                     background: ButtonComponent.Background(
+                        theme: environment.theme,
                         style: .legacy,
                         color: .white,
                         foreground: UIColor(rgb: 0x087cff),
@@ -1532,6 +1533,7 @@ private final class WalletReceiveSheetContent: Component {
                     transition: .immediate,
                     component: AnyComponent(ButtonComponent(
                         background: ButtonComponent.Background(
+                            theme: environment.theme,
                             style: .glass,
                             color: UIColor(rgb: 0x087cff, alpha: 0.1),
                             foreground: UIColor(rgb: 0x087cff),

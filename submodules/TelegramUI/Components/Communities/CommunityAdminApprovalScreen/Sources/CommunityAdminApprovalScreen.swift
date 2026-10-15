@@ -164,6 +164,7 @@ private final class CommunityAdminApprovalContentComponent: Component {
                 transition: transition,
                 component: AnyComponent(ButtonComponent(
                     background: ButtonComponent.Background(
+                        theme: theme,
                         style: .glass,
                         color: theme.list.itemCheckColors.fillColor,
                         foreground: theme.list.itemCheckColors.foregroundColor,
@@ -202,6 +203,7 @@ private final class CommunityAdminApprovalContentComponent: Component {
                 transition: transition,
                 component: AnyComponent(ButtonComponent(
                     background: ButtonComponent.Background(
+                        theme: theme,
                         style: .glass,
                         color: theme.list.itemPrimaryTextColor.withMultipliedAlpha(0.08),
                         foreground: theme.list.itemPrimaryTextColor,

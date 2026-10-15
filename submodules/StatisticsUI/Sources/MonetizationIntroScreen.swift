@@ -329,6 +329,7 @@ private final class SheetContent: CombinedComponent {
             let actionButton = actionButton.update(
                 component: ButtonComponent(
                     background: ButtonComponent.Background(
+                        theme: theme,
                         style: .glass,
                         color: theme.list.itemCheckColors.fillColor,
                         foreground: theme.list.itemCheckColors.foregroundColor,

@@ -1448,6 +1448,7 @@ private final class WalletPeerSelectionScreenComponent: Component {
                     transition: transition,
                     component: AnyComponent(ButtonComponent(
                         background: ButtonComponent.Background(
+                            theme: environment.theme,
                             style: .legacy,
                             color: environment.theme.list.itemAccentColor.withMultipliedAlpha(0.1),
                             foreground: environment.theme.list.itemAccentColor,
@@ -1962,6 +1963,7 @@ private final class WalletPeerSelectionScreenComponent: Component {
                 transition: transition,
                 component: AnyComponent(ButtonComponent(
                     background: ButtonComponent.Background(
+                        theme: environment.theme,
                         style: .glass,
                         color: environment.theme.list.itemCheckColors.fillColor,
                         foreground: environment.theme.list.itemCheckColors.foregroundColor,

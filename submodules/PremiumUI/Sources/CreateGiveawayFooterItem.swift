@@ -97,6 +97,7 @@ final class CreateGiveawayFooterItemNode: ItemListControllerFooterItemNode {
             component: AnyComponent(
                 ButtonComponent(
                     background: ButtonComponent.Background(
+                        theme: self.item.theme,
                         style: .glass,
                         color: self.item.theme.list.itemCheckColors.fillColor,
                         foreground: self.item.theme.list.itemCheckColors.foregroundColor,

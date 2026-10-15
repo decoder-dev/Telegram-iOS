@@ -931,6 +931,7 @@ final class OverlayAudioPlayerControlsNode: ASDisplayNode {
                 transition: ComponentTransition(profileAudioTransition),
                 component: AnyComponent(ButtonComponent(
                     background: ButtonComponent.Background(
+                        theme: self.presentationData.theme,
                         style: .glass,
                         color: buttonBackgroundColor,
                         foreground: self.presentationData.theme.list.itemCheckColors.foregroundColor,

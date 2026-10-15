@@ -1487,6 +1487,7 @@ private final class LimitSheetContent: CombinedComponent {
                 let button = button.update(
                     component: ButtonComponent(
                         background: ButtonComponent.Background(
+                            theme: theme,
                             style: .glass,
                             color: buttonGradientColors[0],
                             foreground: .white,

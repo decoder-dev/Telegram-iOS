@@ -1703,6 +1703,7 @@ private final class ChatThemeSheetContentComponent: Component {
             case .chooseWallpaper:
                 primaryTextColor = accentColor
                 primaryBackground = ButtonComponent.Background(
+                    theme: component.presentationData.theme,
                     style: .glass,
                     color: accentColor.withMultipliedAlpha(0.1),
                     foreground: accentColor,
@@ -1712,6 +1713,7 @@ private final class ChatThemeSheetContentComponent: Component {
             case .resetTheme, .apply:
                 primaryTextColor = component.presentationData.theme.list.itemCheckColors.foregroundColor
                 primaryBackground = ButtonComponent.Background(
+                    theme: component.presentationData.theme,
                     style: .glass,
                     color: component.presentationData.theme.list.itemCheckColors.fillColor,
                     foreground: component.presentationData.theme.list.itemCheckColors.foregroundColor,
@@ -1767,6 +1769,7 @@ private final class ChatThemeSheetContentComponent: Component {
                     transition: transition,
                     component: AnyComponent(ButtonComponent(
                         background: ButtonComponent.Background(
+                            theme: component.presentationData.theme,
                             style: .glass,
                             color: destructiveColor.withMultipliedAlpha(0.1),
                             foreground: destructiveColor,

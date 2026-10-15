@@ -1371,6 +1371,7 @@ private final class DemoSheetContent: CombinedComponent {
             let button = button.update(
                 component: ButtonComponent(
                     background: ButtonComponent.Background(
+                        theme: theme,
                         style: .glass,
                         color: premiumGradientColors[0],
                         foreground: .white,

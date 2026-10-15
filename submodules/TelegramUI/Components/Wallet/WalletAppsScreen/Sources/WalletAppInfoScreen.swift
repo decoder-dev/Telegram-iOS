@@ -80,7 +80,7 @@ private final class WalletAppInfoContentComponent: CombinedComponent {
 
             let domain = domain.update(
                 component: ButtonComponent(
-                    background: ButtonComponent.Background(color: .clear, foreground: theme.actionSheet.controlAccentColor, pressedColor: .clear),
+                    background: ButtonComponent.Background(theme: theme, color: .clear, foreground: theme.actionSheet.controlAccentColor, pressedColor: .clear),
                     content: AnyComponentWithIdentity(id: "domain", component: AnyComponent(BalancedTextComponent(
                         text: .plain(NSAttributedString(string: component.manifest.domain, font: Font.semibold(15.0), textColor: theme.actionSheet.controlAccentColor)),
                         horizontalAlignment: .center,
@@ -126,6 +126,7 @@ private final class WalletAppInfoContentComponent: CombinedComponent {
             let disconnectButton = disconnectButton.update(
                 component: ButtonComponent(
                     background: ButtonComponent.Background(
+                        theme: theme,
                         style: .glass,
                         color: theme.list.itemDestructiveColor,
                         foreground: theme.list.itemCheckColors.foregroundColor,

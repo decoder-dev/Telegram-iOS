@@ -319,6 +319,7 @@ private final class ChatParticipantRightsContent: CombinedComponent {
             let doneButton = doneButton.update(
                 component: ButtonComponent(
                     background: ButtonComponent.Background(
+                        theme: theme,
                         style: .glass,
                         color: theme.list.itemCheckColors.fillColor,
                         foreground: theme.list.itemCheckColors.foregroundColor,

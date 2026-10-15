@@ -518,6 +518,7 @@ private final class SheetContent: CombinedComponent {
                 let boostButton = boostButton.update(
                     component: ButtonComponent(
                         background: ButtonComponent.Background(
+                            theme: theme,
                             style: .glass,
                             color: theme.list.itemCheckColors.fillColor,
                             foreground: theme.list.itemCheckColors.foregroundColor,
@@ -535,6 +536,7 @@ private final class SheetContent: CombinedComponent {
                 let copyButton = copyButton.update(
                     component: ButtonComponent(
                         background: ButtonComponent.Background(
+                            theme: theme,
                             style: .glass,
                             color: theme.list.itemCheckColors.fillColor,
                             foreground: theme.list.itemCheckColors.foregroundColor,
@@ -1415,6 +1417,7 @@ private final class PremiumBoostLevelsSheetComponent: CombinedComponent {
                         AnyComponent(
                             ButtonComponent(
                                 background: ButtonComponent.Background(
+                                    theme: theme,
                                     style: .glass,
                                     color: theme.list.itemCheckColors.fillColor,
                                     foreground: theme.list.itemCheckColors.foregroundColor,

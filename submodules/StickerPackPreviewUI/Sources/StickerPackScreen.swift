@@ -2168,6 +2168,7 @@ private final class StickerPackContainer: ASDisplayNode {
             component: AnyComponent(
                 ButtonComponent(
                     background: ButtonComponent.Background(
+                        theme: self.presentationData.theme,
                         style: .actualGlass,
                         color: buttonBackgroundColor,
                         foreground: buttonForegroundColor,

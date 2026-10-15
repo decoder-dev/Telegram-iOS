@@ -751,6 +751,7 @@ private final class ActiveAuctionComponent: Component {
                 component: AnyComponent(
                     ButtonComponent(
                         background: ButtonComponent.Background(
+                            theme: component.theme,
                             style: .glass,
                             color: component.theme.list.itemCheckColors.fillColor,
                             foreground: component.theme.list.itemCheckColors.foregroundColor,

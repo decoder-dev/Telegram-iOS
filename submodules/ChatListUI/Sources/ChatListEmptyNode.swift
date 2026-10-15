@@ -250,6 +250,7 @@ final class ChatListEmptyNode: ASDisplayNode {
                 transition: ComponentTransition(transition),
                 component: AnyComponent(ButtonComponent(
                     background: ButtonComponent.Background(
+                        theme: self.theme,
                         style: .glass,
                         color: self.theme.list.itemCheckColors.fillColor,
                         foreground: self.theme.list.itemCheckColors.foregroundColor,

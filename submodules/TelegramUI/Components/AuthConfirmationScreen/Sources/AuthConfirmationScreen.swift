@@ -798,6 +798,7 @@ private final class AuthConfirmationSheetContent: CombinedComponent {
             let cancelButton = cancelButton.update(
                 component: ButtonComponent(
                     background: ButtonComponent.Background(
+                        theme: theme,
                         style: .glass,
                         color: theme.list.itemPrimaryTextColor.withMultipliedAlpha(0.1),
                         foreground: theme.list.itemPrimaryTextColor,
@@ -829,6 +830,7 @@ private final class AuthConfirmationSheetContent: CombinedComponent {
             let doneButton = doneButton.update(
                 component: ButtonComponent(
                     background: ButtonComponent.Background(
+                        theme: theme,
                         style: .glass,
                         color: theme.list.itemCheckColors.fillColor,
                         foreground: theme.list.itemCheckColors.foregroundColor,

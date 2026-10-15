@@ -332,7 +332,7 @@ private final class SheetContent: CombinedComponent {
             let infoBackground = infoBackground.update(
                 component: RoundedRectangle(
                     color: theme.overallDarkAppearance ? theme.list.itemModalBlocksBackgroundColor : theme.list.blocksBackgroundColor,
-                    cornerRadius: 26.0
+                    cornerRadius: theme.isMessagesTheme ? MessagesAppearanceMetrics.sectionCornerRadius : 26.0
                 ),
                 availableSize: CGSize(width: context.availableSize.width - sideInset * 2.0, height: totalInfoHeight),
                 transition: .immediate
@@ -649,6 +649,7 @@ private final class AdsInfoSheetComponent: CombinedComponent {
                     bottomItem: AnyComponent(
                         ButtonComponent(
                             background: ButtonComponent.Background(
+                                theme: theme,
                                 style: .glass,
                                 color: theme.list.itemCheckColors.fillColor,
                                 foreground: theme.list.itemCheckColors.foregroundColor,

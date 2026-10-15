@@ -352,7 +352,7 @@ private final class StarsPurchaseScreenContentComponent: CombinedComponent {
                         backgroundComponent = AnyComponent(
                             ItemShimmeringLoadingComponent(
                                 color: environment.theme.list.itemAccentColor,
-                                cornerRadius: 26.0
+                                cornerRadius: environment.theme.isMessagesTheme ? MessagesAppearanceMetrics.sectionCornerRadius : 26.0
                             )
                         )
                     } else {
