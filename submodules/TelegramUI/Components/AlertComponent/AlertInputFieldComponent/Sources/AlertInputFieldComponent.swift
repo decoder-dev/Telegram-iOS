@@ -14,7 +14,16 @@ import PlainButtonComponent
 import BundleIconComponent
 
 private func alertInputFieldReplacement(text: String, range: NSRange, replacement: String, characterLimit: Int?) -> String? {
-    guard let range = Range(range, in: text) else { return nil }
+    let utf16 = text.utf16
+    guard range.location >= 0, range.location <= utf16.count,
+          range.length >= 0, range.length <= utf16.count - range.location else { return nil }
+    func isScalarBoundary(_ offset: Int) -> Bool {
+        if offset == 0 || offset == utf16.count { return true }
+        let unit = utf16[utf16.index(utf16.startIndex, offsetBy: offset)]
+        return !(0xdc00 ... 0xdfff).contains(unit)
+    }
+    guard isScalarBoundary(range.location), isScalarBoundary(range.location + range.length),
+          let range = Range(range, in: text) else { return nil }
     let updatedText = text.replacingCharacters(in: range, with: replacement)
     if let characterLimit, updatedText.count > max(0, characterLimit), updatedText.count > text.count {
         return nil
