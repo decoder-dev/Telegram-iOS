@@ -2148,6 +2148,7 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
             var editedMessageMark: String
             var showOriginalForwardDate: Bool
             var showSensitiveContent: Bool
+            var replyDecorations: [Bool]
         }
         let messageFilterSettings: Signal<MessageFilterSettingsFingerprint, NoError> = forkExtrasSettings(accountManager: context.sharedContext.accountManager)
         |> map { settings -> MessageFilterSettingsFingerprint in
@@ -2171,7 +2172,8 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
                 deletedMessageMark: settings.deletedMessageMark,
                 editedMessageMark: settings.editedMessageMark,
                 showOriginalForwardDate: settings.showOriginalForwardDate,
-                showSensitiveContent: settings.showSensitiveContent
+                showSensitiveContent: settings.showSensitiveContent,
+                replyDecorations: [settings.hideStickerReplyColors, settings.hideStickerReplyEmoji, settings.hideStickerReplyBackground, settings.hidePremiumReplyEmoji]
             )
         }
         |> distinctUntilChanged

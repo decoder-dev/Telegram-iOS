@@ -134,6 +134,11 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var streamerMode: Bool
     /// Fork (Donutgram): no time or delivery ticks over a sticker; a sticker that carries reactions keeps them.
     public var hideStickerStatus: Bool
+    /// Donutgram: reply decorations on stickers (colours, emoji pattern, background) and the pattern in replies to premium contacts.
+    public var hideStickerReplyColors: Bool
+    public var hideStickerReplyEmoji: Bool
+    public var hideStickerReplyBackground: Bool
+    public var hidePremiumReplyEmoji: Bool
     /// Fork (Donutgram): remember another profile's gifts and show the ones that later disappeared (BananaSpyStorage).
     public var showDisappearedGifts: Bool
     /// Fork (Donutgram): round video messages open with the rear camera, or with the one the last one used.
@@ -426,6 +431,10 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.outgoingPhotoQuality = min(2, max(0, outgoingPhotoQuality))
         self.streamerMode = streamerMode
         self.hideStickerStatus = hideStickerStatus
+        self.hideStickerReplyColors = false
+        self.hideStickerReplyEmoji = false
+        self.hideStickerReplyBackground = false
+        self.hidePremiumReplyEmoji = false
         self.showDisappearedGifts = showDisappearedGifts
         self.roundVideoStartsWithRear = roundVideoStartsWithRear
         self.roundVideoRemembersCamera = roundVideoRemembersCamera
@@ -537,6 +546,10 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.outgoingPhotoQuality = min(2, max(0, try container.decodeIfPresent(Int32.self, forKey: "outgoingPhotoQuality") ?? 0))
         self.streamerMode = try container.decodeIfPresent(Bool.self, forKey: "streamerMode") ?? false
         self.hideStickerStatus = try container.decodeIfPresent(Bool.self, forKey: "hideStickerStatus") ?? false
+        self.hideStickerReplyColors = try container.decodeIfPresent(Bool.self, forKey: "hideStickerReplyColors") ?? false
+        self.hideStickerReplyEmoji = try container.decodeIfPresent(Bool.self, forKey: "hideStickerReplyEmoji") ?? false
+        self.hideStickerReplyBackground = try container.decodeIfPresent(Bool.self, forKey: "hideStickerReplyBackground") ?? false
+        self.hidePremiumReplyEmoji = try container.decodeIfPresent(Bool.self, forKey: "hidePremiumReplyEmoji") ?? false
         self.showDisappearedGifts = try container.decodeIfPresent(Bool.self, forKey: "showDisappearedGifts") ?? false
         self.roundVideoStartsWithRear = try container.decodeIfPresent(Bool.self, forKey: "roundVideoStartsWithRear") ?? false
         self.roundVideoRemembersCamera = try container.decodeIfPresent(Bool.self, forKey: "roundVideoRemembersCamera") ?? false
@@ -648,6 +661,10 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.outgoingPhotoQuality, forKey: "outgoingPhotoQuality")
         try container.encode(self.streamerMode, forKey: "streamerMode")
         try container.encode(self.hideStickerStatus, forKey: "hideStickerStatus")
+        try container.encode(self.hideStickerReplyColors, forKey: "hideStickerReplyColors")
+        try container.encode(self.hideStickerReplyEmoji, forKey: "hideStickerReplyEmoji")
+        try container.encode(self.hideStickerReplyBackground, forKey: "hideStickerReplyBackground")
+        try container.encode(self.hidePremiumReplyEmoji, forKey: "hidePremiumReplyEmoji")
         try container.encode(self.showDisappearedGifts, forKey: "showDisappearedGifts")
         try container.encode(self.roundVideoStartsWithRear, forKey: "roundVideoStartsWithRear")
         try container.encode(self.roundVideoRemembersCamera, forKey: "roundVideoRemembersCamera")

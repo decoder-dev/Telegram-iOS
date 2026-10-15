@@ -480,7 +480,7 @@ public class ChatMessageContactBubbleContentNode: ChatMessageBubbleContentNode {
                             }
                             
                             var pattern: MessageInlineBlockBackgroundView.Pattern?
-                            if let contactPeer, let backgroundEmojiId = contactPeer.backgroundEmojiId {
+                            if !ArenaSettings.shared.hidesPremiumReplyEmoji, let contactPeer, let backgroundEmojiId = contactPeer.backgroundEmojiId {
                                 pattern = MessageInlineBlockBackgroundView.Pattern(
                                     context: item.context,
                                     fileId: backgroundEmojiId,

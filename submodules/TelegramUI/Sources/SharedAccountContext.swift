@@ -1230,6 +1230,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             ArenaSettings.shared.reactionGlow = settings.reactionGlowEnabled
         }
         BananaForwardCountSettings.enabled = settings.showChannelForwardCount
+        ArenaSettings.shared.setReplyDecorations(hideStickerColors: settings.hideStickerReplyColors, hideStickerEmoji: settings.hideStickerReplyEmoji, hideStickerBackground: settings.hideStickerReplyBackground, hidePremiumEmoji: settings.hidePremiumReplyEmoji)
         BananaSpyStorage.trackDisappearedGifts = settings.showDisappearedGifts
         BananaDeletedReplyQuote.enabled = settings.quoteRepliesToDeleted
         BananaExactCounts.enabled = settings.exactCounts

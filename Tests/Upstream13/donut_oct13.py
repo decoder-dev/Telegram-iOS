@@ -559,5 +559,21 @@ precondition(BananaMediaURLPolicy.allowedURL(nil) == nil && BananaMediaURLPolicy
         job = read('submodules/BananaLinkDownloader/Sources/BananaLinkDownloadJob.swift')
         self.assertIn('static let maxCarouselPhotos = 40', job)
 
+    def test_reply_decorations_are_switchable(self):
+        arena = read('submodules/TelegramCore/Sources/Arena/ArenaSettings.swift')
+        self.assertIn('func replyDecorationOptions(isSticker: Bool) -> Int', arena)
+        reply = read('submodules/TelegramUI/Components/Chat/ChatMessageReplyInfoNode/Sources/ChatMessageReplyInfoNode.swift')
+        self.assertIn('ArenaSettings.shared.replyDecorationOptions(isSticker: isStickerReply)', reply)
+        self.assertIn('replyOptions & 4 != 0 ? nil : .clear', reply)
+        self.assertIn('if replyOptions & 2 != 0, let backgroundEmojiId = author?.backgroundEmojiId', reply)
+        self.assertIn('ArenaSettings.shared.hidesStickerReplyEmoji', reply)
+        contact = read('submodules/TelegramUI/Components/Chat/ChatMessageContactBubbleContentNode/Sources/ChatMessageContactBubbleContentNode.swift')
+        self.assertIn('!ArenaSettings.shared.hidesPremiumReplyEmoji', contact)
+        settings = read('submodules/TelegramUIPreferences/Sources/ForkExtrasSettings.swift')
+        for key in ['hideStickerReplyColors', 'hideStickerReplyEmoji', 'hideStickerReplyBackground', 'hidePremiumReplyEmoji']:
+            self.assertIn('forKey: "%s"' % key, settings)
+        self.assertIn('replyDecorations: [settings.hideStickerReplyColors', read('submodules/TelegramUI/Sources/ChatHistoryListNode.swift'))
+        self.assertIn('ArenaSettings.shared.setReplyDecorations(', read('submodules/TelegramUI/Sources/SharedAccountContext.swift'))
+
 
 if __name__ == '__main__': unittest.main()

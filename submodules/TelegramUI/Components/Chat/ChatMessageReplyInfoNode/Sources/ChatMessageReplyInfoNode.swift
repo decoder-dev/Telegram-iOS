@@ -222,6 +222,11 @@ public class ChatMessageReplyInfoNode: ASDisplayNode {
                 associatedData: arguments.associatedData,
                 ArenaHidden: true
             ) : arguments
+            let isStickerReply = [arguments.message, Optional(arguments.parentMessage)].compactMap { $0 }.contains { message in
+                message.media.contains { ($0 as? TelegramMediaFile)?.isSticker == true }
+            } || (arguments.replyForward?.quote?.media as? TelegramMediaFile)?.isSticker == true
+            // Fork (Donutgram): colours = 1, emoji pattern = 2, background = 4; Extras can switch each off.
+            let replyOptions = ArenaSettings.shared.replyDecorationOptions(isSticker: isStickerReply)
             let fontSize = floor(arguments.presentationData.fontSize.baseDisplaySize * 14.0 / 17.0)
             let titleFont = Font.semibold(fontSize)
             let textFont = Font.regular(fontSize)
@@ -256,7 +261,7 @@ public class ChatMessageReplyInfoNode: ASDisplayNode {
             }
             
             var giftEmojiFileId: Int64?
-            switch author?.nameColor {
+            switch replyOptions & 1 != 0 ? author?.nameColor : nil {
             case let .preset(nameColor):
                 let colors = arguments.context.peerNameColors.get(nameColor, dark: arguments.presentationData.theme.theme.overallDarkAppearance)
                 authorNameColor = colors.main
@@ -274,6 +279,9 @@ public class ChatMessageReplyInfoNode: ASDisplayNode {
             
             if arguments.isSummarized {
                 authorNameColor = nil
+            }
+            if replyOptions & 2 == 0 {
+                giftEmojiFileId = nil
             }
             
             switch arguments.type {
@@ -390,7 +398,7 @@ public class ChatMessageReplyInfoNode: ASDisplayNode {
                 
                 let (textStringValue, isMediaValue, isTextValue) = descriptionStringForMessage(contentSettings: arguments.context.currentContentSettings.with { $0 }, message: EngineMessage(message), strings: arguments.strings, nameDisplayOrder: arguments.presentationData.nameDisplayOrder, dateTimeFormat: arguments.presentationData.dateTimeFormat, accountPeerId: arguments.context.account.peerId)
                 // Fork (Donutgram): a reply to a sticker reads "Sticker" instead of the sticker's emoji.
-                if isMediaValue && message.media.contains(where: { ($0 as? TelegramMediaFile)?.isSticker == true }) {
+                if isMediaValue && ArenaSettings.shared.hidesStickerReplyEmoji && message.media.contains(where: { ($0 as? TelegramMediaFile)?.isSticker == true }) {
                     textString = NSAttributedString(string: arguments.strings.Message_Sticker)
                 } else {
                     textString = textStringValue
@@ -411,7 +419,7 @@ public class ChatMessageReplyInfoNode: ASDisplayNode {
                     if let text = replyForward.quote?.text, !text.isEmpty {
                         isMedia = false
                     } else {
-                        if (media as? TelegramMediaFile)?.isSticker == true {
+                        if ArenaSettings.shared.hidesStickerReplyEmoji, (media as? TelegramMediaFile)?.isSticker == true {
                             textString = NSAttributedString(string: arguments.strings.Message_Sticker)
                         } else if let contentKind = mediaContentKind(EngineMedia(media), message: nil, strings: arguments.strings, nameDisplayOrder: arguments.presentationData.nameDisplayOrder, dateTimeFormat: arguments.presentationData.dateTimeFormat, accountPeerId: arguments.context.account.peerId) {
                             let (string, _) = stringForMediaKind(contentKind, strings: arguments.strings)
@@ -940,7 +948,7 @@ public class ChatMessageReplyInfoNode: ASDisplayNode {
                 node.backgroundView.frame = backgroundFrame
                 
                 var pattern: MessageInlineBlockBackgroundView.Pattern?
-                if let backgroundEmojiId = author?.backgroundEmojiId {
+                if replyOptions & 2 != 0, let backgroundEmojiId = author?.backgroundEmojiId {
                     pattern = MessageInlineBlockBackgroundView.Pattern(
                         context: arguments.context,
                         fileId: backgroundEmojiId,
@@ -961,7 +969,7 @@ public class ChatMessageReplyInfoNode: ASDisplayNode {
                     primaryColor: mainColor,
                     secondaryColor: secondaryColor,
                     thirdColor: tertiaryColor,
-                    backgroundColor: nil,
+                    backgroundColor: replyOptions & 4 != 0 ? nil : .clear,
                     pattern: pattern,
                     animation: animation
                 )

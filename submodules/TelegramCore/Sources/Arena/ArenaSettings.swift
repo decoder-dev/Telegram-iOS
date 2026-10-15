@@ -98,6 +98,36 @@ public class ArenaSettings {
             if changed { NotificationCenter.default.post(name: Self.didChangeNotification, object: nil) }
         }
     }
-    public var stickerReplyOptions: Int { return 7 }
+    /// Reply decorations (Donutgram): colours = 1, emoji pattern = 2, background = 4. These mirror the
+    /// "hide" switches in Extras; the chat reloads its messages when any of them changes.
+    private var hideStickerReplyColorsValue = false
+    private var hideStickerReplyEmojiValue = false
+    private var hideStickerReplyBackgroundValue = false
+    private var hidePremiumReplyEmojiValue = false
+
+    public func setReplyDecorations(hideStickerColors: Bool, hideStickerEmoji: Bool, hideStickerBackground: Bool, hidePremiumEmoji: Bool) {
+        self.locked {
+            self.hideStickerReplyColorsValue = hideStickerColors
+            self.hideStickerReplyEmojiValue = hideStickerEmoji
+            self.hideStickerReplyBackgroundValue = hideStickerBackground
+            self.hidePremiumReplyEmojiValue = hidePremiumEmoji
+        }
+    }
+
+    public var hidesStickerReplyEmoji: Bool { return self.locked { self.hideStickerReplyEmojiValue } }
+    public var hidesPremiumReplyEmoji: Bool { return self.locked { self.hidePremiumReplyEmojiValue } }
+
+    public func replyDecorationOptions(isSticker: Bool) -> Int {
+        return self.locked { () -> Int in
+            var options = 7
+            if isSticker {
+                if self.hideStickerReplyColorsValue { options &= ~1 }
+                if self.hideStickerReplyEmojiValue { options &= ~2 }
+                if self.hideStickerReplyBackgroundValue { options &= ~4 }
+            }
+            if self.hidePremiumReplyEmojiValue { options &= ~2 }
+            return options
+        }
+    }
 }
 
