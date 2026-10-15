@@ -311,6 +311,7 @@ private final class CreateExternalMediaStreamScreenComponent: CombinedComponent 
             let button = button.update(
                 component: ButtonComponent(
                     background: ButtonComponent.Background(
+                        theme: theme,
                         style: .glass,
                         color: mode.isCreate ? UIColor(rgb: 0xfa325a) : theme.list.itemCheckColors.fillColor,
                         foreground: mode.isCreate ? .white : theme.list.itemCheckColors.foregroundColor,

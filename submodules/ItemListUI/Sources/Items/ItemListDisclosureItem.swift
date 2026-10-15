@@ -458,7 +458,7 @@ public class ItemListDisclosureItemNode: ListViewItemNode, ItemListItemNode {
                 maxTitleWidth -= 5.0 + titleBadgeTextNodeLayoutValue.0.size.width
             }
             
-            let titleArguments = TextNodeLayoutArguments(attributedString: item.attributedTitle ?? NSAttributedString(string: item.title, font: titleFont, textColor: titleColor), backgroundColor: nil, maximumNumberOfLines: item.attributedTitle != nil ? 0 : 1, truncationType: .end, constrainedSize: CGSize(width: maxTitleWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets())
+            let titleArguments = TextNodeLayoutArguments(attributedString: item.attributedTitle ?? NSAttributedString(string: item.title, font: titleFont, textColor: titleColor), backgroundColor: nil, maximumNumberOfLines: item.attributedTitle != nil ? 0 : item.presentationData.theme.isMessagesTheme ? 2 : 1, truncationType: .end, constrainedSize: CGSize(width: maxTitleWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets())
             let (titleLayoutAndApply) = item.context == nil ? makeTitleLayout(titleArguments) : nil
             let (titleWithEntitiesLayoutAndApply) = item.context != nil ? makeTitleWithEntitiesLayout(titleArguments) : nil
             
@@ -557,6 +557,9 @@ public class ItemListDisclosureItemNode: ListViewItemNode, ItemListItemNode {
             }
             if item.iconPeer != nil {
                 height = max(height, 40.0 + verticalInset * 2.0)
+            }
+            if item.presentationData.theme.isMessagesTheme, case .blocks = item.style {
+                height = max(height, MessagesAppearanceMetrics.minimumRowHeight)
             }
             
             switch item.style {

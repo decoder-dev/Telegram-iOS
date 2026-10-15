@@ -202,17 +202,17 @@ class MediaGroupsAlbumItemNode: ListViewItemNode {
                 updatedTheme = item.presentationData.theme
             }
             
-            let titleFont = Font.regular(21.0)
-            let countFont = Font.regular(17.0)
+            let usesMessages = item.presentationData.theme.isMessagesTheme
+            let titleFont = usesMessages ? Font.medium(item.presentationData.fontSize.itemListBaseFontSize) : Font.regular(21.0)
+            let countFont = Font.regular(usesMessages ? floor(item.presentationData.fontSize.itemListBaseFontSize * 15.0 / 17.0) : 17.0)
             
             let leftInset: CGFloat = 60.0 + params.leftInset
             
-            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.title, font: titleFont, textColor: item.presentationData.theme.list.itemAccentColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - 10.0 - leftInset - params.rightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
-            
-            let (countLayout, countApply) = makeCountLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.count, font: countFont, textColor: item.presentationData.theme.list.itemSecondaryTextColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - 10.0 - leftInset - params.rightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
-            
-            let contentHeight: CGFloat = 48.0
-            
+            let rowWidth = max(1.0, params.width - 10.0 - leftInset - params.rightInset)
+            let (countLayout, countApply) = makeCountLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.count, font: countFont, textColor: item.presentationData.theme.list.itemSecondaryTextColor), maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: max(1.0, rowWidth * 0.3), height: .greatestFiniteMagnitude)))
+            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.title, font: titleFont, textColor: usesMessages ? item.presentationData.theme.list.itemPrimaryTextColor : item.presentationData.theme.list.itemAccentColor), maximumNumberOfLines: usesMessages ? 2 : 1, truncationType: .end, constrainedSize: CGSize(width: max(1.0, rowWidth - countLayout.size.width - 24.0), height: .greatestFiniteMagnitude)))
+            let contentHeight: CGFloat = usesMessages ? MessagesAppearanceMetrics.rowHeight(contentHeight: max(titleLayout.size.height, countLayout.size.height), verticalInset: 12.0) : 48.0
+
             let contentSize = CGSize(width: params.width, height: contentHeight)
             let insets = UIEdgeInsets()
             let separatorHeight = UIScreenPixel
@@ -224,9 +224,12 @@ class MediaGroupsAlbumItemNode: ListViewItemNode {
                     strongSelf.item = item
                     
                     strongSelf.activateArea.accessibilityLabel = item.title
+                    strongSelf.activateArea.accessibilityValue = item.count
+                    strongSelf.activateArea.accessibilityTraits = .button
                     strongSelf.activateArea.frame = CGRect(origin: CGPoint(x: params.leftInset, y: 0.0), size: CGSize(width: layout.contentSize.width - params.leftInset - params.rightInset, height: layout.contentSize.height))
                     
                     if let _ = updatedTheme {
+                        strongSelf.backgroundNode.backgroundColor = item.presentationData.theme.list.plainBackgroundColor
                         strongSelf.topStripeNode.backgroundColor = item.presentationData.theme.list.itemPlainSeparatorColor
                         strongSelf.bottomStripeNode.backgroundColor = item.presentationData.theme.list.itemPlainSeparatorColor
                         strongSelf.highlightedBackgroundNode.backgroundColor = item.presentationData.theme.list.itemHighlightedBackgroundColor

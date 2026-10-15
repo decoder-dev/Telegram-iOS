@@ -14,6 +14,25 @@ import EmojiStatusComponent
 import TelegramStringFormatting
 import CheckNode
 
+private func storageCategoryUsesDarkForeground(red: CGFloat, green: CGFloat, blue: CGFloat) -> Bool {
+    func linear(_ value: CGFloat) -> CGFloat {
+        let value = min(1.0, max(0.0, value))
+        return value <= 0.04045 ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4)
+    }
+    let luminance = 0.2126 * linear(red) + 0.7152 * linear(green) + 0.0722 * linear(blue)
+    return (luminance + 0.05) / 0.05 >= 1.05 / (luminance + 0.05)
+}
+
+private final class StorageCategoryAccessibilityElement: UIAccessibilityElement {
+    var activate: (() -> Void)?
+
+    override func accessibilityActivate() -> Bool {
+        guard let activate = self.activate else { return false }
+        activate()
+        return true
+    }
+}
+
 final class StorageCategoryItemComponent: Component {
     enum ActionType {
         case toggle
@@ -82,6 +101,9 @@ final class StorageCategoryItemComponent: Component {
         private var itemViews: [StorageUsageScreenComponent.Category: ComponentView<Empty>] = [:]
         
         private var component: StorageCategoryItemComponent?
+        private weak var componentState: EmptyComponentState?
+        private lazy var headerAccessibilityElement = StorageCategoryAccessibilityElement(accessibilityContainer: self)
+        private lazy var selectionAccessibilityElement = StorageCategoryAccessibilityElement(accessibilityContainer: self)
         
         private var highlightBackgroundFrame: CGRect?
         private var highlightBackgroundLayer: SimpleLayer?
@@ -96,6 +118,18 @@ final class StorageCategoryItemComponent: Component {
             self.subcategoryClippingContainer.clipsToBounds = true
             
             super.init(frame: frame)
+            NotificationCenter.default.addObserver(self, selector: #selector(self.contentSizeCategoryChanged), name: UIContentSizeCategory.didChangeNotification, object: nil)
+            self.isAccessibilityElement = false
+            self.checkButtonArea.isAccessibilityElement = false
+            self.selectionAccessibilityElement.isAccessibilityElement = true
+            self.selectionAccessibilityElement.activate = { [weak self] in
+                self?.checkPressed()
+            }
+            self.headerAccessibilityElement.isAccessibilityElement = true
+            self.headerAccessibilityElement.accessibilityTraits = .button
+            self.headerAccessibilityElement.activate = { [weak self] in
+                self?.pressed()
+            }
             
             self.addSubview(self.subcategoryClippingContainer)
             
@@ -154,6 +188,14 @@ final class StorageCategoryItemComponent: Component {
             }
             component.action(component.category.key, .toggle)
         }
+
+        deinit {
+            NotificationCenter.default.removeObserver(self)
+        }
+
+        @objc private func contentSizeCategoryChanged() {
+            if self.component?.theme.isMessagesTheme == true { self.componentState?.updated(transition: .immediate) }
+        }
         
         override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
             guard let result = super.hitTest(point, with: event) else {
@@ -169,6 +211,11 @@ final class StorageCategoryItemComponent: Component {
             let themeUpdated = self.component?.theme !== component.theme || self.component?.category.color != component.category.color
             
             self.component = component
+            self.componentState = state
+            let usesMessages = component.theme.isMessagesTheme
+            let titleFont = usesMessages ? UIFont.preferredFont(forTextStyle: .body) : Font.regular(17.0)
+            let detailFont = usesMessages ? UIFont.preferredFont(forTextStyle: .subheadline) : Font.regular(17.0)
+            let fractionFont = usesMessages ? UIFont.preferredFont(forTextStyle: .caption1) : Font.regular(17.0)
             
             var leftInset: CGFloat = 62.0
             var additionalLeftInset: CGFloat = 0.0
@@ -180,7 +227,7 @@ final class StorageCategoryItemComponent: Component {
             
             let rightInset: CGFloat = 16.0
             
-            var availableWidth: CGFloat = availableSize.width - leftInset - rightInset
+            var availableWidth: CGFloat = max(1.0, availableSize.width - leftInset - rightInset)
             
             if !component.category.subcategories.isEmpty {
                 let iconView: UIImageView
@@ -219,30 +266,33 @@ final class StorageCategoryItemComponent: Component {
                 fractionString = ""
             }
             
+            let sizeText = dataSizeString(Int(component.category.size), formatting: DataSizeStringFormatting(strings: component.strings, decimalSeparator: "."))
+            let rowContentWidth = availableWidth
             let labelSize = self.label.update(
                 transition: transition,
-                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: dataSizeString(Int(component.category.size), formatting: DataSizeStringFormatting(strings: component.strings, decimalSeparator: ".")), font: Font.regular(17.0), textColor: component.theme.list.itemSecondaryTextColor)))),
+                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: sizeText, font: detailFont, textColor: component.theme.list.itemSecondaryTextColor)))),
                 environment: {},
-                containerSize: CGSize(width: availableWidth, height: 100.0)
+                containerSize: CGSize(width: usesMessages ? max(1.0, rowContentWidth * 0.35) : availableWidth, height: 100.0)
             )
             availableWidth = max(1.0, availableWidth - labelSize.width - 1.0)
             
             let titleValueSize = self.titleValue.update(
                 transition: .immediate,
-                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: fractionString, font: Font.regular(17.0), textColor: component.theme.list.itemSecondaryTextColor)))),
+                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: fractionString, font: fractionFont, textColor: component.theme.list.itemSecondaryTextColor)))),
                 environment: {},
-                containerSize: CGSize(width: availableWidth, height: 100.0)
+                containerSize: CGSize(width: usesMessages ? max(1.0, rowContentWidth * 0.25) : availableWidth, height: 100.0)
             )
             availableWidth = max(1.0, availableWidth - titleValueSize.width - 4.0)
             
             let titleSize = self.title.update(
                 transition: transition,
-                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: component.category.title, font: Font.regular(17.0), textColor: component.theme.list.itemPrimaryTextColor)))),
+                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: component.category.title, font: titleFont, textColor: component.theme.list.itemPrimaryTextColor)), maximumNumberOfLines: usesMessages ? 0 : 1)),
                 environment: {},
-                containerSize: CGSize(width: availableWidth, height: 100.0)
+                containerSize: CGSize(width: availableWidth, height: .greatestFiniteMagnitude)
             )
             
-            var height: CGFloat = 52.0
+            var height: CGFloat = usesMessages ? MessagesAppearanceMetrics.rowHeight(contentHeight: max(titleSize.height, labelSize.height, titleValueSize.height), verticalInset: 12.0) : 52.0
+            let rowHeight = height
             
             let titleFrame = CGRect(origin: CGPoint(x: leftInset, y: floor((height - titleSize.height) / 2.0)), size: titleSize)
             let titleValueFrame = CGRect(origin: CGPoint(x: titleFrame.maxX + 4.0, y: floor((height - titleValueSize.height) / 2.0)), size: titleValueSize)
@@ -299,9 +349,19 @@ final class StorageCategoryItemComponent: Component {
                     transition.setAlpha(layer: self.checkLayer, alpha: 1.0)
                 }
                 
+                var checkForeground = component.theme.list.itemCheckColors.foregroundColor
+                if usesMessages {
+                    var red: CGFloat = 0.0
+                    var green: CGFloat = 0.0
+                    var blue: CGFloat = 0.0
+                    var alpha: CGFloat = 0.0
+                    if component.category.color.getRed(&red, green: &green, blue: &blue, alpha: &alpha) {
+                        checkForeground = storageCategoryUsesDarkForeground(red: red, green: green, blue: blue) ? .black : .white
+                    }
+                }
                 self.checkLayer.theme = CheckNodeTheme(
                     backgroundColor: component.category.color,
-                    strokeColor: component.theme.list.itemCheckColors.foregroundColor,
+                    strokeColor: checkForeground,
                     borderColor: component.theme.list.itemCheckColors.strokeColor,
                     overlayBorder: false,
                     hasInset: false,
@@ -400,6 +460,27 @@ final class StorageCategoryItemComponent: Component {
             }
             
             transition.setFrame(view: self.subcategoryClippingContainer, frame: CGRect(origin: CGPoint(), size: CGSize(width: availableSize.width, height: height)))
+            self.selectionAccessibilityElement.accessibilityLabel = component.category.title
+            self.selectionAccessibilityElement.accessibilityValue = [fractionString, sizeText].filter { !$0.isEmpty }.joined(separator: ", ")
+            self.selectionAccessibilityElement.accessibilityTraits = component.category.isSelected ? [.button, .selected] : [.button]
+            if component.category.subcategories.isEmpty {
+                self.selectionAccessibilityElement.accessibilityFrameInContainerSpace = CGRect(x: 0.0, y: 0.0, width: availableSize.width, height: rowHeight)
+                self.accessibilityElements = [self.selectionAccessibilityElement]
+            } else {
+                self.selectionAccessibilityElement.accessibilityFrameInContainerSpace = self.checkButtonArea.frame
+                self.headerAccessibilityElement.accessibilityLabel = component.category.title
+                self.headerAccessibilityElement.accessibilityValue = self.selectionAccessibilityElement.accessibilityValue
+                self.headerAccessibilityElement.accessibilityFrameInContainerSpace = CGRect(x: leftInset, y: 0.0, width: max(1.0, availableSize.width - leftInset), height: rowHeight)
+                var elements: [Any] = [self.selectionAccessibilityElement, self.headerAccessibilityElement]
+                if component.isExpanded {
+                    for category in component.category.subcategories {
+                        if let view = self.itemViews[category.key]?.view {
+                            elements.append(view)
+                        }
+                    }
+                }
+                self.accessibilityElements = elements
+            }
             
             return CGSize(width: availableSize.width, height: height)
         }

@@ -72,6 +72,7 @@ public final class SearchBarPlaceholderContentView: UIView {
     
     private(set) var placeholderString: NSAttributedString?
     var maximumPlaceholderWidth: CGFloat?
+    var maximumCornerRadius: CGFloat?
     
     private var params: Params?
     
@@ -290,7 +291,7 @@ public final class SearchBarPlaceholderContentView: UIView {
         }
         
         let outerAlpha = min(0.3, params.expansionProgress) / 0.3
-        let cornerRadius = height * 0.5
+        let cornerRadius = min(height * 0.5, max(0.0, self.maximumCornerRadius ?? height * 0.5))
         
         if self.plainBackgroundView.layer.cornerRadius != cornerRadius {
             if !transition.isAnimated {
@@ -347,7 +348,8 @@ public final class SearchBarPlaceholderContentView: UIView {
             let isDark = params.backgroundColor.hsb.b < 0.5
             if params.isActive || params.displayGlassBackgroundWhenInactive {
                 self.glassBackgroundContainerView?.update(size: backgroundFrame.size, isDark: isDark, transition: ComponentTransition(transition))
-                glassBackgroundView.update(size: backgroundFrame.size, cornerRadius: backgroundFrame.height * 0.5, isDark: isDark, tintColor: .init(kind: params.preferClearGlass ? .clear : .panel), isInteractive: true, transition: ComponentTransition(transition))
+                let backgroundRadius = min(backgroundFrame.height * 0.5, max(0.0, self.maximumCornerRadius ?? backgroundFrame.height * 0.5))
+                glassBackgroundView.update(size: backgroundFrame.size, cornerRadius: backgroundRadius, isDark: isDark, tintColor: .init(kind: params.preferClearGlass ? .clear : .panel), isInteractive: true, transition: ComponentTransition(transition))
             }
             
             if params.isActive {
@@ -512,6 +514,19 @@ public class SearchBarPlaceholderNode: ASDisplayNode {
                 return
             }
             self.contentView.maximumPlaceholderWidth = newValue
+            if !self.isTakenOut, let params = self.params {
+                let _ = self.update(params: params, transition: .immediate)
+            }
+        }
+    }
+
+    public var maximumCornerRadius: CGFloat? {
+        get {
+            return self.contentView.maximumCornerRadius
+        }
+        set {
+            guard self.contentView.maximumCornerRadius != newValue else { return }
+            self.contentView.maximumCornerRadius = newValue
             if !self.isTakenOut, let params = self.params {
                 let _ = self.update(params: params, transition: .immediate)
             }

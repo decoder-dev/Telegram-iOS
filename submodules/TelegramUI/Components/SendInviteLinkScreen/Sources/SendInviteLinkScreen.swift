@@ -126,6 +126,7 @@ private final class SendInviteLinkContentComponent: Component {
         }
         
         func update(component: SendInviteLinkContentComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<EnvironmentType>, transition: ComponentTransition) -> CGSize {
+            self.itemContainerView.layer.cornerRadius = component.theme.isMessagesTheme ? MessagesAppearanceMetrics.sectionCornerRadius : 26.0
             let environment = environment[EnvironmentType.self].value
             let theme = component.theme
             
@@ -339,6 +340,7 @@ private final class SendInviteLinkContentComponent: Component {
                     transition: premiumItemsTransition,
                     component: AnyComponent(ButtonComponent(
                         background: ButtonComponent.Background(
+                            theme: theme,
                             style: .glass,
                             color: premiumButtonGradientColors[0],
                             foreground: .white,
@@ -759,6 +761,7 @@ private final class SendInviteLinkActionButtonComponent: Component {
                 transition: transition,
                 component: AnyComponent(ButtonComponent(
                     background: ButtonComponent.Background(
+                        theme: component.theme,
                         style: .glass,
                         color: component.theme.list.itemCheckColors.fillColor,
                         foreground: component.theme.list.itemCheckColors.foregroundColor,

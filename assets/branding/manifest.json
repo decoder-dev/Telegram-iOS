@@ -1598,5 +1598,293 @@
       87
     ],
     "palette": "BlueIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/HalloweenIcon.appiconset/Halloween-40.png",
+    "size": [
+      40,
+      40
+    ],
+    "palette": "HalloweenIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/HalloweenIcon.appiconset/Halloween-60.png",
+    "size": [
+      60,
+      60
+    ],
+    "palette": "HalloweenIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/HalloweenIcon.appiconset/Halloween-58.png",
+    "size": [
+      58,
+      58
+    ],
+    "palette": "HalloweenIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/HalloweenIcon.appiconset/Halloween-87.png",
+    "size": [
+      87,
+      87
+    ],
+    "palette": "HalloweenIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/HalloweenIcon.appiconset/Halloween-80.png",
+    "size": [
+      80,
+      80
+    ],
+    "palette": "HalloweenIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/HalloweenIcon.appiconset/Halloween-120.png",
+    "size": [
+      120,
+      120
+    ],
+    "palette": "HalloweenIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/HalloweenIcon.appiconset/Halloween-180.png",
+    "size": [
+      180,
+      180
+    ],
+    "palette": "HalloweenIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/HalloweenIcon.appiconset/Halloween-20.png",
+    "size": [
+      20,
+      20
+    ],
+    "palette": "HalloweenIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/HalloweenIcon.appiconset/Halloween-29.png",
+    "size": [
+      29,
+      29
+    ],
+    "palette": "HalloweenIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/HalloweenIcon.appiconset/Halloween-76.png",
+    "size": [
+      76,
+      76
+    ],
+    "palette": "HalloweenIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/HalloweenIcon.appiconset/Halloween-152.png",
+    "size": [
+      152,
+      152
+    ],
+    "palette": "HalloweenIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/HalloweenIcon.appiconset/Halloween-167.png",
+    "size": [
+      167,
+      167
+    ],
+    "palette": "HalloweenIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/HalloweenIcon.alticon/HalloweenIcon@2x.png",
+    "size": [
+      120,
+      120
+    ],
+    "palette": "HalloweenIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/HalloweenIcon.alticon/HalloweenIcon@3x.png",
+    "size": [
+      180,
+      180
+    ],
+    "palette": "HalloweenIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/HalloweenIcon.alticon/HalloweenIconIpad.png",
+    "size": [
+      76,
+      76
+    ],
+    "palette": "HalloweenIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/HalloweenIcon.alticon/HalloweenIconIpad@2x.png",
+    "size": [
+      152,
+      152
+    ],
+    "palette": "HalloweenIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/HalloweenIcon.alticon/HalloweenIconLargeIpad@2x.png",
+    "size": [
+      167,
+      167
+    ],
+    "palette": "HalloweenIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/HalloweenIcon.appiconset/Halloween-1024.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "palette": "HalloweenIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/MessagesIcon.appiconset/Messages-40.png",
+    "size": [
+      40,
+      40
+    ],
+    "palette": "MessagesIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/MessagesIcon.appiconset/Messages-60.png",
+    "size": [
+      60,
+      60
+    ],
+    "palette": "MessagesIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/MessagesIcon.appiconset/Messages-58.png",
+    "size": [
+      58,
+      58
+    ],
+    "palette": "MessagesIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/MessagesIcon.appiconset/Messages-87.png",
+    "size": [
+      87,
+      87
+    ],
+    "palette": "MessagesIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/MessagesIcon.appiconset/Messages-80.png",
+    "size": [
+      80,
+      80
+    ],
+    "palette": "MessagesIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/MessagesIcon.appiconset/Messages-120.png",
+    "size": [
+      120,
+      120
+    ],
+    "palette": "MessagesIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/MessagesIcon.appiconset/Messages-180.png",
+    "size": [
+      180,
+      180
+    ],
+    "palette": "MessagesIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/MessagesIcon.appiconset/Messages-20.png",
+    "size": [
+      20,
+      20
+    ],
+    "palette": "MessagesIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/MessagesIcon.appiconset/Messages-29.png",
+    "size": [
+      29,
+      29
+    ],
+    "palette": "MessagesIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/MessagesIcon.appiconset/Messages-76.png",
+    "size": [
+      76,
+      76
+    ],
+    "palette": "MessagesIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/MessagesIcon.appiconset/Messages-152.png",
+    "size": [
+      152,
+      152
+    ],
+    "palette": "MessagesIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/MessagesIcon.appiconset/Messages-167.png",
+    "size": [
+      167,
+      167
+    ],
+    "palette": "MessagesIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/AppIcons.xcassets/MessagesIcon.appiconset/Messages-1024.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "palette": "MessagesIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/MessagesIcon.alticon/MessagesIcon@2x.png",
+    "size": [
+      120,
+      120
+    ],
+    "palette": "MessagesIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/MessagesIcon.alticon/MessagesIcon@3x.png",
+    "size": [
+      180,
+      180
+    ],
+    "palette": "MessagesIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/MessagesIcon.alticon/MessagesIconIpad.png",
+    "size": [
+      76,
+      76
+    ],
+    "palette": "MessagesIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/MessagesIcon.alticon/MessagesIconIpad@2x.png",
+    "size": [
+      152,
+      152
+    ],
+    "palette": "MessagesIcon"
+  },
+  {
+    "file": "Telegram/Telegram-iOS/MessagesIcon.alticon/MessagesIconLargeIpad@2x.png",
+    "size": [
+      167,
+      167
+    ],
+    "palette": "MessagesIcon"
   }
 ]

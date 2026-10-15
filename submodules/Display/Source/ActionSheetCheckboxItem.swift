@@ -170,7 +170,7 @@ public class ActionSheetCheckboxItemNode: ActionSheetItemNode {
             self.labelNode.frame = CGRect(origin: CGPoint(x: titleOrigin, y: textOrigin + titleSize.height + 4.0), size: labelSize)
         } else {
             self.titleNode.frame = CGRect(origin: CGPoint(x: titleOrigin, y: floorToScreenPixels((size.height - titleSize.height) / 2.0)), size: titleSize)
-            self.labelNode.frame = CGRect(origin: CGPoint(x: size.width - 15.0 - labelSize.width, y: floorToScreenPixels((size.height - labelSize.height) / 2.0)), size: labelSize)
+            self.labelNode.frame = CGRect(origin: CGPoint(x: size.width - rightInset - labelSize.width, y: floorToScreenPixels((size.height - labelSize.height) / 2.0)), size: labelSize)
         }
         
         if let image = self.checkNode.image {

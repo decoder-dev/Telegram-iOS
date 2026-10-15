@@ -380,6 +380,7 @@ final class MonetizationBalanceItemNode: ListViewItemNode, ItemListItemNode {
                 transition: .immediate,
                 component: AnyComponent(ButtonComponent(
                     background: ButtonComponent.Background(
+                        theme: item.presentationData.theme,
                         color: item.presentationData.theme.list.itemCheckColors.fillColor,
                         foreground: item.presentationData.theme.list.itemCheckColors.foregroundColor,
                         pressedColor: item.presentationData.theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.8)
@@ -411,6 +412,7 @@ final class MonetizationBalanceItemNode: ListViewItemNode, ItemListItemNode {
                     transition: .immediate,
                     component: AnyComponent(ButtonComponent(
                         background: ButtonComponent.Background(
+                            theme: item.presentationData.theme,
                             color: item.presentationData.theme.list.itemCheckColors.fillColor,
                             foreground: item.presentationData.theme.list.itemCheckColors.foregroundColor,
                             pressedColor: item.presentationData.theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.8)

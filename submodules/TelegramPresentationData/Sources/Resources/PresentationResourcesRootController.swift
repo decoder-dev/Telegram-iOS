@@ -39,6 +39,9 @@ public struct PresentationResourcesRootController {
         
     public static func navigationComposeIcon(_ theme: PresentationTheme) -> UIImage? {
         return theme.image(PresentationResourceKey.navigationComposeIcon.rawValue, { theme in
+            if theme.isMessagesTheme, let image = UIImage(systemName: "square.and.pencil", withConfiguration: UIImage.SymbolConfiguration(pointSize: 22.0, weight: .regular)) {
+                return generateTintedImage(image: image, color: theme.rootController.navigationBar.accentTextColor)
+            }
             return generateTintedImage(image: UIImage(bundleImageName: "Chat List/ComposeIcon"), color: theme.rootController.navigationBar.accentTextColor)
         })
     }
@@ -52,6 +55,9 @@ public struct PresentationResourcesRootController {
     
     public static func navigationCallIcon(_ theme: PresentationTheme) -> UIImage? {
         return theme.image(PresentationResourceKey.navigationCallIcon.rawValue, { theme in
+            if theme.isMessagesTheme, let image = UIImage(systemName: "phone.badge.plus", withConfiguration: UIImage.SymbolConfiguration(pointSize: 22.0, weight: .regular)) {
+                return generateTintedImage(image: image, color: theme.rootController.navigationBar.accentTextColor)
+            }
             return generateTintedImage(image: UIImage(bundleImageName: "Call List/CallIcon"), color: theme.rootController.navigationBar.accentTextColor)
         })
     }

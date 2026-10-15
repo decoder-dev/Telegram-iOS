@@ -308,6 +308,7 @@ private final class SheetContent: CombinedComponent {
             let button = button.update(
                 component: ButtonComponent(
                     background: ButtonComponent.Background(
+                        theme: theme,
                         style: .glass,
                         color: theme.list.itemCheckColors.fillColor,
                         foreground: theme.list.itemCheckColors.foregroundColor,
@@ -481,25 +482,6 @@ private final class EmojiGameStakeSheetComponent: CombinedComponent {
                             }
                         )
                     ),
-//                    bottomItem: AnyComponent(
-//                        ButtonComponent(
-//                            background: ButtonComponent.Background(
-//                                style: .glass,
-//                                color: theme.list.itemCheckColors.fillColor,
-//                                foreground: theme.list.itemCheckColors.foregroundColor,
-//                                pressedColor: theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.9)
-//                            ),
-//                            content: AnyComponentWithIdentity(
-//                                id: AnyHashable(0),
-//                                component: AnyComponent(HStack(buttonItems, spacing: 7.0))
-//                            ),
-//                            isEnabled: true,
-//                            displaysProgress: false,
-//                            action: {
-//                                dismiss(true)
-//                            }
-//                        )
-//                    ),
                     backgroundColor: .color(theme.list.blocksBackgroundColor),
                     animateOut: animateOut
                 ),
@@ -1290,7 +1272,7 @@ private final class ResultCellComponent: Component {
             
             let backgroundSize = self.background.update(
                 transition: transition,
-                component: AnyComponent(FilledRoundedRectangleComponent(color: component.theme.list.itemBlocksBackgroundColor, cornerRadius: .value(22.0), smoothCorners: true)),
+                component: AnyComponent(FilledRoundedRectangleComponent(color: component.theme.list.itemBlocksBackgroundColor, cornerRadius: .value(component.theme.isMessagesTheme ? MessagesAppearanceMetrics.sectionCornerRadius : 22.0), smoothCorners: true)),
                 environment: {},
                 containerSize: size
             )

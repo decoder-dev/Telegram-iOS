@@ -21,6 +21,7 @@ swift_library(
         "//submodules/PresentationDataUtils",
         "//submodules/WallpaperBackgroundNode",
         "//submodules/ComponentFlow",
+        "//submodules/Components/MultilineTextComponent",
         "//submodules/SolidRoundedButtonNode",
         "//submodules/AppBundle",
         "//submodules/PremiumUI",

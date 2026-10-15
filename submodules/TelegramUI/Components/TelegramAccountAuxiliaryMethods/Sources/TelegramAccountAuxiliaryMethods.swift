@@ -77,7 +77,8 @@ public func makeTelegramAccountAuxiliaryMethods(uploadInBackground: ((Postbox, M
         } else if let wallpaperResource = resource as? WallpaperDataResource {
             let builtinWallpapers: [String] = [
                 "fqv01SQemVIBAAAApND8LDRUhRU",
-                "Ye7DfT2kCVIKAAAAhzXfrkdOjxs"
+                "Ye7DfT2kCVIKAAAAhzXfrkdOjxs",
+                "bananagram-halloween-v1"
             ]
             if builtinWallpapers.contains(wallpaperResource.slug) {
                 if let url = getAppBundle().url(forResource: wallpaperResource.slug, withExtension: "tgv") {

@@ -586,6 +586,7 @@ private final class GiftAuctionWearPreviewSheetContent: CombinedComponent {
             let buttonInsets = ContainerViewLayout.concentricInsets(bottomInset: environment.safeInsets.bottom, innerDiameter: 52.0, sideInset: 30.0)
             let buttonSize = CGSize(width: context.availableSize.width - buttonInsets.left - buttonInsets.right, height: 52.0)
             let buttonBackground = ButtonComponent.Background(
+                theme: theme,
                 style: .glass,
                 color: theme.list.itemCheckColors.fillColor,
                 foreground: theme.list.itemCheckColors.foregroundColor,

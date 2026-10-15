@@ -57,6 +57,9 @@ final class AlertActionComponent: Component {
         if lhs.title != rhs.title {
             return false
         }
+        if lhs.isEnabled !== rhs.isEnabled || lhs.progress !== rhs.progress {
+            return false
+        }
         if lhs.isHighlighted != rhs.isHighlighted {
             return false
         }
@@ -72,7 +75,24 @@ final class AlertActionComponent: Component {
         private weak var state: EmptyComponentState?
         
         private var isEnabledDisposable: Disposable?
-        private var isEnabled = true
+        private var isEnabled = false
+
+        var canPerformAction: Bool {
+            return self.isEnabled && !self.hasProgress
+        }
+        var action: (() -> Void)?
+
+        override func accessibilityActivate() -> Bool {
+            guard self.canPerformAction, let action = self.action else {
+                return false
+            }
+            action()
+            return true
+        }
+
+        private func updateAccessibilityState() {
+            self.accessibilityTraits = self.canPerformAction ? [.button] : [.button, .notEnabled]
+        }
         
         private var progressDisposable: Disposable?
         private var hasProgress = false
@@ -96,37 +116,52 @@ final class AlertActionComponent: Component {
         }
         
         func update(component: AlertActionComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<AlertComponentEnvironment>, transition: ComponentTransition) -> CGSize {
+            let transition = UIAccessibility.isReduceMotionEnabled ? transition.withAnimation(.none) : transition
             self.isUpdating = true
             defer {
                 self.isUpdating = false
             }
-            if self.component == nil {
+            let previousComponent = self.component
+            self.component = component
+            self.state = state
+            self.isAccessibilityElement = true
+            self.accessibilityLabel = component.title
+            if previousComponent?.isEnabled !== component.isEnabled {
+                self.isEnabledDisposable?.dispose()
+                self.isEnabled = false
                 self.isEnabledDisposable = (component.isEnabled
                 |> deliverOnMainQueue).start(next: { [weak self] isEnabled in
                     guard let self else {
                         return
                     }
                     self.isEnabled = isEnabled
+                    self.updateAccessibilityState()
                     if !self.isUpdating {
                         self.state?.updated(transition: .easeInOut(duration: 0.25))
                     }
                 })
-                
+            }
+            if previousComponent?.progress !== component.progress {
+                self.progressDisposable?.dispose()
+                self.hasProgress = true
                 self.progressDisposable = (component.progress
                 |> deliverOnMainQueue).start(next: { [weak self] hasProgress in
                     guard let self else {
                         return
                     }
                     self.hasProgress = hasProgress
+                    self.updateAccessibilityState()
                     if !self.isUpdating {
                         self.state?.updated(transition: .easeInOut(duration: 0.25))
                     }
                 })
             }
-            self.component = component
-            self.state = state
-            
-            let attributedString = NSMutableAttributedString(string: component.title, font: component.theme.font == .bold ? boldTitleFont : titleFont, textColor: .white, paragraphAlignment: .center)
+            self.updateAccessibilityState()
+
+            let usesMessages = environment[AlertComponentEnvironment.self].theme.isMessagesTheme
+            let baseFont = component.theme.font == .bold ? boldTitleFont : titleFont
+            let font = usesMessages ? UIFontMetrics(forTextStyle: .body).scaledFont(for: baseFont) : baseFont
+            let attributedString = NSMutableAttributedString(string: component.title, font: font, textColor: .white, paragraphAlignment: .center)
             if let range = attributedString.string.range(of: "$") {
                 attributedString.addAttribute(.attachment, value: UIImage(bundleImageName: "Item List/PremiumIcon")!, range: NSRange(range, in: attributedString.string))
                 attributedString.addAttribute(.foregroundColor, value: UIColor.white, range: NSRange(range, in: attributedString.string))
@@ -139,7 +174,7 @@ final class AlertActionComponent: Component {
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(attributedString),
                     horizontalAlignment: .center,
-                    maximumNumberOfLines: 1,
+                    maximumNumberOfLines: usesMessages ? 2 : 1,
                     tintColor: component.theme.foreground
                 )),
                 environment: {},
@@ -189,9 +224,9 @@ final class AlertActionComponent: Component {
             
             transition.setBackgroundColor(view: self.backgroundView, color: component.theme.background)
             transition.setAlpha(view: self.backgroundView, alpha: buttonAlpha)
-            self.backgroundView.layer.cornerRadius = availableSize.height * 0.5
+            self.backgroundView.layer.cornerRadius = usesMessages ? MessagesAppearanceMetrics.actionRadius(height: availableSize.height) : availableSize.height * 0.5
             
-            return CGSize(width: titleSize.width + titlePadding * 2.0, height: availableSize.height)
+            return CGSize(width: titleSize.width + titlePadding * 2.0, height: usesMessages ? max(availableSize.height, titleSize.height + 16.0) : availableSize.height)
         }
         
         func applySize(size: CGSize, transition: ComponentTransition) {

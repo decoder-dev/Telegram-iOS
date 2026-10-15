@@ -444,6 +444,7 @@ private final class FormulaEditorSheetContent: Component {
                             ListTextFieldItemComponent(
                                 style: .glass,
                                 theme: theme,
+                                strings: environment.strings,
                                 initialText: component.initialLatex,
                                 placeholder: component.placeholderLatex,
                                 hasClearButton: false,

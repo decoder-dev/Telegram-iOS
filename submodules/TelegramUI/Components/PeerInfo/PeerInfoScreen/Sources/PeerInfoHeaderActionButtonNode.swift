@@ -71,13 +71,16 @@ final class PeerInfoHeaderActionButtonNode: HighlightableButtonNode {
             
             self.containerNode.isGestureEnabled = false
                                                             
-            self.backgroundNode.backgroundColor = presentationData.theme.list.itemAccentColor
+            self.backgroundNode.backgroundColor = presentationData.theme.isMessagesTheme ? presentationData.theme.list.itemCheckColors.fillColor : presentationData.theme.list.itemAccentColor
             transition.updateFrame(node: self.backgroundNode, frame: CGRect(origin: CGPoint(), size: size))
         }
         
         self.textNode.attributedText = NSAttributedString(string: text, font: Font.semibold(16.0), textColor: presentationData.theme.list.itemCheckColors.foregroundColor)
         self.accessibilityLabel = text
-        let titleSize = self.textNode.updateLayout(CGSize(width: 120.0, height: .greatestFiniteMagnitude))
+        let titleSize = self.textNode.updateLayout(CGSize(width: max(1.0, size.width - 24.0), height: .greatestFiniteMagnitude))
+        let cornerRadius = presentationData.theme.isMessagesTheme ? MessagesAppearanceMetrics.actionRadius(height: size.height) : 11.0
+        transition.updateCornerRadius(node: self.backgroundNode, cornerRadius: cornerRadius)
+        self.backgroundNode.layer.cornerCurve = .continuous
         
         transition.updateFrame(node: self.containerNode, frame: CGRect(origin: CGPoint(), size: size))
         transition.updateFrame(node: self.backgroundNode, frame: CGRect(origin: CGPoint(), size: size))

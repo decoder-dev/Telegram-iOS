@@ -149,7 +149,7 @@ class ItemListWebsiteItemNode: ItemListRevealOptionsItemNode {
     private var isHighlighted = false
     
     override public var canBeSelected: Bool {
-        if let item = self.layoutParams?.0, let _ = item.action {
+        if let item = self.layoutParams?.0, item.enabled, let _ = item.action {
             return true
         } else {
             return false
@@ -204,6 +204,21 @@ class ItemListWebsiteItemNode: ItemListRevealOptionsItemNode {
         self.containerNode.addSubnode(self.locationNode)
         
         self.addSubnode(self.activateArea)
+        self.activateArea.activate = { [weak self] in
+            return self?.activateItem() ?? false
+        }
+    }
+
+    private func activateItem() -> Bool {
+        guard let item = self.layoutParams?.0, item.enabled, let action = item.action else { return false }
+        action()
+        return true
+    }
+
+    @objc private func accessibilityTerminate() -> Bool {
+        guard let item = self.layoutParams?.0, item.enabled else { return false }
+        item.removeSession(item.website.hash)
+        return true
     }
     
     func asyncLayout() -> (_ item: ItemListWebsiteItem, _ params: ListViewItemLayoutParams, _ neighbors: ItemListNeighbors) -> (ListViewItemNodeLayout, (Bool) -> Void) {
@@ -226,7 +241,7 @@ class ItemListWebsiteItemNode: ItemListRevealOptionsItemNode {
             let titleSpacing: CGFloat = 1.0
             let textSpacing: CGFloat = 2.0
             
-            if currentItem?.presentationData !== item.presentationData.theme {
+            if currentItem?.presentationData.theme !== item.presentationData.theme {
                 updatedTheme = item.presentationData.theme
             }
             
@@ -281,7 +296,7 @@ class ItemListWebsiteItemNode: ItemListRevealOptionsItemNode {
                 editingOffset = 0.0
             }
             
-            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: titleAttributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - 16.0 - editingOffset - rightInset - 5.0, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: titleAttributedString, backgroundColor: nil, maximumNumberOfLines: item.presentationData.theme.isMessagesTheme ? 2 : 1, truncationType: .end, constrainedSize: CGSize(width: max(0.0, params.width - leftInset - 16.0 - editingOffset - rightInset - 5.0), height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             let (appLayout, appApply) = makeAppLayout(TextNodeLayoutArguments(attributedString: appAttributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - 8.0 - editingOffset - rightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             let (locationLayout, locationApply) = makeLocationLayout(TextNodeLayoutArguments(attributedString: locationAttributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - 8.0 - editingOffset - rightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
@@ -323,10 +338,11 @@ class ItemListWebsiteItemNode: ItemListRevealOptionsItemNode {
                     strongSelf.activateArea.accessibilityValue = value
                     
                     if item.enabled {
-                        strongSelf.activateArea.accessibilityTraits = []
+                        strongSelf.activateArea.accessibilityTraits = item.action == nil ? [.staticText] : [.button]
                     } else {
-                        strongSelf.activateArea.accessibilityTraits = .notEnabled
+                        strongSelf.activateArea.accessibilityTraits = [.button, .notEnabled]
                     }
+                    strongSelf.activateArea.accessibilityCustomActions = item.enabled ? [UIAccessibilityCustomAction(name: item.presentationData.strings.AuthSessions_LogOut, target: strongSelf, selector: #selector(strongSelf.accessibilityTerminate))] : nil
                     
                     if let _ = updatedTheme {
                         strongSelf.topStripeNode.backgroundColor = item.presentationData.theme.list.itemBlocksSeparatorColor
@@ -527,9 +543,7 @@ class ItemListWebsiteItemNode: ItemListRevealOptionsItemNode {
         self.setRevealOptionsOpened(false, animated: true)
         self.revealOptionsInteractivelyClosed()
         
-        if let (item, _, _) = self.layoutParams {
-            item.removeSession(item.website.hash)
-        }
+        _ = self.accessibilityTerminate()
     }
 }
 

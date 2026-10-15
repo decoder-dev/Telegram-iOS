@@ -340,9 +340,13 @@ public class ItemListSwitchItemNode: ListViewItemNode, ItemListItemNode {
                 insets.bottom = 0.0
             }
             
-            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.title, font: titleFont, textColor: item.presentationData.theme.list.itemPrimaryTextColor), backgroundColor: nil, maximumNumberOfLines: item.maximumNumberOfLines, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - params.rightInset - 64.0, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let titleLines = item.presentationData.theme.isMessagesTheme && item.maximumNumberOfLines == 1 ? 2 : item.maximumNumberOfLines
+            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.title, font: titleFont, textColor: item.presentationData.theme.list.itemPrimaryTextColor), backgroundColor: nil, maximumNumberOfLines: titleLines, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - params.rightInset - 64.0, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             contentSize.height = max(contentSize.height, titleLayout.size.height + topInset * 2.0)
+            if item.presentationData.theme.isMessagesTheme, case .blocks = item.style {
+                contentSize.height = max(contentSize.height, MessagesAppearanceMetrics.minimumRowHeight)
+            }
             
             var textLayoutAndApply: (TextNodeLayout, () -> TextNode)?
             

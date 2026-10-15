@@ -105,13 +105,14 @@ private final class TimerPickerItemView: UIView {
     var value: (Int32, String)? {
         didSet {
             if let (value, string) = self.value {
+                self.accessibilityLabel = string
                 let components = string.components(separatedBy: " ")
                 if value == viewOnceTimeout || string.rangeOfCharacter(from: digitsCharacterSet) == nil {
                     self.valueLabel.text = string
                     self.unitLabel.text = ""
                 } else if components.count > 1 {
                     self.valueLabel.text = components[0]
-                    self.unitLabel.text = components[1]
+                    self.unitLabel.text = components.dropFirst().joined(separator: " ")
                 } else {
                     self.valueLabel.text = string.trimmingCharacters(in: nondigitsCharacterSet)
                     self.unitLabel.text = string.trimmingCharacters(in: digitsCharacterSet)
@@ -569,6 +570,14 @@ public final class ChatTimerPickerContentComponent: Component {
                     containerSize: barButtonSize
                 )
                 if let leadingButtonView = self.leadingButton.view {
+                    leadingButtonView.isAccessibilityElement = true
+                    switch leadingAction.icon {
+                    case .close:
+                        leadingButtonView.accessibilityLabel = component.strings.Common_Close
+                    case .back:
+                        leadingButtonView.accessibilityLabel = component.strings.Common_Back
+                    }
+                    leadingButtonView.accessibilityTraits = .button
                     if leadingButtonView.superview == nil {
                         self.addSubview(leadingButtonView)
                     }
@@ -624,6 +633,7 @@ public final class ChatTimerPickerContentComponent: Component {
                 transition: transition,
                 component: AnyComponent(ButtonComponent(
                     background: ButtonComponent.Background(
+                        theme: component.theme,
                         style: .glass,
                         color: component.theme.list.itemCheckColors.fillColor,
                         foreground: component.theme.list.itemCheckColors.foregroundColor,
@@ -664,6 +674,7 @@ public final class ChatTimerPickerContentComponent: Component {
                     transition: transition,
                     component: AnyComponent(ButtonComponent(
                         background: ButtonComponent.Background(
+                            theme: component.theme,
                             style: .glass,
                             color: foregroundColor.withMultipliedAlpha(0.1),
                             foreground: foregroundColor,

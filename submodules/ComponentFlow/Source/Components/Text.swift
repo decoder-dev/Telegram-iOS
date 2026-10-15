@@ -31,6 +31,7 @@ public final class Text: Component {
         private var measureState: MeasureState?
 
         public func update(component: Text, availableSize: CGSize, transition: ComponentTransition) -> CGSize {
+            self.accessibilityLabel = component.text
             let attributedText = NSAttributedString(string: component.text, attributes: [
                 NSAttributedString.Key.font: component.font,
                 NSAttributedString.Key.foregroundColor: component.color
@@ -85,7 +86,7 @@ public final class Text: Component {
     }
     
     public convenience init(attributedString: NSAttributedString, tintColor: UIColor? = nil) {
-        let attributes = attributedString.attributes(at: 0, effectiveRange: nil)
+        let attributes: [NSAttributedString.Key: Any] = attributedString.length == 0 ? [:] : attributedString.attributes(at: 0, effectiveRange: nil)
         let font = attributes[.font] as? UIFont ?? UIFont.systemFont(ofSize: UIFont.systemFontSize)
         let color = attributes[.foregroundColor] as? UIColor ?? .black
         self.init(

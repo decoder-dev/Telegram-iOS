@@ -528,6 +528,7 @@ public class ItemListPermanentInviteLinkItemNode: ListViewItemNode, ItemListItem
                     let buttonBackgroundColor = item.buttonColor ?? item.presentationData.theme.list.itemCheckColors.fillColor
                     let buttonForegroundColor = item.presentationData.theme.list.itemCheckColors.foregroundColor
                     let buttonBackground = ButtonComponent.Background(
+                        theme: item.presentationData.theme,
                         style: item.systemStyle == .glass ? .glass : .legacy,
                         color: buttonBackgroundColor,
                         foreground: buttonForegroundColor,

@@ -142,6 +142,7 @@ public final class TokenListTextField: Component {
         
         override init(frame: CGRect) {
             super.init(frame: frame)
+            NotificationCenter.default.addObserver(self, selector: #selector(self.contentSizeCategoryChanged), name: UIContentSizeCategory.didChangeNotification, object: nil)
         }
 
         required init(coder: NSCoder) {
@@ -157,6 +158,14 @@ public final class TokenListTextField: Component {
             return nil
         }
         
+        deinit {
+            NotificationCenter.default.removeObserver(self)
+        }
+
+        @objc private func contentSizeCategoryChanged() {
+            if self.component?.theme.isMessagesTheme == true { self.componentState?.updated(transition: .immediate) }
+        }
+
         public func clearText() {
             if let tokenListNode = self.tokenListNode {
                 tokenListNode.setText("")
@@ -167,6 +176,17 @@ public final class TokenListTextField: Component {
             self.component = component
             self.componentState = state
             
+            let tokenTheme = EditableTokenListNodeTheme(
+                backgroundColor: .clear,
+                separatorColor: component.theme.rootController.navigationBar.separatorColor,
+                placeholderTextColor: component.theme.list.itemPlaceholderTextColor,
+                primaryTextColor: component.theme.list.itemPrimaryTextColor,
+                tokenBackgroundColor: component.theme.list.itemCheckColors.strokeColor.withAlphaComponent(0.25),
+                selectedTextColor: component.theme.list.itemCheckColors.foregroundColor,
+                selectedBackgroundColor: component.theme.list.itemCheckColors.fillColor,
+                accentColor: component.theme.list.itemAccentColor,
+                keyboardColor: component.theme.rootController.keyboardColor
+            )
             let tokenListNode: EditableTokenListNode
             if let current = self.tokenListNode {
                 tokenListNode = current
@@ -174,17 +194,7 @@ public final class TokenListTextField: Component {
                 tokenListNode = EditableTokenListNode(
                     context: component.context,
                     presentationTheme: component.theme,
-                    theme: EditableTokenListNodeTheme(
-                        backgroundColor: .clear,
-                        separatorColor: component.theme.rootController.navigationBar.separatorColor,
-                        placeholderTextColor: component.theme.list.itemPlaceholderTextColor,
-                        primaryTextColor: component.theme.list.itemPrimaryTextColor,
-                        tokenBackgroundColor: component.theme.list.itemCheckColors.strokeColor.withAlphaComponent(0.25),
-                        selectedTextColor: component.theme.list.itemCheckColors.foregroundColor,
-                        selectedBackgroundColor: component.theme.list.itemCheckColors.fillColor,
-                        accentColor: component.theme.list.itemAccentColor,
-                        keyboardColor: component.theme.rootController.keyboardColor
-                    ),
+                    theme: tokenTheme,
                     placeholder: component.placeholder
                 )
                 self.tokenListNode = tokenListNode
@@ -221,6 +231,8 @@ public final class TokenListTextField: Component {
                 }
             }
             
+            tokenListNode.updatePresentation(presentationTheme: component.theme, theme: tokenTheme, placeholder: component.placeholder)
+
             let mappedTokens = component.tokens.map { token -> EditableTokenListToken in
                 let mappedSubject: EditableTokenListToken.Subject
                 switch token.content {

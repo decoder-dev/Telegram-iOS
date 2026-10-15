@@ -72,6 +72,9 @@ public final class GlassBarButtonComponent: Component {
         if lhs.component != rhs.component {
             return false
         }
+        if (lhs.action == nil) != (rhs.action == nil) {
+            return false
+        }
         if lhs.tag !== rhs.tag {
             return false
         }
@@ -96,6 +99,11 @@ public final class GlassBarButtonComponent: Component {
         private var glassBackgroundView: GlassBackgroundView?
         private var componentView: ComponentView<Empty>?
         
+        public override var accessibilityLabel: String? {
+            get { return super.accessibilityLabel ?? componentAccessibilityLabel(self.componentView?.view) }
+            set { super.accessibilityLabel = newValue }
+        }
+
         private var component: GlassBarButtonComponent?
         
         public override init(frame: CGRect) {
@@ -135,19 +143,22 @@ public final class GlassBarButtonComponent: Component {
             fatalError("init(coder:) has not been implemented")
         }
         
-        @objc private func pressed() {
-            guard let component = self.component, let action = component.action else {
-                return
+        public override func accessibilityActivate() -> Bool {
+            guard let component = self.component, component.isEnabled, component.isVisible,
+                  let action = component.action else {
+                return false
             }
             action(self)
+            return true
+        }
+
+        @objc private func pressed() {
+            _ = self.accessibilityActivate()
         }
         
         @objc private func onTapGesture(_ recognizer: UITapGestureRecognizer) {
             if case .ended = recognizer.state {
-                guard let component = self.component, let action = component.action else {
-                    return
-                }
-                action(self)
+                _ = self.accessibilityActivate()
             }
         }
         
@@ -165,7 +176,11 @@ public final class GlassBarButtonComponent: Component {
             let previousComponent = self.component
             self.component = component
             
-            self.containerView.isEnabled = component.isEnabled
+            self.containerView.isEnabled = component.isEnabled && component.isVisible && component.action != nil
+            self.accessibilityElementsHidden = !component.isVisible
+            if self.isAccessibilityElement {
+                self.accessibilityTraits = component.isEnabled && component.action != nil ? [.button] : [.button, .notEnabled]
+            }
             
             var componentView: ComponentView<Empty>
             var animateAppearance = false
@@ -207,6 +222,7 @@ public final class GlassBarButtonComponent: Component {
             
             let componentFrame = CGRect(origin: CGPoint(x: floorToScreenPixels((containerSize.width - componentSize.width) / 2.0), y: floorToScreenPixels((containerSize.height - componentSize.height) / 2.0)), size: componentSize)
             if let view = componentView.view {
+                self.containerView.accessibilityLabel = componentAccessibilityLabel(view)
                 if view.superview == nil {
                     view.isUserInteractionEnabled = false
                     self.containerView.addSubview(view)

@@ -1917,6 +1917,7 @@ final class StorageUsageScreenComponent: Component {
                     keepContentHeight += itemSize.height
                 }
                 self.keepDurationSectionContainerView.backgroundColor = environment.theme.list.itemBlocksBackgroundColor
+                self.keepDurationSectionContainerView.layer.cornerRadius = environment.theme.isMessagesTheme ? MessagesAppearanceMetrics.sectionCornerRadius : 26.0
                 transition.setFrame(view: self.keepDurationSectionContainerView, frame: CGRect(origin: CGPoint(x: sideInset, y: contentHeight), size: CGSize(width: availableSize.width - sideInset * 2.0, height: keepContentHeight)))
                 contentHeight += keepContentHeight
                 contentHeight += 8.0

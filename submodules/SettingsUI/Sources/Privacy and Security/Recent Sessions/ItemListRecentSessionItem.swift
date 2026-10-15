@@ -168,6 +168,15 @@ func iconForSession(_ session: RecentAccountSession) -> (UIImage?, UIColor?, Str
     return (UIImage(bundleImageName: "Settings/Devices/Generic"), UIColor(rgb: 0x8e8e93), nil, nil)
 }
 
+private func sessionDisplayAppVersion(_ version: String) -> String {
+    var value = version.replacingOccurrences(of: "APPSTORE", with: "").replacingOccurrences(of: "BETA", with: "Beta").trimmingCharacters(in: .whitespacesAndNewlines)
+    if let opening = value.range(of: " ("),
+       let closing = value.range(of: ")", range: opening.upperBound ..< value.endIndex) {
+        value.removeSubrange(opening.lowerBound ..< closing.upperBound)
+    }
+    return value
+}
+
 private func trimmedLocationName(_ session: RecentAccountSession) -> String {
     var country = session.country
     country = country.replacingOccurrences(of: "United Arab Emirates", with: "UAE")
@@ -200,7 +209,7 @@ class ItemListRecentSessionItemNode: ItemListRevealOptionsItemNode {
     private var isHighlighted = false
     
     override public var canBeSelected: Bool {
-        if let item = self.layoutParams?.0, let _ = item.action {
+        if let item = self.layoutParams?.0, item.enabled, let _ = item.action {
             return true
         } else {
             return false
@@ -255,6 +264,21 @@ class ItemListRecentSessionItemNode: ItemListRevealOptionsItemNode {
         self.containerNode.addSubnode(self.locationNode)
         
         self.addSubnode(self.activateArea)
+        self.activateArea.activate = { [weak self] in
+            return self?.activateItem() ?? false
+        }
+    }
+
+    private func activateItem() -> Bool {
+        guard let item = self.layoutParams?.0, item.enabled, let action = item.action else { return false }
+        action()
+        return true
+    }
+
+    @objc private func accessibilityTerminate() -> Bool {
+        guard let item = self.layoutParams?.0, item.enabled, item.editable else { return false }
+        item.removeSession(item.session.hash)
+        return true
     }
     
     func asyncLayout() -> (_ item: ItemListRecentSessionItem, _ params: ListViewItemLayoutParams, _ neighbors: ItemListNeighbors) -> (ListViewItemNodeLayout, (Bool) -> Void) {
@@ -294,11 +318,7 @@ class ItemListRecentSessionItemNode: ItemListRevealOptionsItemNode {
             
             let rightInset: CGFloat = params.rightInset
             
-            var appVersion = item.session.appVersion
-            appVersion = appVersion.replacingOccurrences(of: "APPSTORE", with: "").replacingOccurrences(of: "BETA", with: "Beta").trimmingTrailingSpaces()
-            if let openingRoundBraceRange = appVersion.range(of: " ("), let closingRoundBraceRange = appVersion.range(of: ")") {
-                appVersion = appVersion.replacingCharacters(in: openingRoundBraceRange.lowerBound ..< closingRoundBraceRange.upperBound, with: "")
-            }
+            let appVersion = sessionDisplayAppVersion(item.session.appVersion)
             
             var deviceString = ""
             if !item.session.deviceModel.isEmpty {
@@ -338,7 +358,7 @@ class ItemListRecentSessionItemNode: ItemListRevealOptionsItemNode {
                 editingOffset = 0.0
             }
             
-            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: titleAttributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - 16.0 - editingOffset - rightInset - 5.0, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: titleAttributedString, backgroundColor: nil, maximumNumberOfLines: item.presentationData.theme.isMessagesTheme ? 2 : 1, truncationType: .end, constrainedSize: CGSize(width: max(0.0, params.width - leftInset - 16.0 - editingOffset - rightInset - 5.0), height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             let (appLayout, appApply) = makeAppLayout(TextNodeLayoutArguments(attributedString: appAttributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - 8.0 - editingOffset - rightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             let (locationLayout, locationApply) = makeLocationLayout(TextNodeLayoutArguments(attributedString: locationAttributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - 8.0 - editingOffset - rightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
@@ -386,10 +406,11 @@ class ItemListRecentSessionItemNode: ItemListRevealOptionsItemNode {
                     strongSelf.activateArea.accessibilityValue = value
                     
                     if item.enabled {
-                        strongSelf.activateArea.accessibilityTraits = []
+                        strongSelf.activateArea.accessibilityTraits = item.action == nil ? [.staticText] : [.button]
                     } else {
-                        strongSelf.activateArea.accessibilityTraits = .notEnabled
+                        strongSelf.activateArea.accessibilityTraits = [.button, .notEnabled]
                     }
+                    strongSelf.activateArea.accessibilityCustomActions = item.enabled && item.editable ? [UIAccessibilityCustomAction(name: item.presentationData.strings.AuthSessions_Terminate, target: strongSelf, selector: #selector(strongSelf.accessibilityTerminate))] : nil
                     
                     if let updatedIcon = updatedIcon {
                         strongSelf.iconNode.image = updatedIcon
@@ -588,8 +609,6 @@ class ItemListRecentSessionItemNode: ItemListRevealOptionsItemNode {
         self.setRevealOptionsOpened(false, animated: true)
         self.revealOptionsInteractivelyClosed()
         
-        if let (item, _, _) = self.layoutParams {
-            item.removeSession(item.session.hash)
-        }
+        _ = self.accessibilityTerminate()
     }
 }

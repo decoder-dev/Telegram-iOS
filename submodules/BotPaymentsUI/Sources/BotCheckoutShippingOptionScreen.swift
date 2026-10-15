@@ -293,6 +293,7 @@ private final class BotCheckoutShippingOptionScreenComponent: Component {
                     ),
                     bottomItem: AnyComponent(ButtonComponent(
                         background: ButtonComponent.Background(
+                            theme: theme,
                             style: .glass,
                             color: theme.list.itemCheckColors.fillColor,
                             foreground: theme.list.itemCheckColors.foregroundColor,

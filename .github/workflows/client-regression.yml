@@ -12,7 +12,35 @@ on:
       - 'submodules/TelegramCore/Sources/State/**'
       - 'submodules/TelegramCore/Sources/Settings/ProxySettings.swift'
       - 'submodules/TelegramCore/Sources/Account/AccountManager.swift'
-      - 'submodules/TelegramPresentationData/Sources/PresentationData.swift'
+      - 'submodules/Display/Source/ActionSheet*.swift'
+      - 'submodules/Components/MultilineTextComponent/**'
+      - 'submodules/ComponentFlow/**'
+      - 'submodules/TelegramPresentationData/**'
+      - 'submodules/WebUI/**'
+      - 'submodules/TelegramCallsUI/**'
+      - 'submodules/StickerPackPreviewUI/**'
+      - 'submodules/PremiumUI/**'
+      - 'submodules/PasswordSetupUI/**'
+      - 'submodules/LocationUI/**'
+      - 'submodules/InviteLinksUI/**'
+      - 'submodules/BrowserUI/**'
+      - 'submodules/AuthorizationUI/**'
+      - 'submodules/TelegramUIPreferences/**'
+      - 'submodules/TelegramUI/**'
+      - 'submodules/SettingsUI/**'
+      - 'submodules/ItemListUI/**'
+      - 'submodules/SearchBarNode/**'
+      - 'submodules/SearchUI/**'
+      - 'submodules/ContactListUI/**'
+      - 'submodules/ContactsPeerItem/**'
+      - 'submodules/PeerInfoUI/**'
+      - 'submodules/CallListUI/**'
+      - 'submodules/ChatListUI/**'
+      - 'submodules/ChatSendMessageActionUI/**'
+      - 'submodules/PresentationDataUtils/**'
+      - 'submodules/SolidRoundedButtonNode/**'
+      - 'submodules/MediaPickerUI/**'
+      - 'submodules/BotPaymentsUI/**'
       - 'Tests/ManagedProxy/**'
       - 'Tests/GhostMode/**'
       - 'Tests/ClientAdditions/**'
@@ -34,6 +62,7 @@ on:
       - 'submodules/TelegramUI/Components/ChatScheduleTimeController/**'
       - 'submodules/TelegramUI/Components/ChatTimerScreen/**'
       - 'Tests/UISizing/**'
+      - 'Tests/VoiceOverContracts/**'
       - 'submodules/TelegramUIPreferences/Sources/MessageSavingStore.swift'
       - 'submodules/TelegramUIPreferences/Sources/ForkPresentationLanguage.swift'
       - 'submodules/ChatListUI/Sources/ArchiveLockHelpers.swift'
@@ -81,6 +110,10 @@ jobs:
         if: ${{ !cancelled() }}
       - run: python3 Tests/Customization/run.py
         if: ${{ !cancelled() }}
+      - run: python3 Tests/Customization/test_messages_style.py
+      - run: python3 Tests/Customization/test_messages_screen_states.py
+      - run: python3 Tests/Customization/test_messages_action_surfaces.py
+        if: ${{ !cancelled() }}
       - run: python3 Tests/ClientAdditions/run.py
         if: ${{ !cancelled() }}
       - run: python3 Tests/ClientAdditions/quality.py
@@ -112,6 +145,8 @@ jobs:
       - run: python3 Tests/ApiLayer/run.py
         if: ${{ !cancelled() }}
       - run: python3 -m unittest discover -s Tests/UISizing
+      - name: Accessibility interaction contracts
+        run: python3 -m unittest discover -s Tests/VoiceOverContracts
         if: ${{ !cancelled() }}
       - run: python3 Tests/ArchiveLock/password_flow.py
         if: ${{ !cancelled() }}

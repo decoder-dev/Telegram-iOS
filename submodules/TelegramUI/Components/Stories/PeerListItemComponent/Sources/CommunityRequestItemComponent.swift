@@ -470,6 +470,7 @@ public final class CommunityRequestItemComponent: Component {
                 transition: transition,
                 component: AnyComponent(ButtonComponent(
                     background: ButtonComponent.Background(
+                        theme: component.theme,
                         style: .glass,
                         color: component.theme.list.itemPrimaryTextColor.withMultipliedAlpha(0.08),
                         foreground: component.theme.list.itemPrimaryTextColor,
@@ -505,6 +506,7 @@ public final class CommunityRequestItemComponent: Component {
                 transition: transition,
                 component: AnyComponent(ButtonComponent(
                     background: ButtonComponent.Background(
+                        theme: component.theme,
                         style: .glass,
                         color: component.theme.list.itemCheckColors.fillColor,
                         foreground: component.theme.list.itemCheckColors.foregroundColor,

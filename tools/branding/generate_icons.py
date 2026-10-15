@@ -1,7 +1,7 @@
 """Render the BananaGram app icon into every Apple asset slot.
 
 The mark: a broad banana crescent and a folded paper plane, drawn as clean vectors.
-21 coordinated palettes; internal icon identifiers stay stable.
+23 coordinated palettes; internal icon identifiers stay stable.
 Requires Python 3, cairosvg and Pillow.
 """
 import io
@@ -22,6 +22,8 @@ WHITE_PLANE = ('#FFFEF7', '#DDD8C9')
 
 # Stable bundle identifier: (label, background top/bottom, soft light, crescent, plane/fold).
 PALETTES = {
+    'MessagesIcon': ('Messages', '#138B3D', '#075927', '#41B963', ('#FBFFFC', '#FBFFFC', '#FBFFFC'), ('#FBFFFC', '#FBFFFC')),
+    'HalloweenIcon': ('Halloween', '#292035', '#100E16', '#694356', ('#FFC266', '#FFAA42', '#ED8A2D'), WHITE_PLANE),
     'BlueIcon': ('Banana', '#FFE486', '#F5C544', '#FFF6D1', INK, ('#29271F', '#514A34')),
     'BlackIcon': ('Graphite', '#34322C', '#1A1916', '#605B4D', YELLOW, WHITE_PLANE),
     'BlueClassicIcon': ('Cream', '#FFFCF5', '#EFE6D1', '#FFFFFF', ('#A1751F', '#896019', '#714A0E'), ('#292D32', '#55534B')),
@@ -80,12 +82,28 @@ def _plane(name, effects):
             + f'<path d="{PLANE}" fill="{plane}"/><path d="{PLANE_FOLD}" fill="{fold}"/></g>')
 
 
+def _halloween_details():
+    # A carved crescent lantern and a bat: keep the plane and broad banana silhouette readable at 29 px.
+    return ('<path d="M 371 660 L 427 629 L 445 682 Z M 547 681 L 568 628 L 620 650 Z '
+            'M 424 724 Q 509 775 600 711 Q 573 790 479 774 Z" fill="#302035"/>'
+            '<path d="M 724 353 Q 753 296 785 330 L 802 301 L 818 330 Q 852 293 881 347 '
+            'Q 851 333 841 369 Q 817 349 802 379 Q 787 350 762 372 Q 753 341 724 353 Z" fill="#C6ABD6"/>')
+
+
 def svg(name):
     """Opaque square master; the launcher supplies its own outer mask."""
+    if name == 'MessagesIcon':
+        # Original speech balloon with the BananaGram mark cut out of it; no Apple artwork.
+        balloon = 'M 512 168 C 728 168 884 300 884 477 C 884 650 725 782 512 782 C 468 782 422 778 382 764 L 225 850 L 254 690 C 180 636 139 558 139 477 C 139 300 296 168 512 168 Z'
+        return ('<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">'
+                + _defs(name, True)
+                + '<rect width="1024" height="1024" fill="url(#bg)"/><rect width="1024" height="1024" fill="url(#glow)"/>'
+                + f'<path d="{balloon}" fill="#FBFFFC"/>'
+                + f'<g transform="translate(194 150) scale(0.62)"><path d="{BANANA}" fill="url(#bg)"/><path d="{PLANE}" fill="url(#bg)"/></g></svg>')
     return ('<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">'
             + _defs(name, True)
             + '<rect width="1024" height="1024" fill="url(#bg)"/><rect width="1024" height="1024" fill="url(#glow)"/>'
-            + f'<g transform="{OFFSET}">' + _banana(name, True) + _plane(name, True) + '</g></svg>')
+            + f'<g transform="{OFFSET}">' + _banana(name, True) + _plane(name, True) + (_halloween_details() if name == 'HalloweenIcon' else '') + '</g></svg>')
 
 
 def composer_layer(name, part):
@@ -135,34 +153,7 @@ def write_composer_icon():
     }
     (folder / 'icon.json').write_text(json.dumps(config, indent=2) + '\n', encoding='utf-8', newline='\n')
 
-def main():
-    OUT.mkdir(parents=True, exist_ok=True)
-    manifest = []
-    groups = []
-    for folder in sorted(APP.glob('*.alticon')):
-        if folder.stem in PALETTES:
-            groups.append((folder, folder.stem))
-    for folder in sorted((APP / 'AppIcons.xcassets').glob('*.appiconset')):
-        groups.append((folder, folder.stem))
-    groups.append((APP / 'DefaultAppIcon.xcassets/AppIconLLC.appiconset', 'BlueIcon'))
-    groups += [(p, 'BlueIcon') for p in sorted((ROOT / 'Telegram').glob('Watch*/**/AppIcon.appiconset'))]
-    loose = sorted(APP.glob('IconDefault*.png'))
-    for folder, name in groups:
-        for path in sorted(folder.glob('*.png')):
-            with Image.open(path) as old:
-                size = old.size
-            render(name, size).save(path, optimize=True)
-            manifest.append({'file': path.relative_to(ROOT).as_posix(), 'size': list(size), 'palette': name})
-    for path in loose:
-        with Image.open(path) as old:
-            size = old.size
-        render('BlueIcon', size).save(path, optimize=True)
-        manifest.append({'file': path.relative_to(ROOT).as_posix(), 'size': list(size), 'palette': 'BlueIcon'})
-    for name in PALETTES:
-        (OUT / f'{name}.svg').write_text(svg(name), encoding='utf-8', newline='\n')
-    write_composer_icon()
-    (OUT / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8', newline='\n')
-
+def write_previews():
     sheet = Image.new('RGB', (1260, ((len(PALETTES) + 6) // 7) * 215 + 80), '#F5F2E9')
     draw = ImageDraw.Draw(sheet)
     font_path = next((str(p) for p in [Path('C:/Windows/Fonts/segoeui.ttf'), Path('/System/Library/Fonts/Supplemental/Arial.ttf'), Path('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf')] if p.exists()), None)
@@ -192,6 +183,36 @@ def main():
             sizes.paste(render(name, (pixels, pixels)), (x+offset, y+60-pixels), mask)
         size_draw.text((x, y+72), label, fill='#30332E', font=font)
     sizes.save(OUT / 'sizes.png')
+
+def main():
+    OUT.mkdir(parents=True, exist_ok=True)
+    manifest = []
+    groups = []
+    for folder in sorted(APP.glob('*.alticon')):
+        if folder.stem in PALETTES:
+            groups.append((folder, folder.stem))
+    for folder in sorted((APP / 'AppIcons.xcassets').glob('*.appiconset')):
+        groups.append((folder, folder.stem))
+    groups.append((APP / 'DefaultAppIcon.xcassets/AppIconLLC.appiconset', 'BlueIcon'))
+    groups += [(p, 'BlueIcon') for p in sorted((ROOT / 'Telegram').glob('Watch*/**/AppIcon.appiconset'))]
+    loose = sorted(APP.glob('IconDefault*.png'))
+    for folder, name in groups:
+        for path in sorted(folder.glob('*.png')):
+            with Image.open(path) as old:
+                size = old.size
+            render(name, size).save(path, optimize=True)
+            manifest.append({'file': path.relative_to(ROOT).as_posix(), 'size': list(size), 'palette': name})
+    for path in loose:
+        with Image.open(path) as old:
+            size = old.size
+        render('BlueIcon', size).save(path, optimize=True)
+        manifest.append({'file': path.relative_to(ROOT).as_posix(), 'size': list(size), 'palette': 'BlueIcon'})
+    for name in PALETTES:
+        (OUT / f'{name}.svg').write_text(svg(name), encoding='utf-8', newline='\n')
+    write_composer_icon()
+    (OUT / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8', newline='\n')
+
+    write_previews()
     print(f'Rendered {len(manifest)} Apple assets / {len(PALETTES)} palettes')
 
 if __name__ == '__main__':

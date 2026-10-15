@@ -404,6 +404,7 @@ private final class BotCheckoutPaymentMethodScreenComponent: Component {
                     ),
                     bottomItem: AnyComponent(ButtonComponent(
                         background: ButtonComponent.Background(
+                            theme: theme,
                             style: .glass,
                             color: theme.list.itemCheckColors.fillColor,
                             foreground: theme.list.itemCheckColors.foregroundColor,

@@ -537,7 +537,7 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
                 self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_EnterCodeFragmentTitle, font: Font.semibold(28.0), textColor: self.theme.list.itemPrimaryTextColor)
                
                 self.proceedNode.title = self.strings.Login_OpenFragment
-                self.proceedNode.updateTheme(SolidRoundedButtonTheme(backgroundColor: UIColor(rgb: 0x37475a), foregroundColor: .white))
+                self.proceedNode.updateTheme(SolidRoundedButtonTheme(backgroundColor: UIColor(rgb: 0x37475a), foregroundColor: .white, maximumCornerRadius: self.theme.isMessagesTheme ? MessagesAppearanceMetrics.actionCornerRadius : nil))
                 self.proceedNode.isEnabled = true
                 
                 animationName = "IntroFragment"

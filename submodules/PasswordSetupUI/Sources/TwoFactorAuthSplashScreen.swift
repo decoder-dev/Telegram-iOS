@@ -305,6 +305,7 @@ private final class TwoFactorAuthSplashScreenNode: ViewControllerTracingNode {
             transition: ComponentTransition(transition),
             component: AnyComponent(ButtonComponent(
                 background: ButtonComponent.Background(
+                    theme: self.presentationData.theme,
                     style: .glass,
                     color: self.presentationData.theme.list.itemCheckColors.fillColor,
                     foreground: self.presentationData.theme.list.itemCheckColors.foregroundColor,

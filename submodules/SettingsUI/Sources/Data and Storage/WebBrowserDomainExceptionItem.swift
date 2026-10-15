@@ -199,9 +199,10 @@ final class WebBrowserDomainExceptionItemNode: ItemListRevealOptionsItemNode, It
             let titleFont = Font.medium(item.presentationData.fontSize.itemListBaseFontSize)
             let labelFont = Font.regular(floor(item.presentationData.fontSize.itemListBaseFontSize * 15.0 / 17.0))
             
-            let maxTitleWidth: CGFloat = params.width - params.rightInset - 20.0 - leftInset
+            let usesMessages = item.presentationData.theme.isMessagesTheme
+            let maxTitleWidth: CGFloat = max(0.0, params.width - params.rightInset - 20.0 - leftInset)
             
-            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.title, font: titleFont, textColor: titleColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: maxTitleWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.title, font: titleFont, textColor: titleColor), backgroundColor: nil, maximumNumberOfLines: usesMessages ? 2 : 1, truncationType: .end, constrainedSize: CGSize(width: maxTitleWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             let (labelLayout, labelApply) = makeLabelLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.label, font: labelFont, textColor: labelColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: maxTitleWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
@@ -243,6 +244,7 @@ final class WebBrowserDomainExceptionItemNode: ItemListRevealOptionsItemNode, It
                     strongSelf.activateArea.frame = CGRect(origin: CGPoint(x: params.leftInset, y: 0.0), size: CGSize(width: params.width - params.leftInset - params.rightInset, height: layout.contentSize.height))
                     strongSelf.activateArea.accessibilityLabel = item.title
                     strongSelf.activateArea.accessibilityValue = item.label
+                    strongSelf.activateArea.accessibilityCustomActions = item.deleted == nil ? nil : [UIAccessibilityCustomAction(name: item.presentationData.strings.Common_Delete, target: strongSelf, selector: #selector(strongSelf.accessibilityDelete))]
                     
                     if let _ = updatedTheme {
                         strongSelf.topStripeNode.backgroundColor = itemSeparatorColor
@@ -411,6 +413,12 @@ final class WebBrowserDomainExceptionItemNode: ItemListRevealOptionsItemNode, It
         }
     }
     
+    @objc private func accessibilityDelete() -> Bool {
+        guard let deleted = self.item?.deleted else { return false }
+        deleted()
+        return true
+    }
+
     override func revealOptionSelected(_ option: ItemListRevealOption, animated: Bool) {
         if let item = self.item {
             switch option.key {

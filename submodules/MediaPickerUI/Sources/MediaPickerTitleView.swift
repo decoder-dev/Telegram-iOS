@@ -18,58 +18,44 @@ final class MediaPickerTitleView: UIView {
     
     public var theme: PresentationTheme {
         didSet {
-            self.titleNode.attributedText = NSAttributedString(string: self.title, font: Font.with(size: 17.0, design: .regular, weight: .semibold, traits: [.monospacedNumbers]), textColor: self.isDark ? .white : self.theme.rootController.navigationBar.primaryTextColor)
-            self.subtitleNode.attributedText = NSAttributedString(string: self.subtitle, font: Font.regular(12.0), textColor: self.isDark ? .white.withAlphaComponent(0.5) : self.theme.rootController.navigationBar.secondaryTextColor)
             self.segmentedControlNode.updateTheme(SegmentedControlTheme(theme: self.theme))
-            if self.glass {
-                self.arrowNode.image = generateTintedImage(image: UIImage(bundleImageName: "Navigation/TitleExpand"), color: self.isDark ? UIColor.white.withAlphaComponent(0.5) : self.theme.rootController.navigationBar.primaryTextColor.withAlphaComponent(0.4))
-            }
-            self.setNeedsLayout()
+            self.updateAppearance()
         }
     }
-    
+
     public var isDark: Bool = false {
-        didSet {
-            if self.isDark != oldValue {
-                self.titleNode.attributedText = NSAttributedString(string: self.title, font: Font.with(size: 17.0, design: .regular, weight: .semibold, traits: [.monospacedNumbers]), textColor: self.isDark ? .white : self.theme.rootController.navigationBar.primaryTextColor)
-                self.subtitleNode.attributedText = NSAttributedString(string: self.subtitle, font: Font.regular(12.0), textColor: self.isDark ? .white.withAlphaComponent(0.5) : self.theme.rootController.navigationBar.secondaryTextColor)
-                if self.glass {
-                    self.arrowNode.image = generateTintedImage(image: UIImage(bundleImageName: "Navigation/TitleExpand"), color: self.isDark ? UIColor.white.withAlphaComponent(0.5) : self.theme.rootController.navigationBar.primaryTextColor.withAlphaComponent(0.4))
-                }
-                self.setNeedsLayout()
-            }
-        }
+        didSet { self.updateAppearance() }
     }
-    
     public var title: String = "" {
-        didSet {
-            if self.title != oldValue {
-                self.titleNode.attributedText = NSAttributedString(string: self.title, font: Font.with(size: 17.0, design: .regular, weight: .semibold, traits: [.monospacedNumbers]), textColor: self.isDark ? .white : self.theme.rootController.navigationBar.primaryTextColor)
-                self.setNeedsLayout()
-            }
-        }
+        didSet { self.updateAppearance() }
     }
-    
     public var subtitle: String = "" {
-        didSet {
-            if self.subtitle != oldValue {
-                self.subtitleNode.attributedText = NSAttributedString(string: self.subtitle, font: Font.regular(12.0), textColor: self.isDark ? .white.withAlphaComponent(0.5) : self.theme.rootController.navigationBar.secondaryTextColor)
-                self.setNeedsLayout()
-            }
-        }
+        didSet { self.updateAppearance() }
     }
-    
     public var isEnabled: Bool = false {
-        didSet {
-            self.buttonNode.isUserInteractionEnabled = self.isEnabled
-            self.arrowNode.isHidden = !self.isEnabled
-            
-            self.setNeedsLayout()
-        }
+        didSet { self.updateAppearance() }
     }
-    
+
+    private func updateAppearance() {
+        let titleColor: UIColor = self.isDark ? .white : self.theme.rootController.navigationBar.primaryTextColor
+        let secondaryColor: UIColor = self.isDark ? UIColor.white.withAlphaComponent(self.theme.isMessagesTheme ? 0.7 : 0.5) : self.theme.rootController.navigationBar.secondaryTextColor
+        let titleFont = self.theme.isMessagesTheme ? Font.semibold(17.0) : Font.with(size: 17.0, design: .regular, weight: .semibold, traits: [.monospacedNumbers])
+        self.titleNode.attributedText = NSAttributedString(string: self.title, font: titleFont, textColor: titleColor)
+        self.subtitleNode.attributedText = NSAttributedString(string: self.subtitle, font: Font.regular(self.theme.isMessagesTheme ? 13.0 : 12.0), textColor: secondaryColor)
+        self.arrowNode.image = generateTintedImage(image: UIImage(bundleImageName: self.glass ? "Navigation/TitleExpand" : "Media Editor/DownArrow"), color: secondaryColor)
+        self.arrowNode.isHidden = !self.isEnabled
+        self.buttonNode.isUserInteractionEnabled = self.isEnabled && self.segmentsHidden
+        self.buttonNode.isAccessibilityElement = true
+        self.buttonNode.accessibilityLabel = self.title
+        self.buttonNode.accessibilityValue = self.subtitle
+        self.buttonNode.accessibilityTraits = self.isEnabled ? [.header, .button] : [.header]
+        self.buttonNode.accessibilityElementsHidden = !self.segmentsHidden
+        self.segmentedControlNode.accessibilityElementsHidden = self.segmentsHidden
+        self.setNeedsLayout()
+    }
+
     public func updateIsDark(isDark: Bool, animated: Bool) {
-        if animated {
+        if animated && !UIAccessibility.isReduceMotionEnabled {
             if self.isDark != isDark {
                 if let snapshotView = self.titleNode.view.snapshotContentTree() {
                     snapshotView.frame = self.titleNode.frame
@@ -104,7 +90,7 @@ final class MediaPickerTitleView: UIView {
     }
     
     public func updateTitle(title: String, subtitle: String = "", isEnabled: Bool, animated: Bool) {
-        if animated {
+        if animated && !UIAccessibility.isReduceMotionEnabled {
             if self.title != title {
                 if let snapshotView = self.titleNode.view.snapshotContentTree() {
                     snapshotView.frame = self.titleNode.frame
@@ -160,6 +146,8 @@ final class MediaPickerTitleView: UIView {
                 transition.updateAlpha(node: self.segmentedControlNode, alpha: self.segmentsHidden ? 0.0 : 1.0)
                 self.segmentedControlNode.isUserInteractionEnabled = !self.segmentsHidden
                 self.buttonNode.isUserInteractionEnabled = self.isEnabled && self.segmentsHidden
+                self.buttonNode.accessibilityElementsHidden = !self.segmentsHidden
+                self.segmentedControlNode.accessibilityElementsHidden = self.segmentsHidden
             }
         }
     }
@@ -239,6 +227,9 @@ final class MediaPickerTitleView: UIView {
         self.addSubnode(self.segmentedControlNode)
         
         self.buttonNode.addTarget(self, action: #selector(self.buttonPressed), forControlEvents: .touchUpInside)
+        self.titleNode.isAccessibilityElement = false
+        self.subtitleNode.isAccessibilityElement = false
+        self.updateAppearance()
     }
     
     required public init?(coder aDecoder: NSCoder) {
@@ -251,27 +242,27 @@ final class MediaPickerTitleView: UIView {
         let size = self.bounds.size
         self.contextSourceNode.frame = self.bounds.insetBy(dx: 0.0, dy: 14.0)
         
-        let controlSize = self.segmentedControlNode.updateLayout(.stretchToFill(width: min(300.0, size.width - 36.0)), transition: .immediate)
+        let controlSize = self.segmentedControlNode.updateLayout(.stretchToFill(width: max(1.0, min(300.0, size.width - 36.0))), transition: .immediate)
         self.segmentedControlNode.frame = CGRect(origin: CGPoint(x: floorToScreenPixels((size.width - controlSize.width) / 2.0), y: floorToScreenPixels((size.height - controlSize.height) / 2.0)), size: controlSize)
         
-        let titleSize = self.titleNode.updateLayout(CGSize(width: 210.0, height: 44.0))
-        let subtitleSize = self.subtitleNode.updateLayout(CGSize(width: 210.0, height: 44.0))
+        let arrowOffset: CGFloat = self.glass ? 1.0 : 5.0
+        let arrowWidth = self.arrowNode.isHidden ? 0.0 : (self.arrowNode.image?.size.width ?? 0.0) + arrowOffset
+        let titleSize = self.titleNode.updateLayout(CGSize(width: max(1.0, min(210.0, size.width - arrowWidth)), height: 44.0))
+        let subtitleSize = self.subtitleNode.updateLayout(CGSize(width: max(1.0, min(210.0, size.width)), height: 44.0))
         
         var totalHeight: CGFloat = titleSize.height
         if subtitleSize.height > 0.0 {
-            totalHeight += subtitleSize.height
+            totalHeight += subtitleSize.height + 1.0
         }
         
         let verticalOffset: CGFloat = self.glass ? -1.0 : 0.0
-        let arrowOffset: CGFloat = self.glass ? 1.0 : 5.0
-        
         var totalWidth = titleSize.width
         if let arrowSize = self.arrowNode.image?.size, !self.arrowNode.isHidden {
             totalWidth += arrowOffset + arrowSize.width
         }
         
         self.titleNode.frame = CGRect(origin: CGPoint(x: floorToScreenPixels((size.width - totalWidth) / 2.0), y: floorToScreenPixels((size.height - totalHeight) / 2.0) + verticalOffset), size: titleSize)
-        self.subtitleNode.frame = CGRect(origin: CGPoint(x: floorToScreenPixels((size.width - subtitleSize.width) / 2.0), y: floorToScreenPixels((size.height - totalHeight) / 2.0) + subtitleSize.height + 7.0 + verticalOffset), size: subtitleSize)
+        self.subtitleNode.frame = CGRect(origin: CGPoint(x: floorToScreenPixels((size.width - subtitleSize.width) / 2.0), y: self.titleNode.frame.maxY + 1.0), size: subtitleSize)
         
         if let arrowSize = self.arrowNode.image?.size {
             self.arrowNode.frame = CGRect(origin: CGPoint(x: self.titleNode.frame.maxX + arrowOffset, y: floorToScreenPixels((size.height - totalHeight) / 2.0) + titleSize.height / 2.0 - arrowSize.height / 2.0 + 1.0 - UIScreenPixel + verticalOffset), size: arrowSize)

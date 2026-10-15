@@ -354,6 +354,7 @@ private final class SheetContent: CombinedComponent {
             let premiumButton = premiumButton.update(
                 component: ButtonComponent(
                     background: ButtonComponent.Background(
+                        theme: theme,
                         style: .glass,
                         color: premiumGradientColors[0],
                         foreground: .white,

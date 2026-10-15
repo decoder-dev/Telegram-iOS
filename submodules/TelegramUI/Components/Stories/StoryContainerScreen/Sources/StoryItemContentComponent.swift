@@ -1371,6 +1371,7 @@ final class StoryItemContentComponent: Component {
                     transition: unsuportedTransition,
                     component: AnyComponent(ButtonComponent(
                         background: ButtonComponent.Background(
+                            theme: environment.theme,
                             color: environment.theme.list.itemCheckColors.fillColor,
                             foreground: environment.theme.list.itemCheckColors.foregroundColor,
                             pressedColor: environment.theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.7)

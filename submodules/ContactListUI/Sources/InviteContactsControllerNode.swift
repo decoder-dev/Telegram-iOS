@@ -463,6 +463,7 @@ final class InviteContactsControllerNode: ASDisplayNode {
         self.backgroundColor = self.presentationData.theme.chatList.backgroundColor
         self.listNode.backgroundColor = self.presentationData.theme.chatList.backgroundColor
         self.searchDisplayController?.updatePresentationData(self.presentationData)
+        self.countPanelNode.updatePresentationData(self.presentationData)
     }
     
     func scrollToTop() {
@@ -486,7 +487,7 @@ final class InviteContactsControllerNode: ASDisplayNode {
         var headerInsets = layout.insets(options: [.input])
         headerInsets.top += actualNavigationBarHeight
         
-        let countPanelHeight = self.countPanelNode.updateLayout(width: layout.size.width, sideInset: layout.safeInsets.left, bottomInset: layout.intrinsicInsets.bottom, transition: transition)
+        let countPanelHeight = self.countPanelNode.updateLayout(width: layout.size.width, sideInset: max(layout.safeInsets.left, layout.safeInsets.right), bottomInset: layout.intrinsicInsets.bottom, transition: transition)
         if self.selectionState.selectedContactIndices.isEmpty {
             transition.updateFrame(node: self.countPanelNode, frame: CGRect(origin: CGPoint(x: 0.0, y: layout.size.height), size: CGSize(width: layout.size.width, height: countPanelHeight)))
         } else {

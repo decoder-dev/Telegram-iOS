@@ -106,6 +106,11 @@ public final class PlainButtonComponent: Component {
         private let content = ComponentView<Empty>()
         private var background: ComponentView<Empty>?
         
+        public override var accessibilityLabel: String? {
+            get { return super.accessibilityLabel ?? componentAccessibilityLabel(self.content.view) }
+            set { super.accessibilityLabel = newValue }
+        }
+
         public var contentView: UIView? {
             return self.content.view
         }

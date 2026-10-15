@@ -4,13 +4,13 @@ import shutil
 import subprocess
 import tempfile
 import unittest
-from test_themes import luminance
+from test_themes import luminance, legacy_palette_source
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 class RichColors(unittest.TestCase):
     def test_inactive_badge_contrast(self):
-        source = (ROOT / 'submodules/TelegramPresentationData/Sources/MakePresentationTheme.swift').read_text(encoding='utf-8')
+        source = legacy_palette_source()
         palette = {name: (int(dark, 16), int(light, 16)) for name, dark, light in re.findall(r'let (\w+) = UIColor\(rgb: dark \? (0x[0-9A-F]+) : (0x[0-9A-F]+)\)', source)}
         self.assertIn('unreadBadgeInactiveTextColor: dark ? foreground : onAccent', source)
         for mode, text in enumerate(('foreground', 'onAccent')):

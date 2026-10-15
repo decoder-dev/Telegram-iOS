@@ -1830,6 +1830,7 @@ private final class SheetContainerComponent: CombinedComponent {
                     bottomItem: hideButtons ? nil : AnyComponent(
                         ButtonComponent(
                             background: ButtonComponent.Background(
+                                theme: environment.theme,
                                 style: .glass,
                                 color: colors.4,
                                 foreground: environment.theme.list.itemCheckColors.foregroundColor,

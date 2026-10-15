@@ -1543,6 +1543,7 @@ private class ChatQrCodeScreenNode: ViewControllerTracingNode, ASScrollViewDeleg
             transition: buttonTransition,
             component: AnyComponent(ButtonComponent(
                 background: ButtonComponent.Background(
+                    theme: self.presentationData.theme,
                     style: .glass,
                     color: primaryBackgroundColor,
                     foreground: primaryForegroundColor,
@@ -1574,6 +1575,7 @@ private class ChatQrCodeScreenNode: ViewControllerTracingNode, ASScrollViewDeleg
             transition: buttonTransition,
             component: AnyComponent(ButtonComponent(
                 background: ButtonComponent.Background(
+                    theme: self.presentationData.theme,
                     style: .glass,
                     color: secondaryForegroundColor.withMultipliedAlpha(0.1),
                     foreground: secondaryForegroundColor,

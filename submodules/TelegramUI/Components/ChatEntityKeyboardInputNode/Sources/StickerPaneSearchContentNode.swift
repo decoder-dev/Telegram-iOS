@@ -1197,6 +1197,7 @@ final class StickerPaneSearchContentNode: ASDisplayNode, PaneSearchContentNode {
                 transition: componentTransition,
                 component: AnyComponent(ButtonComponent(
                     background: ButtonComponent.Background(
+                        theme: self.theme,
                         style: .actualGlass,
                         color: buttonBackgroundColor,
                         foreground: buttonForegroundColor,

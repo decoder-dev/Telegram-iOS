@@ -935,13 +935,14 @@ print("Account-scoped ghost exceptions: isolation/persistence/revocation passed"
         self.assertIn('"video/mp4": "mp4"', conv)
         self.assertIn('public func forkVideoToVoice', conv)
 
-    def test_profile_action_buttons_are_glass_capsules_in_the_branded_themes(self):
+    def test_profile_action_buttons_preserve_capsules_and_support_messages_cards(self):
         button = read('submodules/TelegramUI/Components/PeerInfo/PeerInfoScreen/Sources/PeerInfoHeaderButtonNode.swift')
         # Radius is half the height (a capsule) for the mask, the rim and the context-menu source alike.
-        self.assertIn('let capsuleRadius = backgroundFrame.height * 0.5', button)
+        self.assertIn('let capsuleRadius = presentationData.theme.isMessagesTheme ? MessagesAppearanceMetrics.actionRadius(height: backgroundFrame.height) : backgroundFrame.height * 0.5', button)
         self.assertNotIn('min(16.0, backgroundFrame.height * 0.5)', button)
         self.assertIn('cornerRadius: capsuleRadius)', button)
         self.assertIn('glassEdgeView.layer.borderWidth = UIScreenPixel', button)
+        self.assertIn('alpha: presentationData.theme.isMessagesTheme ? 0.0 : fraction', button)
         header = read('submodules/TelegramUI/Components/PeerInfo/PeerInfoScreen/Sources/PeerInfoHeaderNode.swift')
         # Both profile-colour paths (star gift and ordinary profile colour) use the light veil in BananaGram themes.
         self.assertEqual(header.count('presentationData.theme.bananaGramReference != nil'), 2)

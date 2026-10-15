@@ -56,23 +56,24 @@ private final class PeerInfoScreenHeaderItemNode: PeerInfoScreenItemNode {
         
         let sideInset: CGFloat = 16.0 + safeInsets.left
         let verticalInset: CGFloat = 7.0
+        let headerFont = Font.regular(presentationData.theme.isMessagesTheme ? presentationData.listsFontSize.itemListBaseHeaderFontSize : 13.0)
         
         self.textNode.maximumNumberOfLines = 0
-        self.textNode.attributedText = NSAttributedString(string: item.text, font: Font.regular(13.0), textColor: presentationData.theme.list.freeTextColor)
-        self.activateArea.accessibilityLabel = item.text
+        self.textNode.attributedText = NSAttributedString(string: item.text, font: headerFont, textColor: presentationData.theme.list.freeTextColor)
+        self.activateArea.accessibilityLabel = [item.text, item.label ?? ""].filter { !$0.isEmpty }.joined(separator: ", ")
         
         let textSize = self.textNode.updateLayout(CGSize(width: width - sideInset * 2.0, height: .greatestFiniteMagnitude))
         
         let textFrame = CGRect(origin: CGPoint(x: sideInset, y: verticalInset), size: textSize)
         
         self.labelNode.maximumNumberOfLines = 0
-        self.labelNode.attributedText = NSAttributedString(string: item.label ?? "", font: Font.regular(13.0), textColor: presentationData.theme.list.freeTextColor)
+        self.labelNode.attributedText = NSAttributedString(string: item.label ?? "", font: headerFont, textColor: presentationData.theme.list.freeTextColor)
         
         let labelSize = self.labelNode.updateLayout(CGSize(width: max(0.0, width - sideInset * 2.0 - textSize.width - 4.0), height: .greatestFiniteMagnitude))
         
         let labelFrame = CGRect(origin: CGPoint(x: width - sideInset - labelSize.width, y: verticalInset), size: labelSize)
         
-        let height = textSize.height + verticalInset * 2.0
+        let height = max(textSize.height, labelSize.height) + verticalInset * 2.0
         
         transition.updateFrame(node: self.textNode, frame: textFrame)
         transition.updateFrame(node: self.labelNode, frame: labelFrame)

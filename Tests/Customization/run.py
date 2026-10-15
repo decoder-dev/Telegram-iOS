@@ -7,16 +7,19 @@ source = (root / 'submodules/TelegramPresentationData/Sources/PresentationData.s
 begin = source.index('public func higChatBubbleCorners(')
 end = source.index('\n}', begin) + 2
 fixture = '''import Foundation
+public enum PresentationChatBubbleStyle { case standard, messages }
 public struct PresentationChatBubbleSettings {
     var mainRadius: Int32
     var auxiliaryRadius: Int32
     var mergeBubbleCorners: Bool
+    var style: PresentationChatBubbleStyle = .standard
 }
 public struct PresentationChatBubbleCorners {
     var mainRadius: CGFloat
     var auxiliaryRadius: CGFloat
     var mergeBubbleCorners: Bool
     var hasTails: Bool
+    var style: PresentationChatBubbleStyle = .standard
 }
 '''
 tests = '''

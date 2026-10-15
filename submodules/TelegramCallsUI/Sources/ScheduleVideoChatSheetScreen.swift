@@ -272,6 +272,7 @@ private final class ScheduleVideoChatSheetContentComponent: Component {
                 transition: buttonTransition,
                 component: AnyComponent(ButtonComponent(
                     background: ButtonComponent.Background(
+                        theme: environment.theme,
                         style: .glass,
                         color: UIColor(rgb: 0x3252EF),
                         foreground: .white,

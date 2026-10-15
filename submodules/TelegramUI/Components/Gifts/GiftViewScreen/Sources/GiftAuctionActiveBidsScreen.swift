@@ -629,6 +629,7 @@ private final class ActiveAuctionComponent: Component {
         
         func update(component: ActiveAuctionComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
             self.component = component
+            self.layer.cornerRadius = component.theme.isMessagesTheme ? MessagesAppearanceMetrics.sectionCornerRadius : 26.0
             
             self.backgroundColor = component.theme.list.itemBlocksBackgroundColor
                         
@@ -750,6 +751,7 @@ private final class ActiveAuctionComponent: Component {
                 component: AnyComponent(
                     ButtonComponent(
                         background: ButtonComponent.Background(
+                            theme: component.theme,
                             style: .glass,
                             color: component.theme.list.itemCheckColors.fillColor,
                             foreground: component.theme.list.itemCheckColors.foregroundColor,

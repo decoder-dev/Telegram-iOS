@@ -192,7 +192,9 @@ open class TabBarControllerImpl: ViewController, TabBarController {
                     } else {
                         tabBarHeight = 49.0 + bottomInset
                     }
-                    updatedLayout.intrinsicInsets.bottom = tabBarHeight
+                    if !strongSelf.tabBarControllerNode.tabBarHidden {
+                        updatedLayout.intrinsicInsets.bottom = strongSelf.tabBarControllerNode.contentBottomInset ?? tabBarHeight
+                    }
                     
                     strongSelf.controllers[index].containerLayoutUpdated(updatedLayout, transition: .immediate)
                 }
@@ -401,7 +403,7 @@ open class TabBarControllerImpl: ViewController, TabBarController {
                 tabBarHeight = 49.0 + bottomInset
             }
             if !self.tabBarControllerNode.tabBarHidden {
-                updatedLayout.intrinsicInsets.bottom = tabBarHeight
+                updatedLayout.intrinsicInsets.bottom = self.tabBarControllerNode.contentBottomInset ?? tabBarHeight
             }
             
             currentController.containerLayoutUpdated(updatedLayout, transition: .immediate)

@@ -254,6 +254,9 @@ public class ItemListCheckboxItemNode: ItemListRevealOptionsItemNode {
             if item.subtitle != nil {
                 contentSize.height += subtitleLayout.size.height
             }
+            if item.presentationData.theme.isMessagesTheme {
+                contentSize.height = max(contentSize.height, MessagesAppearanceMetrics.minimumRowHeight)
+            }
             
             let layout = ListViewItemNodeLayout(contentSize: contentSize, insets: insets)
             

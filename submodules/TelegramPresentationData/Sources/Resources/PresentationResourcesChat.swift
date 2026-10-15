@@ -399,7 +399,8 @@ public struct PresentationResourcesChat {
                     color = theme.chat.inputPanel.actionControlForegroundColor
                 }
                 
-                if let image = generateTintedImage(image: UIImage(bundleImageName: "Chat/Input/Text/SendIcon"), color: color) {
+                let glyph = theme.isMessagesTheme ? UIImage(systemName: "arrow.up", withConfiguration: UIImage.SymbolConfiguration(pointSize: 20.0, weight: .semibold)) : UIImage(bundleImageName: "Chat/Input/Text/SendIcon")
+                if let image = generateTintedImage(image: glyph, color: color) {
                     image.draw(in: CGRect(origin: CGPoint(x: floorToScreenPixels((size.width - image.size.width) * 0.5), y: floorToScreenPixels((size.height - image.size.height) * 0.5)), size: image.size))
                 }
             })

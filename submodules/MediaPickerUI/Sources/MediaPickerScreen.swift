@@ -1776,9 +1776,10 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
                     
                     var placeholderTransition = transition
                     let placeholderNode: MediaPickerPlaceholderNode
-                    if let current = self.placeholderNode {
+                    if let current = self.placeholderNode, current.content == .bannedSendMedia(text: banDescription, canBoost: controller.canBoostToUnrestrict) {
                         placeholderNode = current
                     } else {
+                        self.placeholderNode?.removeFromSupernode()
                         placeholderNode = MediaPickerPlaceholderNode(content: .bannedSendMedia(text: banDescription, canBoost: controller.canBoostToUnrestrict), lottieSettings: controller.context.lottieRenderingSettings)
                         placeholderNode.boostPressed = { [weak controller] in
                             controller?.openBoost()
@@ -1790,7 +1791,7 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
                         
                         self.updateTopEdgeEffect()
                     }
-                    placeholderNode.update(layout: layout, theme: self.presentationData.theme, strings: self.presentationData.strings, hasCamera: false, transition: placeholderTransition)
+                    placeholderNode.update(layout: layout, theme: self.presentationData.theme, strings: self.presentationData.strings, hasCamera: false, reduceMotion: self.presentationData.reduceMotion, transition: placeholderTransition)
                     placeholderTransition.updateFrame(node: placeholderNode, frame: innerBounds)
                     
                     self.updateNavigation(transition: .immediate)
@@ -1970,9 +1971,10 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
                 
                 var placeholderTransition = transition
                 let placeholderNode: MediaPickerPlaceholderNode
-                if let current = self.placeholderNode {
+                if let current = self.placeholderNode, current.content == .intro(story: story) {
                     placeholderNode = current
                 } else {
+                    self.placeholderNode?.removeFromSupernode()
                     placeholderNode = MediaPickerPlaceholderNode(content: .intro(story: story), lottieSettings: controller.context.lottieRenderingSettings)
                     placeholderNode.settingsPressed = { [weak self] in
                         self?.controller?.context.sharedContext.applicationBindings.openSettings()
@@ -1993,7 +1995,7 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
                     
                     self.updateTopEdgeEffect()
                 }
-                placeholderNode.update(layout: layout, theme: self.presentationData.theme, strings: self.presentationData.strings, hasCamera: hasCamera, transition: placeholderTransition)
+                placeholderNode.update(layout: layout, theme: self.presentationData.theme, strings: self.presentationData.strings, hasCamera: hasCamera, reduceMotion: self.presentationData.reduceMotion, transition: placeholderTransition)
                 placeholderTransition.updateFrame(node: placeholderNode, frame: innerBounds)
             } else if let placeholderNode = self.placeholderNode, bannedSendMedia == nil {
                 self.placeholderNode = nil
@@ -2838,7 +2840,7 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
         if case .assets(_, .story) = self.subject {
             if self.selectionCount > 0 {
                 let text = self.forCollage ? self.presentationData.strings.MediaPicker_CombineIntoCollage : self.presentationData.strings.MediaPicker_CreateStory(self.selectionCount)
-                self.mainButtonStatePromise.set(.single(AttachmentMainButtonState(text: text, badge: nil, font: .bold, background: .color(self.presentationData.theme.actionSheet.controlAccentColor), textColor: self.presentationData.theme.list.itemCheckColors.foregroundColor, isVisible: true, progress: .none, isEnabled: true, hasShimmer: false, iconName: self.forCollage ? "Media Editor/Collage" : nil, position: .top, hidesPanelBackground: true)))
+                self.mainButtonStatePromise.set(.single(AttachmentMainButtonState(text: text, badge: nil, font: .bold, background: .color(self.presentationData.theme.isMessagesTheme ? self.presentationData.theme.list.itemCheckColors.fillColor : self.presentationData.theme.actionSheet.controlAccentColor), textColor: self.presentationData.theme.list.itemCheckColors.foregroundColor, isVisible: true, progress: .none, isEnabled: true, hasShimmer: false, iconName: self.forCollage ? "Media Editor/Collage" : nil, position: .top, hidesPanelBackground: true)))
                 
                 if !self.forCollage && self.selectionCount > 1 && self.selectionCount <= 6 {
                     self.secondaryButtonStatePromise.set(.single(AttachmentMainButtonState(text: self.presentationData.strings.MediaPicker_CombineIntoCollage, badge: nil, font: .bold, background: .color(self.presentationData.theme.rootController.navigationBar.opaqueBackgroundColor), textColor: .white, isVisible: true, progress: .none, isEnabled: true, hasShimmer: false, iconName: "Media Editor/Collage", smallSpacing: false, position: .bottom)))

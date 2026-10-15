@@ -776,6 +776,7 @@ private final class PeerInfoScreenLabeledValueItemNode: PeerInfoScreenItemNode {
                 transition: ComponentTransition(transition),
                 component: AnyComponent(ButtonComponent(
                     background: ButtonComponent.Background(
+                        theme: presentationData.theme,
                         style: .glass,
                         color: presentationData.theme.list.itemCheckColors.fillColor,
                         foreground: presentationData.theme.list.itemCheckColors.foregroundColor,

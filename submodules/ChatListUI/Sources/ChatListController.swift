@@ -329,7 +329,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
         switch self.location {
         case let .chatList(groupId):
             if groupId == .root {
-                title = self.presentationData.strings.DialogList_Title
+                title = messagesChatListTitle(self.presentationData.strings, theme: self.presentationData.theme)
             } else {
                 title = self.presentationData.strings.ChatList_ArchivedChatsTitle
             }
@@ -364,7 +364,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
             switch self.location {
             case let .chatList(groupId):
                 if groupId == .root {
-                    self.tabBarItem.title = self.presentationData.strings.DialogList_Title
+                    self.tabBarItem.title = messagesChatListTitle(self.presentationData.strings, theme: self.presentationData.theme)
                     
                     let icon: UIImage?
                     if useSpecialTabBarIcons() {
@@ -394,7 +394,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                         }
                     )))
                     
-                    //let backBarButtonItem = UIBarButtonItem(title: self.presentationData.strings.DialogList_Title, style: .plain, target: nil, action: nil)
+                    //let backBarButtonItem = UIBarButtonItem(title: messagesChatListTitle(self.presentationData.strings, theme: self.presentationData.theme), style: .plain, target: nil, action: nil)
                     //backBarButtonItem.accessibilityLabel = self.presentationData.strings.Common_Back
                     //self.navigationItem.backBarButtonItem = backBarButtonItem
                 } else {
@@ -991,8 +991,8 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
     
     private func updateThemeAndStrings() {
         if case .chatList(.root) = self.location {
-            self.tabBarItem.title = self.presentationData.strings.DialogList_Title
-            let backBarButtonItem = UIBarButtonItem(title: self.presentationData.strings.DialogList_Title, style: .plain, target: nil, action: nil)
+            self.tabBarItem.title = messagesChatListTitle(self.presentationData.strings, theme: self.presentationData.theme)
+            let backBarButtonItem = UIBarButtonItem(title: messagesChatListTitle(self.presentationData.strings, theme: self.presentationData.theme), style: .plain, target: nil, action: nil)
             backBarButtonItem.accessibilityLabel = self.presentationData.strings.Common_Back
             self.navigationItem.backBarButtonItem = backBarButtonItem
             
@@ -7348,7 +7348,7 @@ private final class ChatListLocationContext {
         switch location {
         case let .chatList(groupId):
             if groupId == .root {
-                defaultTitle = presentationData.strings.DialogList_Title
+                defaultTitle = messagesChatListTitle(presentationData.strings, theme: presentationData.theme)
             } else {
                 defaultTitle = presentationData.strings.ChatList_ArchivedChatsTitle
             }

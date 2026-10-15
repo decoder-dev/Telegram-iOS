@@ -115,6 +115,15 @@ private final class BubbleSettingsControllerNode: ASDisplayNode, ASScrollViewDel
             strongSelf.presentationThemeSettings.chatBubbleSettings.mergeBubbleCorners = value
             strongSelf.updatePresentationThemeSettings(strongSelf.presentationThemeSettings)
         }
+        self.toolbarNode.updateStyle = { [weak self] style in
+            guard let self, self.presentationThemeSettings.chatBubbleSettings.style != style else { return }
+            self.presentationThemeSettings.chatBubbleSettings.style = style
+            if style == .messages {
+                self.presentationThemeSettings.chatBubbleSettings.mainRadius = 20
+                self.presentationThemeSettings.chatBubbleSettings.mergeBubbleCorners = true
+            }
+            self.updatePresentationThemeSettings(self.presentationThemeSettings)
+        }
         self.toolbarNode.updateCornerRadius = { [weak self] value in
             guard let strongSelf = self else {
                 return
@@ -423,6 +432,7 @@ private final class BubbleSettingsToolbarNode: ASDisplayNode {
     private var presentationThemeSettings: PresentationThemeSettings
     private var presentationData: PresentationData
     
+    private let styleControl = UISegmentedControl(items: ["", "Messages"])
     private let cancelButton = HighlightableButtonNode()
     private let doneButton = HighlightableButtonNode()
     private let separatorNode = ASDisplayNode()
@@ -436,6 +446,7 @@ private final class BubbleSettingsToolbarNode: ASDisplayNode {
     var cancel: (() -> Void)?
     var done: (() -> Void)?
     
+    var updateStyle: ((PresentationChatBubbleStyle) -> Void)?
     var updateMergeBubbleCorners: ((Bool) -> Void)?
     var updateCornerRadius: ((Int32) -> Void)?
     
@@ -448,6 +459,7 @@ private final class BubbleSettingsToolbarNode: ASDisplayNode {
         
         super.init()
         
+        self.styleControl.addTarget(self, action: #selector(self.styleChanged), for: .valueChanged)
         self.cancelButton.accessibilityTraits = [.button]
         self.doneButton.accessibilityTraits = [.button]
         
@@ -488,6 +500,15 @@ private final class BubbleSettingsToolbarNode: ASDisplayNode {
         self.doneButton.addTarget(self, action: #selector(self.donePressed), forControlEvents: .touchUpInside)
     }
     
+    override func didLoad() {
+        super.didLoad()
+        self.view.addSubview(self.styleControl)
+    }
+
+    @objc private func styleChanged() {
+        self.updateStyle?(self.styleControl.selectedSegmentIndex == 1 ? .messages : .standard)
+    }
+
     func setDoneEnabled(_ enabled: Bool) {
         self.doneButton.alpha = enabled ? 1.0 : 0.4
         self.doneButton.isUserInteractionEnabled = enabled
@@ -515,7 +536,18 @@ private final class BubbleSettingsToolbarNode: ASDisplayNode {
     }
     
     func updateLayout(width: CGFloat, bottomInset: CGFloat, layout: ContainerViewLayout, transition: ContainedViewLayoutTransition) -> CGFloat {
-        var contentHeight: CGFloat = 0.0
+        let isRussian = ["ru", "uk", "be"].contains(String(self.presentationData.strings.primaryComponent.languageCode.prefix(2)).lowercased())
+        self.styleControl.setTitle(isRussian ? "Обычный" : "Standard", forSegmentAt: 0)
+        self.styleControl.accessibilityLabel = isRussian ? "Стиль сообщений" : "Message style"
+        self.styleControl.selectedSegmentIndex = self.presentationThemeSettings.chatBubbleSettings.style == .messages ? 1 : 0
+        let theme = self.presentationData.theme
+        self.styleControl.backgroundColor = theme.list.blocksBackgroundColor
+        self.styleControl.selectedSegmentTintColor = theme.list.itemBlocksBackgroundColor
+        self.styleControl.setTitleTextAttributes([.foregroundColor: theme.list.itemSecondaryTextColor, .font: UIFont.preferredFont(forTextStyle: .subheadline)], for: .normal)
+        self.styleControl.setTitleTextAttributes([.foregroundColor: theme.list.itemAccentColor, .font: UIFont.preferredFont(forTextStyle: .subheadline)], for: .selected)
+        let styleHeight = max(44.0, ceil(UIFont.preferredFont(forTextStyle: .subheadline).lineHeight + 20.0))
+        self.styleControl.frame = CGRect(x: layout.intrinsicInsets.left + 16.0, y: 12.0, width: max(1.0, width - layout.intrinsicInsets.left - layout.intrinsicInsets.right - 32.0), height: styleHeight)
+        var contentHeight: CGFloat = styleHeight + 24.0
         
         let switchItem = ItemListSwitchItem(presentationData: ItemListPresentationData(self.presentationData), title: self.presentationData.strings.Appearance_BubbleCorners_AdjustAdjacent, value: self.presentationThemeSettings.chatBubbleSettings.mergeBubbleCorners, disableLeadingInset: true, sectionId: 0, style: .blocks, updated: { [weak self] value in
             self?.updateMergeBubbleCorners?(value)

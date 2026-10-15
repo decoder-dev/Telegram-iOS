@@ -52,6 +52,7 @@ public class NavigationBarSearchContentNode: NavigationBarContentNode {
         self.alignPlaceholderToLeftWhenInactive = alignPlaceholderToLeftWhenInactive
         
         self.placeholderNode = SearchBarPlaceholderNode(fieldStyle: .glass, hasOwnGlassContainer: hasOwnGlassContainer)
+        self.placeholderNode.maximumCornerRadius = theme.isMessagesTheme ? MessagesAppearanceMetrics.searchCornerRadius : nil
         self.placeholderNode.labelNode.displaysAsynchronously = false
         
         super.init()
@@ -68,6 +69,7 @@ public class NavigationBarSearchContentNode: NavigationBarContentNode {
     
     public func updateThemeAndPlaceholder(theme: PresentationTheme, placeholder: String, compactPlaceholder: String? = nil, displayGlassBackgroundWhenInactive: Bool? = nil, alignPlaceholderToLeftWhenInactive: Bool? = nil) {
         self.theme = theme
+        self.placeholderNode.maximumCornerRadius = theme.isMessagesTheme ? MessagesAppearanceMetrics.searchCornerRadius : nil
         self.placeholder = placeholder
         self.compactPlaceholder = compactPlaceholder ?? placeholder
         if let displayGlassBackgroundWhenInactive {

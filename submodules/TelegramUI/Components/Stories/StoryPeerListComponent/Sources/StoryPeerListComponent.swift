@@ -12,6 +12,14 @@ import StoryContainerScreen
 import EmojiStatusComponent
 import ChatListTitleView
 
+private func storyHeaderCompactGeometry(containerWidth: CGFloat, minX: CGFloat, maxX: CGFloat, titleWidth: CGFloat, peerWidth: CGFloat, isMessages: Bool) -> (showsPeers: Bool, origin: CGFloat) {
+    let availableWidth = max(0.0, maxX - minX)
+    let showsPeers = !isMessages || titleWidth + peerWidth + 12.0 <= availableWidth
+    let contentWidth = titleWidth + (showsPeers ? peerWidth + 8.0 : 8.0)
+    let origin = max(minX, min((containerWidth - contentWidth) * 0.5, maxX - contentWidth))
+    return (showsPeers, origin)
+}
+
 public final class StoryPeerListComponent: Component {
     public enum PeerStatus: Equatable {
         case premium
@@ -783,7 +791,7 @@ public final class StoryPeerListComponent: Component {
             let collapsedItemOffsetY: CGFloat = -66.0
             let titleContentSpacing: CGFloat = 8.0
             
-            let collapsedItemCount: CGFloat = CGFloat(min(self.sortedItems.count - collapseStartIndex, 3))
+            let collapsedItemCount: CGFloat = CGFloat(max(0, min(self.sortedItems.count - collapseStartIndex, 3)))
             
             let targetActivityFraction: CGFloat = component.titleHasActivity ? 1.0 : 0.0
             
@@ -888,8 +896,9 @@ public final class StoryPeerListComponent: Component {
                 }
             }*/
             
+            let compactGeometry = storyHeaderCompactGeometry(containerWidth: itemLayout.containerSize.width, minX: component.minTitleX, maxX: component.maxTitleX, titleWidth: collapsedState.titleWidth, peerWidth: collapsedItemWidth + collapsedItemDistance * max(0.0, collapsedItemCount - 1.0), isMessages: component.theme.isMessagesTheme)
             var targetCollapsedContentWidth: CGFloat = 0.0
-            if collapsedItemCount > 0 {
+            if collapsedItemCount > 0 && compactGeometry.showsPeers {
                 targetCollapsedContentWidth = 1.0 * collapsedItemWidth + (collapsedItemDistance) * max(0.0, collapsedItemCount - 1.0)
             }
             let activityCollapsedContentWidth: CGFloat = 16.0 + titleIndicatorSpacing
@@ -910,6 +919,9 @@ public final class StoryPeerListComponent: Component {
             let centeredTitleOffset = min(max((itemLayout.containerSize.width - collapsedState.titleWidth) * 0.5, component.minTitleX + collapsedContentWidth + titleContentSpacing), component.maxTitleX - collapsedState.titleWidth - 4.0)
             if component.centeredTitle {
                 collapsedContentOrigin = centeredTitleOffset - collapsedContentWidth - titleContentSpacing
+            }
+            if component.theme.isMessagesTheme {
+                collapsedContentOrigin = compactGeometry.origin
             }
             
             let collapsedContentOriginOffset: CGFloat = 0.0
@@ -1168,6 +1180,10 @@ public final class StoryPeerListComponent: Component {
                     composeContentOffset = self.scrollView.contentOffset.x * -1.0
                 }
                 
+                if component.theme.isMessagesTheme && !compactGeometry.showsPeers && isCollapsable {
+                    itemAlpha *= collapsedState.sideAlphaFraction
+                }
+
                 let _ = visibleItem.view.update(
                     transition: itemTransition,
                     component: AnyComponent(StoryPeerListItemComponent(
@@ -1308,6 +1324,10 @@ public final class StoryPeerListComponent: Component {
                     }
                 }
                 
+                if component.theme.isMessagesTheme && !compactGeometry.showsPeers && isCollapsable {
+                    itemAlpha *= collapsedState.sideAlphaFraction
+                }
+
                 let _ = visibleItem.view.update(
                     transition: itemTransition,
                     component: AnyComponent(StoryPeerListItemComponent(
@@ -1409,6 +1429,9 @@ public final class StoryPeerListComponent: Component {
             if component.centeredTitle {
                 // Keep the title and its status at the screen center even with unequal side controls.
                 titleContentOffset = centeredTitleOffset
+            }
+            if component.theme.isMessagesTheme {
+                titleContentOffset = compactGeometry.origin + collapsedContentWidth + titleContentSpacing
             }
             
             var titleIndicatorSize: CGSize?
@@ -1706,7 +1729,7 @@ public final class StoryPeerListComponent: Component {
             self.state = state
             
             let updatedTitleState = TitleState(text: component.title, color: component.theme.rootController.navigationBar.primaryTextColor)
-            if self.titleState != updatedTitleState || previousComponent?.centeredTitle != component.centeredTitle || previousComponent?.minTitleX != component.minTitleX || previousComponent?.maxTitleX != component.maxTitleX || previousComponent?.titlePeerStatus != component.titlePeerStatus {
+            if self.titleState != updatedTitleState || previousComponent?.centeredTitle != component.centeredTitle || previousComponent?.minTitleX != component.minTitleX || previousComponent?.maxTitleX != component.maxTitleX || previousComponent?.titlePeerStatus != component.titlePeerStatus || previousComponent?.titleHasLock != component.titleHasLock {
                 self.titleState = updatedTitleState
                 
                 let attributedText = NSAttributedString(string: updatedTitleState.text, attributes: [
@@ -1714,7 +1737,8 @@ public final class StoryPeerListComponent: Component {
                     NSAttributedString.Key.foregroundColor: component.theme.rootController.navigationBar.primaryTextColor
                 ])
                 
-                let cachedLayout = TextNode.calculateLayout(attributedString: attributedText, minimumNumberOfLines: 1, maximumNumberOfLines: 1, truncationType: .end, backgroundColor: nil, constrainedSize: CGSize(width: max(0.0, component.maxTitleX - component.minTitleX - 46.0), height: 100.0), alignment: .left, verticalAlignment: .middle, lineSpacingFactor: 0.0, cutout: nil, insets: UIEdgeInsets(), lineColor: nil, textShadowColor: nil, textShadowBlur: nil, textStroke: nil, displaySpoilers: false, displayEmbeddedItemsUnderSpoilers: false, customTruncationToken: nil)
+                let titleAdornmentWidth: CGFloat = component.theme.isMessagesTheme ? (component.titleHasLock ? 20.0 : 0.0) + (component.titlePeerStatus != nil ? 26.0 : 0.0) + 8.0 : 46.0
+                let cachedLayout = TextNode.calculateLayout(attributedString: attributedText, minimumNumberOfLines: 1, maximumNumberOfLines: 1, truncationType: .end, backgroundColor: nil, constrainedSize: CGSize(width: max(0.0, component.maxTitleX - component.minTitleX - titleAdornmentWidth), height: 100.0), alignment: .left, verticalAlignment: .middle, lineSpacingFactor: 0.0, cutout: nil, insets: UIEdgeInsets(), lineColor: nil, textShadowColor: nil, textShadowBlur: nil, textStroke: nil, displaySpoilers: false, displayEmbeddedItemsUnderSpoilers: false, customTruncationToken: nil)
 
                 let renderer = UIGraphicsImageRenderer(bounds: CGRect(origin: CGPoint(), size: cachedLayout.size))
                 let image = renderer.image { context in

@@ -1050,9 +1050,9 @@ public final class ChatTitleComponent: Component {
                     color: component.theme.chat.inputPanel.panelControlColor,
                     items: titleSegments,
                     noDelay: false,
-                    animateScale: true,
-                    animateSlide: true,
-                    blur: true
+                    animateScale: !component.theme.isMessagesTheme,
+                    animateSlide: !component.theme.isMessagesTheme,
+                    blur: !component.theme.isMessagesTheme
                 )),
                 environment: {},
                 containerSize: CGSize(width: maxTitleWidth, height: 100.0)
@@ -1182,7 +1182,7 @@ public final class ChatTitleComponent: Component {
                 nextRightIconX += rightTitleIconSpacing + rightIconSize.width
             }
             
-            if component.displayBackground {
+            if component.displayBackground && !component.theme.isMessagesTheme {
                 let backgroundView: GlassBackgroundView
                 if let current = self.backgroundView {
                     backgroundView = current

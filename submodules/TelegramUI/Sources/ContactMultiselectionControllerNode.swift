@@ -455,10 +455,14 @@ final class ContactMultiselectionControllerNode: ASDisplayNode {
     func updatePresentationData(_ presentationData: PresentationData) {
         self.presentationData = presentationData
         self.backgroundColor = presentationData.theme.chatList.backgroundColor
+        self.footerPanelNode?.updatePresentationData(presentationData)
         if case let .chats(chatListNode) = self.contentNode {
             chatListNode.accessibilityPageScrolledString = { row, count in
                 return presentationData.strings.VoiceOver_ScrollStatus(row, count).string
             }
+        }
+        if let (layout, navigationHeight, actualNavigationHeight) = self.containerLayout {
+            let _ = self.containerLayoutUpdated(layout, navigationBarHeight: navigationHeight, actualNavigationBarHeight: actualNavigationHeight, transition: .immediate)
         }
     }
     
@@ -505,12 +509,12 @@ final class ContactMultiselectionControllerNode: ASDisplayNode {
                     }
                     footerPanelNode.content = FooterPanelNode.Content(title: callTitle, badge: "")
                 } else {
-                    footerPanelNode.content = FooterPanelNode.Content(title: "Call", badge: "\(count)")
+                    footerPanelNode.content = FooterPanelNode.Content(title: self.presentationData.strings.NewCall_ActionCallMultiple, badge: "\(count)")
                 }
             } else {
                 footerPanelNode.content = FooterPanelNode.Content(title: self.presentationData.strings.Premium_Gift_ContactSelection_Proceed, badge: count == 0 ? "" : "\(count)")
             }
-            let panelHeight = footerPanelNode.updateLayout(width: layout.size.width, sideInset: layout.safeInsets.left, bottomInset: headerInsets.bottom, transition: transition)
+            let panelHeight = footerPanelNode.updateLayout(width: layout.size.width, sideInset: max(layout.safeInsets.left, layout.safeInsets.right), bottomInset: headerInsets.bottom, transition: transition)
             if count == 0 {
                 transition.updateFrame(node: footerPanelNode, frame: CGRect(origin: CGPoint(x: 0.0, y: layout.size.height), size: CGSize(width: layout.size.width, height: panelHeight)))
             } else {
@@ -566,10 +570,10 @@ private final class FooterPanelNode: ASDisplayNode {
         }
     }
     
-    private let theme: PresentationTheme
-    private let strings: PresentationStrings
+    private var theme: PresentationTheme
+    private var strings: PresentationStrings
 
-    private let checkOptionTitle: String?
+    private var checkOptionTitle: String?
     private var checkOptionButton: HighlightTrackingButton?
     private var checkOptionText: ComponentView<Empty>?
     private var checkOptionControl: ComponentView<Empty>?
@@ -617,6 +621,18 @@ private final class FooterPanelNode: ASDisplayNode {
         }
     }
     
+    func updatePresentationData(_ presentationData: PresentationData) {
+        self.theme = presentationData.theme
+        self.strings = presentationData.strings
+        if self.checkOptionTitle != nil { self.checkOptionTitle = self.strings.NewCall_VideoOption }
+        self.backgroundColor = self.theme.rootController.navigationBar.opaqueBackgroundColor
+        self.separatorNode.backgroundColor = self.theme.rootController.navigationBar.separatorColor
+        self.button.updateTheme(SolidRoundedButtonTheme(theme: self.theme))
+        if let (width, sideInset, bottomInset) = self.validLayout {
+            let _ = self.updateLayout(width: width, sideInset: sideInset, bottomInset: bottomInset, transition: .immediate)
+        }
+    }
+
     override func didLoad() {
         super.didLoad()
         self.view.addSubview(self.button)
@@ -637,7 +653,7 @@ private final class FooterPanelNode: ASDisplayNode {
         bottomInset += topInset - (bottomInset.isZero ? 0.0 : 4.0)
         
         let buttonInset: CGFloat = 16.0 + sideInset
-        let buttonWidth = width - buttonInset * 2.0
+        let buttonWidth = max(1.0, width - buttonInset * 2.0)
         let buttonHeight = self.button.updateLayout(width: buttonWidth, transition: transition)
         
         transition.updateFrame(node: self.separatorNode, frame: CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: CGSize(width: width, height: UIScreenPixel)))
@@ -677,10 +693,11 @@ private final class FooterPanelNode: ASDisplayNode {
             let checkOptionTextSize = checkOptionText.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: checkOptionTitle, font: Font.regular(13.0), textColor: theme.rootController.navigationBar.primaryTextColor))
+                    text: .plain(NSAttributedString(string: checkOptionTitle, font: self.theme.isMessagesTheme ? UIFont.preferredFont(forTextStyle: .subheadline) : Font.regular(13.0), textColor: self.theme.rootController.navigationBar.primaryTextColor)),
+                    maximumNumberOfLines: self.theme.isMessagesTheme ? 0 : 1
                 )),
                 environment: {},
-                containerSize: CGSize(width: width - sideInset * 2.0 - checkSpacing - 20.0, height: 100.0)
+                containerSize: CGSize(width: max(1.0, buttonWidth - checkSpacing - 20.0), height: .greatestFiniteMagnitude)
             )
 
             let checkTheme = CheckComponent.Theme(
@@ -703,7 +720,7 @@ private final class FooterPanelNode: ASDisplayNode {
             )
 
             let checkContentWidth = checkOptionControlSize.width + checkSpacing + checkOptionTextSize.width
-            let checkContentHeight = 49.0
+            let checkContentHeight = max(49.0, checkOptionTextSize.height + 20.0)
 
             let checkOptionControlFrame = CGRect(origin: CGPoint(x: floor((width - checkContentWidth) * 0.5), y: floor(checkContentHeight - checkOptionControlSize.height) * 0.5), size: checkOptionControlSize)
             let checkOptionTextFrame = CGRect(origin: CGPoint(x: checkOptionControlFrame.maxX + checkSpacing, y: floor((checkContentHeight - checkOptionTextSize.height) * 0.5)), size: checkOptionTextSize)
@@ -724,6 +741,10 @@ private final class FooterPanelNode: ASDisplayNode {
                 checkOptionTextView.frame = checkOptionTextFrame
             }
 
+            checkOptionButton.isAccessibilityElement = true
+            checkOptionButton.accessibilityLabel = checkOptionTitle
+            checkOptionButton.accessibilityTraits = self.isCheckOptionSelected ? [.button, .selected] : [.button]
+            checkOptionButton.accessibilityElements = []
             checkOptionButton.frame = CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: CGSize(width: width, height: checkContentHeight))
 
             height += checkContentHeight
@@ -737,6 +758,7 @@ private final class FooterPanelNode: ASDisplayNode {
 
         transition.updateFrame(view: self.button, frame: CGRect(x: buttonInset, y: topInset + buttonOffset, width: buttonWidth, height: buttonHeight))
 
+        self.button.accessibilityValue = self.content.badge.isEmpty ? nil : self.content.badge
         return height
     }
 }

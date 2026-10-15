@@ -244,6 +244,7 @@ private final class ChatParticipantRightsContent: CombinedComponent {
                 AnyComponentWithIdentity(id: 1, component: AnyComponent(ListTextFieldItemComponent(
                     style: .glass,
                     theme: theme,
+                    strings: strings,
                     initialText: state.initialRank ?? "",
                     resetText: nil,
                     placeholder: strings.EditRank_Placeholder,
@@ -319,6 +320,7 @@ private final class ChatParticipantRightsContent: CombinedComponent {
             let doneButton = doneButton.update(
                 component: ButtonComponent(
                     background: ButtonComponent.Background(
+                        theme: theme,
                         style: .glass,
                         color: theme.list.itemCheckColors.fillColor,
                         foreground: theme.list.itemCheckColors.foregroundColor,

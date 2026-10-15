@@ -381,6 +381,7 @@ private final class ChatFolderLinkPreviewContentComponent: Component {
         }
 
         func update(component: ChatFolderLinkPreviewContentComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<EnvironmentType>, transition: ComponentTransition) -> CGSize {
+            self.itemContainerView.layer.cornerRadius = component.theme.isMessagesTheme ? MessagesAppearanceMetrics.sectionCornerRadius : 26.0
             let environment = environment[EnvironmentType.self].value
 
             self.component = component
@@ -1418,6 +1419,7 @@ private final class ChatFolderLinkPreviewScreenComponent: Component {
             if let actionButtonTitle = resolvedData.actionButtonTitle {
                 bottomItem = AnyComponent(ButtonComponent(
                     background: ButtonComponent.Background(
+                        theme: theme,
                         style: .glass,
                         color: theme.list.itemCheckColors.fillColor,
                         foreground: theme.list.itemCheckColors.foregroundColor,

@@ -1581,6 +1581,7 @@ final class LocationPickerControllerNode: ViewControllerTracingNode, CLLocationM
                 }
                 
                 let buttonBackground = ButtonComponent.Background(
+                    theme: self.presentationData.theme,
                     style: .glass,
                     color: self.presentationData.theme.list.itemCheckColors.fillColor,
                     foreground: self.presentationData.theme.list.itemCheckColors.foregroundColor,

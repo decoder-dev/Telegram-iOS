@@ -98,7 +98,7 @@ public class NotificationsCategoryItemListItemNode: ListViewItemNode, ItemListIt
     private var item: NotificationsCategoryItemListItem?
     
     override public var canBeSelected: Bool {
-        if let item = self.item, let _ = item.action {
+        if let item = self.item, item.enabled, let _ = item.action {
             return true
         } else {
             return false
@@ -156,6 +156,15 @@ public class NotificationsCategoryItemListItemNode: ListViewItemNode, ItemListIt
         self.addSubnode(self.arrowNode)
         
         self.addSubnode(self.activateArea)
+        self.activateArea.activate = { [weak self] in
+            return self?.activateItem() ?? false
+        }
+    }
+
+    private func activateItem() -> Bool {
+        guard let item = self.item, item.enabled, let action = item.action else { return false }
+        action()
+        return true
     }
 
     override public func updateAbsoluteRect(_ rect: CGRect, within containerSize: CGSize) {
@@ -203,7 +212,8 @@ public class NotificationsCategoryItemListItemNode: ListViewItemNode, ItemListIt
                 leftInset += 43.0
             }
             
-            let titleFont = Font.regular(item.presentationData.fontSize.itemListBaseFontSize)
+            let usesMessages = item.presentationData.theme.isMessagesTheme
+            let titleFont = usesMessages ? Font.medium(item.presentationData.fontSize.itemListBaseFontSize) : Font.regular(item.presentationData.fontSize.itemListBaseFontSize)
             let titleColor = item.presentationData.theme.list.itemPrimaryTextColor
             let detailFont = Font.regular(floor(item.presentationData.fontSize.itemListBaseFontSize * 15.0 / 17.0))
             let detailColor = item.presentationData.theme.list.itemSecondaryTextColor
@@ -214,8 +224,8 @@ public class NotificationsCategoryItemListItemNode: ListViewItemNode, ItemListIt
             
             let additionalTextRightInset: CGFloat = labelLayout.size.width
            
-            let textConstrain = params.width - params.rightInset - 20.0 - leftInset - additionalTextRightInset
-            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.title, font: titleFont, textColor: titleColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: textConstrain, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let textConstrain = max(0.0, params.width - rightInset - leftInset - additionalTextRightInset - 10.0)
+            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.title, font: titleFont, textColor: titleColor), backgroundColor: nil, maximumNumberOfLines: usesMessages ? 2 : 1, truncationType: .end, constrainedSize: CGSize(width: textConstrain, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             let (subtitleLayout, subtitleApply) = makeSubtitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.subtitle, font: detailFont, textColor: detailColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: textConstrain, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
                         
@@ -229,12 +239,9 @@ public class NotificationsCategoryItemListItemNode: ListViewItemNode, ItemListIt
             
             let titleSpacing: CGFloat = 1.0
             
-            let height: CGFloat
-            if !item.subtitle.isEmpty {
-                height = verticalInset * 2.0 + titleLayout.size.height + titleSpacing + subtitleLayout.size.height
-            } else {
-                height = verticalInset * 2.0 + titleLayout.size.height
-            }
+            let textHeight = titleLayout.size.height + (item.subtitle.isEmpty ? 0.0 : titleSpacing + subtitleLayout.size.height)
+            let contentHeight = max(textHeight, labelLayout.size.height)
+            let height = usesMessages ? MessagesAppearanceMetrics.rowHeight(contentHeight: contentHeight, verticalInset: verticalInset) : verticalInset * 2.0 + contentHeight
             
             switch item.style {
             case .plain:
@@ -257,11 +264,11 @@ public class NotificationsCategoryItemListItemNode: ListViewItemNode, ItemListIt
                     
                     strongSelf.activateArea.frame = CGRect(origin: CGPoint(x: params.leftInset, y: 0.0), size: CGSize(width: params.width - params.leftInset - params.rightInset, height: layout.contentSize.height))
                     strongSelf.activateArea.accessibilityLabel = item.title
-                    strongSelf.activateArea.accessibilityValue = item.label
+                    strongSelf.activateArea.accessibilityValue = [item.subtitle, item.label].filter { !$0.isEmpty }.joined(separator: ". ")
                     if item.enabled {
-                        strongSelf.activateArea.accessibilityTraits = []
+                        strongSelf.activateArea.accessibilityTraits = item.action == nil ? [.staticText] : [.button]
                     } else {
-                        strongSelf.activateArea.accessibilityTraits = .notEnabled
+                        strongSelf.activateArea.accessibilityTraits = [.button, .notEnabled]
                     }
                     
                     if let icon = item.icon {
@@ -351,7 +358,7 @@ public class NotificationsCategoryItemListItemNode: ListViewItemNode, ItemListIt
                         strongSelf.bottomStripeNode.frame = CGRect(origin: CGPoint(x: bottomStripeInset, y: contentSize.height - separatorHeight), size: CGSize(width: params.width - bottomStripeInset - params.rightInset - separatorRightInset, height: separatorHeight))
                     }
                     
-                    let titleFrame = CGRect(origin: CGPoint(x: leftInset, y: verticalInset), size: titleLayout.size)
+                    let titleFrame = CGRect(origin: CGPoint(x: leftInset, y: floorToScreenPixels((height - textHeight) / 2.0)), size: titleLayout.size)
                     strongSelf.titleNode.frame = titleFrame
                     
                     let subtitleFrame = CGRect(origin: CGPoint(x: leftInset, y: titleFrame.maxY + titleSpacing), size: subtitleLayout.size)

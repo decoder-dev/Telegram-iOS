@@ -9,15 +9,18 @@ public final class SwitchComponent: Component {
     public typealias EnvironmentType = Empty
     
     let tintColor: UIColor?
+    let accessibilityLabel: String?
     let value: Bool
     let valueUpdated: (Bool) -> Void
     
     public init(
         tintColor: UIColor? = nil,
+        accessibilityLabel: String? = nil,
         value: Bool,
         valueUpdated: @escaping (Bool) -> Void
     ) {
         self.tintColor = tintColor
+        self.accessibilityLabel = accessibilityLabel
         self.value = value
         self.valueUpdated = valueUpdated
     }
@@ -26,6 +29,7 @@ public final class SwitchComponent: Component {
         if lhs.tintColor != rhs.tintColor {
             return false
         }
+        if lhs.accessibilityLabel != rhs.accessibilityLabel { return false }
         if lhs.value != rhs.value {
             return false
         }
@@ -59,6 +63,8 @@ public final class SwitchComponent: Component {
             self.component = component
           
             self.switchView.tintColor = component.tintColor
+            self.switchView.onTintColor = component.tintColor
+            self.switchView.accessibilityLabel = component.accessibilityLabel
             self.switchView.setOn(component.value, animated: !transition.animation.isImmediate)
             
             self.switchView.sizeToFit()

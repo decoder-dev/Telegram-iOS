@@ -1041,6 +1041,7 @@ private final class FooterView: UIView {
             component: AnyComponent(
                 ButtonComponent(
                     background: ButtonComponent.Background(
+                        theme: theme,
                         color: theme.list.itemCheckColors.fillColor,
                         foreground: theme.list.itemCheckColors.foregroundColor,
                         pressedColor: theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.9)

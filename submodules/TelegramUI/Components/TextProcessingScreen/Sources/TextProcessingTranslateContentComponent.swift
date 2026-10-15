@@ -322,6 +322,7 @@ final class TextProcessingTranslateContentComponent: Component {
         }
 
         func update(component: TextProcessingTranslateContentComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
+            self.styleSelectionContainer.layer.cornerRadius = component.theme.isMessagesTheme ? MessagesAppearanceMetrics.sectionCornerRadius : 26.0
             self.isUpdating = true
             defer {
                 self.isUpdating = false

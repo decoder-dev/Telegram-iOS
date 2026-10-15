@@ -1122,6 +1122,7 @@ private final class RecentSessionSheetComponent: CombinedComponent {
                         AnyComponent(
                             ButtonComponent(
                                 background: ButtonComponent.Background(
+                                    theme: environment.theme,
                                     style: .glass,
                                     color: environment.theme.list.itemDestructiveColor,
                                     foreground: .white,

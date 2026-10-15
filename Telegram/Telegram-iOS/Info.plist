@@ -18,6 +18,18 @@
 	<dict>
 		<key>CFBundleAlternateIcons</key>
 		<dict>
+            <key>MessagesIcon</key>
+            <dict>
+                <key>CFBundleIconFiles</key>
+                <array><string>MessagesIcon</string></array>
+                <key>UIPrerenderedIcon</key><true/>
+            </dict>
+            <key>HalloweenIcon</key>
+            <dict>
+                <key>CFBundleIconFiles</key>
+                <array><string>HalloweenIcon</string></array>
+                <key>UIPrerenderedIcon</key><true/>
+            </dict>
 			<key>Black</key>
 			<dict>
 				<key>CFBundleIconFiles</key>
@@ -98,6 +110,21 @@
 	<dict>
 		<key>CFBundleAlternateIcons</key>
 		<dict>
+            <key>MessagesIcon</key>
+            <dict>
+                <key>CFBundleIconFiles</key>
+                <array><string>MessagesIconIpad</string><string>MessagesIconLargeIpad</string></array>
+                <key>UIPrerenderedIcon</key><true/>
+            </dict>
+            <key>HalloweenIcon</key>
+            <dict>
+                <key>CFBundleIconFiles</key>
+                <array>
+                    <string>HalloweenIconIpad</string>
+                    <string>HalloweenIconLargeIpad</string>
+                </array>
+                <key>UIPrerenderedIcon</key><true/>
+            </dict>
 			<key>Black</key>
 			<dict>
 				<key>CFBundleIconFiles</key>

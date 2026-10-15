@@ -344,7 +344,7 @@ private final class ButtonEditorSheetContent: Component {
             // Label, and URL when the action is editable.
             var fieldItems: [AnyComponentWithIdentity<Empty>] = [
                 AnyComponentWithIdentity(id: "label", component: AnyComponent(ListTextFieldItemComponent(
-                    style: .glass, theme: theme,
+                    style: .glass, theme: theme, strings: strings,
                     initialText: component.button.labelText,
                     placeholder: strings.RichText_ButtonLabelPlaceholder,
                     hasClearButton: true,
@@ -362,7 +362,7 @@ private final class ButtonEditorSheetContent: Component {
             ]
             if case let .url(url) = component.button.action {
                 fieldItems.append(AnyComponentWithIdentity(id: "url", component: AnyComponent(ListTextFieldItemComponent(
-                    style: .glass, theme: theme,
+                    style: .glass, theme: theme, strings: strings,
                     initialText: url,
                     placeholder: strings.RichText_ButtonURLPlaceholder,
                     hasClearButton: true,

@@ -76,6 +76,12 @@ extension ChatInputTextView: ChatSendMessageContextScreenTextInputSource {
     }
 }
 
+private final class EffectPreviewButton: UIButton {
+    override func contentRect(forBounds bounds: CGRect) -> CGRect {
+        return bounds.insetBy(dx: 12.0, dy: 6.0)
+    }
+}
+
 final class ChatSendMessageContextScreenComponent: Component {
     typealias EnvironmentType = ViewControllerComponentContainer.Environment
     
@@ -172,6 +178,8 @@ final class ChatSendMessageContextScreenComponent: Component {
     }
     
     final class View: UIView {
+        private let effectPreviewButton = EffectPreviewButton(type: .system)
+        private var lastPreviewEffectId: Int64?
         private let backgroundView: BlurredBackgroundView
         
         private var sendButton: SendButton?
@@ -194,6 +202,7 @@ final class ChatSendMessageContextScreenComponent: Component {
         private var standaloneReactionAnimation: AnimatedStickerNode?
         
         private var isLoadingEffectAnimation: Bool = false
+        private var effectPreviewUnavailable: Bool = false
         private var isLoadingEffectAnimationTimerDisposable: Disposable?
         private var loadEffectAnimationDisposable: Disposable?
         
@@ -225,6 +234,16 @@ final class ChatSendMessageContextScreenComponent: Component {
             self.addSubview(self.backgroundView)
             
             self.addSubview(self.scrollView)
+            self.effectPreviewButton.titleLabel?.font = UIFont.preferredFont(forTextStyle: .footnote)
+            self.effectPreviewButton.titleLabel?.adjustsFontForContentSizeCategory = true
+            self.effectPreviewButton.titleLabel?.numberOfLines = 0
+            self.effectPreviewButton.titleLabel?.textAlignment = .center
+            self.effectPreviewButton.layer.cornerRadius = 16.0
+            self.effectPreviewButton.layer.cornerCurve = .continuous
+            self.effectPreviewButton.addTarget(self, action: #selector(self.clearEffectPreview), for: .touchUpInside)
+            self.effectPreviewButton.accessibilityIdentifier = "chat.effectPreview.clear"
+            self.addSubview(self.effectPreviewButton)
+            NotificationCenter.default.addObserver(self, selector: #selector(self.reduceMotionChanged), name: UIAccessibility.reduceMotionStatusDidChangeNotification, object: nil)
             
             self.backgroundView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(self.onBackgroundTap(_:))))
         }
@@ -234,6 +253,7 @@ final class ChatSendMessageContextScreenComponent: Component {
         }
         
         deinit {
+            NotificationCenter.default.removeObserver(self)
             self.messageEffectDisposable.dispose()
             self.loadEffectAnimationDisposable?.dispose()
             self.isLoadingEffectAnimationTimerDisposable?.dispose()
@@ -272,6 +292,7 @@ final class ChatSendMessageContextScreenComponent: Component {
         }
         
         func animateOut(completion: @escaping () -> Void) {
+            self.stopEffectPreviewAnimation()
             if let controller = self.environment?.controller() {
                 controller.forEachController { c in
                     if let c = c as? UndoOverlayController {
@@ -288,6 +309,41 @@ final class ChatSendMessageContextScreenComponent: Component {
             }
         }
         
+        private var shouldReduceEffectMotion: Bool {
+            return UIAccessibility.isReduceMotionEnabled || (self.component?.context.sharedContext.currentPresentationData.with { $0.reduceMotion } ?? false)
+        }
+
+        private func stopEffectPreviewAnimation() {
+            self.loadEffectAnimationDisposable?.dispose()
+            self.loadEffectAnimationDisposable = nil
+            self.isLoadingEffectAnimationTimerDisposable?.dispose()
+            self.isLoadingEffectAnimationTimerDisposable = nil
+            self.isLoadingEffectAnimation = false
+            self.effectPreviewUnavailable = false
+            self.standaloneReactionAnimation?.removeFromSupernode()
+            self.standaloneReactionAnimation = nil
+        }
+
+        @objc private func reduceMotionChanged() {
+            if self.shouldReduceEffectMotion {
+                self.stopEffectPreviewAnimation()
+                self.messageItemView?.layer.removeAnimation(forKey: "transform.scale")
+                self.state?.updated(transition: .immediate)
+            }
+        }
+
+        @objc private func clearEffectPreview() {
+            guard let component = self.component, self.selectedMessageEffect != nil else { return }
+            self.messageEffectDisposable.set(nil)
+            self.selectedMessageEffect = nil
+            self.reactionContextNode?.selectedItems = Set([])
+            self.stopEffectPreviewAnimation()
+            if case let .sendMessage(sendMessage) = component.params {
+                sendMessage.messageEffect?.1(nil)
+            }
+            self.state?.updated(transition: .easeInOut(duration: 0.2))
+        }
+
         private func requestUpdateOverlayWantsToBeBelowKeyboard(transition: ContainedViewLayoutTransition) {
             guard let controller = self.environment?.controller() as? ChatSendMessageContextScreen else {
                 return
@@ -338,7 +394,14 @@ final class ChatSendMessageContextScreenComponent: Component {
             let previousAnimationState = self.appliedAnimationState
             self.appliedAnimationState = self.presentationAnimationState
             
-            let messageActionsSpacing: CGFloat = 7.0
+            let effectPreviewFont = UIFont.preferredFont(forTextStyle: .footnote)
+            self.effectPreviewButton.titleLabel?.font = effectPreviewFont
+            let minimumPreviewWidth = min(220.0, max(1.0, availableSize.width - environment.safeInsets.left - environment.safeInsets.right - 32.0))
+            let previewLabels = ["Загрузка эффекта… · Убрать", "🎉 Эффект выбран · Убрать", "Эффект выбран, предпросмотр недоступен · Убрать", "Выберите эффект сообщения", "Effect selected, preview unavailable · Remove", "Choose a message effect"]
+            let previewTextHeight = previewLabels.map { title in
+                return (title as NSString).boundingRect(with: CGSize(width: max(1.0, minimumPreviewWidth - 24.0), height: .greatestFiniteMagnitude), options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: [.font: effectPreviewFont], context: nil).height
+            }.max() ?? effectPreviewFont.lineHeight
+            let effectPreviewHeight = max(44.0, ceil(previewTextHeight) + 12.0)
             
             let alphaTransition: ComponentTransition
             if transition.animation.isImmediate {
@@ -945,6 +1008,7 @@ final class ChatSendMessageContextScreenComponent: Component {
                                     self.isLoadingEffectAnimationTimerDisposable?.dispose()
                                     self.isLoadingEffectAnimationTimerDisposable = nil
                                     self.isLoadingEffectAnimation = false
+                                    self.effectPreviewUnavailable = false
                                     
                                     if let standaloneReactionAnimation = self.standaloneReactionAnimation {
                                         self.standaloneReactionAnimation = nil
@@ -996,10 +1060,13 @@ final class ChatSendMessageContextScreenComponent: Component {
                                 HapticFeedback().tap()
                             }
                             
-                            self.loadEffectAnimationDisposable?.dispose()
-                            self.isLoadingEffectAnimationTimerDisposable?.dispose()
+                            if self.shouldReduceEffectMotion {
+                                self.stopEffectPreviewAnimation()
+                                return
+                            }
+                            self.stopEffectPreviewAnimation()
                             self.isLoadingEffectAnimationTimerDisposable = (Signal<Never, NoError>.complete() |> delay(0.2, queue: .mainQueue()) |> deliverOnMainQueue).startStrict(completed: { [weak self] in
-                                guard let self else {
+                                guard let self, self.selectedMessageEffect?.id == effectId, self.presentationAnimationState.key == .animatedIn else {
                                     return
                                 }
                                 self.isLoadingEffectAnimation = true
@@ -1025,15 +1092,20 @@ final class ChatSendMessageContextScreenComponent: Component {
                                 }
                             }
                             guard let (customEffectResourceFileReference, customEffectResource) = customEffectResource else {
+                                self.stopEffectPreviewAnimation()
+                                self.effectPreviewUnavailable = true
+                                if !self.isUpdating {
+                                    self.state?.updated(transition: .easeInOut(duration: 0.2))
+                                }
                                 return
                             }
                             
                             let context = component.context
-                            var loadEffectAnimationSignal: Signal<Never, NoError>
+                            var loadEffectAnimationSignal: Signal<Bool, NoError>
                             loadEffectAnimationSignal = Signal { subscriber in
                                 let fetchDisposable = freeMediaFileResourceInteractiveFetched(account: context.account, userLocation: .other, fileReference: customEffectResourceFileReference, resource: customEffectResource).start()
                                 
-                                let dataDisposabke = (context.engine.resources.status(resource: EngineMediaResource(customEffectResource))
+                                let dataDisposable = (context.engine.resources.status(resource: EngineMediaResource(customEffectResource))
                                 |> filter { status in
                                     if status == .Local {
                                         return true
@@ -1042,12 +1114,13 @@ final class ChatSendMessageContextScreenComponent: Component {
                                     }
                                 }
                                 |> take(1)).start(next: { _ in
+                                    subscriber.putNext(true)
                                     subscriber.putCompletion()
                                 })
                                 
                                 return ActionDisposable {
                                     fetchDisposable.dispose()
-                                    dataDisposabke.dispose()
+                                    dataDisposable.dispose()
                                 }
                             }
                             /*#if DEBUG
@@ -1055,15 +1128,30 @@ final class ChatSendMessageContextScreenComponent: Component {
                             #endif*/
                             
                             self.loadEffectAnimationDisposable = (loadEffectAnimationSignal
-                            |> deliverOnMainQueue).start(completed: { [weak self] in
+                            |> timeout(15.0, queue: .mainQueue(), alternate: .single(false))
+                            |> deliverOnMainQueue).start(next: { [weak self] resourceAvailable in
                                 guard let self, let component = self.component else {
                                     return
                                 }
                                 
+                                guard self.selectedMessageEffect?.id == effectId else {
+                                    return
+                                }
+                                guard !self.shouldReduceEffectMotion, self.presentationAnimationState.key == .animatedIn else {
+                                    self.stopEffectPreviewAnimation()
+                                    return
+                                }
                                 self.isLoadingEffectAnimationTimerDisposable?.dispose()
                                 self.isLoadingEffectAnimationTimerDisposable = nil
                                 self.isLoadingEffectAnimation = false
-                                
+                                guard resourceAvailable else {
+                                    self.effectPreviewUnavailable = true
+                                    if !self.isUpdating {
+                                        self.state?.updated(transition: .easeInOut(duration: 0.2))
+                                    }
+                                    return
+                                }
+
                                 guard let targetView = self.messageItemView?.effectIconView else {
                                     if !self.isUpdating {
                                         self.state?.updated(transition: .easeInOut(duration: 0.2))
@@ -1172,6 +1260,8 @@ final class ChatSendMessageContextScreenComponent: Component {
             }
             var readySendButtonFrame = CGRect(origin: CGPoint(x: sourceSendButtonFrame.maxX - sendButtonSize.width, y: sourceSendButtonFrame.minY), size: sendButtonSize)
             
+            let canChooseEffects = !(component.reactionItems?.isEmpty ?? true) && availableSize.height >= 480.0 && availableSize.height - environment.safeInsets.top - environment.safeInsets.bottom >= actionsStackSize.height + effectPreviewHeight + 144.0
+            let messageActionsSpacing: CGFloat = canChooseEffects ? effectPreviewHeight + 14.0 : 7.0
             var sourceActionsStackFrame = CGRect(origin: CGPoint(x: readySendButtonFrame.minX + 1.0 - 8.0 - actionsStackSize.width, y: sourceMessageItemFrame.maxY + messageActionsSpacing), size: actionsStackSize)
             if !isMessageVisible {
                 sourceActionsStackFrame.origin.y = sourceSendButtonFrame.maxY - sourceActionsStackFrame.height - 5.0
@@ -1270,6 +1360,38 @@ final class ChatSendMessageContextScreenComponent: Component {
                 sendButtonFrame = readySendButtonFrame
             }
             
+            let previewEffectId = self.selectedMessageEffect?.id
+            if previewEffectId != self.lastPreviewEffectId {
+                self.lastPreviewEffectId = previewEffectId
+                if previewEffectId != nil, presentationData.chatBubbleCorners.style == .messages, !self.shouldReduceEffectMotion, self.presentationAnimationState.key == .animatedIn {
+                    messageItemView.layer.animateSpring(from: 0.96 as NSNumber, to: 1.0 as NSNumber, keyPath: "transform.scale", duration: 0.25)
+                }
+            }
+            let previewWidth = min(max(1.0, availableSize.width - environment.safeInsets.left - environment.safeInsets.right - 32.0), max(220.0, actionsStackFrame.width))
+            let previewX = max(environment.safeInsets.left + 16.0, min(messageItemFrame.maxX - previewWidth, availableSize.width - environment.safeInsets.right - 16.0 - previewWidth))
+            transition.setFrame(view: self.effectPreviewButton, frame: CGRect(x: previewX, y: messageItemFrame.maxY + 7.0, width: previewWidth, height: effectPreviewHeight))
+            let isRussian = ["ru", "uk", "be"].contains(String(presentationData.strings.primaryComponent.languageCode.prefix(2)).lowercased())
+            let previewTitle: String
+            if self.isLoadingEffectAnimation {
+                previewTitle = isRussian ? "Загрузка эффекта… · Убрать" : "Loading effect… · Remove"
+            } else if self.effectPreviewUnavailable {
+                previewTitle = isRussian ? "Эффект выбран, предпросмотр недоступен · Убрать" : "Effect selected, preview unavailable · Remove"
+            } else if let effect = self.selectedMessageEffect {
+                previewTitle = isRussian ? "\(effect.emoticon) Эффект выбран · Убрать" : "\(effect.emoticon) Effect selected · Remove"
+            } else {
+                previewTitle = isRussian ? "Выберите эффект сообщения" : "Choose a message effect"
+            }
+            self.effectPreviewButton.setTitle(previewTitle, for: .normal)
+            self.effectPreviewButton.accessibilityLabel = previewTitle
+            self.effectPreviewButton.isEnabled = self.selectedMessageEffect != nil
+            self.effectPreviewButton.backgroundColor = presentationData.theme.contextMenu.backgroundColor
+            self.effectPreviewButton.setTitleColor(presentationData.theme.contextMenu.primaryColor, for: .normal)
+            self.effectPreviewButton.setTitleColor(presentationData.theme.contextMenu.secondaryColor, for: .disabled)
+            let showEffectPreview = canChooseEffects && isMessageVisible && actionsStackFrame.minY - messageItemFrame.maxY >= effectPreviewHeight + 7.0 && self.presentationAnimationState.key == .animatedIn
+            self.effectPreviewButton.isUserInteractionEnabled = showEffectPreview && self.selectedMessageEffect != nil
+            self.effectPreviewButton.accessibilityElementsHidden = !showEffectPreview
+            transition.setAlpha(view: self.effectPreviewButton, alpha: showEffectPreview ? 1.0 : 0.0)
+
             transition.setFrame(view: messageItemView, frame: messageItemFrame)
             transition.setAlpha(view: messageItemView, alpha: isMessageVisible ? 1.0 : 0.0)
             messageItemView.updateClippingRect(

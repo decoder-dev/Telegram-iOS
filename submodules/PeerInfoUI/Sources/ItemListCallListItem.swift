@@ -10,6 +10,13 @@ import PresentationDataUtils
 import TelegramStringFormatting
 import TextFormat
 
+private func callDetailColumnWidths(availableWidth: CGFloat) -> (time: CGFloat, type: CGFloat, spacing: CGFloat) {
+    let width = max(2.0, availableWidth)
+    let spacing = min(12.0, width - 2.0)
+    let time = min(75.0, max(1.0, (width - spacing) * 0.32))
+    return (time, max(1.0, width - time - spacing), spacing)
+}
+
 public class ItemListCallListItem: ListViewItem, ItemListItem {
     let presentationData: ItemListPresentationData
     let dateTimeFormat: PresentationDateTimeFormat
@@ -226,9 +233,10 @@ public class ItemListCallListItemNode: ListViewItemNode {
                 updatedTheme = item.presentationData.theme
             }
             
-            let titleFont = Font.regular(floor(item.presentationData.fontSize.itemListBaseFontSize * 15.0 / 17.0))
-            let font = Font.regular(floor(item.presentationData.fontSize.itemListBaseFontSize * 14.0 / 17.0))
-            let typeFont = Font.medium(floor(item.presentationData.fontSize.itemListBaseFontSize * 14.0 / 17.0))
+            let usesMessages = item.presentationData.theme.isMessagesTheme
+            let titleFont = usesMessages ? Font.medium(item.presentationData.fontSize.itemListBaseFontSize) : Font.regular(floor(item.presentationData.fontSize.itemListBaseFontSize * 15.0 / 17.0))
+            let font = Font.regular(floor(item.presentationData.fontSize.itemListBaseFontSize * (usesMessages ? 15.0 : 14.0) / 17.0))
+            let typeFont = Font.medium(floor(item.presentationData.fontSize.itemListBaseFontSize * (usesMessages ? 15.0 : 14.0) / 17.0))
             
             let contentSize: CGSize
             var contentHeight: CGFloat = 0.0
@@ -238,6 +246,8 @@ public class ItemListCallListItemNode: ListViewItemNode {
             let itemSeparatorColor: UIColor
             
             let leftInset = 16.0 + params.leftInset
+            let textWidth = max(1.0, params.width - params.rightInset - 20.0 - leftInset)
+            let columns = callDetailColumnWidths(availableWidth: textWidth)
             
             switch item.style {
             case .plain:
@@ -256,9 +266,10 @@ public class ItemListCallListItemNode: ListViewItemNode {
             
             var accessibilityText = ""
             
-            let earliestMessage = item.messages.sorted(by: {$0.timestamp < $1.timestamp}).first!
-            let titleText = stringForDate(timestamp: earliestMessage.timestamp, strings: item.presentationData.strings)
-            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: titleText, font: titleFont, textColor: item.presentationData.theme.list.itemPrimaryTextColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - params.rightInset - 20.0 - leftInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let titleText = item.messages.min(by: { $0.timestamp < $1.timestamp }).map {
+                stringForDate(timestamp: $0.timestamp, strings: item.presentationData.strings)
+            } ?? ""
+            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: titleText, font: titleFont, textColor: item.presentationData.theme.list.itemPrimaryTextColor), backgroundColor: nil, maximumNumberOfLines: usesMessages ? 2 : 1, truncationType: .end, constrainedSize: CGSize(width: textWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             accessibilityText.append(titleText)
             accessibilityText.append(". ")
             
@@ -271,18 +282,18 @@ public class ItemListCallListItemNode: ListViewItemNode {
             for message in item.messages {
                 let makeTimeLayout = makeNodesLayout[index].0
                 let time = stringForMessageTimestamp(timestamp: message.timestamp, dateTimeFormat: item.dateTimeFormat)
-                let (timeLayout, timeApply) = makeTimeLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: time, font: font, textColor: item.presentationData.theme.list.itemPrimaryTextColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - params.rightInset - 20.0 - leftInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+                let (timeLayout, timeApply) = makeTimeLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: time, font: font, textColor: item.presentationData.theme.list.itemSecondaryTextColor), backgroundColor: nil, maximumNumberOfLines: usesMessages ? 2 : 1, truncationType: .end, constrainedSize: CGSize(width: columns.time, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
                 
                 let makeTypeLayout = makeNodesLayout[index].1
                 let type = stringForCallType(message: message, strings: item.presentationData.strings)
-                let (typeLayout, typeApply) = makeTypeLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: type, font: typeFont, textColor: item.presentationData.theme.list.itemPrimaryTextColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - params.rightInset - 20.0 - leftInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+                let (typeLayout, typeApply) = makeTypeLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: type, font: typeFont, textColor: item.presentationData.theme.list.itemPrimaryTextColor), backgroundColor: nil, maximumNumberOfLines: usesMessages ? 0 : 1, truncationType: .end, constrainedSize: CGSize(width: columns.type, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
                 
                 accessibilityText.append("\(time) - \(type).\n")
                 
                 nodesLayout.append((timeLayout, typeLayout))
                 nodesApply.append((timeApply, typeApply))
              
-                contentHeight += timeLayout.size.height + 12.0
+                contentHeight += max(timeLayout.size.height, typeLayout.size.height) + 12.0
                 
                 index += 1
             }
@@ -359,9 +370,9 @@ public class ItemListCallListItemNode: ListViewItemNode {
                     for nodes in strongSelf.callNodes {
                         let layout = nodesLayout[index]
                         nodes.0.frame = CGRect(origin: CGPoint(x: leftInset, y: yOffset), size: layout.0.size)
-                        nodes.1.frame = CGRect(origin: CGPoint(x: leftInset + 75.0, y: yOffset), size: layout.1.size)
+                        nodes.1.frame = CGRect(origin: CGPoint(x: leftInset + columns.time + columns.spacing, y: yOffset), size: layout.1.size)
                         
-                        yOffset += layout.0.size.height + 12.0
+                        yOffset += max(layout.0.size.height, layout.1.size.height) + 12.0
                         index += 1
                     }
                     

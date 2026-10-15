@@ -52,6 +52,9 @@ public final class BirthdayPickerContentComponent: Component {
     }
     
     public static func ==(lhs: BirthdayPickerContentComponent, rhs: BirthdayPickerContentComponent) -> Bool {
+        if lhs.context !== rhs.context || lhs.settings !== rhs.settings {
+            return false
+        }
         if lhs.mode != rhs.mode {
             return false
         }
@@ -89,6 +92,11 @@ public final class BirthdayPickerContentComponent: Component {
         
         public override init(frame: CGRect) {
             super.init(frame: frame)
+            NotificationCenter.default.addObserver(self, selector: #selector(self.contentSizeCategoryChanged), name: UIContentSizeCategory.didChangeNotification, object: nil)
+        }
+
+        @objc private func contentSizeCategoryChanged() {
+            self.state?.updated(transition: .immediate)
         }
     
         required init(coder: NSCoder) {
@@ -96,6 +104,7 @@ public final class BirthdayPickerContentComponent: Component {
         }
         
         deinit {
+            NotificationCenter.default.removeObserver(self)
             self.disposable?.dispose()
         }
         
@@ -113,10 +122,14 @@ public final class BirthdayPickerContentComponent: Component {
                 self.isUpdating = false
             }
                         
+            let previousComponent = self.component
             self.component = component
             self.state = state
-            
-            if self.disposable == nil {
+
+            if previousComponent?.context !== component.context || previousComponent?.settings !== component.settings || previousComponent?.mode != component.mode {
+                self.disposable?.dispose()
+                self.settings = nil
+                self.peer = nil
                 let peer: Signal<EnginePeer?, NoError>
                 if case let .suggest(peerId) = component.mode {
                     peer = component.context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: peerId))
@@ -153,13 +166,15 @@ public final class BirthdayPickerContentComponent: Component {
                 titleRawString = component.strings.Birthday_Title
             }
             
-            titleString.append(NSAttributedString(string: titleRawString, font: Font.semibold(17.0), textColor: component.theme.list.itemPrimaryTextColor))
+            let usesMessages = component.theme.isMessagesTheme
+            let titleFont = usesMessages ? UIFontMetrics(forTextStyle: .headline).scaledFont(for: Font.semibold(17.0)) : Font.semibold(17.0)
+            titleString.append(NSAttributedString(string: titleRawString, font: titleFont, textColor: component.theme.list.itemPrimaryTextColor))
         
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(titleString),
-                    maximumNumberOfLines: 1
+                    maximumNumberOfLines: usesMessages ? 2 : 1
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - sideInset * 2.0, height: 1000.0)
@@ -168,6 +183,9 @@ public final class BirthdayPickerContentComponent: Component {
                 if titleView.superview == nil {
                     self.addSubview(titleView)
                 }
+                titleView.isAccessibilityElement = true
+                titleView.accessibilityLabel = titleRawString
+                titleView.accessibilityTraits = .header
                 transition.setFrame(view: titleView, frame: CGRect(origin: CGPoint(x: floor((availableSize.width - titleSize.width) * 0.5), y: contentHeight), size: titleSize))
             }
             contentHeight += titleSize.height
@@ -203,6 +221,15 @@ public final class BirthdayPickerContentComponent: Component {
         
             switch component.mode {
             case .generic:
+                self.hideYear.view?.removeFromSuperview()
+            case .acceptSuggestion:
+                self.mainText.view?.removeFromSuperview()
+            case .suggest:
+                self.mainText.view?.removeFromSuperview()
+                self.hideYear.view?.removeFromSuperview()
+            }
+            switch component.mode {
+            case .generic:
                 var isContacts = true
                 if let settings = self.settings {
                     if case .enableContacts = settings.birthday {
@@ -214,15 +241,15 @@ public final class BirthdayPickerContentComponent: Component {
                 let mainText = NSMutableAttributedString()
                 mainText.append(parseMarkdownIntoAttributedString(isContacts ? component.strings.Birthday_HelpContacts : component.strings.Birthday_Help, attributes: MarkdownAttributes(
                     body: MarkdownAttributeSet(
-                        font: Font.regular(13.0),
+                        font: usesMessages ? UIFont.preferredFont(forTextStyle: .footnote) : Font.regular(13.0),
                         textColor: component.theme.list.itemSecondaryTextColor
                     ),
                     bold: MarkdownAttributeSet(
-                        font: Font.semibold(13.0),
+                        font: usesMessages ? UIFontMetrics(forTextStyle: .footnote).scaledFont(for: Font.semibold(13.0)) : Font.semibold(13.0),
                         textColor: component.theme.list.itemSecondaryTextColor
                     ),
                     link: MarkdownAttributeSet(
-                        font: Font.regular(13.0),
+                        font: usesMessages ? UIFont.preferredFont(forTextStyle: .footnote) : Font.regular(13.0),
                         textColor: component.theme.list.itemAccentColor,
                         additionalAttributes: [:]
                     ),
@@ -276,7 +303,7 @@ public final class BirthdayPickerContentComponent: Component {
                     contentHeight += 21.0
                     let hideYearSize = self.hideYear.update(
                         transition: .immediate,
-                        component: AnyComponent(PlainButtonComponent(content: AnyComponent(Text(text: component.strings.SuggestBirthdate_Accept_HideYear, font: Font.regular(17.0), color: component.theme.list.itemAccentColor)), action: { [weak self] in
+                        component: AnyComponent(PlainButtonComponent(content: AnyComponent(Text(text: component.strings.SuggestBirthdate_Accept_HideYear, font: usesMessages ? UIFont.preferredFont(forTextStyle: .body) : Font.regular(17.0), color: component.theme.list.itemAccentColor)), minSize: CGSize(width: 44.0, height: 44.0), action: { [weak self] in
                             guard let self, let component = self.component else {
                                 return
                             }
@@ -290,13 +317,17 @@ public final class BirthdayPickerContentComponent: Component {
                         if hideYearView.superview == nil {
                             self.addSubview(hideYearView)
                         }
+                        transition.setAlpha(view: hideYearView, alpha: 1.0)
                         transition.setFrame(view: hideYearView, frame: CGRect(origin: CGPoint(x: floor((availableSize.width - hideYearSize.width) * 0.5), y: contentHeight), size: hideYearSize))
                     }
                     contentHeight += hideYearSize.height
                     contentHeight += 20.0
                 } else if let hideYearView = self.hideYear.view {
-                    transition.setAlpha(view: hideYearView, alpha: 0.0, completion: { _ in
-                        hideYearView.removeFromSuperview()
+                    transition.setAlpha(view: hideYearView, alpha: 0.0, completion: { [weak self, weak hideYearView] _ in
+                        if let component = self?.component, case .acceptSuggestion = component.mode, component.canHideYear {
+                            return
+                        }
+                        hideYearView?.removeFromSuperview()
                     })
                 }
             case .suggest:

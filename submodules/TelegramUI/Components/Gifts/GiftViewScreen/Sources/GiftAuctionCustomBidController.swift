@@ -263,7 +263,7 @@ private final class AlertAmountFieldComponent: Component {
             let backgroundSize = self.background.update(
                 transition: transition,
                 component: AnyComponent(
-                    FilledRoundedRectangleComponent(color: environment.theme.actionSheet.primaryTextColor.withMultipliedAlpha(0.1), cornerRadius: .value(25.0), smoothCorners: false)
+                    FilledRoundedRectangleComponent(color: environment.theme.actionSheet.primaryTextColor.withMultipliedAlpha(0.1), cornerRadius: .value(environment.theme.isMessagesTheme ? MessagesAppearanceMetrics.actionRadius(height: size.height) : 25.0), smoothCorners: false)
                 ),
                 environment: {},
                 containerSize: CGSize(width: size.width + backgroundPadding * 2.0, height: size.height)
@@ -271,7 +271,7 @@ private final class AlertAmountFieldComponent: Component {
             let backgroundFrame = CGRect(origin: CGPoint(x: floorToScreenPixels((availableSize.width - backgroundSize.width) / 2.0), y: topInset ), size: backgroundSize)
             if let backgroundView = self.background.view {
                 if backgroundView.superview == nil {
-                    self.addSubview(backgroundView)
+                    self.insertSubview(backgroundView, at: 0)
                 }
                 transition.setFrame(view: backgroundView, frame: backgroundFrame)
             }

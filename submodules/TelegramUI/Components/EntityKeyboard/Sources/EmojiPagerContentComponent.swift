@@ -3413,6 +3413,7 @@ public final class EmojiPagerContentComponent: Component {
                             transition: groupPremiumButtonTransition,
                             component: AnyComponent(ButtonComponent(
                                 background: ButtonComponent.Background(
+                                    theme: keyboardChildEnvironment.theme,
                                     style: .glass,
                                     color: backgroundColor,
                                     foreground: foregroundColor,

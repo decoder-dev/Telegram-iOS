@@ -9,8 +9,8 @@ import AnimatedTextComponent
 import EdgeEffect
 
 final class InviteContactsCountPanelNode: ASDisplayNode {
-    private let theme: PresentationTheme
-    private let strings: PresentationStrings
+    private var theme: PresentationTheme
+    private var strings: PresentationStrings
     private let action: () -> Void
     
     private let edgeEffectView = EdgeEffectView()
@@ -20,7 +20,8 @@ final class InviteContactsCountPanelNode: ASDisplayNode {
     
     var count: Int = 0 {
         didSet {
-            if self.count != oldValue && self.count > 0 {
+            if self.count != oldValue {
+                self.accessibilityElementsHidden = self.count == 0
                 if let (width, sideInset, bottomInset) = self.validLayout {
                     let _ = self.updateLayout(width: width, sideInset: sideInset, bottomInset: bottomInset, transition: .immediate)
                 }
@@ -34,12 +35,21 @@ final class InviteContactsCountPanelNode: ASDisplayNode {
         self.action = action
 
         super.init()
+        self.accessibilityElementsHidden = true
+    }
+
+    func updatePresentationData(_ presentationData: PresentationData) {
+        self.theme = presentationData.theme
+        self.strings = presentationData.strings
+        if let (width, sideInset, bottomInset) = self.validLayout {
+            let _ = self.updateLayout(width: width, sideInset: sideInset, bottomInset: bottomInset, transition: .immediate)
+        }
     }
     
     func updateLayout(width: CGFloat, sideInset: CGFloat, bottomInset: CGFloat, transition: ContainedViewLayoutTransition) -> CGFloat {
         self.validLayout = (width, sideInset, bottomInset)
         
-        let buttonInsets = ContainerViewLayout.concentricInsets(bottomInset: bottomInset, innerDiameter: 52.0, sideInset: 30.0)
+        let buttonInsets = ContainerViewLayout.concentricInsets(bottomInset: bottomInset, innerDiameter: 52.0, sideInset: self.theme.isMessagesTheme ? 16.0 : 30.0)
         let height: CGFloat = 52.0 + buttonInsets.bottom
         
         let edgeEffectHeight: CGFloat = height
@@ -63,21 +73,23 @@ final class InviteContactsCountPanelNode: ASDisplayNode {
             component: AnyComponent(
                 ButtonComponent(
                     background: ButtonComponent.Background(
-                        style: .glass,
+                        theme: self.theme,
+                        style: self.theme.isMessagesTheme ? .legacy : .glass,
                         color: self.theme.list.itemCheckColors.fillColor,
                         foreground: self.theme.list.itemCheckColors.foregroundColor,
-                        pressedColor: self.theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.9)
+                        pressedColor: self.theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.9),
+                        cornerRadius: self.theme.isMessagesTheme ? MessagesAppearanceMetrics.actionRadius(height: 52.0) : 10.0
                     ),
                     content: AnyComponentWithIdentity(
                         id: AnyHashable(0),
                         component: AnyComponent(AnimatedTextComponent(
                             font: Font.with(size: 17.0, weight: .semibold, traits: .monospacedNumbers),
                             color: self.theme.list.itemCheckColors.foregroundColor,
-                            items: [AnimatedTextComponent.Item(id: "text", content: .text(self.strings.Contacts_InviteContacts(Int32(max(1, self.count)))))],
+                            items: [AnimatedTextComponent.Item(id: "text", content: .text(self.strings.Contacts_InviteContacts(Int32(clamping: max(1, self.count)))))],
                             noDelay: true
                         ))
                     ),
-                    isEnabled: true,
+                    isEnabled: self.count > 0,
                     action: { [weak self] in
                         guard let self else {
                             return
@@ -87,7 +99,7 @@ final class InviteContactsCountPanelNode: ASDisplayNode {
                 )
             ),
             environment: {},
-            containerSize: CGSize(width: width - sideInset * 2.0 - buttonInsets.left - buttonInsets.right, height: 52.0)
+            containerSize: CGSize(width: max(1.0, width - sideInset * 2.0 - buttonInsets.left - buttonInsets.right), height: 52.0)
         )
         let buttonFrame = CGRect(origin: CGPoint(x: sideInset + buttonInsets.left, y: 0.0), size: buttonSize)
         if let buttonView = self.button.view {
@@ -95,6 +107,9 @@ final class InviteContactsCountPanelNode: ASDisplayNode {
                 self.view.addSubview(buttonView)
             }
             transition.updateFrame(view: buttonView, frame: buttonFrame)
+            buttonView.isAccessibilityElement = true
+            buttonView.accessibilityLabel = self.strings.Contacts_InviteContacts(Int32(clamping: max(1, self.count)))
+            buttonView.accessibilityTraits = self.count > 0 ? [.button] : [.button, .notEnabled]
         }
         return height
     }
