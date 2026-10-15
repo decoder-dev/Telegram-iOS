@@ -32,6 +32,23 @@ def run_swift(source):
 
 
 class ScreenStateTests(unittest.TestCase):
+    def test_birthday_modes_remove_stale_content_and_restore_reused_year_action(self):
+        source = read('submodules/TelegramUI/Components/Settings/BirthdayPickerScreen/Sources/BirthdayPickerContentComponent.swift')
+        self.assertIn('lhs.context !== rhs.context || lhs.settings !== rhs.settings', source)
+        self.assertIn('previousComponent?.mode != component.mode', source)
+        self.assertIn('self.disposable?.dispose()', source)
+        self.assertIn('self.mainText.view?.removeFromSuperview()', source)
+        self.assertIn('self.hideYear.view?.removeFromSuperview()', source)
+        self.assertIn('transition.setAlpha(view: hideYearView, alpha: 1.0)', source)
+        self.assertIn('case .acceptSuggestion = component.mode, component.canHideYear', source)
+        self.assertIn('UIContentSizeCategory.didChangeNotification', source)
+        self.assertIn('maximumNumberOfLines: usesMessages ? 2 : 1', source)
+        self.assertIn('titleView.accessibilityTraits = .header', source)
+        timer = read('submodules/TelegramUI/Components/ChatTimerScreen/Sources/ChatTimerScreen.swift')
+        self.assertIn('leadingButtonView.accessibilityLabel = component.strings.Common_Close', timer)
+        self.assertIn('leadingButtonView.accessibilityLabel = component.strings.Common_Back', timer)
+        self.assertIn('components.dropFirst().joined(separator: " ")', timer)
+
     def test_contact_creation_uses_native_messages_actions_without_losing_validation(self):
         source = read('submodules/TelegramUI/Components/Contacts/NewContactScreen/Sources/NewContactScreen.swift')
         self.assertEqual(source.count('theme.isMessagesTheme ? AnyComponent(PlainButtonComponent('), 2)
