@@ -3,6 +3,7 @@ import pathlib
 import re
 import shutil
 import subprocess
+import tempfile
 import unittest
 
 from test_messages_style import ROOT, read, declaration
@@ -10,6 +11,25 @@ from test_messages_screen_states import member, run_swift
 
 
 class MessagesActionSurfaces(unittest.TestCase):
+    @unittest.skipUnless(shutil.which('xcrun'), 'iOS SDK unavailable locally; executes in macOS CI')
+    def test_composed_button_label_api_typechecks_against_real_uikit(self):
+        fixture = 'import UIKit\n'
+        fixture += member(read('submodules/ComponentFlow/Source/Components/Button.swift'), 'public func componentAccessibilityLabel(') + '\n'
+        fixture += 'class Content { var view: UIView?; var componentView: UIView? }\n'
+        for name, path, field in (
+            ('Plain', 'submodules/TelegramUI/Components/PlainButtonComponent/Sources/PlainButtonComponent.swift', 'let content = Content()'),
+            ('Flow', 'submodules/ComponentFlow/Source/Components/Button.swift', 'let contentView = Content()'),
+            ('Glass', 'submodules/TelegramUI/Components/GlassBarButtonComponent/Sources/GlassBarButtonComponent.swift', 'var componentView: Content?'),
+        ):
+            fixture += 'class ' + name + ': UIButton { ' + field + '\n'
+            fixture += member(read(path), 'public override var accessibilityLabel: String?').replace('public override ', 'override ') + '\n}\n'
+        sdk = subprocess.check_output(['xcrun', '--sdk', 'iphonesimulator', '--show-sdk-path'], text=True).strip()
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / 'Labels.swift'
+            path.write_text(fixture, encoding='utf-8')
+            result = subprocess.run(['xcrun', 'swiftc', '-swift-version', '5', '-warnings-as-errors', '-sdk', sdk, '-target', 'arm64-apple-ios13.0-simulator', '-typecheck', str(path)], capture_output=True, text=True, timeout=90)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     @unittest.skipUnless(shutil.which('swift'), 'Swift unavailable locally; executes in macOS CI')
     def test_production_list_toggles_guard_callbacks_and_remove_incompatible_controls(self):
         source = read('submodules/TelegramUI/Components/ListActionItemComponent/Sources/ListActionItemComponent.swift')
