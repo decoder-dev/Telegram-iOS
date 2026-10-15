@@ -352,6 +352,7 @@ public final class ListActionItemComponent: Component {
                 checkLayer.theme = theme
             }
             
+            checkLayer.content = .check(isRectangle: style == .rectangle)
             checkLayer.frame = CGRect(origin: CGPoint(), size: size)
             checkLayer.setSelected(isSelected, animated: !transition.animation.isImmediate)
         }
@@ -768,9 +769,7 @@ public final class ListActionItemComponent: Component {
                 var arrowTransition = transition
                 if let current = self.arrowView {
                     arrowView = current
-                    if themeUpdated {
-                        arrowView.image = PresentationResourcesItemList.disclosureArrowImage(component.theme)
-                    }
+                    arrowView.image = PresentationResourcesItemList.disclosureArrowImage(component.theme)
                 } else {
                     arrowTransition = arrowTransition.withAnimation(.none)
                     arrowView = UIImageView(image: PresentationResourcesItemList.disclosureArrowImage(component.theme))
@@ -787,9 +786,7 @@ public final class ListActionItemComponent: Component {
                 var arrowTransition = transition
                 if let current = self.arrowView {
                     arrowView = current
-                    if themeUpdated {
-                        arrowView.image = PresentationResourcesItemList.disclosureOptionArrowsImage(component.theme)
-                    }
+                    arrowView.image = PresentationResourcesItemList.disclosureOptionArrowsImage(component.theme)
                 } else {
                     arrowTransition = arrowTransition.withAnimation(.none)
                     arrowView = UIImageView(image: PresentationResourcesItemList.disclosureOptionArrowsImage(component.theme))

@@ -87,6 +87,79 @@ for regular in [false, true] {
 """
         run_swift(fixture)
 
+    @unittest.skipUnless(shutil.which('swift'), 'Swift unavailable locally; executes in macOS CI')
+    def test_production_reused_accessories_follow_style_without_theme_change(self):
+        source = read('submodules/TelegramUI/Components/ListActionItemComponent/Sources/ListActionItemComponent.swift')
+        fixture = r"""import Foundation
+import CoreGraphics
+struct Theme: Equatable { let id: Int }
+typealias CheckNodeTheme = Theme
+struct Image { let id: String; let size = CGSize(width: 8, height: 12) }
+class UIImageView {
+    var image: Image?; var removed = false
+    init(image: Image) { self.image = image }
+    func removeFromSuperview() { removed = true }
+}
+struct ComponentTransition {
+    struct Animation { var isImmediate = true }
+    var animation = Animation()
+    func withAnimation(_ value: Animation) -> Self { self }
+    func setFrame(view: UIImageView, frame: CGRect) {}
+}
+extension ComponentTransition.Animation { static let none = Self() }
+enum PresentationResourcesItemList {
+    static func disclosureArrowImage(_ theme: Theme) -> Image { Image(id: "arrow\(theme.id)") }
+    static func disclosureOptionArrowsImage(_ theme: Theme) -> Image { Image(id: "expand\(theme.id)") }
+}
+class Button { func addSubview(_ view: UIImageView) {} }
+enum Accessory { case arrow, expandArrows, other }
+struct Model { let accessory: Accessory; let theme: Theme }
+class ArrowRow {
+    var arrowView: UIImageView?; let button = Button()
+    func update(_ component: Model, themeUpdated: Bool) {
+        let availableSize = CGSize(width: 320, height: 50)
+        let contentHeight: CGFloat = 50
+        let transition = ComponentTransition()
+"""
+        arrows = source.index('            switch component.accessory {', source.index('let leftIconFrame'))
+        fixture += member(source[arrows:], 'switch component.accessory {') + '\n}}\n'
+        fixture += """
+enum ListActionItemComponent { enum LeftIcon { enum Check { enum Style { case round, rectangle, tick } } } }
+enum Content: Equatable { case check(isRectangle: Bool) }
+class CheckLayer {
+    var theme: Theme; var content: Content; var frame = CGRect.zero; var selected = false
+    init(theme: Theme, content: Content) { self.theme = theme; self.content = content }
+    func setSelected(_ value: Bool, animated: Bool) { selected = value }
+}
+class Layer { func addSublayer(_ value: CheckLayer) {} }
+class CheckRow {
+    var checkLayer: CheckLayer?; var theme: Theme?; let layer = Layer()
+"""
+        fixture += member(source, 'func update(size: CGSize, theme: CheckNodeTheme, isSelected: Bool, style:') + '\n}\n'
+        fixture += """
+let theme = Theme(id: 1)
+let row = ArrowRow()
+for accessory in [Accessory.arrow, .expandArrows, .arrow, .other, .expandArrows] {
+    let old = row.arrowView
+    row.update(Model(accessory: accessory, theme: theme), themeUpdated: false)
+    switch accessory {
+    case .arrow: precondition(row.arrowView?.image?.id == "arrow1")
+    case .expandArrows: precondition(row.arrowView?.image?.id == "expand1")
+    case .other: precondition(row.arrowView == nil && old?.removed == true)
+    }
+}
+row.update(Model(accessory: .expandArrows, theme: Theme(id: 2)), themeUpdated: true)
+precondition(row.arrowView?.image?.id == "expand2")
+let check = CheckRow()
+for rectangle in [false, true, false, true] {
+    check.update(size: CGSize(width: 22, height: 22), theme: theme, isSelected: rectangle,
+                 style: rectangle ? .rectangle : .round, transition: ComponentTransition())
+    precondition(check.checkLayer?.content == .check(isRectangle: rectangle))
+    precondition(check.checkLayer?.selected == rectangle)
+}
+"""
+        run_swift(fixture)
+
     def test_list_accessories_keep_native_enabled_state_and_current_spoken_title(self):
         source = read('submodules/TelegramUI/Components/ListActionItemComponent/Sources/ListActionItemComponent.swift')
         self.assertEqual(source.count('_ = self?.updateToggleValue(value)'), 2)
