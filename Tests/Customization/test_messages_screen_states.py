@@ -32,6 +32,15 @@ def run_swift(source):
 
 
 class ScreenStateTests(unittest.TestCase):
+    def test_special_button_colors_keep_messages_shape_and_schedule_subtitle(self):
+        footer = read('submodules/SettingsUI/Sources/DeleteAccountFooterItem.swift')
+        self.assertIn('maximumCornerRadius: self.item.theme.isMessagesTheme ? MessagesAppearanceMetrics.actionCornerRadius : nil', footer)
+        auth = read('submodules/AuthorizationUI/Sources/AuthorizationSequenceCodeEntryControllerNode.swift')
+        self.assertIn('maximumCornerRadius: self.theme.isMessagesTheme ? MessagesAppearanceMetrics.actionCornerRadius : nil', auth)
+        schedule = read('submodules/TelegramUI/Components/ChatScheduleTimeController/Sources/ChatScheduleTimeControllerNode.swift')
+        self.assertIn('subtitleNode.accessibilityLabel = subtitle', schedule)
+        self.assertNotIn('subtitleNode.accessibilityLabel = text', schedule)
+
     @unittest.skipUnless(shutil.which('swift'), 'Swift unavailable locally; executes in macOS CI')
     def test_production_session_version_handles_reversed_and_missing_parentheses(self):
         source = read('submodules/SettingsUI/Sources/Privacy and Security/Recent Sessions/ItemListRecentSessionItem.swift')

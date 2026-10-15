@@ -96,7 +96,7 @@ final class DeleteAccountFooterItemNode: ItemListControllerFooterItemNode {
         let backgroundColor = self.item.theme.list.itemCheckColors.fillColor
         let textColor = self.item.theme.list.itemCheckColors.foregroundColor
         
-        self.buttonNode.updateTheme(SolidRoundedButtonTheme(backgroundColor: backgroundColor, foregroundColor: textColor), animated: false)
+        self.buttonNode.updateTheme(SolidRoundedButtonTheme(backgroundColor: backgroundColor, foregroundColor: textColor, maximumCornerRadius: self.item.theme.isMessagesTheme ? MessagesAppearanceMetrics.actionCornerRadius : nil), animated: false)
         self.buttonNode.title = self.item.title
                 
         self.buttonNode.pressed = { [weak self] in

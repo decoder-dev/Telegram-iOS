@@ -165,7 +165,7 @@ class ChatScheduleTimeControllerNode: ViewControllerTracingNode, ASScrollViewDel
             subtitleNode.maximumNumberOfLines = 0
             subtitleNode.textAlignment = .center
             subtitleNode.lineSpacing = 0.2
-            subtitleNode.accessibilityLabel = text
+            subtitleNode.accessibilityLabel = subtitle
             subtitleNode.accessibilityTraits = [.staticText]
             self.subtitleNode = subtitleNode
         } else {
