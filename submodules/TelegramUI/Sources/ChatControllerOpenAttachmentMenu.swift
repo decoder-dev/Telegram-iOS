@@ -544,7 +544,7 @@ extension ChatControllerImpl {
                             } else {
                                 title = presentationData.strings.Conversation_EditingMessageMediaEditCurrentVideo
                             }
-                            let state = AttachmentMainButtonState(text: title, badge: nil, font: .bold, background: .color(presentationData.theme.actionSheet.controlAccentColor), textColor: presentationData.theme.list.itemCheckColors.foregroundColor, isVisible: true, progress: .none, isEnabled: true, hasShimmer: false, keepsTabRow: true)
+                            let state = AttachmentMainButtonState(text: title, badge: nil, font: .bold, background: .color(presentationData.theme.isMessagesTheme ? presentationData.theme.list.itemCheckColors.fillColor : presentationData.theme.actionSheet.controlAccentColor), textColor: presentationData.theme.list.itemCheckColors.foregroundColor, isVisible: true, progress: .none, isEnabled: true, hasShimmer: false, keepsTabRow: true)
                             editCurrentMediaButton = (state, { [weak self, weak attachmentController] in
                                 attachmentController?.dismiss(animated: true)
                                 self?.presentCurrentMediaEditor(mediaReference: currentMediaReference)

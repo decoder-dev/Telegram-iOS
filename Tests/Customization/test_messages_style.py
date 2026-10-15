@@ -18,6 +18,61 @@ def declaration(source, marker):
 
 
 class MessagesStyleTests(unittest.TestCase):
+    def test_modern_and_legacy_sections_share_geometry(self):
+        modern = read('submodules/TelegramUI/Components/ListSectionComponent/Sources/ListSectionComponent.swift')
+        self.assertEqual(modern.count('configuration.theme.isMessagesTheme ? MessagesAppearanceMetrics.sectionCornerRadius :'), 2)
+        self.assertIn('case .plain:\n            cornerRadius = 0.0', modern)
+        legacy = read('submodules/TelegramPresentationData/Sources/Resources/PresentationResourcesItemList.swift')
+        self.assertIn('theme.isMessagesTheme ? MessagesAppearanceMetrics.sectionCornerRadius :', legacy)
+        buttons = read('submodules/SolidRoundedButtonNode/Sources/SolidRoundedButtonNode.swift')
+        self.assertEqual(buttons.count('return self.theme.resolvedCornerRadius(self.requestedCornerRadius, height: self.buttonHeight)'), 2)
+        self.assertIn('maximumCornerRadius: self.maximumCornerRadius)', buttons)
+
+    def test_independent_screen_cards_update_their_style_when_reused(self):
+        for path in ('StorageUsageScreen/Sources/DataCategoriesComponent.swift', 'TextProcessingScreen/Sources/TextProcessingTranslateContentComponent.swift', 'SendInviteLinkScreen/Sources/SendInviteLinkScreen.swift', 'ChatFolderLinkPreviewScreen/Sources/ChatFolderLinkPreviewScreen.swift', 'ListSwitchItemComponent/Sources/ListSwitchItemComponent.swift', 'PeerAllowedReactionsScreen/Sources/EmojiListInputComponent.swift', 'Gifts/GiftViewScreen/Sources/GiftAuctionActiveBidsScreen.swift'):
+            source = read('submodules/TelegramUI/Components/' + path)
+            self.assertIn('component.theme.isMessagesTheme ? MessagesAppearanceMetrics.sectionCornerRadius : 26.0', source, path)
+        share = read('submodules/TelegramUI/Components/ShareWithPeersScreen/Sources/ShareWithPeersScreen.swift')
+        self.assertIn('environment.theme.isMessagesTheme ? MessagesAppearanceMetrics.sectionCornerRadius : 26.0', share)
+
+    @unittest.skipUnless(shutil.which('swift'), 'Swift unavailable locally; runs in macOS CI')
+    def test_production_button_theme_geometry_and_copy(self):
+        source = read('submodules/SolidRoundedButtonNode/Sources/SolidRoundedButtonNode.swift')
+        fixture = 'import Foundation\npublic typealias UIColor = Int\n' + declaration(source, 'public final class SolidRoundedButtonTheme:')
+        fixture += '''
+let original = SolidRoundedButtonTheme(backgroundColor: 1, foregroundColor: 2)
+let messages = SolidRoundedButtonTheme(backgroundColor: 1, foregroundColor: 2, maximumCornerRadius: 14)
+precondition(original != messages)
+let copy = messages.withUpdated(disabledBackgroundColor: 3, disabledForegroundColor: 4)
+precondition(copy.maximumCornerRadius == 14 && copy.foregroundColor == 2 && copy.backgroundColor == 1)
+for requested: CGFloat in [-20, 0, 8, 14, 26, 50] {
+    for height: CGFloat in [-10, 0, 16, 44, 100] {
+        precondition(original.resolvedCornerRadius(requested, height: height) == requested)
+        let radius = messages.resolvedCornerRadius(requested, height: height)
+        precondition(radius >= 0 && radius <= 14 && radius <= max(0, height / 2))
+        precondition(copy.resolvedCornerRadius(requested, height: height) == radius)
+    }
+}
+'''
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / 'main.swift'
+            path.write_text(fixture, encoding='utf-8')
+            subprocess.run(['swift', '-swift-version', '5', str(path)], check=True, capture_output=True, text=True, timeout=60)
+
+    def test_shared_section_switch_preserves_callbacks_and_theme_changes(self):
+        source = read('submodules/ItemListUI/Sources/ItemListControllerSegmentedTitleView.swift')
+        for contract in ('self.messagesControl.isHidden = !usesMessages', 'self.backgroundContainer.isHidden = usesMessages', 'self.messagesControl.removeAllSegments()', 'UISegmentedControl.noSegment', 'self.indexUpdated?(index)', 'self.segments.indices.contains(index)', '(44.0 - self.bounds.height) * 0.5', 'preferredContentSizeCategory'):
+            self.assertIn(contract, source)
+        self.assertIn('HorizontalTabsComponent(', source)
+
+    def test_attachment_checkout_and_alerts_use_matching_foreground_pairs(self):
+        for path in ('submodules/MediaPickerUI/Sources/MediaPickerScreen.swift', 'submodules/TelegramUI/Sources/ChatControllerOpenAttachmentMenu.swift', 'submodules/BotPaymentsUI/Sources/BotCheckoutControllerNode.swift'):
+            source = read(path)
+            self.assertIn('theme.isMessagesTheme ? ', source)
+            self.assertIn('theme.list.itemCheckColors.fillColor : ', source)
+        alerts = read('submodules/TelegramPresentationData/Sources/ComponentsThemes.swift')
+        self.assertEqual(alerts.count('contrastColor: presentationTheme.isMessagesTheme ? actionSheet.checkContentColor :'), 2)
+
     def test_search_shape_survives_activation_and_resets_when_theme_changes(self):
         source = read('submodules/SearchBarNode/Sources/SearchBarNode.swift')
         self.assertIn('self.inlineSearchPlaceholder.maximumCornerRadius = presentationTheme.isMessagesTheme ? MessagesAppearanceMetrics.searchCornerRadius : nil', source)

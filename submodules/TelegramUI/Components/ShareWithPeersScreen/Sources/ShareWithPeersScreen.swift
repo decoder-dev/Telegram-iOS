@@ -1113,6 +1113,8 @@ final class ShareWithPeersScreenComponent: Component {
                             self.visibleSectionBackgrounds[section.id] = sectionBackground
                         }
                         
+                        sectionBackground.backgroundColor = environment.theme.list.itemModalBlocksBackgroundColor
+                        sectionBackground.layer.cornerRadius = environment.theme.isMessagesTheme ? MessagesAppearanceMetrics.sectionCornerRadius : 26.0
                         if sectionBackground.superview == nil {
                             sectionBackground.isUserInteractionEnabled = false
                             self.itemContainerView.addSubview(sectionBackground)

@@ -57,7 +57,7 @@ public final class ListSwitchItemComponent: Component {
             self.state = state
             
             self.backgroundColor = component.theme.list.itemBlocksBackgroundColor
-            self.layer.cornerRadius = 26.0
+            self.layer.cornerRadius = component.theme.isMessagesTheme ? MessagesAppearanceMetrics.sectionCornerRadius : 26.0
             
             let size = CGSize(width: availableSize.width, height: 52.0)
             let rightInset: CGFloat = 16.0

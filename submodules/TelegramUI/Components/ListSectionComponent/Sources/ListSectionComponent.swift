@@ -175,9 +175,9 @@ public final class ListSectionContentView: UIView {
         let cornerRadius: CGFloat
         switch configuration.style {
         case .glass:
-            cornerRadius = 26.0
+            cornerRadius = configuration.theme.isMessagesTheme ? MessagesAppearanceMetrics.sectionCornerRadius : 26.0
         case .legacy:
-            cornerRadius = 11.0
+            cornerRadius = configuration.theme.isMessagesTheme ? MessagesAppearanceMetrics.sectionCornerRadius : 11.0
         case .plain:
             cornerRadius = 0.0
         }

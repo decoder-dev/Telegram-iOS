@@ -754,7 +754,7 @@ final class BotCheckoutControllerNode: ItemListControllerNode, PKPaymentAuthoriz
 
         self.actionButtonPanelSeparator = ASDisplayNode()
         
-        self.actionButton = BotCheckoutActionButton(activeFillColor: self.presentationData.theme.list.itemAccentColor, inactiveFillColor: self.presentationData.theme.list.itemDisabledTextColor.mixedWith(self.presentationData.theme.list.blocksBackgroundColor, alpha: 0.7), foregroundColor: self.presentationData.theme.list.itemCheckColors.foregroundColor)
+        self.actionButton = BotCheckoutActionButton(activeFillColor: self.presentationData.theme.isMessagesTheme ? self.presentationData.theme.list.itemCheckColors.fillColor : self.presentationData.theme.list.itemAccentColor, inactiveFillColor: self.presentationData.theme.list.itemDisabledTextColor.mixedWith(self.presentationData.theme.list.blocksBackgroundColor, alpha: 0.7), foregroundColor: self.presentationData.theme.list.itemCheckColors.foregroundColor)
         self.actionButton.setState(.placeholder)
         
         self.inProgressDimNode = ASDisplayNode()

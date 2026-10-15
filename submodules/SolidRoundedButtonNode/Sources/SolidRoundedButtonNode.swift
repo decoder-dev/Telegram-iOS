@@ -27,17 +27,24 @@ public final class SolidRoundedButtonTheme: Equatable {
     public let foregroundColor: UIColor
     public let disabledBackgroundColor: UIColor?
     public let disabledForegroundColor: UIColor?
+    public let maximumCornerRadius: CGFloat?
     
-    public init(backgroundColor: UIColor, backgroundColors: [UIColor] = [], foregroundColor: UIColor, disabledBackgroundColor: UIColor? = nil, disabledForegroundColor: UIColor? = nil) {
+    public init(backgroundColor: UIColor, backgroundColors: [UIColor] = [], foregroundColor: UIColor, disabledBackgroundColor: UIColor? = nil, disabledForegroundColor: UIColor? = nil, maximumCornerRadius: CGFloat? = nil) {
         self.backgroundColor = backgroundColor
         self.backgroundColors = backgroundColors
         self.foregroundColor = foregroundColor
         self.disabledBackgroundColor = disabledBackgroundColor
         self.disabledForegroundColor = disabledForegroundColor
+        self.maximumCornerRadius = maximumCornerRadius
     }
     
     public func withUpdated(disabledBackgroundColor: UIColor, disabledForegroundColor: UIColor) -> SolidRoundedButtonTheme {
-        return SolidRoundedButtonTheme(backgroundColor: self.backgroundColor, backgroundColors: self.backgroundColors, foregroundColor: self.foregroundColor, disabledBackgroundColor: disabledBackgroundColor, disabledForegroundColor: disabledForegroundColor)
+        return SolidRoundedButtonTheme(backgroundColor: self.backgroundColor, backgroundColors: self.backgroundColors, foregroundColor: self.foregroundColor, disabledBackgroundColor: disabledBackgroundColor, disabledForegroundColor: disabledForegroundColor, maximumCornerRadius: self.maximumCornerRadius)
+    }
+
+    public func resolvedCornerRadius(_ requested: CGFloat, height: CGFloat) -> CGFloat {
+        guard let maximumCornerRadius = self.maximumCornerRadius else { return requested }
+        return min(max(0.0, requested), max(0.0, maximumCornerRadius), max(0.0, height * 0.5))
     }
     
     public static func ==(lhs: SolidRoundedButtonTheme, rhs: SolidRoundedButtonTheme) -> Bool {
@@ -54,6 +61,9 @@ public final class SolidRoundedButtonTheme: Equatable {
             return false
         }
         if lhs.disabledForegroundColor != rhs.disabledForegroundColor {
+            return false
+        }
+        if lhs.maximumCornerRadius != rhs.maximumCornerRadius {
             return false
         }
         return true
@@ -190,7 +200,10 @@ public final class SolidRoundedButtonNode: ASDisplayNode {
     private var badgeNode: BadgeNode?
     
     private let buttonHeight: CGFloat
-    public let buttonCornerRadius: CGFloat
+    private let requestedCornerRadius: CGFloat
+    public var buttonCornerRadius: CGFloat {
+        return self.theme.resolvedCornerRadius(self.requestedCornerRadius, height: self.buttonHeight)
+    }
     
     public var pressed: (() -> Void)?
     public var validLayout: CGFloat?
@@ -355,7 +368,7 @@ public final class SolidRoundedButtonNode: ASDisplayNode {
         self.font = font
         self.fontSize = fontSize
         self.buttonHeight = height
-        self.buttonCornerRadius = cornerRadius
+        self.requestedCornerRadius = cornerRadius
         self.title = title
         self.isShimmering = isShimmering
         
@@ -379,7 +392,7 @@ public final class SolidRoundedButtonNode: ASDisplayNode {
             self.buttonBackgroundAnimationView = buttonBackgroundAnimationView
         }
         
-        self.buttonBackgroundNode.cornerRadius = cornerRadius
+        self.buttonBackgroundNode.cornerRadius = theme.resolvedCornerRadius(cornerRadius, height: height)
                 
         self.buttonNode = HighlightTrackingButtonNode()
         
@@ -704,12 +717,17 @@ public final class SolidRoundedButtonNode: ASDisplayNode {
         let buttonSize = CGSize(width: width, height: self.buttonHeight)
         let buttonFrame = CGRect(origin: CGPoint(), size: buttonSize)
         transition.updateFrame(node: self.buttonBackgroundNode, frame: buttonFrame)
+        if self.progressNode == nil {
+            transition.updateCornerRadius(node: self.buttonBackgroundNode, cornerRadius: self.buttonCornerRadius)
+        }
         
         if let shimmerView = self.shimmerView, let borderView = self.borderView, let borderMaskView = self.borderMaskView, let borderShimmerView = self.borderShimmerView {
             transition.updateFrame(view: shimmerView, frame: buttonFrame)
             transition.updateFrame(view: borderView, frame: buttonFrame)
             transition.updateFrame(view: borderMaskView, frame: buttonFrame)
             transition.updateFrame(view: borderShimmerView, frame: buttonFrame)
+            transition.updateCornerRadius(layer: shimmerView.layer, cornerRadius: self.buttonCornerRadius)
+            transition.updateCornerRadius(layer: borderMaskView.layer, cornerRadius: self.buttonCornerRadius)
             
             shimmerView.updateAbsoluteRect(CGRect(origin: CGPoint(x: width * 4.0, y: 0.0), size: buttonSize), within: CGSize(width: width * 9.0, height: buttonHeight))
             borderShimmerView.updateAbsoluteRect(CGRect(origin: CGPoint(x: width * 4.0, y: 0.0), size: buttonSize), within: CGSize(width: width * 9.0, height: buttonHeight))
@@ -961,7 +979,10 @@ public final class SolidRoundedButtonView: UIView {
     private var badgeNode: BadgeNode?
     
     private let buttonHeight: CGFloat
-    private let buttonCornerRadius: CGFloat
+    private let requestedCornerRadius: CGFloat
+    private var buttonCornerRadius: CGFloat {
+        return self.theme.resolvedCornerRadius(self.requestedCornerRadius, height: self.buttonHeight)
+    }
     
     public var pressed: (() -> Void)?
     public var validLayout: CGFloat?
@@ -1112,7 +1133,7 @@ public final class SolidRoundedButtonView: UIView {
         self.font = font
         self.fontSize = fontSize
         self.buttonHeight = height
-        self.buttonCornerRadius = cornerRadius
+        self.requestedCornerRadius = cornerRadius
         self.title = title
         self.label = label
         self.badge = badge
@@ -1120,7 +1141,7 @@ public final class SolidRoundedButtonView: UIView {
         
         self.buttonBackgroundNode = UIImageView()
         self.buttonBackgroundNode.clipsToBounds = true
-        self.buttonBackgroundNode.layer.cornerRadius = cornerRadius
+        self.buttonBackgroundNode.layer.cornerRadius = theme.resolvedCornerRadius(cornerRadius, height: height)
         if #available(iOS 13.0, *) {
             self.buttonBackgroundNode.layer.cornerCurve = .continuous
         }
@@ -1473,12 +1494,17 @@ public final class SolidRoundedButtonView: UIView {
         let buttonSize = CGSize(width: width, height: self.buttonHeight)
         let buttonFrame = CGRect(origin: CGPoint(), size: buttonSize)
         transition.updateFrame(view: self.buttonBackgroundNode, frame: buttonFrame)
+        if self.progressNode == nil {
+            transition.updateCornerRadius(layer: self.buttonBackgroundNode.layer, cornerRadius: self.buttonCornerRadius)
+        }
         
         if let shimmerView = self.shimmerView, let borderView = self.borderView, let borderMaskView = self.borderMaskView, let borderShimmerView = self.borderShimmerView {
             transition.updateFrame(view: shimmerView, frame: buttonFrame)
             transition.updateFrame(view: borderView, frame: buttonFrame)
             transition.updateFrame(view: borderMaskView, frame: buttonFrame)
             transition.updateFrame(view: borderShimmerView, frame: buttonFrame)
+            transition.updateCornerRadius(layer: shimmerView.layer, cornerRadius: self.buttonCornerRadius)
+            transition.updateCornerRadius(layer: borderMaskView.layer, cornerRadius: self.buttonCornerRadius)
             
             shimmerView.updateAbsoluteRect(CGRect(origin: CGPoint(x: width * 4.0, y: 0.0), size: buttonSize), within: CGSize(width: width * 9.0, height: buttonHeight))
             borderShimmerView.updateAbsoluteRect(CGRect(origin: CGPoint(x: width * 4.0, y: 0.0), size: buttonSize), within: CGSize(width: width * 9.0, height: buttonHeight))

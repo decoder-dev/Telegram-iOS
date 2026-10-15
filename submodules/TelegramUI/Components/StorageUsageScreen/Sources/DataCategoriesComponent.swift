@@ -92,6 +92,7 @@ final class DataCategoriesComponent: Component {
         }
         
         func update(component: DataCategoriesComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
+            self.layer.cornerRadius = component.theme.isMessagesTheme ? MessagesAppearanceMetrics.sectionCornerRadius : 26.0
             self.component = component
             self.state = state
             

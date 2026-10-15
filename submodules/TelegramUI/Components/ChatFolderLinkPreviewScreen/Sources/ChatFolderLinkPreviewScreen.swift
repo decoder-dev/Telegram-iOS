@@ -381,6 +381,7 @@ private final class ChatFolderLinkPreviewContentComponent: Component {
         }
 
         func update(component: ChatFolderLinkPreviewContentComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<EnvironmentType>, transition: ComponentTransition) -> CGSize {
+            self.itemContainerView.layer.cornerRadius = component.theme.isMessagesTheme ? MessagesAppearanceMetrics.sectionCornerRadius : 26.0
             let environment = environment[EnvironmentType.self].value
 
             self.component = component
