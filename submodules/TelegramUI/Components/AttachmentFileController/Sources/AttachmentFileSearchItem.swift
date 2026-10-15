@@ -76,7 +76,7 @@ final class AttachmentFileSearchItem: ItemListControllerSearch {
         switch self.mode {
         case .audio:
             if let current = current as? AttachmentFileSearchNavigationContentNode {
-                current.updateTheme(self.presentationData.theme)
+                current.updateThemeAndStrings(theme: self.presentationData.theme, strings: self.presentationData.strings)
                 return current
             } else {
                 return AttachmentFileSearchNavigationContentNode(theme: self.presentationData.theme, strings: self.presentationData.strings, cancel: self.cancel, focus: self.focus, updateActivity: { _ in
@@ -999,7 +999,7 @@ private final class AttachmentFileSearchNavigationContentNode: NavigationBarCont
     }
     
     private var theme: PresentationTheme
-    private let strings: PresentationStrings
+    private var strings: PresentationStrings
     
     private let cancel: () -> Void
     
@@ -1009,6 +1009,7 @@ private final class AttachmentFileSearchNavigationContentNode: NavigationBarCont
     private var activityIndicator: ActivityIndicator?
     private let searchBar: SearchBarNode
     private let close: (background: GlassBackgroundView, icon: UIImageView)
+    private let closeButton = HighlightTrackingButton()
     
     private var params: Params?
     
@@ -1063,7 +1064,8 @@ private final class AttachmentFileSearchNavigationContentNode: NavigationBarCont
         self.backgroundView.contentView.addSubview(self.searchBar.view)
         
         self.backgroundContainer.contentView.addSubview(self.close.background)
-        self.close.background.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(self.onCloseTapGesture(_:))))
+        self.backgroundContainer.contentView.addSubview(self.closeButton)
+        self.closeButton.addTarget(self, action: #selector(self.closePressed), for: .touchUpInside)
         
         self.searchBar.cancel = { [weak self] in
             self?.searchBar.deactivate(clear: false)
@@ -1087,18 +1089,19 @@ private final class AttachmentFileSearchNavigationContentNode: NavigationBarCont
         self.updatePlaceholder()
     }
     
-    @objc private func onCloseTapGesture(_ recognizer: UITapGestureRecognizer) {
-        if case .ended = recognizer.state {
-            self.searchBar.cancel?()
-        }
+    @objc private func closePressed() {
+        self.searchBar.cancel?()
     }
     
     func setQueryUpdated(_ f: @escaping (String) -> Void) {
         self.queryUpdated = f
     }
     
-    func updateTheme(_ theme: PresentationTheme) {
+    func updateThemeAndStrings(theme: PresentationTheme, strings: PresentationStrings) {
+        guard self.theme !== theme || self.strings !== strings else { return }
         self.theme = theme
+        self.strings = strings
+        self.activityIndicator?.type = .custom(theme.chat.inputPanel.inputControlColor, 14.0, 1.0, false)
         
         let searchBarTheme = SearchBarNodeTheme(
             background: .clear,
@@ -1134,14 +1137,14 @@ private final class AttachmentFileSearchNavigationContentNode: NavigationBarCont
         
         let transition = ComponentTransition(transition)
         
-        let backgroundFrame = CGRect(origin: CGPoint(x: leftInset + 16.0, y: 6.0), size: CGSize(width: size.width - 16.0 * 2.0 - leftInset - rightInset - 44.0 - 8.0, height: 44.0))
+        let backgroundFrame = CGRect(origin: CGPoint(x: leftInset + 16.0, y: 6.0), size: CGSize(width: max(1.0, size.width - 16.0 * 2.0 - leftInset - rightInset - 44.0 - 8.0), height: 44.0))
         let closeFrame = CGRect(origin: CGPoint(x: size.width - 16.0 - rightInset - 44.0, y: backgroundFrame.minY), size: CGSize(width: 44.0, height: 44.0))
         
         transition.setFrame(view: self.backgroundContainer, frame: CGRect(origin: CGPoint(), size: size))
         self.backgroundContainer.update(size: size, isDark: self.theme.overallDarkAppearance, transition: transition)
         
         transition.setFrame(view: self.backgroundView, frame: backgroundFrame)
-        self.backgroundView.update(size: backgroundFrame.size, cornerRadius: backgroundFrame.height * 0.5, isDark: self.theme.overallDarkAppearance, tintColor: .init(kind: .panel), isInteractive: true, transition: transition)
+        self.backgroundView.update(size: backgroundFrame.size, cornerRadius: self.theme.isMessagesTheme ? MessagesAppearanceMetrics.searchRadius(height: backgroundFrame.height) : backgroundFrame.height * 0.5, isDark: self.theme.overallDarkAppearance, tintColor: self.theme.isMessagesTheme ? .init(kind: .custom(style: .default, color: self.theme.rootController.navigationSearchBar.inputFillColor)) : .init(kind: .panel), isInteractive: true, transition: transition)
 
         if self.iconView.image == nil {
             self.iconView.image = UIImage(bundleImageName: "Navigation/Search")?.withRenderingMode(.alwaysTemplate)
@@ -1163,7 +1166,7 @@ private final class AttachmentFileSearchNavigationContentNode: NavigationBarCont
             if let current = self.activityIndicator {
                 activityIndicator = current
             } else {
-                activityIndicator = ActivityIndicator(type: .custom(self.theme.chat.inputPanel.inputControlColor, 14.0, 14.0, false))
+                activityIndicator = ActivityIndicator(type: .custom(self.theme.chat.inputPanel.inputControlColor, 14.0, 1.0, false))
                 self.activityIndicator = activityIndicator
                 self.backgroundView.contentView.addSubview(activityIndicator.view)
             }
@@ -1177,7 +1180,7 @@ private final class AttachmentFileSearchNavigationContentNode: NavigationBarCont
         }
         self.iconView.isHidden = self.activity
         
-        let searchBarFrame = CGRect(origin: CGPoint(x: 36.0, y: 0.0), size: CGSize(width: backgroundFrame.width - 36.0 - 4.0, height: 44.0))
+        let searchBarFrame = CGRect(origin: CGPoint(x: 36.0, y: 0.0), size: CGSize(width: max(1.0, backgroundFrame.width - 36.0 - 4.0), height: 44.0))
         transition.setFrame(view: self.searchBar.view, frame: searchBarFrame)
         self.searchBar.updateLayout(boundingSize: searchBarFrame.size, leftInset: 0.0, rightInset: 0.0, transition: transition.containedViewLayoutTransition)
         
@@ -1203,6 +1206,9 @@ private final class AttachmentFileSearchNavigationContentNode: NavigationBarCont
         }
         self.close.icon.tintColor = self.theme.chat.inputPanel.panelControlColor
         
+        transition.setFrame(view: self.closeButton, frame: closeFrame)
+        self.closeButton.accessibilityLabel = self.strings.Common_Cancel
+        self.closeButton.accessibilityTraits = .button
         transition.setFrame(view: self.close.background, frame: closeFrame)
         self.close.background.update(size: closeFrame.size, cornerRadius: closeFrame.height * 0.5, isDark: self.theme.overallDarkAppearance, tintColor: .init(kind: .panel), isInteractive: true, transition: transition)
         

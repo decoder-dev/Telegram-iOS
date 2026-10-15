@@ -11,6 +11,53 @@ from test_messages_screen_states import member, run_swift
 
 class MessagesActionSurfaces(unittest.TestCase):
     @unittest.skipUnless(shutil.which('swift'), 'Swift unavailable locally; executes in macOS CI')
+    def test_production_search_reset_identity_and_safe_area_geometry(self):
+        source = read('submodules/TelegramUI/Components/SearchInputPanelComponent/Sources/SearchInputPanelComponent.swift')
+        fixture = 'import Foundation\nimport CoreGraphics\nenum SearchInputPanelComponent {\n'
+        fixture += member(source, 'public final class ResetText: Equatable {') + '\n}\n'
+        fixture += member(source, 'private func searchInputPanelResetText(') + '\n'
+        fixture += member(source, 'private func searchInputPanelFrames(') + '\n'
+        fixture += '''
+let first = SearchInputPanelComponent.ResetText(value: "query")
+precondition(searchInputPanelResetText(previous: nil, next: first) == "query")
+precondition(searchInputPanelResetText(previous: first, next: first) == nil)
+let again = SearchInputPanelComponent.ResetText(value: "query")
+precondition(searchInputPanelResetText(previous: first, next: again) == "query")
+let clear = SearchInputPanelComponent.ResetText(value: "")
+precondition(searchInputPanelResetText(previous: first, next: clear) == "")
+precondition(searchInputPanelResetText(previous: first, next: nil) == nil)
+for width: CGFloat in [320, 393, 568, 768] {
+    for left: CGFloat in [11, 55] {
+        for right: CGFloat in [11, 55] {
+            for height: CGFloat in [48, 50, 90] {
+                for cancel: CGFloat in [44, 80, 150] {
+                    let frames = searchInputPanelFrames(width: width, leftInset: left, rightInset: right, topInset: 10, fieldHeight: height, cancelWidth: cancel)
+                    precondition(frames.field.minX == left && frames.field.width > 0)
+                    precondition(frames.cancel.minX >= frames.field.maxX + 10)
+                    precondition(frames.cancel.maxX <= width - right + 0.001)
+                    precondition(frames.field.height == height && frames.cancel.height == height)
+                }
+            }
+        }
+    }
+}
+'''
+        run_swift(fixture)
+
+    def test_search_panels_keep_localized_controls_and_current_theme(self):
+        source = read('submodules/TelegramUI/Components/SearchInputPanelComponent/Sources/SearchInputPanelComponent.swift')
+        self.assertIn('searchInputPanelResetText(previous: previousComponent?.resetText, next: component.resetText)', source)
+        self.assertIn('self.textField.text = resetText', source)
+        self.assertIn('MessagesAppearanceMetrics.searchRadius(height: fieldHeight)', source)
+        self.assertIn('usesMessages ? AnyComponent(PlainButtonComponent(', source)
+        self.assertIn('clearButtonView.accessibilityLabel = component.strings.VoiceOver_Editing_ClearText', source)
+        self.assertIn('fieldFrame.width - fieldSideInset - self.textField.trailingInset', source)
+        files = read('submodules/TelegramUI/Components/AttachmentFileController/Sources/AttachmentFileSearchItem.swift')
+        self.assertIn('current.updateThemeAndStrings(theme: self.presentationData.theme, strings: self.presentationData.strings)', files)
+        self.assertIn('self.closeButton.addTarget(self, action: #selector(self.closePressed)', files)
+        self.assertIn('self.closeButton.accessibilityLabel = self.strings.Common_Cancel', files)
+
+    @unittest.skipUnless(shutil.which('swift'), 'Swift unavailable locally; executes in macOS CI')
     def test_production_gradient_stops_for_invalid_data_hidden_views_and_reduced_motion(self):
         source = read('submodules/TelegramUI/Components/ButtonComponent/Sources/ButtonComponent.swift')
         fixture = 'import Foundation\nimport CoreGraphics\n'
