@@ -32,6 +32,57 @@ def run_swift(source):
 
 
 class ScreenStateTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which('swift'), 'Swift unavailable locally; executes in macOS CI')
+    def test_production_settings_row_actions_use_current_item_and_disabled_state(self):
+        fixture = """import Foundation
+class Model { var enabled = true; var action: (() -> Void)?; var deleted: (() -> Void)? }
+"""
+        paths = [
+            ('Reaction', 'submodules/TelegramUI/Components/Settings/QuickReactionSetupController/Sources/ItemListReactionItem.swift', 'private func activateItem()'),
+            ('Notification', 'submodules/SettingsUI/Sources/Notifications/NotificationsCategoryItemListItem.swift', 'private func activateItem()'),
+            ('Domain', 'submodules/SettingsUI/Sources/Data and Storage/WebBrowserDomainExceptionItem.swift', '@objc private func accessibilityDelete()'),
+        ]
+        for name, path, signature in paths:
+            method = member(read(path), signature).replace('@objc ', '').replace('private ', '')
+            fixture += 'class ' + name + ' { var item: Model?\n' + method + '\n}\n'
+        fixture += """
+var count = 0
+let reaction = Reaction(); let notification = Notification(); let domain = Domain()
+precondition(!reaction.activateItem() && !notification.activateItem() && !domain.accessibilityDelete())
+let model = Model(); model.action = { count += 1 }; model.deleted = { count += 1 }
+reaction.item = model; notification.item = model; domain.item = model
+precondition(reaction.activateItem() && notification.activateItem() && domain.accessibilityDelete())
+precondition(count == 3)
+model.enabled = false
+precondition(!notification.activateItem() && count == 3)
+let next = Model(); next.action = { count += 10 }; next.deleted = { count += 100 }
+reaction.item = next; notification.item = next; domain.item = next
+precondition(reaction.activateItem() && notification.activateItem() && domain.accessibilityDelete())
+precondition(count == 123)
+next.action = nil; next.deleted = nil
+precondition(!reaction.activateItem() && !notification.activateItem() && !domain.accessibilityDelete())
+"""
+        run_swift(fixture)
+
+    def test_settings_rows_reserve_metadata_width_and_backgrounds_stay_behind_inputs(self):
+        reaction = read('submodules/TelegramUI/Components/Settings/QuickReactionSetupController/Sources/ItemListReactionItem.swift')
+        notifications = read('submodules/SettingsUI/Sources/Notifications/NotificationsCategoryItemListItem.swift')
+        for body in (reaction, notifications):
+            self.assertIn('self.activateArea.activate = { [weak self]', body)
+            self.assertIn('maximumNumberOfLines: usesMessages ? 2 : 1', body)
+            self.assertIn('MessagesAppearanceMetrics.rowHeight(contentHeight:', body)
+        self.assertIn('params.width - rightInset - leftInset - additionalTextRightInset - 10.0', notifications)
+        self.assertIn('[item.subtitle, item.label].filter', notifications)
+        self.assertIn('strongSelf.iconView.isHidden = animationContent == nil', reaction)
+        domain = read('submodules/SettingsUI/Sources/Data and Storage/WebBrowserDomainExceptionItem.swift')
+        self.assertIn('selector: #selector(strongSelf.accessibilityDelete)', domain)
+        for path in (
+            'submodules/TelegramUI/Components/AlertComponent/AlertInputFieldComponent/Sources/AlertInputFieldComponent.swift',
+            'submodules/TelegramUI/Components/AlertComponent/AlertMultilineInputFieldComponent/Sources/AlertMultilineInputFieldComponent.swift',
+            'submodules/TelegramUI/Components/Gifts/GiftViewScreen/Sources/GiftAuctionCustomBidController.swift',
+        ):
+            self.assertIn('self.insertSubview(backgroundView, at: 0)', read(path))
+
     def test_birthday_modes_remove_stale_content_and_restore_reused_year_action(self):
         source = read('submodules/TelegramUI/Components/Settings/BirthdayPickerScreen/Sources/BirthdayPickerContentComponent.swift')
         self.assertIn('lhs.context !== rhs.context || lhs.settings !== rhs.settings', source)

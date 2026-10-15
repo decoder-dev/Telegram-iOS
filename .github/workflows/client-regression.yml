@@ -27,6 +27,7 @@ on:
       - 'submodules/AuthorizationUI/**'
       - 'submodules/TelegramUIPreferences/**'
       - 'submodules/TelegramUI/**'
+      - 'submodules/SettingsUI/**'
       - 'submodules/ItemListUI/**'
       - 'submodules/SearchBarNode/**'
       - 'submodules/SearchUI/**'

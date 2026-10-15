@@ -157,6 +157,15 @@ public class ItemListReactionItemNode: ListViewItemNode, ItemListItemNode {
         self.addSubnode(self.arrowNode)
         
         self.addSubnode(self.activateArea)
+        self.activateArea.activate = { [weak self] in
+            return self?.activateItem() ?? false
+        }
+    }
+
+    private func activateItem() -> Bool {
+        guard let action = self.item?.action else { return false }
+        action()
+        return true
     }
     
     deinit {
@@ -206,9 +215,10 @@ public class ItemListReactionItemNode: ListViewItemNode, ItemListItemNode {
             
             let titleColor: UIColor = item.presentationData.theme.list.itemPrimaryTextColor
             
-            let titleFont = Font.regular(item.presentationData.fontSize.itemListBaseFontSize)
+            let usesMessages = item.presentationData.theme.isMessagesTheme
+            let titleFont = usesMessages ? Font.medium(item.presentationData.fontSize.itemListBaseFontSize) : Font.regular(item.presentationData.fontSize.itemListBaseFontSize)
             
-            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.title, font: titleFont, textColor: titleColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - params.rightInset - 20.0 - leftInset - additionalTextRightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.title, font: titleFont, textColor: titleColor), backgroundColor: nil, maximumNumberOfLines: usesMessages ? 2 : 1, truncationType: .end, constrainedSize: CGSize(width: max(0.0, params.width - params.rightInset - 20.0 - leftInset - additionalTextRightInset), height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             let verticalInset: CGFloat
             switch item.systemStyle {
@@ -219,7 +229,7 @@ public class ItemListReactionItemNode: ListViewItemNode, ItemListItemNode {
             }
             
             let height: CGFloat
-            height = verticalInset * 2.0 + titleLayout.size.height
+            height = usesMessages ? MessagesAppearanceMetrics.rowHeight(contentHeight: titleLayout.size.height, verticalInset: verticalInset) : verticalInset * 2.0 + titleLayout.size.height
             
             switch item.style {
             case .plain:
@@ -243,7 +253,12 @@ public class ItemListReactionItemNode: ListViewItemNode, ItemListItemNode {
                     strongSelf.activateArea.frame = CGRect(origin: CGPoint(x: params.leftInset, y: 0.0), size: CGSize(width: params.width - params.leftInset - params.rightInset, height: layout.contentSize.height))
                     strongSelf.activateArea.accessibilityLabel = item.title
                     
-                    strongSelf.activateArea.accessibilityTraits = []
+                    strongSelf.activateArea.accessibilityTraits = item.action == nil ? [.staticText] : [.button]
+                    if case let .builtin(value) = item.reaction {
+                        strongSelf.activateArea.accessibilityValue = value
+                    } else {
+                        strongSelf.activateArea.accessibilityValue = nil
+                    }
                     
                     if let icon = item.icon {
                         if strongSelf.iconNode.supernode == nil {
@@ -369,6 +384,7 @@ public class ItemListReactionItemNode: ListViewItemNode, ItemListItemNode {
                         strongSelf.arrowNode.isHidden = true
                     }
                     
+                    strongSelf.iconView.isHidden = animationContent == nil
                     if let animationContent = animationContent {
                         let iconBoundingSize = CGSize(width: 28.0, height: 28.0)
                         let iconOffsetX: CGFloat = -6.0

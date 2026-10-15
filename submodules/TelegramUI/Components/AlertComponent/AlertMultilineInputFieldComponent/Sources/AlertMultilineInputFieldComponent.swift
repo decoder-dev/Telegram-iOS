@@ -362,7 +362,7 @@ public final class AlertMultilineInputFieldComponent: Component {
             let backgroundFrame = CGRect(origin: CGPoint(x: floorToScreenPixels((availableSize.width - backgroundSize.width) / 2.0), y: topInset ), size: backgroundSize)
             if let backgroundView = self.background.view {
                 if backgroundView.superview == nil {
-                    self.addSubview(backgroundView)
+                    self.insertSubview(backgroundView, at: 0)
                 }
                 transition.setFrame(view: backgroundView, frame: backgroundFrame)
             }
