@@ -923,9 +923,9 @@ private final class AdminUserActionsContentComponent: Component {
             if let configSectionView = self.configSection.view {
                 if configSectionView.superview == nil {
                     configSectionView.clipsToBounds = true
-                    configSectionView.layer.cornerRadius = 11.0
                     self.addSubview(configSectionView)
                 }
+                configSectionView.layer.cornerRadius = component.theme.isMessagesTheme ? MessagesAppearanceMetrics.sectionCornerRadius : 11.0
                 let effectiveConfigSectionFrame: CGRect
                 if component.sheetState.isConfigurationExpanded {
                     effectiveConfigSectionFrame = configSectionFrame

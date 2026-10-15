@@ -11,9 +11,127 @@ from test_messages_screen_states import member, run_swift
 
 class MessagesActionSurfaces(unittest.TestCase):
     @unittest.skipUnless(shutil.which('swift'), 'Swift unavailable locally; executes in macOS CI')
+    def test_production_list_toggles_guard_callbacks_and_remove_incompatible_controls(self):
+        source = read('submodules/TelegramUI/Components/ListActionItemComponent/Sources/ListActionItemComponent.swift')
+        fixture = 'import Foundation\nenum ListActionItemComponent {\n'
+        fixture += member(source, 'public enum ToggleStyle: Equatable {') + '\n'
+        fixture += member(source, 'public struct Toggle: Equatable {') + '\n'
+        fixture += 'enum Accessory { case toggle(Toggle); case arrow }\n}\n'
+        fixture += """
+class Model {
+    var accessory: ListActionItemComponent.Accessory?
+    var action: ((AnyObject) -> Void)?
+}
+class ActionView { var component: Model?
+"""
+        fixture += member(source, 'private func updateToggleValue(').replace('private ', '') + '\n}\n'
+        fixture += """
+class FakeView { var removed = false; func removeFromSuperview() { removed = true } }
+class Node { let view = FakeView() }
+class Row {
+    var switchNode: Node?; var iconSwitchNode: Node?; var lockView: FakeView?
+    func update(usesRegularSwitch: Bool, usesIconSwitch: Bool) {
+"""
+        fixture += member(source, 'if !usesRegularSwitch {') + '\n'
+        fixture += member(source, 'if !usesIconSwitch {') + '\n}}\n'
+        fixture += """
+let view = ActionView(); let model = Model(); view.component = model
+var count = 0
+precondition(!view.updateToggleValue(true))
+for style in [ListActionItemComponent.ToggleStyle.regular, .icons, .lock] {
+    for enabled in [false, true] {
+        for interactive in [false, true] {
+            model.accessory = .toggle(.init(style: style, isOn: false, isInteractive: interactive, isEnabled: enabled, action: { value in precondition(value); count += 1 }))
+            let before = count; let expected = enabled && interactive
+            precondition(view.updateToggleValue(true) == expected)
+            precondition(count == before + (expected ? 1 : 0))
+        }
+    }
+}
+model.accessory = .toggle(.init(style: .regular, isOn: false))
+model.action = { _ in count += 10 }
+let before = count
+precondition(view.updateToggleValue(true) && count == before + 10)
+model.accessory = .arrow
+precondition(!view.updateToggleValue(true) && count == before + 10)
+for regular in [false, true] {
+    for icons in [false, true] {
+        let row = Row(); let oldRegular = Node(); let oldIcon = Node(); let lock = FakeView()
+        row.switchNode = oldRegular; row.iconSwitchNode = oldIcon; row.lockView = lock
+        row.update(usesRegularSwitch: regular, usesIconSwitch: icons)
+        precondition((row.switchNode == nil) == !regular && oldRegular.view.removed == !regular)
+        precondition((row.iconSwitchNode == nil) == !icons && oldIcon.view.removed == !icons)
+        precondition((row.lockView == nil) == !regular && lock.removed == !regular)
+    }
+}
+"""
+        run_swift(fixture)
+
+    def test_list_accessories_keep_native_enabled_state_and_current_spoken_title(self):
+        source = read('submodules/TelegramUI/Components/ListActionItemComponent/Sources/ListActionItemComponent.swift')
+        self.assertEqual(source.count('_ = self?.updateToggleValue(value)'), 2)
+        self.assertEqual(source.count('control.isEnabled = canChangeValue'), 2)
+        self.assertIn('leftCheckView.isEnabled = check.isEnabled && check.toggle != nil', source)
+        self.assertIn('self.button.accessibilityLabel = label', source)
+        self.assertIn('self.switchNode?.view.accessibilityLabel = label', source)
+        self.assertIn('self.iconSwitchNode?.view.accessibilityLabel = label', source)
+
+    @unittest.skipUnless(shutil.which('swift'), 'Swift unavailable locally; executes in macOS CI')
+    def test_production_composed_labels_skip_hidden_content_and_old_animated_glyphs(self):
+        helper = read('submodules/ComponentFlow/Source/Components/Button.swift')
+        animated = read('submodules/TelegramUI/Components/AnimatedTextComponent/Sources/AnimatedTextComponent.swift')
+        fixture = """import Foundation
+import CoreGraphics
+class UIView {
+    var accessibilityLabel: String?
+    var isHidden = false
+    var accessibilityElementsHidden = false
+    var subviews: [UIView] = []
+}
+class UILabel: UIView { var text: String? }
+"""
+        fixture += member(helper, 'public func componentAccessibilityLabel(').replace('public ', '') + '\n'
+        fixture += 'enum AnimatedTextComponent {\n' + member(animated, 'public struct Item: Equatable {') + '\n}\n'
+        fixture += member(animated, 'private func animatedTextAccessibilityLabel(') + '\n'
+        fixture += """
+let title = UILabel(); title.text = "Отправить"
+let duplicate = UILabel(); duplicate.text = "Отправить"
+let hidden = UILabel(); hidden.text = "старый текст"; hidden.isHidden = true
+let excluded = UIView(); excluded.accessibilityElementsHidden = true; excluded.subviews = [title]
+let counter = UIView()
+counter.accessibilityLabel = animatedTextAccessibilityLabel([
+    .init(id: 0, content: .number(2, minDigits: 4)),
+    .init(id: 1, content: .text(" файла")),
+    .init(id: 2, content: .icon("decorative", tint: false, offset: .zero))
+])
+let oldGlyph = UILabel(); oldGlyph.text = "1"; counter.subviews = [oldGlyph]
+let stack = UIView(); stack.subviews = [title, duplicate, hidden, excluded, counter]
+precondition(componentAccessibilityLabel(stack) == "Отправить, 2 файла")
+precondition(componentAccessibilityLabel(nil) == nil)
+precondition(componentAccessibilityLabel(UIView()) == nil)
+stack.accessibilityLabel = "Специальное название"
+precondition(componentAccessibilityLabel(stack) == "Специальное название")
+precondition(animatedTextAccessibilityLabel([]).isEmpty)
+precondition(animatedTextAccessibilityLabel([.init(id: 0, content: .number(-2, minDigits: 0))]) == "-2")
+"""
+        run_swift(fixture)
+
+    def test_final_independent_cards_refresh_messages_geometry_on_every_update(self):
+        base = 'submodules/TelegramUI/Components/'
+        for path, contract in (
+            ('AdminUserActionsSheet/Sources/AdminUserActionsSheet.swift', 'configSectionView.layer.cornerRadius = component.theme.isMessagesTheme ? MessagesAppearanceMetrics.sectionCornerRadius : 11.0'),
+            ('PeerInfo/AffiliateProgramSetupScreen/Sources/AffiliateProgramSetupScreen.swift', 'environment.theme.isMessagesTheme ? MessagesAppearanceMetrics.sectionCornerRadius : 26.0'),
+            ('EmojiGameStakeScreen/Sources/EmojiGameStakeScreen.swift', 'component.theme.isMessagesTheme ? MessagesAppearanceMetrics.sectionCornerRadius : 22.0'),
+        ):
+            self.assertIn(contract, read(base + path))
+        animated = read(base + 'AnimatedTextComponent/Sources/AnimatedTextComponent.swift')
+        self.assertIn('self.accessibilityLabel = animatedTextAccessibilityLabel(component.items)', animated)
+
+    @unittest.skipUnless(shutil.which('swift'), 'Swift unavailable locally; executes in macOS CI')
     def test_production_button_labels_follow_content_and_preserve_explicit_names(self):
         fixture = """import Foundation
-class UIView { var accessibilityLabel: String? }
+class UIView { var accessibilityLabel: String?; var isHidden = false; var accessibilityElementsHidden = false; var subviews: [UIView] = [] }
+class UILabel: UIView { var text: String? }
 class Content { var view: UIView?; var componentView: UIView? }
 """
         paths = [
@@ -21,6 +139,7 @@ class Content { var view: UIView?; var componentView: UIView? }
             ('Flow', 'submodules/ComponentFlow/Source/Components/Button.swift', 'let contentView = Content()'),
             ('Glass', 'submodules/TelegramUI/Components/GlassBarButtonComponent/Sources/GlassBarButtonComponent.swift', 'var componentView: Content?'),
         ]
+        fixture += member(read('submodules/ComponentFlow/Source/Components/Button.swift'), 'public func componentAccessibilityLabel(').replace('public ', '') + '\n'
         for name, path, field in paths:
             prop = member(read(path), 'public override var accessibilityLabel: String?').replace('public override ', 'override ')
             fixture += 'class ' + name + ': UIView { ' + field + '\n' + prop + '\n}\n'
@@ -207,6 +326,8 @@ for enabled in [false, true] {
         self.assertIn('actionView.canPerformAction', member(alert, 'func performHighlightedAction()'))
         self.assertIn('self.accessibilityViewIsModal = true', alert)
         self.assertIn('override func accessibilityPerformEscape() -> Bool', alert)
+        self.assertIn('UIContentSizeCategory.didChangeNotification', alert)
+        self.assertEqual(alert.count('forceUpdate: updateTypography'), 2)
         self.assertIn('fullWidthActionSize.height = max(fullWidthActionSize.height, itemSize.height)', alert)
         sheet = read('submodules/Display/Source/ActionSheetButtonItem.swift')
         self.assertIn('guard let self, self.item?.enabled == true', sheet)
@@ -246,7 +367,7 @@ for available: CGFloat in [100, 160, 280, 375, 700] {
         self.assertIn('availableSize.width - (badgeSize.map { $0.width + badgeSpacing } ?? 0.0)', body)
         self.assertIn('UIAccessibility.isReduceMotionEnabled ? transition.withAnimation(.none) : transition', body)
         self.assertIn('self.accessibilityValue = component.badge > 0 ? String(component.badge) : nil', body)
-        self.assertIn('self.button.accessibilityLabel = contentView.accessibilityLabel', source)
+        self.assertIn('self.button.accessibilityLabel = componentAccessibilityLabel(contentView)', source)
         self.assertIn('self.button.accessibilityValue = contentView.accessibilityValue', source)
 
     @unittest.skipUnless(shutil.which('swift'), 'Swift unavailable locally; executes in macOS CI')

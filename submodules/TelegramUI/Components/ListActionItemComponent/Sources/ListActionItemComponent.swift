@@ -459,6 +459,19 @@ public final class ListActionItemComponent: Component {
             return result
         }
         
+        private func updateToggleValue(_ value: Bool) -> Bool {
+            guard let component = self.component, case let .toggle(toggle) = component.accessory,
+                  toggle.isEnabled, toggle.isInteractive else { return false }
+            if let action = toggle.action {
+                action(value)
+                return true
+            } else if let action = component.action {
+                action(self)
+                return true
+            }
+            return false
+        }
+
         public func displayHighlight() {
             
         }
@@ -630,13 +643,14 @@ public final class ListActionItemComponent: Component {
                             guard let self, let component = self.component else {
                                 return
                             }
-                            if case let .check(check) = component.leftIcon {
+                            if case let .check(check) = component.leftIcon, check.isEnabled {
                                 check.toggle?()
                             }
                         }
                     }
                     
-                    leftCheckView.isUserInteractionEnabled = check.toggle != nil
+                    leftCheckView.isUserInteractionEnabled = check.isEnabled && check.toggle != nil
+                    leftCheckView.isEnabled = check.isEnabled && check.toggle != nil
                     leftCheckView.alpha = check.isEnabled ? 1.0 : 0.3
                     
                     let checkSize: CGSize
@@ -794,7 +808,27 @@ public final class ListActionItemComponent: Component {
                 }
             }
             
+            let usesRegularSwitch: Bool
+            let usesIconSwitch: Bool
             if case let .toggle(toggle) = component.accessory {
+                usesRegularSwitch = toggle.style != .icons
+                usesIconSwitch = toggle.style == .icons
+            } else {
+                usesRegularSwitch = false
+                usesIconSwitch = false
+            }
+            if !usesRegularSwitch {
+                self.switchNode?.view.removeFromSuperview()
+                self.switchNode = nil
+                self.lockView?.removeFromSuperview()
+                self.lockView = nil
+            }
+            if !usesIconSwitch {
+                self.iconSwitchNode?.view.removeFromSuperview()
+                self.iconSwitchNode = nil
+            }
+            if case let .toggle(toggle) = component.accessory {
+                let canChangeValue = toggle.isEnabled && toggle.isInteractive && (toggle.action != nil || component.action != nil)
                 switch toggle.style {
                 case .regular, .lock:
                     let switchNode: SwitchNode
@@ -812,18 +846,14 @@ public final class ListActionItemComponent: Component {
                         self.button.addSubview(switchNode.view)
                         
                         switchNode.valueUpdated = { [weak self] value in
-                            guard let self, let component = self.component else {
-                                return
-                            }
-                            if case let .toggle(toggle) = component.accessory, let action = toggle.action {
-                                action(value)
-                            } else {
-                                component.action?(self)
-                            }
+                            _ = self?.updateToggleValue(value)
                         }
                     }
                     
-                    switchNode.isUserInteractionEnabled = toggle.isInteractive && toggle.isEnabled
+                    switchNode.isUserInteractionEnabled = canChangeValue
+                    if let control = switchNode.view as? UIControl {
+                        control.isEnabled = canChangeValue
+                    }
                     switchNode.alpha = toggle.isEnabled ? 1.0 : 0.3
                     switchNode.layer.allowsGroupOpacity = !toggle.isEnabled
                     
@@ -914,17 +944,14 @@ public final class ListActionItemComponent: Component {
                         self.button.addSubview(switchNode.view)
                         
                         switchNode.valueUpdated = { [weak self] value in
-                            guard let self, let component = self.component else {
-                                return
-                            }
-                            if case let .toggle(toggle) = component.accessory, let action = toggle.action {
-                                action(value)
-                            } else {
-                                component.action?(self)
-                            }
+                            _ = self?.updateToggleValue(value)
                         }
                     }
-                    switchNode.isUserInteractionEnabled = toggle.isInteractive
+                    switchNode.isUserInteractionEnabled = canChangeValue
+                    if let control = switchNode.view as? UIControl {
+                        control.isEnabled = canChangeValue
+                    }
+                    switchNode.alpha = toggle.isEnabled ? 1.0 : 0.3
                     
                     if updateSwitchTheme {
                         switchNode.frameColor = component.theme.list.itemSwitchColors.frameColor
@@ -1010,6 +1037,10 @@ public final class ListActionItemComponent: Component {
             
             let titleFrame = CGRect(origin: CGPoint(x: contentLeftInset, y: titleY), size: titleSize)
             if let titleView = self.title.view {
+                let label = componentAccessibilityLabel(titleView)
+                self.button.accessibilityLabel = label
+                self.switchNode?.view.accessibilityLabel = label
+                self.iconSwitchNode?.view.accessibilityLabel = label
                 if titleView.superview == nil {
                     titleView.isUserInteractionEnabled = false
                     self.button.addSubview(titleView)

@@ -107,7 +107,7 @@ public final class PlainButtonComponent: Component {
         private var background: ComponentView<Empty>?
         
         public override var accessibilityLabel: String? {
-            get { return super.accessibilityLabel ?? self.content.view?.accessibilityLabel }
+            get { return super.accessibilityLabel ?? componentAccessibilityLabel(self.content.view) }
             set { super.accessibilityLabel = newValue }
         }
 

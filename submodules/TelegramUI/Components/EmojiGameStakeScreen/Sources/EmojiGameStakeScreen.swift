@@ -1292,7 +1292,7 @@ private final class ResultCellComponent: Component {
             
             let backgroundSize = self.background.update(
                 transition: transition,
-                component: AnyComponent(FilledRoundedRectangleComponent(color: component.theme.list.itemBlocksBackgroundColor, cornerRadius: .value(22.0), smoothCorners: true)),
+                component: AnyComponent(FilledRoundedRectangleComponent(color: component.theme.list.itemBlocksBackgroundColor, cornerRadius: .value(component.theme.isMessagesTheme ? MessagesAppearanceMetrics.sectionCornerRadius : 22.0), smoothCorners: true)),
                 environment: {},
                 containerSize: size
             )

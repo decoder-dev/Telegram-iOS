@@ -799,7 +799,7 @@ public final class ButtonComponent: Component {
             }
             
             if let contentView = contentItem.view.view {
-                self.button.accessibilityLabel = contentView.accessibilityLabel
+                self.button.accessibilityLabel = componentAccessibilityLabel(contentView)
                 self.button.accessibilityValue = contentView.accessibilityValue
                 var animateIn = false
                 var contentTransition = transition

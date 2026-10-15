@@ -887,7 +887,7 @@ final class AffiliateProgramSetupScreenComponent: Component {
                 transition: transition,
                 component: AnyComponent(FilledRoundedRectangleComponent(
                     color: environment.theme.list.itemBlocksBackgroundColor,
-                    cornerRadius: .value(26.0),
+                    cornerRadius: .value(environment.theme.isMessagesTheme ? MessagesAppearanceMetrics.sectionCornerRadius : 26.0),
                     smoothCorners: false
                 )),
                 environment: {},

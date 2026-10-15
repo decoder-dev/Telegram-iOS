@@ -1,6 +1,25 @@
 import Foundation
 import UIKit
 
+// Button contents can be drawn text or a stack rather than a UILabel.
+// Read model-backed labels; alpha is intentionally ignored so loading retains its name.
+public func componentAccessibilityLabel(_ view: UIView?) -> String? {
+    guard let view, !view.isHidden, !view.accessibilityElementsHidden else { return nil }
+    if let label = view.accessibilityLabel, !label.isEmpty {
+        return label
+    }
+    if let label = view as? UILabel, let text = label.text, !text.isEmpty {
+        return text
+    }
+    var labels: [String] = []
+    for child in view.subviews {
+        if let label = componentAccessibilityLabel(child), labels.last != label {
+            labels.append(label)
+        }
+    }
+    return labels.isEmpty ? nil : labels.joined(separator: ", ")
+}
+
 public final class Button: Component {
     public let content: AnyComponent<Empty>
     public let contentInsets: UIEdgeInsets
@@ -175,7 +194,7 @@ public final class Button: Component {
         private let contentView: ComponentHostView<Empty>
         
         public override var accessibilityLabel: String? {
-            get { return super.accessibilityLabel ?? self.contentView.componentView?.accessibilityLabel }
+            get { return super.accessibilityLabel ?? componentAccessibilityLabel(self.contentView.componentView) }
             set { super.accessibilityLabel = newValue }
         }
 

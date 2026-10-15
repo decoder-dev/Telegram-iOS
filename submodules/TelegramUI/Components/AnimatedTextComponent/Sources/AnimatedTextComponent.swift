@@ -23,6 +23,16 @@ extension ComponentTransition {
     }
 }
 
+private func animatedTextAccessibilityLabel(_ items: [AnimatedTextComponent.Item]) -> String {
+    return items.compactMap { item -> String? in
+        switch item.content {
+        case let .text(text): return text
+        case let .number(value, _): return String(value)
+        case .icon: return nil
+        }
+    }.joined()
+}
+
 public final class AnimatedTextComponent: Component {
     public struct Item: Equatable {
         public enum Content: Equatable {
@@ -128,6 +138,7 @@ public final class AnimatedTextComponent: Component {
         }
 
         func update(component: AnimatedTextComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
+            self.accessibilityLabel = animatedTextAccessibilityLabel(component.items)
             let spaceSize: CGSize
             if let current = self.spaceSize, self.component?.font == component.font {
                 spaceSize = current

@@ -104,10 +104,12 @@ private final class AlertScreenComponent: Component {
         private var component: AlertScreenComponent?
         private var environment: EnvironmentType?
         private weak var state: EmptyComponentState?
+        private var contentSizeCategory = UIContentSizeCategory.unspecified
                 
         override init(frame: CGRect) {
             super.init(frame: frame)
             
+            NotificationCenter.default.addObserver(self, selector: #selector(self.contentSizeCategoryChanged), name: UIContentSizeCategory.didChangeNotification, object: nil)
             self.accessibilityViewIsModal = true
             self.dimView.accessibilityElementsHidden = true
             self.dimView.alpha = 0.0
@@ -129,7 +131,12 @@ private final class AlertScreenComponent: Component {
         }
         
         deinit {
+            NotificationCenter.default.removeObserver(self)
             self.disposable?.dispose()
+        }
+
+        @objc private func contentSizeCategoryChanged() {
+            self.state?.updated(transition: .immediate)
         }
         
         override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
@@ -323,6 +330,8 @@ private final class AlertScreenComponent: Component {
                 self.isUpdating = false
             }
             
+            let updateTypography = self.contentSizeCategory != self.traitCollection.preferredContentSizeCategory
+            self.contentSizeCategory = self.traitCollection.preferredContentSizeCategory
             let environment = environment[ViewControllerComponentContainer.Environment.self].value
             self.environment = environment
             self.state = state
@@ -388,6 +397,7 @@ private final class AlertScreenComponent: Component {
                         transition: itemTransition,
                         component: content.component,
                         environment: { alertEnvironment },
+                        forceUpdate: updateTypography,
                         containerSize: CGSize(width: alertWidth - contentSideInset * 2.0, height: availableSize.height)
                     )
                     let itemFrame = CGRect(origin: CGPoint(x: contentSideInset, y: contentOriginY), size: itemSize)
@@ -495,6 +505,7 @@ private final class AlertScreenComponent: Component {
                             progress: action.progress
                         )),
                         environment: { alertEnvironment },
+                        forceUpdate: updateTypography,
                         containerSize: fullWidthActionSize
                     )
                     if let itemView = item.view as? AlertActionComponent.View {
