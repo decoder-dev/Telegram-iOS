@@ -20,6 +20,10 @@ public func makeDefaultPresentationTheme(reference: PresentationBuiltinThemeRefe
             theme = makeBananaGramTheme(dark: false)
         case .bananaGramGraphite:
             theme = makeBananaGramTheme(dark: true)
+        case .nodeLight:
+            theme = makeNodeTheme(dark: false)
+        case .nodeDark:
+            theme = makeNodeTheme(dark: true)
     }
     return theme
 }
@@ -169,9 +173,9 @@ public func customizePresentationTheme(_ theme: PresentationTheme, editing: Bool
         return theme
     }
     switch theme.referenceTheme {
-        case .day, .dayClassic, .bananaGramCream:
+        case .day, .dayClassic, .bananaGramCream, .nodeLight:
             return customizeDefaultDayTheme(theme: theme, editing: editing, title: title, accentColor: accentColor, outgoingAccentColor: outgoingAccentColor, backgroundColors: backgroundColors, bubbleColors: bubbleColors, animateBubbleColors: animateBubbleColors ?? false, wallpaper: wallpaper, serviceBackgroundColor: nil)
-        case .night, .bananaGramGraphite:
+        case .night, .bananaGramGraphite, .nodeDark:
             return customizeDefaultDarkPresentationTheme(theme: theme, editing: editing, title: title, accentColor: accentColor, backgroundColors: backgroundColors, bubbleColors: bubbleColors, animateBubbleColors: animateBubbleColors ?? false, wallpaper: wallpaper, baseColor: baseColor)
         case .nightAccent:
             return customizeDefaultDarkTintedPresentationTheme(theme: theme, editing: editing, title: title, accentColor: accentColor, backgroundColors: backgroundColors, bubbleColors: bubbleColors, animateBubbleColors: animateBubbleColors ?? false, wallpaper: wallpaper, baseColor: baseColor)
@@ -287,6 +291,10 @@ public extension PresentationTheme {
             return .bananaGramCream
         } else if self.index == PresentationThemeReference.builtin(.bananaGramGraphite).index {
             return .bananaGramGraphite
+        } else if self.index == PresentationThemeReference.builtin(.nodeLight).index {
+            return .nodeLight
+        } else if self.index == PresentationThemeReference.builtin(.nodeDark).index {
+            return .nodeDark
         } else {
             return nil
         }

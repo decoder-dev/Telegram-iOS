@@ -10,7 +10,7 @@ private func themeWithDefaultAccent(_ theme: PresentationTheme) -> PresentationT
         defaultTheme = defaultDarkColorPresentationTheme
     case .nightAccent:
         return defaultDarkTintedPresentationTheme
-    case .bananaGramCream, .bananaGramGraphite:
+    case .bananaGramCream, .bananaGramGraphite, .nodeLight, .nodeDark:
         // The BananaGram themes' accent is the brand colour itself; there is no other default to reset to.
         return theme
     }

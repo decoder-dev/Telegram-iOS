@@ -1568,6 +1568,10 @@ public extension PresentationThemeReference {
                         return .custom("BananaGram Cream")
                     case .bananaGramGraphite:
                         return .custom("BananaGram Graphite")
+                    case .nodeLight:
+                        return .custom("Node Light")
+                    case .nodeDark:
+                        return .custom("Node Dark")
                 }
             case let .cloud(info):
                 return .custom(info.theme.title)

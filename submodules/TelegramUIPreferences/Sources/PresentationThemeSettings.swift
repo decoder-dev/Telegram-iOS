@@ -16,6 +16,8 @@ public enum PresentationBuiltinThemeReference: Int32 {
     case nightAccent = 3
     case bananaGramCream = 4
     case bananaGramGraphite = 5
+    case nodeLight = 6
+    case nodeDark = 7
     
     public init(baseTheme: TelegramBaseTheme) {
         switch baseTheme {
@@ -34,9 +36,9 @@ public enum PresentationBuiltinThemeReference: Int32 {
         switch self {
             case .dayClassic:
                 return .classic
-            case .day, .bananaGramCream:
+            case .day, .bananaGramCream, .nodeLight:
                 return .day
-            case .night, .bananaGramGraphite:
+            case .night, .bananaGramGraphite, .nodeDark:
                 return .night
             case .nightAccent:
                 return .tinted

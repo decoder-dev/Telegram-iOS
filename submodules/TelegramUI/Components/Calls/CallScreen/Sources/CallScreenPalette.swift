@@ -123,6 +123,10 @@ public struct CallScreenPalette: Equatable {
             self = .bananaGramCream
         case .bananaGramGraphite:
             self = .bananaGramGraphite
+        case .nodeLight:
+            self = .classicDay
+        case .nodeDark:
+            self = .classicNight
         case .day, .dayClassic, .night, .nightAccent:
             let accent = theme.list.itemAccentColor
             let (hue, saturation, _) = accent.hsb

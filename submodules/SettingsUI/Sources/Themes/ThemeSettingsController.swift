@@ -157,10 +157,12 @@ private enum ThemeSettingsControllerEntry: ItemListNodeEntry {
         switch self {
         case let .themeButton(_, reference, _, _):
             switch reference {
-            case .builtin(.day), .builtin(.dayClassic): return -4
-            case .builtin(.night): return -3
-            case .builtin(.bananaGramCream): return -2
-            case .builtin(.bananaGramGraphite): return -1
+            case .builtin(.day), .builtin(.dayClassic): return -6
+            case .builtin(.night): return -5
+            case .builtin(.bananaGramCream): return -4
+            case .builtin(.bananaGramGraphite): return -3
+            case .builtin(.nodeLight): return -2
+            case .builtin(.nodeDark): return -1
             default: return 0
             }
         case .themeListHeader:
@@ -427,7 +429,9 @@ private func themeSettingsControllerEntries(
         (.day, "Classic White"),
         (.night, "Classic Black"),
         (.bananaGramCream, "BananaGram Cream"),
-        (.bananaGramGraphite, "BananaGram Graphite")
+        (.bananaGramGraphite, "BananaGram Graphite"),
+        (.nodeLight, "Node Light"),
+        (.nodeDark, "Node Dark")
     ]
     for (builtin, title) in themeButtons {
         let isSelected = themeReference == .builtin(builtin) || (builtin == .day && themeReference == .builtin(.dayClassic))
