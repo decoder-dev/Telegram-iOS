@@ -1,5 +1,6 @@
 """Persistent Messages geometry and production integration contracts; no application build."""
 import pathlib
+import re
 import shutil
 import subprocess
 import tempfile
@@ -18,6 +19,48 @@ def declaration(source, marker):
 
 
 class MessagesStyleTests(unittest.TestCase):
+    def test_all_fork_palette_calls_follow_production_argument_order(self):
+        # Parsing succeeds with reordered named arguments; Swift type checking rejects them.
+        # Check every nested update against the actual API, before an expensive IPA build.
+        def labels(source, start):
+            depth, index, begin = 1, start, start
+            quoted = escaped = False
+            arguments = []
+            while depth:
+                char = source[index]
+                if quoted:
+                    if escaped:
+                        escaped = False
+                    elif char == chr(92):
+                        escaped = True
+                    elif char == '"':
+                        quoted = False
+                elif char == '"':
+                    quoted = True
+                elif char in '([{':
+                    depth += 1
+                elif char in ')]}':
+                    depth -= 1
+                elif char == ',' and depth == 1:
+                    arguments.append(source[begin:index])
+                    begin = index + 1
+                index += 1
+            arguments.append(source[begin:index - 1])
+            return [re.match(r'\s*(\w+)\s*:', argument).group(1) for argument in arguments]
+
+        api = read('submodules/TelegramPresentationData/Sources/PresentationTheme.swift')
+        signatures = [labels(api, match.end()) for match in re.finditer(r'func withUpdated\(', api)]
+        palette = read('submodules/TelegramPresentationData/Sources/MakePresentationTheme.swift')
+        palette = palette.split('public func customizePresentationTheme', 1)[0]
+        calls = list(re.finditer(r'([\w.]+)\.withUpdated\(', palette))
+        self.assertGreaterEqual(len(calls), 38)
+        for call in calls:
+            actual = labels(palette, call.end())
+            candidates = [signature for signature in signatures if set(actual) <= set(signature)]
+            self.assertTrue(candidates, 'Unknown update arguments: ' + call.group(1))
+            self.assertTrue(any([signature.index(label) for label in actual] == sorted(signature.index(label) for label in actual)
+                                for signature in candidates), 'Reordered update arguments: ' + call.group(1))
+
     def test_modern_and_legacy_sections_share_geometry(self):
         modern = read('submodules/TelegramUI/Components/ListSectionComponent/Sources/ListSectionComponent.swift')
         self.assertEqual(modern.count('configuration.theme.isMessagesTheme ? MessagesAppearanceMetrics.sectionCornerRadius :'), 2)
