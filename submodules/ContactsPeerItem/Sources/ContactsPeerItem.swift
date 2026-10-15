@@ -804,14 +804,15 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
         return { [weak self] item, params, first, last, firstWithHeader, neighbors in
             var updatedTheme: PresentationTheme?
             
-            let titleFont = Font.regular(item.presentationData.fontSize.itemListBaseFontSize)
+            let usesMessages = item.presentationData.theme.isMessagesTheme
+            let titleFont = usesMessages ? Font.medium(item.presentationData.fontSize.itemListBaseFontSize) : Font.regular(item.presentationData.fontSize.itemListBaseFontSize)
             let titleBoldFont = Font.medium(item.presentationData.fontSize.itemListBaseFontSize)
             
             let statusFontSize: CGFloat
             if case .app = item.peerMode {
                 statusFontSize = 15.0
             } else {
-                statusFontSize = 13.0
+                statusFontSize = usesMessages ? 15.0 : 13.0
             }
             let statusFont = Font.regular(floor(item.presentationData.fontSize.itemListBaseFontSize * statusFontSize / 17.0))
             
@@ -1202,7 +1203,7 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
                 maxTextWidth = max(0.0, maxTextWidth - titleBadgeLayoutAndApplyValue.0.size.width - 8.0)
             }
             
-            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: titleAttributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: max(0.0, maxTextWidth), height: CGFloat.infinity), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: titleAttributedString, backgroundColor: nil, maximumNumberOfLines: usesMessages ? 2 : 1, truncationType: .end, constrainedSize: CGSize(width: max(0.0, maxTextWidth), height: CGFloat.infinity), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             var maxStatusWidth: CGFloat = params.width - leftInset - rightInset - badgeSize
             if let _ = statusIcon {
@@ -1231,7 +1232,7 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
             if statusAttributedString == nil {
                 statusHeightComponent = 0.0
             } else {
-                statusHeightComponent = -1.0 + statusLayout.size.height
+                statusHeightComponent = (usesMessages ? 2.0 : -1.0) + statusLayout.size.height
             }
             
             // 6 pt of clearance above and below the avatar rather than 8: the avatar is what sets
@@ -1242,7 +1243,7 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
             
             let titleFrame: CGRect
             if statusAttributedString != nil {
-                titleFrame = CGRect(origin: CGPoint(x: leftInset, y: verticalInset), size: titleLayout.size)
+                titleFrame = CGRect(origin: CGPoint(x: leftInset, y: usesMessages ? floor((nodeLayout.contentSize.height - titleLayout.size.height - statusHeightComponent) / 2.0) : verticalInset), size: titleLayout.size)
             } else {
                 titleFrame = CGRect(origin: CGPoint(x: leftInset, y: floor((nodeLayout.contentSize.height - titleLayout.size.height) / 2.0)), size: titleLayout.size)
             }
@@ -1299,6 +1300,10 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
                             
                             strongSelf.accessibilityLabel = titleAttributedString?.string
                             strongSelf.accessibilityValue = statusAttributedString?.string
+                            var accessibilityTraits: UIAccessibilityTraits = item.action == nil ? .staticText : .button
+                            if isSelected { accessibilityTraits.insert(.selected) }
+                            if !item.enabled { accessibilityTraits.insert(.notEnabled) }
+                            strongSelf.accessibilityTraits = accessibilityTraits
                             
                             strongSelf.containerNode.frame = CGRect(origin: CGPoint(), size: nodeLayout.contentSize)
                             strongSelf.contextSourceNode.frame = CGRect(origin: CGPoint(), size: nodeLayout.contentSize)
@@ -1622,7 +1627,7 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
                                 placeholderColor: item.presentationData.theme.list.mediaPlaceholderColor,
                                 attemptSynchronous: false
                             ))
-                            var statusFrame = CGRect(origin: CGPoint(x: revealOffset + leftInset, y: strongSelf.titleNode.frame.maxY - 1.0), size: statusLayout.size)
+                            var statusFrame = CGRect(origin: CGPoint(x: revealOffset + leftInset, y: strongSelf.titleNode.frame.maxY + (usesMessages ? 2.0 : -1.0)), size: statusLayout.size)
                             if let statusIconImage {
                                 statusFrame.origin.x += statusIconImage.size.width + 1.0
                             }

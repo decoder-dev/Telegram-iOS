@@ -194,17 +194,21 @@ class ContactsAddItemNode: ListViewItemNode {
             let leftInset: CGFloat = 65.0 + params.leftInset
             let rightInset: CGFloat = 10.0 + params.rightInset
 
+            let usesMessages = item.theme.isMessagesTheme
             let titleAttributedString = NSAttributedString(string: item.strings.Contacts_AddPhoneNumber(formatPhoneNumber(context: item.context, number: item.phoneNumber)).string, font: titleFont, textColor: item.theme.list.itemAccentColor)
             
-            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: titleAttributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: max(0.0, params.width - leftInset - rightInset), height: CGFloat.infinity), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: titleAttributedString, backgroundColor: nil, maximumNumberOfLines: usesMessages ? 2 : 1, truncationType: .end, constrainedSize: CGSize(width: max(0.0, params.width - leftInset - rightInset), height: CGFloat.infinity), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
-            let nodeLayout = ListViewItemNodeLayout(contentSize: CGSize(width: params.width, height: 50.0), insets: UIEdgeInsets(top: firstWithHeader ? 29.0 : 0.0, left: 0.0, bottom: 0.0, right: 0.0))
+            let nodeLayout = ListViewItemNodeLayout(contentSize: CGSize(width: params.width, height: usesMessages ? MessagesAppearanceMetrics.rowHeight(contentHeight: titleLayout.size.height, verticalInset: 12.0) : 50.0), insets: UIEdgeInsets(top: firstWithHeader ? 29.0 : 0.0, left: 0.0, bottom: 0.0, right: 0.0))
             
-            let titleFrame = CGRect(origin: CGPoint(x: leftInset, y: 14.0), size: titleLayout.size)
+            let titleFrame = CGRect(origin: CGPoint(x: leftInset, y: usesMessages ? floor((nodeLayout.contentSize.height - titleLayout.size.height) / 2.0) : 14.0), size: titleLayout.size)
 
             return (nodeLayout, { [weak self] animated in
                 if let strongSelf = self {
                     strongSelf.layoutParams = (item, params, first, last, firstWithHeader)
+                    strongSelf.isAccessibilityElement = true
+                    strongSelf.accessibilityLabel = titleAttributedString.string
+                    strongSelf.accessibilityTraits = .button
                     
                     let transition: ContainedViewLayoutTransition
                     if animated {
@@ -225,7 +229,7 @@ class ContactsAddItemNode: ListViewItemNode {
                     if let updatedIcon = updatedIcon {
                         strongSelf.iconNode.image = updatedIcon
                     }
-                    transition.updateFrame(node: strongSelf.iconNode, frame: CGRect(x: params.leftInset + 14.0, y: 5.0, width: 40.0, height: 40.0))
+                    transition.updateFrame(node: strongSelf.iconNode, frame: CGRect(x: params.leftInset + 14.0, y: floor((nodeLayout.contentSize.height - 40.0) / 2.0), width: 40.0, height: 40.0))
                     
                     let topHighlightInset: CGFloat = (first || !nodeLayout.insets.top.isZero) ? 0.0 : separatorHeight
                     strongSelf.backgroundNode.frame = CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: CGSize(width: nodeLayout.contentSize.width, height: nodeLayout.contentSize.height))

@@ -34,11 +34,11 @@ final class ContactListNameIndexHeader: Equatable, ListViewItemHeader {
     }
     
     func updateNode(_ node: ListViewItemHeaderNode, previous: ListViewItemHeader?, next: ListViewItemHeader?) {
-        
+        (node as? ContactListNameIndexHeaderNode)?.updateTheme(theme: self.theme)
     }
     
     static func ==(lhs: ContactListNameIndexHeader, rhs: ContactListNameIndexHeader) -> Bool {
-        return lhs.id == rhs.id
+        return lhs.id == rhs.id && lhs.theme === rhs.theme
     }
 }
 

@@ -120,7 +120,7 @@ private final class PeerInfoScreenInfoItemNode: PeerInfoScreenItemNode {
             self.addSubnode(self.maskNode)
         }
         
-        transition.updateFrame(node: self.bottomSeparatorNode, frame: CGRect(origin: CGPoint(x: separatorInset, y: height - UIScreenPixel), size: CGSize(width: width - sideInset, height: UIScreenPixel)))
+        transition.updateFrame(node: self.bottomSeparatorNode, frame: CGRect(origin: CGPoint(x: separatorInset, y: height - UIScreenPixel), size: CGSize(width: max(0.0, width - separatorInset - safeInsets.right), height: UIScreenPixel)))
         transition.updateAlpha(node: self.bottomSeparatorNode, alpha: bottomItem == nil ? 0.0 : 1.0)
         
         return height

@@ -277,7 +277,7 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
         self.infoButtonNode.addTarget(self, action: #selector(self.infoPressed), forControlEvents: .touchUpInside)
         
         self.accessibilityArea.activate = { [weak self] in
-            guard let item = self?.layoutParams?.0 else {
+            guard let item = self?.layoutParams?.0, !item.editing else {
                 return false
             }
             item.interaction.call(item.topMessage)
@@ -344,8 +344,9 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
                 updatedInfoIcon = true
             }
             
+            let usesMessages = item.presentationData.theme.isMessagesTheme
             let titleFont = Font.medium(item.presentationData.fontSize.itemListBaseFontSize)
-            let statusFont = Font.regular(floor(item.presentationData.fontSize.itemListBaseFontSize * 14.0 / 17.0))
+            let statusFont = Font.regular(floor(item.presentationData.fontSize.itemListBaseFontSize * (usesMessages ? 15.0 : 14.0) / 17.0))
             let dateFont = Font.regular(floor(item.presentationData.fontSize.itemListBaseFontSize * 15.0 / 17.0))
             let avatarDiameter = min(44.0, floor(item.presentationData.fontSize.itemListBaseFontSize * 44.0 / 17.0))
             let multipleAvatarDiameter = min(30.0, floor(item.presentationData.fontSize.itemListBaseFontSize * 30.0 / 17.0))
@@ -546,7 +547,7 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
             let timestamp = Int32(CFAbsoluteTimeGetCurrent() + NSTimeIntervalSince1970)
             let dateText = stringForRelativeTimestamp(strings: item.presentationData.strings, relativeTimestamp: item.topMessage.timestamp, relativeTo: timestamp, dateTimeFormat: item.dateTimeFormat)
             
-            let (dateLayout, dateApply) = makeDateLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: dateText, font: dateFont, textColor: item.presentationData.theme.list.itemSecondaryTextColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: max(0.0, params.width - leftInset - rightInset), height: CGFloat.infinity), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (dateLayout, dateApply) = makeDateLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: dateText, font: dateFont, textColor: item.presentationData.theme.list.itemSecondaryTextColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: max(1.0, (params.width - leftInset - rightInset) * (usesMessages ? 0.35 : 1.0)), height: CGFloat.infinity), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             let premiumConfiguration = PremiumConfiguration.with(appConfiguration: item.context.currentAppConfiguration.with { $0 })
             var currentCredibilityIconImage: UIImage?
@@ -567,11 +568,11 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
                 additionalTitleInset += 3.0 + currentCredibilityIconImage.size.width
             }
             
-            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: titleAttributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: max(0.0, params.width - additionalTitleInset - leftInset - dateRightInset - dateLayout.size.width - (item.editing ? -30.0 : 10.0)), height: CGFloat.infinity), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: titleAttributedString, backgroundColor: nil, maximumNumberOfLines: usesMessages ? 2 : 1, truncationType: .end, constrainedSize: CGSize(width: max(0.0, params.width - additionalTitleInset - leftInset - dateRightInset - dateLayout.size.width - (item.editing ? -30.0 : 10.0)), height: CGFloat.infinity), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
-            let (statusLayout, statusApply) = makeStatusLayout(TextNodeLayoutArguments(attributedString: statusAttributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: max(0.0, params.width - leftInset - dateRightInset - dateLayout.size.width - (item.editing ? -30.0 : 10.0)), height: CGFloat.infinity), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (statusLayout, statusApply) = makeStatusLayout(TextNodeLayoutArguments(attributedString: statusAttributedString, backgroundColor: nil, maximumNumberOfLines: usesMessages ? 2 : 1, truncationType: .end, constrainedSize: CGSize(width: max(0.0, params.width - leftInset - dateRightInset - dateLayout.size.width - (item.editing ? -30.0 : 10.0)), height: CGFloat.infinity), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
-            let titleSpacing: CGFloat = -1.0
+            let titleSpacing: CGFloat = usesMessages ? 2.0 : -1.0
             let verticalInset: CGFloat
             switch item.systemStyle {
             case .glass:
@@ -796,6 +797,8 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
                                 transition.updateFrameAdditive(node: strongSelf.infoButtonNode, frame: CGRect(origin: CGPoint(x: revealOffset + params.width - infoIconRightInset - infoIcon.size.width, y: floor((nodeLayout.contentSize.height - infoIcon.size.height) / 2.0)), size: infoIcon.size))
                             }
                             transition.updateAlpha(node: strongSelf.infoButtonNode, alpha: item.editing ? 0.0 : 1.0)
+                            strongSelf.infoButtonNode.isUserInteractionEnabled = !item.editing
+                            strongSelf.infoButtonNode.accessibilityElementsHidden = item.editing
                             
                             var topHighlightInset: CGFloat = (first || !nodeLayout.insets.top.isZero) ? 0.0 : separatorHeight
                             topHighlightInset -= nodeLayout.insets.top
@@ -812,12 +815,16 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
                             strongSelf.updateLayout(size: nodeLayout.contentSize, leftInset: params.leftInset, rightInset: params.rightInset)
                             
                             strongSelf.accessibilityArea.accessibilityLabel = titleAttributedString?.string
-                            strongSelf.accessibilityArea.accessibilityValue = statusAccessibilityString
+                            strongSelf.accessibilityArea.accessibilityValue = [statusAccessibilityString, dateText].joined(separator: ", ")
+                            strongSelf.accessibilityArea.accessibilityTraits = .button
                             strongSelf.accessibilityArea.frame = CGRect(origin: CGPoint(), size: nodeLayout.contentSize)
                             
                             strongSelf.infoButtonNode.accessibilityLabel = item.presentationData.strings.Conversation_Info
                             
-                            strongSelf.view.accessibilityCustomActions = [UIAccessibilityCustomAction(name: item.presentationData.strings.Common_Delete, target: strongSelf, selector: #selector(strongSelf.performLocalAccessibilityCustomAction(_:)))]
+                            strongSelf.accessibilityArea.accessibilityCustomActions = [UIAccessibilityCustomAction(name: item.presentationData.strings.Common_Delete, target: strongSelf, selector: #selector(strongSelf.performLocalAccessibilityCustomAction(_:)))]
+                            if !item.editing {
+                                strongSelf.accessibilityArea.accessibilityCustomActions?.insert(UIAccessibilityCustomAction(name: item.presentationData.strings.Conversation_Info, target: strongSelf, selector: #selector(strongSelf.performAccessibilityInfoAction(_:))), at: 0)
+                            }
                             
                             strongSelf.setRevealOptions((left: [], right: [ItemListRevealOption(key: 0, title: item.presentationData.strings.Common_Delete, icon: .none, color: item.presentationData.theme.list.itemDisclosureActions.destructive.fillColor, iconColor: item.presentationData.theme.list.itemDisclosureActions.destructive.foregroundColor, textColor: item.presentationData.theme.list.itemSecondaryTextColor)]))
                             strongSelf.setRevealOptionsOpened(item.revealed, animated: animated)
@@ -932,10 +939,16 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
         }
     }
     
-    @objc private func performLocalAccessibilityCustomAction(_ action: UIAccessibilityCustomAction) {
-        if let item = self.layoutParams?.0 {
-            item.interaction.delete(item.messages.map { $0.id })
-        }
+    @objc private func performLocalAccessibilityCustomAction(_ action: UIAccessibilityCustomAction) -> Bool {
+        guard let item = self.layoutParams?.0 else { return false }
+        item.interaction.delete(item.messages.map { $0.id })
+        return true
+    }
+
+    @objc private func performAccessibilityInfoAction(_ action: UIAccessibilityCustomAction) -> Bool {
+        guard let item = self.layoutParams?.0, !item.editing else { return false }
+        self.infoPressed()
+        return true
     }
 }
 

@@ -32,6 +32,120 @@ def run_swift(source):
 
 
 class ScreenStateTests(unittest.TestCase):
+    def test_contact_creation_uses_native_messages_actions_without_losing_validation(self):
+        source = read('submodules/TelegramUI/Components/Contacts/NewContactScreen/Sources/NewContactScreen.swift')
+        self.assertEqual(source.count('theme.isMessagesTheme ? AnyComponent(PlainButtonComponent('), 2)
+        self.assertNotIn('string: "mobile"', source)
+        self.assertEqual(source.count('string: strings.ContactInfo_PhoneLabelMobile'), 2)
+        self.assertIn('let input = self.validatedInput() else { return }', source)
+        self.assertIn('controller.complete(result: input)', source)
+        self.assertIn('doneButtonView.accessibilityTraits = isValid ? [.button] : [.button, .notEnabled]', source)
+        self.assertNotIn('containerSize: CGSize(width: 200.0, height: 40.0)', source)
+        self.assertIn('max(environment.safeInsets.left, environment.safeInsets.right)', source)
+        avatar = source.index('avatarNode.setPeer(context: component.context, theme: theme, peer: peer)')
+        self.assertGreater(avatar, source.index('self.avatarNode = avatarNode'))
+
+    def test_invite_panel_refreshes_colors_and_cannot_invite_zero_contacts(self):
+        source = read('submodules/ContactListUI/Sources/InviteContactsCountPanelNode.swift')
+        self.assertIn('self.accessibilityElementsHidden = self.count == 0', source)
+        self.assertIn('isEnabled: self.count > 0', source)
+        self.assertIn('style: self.theme.isMessagesTheme ? .legacy : .glass', source)
+        self.assertIn('buttonView.accessibilityLabel = self.strings.Contacts_InviteContacts', source)
+        self.assertIn('self.strings = presentationData.strings', source)
+        parent = read('submodules/ContactListUI/Sources/InviteContactsControllerNode.swift')
+        self.assertIn('self.countPanelNode.updatePresentationData(self.presentationData)', parent)
+
+    def test_contact_rows_keep_full_labels_selection_and_reused_header_theme(self):
+        source = read('submodules/ContactsPeerItem/Sources/ContactsPeerItem.swift')
+        self.assertIn('maximumNumberOfLines: usesMessages ? 2 : 1', source)
+        self.assertIn('if isSelected { accessibilityTraits.insert(.selected) }', source)
+        self.assertIn('if !item.enabled { accessibilityTraits.insert(.notEnabled) }', source)
+        actions = read('submodules/ContactListUI/Sources/ContactListActionItem.swift')
+        self.assertIn('titleOffset = iconFrame.maxX + iconSpacing', actions)
+        self.assertIn('MessagesAppearanceMetrics.rowHeight(contentHeight:', actions)
+        self.assertIn('strongSelf.activateArea.accessibilityValue = item.subtitle', actions)
+        header = read('submodules/ContactListUI/Sources/ContactListNameIndexHeader.swift')
+        self.assertIn('(node as? ContactListNameIndexHeaderNode)?.updateTheme(theme: self.theme)', header)
+        self.assertIn('lhs.theme === rhs.theme', header)
+
+    def test_recipient_footer_refreshes_theme_language_and_checkbox_accessibility(self):
+        source = read('submodules/TelegramUI/Sources/ContactMultiselectionControllerNode.swift')
+        self.assertIn('self.footerPanelNode?.updatePresentationData(presentationData)', source)
+        self.assertIn('self.button.updateTheme(SolidRoundedButtonTheme(theme: self.theme))', source)
+        self.assertIn('self.checkOptionTitle = self.strings.NewCall_VideoOption', source)
+        self.assertNotIn('Content(title: "Call"', source)
+        self.assertIn('max(49.0, checkOptionTextSize.height + 20.0)', source)
+        self.assertIn('checkOptionButton.accessibilityTraits = self.isCheckOptionSelected ? [.button, .selected] : [.button]', source)
+        self.assertIn('self.button.accessibilityValue = self.content.badge.isEmpty ? nil : self.content.badge', source)
+
+    @unittest.skipUnless(shutil.which('swift'), 'Swift unavailable locally; executes in macOS CI')
+    def test_production_call_detail_columns_fit_narrow_and_wide_screens(self):
+        source = read('submodules/PeerInfoUI/Sources/ItemListCallListItem.swift')
+        fixture = 'import Foundation\nimport CoreGraphics\n' + member(source, 'private func callDetailColumnWidths(')
+        fixture += '''
+for width: CGFloat in [-20, 0, 1, 2, 13, 14, 100, 160, 284, 357, 720, 1024] {
+    let columns = callDetailColumnWidths(availableWidth: width)
+    precondition(columns.time >= 1 && columns.type >= 1)
+    precondition(columns.spacing >= 0 && columns.spacing <= 12)
+    precondition(abs(columns.time + columns.type + columns.spacing - max(2, width)) < 0.001)
+    precondition(columns.time <= 75)
+}
+'''
+        run_swift(fixture)
+        self.assertNotIn('.first!', source)
+        self.assertIn('max(timeLayout.size.height, typeLayout.size.height) + 12.0', source)
+        self.assertIn('max(layout.0.size.height, layout.1.size.height) + 12.0', source)
+        self.assertIn('leftInset + columns.time + columns.spacing', source)
+
+    @unittest.skipUnless(shutil.which('swift'), 'Swift unavailable locally; executes in macOS CI')
+    def test_production_call_accessibility_never_calls_while_editing(self):
+        source = read('submodules/CallListUI/Sources/CallListCallItem.swift')
+        fixture = '''import Foundation
+class UIAccessibilityCustomAction {}
+struct Message { let id: Int }
+class Interaction {
+    var calls = 0
+    var deleted: [Int] = []
+    func call(_ message: Message) { calls += 1 }
+    func delete(_ ids: [Int]) { deleted = ids }
+}
+struct Item {
+    var editing = false
+    let interaction = Interaction()
+    let messages = [Message(id: 42), Message(id: 43)]
+    var topMessage: Message { messages[0] }
+}
+class Area { var activate: (() -> Bool)? }
+class Harness {
+    var layoutParams: (Item, Int)? = (Item(), 0)
+    let accessibilityArea = Area()
+    var infoCount = 0
+    func infoPressed() { infoCount += 1 }
+    init() {
+'''
+        fixture += member(source, 'self.accessibilityArea.activate =') + '\n}\n'
+        fixture += '\n'.join(member(source, marker).replace('@objc ', '') for marker in (
+            '@objc private func performLocalAccessibilityCustomAction(',
+            '@objc private func performAccessibilityInfoAction('))
+        fixture += '''
+    func delete() -> Bool { self.performLocalAccessibilityCustomAction(UIAccessibilityCustomAction()) }
+    func info() -> Bool { self.performAccessibilityInfoAction(UIAccessibilityCustomAction()) }
+}
+let view = Harness()
+let interaction = view.layoutParams!.0.interaction
+precondition(view.accessibilityArea.activate!())
+precondition(interaction.calls == 1)
+precondition(view.info() && view.infoCount == 1)
+view.layoutParams!.0.editing = true
+precondition(!view.accessibilityArea.activate!())
+precondition(interaction.calls == 1)
+precondition(!view.info() && view.infoCount == 1)
+precondition(view.delete() && interaction.deleted == [42, 43])
+view.layoutParams = nil
+precondition(!view.accessibilityArea.activate!() && !view.info() && !view.delete())
+'''
+        run_swift(fixture)
+
     def test_file_empty_state_reuse_updates_animation_motion_and_visible_layout(self):
         source = read('submodules/TelegramUI/Components/AttachmentFileController/Sources/AttachmentFileEmptyItem.swift')
         for contract in ('self.reduceMotion == item.reduceMotion', 'self.animationName != name || self.animationReduceMotion != reduceMotion', 'reduceMotion ? .still(.start) : .loop', 'reduceMotion ? .still(.start) : .once', 'self.animationNode.visibility = imageHeight > 0.0', 'UIContentSizeCategory.didChangeNotification', 'UIAccessibility.reduceMotionStatusDidChangeNotification', 'NotificationCenter.default.removeObserver(self)', 'layout.insets(options: [.input])', 'self.showsButton ? buttonSpacing + buttonHeight : 0.0', 'min(248.0, contentWidth)', 'self.buttonNode.removeFromSupernode()'):

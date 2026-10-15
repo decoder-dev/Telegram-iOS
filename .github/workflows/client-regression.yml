@@ -19,6 +19,8 @@ on:
       - 'submodules/SearchBarNode/**'
       - 'submodules/SearchUI/**'
       - 'submodules/ContactListUI/**'
+      - 'submodules/ContactsPeerItem/**'
+      - 'submodules/PeerInfoUI/**'
       - 'submodules/CallListUI/**'
       - 'submodules/ChatListUI/**'
       - 'submodules/ChatSendMessageActionUI/**'

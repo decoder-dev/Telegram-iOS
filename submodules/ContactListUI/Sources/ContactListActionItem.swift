@@ -206,11 +206,20 @@ class ContactListActionItemNode: ListViewItemNode {
                 updatedTheme = item.presentationData.theme
             }
             
+            let usesMessages = item.presentationData.theme.isMessagesTheme
             var leftInset: CGFloat = 16.0 + params.leftInset
             if case .generic = item.icon {
                 leftInset += 49.0
             }
             
+            let inlineIconWidth: CGFloat
+            if case .inline = item.icon {
+                inlineIconWidth = (item.icon.image?.size.width ?? 0.0) + 4.0
+            } else {
+                inlineIconWidth = 0.0
+            }
+            let textWidth = max(1.0, params.width - 10.0 - leftInset - params.rightInset - inlineIconWidth)
+
             let titleColor: UIColor
             let titleFont: UIFont
             switch item.actionStyle {
@@ -223,17 +232,17 @@ class ContactListActionItemNode: ListViewItemNode {
             }
             let subtitleFont = Font.regular(floor(item.presentationData.fontSize.itemListBaseFontSize * 13.0 / 17.0))
             
-            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.title, font: titleFont, textColor: titleColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - 10.0 - leftInset - params.rightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.title, font: titleFont, textColor: titleColor), backgroundColor: nil, maximumNumberOfLines: usesMessages ? 2 : 1, truncationType: .end, constrainedSize: CGSize(width: textWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             let subtitleAttributedString = item.subtitle.flatMap { NSAttributedString(string: $0, font: subtitleFont, textColor: item.presentationData.theme.list.itemSecondaryTextColor) }
             
-            let (subtitleLayout, subtitleApply) = makeSubtitleLayout(TextNodeLayoutArguments(attributedString: subtitleAttributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - 10.0 - leftInset - params.rightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (subtitleLayout, subtitleApply) = makeSubtitleLayout(TextNodeLayoutArguments(attributedString: subtitleAttributedString, backgroundColor: nil, maximumNumberOfLines: usesMessages ? 2 : 1, truncationType: .end, constrainedSize: CGSize(width: textWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             let subtitleHeightComponent: CGFloat
             if subtitleAttributedString == nil {
                 subtitleHeightComponent = 0.0
             } else {
-                subtitleHeightComponent = -1.0 + subtitleLayout.size.height
+                subtitleHeightComponent = (usesMessages ? 2.0 : -1.0) + subtitleLayout.size.height
             }
             
             let contentHeight: CGFloat
@@ -241,7 +250,9 @@ class ContactListActionItemNode: ListViewItemNode {
             if case .glass = item.systemStyle {
                 verticalInset += 4.0
             }
-            if case .tall = item.height {
+            if usesMessages {
+                contentHeight = MessagesAppearanceMetrics.rowHeight(contentHeight: titleLayout.size.height + subtitleHeightComponent, verticalInset: verticalInset)
+            } else if case .tall = item.height {
                 contentHeight = 50.0
             } else if case .alpha = item.highlight {
                 contentHeight = 50.0
@@ -260,6 +271,8 @@ class ContactListActionItemNode: ListViewItemNode {
                     strongSelf.item = item
                     
                     strongSelf.activateArea.accessibilityLabel = item.title
+                    strongSelf.activateArea.accessibilityValue = item.subtitle
+                    strongSelf.activateArea.accessibilityTraits = .button
                     strongSelf.activateArea.frame = CGRect(origin: CGPoint(x: params.leftInset, y: 0.0), size: CGSize(width: layout.contentSize.width - params.leftInset - params.rightInset, height: layout.contentSize.height))
                     
                     if let _ = updatedTheme {
@@ -298,7 +311,7 @@ class ContactListActionItemNode: ListViewItemNode {
                                 switch position {
                                 case .left:
                                     iconFrame = CGRect(origin: CGPoint(x: params.leftInset + floor((contentSize.width - params.leftInset - params.rightInset - totalWidth) / 2.0), y: floor((contentSize.height - image.size.height) / 2.0)), size: image.size)
-                                    titleOffset = iconFrame.minX + iconSpacing
+                                    titleOffset = iconFrame.maxX + iconSpacing
                                 case .right:
                                     iconFrame = CGRect(origin: CGPoint(x: params.leftInset + floor((contentSize.width - params.leftInset - params.rightInset - totalWidth) / 2.0) + totalWidth - image.size.width, y: floor((contentSize.height - image.size.height) / 2.0)), size: image.size)
                                     titleOffset = iconFrame.maxX - totalWidth
@@ -337,13 +350,13 @@ class ContactListActionItemNode: ListViewItemNode {
                     
                     let titleFrame: CGRect
                     if subtitleAttributedString != nil {
-                        titleFrame = CGRect(origin: CGPoint(x: titleOffset, y: verticalInset), size: titleLayout.size)
+                        titleFrame = CGRect(origin: CGPoint(x: titleOffset, y: usesMessages ? floor((contentSize.height - titleLayout.size.height - subtitleHeightComponent) / 2.0) : verticalInset), size: titleLayout.size)
                     } else {
                         titleFrame = CGRect(origin: CGPoint(x: titleOffset, y: floor((contentSize.height - titleLayout.size.height) / 2.0)), size: titleLayout.size)
                     }
                     strongSelf.titleNode.frame = titleFrame
                     
-                    let subtitleFrame = CGRect(origin: CGPoint(x: titleOffset, y: titleFrame.maxY - 1.0), size: subtitleLayout.size)
+                    let subtitleFrame = CGRect(origin: CGPoint(x: titleOffset, y: titleFrame.maxY + (usesMessages ? 2.0 : -1.0)), size: subtitleLayout.size)
                     strongSelf.subtitleNode.frame = subtitleFrame
                     
                     strongSelf.highlightedBackgroundNode.frame = CGRect(origin: CGPoint(x: 0.0, y: -UIScreenPixel), size: CGSize(width: params.width, height: contentSize.height + UIScreenPixel + UIScreenPixel))

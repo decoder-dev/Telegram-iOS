@@ -21,6 +21,7 @@ import ListItemComponentAdaptor
 import PresentationDataUtils
 import EdgeEffect
 import GlassBarButtonComponent
+import PlainButtonComponent
 import Markdown
 import CountrySelectionUI
 import PhoneNumberFormat
@@ -395,10 +396,10 @@ final class NewContactScreenComponent: Component {
                     avatarNode = current
                 } else {
                     avatarNode = AvatarNode(font: avatarPlaceholderFont(size: 28.0))
-                    avatarNode.setPeer(context: component.context, theme: theme, peer: peer)
                     self.scrollView.addSubview(avatarNode.view)
                     self.avatarNode = avatarNode
                 }
+                avatarNode.setPeer(context: component.context, theme: theme, peer: peer)
                 avatarNode.frame = CGRect(origin: CGPoint(x: sideInset + 15.0, y: contentHeight + floorToScreenPixels((nameSectionFrame.height - 66.0) / 2.0)), size: CGSize(width: 66.0, height: 66.0))
             }
             
@@ -426,7 +427,7 @@ final class NewContactScreenComponent: Component {
                             theme: theme,
                             style: .glass,
                             title: AnyComponent(VStack([
-                                AnyComponentWithIdentity(id: "title", component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: "mobile", font: Font.regular(14.0), textColor: theme.list.itemPrimaryTextColor))))),
+                                AnyComponentWithIdentity(id: "title", component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: strings.ContactInfo_PhoneLabelMobile, font: Font.regular(14.0), textColor: theme.list.itemPrimaryTextColor))))),
                                 AnyComponentWithIdentity(id: "value", component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: formatPhoneNumber(context: component.context, number: phone), font: Font.regular(17.0), textColor: theme.list.itemAccentColor)))))
                             ], alignment: .left, spacing: 4.0)),
                             contentInsets: UIEdgeInsets(top: 15.0, left: 0.0, bottom: 15.0, right: 0.0),
@@ -440,7 +441,7 @@ final class NewContactScreenComponent: Component {
                             theme: theme,
                             style: .glass,
                             title: AnyComponent(VStack([
-                                AnyComponentWithIdentity(id: "title", component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: "mobile", font: Font.regular(14.0), textColor: theme.list.itemPrimaryTextColor))))),
+                                AnyComponentWithIdentity(id: "title", component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: strings.ContactInfo_PhoneLabelMobile, font: Font.regular(14.0), textColor: theme.list.itemPrimaryTextColor))))),
                                 AnyComponentWithIdentity(id: "value", component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: strings.ContactInfo_PhoneNumberHidden, font: Font.regular(17.0), textColor: theme.list.itemAccentColor)))))
                             ], alignment: .left, spacing: 4.0)),
                             contentInsets: UIEdgeInsets(top: 15.0, left: 0.0, bottom: 15.0, right: 0.0),
@@ -863,6 +864,7 @@ final class NewContactScreenComponent: Component {
             transition.setFrame(view: self.edgeEffectView, frame: edgeEffectFrame)
             self.edgeEffectView.update(content: theme.list.blocksBackgroundColor, alpha: 1.0, rect: edgeEffectFrame, edge: .top, edgeSize: edgeEffectFrame.height, transition: transition)
             
+            let navigationButtonWidth: CGFloat = theme.isMessagesTheme ? min(100.0, availableSize.width * 0.25) : 44.0
             let titleSize = self.title.update(
                 transition: transition,
                 component: AnyComponent(
@@ -873,11 +875,13 @@ final class NewContactScreenComponent: Component {
                                 font: Font.semibold(17.0),
                                 textColor: environment.theme.rootController.navigationBar.primaryTextColor
                             )
-                        )
+                        ),
+                        horizontalAlignment: .center,
+                        maximumNumberOfLines: theme.isMessagesTheme ? 2 : 1
                     )
                 ),
                 environment: {},
-                containerSize: CGSize(width: 200.0, height: 40.0)
+                containerSize: CGSize(width: max(1.0, availableSize.width - 2.0 * (max(environment.safeInsets.left, environment.safeInsets.right) + 16.0 + navigationButtonWidth + 8.0)), height: 40.0)
             )
             let titleFrame = CGRect(origin: CGPoint(x: floorToScreenPixels((availableSize.width - titleSize.width) / 2.0), y: floorToScreenPixels((environment.navigationHeight - titleSize.height) / 2.0) + 3.0), size: titleSize)
             if let titleView = self.title.view {
@@ -887,10 +891,23 @@ final class NewContactScreenComponent: Component {
                 transition.setFrame(view: titleView, frame: titleFrame)
             }
             
-            let barButtonSize = CGSize(width: 44.0, height: 44.0)
+            let barButtonSize = CGSize(width: navigationButtonWidth, height: 44.0)
+            let cancelAction: () -> Void = { [weak self] in
+                guard let controller = self?.environment?.controller() as? NewContactScreen else { return }
+                controller.dismiss()
+            }
+            let doneAction: () -> Void = { [weak self] in
+                guard let self, let controller = self.environment?.controller() as? NewContactScreen, let input = self.validatedInput() else { return }
+                controller.complete(result: input)
+                controller.dismiss()
+            }
             let cancelButtonSize = self.cancelButton.update(
                 transition: transition,
-                component: AnyComponent(GlassBarButtonComponent(
+                component: theme.isMessagesTheme ? AnyComponent(PlainButtonComponent(
+                    content: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: strings.Common_Cancel, font: Font.regular(17.0), textColor: theme.list.itemAccentColor)), horizontalAlignment: .center)),
+                    minSize: barButtonSize,
+                    action: cancelAction
+                )) : AnyComponent(GlassBarButtonComponent(
                     size: barButtonSize,
                     backgroundColor: nil,
                     isDark: environment.theme.overallDarkAppearance,
@@ -901,12 +918,7 @@ final class NewContactScreenComponent: Component {
                             tintColor: environment.theme.chat.inputPanel.panelControlColor
                         )
                     )),
-                    action: { [weak self] _ in
-                        guard let self, let controller = self.environment?.controller() as? NewContactScreen else {
-                            return
-                        }
-                        controller.dismiss()
-                    }
+                    action: { _ in cancelAction() }
                 )),
                 environment: {},
                 containerSize: barButtonSize
@@ -917,11 +929,19 @@ final class NewContactScreenComponent: Component {
                     self.addSubview(cancelButtonView)
                 }
                 transition.setFrame(view: cancelButtonView, frame: cancelButtonFrame)
+                cancelButtonView.isAccessibilityElement = true
+                cancelButtonView.accessibilityLabel = strings.Common_Cancel
+                cancelButtonView.accessibilityTraits = .button
             }
             
             let doneButtonSize = self.doneButton.update(
                 transition: transition,
-                component: AnyComponent(GlassBarButtonComponent(
+                component: theme.isMessagesTheme ? AnyComponent(PlainButtonComponent(
+                    content: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: strings.Common_Done, font: Font.semibold(17.0), textColor: isValid ? theme.list.itemAccentColor : theme.list.itemDisabledTextColor)), horizontalAlignment: .center)),
+                    minSize: barButtonSize,
+                    action: doneAction,
+                    isEnabled: isValid
+                )) : AnyComponent(GlassBarButtonComponent(
                     size: barButtonSize,
                     backgroundColor: isValid ? environment.theme.list.itemCheckColors.fillColor : environment.theme.list.itemCheckColors.fillColor.desaturated().withMultipliedAlpha(0.5),
                     isDark: environment.theme.overallDarkAppearance,
@@ -933,15 +953,7 @@ final class NewContactScreenComponent: Component {
                             tintColor: environment.theme.list.itemCheckColors.foregroundColor
                         )
                     )),
-                    action: { [weak self] _ in
-                        guard let self, let controller = self.environment?.controller() as? NewContactScreen else {
-                            return
-                        }
-                        if let input = self.validatedInput() {
-                            controller.complete(result: input)
-                        }
-                        controller.dismiss()
-                    }
+                    action: { _ in doneAction() }
                 )),
                 environment: {},
                 containerSize: barButtonSize
@@ -952,6 +964,9 @@ final class NewContactScreenComponent: Component {
                     self.addSubview(doneButtonView)
                 }
                 transition.setFrame(view: doneButtonView, frame: doneButtonFrame)
+                doneButtonView.isAccessibilityElement = true
+                doneButtonView.accessibilityLabel = strings.Common_Done
+                doneButtonView.accessibilityTraits = isValid ? [.button] : [.button, .notEnabled]
             }
             
             if let updateFocusTag {
