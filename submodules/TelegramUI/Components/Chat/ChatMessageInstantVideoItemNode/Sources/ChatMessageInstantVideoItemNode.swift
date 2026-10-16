@@ -365,6 +365,10 @@ public class ChatMessageInstantVideoItemNode: ChatMessageItemView, ASGestureReco
             if let subject = item.associatedData.subject, case .messageOptions = subject {
                 needsShareButton = false
             }
+            // Extras "hide share button" (Donutgram).
+            if ArenaSettings.shared.hidesShareButton {
+                needsShareButton = false
+            }
             
             var layoutInsets = layoutConstants.instantVideo.insets
             if dateHeaderAtBottom.hasDate && dateHeaderAtBottom.hasTopic {

@@ -99,7 +99,7 @@ class DonutMediaFeatures(unittest.TestCase):
         self.assertIn('animationNode.layer.cornerRadius = stickerCornerRadius', animated)
         history = read('submodules/TelegramUI/Sources/ChatHistoryListNode.swift')
         self.assertIn('            var stickerShape: Int32\n', history)
-        self.assertIn('stickerShape: settings.stickerShape\n', history)
+        self.assertIn('stickerShape: settings.stickerShape,\n', history)
 
     def test_extras_rows_are_listed_in_the_media_screen(self):
         source = read(CONTROLLER)

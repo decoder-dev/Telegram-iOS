@@ -528,6 +528,10 @@ public class ChatMessageStickerItemNode: ChatMessageItemView {
             if Namespaces.Message.allEphemeral.contains(item.message.id.namespace) || Namespaces.Message.allWelcomeMessages.contains(item.message.id.namespace) {
                 needsShareButton = false
             }
+            // Extras "hide share button" (Donutgram).
+            if ArenaSettings.shared.hidesShareButton {
+                needsShareButton = false
+            }
             
             var layoutInsets = UIEdgeInsets(top: mergedTop.merged ? layoutConstants.bubble.mergedSpacing : layoutConstants.bubble.defaultSpacing, left: 0.0, bottom: mergedBottom.merged ? layoutConstants.bubble.mergedSpacing : layoutConstants.bubble.defaultSpacing, right: 0.0)
             if dateHeaderAtBottom.hasDate && dateHeaderAtBottom.hasTopic {
@@ -633,7 +637,9 @@ public class ChatMessageStickerItemNode: ChatMessageItemView {
                 hasAutoremove: item.message.isSelfExpiring,
                 canViewReactionList: canViewMessageReactionList(message: EngineMessage(item.message)),
                 animationCache: item.controllerInteraction.presentationContext.animationCache,
-                animationRenderer: item.controllerInteraction.presentationContext.animationRenderer
+                animationRenderer: item.controllerInteraction.presentationContext.animationRenderer,
+                // Extras "hide checks on stickers" (Donutgram): the time stays, the read checks go.
+                hideSentStatus: telegramFile?.isSticker == true && !isEmoji && ArenaSettings.shared.hidesStickerChecks
             ))
             
             let (dateAndStatusSize, dateAndStatusApply) = statusSuggestedWidthAndContinue.1(statusSuggestedWidthAndContinue.0)

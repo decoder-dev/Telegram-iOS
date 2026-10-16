@@ -373,6 +373,10 @@ func inputPanelForChatPresentationIntefaceState(_ chatPresentationInterfaceState
                 if chatPresentationInterfaceState.interfaceState.editMessage != nil, channel.hasPermission(.editAllMessages) {
                     displayInputTextPanel = true
                 } else if !channel.hasPermission(.sendSomething) || !isMember {
+                    // Extras channel bottom button (Donutgram): a subscriber can hide the Mute bar.
+                    if isMember, case .peer = chatPresentationInterfaceState.chatLocation, ArenaSettings.shared.hidesChannelBottomButton {
+                        return (nil, nil)
+                    }
                     if let currentPanel = (currentPanel as? ChatChannelSubscriberInputPanelNode) ?? (currentSecondaryPanel as? ChatChannelSubscriberInputPanelNode) {
                         return (currentPanel, nil)
                     } else {

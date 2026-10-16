@@ -145,6 +145,14 @@ final class MentionChatInputContextPanelNode: ChatInputContextPanelNode {
             }
         }, peerSelected: { [weak self] peer in
             if let strongSelf = self, let interfaceInteraction = strongSelf.interfaceInteraction {
+                let isBot: Bool
+                if case let .user(user) = peer {
+                    isBot = user.botInfo != nil
+                } else {
+                    isBot = false
+                }
+                // Extras "comma after mention" (Donutgram): ", " after a person, a space after a bot.
+                let mentionSuffix = ArenaSettings.shared.mentionSuffix(isBot: isBot)
                 switch strongSelf.mode {
                     case .input:
                         interfaceInteraction.updateTextInputStateAndMode { textInputState, inputMode in
@@ -158,11 +166,11 @@ final class MentionChatInputContextPanelNode: ChatInputContextPanelNode {
                             
                             if let range = mentionQueryRange {
                                 if let addressName = peer.addressName, !addressName.isEmpty {
-                                    return (textInputState.replacingFlatRange(range, with: addressName + " "), inputMode)
+                                    return (textInputState.replacingFlatRange(range, with: addressName + mentionSuffix), inputMode)
                                 } else if !peer.compactDisplayTitle.isEmpty {
                                     let replacementText = NSMutableAttributedString()
                                     replacementText.append(NSAttributedString(string: peer.compactDisplayTitle, attributes: [ChatTextInputAttributes.textMention: ChatTextInputTextMentionAttribute(peerId: peer.id)]))
-                                    replacementText.append(NSAttributedString(string: " "))
+                                    replacementText.append(NSAttributedString(string: mentionSuffix))
 
                                     // The widened range eats the leading "@" as well as the query.
                                     let updatedRange = NSRange(location: range.location - 1, length: range.length + 1)

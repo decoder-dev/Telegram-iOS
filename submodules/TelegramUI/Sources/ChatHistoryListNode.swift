@@ -2150,6 +2150,9 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
             var showSensitiveContent: Bool
             var replyDecorations: [Bool]
             var stickerShape: Int32
+            // Donutgram chat appearance read at layout time: coloured replies, sticker checks,
+            // mention avatars, quick share button.
+            var chatAppearance: [Bool]
         }
         let messageFilterSettings: Signal<MessageFilterSettingsFingerprint, NoError> = forkExtrasSettings(accountManager: context.sharedContext.accountManager)
         |> map { settings -> MessageFilterSettingsFingerprint in
@@ -2158,6 +2161,7 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
             var mediaTweaks = BananaMediaTweaks.current
             mediaTweaks.stickerShape = settings.stickerShape
             BananaMediaTweaks.update(mediaTweaks)
+            applyForkChatAppearanceSettings(settings)
             return MessageFilterSettingsFingerprint(
                 hideAds: settings.hideAds,
                 hideBlockedMessages: settings.hideBlockedMessages,
@@ -2179,7 +2183,8 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
                 showOriginalForwardDate: settings.showOriginalForwardDate,
                 showSensitiveContent: settings.showSensitiveContent,
                 replyDecorations: [settings.hideStickerReplyColors, settings.hideStickerReplyEmoji, settings.hideStickerReplyBackground, settings.hidePremiumReplyEmoji],
-                stickerShape: settings.stickerShape
+                stickerShape: settings.stickerShape,
+                chatAppearance: [settings.disableColoredReplies, settings.hideStickerChecks, settings.mentionAvatars, settings.hideShareButton]
             )
         }
         |> distinctUntilChanged

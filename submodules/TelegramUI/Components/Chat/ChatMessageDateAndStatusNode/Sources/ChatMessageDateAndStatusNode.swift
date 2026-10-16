@@ -270,6 +270,8 @@ public class ChatMessageDateAndStatusNode: ASDisplayNode {
         var canViewReactionList: Bool
         var animationCache: AnimationCache
         var animationRenderer: MultiAnimationRenderer
+        /// Drops the sent/read checks of a delivered message (Extras "hide checks on stickers").
+        var hideSentStatus: Bool
         
         public init(
             context: AccountContext,
@@ -296,7 +298,8 @@ public class ChatMessageDateAndStatusNode: ASDisplayNode {
             hasAutoremove: Bool,
             canViewReactionList: Bool,
             animationCache: AnimationCache,
-            animationRenderer: MultiAnimationRenderer
+            animationRenderer: MultiAnimationRenderer,
+            hideSentStatus: Bool = false
         ) {
             self.context = context
             self.presentationData = presentationData
@@ -323,6 +326,7 @@ public class ChatMessageDateAndStatusNode: ASDisplayNode {
             self.canViewReactionList = canViewReactionList
             self.animationCache = animationCache
             self.animationRenderer = animationRenderer
+            self.hideSentStatus = hideSentStatus
         }
     }
     
@@ -727,7 +731,7 @@ public class ChatMessageDateAndStatusNode: ASDisplayNode {
                         hideStatus = arguments.impressionCount != nil
                     }
                     
-                    if hideStatus {
+                    if hideStatus || arguments.hideSentStatus {
                         statusWidth = 0.0
                         
                         checkReadNode = nil

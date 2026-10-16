@@ -164,6 +164,19 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var staticRoundVideoZoom: Bool
     /// 0: stock, 1: rounded, 2: more rounded.
     public var stickerShape: Int32
+    /// Donutgram chat appearance: ", " after an autocompleted non-bot mention; reply headers without
+    /// name colours; no read checks on stickers; avatars drawn in mentions; profile last-seen kept
+    /// relative; per-chat wallpapers/themes ignored; channel bottom bar shows Discuss or nothing;
+    /// no quick share button beside messages.
+    public var commaAfterMention: Bool
+    public var disableColoredReplies: Bool
+    public var hideStickerChecks: Bool
+    public var mentionAvatars: Bool
+    public var relativeLastSeen: Bool
+    public var disableCustomBackgrounds: Bool
+    public var channelBottomDiscuss: Bool
+    public var hideChannelBottomButton: Bool
+    public var hideShareButton: Bool
     /// Fork (Donutgram): remember another profile's gifts and show the ones that later disappeared (BananaSpyStorage).
     public var showDisappearedGifts: Bool
     /// Fork (Donutgram): round video messages open with the rear camera, or with the one the last one used.
@@ -480,6 +493,15 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.doubleTapSeekSeconds = 15
         self.staticRoundVideoZoom = false
         self.stickerShape = 0
+        self.commaAfterMention = false
+        self.disableColoredReplies = false
+        self.hideStickerChecks = false
+        self.mentionAvatars = false
+        self.relativeLastSeen = false
+        self.disableCustomBackgrounds = false
+        self.channelBottomDiscuss = false
+        self.hideChannelBottomButton = false
+        self.hideShareButton = false
         self.showDisappearedGifts = showDisappearedGifts
         self.roundVideoStartsWithRear = roundVideoStartsWithRear
         self.roundVideoRemembersCamera = roundVideoRemembersCamera
@@ -617,6 +639,15 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.doubleTapSeekSeconds = [0, 5, 10, 15, 30].contains(decodedSeekSeconds) ? decodedSeekSeconds : 15
         self.staticRoundVideoZoom = try container.decodeIfPresent(Bool.self, forKey: "staticRoundVideoZoom") ?? false
         self.stickerShape = min(2, max(0, try container.decodeIfPresent(Int32.self, forKey: "stickerShape") ?? 0))
+        self.commaAfterMention = try container.decodeIfPresent(Bool.self, forKey: "commaAfterMention") ?? false
+        self.disableColoredReplies = try container.decodeIfPresent(Bool.self, forKey: "disableColoredReplies") ?? false
+        self.hideStickerChecks = try container.decodeIfPresent(Bool.self, forKey: "hideStickerChecks") ?? false
+        self.mentionAvatars = try container.decodeIfPresent(Bool.self, forKey: "mentionAvatars") ?? false
+        self.relativeLastSeen = try container.decodeIfPresent(Bool.self, forKey: "relativeLastSeen") ?? false
+        self.disableCustomBackgrounds = try container.decodeIfPresent(Bool.self, forKey: "disableCustomBackgrounds") ?? false
+        self.channelBottomDiscuss = try container.decodeIfPresent(Bool.self, forKey: "channelBottomDiscuss") ?? false
+        self.hideChannelBottomButton = try container.decodeIfPresent(Bool.self, forKey: "hideChannelBottomButton") ?? false
+        self.hideShareButton = try container.decodeIfPresent(Bool.self, forKey: "hideShareButton") ?? false
         self.showDisappearedGifts = try container.decodeIfPresent(Bool.self, forKey: "showDisappearedGifts") ?? false
         self.roundVideoStartsWithRear = try container.decodeIfPresent(Bool.self, forKey: "roundVideoStartsWithRear") ?? false
         self.roundVideoRemembersCamera = try container.decodeIfPresent(Bool.self, forKey: "roundVideoRemembersCamera") ?? false
@@ -752,6 +783,15 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.doubleTapSeekSeconds, forKey: "doubleTapSeekSeconds")
         try container.encode(self.staticRoundVideoZoom, forKey: "staticRoundVideoZoom")
         try container.encode(self.stickerShape, forKey: "stickerShape")
+        try container.encode(self.commaAfterMention, forKey: "commaAfterMention")
+        try container.encode(self.disableColoredReplies, forKey: "disableColoredReplies")
+        try container.encode(self.hideStickerChecks, forKey: "hideStickerChecks")
+        try container.encode(self.mentionAvatars, forKey: "mentionAvatars")
+        try container.encode(self.relativeLastSeen, forKey: "relativeLastSeen")
+        try container.encode(self.disableCustomBackgrounds, forKey: "disableCustomBackgrounds")
+        try container.encode(self.channelBottomDiscuss, forKey: "channelBottomDiscuss")
+        try container.encode(self.hideChannelBottomButton, forKey: "hideChannelBottomButton")
+        try container.encode(self.hideShareButton, forKey: "hideShareButton")
         try container.encode(self.showDisappearedGifts, forKey: "showDisappearedGifts")
         try container.encode(self.roundVideoStartsWithRear, forKey: "roundVideoStartsWithRear")
         try container.encode(self.roundVideoRemembersCamera, forKey: "roundVideoRemembersCamera")
@@ -1248,6 +1288,21 @@ public enum ForkExtrasNotificationBridge {
     public static var hidePinnedNotifications: Bool {
         return bool(forKey: hidePinnedKey)
     }
+}
+
+/// Projects the Donutgram chat-appearance switches into the runtime holders the chat modules read
+/// (`ArenaSettings.shared`, `BananaPresenceDisplay` is set separately in SharedAccountContext).
+public func applyForkChatAppearanceSettings(_ settings: ForkExtrasSettings) {
+    ArenaSettings.shared.setChatAppearance(
+        commaAfterMention: settings.commaAfterMention,
+        disableColoredReplies: settings.disableColoredReplies,
+        hideStickerChecks: settings.hideStickerChecks,
+        mentionAvatars: settings.mentionAvatars,
+        disableCustomBackgrounds: settings.disableCustomBackgrounds,
+        channelBottomDiscuss: settings.channelBottomDiscuss,
+        hideChannelBottomButton: settings.hideChannelBottomButton,
+        hideShareButton: settings.hideShareButton
+    )
 }
 
 public enum BananaForwardCountSettings {

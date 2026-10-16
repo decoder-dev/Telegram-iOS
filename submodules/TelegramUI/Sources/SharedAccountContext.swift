@@ -1232,6 +1232,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         BananaForwardCountSettings.enabled = settings.showChannelForwardCount
         ArenaSettings.shared.setReplyDecorations(hideStickerColors: settings.hideStickerReplyColors, hideStickerEmoji: settings.hideStickerReplyEmoji, hideStickerBackground: settings.hideStickerReplyBackground, hidePremiumEmoji: settings.hidePremiumReplyEmoji)
         BananaMediaTweaks.update(BananaMediaTweaks.State(accelerateUpload: settings.accelerateUpload, infiniteRecentStickers: settings.infiniteRecentStickers, onlyAddedStickers: settings.onlyAddedStickers, autoPauseMediaInBackground: settings.autoPauseMediaInBackground, doubleTapSeekSeconds: settings.doubleTapSeekSeconds, staticRoundVideoZoom: settings.staticRoundVideoZoom, stickerShape: settings.stickerShape))
+        applyForkChatAppearanceSettings(settings)
         BananaSpyStorage.trackDisappearedGifts = settings.showDisappearedGifts
         BananaIdentityBadges.update(hidesPremiumStatuses: settings.hidePremiumStatuses, hidesVerification: settings.hideVerification)
         BananaDeletedReplyQuote.enabled = settings.quoteRepliesToDeleted
@@ -1240,7 +1241,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         BananaActivityHiding.update(text: settings.hideTypingText, voice: settings.hideTypingVoice, files: settings.hideTypingFiles)
         BananaRoundVideoCamera.startsWithRear = settings.roundVideoStartsWithRear
         BananaRoundVideoCamera.remembersLast = settings.roundVideoRemembersCamera
-        BananaPresenceDisplay.current = BananaPresenceDisplay(exactLastSeen: settings.exactLastSeen, showsOfflineDot: settings.showsOfflineDot)
+        BananaPresenceDisplay.current = BananaPresenceDisplay(exactLastSeen: settings.exactLastSeen, showsOfflineDot: settings.showsOfflineDot, relativeLastSeen: settings.relativeLastSeen)
         BananaChatListHeader.current = BananaChatListHeader(hidesConnectionStatus: settings.chatListHidesConnectionStatus, hidesEmojiStatus: settings.chatListHidesEmojiStatus, centersTitle: settings.chatListCentersTitle, hidesSearch: settings.chatListHidesSearch, hidesStories: settings.hideStories)
         ForkMessageVisibility.update(ForkMessageVisibility.State(hidePaidReactions: settings.hidePaidReactions, hideViaBot: settings.hideViaBot, removeLinkPreviews: settings.removeLinkPreviews, hideBirthdayNotifications: settings.hideBirthdayNotifications, hideBotAutomation: settings.hideBotAutomation, showPinnedWithBot: settings.showPinnedWithBot, stopAfterVoice: settings.stopAfterVoice, stopAfterRoundVideo: settings.stopAfterRoundVideo))
         ForkAyuForwardSettings.enabled = settings.ayuForward

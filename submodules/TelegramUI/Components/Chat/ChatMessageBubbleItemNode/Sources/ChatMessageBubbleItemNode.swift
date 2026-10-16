@@ -2004,7 +2004,8 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
         if let subject = item.associatedData.subject, case .messageOptions = subject {
             needsShareButton = false
         }
-        if isEphemeralMessage {
+        // Extras "hide share button" (Donutgram): no quick share button beside messages.
+        if ArenaSettings.shared.hidesShareButton || isEphemeralMessage {
             needsShareButton = false
         }
         
