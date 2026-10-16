@@ -2,6 +2,7 @@ import Foundation
 import UIKit
 import AsyncDisplayKit
 import SwiftSignalKit
+import TelegramCore
 import UniversalMediaPlayer
 import AccountContext
 import RangeSet
@@ -156,6 +157,30 @@ public final class UniversalVideoManagerImpl: UniversalVideoManager {
     private var holderCallbacks: [AnyHashable: UniversalVideoContentHolderCallbacks] = [:]
     
     public init() {
+    }
+
+    /// Fork (Donutgram autoPause): pauses every attached video, or only the regular or only the round ones.
+    public func pauseForBackground(video: Bool, instantVideo: Bool) {
+        assert(Queue.mainQueue().isCurrent())
+        for holder in self.holders.values {
+            let isInstantVideo: Bool
+            if let content = holder.content as? NativeVideoContent {
+                isInstantVideo = content.fileReference.media.isInstantVideo
+            } else if let content = holder.content as? HLSVideoContent {
+                isInstantVideo = content.fileReference.media.isInstantVideo
+            } else if let content = holder.content as? PlatformVideoContent {
+                if case let .file(file) = content.content {
+                    isInstantVideo = file.media.isInstantVideo
+                } else {
+                    isInstantVideo = false
+                }
+            } else {
+                isInstantVideo = false
+            }
+            if isInstantVideo ? instantVideo : video {
+                holder.contentNode.pause()
+            }
+        }
     }
     
     public func attachUniversalVideoContent(content: UniversalVideoContent, priority: UniversalVideoPriority, create: () -> UniversalVideoContentNode & ASDisplayNode, update: @escaping (((UniversalVideoContentNode & ASDisplayNode), Bool)?) -> Void) -> (AnyHashable, Int32) {

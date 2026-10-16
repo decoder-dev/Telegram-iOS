@@ -152,6 +152,9 @@ private final class MultipartUploadManager {
         
         if increaseParallelParts {
             self.parallelParts = 30
+        } else if BananaMediaTweaks.accelerateUpload && encryptionKey == nil {
+            // Fork (Donutgram accelerateUpload): more parts in flight; secret-chat uploads keep the stock 3.
+            self.parallelParts = 8
         } else {
             self.parallelParts = 3
         }

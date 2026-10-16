@@ -636,6 +636,7 @@ private final class ForkExtrasControllerArguments {
     let updateSelectFromAuthor: (Bool) -> Void
     let updateDownloadSpeedBoost: (Bool) -> Void
     let openOutgoingPhotoQuality: () -> Void
+    let openIntChoice: (Int32) -> Void
 
     init(
         updateGhostModeMaster: @escaping (Bool) -> Void,
@@ -706,7 +707,8 @@ private final class ForkExtrasControllerArguments {
         updateSaveToCloudMenu: @escaping (Bool) -> Void,
         updateSelectFromAuthor: @escaping (Bool) -> Void,
         updateDownloadSpeedBoost: @escaping (Bool) -> Void,
-        openOutgoingPhotoQuality: @escaping () -> Void
+        openOutgoingPhotoQuality: @escaping () -> Void,
+        openIntChoice: @escaping (Int32) -> Void
     ) {
         self.updateGhostModeMaster = updateGhostModeMaster
         self.updateGhostDontReadMessages = updateGhostDontReadMessages
@@ -777,6 +779,7 @@ private final class ForkExtrasControllerArguments {
         self.updateSelectFromAuthor = updateSelectFromAuthor
         self.updateDownloadSpeedBoost = updateDownloadSpeedBoost
         self.openOutgoingPhotoQuality = openOutgoingPhotoQuality
+        self.openIntChoice = openIntChoice
     }
 }
 
@@ -858,6 +861,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [83],
             [1609, 1515, 1516, 1544, 1545, 1559, 1612],
             [1613, 1554, 1555, 1556, 1614],
+            [1750, 1751, 1752, 1753, 1754, 1755, 1756, 1757, 1758],
             [2000, 2001, 2002, 2003, 2004]
         ]),
         (.profile, [
@@ -986,6 +990,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     case wideChannelPosts(Bool)
     case wideChannelPostsFooter
     case stickerSize(Int32)
+    /// A row that opens a list of numeric choices (id, title, current value's label); `openIntChoice` picks by id.
+    case intChoice(Int32, String, String)
     case doubleTapToEdit(Bool)
     case doubleTapToEditFooter
     case quickTranslate(Bool)
@@ -1043,7 +1049,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return ForkExtrasSection.proxy.rawValue
         case .hideAllChats, .hideAllChatsFooter, .rememberLastFolder, .rememberLastFolderFooter, .hideTabBar, .hideTabBarFooter:
             return ForkExtrasSection.folders.rawValue
-        case .tabPreview, .callsTab, .appearanceToggle, .showMessageSeconds, .showMessageSecondsFooter, .wideChannelPosts, .wideChannelPostsFooter, .stickerSize:
+        case .tabPreview, .callsTab, .appearanceToggle, .intChoice, .showMessageSeconds, .showMessageSecondsFooter, .wideChannelPosts, .wideChannelPostsFooter, .stickerSize:
             return ForkExtrasSection.appearance.rawValue
         case .doubleTapToEdit, .doubleTapToEditFooter, .quickTranslate, .quickTranslateFooter, .saveToCloud, .saveToCloudFooter, .selectFromAuthor, .selectFromAuthorFooter, .outgoingPhotoQuality, .outgoingPhotoQualityFooter:
             return ForkExtrasSection.chatExtras.rawValue
@@ -1064,6 +1070,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case .tabPreview: return 1507
         case .callsTab: return 1503
         case let .appearanceToggle(id, _, _, _): return id
+        case let .intChoice(id, _, _): return id
         case .hubAppearance: return 1540
         case .hubNinja: return 0
         case .hubGhost: return 1
@@ -1213,7 +1220,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     /// The row's title for Settings search, or nil for headers, footers and rows search should not offer.
     func searchTitle(strings: PresentationStrings) -> String? {
         switch self {
-        case let .musicPolicy(_, title, _), let .appearanceToggle(_, title, _, _):
+        case let .musicPolicy(_, title, _), let .appearanceToggle(_, title, _, _), let .intChoice(_, title, _):
             return title
         case .callsTab:
             return strings.Calls_TabTitle
@@ -1688,6 +1695,10 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             }, tag: BananaSettingsItemTag(id: self.stableId))
         case .wideChannelPostsFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.wideChannelPostsFooter), sectionId: self.section)
+        case let .intChoice(id, title, label):
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: title, label: label, sectionId: self.section, style: .blocks, action: {
+                arguments.openIntChoice(id)
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case let .stickerSize(percent):
             return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.stickerSize, label: "\(percent)%", sectionId: self.section, style: .blocks, action: {
                 arguments.openStickerSize()
@@ -1739,6 +1750,29 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.outgoingPhotoQualityFooter), sectionId: self.section)
         }
     }
+}
+
+/// Donutgram's sticker shapes: stock, rounded (12 pt) and more rounded (22 pt).
+private func forkStickerShapeOptions(russian: Bool) -> [(String, Int32)] {
+    return [
+        (russian ? "Обычная" : "Default", 0),
+        (russian ? "Скруглённая" : "Rounded", 1),
+        (russian ? "Сильно скруглённая" : "More rounded", 2),
+    ]
+}
+
+/// Donutgram's double-tap seek steps; 0 turns double-tap seeking off.
+private func forkDoubleTapSeekOptions(russian: Bool) -> [(String, Int32)] {
+    return [Int32(0), 5, 10, 15, 30].map { seconds -> (String, Int32) in
+        if seconds == 0 {
+            return (russian ? "Выключено" : "Off", seconds)
+        }
+        return (russian ? "\(seconds) с" : "\(seconds) s", seconds)
+    }
+}
+
+private func forkIntChoiceLabel(_ options: [(String, Int32)], _ value: Int32) -> String {
+    return options.first(where: { $0.1 == value })?.0 ?? ""
 }
 
 private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetchPublicMtProxy: Bool, showCallsTab: Bool, mediaInputSettings: MediaInputSettings, focus: ForkExtrasControllerFocus) -> [ForkExtrasEntry] {
@@ -1907,6 +1941,15 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(1544, russian ? "Кружок: задняя камера" : "Round video: rear camera", settings.roundVideoStartsWithRear, \.roundVideoStartsWithRear),
             .appearanceToggle(1545, russian ? "Кружок: помнить камеру" : "Round video: remember camera", settings.roundVideoRemembersCamera, \.roundVideoRemembersCamera),
             .designFooter(1612, russian ? "Музыка как голосовое: откройте меню трека в разделе «Вложения → Музыка»." : "To send music as a voice message, open the track's menu in Attach → Music."),
+            .designHeader(1750, russian ? "Стикеры и воспроизведение" : "Stickers and playback"),
+            .appearanceToggle(1751, russian ? "Только добавленные стикеры" : "Only added stickers", settings.onlyAddedStickers, \.onlyAddedStickers),
+            .appearanceToggle(1752, russian ? "Без лимита недавних стикеров" : "Unlimited recent stickers", settings.infiniteRecentStickers, \.infiniteRecentStickers),
+            .intChoice(1753, russian ? "Форма стикеров" : "Sticker shape", forkIntChoiceLabel(forkStickerShapeOptions(russian: russian), settings.stickerShape)),
+            .appearanceToggle(1754, russian ? "Пауза медиа при сворачивании" : "Pause media in background", settings.autoPauseMediaInBackground, \.autoPauseMediaInBackground),
+            .intChoice(1755, russian ? "Перемотка двойным касанием" : "Double-tap seek", forkIntChoiceLabel(forkDoubleTapSeekOptions(russian: russian), settings.doubleTapSeekSeconds)),
+            .appearanceToggle(1756, russian ? "Кружок: не сбрасывать зум" : "Round video: keep pinch zoom", settings.staticRoundVideoZoom, \.staticRoundVideoZoom),
+            .appearanceToggle(1757, russian ? "Ускорить загрузку файлов" : "Faster uploads", settings.accelerateUpload, \.accelerateUpload),
+            .designFooter(1758, russian ? "«Только добавленные» убирает из панели стикеров популярные наборы и набор группы. Пауза срабатывает при уходе из приложения и блокировке. Ускоренная загрузка отправляет больше частей файла одновременно (кроме секретных чатов)." : "“Only added” hides trending packs and the group's pack in the sticker panel. Media pauses when you leave the app or lock the device. Faster uploads send more parts of a file at once (not in secret chats)."),
             .audioHeader,
             .musicPolicy(2001, russian ? "Пауза музыки при записи видео" : "Pause music when recording video", mediaInputSettings.pauseMusicOnRecording),
             .musicPolicy(2002, russian ? "Пауза музыки при записи голосового" : "Pause music when recording voice messages", mediaInputSettings.pauseMusicOnVoiceRecording),
@@ -2671,6 +2714,33 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
                     }.start())
                 }),
             ])
+        },
+        openIntChoice: { id in
+            let russian = ForkPresentationLanguage.prefersRussianStrings
+            let title: String
+            let options: [(String, Int32)]
+            let keyPath: WritableKeyPath<ForkExtrasSettings, Int32>
+            switch id {
+            case 1753:
+                title = russian ? "Форма стикеров" : "Sticker shape"
+                options = forkStickerShapeOptions(russian: russian)
+                keyPath = \.stickerShape
+            case 1755:
+                title = russian ? "Перемотка двойным касанием" : "Double-tap seek"
+                options = forkDoubleTapSeekOptions(russian: russian)
+                keyPath = \.doubleTapSeekSeconds
+            default:
+                return
+            }
+            presentPicker(title: title, options: options.map { option in
+                (option.0, {
+                    updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                        var updated = current
+                        updated[keyPath: keyPath] = option.1
+                        return updated
+                    }.start())
+                })
+            })
         }
     )
 

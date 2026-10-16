@@ -1787,7 +1787,8 @@ public extension EmojiPagerContentComponent {
             let dismissedTrendingStickerPacksSet = Set(dismissedTrendingStickerPacks ?? [])
             let featuredStickerPacksSet = Set(featuredStickerPacks.map(\.info.id.id))
             
-            if dismissedTrendingStickerPacksSet != featuredStickerPacksSet {
+            // Fork (Donutgram onlyAddedStickers): no trending packs when only installed packs are wanted.
+            if !BananaMediaTweaks.onlyAddedStickers && dismissedTrendingStickerPacksSet != featuredStickerPacksSet {
                 let featuredStickersConfiguration = featuredStickersConfiguration?.get(FeaturedStickersConfiguration.self)
                 for featuredStickerPack in featuredStickerPacks {
                     if installedCollectionIds.contains(featuredStickerPack.info.id) {
@@ -1955,7 +1956,7 @@ public extension EmojiPagerContentComponent {
             }
               
             var avatarPeer: EnginePeer?
-            if let peerSpecificPack = peerSpecificPack {
+            if !BananaMediaTweaks.onlyAddedStickers, let peerSpecificPack = peerSpecificPack {
                 avatarPeer = peerSpecificPack.peer
                 
                 var processedIds = Set<MediaId>()

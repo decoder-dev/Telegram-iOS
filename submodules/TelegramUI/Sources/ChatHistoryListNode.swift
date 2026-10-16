@@ -2149,10 +2149,15 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
             var showOriginalForwardDate: Bool
             var showSensitiveContent: Bool
             var replyDecorations: [Bool]
+            var stickerShape: Int32
         }
         let messageFilterSettings: Signal<MessageFilterSettingsFingerprint, NoError> = forkExtrasSettings(accountManager: context.sharedContext.accountManager)
         |> map { settings -> MessageFilterSettingsFingerprint in
             BananaForwardCountSettings.enabled = settings.showChannelForwardCount
+            // The sticker nodes read the shape at layout time; project it before the history re-emits.
+            var mediaTweaks = BananaMediaTweaks.current
+            mediaTweaks.stickerShape = settings.stickerShape
+            BananaMediaTweaks.update(mediaTweaks)
             return MessageFilterSettingsFingerprint(
                 hideAds: settings.hideAds,
                 hideBlockedMessages: settings.hideBlockedMessages,
@@ -2173,7 +2178,8 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
                 editedMessageMark: settings.editedMessageMark,
                 showOriginalForwardDate: settings.showOriginalForwardDate,
                 showSensitiveContent: settings.showSensitiveContent,
-                replyDecorations: [settings.hideStickerReplyColors, settings.hideStickerReplyEmoji, settings.hideStickerReplyBackground, settings.hidePremiumReplyEmoji]
+                replyDecorations: [settings.hideStickerReplyColors, settings.hideStickerReplyEmoji, settings.hideStickerReplyBackground, settings.hidePremiumReplyEmoji],
+                stickerShape: settings.stickerShape
             )
         }
         |> distinctUntilChanged
