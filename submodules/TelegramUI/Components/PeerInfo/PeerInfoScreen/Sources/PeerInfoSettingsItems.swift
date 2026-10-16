@@ -488,7 +488,7 @@ func settingsEditingItems(data: PeerInfoScreenData?, state: PeerInfoState, conte
     
     if case let .user(user) = data.peer {
         let hideOwnIdentity = forkHidesOwnIdentity(accountPeerId: context.account.peerId, peerId: user.id, settings: context.sharedContext.immediateForkExtrasSettings)
-        let phoneLabel = hideOwnIdentity ? ForkExtrasSettings.streamerHiddenLabel : (user.phone.flatMap({ formatPhoneNumber(context: context, number: $0) }) ?? "")
+        let phoneLabel = hideOwnIdentity ? ForkExtrasSettings.streamerHiddenLabel : (user.phone.flatMap({ formatPhoneNumber(context: context, number: forkDisplayedPhone(accountPeerId: context.account.peerId, peerId: user.id, phone: $0, settings: context.sharedContext.immediateForkExtrasSettings)) }) ?? "")
         items[.info]!.append(PeerInfoScreenDisclosureItem(id: ItemPhoneNumber, label: .text(phoneLabel), text: presentationData.strings.Settings_PhoneNumber, icon: PresentationResourcesSettings.recentCalls, action: {
             interaction.openSettings(.phoneNumber)
         }))

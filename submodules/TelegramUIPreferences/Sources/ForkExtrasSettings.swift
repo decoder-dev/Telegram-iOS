@@ -139,6 +139,15 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var hideStickerReplyEmoji: Bool
     public var hideStickerReplyBackground: Bool
     public var hidePremiumReplyEmoji: Bool
+    /// Fork (Donutgram): profile and identity display switches. Display only; peer data is never changed.
+    public var showChatCreationDate: Bool
+    public var profileIdBotApiFormat: Bool
+    public var showMutualContact: Bool
+    public var hidePremiumStatuses: Bool
+    public var hideVerification: Bool
+    public var hideGiftButton: Bool
+    public var visualPhoneEnabled: Bool
+    public var visualPhoneNumber: String
     /// Fork (Donutgram): remember another profile's gifts and show the ones that later disappeared (BananaSpyStorage).
     public var showDisappearedGifts: Bool
     /// Fork (Donutgram): round video messages open with the rear camera, or with the one the last one used.
@@ -435,6 +444,14 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.hideStickerReplyEmoji = false
         self.hideStickerReplyBackground = false
         self.hidePremiumReplyEmoji = false
+        self.showChatCreationDate = false
+        self.profileIdBotApiFormat = false
+        self.showMutualContact = false
+        self.hidePremiumStatuses = false
+        self.hideVerification = false
+        self.hideGiftButton = false
+        self.visualPhoneEnabled = false
+        self.visualPhoneNumber = ""
         self.showDisappearedGifts = showDisappearedGifts
         self.roundVideoStartsWithRear = roundVideoStartsWithRear
         self.roundVideoRemembersCamera = roundVideoRemembersCamera
@@ -550,6 +567,15 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.hideStickerReplyEmoji = try container.decodeIfPresent(Bool.self, forKey: "hideStickerReplyEmoji") ?? false
         self.hideStickerReplyBackground = try container.decodeIfPresent(Bool.self, forKey: "hideStickerReplyBackground") ?? false
         self.hidePremiumReplyEmoji = try container.decodeIfPresent(Bool.self, forKey: "hidePremiumReplyEmoji") ?? false
+        self.showChatCreationDate = try container.decodeIfPresent(Bool.self, forKey: "showChatCreationDate") ?? false
+        self.profileIdBotApiFormat = try container.decodeIfPresent(Bool.self, forKey: "profileIdBotApiFormat") ?? false
+        // The mutual-contact row used to ride on Show Profile ID; a stored blob without its own key keeps that.
+        self.showMutualContact = try container.decodeIfPresent(Bool.self, forKey: "showMutualContact") ?? self.showProfileId
+        self.hidePremiumStatuses = try container.decodeIfPresent(Bool.self, forKey: "hidePremiumStatuses") ?? false
+        self.hideVerification = try container.decodeIfPresent(Bool.self, forKey: "hideVerification") ?? false
+        self.hideGiftButton = try container.decodeIfPresent(Bool.self, forKey: "hideGiftButton") ?? false
+        self.visualPhoneEnabled = try container.decodeIfPresent(Bool.self, forKey: "visualPhoneEnabled") ?? false
+        self.visualPhoneNumber = try container.decodeIfPresent(String.self, forKey: "visualPhoneNumber") ?? ""
         self.showDisappearedGifts = try container.decodeIfPresent(Bool.self, forKey: "showDisappearedGifts") ?? false
         self.roundVideoStartsWithRear = try container.decodeIfPresent(Bool.self, forKey: "roundVideoStartsWithRear") ?? false
         self.roundVideoRemembersCamera = try container.decodeIfPresent(Bool.self, forKey: "roundVideoRemembersCamera") ?? false
@@ -665,6 +691,14 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.hideStickerReplyEmoji, forKey: "hideStickerReplyEmoji")
         try container.encode(self.hideStickerReplyBackground, forKey: "hideStickerReplyBackground")
         try container.encode(self.hidePremiumReplyEmoji, forKey: "hidePremiumReplyEmoji")
+        try container.encode(self.showChatCreationDate, forKey: "showChatCreationDate")
+        try container.encode(self.profileIdBotApiFormat, forKey: "profileIdBotApiFormat")
+        try container.encode(self.showMutualContact, forKey: "showMutualContact")
+        try container.encode(self.hidePremiumStatuses, forKey: "hidePremiumStatuses")
+        try container.encode(self.hideVerification, forKey: "hideVerification")
+        try container.encode(self.hideGiftButton, forKey: "hideGiftButton")
+        try container.encode(self.visualPhoneEnabled, forKey: "visualPhoneEnabled")
+        try container.encode(self.visualPhoneNumber, forKey: "visualPhoneNumber")
         try container.encode(self.showDisappearedGifts, forKey: "showDisappearedGifts")
         try container.encode(self.roundVideoStartsWithRear, forKey: "roundVideoStartsWithRear")
         try container.encode(self.roundVideoRemembersCamera, forKey: "roundVideoRemembersCamera")
@@ -784,6 +818,32 @@ public enum ForkLastChatListFilter {
 /// Mask own phone / @username at display sites. Chat titles are intentionally not gated.
 public func forkHidesOwnIdentity(accountPeerId: EnginePeer.Id, peerId: EnginePeer.Id, settings: ForkExtrasSettings) -> Bool {
     return accountPeerId == peerId && (ForkExtrasHotFlags.streamerMode || settings.streamerMode)
+}
+
+/// Fork (Donutgram): the phone number displayed for the account's own profile. With the visual number on it is the
+/// typed one; anyone else's number, and every action (call, copy, change number), keeps the real one.
+public func forkDisplayedPhone(accountPeerId: EnginePeer.Id, peerId: EnginePeer.Id, phone: String, settings: ForkExtrasSettings) -> String {
+    if accountPeerId == peerId && settings.visualPhoneEnabled {
+        let visual = settings.visualPhoneNumber.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !visual.isEmpty {
+            return visual
+        }
+    }
+    return phone
+}
+
+/// Fork (Donutgram): the profile id row's text. Telegram API form is the bare id; Bot API form negates basic groups
+/// and writes the channel namespace (channels, supergroups) as -100<id>.
+public func forkProfileIdText(peerId: EnginePeer.Id, botApiFormat: Bool) -> String {
+    let rawId = peerId.id._internalGetInt64Value()
+    if botApiFormat {
+        if peerId.namespace == Namespaces.Peer.CloudGroup {
+            return "\(-rawId)"
+        } else if peerId.namespace == Namespaces.Peer.CloudChannel {
+            return "\(-1_000_000_000_000 - rawId)"
+        }
+    }
+    return "\(rawId)"
 }
 
 public func updateForkExtrasSettingsInteractively(accountManager: AccountManager<TelegramAccountManagerTypes>, _ f: @escaping (ForkExtrasSettings) -> ForkExtrasSettings) -> Signal<Void, NoError> {

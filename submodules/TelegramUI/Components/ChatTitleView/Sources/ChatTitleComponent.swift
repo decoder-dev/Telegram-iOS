@@ -447,16 +447,18 @@ public final class ChatTitleComponent: Component {
                                 titleCredibilityIcon = .fake
                             } else if peer.isScam {
                                 titleCredibilityIcon = .scam
+                            } else if BananaIdentityBadges.hidesPremiumStatus(peerId: peer.id, accountPeerId: component.context.account.peerId) {
+                                titleCredibilityIcon = .none
                             } else if !hidePeerStatus, let emojiStatus = peer.emojiStatus {
                                 titleStatusIcon = .emojiStatus(emojiStatus)
                             } else if peer.isPremium && !premiumConfiguration.isPremiumDisabled {
                                 titleCredibilityIcon = .premium
                             }
                             
-                            if peer.isVerified {
+                            if peer.isVerified && !BananaIdentityBadges.hidesVerification {
                                 titleCredibilityIcon = .verified
                             }
-                            if let verificationIconFileId = peer.verificationIconFileId {
+                            if !BananaIdentityBadges.hidesVerification, let verificationIconFileId = peer.verificationIconFileId {
                                 titleVerifiedIcon = .emojiStatus(PeerEmojiStatus(content: .emoji(fileId: verificationIconFileId), expirationDate: nil))
                             }
                         }

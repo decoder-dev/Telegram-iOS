@@ -177,7 +177,7 @@ func infoItems(
         
         if let phone = user.phone {
             let hideOwnIdentity = forkHidesOwnIdentity(accountPeerId: context.account.peerId, peerId: user.id, settings: context.sharedContext.immediateForkExtrasSettings)
-            let formattedPhone = hideOwnIdentity ? ForkExtrasSettings.streamerHiddenLabel : formatPhoneNumber(context: context, number: phone)
+            let formattedPhone = hideOwnIdentity ? ForkExtrasSettings.streamerHiddenLabel : formatPhoneNumber(context: context, number: forkDisplayedPhone(accountPeerId: context.account.peerId, peerId: user.id, phone: phone, settings: context.sharedContext.immediateForkExtrasSettings))
             let label: String
             if formattedPhone.hasPrefix("+888 ") {
                 label = presentationData.strings.UserInfo_AnonymousNumberLabel
@@ -907,7 +907,8 @@ func infoItems(
     let forkExtras = context.sharedContext.immediateForkExtrasSettings
     let hideDiagnostics = ForkExtrasHotFlags.streamerMode || forkExtras.streamerMode
     if forkExtras.showProfileId && !hideDiagnostics {
-        let idText = "\(data.peer?.id.id._internalGetInt64Value() ?? 0)"
+        // Extras ▸ Profile ▸ Bot API id format: -<id> for basic groups and -100<id> for channels and supergroups.
+        let idText = data.peer.flatMap { forkProfileIdText(peerId: $0.id, botApiFormat: forkExtras.profileIdBotApiFormat) } ?? "0"
         items[.peerInfoTrailing]!.append(PeerInfoScreenLabeledValueItem(id: AnyHashable("fork_profile_id"), label: "id", text: idText, textColor: .primary, action: { sourceNode, _ in
             interaction.openPeerInfoContextMenu(.genericCopy(idText), sourceNode, nil)
         }, longTapAction: { sourceNode in
@@ -916,7 +917,7 @@ func infoItems(
     }
     // Directly under the id: whether this person is a mutual contact (they have the account's number saved too).
     // The server flag is only meaningful for another user; bots and the account itself never show it.
-    if forkExtras.showProfileId && !hideDiagnostics, case let .user(user)? = data.peer, user.id != context.account.peerId, user.botInfo == nil {
+    if forkExtras.showMutualContact && !hideDiagnostics, case let .user(user)? = data.peer, user.id != context.account.peerId, user.botInfo == nil {
         let russian = ForkPresentationLanguage.prefersRussianStrings
         let mutualText = user.flags.contains(.mutualContact) ? (russian ? "да" : "yes") : (russian ? "нет" : "no")
         items[.peerInfoTrailing]!.append(PeerInfoScreenLabeledValueItem(id: AnyHashable("fork_mutual_contact"), label: russian ? "взаимный контакт" : "mutual contact", text: mutualText, textColor: .primary, action: nil, longTapAction: nil))
@@ -939,6 +940,29 @@ func infoItems(
         }, longTapAction: { sourceNode in
             interaction.openPeerInfoContextMenu(.genericCopy(registrationDate), sourceNode, nil)
         }))
+    }
+    // Extras ▸ Profile ▸ chat creation date. The peer's `creationDate` is the server's `date`: for a channel or
+    // supergroup the account belongs to, that is when it joined; otherwise when the chat was created.
+    if forkExtras.showChatCreationDate {
+        var creationTimestamp: Int32?
+        switch data.peer {
+        case let .channel(channel)?:
+            creationTimestamp = channel.creationDate
+        case let .legacyGroup(group)?:
+            creationTimestamp = group.creationDate
+        case let .community(community)?:
+            creationTimestamp = community.creationDate
+        default:
+            break
+        }
+        if let creationTimestamp, creationTimestamp > 0 {
+            let creationText = stringForDate(timestamp: creationTimestamp, timeZone: TimeZone.current, strings: presentationData.strings)
+            items[.peerInfoTrailing]!.append(PeerInfoScreenLabeledValueItem(id: AnyHashable("fork_creation_date"), label: ForkPresentationLanguage.prefersRussianStrings ? "создан" : "created", text: creationText, textColor: .primary, action: { sourceNode, _ in
+                interaction.openPeerInfoContextMenu(.genericCopy(creationText), sourceNode, nil)
+            }, longTapAction: { sourceNode in
+                interaction.openPeerInfoContextMenu(.genericCopy(creationText), sourceNode, nil)
+            }))
+        }
     }
 
     var result: [(AnyHashable, [PeerInfoScreenItem])] = []
