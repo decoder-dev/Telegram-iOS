@@ -33,6 +33,7 @@ private enum SubscriberAction: Equatable, Hashable {
     case openChannel
     case openGroup
     case openChat
+    case discuss
 }
 
 private func titleAndColorForAction(_ action: SubscriberAction, theme: PresentationTheme, strings: PresentationStrings) -> (String, UIColor) {
@@ -59,6 +60,8 @@ private func titleAndColorForAction(_ action: SubscriberAction, theme: Presentat
             return (strings.SavedMessages_OpenGroup, theme.chat.inputPanel.panelControlAccentColor)
         case .openChat:
             return (strings.SavedMessages_OpenChat, theme.chat.inputPanel.panelControlAccentColor)
+        case .discuss:
+            return (strings.PeerInfo_ButtonDiscuss, theme.chat.inputPanel.panelControlAccentColor)
     }
 }
 
@@ -126,6 +129,10 @@ private func actionForPeer(context: AccountContext, peer: EnginePeer, interfaceS
                         return .join
                     }
                 case .member:
+                    // Extras channel bottom button (Donutgram): "Discuss" opens the linked group.
+                    if case let .broadcast(info) = channel.info, case .peer = interfaceState.chatLocation, info.flags.contains(.hasDiscussionGroup), ArenaSettings.shared.channelBottomButtonDiscusses {
+                        return .discuss
+                    }
                     if isMuted {
                         return .unmuteNotifications
                     } else {
@@ -298,6 +305,14 @@ public final class ChatChannelSubscriberInputPanelNode: ChatInputPanelNode {
             if let context = self.context, let presentationInterfaceState = self.presentationInterfaceState, let peer = presentationInterfaceState.renderedPeer?.peer {
                 self.actionDisposable.set(context.engine.peers.togglePeerMuted(peerId: peer.id, threadId: nil).startStrict())
             }
+        case .discuss:
+            self.actionDisposable.set((context.engine.data.get(TelegramEngine.EngineData.Item.Peer.LinkedDiscussionPeerId(id: peer.id))
+            |> deliverOnMainQueue).startStrict(next: { [weak self] linkedDiscussionPeerId in
+                guard let self, case let .known(value) = linkedDiscussionPeerId, let discussionPeerId = value else {
+                    return
+                }
+                self.interfaceInteraction?.navigateToChat(discussionPeerId)
+            }))
         case .hidePinnedMessages, .unpinMessages:
             self.interfaceInteraction?.unpinAllMessages()
         case .openChannel, .openGroup, .openChat:

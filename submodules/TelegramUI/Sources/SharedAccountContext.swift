@@ -1231,6 +1231,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         }
         BananaForwardCountSettings.enabled = settings.showChannelForwardCount
         ArenaSettings.shared.setReplyDecorations(hideStickerColors: settings.hideStickerReplyColors, hideStickerEmoji: settings.hideStickerReplyEmoji, hideStickerBackground: settings.hideStickerReplyBackground, hidePremiumEmoji: settings.hidePremiumReplyEmoji)
+        applyForkChatAppearanceSettings(settings)
         BananaSpyStorage.trackDisappearedGifts = settings.showDisappearedGifts
         BananaDeletedReplyQuote.enabled = settings.quoteRepliesToDeleted
         BananaExactCounts.enabled = settings.exactCounts
@@ -1238,7 +1239,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         BananaActivityHiding.update(text: settings.hideTypingText, voice: settings.hideTypingVoice, files: settings.hideTypingFiles)
         BananaRoundVideoCamera.startsWithRear = settings.roundVideoStartsWithRear
         BananaRoundVideoCamera.remembersLast = settings.roundVideoRemembersCamera
-        BananaPresenceDisplay.current = BananaPresenceDisplay(exactLastSeen: settings.exactLastSeen, showsOfflineDot: settings.showsOfflineDot)
+        BananaPresenceDisplay.current = BananaPresenceDisplay(exactLastSeen: settings.exactLastSeen, showsOfflineDot: settings.showsOfflineDot, relativeLastSeen: settings.relativeLastSeen)
         BananaChatListHeader.current = BananaChatListHeader(hidesConnectionStatus: settings.chatListHidesConnectionStatus, hidesEmojiStatus: settings.chatListHidesEmojiStatus, centersTitle: settings.chatListCentersTitle, hidesSearch: settings.chatListHidesSearch)
         ForkMessageVisibility.update(ForkMessageVisibility.State(hidePaidReactions: settings.hidePaidReactions, hideViaBot: settings.hideViaBot, removeLinkPreviews: settings.removeLinkPreviews, hideBirthdayNotifications: settings.hideBirthdayNotifications, hideBotAutomation: settings.hideBotAutomation, showPinnedWithBot: settings.showPinnedWithBot, stopAfterVoice: settings.stopAfterVoice, stopAfterRoundVideo: settings.stopAfterRoundVideo))
         ForkAyuForwardSettings.enabled = settings.ayuForward

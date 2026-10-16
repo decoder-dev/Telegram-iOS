@@ -222,11 +222,19 @@ public func chatTextInputRemoveDateAttribute(_ state: ChatTextInputState, select
 
 public func chatTextInputAddMentionAttribute(_ state: ChatTextInputState, peer: EnginePeer) -> ChatTextInputState {
     let inputText = NSMutableAttributedString(attributedString: state.inputText)
+    let isBot: Bool
+    if case let .user(user) = peer {
+        isBot = user.botInfo != nil
+    } else {
+        isBot = false
+    }
+    // Extras "comma after mention" (Donutgram): ", " after a person, a space after a bot.
+    let mentionSuffix = ArenaSettings.shared.mentionSuffix(isBot: isBot)
     
     let range = NSMakeRange(state.selectionRange.startIndex, state.selectionRange.endIndex - state.selectionRange.startIndex)
     
     if let addressName = peer.addressName, !addressName.isEmpty {
-        let replacementText = "@\(addressName) "
+        let replacementText = "@\(addressName)\(mentionSuffix)"
         
         inputText.replaceCharacters(in: range, with: replacementText)
         
@@ -236,7 +244,7 @@ public func chatTextInputAddMentionAttribute(_ state: ChatTextInputState, peer: 
     } else if !peer.compactDisplayTitle.isEmpty {
         let replacementText = NSMutableAttributedString()
         replacementText.append(NSAttributedString(string: peer.compactDisplayTitle, attributes: [ChatTextInputAttributes.textMention: ChatTextInputTextMentionAttribute(peerId: peer.id)]))
-        replacementText.append(NSAttributedString(string: " "))
+        replacementText.append(NSAttributedString(string: mentionSuffix))
         
         let updatedRange = NSRange(location: range.location , length: range.length)
         

@@ -6844,6 +6844,12 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                 let previousChatWallpaper = strongSelf.presentationData.chatWallpaper
                 
                 var chatTheme = chatTheme
+                // Extras "disable custom backgrounds" (Donutgram): a chat's own wallpaper and theme are
+                // ignored and it draws with the app's. A theme being previewed still applies below.
+                if ArenaSettings.shared.disablesCustomBackgrounds {
+                    chatWallpaper = nil
+                    chatTheme = nil
+                }
                 if let chatThemePreview {
                     if !chatThemePreview.isEmpty {
                         if chatTheme?.id != chatThemePreview.id {

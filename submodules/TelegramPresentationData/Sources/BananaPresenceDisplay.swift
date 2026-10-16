@@ -16,9 +16,12 @@ public struct BananaPresenceDisplay: Equatable {
     public let exactLastSeen: Bool
     /// A grey dot on the avatar of a contact who is offline, next to the green one for who is online.
     public let showsOfflineDot: Bool
+    /// "last seen 5 minutes ago" on the profile too, where Telegram otherwise shows the exact time.
+    public let relativeLastSeen: Bool
 
-    public init(exactLastSeen: Bool, showsOfflineDot: Bool) {
+    public init(exactLastSeen: Bool, showsOfflineDot: Bool, relativeLastSeen: Bool = false) {
         self.exactLastSeen = exactLastSeen
         self.showsOfflineDot = showsOfflineDot
+        self.relativeLastSeen = relativeLastSeen
     }
 }

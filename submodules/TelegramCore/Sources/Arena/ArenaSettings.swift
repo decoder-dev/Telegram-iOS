@@ -126,8 +126,47 @@ public class ArenaSettings {
                 if self.hideStickerReplyBackgroundValue { options &= ~4 }
             }
             if self.hidePremiumReplyEmojiValue { options &= ~2 }
+            // "Disable coloured replies": every reply header drops its peer name colours.
+            if self.disableColoredRepliesValue { options &= ~1 }
             return options
         }
     }
+
+    /// Chat appearance switches (Donutgram), projected from ForkExtrasSettings by
+    /// `applyForkChatAppearanceSettings`. All default off, which is the stock look.
+    private var commaAfterMentionValue = false
+    private var disableColoredRepliesValue = false
+    private var hideStickerChecksValue = false
+    private var mentionAvatarsValue = false
+    private var disableCustomBackgroundsValue = false
+    private var channelBottomDiscussValue = false
+    private var hideChannelBottomButtonValue = false
+    private var hideShareButtonValue = false
+
+    public func setChatAppearance(commaAfterMention: Bool, disableColoredReplies: Bool, hideStickerChecks: Bool, mentionAvatars: Bool, disableCustomBackgrounds: Bool, channelBottomDiscuss: Bool, hideChannelBottomButton: Bool, hideShareButton: Bool) {
+        self.locked {
+            self.commaAfterMentionValue = commaAfterMention
+            self.disableColoredRepliesValue = disableColoredReplies
+            self.hideStickerChecksValue = hideStickerChecks
+            self.mentionAvatarsValue = mentionAvatars
+            self.disableCustomBackgroundsValue = disableCustomBackgrounds
+            self.channelBottomDiscussValue = channelBottomDiscuss
+            self.hideChannelBottomButtonValue = hideChannelBottomButton
+            self.hideShareButtonValue = hideShareButton
+        }
+    }
+
+    /// What mention autocomplete puts after the inserted mention: ", " for a person when the
+    /// "comma after mention" switch is on, a plain space otherwise (and always for a bot).
+    public func mentionSuffix(isBot: Bool) -> String {
+        return self.locked { self.commaAfterMentionValue && !isBot ? ", " : " " }
+    }
+    public var disablesColoredReplies: Bool { return self.locked { self.disableColoredRepliesValue } }
+    public var hidesStickerChecks: Bool { return self.locked { self.hideStickerChecksValue } }
+    public var showsMentionAvatars: Bool { return self.locked { self.mentionAvatarsValue } }
+    public var disablesCustomBackgrounds: Bool { return self.locked { self.disableCustomBackgroundsValue } }
+    public var channelBottomButtonDiscusses: Bool { return self.locked { self.channelBottomDiscussValue } }
+    public var hidesChannelBottomButton: Bool { return self.locked { self.hideChannelBottomButtonValue } }
+    public var hidesShareButton: Bool { return self.locked { self.hideShareButtonValue } }
 }
 
