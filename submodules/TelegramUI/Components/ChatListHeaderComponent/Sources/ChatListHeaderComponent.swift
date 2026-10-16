@@ -172,7 +172,7 @@ public final class ChatListHeaderComponent: Component {
         self.secondaryTransition = secondaryTransition
         self.context = context
         self.networkStatus = networkStatus
-        self.storySubscriptions = storySubscriptions
+        self.storySubscriptions = BananaChatListHeader.current.hidesStories ? nil : storySubscriptions
         self.storiesIncludeHidden = storiesIncludeHidden
         self.storiesFraction = storiesFraction
         self.storiesUnlocked = storiesUnlocked

@@ -22,6 +22,8 @@ import UrlWhitelist
 /// while keeping noforwards / paid / peer copy-protection intact.
 private func forkCaptureProtected(message: Message, peerIsCopyProtected: Bool, additionalSecret: Bool = false) -> Bool {
     let allowSecretScreenshots = ForkSecretScreenshotSettings.allow
+    // Donutgram: Screenshots in Protected Chats lifts noforwards / peer copy-protection only.
+    let copyProtectionBlocksCapture = (message.isCopyProtected() || peerIsCopyProtected) && !ForkProtectedScreenshotSettings.allow
     // `shouldDrawSecretMediaBlur` takes a settings lock — evaluate once.
     let drawsSecretBlur = message.shouldDrawSecretMediaBlur
     if allowSecretScreenshots {
@@ -31,10 +33,10 @@ private func forkCaptureProtected(message: Message, peerIsCopyProtected: Bool, a
             || message.autoremoveAttribute != nil
             || additionalSecret
         if isSecretSurface {
-            return message.isCopyProtected() || peerIsCopyProtected || message.paidContent != nil
+            return copyProtectionBlocksCapture || message.paidContent != nil
         }
     }
-    return message.isCopyProtected() || drawsSecretBlur || message.paidContent != nil || peerIsCopyProtected || additionalSecret || message.id.peerId.namespace == Namespaces.Peer.SecretChat
+    return copyProtectionBlocksCapture || drawsSecretBlur || message.paidContent != nil || additionalSecret || message.id.peerId.namespace == Namespaces.Peer.SecretChat
 }
 
 private func tagsForMessage(_ message: Message) -> MessageTags? {

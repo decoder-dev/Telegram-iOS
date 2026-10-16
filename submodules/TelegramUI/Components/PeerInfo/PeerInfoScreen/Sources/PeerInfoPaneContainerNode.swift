@@ -445,7 +445,7 @@ private final class PeerInfoPendingPane {
     ) {
         let (chatLocationPeerId, chatLocation, chatLocationContextHolder) = peerInfoSharedMediaChatLocation(peerId: peerId, chatLocation: chatLocation, chatLocationContextHolder: chatLocationContextHolder, sharedMediaFromForumTopic: sharedMediaFromForumTopic)
         
-        var captureProtected = peerInfoIsCopyProtected(data: data, sharedMediaFromForumTopic: sharedMediaFromForumTopic)
+        var captureProtected = peerInfoIsCopyProtected(data: data, sharedMediaFromForumTopic: sharedMediaFromForumTopic) && !ForkProtectedScreenshotSettings.allow
         let paneNode: PeerInfoPaneNode
         switch key {
         case .gifts:

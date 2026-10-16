@@ -2028,12 +2028,24 @@ public final class ChatListNode: ListViewImpl {
         // rather than inside `ArchiveLockSession` on purpose: `combineLatest` withholds the first
         // emission until the stored password state is known, so an unprotected account never
         // renders the omitted state first and then animates the folder row back in.
+        //
+        // Extras "Hide archive" (Donutgram `hideArchive`) omits the row of an unprotected Archive the same way; a
+        // password-protected one keeps its Settings ×10 presentation, which is how it is reached at all.
+        let fullyHideArchive = forkExtrasSettings(accountManager: context.sharedContext.accountManager)
+        |> map { settings -> Bool in
+            return settings.hideArchive
+        }
+        |> distinctUntilChanged
         let archiveFolderPresentation = combineLatest(
             ArchiveLockSession.shared.folderPresentationSignal,
-            archivePasswordProtectionSignal(context: context)
+            archivePasswordProtectionSignal(context: context),
+            fullyHideArchive
         )
-        |> map { (presentation, isPasswordProtected) -> ArchiveFolderPresentation in
-            return isPasswordProtected ? presentation : .expanded
+        |> map { (presentation, isPasswordProtected, fullyHideArchive) -> ArchiveFolderPresentation in
+            if isPasswordProtected {
+                return presentation
+            }
+            return fullyHideArchive ? .omitted : .expanded
         }
         |> distinctUntilChanged
         

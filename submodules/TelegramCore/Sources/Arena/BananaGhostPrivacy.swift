@@ -42,6 +42,29 @@ func bananaGhostScheduleAllowed(peerNamespace: PeerId.Namespace, hasUserSchedule
         && ForkGhostModeSettings.suppressOnline && ForkGhostModeSettings.goOfflineAutomatically
 }
 
+/// Donutgram "ghostSendWithoutSound": while full Ghost Mode is on, outgoing messages go out without a notification.
+public enum ForkGhostSilentSendSettings {
+    /// Mirrored to UserDefaults like the other Ghost flags, so a send right after a cold launch is already silent.
+    private static let persistedKey = "ForkGhostSilentSendSettings.enabled.v1"
+    private static let value = Atomic<Bool>(value: UserDefaults.standard.bool(forKey: persistedKey))
+    public static var enabled: Bool {
+        get { return value.with { $0 } }
+        set {
+            let previous = value.swap(newValue)
+            if previous != newValue {
+                UserDefaults.standard.set(newValue, forKey: persistedKey)
+            }
+        }
+    }
+}
+
+/// Full Ghost Mode is the same five flags `bananaGhostScheduleAllowed` requires.
+func bananaGhostSendsSilently() -> Bool {
+    return ForkGhostSilentSendSettings.enabled && ForkGhostModeSettings.suppressMessageReads
+        && ForkGhostModeSettings.suppressStoryViews && ForkGhostModeSettings.suppressOutgoingActivity
+        && ForkGhostModeSettings.suppressOnline && ForkGhostModeSettings.goOfflineAutomatically
+}
+
 public enum ForkRemovePingsSettings {
     /// Mirrored to UserDefaults like the other Ghost flags: the real setting arrives through an asynchronous read, and
     /// until then messages sent right after a cold launch would go out immediately instead of being delayed.

@@ -1157,12 +1157,18 @@ func enqueueMessages(transaction: Transaction, account: Account, peerId: PeerId,
     // Covers multi-peer forwards and sends outside ChatController too. Existing
     // dates and quick replies remain untouched; secret chats cannot schedule.
     let scheduleTime = Int32(account.network.context.globalTime()) + 12
+    // Ghost "send without sound": a message that already says how to notify keeps it.
+    let ghostSendsSilently = bananaGhostSendsSilently()
     let messages = messages.map { entry -> (Bool, EnqueueMessage) in
         return (entry.0, entry.1.withUpdatedAttributes { attributes in
+            var updatedAttributes = attributes
+            if ghostSendsSilently && !updatedAttributes.contains(where: { $0 is NotificationInfoMessageAttribute }) {
+                updatedAttributes.append(NotificationInfoMessageAttribute(flags: .muted))
+            }
             guard bananaGhostScheduleAllowed(peerNamespace: peerId.namespace,
                 hasUserSchedule: attributes.contains(where: { $0 is OutgoingScheduleInfoMessageAttribute }),
-                isQuickReply: attributes.contains(where: { $0 is OutgoingQuickReplyMessageAttribute })) else { return attributes }
-            return attributes + [OutgoingScheduleInfoMessageAttribute(scheduleTime: scheduleTime, repeatPeriod: nil)]
+                isQuickReply: attributes.contains(where: { $0 is OutgoingQuickReplyMessageAttribute })) else { return updatedAttributes }
+            return updatedAttributes + [OutgoingScheduleInfoMessageAttribute(scheduleTime: scheduleTime, repeatPeriod: nil)]
         })
     }
     /**

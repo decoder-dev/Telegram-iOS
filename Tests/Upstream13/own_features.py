@@ -911,7 +911,7 @@ print("Account-scoped ghost exceptions: isolation/persistence/revocation passed"
         # The group-call speaking indicator is never one of the hidden kinds.
         self.assertNotIn('speakingInGroupCall', hiding)
         ctl = read('submodules/SettingsUI/Sources/ForkExtrasController.swift')
-        self.assertIn('(.ghost, [[1560, 1561, 1562]])', ctl)
+        self.assertIn('(.ghost, [[1560, 1561, 1562], [1770, 1771, 1772]])', ctl)
         self.assertIn('BananaActivityHiding.update(text: settings.hideTypingText', read('submodules/TelegramUI/Sources/SharedAccountContext.swift'))
         own = read('submodules/ChatListUI/Sources/BananaDeleteOwnMessages.swift')
         self.assertIn('fromId: accountPeerId', own)

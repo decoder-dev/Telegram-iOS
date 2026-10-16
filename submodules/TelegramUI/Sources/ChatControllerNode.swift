@@ -1288,10 +1288,12 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
         
         // Cheap namespace test first — non-secret chats must not touch fork statics on every layout.
         let isSecretChat = self.chatLocation.peerId?.namespace == Namespaces.Peer.SecretChat
-        var isSecret = self.chatPresentationInterfaceState.copyProtectionEnabled || isSecretChat || self.chatLocation.peerId?.isVerificationCodes == true
+        // Donutgram: Screenshots in Protected Chats — the static is read only when the chat is protected.
+        let copyProtectionBlocksCapture = self.chatPresentationInterfaceState.copyProtectionEnabled && !ForkProtectedScreenshotSettings.allow
+        var isSecret = copyProtectionBlocksCapture || isSecretChat || self.chatLocation.peerId?.isVerificationCodes == true
         // AyuGram: Screenshots in Secret Chats — Core static Bool, never copy ForkExtrasSettings.
         if isSecretChat, ForkSecretScreenshotSettings.allow {
-            isSecret = self.chatPresentationInterfaceState.copyProtectionEnabled || self.chatLocation.peerId?.isVerificationCodes == true
+            isSecret = copyProtectionBlocksCapture || self.chatLocation.peerId?.isVerificationCodes == true
         }
         if self.historyNodeContainer.isSecret != isSecret {
             self.historyNodeContainer.isSecret = isSecret

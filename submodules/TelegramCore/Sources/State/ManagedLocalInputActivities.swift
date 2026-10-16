@@ -93,6 +93,16 @@ public enum ForkSecretScreenshotSettings {
     }
 }
 
+/// Donutgram "allowProtectedScreenshots": screenshots and screen recording in chats and media that the sender
+/// protected from copying (`noforwards`). Secret chats stay with `ForkSecretScreenshotSettings`.
+public enum ForkProtectedScreenshotSettings {
+    private static let value = Atomic<Bool>(value: false)
+    public static var allow: Bool {
+        get { return value.with { $0 } }
+        set { let _ = value.swap(newValue) }
+    }
+}
+
 /// AyuGram: expire-now button on TTL / secret media viewer.
 public enum ForkExpireTtlSettings {
     private static let value = Atomic<Bool>(value: true)
