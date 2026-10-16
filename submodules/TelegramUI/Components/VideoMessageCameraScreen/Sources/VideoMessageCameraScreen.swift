@@ -1507,10 +1507,13 @@ public class VideoMessageCameraScreen: ViewController {
                     return
                 }
                 self.isPinchZooming = false
-                // Back to where the pinch started, such as a lens picked with a button, not always to 1×, and the
-                // dial glides back along with the picture. A paused camera has nothing to animate, so it gets the
-                // value at once.
-                self.setDisplayedZoom(self.zoomBeforePinch, rampRate: self.previewState == nil ? 8.0 : nil, followsRamp: true)
+                // Fork (Donutgram staticRoundVideoZoom): the zoom can stay where the pinch left it.
+                if !BananaMediaTweaks.staticRoundVideoZoom {
+                    // Back to where the pinch started, such as a lens picked with a button, not always to 1×, and the
+                    // dial glides back along with the picture. A paused camera has nothing to animate, so it gets the
+                    // value at once.
+                    self.setDisplayedZoom(self.zoomBeforePinch, rampRate: self.previewState == nil ? 8.0 : nil, followsRamp: true)
+                }
                 self.endZoomGesture()
             default:
                 break

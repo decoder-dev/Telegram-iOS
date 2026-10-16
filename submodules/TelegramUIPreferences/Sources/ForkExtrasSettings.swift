@@ -154,6 +154,16 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var hideStories: Bool
     public var hideArchive: Bool
     public var allowProtectedScreenshots: Bool
+    /// Fork (Donutgram): media, sticker and playback options, projected into `BananaMediaTweaks`.
+    public var accelerateUpload: Bool
+    public var infiniteRecentStickers: Bool
+    public var onlyAddedStickers: Bool
+    public var autoPauseMediaInBackground: Bool
+    /// 0, 5, 10, 15 or 30; 0 turns double-tap seeking off.
+    public var doubleTapSeekSeconds: Int32
+    public var staticRoundVideoZoom: Bool
+    /// 0: stock, 1: rounded, 2: more rounded.
+    public var stickerShape: Int32
     /// Fork (Donutgram): remember another profile's gifts and show the ones that later disappeared (BananaSpyStorage).
     public var showDisappearedGifts: Bool
     /// Fork (Donutgram): round video messages open with the rear camera, or with the one the last one used.
@@ -463,6 +473,13 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.hideStories = false
         self.hideArchive = false
         self.allowProtectedScreenshots = false
+        self.accelerateUpload = false
+        self.infiniteRecentStickers = false
+        self.onlyAddedStickers = false
+        self.autoPauseMediaInBackground = false
+        self.doubleTapSeekSeconds = 15
+        self.staticRoundVideoZoom = false
+        self.stickerShape = 0
         self.showDisappearedGifts = showDisappearedGifts
         self.roundVideoStartsWithRear = roundVideoStartsWithRear
         self.roundVideoRemembersCamera = roundVideoRemembersCamera
@@ -592,6 +609,14 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.hideStories = try container.decodeIfPresent(Bool.self, forKey: "hideStories") ?? false
         self.hideArchive = try container.decodeIfPresent(Bool.self, forKey: "hideArchive") ?? false
         self.allowProtectedScreenshots = try container.decodeIfPresent(Bool.self, forKey: "allowProtectedScreenshots") ?? false
+        self.accelerateUpload = try container.decodeIfPresent(Bool.self, forKey: "accelerateUpload") ?? false
+        self.infiniteRecentStickers = try container.decodeIfPresent(Bool.self, forKey: "infiniteRecentStickers") ?? false
+        self.onlyAddedStickers = try container.decodeIfPresent(Bool.self, forKey: "onlyAddedStickers") ?? false
+        self.autoPauseMediaInBackground = try container.decodeIfPresent(Bool.self, forKey: "autoPauseMediaInBackground") ?? false
+        let decodedSeekSeconds = try container.decodeIfPresent(Int32.self, forKey: "doubleTapSeekSeconds") ?? 15
+        self.doubleTapSeekSeconds = [0, 5, 10, 15, 30].contains(decodedSeekSeconds) ? decodedSeekSeconds : 15
+        self.staticRoundVideoZoom = try container.decodeIfPresent(Bool.self, forKey: "staticRoundVideoZoom") ?? false
+        self.stickerShape = min(2, max(0, try container.decodeIfPresent(Int32.self, forKey: "stickerShape") ?? 0))
         self.showDisappearedGifts = try container.decodeIfPresent(Bool.self, forKey: "showDisappearedGifts") ?? false
         self.roundVideoStartsWithRear = try container.decodeIfPresent(Bool.self, forKey: "roundVideoStartsWithRear") ?? false
         self.roundVideoRemembersCamera = try container.decodeIfPresent(Bool.self, forKey: "roundVideoRemembersCamera") ?? false
@@ -720,6 +745,13 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.hideStories, forKey: "hideStories")
         try container.encode(self.hideArchive, forKey: "hideArchive")
         try container.encode(self.allowProtectedScreenshots, forKey: "allowProtectedScreenshots")
+        try container.encode(self.accelerateUpload, forKey: "accelerateUpload")
+        try container.encode(self.infiniteRecentStickers, forKey: "infiniteRecentStickers")
+        try container.encode(self.onlyAddedStickers, forKey: "onlyAddedStickers")
+        try container.encode(self.autoPauseMediaInBackground, forKey: "autoPauseMediaInBackground")
+        try container.encode(self.doubleTapSeekSeconds, forKey: "doubleTapSeekSeconds")
+        try container.encode(self.staticRoundVideoZoom, forKey: "staticRoundVideoZoom")
+        try container.encode(self.stickerShape, forKey: "stickerShape")
         try container.encode(self.showDisappearedGifts, forKey: "showDisappearedGifts")
         try container.encode(self.roundVideoStartsWithRear, forKey: "roundVideoStartsWithRear")
         try container.encode(self.roundVideoRemembersCamera, forKey: "roundVideoRemembersCamera")

@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 import SwiftSignalKit
 import AVFoundation
 import MobileCoreServices
@@ -188,6 +189,7 @@ public final class MediaManagerImpl: NSObject, MediaManager {
     private let globalAudioSessionForegroundDisposable = MetaDisposable()
 
     private var musicListenTracker: MusicListenTracker?
+    private var backgroundPauseObservers: [NSObjectProtocol] = []
     private let musicListenTrackingDisposable = MetaDisposable()
 
     public let universalVideoManager: UniversalVideoManager = UniversalVideoManagerImpl()
@@ -202,6 +204,14 @@ public final class MediaManagerImpl: NSObject, MediaManager {
         self.audioSession = sharedAudioSession
         
         super.init()
+
+        // Fork (Donutgram autoPause): pause playing media when the app leaves the foreground or the device locks.
+        for name in [UIApplication.willResignActiveNotification, UIApplication.didEnterBackgroundNotification, UIApplication.protectedDataWillBecomeUnavailableNotification] {
+            let observer = NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main, using: { [weak self] _ in
+                self?.pauseMediaOnInterruption()
+            })
+            self.backgroundPauseObservers.append(observer)
+        }
        
         let combinedPlayersSignal: Signal<(Account, SharedMediaPlayerItemPlaybackStateOrLoading, MediaManagerPlayerType)?, NoError> = combineLatest(queue: Queue.mainQueue(), self.voiceMediaPlayerState, self.musicMediaPlayerState)
         |> map { voice, music -> (Account, SharedMediaPlayerItemPlaybackStateOrLoading, MediaManagerPlayerType)? in
@@ -454,6 +464,9 @@ public final class MediaManagerImpl: NSObject, MediaManager {
     }
     
     deinit {
+        for observer in self.backgroundPauseObservers {
+            NotificationCenter.default.removeObserver(observer)
+        }
         self.globalControlsDisposable.dispose()
         self.globalControlsArtworkDisposable.dispose()
         self.globalControlsStatusDisposable.dispose()
@@ -462,6 +475,29 @@ public final class MediaManagerImpl: NSObject, MediaManager {
         self.musicListenTrackingDisposable.dispose()
         self.globalAudioSessionForegroundDisposable.dispose()
         self.voiceMediaPlayerStateDisposable.dispose()
+    }
+
+    private func pauseMediaOnInterruption() {
+        guard BananaMediaTweaks.autoPauseMediaInBackground else {
+            return
+        }
+        (self.universalVideoManager as? UniversalVideoManagerImpl)?.pauseForBackground(video: true, instantVideo: true)
+        guard self.voiceMediaPlayer != nil else {
+            return
+        }
+        let _ = (self.voiceMediaPlayerState
+        |> take(1)
+        |> deliverOnMainQueue).startStandalone(next: { [weak self] value in
+            guard let self, let value, case let .state(state) = value.1, let displayData = state.item.displayData else {
+                return
+            }
+            switch displayData {
+            case .voice, .instantVideo:
+                self.voiceMediaPlayer?.control(.playback(.pause))
+            default:
+                break
+            }
+        })
     }
     
     public func audioRecorder(

@@ -1236,11 +1236,13 @@ final class UniversalVideoGalleryItemNode: ZoomableContentGalleryItemNode {
             return true
         }
         
-        if case let .playback(_, seekable) = self.footerContentNode.content, seekable {
+        // Fork (Donutgram doubleTapSeekSeconds): the step is a setting; 0 turns double-tap seeking off.
+        let seekSeconds = BananaMediaTweaks.doubleTapSeekSeconds
+        if case let .playback(_, seekable) = self.footerContentNode.content, seekable, seekSeconds > 0 {
             if location.x >= self.bounds.width * 0.3 {
-                self.footerContentNode.seekForward?(15.0)
+                self.footerContentNode.seekForward?(Double(seekSeconds))
             } else {
-                self.footerContentNode.seekBackward?(15.0)
+                self.footerContentNode.seekBackward?(Double(seekSeconds))
             }
             return true
         }
