@@ -69,7 +69,7 @@ public final class NodeScreen: ViewController, UITableViewDataSource, UITableVie
             }
             self.presentationData = presentationData
             self.statusBar.statusBarStyle = presentationData.theme.rootController.statusBarStyle.style
-            self.navigationBar?.updatePresentationData(NavigationBarPresentationData(presentationData: presentationData))
+            self.navigationBar?.updatePresentationData(NavigationBarPresentationData(presentationData: presentationData), transition: .immediate)
             self.applyTheme()
             self.rebuildRail()
             self.table.reloadData()
