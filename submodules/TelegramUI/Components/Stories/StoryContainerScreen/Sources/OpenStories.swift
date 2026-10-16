@@ -45,7 +45,7 @@ public extension StoryContainerScreen {
     /// Outside tap dismisses without opening (`dismissOnOutsideTap`).
     static func confirmGhostStoryOpenIfNeeded(context: AccountContext, controller: ViewController?, proceed: @escaping () -> Void) {
         guard context.sharedContext.immediateForkExtrasSettings.ghostAlertBeforeOpeningStory else {
-            proceed()
+            suggestGhostStoryViewsIfNeeded(context: context, controller: controller, proceed: proceed)
             return
         }
         guard let controller else {
@@ -77,6 +77,48 @@ public extension StoryContainerScreen {
                 })
             ],
             dismissOnOutsideTap: true
+        ), in: .window(.root))
+    }
+
+    /// Donutgram "ghostSuggestForStories": before a story opens while its views are still sent, offer to turn on
+    /// Don't Read Stories. "Yes" hides the view before the viewer opens (the engine flag is set at once, the stored
+    /// setting follows); "No" opens as usual. Only the first tap counts, so a fading alert cannot open two viewers.
+    private static func suggestGhostStoryViewsIfNeeded(context: AccountContext, controller: ViewController?, proceed: @escaping () -> Void) {
+        guard context.sharedContext.immediateForkExtrasSettings.ghostSuggestForStories, !ForkGhostModeSettings.suppressStoryViews, let controller else {
+            proceed()
+            return
+        }
+        let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+        let languageCode = String(presentationData.strings.primaryComponent.languageCode.prefix(2)).lowercased()
+        let russian = ["ru", "uk", "be"].contains(languageCode)
+        var didAnswer = false
+        controller.present(standardTextAlertController(
+            theme: AlertControllerTheme(presentationData: presentationData),
+            title: russian ? "Режим призрака" : "Ghost Mode",
+            text: russian ? "Включить «Не читать истории» перед просмотром?" : "Turn on Don't Read Stories before viewing?",
+            actions: [
+                TextAlertAction(type: .genericAction, title: russian ? "Нет" : "No", action: {
+                    if didAnswer {
+                        return
+                    }
+                    didAnswer = true
+                    proceed()
+                }),
+                TextAlertAction(type: .defaultAction, title: russian ? "Да" : "Yes", action: {
+                    if didAnswer {
+                        return
+                    }
+                    didAnswer = true
+                    ForkGhostModeSettings.suppressStoryViews = true
+                    let _ = updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager, { current in
+                        var updated = current
+                        updated.ghostDontReadStories = true
+                        return updated
+                    }).startStandalone()
+                    proceed()
+                })
+            ],
+            dismissOnOutsideTap: false
         ), in: .window(.root))
     }
 

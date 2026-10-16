@@ -2283,10 +2283,11 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                 }
             }
 
-            var isSecret = strongSelf.presentationInterfaceState.copyProtectionEnabled || strongSelf.chatLocation.peerId?.namespace == Namespaces.Peer.SecretChat
+            let copyProtectionBlocksCapture = strongSelf.presentationInterfaceState.copyProtectionEnabled && !ForkProtectedScreenshotSettings.allow
+            var isSecret = copyProtectionBlocksCapture || strongSelf.chatLocation.peerId?.namespace == Namespaces.Peer.SecretChat
             if ForkSecretScreenshotSettings.allow,
                strongSelf.chatLocation.peerId?.namespace == Namespaces.Peer.SecretChat {
-                isSecret = strongSelf.presentationInterfaceState.copyProtectionEnabled
+                isSecret = copyProtectionBlocksCapture
             }
             let pinchController = makePinchController(sourceNode: sourceNode, disableScreenshots: isSecret, getContentAreaInScreenSpace: {
                 guard let strongSelf = self else {

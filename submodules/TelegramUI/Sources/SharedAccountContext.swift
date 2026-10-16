@@ -1240,18 +1240,20 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         BananaRoundVideoCamera.startsWithRear = settings.roundVideoStartsWithRear
         BananaRoundVideoCamera.remembersLast = settings.roundVideoRemembersCamera
         BananaPresenceDisplay.current = BananaPresenceDisplay(exactLastSeen: settings.exactLastSeen, showsOfflineDot: settings.showsOfflineDot)
-        BananaChatListHeader.current = BananaChatListHeader(hidesConnectionStatus: settings.chatListHidesConnectionStatus, hidesEmojiStatus: settings.chatListHidesEmojiStatus, centersTitle: settings.chatListCentersTitle, hidesSearch: settings.chatListHidesSearch)
+        BananaChatListHeader.current = BananaChatListHeader(hidesConnectionStatus: settings.chatListHidesConnectionStatus, hidesEmojiStatus: settings.chatListHidesEmojiStatus, centersTitle: settings.chatListCentersTitle, hidesSearch: settings.chatListHidesSearch, hidesStories: settings.hideStories)
         ForkMessageVisibility.update(ForkMessageVisibility.State(hidePaidReactions: settings.hidePaidReactions, hideViaBot: settings.hideViaBot, removeLinkPreviews: settings.removeLinkPreviews, hideBirthdayNotifications: settings.hideBirthdayNotifications, hideBotAutomation: settings.hideBotAutomation, showPinnedWithBot: settings.showPinnedWithBot, stopAfterVoice: settings.stopAfterVoice, stopAfterRoundVideo: settings.stopAfterRoundVideo))
         ForkAyuForwardSettings.enabled = settings.ayuForward
         ForkBypassDownloadRestrictionsSettings.enabled = settings.bypassDownloadRestrictions
         ForkSensitiveContentSettings.enabled = settings.showSensitiveContent
         ForkLocalPremiumSettings.enabled = settings.localPremium
         ForkSecretScreenshotSettings.allow = settings.allowSecretScreenshots
+        ForkProtectedScreenshotSettings.allow = settings.allowProtectedScreenshots
         ForkExpireTtlSettings.enabled = settings.expireTtlButton
         ForkKeepBannedChatsSettings.enabled = settings.keepBannedChats
         ForkRemovePingsSettings.enabled = settings.removePings
         ForkTelegramStatisticsSettings.enabled = settings.sendTelegramStatistics
         ForkGhostScheduleSettings.enabled = settings.ghostScheduleMessages
+        ForkGhostSilentSendSettings.enabled = settings.ghostSendWithoutSound
         ForkExtrasHotFlags.update(ForkExtrasHotFlags.State(
             hideAds: settings.hideAds,
             hideBlockedMessages: settings.hideBlockedMessages,

@@ -117,7 +117,7 @@ public final class ChatListNavigationBar: Component {
         self.primaryContent = primaryContent
         self.secondaryContent = secondaryContent
         self.secondaryTransition = secondaryTransition
-        self.storySubscriptions = storySubscriptions
+        self.storySubscriptions = BananaChatListHeader.current.hidesStories ? nil : storySubscriptions
         self.storiesIncludeHidden = storiesIncludeHidden
         self.uploadProgress = uploadProgress
         self.headerPanels = headerPanels

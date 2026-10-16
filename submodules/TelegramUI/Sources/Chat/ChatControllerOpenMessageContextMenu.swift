@@ -348,10 +348,11 @@ extension ChatControllerImpl {
                 // Always hide the reaction bubble-tail for chat long-press (iMessage Tapbacks look).
                 let hideReactionPanelTail = true
                 
-                var isSecret = self.presentationInterfaceState.copyProtectionEnabled || self.presentationInterfaceState.myCopyProtectionEnabled || self.chatLocation.peerId?.namespace == Namespaces.Peer.SecretChat
+                let copyProtectionBlocksCapture = (self.presentationInterfaceState.copyProtectionEnabled || self.presentationInterfaceState.myCopyProtectionEnabled) && !ForkProtectedScreenshotSettings.allow
+                var isSecret = copyProtectionBlocksCapture || self.chatLocation.peerId?.namespace == Namespaces.Peer.SecretChat
                 if ForkSecretScreenshotSettings.allow,
                    self.chatLocation.peerId?.namespace == Namespaces.Peer.SecretChat {
-                    isSecret = self.presentationInterfaceState.copyProtectionEnabled || self.presentationInterfaceState.myCopyProtectionEnabled
+                    isSecret = copyProtectionBlocksCapture
                 }
                 let controller = makeContextController(presentationData: self.presentationData, source: source, items: actionsSignal, recognizer: recognizer, gesture: gesture, disableScreenshots: isSecret, hideReactionPanelTail: hideReactionPanelTail)
                 controller.dismissed = { [weak self] in

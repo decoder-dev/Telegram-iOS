@@ -464,12 +464,14 @@ final class ChatImageGalleryItemNode: ZoomableContentGalleryItemNode {
         self.translateToLanguage = translateToLanguage
         self.peerIsCopyProtected = peerIsCopyProtected
         self.isSecret = isSecret
-        var captureProtected = message.id.peerId.namespace == Namespaces.Peer.SecretChat || message.isCopyProtected() || peerIsCopyProtected || isSecret || message.paidContent != nil
+        // Donutgram: Screenshots in Protected Chats.
+        let copyProtectionBlocksCapture = (message.isCopyProtected() || peerIsCopyProtected) && !ForkProtectedScreenshotSettings.allow
+        var captureProtected = message.id.peerId.namespace == Namespaces.Peer.SecretChat || copyProtectionBlocksCapture || isSecret || message.paidContent != nil
         // AyuGram: Screenshots in Secret Chats & for Secret Media.
         if ForkSecretScreenshotSettings.allow {
             let secretChatOrMedia = message.id.peerId.namespace == Namespaces.Peer.SecretChat || isSecret || message.autoclearAttribute != nil || message.autoremoveAttribute != nil
             if secretChatOrMedia {
-                captureProtected = message.isCopyProtected() || peerIsCopyProtected || message.paidContent != nil
+                captureProtected = copyProtectionBlocksCapture || message.paidContent != nil
             }
         }
         self.imageNode.captureProtected = captureProtected

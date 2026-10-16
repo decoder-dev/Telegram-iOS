@@ -148,6 +148,12 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var hideGiftButton: Bool
     public var visualPhoneEnabled: Bool
     public var visualPhoneNumber: String
+    /// Donutgram: ghost send silently, suggest Don't Read Stories before a story, hide the stories row / archive row, screenshots in copy-protected chats.
+    public var ghostSendWithoutSound: Bool
+    public var ghostSuggestForStories: Bool
+    public var hideStories: Bool
+    public var hideArchive: Bool
+    public var allowProtectedScreenshots: Bool
     /// Fork (Donutgram): remember another profile's gifts and show the ones that later disappeared (BananaSpyStorage).
     public var showDisappearedGifts: Bool
     /// Fork (Donutgram): round video messages open with the rear camera, or with the one the last one used.
@@ -452,6 +458,11 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.hideGiftButton = false
         self.visualPhoneEnabled = false
         self.visualPhoneNumber = ""
+        self.ghostSendWithoutSound = false
+        self.ghostSuggestForStories = false
+        self.hideStories = false
+        self.hideArchive = false
+        self.allowProtectedScreenshots = false
         self.showDisappearedGifts = showDisappearedGifts
         self.roundVideoStartsWithRear = roundVideoStartsWithRear
         self.roundVideoRemembersCamera = roundVideoRemembersCamera
@@ -576,6 +587,11 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.hideGiftButton = try container.decodeIfPresent(Bool.self, forKey: "hideGiftButton") ?? false
         self.visualPhoneEnabled = try container.decodeIfPresent(Bool.self, forKey: "visualPhoneEnabled") ?? false
         self.visualPhoneNumber = try container.decodeIfPresent(String.self, forKey: "visualPhoneNumber") ?? ""
+        self.ghostSendWithoutSound = try container.decodeIfPresent(Bool.self, forKey: "ghostSendWithoutSound") ?? false
+        self.ghostSuggestForStories = try container.decodeIfPresent(Bool.self, forKey: "ghostSuggestForStories") ?? false
+        self.hideStories = try container.decodeIfPresent(Bool.self, forKey: "hideStories") ?? false
+        self.hideArchive = try container.decodeIfPresent(Bool.self, forKey: "hideArchive") ?? false
+        self.allowProtectedScreenshots = try container.decodeIfPresent(Bool.self, forKey: "allowProtectedScreenshots") ?? false
         self.showDisappearedGifts = try container.decodeIfPresent(Bool.self, forKey: "showDisappearedGifts") ?? false
         self.roundVideoStartsWithRear = try container.decodeIfPresent(Bool.self, forKey: "roundVideoStartsWithRear") ?? false
         self.roundVideoRemembersCamera = try container.decodeIfPresent(Bool.self, forKey: "roundVideoRemembersCamera") ?? false
@@ -699,6 +715,11 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.hideGiftButton, forKey: "hideGiftButton")
         try container.encode(self.visualPhoneEnabled, forKey: "visualPhoneEnabled")
         try container.encode(self.visualPhoneNumber, forKey: "visualPhoneNumber")
+        try container.encode(self.ghostSendWithoutSound, forKey: "ghostSendWithoutSound")
+        try container.encode(self.ghostSuggestForStories, forKey: "ghostSuggestForStories")
+        try container.encode(self.hideStories, forKey: "hideStories")
+        try container.encode(self.hideArchive, forKey: "hideArchive")
+        try container.encode(self.allowProtectedScreenshots, forKey: "allowProtectedScreenshots")
         try container.encode(self.showDisappearedGifts, forKey: "showDisappearedGifts")
         try container.encode(self.roundVideoStartsWithRear, forKey: "roundVideoStartsWithRear")
         try container.encode(self.roundVideoRemembersCamera, forKey: "roundVideoRemembersCamera")

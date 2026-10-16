@@ -20,11 +20,14 @@ public struct BananaChatListHeader: Equatable {
     public let centersTitle: Bool
     /// No search field under the title bar of the main chat list.
     public let hidesSearch: Bool
+    /// No stories row in the chat list header (Donutgram "hideStories").
+    public let hidesStories: Bool
 
-    public init(hidesConnectionStatus: Bool, hidesEmojiStatus: Bool, centersTitle: Bool, hidesSearch: Bool) {
+    public init(hidesConnectionStatus: Bool, hidesEmojiStatus: Bool, centersTitle: Bool, hidesSearch: Bool, hidesStories: Bool = false) {
         self.hidesConnectionStatus = hidesConnectionStatus
         self.hidesEmojiStatus = hidesEmojiStatus
         self.centersTitle = centersTitle
         self.hidesSearch = hidesSearch
+        self.hidesStories = hidesStories
     }
 }

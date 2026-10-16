@@ -825,7 +825,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [1601, 52, 1499, 1546, 1547, 1548, 1549],
             [59, 60],
             [61, 62],
-            [1512]
+            [1512],
+            [1773, 1774]
         ]),
         (.tabBar, [
             [63, 64],
@@ -867,7 +868,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [1603, 1500, 1501, 1541, 57],
             [1604, 140, 141]
         ]),
-        (.ghost, [[1560, 1561, 1562]])
+        (.ghost, [[1560, 1561, 1562], [1770, 1771, 1772]])
     ]
 
     private static let interfaceGroups: [[Int32]] = regroupedCategories.flatMap { $0.groups }
@@ -1795,6 +1796,9 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .ghostScheduleMessages(settings.ghostScheduleMessages),
             .ghostScheduleMessagesFooter,
             .ghostModeFooter,
+            .appearanceToggle(1770, russian ? "Отправлять без звука" : "Send without sound", settings.ghostSendWithoutSound, \.ghostSendWithoutSound),
+            .appearanceToggle(1771, russian ? "Предлагать «Не читать истории»" : "Suggest Don't Read Stories", settings.ghostSuggestForStories, \.ghostSuggestForStories),
+            .designFooter(1772, russian ? "Без звука — пока включён полный режим призрака. Перед просмотром истории спрашивает, скрыть ли просмотр." : "Without sound while full Ghost Mode is on. Before a story opens, asks whether to hide the view."),
         ]
     case .privacy:
         entries = [
@@ -1809,6 +1813,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .hidePinnedFooter,
             .allowSecretScreenshots(settings.allowSecretScreenshots),
             .allowSecretScreenshotsFooter,
+            .appearanceToggle(1775, russian ? "Скриншоты в защищённых чатах" : "Screenshots in protected chats", settings.allowProtectedScreenshots, \.allowProtectedScreenshots),
             .expireTtlButton(settings.expireTtlButton),
             .expireTtlButtonFooter,
             .keepBannedChats(settings.keepBannedChats),
@@ -1832,6 +1837,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .rememberLastFolder(settings.rememberLastFolder),
             .rememberLastFolderFooter,
             .appearanceToggle(1512, russian ? "Скрыть подсказки о днях рождения" : "Hide birthday banners", settings.hideBirthdayNotifications, \.hideBirthdayNotifications),
+            .appearanceToggle(1773, russian ? "Скрыть истории" : "Hide stories", settings.hideStories, \.hideStories),
+            .appearanceToggle(1774, russian ? "Скрыть архив" : "Hide archive", settings.hideArchive, \.hideArchive),
         ]
     case .tabBar:
         entries = []
