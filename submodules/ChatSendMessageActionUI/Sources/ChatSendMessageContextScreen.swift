@@ -1260,8 +1260,7 @@ final class ChatSendMessageContextScreenComponent: Component {
             }
             var readySendButtonFrame = CGRect(origin: CGPoint(x: sourceSendButtonFrame.maxX - sendButtonSize.width, y: sourceSendButtonFrame.minY), size: sendButtonSize)
             
-            let canChooseEffects = false
-            let messageActionsSpacing: CGFloat = canChooseEffects ? effectPreviewHeight + 14.0 : 7.0
+            let messageActionsSpacing: CGFloat = 7.0
             var sourceActionsStackFrame = CGRect(origin: CGPoint(x: readySendButtonFrame.minX + 1.0 - 8.0 - actionsStackSize.width, y: sourceMessageItemFrame.maxY + messageActionsSpacing), size: actionsStackSize)
             if !isMessageVisible {
                 sourceActionsStackFrame.origin.y = sourceSendButtonFrame.maxY - sourceActionsStackFrame.height - 5.0
@@ -1387,10 +1386,9 @@ final class ChatSendMessageContextScreenComponent: Component {
             self.effectPreviewButton.backgroundColor = presentationData.theme.contextMenu.backgroundColor
             self.effectPreviewButton.setTitleColor(presentationData.theme.contextMenu.primaryColor, for: .normal)
             self.effectPreviewButton.setTitleColor(presentationData.theme.contextMenu.secondaryColor, for: .disabled)
-            let showEffectPreview = canChooseEffects && isMessageVisible && actionsStackFrame.minY - messageItemFrame.maxY >= effectPreviewHeight + 7.0 && self.presentationAnimationState.key == .animatedIn
-            self.effectPreviewButton.isUserInteractionEnabled = showEffectPreview && self.selectedMessageEffect != nil
-            self.effectPreviewButton.accessibilityElementsHidden = !showEffectPreview
-            transition.setAlpha(view: self.effectPreviewButton, alpha: showEffectPreview ? 1.0 : 0.0)
+            self.effectPreviewButton.isUserInteractionEnabled = false
+            self.effectPreviewButton.accessibilityElementsHidden = true
+            transition.setAlpha(view: self.effectPreviewButton, alpha: 0.0)
 
             transition.setFrame(view: messageItemView, frame: messageItemFrame)
             transition.setAlpha(view: messageItemView, alpha: isMessageVisible ? 1.0 : 0.0)

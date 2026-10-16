@@ -190,7 +190,7 @@ for height: CGFloat in [-20, 0, 1, 12, 24, 44, 88] {
         self.assertIn('UIAccessibility.reduceMotionStatusDidChangeNotification', source)
         self.assertIn('$0.reduceMotion', source)
         self.assertIn('playbackMode: .once', source)
-        self.assertIn('accessibilityElementsHidden = !showEffectPreview', source)
+        self.assertIn('accessibilityElementsHidden = true', source)
 
     def test_new_incoming_motion_keeps_outgoing_morph_and_reduced_motion(self):
         source = read('submodules/TelegramUI/Components/Chat/ChatMessageBubbleItemNode/Sources/ChatMessageBubbleItemNode.swift')
@@ -209,7 +209,8 @@ for height: CGFloat in [-20, 0, 1, 12, 24, 44, 88] {
         self.assertIn('titleLabel?.numberOfLines = 0', source)
         self.assertIn('minimumPreviewWidth - 24.0', source)
         self.assertIn('ceil(previewTextHeight) + 12.0', source)
-        self.assertIn('let canChooseEffects = false', source)
+        self.assertIn('let messageActionsSpacing: CGFloat = 7.0', source)
+        self.assertNotIn('canChooseEffects', source)
         self.assertIn('self.effectPreviewButton.isHidden = true', source)
         stale = source.split('guard self.selectedMessageEffect?.id == effectId else {', 1)[1].split('guard !self.shouldReduceEffectMotion', 1)[0]
         self.assertNotIn('stopEffectPreviewAnimation', stale)
