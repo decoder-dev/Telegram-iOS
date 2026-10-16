@@ -104,7 +104,7 @@ class DonutChatFeatures(unittest.TestCase):
         for row, name in ROWS.items():
             self.assertRegex(controller, r'\.appearanceToggle\(%d, [^\n]*settings\.%s, \\\.%s\)' % (row, name, name))
         self.assertIn('.designHeader(1720, ', controller)
-        self.assertIn('[1720, 1711, 1712, 1713, 1719, 1716, 1717, 1718, 1710]', controller)
+        self.assertIn('[1720, 1711, 1703, 1713, 1716, 1719, 1717, 1718]', controller)
         self.assertIn('[55, 56, 1551, 1714, 1552, 1543, 58]', controller)
 
 
