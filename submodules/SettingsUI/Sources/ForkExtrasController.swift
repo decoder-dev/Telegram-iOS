@@ -839,7 +839,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [1558],
             [67, 68],
             [69],
-            [1508, 1509, 54, 1521, 1542, 1700, 1701, 1702, 1703, 1550, 1519],
+            [1508, 1509, 1735, 54, 1521, 1542, 1700, 1701, 1702, 1703, 1550, 1519],
             [1606, 81, 82],
             [98, 99],
             [1511, 1520],
@@ -862,6 +862,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         ]),
         (.profile, [
             [55, 56, 1551, 1552, 1543, 58],
+            [1739, 1731, 1732, 1730, 1733, 1734],
+            [1740, 1736, 1737, 1738],
             [1603, 1500, 1501, 1541, 57],
             [1604, 140, 141]
         ]),
@@ -998,6 +1000,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     case downloadSpeedBoostFooter
     case outgoingPhotoQuality(Int32)
     case outgoingPhotoQualityFooter
+    case visualPhoneNumber(String)
 
     var section: ItemListSectionId {
         if let group = Self.interfaceGroups.firstIndex(where: { $0.contains(self.stableId) }) {
@@ -1043,7 +1046,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return ForkExtrasSection.proxy.rawValue
         case .hideAllChats, .hideAllChatsFooter, .rememberLastFolder, .rememberLastFolderFooter, .hideTabBar, .hideTabBarFooter:
             return ForkExtrasSection.folders.rawValue
-        case .tabPreview, .callsTab, .appearanceToggle, .showMessageSeconds, .showMessageSecondsFooter, .wideChannelPosts, .wideChannelPostsFooter, .stickerSize:
+        case .tabPreview, .callsTab, .appearanceToggle, .visualPhoneNumber, .showMessageSeconds, .showMessageSecondsFooter, .wideChannelPosts, .wideChannelPostsFooter, .stickerSize:
             return ForkExtrasSection.appearance.rawValue
         case .doubleTapToEdit, .doubleTapToEditFooter, .quickTranslate, .quickTranslateFooter, .saveToCloud, .saveToCloudFooter, .selectFromAuthor, .selectFromAuthorFooter, .outgoingPhotoQuality, .outgoingPhotoQualityFooter:
             return ForkExtrasSection.chatExtras.rawValue
@@ -1147,6 +1150,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case .selectFromAuthorFooter: return 97
         case .outgoingPhotoQuality: return 98
         case .outgoingPhotoQualityFooter: return 99
+        case .visualPhoneNumber: return 1737
         case .saveDeletedMessages: return 110
         case .saveDeletedMessagesFooter: return 111
         case .saveMessagesHistory: return 112
@@ -1276,6 +1280,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case .selectFromAuthor: return ForkExtrasLocalizedString.selectFromAuthor
         case .downloadSpeedBoost: return ForkExtrasLocalizedString.downloadSpeedBoost
         case .outgoingPhotoQuality: return ForkExtrasLocalizedString.outgoingPhotoQuality
+        case .visualPhoneNumber: return ForkPresentationLanguage.prefersRussianStrings ? "Показываемый номер" : "Displayed number"
         default:
             return nil
         }
@@ -1737,6 +1742,15 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             }, tag: BananaSettingsItemTag(id: self.stableId))
         case .outgoingPhotoQualityFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.outgoingPhotoQualityFooter), sectionId: self.section)
+        case let .visualPhoneNumber(value):
+            let accountManager = arguments.context.sharedContext.accountManager
+            return ItemListSingleLineInputItem(presentationData: presentationData, systemStyle: .glass, title: NSAttributedString(string: ForkPresentationLanguage.prefersRussianStrings ? "Номер" : "Number"), text: value, placeholder: "+888 0156 2794", type: .regular(capitalization: false, autocorrection: false), clearType: .always, maxLength: 24, tag: BananaSettingsItemTag(id: self.stableId), sectionId: self.section, textUpdated: { value in
+                let _ = updateForkExtrasSettingsInteractively(accountManager: accountManager) { current in
+                    var updated = current
+                    updated.visualPhoneNumber = value
+                    return updated
+                }.start()
+            }, action: {})
         }
     }
 }
@@ -1854,6 +1868,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(1558, russian ? "Точные счётчики (без «1,2K»)" : "Exact counts (no “1.2K”)", settings.exactCounts, \.exactCounts),
             .appearanceToggle(1533, russian ? "Убрать пинги" : "Remove mention pings", settings.removePings, \.removePings),
             .appearanceToggle(1509, russian ? "Скрыть платные реакции" : "Hide paid reactions", settings.hidePaidReactions, \.hidePaidReactions),
+            .appearanceToggle(1735, russian ? "Скрыть кнопку подарка" : "Hide the gift button", settings.hideGiftButton, \.hideGiftButton),
             .hideReactionsBar(settings.hideReactionsBar),
             .appearanceToggle(1521, russian ? "Недавние эмодзи в реакциях" : "Recent emoji in reactions", settings.useRecentEmojiInReactions, \.useRecentEmojiInReactions),
             .appearanceToggle(1550, russian ? "Итоги опроса до голосования" : "Poll results before voting", settings.pollResultsBeforeVoting, \.pollResultsBeforeVoting),
@@ -1921,6 +1936,16 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(1552, russian ? "Серая точка у тех, кто не в сети" : "Grey dot for offline contacts", settings.showsOfflineDot, \.showsOfflineDot),
             .appearanceToggle(1543, russian ? "Исчезнувшие подарки" : "Disappeared gifts", settings.showDisappearedGifts, \.showDisappearedGifts),
             .privacyFooter,
+            .designHeader(1739, russian ? "Профиль" : "Profile"),
+            .appearanceToggle(1731, russian ? "ID в формате Bot API" : "ID in Bot API format", settings.profileIdBotApiFormat, \.profileIdBotApiFormat),
+            .appearanceToggle(1732, russian ? "Взаимный контакт" : "Mutual contact", settings.showMutualContact, \.showMutualContact),
+            .appearanceToggle(1730, russian ? "Дата создания чата" : "Chat creation date", settings.showChatCreationDate, \.showChatCreationDate),
+            .appearanceToggle(1733, russian ? "Скрыть премиум-статусы" : "Hide premium statuses", settings.hidePremiumStatuses, \.hidePremiumStatuses),
+            .appearanceToggle(1734, russian ? "Скрыть верификацию" : "Hide verification", settings.hideVerification, \.hideVerification),
+            .designHeader(1740, russian ? "Мой номер" : "My number"),
+            .appearanceToggle(1736, russian ? "Показывать другой номер" : "Show a different number", settings.visualPhoneEnabled, \.visualPhoneEnabled),
+            .visualPhoneNumber(settings.visualPhoneNumber),
+            .designFooter(1738, russian ? "Меняется только номер, показанный в вашем профиле на этом устройстве. Настоящий номер не меняется." : "Only the number shown in your own profile on this device changes. Your real number stays the same."),
             .designHeader(1603, russian ? "Эффекты" : "Effects"),
             .appearanceToggle(1500, ForkExtrasLocalizedString.string(forKey: "ForkExtras.AvatarGlow"), settings.avatarGlowEnabled, \.avatarGlowEnabled),
             .appearanceToggle(1501, ForkExtrasLocalizedString.string(forKey: "ForkExtras.ReactionGlow"), settings.reactionGlowEnabled, \.reactionGlowEnabled),

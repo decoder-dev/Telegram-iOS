@@ -611,6 +611,8 @@ final class PeerInfoHeaderNode: ASDisplayNode {
                 credibilityIcon = .fake
             } else if peer.isScam {
                 credibilityIcon = .scam
+            } else if BananaIdentityBadges.hidesPremiumStatus(peerId: peer.id, accountPeerId: self.context.account.peerId) {
+                credibilityIcon = .none
             } else if let emojiStatus = peer.emojiStatus {
                 statusIcon = .emojiStatus(emojiStatus)
             } else if peer.isPremium && !premiumConfiguration.isPremiumDisabled && (peer.id != self.context.account.peerId || self.isSettings || self.isMyProfile) {
@@ -618,10 +620,10 @@ final class PeerInfoHeaderNode: ASDisplayNode {
             } else {
                 credibilityIcon = .none
             }
-            if peer.isVerified {
+            if peer.isVerified && !BananaIdentityBadges.hidesVerification {
                 credibilityIcon = .verified
             }
-            if let verificationIconFileId = peer.verificationIconFileId {
+            if !BananaIdentityBadges.hidesVerification, let verificationIconFileId = peer.verificationIconFileId {
                 verifiedIcon = .emojiStatus(PeerEmojiStatus(content: .emoji(fileId: verificationIconFileId), expirationDate: nil))
             }
         }
@@ -1248,7 +1250,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
             
             if self.isSettings, case let .user(user) = peer {
                 let hideOwnIdentity = forkHidesOwnIdentity(accountPeerId: self.context.account.peerId, peerId: peer.id, settings: self.context.sharedContext.immediateForkExtrasSettings)
-                var subtitle = hideOwnIdentity ? ForkExtrasSettings.streamerHiddenLabel : formatPhoneNumber(context: self.context, number: user.phone ?? "")
+                var subtitle = hideOwnIdentity ? ForkExtrasSettings.streamerHiddenLabel : formatPhoneNumber(context: self.context, number: forkDisplayedPhone(accountPeerId: self.context.account.peerId, peerId: peer.id, phone: user.phone ?? "", settings: self.context.sharedContext.immediateForkExtrasSettings))
                 
                 if !hideOwnIdentity, let mainUsername = user.addressName, !mainUsername.isEmpty {
                     subtitle = "\(subtitle) • @\(mainUsername)"
