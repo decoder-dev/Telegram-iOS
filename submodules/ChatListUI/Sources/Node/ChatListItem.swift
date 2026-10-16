@@ -2052,6 +2052,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
         self.extractedBackgroundMirrorNode.bounds = bounds
         self.extractedBackgroundMirrorNode.position = CGPoint(x: bounds.width * 0.5, y: self.insets.top + bounds.height * 0.5)
         self.extractedBackgroundMirrorNode.layer.sublayerTransform = self.layer.sublayerTransform
+    }
     
     override public func secondaryAction(at point: CGPoint) {
         guard let item = self.item else {
