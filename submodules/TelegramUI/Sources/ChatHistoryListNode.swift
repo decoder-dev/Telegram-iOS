@@ -2141,6 +2141,7 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
             var hideStickerStatus: Bool
             var pollResultsBeforeVoting: Bool
             var hideReactionsBar: Bool
+            var hideChannelPostReactions: Bool
             var hidePaidReactions: Bool
             var hideViaBot: Bool
             var accentColorSaturation: Int32
@@ -2157,6 +2158,8 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
         let messageFilterSettings: Signal<MessageFilterSettingsFingerprint, NoError> = forkExtrasSettings(accountManager: context.sharedContext.accountManager)
         |> map { settings -> MessageFilterSettingsFingerprint in
             BananaForwardCountSettings.enabled = settings.showChannelForwardCount
+            // Read by the bubble nodes at layout time; project it before the history re-emits.
+            ForkChannelPostReactionsSettings.hidden = settings.hideChannelPostReactions
             // The sticker nodes read the shape at layout time; project it before the history re-emits.
             var mediaTweaks = BananaMediaTweaks.current
             mediaTweaks.stickerShape = settings.stickerShape
@@ -2175,6 +2178,7 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
                 hideStickerStatus: settings.hideStickerStatus,
                 pollResultsBeforeVoting: settings.pollResultsBeforeVoting,
                 hideReactionsBar: settings.hideReactionsBar,
+                hideChannelPostReactions: settings.hideChannelPostReactions,
                 hidePaidReactions: settings.hidePaidReactions,
                 hideViaBot: settings.hideViaBot,
                 accentColorSaturation: settings.accentColorSaturation,

@@ -219,6 +219,10 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var showOriginalForwardDate: Bool
     public var sendBannedGifsAsVideo: Bool
     public var showSensitiveContent: Bool
+    /// WhiteGram: the story camera never opens (every Add Story entry point is inert). Viewing stays.
+    public var disableStoryCreation: Bool
+    /// WhiteGram: no reactions under posts in broadcast channels (groups and private chats keep theirs).
+    public var hideChannelPostReactions: Bool
 
     public static var defaultSettings: ForkExtrasSettings {
         return ForkExtrasSettings(
@@ -410,6 +414,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.showOriginalForwardDate = false
         self.sendBannedGifsAsVideo = false
         self.showSensitiveContent = false
+        self.disableStoryCreation = false
+        self.hideChannelPostReactions = false
         self.ghostDontReadMessages = ghostDontReadMessages
         self.ghostDontReadStories = ghostDontReadStories
         self.ghostDontSendOnline = ghostDontSendOnline
@@ -547,6 +553,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.showOriginalForwardDate = try container.decodeIfPresent(Bool.self, forKey: "showOriginalForwardDate") ?? false
         self.sendBannedGifsAsVideo = try container.decodeIfPresent(Bool.self, forKey: "sendBannedGifsAsVideo") ?? false
         self.showSensitiveContent = try container.decodeIfPresent(Bool.self, forKey: "showSensitiveContent") ?? false
+        self.disableStoryCreation = try container.decodeIfPresent(Bool.self, forKey: "disableStoryCreation") ?? false
+        self.hideChannelPostReactions = try container.decodeIfPresent(Bool.self, forKey: "hideChannelPostReactions") ?? false
         self.avatarGlowEnabled = try container.decodeIfPresent(Bool.self, forKey: "avatarGlowEnabled") ?? true
         self.snowEnabled = try container.decodeIfPresent(Bool.self, forKey: "snowEnabled") ?? false
         self.showChannelForwardCount = try container.decodeIfPresent(Bool.self, forKey: "showChannelForwardCount") ?? false
@@ -694,6 +702,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.showOriginalForwardDate, forKey: "showOriginalForwardDate")
         try container.encode(self.sendBannedGifsAsVideo, forKey: "sendBannedGifsAsVideo")
         try container.encode(self.showSensitiveContent, forKey: "showSensitiveContent")
+        try container.encode(self.disableStoryCreation, forKey: "disableStoryCreation")
+        try container.encode(self.hideChannelPostReactions, forKey: "hideChannelPostReactions")
         try container.encode(self.avatarGlowEnabled, forKey: "avatarGlowEnabled")
         try container.encode(self.snowEnabled, forKey: "snowEnabled")
         try container.encode(self.showChannelForwardCount, forKey: "showChannelForwardCount")

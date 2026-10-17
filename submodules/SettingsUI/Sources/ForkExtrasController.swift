@@ -829,7 +829,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [59, 60],
             [61, 62],
             [1512],
-            [1773, 1774]
+            [1773, 1774],
+            [1930]
         ]),
         (.tabBar, [
             [63, 64],
@@ -845,6 +846,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [69],
             [1508, 1509, 1735, 54, 1521, 1550, 1519],
             [1720, 1711, 1703, 1713, 1716, 1719, 1717, 1718],
+            [1931],
             [1721, 1542, 1712, 1700, 1701, 1702],
             [1606, 81, 82, 1710],
             [98, 99],
@@ -1875,6 +1877,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(1512, russian ? "Скрыть подсказки о днях рождения" : "Hide birthday banners", settings.hideBirthdayNotifications, \.hideBirthdayNotifications),
             .appearanceToggle(1773, russian ? "Скрыть истории" : "Hide stories", settings.hideStories, \.hideStories),
             .appearanceToggle(1774, russian ? "Скрыть архив" : "Hide archive", settings.hideArchive, \.hideArchive),
+            .appearanceToggle(1930, russian ? "Отключить создание историй" : "Disable story creation", settings.disableStoryCreation, \.disableStoryCreation),
         ]
     case .tabBar:
         entries = []
@@ -1930,6 +1933,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(1716, russian ? "Без своих фонов у чатов" : "No custom chat backgrounds", settings.disableCustomBackgrounds, \.disableCustomBackgrounds),
             .appearanceToggle(1717, russian ? "Канал: кнопка «Обсудить»" : "Channel: Discuss button", settings.channelBottomDiscuss, \.channelBottomDiscuss),
             .appearanceToggle(1718, russian ? "Канал: скрыть нижнюю кнопку" : "Channel: hide bottom button", settings.hideChannelBottomButton, \.hideChannelBottomButton),
+            .appearanceToggle(1931, russian ? "Канал: скрыть реакции под постами" : "Channel: hide reactions under posts", settings.hideChannelPostReactions, \.hideChannelPostReactions),
             .appearanceToggle(1710, russian ? "Запятая после упоминания" : "Comma after mention", settings.commaAfterMention, \.commaAfterMention),
             .designHeader(1606, russian ? "Отправка и правка" : "Sending and editing"),
             .sendWithReturnKey(settings.sendWithReturnKey),

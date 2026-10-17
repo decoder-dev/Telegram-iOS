@@ -1256,6 +1256,8 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         ForkTelegramStatisticsSettings.enabled = settings.sendTelegramStatistics
         ForkGhostScheduleSettings.enabled = settings.ghostScheduleMessages
         ForkGhostSilentSendSettings.enabled = settings.ghostSendWithoutSound
+        ForkStoryCreationSettings.disabled = settings.disableStoryCreation
+        ForkChannelPostReactionsSettings.hidden = settings.hideChannelPostReactions
         ForkExtrasHotFlags.update(ForkExtrasHotFlags.State(
             hideAds: settings.hideAds,
             hideBlockedMessages: settings.hideBlockedMessages,
