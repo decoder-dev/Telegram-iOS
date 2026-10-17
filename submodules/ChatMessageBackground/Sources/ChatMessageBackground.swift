@@ -75,6 +75,17 @@ public class ChatMessageBackground: ASDisplayNode {
 
     private var tearBands: [BubbleTearBand] = []
     private var tearMaskView: BubbleTearMaskView?
+
+    // Liquid Glass bubble (Glassgram port, iOS 26+): a clear glass view cut to the bubble shape
+    // and a gradient rim. Nothing below is created, computed or laid out while `glassStyle` is nil.
+    private var glassStyle: ChatMessageGlassBubbleStyle?
+    private var glassTint: UIColor?
+    private var glassIsDark: Bool = false
+    private var glassView: UIVisualEffectView?
+    private var glassMaskView: UIImageView?
+    private var rimView: GlassRimView?
+    private var appliedGlassTint: UIColor?
+    private weak var glassShapeImage: UIImage?
     
     public var customHighlightColor: UIColor? {
         didSet {
@@ -112,6 +123,10 @@ public class ChatMessageBackground: ASDisplayNode {
         if let imageFrame = self.imageFrame {
             imageView.frame = imageFrame
         }
+
+        if self.glassStyle != nil {
+            self.updateGlass()
+        }
     }
     
     public func updateLayout(size: CGSize, transition: ContainedViewLayoutTransition) {
@@ -122,6 +137,9 @@ public class ChatMessageBackground: ASDisplayNode {
         }
         transition.updateFrame(node: self.outlineImageNode, frame: CGRect(origin: CGPoint(), size: size).insetBy(dx: -1.0, dy: -1.0))
         self.updateTearMask(size: size, animation: .None)
+        if self.glassView != nil {
+            self.layoutGlass()
+        }
     }
 
     public func updateLayout(size: CGSize, transition: ListViewItemUpdateAnimation) {
@@ -133,6 +151,132 @@ public class ChatMessageBackground: ASDisplayNode {
 
         transition.animator.updateFrame(layer: self.outlineImageNode.layer, frame: CGRect(origin: CGPoint(), size: size).insetBy(dx: -1.0, dy: -1.0), completion: nil)
         self.updateTearMask(size: size, animation: transition)
+        if self.glassView != nil {
+            self.layoutGlass()
+        }
+    }
+
+    /// Draws the bubble as Liquid Glass tinted with `tint` (the theme's bubble colour). `isDark` must
+    /// follow the chat theme: themes do not use the system appearance, so without it the glass renders
+    /// light (milky) over a dark wallpaper. A nil `style` or `tint`, or a system below iOS 26, shows the
+    /// stock bubble. Returns whether the glass is active.
+    @discardableResult
+    public func setGlass(tint: UIColor?, isDark: Bool, style: ChatMessageGlassBubbleStyle?) -> Bool {
+        let effectiveStyle: ChatMessageGlassBubbleStyle? = (ChatMessageGlassBubbleStyle.isAvailable && tint != nil) ? style : nil
+        if effectiveStyle == nil && self.glassStyle == nil {
+            // The switch is off: nothing to tear down and nothing to compute.
+            return false
+        }
+        self.glassStyle = effectiveStyle
+        self.glassTint = effectiveStyle == nil ? nil : tint
+        self.glassIsDark = isDark
+        self.updateGlass()
+        return self.glassView != nil
+    }
+
+    private func updateGlass() {
+        guard self.isNodeLoaded else {
+            return
+        }
+        var shapeImage: UIImage?
+        if let type = self.type, let graphics = self.graphics {
+            shapeImage = bubbleMaskForType(type, graphics: graphics)
+        }
+        if #available(iOS 26.0, *), let style = self.glassStyle, let tint = self.glassTint, let shapeImage {
+            let glassMaskView: UIImageView
+            if let current = self.glassMaskView {
+                glassMaskView = current
+            } else {
+                glassMaskView = UIImageView()
+                self.glassMaskView = glassMaskView
+            }
+            let glassView: UIVisualEffectView
+            if let current = self.glassView {
+                glassView = current
+            } else {
+                glassView = UIVisualEffectView(effect: nil)
+                glassView.isUserInteractionEnabled = false
+                glassView.mask = glassMaskView
+                self.view.insertSubview(glassView, at: 0)
+                self.glassView = glassView
+                self.appliedGlassTint = nil
+            }
+            let interfaceStyle: UIUserInterfaceStyle = self.glassIsDark ? .dark : .light
+            if glassView.overrideUserInterfaceStyle != interfaceStyle {
+                glassView.overrideUserInterfaceStyle = interfaceStyle
+                self.appliedGlassTint = nil
+            }
+            let tintColor = tint.withAlphaComponent(style.tintAlpha)
+            if self.appliedGlassTint != tintColor {
+                let effect = UIGlassEffect(style: .clear)
+                effect.tintColor = tintColor
+                effect.isInteractive = false
+                glassView.effect = effect
+                self.appliedGlassTint = tintColor
+            }
+            if self.glassShapeImage !== shapeImage {
+                self.glassShapeImage = shapeImage
+                glassMaskView.image = shapeImage
+                self.rimView?.outlineView.image = style.hasRim ? makeGlassRimImage(fromShape: shapeImage) : nil
+            }
+
+            if style.hasRim {
+                let rimView: GlassRimView
+                if let current = self.rimView {
+                    rimView = current
+                } else {
+                    rimView = GlassRimView(frame: CGRect())
+                    rimView.outlineView.image = makeGlassRimImage(fromShape: shapeImage)
+                    self.view.insertSubview(rimView, aboveSubview: glassView)
+                    self.rimView = rimView
+                }
+                rimView.apply(style)
+            } else if let rimView = self.rimView {
+                rimView.removeFromSuperview()
+                self.rimView = nil
+            }
+        } else {
+            self.removeGlass()
+        }
+
+        let isGlass = self.glassView != nil
+        // The solid image stays for the highlighted state so a selected or tapped bubble still reads.
+        self.imageView?.isHidden = isGlass && self.currentHighlighted != true
+        self.outlineImageNode.isHidden = isGlass
+        if isGlass {
+            self.layoutGlass()
+        }
+    }
+
+    private func removeGlass() {
+        if let glassView = self.glassView {
+            glassView.removeFromSuperview()
+            self.glassView = nil
+        }
+        if let rimView = self.rimView {
+            rimView.removeFromSuperview()
+            self.rimView = nil
+        }
+        self.glassMaskView = nil
+        self.glassShapeImage = nil
+        self.appliedGlassTint = nil
+    }
+
+    private func layoutGlass() {
+        guard let imageFrame = self.imageFrame else {
+            return
+        }
+        if let glassView = self.glassView, let glassMaskView = self.glassMaskView {
+            // Keep the glass view tall enough to render as clear glass; the shape mask cuts it back.
+            let glassHeight = max(imageFrame.height, ChatMessageGlassBubbleStyle.minGlassHeight)
+            let glassFrame = CGRect(x: imageFrame.minX, y: floor(imageFrame.midY - glassHeight / 2.0), width: imageFrame.width, height: glassHeight)
+            glassView.frame = glassFrame
+            glassMaskView.frame = CGRect(x: 0.0, y: imageFrame.minY - glassFrame.minY, width: imageFrame.width, height: imageFrame.height)
+        }
+        if let rimView = self.rimView {
+            rimView.frame = imageFrame
+            rimView.outlineView.frame = rimView.bounds
+        }
     }
 
     public func setMaskMode(_ maskMode: Bool) {
@@ -386,6 +530,9 @@ public class ChatMessageBackground: ASDisplayNode {
         }
         
         self.outlineImageNode.image = outlineImage
+        if self.glassStyle != nil || self.glassView != nil {
+            self.updateGlass()
+        }
     }
 
     public func animateFrom(sourceView: UIView, transition: CombinedTransition) {
@@ -543,6 +690,15 @@ public func bubbleMaskForType(_ type: ChatMessageBackgroundType, graphics: Princ
 
 public final class ChatMessageBubbleBackdrop: ASDisplayNode {
     public private(set) var backgroundContent: WallpaperBubbleBackgroundNode?
+
+    /// Hides the gradient / wallpaper bubble fill while the bubble above it is drawn as Liquid Glass.
+    public var hidesContentForGlass: Bool = false {
+        didSet {
+            if self.hidesContentForGlass != oldValue {
+                self.backgroundContent?.isHidden = self.hidesContentForGlass
+            }
+        }
+    }
     
     private var currentType: ChatMessageBackgroundType?
     private var currentMaskMode: Bool?
@@ -667,12 +823,14 @@ public final class ChatMessageBubbleBackdrop: ASDisplayNode {
                 case .incoming:
                     if let backgroundContent = backgroundNode?.makeBubbleBackground(for: .incoming) {
                         backgroundContent.frame = self.bounds
+                        backgroundContent.isHidden = self.hidesContentForGlass
                         self.backgroundContent = backgroundContent
                         self.insertSubnode(backgroundContent, at: 0)
                     }
                 case .outgoing:
                     if let backgroundContent = backgroundNode?.makeBubbleBackground(for: .outgoing) {
                         backgroundContent.frame = self.bounds
+                        backgroundContent.isHidden = self.hidesContentForGlass
                         self.backgroundContent = backgroundContent
                         self.insertSubnode(backgroundContent, at: 0)
                     }

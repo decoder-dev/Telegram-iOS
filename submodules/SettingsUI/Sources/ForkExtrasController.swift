@@ -836,7 +836,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [1502, 1503, 1504, 1505, 1506],
             [1507]
         ]),
-        (.appearance, [[1618, 1531, 1532, 1553, 1619]]),
+        (.appearance, [[1618, 1531, 1532, 1553, 1619], [1900, 1901, 1902, 1903, 1904, 1905, 1906]]),
         (.messages, [
             [1605, 65, 66],
             [1557],
@@ -1788,6 +1788,27 @@ private func forkDoubleTapSeekOptions(russian: Bool) -> [(String, Int32)] {
     }
 }
 
+/// Liquid Glass bubble tint strength, as a percentage of the theme's bubble colour (25 is the default).
+private func forkGlassTintOptions(russian: Bool) -> [(String, Int32)] {
+    return [
+        (russian ? "Почти прозрачное (10%)" : "Barely (10%)", 10),
+        (russian ? "Лёгкое (18%)" : "Light (18%)", 18),
+        (russian ? "Обычное (25%)" : "Default (25%)", 25),
+        (russian ? "Сильное (35%)" : "Strong (35%)", 35),
+        (russian ? "Насыщенное (50%)" : "Rich (50%)", 50),
+    ]
+}
+
+/// Liquid Glass bubble rim brightness for one edge, as a percentage of white (0 hides that part of the rim).
+private func forkGlassRimOptions(russian: Bool) -> [(String, Int32)] {
+    return [Int32(0), 20, 35, 55, 75, 95].map { percent -> (String, Int32) in
+        if percent == 0 {
+            return (russian ? "Без блика" : "Off", percent)
+        }
+        return ("\(percent)%", percent)
+    }
+}
+
 private func forkIntChoiceLabel(_ options: [(String, Int32)], _ value: Int32) -> String {
     return options.first(where: { $0.1 == value })?.0 ?? ""
 }
@@ -1898,6 +1919,13 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(1532, russian ? "Подпись BananaGram" : "BananaGram label", settings.bananaIslandShowsName, \.bananaIslandShowsName),
             .appearanceToggle(1553, russian ? "Остров как у иконки" : "Island matches the app icon", settings.bananaIslandFollowsIcon, \.bananaIslandFollowsIcon),
             .designFooter(1619, russian ? "Значок над экраном приложения на устройствах с Dynamic Island. Цвета соответствуют теме." : "An app badge on devices with Dynamic Island. Colors follow your theme."),
+            .designHeader(1900, russian ? "Пузыри сообщений" : "Message bubbles"),
+            .appearanceToggle(1901, russian ? "Стеклянные пузыри" : "Glass bubbles", settings.glassBubbles, \.glassBubbles),
+            .intChoice(1902, russian ? "Оттенок стекла" : "Glass tint", forkIntChoiceLabel(forkGlassTintOptions(russian: russian), settings.glassBubbleTint)),
+            .intChoice(1903, russian ? "Блик сверху" : "Rim: top", forkIntChoiceLabel(forkGlassRimOptions(russian: russian), settings.glassBubbleRimTop)),
+            .intChoice(1904, russian ? "Блик по бокам" : "Rim: sides", forkIntChoiceLabel(forkGlassRimOptions(russian: russian), settings.glassBubbleRimSides)),
+            .intChoice(1905, russian ? "Блик снизу" : "Rim: bottom", forkIntChoiceLabel(forkGlassRimOptions(russian: russian), settings.glassBubbleRimBottom)),
+            .designFooter(1906, russian ? "Пузыри сообщений становятся прозрачным стеклом Liquid Glass с цветом пузыря из темы, сквозь которое виден фон чата. Работает на iOS 26 и новее; на более старых версиях пузыри не меняются. По умолчанию: оттенок 25%, блик 95% сверху, 20% по бокам, 55% снизу." : "Message bubbles become clear Liquid Glass tinted with the theme's bubble color, showing the chat wallpaper through them. Requires iOS 26 or later; on older versions bubbles are unchanged. Defaults: 25% tint, rim 95% top, 20% sides, 55% bottom."),
         ]
     case .messages:
         entries = [
@@ -2776,6 +2804,22 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
                 title = russian ? "Перемотка двойным касанием" : "Double-tap seek"
                 options = forkDoubleTapSeekOptions(russian: russian)
                 keyPath = \.doubleTapSeekSeconds
+            case 1902:
+                title = russian ? "Оттенок стекла" : "Glass tint"
+                options = forkGlassTintOptions(russian: russian)
+                keyPath = \.glassBubbleTint
+            case 1903:
+                title = russian ? "Блик сверху" : "Rim: top"
+                options = forkGlassRimOptions(russian: russian)
+                keyPath = \.glassBubbleRimTop
+            case 1904:
+                title = russian ? "Блик по бокам" : "Rim: sides"
+                options = forkGlassRimOptions(russian: russian)
+                keyPath = \.glassBubbleRimSides
+            case 1905:
+                title = russian ? "Блик снизу" : "Rim: bottom"
+                options = forkGlassRimOptions(russian: russian)
+                keyPath = \.glassBubbleRimBottom
             default:
                 return
             }

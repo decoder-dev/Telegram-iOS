@@ -4051,6 +4051,27 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
         strongSelf.backgroundNode.setType(type: backgroundType, highlighted: false, graphics: graphics, maskMode: strongSelf.backgroundMaskMode, hasWallpaper: hasWallpaper, transition: legacyTransition, backgroundNode: presentationContext.backgroundNode)
         strongSelf.backgroundWallpaperNode.setType(type: backgroundType, theme: item.presentationData.theme, essentialGraphics: graphics, maskMode: strongSelf.backgroundMaskMode, backgroundNode: presentationContext.backgroundNode)
         strongSelf.shadowNode.setType(type: backgroundType, hasWallpaper: hasWallpaper, graphics: graphics)
+
+        // Liquid Glass bubbles (Extras > Appearance, iOS 26+): the bubble is clear glass tinted with the
+        // theme's bubble colour. With the switch off this costs one flag read and an early return.
+        var glassBubbleStyle: ChatMessageGlassBubbleStyle?
+        var glassBubbleTint: UIColor?
+        if ArenaSettings.shared.glassBubblesEnabled && ChatMessageGlassBubbleStyle.isAvailable {
+            let levels = ArenaSettings.shared.glassBubbleLevels
+            glassBubbleStyle = ChatMessageGlassBubbleStyle(tintPercent: levels.tint, rimTopPercent: levels.rimTop, rimSidesPercent: levels.rimSides, rimBottomPercent: levels.rimBottom)
+            switch backgroundType {
+            case .none:
+                glassBubbleTint = nil
+            case .incoming:
+                let bubble = item.presentationData.theme.theme.chat.message.incoming.bubble
+                glassBubbleTint = (hasWallpaper ? bubble.withWallpaper.fill : bubble.withoutWallpaper.fill).first
+            case .outgoing:
+                let bubble = item.presentationData.theme.theme.chat.message.outgoing.bubble
+                glassBubbleTint = (hasWallpaper ? bubble.withWallpaper.fill : bubble.withoutWallpaper.fill).first
+            }
+        }
+        let isGlassBubble = strongSelf.backgroundNode.setGlass(tint: glassBubbleTint, isDark: item.presentationData.theme.theme.overallDarkAppearance, style: glassBubbleStyle)
+        strongSelf.backgroundWallpaperNode.hidesContentForGlass = isGlassBubble
         
         strongSelf.backgroundType = backgroundType
         

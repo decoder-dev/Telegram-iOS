@@ -168,5 +168,21 @@ public class ArenaSettings {
     public var channelBottomButtonDiscusses: Bool { return self.locked { self.channelBottomDiscussValue } }
     public var hidesChannelBottomButton: Bool { return self.locked { self.hideChannelBottomButtonValue } }
     public var hidesShareButton: Bool { return self.locked { self.hideShareButtonValue } }
+
+    /// Liquid Glass message bubbles (Glassgram port), projected from ForkExtrasSettings by
+    /// `applyForkChatAppearanceSettings`. Off by default. The levels are percentages; the bubble
+    /// item node reads them at layout time and the open chat re-lays out when they change.
+    private var glassBubblesValue = false
+    private var glassBubbleLevelsValue: (tint: Int32, rimTop: Int32, rimSides: Int32, rimBottom: Int32) = (25, 95, 20, 55)
+
+    public func setGlassBubbles(enabled: Bool, tint: Int32, rimTop: Int32, rimSides: Int32, rimBottom: Int32) {
+        self.locked {
+            self.glassBubblesValue = enabled
+            self.glassBubbleLevelsValue = (tint, rimTop, rimSides, rimBottom)
+        }
+    }
+
+    public var glassBubblesEnabled: Bool { return self.locked { self.glassBubblesValue } }
+    public var glassBubbleLevels: (tint: Int32, rimTop: Int32, rimSides: Int32, rimBottom: Int32) { return self.locked { self.glassBubbleLevelsValue } }
 }
 

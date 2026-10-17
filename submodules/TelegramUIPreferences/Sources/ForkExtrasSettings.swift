@@ -182,6 +182,13 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var channelBottomDiscuss: Bool
     public var hideChannelBottomButton: Bool
     public var hideShareButton: Bool
+    /// Fork (Glassgram port): chat bubbles are drawn as iOS 26 Liquid Glass tinted with the theme's bubble
+    /// colour. Off by default; below iOS 26 the switch has no effect. The levels are percentages.
+    public var glassBubbles: Bool
+    public var glassBubbleTint: Int32
+    public var glassBubbleRimTop: Int32
+    public var glassBubbleRimSides: Int32
+    public var glassBubbleRimBottom: Int32
     /// Fork (Donutgram): remember another profile's gifts and show the ones that later disappeared (BananaSpyStorage).
     public var showDisappearedGifts: Bool
     /// Fork (Donutgram): round video messages open with the rear camera, or with the one the last one used.
@@ -509,6 +516,11 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.channelBottomDiscuss = false
         self.hideChannelBottomButton = false
         self.hideShareButton = false
+        self.glassBubbles = false
+        self.glassBubbleTint = 25
+        self.glassBubbleRimTop = 95
+        self.glassBubbleRimSides = 20
+        self.glassBubbleRimBottom = 55
         self.showDisappearedGifts = showDisappearedGifts
         self.roundVideoStartsWithRear = roundVideoStartsWithRear
         self.roundVideoRemembersCamera = roundVideoRemembersCamera
@@ -657,6 +669,11 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.channelBottomDiscuss = try container.decodeIfPresent(Bool.self, forKey: "channelBottomDiscuss") ?? false
         self.hideChannelBottomButton = try container.decodeIfPresent(Bool.self, forKey: "hideChannelBottomButton") ?? false
         self.hideShareButton = try container.decodeIfPresent(Bool.self, forKey: "hideShareButton") ?? false
+        self.glassBubbles = try container.decodeIfPresent(Bool.self, forKey: "glassBubbles") ?? false
+        self.glassBubbleTint = try container.decodeIfPresent(Int32.self, forKey: "glassBubbleTint") ?? 25
+        self.glassBubbleRimTop = try container.decodeIfPresent(Int32.self, forKey: "glassBubbleRimTop") ?? 95
+        self.glassBubbleRimSides = try container.decodeIfPresent(Int32.self, forKey: "glassBubbleRimSides") ?? 20
+        self.glassBubbleRimBottom = try container.decodeIfPresent(Int32.self, forKey: "glassBubbleRimBottom") ?? 55
         self.showDisappearedGifts = try container.decodeIfPresent(Bool.self, forKey: "showDisappearedGifts") ?? false
         self.roundVideoStartsWithRear = try container.decodeIfPresent(Bool.self, forKey: "roundVideoStartsWithRear") ?? false
         self.roundVideoRemembersCamera = try container.decodeIfPresent(Bool.self, forKey: "roundVideoRemembersCamera") ?? false
@@ -803,6 +820,11 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.channelBottomDiscuss, forKey: "channelBottomDiscuss")
         try container.encode(self.hideChannelBottomButton, forKey: "hideChannelBottomButton")
         try container.encode(self.hideShareButton, forKey: "hideShareButton")
+        try container.encode(self.glassBubbles, forKey: "glassBubbles")
+        try container.encode(self.glassBubbleTint, forKey: "glassBubbleTint")
+        try container.encode(self.glassBubbleRimTop, forKey: "glassBubbleRimTop")
+        try container.encode(self.glassBubbleRimSides, forKey: "glassBubbleRimSides")
+        try container.encode(self.glassBubbleRimBottom, forKey: "glassBubbleRimBottom")
         try container.encode(self.showDisappearedGifts, forKey: "showDisappearedGifts")
         try container.encode(self.roundVideoStartsWithRear, forKey: "roundVideoStartsWithRear")
         try container.encode(self.roundVideoRemembersCamera, forKey: "roundVideoRemembersCamera")
@@ -1313,6 +1335,13 @@ public func applyForkChatAppearanceSettings(_ settings: ForkExtrasSettings) {
         channelBottomDiscuss: settings.channelBottomDiscuss,
         hideChannelBottomButton: settings.hideChannelBottomButton,
         hideShareButton: settings.hideShareButton
+    )
+    ArenaSettings.shared.setGlassBubbles(
+        enabled: settings.glassBubbles,
+        tint: settings.glassBubbleTint,
+        rimTop: settings.glassBubbleRimTop,
+        rimSides: settings.glassBubbleRimSides,
+        rimBottom: settings.glassBubbleRimBottom
     )
 }
 
