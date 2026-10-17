@@ -5384,11 +5384,16 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
                     for text in breakChatInputText(trimChatInputText(inputText)) {
                         if text.length != 0 {
                             var attributes: [MessageAttribute] = []
-                            let entities: [MessageTextEntity]
+                            var entities: [MessageTextEntity]
                             if case let .customChatContents(customChatContents) = self.chatPresentationInterfaceState.subject, case .businessLinkSetup = customChatContents.kind {
                                 entities = generateChatInputTextEntities(text, generateLinks: false)
                             } else {
                                 entities = generateTextEntities(text.string, enabledTypes: .all, currentEntities: generateChatInputTextEntities(text, maxAnimatedEmojisInText: 0))
+                                // Regram default send formatting (Extras ▸ Messages ▸ Input); off by default.
+                                let defaultSendFormatting = self.context.sharedContext.immediateForkExtrasSettings.defaultSendFormatting
+                                if defaultSendFormatting != 0 && !sendWithoutFormatting {
+                                    entities = forkApplyDefaultSendFormatting(text: text.string, entities: entities, style: defaultSendFormatting)
+                                }
                             }
                             if !entities.isEmpty {
                                 attributes.append(TextEntitiesMessageAttribute(entities: entities))

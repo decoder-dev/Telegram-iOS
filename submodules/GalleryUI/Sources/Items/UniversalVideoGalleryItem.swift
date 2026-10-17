@@ -979,6 +979,7 @@ final class UniversalVideoGalleryItemNode: ZoomableContentGalleryItemNode {
     private let statusDisposable = MetaDisposable()
     
     private let moreButtonStateDisposable = MetaDisposable()
+    private let defaultVideoQualityDisposable = MetaDisposable()
     private let mediaPlaybackStateDisposable = MetaDisposable()
     
     private let fetchDisposable = MetaDisposable()
@@ -1211,6 +1212,7 @@ final class UniversalVideoGalleryItemNode: ZoomableContentGalleryItemNode {
     deinit {
         self.statusDisposable.dispose()
         self.moreButtonStateDisposable.dispose()
+        self.defaultVideoQualityDisposable.dispose()
         self.mediaPlaybackStateDisposable.dispose()
         self.scrubbingFrameDisposable?.dispose()
         self.hideControlsDisposable?.dispose()
@@ -1602,6 +1604,24 @@ final class UniversalVideoGalleryItemNode: ZoomableContentGalleryItemNode {
                 }
             }
             self.videoNode = videoNode
+            // Regram default video quality (Extras > Media): 1 highest, 2 lowest of the versions the video offers.
+            let defaultVideoQuality = item.context.sharedContext.immediateForkExtrasSettings.defaultVideoQuality
+            if defaultVideoQuality != 0 {
+                self.defaultVideoQualityDisposable.set((videoNode.videoQualityStateSignal()
+                |> filter { state in
+                    return (state?.available.count ?? 0) > 1
+                }
+                |> take(1)
+                |> deliverOnMainQueue).startStrict(next: { [weak self] state in
+                    guard let self, let state, case .auto = self.videoQuality else {
+                        return
+                    }
+                    let chosen = defaultVideoQuality == 1 ? state.available.max() : state.available.min()
+                    if let chosen {
+                        self.updateVideoQuality(.quality(chosen))
+                    }
+                }))
+            }
             self.videoNodeUserInteractionEnabled = disablePlayerControls || forceEnableUserInteraction
             videoNode.isUserInteractionEnabled = disablePlayerControls || forceEnableUserInteraction
             videoNode.backgroundColor = UIColor.black

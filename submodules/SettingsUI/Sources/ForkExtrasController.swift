@@ -859,7 +859,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [88, 89],
             [1518],
             [1607, 1510, 1513, 1517],
-            [85, 86, 87]
+            [85, 86, 87],
+            [1850, 1851, 1852, 1853]
         ]),
         (.media, [
             [1608, 80, 84],
@@ -867,6 +868,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [1609, 1515, 1516, 1544, 1545, 1559, 1612],
             [1613, 1554, 1555, 1556, 1614],
             [1750, 1751, 1752, 1753, 1754, 1755, 1756, 1757, 1758],
+            [1860, 1861, 1862, 1863, 1864, 1865],
             [2000, 2001, 2002, 2003, 2004]
         ]),
         (.profile, [
@@ -1811,6 +1813,27 @@ private func forkGlassRimOptions(russian: Bool) -> [(String, Int32)] {
     }
 }
 
+/// Regram's default send formatting: the style added to the plain parts of an outgoing text message.
+private func forkSendFormattingOptions(russian: Bool) -> [(String, Int32)] {
+    return [
+        (russian ? "Выключено" : "Off", 0),
+        (russian ? "Жирный" : "Bold", 1),
+        (russian ? "Курсив" : "Italic", 2),
+        (russian ? "Подчёркнутый" : "Underline", 3),
+        (russian ? "Зачёркнутый" : "Strikethrough", 4),
+        (russian ? "Скрытый" : "Spoiler", 5),
+    ]
+}
+
+/// Regram's default video quality: the version a gallery video starts in when several are offered.
+private func forkVideoQualityOptions(russian: Bool) -> [(String, Int32)] {
+    return [
+        (russian ? "Авто" : "Auto", 0),
+        (russian ? "Наилучшее из доступных" : "Highest available", 1),
+        (russian ? "Наименьшее из доступных" : "Lowest available", 2),
+    ]
+}
+
 private func forkIntChoiceLabel(_ options: [(String, Int32)], _ value: Int32) -> String {
     return options.first(where: { $0.1 == value })?.0 ?? ""
 }
@@ -1990,6 +2013,10 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .translationBackend(settings.translationBackend),
             .transcriptionBackend(settings.transcriptionBackend),
             .translationFooter,
+            .designHeader(1850, russian ? "Ввод" : "Input"),
+            .intChoice(1851, russian ? "Формат по умолчанию" : "Default formatting", forkIntChoiceLabel(forkSendFormattingOptions(russian: russian), settings.defaultSendFormatting)),
+            .appearanceToggle(1852, russian ? "Упоминание долгим нажатием на аватар" : "Mention by long-pressing an avatar", settings.avatarLongPressMention, \.avatarLongPressMention),
+            .designFooter(1853, russian ? "Формат применяется к обычному тексту отправляемых сообщений; ваше форматирование, код, цитаты и эмодзи остаются как есть. Долгое нажатие на аватар в чате вставляет упоминание с полным именем вместо меню." : "The format is added to the plain text of messages you send; your own formatting, code, quotes and emoji stay as they are. A long press on an avatar in a chat inserts a mention with the full name instead of opening the menu."),
         ]
     case .media:
         entries = [
@@ -2017,6 +2044,12 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .intChoice(1755, russian ? "Перемотка двойным касанием" : "Double-tap seek", forkIntChoiceLabel(forkDoubleTapSeekOptions(russian: russian), settings.doubleTapSeekSeconds)),
             .appearanceToggle(1756, russian ? "Кружок: не сбрасывать зум" : "Round video: keep pinch zoom", settings.staticRoundVideoZoom, \.staticRoundVideoZoom),
             .appearanceToggle(1757, russian ? "Ускорить загрузку файлов" : "Faster uploads", settings.accelerateUpload, \.accelerateUpload),
+            .designHeader(1860, russian ? "Ссылки и медиа" : "Links and media"),
+            .appearanceToggle(1861, russian ? "Исправлять превью ссылок" : "Fix link previews", settings.fixLinkPreviews, \.fixLinkPreviews),
+            .appearanceToggle(1862, russian ? "Сохранять стикеры в Фото" : "Save stickers to Photos", settings.saveStickerToPhotos, \.saveStickerToPhotos),
+            .appearanceToggle(1863, russian ? "Сведения о медиа в меню" : "Media info in the menu", settings.showMediaInfo, \.showMediaInfo),
+            .intChoice(1864, russian ? "Качество видео по умолчанию" : "Default video quality", forkIntChoiceLabel(forkVideoQualityOptions(russian: russian), settings.defaultVideoQuality)),
+            .designFooter(1865, russian ? "Превью ссылок X, Instagram, TikTok, Reddit, Bluesky и Pixiv запрашиваются через сервисы-зеркала (fixupx, ddinstagram и другие); ссылка в сообщении не меняется. Анимированные стикеры сохраняются как GIF. Качество выбирается только из версий, которые есть у видео." : "Previews of X, Instagram, TikTok, Reddit, Bluesky and Pixiv links are requested from mirror services (fixupx, ddinstagram and others); the link in the message stays the same. Animated stickers are saved as GIFs. The quality is picked only from the versions a video has."),
             .designFooter(1758, russian ? "«Только добавленные» убирает из панели стикеров популярные наборы и набор группы. Пауза срабатывает при уходе из приложения и блокировке. Ускоренная загрузка отправляет больше частей файла одновременно (кроме секретных чатов)." : "“Only added” hides trending packs and the group's pack in the sticker panel. Media pauses when you leave the app or lock the device. Faster uploads send more parts of a file at once (not in secret chats)."),
             .audioHeader,
             .musicPolicy(2001, russian ? "Пауза музыки при записи видео" : "Pause music when recording video", mediaInputSettings.pauseMusicOnRecording),
@@ -2824,6 +2857,14 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
                 title = russian ? "Блик снизу" : "Rim: bottom"
                 options = forkGlassRimOptions(russian: russian)
                 keyPath = \.glassBubbleRimBottom
+            case 1851:
+                title = russian ? "Формат по умолчанию" : "Default formatting"
+                options = forkSendFormattingOptions(russian: russian)
+                keyPath = \.defaultSendFormatting
+            case 1864:
+                title = russian ? "Качество видео по умолчанию" : "Default video quality"
+                options = forkVideoQualityOptions(russian: russian)
+                keyPath = \.defaultVideoQuality
             default:
                 return
             }

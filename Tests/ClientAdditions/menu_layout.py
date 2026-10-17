@@ -80,7 +80,7 @@ enum ForkExtrasHotFlags { static func hidesTabBar(_ value: Bool,isPad: Bool) -> 
 enum ForkRegexMessageFilters { static func unusablePatternCount(_ patterns: [String]) -> Int { 0 } }
 """
     stubs+='enum ForkExtrasLocalizedString { static func string(forKey key: String) -> String { key }\n'+'\n'.join('static let '+name+'="'+name+'"' for name in sorted(localized))+'\n}\n'
-    defs='\n'.join([declaration(source,'private enum ForkExtrasDestination:'),declaration(source,'private enum ForkExtrasSection:'),focus,entry,*[declaration(source,'private func '+name+'(') for name in ['forkStickerShapeOptions','forkDoubleTapSeekOptions','forkGlassTintOptions','forkGlassRimOptions','forkIntChoiceLabel']],factory])
+    defs='\n'.join([declaration(source,'private enum ForkExtrasDestination:'),declaration(source,'private enum ForkExtrasSection:'),focus,entry,*[declaration(source,'private func '+name+'(') for name in ['forkStickerShapeOptions','forkDoubleTapSeekOptions','forkGlassTintOptions','forkGlassRimOptions','forkSendFormattingOptions','forkVideoQualityOptions','forkIntChoiceLabel']],factory])
     tests=r"""
 for russian in [false,true] {
  ForkPresentationLanguage.prefersRussianStrings=russian

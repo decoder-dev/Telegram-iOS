@@ -2035,6 +2035,48 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
         default:
             extrasMenuIsRussian = false
         }
+        // Regram: save a sticker to Photos, and a media info report (Extras > Media > Links and media; both off by default).
+        if extras.saveStickerToPhotos, !isCopyProtected || ForkBypassDownloadRestrictionsSettings.enabled, !message.shouldDrawSecretMediaBlur, let stickerFile = message.effectiveMedia.compactMap({ $0 as? TelegramMediaFile }).first(where: { $0.isSticker }) {
+            let saveTitle = extrasMenuIsRussian ? "Сохранить в Фото" : "Save to Photos"
+            let savedText = extrasMenuIsRussian ? "Стикер сохранён" : "Sticker saved"
+            let failedText = extrasMenuIsRussian ? "Не удалось сохранить стикер" : "Couldn't save the sticker"
+            actions.append(.action(ContextMenuActionItem(text: saveTitle, icon: { theme in
+                return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Save"), color: theme.actionSheet.primaryTextColor)
+            }, action: { _, f in
+                f(.default)
+                let _ = (forkSaveStickerToPhotos(context: context, fileReference: .standalone(media: stickerFile), userLocation: .peer(message.id.peerId))
+                |> deliverOnMainQueue).startStandalone(next: { success in
+                    let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+                    if success {
+                        controllerInteraction.presentControllerInCurrent(UndoOverlayController(presentationData: presentationData, content: .mediaSaved(text: savedText), elevatedLayout: false, animateInAsReplacement: false, action: { _ in return true }), nil)
+                    } else {
+                        controllerInteraction.presentControllerInCurrent(textAlertController(context: context, title: nil, text: failedText, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})]), nil)
+                    }
+                })
+            })))
+        }
+        if extras.showMediaInfo, !message.shouldDrawSecretMediaBlur, let infoMedia = message.effectiveMedia.first(where: { ($0 is TelegramMediaImage) || (($0 as? TelegramMediaFile).map { !$0.isSticker && !$0.isAnimatedSticker } ?? false) }) {
+            let infoTitle = extrasMenuIsRussian ? "Сведения о медиа" : "Media Info"
+            actions.append(.action(ContextMenuActionItem(text: infoTitle, icon: { theme in
+                return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Info"), color: theme.actionSheet.primaryTextColor)
+            }, action: { _, f in
+                f(.default)
+                let mediaBox = context.account.postbox.mediaBox
+                let _ = (Signal<String?, NoError> { subscriber in
+                    subscriber.putNext(ForkMediaInfo.report(mediaBox: mediaBox, media: infoMedia, russian: extrasMenuIsRussian))
+                    subscriber.putCompletion()
+                    return EmptyDisposable
+                }
+                |> runOn(Queue.concurrentDefaultQueue())
+                |> deliverOnMainQueue).startStandalone(next: { text in
+                    guard let text else {
+                        return
+                    }
+                    let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+                    controllerInteraction.presentControllerInCurrent(textAlertController(context: context, title: infoTitle, text: text, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})]), nil)
+                })
+            })))
+        }
         if extras.saveToCloudMenu, message.id.peerId != context.account.peerId, message.id.namespace == Namespaces.Message.Cloud, !isCopyProtected || ForkAyuForwardSettings.enabled {
             let saveTitle = forkSavedMessagesMenuTitle(chatPresentationInterfaceState.strings)
             actions.append(.action(ContextMenuActionItem(text: saveTitle, icon: { theme in
