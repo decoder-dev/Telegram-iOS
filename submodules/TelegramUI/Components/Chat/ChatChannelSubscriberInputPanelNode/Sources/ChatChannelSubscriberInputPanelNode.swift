@@ -238,6 +238,7 @@ public final class ChatChannelSubscriberInputPanelNode: ChatInputPanelNode {
                 switch result {
                 case .joined:
                     didJoin = true
+                    forkOfferFolderAfterJoin(context: context, peerId: peer.id)
                 case let .webView(webView):
                     if let controller = strongSelf.interfaceInteraction?.getNavigationController()?.viewControllers.last as? ViewController {
                         context.sharedContext.openJoinChatWebView(context: context, parentController: controller, updatedPresentationData: nil, webView: webView, chatTitle: EnginePeer(peer).compactDisplayTitle)

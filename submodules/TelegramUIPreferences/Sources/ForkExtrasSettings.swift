@@ -136,6 +136,14 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var hideStickerStatus: Bool
     /// Donutgram: reply decorations on stickers (colours, emoji pattern, background) and the pattern in replies to premium contacts.
     public var hideStickerReplyColors: Bool
+    /// Regram: after joining a group or channel, offer to add it to a chat folder. Off by default.
+    public var chooseFolderAfterJoin: Bool
+    /// Regram: the chat back button remembers the last 50 opened chats and lists them on long press. Off by default.
+    public var recentChatsMenu: Bool
+    /// Regram: "Bookmark" in the message menu, with tags, kept on this device. Off by default.
+    public var messageBookmarks: Bool
+    /// Regram: a local-only name for a group or channel, set from its profile menu. Off by default.
+    public var localGroupAlias: Bool
     /// Donutgram: a swipe to the right on the chat list, and pulling the stories row past its start, no longer open
     /// the story camera. The other ways to post a story are unchanged. Off by default.
     public var disableStoryCameraSwipe: Bool
@@ -482,6 +490,10 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.streamerMode = streamerMode
         self.hideStickerStatus = hideStickerStatus
         self.hideStickerReplyColors = false
+        self.chooseFolderAfterJoin = false
+        self.recentChatsMenu = false
+        self.messageBookmarks = false
+        self.localGroupAlias = false
         self.disableStoryCameraSwipe = false
         self.jumpToStartInChatMenu = true
         self.hideStickerReplyEmoji = false
@@ -633,6 +645,10 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.streamerMode = try container.decodeIfPresent(Bool.self, forKey: "streamerMode") ?? false
         self.hideStickerStatus = try container.decodeIfPresent(Bool.self, forKey: "hideStickerStatus") ?? false
         self.hideStickerReplyColors = try container.decodeIfPresent(Bool.self, forKey: "hideStickerReplyColors") ?? false
+        self.chooseFolderAfterJoin = try container.decodeIfPresent(Bool.self, forKey: "chooseFolderAfterJoin") ?? false
+        self.recentChatsMenu = try container.decodeIfPresent(Bool.self, forKey: "recentChatsMenu") ?? false
+        self.messageBookmarks = try container.decodeIfPresent(Bool.self, forKey: "messageBookmarks") ?? false
+        self.localGroupAlias = try container.decodeIfPresent(Bool.self, forKey: "localGroupAlias") ?? false
         self.disableStoryCameraSwipe = try container.decodeIfPresent(Bool.self, forKey: "disableStoryCameraSwipe") ?? false
         self.jumpToStartInChatMenu = try container.decodeIfPresent(Bool.self, forKey: "jumpToStartInChatMenu") ?? true
         self.hideStickerReplyEmoji = try container.decodeIfPresent(Bool.self, forKey: "hideStickerReplyEmoji") ?? false
@@ -786,6 +802,10 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.streamerMode, forKey: "streamerMode")
         try container.encode(self.hideStickerStatus, forKey: "hideStickerStatus")
         try container.encode(self.hideStickerReplyColors, forKey: "hideStickerReplyColors")
+        try container.encode(self.chooseFolderAfterJoin, forKey: "chooseFolderAfterJoin")
+        try container.encode(self.recentChatsMenu, forKey: "recentChatsMenu")
+        try container.encode(self.messageBookmarks, forKey: "messageBookmarks")
+        try container.encode(self.localGroupAlias, forKey: "localGroupAlias")
         try container.encode(self.disableStoryCameraSwipe, forKey: "disableStoryCameraSwipe")
         try container.encode(self.jumpToStartInChatMenu, forKey: "jumpToStartInChatMenu")
         try container.encode(self.hideStickerReplyEmoji, forKey: "hideStickerReplyEmoji")

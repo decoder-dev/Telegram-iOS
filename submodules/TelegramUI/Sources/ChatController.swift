@@ -5482,6 +5482,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                     }
                     switch result {
                     case .joined:
+                        forkOfferFolderAfterJoin(context: self.context, peerId: peer.id)
                         self.present(UndoOverlayController(presentationData: presentationData, content: .succeed(text: presentationData.strings.Chat_SimilarChannels_JoinedChannel(peer.compactDisplayTitle).string, timeout: nil, customUndoText: nil), elevatedLayout: false, position: .top, animateInAsReplacement: false, action: { _ in return false }), in: .current)
                     case let .webView(webView):
                         self.context.sharedContext.openJoinChatWebView(context: self.context, parentController: self, updatedPresentationData: self.updatedPresentationData, webView: webView, chatTitle: peer.compactDisplayTitle)
@@ -7862,7 +7863,18 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
             }
         }
         
-        if !chatNavigationStack.isEmpty, let backButtonNode = self.chatDisplayNode.navigationBar?.backButtonNode as? ContextControllerSourceNode {
+        let recentChatsEnabled = self.context.sharedContext.immediateForkExtrasSettings.recentChatsMenu
+        let recentChatsThreadId: Int64?
+        if case let .replyThread(message) = self.chatLocation, message.isForumPost {
+            recentChatsThreadId = message.threadId
+        } else {
+            recentChatsThreadId = nil
+        }
+        if recentChatsEnabled, case .standard(.default) = self.mode, let peerId = self.chatLocation.peerId {
+            ForkRecentChats.record(accountPeerId: self.context.account.peerId, peerId: peerId, threadId: recentChatsThreadId)
+        }
+        
+        if (!chatNavigationStack.isEmpty || recentChatsEnabled), let backButtonNode = self.chatDisplayNode.navigationBar?.backButtonNode as? ContextControllerSourceNode {
             backButtonNode.isGestureEnabled = true
             backButtonNode.activated = { [weak self] gesture, _ in
                 guard let strongSelf = self, let backButtonNode = strongSelf.chatDisplayNode.navigationBar?.backButtonNode, let navigationController = strongSelf.effectiveNavigationController else {
@@ -7870,9 +7882,26 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                     return
                 }
                 let nextFolderId: Int32? = strongSelf.currentChatListFilter
+                var menuStack = chatNavigationStack
+                var clearRecents: (() -> Void)?
+                if menuStack.isEmpty && recentChatsEnabled {
+                    let accountPeerId = strongSelf.context.account.peerId
+                    let currentItem = ChatNavigationStackItem(peerId: strongSelf.chatLocation.peerId ?? accountPeerId, threadId: recentChatsThreadId)
+                    menuStack = ForkRecentChats.items(accountPeerId: accountPeerId)
+                        .map { ChatNavigationStackItem(peerId: $0.peerId, threadId: $0.threadId) }
+                        .filter { $0 != currentItem }
+                    clearRecents = {
+                        ForkRecentChats.clear(accountPeerId: accountPeerId)
+                    }
+                }
+                if menuStack.isEmpty {
+                    gesture.cancel()
+                    return
+                }
                 PeerInfoScreenImpl.displayChatNavigationMenu(
                     context: strongSelf.context,
-                    chatNavigationStack: chatNavigationStack,
+                    chatNavigationStack: menuStack,
+                    clearRecents: clearRecents,
                     nextFolderId: nextFolderId,
                     parentController: strongSelf,
                     backButtonView: backButtonNode.view,
@@ -8220,7 +8249,9 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                                     }
                                     switch result {
                                     case let .joined(peer):
-                                        if peer == nil {
+                                        if let peer {
+                                            forkOfferFolderAfterJoin(context: strongSelf.context, peerId: peer.id)
+                                        } else {
                                             strongSelf.dismiss()
                                         }
                                     case let .webView(webView):

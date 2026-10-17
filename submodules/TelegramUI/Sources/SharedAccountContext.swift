@@ -1230,6 +1230,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             ArenaSettings.shared.reactionGlow = settings.reactionGlowEnabled
         }
         BananaForwardCountSettings.enabled = settings.showChannelForwardCount
+        ForkLocalGroupAlias.isEnabled = settings.localGroupAlias
         ArenaSettings.shared.setReplyDecorations(hideStickerColors: settings.hideStickerReplyColors, hideStickerEmoji: settings.hideStickerReplyEmoji, hideStickerBackground: settings.hideStickerReplyBackground, hidePremiumEmoji: settings.hidePremiumReplyEmoji)
         BananaMediaTweaks.update(BananaMediaTweaks.State(accelerateUpload: settings.accelerateUpload, infiniteRecentStickers: settings.infiniteRecentStickers, onlyAddedStickers: settings.onlyAddedStickers, autoPauseMediaInBackground: settings.autoPauseMediaInBackground, doubleTapSeekSeconds: settings.doubleTapSeekSeconds, staticRoundVideoZoom: settings.staticRoundVideoZoom, stickerShape: settings.stickerShape))
         applyForkChatAppearanceSettings(settings)

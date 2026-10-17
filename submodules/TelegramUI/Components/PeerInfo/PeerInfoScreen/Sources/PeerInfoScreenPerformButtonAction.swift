@@ -17,6 +17,7 @@ import WalletSendScreen
 
 import SettingsUI
 import TelegramUIPreferences
+import PromptUI
 
 extension PeerInfoScreenNode {
     func performButtonAction(key: PeerInfoHeaderButtonKey, buttonNode: PeerInfoHeaderButtonNode?, gesture: ContextGesture?) {
@@ -446,6 +447,46 @@ extension PeerInfoScreenNode {
                     }
                 }
                 
+                if strongSelf.context.sharedContext.immediateForkExtrasSettings.localGroupAlias {
+                    var aliasPeerId: EnginePeer.Id?
+                    var serverTitle = ""
+                    switch chatPeer {
+                    case let .channel(channel):
+                        aliasPeerId = channel.id
+                        serverTitle = channel.title
+                    case let .legacyGroup(group):
+                        aliasPeerId = group.id
+                        serverTitle = group.title
+                    default:
+                        break
+                    }
+                    if let aliasPeerId {
+                        let russian = ForkPresentationLanguage.prefersRussianStrings
+                        items.append(.action(ContextMenuActionItem(text: russian ? "Локальное имя" : "Local name", icon: { theme in
+                            generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Edit"), color: theme.contextMenu.primaryColor)
+                        }, action: { [weak self] _, f in
+                            f(.dismissWithoutContent)
+                            guard let self else {
+                                return
+                            }
+                            let controller = promptController(
+                                context: self.context,
+                                text: russian ? "Локальное имя" : "Local name",
+                                subtitle: russian ? "Видно только вам. Пустое имя возвращает настоящее название." : "Only you see it. An empty name restores the real title.",
+                                value: ForkLocalGroupAlias.storedAlias(for: aliasPeerId) ?? serverTitle,
+                                placeholder: serverTitle,
+                                apply: { value in
+                                    guard let value else {
+                                        return
+                                    }
+                                    ForkLocalGroupAlias.setAlias(value, for: aliasPeerId)
+                                }
+                            )
+                            self.controller?.present(controller, in: .window(.root))
+                        })))
+                    }
+                }
+
                 if filteredButtons.contains(.call) {
                     items.append(.action(ContextMenuActionItem(text: presentationData.strings.PeerInfo_ButtonCall, icon: { theme in
                         generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Call"), color: theme.contextMenu.primaryColor)

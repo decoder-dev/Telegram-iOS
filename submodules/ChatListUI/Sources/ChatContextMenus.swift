@@ -615,6 +615,7 @@ func chatContextMenuItems(context: AccountContext, peerId: EnginePeer.Id, promoI
                                             switch result {
                                             case .joined:
                                                 didJoin = true
+                                                forkOfferFolderAfterJoin(context: context, peerId: peerId)
                                             case let .webView(webView):
                                                 if let chatListController = chatListController {
                                                     context.sharedContext.openJoinChatWebView(context: context, parentController: chatListController, updatedPresentationData: nil, webView: webView, chatTitle: EnginePeer(peer).compactDisplayTitle)

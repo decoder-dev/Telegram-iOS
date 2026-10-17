@@ -857,6 +857,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [88, 89],
             [1518],
             [1607, 1510, 1513, 1517],
+            [1825, 1826, 1827, 1828],
             [85, 86, 87]
         ]),
         (.media, [
@@ -1949,6 +1950,10 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(1701, russian ? "Ответ на стикер: скрыть эмодзи" : "Sticker replies: hide emoji", settings.hideStickerReplyEmoji, \.hideStickerReplyEmoji),
             .appearanceToggle(1702, russian ? "Ответ на стикер: скрыть фон" : "Sticker replies: hide background", settings.hideStickerReplyBackground, \.hideStickerReplyBackground),
             .appearanceToggle(1703, russian ? "Скрыть премиум-эмодзи в ответах" : "Hide premium emoji in replies", settings.hidePremiumReplyEmoji, \.hidePremiumReplyEmoji),
+            .appearanceToggle(1825, russian ? "Выбор папки после вступления" : "Choose a folder after joining", settings.chooseFolderAfterJoin, \.chooseFolderAfterJoin),
+            .appearanceToggle(1826, russian ? "Недавние чаты (долгое нажатие на «Назад»)" : "Recent chats (long-press Back)", settings.recentChatsMenu, \.recentChatsMenu),
+            .appearanceToggle(1827, russian ? "Закладки сообщений с тегами" : "Message bookmarks with tags", settings.messageBookmarks, \.messageBookmarks),
+            .appearanceToggle(1828, russian ? "Локальное имя группы или канала" : "Local group or channel name", settings.localGroupAlias, \.localGroupAlias),
             .appearanceToggle(1519, russian ? "Дата оригинала у пересланных" : "Original date on forwards", settings.showOriginalForwardDate, \.showOriginalForwardDate),
             .designHeader(1720, russian ? "Вид чата" : "Chat look"),
             .designHeader(1721, russian ? "Стикеры" : "Stickers"),

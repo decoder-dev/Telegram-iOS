@@ -18,9 +18,9 @@ public extension EnginePeer {
                 return "Deleted Account"
             }
         case let .legacyGroup(group):
-            return group.title
+            return ForkLocalGroupAlias.alias(for: group.id) ?? group.title
         case let .channel(channel):
-            return channel.title
+            return ForkLocalGroupAlias.alias(for: channel.id) ?? channel.title
         case let .community(community):
             return community.title
         case .secretChat:
@@ -53,9 +53,9 @@ public extension EnginePeer {
                 return strings.User_DeletedAccount
             }
         case let .legacyGroup(group):
-            return group.title
+            return ForkLocalGroupAlias.alias(for: group.id) ?? group.title
         case let .channel(channel):
-            return channel.title
+            return ForkLocalGroupAlias.alias(for: channel.id) ?? channel.title
         case let .community(community):
             return community.title
         case .secretChat:
