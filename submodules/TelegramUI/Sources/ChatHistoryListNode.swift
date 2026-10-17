@@ -2153,6 +2153,8 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
             // Donutgram chat appearance read at layout time: coloured replies, sticker checks,
             // mention avatars, quick share button.
             var chatAppearance: [Bool]
+            // Liquid Glass bubbles: the switch and its four levels, read by the bubble node at layout time.
+            var glassBubbles: [Int32]
         }
         let messageFilterSettings: Signal<MessageFilterSettingsFingerprint, NoError> = forkExtrasSettings(accountManager: context.sharedContext.accountManager)
         |> map { settings -> MessageFilterSettingsFingerprint in
@@ -2184,7 +2186,8 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
                 showSensitiveContent: settings.showSensitiveContent,
                 replyDecorations: [settings.hideStickerReplyColors, settings.hideStickerReplyEmoji, settings.hideStickerReplyBackground, settings.hidePremiumReplyEmoji],
                 stickerShape: settings.stickerShape,
-                chatAppearance: [settings.disableColoredReplies, settings.hideStickerChecks, settings.mentionAvatars, settings.hideShareButton]
+                chatAppearance: [settings.disableColoredReplies, settings.hideStickerChecks, settings.mentionAvatars, settings.hideShareButton],
+                glassBubbles: [settings.glassBubbles ? 1 : 0, settings.glassBubbleTint, settings.glassBubbleRimTop, settings.glassBubbleRimSides, settings.glassBubbleRimBottom]
             )
         }
         |> distinctUntilChanged
