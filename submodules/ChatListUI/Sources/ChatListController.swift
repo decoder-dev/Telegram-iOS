@@ -349,6 +349,9 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
             containerNode: self.chatListDisplayNode.mainContainerNode,
             isReorderingTabs: self.isReorderingTabsValue.get(),
             storyPostingAvailable: self.storyPostingAvailabilityValue.get() |> map { availability -> Bool in
+                if ForkStoryCreationSettings.disabled {
+                    return false
+                }
                 switch availability {
                 case .enabled, .premium:
                     return true
@@ -3079,6 +3082,9 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
     
     private weak var storyCameraTooltip: TooltipScreen?
     fileprivate func openStoryCamera(fromList: Bool, gesturePullOffset: CGFloat? = nil) {
+        if ForkStoryCreationSettings.disabled {
+            return
+        }
         guard !self.context.isFrozen else {
             let controller = self.context.sharedContext.makeAccountFreezeInfoScreen(context: self.context)
             self.push(controller)
@@ -3345,18 +3351,20 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                     var items: [ContextMenuItem] = []
                                     
                     if peer.id == self.context.account.peerId {
-                        items.append(.action(ContextMenuActionItem(text: self.presentationData.strings.StoryFeed_ContextAddStory, icon: { theme in
-                            return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Add"), color: theme.contextMenu.primaryColor)
-                        }, action: { [weak self] c, _ in
-                            c?.dismiss(completion: {
-                                guard let self else {
-                                    return
-                                }
-                                
-                                self.openStoryCamera(fromList: true)
-                            })
-                        })))
-                        
+                        if !ForkStoryCreationSettings.disabled {
+                            items.append(.action(ContextMenuActionItem(text: self.presentationData.strings.StoryFeed_ContextAddStory, icon: { theme in
+                                return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Add"), color: theme.contextMenu.primaryColor)
+                            }, action: { [weak self] c, _ in
+                                c?.dismiss(completion: {
+                                    guard let self else {
+                                        return
+                                    }
+
+                                    self.openStoryCamera(fromList: true)
+                                })
+                            })))
+                        }
+
                         items.append(.action(ContextMenuActionItem(text: self.presentationData.strings.StoryFeed_ContextSavedStories, icon: { theme in
                             return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Stories"), color: theme.contextMenu.primaryColor)
                         }, action: { [weak self] c, _ in
@@ -3381,7 +3389,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                             })
                         })))
                     } else if case let .channel(channel) = peer {
-                        if channel.hasPermission(.postStories) {
+                        if channel.hasPermission(.postStories) && !ForkStoryCreationSettings.disabled {
                             items.append(.action(ContextMenuActionItem(text: self.presentationData.strings.StoryFeed_ContextAddStory, icon: { theme in
                                 return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Add"), color: theme.contextMenu.primaryColor)
                             }, action: { [weak self] c, _ in
