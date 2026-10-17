@@ -103,7 +103,7 @@ func makeGlassRimImage(fromShape shape: UIImage) -> UIImage? {
         return nil
     }
 
-    let result = UIImage(cgImage: ring, scale: shape.scale, orientation: .up).resizableImage(withCapInsets: shape.capInsets, resizingMode: shape.resizingMode)
+    let result = UIImage(cgImage: ring, scale: shape.scale, orientation: .up).resizableImage(withCapInsets: shape.capInsets, resizingMode: shape.resizingMode).withRenderingMode(.alwaysTemplate)
     if glassRimImageCache.count > 64 {
         glassRimImageCache = glassRimImageCache.filter { $0.value.shape != nil }
     }
@@ -111,23 +111,20 @@ func makeGlassRimImage(fromShape shape: UIImage) -> UIImage? {
     return result
 }
 
-/// The bright edge of the glass: a vertical white gradient visible only through the rim ring.
-final class GlassRimView: UIView {
-    override class var layerClass: AnyClass {
-        return CAGradientLayer.self
+/// The bright edge of the glass: the rim ring image tinted white. The first port drew a vertical
+/// gradient through a masked layer, which costs an extra offscreen pass per bubble on every frame of
+/// a scroll; a plain tinted image is drawn straight from the cache. The three rim levels of the style
+/// are averaged into one.
+final class GlassRimView: UIImageView {
+    /// The view is its own outline: callers set `outlineView.image` and `outlineView.frame`.
+    var outlineView: UIImageView {
+        return self
     }
-
-    let outlineView = UIImageView()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
         self.isUserInteractionEnabled = false
-        if let gradient = self.layer as? CAGradientLayer {
-            gradient.locations = [0.0, 0.5, 1.0]
-            gradient.startPoint = CGPoint(x: 0.5, y: 0.0)
-            gradient.endPoint = CGPoint(x: 0.5, y: 1.0)
-        }
-        self.mask = self.outlineView
+        self.isOpaque = false
     }
 
     required init?(coder: NSCoder) {
@@ -135,13 +132,10 @@ final class GlassRimView: UIView {
     }
 
     func apply(_ style: ChatMessageGlassBubbleStyle) {
-        guard let gradient = self.layer as? CAGradientLayer else {
-            return
+        let alpha = (style.rimTopAlpha + style.rimMiddleAlpha + style.rimBottomAlpha) / 3.0
+        let color = UIColor(white: 1.0, alpha: alpha)
+        if self.tintColor != color {
+            self.tintColor = color
         }
-        gradient.colors = [
-            UIColor(white: 1.0, alpha: style.rimTopAlpha).cgColor,
-            UIColor(white: 1.0, alpha: style.rimMiddleAlpha).cgColor,
-            UIColor(white: 1.0, alpha: style.rimBottomAlpha).cgColor
-        ]
     }
 }

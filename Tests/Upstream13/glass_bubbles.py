@@ -159,5 +159,14 @@ class GlassBubbleRendering(unittest.TestCase):
         self.assertIn('CGFloat(min(100, max(0, value))) / 100.0', glass)
 
 
+    def test_rim_is_a_plain_tinted_image_not_a_masked_gradient(self):
+        # Device logs showed a GPU-heavy day; the rim used a CAGradientLayer behind a mask view, an extra
+        # offscreen pass per bubble per frame. It is now the ring image drawn as a template.
+        src = read('submodules/ChatMessageBackground/Sources/ChatMessageGlassBubble.swift')
+        self.assertNotIn('CAGradientLayer', src)
+        self.assertNotIn('self.mask = ', src)
+        self.assertIn('final class GlassRimView: UIImageView', src)
+        self.assertIn('.withRenderingMode(.alwaysTemplate)', src)
+
 if __name__ == '__main__':
     unittest.main()
