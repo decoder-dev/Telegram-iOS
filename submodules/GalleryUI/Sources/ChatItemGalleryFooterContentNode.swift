@@ -407,6 +407,8 @@ final class ChatItemGalleryFooterContentNode: GalleryFooterContentNode, ASScroll
         self.textNode.maximumNumberOfLines = 0
         self.textNode.linkHighlightColor = UIColor(rgb: 0x5ac8fa, alpha: 0.2)
         self.textNode.displaySpoilerEffect = false
+        // Regram port: captions open with their spoilers already shown.
+        self.textNode.displaySpoilers = ForkExtrasHotFlags.autoRevealSpoilers
         
         self.backwardButton = PlaybackButtonNode()
         self.backwardButton.alpha = 0.0

@@ -2156,6 +2156,8 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
             var chatAppearance: [Bool]
             // Liquid Glass bubbles: the switch and its four levels, read by the bubble node at layout time.
             var glassBubbles: [Int32]
+            // Regram port: message id in the status line, spoilers shown without a tap.
+            var regramChat: [Bool]
         }
         let messageFilterSettings: Signal<MessageFilterSettingsFingerprint, NoError> = forkExtrasSettings(accountManager: context.sharedContext.accountManager)
         |> map { settings -> MessageFilterSettingsFingerprint in
@@ -2191,7 +2193,8 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
                 replyDecorations: [settings.hideStickerReplyColors, settings.hideStickerReplyEmoji, settings.hideStickerReplyBackground, settings.hidePremiumReplyEmoji],
                 stickerShape: settings.stickerShape,
                 chatAppearance: [settings.disableColoredReplies, settings.hideStickerChecks, settings.mentionAvatars, settings.hideShareButton],
-                glassBubbles: [settings.glassBubbles ? 1 : 0, settings.glassBubbleTint, settings.glassBubbleRimTop, settings.glassBubbleRimSides, settings.glassBubbleRimBottom]
+                glassBubbles: [settings.glassBubbles ? 1 : 0, settings.glassBubbleTint, settings.glassBubbleRimTop, settings.glassBubbleRimSides, settings.glassBubbleRimBottom],
+                regramChat: [settings.showMessageId, settings.autoRevealSpoilers]
             )
         }
         |> distinctUntilChanged

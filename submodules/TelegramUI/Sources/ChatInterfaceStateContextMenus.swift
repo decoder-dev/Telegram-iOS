@@ -2122,6 +2122,73 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
                 })
             })))
         }
+        // Regram port: Repeat / Repeat without quote / Forward without author. Only offered where this account may send,
+        // never for copy-protected content, secret chats, service messages or messages that are not on the server.
+        if extras.repeatMessageMenu, canSendMessagesToChat(chatPresentationInterfaceState), !isCopyProtected, message.id.namespace == Namespaces.Message.Cloud, message.id.peerId.namespace != Namespaces.Peer.SecretChat, !message.flags.contains(.Failed), !message.flags.isSending, message.id.peerId == chatPresentationInterfaceState.chatLocation.peerId {
+            var isRepeatable = true
+            var repeatedMedia: Media?
+            for media in message.media {
+                if media is TelegramMediaWebpage {
+                    continue
+                } else if media is TelegramMediaImage || media is TelegramMediaFile {
+                    if repeatedMedia == nil {
+                        repeatedMedia = media
+                    } else {
+                        isRepeatable = false
+                    }
+                } else {
+                    isRepeatable = false
+                }
+            }
+            if message.text.isEmpty && repeatedMedia == nil {
+                isRepeatable = false
+            }
+            let repeatPeerId = message.id.peerId
+            let repeatSourceId = message.id
+            let repeatThreadId = message.threadId
+            let repeatText = message.text
+            let repeatEntities: [MessageAttribute] = message.attributes.filter { $0 is TextEntitiesMessageAttribute }
+            let repeatMediaReference: AnyMediaReference? = repeatedMedia.flatMap { AnyMediaReference.standalone(media: $0) }
+            let repeatAsContent: () -> EnqueueMessage = {
+                return .message(text: repeatText, attributes: repeatEntities, inlineStickers: [:], mediaReference: repeatMediaReference, threadId: repeatThreadId, replyToMessageId: nil, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: [])
+            }
+            if isRepeatable {
+                // A forwarded message is repeated as a forward so its source is kept; anything else is sent again as new content.
+                let repeatTitle = extrasMenuIsRussian ? "Повторить" : "Repeat"
+                let keepsForwardSource = message.forwardInfo != nil
+                actions.append(.action(ContextMenuActionItem(text: repeatTitle, icon: { theme in
+                    return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Forward"), color: theme.actionSheet.primaryTextColor)
+                }, action: { _, f in
+                    let outgoing: EnqueueMessage
+                    if keepsForwardSource {
+                        outgoing = .forward(source: repeatSourceId, threadId: repeatThreadId, grouping: .auto, attributes: [ForwardOptionsMessageAttribute(hideNames: false, hideCaptions: false)], correlationId: nil)
+                    } else {
+                        outgoing = repeatAsContent()
+                    }
+                    let _ = enqueueMessages(account: context.account, peerId: repeatPeerId, messages: [outgoing]).startStandalone()
+                    f(.dismissWithoutContent)
+                })))
+                if keepsForwardSource {
+                    let repeatPlainTitle = extrasMenuIsRussian ? "Повторить без цитаты" : "Repeat without quote"
+                    actions.append(.action(ContextMenuActionItem(text: repeatPlainTitle, icon: { theme in
+                        return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Forward"), color: theme.actionSheet.primaryTextColor)
+                    }, action: { _, f in
+                        let _ = enqueueMessages(account: context.account, peerId: repeatPeerId, messages: [repeatAsContent()]).startStandalone()
+                        f(.dismissWithoutContent)
+                    })))
+                }
+            }
+            if data.messageActions.options.contains(.forward) {
+                let forwardPlainTitle = extrasMenuIsRussian ? "Переслать без автора" : "Forward without author"
+                actions.append(.action(ContextMenuActionItem(text: forwardPlainTitle, icon: { theme in
+                    return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Forward"), color: theme.actionSheet.primaryTextColor)
+                }, action: { _, f in
+                    let outgoing: EnqueueMessage = .forward(source: repeatSourceId, threadId: repeatThreadId, grouping: .auto, attributes: [ForwardOptionsMessageAttribute(hideNames: true, hideCaptions: false)], correlationId: nil)
+                    let _ = enqueueMessages(account: context.account, peerId: repeatPeerId, messages: [outgoing]).startStandalone()
+                    f(.dismissWithoutContent)
+                })))
+            }
+        }
         if !isCopyProtected, message.text.count >= ForkOnDeviceAI.minimumSummarizedLength, ForkOnDeviceAI.isAvailable {
             let summaryTitle = extrasMenuIsRussian ? "Кратко (на устройстве)" : "Summarize (on device)"
             let summaryAlertTitle = extrasMenuIsRussian ? "Краткое содержание" : "Summary"

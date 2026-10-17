@@ -5852,10 +5852,78 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
         super.animateFrameTransition(progress, currentValue)
     }
     
-    private func beginDoubleTapEditIfNeeded(message: Message, item: ChatMessageItem) -> Bool {
-        guard ForkExtrasHotFlags.doubleTapToEdit else {
+    /// Regram port: runs the configured double-tap action (react, reply, repeat, translate or edit).
+    /// Returns false when nothing was done, so the stock double tap (a reaction) still runs.
+    private func performDoubleTapActionIfNeeded(message: Message, item: ChatMessageItem) -> Bool {
+        switch ForkExtrasHotFlags.doubleTapAction {
+        case 1:
+            if canAddMessageReactions(message: EngineMessage(message)) {
+                item.controllerInteraction.updateMessageReaction(message, .default, false, nil)
+                return true
+            }
+            return false
+        case 2:
+            if case .reply = item.controllerInteraction.canSetupReply(message) {
+                item.controllerInteraction.setupReply(message.id)
+                return true
+            }
+            return false
+        case 3:
+            return self.repeatMessageOnDoubleTap(message: message, item: item)
+        case 4:
+            if message.text.isEmpty || message.isCopyProtected() {
+                return false
+            }
+            var entities: [MessageTextEntity] = []
+            for attribute in message.attributes {
+                if let attribute = attribute as? TextEntitiesMessageAttribute {
+                    entities = attribute.entities
+                    break
+                }
+            }
+            item.controllerInteraction.performTextSelectionAction(message, true, NSAttributedString(string: message.text), entities, .translate)
+            return true
+        case 6:
+            return self.beginDoubleTapEditIfNeeded(message: message, item: item)
+        default:
             return false
         }
+    }
+    
+    /// Sends the message again to the same chat: a forwarded message as a forward (its source is kept), anything else as new content.
+    /// Replying being possible stands in for being allowed to send here.
+    private func repeatMessageOnDoubleTap(message: Message, item: ChatMessageItem) -> Bool {
+        guard message.id.namespace == Namespaces.Message.Cloud, message.id.peerId.namespace != Namespaces.Peer.SecretChat, !message.isCopyProtected(), !message.flags.contains(.Failed), !message.flags.isSending else {
+            return false
+        }
+        guard case .reply = item.controllerInteraction.canSetupReply(message) else {
+            return false
+        }
+        var repeatedMedia: Media?
+        for media in message.media {
+            if media is TelegramMediaWebpage {
+                continue
+            } else if (media is TelegramMediaImage || media is TelegramMediaFile) && repeatedMedia == nil {
+                repeatedMedia = media
+            } else {
+                return false
+            }
+        }
+        if message.text.isEmpty && repeatedMedia == nil {
+            return false
+        }
+        let outgoing: EnqueueMessage
+        if message.forwardInfo != nil {
+            outgoing = .forward(source: message.id, threadId: message.threadId, grouping: .auto, attributes: [ForwardOptionsMessageAttribute(hideNames: false, hideCaptions: false)], correlationId: nil)
+        } else {
+            let entities: [MessageAttribute] = message.attributes.filter { $0 is TextEntitiesMessageAttribute }
+            outgoing = .message(text: message.text, attributes: entities, inlineStickers: [:], mediaReference: repeatedMedia.flatMap { AnyMediaReference.standalone(media: $0) }, threadId: message.threadId, replyToMessageId: nil, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: [])
+        }
+        let _ = enqueueMessages(account: item.context.account, peerId: message.id.peerId, messages: [outgoing]).startStandalone()
+        return true
+    }
+    
+    private func beginDoubleTapEditIfNeeded(message: Message, item: ChatMessageItem) -> Bool {
         switch message.id.namespace {
         case Namespaces.Message.Cloud, Namespaces.Message.ScheduledCloud, Namespaces.Message.QuickReplyCloud:
             break
@@ -5886,7 +5954,7 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
                     if let action = self.gestureRecognized(gesture: gesture, location: location, recognizer: nil), case let .openContextMenu(openContextMenu) = action {
                         editMessage = openContextMenu.tapMessage
                     }
-                    if self.beginDoubleTapEditIfNeeded(message: editMessage, item: item) {
+                    if self.performDoubleTapActionIfNeeded(message: editMessage, item: item) {
                         return
                     }
                 }

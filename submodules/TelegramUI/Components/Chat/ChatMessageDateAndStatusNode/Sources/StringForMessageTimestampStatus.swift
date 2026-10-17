@@ -258,6 +258,20 @@ public func stringForMessageTimestampStatus(
        let count = message.attributes.compactMap({ ($0 as? ForwardCountMessageAttribute)?.count }).first, count > 0 {
         dateText = "↗ " + compactNumericCountString(count, decimalSeparator: dateTimeFormat.decimalSeparator) + " " + dateText
     }
+    
+    // Regram port: the server id of a message in a group, supergroup or channel.
+    if ForkExtrasHotFlags.showMessageId, message.id.namespace == Namespaces.Message.Cloud {
+        var isGroupOrChannel = false
+        if message.peers[message.id.peerId] is TelegramChannel || message.peers[message.id.peerId] is TelegramGroup {
+            isGroupOrChannel = true
+        }
+        if isGroupOrChannel {
+            if case .minimal = format {
+            } else {
+                dateText = "#\(message.id.id) " + dateText
+            }
+        }
+    }
 
     return dateText
 }

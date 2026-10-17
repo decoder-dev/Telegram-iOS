@@ -680,7 +680,7 @@ public class ChatMessageTextBubbleContentNode: ChatMessageBubbleContentNode {
                     cutout: nil,
                     insets: textInsets,
                     lineColor: messageTheme.accentControlColor,
-                    displayContentsUnderSpoilers: displayContentsUnderSpoilers.value,
+                    displayContentsUnderSpoilers: displayContentsUnderSpoilers.value || ForkExtrasHotFlags.autoRevealSpoilers,
                     customTruncationToken: customTruncationToken,
                     expandedBlocks: expandedBlockIds,
                     computeCharacterRects: true

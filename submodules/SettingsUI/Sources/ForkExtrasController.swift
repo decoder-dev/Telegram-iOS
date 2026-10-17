@@ -852,7 +852,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [98, 99],
             [1511, 1520],
             [1533],
-            [90, 91],
+            [1802],
+            [1800, 1801, 1803],
             [92, 93],
             [94, 95],
             [96, 97],
@@ -1794,6 +1795,18 @@ private func forkDoubleTapSeekOptions(russian: Bool) -> [(String, Int32)] {
     }
 }
 
+/// What a double tap on a message does (Regram). The values are `ForkExtrasSettings.doubleTapAction`.
+private func forkDoubleTapActionOptions(russian: Bool) -> [(String, Int32)] {
+    return [
+        (russian ? "Реакция (по умолчанию)" : "Default", 0),
+        (russian ? "Поставить реакцию" : "React", 1),
+        (russian ? "Ответить" : "Reply", 2),
+        (russian ? "Повторить" : "Repeat", 3),
+        (russian ? "Перевести" : "Translate", 4),
+        (russian ? "Изменить" : "Edit", 6),
+    ]
+}
+
 /// Liquid Glass bubble tint strength, as a percentage of the theme's bubble colour (25 is the default).
 private func forkGlassTintOptions(russian: Bool) -> [(String, Int32)] {
     return [
@@ -1997,8 +2010,10 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .outgoingPhotoQualityFooter,
             .appearanceToggle(1511, russian ? "Отправлять без превью ссылок" : "Send without link previews", settings.removeLinkPreviews, \.removeLinkPreviews),
             .appearanceToggle(1520, russian ? "Запрещённые GIF как видео" : "Send banned GIFs as video", settings.sendBannedGifsAsVideo, \.sendBannedGifsAsVideo),
-            .doubleTapToEdit(settings.doubleTapToEdit),
-            .doubleTapToEditFooter,
+            .intChoice(1802, russian ? "Двойное касание" : "Double-tap action", forkIntChoiceLabel(forkDoubleTapActionOptions(russian: russian), settings.doubleTapAction)),
+            .appearanceToggle(1800, russian ? "ID сообщения в группах и каналах" : "Message ID in groups and channels", settings.showMessageId, \.showMessageId),
+            .appearanceToggle(1801, russian ? "Раскрывать спойлеры сразу" : "Reveal spoilers automatically", settings.autoRevealSpoilers, \.autoRevealSpoilers),
+            .appearanceToggle(1803, russian ? "Меню: повторить и переслать без автора" : "Menu: Repeat and Forward without author", settings.repeatMessageMenu, \.repeatMessageMenu),
             .quickTranslate(settings.quickTranslateButton),
             .quickTranslateFooter,
             .saveToCloud(settings.saveToCloudMenu),
@@ -2848,6 +2863,10 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
                 title = russian ? "Перемотка двойным касанием" : "Double-tap seek"
                 options = forkDoubleTapSeekOptions(russian: russian)
                 keyPath = \.doubleTapSeekSeconds
+            case 1802:
+                title = russian ? "Двойное касание" : "Double-tap action"
+                options = forkDoubleTapActionOptions(russian: russian)
+                keyPath = \.doubleTapAction
             case 1902:
                 title = russian ? "Оттенок стекла" : "Glass tint"
                 options = forkGlassTintOptions(russian: russian)

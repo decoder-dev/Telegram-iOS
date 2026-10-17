@@ -166,6 +166,15 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var autoPauseMediaInBackground: Bool
     /// 0, 5, 10, 15 or 30; 0 turns double-tap seeking off.
     public var doubleTapSeekSeconds: Int32
+    /// Regram port: show the message id in the status line of group and channel messages.
+    public var showMessageId: Bool
+    /// Regram port: text spoilers, spoiler media and gallery captions are shown without a tap.
+    public var autoRevealSpoilers: Bool
+    /// Regram port: what a double tap on a message does. 0 off (the stock reaction), 1 react, 2 reply,
+    /// 3 repeat, 4 translate, 6 edit. Replaces `doubleTapToEdit`, which is still read (and written) for older builds.
+    public var doubleTapAction: Int32
+    /// Regram port: "Repeat", "Repeat without quote" and "Forward without author" in the message menu.
+    public var repeatMessageMenu: Bool
     public var staticRoundVideoZoom: Bool
     /// 0: stock, 1: rounded, 2: more rounded.
     public var stickerShape: Int32
@@ -538,6 +547,10 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.onlyAddedStickers = false
         self.autoPauseMediaInBackground = false
         self.doubleTapSeekSeconds = 15
+        self.showMessageId = false
+        self.autoRevealSpoilers = false
+        self.doubleTapAction = doubleTapToEdit ? 6 : 0
+        self.repeatMessageMenu = false
         self.staticRoundVideoZoom = false
         self.stickerShape = 0
         self.commaAfterMention = false
@@ -701,6 +714,11 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.autoPauseMediaInBackground = try container.decodeIfPresent(Bool.self, forKey: "autoPauseMediaInBackground") ?? false
         let decodedSeekSeconds = try container.decodeIfPresent(Int32.self, forKey: "doubleTapSeekSeconds") ?? 15
         self.doubleTapSeekSeconds = [0, 5, 10, 15, 30].contains(decodedSeekSeconds) ? decodedSeekSeconds : 15
+        self.showMessageId = try container.decodeIfPresent(Bool.self, forKey: "showMessageId") ?? false
+        self.autoRevealSpoilers = try container.decodeIfPresent(Bool.self, forKey: "autoRevealSpoilers") ?? false
+        let decodedDoubleTapAction = try container.decodeIfPresent(Int32.self, forKey: "doubleTapAction") ?? (self.doubleTapToEdit ? 6 : 0)
+        self.doubleTapAction = [0, 1, 2, 3, 4, 6].contains(decodedDoubleTapAction) ? decodedDoubleTapAction : 0
+        self.repeatMessageMenu = try container.decodeIfPresent(Bool.self, forKey: "repeatMessageMenu") ?? false
         self.staticRoundVideoZoom = try container.decodeIfPresent(Bool.self, forKey: "staticRoundVideoZoom") ?? false
         self.stickerShape = min(2, max(0, try container.decodeIfPresent(Int32.self, forKey: "stickerShape") ?? 0))
         self.commaAfterMention = try container.decodeIfPresent(Bool.self, forKey: "commaAfterMention") ?? false
@@ -830,7 +848,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.showMessageSeconds, forKey: "showMessageSeconds")
         try container.encode(self.wideChannelPosts, forKey: "wideChannelPosts")
         try container.encode(self.stickerSizePercent, forKey: "stickerSizePercent")
-        try container.encode(self.doubleTapToEdit, forKey: "doubleTapToEdit")
+        try container.encode(self.doubleTapAction == 6, forKey: "doubleTapToEdit")
         try container.encode(self.quickTranslateButton, forKey: "quickTranslateButton")
         try container.encode(self.saveToCloudMenu, forKey: "saveToCloudMenu")
         try container.encode(self.selectFromAuthor, forKey: "selectFromAuthor")
@@ -862,6 +880,10 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.onlyAddedStickers, forKey: "onlyAddedStickers")
         try container.encode(self.autoPauseMediaInBackground, forKey: "autoPauseMediaInBackground")
         try container.encode(self.doubleTapSeekSeconds, forKey: "doubleTapSeekSeconds")
+        try container.encode(self.showMessageId, forKey: "showMessageId")
+        try container.encode(self.autoRevealSpoilers, forKey: "autoRevealSpoilers")
+        try container.encode(self.doubleTapAction, forKey: "doubleTapAction")
+        try container.encode(self.repeatMessageMenu, forKey: "repeatMessageMenu")
         try container.encode(self.staticRoundVideoZoom, forKey: "staticRoundVideoZoom")
         try container.encode(self.stickerShape, forKey: "stickerShape")
         try container.encode(self.commaAfterMention, forKey: "commaAfterMention")
