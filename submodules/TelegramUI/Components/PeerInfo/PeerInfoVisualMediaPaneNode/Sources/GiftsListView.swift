@@ -825,7 +825,10 @@ final class GiftsListView: UIView {
                                             guard let self else {
                                                 return
                                             }
-                                            self.profileGifts.convertStarGift(reference: reference)
+                                            let starsContext = self.context.starsContext
+                                            self.profileGifts.convertStarGift(reference: reference, completion: {
+                                                starsContext?.load(force: true)
+                                            })
                                         },
                                         dropOriginalDetails: { [weak self] reference in
                                             guard let self else {

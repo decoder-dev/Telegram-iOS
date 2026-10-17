@@ -6178,6 +6178,9 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                             f(.dismissWithoutContent)
                             self?.interfaceInteraction?.beginMessageSearch(.everything, "")
                         })))
+                        if let jumpToStartItem = strongSelf.bananaJumpToStartContextMenuItem() {
+                            items.append(jumpToStartItem)
+                        }
                         if context.sharedContext.immediateForkExtrasSettings.saveDeletedMessages {
                             items.append(.action(ContextMenuActionItem(text: ForkMessageSavingStrings.viewDeleted, icon: { theme in
                                 return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Archive"), color: theme.actionSheet.primaryTextColor)
@@ -6440,6 +6443,9 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                             f(.dismissWithoutContent)
                             self?.interfaceInteraction?.beginMessageSearch(.everything, "")
                         })))
+                        if let jumpToStartItem = strongSelf.bananaJumpToStartContextMenuItem() {
+                            items.append(jumpToStartItem)
+                        }
                         if context.sharedContext.immediateForkExtrasSettings.saveDeletedMessages {
                             items.append(.action(ContextMenuActionItem(text: ForkMessageSavingStrings.viewDeleted, icon: { theme in
                                 return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Archive"), color: theme.actionSheet.primaryTextColor)

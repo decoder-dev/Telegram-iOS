@@ -87,7 +87,7 @@ class DonutGhostFeatures(unittest.TestCase):
         for row_id, key in [(1770, 'ghostSendWithoutSound'), (1771, 'ghostSuggestForStories'), (1773, 'hideStories'), (1774, 'hideArchive'), (1775, 'allowProtectedScreenshots')]:
             self.assertRegex(ctl, r'\.appearanceToggle\(%d, russian \? "[^"]+" : "[^"]+", settings\.%s, \\\.%s\)' % (row_id, key, key))
         self.assertIn('(.ghost, [[1560, 1561, 1562], [1770, 1771, 1772]])', ctl)
-        self.assertIn('[1773, 1774]', ctl)
+        self.assertIn('[1773, 1774, 1790]', ctl)
         ids = re.findall(r'\.appearanceToggle\((\d+),', ctl)
         self.assertEqual(len(ids), len(set(ids)))
 

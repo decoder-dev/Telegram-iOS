@@ -2695,9 +2695,12 @@ private final class ProfileGiftsContextImpl {
         return _internal_dropStarGiftOriginalDetails(account: self.account, reference: reference)
     }
         
-    func convertStarGift(reference: StarGiftReference) {
+    func convertStarGift(reference: StarGiftReference, completion: (() -> Void)?) {
         self.actionDisposable.set(
-            _internal_convertStarGift(account: self.account, reference: reference).startStrict()
+            (_internal_convertStarGift(account: self.account, reference: reference)
+            |> deliverOnMainQueue).startStrict(completed: {
+                completion?()
+            })
         )
         if let count = self.count {
             self.count = max(0, count - 1)
@@ -3891,9 +3894,11 @@ public final class ProfileGiftsContext {
         }
     }
     
-    public func convertStarGift(reference: StarGiftReference) {
+    /// `completion` runs on the main queue once the server has converted the gift, which is when
+    /// a refreshed Stars balance includes the sale.
+    public func convertStarGift(reference: StarGiftReference, completion: (() -> Void)? = nil) {
         self.impl.with { impl in
-            impl.convertStarGift(reference: reference)
+            impl.convertStarGift(reference: reference, completion: completion)
         }
     }
     

@@ -2381,11 +2381,13 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                                 }
                                 profileGifts.updateStarGiftAddedToProfile(reference: reference, added: added)
                             },
-                            convertToStars: { [weak profileGifts] reference in
+                            convertToStars: { [weak profileGifts, starsContext = self.context.starsContext] reference in
                                 guard let profileGifts else {
                                     return
                                 }
-                                profileGifts.convertStarGift(reference: reference)
+                                profileGifts.convertStarGift(reference: reference, completion: {
+                                    starsContext?.load(force: true)
+                                })
                             },
                             dropOriginalDetails: { [weak profileGifts] reference in
                                 guard let profileGifts else {

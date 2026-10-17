@@ -11,6 +11,7 @@ import TelegramPresentationData
 import StoryContainerScreen
 import EmojiStatusComponent
 import ChatListTitleView
+import TelegramUIPreferences
 
 public final class StoryPeerListComponent: Component {
     public enum PeerStatus: Equatable {
@@ -349,6 +350,15 @@ public final class StoryPeerListComponent: Component {
         
         private var component: StoryPeerListComponent?
         private weak var state: EmptyComponentState?
+
+        /// Whether pulling the row past its start opens the story camera. Extras ▸ Chat list ▸ No story camera on
+        /// swipe turns it off: the row then just bounces back, without the haptic and without the compose preview.
+        private var composesOnPull: Bool {
+            guard let component = self.component else {
+                return true
+            }
+            return !component.context.sharedContext.immediateForkExtrasSettings.disableStoryCameraSwipe
+        }
         
         private var requestedLoadMoreToken: String?
         private let loadMoreDisposable = MetaDisposable()
@@ -590,7 +600,8 @@ public final class StoryPeerListComponent: Component {
             if !self.ignoreScrolling {
                 self.updateScrolling(transition: .immediate)
                 
-                let willComposeOnRelease = scrollView.contentOffset.x <= -70.0
+                let composesOnPull = self.composesOnPull
+                let willComposeOnRelease = composesOnPull && scrollView.contentOffset.x <= -70.0
                 if self.willComposeOnRelease != willComposeOnRelease {
                     self.willComposeOnRelease = willComposeOnRelease
                     
@@ -601,7 +612,7 @@ public final class StoryPeerListComponent: Component {
                     }
                 }
                 
-                if scrollView.isScrollEnabled && scrollView.isTracking, scrollView.contentOffset.x <= -85.0 {
+                if composesOnPull && scrollView.isScrollEnabled && scrollView.isTracking, scrollView.contentOffset.x <= -85.0 {
                     scrollView.isScrollEnabled = false
                     scrollView.panGestureRecognizer.isEnabled = false
                     scrollView.panGestureRecognizer.isEnabled = true
@@ -622,7 +633,7 @@ public final class StoryPeerListComponent: Component {
                 
         public func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
             if !self.ignoreScrolling {
-                if scrollView.isScrollEnabled && scrollView.contentOffset.x <= -70.0 {
+                if self.composesOnPull && scrollView.isScrollEnabled && scrollView.contentOffset.x <= -70.0 {
                     scrollView.isScrollEnabled = false
                     scrollView.panGestureRecognizer.isEnabled = false
                     scrollView.panGestureRecognizer.isEnabled = true
@@ -1164,7 +1175,7 @@ public final class StoryPeerListComponent: Component {
                 unseenCount = itemSet.unseenCount
                 
                 var composeContentOffset: CGFloat?
-                if peer.id == component.context.account.peerId && collapsedState.sideAlphaFraction == 1.0 && self.scrollView.contentOffset.x < 0.0 {
+                if peer.id == component.context.account.peerId && collapsedState.sideAlphaFraction == 1.0 && self.scrollView.contentOffset.x < 0.0 && self.composesOnPull {
                     composeContentOffset = self.scrollView.contentOffset.x * -1.0
                 }
                 

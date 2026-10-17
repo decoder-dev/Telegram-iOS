@@ -5,6 +5,7 @@ import Display
 import TelegramCore
 import SwiftSignalKit
 import TelegramPresentationData
+import TelegramStringFormatting
 import AccountContext
 import GalleryUI
 import ComponentFlow
@@ -22,9 +23,11 @@ final class AvatarGalleryItemFooterContentNode: GalleryFooterContentNode {
     
     private let buttonPanel = ComponentView<Empty>()
     private let mainNode: ASTextNode
+    private let dateNode: ASTextNode
     private let setMainButton: HighlightableButtonNode
     
     private var currentTypeText: String?
+    private var currentDateText: String?
     private var displayActionButton: Bool = true
     
     private var validLayout: (CGSize, LayoutMetrics, CGFloat, CGFloat, CGFloat, CGFloat)?
@@ -52,10 +55,19 @@ final class AvatarGalleryItemFooterContentNode: GalleryFooterContentNode {
         self.mainNode.isUserInteractionEnabled = false
         self.mainNode.displaysAsynchronously = false
         
+        // When the photo was set, on the row of the bottom buttons (between the share and delete
+        // controls) so it never covers the thumbnail strip above the footer.
+        self.dateNode = ASTextNode()
+        self.dateNode.maximumNumberOfLines = 2
+        self.dateNode.isUserInteractionEnabled = false
+        self.dateNode.displaysAsynchronously = false
+        self.dateNode.isHidden = true
+        
         super.init()
         
         self.addSubnode(self.setMainButton)
         self.addSubnode(self.mainNode)
+        self.addSubnode(self.dateNode)
         
         self.setMainButton.addTarget(self, action: #selector(self.setMainButtonPressed), forControlEvents: .touchUpInside)
     }
@@ -63,9 +75,13 @@ final class AvatarGalleryItemFooterContentNode: GalleryFooterContentNode {
     func setEntry(_ entry: AvatarGalleryEntry, content: AvatarGalleryItemFooterContent) {
         var typeText: String?
         var buttonText: String?
+        var dateText: String?
         var canShare = true
         switch entry {
-            case let .image(_, _, _, videoRepresentations, peer, _, _, _, _, _, _, _):
+            case let .image(_, _, _, videoRepresentations, peer, date, _, _, _, _, _, _):
+                if let date, date > 0 {
+                    dateText = stringForFullDate(timestamp: date, strings: self.strings, dateTimeFormat: self.presentationData.dateTimeFormat)
+                }
                 if (!videoRepresentations.isEmpty) {
                     typeText = self.strings.ProfilePhoto_MainVideo
                     buttonText = self.strings.ProfilePhoto_SetMainVideo
@@ -105,6 +121,18 @@ final class AvatarGalleryItemFooterContentNode: GalleryFooterContentNode {
                 self.mainNode.isHidden = !isMainPhoto
                 self.setMainButton.isHidden = isMainPhoto
         }
+        
+        // The date shares the centre of the buttons row with the "Main Photo" label and the
+        // "Set as Main Photo" button of the account's own gallery; it yields to them.
+        if !self.mainNode.isHidden || !self.setMainButton.isHidden {
+            dateText = nil
+        }
+        if self.currentDateText != dateText {
+            self.currentDateText = dateText
+            self.dateNode.attributedText = NSAttributedString(string: dateText ?? "", font: Font.regular(13.0), textColor: UIColor(rgb: 0xcccccc), paragraphAlignment: .center)
+            self.dateNode.isHidden = dateText == nil
+            self.requestLayout?(.immediate)
+        }
     }
     
     override func updateLayout(size: CGSize, metrics: LayoutMetrics, leftInset: CGFloat, rightInset: CGFloat, bottomInset: CGFloat, contentInset: CGFloat, transition: ContainedViewLayoutTransition) -> LayoutInfo {
@@ -126,6 +154,10 @@ final class AvatarGalleryItemFooterContentNode: GalleryFooterContentNode {
         let constrainedSize = CGSize(width: width - 44.0 * 2.0 - 8.0 * 2.0 - leftInset - rightInset, height: CGFloat.greatestFiniteMagnitude)
         let controlsY = panelHeight - buttonPanelInsets.bottom - 44.0
 
+        let dateSideInset = max(leftInset, rightInset) + buttonPanelInsets.left + 44.0 + 12.0
+        let dateSize = self.dateNode.isHidden ? CGSize.zero : self.dateNode.measure(CGSize(width: max(0.0, width - dateSideInset * 2.0), height: 44.0))
+        self.dateNode.frame = CGRect(origin: CGPoint(x: floor((width - dateSize.width) / 2.0), y: controlsY + floor((44.0 - dateSize.height) / 2.0)), size: dateSize)
+        
         let mainSize = self.mainNode.measure(constrainedSize)
         self.mainNode.frame = CGRect(origin: CGPoint(x: floor((width - mainSize.width) / 2.0), y: controlsY + floor((44.0 - mainSize.height) / 2.0)), size: mainSize)
 
@@ -199,6 +231,7 @@ final class AvatarGalleryItemFooterContentNode: GalleryFooterContentNode {
             buttonPanelView.alpha = 1.0
         }
         self.mainNode.alpha = 1.0
+        self.dateNode.alpha = 1.0
         self.setMainButton.alpha = 1.0
     }
     
@@ -207,6 +240,7 @@ final class AvatarGalleryItemFooterContentNode: GalleryFooterContentNode {
             buttonPanelView.alpha = 0.0
         }
         self.mainNode.alpha = 0.0
+        self.dateNode.alpha = 0.0
         self.setMainButton.alpha = 0.0
         completion()
     }

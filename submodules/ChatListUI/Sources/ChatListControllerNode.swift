@@ -544,7 +544,7 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
         self.applyItemNodeAsCurrent(id: .all, itemNode: itemNode)
         
         let panRecognizer = InteractiveTransitionGestureRecognizer(target: self, action: #selector(self.panGesture(_:)), allowedDirections: { [weak self] _ in
-            guard let self, self.availableFilters.count > 1 || (self.controller?.isStoryPostingAvailable == true && !(self.context.sharedContext.callManager?.hasActiveCall ?? false)) else {
+            guard let self, self.availableFilters.count > 1 || (self.controller?.isStoryPostingAvailable == true && !self.context.sharedContext.immediateForkExtrasSettings.disableStoryCameraSwipe && !(self.context.sharedContext.callManager?.hasActiveCall ?? false)) else {
                 return []
             }
             guard case .chatList(.root) = self.location else {
@@ -614,6 +614,8 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
             && self.availableFilters.first?.id == self.selectedId
             && !recognizer.currentAllowedDirections.intersection(.right).isEmpty
             && self.controller?.isStoryPostingAvailable == true
+            // Extras ▸ Chat list ▸ No story camera on swipe: the swipe then only switches folders.
+            && !self.context.sharedContext.immediateForkExtrasSettings.disableStoryCameraSwipe
             && !(self.context.sharedContext.callManager?.hasActiveCall ?? false)
         let hasLiveStream = canOpenStoryCamera && self.controller?.chatListHeaderView()?.storyPeerListView()?.isLiveStreaming == true
         

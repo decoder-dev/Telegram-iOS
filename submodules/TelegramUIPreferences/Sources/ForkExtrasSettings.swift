@@ -136,6 +136,11 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var hideStickerStatus: Bool
     /// Donutgram: reply decorations on stickers (colours, emoji pattern, background) and the pattern in replies to premium contacts.
     public var hideStickerReplyColors: Bool
+    /// Donutgram: a swipe to the right on the chat list, and pulling the stories row past its start, no longer open
+    /// the story camera. The other ways to post a story are unchanged. Off by default.
+    public var disableStoryCameraSwipe: Bool
+    /// Donutgram: "Jump to start" in the menu of a chat's (or forum topic's) avatar. On by default.
+    public var jumpToStartInChatMenu: Bool
     public var hideStickerReplyEmoji: Bool
     public var hideStickerReplyBackground: Bool
     public var hidePremiumReplyEmoji: Bool
@@ -470,6 +475,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.streamerMode = streamerMode
         self.hideStickerStatus = hideStickerStatus
         self.hideStickerReplyColors = false
+        self.disableStoryCameraSwipe = false
+        self.jumpToStartInChatMenu = true
         self.hideStickerReplyEmoji = false
         self.hideStickerReplyBackground = false
         self.hidePremiumReplyEmoji = false
@@ -614,6 +621,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.streamerMode = try container.decodeIfPresent(Bool.self, forKey: "streamerMode") ?? false
         self.hideStickerStatus = try container.decodeIfPresent(Bool.self, forKey: "hideStickerStatus") ?? false
         self.hideStickerReplyColors = try container.decodeIfPresent(Bool.self, forKey: "hideStickerReplyColors") ?? false
+        self.disableStoryCameraSwipe = try container.decodeIfPresent(Bool.self, forKey: "disableStoryCameraSwipe") ?? false
+        self.jumpToStartInChatMenu = try container.decodeIfPresent(Bool.self, forKey: "jumpToStartInChatMenu") ?? true
         self.hideStickerReplyEmoji = try container.decodeIfPresent(Bool.self, forKey: "hideStickerReplyEmoji") ?? false
         self.hideStickerReplyBackground = try container.decodeIfPresent(Bool.self, forKey: "hideStickerReplyBackground") ?? false
         self.hidePremiumReplyEmoji = try container.decodeIfPresent(Bool.self, forKey: "hidePremiumReplyEmoji") ?? false
@@ -760,6 +769,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.streamerMode, forKey: "streamerMode")
         try container.encode(self.hideStickerStatus, forKey: "hideStickerStatus")
         try container.encode(self.hideStickerReplyColors, forKey: "hideStickerReplyColors")
+        try container.encode(self.disableStoryCameraSwipe, forKey: "disableStoryCameraSwipe")
+        try container.encode(self.jumpToStartInChatMenu, forKey: "jumpToStartInChatMenu")
         try container.encode(self.hideStickerReplyEmoji, forKey: "hideStickerReplyEmoji")
         try container.encode(self.hideStickerReplyBackground, forKey: "hideStickerReplyBackground")
         try container.encode(self.hidePremiumReplyEmoji, forKey: "hidePremiumReplyEmoji")

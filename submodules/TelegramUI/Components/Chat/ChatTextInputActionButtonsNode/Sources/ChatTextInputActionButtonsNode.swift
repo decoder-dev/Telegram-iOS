@@ -424,7 +424,9 @@ public final class ChatTextInputActionButtonsNode: ASDisplayNode, ChatSendMessag
         transition.updateFrame(view: self.stopButton, frame: CGRect(origin: CGPoint(), size: size))
         
         var sendSlowmodeTimerTimestamp: (duration: Int32, timestamp: Int32)?
-        if let slowmodeState = interfaceState.slowmodeState {
+        // The slow-mode countdown gates new sends only; saving an edit is not a send (the send path
+        // already skips slow mode for `editMessage`), so the Apply button must stay usable.
+        if let slowmodeState = interfaceState.slowmodeState, interfaceState.interfaceState.editMessage == nil {
             switch slowmodeState.variant {
             case .pendingMessages:
                 break

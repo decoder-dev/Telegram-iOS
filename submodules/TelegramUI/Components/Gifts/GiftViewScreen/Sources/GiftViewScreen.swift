@@ -1050,23 +1050,28 @@ private final class GiftViewSheetContent: CombinedComponent {
                     actions: [
                         TextAlertAction(type: .genericAction, title: presentationData.strings.Common_Cancel, action: {}),
                         TextAlertAction(type: .defaultAction, title: presentationData.strings.Gift_Convert_Convert, action: { [weak self, weak controller, weak navigationController] in
-                            guard let self else {
+                            guard let self, let controller else {
                                 return
                             }
                             
-                            if let convertToStars = controller?.convertToStars {
+                            // The balance is refreshed once the conversion has actually completed
+                            // (here, or through `ProfileGiftsContext.convertStarGift(completion:)`
+                            // for the profile's own `convertToStars`), not on a fixed 2.5 s timer
+                            // that could read the balance before the server applied the sale.
+                            if let convertToStars = controller.convertToStars {
                                 convertToStars(reference)
                             } else {
                                 let _ = (self.context.engine.payments.convertStarGift(reference: reference)
-                                |> deliverOnMainQueue).startStandalone()
+                                |> deliverOnMainQueue).startStandalone(completed: {
+                                    starsContext.load(force: true)
+                                })
                             }
                             
-                            controller?.dismissAnimated()
-                            
-                            if let navigationController {
-                                Queue.mainQueue().after(2.5) {
-                                    starsContext.load(force: true)
-                                    
+                            // Open the Stars screen once the sheet has actually finished
+                            // dismissing, rather than after a fixed 2.5 s delay.
+                            let context = self.context
+                            controller.dismissAnimated(completion: { [weak navigationController] in
+                                if let navigationController {
                                     let text: String
                                     if isChannelGift {
                                         text = presentationData.strings.Gift_Convert_Success_ChannelText(
@@ -1076,10 +1081,10 @@ private final class GiftViewSheetContent: CombinedComponent {
                                         text = presentationData.strings.Gift_Convert_Success_Text(
                                             presentationData.strings.Gift_Convert_Success_Text_Stars(Int32(clamping: convertStars))
                                         ).string
-                                        if let starsContext = self.context.starsContext {
+                                        if let starsContext = context.starsContext {
                                             navigationController.pushViewController(
-                                                self.context.sharedContext.makeStarsTransactionsScreen(
-                                                    context: self.context,
+                                                context.sharedContext.makeStarsTransactionsScreen(
+                                                    context: context,
                                                     starsContext: starsContext
                                                 ),
                                                 animated: true
@@ -1105,7 +1110,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                                         lastController.present(resultController, in: .current)
                                     }
                                 }
-                            }
+                            })
                         })
                     ],
                     parseMarkdown: true
@@ -6539,14 +6544,14 @@ final class GiftViewSheetComponent: CombinedComponent {
                                     controller.dismissAllTooltips()
                                     controller.dismissBalanceOverlay()
                                     animateOut.invoke(Action { _ in
-                                        controller.dismiss(completion: nil)
+                                        controller.completeDismissal()
                                     })
                                 }
                             } else {
                                 if let controller = controller() as? GiftViewScreen {
                                     controller.dismissAllTooltips()
                                     controller.dismissBalanceOverlay()
-                                    controller.dismiss(completion: nil)
+                                    controller.completeDismissal()
                                 }
                             }
                         }
@@ -6973,11 +6978,27 @@ public class GiftViewScreen: ViewControllerComponentContainer {
         ), elevatedLayout: false, position: .bottom, action: { _ in return true }), in: .current)
     }
     
-    public func dismissAnimated() {
+    private var dismissCompletion: (() -> Void)?
+    
+    /// Ends the sheet's dismissal, running the completion handed to `dismissAnimated(completion:)`
+    /// once the controller is actually gone.
+    fileprivate func completeDismissal() {
+        let completion = self.dismissCompletion
+        self.dismissCompletion = nil
+        self.dismiss(completion: completion)
+    }
+    
+    public func dismissAnimated(completion: (() -> Void)? = nil) {
+        if let completion {
+            self.dismissCompletion = completion
+        }
         self.dismissAllTooltips()
 
         if let view = self.node.hostView.findTaggedView(tag: SheetComponent<ViewControllerComponentContainer.Environment>.View.Tag()) as? SheetComponent<ViewControllerComponentContainer.Environment>.View {
             view.dismissAnimated()
+        } else if let completion = self.dismissCompletion {
+            self.dismissCompletion = nil
+            completion()
         }
         
         self.dismissBalanceOverlay()
