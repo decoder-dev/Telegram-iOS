@@ -41,6 +41,7 @@ import AdsInfoScreen
 import AdsReportScreen
 import WalletContext
 import AttachmentFileController
+import MessageShotScreen
  
 private struct MessageContextMenuData {
     let starStatus: Bool?
@@ -2045,6 +2046,18 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
                 }
                 let _ = enqueueMessages(account: context.account, peerId: context.account.peerId, messages: ids).startStandalone()
                 f(.dismissWithoutContent)
+            })))
+        }
+        if extras.messageShot, !chatPresentationInterfaceState.copyProtectionEnabled, !isCopyProtected, messageShotIsAllowed(messages: selectAll || isImage ? messages : [message], chatCopyProtected: chatPresentationInterfaceState.copyProtectionEnabled) {
+            let shotMessages = selectAll || isImage ? messages : [message]
+            let wallpaper = chatPresentationInterfaceState.chatWallpaper
+            actions.append(.action(ContextMenuActionItem(text: extrasMenuIsRussian ? "Скриншот" : "Screenshot", icon: { theme in
+                return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Image"), color: theme.actionSheet.primaryTextColor)
+            }, action: { [weak controllerInteraction] _, f in
+                f(.dismissWithoutContent)
+                if let shotController = MessageShotScreen(context: context, messages: shotMessages, wallpaper: wallpaper, chatCopyProtected: false) {
+                    controllerInteraction?.navigationController()?.pushViewController(shotController, animated: true)
+                }
             })))
         }
         if extras.selectFromAuthor, data.canSelect, let authorId = message.author?.id {

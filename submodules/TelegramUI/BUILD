@@ -436,6 +436,7 @@ swift_library(
         "//submodules/TelegramUI/Components/DustEffect",
         "//submodules/TelegramUI/Components/PeerInfo/PeerInfoScreen",
         "//submodules/TelegramUI/Components/Chat/ChatMessageSelectionInputPanelNode",
+        "//submodules/TelegramUI/Components/MessageShotScreen",
         "//submodules/TelegramUI/Components/Chat/ChatQrCodeScreen",
         "//submodules/UIKitRuntimeUtils",
         "//submodules/TelegramUI/Components/SavedMessages/SavedMessagesScreen",
