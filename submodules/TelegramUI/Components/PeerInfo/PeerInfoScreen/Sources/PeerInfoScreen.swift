@@ -6201,6 +6201,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
             }
             switch result {
             case .joined:
+                forkOfferFolderAfterJoin(context: self.context, peerId: peer.id)
                 self.controller?.present(UndoOverlayController(presentationData: presentationData, content: .succeed(text: presentationData.strings.Chat_SimilarChannels_JoinedChannel(peer.compactDisplayTitle).string, timeout: nil, customUndoText: nil), elevatedLayout: false, animateInAsReplacement: false, action: { _ in return false }), in: .window(.root))
             case let .webView(webView):
                 if let controller = self.controller {
@@ -7021,7 +7022,7 @@ public final class PeerInfoScreenImpl: ViewController, PeerInfoScreen, KeyShortc
         })
     }
     
-    public static func displayChatNavigationMenu(context: AccountContext, chatNavigationStack: [ChatNavigationStackItem], nextFolderId: Int32?, parentController: ViewController, backButtonView: UIView, navigationController: NavigationController, gesture: ContextGesture) {
+    public static func displayChatNavigationMenu(context: AccountContext, chatNavigationStack: [ChatNavigationStackItem], clearRecents: (() -> Void)? = nil, nextFolderId: Int32?, parentController: ViewController, backButtonView: UIView, navigationController: NavigationController, gesture: ContextGesture) {
         let peerMap = EngineDataMap(
             Set(chatNavigationStack.map(\.peerId)).map(TelegramEngine.EngineData.Item.Peer.Peer.init)
         )
@@ -7107,6 +7108,15 @@ public final class PeerInfoScreenImpl: ViewController, PeerInfoScreen, KeyShortc
 
                     context.sharedContext.navigateToChatController(NavigateToChatControllerParams(navigationController: navigationController, context: context, chatLocation: navigateChatLocation, useBackAnimation: true, animated: true, chatListFilter: nextFolderId, chatNavigationStack: updatedChatNavigationStack, completion: { _ in
                     }))
+                })))
+            }
+            if let clearRecents {
+                items.append(.separator)
+                items.append(.action(ContextMenuActionItem(text: ForkPresentationLanguage.prefersRussianStrings ? "Очистить недавние" : "Clear recents", textColor: .destructive, icon: { theme in
+                    return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Delete"), color: theme.contextMenu.destructiveColor)
+                }, action: { _, f in
+                    f(.default)
+                    clearRecents()
                 })))
             }
             let contextController = makeContextController(presentationData: presentationData, source: .reference(PeerInfoControllerContextReferenceContentSource(controller: parentController, sourceView: backButtonView, insets: UIEdgeInsets(), contentInsets: UIEdgeInsets(top: 0.0, left: -15.0, bottom: 0.0, right: -15.0))), items: .single(ContextController.Items(content: .list(items))), gesture: gesture)

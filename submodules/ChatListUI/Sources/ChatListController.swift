@@ -5431,6 +5431,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                     switch result {
                     case .joined:
                         didJoin = true
+                        forkOfferFolderAfterJoin(context: self.context, peerId: peerId)
                     case let .webView(webView):
                         let _ = (self.context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: peerId))
                         |> deliverOnMainQueue).startStandalone(next: { [weak self] peer in

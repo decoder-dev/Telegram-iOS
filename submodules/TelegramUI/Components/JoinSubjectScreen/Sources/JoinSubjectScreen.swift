@@ -157,6 +157,7 @@ private final class JoinSubjectSheetContentComponent: Component {
                             component.dismiss()
                         } else {
                             if let peer {
+                                forkOfferFolderAfterJoin(context: component.context, peerId: peer.id)
                                 self.navigateToPeer(peer: peer)
                             } else {
                                 component.dismiss()

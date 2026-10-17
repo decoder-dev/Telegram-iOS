@@ -83,6 +83,7 @@ swift_library(
         "//submodules/PeerInfoAvatarListNode",
         "//submodules/TelegramUI/Components/PeerInfo/PeerInfoStoryGridScreen",
         "//submodules/PeerInfoUI",
+        "//submodules/PromptUI",
         "//submodules/TelegramUI/Components/PeerInfo/PeerInfoVisualMediaPaneNode",
         "//submodules/TelegramUI/Components/Settings/PeerNameColorScreen",
         "//submodules/PeerPresenceStatusManager",

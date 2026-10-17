@@ -32,6 +32,7 @@ import Pasteboard
 import BrowserUI
 import ChatRichTextEditorComposer
 import SettingsUI
+import PromptUI
 import TextNodeWithEntities
 import ChatControllerInteraction
 import ChatMessageItemCommon
@@ -2100,6 +2101,64 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
                 if let shotController = MessageShotScreen(context: context, messages: shotMessages, wallpaper: wallpaper, chatCopyProtected: false) {
                     controllerInteraction?.navigationController()?.pushViewController(shotController, animated: true)
                 }
+            })))
+        }
+        if extras.messageBookmarks, message.id.namespace == Namespaces.Message.Cloud, !isCopyProtected {
+            let accountPeerId = context.account.peerId
+            let messagePeerId = message.id.peerId.toInt64()
+            let existingBookmark = ForkMessageBookmarks.find(accountPeerId: accountPeerId, peerId: messagePeerId, messageNamespace: message.id.namespace, messageId: message.id.id)
+            let bookmarkTitle: String
+            if existingBookmark != nil {
+                bookmarkTitle = extrasMenuIsRussian ? "Теги закладки" : "Bookmark tags"
+            } else {
+                bookmarkTitle = extrasMenuIsRussian ? "В закладки" : "Bookmark"
+            }
+            let bookmarkChatTitle = message.peers[message.id.peerId].flatMap { EnginePeer($0).displayTitle(strings: chatPresentationInterfaceState.strings, displayOrder: context.sharedContext.currentPresentationData.with { $0 }.nameDisplayOrder) } ?? ""
+            let bookmarkSnippet = String(message.text.prefix(120))
+            let bookmarkThreadId = message.threadId
+            let bookmarkDate = message.timestamp
+            actions.append(.action(ContextMenuActionItem(text: bookmarkTitle, icon: { theme in
+                return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Fave"), color: theme.actionSheet.primaryTextColor)
+            }, action: { _, f in
+                f(.dismissWithoutContent)
+                let prompt = promptController(
+                    context: context,
+                    text: extrasMenuIsRussian ? "Теги закладки" : "Bookmark tags",
+                    subtitle: extrasMenuIsRussian ? "Через запятую. Можно оставить пустым." : "Comma separated. May be left empty.",
+                    value: existingBookmark?.tags.joined(separator: ", ") ?? "",
+                    placeholder: extrasMenuIsRussian ? "работа, идеи" : "work, ideas",
+                    apply: { value in
+                        guard let value else {
+                            return
+                        }
+                        ForkMessageBookmarks.upsert(accountPeerId: accountPeerId, ForkMessageBookmark(
+                            peerId: messagePeerId,
+                            threadId: bookmarkThreadId,
+                            messageNamespace: message.id.namespace,
+                            messageId: message.id.id,
+                            chatTitle: bookmarkChatTitle,
+                            snippet: bookmarkSnippet,
+                            tags: ForkMessageBookmarks.parseTags(value),
+                            messageDate: bookmarkDate,
+                            createdAt: Int32(clamping: Int(Date().timeIntervalSince1970))
+                        ))
+                    }
+                )
+                controllerInteraction.presentController(prompt, nil)
+            })))
+            if existingBookmark != nil {
+                actions.append(.action(ContextMenuActionItem(text: extrasMenuIsRussian ? "Убрать из закладок" : "Remove bookmark", textColor: .destructive, icon: { theme in
+                    return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Delete"), color: theme.contextMenu.destructiveColor)
+                }, action: { _, f in
+                    f(.dismissWithoutContent)
+                    ForkMessageBookmarks.remove(accountPeerId: accountPeerId, identity: "\(messagePeerId):\(message.id.namespace):\(message.id.id)")
+                })))
+            }
+            actions.append(.action(ContextMenuActionItem(text: extrasMenuIsRussian ? "Закладки" : "Bookmarks", icon: { theme in
+                return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Fave"), color: theme.actionSheet.primaryTextColor)
+            }, action: { _, f in
+                f(.dismissWithoutContent)
+                controllerInteraction.navigationController()?.pushViewController(forkMessageBookmarksController(context: context))
             })))
         }
         if extras.selectFromAuthor, data.canSelect, let authorId = message.author?.id {

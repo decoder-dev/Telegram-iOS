@@ -147,6 +147,7 @@ public final class LegacyJoinLinkPreviewController: ViewController {
                         strongSelf.present(UndoOverlayController(presentationData: strongSelf.presentationData, content: .inviteRequestSent(title: strongSelf.presentationData.strings.MemberRequests_RequestToJoinSent, text: strongSelf.isGroup ? strongSelf.presentationData.strings.MemberRequests_RequestToJoinSentDescriptionGroup : strongSelf.presentationData.strings.MemberRequests_RequestToJoinSentDescriptionChannel ), elevatedLayout: true, animateInAsReplacement: false, action: { _ in return false }), in: .window(.root))
                     } else {
                         if let peer {
+                            forkOfferFolderAfterJoin(context: strongSelf.context, peerId: peer.id)
                             strongSelf.navigateToPeer(peer, nil)
                         }
                     }
