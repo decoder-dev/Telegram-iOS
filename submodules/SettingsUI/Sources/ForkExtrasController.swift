@@ -860,7 +860,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [1518],
             [1607, 1510, 1513, 1517],
             [85, 86, 87],
-            [1850, 1851, 1852, 1853]
+            [1850, 1851, 1852, 1853],
+            [1910, 1911]
         ]),
         (.media, [
             [1608, 80, 84],
@@ -869,6 +870,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [1613, 1554, 1555, 1556, 1614],
             [1750, 1751, 1752, 1753, 1754, 1755, 1756, 1757, 1758],
             [1860, 1861, 1862, 1863, 1864, 1865],
+            [1912, 1913, 1914],
             [2000, 2001, 2002, 2003, 2004]
         ]),
         (.profile, [
@@ -2006,6 +2008,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .scrollToNextChat(settings.scrollToNextChatDisabled),
             .scrollToNextChatFooter,
             .appearanceToggle(1518, russian ? "Хэштег ищет в этом чате" : "Hashtags search this chat", settings.hashtagsPreferCurrentChat, \.hashtagsPreferCurrentChat),
+            .designHeader(1910, russian ? "Скриншот сообщений" : "Message Shot"),
+            .appearanceToggle(1911, russian ? "Пункт «Скриншот» в меню сообщения" : "“Screenshot” in the message menu", settings.messageShot, \.messageShot),
             .designHeader(1607, russian ? "Боты и служебные сообщения" : "Bots and service messages"),
             .appearanceToggle(1510, russian ? "Скрыть «через бота»" : "Hide \"via bot\"", settings.hideViaBot, \.hideViaBot),
             .appearanceToggle(1513, russian ? "Скрыть панель автоматизации бота" : "Hide bot automation panel", settings.hideBotAutomation, \.hideBotAutomation),
@@ -2056,6 +2060,9 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .musicPolicy(2002, russian ? "Пауза музыки при записи голосового" : "Pause music when recording voice messages", mediaInputSettings.pauseMusicOnVoiceRecording),
             .musicPolicy(2003, russian ? "Пауза музыки при прослушивании голосового" : "Pause music when playing voice messages", mediaInputSettings.pauseMusicOnVoicePlayback),
             .audioFooter,
+            .designHeader(1912, russian ? "Энергосбережение" : "Power saving"),
+            .appearanceToggle(1913, russian ? "Режим энергосбережения всегда" : "Always use power saving", settings.powerSaving, \.powerSaving),
+            .designFooter(1914, russian ? "Включает встроенный профиль энергосбережения Telegram независимо от заряда: без автовоспроизведения видео и GIF, без зацикливания стикеров и эмодзи, без полупрозрачности, без фоновой работы и фоновой загрузки. Настроить отдельные пункты можно в «Данные и память → Энергосбережение»." : "Applies Telegram's built-in power-saving profile whatever the battery level: no video or GIF autoplay, no looping stickers or emoji, no translucency, no extended background work or background downloads. Fine-tune it in Data and Storage → Power Saving."),
         ]
     case .profile:
         entries = [

@@ -214,6 +214,10 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var hideTypingText: Bool
     public var hideTypingVoice: Bool
     public var hideTypingFiles: Bool
+    /// Fork (MadGram): adds a "Screenshot" action to the message menu that renders the messages as an image. A menu entry only, so it defaults on.
+    public var messageShot: Bool
+    /// Fork (MadGram): applies Telegram's own power-saving profile (EnergyUsageSettings.powerSavingDefault) regardless of battery level. Off by default.
+    public var powerSaving: Bool
     public var showsOfflineDot: Bool
     /// Hide paid (star) reactions from messages and the reaction picker.
     public var hidePaidReactions: Bool
@@ -508,6 +512,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.outgoingPhotoQuality = min(2, max(0, outgoingPhotoQuality))
         self.streamerMode = streamerMode
         self.hideStickerStatus = hideStickerStatus
+        self.messageShot = true
+        self.powerSaving = false
         self.hideStickerReplyColors = false
         self.disableStoryCameraSwipe = false
         self.jumpToStartInChatMenu = true
@@ -730,6 +736,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.hideTypingText = try container.decodeIfPresent(Bool.self, forKey: "hideTypingText") ?? false
         self.hideTypingVoice = try container.decodeIfPresent(Bool.self, forKey: "hideTypingVoice") ?? false
         self.hideTypingFiles = try container.decodeIfPresent(Bool.self, forKey: "hideTypingFiles") ?? false
+        self.messageShot = try container.decodeIfPresent(Bool.self, forKey: "messageShot") ?? true
+        self.powerSaving = try container.decodeIfPresent(Bool.self, forKey: "powerSaving") ?? false
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -889,6 +897,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.hideTypingText, forKey: "hideTypingText")
         try container.encode(self.hideTypingVoice, forKey: "hideTypingVoice")
         try container.encode(self.hideTypingFiles, forKey: "hideTypingFiles")
+        try container.encode(self.messageShot, forKey: "messageShot")
+        try container.encode(self.powerSaving, forKey: "powerSaving")
     }
 
     /// Whether message/reaction read receipts should be suppressed right now.

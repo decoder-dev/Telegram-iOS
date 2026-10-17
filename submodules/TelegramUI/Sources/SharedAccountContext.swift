@@ -617,6 +617,16 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             // Looping silence keeps a build without push notifications alive in the background, so calls reach a locked phone.
             ForkBackgroundKeepAlive.shared.update(enabled: settings.keepAliveInBackground)
             self?.pushForkExtrasRuntime(settings)
+            // Fork power saving: re-resolve the energy profile when the switch flips (battery-driven switching
+            // above only re-runs on battery or media-download setting changes).
+            if let strongSelf = self {
+                let mediaSettings = strongSelf.currentAutomaticMediaDownloadSettings
+                if settings.powerSaving || automaticEnergyUsageShouldBeOnNow(settings: mediaSettings) {
+                    strongSelf.energyUsageSettings = EnergyUsageSettings.powerSavingDefault
+                } else {
+                    strongSelf.energyUsageSettings = mediaSettings.energyUsageSettings
+                }
+            }
         })
         
         let _ = self.contactDataManager?.personNameDisplayOrder().start(next: { order in
@@ -631,7 +641,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             if let strongSelf = self {
                 strongSelf.currentAutomaticMediaDownloadSettings = next
                 
-                if automaticEnergyUsageShouldBeOnNow(settings: next) {
+                if automaticEnergyUsageShouldBeOnNow(settings: next) || strongSelf.immediateForkExtrasSettings.powerSaving {
                     strongSelf.energyUsageSettings = EnergyUsageSettings.powerSavingDefault
                 } else {
                     strongSelf.energyUsageSettings = next.energyUsageSettings
@@ -639,7 +649,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
                 strongSelf.energyUsageAutomaticDisposable.set((automaticEnergyUsageShouldBeOn(settings: next)
                 |> deliverOnMainQueue).start(next: { value in
                     if let strongSelf = self {
-                        if value {
+                        if value || strongSelf.immediateForkExtrasSettings.powerSaving {
                             strongSelf.energyUsageSettings = EnergyUsageSettings.powerSavingDefault
                         } else {
                             strongSelf.energyUsageSettings = next.energyUsageSettings
