@@ -1686,10 +1686,22 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                     task.setTaskCompleted(success: true)
                     return
                 }
+                // One full pass a day is enough. Device logs show it starting again after every charge or
+                // relaunch (five passes in one day, 100+ batches each), which is where most of the
+                // ~9 GB of daily writes came from.
+                let backgroundIndexKey = "TelegramCacheIndexTimestamp_v2"
+                let now = Int(CFAbsoluteTimeGetCurrent())
+                if let last = UserDefaults.standard.object(forKey: backgroundIndexKey) as? NSNumber, last.intValue >= now - 20 * 60 * 60 {
+                    Logger.shared.log("App \(self.episodeId)", "Cleanup task skipped: the cache was indexed less than 20 hours ago")
+                    let _ = self.cleanupTaskRunning.swap(false)
+                    task.setTaskCompleted(success: true)
+                    return
+                }
                 Logger.shared.log("App \(self.episodeId)", "Executing cleanup task")
                 
                 let disposable = self.runCacheReindexTasks(lowImpact: true, completion: {
                     Logger.shared.log("App \(self.episodeId)", "Completed cleanup task")
+                    UserDefaults.standard.set(Int(CFAbsoluteTimeGetCurrent()) as NSNumber, forKey: backgroundIndexKey)
                     let _ = self.cleanupTaskRunning.swap(false)
                     task.setTaskCompleted(success: true)
                 })
