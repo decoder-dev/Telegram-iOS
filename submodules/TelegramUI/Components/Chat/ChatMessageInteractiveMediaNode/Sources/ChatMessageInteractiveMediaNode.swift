@@ -2141,7 +2141,7 @@ public final class ChatMessageInteractiveMediaNode: ASDisplayNode, GalleryItemTr
                                 }
                             }
                             
-                            if message.attributes.contains(where: { $0 is MediaSpoilerMessageAttribute }), strongSelf.extendedMediaOverlayNode == nil {
+                            if message.attributes.contains(where: { $0 is MediaSpoilerMessageAttribute }), !ForkExtrasHotFlags.autoRevealSpoilers, strongSelf.extendedMediaOverlayNode == nil {
                                 strongSelf.internallyVisible = false
                             }
                                                         
@@ -3077,7 +3077,8 @@ public final class ChatMessageInteractiveMediaNode: ASDisplayNode, GalleryItemTr
             }
             displaySpoiler = true
         } else if message.attributes.contains(where: { $0 is MediaSpoilerMessageAttribute }) {
-            displaySpoiler = true
+            // Regram port: "Reveal spoilers automatically" shows spoiler media without the cover.
+            displaySpoiler = !ForkExtrasHotFlags.autoRevealSpoilers
         } else if isSecretMedia {
             displaySpoiler = true
         } else if message.isSensitiveContent(platform: "ios") {

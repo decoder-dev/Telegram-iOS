@@ -158,6 +158,11 @@ public enum ForkExtrasHotFlags {
         public var wideChannelPosts: Bool = false
         public var stickerSizePercent: Int32 = 100
         public var doubleTapToEdit: Bool = false
+        /// Regram port: 0 off, 1 react, 2 reply, 3 repeat, 4 translate, 6 edit.
+        public var doubleTapAction: Int32 = 0
+        public var showMessageId: Bool = false
+        public var autoRevealSpoilers: Bool = false
+        public var repeatMessageMenu: Bool = false
         /// Fork: send GIFs as silent looping videos where GIFs are banned (Donutgram c7bb578).
         public var sendBannedGifsAsVideo: Bool = false
         public var quickTranslateButton: Bool = false
@@ -187,6 +192,10 @@ public enum ForkExtrasHotFlags {
             wideChannelPosts: Bool = false,
             stickerSizePercent: Int32 = 100,
             doubleTapToEdit: Bool = false,
+            doubleTapAction: Int32 = 0,
+            showMessageId: Bool = false,
+            autoRevealSpoilers: Bool = false,
+            repeatMessageMenu: Bool = false,
             sendBannedGifsAsVideo: Bool = false,
             quickTranslateButton: Bool = false,
             saveToCloudMenu: Bool = true,
@@ -214,6 +223,10 @@ public enum ForkExtrasHotFlags {
             self.wideChannelPosts = wideChannelPosts
             self.stickerSizePercent = stickerSizePercent
             self.doubleTapToEdit = doubleTapToEdit
+            self.doubleTapAction = doubleTapAction
+            self.showMessageId = showMessageId
+            self.autoRevealSpoilers = autoRevealSpoilers
+            self.repeatMessageMenu = repeatMessageMenu
             self.sendBannedGifsAsVideo = sendBannedGifsAsVideo
             self.quickTranslateButton = quickTranslateButton
             self.saveToCloudMenu = saveToCloudMenu
@@ -325,6 +338,22 @@ public enum ForkExtrasHotFlags {
     public static var doubleTapToEdit: Bool {
         get { return state.with { $0.doubleTapToEdit } }
         set { let _ = state.modify { var s = $0; s.doubleTapToEdit = newValue; return s } }
+    }
+    public static var doubleTapAction: Int32 {
+        get { return state.with { $0.doubleTapAction } }
+        set { let _ = state.modify { var s = $0; s.doubleTapAction = newValue; return s } }
+    }
+    public static var showMessageId: Bool {
+        get { return state.with { $0.showMessageId } }
+        set { let _ = state.modify { var s = $0; s.showMessageId = newValue; return s } }
+    }
+    public static var autoRevealSpoilers: Bool {
+        get { return state.with { $0.autoRevealSpoilers } }
+        set { let _ = state.modify { var s = $0; s.autoRevealSpoilers = newValue; return s } }
+    }
+    public static var repeatMessageMenu: Bool {
+        get { return state.with { $0.repeatMessageMenu } }
+        set { let _ = state.modify { var s = $0; s.repeatMessageMenu = newValue; return s } }
     }
     public static var sendBannedGifsAsVideo: Bool {
         get { return state.with { $0.sendBannedGifsAsVideo } }
