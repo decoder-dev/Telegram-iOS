@@ -567,12 +567,23 @@ func urlPreviewStateForInputText(_ inputText: NSAttributedString?, context: Acco
         let detectedUrls = detectUrls(inputText)
         if detectedUrls != (currentQuery?.detectedUrls ?? []) {
             if !detectedUrls.isEmpty {
-                return (UrlPreviewState(detectedUrls: detectedUrls), webpagePreview(account: context.account, urls: detectedUrls, forPeerId: forPeerId)
+                // Regram "fix link previews": ask an embed-friendly mirror for the preview, and report it under
+                // the URL the user typed so the composer's own bookkeeping (and the sent text) stays unchanged.
+                // Secret chats keep their on-device preview path.
+                var requestUrls = detectedUrls
+                if context.sharedContext.immediateForkExtrasSettings.fixLinkPreviews && forPeerId?.namespace != Namespaces.Peer.SecretChat {
+                    requestUrls = detectedUrls.map(ForkLinkPreviewMirrors.previewUrl)
+                }
+                let originalUrlForRequestUrl: [String: String] = Dictionary(zip(requestUrls, detectedUrls), uniquingKeysWith: { first, _ in first })
+                return (UrlPreviewState(detectedUrls: detectedUrls), webpagePreview(account: context.account, urls: requestUrls, forPeerId: forPeerId)
                 |> mapToSignal { result -> Signal<(TelegramMediaWebpage, String)?, NoError> in
                     guard case let .result(webpageResult) = result else {
                         return .complete()
                     }
                     if let webpageResult {
+                        if requestUrls != detectedUrls, let originalUrl = originalUrlForRequestUrl[webpageResult.sourceUrl] {
+                            return .single((webpageResult.webpage, originalUrl))
+                        }
                         return .single((webpageResult.webpage, webpageResult.sourceUrl))
                     } else {
                         return .single(nil)

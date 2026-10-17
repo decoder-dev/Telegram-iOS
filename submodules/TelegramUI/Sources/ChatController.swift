@@ -4782,6 +4782,21 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                     return
                 }
                 
+                // Regram: a long press on a user's avatar inserts a full-name mention instead of the menu.
+                if case .user = peer, strongSelf.context.sharedContext.immediateForkExtrasSettings.avatarLongPressMention, canSendMessagesToChat(strongSelf.presentationInterfaceState) {
+                    gesture?.cancel()
+                    let _ = strongSelf.presentVoiceMessageDiscardAlert(action: {
+                        strongSelf.interfaceInteraction?.updateTextInputStateAndMode { current, inputMode in
+                            var inputMode = inputMode
+                            if inputMode == .none {
+                                inputMode = .text
+                            }
+                            return (chatTextInputAddFullNameMentionAttribute(current, peer: peer), inputMode)
+                        }
+                    }, delay: true)
+                    return
+                }
+                
                 var isChannel = false
                 if case let .channel(peer) = peer, case .broadcast = peer.info {
                     isChannel = true

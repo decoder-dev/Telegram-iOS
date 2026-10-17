@@ -258,6 +258,28 @@ public func chatTextInputAddMentionAttribute(_ state: ChatTextInputState, peer: 
     }
 }
 
+/// Regram "mention by long-pressing an avatar": a user is mentioned under their full name (first and last), as a
+/// text mention, even when they have a username. Anyone else falls back to the regular mention.
+public func chatTextInputAddFullNameMentionAttribute(_ state: ChatTextInputState, peer: EnginePeer) -> ChatTextInputState {
+    guard case let .user(user) = peer else {
+        return chatTextInputAddMentionAttribute(state, peer: peer)
+    }
+    let fullName = [user.firstName, user.lastName].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " ")
+    let title = fullName.isEmpty ? peer.compactDisplayTitle : fullName
+    if title.isEmpty {
+        return chatTextInputAddMentionAttribute(state, peer: peer)
+    }
+    let mentionSuffix = ArenaSettings.shared.mentionSuffix(isBot: user.botInfo != nil)
+    let inputText = NSMutableAttributedString(attributedString: state.inputText)
+    let range = NSMakeRange(state.selectionRange.startIndex, state.selectionRange.endIndex - state.selectionRange.startIndex)
+    let replacementText = NSMutableAttributedString()
+    replacementText.append(NSAttributedString(string: title, attributes: [ChatTextInputAttributes.textMention: ChatTextInputTextMentionAttribute(peerId: peer.id)]))
+    replacementText.append(NSAttributedString(string: mentionSuffix))
+    inputText.replaceCharacters(in: range, with: replacementText)
+    let selectionPosition = range.lowerBound + replacementText.length
+    return ChatTextInputState(inputText: inputText, selectionRange: selectionPosition ..< selectionPosition)
+}
+
 public func chatTextInputAddQuoteAttribute(_ state: ChatTextInputState, selectionRange: Range<Int>, kind: ChatTextInputTextQuoteAttribute.Kind) -> ChatTextInputState {
     if selectionRange.isEmpty {
         return state

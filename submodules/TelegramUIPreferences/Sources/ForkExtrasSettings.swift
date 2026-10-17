@@ -219,6 +219,21 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var showOriginalForwardDate: Bool
     public var sendBannedGifsAsVideo: Bool
     public var showSensitiveContent: Bool
+    /// Regram "input, links, media" block (all default off).
+    /// Formatting applied to the plain parts of an outgoing text message: 0 off, 1 bold, 2 italic,
+    /// 3 underline, 4 strikethrough, 5 spoiler. Manual formatting, code, quotes and custom emoji keep theirs.
+    public var defaultSendFormatting: Int32
+    /// A long press on a sender's avatar in a chat inserts a mention of them under their full name.
+    public var avatarLongPressMention: Bool
+    /// Link previews for X/Twitter, Instagram, TikTok, Reddit, Bluesky and Pixiv are requested from embed-friendly
+    /// mirrors; the link in the message stays as typed.
+    public var fixLinkPreviews: Bool
+    /// "Save to Photos" in a sticker message's menu (static: PNG, animated/video: GIF).
+    public var saveStickerToPhotos: Bool
+    /// "Media Info" in a photo/video/file message's menu, read from what is already on the device.
+    public var showMediaInfo: Bool
+    /// The quality a gallery video starts in when the player offers several: 0 auto, 1 highest, 2 lowest.
+    public var defaultVideoQuality: Int32
 
     public static var defaultSettings: ForkExtrasSettings {
         return ForkExtrasSettings(
@@ -410,6 +425,12 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.showOriginalForwardDate = false
         self.sendBannedGifsAsVideo = false
         self.showSensitiveContent = false
+        self.defaultSendFormatting = 0
+        self.avatarLongPressMention = false
+        self.fixLinkPreviews = false
+        self.saveStickerToPhotos = false
+        self.showMediaInfo = false
+        self.defaultVideoQuality = 0
         self.ghostDontReadMessages = ghostDontReadMessages
         self.ghostDontReadStories = ghostDontReadStories
         self.ghostDontSendOnline = ghostDontSendOnline
@@ -547,6 +568,14 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.showOriginalForwardDate = try container.decodeIfPresent(Bool.self, forKey: "showOriginalForwardDate") ?? false
         self.sendBannedGifsAsVideo = try container.decodeIfPresent(Bool.self, forKey: "sendBannedGifsAsVideo") ?? false
         self.showSensitiveContent = try container.decodeIfPresent(Bool.self, forKey: "showSensitiveContent") ?? false
+        let decodedSendFormatting = try container.decodeIfPresent(Int32.self, forKey: "defaultSendFormatting") ?? 0
+        self.defaultSendFormatting = (0 ... 5).contains(decodedSendFormatting) ? decodedSendFormatting : 0
+        self.avatarLongPressMention = try container.decodeIfPresent(Bool.self, forKey: "avatarLongPressMention") ?? false
+        self.fixLinkPreviews = try container.decodeIfPresent(Bool.self, forKey: "fixLinkPreviews") ?? false
+        self.saveStickerToPhotos = try container.decodeIfPresent(Bool.self, forKey: "saveStickerToPhotos") ?? false
+        self.showMediaInfo = try container.decodeIfPresent(Bool.self, forKey: "showMediaInfo") ?? false
+        let decodedVideoQuality = try container.decodeIfPresent(Int32.self, forKey: "defaultVideoQuality") ?? 0
+        self.defaultVideoQuality = (0 ... 2).contains(decodedVideoQuality) ? decodedVideoQuality : 0
         self.avatarGlowEnabled = try container.decodeIfPresent(Bool.self, forKey: "avatarGlowEnabled") ?? true
         self.snowEnabled = try container.decodeIfPresent(Bool.self, forKey: "snowEnabled") ?? false
         self.showChannelForwardCount = try container.decodeIfPresent(Bool.self, forKey: "showChannelForwardCount") ?? false
@@ -694,6 +723,12 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.showOriginalForwardDate, forKey: "showOriginalForwardDate")
         try container.encode(self.sendBannedGifsAsVideo, forKey: "sendBannedGifsAsVideo")
         try container.encode(self.showSensitiveContent, forKey: "showSensitiveContent")
+        try container.encode(self.defaultSendFormatting, forKey: "defaultSendFormatting")
+        try container.encode(self.avatarLongPressMention, forKey: "avatarLongPressMention")
+        try container.encode(self.fixLinkPreviews, forKey: "fixLinkPreviews")
+        try container.encode(self.saveStickerToPhotos, forKey: "saveStickerToPhotos")
+        try container.encode(self.showMediaInfo, forKey: "showMediaInfo")
+        try container.encode(self.defaultVideoQuality, forKey: "defaultVideoQuality")
         try container.encode(self.avatarGlowEnabled, forKey: "avatarGlowEnabled")
         try container.encode(self.snowEnabled, forKey: "snowEnabled")
         try container.encode(self.showChannelForwardCount, forKey: "showChannelForwardCount")
