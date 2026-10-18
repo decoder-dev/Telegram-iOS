@@ -305,7 +305,10 @@ precondition(boundary?.width == 65535)
         error = read('submodules/BananaLinkDownloader/Sources/BananaLinkDownloadError.swift')
         self.assertIn('private static let maxPageBytes: Int64 = 16 * 1024 * 1024', fetcher)
         self.assertIn('maxBytes: Self.maxPageBytes', fetcher)
-        self.assertNotIn('session.dataTask(with:', fetcher)
+        head = instance_method(fetcher, 'func finalURL(')
+        self.assertIn('headRequest.httpMethod = \"HEAD\"', head)
+        self.assertIn('session.dataTask(with: headRequest', head)
+        self.assertNotIn('session.dataTask(with:', fetcher.replace(head, ''))
         self.assertIn('public static let maxBatchSize: Int64 = 500 * 1024 * 1024', job)
         self.assertIn('bananaWouldExceedByteLimit(total: aggregate, adding: received, limit: BananaLinkDownloadJob.maxBatchSize)', job)
         self.assertIn('case batchTooLarge', error)
@@ -356,7 +359,7 @@ enum BananaTikTokItem: Equatable {
 }
 enum BananaTikTokExtractor {
     static let rehydrationMarker = "<script id=\\\"__UNIVERSAL_DATA_FOR_REHYDRATION__\\\""
-''' + static_method(parser, 'parsePage') + '''
+''' + '    private static let deniedMarker = \"Please contact your administrator with the error code\"\n' + '\n'.join(static_method(parser, name) for name in ['parsePage', 'fileLinks', 'cdnFirst', 'pageTitle']) + '''
 }
 func page(status: Int, item: [String: Any]?) -> String {
     var detail: [String: Any] = ["statusCode": status]

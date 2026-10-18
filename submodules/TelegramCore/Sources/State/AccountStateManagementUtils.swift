@@ -1533,7 +1533,22 @@ private func finalStateWithUpdatesAndServerTime(accountPeerId: PeerId, postbox: 
                     return previous.withUpdatedIsBlocked((updatePeerBlockedData.flags & (1 << 0)) != 0).withUpdatedFlags(userFlags)
                 })
             case let .updateUserStatus(updateUserStatusData):
-                updatedState.mergePeerPresences([PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(updateUserStatusData.userId)): updateUserStatusData.status], explicit: true)
+                let userPeerId = PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(updateUserStatusData.userId))
+                // Donutgram: the server reports it whenever it shows this account online,
+                // whatever the action was, including another session's.
+                if userPeerId == accountPeerId {
+                    switch updateUserStatusData.status {
+                    case let .userStatusOnline(statusData):
+                        BananaPresenceSettings.shared.reportServerStatus(accountPeerId: accountPeerId.toInt64(), onlineExpires: statusData.expires)
+                        BananaPresenceSettings.shared.requestGhostOffline(accountPeerId: accountPeerId.toInt64(), serverOnlineExpires: statusData.expires)
+                    case let .userStatusOffline(statusData):
+                        BananaPresenceSettings.shared.reportServerStatus(accountPeerId: accountPeerId.toInt64(), wasOnline: statusData.wasOnline)
+                        BananaPresenceSettings.shared.reportGhostServerOffline(accountPeerId: accountPeerId.toInt64(), wasOnline: statusData.wasOnline)
+                    default:
+                        break
+                    }
+                }
+                updatedState.mergePeerPresences([userPeerId: updateUserStatusData.status], explicit: true)
             case let .updateUserName(updateUserNameData):
                 let (userId, usernames) = (updateUserNameData.userId, updateUserNameData.usernames)
                 //TODO add contact checking for apply first and last name
@@ -3484,6 +3499,10 @@ func resetChannels(accountPeerId: PeerId, postbox: Postbox, network: Network, pe
 }
 
 private func pollChannel(accountPeerId: PeerId, postbox: Postbox, network: Network, peer: Peer, state: AccountMutableState) -> Signal<(AccountMutableState, Bool, Int32?), NoError> {
+    // A retained dialog is a local history archive, including for public supergroups.
+    if bananaPeerIsBanned(peer) {
+        return .single((state, false, nil))
+    }
     if let inputChannel = apiInputChannel(peer) {
         let limit: Int32
         #if DEBUG

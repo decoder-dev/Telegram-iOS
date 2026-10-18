@@ -149,6 +149,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var disableStoryCameraSwipe: Bool
     /// Donutgram: "Jump to start" in the menu of a chat's (or forum topic's) avatar. On by default.
     public var jumpToStartInChatMenu: Bool
+    public var disableGiftStarsRedirect: Bool
+    public var visualLabels: [Int64: Int32]
     public var hideStickerReplyEmoji: Bool
     public var hideStickerReplyBackground: Bool
     public var hidePremiumReplyEmoji: Bool
@@ -538,6 +540,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.localGroupAlias = false
         self.disableStoryCameraSwipe = false
         self.jumpToStartInChatMenu = true
+        self.disableGiftStarsRedirect = false
+        self.visualLabels = [:]
         self.hideStickerReplyEmoji = false
         self.hideStickerReplyBackground = false
         self.hidePremiumReplyEmoji = false
@@ -707,6 +711,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.localGroupAlias = try container.decodeIfPresent(Bool.self, forKey: "localGroupAlias") ?? false
         self.disableStoryCameraSwipe = try container.decodeIfPresent(Bool.self, forKey: "disableStoryCameraSwipe") ?? false
         self.jumpToStartInChatMenu = try container.decodeIfPresent(Bool.self, forKey: "jumpToStartInChatMenu") ?? true
+        self.disableGiftStarsRedirect = try container.decodeIfPresent(Bool.self, forKey: "disableGiftStarsRedirect") ?? false
+        self.visualLabels = (try container.decodeIfPresent([Int64: Int32].self, forKey: "visualLabels") ?? [:]).filter { (1...4).contains($0.value) }
         self.hideStickerReplyEmoji = try container.decodeIfPresent(Bool.self, forKey: "hideStickerReplyEmoji") ?? false
         self.hideStickerReplyBackground = try container.decodeIfPresent(Bool.self, forKey: "hideStickerReplyBackground") ?? false
         self.hidePremiumReplyEmoji = try container.decodeIfPresent(Bool.self, forKey: "hidePremiumReplyEmoji") ?? false
@@ -879,6 +885,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.localGroupAlias, forKey: "localGroupAlias")
         try container.encode(self.disableStoryCameraSwipe, forKey: "disableStoryCameraSwipe")
         try container.encode(self.jumpToStartInChatMenu, forKey: "jumpToStartInChatMenu")
+        try container.encode(self.disableGiftStarsRedirect, forKey: "disableGiftStarsRedirect")
+        try container.encode(self.visualLabels, forKey: "visualLabels")
         try container.encode(self.hideStickerReplyEmoji, forKey: "hideStickerReplyEmoji")
         try container.encode(self.hideStickerReplyBackground, forKey: "hideStickerReplyBackground")
         try container.encode(self.hidePremiumReplyEmoji, forKey: "hidePremiumReplyEmoji")

@@ -38,7 +38,7 @@ class DonutProfileFeatures(unittest.TestCase):
                               (1733, 'hidePremiumStatuses'), (1734, 'hideVerification'), (1735, 'hideGiftButton'),
                               (1736, 'visualPhoneEnabled')]:
             self.assertRegex(c, r'\.appearanceToggle\(%d, .*settings\.%s, \\\.%s\)' % (row_id, field, field))
-        self.assertIn('[1739, 1731, 1732, 1730, 1733, 1734]', c)
+        self.assertIn('[1739, 1731, 1732, 1730, 1733, 1734, 1980, 1981]', c)
         self.assertIn('[1740, 1736, 1737, 1738]', c)
         self.assertIn('[1508, 1509, 1735, 54,', c)
         self.assertIn('case .visualPhoneNumber: return 1737', c)

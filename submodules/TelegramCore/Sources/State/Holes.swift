@@ -434,6 +434,20 @@ func fetchMessageHistoryHole(accountPeerId: PeerId, source: FetchMessageHistoryH
     |> take(1)
     |> mapToSignal { _ -> Signal<FetchMessageHistoryHoleResult?, NoError> in
         return postbox.transaction { transaction -> (Peer?, Int64, Peer?) in
+            let archivedPeerId: PeerId
+            let archivedThreadId: Int64?
+            switch peerInput {
+            case let .direct(peerId, threadId):
+                archivedPeerId = peerId
+                archivedThreadId = threadId
+            case let .threadFromChannel(messageId):
+                archivedPeerId = messageId.peerId
+                archivedThreadId = Int64(messageId.id)
+            }
+            if bananaIsPreservedBannedChat(transaction: transaction, peerId: archivedPeerId) {
+                transaction.removeHole(peerId: archivedPeerId, threadId: archivedThreadId, namespace: namespace, space: space, range: 1 ... (Int32.max - 1))
+                return (nil, 0, nil)
+            }
             switch peerInput {
             case let .direct(peerId, _):
                 let peer = transaction.getPeer(peerId)
@@ -1267,7 +1281,7 @@ func fetchChatListHole(postbox: Postbox, network: Network, accountPeerId: PeerId
             }
             
             if let replacePinnedItemIds = fetchedChats.pinnedItemIds {
-                transaction.setPinnedItemIds(groupId: groupId, itemIds: replacePinnedItemIds.map(PinnedItemId.peer))
+                transaction.setPinnedItemIds(groupId: groupId, itemIds: bananaKeepingPinnedBannedChats(transaction: transaction, currentItemIds: transaction.getPinnedItemIds(groupId: groupId), itemIds: replacePinnedItemIds.map(PinnedItemId.peer)))
             }
             
             for (peerId, summary) in fetchedChats.mentionTagSummaries {

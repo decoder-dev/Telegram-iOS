@@ -225,7 +225,14 @@ private func synchronizePinnedChats(transaction: Transaction, postbox: Postbox, 
             return postbox.transaction { transaction -> Signal<Void, NoError> in
                 updatePeers(transaction: transaction, accountPeerId: accountPeerId, peers: parsedPeers)
                 
-                transaction.setPinnedItemIds(groupId: groupId, itemIds: resultingItemIds)
+                // Donutgram: a pinned chat kept after a ban stays pinned here, out of the order the server gets.
+                let serverItemIds = resultingItemIds.filter { item in
+                    switch item {
+                        case let .peer(peerId):
+                            return !bananaIsPreservedBannedChat(transaction: transaction, peerId: peerId)
+                    }
+                }
+                transaction.setPinnedItemIds(groupId: groupId, itemIds: bananaKeepingPinnedBannedChats(transaction: transaction, currentItemIds: localItemIds, itemIds: serverItemIds))
                 
                 transaction.updateCurrentPeerNotificationSettings(notificationSettings)
                 
@@ -264,11 +271,11 @@ private func synchronizePinnedChats(transaction: Transaction, postbox: Postbox, 
                     }
                 }
                 
-                if remoteItemIds == resultingItemIds {
+                if remoteItemIds == serverItemIds {
                     return .complete()
                 } else {
                     var inputDialogPeers: [Api.InputDialogPeer] = []
-                    for itemId in resultingItemIds {
+                    for itemId in serverItemIds {
                         switch itemId {
                             case let .peer(peerId):
                                 if let peer = transaction.getPeer(peerId), let inputDialogPeer = apiInputDialogPeer(peer) {

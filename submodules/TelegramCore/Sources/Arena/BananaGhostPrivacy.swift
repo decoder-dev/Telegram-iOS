@@ -21,9 +21,7 @@ public enum ForkTelegramStatisticsSettings {
 }
 
 func bananaRequestGhostOfflineAfterAction(network: Network) {
-    guard ForkGhostModeSettings.goOfflineAutomatically, !ForkGhostModeSettings.interactOverrideActive else { return }
-    let _ = (network.request(Api.functions.account.updateStatus(offline: .boolTrue))
-    |> `catch` { _ -> Signal<Api.Bool, NoError> in .single(.boolFalse) }).startStandalone()
+    BananaPresenceSettings.shared.requestGhostOffline(network: network)
 }
 
 func bananaGhostDropsScreenshotNotifications(_ messages: [(Bool, EnqueueMessage)]) -> Bool {

@@ -16,6 +16,9 @@ func shouldExcludePeerFromChatList(transaction: Transaction, peerId: PeerId, pee
     guard let peer = peer ?? transaction.getPeer(peerId) else {
         return false
     }
+    if bananaIsPreservedBannedChat(transaction: transaction, peerId: peerId, peer: peer) {
+        return false
+    }
 
     if let group = peer as? TelegramGroup {
         if group.flags.contains(.deactivated) {
@@ -25,8 +28,7 @@ func shouldExcludePeerFromChatList(transaction: Transaction, peerId: PeerId, pee
         case .Member:
             return false
         case .Removed:
-            // AyuGram: keep banned/kicked groups in the chat list.
-            return !ForkKeepBannedChatsSettings.enabled
+            return true
         default:
             return true
         }
@@ -39,8 +41,7 @@ func shouldExcludePeerFromChatList(transaction: Transaction, peerId: PeerId, pee
             if channel.creationDate == 0 {
                 return true
             }
-            // AyuGram: keep banned/kicked channels/supergroups in the chat list.
-            return !ForkKeepBannedChatsSettings.enabled
+            return true
         default:
             return true
         }
@@ -334,6 +335,11 @@ public func updatePeersCustom(transaction: Transaction, peers: [Peer], update: (
         if let updatedCommunity = updated as? TelegramCommunity {
             updated = mergeCommunity(lhs: previous as? TelegramCommunity, rhs: updatedCommunity)
         }
+
+        bananaUpdateBannedChat(transaction: transaction, previous: previous, updated: updated)
+        if bananaIsPreservedBannedChat(transaction: transaction, peerId: peerId, peer: updated) {
+            return update(previous, bananaPreservedBannedPeer(previous: previous, updated: updated))
+        }
         
         switch peerId.namespace {
             case Namespaces.Peer.CloudUser:
@@ -378,7 +384,7 @@ public func updatePeersCustom(transaction: Transaction, peers: [Peer], update: (
                         switch group.membership {
                             case .Member:
                                 updatePeerChatInclusionWithMinTimestamp(transaction: transaction, id: peerId, minTimestamp: group.creationDate, forceRootGroupIfNotExists: false, peer: group)
-                            case .Removed where ForkKeepBannedChatsSettings.enabled:
+                            case .Removed where bananaIsPreservedBannedChat(transaction: transaction, peerId: peerId, peer: group):
                                 updatePeerChatInclusionWithMinTimestamp(transaction: transaction, id: peerId, minTimestamp: group.creationDate, forceRootGroupIfNotExists: false, peer: group)
                             default:
                                 transaction.updatePeerChatListInclusion(peerId, inclusion: .notIncluded)
@@ -398,7 +404,7 @@ public func updatePeersCustom(transaction: Transaction, peers: [Peer], update: (
                         case .kicked where channel.creationDate == 0:
                             // Pass-through / unknown channels stay out of the chat list.
                             transaction.updatePeerChatListInclusion(peerId, inclusion: .notIncluded)
-                        case .kicked where ForkKeepBannedChatsSettings.enabled:
+                        case .kicked where bananaIsPreservedBannedChat(transaction: transaction, peerId: peerId, peer: channel):
                             // AyuGram: keep real kicked chats; do not force-create root entries.
                             updatePeerChatInclusionWithMinTimestamp(transaction: transaction, id: peerId, minTimestamp: channel.creationDate, forceRootGroupIfNotExists: false, peer: channel)
                         default:

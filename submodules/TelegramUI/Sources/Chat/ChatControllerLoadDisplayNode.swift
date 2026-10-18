@@ -597,6 +597,9 @@ extension ChatControllerImpl {
             self.navigationItem.badge = initialNavigationBadge
         }
         
+        if contentData.state.performDismissAction == nil {
+            self.didHandlePerformDismissAction = false
+        }
         if let performDismissAction = contentData.state.performDismissAction, !self.didHandlePerformDismissAction {
             self.didHandlePerformDismissAction = true
             
@@ -616,12 +619,28 @@ extension ChatControllerImpl {
                 }
             case .dismiss:
                 self.dismiss()
+            case .bannedChat:
+                // Not handled until it is shown: before the chat is on screen it has no window, so viewDidAppear shows it.
+                self.didHandlePerformDismissAction = false
+                self.presentBannedChatAlertIfNeeded()
             }
         }
         
         self.updatePreloadNextChatPeerId()
     }
     
+    /// Donutgram: says that the account was banned from a chat it keeps, once that chat is on screen.
+    func presentBannedChatAlertIfNeeded() {
+        guard self.didAppear, case .standard(.default) = self.mode, !self.didHandlePerformDismissAction, case .bannedChat? = self.contentData?.state.performDismissAction else {
+            return
+        }
+        self.didHandlePerformDismissAction = true
+        let text = (self.presentationData.strings.primaryComponent.languageCode.hasPrefix("ru") ? "Вы были заблокированы в этом чате. Доступна только сохранённая история." : "You were banned from this chat. Only saved history is available.")
+        self.present(textAlertController(context: self.context, title: nil, text: text, actions: [
+            TextAlertAction(type: .defaultAction, title: self.presentationData.strings.Common_OK, action: {})
+        ]), in: .window(.root))
+    }
+
     func updatePreloadNextChatPeerId() {
         if !self.checkedPeerChatServiceActions {
             return

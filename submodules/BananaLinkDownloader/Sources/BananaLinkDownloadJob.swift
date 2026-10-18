@@ -55,6 +55,7 @@ public final class BananaLinkDownloadJob {
         var remaining: Int
         var nextIndex = 0
         var active = 0
+        var failed = false
 
         init(expected: [Int64?]) {
             self.received = Array(repeating: 0, count: expected.count)
@@ -131,39 +132,66 @@ public final class BananaLinkDownloadJob {
         }
     }
 
+    /// TikTok's own page first, TikWM after it: `BananaTikTokExtractor.run` decides when and names both errors.
     private func runTikTok(_ url: URL) {
-        BananaTikTokExtractor.resolve(url, fetcher: self.fetcher, completion: { result in
+        BananaTikTokExtractor.run(url, fetcher: self.fetcher, willUseFallback: {
+            self.queue.async {
+                self.report(.resolving)
+            }
+        }, download: { item, failure in
             self.queue.async {
                 guard !self.isFinished else {
                     return
                 }
-                switch result {
-                case let .failure(error):
-                    self.finish(.failure(error))
-                case let .success(.video(file, _)):
-                    self.kind = .video
-                    let destination = self.workDirectory.appendingPathComponent("tiktok.mp4")
-                    self.download([(BananaTikTokExtractor.mediaRequest(file.url), destination, file.expectedSize)], completion: { urls in
-                        self.completeVideo(fileURL: urls[0])
-                    })
-                case let .success(.photos(files)):
-                    self.kind = .photos
-                    var selected = files
-                    // TikTok carousels hold at most a few dozen photos; a response with more is not trusted to
-                    // start hundreds of downloads.
-                    let photoLimit = min(self.maxPhotos ?? BananaLinkDownloadJob.maxCarouselPhotos, BananaLinkDownloadJob.maxCarouselPhotos)
-                    if selected.count > photoLimit {
-                        selected = Array(selected.prefix(photoLimit))
-                    }
-                    let items = selected.enumerated().map { index, file in
-                        return (BananaTikTokExtractor.mediaRequest(file.url), self.workDirectory.appendingPathComponent("source-\(index)"), file.expectedSize)
-                    }
-                    self.download(items, completion: { urls in
-                        self.completePhotos(urls)
-                    })
-                }
+                self.downloadTikTok(item, failure: failure)
+            }
+        }, failure: { error in
+            self.queue.async {
+                self.finish(.failure(error))
             }
         })
+    }
+
+    /// `failure` hands the error back to the extractor, which may try TikWM next.
+    private func downloadTikTok(_ item: BananaTikTokItem, failure: @escaping (BananaLinkDownloadError) -> Void) {
+        // Each attempt has its own folder: old photo tasks may still be finishing when another source is tried.
+        let directory = self.workDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        do {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        } catch {
+            self.finish(.failure(.processingFailed))
+            return
+        }
+        let failed: (BananaLinkDownloadError) -> Void = { error in
+            // cancel() is synchronous: a job that is being cancelled asks no other source.
+            if self.isCancelRequested {
+                self.finish(.failure(.cancelled))
+            } else {
+                // A failed attempt's files are never sent, and a success keeps the work folder, so they go now: a page
+                // saved as the video, the photos made so far. A task still running cannot move its file in any more.
+                try? FileManager.default.removeItem(at: directory)
+                failure(error)
+            }
+        }
+        switch item {
+        case let .video(file, _):
+            self.kind = .video
+            let destination = directory.appendingPathComponent("tiktok.mp4")
+            self.download([(BananaTikTokExtractor.mediaRequest(file.url), destination, file.expectedSize)], alternatives: [file.alternateURLs.map(BananaTikTokExtractor.mediaRequest)], failure: failed, completion: { urls in
+                self.completeVideo(fileURL: urls[0], failure: failed)
+            })
+        case let .photos(files):
+            self.kind = .photos
+            var selected = files
+            let limit = min(self.maxPhotos ?? Self.maxCarouselPhotos, Self.maxCarouselPhotos)
+            if selected.count > limit { selected = Array(selected.prefix(limit)) }
+            let items = selected.enumerated().map { index, file in
+                return (BananaTikTokExtractor.mediaRequest(file.url), directory.appendingPathComponent("source-\(index)"), file.expectedSize)
+            }
+            self.download(items, failure: failed, completion: { urls in
+                self.completePhotos(urls, failure: failed)
+            })
+        }
     }
 
     private func runYouTube(_ videoId: String) {
@@ -214,20 +242,21 @@ public final class BananaLinkDownloadJob {
     }
 
     /// Up to three parallel downloads; `completion` gets the files in the order of `items`.
-    private func download(_ items: [(URLRequest, URL, Int64?)], completion: @escaping ([URL]) -> Void) {
+    private func download(_ items: [(URLRequest, URL, Int64?)], alternatives: [[URLRequest]] = [], failure: ((BananaLinkDownloadError) -> Void)? = nil, completion: @escaping ([URL]) -> Void) {
         let batch = Batch(expected: items.map { $0.2 })
         self.reportBatch(batch)
-        self.startNext(items, batch: batch, completion: completion)
+        self.startNext(items, alternatives: alternatives, batch: batch, failure: failure, completion: completion)
     }
 
-    private func startNext(_ items: [(URLRequest, URL, Int64?)], batch: Batch, completion: @escaping ([URL]) -> Void) {
+    private func startNext(_ items: [(URLRequest, URL, Int64?)], alternatives: [[URLRequest]], batch: Batch, failure: ((BananaLinkDownloadError) -> Void)?, completion: @escaping ([URL]) -> Void) {
         while batch.active < 3 && batch.nextIndex < items.count {
             let index = batch.nextIndex
             batch.nextIndex += 1
             batch.active += 1
             let (request, destination, _) = items[index]
-            self.fetcher.download(request, to: destination, maxBytes: BananaLinkDownloadJob.maxFileSize, progress: { written, total in
+            self.fetcher.download(request, alternatives: index < alternatives.count ? alternatives[index] : [], to: destination, maxBytes: BananaLinkDownloadJob.maxFileSize, progress: { written, total in
                 self.queue.async {
+                    guard !batch.failed, !self.isFinished else { return }
                     batch.received[index] = written
                     var aggregate: Int64 = 0
                     for received in batch.received {
@@ -244,13 +273,18 @@ public final class BananaLinkDownloadJob {
                 }
             }, completion: { result in
                 self.queue.async {
-                    guard !self.isFinished else {
+                    guard !self.isFinished, !batch.failed else {
                         return
                     }
                     batch.active -= 1
                     switch result {
                     case let .failure(error):
-                        self.finish(.failure(error))
+                        batch.failed = true
+                        if let failure {
+                            failure(error)
+                        } else {
+                            self.finish(.failure(error))
+                        }
                     case let .success(url):
                         batch.received[index] = BananaLinkDownloadJob.fileSize(url)
                         var aggregate: Int64 = 0
@@ -266,7 +300,7 @@ public final class BananaLinkDownloadJob {
                         if batch.remaining == 0 {
                             completion(batch.results.compactMap { $0 })
                         } else {
-                            self.startNext(items, batch: batch, completion: completion)
+                            self.startNext(items, alternatives: alternatives, batch: batch, failure: failure, completion: completion)
                         }
                     }
                 }
@@ -280,11 +314,11 @@ public final class BananaLinkDownloadJob {
         self.report(.downloading(received: received, total: total))
     }
 
-    private func completeVideo(fileURL: URL) {
+    private func completeVideo(fileURL: URL, failure: ((BananaLinkDownloadError) -> Void)? = nil) {
         self.report(.processing)
         // No video track means the server sent something else (e.g. an HTML page): send the link instead.
         guard let info = BananaMediaProcessor.videoInfo(fileURL) else {
-            self.finish(.failure(.processingFailed))
+            if let failure { failure(.processingFailed) } else { self.finish(.failure(.processingFailed)) }
             return
         }
         guard BananaLinkDownloadJob.fileSize(fileURL) <= BananaLinkDownloadJob.maxFileSize else {
@@ -303,7 +337,7 @@ public final class BananaLinkDownloadJob {
         self.finish(.success(.video(video)))
     }
 
-    private func completePhotos(_ sources: [URL]) {
+    private func completePhotos(_ sources: [URL], failure: ((BananaLinkDownloadError) -> Void)? = nil) {
         self.report(.processing)
         var photos: [Photo] = []
         for (index, source) in sources.enumerated() {
@@ -311,9 +345,10 @@ public final class BananaLinkDownloadJob {
                 self.finish(.failure(.cancelled))
                 return
             }
-            let destination = self.workDirectory.appendingPathComponent("photo-\(index).jpg")
+            // Next to its source, in the attempt's folder, which a failed attempt removes.
+            let destination = source.deletingLastPathComponent().appendingPathComponent("photo-\(index).jpg")
             guard let size = BananaMediaProcessor.normalizePhoto(sourceURL: source, destinationURL: destination) else {
-                self.finish(.failure(.processingFailed))
+                if let failure { failure(.processingFailed) } else { self.finish(.failure(.processingFailed)) }
                 return
             }
             try? FileManager.default.removeItem(at: source)

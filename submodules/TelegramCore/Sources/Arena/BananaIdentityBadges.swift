@@ -27,3 +27,25 @@ public enum BananaIdentityBadges {
         return state.with { $0.hidesVerification }
     }
 }
+
+/// Display-only labels belong to each signed-in account, not to its server-side peer flags.
+public enum BananaVisualLabel: Int32, CaseIterable {
+    case none = 0, scam, fake, support, bot
+    public var badgeText: String {
+        switch self {
+        case .none: return ""
+        case .scam: return "SCAM"
+        case .fake: return "FAKE"
+        case .support: return "SUPPORT"
+        case .bot: return "BOT"
+        }
+    }
+}
+
+public enum BananaVisualLabels {
+    private static let labels = Atomic<[Int64: Int32]>(value: [:])
+    public static func update(_ values: [Int64: Int32]) { let _ = labels.swap(values) }
+    public static func label(accountId: Int64) -> BananaVisualLabel {
+        return labels.with { BananaVisualLabel(rawValue: $0[accountId] ?? 0) ?? .none }
+    }
+}

@@ -70,6 +70,12 @@ public struct ICloudFileDescription {
         public let hasAudioArtwork: Bool
     }
     
+    public struct VideoMetadata {
+        public let duration: Double
+        public let dimensions: PixelDimensions
+    }
+
+    public let videoMetadata: VideoMetadata?
     public let urlData: String
     public let fileName: String
     public let fileSize: Int
@@ -77,6 +83,21 @@ public struct ICloudFileDescription {
 }
 
 private let audioFileExtensions: Set<String> = ["mp3", "m4a", "aac", "flac", "wav", "ogg", "opus", "aiff", "aif"]
+
+private let videoFileExtensions: Set<String> = ["mp4", "m4v", "mov"]
+
+private func videoMetadata(for url: URL) -> ICloudFileDescription.VideoMetadata? {
+    guard videoFileExtensions.contains(url.pathExtension.lowercased()) else { return nil }
+    let asset = AVURLAsset(url: url, options: [AVURLAssetPreferPreciseDurationAndTimingKey: true])
+    guard let track = asset.tracks(withMediaType: .video).first else { return nil }
+    let size = track.naturalSize.applying(track.preferredTransform)
+    let width = abs(size.width), height = abs(size.height)
+    guard width.isFinite, height.isFinite, width >= 1, height >= 1,
+          width < CGFloat(Int32.max), height < CGFloat(Int32.max) else { return nil }
+    let seconds = CMTimeGetSeconds(asset.duration)
+    guard seconds.isFinite, seconds > 0 else { return nil }
+    return ICloudFileDescription.VideoMetadata(duration: seconds, dimensions: PixelDimensions(width: Int32(width), height: Int32(height)))
+}
 
 private func validatedAudioArtworkData(_ data: Data?) -> Data? {
     guard let data, UIImage(data: data) != nil else {
@@ -222,6 +243,7 @@ private func descriptionWithUrl(_ url: URL) -> ICloudFileDescription? {
             }
             
             return ICloudFileDescription(
+                videoMetadata: videoMetadata(for: url),
                 urlData: urlData.base64EncodedString(),
                 fileName: fileName,
                 fileSize: fileSize,
@@ -385,7 +407,14 @@ public func fetchICloudFileResource(resource: ICloudFileResource) -> Signal<Engi
                 if isAudioFile, let artworkData = audioArtworkData(from: AVURLAsset(url: url)), let originalImage = UIImage(data: artworkData), let image = generateScaledImage(image: originalImage, size: originalImage.size.fitted(CGSize(width: 256, height: 256.0))), let jpegData = image.jpegData(compressionQuality: 0.5) {
                     data = jpegData
                 } else if !isAudioFile {
-                    if let imageData = try? Data(contentsOf: url, options: .mappedIfSafe), let originalImage = UIImage(data: imageData), let image = generateScaledImage(image: originalImage, size: originalImage.size.fitted(CGSize(width: 256, height: 256.0))), let jpegData = image.jpegData(compressionQuality: 0.5) {
+                    if videoFileExtensions.contains(url.pathExtension.lowercased()) {
+                        let generator = AVAssetImageGenerator(asset: AVURLAsset(url: url))
+                        generator.appliesPreferredTrackTransform = true
+                        generator.maximumSize = CGSize(width: 320, height: 320)
+                        if let cgImage = try? generator.copyCGImage(at: .zero, actualTime: nil) {
+                            data = UIImage(cgImage: cgImage).jpegData(compressionQuality: 0.5)
+                        }
+                    } else if let imageData = try? Data(contentsOf: url, options: .mappedIfSafe), let originalImage = UIImage(data: imageData), let image = generateScaledImage(image: originalImage, size: originalImage.size.fitted(CGSize(width: 256, height: 256.0))), let jpegData = image.jpegData(compressionQuality: 0.5) {
                         data = jpegData
                     } else if let image = generatePdfPreviewImage(url: url, size: CGSize(width: 256, height: 256.0)), let jpegData = image.jpegData(compressionQuality: 0.5) {
                         data = jpegData

@@ -76,13 +76,68 @@ final class BananaMediaFetcher: NSObject, URLSessionDownloadDelegate {
         })
     }
 
-    func download(_ request: URLRequest, to destination: URL, maxBytes: Int64, progress: @escaping (Int64, Int64?) -> Void, completion: @escaping (Result<URL, BananaLinkDownloadError>) -> Void) {
+    /// Where a request ends up after redirects, whatever the final status: only the address is needed.
+    func finalURL(_ request: URLRequest, completion: @escaping (Result<URL, BananaLinkDownloadError>) -> Void) {
+        self.queue.async {
+            guard !self.isCancelled, let session = self.session else {
+                completion(.failure(.cancelled))
+                return
+            }
+            guard let url = request.url, BananaMediaURLPolicy.isAllowed(url) else {
+                completion(.failure(.processingFailed))
+                return
+            }
+            var headRequest = request
+            headRequest.httpMethod = "HEAD"
+            let task = session.dataTask(with: headRequest, completionHandler: { _, response, error in
+                if let error {
+                    completion(.failure(BananaLinkDownloadError(error)))
+                } else if let url = response?.url {
+                    completion(.success(url))
+                } else {
+                    completion(.failure(.httpStatus(0)))
+                }
+            })
+            self.tasks.append(task)
+            task.resume()
+        }
+    }
+
+    /// Cookies a page's script would set (TikTok's bot check). Queued like requests, so they apply to the next one.
+    func setCookies(_ cookies: [HTTPCookie]) {
+        self.queue.async {
+            for cookie in cookies {
+                self.session?.configuration.httpCookieStorage?.setCookie(cookie)
+            }
+        }
+    }
+
+    func deleteCookies(_ cookies: [HTTPCookie]) {
+        self.queue.async {
+            for cookie in cookies {
+                self.session?.configuration.httpCookieStorage?.deleteCookie(cookie)
+            }
+        }
+    }
+
+    func download(_ request: URLRequest, alternatives: [URLRequest] = [], to destination: URL, maxBytes: Int64, progress: @escaping (Int64, Int64?) -> Void, completion: @escaping (Result<URL, BananaLinkDownloadError>) -> Void) {
+        self.downloadSingle(request, to: destination, maxBytes: maxBytes, progress: progress, completion: { result in
+            if case let .failure(.httpStatus(code)) = result, [403, 404, 410].contains(code), let next = alternatives.first {
+                self.download(next, alternatives: Array(alternatives.dropFirst()), to: destination, maxBytes: maxBytes, progress: progress, completion: completion)
+            } else {
+                completion(result)
+            }
+        })
+    }
+
+    private func downloadSingle(_ request: URLRequest, to destination: URL, maxBytes: Int64, progress: @escaping (Int64, Int64?) -> Void, completion: @escaping (Result<URL, BananaLinkDownloadError>) -> Void) {
         self.startDownload(request, to: destination, maxBytes: maxBytes, progress: progress, completion: { result in
             completion(result.map { $0.fileURL })
         })
     }
 
     private func startDownload(_ request: URLRequest, to destination: URL, maxBytes: Int64, progress: @escaping (Int64, Int64?) -> Void, completion: @escaping (Result<DownloadResult, BananaLinkDownloadError>) -> Void) {
+
         self.queue.async {
             guard !self.isCancelled, let session = self.session else {
                 completion(.failure(.cancelled))

@@ -1265,13 +1265,34 @@ func peerInfoScreenData(
                     }
                     subscriber.putNext(data)
                 }
-                let disposable = (context.account.viewTracker.peerView(userPeerId, updateData: false)
-                |> map { view -> StatusInputData in
+                let ownPresenceUpdates = Signal<Void, NoError> { subscriber in
+                    let observers = [BananaPresenceSettings.lastOnlineDidChangeNotification, ForkGhostModeSettings.didChangeNotification].map { name in
+                        NotificationCenter.default.addObserver(forName: name, object: nil, queue: nil) { _ in subscriber.putNext(()) }
+                    }
+                    subscriber.putNext(())
+                    return ActionDisposable { for observer in observers { NotificationCenter.default.removeObserver(observer) } }
+                }
+                let disposable = (combineLatest(context.account.viewTracker.peerView(userPeerId, updateData: false), ownPresenceUpdates)
+                |> deliverOnMainQueue
+                |> map { view, _ -> StatusInputData in
                     guard let user = view.peers[userPeerId] as? TelegramUser else {
                         return .none
                     }
                     if user.id == context.account.peerId {
-                        return .none
+                        guard BananaPresenceSettings.shared.ghostHidesOnline else { return .none }
+                        // Self presence in Postbox is permanently online. Use what the server
+                        // last reported or acknowledged instead, from any client of the account.
+                        let now = Int32(context.account.network.globalTime)
+                        let serverOnlineUntil = BananaPresenceSettings.shared.serverOnlineUntil(accountId: context.account.id.int64)
+                        if let serverOnlineUntil, serverOnlineUntil > now {
+                            return .presence(TelegramUserPresence(status: .present(until: serverOnlineUntil), lastActivity: 0))
+                        }
+                        // An online the server reported and nothing ended lasted until it expired.
+                        let lastSeen = max(BananaPresenceSettings.shared.lastOnlineTimestamp(accountId: context.account.id.int64) ?? 0, serverOnlineUntil ?? 0)
+                        if lastSeen > 0 {
+                            return .presence(TelegramUserPresence(status: .present(until: min(lastSeen, now - 1)), lastActivity: 0))
+                        }
+                        return .presence(TelegramUserPresence(status: .recently(isHidden: false), lastActivity: 0))
                     }
                     if user.isDeleted {
                         return .none

@@ -631,6 +631,7 @@ private func sendUploadedMessageContent(
                     return .complete()
                 case let .result(result):
                     stateManager.addUpdates(result)
+                    bananaRequestGhostOfflineAfterAction(network: network)
                     return .complete()
                 }
             }

@@ -869,7 +869,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [1608, 80, 84],
             [83],
             [1609, 1515, 1516, 1544, 1545, 1559, 1612],
-            [1613, 1554, 1555, 1556, 1614],
+            [1613, 1554, 1555, 1556, 1614, 1982],
             [1750, 1751, 1752, 1753, 1754, 1755, 1756, 1757, 1758],
             [1860, 1861, 1862, 1863, 1864, 1865],
             [1912, 1913, 1914],
@@ -877,7 +877,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         ]),
         (.profile, [
             [55, 56, 1551, 1714, 1552, 1543, 58],
-            [1739, 1731, 1732, 1730, 1733, 1734],
+            [1739, 1731, 1732, 1730, 1733, 1734, 1980, 1981],
             [1740, 1736, 1737, 1738],
             [1603, 1500, 1501, 1541, 57],
             [1604, 140, 141]
@@ -1778,6 +1778,10 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
 }
 
 /// Donutgram's sticker shapes: stock, rounded (12 pt) and more rounded (22 pt).
+private func forkVisualLabelOptions(russian: Bool) -> [(String, Int32)] {
+    return [(russian ? "Без метки" : "None", 0), ("SCAM", 1), ("FAKE", 2), ("SUPPORT", 3), ("BOT", 4)]
+}
+
 private func forkStickerShapeOptions(russian: Bool) -> [(String, Int32)] {
     return [
         (russian ? "Обычная" : "Default", 0),
@@ -1854,7 +1858,7 @@ private func forkIntChoiceLabel(_ options: [(String, Int32)], _ value: Int32) ->
     return options.first(where: { $0.1 == value })?.0 ?? ""
 }
 
-private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetchPublicMtProxy: Bool, showCallsTab: Bool, mediaInputSettings: MediaInputSettings, focus: ForkExtrasControllerFocus) -> [ForkExtrasEntry] {
+private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetchPublicMtProxy: Bool, showCallsTab: Bool, mediaInputSettings: MediaInputSettings, focus: ForkExtrasControllerFocus, accountPeerId: Int64? = nil) -> [ForkExtrasEntry] {
     let category = focus.resolvedCategory
     if category == .top {
         return [
@@ -2053,6 +2057,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(1516, russian ? "Останавливать после кружка" : "Stop after a round video", settings.stopAfterRoundVideo, \.stopAfterRoundVideo),
             .designHeader(1613, russian ? "Ссылки TikTok и Shorts" : "TikTok and Shorts links"),
             .appearanceToggle(1554, russian ? "Скачивать TikTok" : "Download TikTok", settings.downloadTikTok, \.downloadTikTok),
+            .designFooter(1982, russian ? "Если TikTok откажет в загрузке, запрос пойдёт через tikwm.com. Сервис увидит ссылку на пост без параметров шаринга и ваш IP." : "If TikTok refuses the download, the request goes through tikwm.com. The service sees the post link without sharing parameters and your IP address."),
             .appearanceToggle(1555, russian ? "Скачивать YouTube Shorts" : "Download YouTube Shorts", settings.downloadYouTubeShorts, \.downloadYouTubeShorts),
             .appearanceToggle(1556, russian ? "Подпись «Скачано с…»" : "“Downloaded from…” caption", settings.signDownloadedMedia, \.signDownloadedMedia),
             .appearanceToggle(1559, russian ? "Подтверждать отправку голосовых и кружков" : "Confirm before sending voice and round video", settings.confirmVoiceSend, \.confirmVoiceSend),
@@ -2102,6 +2107,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .designHeader(1740, russian ? "Мой номер" : "My number"),
             .appearanceToggle(1736, russian ? "Показывать другой номер" : "Show a different number", settings.visualPhoneEnabled, \.visualPhoneEnabled),
             .visualPhoneNumber(settings.visualPhoneNumber),
+            .appearanceToggle(1980, russian ? "Не открывать звёзды после продажи подарка" : "Keep the current screen after selling a gift", settings.disableGiftStarsRedirect, \.disableGiftStarsRedirect),
+            .intChoice(1981, russian ? "Визуальная метка (только у вас)" : "Visual label (only visible to you)", forkIntChoiceLabel(forkVisualLabelOptions(russian: russian), settings.visualLabels[accountPeerId ?? 0] ?? 0)),
             .designFooter(1738, russian ? "Меняется только номер, показанный в вашем профиле на этом устройстве. Настоящий номер не меняется." : "Only the number shown in your own profile on this device changes. Your real number stays the same."),
             .designHeader(1603, russian ? "Эффекты" : "Effects"),
             .appearanceToggle(1500, ForkExtrasLocalizedString.string(forKey: "ForkExtras.AvatarGlow"), settings.avatarGlowEnabled, \.avatarGlowEnabled),
@@ -2856,6 +2863,20 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
         },
         openIntChoice: { id in
             let russian = ForkPresentationLanguage.prefersRussianStrings
+            if id == 1981 {
+                presentPicker(title: russian ? "Визуальная метка" : "Visual label", options: forkVisualLabelOptions(russian: russian).map { option in
+                    (option.0, {
+                        updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                            var updated = current
+                            let accountId = context.account.peerId.toInt64()
+                            if option.1 == 0 { updated.visualLabels.removeValue(forKey: accountId) }
+                            else { updated.visualLabels[accountId] = option.1 }
+                            return updated
+                        }.start())
+                    })
+                })
+                return
+            }
             let title: String
             let options: [(String, Int32)]
             let keyPath: WritableKeyPath<ForkExtrasSettings, Int32>
@@ -2919,7 +2940,7 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
     |> deliverOnMainQueue
     |> map { presentationData, settings, sharedData -> (ItemListControllerState, (ItemListNodeState, Any)) in
         let proxySettings = sharedData.entries[SharedDataKeys.proxySettings]?.get(ProxySettings.self) ?? .defaultSettings
-        let entries = forkExtrasControllerEntries(settings: settings, autoFetchPublicMtProxy: proxySettings.autoFetchPublicMtProxy, showCallsTab: (sharedData.entries[ApplicationSpecificSharedDataKeys.callListSettings]?.get(CallListSettings.self) ?? .defaultSettings).showTab, mediaInputSettings: sharedData.entries[ApplicationSpecificSharedDataKeys.mediaInputSettings]?.get(MediaInputSettings.self) ?? .defaultSettings, focus: focus)
+        let entries = forkExtrasControllerEntries(settings: settings, autoFetchPublicMtProxy: proxySettings.autoFetchPublicMtProxy, showCallsTab: (sharedData.entries[ApplicationSpecificSharedDataKeys.callListSettings]?.get(CallListSettings.self) ?? .defaultSettings).showTab, mediaInputSettings: sharedData.entries[ApplicationSpecificSharedDataKeys.mediaInputSettings]?.get(MediaInputSettings.self) ?? .defaultSettings, focus: focus, accountPeerId: context.account.peerId.toInt64())
         let focusedSection: ItemListSectionId?
         switch focus {
         case .messageSaving:

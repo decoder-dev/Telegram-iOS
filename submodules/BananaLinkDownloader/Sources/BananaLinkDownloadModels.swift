@@ -6,6 +6,15 @@ struct BananaRemoteFile: Equatable {
     let expectedSize: Int64?
     let width: Int
     let height: Int
+    let alternateURLs: [URL]
+
+    init(url: URL, expectedSize: Int64?, width: Int, height: Int, alternateURLs: [URL] = []) {
+        self.url = url
+        self.expectedSize = expectedSize
+        self.width = width
+        self.height = height
+        self.alternateURLs = alternateURLs.filter { $0 != url }
+    }
 }
 
 /// A small JPEG rendered on device (video preview).
