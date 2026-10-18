@@ -80,7 +80,7 @@ enum ForkExtrasHotFlags { static func hidesTabBar(_ value: Bool,isPad: Bool) -> 
 enum ForkRegexMessageFilters { static func unusablePatternCount(_ patterns: [String]) -> Int { 0 } }
 """
     stubs+='enum ForkExtrasLocalizedString { static func string(forKey key: String) -> String { key }\n'+'\n'.join('static let '+name+'="'+name+'"' for name in sorted(localized))+'\n}\n'
-    defs='\n'.join([declaration(source,'private enum ForkExtrasDestination:'),declaration(source,'private enum ForkExtrasSection:'),focus,entry,*[declaration(source,'private func '+name+'(') for name in ['forkStickerShapeOptions','forkDoubleTapSeekOptions','forkDoubleTapActionOptions','forkGlassTintOptions','forkGlassRimOptions','forkSendFormattingOptions','forkVideoQualityOptions','forkIntChoiceLabel']],factory])
+    defs='\n'.join([declaration(source,'private enum ForkExtrasDestination:'),declaration(source,'private enum ForkExtrasSection:'),focus,entry,*[declaration(source,'private func '+name+'(') for name in ['forkVisualLabelOptions','forkStickerShapeOptions','forkDoubleTapSeekOptions','forkDoubleTapActionOptions','forkGlassTintOptions','forkGlassRimOptions','forkSendFormattingOptions','forkVideoQualityOptions','forkIntChoiceLabel']],factory])
     tests=r"""
 for russian in [false,true] {
  ForkPresentationLanguage.prefersRussianStrings=russian
@@ -119,6 +119,18 @@ for russian in [false,true] {
    }
   }
  }
+}
+ForkPresentationLanguage.prefersRussianStrings=false
+for (accountId, value, label) in [(Int64(101), Int32(1), "SCAM"), (Int64(202), Int32(4), "BOT"), (Int64(303), Int32(0), "None")] {
+ var settings=ForkExtrasSettings.defaultSettings
+ settings.visualLabels=[101:1,202:4]
+ let entries=forkExtrasControllerEntries(settings: settings,autoFetchPublicMtProxy: false,showCallsTab: true,mediaInputSettings: MediaInputSettings(enableRaiseToSpeak: false,pauseMusicOnRecording: true),focus: .profile,accountPeerId: accountId)
+ var found=false
+ for entry in entries {
+  if case let .intChoice(id,_,text)=entry, id == 1981 { precondition(text == label); found=true }
+ }
+ precondition(found)
+ precondition((settings.visualLabels[accountId] ?? 0) == value)
 }
 print("Actual Extras factory: 576 preference/device/language combinations, unique ordered IDs, destinations and persisted audio values passed")
 """
