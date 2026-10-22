@@ -5722,6 +5722,10 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         } else if let data = pasteboard.data(forPasteboardType: "public.mpeg-4") {
             if perform { self.paste(.video(data)) }
             return true
+        } else if let data = pasteboard.data(forPasteboardType: "com.apple.quicktime-movie") {
+            // Videos copied from Photos arrive as QuickTime movies, not MPEG-4.
+            if perform { self.paste(.video(data)) }
+            return true
         } else if let data = pasteboard.data(forPasteboardType: "public.heics") {
             if perform { self.paste(.animatedSticker(data)) }
             return true

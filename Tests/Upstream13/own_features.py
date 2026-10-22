@@ -966,6 +966,12 @@ print("Account-scoped ghost exceptions: isolation/persistence/revocation passed"
         self.assertIn('legacyICloudFilePicker(theme: presentationData.theme, mode: .import, documentTypes: ["public.item"]', poll)
 
 
+    def test_paste_accepts_quicktime_movies_from_photos(self):
+        panel = read('submodules/TelegramUI/Components/Chat/ChatTextInputPanelNode/Sources/ChatTextInputPanelNode.swift')
+        self.assertIn('pasteboard.data(forPasteboardType: "com.apple.quicktime-movie")', panel)
+        node = read('submodules/TelegramUI/Sources/Chat/ChatControllerLoadDisplayNode.swift')
+        self.assertIn('(isQuickTime ? "mov" : "mp4")', node)
+
     def test_background_handler_trims_cached_data_contexts(self):
         app = read('submodules/TelegramUI/Sources/AppDelegate.swift')
         i = app.index('cleared postbox caches on background')

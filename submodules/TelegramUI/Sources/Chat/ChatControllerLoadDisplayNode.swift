@@ -1291,7 +1291,9 @@ extension ChatControllerImpl {
             case let .images(images):
                 self?.displayPasteMenu(images.map { .image($0) })
             case let .video(data):
-                let tempFilePath = NSTemporaryDirectory() + "\(Int64.random(in: 0...Int64.max)).mp4"
+                // A QuickTime movie carries the "qt  " brand in its ftyp box; keep its own extension.
+                let isQuickTime = data.count >= 12 && data.subdata(in: 8 ..< 12) == Data("qt  ".utf8)
+                let tempFilePath = NSTemporaryDirectory() + "\(Int64.random(in: 0...Int64.max))." + (isQuickTime ? "mov" : "mp4")
                 let url = NSURL(fileURLWithPath: tempFilePath) as URL
                 try? data.write(to: url)
                 self?.displayPasteMenu([.video(url)])
