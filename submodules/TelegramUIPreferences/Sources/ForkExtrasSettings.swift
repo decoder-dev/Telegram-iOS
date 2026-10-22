@@ -279,6 +279,16 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var saveStickerToPhotos: Bool
     /// "Media Info" in a photo/video/file message's menu, read from what is already on the device.
     public var showMediaInfo: Bool
+    /// "Revoke all" / "Revoke expired" under a group or channel's additional invite links.
+    public var inviteLinksBulkRevoke: Bool
+    /// The folder tabs show no unread badge; the counts themselves are untouched.
+    public var hideFolderUnreadCount: Bool
+    /// Unpinning a message, or all pinned messages, asks first even when Telegram would not.
+    public var confirmUnpin: Bool
+    /// No "typing..." style status in the list or title of private and secret chats.
+    public var hidePrivateChatActivities: Bool
+    /// A chat history reload that began at the newest message stays at the newest message.
+    public var stayAtLatestMessageAfterRefresh: Bool
     /// The quality a gallery video starts in when the player offers several: 0 auto, 1 highest, 2 lowest.
     public var defaultVideoQuality: Int32
 
@@ -479,6 +489,11 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.fixLinkPreviews = false
         self.saveStickerToPhotos = false
         self.showMediaInfo = false
+        self.inviteLinksBulkRevoke = false
+        self.hideFolderUnreadCount = false
+        self.confirmUnpin = false
+        self.hidePrivateChatActivities = false
+        self.stayAtLatestMessageAfterRefresh = false
         self.defaultVideoQuality = 0
         self.ghostDontReadMessages = ghostDontReadMessages
         self.ghostDontReadStories = ghostDontReadStories
@@ -648,6 +663,11 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.fixLinkPreviews = try container.decodeIfPresent(Bool.self, forKey: "fixLinkPreviews") ?? false
         self.saveStickerToPhotos = try container.decodeIfPresent(Bool.self, forKey: "saveStickerToPhotos") ?? false
         self.showMediaInfo = try container.decodeIfPresent(Bool.self, forKey: "showMediaInfo") ?? false
+        self.inviteLinksBulkRevoke = try container.decodeIfPresent(Bool.self, forKey: "inviteLinksBulkRevoke") ?? false
+        self.hideFolderUnreadCount = try container.decodeIfPresent(Bool.self, forKey: "hideFolderUnreadCount") ?? false
+        self.confirmUnpin = try container.decodeIfPresent(Bool.self, forKey: "confirmUnpin") ?? false
+        self.hidePrivateChatActivities = try container.decodeIfPresent(Bool.self, forKey: "hidePrivateChatActivities") ?? false
+        self.stayAtLatestMessageAfterRefresh = try container.decodeIfPresent(Bool.self, forKey: "stayAtLatestMessageAfterRefresh") ?? false
         let decodedVideoQuality = try container.decodeIfPresent(Int32.self, forKey: "defaultVideoQuality") ?? 0
         self.defaultVideoQuality = (0 ... 2).contains(decodedVideoQuality) ? decodedVideoQuality : 0
         self.avatarGlowEnabled = try container.decodeIfPresent(Bool.self, forKey: "avatarGlowEnabled") ?? true
@@ -828,6 +848,11 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.fixLinkPreviews, forKey: "fixLinkPreviews")
         try container.encode(self.saveStickerToPhotos, forKey: "saveStickerToPhotos")
         try container.encode(self.showMediaInfo, forKey: "showMediaInfo")
+        try container.encode(self.inviteLinksBulkRevoke, forKey: "inviteLinksBulkRevoke")
+        try container.encode(self.hideFolderUnreadCount, forKey: "hideFolderUnreadCount")
+        try container.encode(self.confirmUnpin, forKey: "confirmUnpin")
+        try container.encode(self.hidePrivateChatActivities, forKey: "hidePrivateChatActivities")
+        try container.encode(self.stayAtLatestMessageAfterRefresh, forKey: "stayAtLatestMessageAfterRefresh")
         try container.encode(self.defaultVideoQuality, forKey: "defaultVideoQuality")
         try container.encode(self.avatarGlowEnabled, forKey: "avatarGlowEnabled")
         try container.encode(self.snowEnabled, forKey: "snowEnabled")

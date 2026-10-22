@@ -797,7 +797,7 @@ public final class ChatListFilterTabContainerNode: ASDisplayNode {
                 })
                 self.itemNodes[filter.id] = itemNode
             }
-            let unreadCount: Int
+            var unreadCount: Int
             let unreadHasUnmuted: Bool
             var isNoFilter = false
             var isDisabled = false
@@ -814,6 +814,9 @@ public final class ChatListFilterTabContainerNode: ASDisplayNode {
                     isDisabled = !canReorderAllChats && folderIndex >= filtersLimit
                 }
                 folderIndex += 1
+            }
+            if self.context.sharedContext.immediateForkExtrasSettings.hideFolderUnreadCount {
+                unreadCount = 0
             }
             if !wasAdded && (itemNode.unreadCount != 0) != (unreadCount != 0) {
                 badgeAnimations[filter.id] = (unreadCount != 0) ? .in : .out
