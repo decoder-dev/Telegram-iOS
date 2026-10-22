@@ -2192,6 +2192,9 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                 let before = ForkPerformanceTelemetry.mallocHeap()
                 for (_, context, _) in activeAccounts.accounts {
                     context.account.postbox.clearCaches()
+                    // Same trim the memory-warning path does: contexts without live views are
+                    // otherwise kept for the whole suspension and rebuilt on resume anyway.
+                    context.account.trimCachedData()
                 }
                 Queue.mainQueue().after(1.0, {
                     let after = ForkPerformanceTelemetry.mallocHeap()

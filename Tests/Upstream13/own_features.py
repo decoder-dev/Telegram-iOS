@@ -964,6 +964,13 @@ print("Account-scoped ghost exceptions: isolation/persistence/revocation passed"
         self.assertIn('legacyICloudFilePicker(theme: presentationData.theme, mode: .import, documentTypes: ["public.item"]', poll)
 
 
+    def test_background_handler_trims_cached_data_contexts(self):
+        app = read('submodules/TelegramUI/Sources/AppDelegate.swift')
+        i = app.index('cleared postbox caches on background')
+        window = app[i - 1800:i]
+        self.assertIn('context.account.postbox.clearCaches()', window)
+        self.assertIn('context.account.trimCachedData()', window)
+
     def test_log_findings_background_work_is_bounded(self):
         # Device logs: three overlapping cleanup tasks each reindexed every media item (~4 GB written a day),
         # and a build without StoreKit products asked the store every 10 seconds for two days.
