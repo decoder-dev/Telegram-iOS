@@ -830,7 +830,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [61, 62],
             [1512],
             [1773, 1774, 1790],
-            [1930]
+            [1930],
+            [1961, 1963]
         ]),
         (.tabBar, [
             [63, 64],
@@ -863,7 +864,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [1825, 1826, 1827, 1828],
             [85, 86, 87],
             [1850, 1851, 1852, 1853],
-            [1910, 1911]
+            [1910, 1911],
+            [1960, 1962, 1964]
         ]),
         (.media, [
             [1608, 80, 84],
@@ -1939,6 +1941,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(1774, russian ? "Скрыть архив" : "Hide archive", settings.hideArchive, \.hideArchive),
             .appearanceToggle(1790, russian ? "Отключить камеру по свайпу" : "No story camera on swipe", settings.disableStoryCameraSwipe, \.disableStoryCameraSwipe),
             .appearanceToggle(1930, russian ? "Отключить создание историй" : "Disable story creation", settings.disableStoryCreation, \.disableStoryCreation),
+            .appearanceToggle(1961, russian ? "Скрыть счётчик непрочитанных на папках" : "Hide unread counts on folders", settings.hideFolderUnreadCount, \.hideFolderUnreadCount),
+            .appearanceToggle(1963, russian ? "Скрыть «печатает…» в личных чатах" : "Hide typing status in private chats", settings.hidePrivateChatActivities, \.hidePrivateChatActivities),
         ]
     case .tabBar:
         entries = []
@@ -2030,6 +2034,9 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(1518, russian ? "Хэштег ищет в этом чате" : "Hashtags search this chat", settings.hashtagsPreferCurrentChat, \.hashtagsPreferCurrentChat),
             .designHeader(1910, russian ? "Скриншот сообщений" : "Message Shot"),
             .appearanceToggle(1911, russian ? "Пункт «Скриншот» в меню сообщения" : "“Screenshot” in the message menu", settings.messageShot, \.messageShot),
+            .appearanceToggle(1960, russian ? "Отзыв всех пригласительных ссылок" : "Bulk revoke invite links", settings.inviteLinksBulkRevoke, \.inviteLinksBulkRevoke),
+            .appearanceToggle(1962, russian ? "Подтверждать открепление сообщений" : "Confirm before unpinning messages", settings.confirmUnpin, \.confirmUnpin),
+            .appearanceToggle(1964, russian ? "Оставаться на последнем сообщении после обновления" : "Stay at the latest message after a refresh", settings.stayAtLatestMessageAfterRefresh, \.stayAtLatestMessageAfterRefresh),
             .designHeader(1607, russian ? "Боты и служебные сообщения" : "Bots and service messages"),
             .appearanceToggle(1510, russian ? "Скрыть «через бота»" : "Hide \"via bot\"", settings.hideViaBot, \.hideViaBot),
             .appearanceToggle(1513, russian ? "Скрыть панель автоматизации бота" : "Hide bot automation panel", settings.hideBotAutomation, \.hideBotAutomation),

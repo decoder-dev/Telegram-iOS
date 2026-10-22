@@ -3493,7 +3493,8 @@ extension ChatControllerImpl {
                             }
                         }
                     }
-                    if askForConfirmation {
+                    // Fork: the "Confirm before unpinning messages" extra also confirms the menu's Unpin, which asks no questions by default.
+                    if askForConfirmation || strongSelf.context.sharedContext.immediateForkExtrasSettings.confirmUnpin {
                         strongSelf.present(textAlertController(context: strongSelf.context, updatedPresentationData: strongSelf.updatedPresentationData, title: nil, text: strongSelf.presentationData.strings.Conversation_UnpinMessageAlert, actions: [TextAlertAction(type: .genericAction, title: strongSelf.presentationData.strings.Conversation_Unpin, action: {
                             action()
                         }), TextAlertAction(type: .defaultAction, title: strongSelf.presentationData.strings.Common_Cancel, action: {})], actionLayout: .vertical), in: .window(.root))
@@ -3573,6 +3574,18 @@ extension ChatControllerImpl {
                 if strongSelf.canManagePin() {
                     let count = strongSelf.presentationInterfaceState.pinnedMessage?.totalCount ?? 1
                     
+                    // Fork: optionally confirm before unpinning every pinned message.
+                    if strongSelf.context.sharedContext.immediateForkExtrasSettings.confirmUnpin {
+                        let alertText = ForkPresentationLanguage.prefersRussianStrings ? "Открепить все сообщения?" : "Unpin all pinned messages?"
+                        strongSelf.present(textAlertController(context: strongSelf.context, updatedPresentationData: strongSelf.updatedPresentationData, title: nil, text: alertText, actions: [TextAlertAction(type: .genericAction, title: strongSelf.presentationData.strings.Chat_PanelUnpinAllMessages, action: {
+                            guard let strongSelf = self else {
+                                return
+                            }
+                            strongSelf.requestedUnpinAllMessages?(count, topPinnedMessage.topMessageId)
+                            strongSelf.dismiss()
+                        }), TextAlertAction(type: .defaultAction, title: strongSelf.presentationData.strings.Common_Cancel, action: {})], actionLayout: .vertical), in: .window(.root))
+                        return
+                    }
                     strongSelf.requestedUnpinAllMessages?(count, topPinnedMessage.topMessageId)
                     strongSelf.dismiss()
                 } else {
@@ -5213,7 +5226,12 @@ extension ChatControllerImpl {
                         if let strongSelf = self {
                             let hideBlocked = ForkExtrasHotFlags.hideBlockedMessages
                             let accountPeerId = strongSelf.context.account.peerId
+                            // Fork: "Hide typing status in private chats".
+                            let hidePrivateActivities = strongSelf.context.sharedContext.immediateForkExtrasSettings.hidePrivateChatActivities && (peerId.namespace == Namespaces.Peer.CloudUser || peerId.namespace == Namespaces.Peer.SecretChat)
                             let displayActivities = activities.filter({
+                                if hidePrivateActivities {
+                                    return false
+                                }
                                 if hideBlocked, ForkBlockedPeersFilter.contains(accountPeerId: accountPeerId, peerId: $0.0.id) {
                                     return false
                                 }

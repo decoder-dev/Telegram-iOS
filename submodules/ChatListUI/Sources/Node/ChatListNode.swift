@@ -2872,12 +2872,18 @@ public final class ChatListNode: ListViewImpl {
         let engine = context.engine
         let previousPeerCache = Atomic<[EnginePeer.Id: EnginePeer]>(value: [:])
         let previousActivities = Atomic<ChatListNodePeerInputActivities?>(value: nil)
+        let forkActivitySharedContext = context.sharedContext
         self.activityStatusesDisposable = (context.account.allPeerInputActivities()
         |> mapToSignal { activitiesByPeerId -> Signal<[ChatListNodePeerInputActivities.ItemId: [(EnginePeer, PeerInputActivity)]], NoError> in
+            let hidePrivateChatActivities = forkActivitySharedContext.immediateForkExtrasSettings.hidePrivateChatActivities
             var activitiesByPeerId = activitiesByPeerId
             for key in activitiesByPeerId.keys {
                 activitiesByPeerId[key]?.removeAll(where: { peerId, activity in
                     if TelegramShadowBan.isPeerHidden(peerId, inChat: key.peerId) {
+                        return true
+                    }
+                    // Fork: "Hide typing status in private chats".
+                    if hidePrivateChatActivities && (key.peerId.namespace == Namespaces.Peer.CloudUser || key.peerId.namespace == Namespaces.Peer.SecretChat) {
                         return true
                     }
                     switch activity {

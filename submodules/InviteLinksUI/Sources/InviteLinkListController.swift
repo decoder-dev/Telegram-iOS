@@ -20,6 +20,140 @@ import ItemListPeerItem
 import UndoUI
 import QrCodeUI
 
+// Fork: bulk revocation of additional invite links (extra "Bulk revoke invite links").
+private enum InviteLinksBulkRevokeScope {
+    case all
+    case unavailable
+}
+
+private struct InviteLinksBulkRevokeResult {
+    let successCount: Int
+    let failureCount: Int
+}
+
+private let inviteLinksBulkRevokeDelay: Double = 0.5
+private let inviteLinksOverlayDismissDelay: Double = 0.35
+
+private func fetchAllPeerExportedInvitations(
+    context: AccountContext,
+    peerId: EnginePeer.Id,
+    adminId: EnginePeer.Id?,
+    offsetLink: ExportedInvitation? = nil,
+    accumulatedInvitations: [ExportedInvitation] = [],
+    expectedCount: Int32 = 0,
+    fetchedCount: Int32 = 0,
+    seenOffsetLinks: Set<String> = []
+) -> Signal<[ExportedInvitation]?, NoError> {
+    return context.engine.peers.direct_peerExportedInvitations(peerId: peerId, revoked: false, adminId: adminId, offsetLink: offsetLink)
+    |> mapToSignal { result -> Signal<[ExportedInvitation]?, NoError> in
+        guard let result, let page = result.list else {
+            return .single(nil)
+        }
+        var invitations = accumulatedInvitations
+        var existingLinks = Set(invitations.compactMap(\.link))
+        for invitation in page {
+            guard let link = invitation.link else {
+                continue
+            }
+            if existingLinks.insert(link).inserted {
+                invitations.append(invitation)
+            }
+        }
+        let updatedExpectedCount = max(expectedCount, result.totalCount)
+        let updatedFetchedCount = fetchedCount + Int32(page.count)
+        // The server-reported total can exceed what pagination yields, so an empty page ends the list.
+        if updatedFetchedCount >= updatedExpectedCount || page.isEmpty {
+            return .single(invitations)
+        }
+        guard let nextOffset = page.reversed().first(where: { $0.link != nil && $0.date != nil }), let nextOffsetLink = nextOffset.link, nextOffsetLink != offsetLink?.link, !seenOffsetLinks.contains(nextOffsetLink) else {
+            return .single(nil)
+        }
+        var updatedSeenOffsetLinks = seenOffsetLinks
+        updatedSeenOffsetLinks.insert(nextOffsetLink)
+        return fetchAllPeerExportedInvitations(
+            context: context,
+            peerId: peerId,
+            adminId: adminId,
+            offsetLink: nextOffset,
+            accumulatedInvitations: invitations,
+            expectedCount: updatedExpectedCount,
+            fetchedCount: updatedFetchedCount,
+            seenOffsetLinks: updatedSeenOffsetLinks
+        )
+    }
+}
+
+private func inviteLinksBulkRevokeCandidates(
+    invitations: [ExportedInvitation],
+    accountPeerId: EnginePeer.Id,
+    protectedMainLink: String?,
+    scope: InviteLinksBulkRevokeScope,
+    now: Int32
+) -> [ExportedInvitation] {
+    return invitations.filter { invitation in
+        guard case let .link(link, _, isPermanent, _, isRevoked, adminId, _, _, expireDate, usageLimit, count, _, _) = invitation else {
+            return false
+        }
+        // The current main link is protected both by identity and by the permanent flag.
+        guard adminId == accountPeerId, link != protectedMainLink, !isPermanent, !isRevoked else {
+            return false
+        }
+        switch scope {
+        case .all:
+            return true
+        case .unavailable:
+            let isExpired = expireDate.flatMap { $0 > 0 ? $0 : nil }.map { $0 <= now } ?? false
+            let isUsageLimitReached = usageLimit.flatMap { $0 > 0 ? $0 : nil }.map { (count ?? 0) >= $0 } ?? false
+            return isExpired || isUsageLimitReached
+        }
+    }
+}
+
+private func revokeInviteLinksSerially(
+    context: AccountContext,
+    peerId: EnginePeer.Id,
+    links: [String]
+) -> Signal<InviteLinksBulkRevokeResult, NoError> {
+    let indexedLinks = Signal<(Int, String), NoError> { subscriber in
+        for (index, link) in links.enumerated() {
+            subscriber.putNext((index, link))
+        }
+        subscriber.putCompletion()
+        return EmptyDisposable
+    }
+    return indexedLinks
+    |> mapToQueue { index, link -> Signal<InviteLinksBulkRevokeResult, NoError> in
+        var request = context.engine.peers.revokePeerExportedInvitation(peerId: peerId, link: link)
+        if index != 0 {
+            request = request |> delay(inviteLinksBulkRevokeDelay, queue: Queue.mainQueue())
+        }
+        return Signal { subscriber in
+            let didSucceed = Atomic(value: false)
+            return request.start(next: { result in
+                if result != nil {
+                    let _ = didSucceed.swap(true)
+                }
+            }, error: { _ in
+                subscriber.putNext(InviteLinksBulkRevokeResult(successCount: 0, failureCount: 1))
+                subscriber.putCompletion()
+            }, completed: {
+                if didSucceed.with({ $0 }) {
+                    subscriber.putNext(InviteLinksBulkRevokeResult(successCount: 1, failureCount: 0))
+                } else {
+                    subscriber.putNext(InviteLinksBulkRevokeResult(successCount: 0, failureCount: 1))
+                }
+                subscriber.putCompletion()
+            })
+        }
+    }
+    |> reduceLeft(value: InviteLinksBulkRevokeResult(successCount: 0, failureCount: 0), f: { accumulated, current in
+        return InviteLinksBulkRevokeResult(
+            successCount: accumulated.successCount + current.successCount,
+            failureCount: accumulated.failureCount + current.failureCount
+        )
+    })
+}
+
 private final class InviteLinkListControllerArguments {
     let context: AccountContext
     let shareMainLink: (ExportedInvitation) -> Void
@@ -27,18 +161,20 @@ private final class InviteLinkListControllerArguments {
     let copyLink: (ExportedInvitation) -> Void
     let mainLinkContextAction: (ExportedInvitation?, ASDisplayNode, ContextGesture?) -> Void
     let createLink: () -> Void
+    let bulkRevokeAdditionalLinks: () -> Void
     let openLink: (ExportedInvitation) -> Void
     let linkContextAction: (ExportedInvitation?, Bool, ASDisplayNode, ContextGesture?) -> Void
     let openAdmin: (ExportedInvitationCreator) -> Void
     let deleteAllRevokedLinks: () -> Void
     
-    init(context: AccountContext, shareMainLink: @escaping (ExportedInvitation) -> Void, openMainLink: @escaping (ExportedInvitation) -> Void, copyLink: @escaping (ExportedInvitation) -> Void, mainLinkContextAction: @escaping (ExportedInvitation?, ASDisplayNode, ContextGesture?) -> Void, createLink: @escaping () -> Void, openLink: @escaping (ExportedInvitation?) -> Void, linkContextAction: @escaping (ExportedInvitation?, Bool, ASDisplayNode, ContextGesture?) -> Void, openAdmin: @escaping (ExportedInvitationCreator) -> Void, deleteAllRevokedLinks: @escaping () -> Void) {
+    init(context: AccountContext, shareMainLink: @escaping (ExportedInvitation) -> Void, openMainLink: @escaping (ExportedInvitation) -> Void, copyLink: @escaping (ExportedInvitation) -> Void, mainLinkContextAction: @escaping (ExportedInvitation?, ASDisplayNode, ContextGesture?) -> Void, createLink: @escaping () -> Void, bulkRevokeAdditionalLinks: @escaping () -> Void, openLink: @escaping (ExportedInvitation?) -> Void, linkContextAction: @escaping (ExportedInvitation?, Bool, ASDisplayNode, ContextGesture?) -> Void, openAdmin: @escaping (ExportedInvitationCreator) -> Void, deleteAllRevokedLinks: @escaping () -> Void) {
         self.context = context
         self.shareMainLink = shareMainLink
         self.openMainLink = openMainLink
         self.copyLink = copyLink
         self.mainLinkContextAction = mainLinkContextAction
         self.createLink = createLink
+        self.bulkRevokeAdditionalLinks = bulkRevokeAdditionalLinks
         self.openLink = openLink
         self.linkContextAction = linkContextAction
         self.openAdmin = openAdmin
@@ -63,6 +199,7 @@ private enum InviteLinksListEntry: ItemListNodeEntry {
     
     case linksHeader(PresentationTheme, String)
     case linksCreate(PresentationTheme, String)
+    case linksBulkRevoke(PresentationTheme, String)
     case link(Int32, PresentationTheme, ExportedInvitation?, Bool, Int32?)
     case linksInfo(PresentationTheme, String)
     
@@ -79,7 +216,7 @@ private enum InviteLinksListEntry: ItemListNodeEntry {
                 return InviteLinksListSection.header.rawValue
             case .mainLinkHeader, .mainLink, .mainLinkOtherInfo:
                 return InviteLinksListSection.mainLink.rawValue
-            case .linksHeader, .linksCreate, .link, .linksInfo:
+            case .linksHeader, .linksCreate, .linksBulkRevoke, .link, .linksInfo:
                 return InviteLinksListSection.links.rawValue
             case .revokedLinksHeader, .revokedLinksDeleteAll, .revokedLink:
                 return InviteLinksListSection.revokedLinks.rawValue
@@ -104,6 +241,8 @@ private enum InviteLinksListEntry: ItemListNodeEntry {
                 return 5
             case let .link(index, _, _, _, _):
                 return 6 + index
+            case .linksBulkRevoke:
+                return 9999
             case .linksInfo:
                 return 10000
             case .revokedLinksHeader:
@@ -153,6 +292,12 @@ private enum InviteLinksListEntry: ItemListNodeEntry {
                 }
             case let .linksCreate(lhsTheme, lhsText):
                 if case let .linksCreate(rhsTheme, rhsText) = rhs, lhsTheme === rhsTheme, lhsText == rhsText {
+                    return true
+                } else {
+                    return false
+                }
+            case let .linksBulkRevoke(lhsTheme, lhsText):
+                if case let .linksBulkRevoke(rhsTheme, rhsText) = rhs, lhsTheme === rhsTheme, lhsText == rhsText {
                     return true
                 } else {
                     return false
@@ -238,6 +383,10 @@ private enum InviteLinksListEntry: ItemListNodeEntry {
                 return ItemListPeerActionItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesItemList.plusIconImage(theme), title: text, sectionId: self.section, editing: false, action: {
                     arguments.createLink()
                 })
+            case let .linksBulkRevoke(theme, text):
+                return ItemListPeerActionItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesItemList.deleteIconImage(theme), title: text, sectionId: self.section, color: .destructive, editing: false, action: {
+                    arguments.bulkRevokeAdditionalLinks()
+                })
             case let .link(_, _, invite, canEdit, _):
                 return ItemListInviteLinkItem(context: arguments.context, presentationData: presentationData, systemStyle: .glass, invite: invite, share: false, sectionId: self.section, style: .blocks) { invite in
                     arguments.openLink(invite)
@@ -268,7 +417,7 @@ private enum InviteLinksListEntry: ItemListNodeEntry {
     }
 }
 
-private func inviteLinkListControllerEntries(presentationData: PresentationData, exportedInvitation: EngineExportedPeerInvitation?, peer: EnginePeer?, invites: [ExportedInvitation]?, revokedInvites: [ExportedInvitation]?, importers: PeerInvitationImportersState?, creators: [ExportedInvitationCreator], admin: ExportedInvitationCreator?, tick: Int32) -> [InviteLinksListEntry] {
+private func inviteLinkListControllerEntries(presentationData: PresentationData, exportedInvitation: EngineExportedPeerInvitation?, peer: EnginePeer?, invites: [ExportedInvitation]?, revokedInvites: [ExportedInvitation]?, importers: PeerInvitationImportersState?, creators: [ExportedInvitationCreator], admin: ExportedInvitationCreator?, tick: Int32, bulkRevokeEnabled: Bool = false) -> [InviteLinksListEntry] {
     var entries: [InviteLinksListEntry] = []
     
     if admin == nil {
@@ -351,6 +500,9 @@ private func inviteLinkListControllerEntries(presentationData: PresentationData,
         }
     }
     if admin == nil {
+        if bulkRevokeEnabled && hasLinks {
+            entries.append(.linksBulkRevoke(presentationData.theme, ForkPresentationLanguage.prefersRussianStrings ? "Отозвать ссылки…" : "Revoke Links…"))
+        }
         entries.append(.linksInfo(presentationData.theme, presentationData.strings.InviteLink_CreateNewInfo))
     }
     
@@ -398,6 +550,7 @@ public func inviteLinkListController(context: AccountContext, updatedPresentatio
     var presentControllerImpl: ((ViewController, ViewControllerPresentationArguments?) -> Void)?
     var presentInGlobalOverlayImpl: ((ViewController) -> Void)?
     var navigationController: (() -> NavigationController?)?
+    var bulkRevokeAdditionalLinksImpl: (() -> Void)?
         
     var dismissTooltipsImpl: (() -> Void)?
     
@@ -414,6 +567,11 @@ public func inviteLinkListController(context: AccountContext, updatedPresentatio
     
     let deleteAllRevokedLinksDisposable = MetaDisposable()
     actionsDisposable.add(deleteAllRevokedLinksDisposable)
+
+    let bulkRevokeDisposable = MetaDisposable()
+    actionsDisposable.add(bulkRevokeDisposable)
+    let isBulkRevokeFlowActive = Atomic(value: false)
+    let protectedMainLink = Atomic<String?>(value: nil)
         
     var getControllerImpl: (() -> ViewController?)?
     
@@ -644,6 +802,8 @@ public func inviteLinkListController(context: AccountContext, updatedPresentatio
         })
         controller.navigationPresentation = .modal
         pushControllerImpl?(controller)
+    }, bulkRevokeAdditionalLinks: {
+        bulkRevokeAdditionalLinksImpl?()
     }, openLink: { invite in
         if let invite = invite {
             let controller = InviteLinkViewController(context: context, updatedPresentationData: updatedPresentationData, peerId: peerId, invite: invite, invitationsContext: invitesContext, revokedInvitationsContext: revokedInvitesContext, importersContext: nil)
@@ -892,6 +1052,108 @@ public func inviteLinkListController(context: AccountContext, updatedPresentatio
         presentControllerImpl?(controller, ViewControllerPresentationArguments(presentationAnimation: .modalSheet))
     })
     
+    bulkRevokeAdditionalLinksImpl = {
+        guard admin == nil, !isBulkRevokeFlowActive.swap(true) else {
+            return
+        }
+        let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+        let russian = ForkPresentationLanguage.prefersRussianStrings
+        var cancelImpl: (() -> Void)?
+        let progressController = OverlayStatusController(theme: presentationData.theme, type: .loading(cancelled: {
+            cancelImpl?()
+        }))
+        cancelImpl = { [weak progressController] in
+            bulkRevokeDisposable.set(nil)
+            let _ = isBulkRevokeFlowActive.swap(false)
+            progressController?.dismiss()
+        }
+        presentControllerImpl?(progressController, nil)
+        bulkRevokeDisposable.set((fetchAllPeerExportedInvitations(context: context, peerId: peerId, adminId: context.account.peerId)
+        |> deliverOnMainQueue).start(next: { invitations in
+            cancelImpl = nil
+            progressController.dismiss()
+            // The overlay drops the completion handed to `dismiss`, so wait out its animation before presenting anything else.
+            Queue.mainQueue().after(inviteLinksOverlayDismissDelay) {
+                let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+                let okAction = TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})
+                guard let invitations else {
+                    let _ = isBulkRevokeFlowActive.swap(false)
+                    presentControllerImpl?(textAlertController(context: context, updatedPresentationData: updatedPresentationData, title: nil, text: russian ? "Не удалось загрузить ссылки." : "Couldn't load the invite links.", actions: [okAction]), nil)
+                    return
+                }
+                let now = Int32(CFAbsoluteTimeGetCurrent() + kCFAbsoluteTimeIntervalSince1970)
+                let currentMainLink = protectedMainLink.with { $0 }
+                let allCandidates = inviteLinksBulkRevokeCandidates(invitations: invitations, accountPeerId: context.account.peerId, protectedMainLink: currentMainLink, scope: .all, now: now)
+                let unavailableCandidates = inviteLinksBulkRevokeCandidates(invitations: invitations, accountPeerId: context.account.peerId, protectedMainLink: currentMainLink, scope: .unavailable, now: now)
+                guard !allCandidates.isEmpty else {
+                    let _ = isBulkRevokeFlowActive.swap(false)
+                    presentControllerImpl?(textAlertController(context: context, updatedPresentationData: updatedPresentationData, title: nil, text: russian ? "Нет дополнительных ссылок, которые можно отозвать." : "There are no additional links to revoke.", actions: [okAction]), nil)
+                    return
+                }
+
+                let revoke: ([ExportedInvitation]) -> Void = { candidates in
+                    let links = candidates.compactMap(\.link)
+                    let overlay = OverlayStatusController(theme: presentationData.theme, type: .loading(cancelled: nil))
+                    presentControllerImpl?(overlay, nil)
+                    bulkRevokeDisposable.set((revokeInviteLinksSerially(context: context, peerId: peerId, links: links)
+                    |> deliverOnMainQueue).start(next: { result in
+                        let _ = isBulkRevokeFlowActive.swap(false)
+                        invitesContext.reload()
+                        revokedInvitesContext.reload()
+                        overlay.dismiss()
+                        Queue.mainQueue().after(inviteLinksOverlayDismissDelay) {
+                            let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+                            let text: String
+                            if result.failureCount == 0 {
+                                text = russian ? "Отозвано ссылок: \(result.successCount)." : "Revoked \(result.successCount) link(s)."
+                            } else {
+                                text = russian ? "Отозвано: \(result.successCount), не удалось: \(result.failureCount)." : "Revoked \(result.successCount), failed \(result.failureCount)."
+                            }
+                            presentControllerImpl?(textAlertController(context: context, updatedPresentationData: updatedPresentationData, title: nil, text: text, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})]), nil)
+                        }
+                    }))
+                }
+
+                var selectedScopeAction: (() -> Void)?
+                let controller = ActionSheetController(presentationData: presentationData)
+                controller.dismissed = { _ in
+                    if let selectedScopeAction {
+                        Queue.mainQueue().justDispatch {
+                            selectedScopeAction()
+                        }
+                    } else {
+                        let _ = isBulkRevokeFlowActive.swap(false)
+                    }
+                }
+                let dismissAction: () -> Void = { [weak controller] in
+                    controller?.dismissAnimated()
+                }
+                var items: [ActionSheetItem] = [
+                    ActionSheetTextItem(title: russian ? "Основная ссылка не затрагивается. Отозванные ссылки перестают работать." : "The main link is never touched. Revoked links stop working.")
+                ]
+                items.append(ActionSheetButtonItem(title: (russian ? "Отозвать все дополнительные" : "Revoke all additional") + " (\(allCandidates.count))", color: .destructive, action: {
+                    selectedScopeAction = {
+                        revoke(allCandidates)
+                    }
+                    dismissAction()
+                }))
+                if !unavailableCandidates.isEmpty {
+                    items.append(ActionSheetButtonItem(title: (russian ? "Отозвать истёкшие и исчерпанные" : "Revoke expired and used up") + " (\(unavailableCandidates.count))", color: .destructive, action: {
+                        selectedScopeAction = {
+                            revoke(unavailableCandidates)
+                        }
+                        dismissAction()
+                    }))
+                }
+                controller.setItemGroups([
+                    ActionSheetItemGroup(items: items),
+                    ActionSheetItemGroup(items: [ActionSheetButtonItem(title: presentationData.strings.Common_Cancel, action: { dismissAction() })])
+                ])
+                presentControllerImpl?(controller, ViewControllerPresentationArguments(presentationAnimation: .modalSheet))
+            }
+        }))
+    }
+
     let mainLink: Signal<ExportedInvitation?, NoError>
     if let _ = admin {
         mainLink = invitesContext.state
@@ -945,6 +1207,7 @@ public func inviteLinkListController(context: AccountContext, updatedPresentatio
         timerPromise.get()
     )
     |> map { presentationData, exportedInvitation, peer, importersContext, importers, invites, revokedInvites, creators, tick -> (ItemListControllerState, (ItemListNodeState, Any)) in
+        let _ = protectedMainLink.swap(exportedInvitation?.link)
         let previousInvites = previousInvites.swap(invites)
         let previousRevokedInvites = previousRevokedInvites.swap(revokedInvites)
         let previousCreators = previousCreators.swap(creators)
@@ -973,7 +1236,7 @@ public func inviteLinkListController(context: AccountContext, updatedPresentatio
         }
         
         let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: title, leftNavigationButton: nil, rightNavigationButton: nil, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back), animateChanges: true)
-        let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: inviteLinkListControllerEntries(presentationData: presentationData, exportedInvitation: exportedInvitation, peer: peer, invites: invites.hasLoadedOnce ? invites.invitations : nil, revokedInvites: revokedInvites.hasLoadedOnce ? revokedInvites.invitations : nil, importers: importers, creators: creators, admin: admin, tick: tick), style: .blocks, emptyStateItem: nil, crossfadeState: crossfade, animateChanges: animateChanges)
+        let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: inviteLinkListControllerEntries(presentationData: presentationData, exportedInvitation: exportedInvitation, peer: peer, invites: invites.hasLoadedOnce ? invites.invitations : nil, revokedInvites: revokedInvites.hasLoadedOnce ? revokedInvites.invitations : nil, importers: importers, creators: creators, admin: admin, tick: tick, bulkRevokeEnabled: context.sharedContext.immediateForkExtrasSettings.inviteLinksBulkRevoke), style: .blocks, emptyStateItem: nil, crossfadeState: crossfade, animateChanges: animateChanges)
         
         return (controllerState, (listState, arguments))
     }

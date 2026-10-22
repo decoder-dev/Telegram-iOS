@@ -2811,6 +2811,17 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
                     }
                 }
                 
+                // Fork: "Stay at the latest message after a refresh". A reload keeps the previously visible item stationary; when
+                // the list sat at the newest-message edge, keep following the newest message instead.
+                if let strongSelf = self, strongSelf.context.sharedContext.immediateForkExtrasSettings.stayAtLatestMessageAfterRefresh, updatedScrollPosition == nil, mode == .bubbles, case let .known(offset) = strongSelf.visibleContentOffset(), offset <= 0.9 {
+                    switch reason {
+                    case .Reload, .HoleReload:
+                        updatedScrollPosition = .index(subject: MessageHistoryScrollToSubject(index: .upperBound, quote: nil), position: .top(0.0), directionHint: .Up, animated: false, highlight: false, displayLink: false, setupReply: false)
+                    default:
+                        break
+                    }
+                }
+
                 let rawTransition = preparedChatHistoryViewTransition(from: previous, to: processedView, reason: reason, reverse: reverse, chatLocation: chatLocation, source: source, controllerInteraction: controllerInteraction, scrollPosition: updatedScrollPosition, scrollAnimationCurve: scrollAnimationCurve, initialData: initialData?.initialData, keyboardButtonsMessage: keyboardButtonsMessage, cachedData: initialData?.cachedData, cachedDataMessages: initialData?.cachedDataMessages, readStateData: initialData?.readStateData, flashIndicators: flashIndicators, updatedMessageSelection: previousSelectedMessages != selectedMessages, messageTransitionNode: messageTransitionNode(), allUpdated: !isSavedMusic || forceUpdateAll)
                 var mappedTransition = mappedChatHistoryViewListTransition(context: context, chatLocation: chatLocation, associatedData: associatedData, controllerInteraction: controllerInteraction, mode: mode, lastHeaderId: lastHeaderId, isSavedMusic: isSavedMusic, canReorder: processedView.filteredEntries.count > 1 && canReorder, richMessageQueueId: richMessageQueueId, animateFromPreviousFilter: resetScrolling, transition: rawTransition, systemStyle: systemStyle)
                 
