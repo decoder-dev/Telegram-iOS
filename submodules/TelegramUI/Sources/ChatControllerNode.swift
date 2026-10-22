@@ -4086,7 +4086,7 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
     @objc func tapGesture(_ recognizer: UITapGestureRecognizer) {
         if recognizer.state == .ended {
             if case .standard(.previewing) = self.chatPresentationInterfaceState.mode {
-                self.controller?.animateFromPreviewing()
+                self.controller?.openFromPreviewing()
             } else {
                 self.dismissInput(view: self.view, location: recognizer.location(in: self.contentContainerNode.view))
             }

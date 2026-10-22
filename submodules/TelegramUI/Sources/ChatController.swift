@@ -580,6 +580,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
     var scheduledScrollToMessageId: (MessageId, NavigateToMessageParams)?
     
     public var purposefulAction: (() -> Void)?
+    weak var forkPreviewEntryAlert: ViewController?
     public var dismissPreviewing: ((Bool) -> (() -> Void))?
     
     var updatedClosedPinnedMessageId: ((MessageId) -> Void)?
@@ -2117,6 +2118,26 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                             case .all:
                                 break
                             }
+                        }
+                        
+                        if removedReaction == nil && strongSelf.forkReactionNeedsConfirmation(chosenReaction) {
+                            let account = strongSelf.context.account
+                            let messageId = message.id
+                            let confirmedReactions = updatedReactions.map { reaction -> UpdateMessageReaction in
+                                switch reaction {
+                                case let .builtin(value):
+                                    return .builtin(value)
+                                case let .custom(fileId):
+                                    return .custom(fileId: fileId, file: nil)
+                                case .stars:
+                                    return .stars
+                                }
+                            }
+                            strongSelf.forkPresentReactionConfirmation(apply: { [weak strongSelf] in
+                                strongSelf?.beginGhostReadOnInteractIfEnabled()
+                                let _ = updateMessageReactionsInteractively(account: account, messageIds: [messageId], reactions: confirmedReactions, isLarge: false, storeAsRecentlyUsed: false).startStandalone()
+                            })
+                            return
                         }
                         
                         if removedReaction == nil && !updatedReactions.isEmpty {

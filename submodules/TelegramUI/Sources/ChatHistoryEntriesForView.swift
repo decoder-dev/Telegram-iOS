@@ -54,6 +54,7 @@ func chatHistoryEntriesForView(
     pendingUnpinnedAllMessages: Bool,
     pendingRemovedMessages: Set<MessageId>,
     shadowBan: TelegramShadowBan.State?,
+    hideServiceMessages: Bool,
     associatedData: ChatMessageItemAssociatedData,
     updatingMedia: [MessageId: ChatUpdatingMessageMedia],
     customChannelDiscussionReadState: MessageId?,
@@ -191,6 +192,11 @@ func chatHistoryEntriesForView(
         }
         
 
+        // Counted with the shadow-banned ones, so loading, read state and empty windows are handled past them as well.
+        if hideServiceMessages && forkIsHideableServiceMessage(message) {
+            ArenaHiddenCount += 1
+            continue
+        }
         if let shadowBan, TelegramShadowBan.isHidden(message, state: shadowBan) {
             ArenaHiddenCount += 1
             continue
@@ -462,7 +468,7 @@ func chatHistoryEntriesForView(
     }
     
     if let lowerTimestamp = view.entries.last?.message.timestamp, let upperTimestamp = view.entries.first?.message.timestamp {
-        if let joinMessage {
+        if let joinMessage, !(hideServiceMessages && forkIsHideableServiceMessage(joinMessage)) {
             var insertAtPosition: Int?
             if joinMessage.timestamp >= lowerTimestamp && view.laterId == nil {
                 insertAtPosition = entries.count

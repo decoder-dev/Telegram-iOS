@@ -450,6 +450,21 @@ private func handleAyuFiltersImportDeepLink(context: AccountContext, presentatio
 }
 
 func openExternalUrlImpl(context: AccountContext, urlContext: OpenURLContext, url: String, forceExternal: Bool, presentationData: PresentationData, navigationController: NavigationController?, dismissInput: @escaping () -> Void) {
+    // "Confirm Telegram link opens" for a link another app hands over. Links in messages are asked about in
+    // `openUserGeneratedUrl` before they are resolved; the app's own t.me buttons come here and are not asked about.
+    if context.sharedContext.immediateForkExtrasSettings.confirmTelegramLinks, case .external = urlContext, isTelegramLinkUrl(url) {
+        let controller = openLinkConfirmationController(
+            context: context,
+            presentationData: presentationData,
+            updatedPresentationData: .single(presentationData),
+            displayUrl: url,
+            open: {
+                openCheckedExternalUrl(context: context, urlContext: urlContext, url: url, forceExternal: forceExternal, presentationData: presentationData, navigationController: navigationController, dismissInput: dismissInput)
+            }
+        )
+        context.sharedContext.presentGlobalController(controller, nil)
+        return
+    }
     // A login part hides the host a link opens (see `externalUrlWithLoginPart`). Every external link leaves through
     // here, whoever opens it, so here it is confirmed, unless a prompt that showed the real host was just accepted.
     if let loginPartUrl = externalUrlWithLoginPart(url), !consumeLoginPartConfirmation(loginPartUrl) {

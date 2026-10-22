@@ -149,6 +149,14 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var disableStoryCameraSwipe: Bool
     /// Donutgram: "Jump to start" in the menu of a chat's (or forum topic's) avatar. On by default.
     public var jumpToStartInChatMenu: Bool
+    /// Donutgram: leave joins, leaves and edits of the chat (title, photo, pin, timers, polls, to-do lists) out of the history. Off by default.
+    public var hideServiceMessages: Bool
+    /// Donutgram: ask before adding a reaction in a channel or group the account has not joined. Off by default.
+    public var confirmReactionsInUnjoinedChats: Bool
+    /// Donutgram: ask before a link that opens inside Telegram (t.me, tg:) is followed from a message, a bio or another app. Off by default.
+    public var confirmTelegramLinks: Bool
+    /// Donutgram: ask before a tap on a previewed chat (long press in the list) opens it. Off by default.
+    public var confirmChatPreviewEntry: Bool
     public var hideStickerReplyEmoji: Bool
     public var hideStickerReplyBackground: Bool
     public var hidePremiumReplyEmoji: Bool
@@ -538,6 +546,10 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.localGroupAlias = false
         self.disableStoryCameraSwipe = false
         self.jumpToStartInChatMenu = true
+        self.hideServiceMessages = false
+        self.confirmReactionsInUnjoinedChats = false
+        self.confirmTelegramLinks = false
+        self.confirmChatPreviewEntry = false
         self.hideStickerReplyEmoji = false
         self.hideStickerReplyBackground = false
         self.hidePremiumReplyEmoji = false
@@ -707,6 +719,10 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.localGroupAlias = try container.decodeIfPresent(Bool.self, forKey: "localGroupAlias") ?? false
         self.disableStoryCameraSwipe = try container.decodeIfPresent(Bool.self, forKey: "disableStoryCameraSwipe") ?? false
         self.jumpToStartInChatMenu = try container.decodeIfPresent(Bool.self, forKey: "jumpToStartInChatMenu") ?? true
+        self.hideServiceMessages = try container.decodeIfPresent(Bool.self, forKey: "hideServiceMessages") ?? false
+        self.confirmReactionsInUnjoinedChats = try container.decodeIfPresent(Bool.self, forKey: "confirmReactionsInUnjoinedChats") ?? false
+        self.confirmTelegramLinks = try container.decodeIfPresent(Bool.self, forKey: "confirmTelegramLinks") ?? false
+        self.confirmChatPreviewEntry = try container.decodeIfPresent(Bool.self, forKey: "confirmChatPreviewEntry") ?? false
         self.hideStickerReplyEmoji = try container.decodeIfPresent(Bool.self, forKey: "hideStickerReplyEmoji") ?? false
         self.hideStickerReplyBackground = try container.decodeIfPresent(Bool.self, forKey: "hideStickerReplyBackground") ?? false
         self.hidePremiumReplyEmoji = try container.decodeIfPresent(Bool.self, forKey: "hidePremiumReplyEmoji") ?? false
@@ -879,6 +895,10 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.localGroupAlias, forKey: "localGroupAlias")
         try container.encode(self.disableStoryCameraSwipe, forKey: "disableStoryCameraSwipe")
         try container.encode(self.jumpToStartInChatMenu, forKey: "jumpToStartInChatMenu")
+        try container.encode(self.hideServiceMessages, forKey: "hideServiceMessages")
+        try container.encode(self.confirmReactionsInUnjoinedChats, forKey: "confirmReactionsInUnjoinedChats")
+        try container.encode(self.confirmTelegramLinks, forKey: "confirmTelegramLinks")
+        try container.encode(self.confirmChatPreviewEntry, forKey: "confirmChatPreviewEntry")
         try container.encode(self.hideStickerReplyEmoji, forKey: "hideStickerReplyEmoji")
         try container.encode(self.hideStickerReplyBackground, forKey: "hideStickerReplyBackground")
         try container.encode(self.hidePremiumReplyEmoji, forKey: "hidePremiumReplyEmoji")

@@ -2142,6 +2142,7 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
             var pollResultsBeforeVoting: Bool
             var hideReactionsBar: Bool
             var hideChannelPostReactions: Bool
+            var hideServiceMessages: Bool
             var hidePaidReactions: Bool
             var hideViaBot: Bool
             var accentColorSaturation: Int32
@@ -2164,6 +2165,8 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
             BananaForwardCountSettings.enabled = settings.showChannelForwardCount
             // Read by the bubble nodes at layout time; project it before the history re-emits.
             ForkChannelPostReactionsSettings.hidden = settings.hideChannelPostReactions
+            // Read when the entries are built; project it before the history re-emits.
+            ForkServiceMessageSettings.hidden = settings.hideServiceMessages
             // The sticker nodes read the shape at layout time; project it before the history re-emits.
             var mediaTweaks = BananaMediaTweaks.current
             mediaTweaks.stickerShape = settings.stickerShape
@@ -2183,6 +2186,7 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
                 pollResultsBeforeVoting: settings.pollResultsBeforeVoting,
                 hideReactionsBar: settings.hideReactionsBar,
                 hideChannelPostReactions: settings.hideChannelPostReactions,
+                hideServiceMessages: settings.hideServiceMessages,
                 hidePaidReactions: settings.hidePaidReactions,
                 hideViaBot: settings.hideViaBot,
                 accentColorSaturation: settings.accentColorSaturation,
@@ -2557,6 +2561,7 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
                     pendingUnpinnedAllMessages: pendingUnpinnedAllMessages,
                     pendingRemovedMessages: pendingRemovedMessages,
                     shadowBan: mode == .bubbles ? shadowBanState : nil,
+                    hideServiceMessages: mode == .bubbles && ForkServiceMessageSettings.hidden,
                     associatedData: associatedData,
                     updatingMedia: updatingMedia,
                     customChannelDiscussionReadState: customChannelDiscussionReadState,

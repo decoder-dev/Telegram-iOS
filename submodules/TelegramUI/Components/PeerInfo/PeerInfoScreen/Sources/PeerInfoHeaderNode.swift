@@ -2173,7 +2173,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         let apparentHeight = (1.0 - transitionFraction) * backgroundHeight + transitionFraction * transitionSourceHeight
         let apparentBackgroundHeight = (1.0 - transitionFraction) * backgroundHeight + transitionFraction * transitionSourceHeight
         
-        if !titleSize.width.isZero && !titleSize.height.isZero {
+        do {
             if self.navigationTransition != nil {
                 var neutralTitleScale: CGFloat = 1.0
                 var neutralSubtitleScale: CGFloat = 1.0
@@ -2182,8 +2182,8 @@ final class PeerInfoHeaderNode: ASDisplayNode {
                     neutralSubtitleScale = 1.0
                 }
                                 
-                let titleScale = (transitionFraction * transitionSourceTitleFrame.height + (1.0 - transitionFraction) * titleFrame.height * neutralTitleScale) / (titleFrame.height)
-                let subtitleScale = max(0.01, min(10.0, (transitionFraction * transitionSourceSubtitleFrame.height + (1.0 - transitionFraction) * subtitleFrame.height * neutralSubtitleScale) / (subtitleFrame.height)))
+                let titleScale = titleFrame.height.isZero ? neutralTitleScale : (transitionFraction * transitionSourceTitleFrame.height + (1.0 - transitionFraction) * titleFrame.height * neutralTitleScale) / titleFrame.height
+                let subtitleScale = subtitleFrame.height.isZero ? neutralSubtitleScale : max(0.01, min(10.0, (transitionFraction * transitionSourceSubtitleFrame.height + (1.0 - transitionFraction) * subtitleFrame.height * neutralSubtitleScale) / subtitleFrame.height))
                 
                 var titleFrame = titleFrame
                 if !self.isAvatarExpanded {

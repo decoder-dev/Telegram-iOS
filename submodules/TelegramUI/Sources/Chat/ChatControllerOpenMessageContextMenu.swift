@@ -566,6 +566,37 @@ extension ChatControllerImpl {
                             }
                         }
                         
+                        if removedReaction == nil && self.forkReactionNeedsConfirmation(chosenReaction) {
+                            let account = self.context.account
+                            let messageId = message.id
+                            let confirmedReactions = updatedReactions.map { reaction -> UpdateMessageReaction in
+                                switch reaction {
+                                case let .builtin(value):
+                                    return .builtin(value)
+                                case let .custom(fileId):
+                                    var customFile: TelegramMediaFile?
+                                    if case let .custom(customFileId, file) = chosenUpdatedReaction, fileId == customFileId {
+                                        customFile = file
+                                    }
+                                    return .custom(fileId: fileId, file: customFile)
+                                case .stars:
+                                    return .stars
+                                }
+                            }
+                            let apply: () -> Void = { [weak self] in
+                                self?.beginGhostReadOnInteractIfEnabled()
+                                let _ = updateMessageReactionsInteractively(account: account, messageIds: [messageId], reactions: confirmedReactions, isLarge: isLarge, storeAsRecentlyUsed: true).startStandalone()
+                            }
+                            if let controller {
+                                controller.dismiss(completion: { [weak self] in
+                                    self?.forkPresentReactionConfirmation(apply: apply)
+                                })
+                            } else {
+                                self.forkPresentReactionConfirmation(apply: apply)
+                            }
+                            return
+                        }
+                        
                         self.chatDisplayNode.historyNode.forEachItemNode { itemNode in
                             if let itemNode = itemNode as? ChatMessageItemView, let item = itemNode.item {
                                 if item.message.id == message.id {

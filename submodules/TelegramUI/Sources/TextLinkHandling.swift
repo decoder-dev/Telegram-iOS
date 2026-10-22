@@ -156,6 +156,11 @@ func handleTextLinkActionImpl(context: AccountContext, peerId: EnginePeer.Id?, n
                     if parsedConcealed || loginPartUrl != nil {
                         concealed = true
                     }
+                    // "Confirm Telegram link opens". Only text that belongs to a chat (a bio, a description) has a peer:
+                    // the app's own screens open their t.me links here too, with no peer, and are not asked about.
+                    if peerId != nil && context.sharedContext.immediateForkExtrasSettings.confirmTelegramLinks && isTelegramLinkUrl(url) {
+                        concealed = true
+                    }
                     
                     if concealed {
                         // For a login part the prompt shows the host the link really opens. The external-URL opener

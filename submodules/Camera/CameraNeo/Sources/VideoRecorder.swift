@@ -512,21 +512,9 @@ final class VideoRecorder {
             return
         }
 
-        var audioSettings: [String: Any] = [
-            AVFormatIDKey: kAudioFormatMPEG4AAC,
-            AVEncoderBitRateKey: 64_000
-        ]
-        if let streamDescription = CMAudioFormatDescriptionGetStreamBasicDescription(formatDescription) {
-            audioSettings[AVSampleRateKey] = streamDescription.pointee.mSampleRate
-            audioSettings[AVNumberOfChannelsKey] = streamDescription.pointee.mChannelsPerFrame
-        }
-
-        var channelLayoutSize = 0
-        if let channelLayout = CMAudioFormatDescriptionGetChannelLayout(formatDescription, sizeOut: &channelLayoutSize), channelLayoutSize > 0 {
-            audioSettings[AVChannelLayoutKey] = Data(bytes: channelLayout, count: channelLayoutSize)
-        }
-
-        guard assetWriter.canApply(outputSettings: audioSettings, forMediaType: .audio) else {
+        guard let audioSettings = roundVideoAudioSettings(formatDescription: formatDescription, canApply: { settings in
+            return assetWriter.canApply(outputSettings: settings, forMediaType: .audio)
+        }) else {
             self.fail(.audioInitializationError)
             return
         }

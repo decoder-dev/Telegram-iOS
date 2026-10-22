@@ -53,6 +53,26 @@ public func canonicalExternalUrl(from url: String) -> URL? {
     return nil
 }
 
+private let telegramLinkHosts = ["t.me", "telegram.me", "telegram.dog"]
+
+/// Whether `url` opens inside Telegram: a `tg:` link, or a web link on t.me, telegram.me or telegram.dog,
+/// subdomains included (`username.t.me`). The address is parsed as the external-URL opener parses it, so a link
+/// written without a scheme (`t.me/durov`) counts too, and one whose login part hides another host does not.
+public func isTelegramLinkUrl(_ url: String) -> Bool {
+    if url.lowercased().hasPrefix("tg:") {
+        return true
+    }
+    guard let parsedUrl = canonicalExternalUrl(from: url),
+          let scheme = parsedUrl.scheme?.lowercased(), scheme == "http" || scheme == "https",
+          var host = parsedUrl.host?.lowercased() else {
+        return false
+    }
+    if host.hasSuffix(".") {
+        host.removeLast()
+    }
+    return telegramLinkHosts.contains(where: { host == $0 || host.hasSuffix("." + $0) })
+}
+
 /// Every character that may appear in a URL, unencoded.
 private let urlCharacters = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~:/?#[]@!$&'()*+,;=%")
 
