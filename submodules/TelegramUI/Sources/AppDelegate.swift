@@ -1697,11 +1697,14 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                     task.setTaskCompleted(success: true)
                     return
                 }
+                // Stamped when the pass starts, not when it ends: device logs of 21 Oct show iOS ending the
+                // task before it finishes every time (five starts in a day, none completed), so a stamp at
+                // the end was never written and the gate above never closed.
+                UserDefaults.standard.set(now as NSNumber, forKey: backgroundIndexKey)
                 Logger.shared.log("App \(self.episodeId)", "Executing cleanup task")
                 
                 let disposable = self.runCacheReindexTasks(lowImpact: true, completion: {
                     Logger.shared.log("App \(self.episodeId)", "Completed cleanup task")
-                    UserDefaults.standard.set(Int(CFAbsoluteTimeGetCurrent()) as NSNumber, forKey: backgroundIndexKey)
                     let _ = self.cleanupTaskRunning.swap(false)
                     task.setTaskCompleted(success: true)
                 })

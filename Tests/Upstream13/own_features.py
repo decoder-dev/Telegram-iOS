@@ -972,7 +972,8 @@ print("Account-scoped ghost exceptions: isolation/persistence/revocation passed"
         self.assertEqual(app.count('self.cleanupTaskRunning.swap(false)'), 3)
         # Device log 2026-10-16/17: five full passes a day; one per 20 hours is enough.
         self.assertIn('last.intValue >= now - 20 * 60 * 60', app)
-        self.assertIn('forKey: backgroundIndexKey)', app)
+        self.assertIn('UserDefaults.standard.set(now as NSNumber, forKey: backgroundIndexKey)', app)
+        self.assertLess(app.index('forKey: backgroundIndexKey)'), app.index('Executing cleanup task'))
         iap = read('submodules/InAppPurchaseManager/Sources/InAppPurchaseManager.swift')
         self.assertIn('min(10.0 * pow(2.0, Double(min(self.productRequestRetryCount, 7))), 900.0)', iap)
         self.assertIn('self.productRequestRetryCount = 0', iap)
