@@ -955,6 +955,7 @@ private func validateBatch(postbox: Postbox, network: Network, transaction: Tran
                         }
                     
                         for id in removedMessageIds {
+                            if bananaIsPreservedBannedChat(transaction: transaction, peerId: id.peerId) { continue }
                             if !validMessageIds.contains(id) {
                                 if let tag = tag {
                                     transaction.updateMessage(id, update: { currentMessage in
@@ -1166,6 +1167,7 @@ private func validateReplyThreadBatch(postbox: Postbox, network: Network, transa
                     }
                 
                     for id in removedMessageIds {
+                        if bananaIsPreservedBannedChat(transaction: transaction, peerId: id.peerId) { continue }
                         if !validMessageIds.contains(id) {
                             _internal_deleteMessages(transaction: transaction, mediaBox: postbox.mediaBox, ids: [id])
                             Logger.shared.log("HistoryValidation", "deleting thread message \(id) in \(id.peerId)")

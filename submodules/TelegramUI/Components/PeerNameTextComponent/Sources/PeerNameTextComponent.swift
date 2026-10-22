@@ -24,6 +24,8 @@ public final class PeerNameTextComponent: Component {
     public let iconBackgroundColor: UIColor
     public let iconForegroundColor: UIColor
     public let strings: PresentationStrings
+    /// The account's local label on its own name. Part of the component, so that a name already drawn follows a change.
+    let visualLabel: BananaVisualLabel
     
     public init(
         context: AccountContext,
@@ -43,6 +45,7 @@ public final class PeerNameTextComponent: Component {
         self.iconBackgroundColor = iconBackgroundColor
         self.iconForegroundColor = iconForegroundColor
         self.strings = strings
+        self.visualLabel = peer?.id == context.account.peerId ? BananaVisualLabels.label(accountId: context.account.peerId.toInt64()) : .none
     }
     
     public static func ==(lhs: PeerNameTextComponent, rhs: PeerNameTextComponent) -> Bool {
@@ -68,6 +71,9 @@ public final class PeerNameTextComponent: Component {
             return false
         }
         if lhs.strings !== rhs.strings {
+            return false
+        }
+        if lhs.visualLabel != rhs.visualLabel {
             return false
         }
         return true
@@ -98,6 +104,14 @@ public final class PeerNameTextComponent: Component {
                 
                 if peer.isVerified {
                     iconContent = .verified(fillColor: component.iconBackgroundColor, foregroundColor: component.iconForegroundColor, sizeType: .compact)
+                }
+                switch component.visualLabel {
+                case .none:
+                    break
+                case .scam, .fake:
+                    iconContent = .text(color: UIColor(rgb: 0xeb5545), string: component.visualLabel.badgeText)
+                case .support, .bot:
+                    iconContent = .text(color: component.iconBackgroundColor, string: component.visualLabel.badgeText)
                 }
             }
             

@@ -392,6 +392,7 @@ private func pushPeerReadState(network: Network, postbox: Postbox, stateManager:
         if let (namespace, readState) = result.namespaceAndReadState {
             return pushPeerReadState(network: network, postbox: postbox, stateManager: stateManager, peerId: peerId, readState: readState)
             |> map { updatedReadState -> (MessageId.Namespace, PeerReadState) in
+                bananaRequestGhostOfflineAfterAction(network: network)
                 return (namespace, updatedReadState)
             }
         } else if willValidate {

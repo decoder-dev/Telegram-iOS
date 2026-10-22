@@ -251,6 +251,7 @@ final class ChatImageGalleryItemNode: ZoomableContentGalleryItemNode {
     private var contextAndMedia: (AccountContext, AnyMediaReference)?
     
     private var fetchDisposable = MetaDisposable()
+    private let mediaClipboardDisposable = MetaDisposable()
     private let statusDisposable = MetaDisposable()
     private let dataDisposable = MetaDisposable()
     private let recognitionDisposable = MetaDisposable()
@@ -339,6 +340,7 @@ final class ChatImageGalleryItemNode: ZoomableContentGalleryItemNode {
     }
     
     deinit {
+        self.mediaClipboardDisposable.dispose()
         //self.fetchDisposable.dispose()
         self.statusDisposable.dispose()
         self.dataDisposable.dispose()
@@ -794,6 +796,22 @@ final class ChatImageGalleryItemNode: ZoomableContentGalleryItemNode {
                             controller.present(UndoOverlayController(presentationData: strongSelf.presentationData, content: .mediaSaved(text: strongSelf.presentationData.strings.Gallery_ImageSaved), elevatedLayout: false, animateInAsReplacement: false, action: { _ in return false }), in: .window(.root))
                         })
                     })))
+
+                    items.append(.action(ContextMenuActionItem(text: (self.presentationData.strings.primaryComponent.languageCode.hasPrefix("ru") ? "Копировать фото" : "Copy photo"), icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Copy"), color: theme.actionSheet.primaryTextColor) }, action: { [weak self] _, f in
+                        f(.default)
+                        guard let self else {
+                            return
+                        }
+                        self.mediaClipboardDisposable.set((bananaMediaClipboardImage(context: context, mediaReference: media)
+                        |> deliverOnMainQueue).start(next: { [weak self] image in
+                            guard let self, let controller = self.galleryController(), let image else {
+                                return
+                            }
+                            UIPasteboard.general.image = image
+                            controller.present(UndoOverlayController(presentationData: self.presentationData, content: .copy(text: (self.presentationData.strings.primaryComponent.languageCode.hasPrefix("ru") ? "Фото скопировано" : "Photo copied")), elevatedLayout: false, animateInAsReplacement: false, action: { _ in return false }), in: .window(.root))
+                        }))
+                    })))
+
                 }
             }
             

@@ -1515,7 +1515,7 @@ extension ChatControllerImpl {
                                 }
                                 if let item = item {
                                     let fileId = Int64.random(in: Int64.min ... Int64.max)
-                                    let mimeType = guessMimeTypeByFileExtension((item.fileName as NSString).pathExtension)
+                                    let mimeType = guessMimeTypeByFileExtension((item.fileName as NSString).pathExtension.lowercased())
                                     var previewRepresentations: [TelegramMediaImageRepresentation] = []
                                     if mimeType.hasPrefix("image/") || mimeType == "application/pdf" || item.audioMetadata?.hasAudioArtwork == true {
                                         previewRepresentations.append(TelegramMediaImageRepresentation(dimensions: PixelDimensions(width: 320, height: 320), resource: ICloudFileResource(urlData: item.urlData, thumbnail: true), progressiveSizes: [], immediateThumbnailData: nil, hasVideo: false, isPersonal: false))
@@ -1524,6 +1524,10 @@ extension ChatControllerImpl {
                                     attributes.append(.FileName(fileName: item.fileName))
                                     if let audioMetadata = item.audioMetadata {
                                         attributes.append(.Audio(isVoice: false, duration: audioMetadata.duration, title: audioMetadata.title, performer: audioMetadata.performer, waveform: nil))
+                                    }
+                                    if let videoMetadata = item.videoMetadata {
+                                        attributes.append(.Video(duration: videoMetadata.duration, size: videoMetadata.dimensions, flags: [.supportsStreaming], preloadSize: nil, coverTime: nil, videoCodec: nil))
+                                        previewRepresentations.append(TelegramMediaImageRepresentation(dimensions: videoMetadata.dimensions, resource: ICloudFileResource(urlData: item.urlData, thumbnail: true), progressiveSizes: [], immediateThumbnailData: nil, hasVideo: false, isPersonal: false))
                                     }
 
                                     let file = TelegramMediaFile(fileId: EngineMedia.Id(namespace: Namespaces.Media.LocalFile, id: fileId), partialReference: nil, resource: ICloudFileResource(urlData: item.urlData, thumbnail: false), previewRepresentations: previewRepresentations, videoThumbnails: [], immediateThumbnailData: nil, mimeType: mimeType, size: Int64(item.fileSize), attributes: attributes, alternativeRepresentations: [])

@@ -114,10 +114,11 @@ public enum ForkExpireTtlSettings {
 
 /// AyuGram: keep banned/kicked chats in the chat list instead of dropping them.
 public enum ForkKeepBannedChatsSettings {
-    private static let value = Atomic<Bool>(value: true)
+    private static let defaults = UserDefaults(suiteName: "group.ph.teleg.Telegrapf") ?? .standard
+    private static let key = "ForkKeepBannedChatsSettings.enabled.v1"
     public static var enabled: Bool {
-        get { return value.with { $0 } }
-        set { let _ = value.swap(newValue) }
+        get { return (defaults.object(forKey: key) as? Bool) ?? true }
+        set { defaults.set(newValue, forKey: key) }
     }
 }
 

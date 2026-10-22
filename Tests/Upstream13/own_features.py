@@ -745,7 +745,9 @@ print("File preparation: actual success/error/timeout/cancellation lifecycle pas
     def test_island_follows_the_app_icon(self):
         palette = read('submodules/TelegramPresentationData/Sources/BananaIslandPalette.swift')
         # One entry per alternate icon in the bundle, and the default icon is BlueIcon.
-        icons = sorted(name[:-len('.alticon')] for name in os.listdir(os.path.join(ROOT, 'Telegram/Telegram-iOS')) if name.endswith('.alticon'))
+        import subprocess
+        tracked = subprocess.check_output(['git', 'ls-files', 'Telegram/Telegram-iOS/*.alticon/*'], cwd=ROOT).decode().splitlines()
+        icons = sorted({path.split('/')[2][:-len('.alticon')] for path in tracked})
         for icon in icons:
             self.assertIn('"%s":' % icon, palette)
         self.assertIn('colors[iconName ?? "BlueIcon"]', palette)

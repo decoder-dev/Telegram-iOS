@@ -157,6 +157,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var confirmTelegramLinks: Bool
     /// Donutgram: ask before a tap on a previewed chat (long press in the list) opens it. Off by default.
     public var confirmChatPreviewEntry: Bool
+    public var disableGiftStarsRedirect: Bool
+    public var visualLabels: [Int64: Int32]
     public var hideStickerReplyEmoji: Bool
     public var hideStickerReplyBackground: Bool
     public var hidePremiumReplyEmoji: Bool
@@ -550,6 +552,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.confirmReactionsInUnjoinedChats = false
         self.confirmTelegramLinks = false
         self.confirmChatPreviewEntry = false
+        self.disableGiftStarsRedirect = false
+        self.visualLabels = [:]
         self.hideStickerReplyEmoji = false
         self.hideStickerReplyBackground = false
         self.hidePremiumReplyEmoji = false
@@ -723,6 +727,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.confirmReactionsInUnjoinedChats = try container.decodeIfPresent(Bool.self, forKey: "confirmReactionsInUnjoinedChats") ?? false
         self.confirmTelegramLinks = try container.decodeIfPresent(Bool.self, forKey: "confirmTelegramLinks") ?? false
         self.confirmChatPreviewEntry = try container.decodeIfPresent(Bool.self, forKey: "confirmChatPreviewEntry") ?? false
+        self.disableGiftStarsRedirect = try container.decodeIfPresent(Bool.self, forKey: "disableGiftStarsRedirect") ?? false
+        self.visualLabels = (try container.decodeIfPresent([Int64: Int32].self, forKey: "visualLabels") ?? [:]).filter { (1...4).contains($0.value) }
         self.hideStickerReplyEmoji = try container.decodeIfPresent(Bool.self, forKey: "hideStickerReplyEmoji") ?? false
         self.hideStickerReplyBackground = try container.decodeIfPresent(Bool.self, forKey: "hideStickerReplyBackground") ?? false
         self.hidePremiumReplyEmoji = try container.decodeIfPresent(Bool.self, forKey: "hidePremiumReplyEmoji") ?? false
@@ -899,6 +905,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.confirmReactionsInUnjoinedChats, forKey: "confirmReactionsInUnjoinedChats")
         try container.encode(self.confirmTelegramLinks, forKey: "confirmTelegramLinks")
         try container.encode(self.confirmChatPreviewEntry, forKey: "confirmChatPreviewEntry")
+        try container.encode(self.disableGiftStarsRedirect, forKey: "disableGiftStarsRedirect")
+        try container.encode(self.visualLabels, forKey: "visualLabels")
         try container.encode(self.hideStickerReplyEmoji, forKey: "hideStickerReplyEmoji")
         try container.encode(self.hideStickerReplyBackground, forKey: "hideStickerReplyBackground")
         try container.encode(self.hidePremiumReplyEmoji, forKey: "hidePremiumReplyEmoji")

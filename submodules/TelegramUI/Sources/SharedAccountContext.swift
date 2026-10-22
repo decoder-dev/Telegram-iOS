@@ -1263,6 +1263,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         ForkProtectedScreenshotSettings.allow = settings.allowProtectedScreenshots
         ForkExpireTtlSettings.enabled = settings.expireTtlButton
         ForkKeepBannedChatsSettings.enabled = settings.keepBannedChats
+        BananaVisualLabels.update(settings.visualLabels)
         ForkRemovePingsSettings.enabled = settings.removePings
         ForkTelegramStatisticsSettings.enabled = settings.sendTelegramStatistics
         ForkGhostScheduleSettings.enabled = settings.ghostScheduleMessages

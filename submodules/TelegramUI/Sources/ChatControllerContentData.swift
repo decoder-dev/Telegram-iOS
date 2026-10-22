@@ -56,6 +56,7 @@ extension ChatControllerImpl {
             case upgraded(EnginePeer.Id)
             case movedToForumTopics
             case dismiss
+            case bannedChat
         }
         
         struct NextChannelToRead: Equatable {
@@ -792,6 +793,15 @@ extension ChatControllerImpl {
                     } else if let previous = strongSelf.state.peerView, let secretChat = previous.peers[previous.peerId] as? TelegramSecretChat, case .active = secretChat.embeddedState, let updatedSecretChat = peerView.peers[peerView.peerId] as? TelegramSecretChat, case .terminated = updatedSecretChat.embeddedState {
                         shouldDismiss = true
                     }
+
+                    // Donutgram: a chat kept after a ban stays open and says why; any other banned chat closes as before.
+                    let isPreservedBannedChat = bananaIsPreservedBannedChat(peer: peerView.peers[peerView.peerId], groupId: peerView.groupId)
+                    if isPreservedBannedChat, shouldDismiss || strongSelf.state.peerView == nil {
+                        shouldDismiss = false
+                        strongSelf.state.performDismissAction = .bannedChat
+                    } else if !isPreservedBannedChat, case .bannedChat? = strongSelf.state.performDismissAction {
+                        strongSelf.state.performDismissAction = nil
+                    }
                     
                     var wasGroupChannel: Bool?
                     if let previousPeerView = strongSelf.state.peerView, let info = (previousPeerView.peers[previousPeerView.peerId] as? TelegramChannel)?.info {
@@ -942,7 +952,8 @@ extension ChatControllerImpl {
                     
                     var isNotAccessible: Bool = false
                     if let cachedChannelData = peerView.cachedData as? CachedChannelData {
-                        isNotAccessible = cachedChannelData.isNotAccessible
+                        // Donutgram: a chat kept after a ban shows its saved history instead of the "no access" screen.
+                        isNotAccessible = cachedChannelData.isNotAccessible && !bananaIsPreservedBannedChat(peer: peerView.peers[peerView.peerId], groupId: peerView.groupId)
                     }
                     
                     if firstTime && isNotAccessible {
@@ -1740,7 +1751,7 @@ extension ChatControllerImpl {
                         
                         var isNotAccessible: Bool = false
                         if let cachedChannelData = peerView.cachedData as? CachedChannelData {
-                            isNotAccessible = cachedChannelData.isNotAccessible
+                            isNotAccessible = cachedChannelData.isNotAccessible && !bananaIsPreservedBannedChat(peer: peerView.peers[peerView.peerId], groupId: peerView.groupId)
                         }
                         
                         if firstTime && isNotAccessible {

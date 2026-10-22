@@ -1081,7 +1081,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                                         text = presentationData.strings.Gift_Convert_Success_Text(
                                             presentationData.strings.Gift_Convert_Success_Text_Stars(Int32(clamping: convertStars))
                                         ).string
-                                        if let starsContext = context.starsContext {
+                                        if !context.sharedContext.immediateForkExtrasSettings.disableGiftStarsRedirect, let starsContext = context.starsContext {
                                             navigationController.pushViewController(
                                                 context.sharedContext.makeStarsTransactionsScreen(
                                                     context: context,

@@ -983,6 +983,7 @@ final class UniversalVideoGalleryItemNode: ZoomableContentGalleryItemNode {
     private let mediaPlaybackStateDisposable = MetaDisposable()
     
     private let fetchDisposable = MetaDisposable()
+    private let mediaClipboardDisposable = MetaDisposable()
     private var fetchStatus: MediaResourceStatus?
     private var fetchControls: FetchControls?
     
@@ -1210,6 +1211,7 @@ final class UniversalVideoGalleryItemNode: ZoomableContentGalleryItemNode {
     }
     
     deinit {
+        self.mediaClipboardDisposable.dispose()
         self.statusDisposable.dispose()
         self.moreButtonStateDisposable.dispose()
         self.defaultVideoQualityDisposable.dispose()
@@ -3868,6 +3870,24 @@ final class UniversalVideoGalleryItemNode: ZoomableContentGalleryItemNode {
                     })))
                 }
                 
+                if let (message, file, _) = strongSelf.contentInfo(), let file, !message.isCopyProtected() && !item.peerIsCopyProtected && message.paidContent == nil {
+                    let context = strongSelf.context
+                    items.append(.action(ContextMenuActionItem(text: (strongSelf.presentationData.strings.primaryComponent.languageCode.hasPrefix("ru") ? "Копировать кадр" : "Copy frame"), icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Copy"), color: theme.actionSheet.primaryTextColor) }, action: { [weak self] _, f in
+                        f(.default)
+                        guard let self else {
+                            return
+                        }
+                        self.mediaClipboardDisposable.set((bananaMediaClipboardImage(context: context, mediaReference: .message(message: MessageReference(message), media: file), timestamp: self.playerStatusValue?.timestamp ?? 0.0)
+                        |> deliverOnMainQueue).start(next: { [weak self] image in
+                            guard let self, let controller = self.galleryController(), let image else {
+                                return
+                            }
+                            UIPasteboard.general.image = image
+                            controller.present(UndoOverlayController(presentationData: self.presentationData, content: .copy(text: (self.presentationData.strings.primaryComponent.languageCode.hasPrefix("ru") ? "Кадр скопирован" : "Frame copied")), elevatedLayout: false, animateInAsReplacement: false, action: { _ in return false }), in: .window(.root))
+                        }))
+                    })))
+                }
+
                 if !items.isEmpty {
                     items.append(.separator)
                 }

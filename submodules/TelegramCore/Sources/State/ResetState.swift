@@ -18,7 +18,12 @@ func _internal_resetAccountState(postbox: Postbox, network: Network, accountPeer
             return withResolvedAssociatedMessages(postbox: postbox, source: .network(network), accountPeerId: accountPeerId, parsedPeers: fetchedChats.peers, storeMessages: fetchedChats.storeMessages, resolveThreads: false, { transaction, additionalPeers, additionalMessages -> Void in
                 let previousPeerIds = transaction.chatListGetAllPeerIds()
                 Logger.shared.log("ChatListSync", "Resetting dialog index: previous=\(previousPeerIds.count) firstPage=\(fetchedChats.chatPeerIds.count) hasMore=\(fetchedChats.lowerNonPinnedIndex != nil)")
+                var preservedBannedChats: [(PeerId, PeerChatListInclusion)] = []
                 for peerId in previousPeerIds {
+                    if bananaIsPreservedBannedChat(transaction: transaction, peerId: peerId) {
+                        preservedBannedChats.append((peerId, transaction.getPeerChatListInclusion(peerId)))
+                        continue
+                    }
                     if peerId.namespace != Namespaces.Peer.SecretChat {
                         transaction.updatePeerChatListInclusion(peerId, inclusion: .notIncluded)
                     }
@@ -42,6 +47,12 @@ func _internal_resetAccountState(postbox: Postbox, network: Network, accountPeer
                 
                 transaction.removeAllChatListEntries(groupId: .root, exceptPeerNamespace: Namespaces.Peer.SecretChat)
                 transaction.removeAllChatListEntries(groupId: .group(1), exceptPeerNamespace: Namespaces.Peer.SecretChat)
+
+                for (peerId, inclusion) in preservedBannedChats {
+                    // Force a fresh list entry after the server's dialog list was replaced.
+                    transaction.updatePeerChatListInclusion(peerId, inclusion: .notIncluded)
+                    transaction.updatePeerChatListInclusion(peerId, inclusion: inclusion)
+                }
                 
                 updatePeers(transaction: transaction, accountPeerId: accountPeerId, peers: fetchedChats.peers.union(with: additionalPeers))
                 _internal_applyFetchedChatInputStates(transaction: transaction, accountPeerId: accountPeerId, inputStates: fetchedChats.inputStates)
@@ -126,7 +137,7 @@ func _internal_resetAccountState(postbox: Postbox, network: Network, accountPeer
                 }
                 
                 if let replacePinnedItemIds = fetchedChats.pinnedItemIds {
-                    transaction.setPinnedItemIds(groupId: .root, itemIds: replacePinnedItemIds.map(PinnedItemId.peer))
+                    transaction.setPinnedItemIds(groupId: .root, itemIds: bananaKeepingPinnedBannedChats(transaction: transaction, currentItemIds: transaction.getPinnedItemIds(groupId: .root), itemIds: replacePinnedItemIds.map(PinnedItemId.peer)))
                 }
                 
                 for (peerId, summary) in fetchedChats.mentionTagSummaries {

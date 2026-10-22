@@ -493,6 +493,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         case verified
         case fake
         case scam
+        case localText(String)
         case emojiStatus(PeerEmojiStatus)
     }
     
@@ -501,6 +502,21 @@ final class PeerInfoHeaderNode: ASDisplayNode {
     private var currentStatusIcon: CredibilityIcon?
     
     private var currentPanelStatusData: PeerInfoStatusData?
+
+    /// The account's local label where Telegram draws marks next to the account's own name, its profile and the
+    /// settings header, and not in the Saved Messages profile, which stock leaves without marks.
+    private func bananaVisualLabel(peer: EnginePeer) -> BananaVisualLabel? {
+        guard peer.id == self.context.account.peerId, self.isSettings || self.isMyProfile else {
+            return nil
+        }
+        switch BananaVisualLabels.label(accountId: peer.id.toInt64()) {
+        case .none:
+            return nil
+        case let label:
+            return label
+        }
+    }
+
     func update(width: CGFloat, containerHeight: CGFloat, containerInset: CGFloat, statusBarHeight: CGFloat, navigationHeight: CGFloat, presentedInFormSheet: Bool, isMediaOnly: Bool, contentOffset: CGFloat, paneContainerY: CGFloat, presentationData: PresentationData, peer: EnginePeer?, cachedData: EngineCachedPeerData?, threadData: MessageHistoryThreadData?, peerNotificationSettings: TelegramPeerNotificationSettings?, threadNotificationSettings: TelegramPeerNotificationSettings?, globalNotificationSettings: EngineGlobalNotificationSettings?, statusData: PeerInfoStatusData?, panelStatusData: (PeerInfoStatusData?, PeerInfoStatusData?, CGFloat?), isSecretChat: Bool, isContact: Bool, isSettings: Bool, state: PeerInfoState, profileGiftsContext: ProfileGiftsContext?, screenData: PeerInfoScreenData?, isSearching: Bool, metrics: LayoutMetrics, deviceMetrics: DeviceMetrics, transition: ContainedViewLayoutTransition, additive: Bool, animateHeader: Bool) -> CGFloat {
         if self.appliedCustomNavigationContentNode !== self.customNavigationContentNode {
             if let previous = self.appliedCustomNavigationContentNode {
@@ -622,6 +638,14 @@ final class PeerInfoHeaderNode: ASDisplayNode {
             }
             if peer.isVerified && !BananaIdentityBadges.hidesVerification {
                 credibilityIcon = .verified
+            }
+            if let label = self.bananaVisualLabel(peer: peer) {
+                switch label {
+                case .scam: credibilityIcon = .scam
+                case .fake: credibilityIcon = .fake
+                default: credibilityIcon = .localText(label.badgeText)
+                }
+                statusIcon = .none
             }
             if !BananaIdentityBadges.hidesVerification, let verificationIconFileId = peer.verificationIconFileId {
                 verifiedIcon = .emojiStatus(PeerEmojiStatus(content: .emoji(fileId: verificationIconFileId), expirationDate: nil))
@@ -933,6 +957,9 @@ final class PeerInfoHeaderNode: ASDisplayNode {
             case .scam:
                 emojiRegularStatusContent = .text(color: presentationData.theme.chat.message.incoming.scamColor, string: presentationData.strings.Message_ScamAccount.uppercased())
                 emojiExpandedStatusContent = emojiRegularStatusContent
+            case let .localText(text):
+                emojiRegularStatusContent = .text(color: presentationData.theme.list.itemAccentColor, string: text)
+                emojiExpandedStatusContent = emojiRegularStatusContent
             case let .emojiStatus(emojiStatus):
                 currentEmojiStatus = emojiStatus
                 emojiRegularStatusContent = .animation(content: .customEmoji(fileId: emojiStatus.fileId), size: CGSize(width: 80.0, height: 80.0), placeholderColor: presentationData.theme.list.mediaPlaceholderColor, themeColor: navigationContentsAccentColor, loopMode: .forever)
@@ -1205,6 +1232,9 @@ final class PeerInfoHeaderNode: ASDisplayNode {
             isPremium = peer.isPremium
             isVerified = peer.isVerified
             isFake = peer.isFake || peer.isScam
+            if self.bananaVisualLabel(peer: peer) != nil {
+                isFake = true
+            }
         }
         
         let titleShadowColor: UIColor? = nil
