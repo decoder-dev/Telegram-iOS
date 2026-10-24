@@ -309,6 +309,7 @@ public final class ChatListHeaderComponent: Component {
                     strings: component.strings,
                     title: chatListTitle,
                     sideContentFraction: isSecondary ? 0.0 : (1.0 - component.storiesFraction),
+                    centered: component.centeredTitle,
                     openStatusSetup: component.openStatusSetup,
                     toggleIsLocked: component.toggleIsLocked
                 )))
