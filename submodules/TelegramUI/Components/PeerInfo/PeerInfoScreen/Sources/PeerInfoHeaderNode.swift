@@ -2190,7 +2190,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         let apparentHeight = backgroundHeight
         let apparentBackgroundHeight = backgroundHeight
         
-        if !titleSize.width.isZero && !titleSize.height.isZero {
+        do {
             let titleScale: CGFloat
             let subtitleScale: CGFloat
             var subtitleOffset: CGFloat = 0.0

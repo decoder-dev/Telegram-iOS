@@ -42,7 +42,7 @@ class DonutChatFeatures(unittest.TestCase):
         self.assertIn('return self.locked { self.commaAfterMentionValue && !isBot ? ", " : " " }', arena)
         text_format = read('submodules/ChatPresentationInterfaceState/Sources/ChatTextFormat.swift')
         self.assertIn('let mentionSuffix = ArenaSettings.shared.mentionSuffix(isBot: isBot)', text_format)
-        self.assertIn('let replacementText = "@\\(addressName)\\(mentionSuffix)"', text_format)
+        self.assertIn('return NSAttributedString(string: "@\\(addressName)\\(mentionSuffix)")', text_format)
         panel = read('submodules/TelegramUI/Sources/MentionChatInputContextPanelNode.swift')
         self.assertIn('let mentionSuffix = ArenaSettings.shared.mentionSuffix(isBot: isBot)', panel)
         self.assertIn('replacingFlatRange(range, with: addressName + mentionSuffix)', panel)
