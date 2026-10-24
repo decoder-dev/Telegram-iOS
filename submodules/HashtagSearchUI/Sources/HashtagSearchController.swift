@@ -59,7 +59,7 @@ public final class HashtagSearchController: TelegramBaseController {
         }
         self.presentationData = presentationData
         
-        super.init(context: context, navigationBarPresentationData: NavigationBarPresentationData(presentationData: self.presentationData, hideBackground: true, hideBadge: false, hideSeparator: true, style: .legacy))
+        super.init(context: context, navigationBarPresentationData: NavigationBarPresentationData(presentationData: self.presentationData, hideBackground: true, hideBadge: false))
         
         self.statusBar.statusBarStyle = self.presentationData.theme.rootController.statusBarStyle.style
         
@@ -87,7 +87,7 @@ public final class HashtagSearchController: TelegramBaseController {
                 if previousTheme !== presentationData.theme || previousStrings !== presentationData.strings {
                     self.statusBar.statusBarStyle = self.presentationData.theme.rootController.statusBarStyle.style
                     
-                    self.navigationBar?.updatePresentationData(NavigationBarPresentationData(presentationData: self.presentationData, hideBackground: true, hideBadge: false, hideSeparator: true, style: .legacy), transition: .immediate)
+                    self.navigationBar?.updatePresentationData(NavigationBarPresentationData(presentationData: self.presentationData, hideBackground: true, hideBadge: false), transition: .immediate)
                     self.controllerNode.updatePresentationData(self.presentationData)
                 }
             }

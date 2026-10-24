@@ -170,7 +170,7 @@ public class ItemListMultilineTextItemNode: ListViewItemNode {
             
             let textColor: UIColor = item.presentationData.theme.list.itemPrimaryTextColor
             
-            let leftInset: CGFloat
+            let leftInset: CGFloat = 16.0 + params.leftInset
             let rightInset: CGFloat = 16.0 + params.rightInset
             let itemBackgroundColor: UIColor
             let itemSeparatorColor: UIColor
@@ -179,11 +179,9 @@ public class ItemListMultilineTextItemNode: ListViewItemNode {
                 case .plain:
                     itemBackgroundColor = item.presentationData.theme.list.plainBackgroundColor
                     itemSeparatorColor = item.presentationData.theme.list.itemPlainSeparatorColor
-                    leftInset = 16.0 + params.leftInset
                 case .blocks:
                     itemBackgroundColor = item.presentationData.theme.list.itemBlocksBackgroundColor
                     itemSeparatorColor = item.presentationData.theme.list.itemBlocksSeparatorColor
-                    leftInset = 16.0 + params.leftInset
             }
             
             let fontSize = item.presentationData.fontSize.itemListBaseFontSize
@@ -298,7 +296,7 @@ public class ItemListMultilineTextItemNode: ListViewItemNode {
                         strongSelf.maskNode.image = hasCorners ? PresentationResourcesItemList.cornersImage(item.presentationData.theme, top: hasTopCorners, bottom: hasBottomCorners) : nil
                         
                         strongSelf.backgroundNode.frame = CGRect(origin: CGPoint(x: 0.0, y: -min(insets.top, separatorHeight)), size: CGSize(width: params.width, height: contentSize.height + min(insets.top, separatorHeight) + min(insets.bottom, separatorHeight)))
-                        strongSelf.maskNode.frame = strongSelf.backgroundNode.frame.insetBy(dx: params.leftInset, dy: 0.0)
+                        strongSelf.maskNode.frame = strongSelf.backgroundNode.frame.inset(by: UIEdgeInsets(top: 0.0, left: params.leftInset, bottom: 0.0, right: params.rightInset))
                         strongSelf.topStripeNode.frame = CGRect(origin: CGPoint(x: 0.0, y: -min(insets.top, separatorHeight)), size: CGSize(width: layoutSize.width, height: separatorHeight))
                         strongSelf.bottomStripeNode.frame = CGRect(origin: CGPoint(x: bottomStripeInset, y: contentSize.height + bottomStripeOffset), size: CGSize(width: layoutSize.width - bottomStripeInset, height: separatorHeight))
                     }

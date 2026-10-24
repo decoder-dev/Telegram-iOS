@@ -3,7 +3,7 @@ import Postbox
 import SwiftSignalKit
 import MtProtoKit
 import RangeSet
-import TelegramApi
+internal import TelegramApi
 
 /// Whether to log one line per fetched part, on top of the per-fetch lifecycle lines.
 ///

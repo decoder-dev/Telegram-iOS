@@ -104,7 +104,7 @@ final class StoryItemImageView: UIView {
                         }
                         
                         if let peerReference = PeerReference(peer) {
-                            self.fetchDisposable = fetchedMediaResource(mediaBox: context.account.postbox.mediaBox, userLocation: .peer(peer.id), userContentType: .story, reference: .media(media: .story(peer: peerReference, id: storyId, media: media._asMedia()), resource: representation.resource), ranges: nil).start()
+                            self.fetchDisposable = context.engine.resources.fetch(reference: .media(media: .story(peer: peerReference, id: storyId, media: media._asMedia()), resource: representation.resource), userLocation: .peer(peer.id), userContentType: .story, ranges: nil).start()
                         }
                         self.disposable = (context.engine.resources.data(resource: EngineMediaResource(representation.resource))
                         |> map { result -> UIImage? in
@@ -143,7 +143,7 @@ final class StoryItemImageView: UIView {
             dimensions = file.dimensions?.cgSize
             
             if isMediaUpdated {
-                let cachedPath = context.account.postbox.mediaBox.cachedRepresentationCompletePath(file.resource.id, representation: CachedVideoFirstFrameRepresentation())
+                let cachedPath = context.engine.resources.cachedRepresentationCompletePath(id: EngineMediaResource.Id(file.resource.id), representation: CachedVideoFirstFrameRepresentation())
                 
                 if attemptSynchronous, FileManager.default.fileExists(atPath: cachedPath) {
                     if #available(iOS 15.0, *) {
@@ -164,7 +164,7 @@ final class StoryItemImageView: UIView {
                         }
                     }
                     
-                    let fullSize = context.account.postbox.mediaBox.cachedResourceRepresentation(file.resource, representation: CachedVideoFirstFrameRepresentation(), complete: true, fetch: true, attemptSynchronously: false)
+                    let fullSize = context.engine.resources.cachedRepresentation(resource: EngineMediaResource(file.resource), representation: CachedVideoFirstFrameRepresentation(), complete: true, fetch: true, attemptSynchronously: false)
                     var previewSize: Signal<EngineMediaResource.ResourceData?, NoError> = .single(nil)
                     if let representation = file.previewRepresentations.first {
                         previewSize = context.engine.resources.data(resource: EngineMediaResource(representation.resource))
@@ -176,7 +176,7 @@ final class StoryItemImageView: UIView {
                         previewSize
                     )
                     |> map { result, previewResult -> UIImage? in
-                        if result.complete {
+                        if result.isComplete {
                             if #available(iOS 15.0, *) {
                                 if let image = UIImage(contentsOfFile: result.path)?.preparingForDisplay() {
                                     return image

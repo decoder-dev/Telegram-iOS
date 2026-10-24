@@ -1,6 +1,5 @@
 import Foundation
 import AsyncDisplayKit
-import Postbox
 import TelegramCore
 import SwiftSignalKit
 import Display
@@ -198,11 +197,11 @@ public final class PresentationCallManagerImpl: PresentationCallManager {
         }
         
         self.ringingStatesDisposable = (combineLatest(ringingStatesByAccount, enableCallKit, enabledMicrophoneAccess)
-        |> mapToSignal { ringingStatesByAccount, enableCallKit, enabledMicrophoneAccess -> Signal<([(AccountContext, Peer, CallSessionRingingState, Bool, NetworkType, Bool)], Bool), NoError> in
+        |> mapToSignal { ringingStatesByAccount, enableCallKit, enabledMicrophoneAccess -> Signal<([(AccountContext, EnginePeer, CallSessionRingingState, Bool, NetworkType, Bool)], Bool), NoError> in
             if ringingStatesByAccount.isEmpty {
                 return .single(([], enableCallKit && enabledMicrophoneAccess))
             } else {
-                return combineLatest(ringingStatesByAccount.map { context, state, networkType -> Signal<(AccountContext, Peer, CallSessionRingingState, Bool, NetworkType, Bool)?, NoError> in
+                return combineLatest(ringingStatesByAccount.map { context, state, networkType -> Signal<(AccountContext, EnginePeer, CallSessionRingingState, Bool, NetworkType, Bool)?, NoError> in
                     return combineLatest(
                         context.engine.data.get(
                             TelegramEngine.EngineData.Item.Peer.Peer(id: state.peerId),
@@ -212,15 +211,15 @@ public final class PresentationCallManagerImpl: PresentationCallManager {
                             return archiveNotificationShouldRedact(transaction: transaction, peerId: state.peerId)
                         }
                     )
-                    |> map { peerAndContact, shouldRedact -> (AccountContext, Peer, CallSessionRingingState, Bool, NetworkType, Bool)? in
+                    |> map { peerAndContact, shouldRedact -> (AccountContext, EnginePeer, CallSessionRingingState, Bool, NetworkType, Bool)? in
                         if let peer = peerAndContact.0 {
-                            return (context, peer._asPeer(), state, peerAndContact.1, networkType, shouldRedact)
+                            return (context, peer, state, peerAndContact.1, networkType, shouldRedact)
                         } else {
                             return nil
                         }
                     }
                 })
-                |> map { ringingStatesByAccount -> ([(AccountContext, Peer, CallSessionRingingState, Bool, NetworkType, Bool)], Bool) in
+                |> map { ringingStatesByAccount -> ([(AccountContext, EnginePeer, CallSessionRingingState, Bool, NetworkType, Bool)], Bool) in
                     return (ringingStatesByAccount.compactMap({ $0 }), enableCallKit && enabledMicrophoneAccess)
                 }
             }
@@ -234,11 +233,11 @@ public final class PresentationCallManagerImpl: PresentationCallManager {
                 return .single(false)
             }
             
-            var peerId: PeerId?
+            var peerId: EnginePeer.Id?
             if let maybePeerId = maybePeerId {
                 peerId = maybePeerId
             } else if let userId = Int64(handle) {
-                peerId = PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(userId))
+                peerId = EnginePeer.Id(namespace: Namespaces.Peer.CloudUser, id: EnginePeer.Id.Id._internalFromInt64Value(userId))
             }
             guard let peerId = peerId else {
                 return .single(false)
@@ -336,7 +335,7 @@ public final class PresentationCallManagerImpl: PresentationCallManager {
         self.isConferenceReadyDisposable?.dispose()
     }
     
-    private func ringingStatesUpdated(_ ringingStates: [(AccountContext, Peer, CallSessionRingingState, Bool, NetworkType, Bool)], enableCallKit: Bool) {
+    private func ringingStatesUpdated(_ ringingStates: [(AccountContext, EnginePeer, CallSessionRingingState, Bool, NetworkType, Bool)], enableCallKit: Bool) {
         for (context, _, state, _, _, shouldRedact) in ringingStates {
             if shouldRedact {
                 // Same drop as the PushKit path: never create in-app call UI (name/avatar)
@@ -381,7 +380,7 @@ public final class PresentationCallManagerImpl: PresentationCallManager {
                         peerId: firstState.2.peerId,
                         isOutgoing: false,
                         incomingConferenceSource: firstState.2.conferenceSource,
-                        peer: EnginePeer(firstState.1),
+                        peer: firstState.1,
                         proxyServer: strongSelf.resolvedCallProxyServer(),
                         auxiliaryServers: [],
                         currentNetworkType: firstState.4,
@@ -430,7 +429,7 @@ public final class PresentationCallManagerImpl: PresentationCallManager {
                         peerId: firstState.2.peerId,
                         isOutgoing: false,
                         incomingConferenceSource: firstState.2.conferenceSource,
-                        peer: EnginePeer(firstState.1),
+                        peer: firstState.1,
                         proxyServer: strongSelf.resolvedCallProxyServer(),
                         auxiliaryServers: [],
                         currentNetworkType: firstState.4,
@@ -456,7 +455,7 @@ public final class PresentationCallManagerImpl: PresentationCallManager {
         }
     }
     
-    public func requestCall(context: AccountContext, peerId: PeerId, isVideo: Bool, endCurrentIfAny: Bool) -> RequestCallResult {
+    public func requestCall(context: AccountContext, peerId: EnginePeer.Id, isVideo: Bool, endCurrentIfAny: Bool) -> RequestCallResult {
         var alreadyInCallType: CallAlreadyInProgressType?
         
         if let call = self.currentCall {
@@ -511,11 +510,11 @@ public final class PresentationCallManagerImpl: PresentationCallManager {
                 |> runOn(Queue.mainQueue())
                 let postbox = context.account.postbox
                 strongSelf.startCallDisposable.set((accessEnabledSignal
-                |> mapToSignal { accessEnabled -> Signal<(Peer?, String?), NoError> in
+                |> mapToSignal { accessEnabled -> Signal<(EnginePeer?, String?), NoError> in
                     if !accessEnabled {
                         return .single((nil, nil))
                     }
-                    return postbox.transaction { transaction -> (Peer?, String?) in
+                    return postbox.transaction { transaction -> (EnginePeer?, String?) in
                         var foundLocalId: String?
                         transaction.enumerateDeviceContactImportInfoItems({ _, value in
                             if let value = value as? TelegramDeviceContactImportedData {
@@ -532,7 +531,7 @@ public final class PresentationCallManagerImpl: PresentationCallManager {
                             return true
                         })
                         
-                        return (transaction.getPeer(peerId), foundLocalId)
+                        return (transaction.getPeer(peerId).flatMap(EnginePeer.init), foundLocalId)
                     }
                 }
                 |> deliverOnMainQueue).start(next: { peer, localContactId in
@@ -540,7 +539,7 @@ public final class PresentationCallManagerImpl: PresentationCallManager {
                         return
                     }
                     var phoneNumber: String?
-                    if let peer = peer as? TelegramUser, let phone = peer.phone {
+                    if case let .user(peer) = peer, let phone = peer.phone {
                         phoneNumber = formatPhoneNumber(context: context, number: phone)
                     }
                     strongSelf.callKitIntegration?.startCall(context: context, peerId: peerId, phoneNumber: phoneNumber, localContactId: localContactId, isVideo: isVideo, displayTitle: peer.debugDisplayTitle, failed: { [weak self] in
@@ -616,7 +615,7 @@ public final class PresentationCallManagerImpl: PresentationCallManager {
     
     private func startCall(
         context: AccountContext,
-        peerId: PeerId,
+        peerId: EnginePeer.Id,
         isVideo: Bool,
         internalId: CallSessionInternalId = CallSessionInternalId(),
         bypassCallKit: Bool = false
@@ -872,7 +871,7 @@ public final class PresentationCallManagerImpl: PresentationCallManager {
         }
     }
     
-    private func requestScheduleGroupCall(accountContext: AccountContext, peerId: PeerId, internalId: CallSessionInternalId = CallSessionInternalId(), parentController: ViewController) -> Signal<Bool, NoError> {
+    private func requestScheduleGroupCall(accountContext: AccountContext, peerId: EnginePeer.Id, internalId: CallSessionInternalId = CallSessionInternalId(), parentController: ViewController) -> Signal<Bool, NoError> {
         let (presentationData, present, openSettings) = self.getDeviceAccessData()
         
         let isVideo = false
@@ -958,7 +957,7 @@ public final class PresentationCallManagerImpl: PresentationCallManager {
         }
     }
     
-    public func scheduleGroupCall(context: AccountContext, peerId: PeerId, endCurrentIfAny: Bool, parentController: ViewController) -> RequestScheduleGroupCallResult {
+    public func scheduleGroupCall(context: AccountContext, peerId: EnginePeer.Id, endCurrentIfAny: Bool, parentController: ViewController) -> RequestScheduleGroupCallResult {
         let begin: () -> Void = { [weak self, weak parentController] in
             guard let parentController else {
                 return
@@ -1008,7 +1007,7 @@ public final class PresentationCallManagerImpl: PresentationCallManager {
         return .success
     }
     
-    public func joinGroupCall(context: AccountContext, peerId: PeerId, invite: String?, requestJoinAsPeerId: ((@escaping (PeerId?) -> Void) -> Void)?, initialCall: EngineGroupCallDescription, endCurrentIfAny: Bool) -> JoinGroupCallManagerResult {
+    public func joinGroupCall(context: AccountContext, peerId: EnginePeer.Id, invite: String?, requestJoinAsPeerId: ((@escaping (EnginePeer.Id?) -> Void) -> Void)?, initialCall: EngineGroupCallDescription, endCurrentIfAny: Bool) -> JoinGroupCallManagerResult {
         let begin: () -> Void = { [weak self] in
             if let requestJoinAsPeerId = requestJoinAsPeerId, (initialCall.isStream == nil || initialCall.isStream == false) {
                 requestJoinAsPeerId({ joinAsPeerId in
@@ -1069,9 +1068,9 @@ public final class PresentationCallManagerImpl: PresentationCallManager {
     
     private func startGroupCall(
         accountContext: AccountContext,
-        peerId: PeerId,
+        peerId: EnginePeer.Id,
         invite: String?,
-        joinAsPeerId: PeerId?,
+        joinAsPeerId: EnginePeer.Id?,
         initialCall: EngineGroupCallDescription,
         internalId: CallSessionInternalId = CallSessionInternalId()
     ) -> Signal<Bool, NoError> {

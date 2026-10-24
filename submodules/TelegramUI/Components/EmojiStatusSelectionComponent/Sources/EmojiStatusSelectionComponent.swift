@@ -104,6 +104,9 @@ public final class EmojiStatusSelectionComponent: Component {
     public let bottomDockStyle: BottomDockStyle?
     public let hideTopPanelUpdated: (Bool, ComponentTransition) -> Void
     public let dismiss: (() -> Void)?
+    public let externalTintMaskContainer: UIView?
+    public let contentFadeHeight: CGFloat?
+    public let keepsTopPanelVisible: Bool
     
     public init(
         theme: PresentationTheme,
@@ -117,6 +120,9 @@ public final class EmojiStatusSelectionComponent: Component {
         disableTopPanel: Bool,
         bottomDockStyle: BottomDockStyle? = nil,
         hideTopPanelUpdated: @escaping (Bool, ComponentTransition) -> Void,
+        externalTintMaskContainer: UIView? = nil,
+        contentFadeHeight: CGFloat? = nil,
+        keepsTopPanelVisible: Bool = false,
         dismiss: (() -> Void)? = nil
     ) {
         self.theme = theme
@@ -131,6 +137,9 @@ public final class EmojiStatusSelectionComponent: Component {
         self.bottomDockStyle = bottomDockStyle
         self.hideTopPanelUpdated = hideTopPanelUpdated
         self.dismiss = dismiss
+        self.externalTintMaskContainer = externalTintMaskContainer
+        self.contentFadeHeight = contentFadeHeight
+        self.keepsTopPanelVisible = keepsTopPanelVisible
     }
     
     public static func ==(lhs: EmojiStatusSelectionComponent, rhs: EmojiStatusSelectionComponent) -> Bool {
@@ -164,12 +173,19 @@ public final class EmojiStatusSelectionComponent: Component {
         if lhs.bottomDockStyle != rhs.bottomDockStyle {
             return false
         }
+        if lhs.contentFadeHeight != rhs.contentFadeHeight {
+            return false
+        }
+        if lhs.keepsTopPanelVisible != rhs.keepsTopPanelVisible {
+            return false
+        }
         return true
     }
     
     public final class View: UIView {
         private let keyboardView: ComponentView<Empty>
         private let keyboardClippingView: UIView
+        private var contentFadeMask: CAGradientLayer?
         private let panelHostView: PagerExternalTopPanelContainer
         private let panelBackgroundView: BlurredBackgroundView
         private let panelSeparatorView: UIView
@@ -327,7 +343,7 @@ public final class EmojiStatusSelectionComponent: Component {
                     defaultToEmojiTab: true,
                     externalTopPanelContainer: self.panelHostView,
                     externalBottomPanelContainer: nil,
-                    externalTintMaskContainer: nil,
+                    externalTintMaskContainer: component.externalTintMaskContainer,
                     displayTopPanelBackground: .blur,
                     topPanelExtensionUpdated: { _, _ in },
                     topPanelScrollingOffset: { _, _ in },
@@ -351,7 +367,8 @@ public final class EmojiStatusSelectionComponent: Component {
                     clipContentToTopPanel: false,
                     useExternalSearchContainer: false,
                     hidePanels: component.disableTopPanel,
-                    customTintColor: component.color
+                    customTintColor: component.color,
+                    alwaysShowsTopPanel: component.keepsTopPanelVisible
                 )),
                 environment: {},
                 forceUpdate: forceUpdate, 
@@ -362,10 +379,37 @@ public final class EmojiStatusSelectionComponent: Component {
                     self.keyboardClippingView.addSubview(keyboardComponentView)
                 }
                 
-                if dock != nil || panelBackgroundColor.alpha < 0.01 {
+                if dock != nil {
+                    if self.contentFadeMask != nil {
+                        self.contentFadeMask = nil
+                        self.keyboardClippingView.layer.mask = nil
+                    }
                     self.keyboardClippingView.clipsToBounds = true
-                } else {
+                } else if panelBackgroundColor.alpha < 0.01, let fadeHeight = component.contentFadeHeight {
                     self.keyboardClippingView.clipsToBounds = false
+                    let fadeMask: CAGradientLayer
+                    if let current = self.contentFadeMask {
+                        fadeMask = current
+                    } else {
+                        fadeMask = CAGradientLayer()
+                        fadeMask.colors = [UIColor.clear.cgColor, UIColor.black.cgColor, UIColor.black.cgColor]
+                        fadeMask.startPoint = CGPoint(x: 0.5, y: 0.0)
+                        fadeMask.endPoint = CGPoint(x: 0.5, y: 1.0)
+                        self.contentFadeMask = fadeMask
+                        self.keyboardClippingView.layer.mask = fadeMask
+                    }
+                    let maskHeight = max(1.0, availableSize.height - topPanelHeight)
+                    CATransaction.begin()
+                    CATransaction.setDisableActions(true)
+                    fadeMask.frame = CGRect(origin: CGPoint(), size: CGSize(width: availableSize.width, height: maskHeight))
+                    fadeMask.locations = [0.0, NSNumber(value: Double(min(1.0, fadeHeight / maskHeight))), 1.0]
+                    CATransaction.commit()
+                } else {
+                    if self.contentFadeMask != nil {
+                        self.contentFadeMask = nil
+                        self.keyboardClippingView.layer.mask = nil
+                    }
+                    self.keyboardClippingView.clipsToBounds = panelBackgroundColor.alpha < 0.01
                 }
                 
                 transition.setFrame(view: self.keyboardClippingView, frame: CGRect(origin: CGPoint(x: 0.0, y: headerHeight + topPanelHeight), size: CGSize(width: contentSize.width, height: max(0.0, contentSize.height - topPanelHeight))))
@@ -1193,7 +1237,11 @@ public final class EmojiStatusSelectionController: ViewController {
                 transition = ComponentTransition(animation: .curve(duration: 0.4, curve: .spring)).withUserData(contentAnimation)
             }
             
-            var componentWidth = layout.size.width - sideInset * 2.0
+            // iPhone Duo: the panel fits the band beside the side strip, clear of the strip's status corner. With equal
+            // side insets the band is the whole width, as before.
+            let stripInsetLeft: CGFloat = layout.safeInsets.left != layout.safeInsets.right ? layout.safeInsets.left : 0.0
+            let stripInsetRight: CGFloat = layout.safeInsets.left != layout.safeInsets.right ? layout.safeInsets.right : 0.0
+            var componentWidth = layout.size.width - stripInsetLeft - stripInsetRight - sideInset * 2.0
             let nativeItemSize: CGFloat = 40.0
             let minSpacing: CGFloat = 9.0
             let itemsPerRow = Int((componentWidth + minSpacing) / (nativeItemSize + minSpacing))
@@ -1245,13 +1293,22 @@ public final class EmojiStatusSelectionController: ViewController {
                     sourceOrigin = CGPoint(x: layout.size.width / 2.0, y: floor(layout.size.height / 2.0 - componentSize.height))
                 }
                 
+                // Centred on the screen while that keeps it in the band (iPhone Duo: beside the side strip).
+                var componentX = floor((layout.size.width - componentSize.width) / 2.0)
+                if componentX + componentSize.width > layout.size.width - stripInsetRight - sideInset {
+                    componentX = layout.size.width - stripInsetRight - sideInset - componentSize.width
+                }
+                if componentX < stripInsetLeft + sideInset {
+                    componentX = stripInsetLeft + sideInset
+                }
+                
                 var componentFrame: CGRect
                 let pointsToTop: Bool
                 if sourceOrigin.y + 5.0 + componentSize.height > layout.size.height - layout.insets(options: []).bottom {
-                    componentFrame = CGRect(origin: CGPoint(x: floor((layout.size.width - componentSize.width) / 2.0), y: sourceOrigin.y - 25.0 - componentSize.height), size: componentSize)
+                    componentFrame = CGRect(origin: CGPoint(x: componentX, y: sourceOrigin.y - 25.0 - componentSize.height), size: componentSize)
                     pointsToTop = false
                 } else {
-                    componentFrame = CGRect(origin: CGPoint(x: floor((layout.size.width - componentSize.width) / 2.0), y: sourceOrigin.y + 5.0), size: componentSize)
+                    componentFrame = CGRect(origin: CGPoint(x: componentX, y: sourceOrigin.y + 5.0), size: componentSize)
                     pointsToTop = true
                 }
                 if componentFrame.minY < layout.insets(options: [.statusBar]).top {
@@ -1359,7 +1416,7 @@ public final class EmojiStatusSelectionController: ViewController {
                         strings: self.presentationData.strings,
                         dateTimeFormat: self.presentationData.dateTimeFormat,
                         bottomInset: layout.insets(options: []).bottom,
-                        screenCornerRadius: layout.deviceMetrics.screenCornerRadius,
+                        screenCornerRadii: layout.screenCornerRadii,
                         item: EmojiStatusComponent(
                             context: self.context,
                             animationCache: self.context.animationCache,

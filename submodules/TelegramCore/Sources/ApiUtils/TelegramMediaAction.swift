@@ -1,12 +1,10 @@
 import Foundation
 import Postbox
-import TelegramApi
+internal import TelegramApi
 
 
 func telegramMediaActionFromApiAction(_ action: Api.MessageAction) -> TelegramMediaAction? {
     switch action {
-    case let .messageActionWalletTonConnectRequest(data):
-        return TelegramMediaAction(action: .walletTonConnectRequest(flags: data.flags, sessionId: data.sessionId, expires: data.expires, topic: data.topic, traceId: data.traceId, dappName: data.dappName))
     case let .messageActionChannelCreate(messageActionChannelCreateData):
         let title = messageActionChannelCreateData.title
         return TelegramMediaAction(action: .groupCreated(title: title))
@@ -389,13 +387,17 @@ func telegramMediaActionFromApiAction(_ action: Api.MessageAction) -> TelegramMe
         return TelegramMediaAction(action: .pollOptionAppended(TelegramMediaPollOption(apiOption: messageActionPollAppendAnswerData.answer)))
     case let .messageActionPollDeleteAnswer(messageActionPollDeleteAnswerData):
         return TelegramMediaAction(action: .pollOptionDeleted(TelegramMediaPollOption(apiOption: messageActionPollDeleteAnswerData.answer)))
-    case let .messageActionChatJoinedViaCommunity(value):
-        return TelegramMediaAction(action: .joinedViaCommunity(communityId: PeerId(namespace: Namespaces.Peer.CloudChannel, id: PeerId.Id._internalFromInt64Value(value.communityId))))
     case let .messageActionChangeCommunity(messageActionChangeCommunityData):
         let communityId = messageActionChangeCommunityData.communityId.flatMap {
             PeerId(namespace: Namespaces.Peer.CloudChannel, id: PeerId.Id._internalFromInt64Value($0))
         }
         return TelegramMediaAction(action: .communityChanged(communityId: communityId))
+    case let .messageActionChatJoinedViaCommunity(messageActionChatJoinedViaCommunityData):
+        return TelegramMediaAction(action: .joinedViaCommunity(communityId: PeerId(namespace: Namespaces.Peer.CloudChannel, id: PeerId.Id._internalFromInt64Value(messageActionChatJoinedViaCommunityData.communityId))))
+    case let .messageActionWalletTonConnectRequest(data):
+        return TelegramMediaAction(action: .walletTonConnectRequest(flags: data.flags, sessionId: data.sessionId, expires: data.expires, topic: data.topic, traceId: data.traceId, dappName: data.dappName))
+    case .messageActionNoPaidMessagesTokenUsed:
+        return TelegramMediaAction(action: .noPaidMessagesTokenUsed)
     }
 }
 

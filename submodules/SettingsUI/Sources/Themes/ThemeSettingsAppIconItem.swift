@@ -11,8 +11,9 @@ import AppBundle
 import TelegramUIPreferences
 
 func bananaAppIconColumnCount(availableWidth: CGFloat) -> Int {
-    // 74-point item, 8-point minimum gap and 8-point outer margins.
-    return max(1, min(4, Int(max(0.0, availableWidth - 8.0) / 82.0)))
+    // 74-point item, 8-point minimum gap and 8-point outer margins. iPad may fit a fifth column.
+    let maxColumns = UIDevice.current.userInterfaceIdiom == .pad ? 5 : 4
+    return max(1, min(maxColumns, Int(max(0.0, availableWidth - 8.0) / 82.0)))
 }
 
 private func generateBorderImage(theme: PresentationTheme, bordered: Bool, selected: Bool) -> UIImage? {
@@ -350,7 +351,7 @@ class ThemeSettingsAppIconItemNode: ListViewItemNode, ItemListItemNode {
                     
                     strongSelf.backgroundNode.frame = CGRect(origin: CGPoint(x: 0.0, y: -min(insets.top, separatorHeight)), size: CGSize(width: params.width, height: contentSize.height + min(insets.top, separatorHeight) + min(insets.bottom, separatorHeight)))
                     strongSelf.highlightNode.frame = CGRect(origin: CGPoint(x: 0.0, y: -min(insets.top, separatorHeight)), size: CGSize(width: params.width, height: contentSize.height + min(insets.top, separatorHeight) + min(insets.bottom, separatorHeight)))
-                    strongSelf.maskNode.frame = strongSelf.backgroundNode.frame.insetBy(dx: params.leftInset, dy: 0.0)
+                    strongSelf.maskNode.frame = strongSelf.backgroundNode.frame.inset(by: UIEdgeInsets(top: 0.0, left: params.leftInset, bottom: 0.0, right: params.rightInset))
                     strongSelf.topStripeNode.frame = CGRect(origin: CGPoint(x: 0.0, y: -min(insets.top, separatorHeight)), size: CGSize(width: layoutSize.width, height: separatorHeight))
                     strongSelf.bottomStripeNode.frame = CGRect(origin: CGPoint(x: bottomStripeInset, y: contentSize.height + bottomStripeOffset), size: CGSize(width: layoutSize.width - bottomStripeInset, height: separatorHeight))
                     

@@ -231,7 +231,7 @@ private func manageableSpotlightContacts(appBasePath: String, accounts: Signal<[
                         }
                         if case let .user(user) = peer {
                             let avatarSourcePath = smallestImageRepresentation(user.photo).flatMap { representation -> String? in
-                                let resourcePath = account.postbox.mediaBox.resourcePath(representation.resource)
+                                let resourcePath = TelegramEngine(account: account).resources.resourcePath(resource: EngineMediaResource(representation.resource))
                                 if resourcePath.hasPrefix(appBasePath + "/") {
                                     return String(resourcePath[resourcePath.index(resourcePath.startIndex, offsetBy: appBasePath.count + 1)...])
                                 } else {

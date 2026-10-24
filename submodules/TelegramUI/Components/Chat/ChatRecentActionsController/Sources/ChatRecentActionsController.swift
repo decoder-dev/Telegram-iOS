@@ -50,10 +50,7 @@ public final class ChatRecentActionsController: TelegramBaseController {
         
         self.titleView = ChatNavigationBarTitleView(frame: CGRect())
         
-        // This screen draws the real chat wallpaper, so it follows ChatController: the
-        // wallpaper runs edge to edge under a transparent legacy bar instead of a glass
-        // capsule floating over it with a visible seam along its edges.
-        super.init(context: context, navigationBarPresentationData: NavigationBarPresentationData(presentationData: self.presentationData, hideBackground: true, hideBadge: false, style: .legacy))
+        super.init(context: context, navigationBarPresentationData: NavigationBarPresentationData(presentationData: self.presentationData, hideBackground: false, hideBadge: false, glassStyle: .default))
 
         self._hasGlassStyle = false
         
@@ -398,7 +395,7 @@ public final class ChatRecentActionsController: TelegramBaseController {
     }
     
     private func updateNavigationBarPresentation() {
-        let navigationBarTheme = NavigationBarTheme(rootControllerTheme: self.presentationData.theme, hideBackground: true, hideBadge: false, edgeEffectColor: .clear, style: .legacy)
+        let navigationBarTheme = NavigationBarTheme(rootControllerTheme: self.presentationData.theme, hideBadge: false, edgeEffectColor: .clear, glassStyle: self.preferredGlassType == .clear ? .clear : .default)
         self.navigationBar?.updatePresentationData(NavigationBarPresentationData(theme: navigationBarTheme, strings: NavigationBarStrings(presentationStrings: self.presentationData.strings)), transition: .immediate)
     }
 

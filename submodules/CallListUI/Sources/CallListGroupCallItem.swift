@@ -316,6 +316,7 @@ class CallListGroupCallItemNode: ItemListRevealOptionsItemNode {
             
             let insets: UIEdgeInsets
             let separatorHeight = UIScreenPixel
+            let separatorRightInset: CGFloat = item.systemStyle == .glass ? 16.0 : 0.0
             let itemBackgroundColor: UIColor
             let itemSeparatorColor: UIColor
             
@@ -397,7 +398,7 @@ class CallListGroupCallItemNode: ItemListRevealOptionsItemNode {
                                         strongSelf.bottomStripeNode.removeFromSupernode()
                                     }
                                     
-                                    transition.updateFrameAdditive(node: strongSelf.bottomStripeNode, frame: CGRect(origin: CGPoint(x: leftInset, y: contentSize.height - separatorHeight), size: CGSize(width: max(0.0, params.width - leftInset - higCardInset), height: separatorHeight)))
+                                    transition.updateFrameAdditive(node: strongSelf.bottomStripeNode, frame: CGRect(origin: CGPoint(x: leftInset, y: contentSize.height - separatorHeight), size: CGSize(width: max(0.0, params.width - leftInset - params.rightInset - separatorRightInset - higCardInset), height: separatorHeight)))
                                 case .blocks:
                                     if strongSelf.backgroundNode.supernode == nil {
                                         strongSelf.insertSubnode(strongSelf.backgroundNode, at: 0)
@@ -424,7 +425,7 @@ class CallListGroupCallItemNode: ItemListRevealOptionsItemNode {
                                     
                                     strongSelf.backgroundNode.frame = CGRect(origin: CGPoint(x: 0.0, y: -min(insets.top, separatorHeight)), size: CGSize(width: params.width, height: contentSize.height + min(insets.top, separatorHeight) + min(insets.bottom, separatorHeight)))
                                     strongSelf.topStripeNode.frame = CGRect(origin: CGPoint(x: 0.0, y: -min(insets.top, separatorHeight)), size: CGSize(width: nodeLayout.size.width, height: separatorHeight))
-                                    transition.updateFrameAdditive(node: strongSelf.bottomStripeNode, frame: CGRect(origin: CGPoint(x: bottomStripeInset, y: contentSize.height - separatorHeight), size: CGSize(width: nodeLayout.size.width - bottomStripeInset, height: separatorHeight)))
+                                    transition.updateFrameAdditive(node: strongSelf.bottomStripeNode, frame: CGRect(origin: CGPoint(x: bottomStripeInset, y: contentSize.height - separatorHeight), size: CGSize(width: nodeLayout.size.width - bottomStripeInset - params.rightInset - separatorRightInset, height: separatorHeight)))
                             }
                             
                             let avatarFrame = CGRect(origin: CGPoint(x: revealOffset + leftInset - avatarDiameter - 12.0, y: floor((contentSize.height - avatarDiameter) / 2.0)), size: CGSize(width: avatarDiameter, height: avatarDiameter))

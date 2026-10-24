@@ -178,6 +178,7 @@ public class ItemListSectionHeaderItemNode: ListViewItemNode, ItemListItemNode {
         
         return { [weak self] item, params, neighbors in
             let leftInset: CGFloat = 15.0 + params.leftInset
+            let rightInset: CGFloat = 15.0 + params.rightInset
             
             let titleFont = Font.regular(item.presentationData.fontSize.itemListBaseHeaderFontSize)
             
@@ -271,7 +272,7 @@ public class ItemListSectionHeaderItemNode: ListViewItemNode, ItemListItemNode {
                         }
                         
                         let actionSize = CGSize(width: max(44.0, actionLayout.size.width), height: contentSize.height)
-                        actionButtonNode.frame = CGRect(origin: CGPoint(x: params.width - params.rightInset - 15.0 - actionSize.width, y: 0.0), size: actionSize)
+                        actionButtonNode.frame = CGRect(origin: CGPoint(x: params.width - rightInset - actionSize.width, y: 0.0), size: actionSize)
                         
                         actionNode.frame = CGRect(origin: CGPoint(x: actionSize.width - actionLayout.size.width, y: floor((actionSize.height - actionLayout.size.height) / 2.0)), size: actionLayout.size)
                     } else {
@@ -331,7 +332,7 @@ public class ItemListSectionHeaderItemNode: ListViewItemNode, ItemListItemNode {
                     if let accessoryIcon = accessoryIcon {
                         accessoryTextOffset += accessoryIcon.size.width + 3.0
                     }
-                    strongSelf.accessoryTextNode.frame = CGRect(origin: CGPoint(x: params.width - leftInset - accessoryLayout.size.width - accessoryTextOffset, y: 7.0), size: accessoryLayout.size)
+                    strongSelf.accessoryTextNode.frame = CGRect(origin: CGPoint(x: params.width - rightInset - accessoryLayout.size.width - accessoryTextOffset, y: 7.0), size: accessoryLayout.size)
                     
                     if let accessoryIcon = accessoryIcon {
                         let accessoryImageNode: ASImageNode
@@ -345,7 +346,7 @@ public class ItemListSectionHeaderItemNode: ListViewItemNode, ItemListItemNode {
                             strongSelf.accessoryImageNode = accessoryImageNode
                         }
                         accessoryImageNode.image = accessoryIcon
-                        accessoryImageNode.frame = CGRect(origin: CGPoint(x: params.width - leftInset - accessoryIcon.size.width, y: 7.0), size: accessoryIcon.size)
+                        accessoryImageNode.frame = CGRect(origin: CGPoint(x: params.width - rightInset - accessoryIcon.size.width, y: 7.0), size: accessoryIcon.size)
                     } else if let accessoryImageNode = strongSelf.accessoryImageNode {
                         accessoryImageNode.removeFromSupernode()
                         strongSelf.accessoryImageNode = nil
@@ -379,7 +380,7 @@ public class ItemListSectionHeaderItemNode: ListViewItemNode, ItemListItemNode {
                     case .left:
                         activityIndicatorOrigin = CGPoint(x: strongSelf.titleNode.frame.maxX + 6.0, y: 7.0 - UIScreenPixel)
                     case .right:
-                        activityIndicatorOrigin = CGPoint(x: params.width - leftInset - 18.0, y: 7.0 - UIScreenPixel)
+                        activityIndicatorOrigin = CGPoint(x: params.width - rightInset - 18.0, y: 7.0 - UIScreenPixel)
                     default:
                         break
                     }
